@@ -11,7 +11,6 @@
 
   import NewsList from "./NewsList.svelte";
   import OrderPagination from "./OrderPagination.svelte";
-  import ContextualSplitView from "../layout/ContextualSplitView.svelte";
   import DraftGenerativeForm from "./DraftGenerativeForm.svelte";
 
   interface Article {
@@ -40,6 +39,7 @@
   let formTitle = $state("");
   let formCategory = $state<string>(CATEGORIES[0]);
   let formExcerpt = $state("");
+  let showDraftForm = $state(false);
 
   let pageSize = $state(10);
   const totalPages = $derived(Math.max(1, Math.ceil(totalArticles / pageSize)));
@@ -120,8 +120,6 @@
     selectedIds = n;
   }
 
-  // `save` logic moved completely to DraftGenerativeForm
-
   async function bulk(v: "del" | "pub") {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
@@ -134,140 +132,160 @@
   }
 </script>
 
-<ContextualSplitView showForm={showDraftForm}>
-  {#snippet mainSlot()}
-    <div class="w-full h-full flex flex-col relative px-2 sm:px-4 py-4 sm:py-0 overflow-hidden">
-  <div class="flex flex-col gap-4">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-4"></div>
-      <div class="flex items-center gap-3">
-        {#if selectedIds.size > 0}
-          <button onclick={() => bulk("pub")}
-            class="px-4 py-2 text-[10px] font-mono uppercase bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] rounded-xl hover:bg-[#39FF14]/20 transition-all shadow-[0_0_15px_rgba(57,255,20,0.1)]"
-            ><Send size={12} class="inline mr-1" /> Deploy_Live ({selectedIds.size})</button>
-          <button onclick={() => bulk("del")}
-            class="px-4 py-2 text-[10px] font-mono uppercase bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all shadow-[0_0_15px_rgba(239,68,68,0.1)]"
-            ><Trash2 size={12} class="inline mr-1" /> Purge ({selectedIds.size})</button>
-        {/if}
+<!-- Simple inline flex: List | Form side-by-side INSIDE the modal content area -->
+<div class="news-split w-full h-full flex overflow-hidden">
+  <!-- LEFT: Article List (shrinks when form is open) -->
+  <div class="news-list-pane flex flex-col overflow-hidden" class:has-form={showDraftForm}>
+    <div class="flex flex-col gap-4 px-2 sm:px-4 py-4 sm:py-0">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4"></div>
+        <div class="flex items-center gap-3">
+          {#if selectedIds.size > 0}
+            <button onclick={() => bulk("pub")}
+              class="px-4 py-2 text-[10px] font-mono uppercase bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] rounded-xl hover:bg-[#39FF14]/20 transition-all shadow-[0_0_15px_rgba(57,255,20,0.1)]"
+              ><Send size={12} class="inline mr-1" /> Deploy_Live ({selectedIds.size})</button>
+            <button onclick={() => bulk("del")}
+              class="px-4 py-2 text-[10px] font-mono uppercase bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all shadow-[0_0_15px_rgba(239,68,68,0.1)]"
+              ><Trash2 size={12} class="inline mr-1" /> Purge ({selectedIds.size})</button>
+          {/if}
 
-        <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-500 uppercase tracking-widest">
-          <span>Show</span>
-          <select
-            value={pageSize}
-            onchange={(e) => { pageSize = Number((e.target as HTMLSelectElement).value); currentPage = 1; }}
-            class="bg-black/60 border border-white/10 rounded-md px-1.5 py-1 text-[#FF33FF] text-[9px] font-mono font-bold focus:outline-none focus:border-[#FF33FF]/50 cursor-pointer appearance-none text-center w-12"
+          <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-500 uppercase tracking-widest">
+            <span>Show</span>
+            <select
+              value={pageSize}
+              onchange={(e) => { pageSize = Number((e.target as HTMLSelectElement).value); currentPage = 1; }}
+              class="bg-black/60 border border-white/10 rounded-md px-1.5 py-1 text-[#FF33FF] text-[9px] font-mono font-bold focus:outline-none focus:border-[#FF33FF]/50 cursor-pointer appearance-none text-center w-12"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+            <span>of {totalArticles}</span>
+          </div>
+
+          <button onclick={openCreate}
+            class="px-4 py-2 text-[10px] font-mono uppercase bg-[#FF33FF]/10 border border-[#FF33FF]/30 text-[#FF33FF] rounded-xl hover:bg-[#FF33FF]/20 transition-all shadow-[0_0_15px_rgba(255,51,255,0.1)]"
+            ><Plus size={12} class="inline mr-1" /> New_Intel</button>
+
+          <button onclick={loadArticles} title="Force Resync"
+            class="p-2.5 text-gray-500 hover:text-[#FF33FF] border border-white/5 hover:border-[#FF33FF]/30 rounded-xl bg-black/40 hover:bg-[#FF33FF]/10 transition-all"
           >
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-          </select>
-          <span>of {totalArticles}</span>
+            <RefreshCw size={14} class={isLoading ? "animate-spin text-[#FF33FF]" : ""} />
+          </button>
+        </div>
+      </div>
+      <div class="flex flex-col xl:flex-row xl:items-center gap-3 sm:gap-4 bg-white/[0.01] border border-white/5 p-3 sm:p-2 rounded-2xl w-full">
+        <div class="flex-1 relative group w-full xl:min-w-[250px]">
+          <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+            <Search size={14} class="text-gray-600 group-focus-within:text-[#FF33FF] transition-colors" />
+          </div>
+          <input
+            value={searchInput}
+            oninput={handleSearchInput}
+            type="text"
+            placeholder="SEARCH_CONTENT_STREAM..."
+            class="w-full bg-black/40 border border-white/5 rounded-xl py-3 pl-11 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-700 focus:outline-none focus:border-[#FF33FF]/40 focus:ring-1 focus:ring-[#FF33FF]/10 transition-all uppercase tracking-widest"
+          />
         </div>
 
-        <button onclick={openCreate}
-          class="px-4 py-2 text-[10px] font-mono uppercase bg-[#FF33FF]/10 border border-[#FF33FF]/30 text-[#FF33FF] rounded-xl hover:bg-[#FF33FF]/20 transition-all shadow-[0_0_15px_rgba(255,51,255,0.1)]"
-          ><Plus size={12} class="inline mr-1" /> New_Intel</button>
+        <div class="flex flex-col sm:flex-row xl:items-center gap-3 sm:gap-4 xl:gap-0 mt-2 xl:mt-0 w-full xl:w-auto">
+          <div class="flex gap-1 p-1 bg-black/40 border border-white/5 rounded-xl overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+            {#each ["all", ...CATEGORIES] as c}
+              <button
+                onclick={() => handleCategoryChange(c)}
+                class="px-4 py-2 text-[8px] font-mono uppercase tracking-[0.2em] rounded-lg transition-all relative overflow-hidden group/btn flex-shrink-0
+                  {activeCategoryFilter === c
+                  ? 'bg-neon-cyan/10 text-neon-cyan/90 ring-1 ring-neon-cyan/30'
+                  : 'text-gray-500 hover:text-white hover:bg-white/5'}"
+              >
+                {c === "all" ? "All_Nodes" : c}
+              </button>
+            {/each}
+          </div>
 
-        <button onclick={loadArticles} title="Force Resync"
-          class="p-2.5 text-gray-500 hover:text-[#FF33FF] border border-white/5 hover:border-[#FF33FF]/30 rounded-xl bg-black/40 hover:bg-[#FF33FF]/10 transition-all"
-        >
-          <RefreshCw size={14} class={isLoading ? "animate-spin text-[#FF33FF]" : ""} />
-        </button>
+          <div class="hidden xl:block w-[1px] h-6 bg-white/10 mx-2"></div>
+
+          <div class="flex gap-1 p-1 bg-black/40 border border-white/5 rounded-xl overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+            {#each ["all", "published", "draft"] as t}
+              <button
+                onclick={() => handleTabChange(t)}
+                class="px-4 py-2 text-[8px] font-mono uppercase tracking-[0.2em] rounded-lg transition-all relative overflow-hidden group/btn flex-shrink-0
+                  {activeTab === t
+                  ? 'bg-[#FF33FF]/10 text-[#FF33FF]/90 ring-1 ring-[#FF33FF]/30'
+                  : 'text-gray-500 hover:text-white hover:bg-white/5'}"
+              >
+                {t === "all" ? "Archive" : t === "published" ? "Live" : "Staging"}
+              </button>
+            {/each}
+          </div>
+        </div>
       </div>
     </div>
-    <div class="flex items-center gap-4 bg-white/[0.01] border border-white/5 p-2 rounded-2xl">
-      <div class="flex-1 relative group">
-        <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-          <Search size={14} class="text-gray-600 group-focus-within:text-[#FF33FF] transition-colors" />
+
+    <div class="flex-1 overflow-y-auto custom-scrollbar px-2 sm:px-4">
+      {#if isLoading}
+        <div class="h-full flex items-center justify-center animate-pulse">
+          <span class="text-[9px] font-mono text-[#FF33FF]/40 uppercase tracking-[0.3em]">Loading Content...</span>
         </div>
-        <input
-          value={searchInput}
-          oninput={handleSearchInput}
-          type="text"
-          placeholder="SEARCH_CONTENT_STREAM..."
-          class="w-full bg-black/40 border border-white/5 rounded-xl py-3 pl-11 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-700 focus:outline-none focus:border-[#FF33FF]/40 focus:ring-1 focus:ring-[#FF33FF]/10 transition-all uppercase tracking-widest"
+      {:else}
+        <NewsList
+          {articles}
+          {selectedIds}
+          onToggleSelect={toggleSelect}
+          onEdit={openEdit}
+          onDelete={async (id) => {
+            try {
+              await apiClient.post("/api/v1/articles/bulk-delete", { ids: [id] });
+              await loadArticles();
+            } catch { console.error("Delete failed"); }
+          }}
         />
-      </div>
-
-      <div class="flex gap-1 p-1 bg-black/40 border border-white/5 rounded-xl">
-        {#each ["all", ...CATEGORIES] as c}
-          <button
-            onclick={() => handleCategoryChange(c)}
-            class="px-4 py-2 text-[8px] font-mono uppercase tracking-[0.2em] rounded-lg transition-all relative overflow-hidden group/btn
-              {activeCategoryFilter === c
-              ? 'bg-neon-cyan/10 text-neon-cyan'
-              : 'text-gray-500 hover:text-white hover:bg-white/5'}"
-          >
-            {c === "all" ? "All_Nodes" : c}
-            {#if activeCategoryFilter === c}
-              <div class="absolute bottom-0 left-0 w-full h-[1px] bg-neon-cyan shadow-[0_0_10px_#00FFFF]"></div>
-            {/if}
-          </button>
-        {/each}
-      </div>
-
-      <div class="w-[1px] h-6 bg-white/10"></div>
-
-      <div class="flex gap-1 p-1 bg-black/40 border border-white/5 rounded-xl">
-        {#each ["all", "published", "draft"] as t}
-          <button
-            onclick={() => handleTabChange(t)}
-            class="px-4 py-2 text-[8px] font-mono uppercase tracking-[0.2em] rounded-lg transition-all relative overflow-hidden group/btn
-              {activeTab === t
-              ? 'bg-[#FF33FF]/10 text-[#FF33FF]'
-              : 'text-gray-500 hover:text-white hover:bg-white/5'}"
-          >
-            {t === "all" ? "Archive" : t === "published" ? "Live" : "Staging"}
-            {#if activeTab === t}
-              <div class="absolute bottom-0 left-0 w-full h-[1px] bg-[#FF33FF] shadow-[0_0_10px_#FF33FF]"></div>
-            {/if}
-          </button>
-        {/each}
-      </div>
+      {/if}
     </div>
-  </div>
 
-  <div class="flex-1 overflow-y-auto custom-scrollbar">
-    {#if isLoading}
-      <div class="h-full flex items-center justify-center animate-pulse">
-        <span class="text-[9px] font-mono text-[#FF33FF]/40 uppercase tracking-[0.3em]">Loading Content...</span>
-      </div>
-    {:else}
-      <NewsList
-        {articles}
-        {selectedIds}
-        onToggleSelect={toggleSelect}
-        onEdit={openEdit}
-        onDelete={async (id) => {
-          try {
-            await apiClient.post("/api/v1/articles/bulk-delete", { ids: [id] });
-            await loadArticles();
-          } catch { console.error("Delete failed"); }
-        }}
+    <div class="px-2 sm:px-4">
+      <OrderPagination
+        bind:currentPage
+        {totalPages}
+        {pageSize}
+        totalItems={totalArticles}
       />
-    {/if}
+    </div>
   </div>
 
-  <OrderPagination
-    bind:currentPage
-    {totalPages}
-    {pageSize}
-    totalItems={totalArticles}
-  />
+  <!-- RIGHT: Draft Form (slides in from right) -->
+  {#if showDraftForm}
+    <div class="news-form-pane border-l border-white/10 overflow-y-auto">
+      <DraftGenerativeForm
+        {editingId}
+        initialTitle={formTitle}
+        onSuccess={async () => { showDraftForm = false; await loadArticles(); }}
+        onClose={() => (showDraftForm = false)}
+      />
     </div>
-  {/snippet}
-
-  {#snippet formSlot()}
-    <DraftGenerativeForm
-      {editingId}
-      initialTitle={formTitle}
-      onSuccess={async () => { showDraftForm = false; await loadArticles(); }}
-      onClose={() => (showDraftForm = false)}
-    />
-  {/snippet}
-</ContextualSplitView>
+  {/if}
+</div>
 
 <style>
+  .news-list-pane {
+    width: 100%;
+    transition: width 0.3s ease;
+  }
+  .news-list-pane.has-form {
+    width: 40%;
+  }
+  .news-form-pane {
+    width: 60%;
+    background: rgba(10, 15, 24, 0.98);
+  }
+  @media (max-width: 768px) {
+    .news-list-pane.has-form {
+      display: none;
+    }
+    .news-form-pane {
+      width: 100%;
+    }
+  }
   .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
   }

@@ -15,7 +15,7 @@
   const DRAFT_KEY = "news_draft_v2";
 
   let formData = $state({
-    title: initialTitle,
+    title: "",
     category: "Tin tức",
     slug: "",
     seo_title: "",

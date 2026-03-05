@@ -1324,6 +1324,85 @@ flowchart TB
 
 ---
 
+### 24.7 Layout & Performance Architecture (V58.2)
+
+#### 24.7.1 Desktop Layout Hierarchy
+
+```
+DesktopLayout (flex h-screen)
+├── <main> (flex-1, relative, flex-col)
+│   ├── <header> (h-12, bg-solid, z-30)
+│   ├── Canvas Area (flex-1, relative, overflow-hidden, z-10)
+│   │   ├── XohiWatermark
+│   │   ├── DynamicCanvas + {children}
+│   │   └── UniversalModal (absolute inset-0, z-50) ← SCOPED TO CANVAS
+│   ├── OmniCommand (relative, z-60) ← ABOVE modal
+│   ├── VoiceModal
+│   ├── TechStackFooter ← NEVER covered by modal
+│   └── FullLogView / VaultModal / ConfirmationModal (absolute to <main>)
+└── <aside> (w-300/350px, shrink-0) ← HeartbeatStream, NEVER covered
+```
+
+#### 24.7.2 Quy Tắc Modal & Overlay
+
+| Rule   | Mô tả                                                                                |
+| ------ | ------------------------------------------------------------------------------------ |
+| **L1** | `UniversalModal` phải nằm **TRONG** Canvas Area div, KHÔNG ở tầng `<main>`           |
+| **L2** | `MissionControlShell` dùng `position: absolute` (KHÔNG `fixed`) → scope vào `<main>` |
+| **L3** | Modal KHÔNG BAO GIỜ che OmniCommand, Footer, hoặc HeartbeatStream Sidebar            |
+| **L4** | Component render trong modal KHÔNG dùng `ContextualSplitView` — dùng inline flex     |
+
+#### 24.7.3 Anti-Lag Rules (Performance Critical)
+
+| Rule   | ❌ CẤM                                                | ✅ ĐÚNG                                                    |
+| ------ | ----------------------------------------------------- | ---------------------------------------------------------- |
+| **P1** | `backdrop-blur-*` trên container/sticky header        | `bg-[#050505]` solid color                                 |
+| **P2** | `transition-all` trên list items                      | `transition-colors duration-150` hoặc **KHÔNG transition** |
+| **P3** | Hover thay đổi border-width/shadow/size               | Hover chỉ đổi `background-color`                           |
+| **P4** | Scan line animation (`translate-x 1000ms`) trên hover | Xóa hoàn toàn                                              |
+| **P5** | `overflow-y: auto` trên list container                | `overflow-y: scroll` (scrollbar cố định)                   |
+| **P6** | `flex-wrap` trên list item content                    | `flex` (no wrap) — tránh reflow khi hover                  |
+
+#### 24.7.4 Zero-Reflow Hover Pattern
+
+```css
+/* Áp dụng cho MỌI list item (Order, Product, User, News) */
+.list-item {
+  contain: layout style; /* Cách ly reflow khỏi parent */
+  will-change: background-color; /* Pre-allocate GPU layer */
+}
+.list-item:hover {
+  background: rgba(
+    255,
+    255,
+    255,
+    0.03
+  ); /* CHỈ đổi background, KHÔNG border/shadow */
+}
+```
+
+> [!CAUTION]
+> `backdrop-blur` trên element liên tục visible (sticky header, container) là **KẺ GIẾT HIỆU NĂNG SỐ 1**. Mỗi frame scroll, browser phải blur TẤT CẢ pixel phía sau → cực nặng trên VPS. Chỉ dùng cho modal backdrop (hiện thoáng qua).
+
+#### 24.7.5 HeartbeatStream Sidebar Layout
+
+- Header tách **2 hàng**: Row 1 = Title + Sync + Clear; Row 2 = User Selector
+- Scroll container: `overflow-x: hidden` + `px-4` (không `px-6`)
+- Nút Clear Log **luôn hiện** ở góc phải Row 1, không bị đẩy bởi dropdown
+
+#### 24.8 XoHi Mobile Architecture (V58.3)
+
+> **Mục tiêu:** Mobile KHÔNG PHẢI là bản thu nhỏ của Desktop. Nó là một ứng dụng trợ lý AI riêng biệt (Native App-like).
+
+- **Kiến trúc Độc Lập:** Tách biệt layout mobile (`MobileShell.svelte`, `MobileHome.svelte`) khỏi desktop. Giao diện chính trên mobile là một màn hình trò chuyện trực tiếp với XoHi, thay vì hiển thị Dashboard phức tạp.
+- **Voice-First Input:** Thanh công cụ `MobileInputBar` được ghim tĩnh mượt mà ở đáy màn hình, chứa nút micro luôn sẵn sàng.
+- **Contextual Management Sheets:** Các chức năng quản lý (Đơn hàng, Sản phẩm, v.v.) render qua `MobileContextSheet.svelte` (trượt từ phải sang), KHÔNG dùng Modal. CÓ HỖ TRỢ thao tác vuốt để đóng (swipe-to-close).
+- **Responsive Stacked Cards:** Mọi bảng và danh sách trên mobile BẮT BUỘC dùng dạng Card xếp chồng (flex-col, stacked). Tuyệt đối cấm lỗi tràn viền ngang (horizontal overflow).
+- **Mobile Performance Enforcement:** CẦM hoàn toàn việc sử dụng CSS `backdrop-blur-*` trên các Overlay của màn hình nhỏ. Chỉ dùng nền khối (Solid color `#050505`) để duy trì >60FPS trên thiết bị cũ.
+- **PWA (Progressive Web App):** Hỗ trợ `manifest.json` và Service Worker để lưu trải nghiệm ra màn hình chính (Add to Home Screen).
+
+---
+
 ## VI. ROADMAP
 
 - [x] **V40→V45** Skills Matrix, System Purge, Cognitive Persistence, Voice Onboarding, Emotion & Context Protocol.
@@ -1343,7 +1422,9 @@ flowchart TB
 - [x] **V57.5→V57.6** XOI PROTOCOL: Kiểm tra "xoi" kỹ lưỡng, tối ưu hóa triệt để và cập nhật Hiến pháp Voice UX.
 - [x] **V58.0** CONSOLIDATED WAKE WORD: Xóa sổ logic Wake Word rải rác ở Frontend. Chuyển dịch toàn bộ sang Backend-Driven Architecture. Fix lỗi cướp mic (race condition) gây mất tiếng chào. Nhất quán định danh `XOHI` toàn hệ thống.
 - [x] **V58.1** CTOP AUDIT ENFORCEMENT: Kiểm định toàn diện code base. Thêm R69 (LOC ≤ 300), R70 (Dependency Pinning), R71 (Test Mandate). Fix load_dotenv ordering, cookie parsing, duplicate Base, dead imports. Tách 3 file LOC vi phạm (VoiceSettings, Nanobot, Omni). Thêm pytest unit tests. Cập nhật user_global rules.
+- [x] **V58.2** LAYOUT & PERFORMANCE SURGERY: Sửa UniversalModal scope (Canvas Area only). MissionControlShell `fixed→absolute`. Loại bỏ `backdrop-blur` toàn bộ container/sticky header (6 components). Zero-Reflow Hover Pattern (`contain: layout style`). Fix scrollbar flicker (`overflow-y: scroll`). HeartbeatStream header 2-hàng. Loại bỏ ContextualSplitView khỏi NewsManagement.
+- [x] **V58.3** XOHI MOBILE — AI ADMIN ASSISTANT APP: Kiến trúc di động độc lập. Màn hình chính trò chuyện Voice-first (`MobileHome.svelte`, `MobileInputBar.svelte`). `MobileContextSheet.svelte` thay thế Modal bằng vuốt chạm trượt ngang. Bảng điều khiển Mobile sử dụng Responsive Stacked Cards để chống chật hẹp, bỏ hiệu ứng blur cho mobile. Tích hợp PWA.
 
 ---
 
-_V58.1: CTOP AUDIT ENFORCEMENT — Clean Code, Clear Flow, Tested Logic._
+_V58.3: XOHI MOBILE APP — Native App-like, Voice-First, Responsive Cards, Zero-lag PWA._

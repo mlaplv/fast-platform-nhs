@@ -55,7 +55,7 @@
       out:fly={{ x: 20, duration: 300, opacity: 0 }}
       class="pointer-events-auto relative group"
     >
-      <div class="{config.bg} {config.border} {config.glow} border-2 rounded-2xl p-4 overflow-hidden backdrop-blur-xl transition-all duration-300 hover:scale-[1.02]">
+      <div class="{config.bg} {config.border} {config.glow} border-2 rounded-2xl p-4 overflow-hidden bg-black/95 md:backdrop-blur-xl transition-all duration-300 hover:scale-[1.02]">
         
         <!-- Animated Background Line -->
         <div class="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>

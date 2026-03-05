@@ -22,7 +22,7 @@
 </script>
 
 <div
-  class="bg-black/60 backdrop-blur-md border border-[#00FFFF]/20 rounded-2xl p-5 flex flex-col gap-4 shadow-[0_8px_30px_rgba(0,0,0,0.5)] my-2 relative overflow-hidden"
+  class="bg-[#050505]/95 md:bg-black/60 md:backdrop-blur-md border border-[#00FFFF]/20 rounded-2xl p-5 flex flex-col gap-4 shadow-[0_8px_30px_rgba(0,0,0,0.5)] my-2 relative overflow-hidden"
   transition:slide={{ duration: 300, axis: "y" }}
 >
   <div

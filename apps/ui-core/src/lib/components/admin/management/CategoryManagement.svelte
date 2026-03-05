@@ -168,7 +168,7 @@
   }
 </script>
 
-<div class="w-full h-full flex flex-col relative bg-black/40 backdrop-blur-xl">
+<div class="w-full h-full flex flex-col relative bg-[#050505]">
   <div class="flex flex-col gap-6 p-6 border-b border-white/[0.05]">
     {#if showForm}<CategoryForm
         {editingId}
@@ -180,17 +180,12 @@
         generateSlug={genSlug}
       />{/if}
     <div
-      class="flex flex-wrap lg:flex-nowrap items-center justify-between gap-4 bg-white/[0.02] border border-white/10 p-2.5 rounded-2xl shadow-inner backdrop-blur-md"
+      class="flex flex-col lg:flex-row lg:items-center md:gap-4 gap-3 bg-white/[0.02] border border-white/10 p-3 sm:p-2.5 rounded-2xl"
     >
       <!-- Search Input -->
-      <div class="flex-1 relative group min-w-[250px]">
-        <div
-          class="absolute inset-y-0 left-4 flex items-center pointer-events-none"
-        >
-          <Search
-            size={16}
-            class="text-gray-500 group-focus-within:text-neon-cyan group-focus-within:scale-110 transition-all"
-          />
+      <div class="flex-1 relative group w-full lg:min-w-[250px]">
+        <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+          <Search size={16} class="text-gray-500 group-focus-within:text-neon-cyan group-focus-within:scale-110 transition-all" />
         </div>
         <input
           bind:value={searchTerm}
@@ -201,32 +196,43 @@
       </div>
 
       <!-- Actions & Stats -->
-      <div class="flex items-center gap-3 pr-2">
-        {#if selectedIds.size > 0}
-          <button
-            onclick={() => {
-              apiClient.post("/api/v1/categories/bulk-delete", {
-                ids: Array.from(selectedIds),
-              });
-              categories = categories.filter((c) => !selectedIds.has(c.id));
-              selectedIds = new Set();
-            }}
-            class="flex items-center gap-2 px-3 py-1.5 text-[10px] font-mono uppercase bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all shadow-[0_0_15px_rgba(239,68,68,0.1)]"
-            ><Trash2 size={12} /> Purge ({selectedIds.size})</button
+      <div class="flex items-center flex-wrap sm:flex-nowrap justify-between lg:justify-end gap-3 w-full lg:w-auto mt-1 lg:mt-0 lg:pr-2">
+        <div class="flex items-center gap-2">
+          {#if selectedIds.size > 0}
+            <button
+              onclick={() => {
+                apiClient.post("/api/v1/categories/bulk-delete", {
+                  ids: Array.from(selectedIds),
+                });
+                categories = categories.filter((c) => !selectedIds.has(c.id));
+                selectedIds = new Set();
+              }}
+              class="flex items-center gap-2 px-3 py-2 text-[10px] font-mono uppercase bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all shadow-[0_0_15px_rgba(239,68,68,0.1)]"
+              ><Trash2 size={12} class="hidden sm:block"/><Trash2 size={14} class="sm:hidden"/><span class="hidden sm:inline">Purge ({selectedIds.size})</span><span class="sm:hidden">({selectedIds.size})</span></button
+            >
+          {/if}
+          <div
+            class="flex sm:hidden items-center gap-2 px-3 py-2 bg-gradient-to-br from-neon-cyan/10 to-transparent border border-neon-cyan/30 rounded-xl text-[10px] font-mono text-neon-cyan uppercase tracking-[0.2em] shadow-[0_0_15px_rgba(0,255,255,0.05)]"
           >
-        {/if}
-        <button
-          onclick={() => openCreate()}
-          class="flex items-center gap-2 px-4 py-2 text-[10px] font-bold tracking-widest font-mono uppercase bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 hover:text-white rounded-xl transition-all duration-300"
-        >
-          <Plus size={12} /> Init_Node
-        </button>
+            <Layers size={14} class="animate-pulse opacity-70" />
+            <span class="font-bold">{categories.length}</span>
+          </div>
+        </div>
 
-        <div
-          class="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-neon-cyan/10 to-transparent border border-neon-cyan/30 rounded-xl text-[10px] font-mono text-neon-cyan uppercase tracking-[0.2em] shadow-[0_0_15px_rgba(0,255,255,0.05)]"
-        >
-          <Layers size={14} class="animate-pulse opacity-70" />
-          <span class="font-bold">{categories.length}</span> Nodes
+        <div class="flex items-center gap-2 sm:gap-3 ml-auto sm:ml-0">
+          <div
+            class="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-neon-cyan/10 to-transparent border border-neon-cyan/30 rounded-xl text-[10px] font-mono text-neon-cyan uppercase tracking-[0.2em] shadow-[0_0_15px_rgba(0,255,255,0.05)]"
+          >
+            <Layers size={14} class="animate-pulse opacity-70" />
+            <span class="font-bold">{categories.length}</span> Nodes
+          </div>
+
+          <button
+            onclick={() => openCreate()}
+            class="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2 text-[10px] w-full sm:w-auto justify-center font-bold tracking-widest font-mono uppercase bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 hover:text-white rounded-xl transition-all duration-300"
+          >
+            <Plus size={14} class="sm:hidden" /><Plus size={12} class="hidden sm:block" /> <span class="hidden sm:inline">Init_Node</span>
+          </button>
         </div>
       </div>
     </div>

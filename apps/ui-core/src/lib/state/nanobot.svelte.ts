@@ -29,6 +29,7 @@ export function createNanobotState() {
     showMobileSidebar: false,
     nanoBotStatus: "IDLE" as "IDLE" | "THINKING" | "ERROR" | "SUCCESS",
     showMobileDrawer: false,
+    showQuickTips: false,
     stateStartedAt: Date.now(),
     modality: "text" as "text" | "voice",
     userEmail: "",
@@ -67,6 +68,7 @@ export function createNanobotState() {
       source: "voice";
       routerTier?: number;
     } | null,
+    mobileScrollPosition: 0,
   });
 
   // INITIAL HYDRATION: Sync with RBAC state (V47.0)
@@ -432,6 +434,9 @@ export function createNanobotState() {
     get showMobileDrawer() {
       return state.showMobileDrawer;
     },
+    get showQuickTips() {
+      return state.showQuickTips;
+    },
     get agenticSuggestions() {
       return state.agenticSuggestions;
     },
@@ -488,6 +493,12 @@ export function createNanobotState() {
     },
     get godModeUser() {
       return state.godModeUser;
+    },
+    get mobileScrollPosition() {
+      return state.mobileScrollPosition;
+    },
+    get isMobileHeaderMinimized() {
+      return state.mobileScrollPosition > 20;
     },
 
     // Voice Delegation
@@ -548,6 +559,9 @@ export function createNanobotState() {
     toggleMobileDrawer() {
       state.showMobileDrawer = !state.showMobileDrawer;
     },
+    toggleQuickTips() {
+      state.showQuickTips = !state.showQuickTips;
+    },
     toggleHudPopup(type: HudPopupType) {
       state.activeHudPopup = state.activeHudPopup === type ? "NONE" : type;
     },
@@ -581,6 +595,9 @@ export function createNanobotState() {
     closeUniversalModal: () => {
       ui.setUniversalModalOpen(false);
       state.activeWidget = "NONE";
+    },
+    setMobileScrollPosition(val: number) {
+      state.mobileScrollPosition = val;
     },
 
     // Sub-state proxies

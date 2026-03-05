@@ -46,7 +46,7 @@
 
     {#if isExpanded && activeCount > 0}
         <div class="px-5 pb-4 pt-1">
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1.5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-1.5">
                 {#each perms as perm}
                     {@const active = roleHasPerm(perm.code)}
                     {#if active}

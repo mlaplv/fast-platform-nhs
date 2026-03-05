@@ -30,7 +30,7 @@
           e.stopPropagation();
           omni.menu = !omni.menu;
         }}
-        class="w-11 h-11 md:w-12 md:h-12 shrink-0 backdrop-blur-md rounded-full flex items-center justify-center transition-all duration-500 shadow-2xl {omni.menu
+        class="w-11 h-11 md:w-12 md:h-12 shrink-0 md:backdrop-blur-md rounded-full flex items-center justify-center transition-all duration-500 shadow-2xl {omni.menu
           ? 'bg-[#1a1a1a]/80 text-[#00FFFF] border border-[#00FFFF]/30 shadow-[0_0_20px_rgba(0,255,255,0.15)]'
           : 'bg-[#1a1a1a]/80 text-gray-400 border border-white/5 hover:text-[#00FFFF]'}"
       >
@@ -45,7 +45,7 @@
     </div>
 
     <div
-      class="flex-1 bg-[#1a1a1a]/80 backdrop-blur-2xl border border-white/5 rounded-full flex items-center p-1 shadow-2xl focus-within:border-[#00FFFF]/30"
+      class="flex-1 bg-[#1a1a1a]/80 md:backdrop-blur-2xl border border-white/5 rounded-full flex items-center p-1 shadow-2xl focus-within:border-[#00FFFF]/30"
     >
       <input
         id="cmd-input"

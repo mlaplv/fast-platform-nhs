@@ -82,7 +82,7 @@
     maxWidth={dialog.fields && dialog.fields.length > 0 ? "max-w-xl" : "max-w-lg"}
     height="h-auto"
     zIndex="z-[99999]"
-    backdropClass="bg-black/40 backdrop-blur-sm"
+    backdropClass="bg-[#050505]/95 md:bg-black/40 md:backdrop-blur-sm"
   >
     <div class="px-8 py-6 relative">
       <!-- Message -->

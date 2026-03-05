@@ -7,8 +7,8 @@
   let textareaEl: HTMLTextAreaElement;
   let ghostEl: HTMLDivElement;
 
-  let abortController: AbortController | null = null;
-  let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
+  let abortController = $state<AbortController | null>(null);
+  let debounceTimeout = $state<ReturnType<typeof setTimeout> | null>(null);
 
   function syncScroll() {
     if (textareaEl && ghostEl) {

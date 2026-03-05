@@ -181,10 +181,10 @@
 
 <div class="w-full h-full flex flex-col relative bg-[#050505]">
   <!-- Top Priority Control Bar (Sticky) -->
-  <div class="sticky top-0 z-20 bg-[#050505]/95 backdrop-blur-xl border-b border-white/5 p-4 sm:p-6 flex flex-col gap-4 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+  <div class="sticky top-0 z-20 bg-[#050505] border-b border-white/5 p-4 flex flex-col gap-3 shrink-0">
     
     <!-- Row 1: Search, Stats, Actions -->
-    <div class="flex flex-col sm:flex-row items-center gap-4 justify-between">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 justify-between">
       <!-- Search Input -->
       <div class="relative group w-full sm:w-[350px]">
         <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
@@ -200,25 +200,25 @@
       </div>
 
       <!-- Stats & Quick Refresh -->
-      <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
-        <div class="flex items-center gap-2 bg-white/[0.02] border border-white/5 px-4 py-2.5 rounded-xl">
-          <span class="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Show</span>
+      <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <div class="flex items-center gap-2 bg-white/[0.02] border border-white/5 px-3 py-2.5 rounded-xl flex-1 justify-center sm:flex-none">
+          <span class="text-[9px] font-mono text-gray-500 uppercase tracking-widest hidden sm:inline">Show</span>
           <select
             value={pageSize}
             onchange={(e) => { pageSize = Number((e.target as HTMLSelectElement).value); currentPage = 1; }}
-            class="bg-black border border-white/10 rounded px-2 py-1 text-neon-cyan text-[10px] font-mono font-bold focus:outline-none focus:border-neon-cyan/50 cursor-pointer appearance-none text-center"
+            class="bg-transparent border-none text-neon-cyan text-[10px] font-mono font-bold focus:outline-none cursor-pointer appearance-none text-center"
           >
             <option value={10}>10</option>
             <option value={20}>20</option>
             <option value={50}>50</option>
           </select>
-          <span class="text-[9px] font-mono text-gray-500 uppercase tracking-widest whitespace-nowrap">of {totalOrders}</span>
+          <span class="text-[9px] font-mono text-gray-400 uppercase tracking-widest whitespace-nowrap hidden sm:inline">of {totalOrders}</span>
         </div>
 
         <button
           onclick={loadOrders}
           title="Force Resync"
-          class="p-3 text-gray-500 hover:text-neon-cyan border border-white/5 hover:border-neon-cyan/30 rounded-xl bg-white/[0.02] hover:bg-neon-cyan/10 transition-all"
+          class="p-2.5 shrink-0 text-gray-500 hover:text-neon-cyan border border-white/5 hover:border-neon-cyan/30 rounded-xl bg-white/[0.02] hover:bg-neon-cyan/10 transition-all"
         >
           <RefreshCw size={16} class={isLoading ? "animate-spin text-neon-cyan" : ""} />
         </button>
@@ -244,7 +244,7 @@
   </div>
 
   <!-- Main Order Grid (Data Modules) -->
-  <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+  <div class="flex-1 overflow-y-scroll custom-scrollbar p-4 sm:p-6">
     {#if isLoading}
       <div class="h-full flex flex-col items-center justify-center gap-4">
         <div

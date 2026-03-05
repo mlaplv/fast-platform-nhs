@@ -34,8 +34,8 @@
     children,
     headerIcon = Terminal,
     zIndex = "z-[100]",
-    backdropClass = "bg-black/85 backdrop-blur-2xl",
-  } = $props<Props>();
+    backdropClass = "bg-[#050505]/95 md:bg-black/85 md:backdrop-blur-2xl",
+  }: Props = $props();
 
   const theme = $derived({
     color: variant === "cyan" ? "#00f3ff" : "#ff0000",
@@ -68,7 +68,7 @@
 
 {#if isOpen}
   <div
-    class="fixed inset-0 {zIndex} flex items-center justify-center p-6 pointer-events-none"
+    class="absolute inset-0 {zIndex} flex items-center justify-center p-6 pointer-events-none"
     transition:fade={{ duration: 400 }}
   >
     <!-- Master Backdrop -->

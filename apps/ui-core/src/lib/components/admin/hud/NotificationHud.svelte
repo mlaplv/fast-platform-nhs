@@ -40,7 +40,7 @@
     <div
       in:scale={{ duration: 200, start: 0.95 }}
       out:fade={{ duration: 150 }}
-      class="absolute right-0 mt-4 w-80 bg-black/80 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden"
+      class="absolute right-0 mt-4 w-80 bg-black/95 md:bg-black/80 md:backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden"
     >
       <div
         class="p-4 border-b border-white/5 flex items-center justify-between"

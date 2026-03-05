@@ -26,7 +26,7 @@
 
       if (isMobileDevice) {
         LayoutComponent = (
-          await import("$lib/components/admin/layout/MobileLayout.svelte")
+          await import("$lib/components/admin/layout/mobile/MobileShell.svelte")
         ).default;
       } else {
         LayoutComponent = (

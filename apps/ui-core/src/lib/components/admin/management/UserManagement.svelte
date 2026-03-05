@@ -148,33 +148,30 @@
   }
 </script>
 
-<div class="w-full h-full flex flex-col relative bg-black/40 backdrop-blur-xl">
-  <div
-    class="sticky top-0 z-20 bg-black/80 backdrop-blur-xl border-b border-white/[0.05] p-6 flex flex-col gap-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
-  >
-    <div
-      class="flex items-center gap-4 bg-white/[0.02] border border-white/10 p-2.5 rounded-2xl shadow-inner backdrop-blur-md"
-    >
-      <div class="flex-1 relative group">
-        <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-          <Search size={16} class="text-gray-500 group-focus-within:text-[#00FFFF] group-focus-within:scale-110 transition-all" />
-        </div>
-        <input
-          value={searchInput}
-          oninput={handleSearchInput}
-          type="text"
-          placeholder="QUERY_IDENTITY..."
-          class="w-full bg-black/50 border border-white/5 rounded-xl py-3 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-[#00FFFF]/50 focus:ring-2 focus:ring-[#00FFFF]/20 transition-all uppercase tracking-widest shadow-inner shadow-black/50"
-        />
+<div class="w-full h-full flex flex-col relative bg-[#050505]">
+  <div class="flex flex-col xl:flex-row xl:items-center gap-4 bg-white/[0.02] border border-white/10 p-3 sm:p-2.5 rounded-2xl">
+    <div class="flex-1 relative group w-full xl:min-w-[250px]">
+      <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+        <Search size={16} class="text-gray-500 group-focus-within:text-[#00FFFF] group-focus-within:scale-110 transition-all" />
       </div>
-      <div class="flex items-center gap-2 px-2 border-l border-white/10 pl-4">
+      <input
+        value={searchInput}
+        oninput={handleSearchInput}
+        type="text"
+        placeholder="QUERY_IDENTITY..."
+        class="w-full bg-black/50 border border-white/5 rounded-xl py-3 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-[#00FFFF]/50 focus:ring-2 focus:ring-[#00FFFF]/20 transition-all uppercase tracking-widest shadow-inner shadow-black/50"
+      />
+    </div>
+
+    <div class="flex flex-col sm:flex-row xl:items-center gap-4 xl:gap-0 mt-2 xl:mt-0">
+      <div class="flex items-center gap-2 sm:gap-1 px-1 sm:px-2 xl:border-l xl:border-white/10 xl:pl-4 overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
         {#each ["ALL", "ACTIVE", "LOCKED"] as status}
           <button
             onclick={() => handleStatusChange(status as any)}
-            class="px-4 py-2 rounded-lg text-[9px] font-mono font-bold uppercase tracking-widest transition-all {statusFilter === status
+            class="px-4 py-2 rounded-lg text-[9px] font-mono font-bold uppercase tracking-widest transition-all flex-shrink-0 {statusFilter === status
               ? status === 'LOCKED'
-                ? 'bg-red-500/20 text-red-500 border border-red-500/30'
-                : 'bg-[#00FFFF]/20 text-[#00FFFF] border border-[#00FFFF]/30'
+                ? 'bg-red-500/20 text-red-500 border border-red-500/30 ring-1 ring-red-500/30'
+                : 'bg-[#00FFFF]/20 text-[#00FFFF] border border-[#00FFFF]/30 ring-1 ring-[#00FFFF]/30'
               : 'text-gray-500 hover:text-gray-300 border border-transparent hover:bg-white/5'}"
           >
             {status}
@@ -182,174 +179,183 @@
         {/each}
       </div>
 
-      <div class="flex items-center gap-3 border-l border-white/10 pl-4">
-        <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-500 uppercase tracking-widest">
-          <span>Show</span>
+      <div class="flex items-center gap-2 sm:gap-3 xl:border-l xl:border-white/10 xl:pl-4 pr-1 sm:pr-2 justify-between sm:justify-start">
+        <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-500 uppercase tracking-widest bg-black/40 sm:bg-transparent px-2 sm:px-0 py-1.5 sm:py-0 rounded-lg sm:rounded-none">
+          <span class="hidden sm:inline">Show</span>
           <select
             value={pageSize}
             onchange={(e) => { pageSize = Number((e.target as HTMLSelectElement).value); currentPage = 1; }}
-            class="bg-black/60 border border-white/10 rounded-md px-1.5 py-1 text-[#00FFFF] text-[9px] font-mono font-bold focus:outline-none focus:border-[#00FFFF]/50 cursor-pointer appearance-none text-center w-12"
+            class="bg-transparent sm:bg-black/60 border-none sm:border sm:border-white/10 rounded-md px-1 sm:px-1.5 py-1 text-[#00FFFF] text-[10px] sm:text-[9px] font-mono font-bold focus:outline-none cursor-pointer appearance-none text-center"
           >
             <option value={10}>10</option>
             <option value={20}>20</option>
             <option value={50}>50</option>
           </select>
-          <span>of {totalUsers}</span>
+          <span class="opacity-50 sm:opacity-100">/ {totalUsers}</span>
         </div>
 
-        <button onclick={loadUsers} title="Force Resync"
-          class="p-2.5 text-gray-500 hover:text-[#00FFFF] border border-white/5 hover:border-[#00FFFF]/30 rounded-xl bg-black/40 hover:bg-[#00FFFF]/10 transition-all"
-        >
-          <RefreshCw size={14} class={isLoading ? "animate-spin text-[#00FFFF]" : ""} />
-        </button>
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button onclick={loadUsers} title="Force Resync"
+            class="p-2.5 sm:p-2.5 text-gray-500 hover:text-[#00FFFF] border border-white/5 hover:border-[#00FFFF]/30 rounded-xl bg-black/40 hover:bg-[#00FFFF]/10 transition-all hidden sm:block"
+          >
+            <RefreshCw size={14} class={isLoading ? "animate-spin text-[#00FFFF]" : ""} />
+          </button>
 
-        <button onclick={startAddingUser} title="Create New Identity"
-          class="p-2.5 text-[#00FFFF] hover:bg-[#00FFFF]/10 border border-[#00FFFF]/20 rounded-xl bg-black/40 transition-all flex items-center gap-2 group"
-        >
-          <UserPlus size={14} class="group-hover:scale-110 transition-transform" />
-          <span class="text-[9px] font-mono font-bold uppercase tracking-widest hidden sm:inline">Add_Node</span>
-        </button>
-      </div>
+          <button onclick={startAddingUser} title="Create New Identity"
+            class="p-2.5 sm:px-4 sm:py-2 text-[#00FFFF] hover:bg-[#00FFFF]/10 border border-[#00FFFF]/20 rounded-xl bg-black/40 transition-all flex items-center justify-center gap-2 group"
+          >
+            <UserPlus size={14} class="group-hover:scale-110 transition-transform" />
+            <span class="text-[10px] sm:text-[9px] font-mono font-bold uppercase tracking-widest hidden sm:inline">Add_Node</span>
+          </button>
+        </div>
     </div>
   </div>
+</div>
 
-  <div class="flex-1 overflow-y-auto custom-scrollbar">
-    {#if isLoading}
-      <div class="h-full flex flex-col items-center justify-center gap-4">
-        <div class="w-8 h-8 border-2 border-[#00FFFF]/10 border-t-[#00FFFF] rounded-full animate-spin"></div>
-        <span class="text-[9px] font-mono text-[#00FFFF]/40 uppercase tracking-[0.3em]">Synchronizing Registry...</span>
+<div class="flex-1 overflow-y-auto custom-scrollbar">
+  {#if isLoading}
+    <div class="h-full flex flex-col items-center justify-center gap-4">
+      <div class="w-8 h-8 border-2 border-[#00FFFF]/10 border-t-[#00FFFF] rounded-full animate-spin"></div>
+      <span class="text-[9px] font-mono text-[#00FFFF]/40 uppercase tracking-[0.3em]">Synchronizing Registry...</span>
+    </div>
+  {:else if error}
+    <div class="h-full flex items-center justify-center text-red-500 font-mono text-xs uppercase tracking-widest">
+      Connection Failure: {error}
+    </div>
+  {:else if users.length === 0}
+    <div class="h-full flex flex-col items-center justify-center text-gray-600 font-mono text-[10px] uppercase tracking-widest gap-2">
+      <span>No matching entities found in current sector</span>
+      <button onclick={() => { searchInput = ""; searchTerm = ""; currentPage = 1; }}
+        class="text-[#00FFFF]/40 hover:text-[#00FFFF] transition-colors">[ RESET_FILTER ]</button>
+    </div>
+  {:else}
+    <div class="pl-0 sm:pl-6 sm:border-l sm:border-white/5 sm:ml-4 my-2 mb-[80px]">
+      
+      <!-- Responsive Table Header -->
+      <div class="hidden md:grid grid-cols-[minmax(250px,2fr)_1fr_100px] gap-4 px-6 py-4 bg-black/50 border-b border-white/10 shadow-inner text-[9px] font-mono text-gray-500 uppercase tracking-widest font-bold">
+        <div>Identity_Signature</div>
+        <div>Assigned_Tiers</div>
+        <div class="text-right">Access_Control</div>
       </div>
-    {:else if error}
-      <div class="h-full flex items-center justify-center text-red-500 font-mono text-xs uppercase tracking-widest">
-        Connection Failure: {error}
-      </div>
-    {:else if users.length === 0}
-      <div class="h-full flex flex-col items-center justify-center text-gray-600 font-mono text-[10px] uppercase tracking-widest gap-2">
-        <span>No matching entities found in current sector</span>
-        <button onclick={() => { searchInput = ""; searchTerm = ""; currentPage = 1; }}
-          class="text-[#00FFFF]/40 hover:text-[#00FFFF] transition-colors">[ RESET_FILTER ]</button>
-      </div>
-    {:else}
-      <div class="pl-6 border-l border-white/5 ml-4 my-2 mb-[80px]">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-black/50 border-b border-white/10 shadow-inner">
-              <th class="px-6 py-4 text-[9px] font-mono text-gray-500 uppercase tracking-widest font-bold">Identity_Signature</th>
-              <th class="px-6 py-4 text-[9px] font-mono text-gray-500 uppercase tracking-widest font-bold">Assigned_Tiers</th>
-              <th class="px-6 py-4 text-[9px] font-mono text-gray-500 uppercase tracking-widest font-bold text-right">Access_Control</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-white/[0.02]">
-            {#each users as user (user.id)}
-              <tr
-                class="hover:bg-white/[0.03] transition-colors duration-300 group relative z-10 hover:z-50 focus-within:z-50 {expandedUserId === user.id ? 'bg-white/[0.03] border-l border-l-[#00FFFF]/50' : ''}"
-              >
-                <td class="px-6 py-5 relative z-10">
-                  <div class="absolute inset-y-0 left-0 w-[2px] bg-gradient-to-b from-[#00FFFF]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div class="flex items-center gap-3">
-                    <button
-                      onclick={() => togglePermissionMatrix(user.id)}
-                      class="p-2 bg-black/40 hover:bg-[#00FFFF]/10 border border-transparent hover:border-[#00FFFF]/20 shadow-sm rounded-xl transition-all {expandedUserId === user.id ? 'rotate-180 text-[#00FFFF] border-[#00FFFF]/20 bg-[#00FFFF]/5' : 'text-gray-500 hover:text-[#00FFFF]'}"
-                    >
-                      <ChevronDown size={14} />
-                    </button>
-                    <div class="flex flex-col justify-center">
-                      <span class="text-[13px] font-bold text-gray-100 group-hover:text-white transition-colors tracking-wide flex items-center gap-2">
-                        {user.name || "Unknown Entity"}
+
+      <div class="flex flex-col gap-4 sm:gap-0 sm:divide-y sm:divide-white/[0.02] px-4 sm:px-0">
+        {#each users as user (user.id)}
+          <div class="group relative z-10 hover:z-50 focus-within:z-50 flex flex-col md:grid md:grid-cols-[minmax(250px,2fr)_1fr_100px] md:items-center bg-[#0a0a0a] md:bg-transparent border border-white/5 md:border-none rounded-xl md:rounded-none p-4 sm:p-0 hover:bg-white/[0.03] transition-colors duration-300 {expandedUserId === user.id ? 'bg-white/[0.03] border-l border-l-[#00FFFF]/50' : ''}">
+            
+            <!-- User Info Column -->
+            <div class="sm:px-6 sm:py-5 relative z-10">
+              <div class="hidden sm:block absolute inset-y-0 left-0 w-[2px] bg-gradient-to-b from-[#00FFFF]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div class="flex items-start sm:items-center gap-3">
+                <button
+                  onclick={() => togglePermissionMatrix(user.id)}
+                  class="p-2 bg-black/40 hover:bg-[#00FFFF]/10 border border-transparent hover:border-[#00FFFF]/20 shadow-sm rounded-xl transition-all {expandedUserId === user.id ? 'rotate-180 text-[#00FFFF] border-[#00FFFF]/20 bg-[#00FFFF]/5' : 'text-gray-500 hover:text-[#00FFFF]'}"
+                >
+                  <ChevronDown size={14} />
+                </button>
+                <div class="flex flex-col justify-center min-w-0 flex-1">
+                  <span class="text-[14px] sm:text-[13px] font-bold text-gray-100 group-hover:text-white transition-colors tracking-wide flex items-center flex-wrap gap-2 truncate">
+                    {user.name || "Unknown Entity"}
+                    {#if user.status === "LOCKED"}
+                      <span class="px-2 py-0.5 rounded text-[8px] font-mono font-bold bg-red-500/20 text-red-500 uppercase tracking-widest border border-red-500/30">LOCKED</span>
+                    {/if}
+                  </span>
+                  <span class="text-[10px] font-mono text-gray-500 mt-1 uppercase tracking-widest group-hover:text-[#00FFFF]/50 transition-colors truncate">{user.email}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Assigned Tiers -->
+            <div class="sm:px-6 sm:py-5 mt-3 sm:mt-0 pl-11 sm:pl-0">
+              <span class="sm:hidden text-[9px] font-mono text-gray-500 uppercase tracking-widest mb-1.5 block">Tiers:</span>
+              <div class="flex flex-wrap gap-2">
+                {#each user.roles as role}
+                  <span class="px-3 py-1.5 rounded-lg text-[9px] font-bold font-mono uppercase tracking-widest shadow-inner inline-flex border border-[#00FFFF]/40 bg-[#00FFFF]/10 text-[#00FFFF]">
+                    {role.code}
+                  </span>
+                {/each}
+                {#if user.roles.length === 0}
+                  <span class="text-[9px] font-mono text-gray-600 block sm:hidden">None</span>
+                {/if}
+              </div>
+            </div>
+
+            <!-- Access Control Actions -->
+            <div class="absolute top-4 right-4 sm:relative sm:top-0 sm:right-0 sm:px-6 sm:py-5 md:text-right relative z-30 sm:w-[120px]">
+              <div class="relative inline-block text-left group/menu {expandedUserId === user.id ? 'z-50' : ''}">
+                <button class="p-2 text-gray-500 hover:text-white transition-colors bg-white/5 sm:bg-transparent hover:bg-white/10 rounded-xl">
+                  <MoreVertical size={16} />
+                </button>
+                <div class="absolute right-0 top-full sm:pt-2 w-56 opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all duration-300 z-[100] origin-top-right group-hover/menu:scale-100 scale-95 mt-1 sm:mt-0 border border-white/10 rounded-xl bg-[#0a0a0a]/95 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)]">
+                  <div class="flex flex-col overflow-hidden max-h-[60vh] sm:max-h-none overflow-y-auto">
+                    <div class="p-1 border-b border-white/5">
+                      <button onclick={() => (editingUser = user)}
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[10px] font-mono tracking-wide transition-colors text-gray-400 hover:text-white hover:bg-white/10">
+                        <Edit2 size={12} class="text-[#00FFFF]/70" /><span>Modify Identity</span>
+                      </button>
+                      <button onclick={() => toggleUserStatus(user.id)}
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[10px] font-mono tracking-wide transition-colors text-gray-400 hover:text-white hover:bg-white/10">
                         {#if user.status === "LOCKED"}
-                          <span class="px-2 py-0.5 rounded text-[8px] font-mono font-bold bg-red-500/20 text-red-500 uppercase tracking-widest border border-red-500/30">LOCKED</span>
+                          <Unlock size={12} class="text-[#00FFFF]/70" /><span>Unlock Entity</span>
+                        {:else}
+                          <Lock size={12} class="text-red-500/70" /><span class="text-red-400">Lock Entity</span>
                         {/if}
+                      </button>
+                      <button onclick={() => deleteUser(user.id)}
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[10px] font-mono tracking-wide transition-colors text-red-500/70 hover:text-red-500 hover:bg-red-500/10">
+                        <Trash2 size={12} /><span>Revoke Access</span>
+                      </button>
+                    </div>
+                    <div class="px-4 py-2 bg-white/[0.02] border-b border-white/5 sticky top-0 md:static z-10 backdrop-blur-sm sm:backdrop-blur-none">
+                      <span class="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        <Shield size={10} class="text-[#00FFFF]" /> Assign Security Tier
                       </span>
-                      <span class="text-[10px] font-mono text-gray-500 mt-1 uppercase tracking-widest group-hover:text-[#00FFFF]/50 transition-colors">{user.email}</span>
+                    </div>
+                    <div class="max-h-[180px] sm:max-h-[200px] overflow-y-auto custom-scrollbar p-1">
+                      {#each roles as role}
+                        <button onclick={() => toggleRole(user.id, role.code)}
+                          class="w-full flex items-center justify-between px-3 py-3 rounded-lg text-[10px] font-mono tracking-wide transition-colors {user.roles.some((r: Role) => r.code === role.code)
+                            ? 'text-white bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/10'}">
+                          <span>{role.name}</span>
+                          {#if user.roles.some((r: Role) => r.code === role.code)}
+                            <Check size={14} class="text-[#00FFFF] drop-shadow-[0_0_5px_rgba(0,255,255,0.5)]" />
+                          {/if}
+                        </button>
+                      {/each}
                     </div>
                   </div>
-                </td>
-                <td class="px-6 py-5">
-                  <div class="flex flex-wrap gap-2">
-                    {#each user.roles as role}
-                      <span class="px-3 py-1.5 rounded-lg text-[9px] font-bold font-mono uppercase tracking-widest shadow-inner inline-flex border border-[#00FFFF]/40 bg-[#00FFFF]/10 text-[#00FFFF]">
-                        {role.code}
-                      </span>
-                    {/each}
-                  </div>
-                </td>
-                <td class="px-6 py-5 text-right relative z-10 w-[120px]">
-                  <div class="relative inline-block text-left group/menu">
-                    <button class="p-2 text-gray-500 hover:text-white transition-colors hover:bg-white/10 rounded-xl">
-                      <MoreVertical size={16} />
-                    </button>
-                    <div class="absolute right-0 pt-2 w-56 opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all duration-300 z-50 origin-top-right group-hover/menu:scale-100 scale-95">
-                      <div class="bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden">
-                        <div class="p-1 border-b border-white/5">
-                          <button onclick={() => (editingUser = user)}
-                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[10px] font-mono tracking-wide transition-colors text-gray-400 hover:text-white hover:bg-white/10">
-                            <Edit2 size={12} class="text-[#00FFFF]/70" /><span>Modify Identity</span>
-                          </button>
-                          <button onclick={() => toggleUserStatus(user.id)}
-                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[10px] font-mono tracking-wide transition-colors text-gray-400 hover:text-white hover:bg-white/10">
-                            {#if user.status === "LOCKED"}
-                              <Unlock size={12} class="text-[#00FFFF]/70" /><span>Unlock Entity</span>
-                            {:else}
-                              <Lock size={12} class="text-red-500/70" /><span class="text-red-400">Lock Entity</span>
-                            {/if}
-                          </button>
-                          <button onclick={() => deleteUser(user.id)}
-                            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[10px] font-mono tracking-wide transition-colors text-red-500/70 hover:text-red-500 hover:bg-red-500/10">
-                            <Trash2 size={12} /><span>Revoke Access</span>
-                          </button>
-                        </div>
-                        <div class="px-4 py-2 bg-white/[0.02] border-b border-white/5">
-                          <span class="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                            <Shield size={10} class="text-[#00FFFF]" /> Assign Security Tier
-                          </span>
-                        </div>
-                        <div class="max-h-[180px] overflow-y-auto custom-scrollbar p-1">
-                          {#each roles as role}
-                            <button onclick={() => toggleRole(user.id, role.code)}
-                              class="w-full flex items-center justify-between px-3 py-3 rounded-lg text-[10px] font-mono tracking-wide transition-colors {user.roles.some((r: Role) => r.code === role.code)
-                                ? 'text-white bg-white/5' : 'text-gray-400 hover:text-white hover:bg-white/10'}">
-                              <span>{role.name}</span>
-                              {#if user.roles.some((r: Role) => r.code === role.code)}
-                                <Check size={14} class="text-[#00FFFF] drop-shadow-[0_0_5px_rgba(0,255,255,0.5)]" />
-                              {/if}
-                            </button>
-                          {/each}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </td>
-              </tr>
+                </div>
+              </div>
+            </div>
 
-              {#if expandedUserId === user.id}
-                <tr>
-                  <td colspan="3" class="p-0">
-                    <div class="px-16 py-6 bg-black/20 transition-all duration-300">
-                      <div class="flex flex-col gap-4">
-                        <div class="flex items-center gap-2">
-                          <Lock size={12} class="text-[#FFB800]/60" />
-                          <span class="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Effective Permission Matrix</span>
-                        </div>
-                        <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                          {#each getUniquePermissions(user) as perm}
-                            <div class="px-2 py-1 bg-white/[0.02] border border-white/5 rounded-lg flex items-center justify-center">
-                              <span class="text-[8px] font-mono text-gray-400 uppercase">{perm}</span>
-                            </div>
-                          {/each}
-                        </div>
-                        {#if getUniquePermissions(user).length === 0}
-                          <span class="text-[9px] font-mono text-gray-700 italic">No valid permissions found in sector hierarchy.</span>
-                        {/if}
-                      </div>
+            <!-- Permission Matrix Expandable Section -->
+            {#if expandedUserId === user.id}
+              <div class="col-span-1 md:col-span-3 mt-4 sm:mt-0 px-2 sm:px-0">
+                <div class="sm:px-16 py-4 sm:py-6 bg-black/40 sm:bg-black/20 rounded-xl sm:rounded-none transition-all duration-300 border border-white/5 sm:border-none">
+                  <div class="flex flex-col gap-3 sm:gap-4 px-3 sm:px-0">
+                    <div class="flex items-center gap-2">
+                      <Lock size={12} class="text-[#FFB800]/60" />
+                      <span class="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Effective Permission Matrix</span>
                     </div>
-                  </td>
-                </tr>
-              {/if}
-            {/each}
-          </tbody>
-        </table>
+                    <div class="grid grid-cols-2 xs:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                      {#each getUniquePermissions(user) as perm}
+                        <div class="px-2 py-1.5 sm:py-1 bg-white/[0.02] border border-white/5 rounded-lg flex items-center justify-center text-center">
+                          <span class="text-[8px] font-mono text-gray-400 uppercase break-all leading-tight">{perm}</span>
+                        </div>
+                      {/each}
+                    </div>
+                    {#if getUniquePermissions(user).length === 0}
+                      <span class="text-[9px] font-mono text-gray-700 italic">No valid permissions found in sector hierarchy.</span>
+                    {/if}
+                  </div>
+                </div>
+              </div>
+            {/if}
+
+          </div>
+        {/each}
       </div>
-    {/if}
+    </div>
+  {/if}
   </div>
 
   <div class="absolute bottom-0 left-0 right-0">

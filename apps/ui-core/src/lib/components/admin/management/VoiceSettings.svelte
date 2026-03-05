@@ -111,8 +111,11 @@
       );
 
       const res = await apiClient.post<{
-        wake_words?: string[];
-        sleep_words?: string[];
+        status: string;
+        data: {
+          wake_words?: string[];
+          sleep_words?: string[];
+        };
       }>("/api/v1/settings/voice", {
         wake_words: wakeTriggers,
         sleep_words: sleepTriggers,
@@ -160,7 +163,7 @@
 </script>
 
 <div
-  class="w-full h-full flex flex-col overflow-y-auto bg-black/40 backdrop-blur-xl relative"
+  class="w-full h-full flex flex-col overflow-y-auto bg-[#050505] relative"
 >
   {#if isLoading}
     <div class="flex-1 flex flex-col items-center justify-center gap-4">
@@ -205,7 +208,6 @@
                       onblur={() => { wakeTriggers[i] = wakeTriggers[i].toLowerCase(); editingWake = null; }}
                       onkeydown={(e) => { if (e.key === "Enter") { wakeTriggers[i] = wakeTriggers[i].toLowerCase(); editingWake = null; } }}
                       class="bg-transparent outline-none text-[11px] font-mono text-white w-20 min-w-0"
-                      autofocus
                     />
                   {:else}
                     <button
@@ -257,7 +259,6 @@
                       onblur={() => { sleepTriggers[i] = sleepTriggers[i].toLowerCase(); editingSleep = null; }}
                       onkeydown={(e) => { if (e.key === "Enter") { sleepTriggers[i] = sleepTriggers[i].toLowerCase(); editingSleep = null; } }}
                       class="bg-transparent outline-none text-[11px] font-mono text-white w-20 min-w-0"
-                      autofocus
                     />
                   {:else}
                     <button

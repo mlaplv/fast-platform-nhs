@@ -220,7 +220,8 @@ async def seed_articles(session, author_id):
     statuses = ["PUBLISHED", "PUBLISHED", "DRAFT"]
     for i in range(30):
         title = f"{random.choice(titles)} #{i+1}"
-        slug = f"article-{i+1}-{int(datetime.now().timestamp())}"
+        unique_id = f"{i+1}-{uuid.uuid4().hex[:6]}"
+        slug = f"article-{unique_id}"
         art = Article(
             id=str(uuid.uuid4()), title=title, slug=slug,
             content=f"Nội dung bài viết {title}. Lorem ipsum dolor sit amet.",

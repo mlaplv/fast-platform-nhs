@@ -79,17 +79,17 @@
             {cat.name}
           </div>
           <div
-            class="text-[10px] font-mono text-gray-500 mt-1 flex items-center gap-2"
+            class="text-[10px] font-mono text-gray-500 mt-1 flex items-center flex-wrap gap-1 sm:gap-2"
           >
             <span class="text-white/40">ID:</span>
-            {cat.slug}
+            <span class="truncate max-w-[100px] sm:max-w-none">{cat.slug}</span>
             <span class="w-1 h-1 rounded-full bg-white/20"></span>
             <span class="text-[#00FFFF]/60">{cat.productCount} items</span>
           </div>
         </div>
         {#if cat.children && cat.children.length > 0}
           <div
-            class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/50 border border-white/10 shadow-inner"
+            class="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/50 border border-white/10 shadow-inner"
           >
             <Layers size={10} class="text-gray-500" />
             <span class="text-[9px] font-mono text-gray-400 font-bold"
@@ -98,48 +98,48 @@
           </div>
         {/if}
         <div
-          class="flex items-center gap-1.5 opacity-0 group-hover/cat:opacity-100 transition-opacity duration-300 translate-x-2 group-hover/cat:translate-x-0"
+          class="flex items-center gap-1.5 sm:opacity-0 group-hover/cat:opacity-100 transition-opacity duration-300 sm:translate-x-2 group-hover/cat:translate-x-0 w-full justify-end sm:w-auto mt-2 sm:mt-0 border-t border-white/5 pt-2 sm:border-0 sm:pt-0"
         >
           <button
             onclick={(e) => {
               e.stopPropagation();
               onAddSub(cat.id);
             }}
-            class="p-2 text-gray-500 hover:text-white transition-colors rounded-xl hover:bg-white/10 bg-black/40 border border-transparent hover:border-white/20"
+            class="p-2 sm:p-2 text-gray-400 sm:text-gray-500 hover:text-white transition-colors rounded-xl bg-white/5 sm:bg-black/40 border border-transparent hover:border-white/20"
             title="Thêm danh mục con"
           >
-            <Plus size={14} />
+            <Plus size={14} class="sm:hidden" /><Plus size={14} class="hidden sm:block" />
           </button>
           <button
             onclick={(e) => {
               e.stopPropagation();
               onEdit(cat);
             }}
-            class="p-2 text-gray-500 hover:text-[#FFB800] transition-colors rounded-xl hover:bg-[#FFB800]/10 bg-black/40 border border-transparent hover:border-[#FFB800]/20"
+            class="p-2 sm:p-2 text-gray-400 sm:text-gray-500 hover:text-[#FFB800] transition-colors rounded-xl bg-white/5 sm:bg-black/40 border border-transparent hover:border-[#FFB800]/20"
             title="Chỉnh sửa"
           >
-            <Pencil size={14} />
+            <Pencil size={14} class="sm:hidden" /><Pencil size={14} class="hidden sm:block" />
           </button>
           <button
             onclick={(e) => {
               e.stopPropagation();
               onDelete(cat.id);
             }}
-            class="p-2 text-gray-500 hover:text-red-400 transition-colors rounded-xl hover:bg-red-500/10 bg-black/40 border border-transparent hover:border-red-500/20"
+            class="p-2 sm:p-2 text-red-400 sm:text-gray-500 hover:text-red-400 transition-colors rounded-xl bg-red-500/10 sm:bg-black/40 border border-transparent hover:border-red-500/20"
             title="Xóa"
           >
-            <Trash2 size={14} />
+            <Trash2 size={14} class="sm:hidden" /><Trash2 size={14} class="hidden sm:block" />
           </button>
         </div>
       </div>
       {#if cat.children && cat.children.length > 0 && expandedIds.has(cat.id)}
         <div
-          class="ml-12 mt-3 space-y-2 relative before:absolute before:inset-y-0 before:left-[-11px] before:w-px before:bg-white/10"
+          class="ml-6 sm:ml-12 mt-3 space-y-2 relative before:absolute before:inset-y-0 before:left-[-11px] before:w-px before:bg-white/10"
           transition:slide
         >
           {#each cat.children as child (child.id)}
             <div
-              class="flex items-center gap-4 px-4 py-3 bg-black/20 hover:bg-white/[0.03] border border-transparent hover:border-white/5 rounded-xl transition-all group/sub relative cursor-pointer"
+              class="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 px-3 py-3 sm:px-4 sm:py-3 bg-black/20 hover:bg-white/[0.03] border border-transparent hover:border-white/5 rounded-xl transition-all group/sub relative cursor-pointer"
             >
               <div
                 class="absolute left-[-11px] top-1/2 w-3 h-px bg-white/10"
@@ -155,35 +155,35 @@
                 >
                   {child.name}
                 </div>
-                <div class="text-[9px] font-mono text-gray-600 mt-0.5">
-                  <span class="text-white/30">ID:</span>
-                  {child.slug}
+                <div class="text-[9px] font-mono text-gray-600 mt-0.5 flex items-center gap-1">
+                  <span class="text-white/30 hidden sm:inline">ID:</span>
+                  <span class="truncate max-w-[80px] sm:max-w-none">{child.slug}</span>
                 </div>
               </div>
               <span
-                class="text-[9px] font-mono text-[#00FFFF]/60 px-2 py-1 rounded bg-black/40 border border-white/5 shadow-inner"
+                class="hidden sm:inline-block text-[9px] font-mono text-[#00FFFF]/60 px-2 py-1 rounded bg-black/40 border border-white/5 shadow-inner"
                 >{child.productCount} items</span
               >
               <div
-                class="flex items-center gap-1.5 opacity-0 group-hover/sub:opacity-100 transition-opacity translate-x-1 group-hover/sub:translate-x-0"
+                class="flex items-center gap-1.5 sm:opacity-0 group-hover/sub:opacity-100 transition-opacity sm:translate-x-1 group-hover/sub:translate-x-0 w-full sm:w-auto justify-end mt-2 sm:mt-0"
               >
                 <button
                   onclick={(e) => {
                     e.stopPropagation();
                     onEdit(child, cat.id);
                   }}
-                  class="p-1.5 text-gray-500 hover:text-[#FFB800] transition-colors rounded-lg hover:bg-[#FFB800]/10 bg-black/40 border border-transparent hover:border-[#FFB800]/20"
+                  class="p-2 sm:p-1.5 text-gray-400 sm:text-gray-500 hover:text-[#FFB800] transition-colors rounded-lg hover:bg-[#FFB800]/10 bg-white/5 sm:bg-black/40 border border-transparent hover:border-[#FFB800]/20"
                 >
-                  <Pencil size={12} />
+                  <Pencil size={12} class="sm:hidden" /><Pencil size={12} class="hidden sm:block" />
                 </button>
                 <button
                   onclick={(e) => {
                     e.stopPropagation();
                     onDelete(child.id, cat.id);
                   }}
-                  class="p-1.5 text-gray-500 hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10 bg-black/40 border border-transparent hover:border-red-500/20"
+                  class="p-2 sm:p-1.5 text-red-400 sm:text-gray-500 hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10 bg-red-500/10 sm:bg-black/40 border border-transparent hover:border-red-500/20"
                 >
-                  <Trash2 size={12} />
+                  <Trash2 size={12} class="sm:hidden" /><Trash2 size={12} class="hidden sm:block" />
                 </button>
               </div>
             </div>

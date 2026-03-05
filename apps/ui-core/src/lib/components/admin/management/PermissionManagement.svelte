@@ -230,13 +230,13 @@
 
       {#if selectedRole}
         <div>
-          <div class="flex items-center justify-between mb-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 mb-5">
             <div class="flex items-center gap-3">
               <div class="w-1 h-5 rounded-full bg-fuchsia-500"></div>
               <h2 class="text-sm font-bold text-white tracking-wide">Quyền hạn</h2>
-              <span class="text-[9px] font-mono text-gray-600 uppercase">// {selectedRole.name}</span>
+              <span class="text-[9px] font-mono text-gray-600 uppercase truncate max-w-[120px] sm:max-w-none">// {selectedRole.name}</span>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto mt-2 sm:mt-0">
               <div class="flex items-center bg-white/5 rounded-lg p-0.5">
                 <button
                   onclick={() => (viewMode = "grid")}
@@ -264,9 +264,9 @@
 
           {#if isEditing}
             <div
-              class="flex items-center gap-4 bg-white/[0.01] border border-white/5 p-2 rounded-2xl mb-6"
+              class="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 bg-white/[0.01] border border-white/5 p-3 sm:p-2 rounded-2xl mb-6"
             >
-              <div class="flex-1 relative group">
+              <div class="flex-1 relative group w-full">
                 <div
                   class="absolute inset-y-0 left-4 flex items-center pointer-events-none"
                 >
@@ -288,7 +288,7 @@
                     editPermissions.size === allPermissions.length
                       ? new Set()
                       : new Set(allPermissions.map((p) => p.code)))}
-                class="px-5 py-3 bg-fuchsia-500/10 border border-fuchsia-500/30 rounded-xl text-[10px] font-mono uppercase text-fuchsia-400 hover:bg-fuchsia-500/20 transition-all tracking-widest"
+                class="w-full sm:w-auto px-5 py-3 bg-fuchsia-500/10 border border-fuchsia-500/30 rounded-xl text-[10px] font-mono uppercase text-fuchsia-400 hover:bg-fuchsia-500/20 transition-all tracking-widest"
               >
                 Sync_All ({editPermissions.size})
               </button>
@@ -301,7 +301,7 @@
               {viewMode}
             />
           {:else}
-            <div class="space-y-3">
+            <div class="space-y-3 pb-6">
               {#each Object.entries(groupedPermissions) as [group, perms]}
                 <PermissionGroup
                   {group}
@@ -319,27 +319,30 @@
 
     {#if isEditing}
       <div
-        class="absolute bottom-0 left-0 right-0 px-8 py-4 bg-[#080808]/95 backdrop-blur-xl border-t border-white/10 flex items-center justify-between z-50 shadow-[0_-20px_40px_rgba(0,0,0,0.5)]"
+        class="absolute bottom-0 left-0 right-0 px-4 sm:px-8 py-3 sm:py-4 bg-[#080808]/95 backdrop-blur-xl border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 z-50 shadow-[0_-20px_40px_rgba(0,0,0,0.5)]"
         transition:slide
       >
-        <div class="flex items-center gap-4">
-          <div class="w-2 h-2 rounded-full {hasChanges ? 'bg-fuchsia-500 animate-pulse shadow-[0_0_10px_#d946ef]' : 'bg-gray-600'}"></div>
-          <span class="text-[10px] font-mono {hasChanges ? 'text-fuchsia-400' : 'text-gray-500'} uppercase tracking-widest font-bold">{hasChanges ? 'MODE: EDITS_PENDING' : 'MODE: NO_CHANGES'}</span>
+        <div class="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full {hasChanges ? 'bg-fuchsia-500 animate-pulse shadow-[0_0_10px_#d946ef]' : 'bg-gray-600'}"></div>
+            <span class="text-[10px] font-mono {hasChanges ? 'text-fuchsia-400' : 'text-gray-500'} uppercase tracking-widest font-bold hidden sm:inline">{hasChanges ? 'MODE: EDITS_PENDING' : 'MODE: NO_CHANGES'}</span>
+            <span class="text-[9px] font-mono {hasChanges ? 'text-fuchsia-400' : 'text-gray-500'} uppercase tracking-widest font-bold sm:hidden">{hasChanges ? 'EDITS_PENDING' : 'NO_CHANGES'}</span>
+          </div>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onclick={() => (isEditing = false)}
-            class="flex items-center gap-2 px-6 py-2.5 rounded-xl border border-white/10 text-[10px] font-mono uppercase tracking-widest text-gray-400 hover:text-white hover:bg-white/5 transition-all"
-            ><X size={14} /> Huỷ bỏ</button
+            class="flex-1 sm:flex-none justify-center flex items-center gap-2 px-3 sm:px-6 py-3 sm:py-2.5 rounded-xl border border-white/10 text-[10px] sm:text-[10px] font-mono uppercase tracking-widest text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+            ><X size={14} /> <span class="hidden xs:inline">Huỷ bỏ</span><span class="xs:hidden">Hủy</span></button
           >
           <button
             onclick={savePermissions}
             disabled={!hasChanges}
-            class="flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-mono uppercase tracking-widest transition-all {hasChanges
+            class="flex-[2] sm:flex-none justify-center flex items-center gap-2 px-3 sm:px-6 py-3 sm:py-2.5 rounded-xl text-[10px] font-mono uppercase tracking-widest transition-all {hasChanges
               ? 'bg-fuchsia-600 text-white hover:bg-fuchsia-500 shadow-[0_0_15px_rgba(217,70,239,0.3)] hover:shadow-[0_0_25px_rgba(217,70,239,0.5)]'
               : 'bg-gray-800 text-gray-600 cursor-not-allowed'}"
-            ><Check size={14} /> Cập nhật thao tác</button
+            ><Check size={14} /> <span class="hidden xs:inline">Cập nhật thao tác</span><span class="xs:hidden">Cập nhật</span></button
           >
         </div>
       </div>

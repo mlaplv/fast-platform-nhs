@@ -18,19 +18,20 @@ declare global {
     // interface PageState {}
     // interface Platform {}
   }
-}
 
-// Vite `define` injected globals
-declare const __APP_VERSIONS__: {
-  svelte: string;
-  tailwind: string;
-  sqlalchemy: string;
-  alembic: string;
-  litestar: string;
-  pydantic_ai: string;
-  litellm: string;
-  python: string;
-  caddy: string;
-};
+  // Vite `define` injected globals
+  const __APP_VERSIONS__: {
+    svelte: string;
+    tailwind: string;
+    sqlalchemy: string;
+    alembic: string;
+    litestar: string;
+    pydantic_ai: string;
+    litellm: string;
+    prisma: string;
+    python: string;
+    caddy: string;
+  };
+}
 
 export {};

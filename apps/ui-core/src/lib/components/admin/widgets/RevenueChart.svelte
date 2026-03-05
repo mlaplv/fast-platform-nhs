@@ -90,10 +90,10 @@
 </script>
 
 <div
-  class="w-full h-full flex flex-col p-6 pb-40 font-sans select-none overflow-y-auto"
+  class="w-full h-full flex flex-col p-4 sm:p-6 pb-40 font-sans select-none overflow-y-auto"
 >
   <!-- Header Section -->
-  <div class="flex items-center justify-between mb-8 shrink-0">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8 shrink-0">
     <div class="flex flex-col gap-1">
       <div class="flex items-center gap-3 mb-1">
         <h2
@@ -104,7 +104,7 @@
         </h2>
         {#if reportedTotal !== undefined}
           <div
-            class="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-mono text-emerald-400 uppercase tracking-widest animate-pulse"
+            class="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-mono text-emerald-400 uppercase tracking-widest animate-pulse truncate max-w-[180px]"
           >
             {periodLabel}: {reportedTotal.toLocaleString("vi-VN")}đ
           </div>
@@ -113,7 +113,7 @@
 
       <div class="flex flex-col">
         <div class="flex items-baseline gap-2">
-          <span class="text-4xl font-black text-white tracking-tighter">
+          <span class="text-3xl sm:text-4xl font-black text-white tracking-tighter">
             {totalRevenue.toLocaleString("vi-VN")}
           </span>
           <span class="text-lg text-emerald-500 font-bold">đ</span>
@@ -128,11 +128,11 @@
 
     <!-- Timeframe Tabs -->
     <div
-      class="flex bg-white/5 p-1 rounded-xl border border-white/10 backdrop-blur-md"
+      class="flex bg-white/5 p-1 rounded-xl border border-white/10 backdrop-blur-md overflow-x-auto scrollbar-none snap-x"
     >
       {#each tabs as tab}
         <button
-          class="px-5 py-1.5 text-xs font-bold rounded-lg transition-all duration-300 {activeTab ===
+          class="flex-1 sm:flex-none px-4 sm:px-5 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg transition-all duration-300 snap-start {activeTab ===
           tab
             ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.4)]'
             : 'text-zinc-400 hover:text-white'}"
@@ -146,7 +146,7 @@
 
   <!-- Chart Area -->
   <div
-    class="w-full aspect-[8/3] relative bg-white/[0.02] rounded-3xl border border-white/5 p-4 overflow-hidden group shrink-0 flex items-center justify-center"
+    class="w-full aspect-video sm:aspect-[8/3] relative bg-white/[0.02] rounded-3xl border border-white/5 p-4 sm:p-6 overflow-hidden group shrink-0 flex items-center justify-center shadow-inner"
   >
     {#if labels.length > 0}
       <!-- Grid Lines -->
@@ -247,11 +247,11 @@
   </div>
 
   <!-- Legend & Stats Section -->
-  <div class="grid grid-cols-3 gap-6 mt-8">
+  <div class="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mt-8">
     <div
-      class="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/5"
+      class="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/5 hover:bg-white/[0.08] transition-colors"
     >
-      <div class="p-3 rounded-xl bg-emerald-500/10 text-emerald-500">
+      <div class="p-3 rounded-xl bg-emerald-500/10 text-emerald-500 shadow-[inset_0_0_10px_rgba(16,185,129,0.1)]">
         <DollarSign size={20} />
       </div>
       <div class="flex flex-col">
@@ -259,16 +259,16 @@
           class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold"
           >TB Doanh thu</span
         >
-        <span class="text-xl font-bold text-white"
+        <span class="text-lg sm:text-xl font-bold text-white"
           >{formatCurrency(avgRevenue)}</span
         >
       </div>
     </div>
 
     <div
-      class="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/5"
+      class="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/5 hover:bg-white/[0.08] transition-colors"
     >
-      <div class="p-3 rounded-xl bg-indigo-500/10 text-indigo-400">
+      <div class="p-3 rounded-xl bg-indigo-500/10 text-indigo-400 shadow-[inset_0_0_10px_rgba(129,140,248,0.1)]">
         <ShoppingCart size={20} />
       </div>
       <div class="flex flex-col">
@@ -276,7 +276,7 @@
           class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold"
           >Số đơn hàng</span
         >
-        <span class="text-xl font-bold text-white">{totalOrders}</span>
+        <span class="text-lg sm:text-xl font-bold text-white">{totalOrders}</span>
       </div>
     </div>
 
@@ -284,12 +284,12 @@
       class="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border {growth >=
       0
         ? 'border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.05)]'
-        : 'border-red-500/20'}"
+        : 'border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.05)]'} hover:brightness-110 transition-all xs:col-span-2 md:col-span-1"
     >
       <div
         class="p-3 rounded-xl {growth >= 0
           ? 'bg-emerald-500'
-          : 'bg-red-500'} text-black"
+          : 'bg-red-500'} text-black shadow-lg"
       >
         <TrendingUp size={20} class={growth >= 0 ? "" : "rotate-180"} />
       </div>
@@ -299,7 +299,7 @@
             ? 'text-emerald-500/80'
             : 'text-red-500/80'} font-extrabold">Tăng trưởng</span
         >
-        <span class="text-xl font-black text-white"
+        <span class="text-lg sm:text-xl font-black text-white"
           >{growth >= 0 ? "+" : ""}{growth.toFixed(1)}%</span
         >
       </div>
@@ -310,5 +310,12 @@
 <style>
   .font-sans {
     font-family: "Outfit", "Inter", sans-serif;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 </style>

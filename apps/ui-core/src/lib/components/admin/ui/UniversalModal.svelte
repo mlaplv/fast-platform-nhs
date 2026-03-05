@@ -73,7 +73,7 @@
   >
     <!-- Backdrop (scoped to main content) -->
     <div
-      class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+      class="absolute inset-0 bg-black/80 md:bg-black/60 md:backdrop-blur-sm"
       onclick={close}
       onkeydown={(e) => e.key === "Escape" && close()}
       role="presentation"
@@ -84,7 +84,7 @@
       class="relative z-10 w-full h-full flex flex-col max-h-full overflow-hidden"
     >
       <!-- Header -->
-      <div class="flex items-center justify-between px-5 py-3 border-b border-cyan-500/20 bg-black/80 backdrop-blur-md shrink-0">
+      <div class="flex items-center justify-between px-5 py-3 border-b border-cyan-500/20 bg-black md:bg-black/80 md:backdrop-blur-md shrink-0">
         <div class="flex items-center gap-3">
           <div class="w-8 h-8 rounded-md bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
             <Terminal class="w-4 h-4 text-cyan-400" />

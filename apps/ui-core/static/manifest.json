@@ -1,0 +1,17 @@
+{
+  "name": "XoHi OS AI Assistant",
+  "short_name": "XoHi",
+  "start_url": "/admin",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#00FFFF",
+  "description": "AI Admin Assistant Interface",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

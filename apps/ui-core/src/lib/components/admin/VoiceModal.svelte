@@ -41,7 +41,7 @@
 
 {#if nanobot.isVuiActive && !nanobot.isTraining}
   <div
-    class="fixed inset-0 z-[1000] overflow-hidden bg-[#020204]/[0.97] backdrop-blur-3xl pointer-events-auto"
+    class="fixed inset-0 z-[1000] overflow-hidden bg-[#020204] md:bg-[#020204]/[0.97] md:backdrop-blur-3xl pointer-events-auto"
     transition:fade={{ duration: 300 }}
   >
     <!-- Close — Glass Orb + Sparkle Stars ✦ -->
@@ -282,17 +282,6 @@
     will-change: contents;
     contain: layout style;
     text-shadow: 0 0 6px rgba(128, 210, 255, 0.08);
-  }
-
-  .scifi-scroll::-webkit-scrollbar {
-    width: 2px;
-  }
-  .scifi-scroll::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .scifi-scroll::-webkit-scrollbar-thumb {
-    background: rgba(128, 210, 255, 0.08);
-    border-radius: 1px;
   }
 
   /* Typewriter emotion: active chars glow brighter */

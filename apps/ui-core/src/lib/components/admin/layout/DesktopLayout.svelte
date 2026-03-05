@@ -15,27 +15,9 @@
   import UniversalModal from "../ui/UniversalModal.svelte";
   import { permissionState } from "$lib/state/permissions.svelte";
   import CurrentSessionStatus from "./HUD/CurrentSessionStatus.svelte";
-  import { fade } from "svelte/transition";
+  import TechStackFooter from "./TechStackFooter.svelte";
 
   let { children } = $props();
-
-  const versions: Record<string, string> =
-    typeof (globalThis as Record<string, unknown>).__APP_VERSIONS__ === "object"
-      ? ((globalThis as Record<string, unknown>).__APP_VERSIONS__ as Record<
-          string,
-          string
-        >)
-      : {
-          svelte: "5.x",
-          tailwind: "4.x",
-          sqlalchemy: "2.x",
-          alembic: "1.x",
-          litestar: "2.x",
-          pydantic_ai: "0.x",
-          litellm: "1.x",
-          python: "3.x",
-          caddy: "2.x",
-        };
 </script>
 
 <div
@@ -71,7 +53,7 @@
   <main class="flex-1 relative flex flex-col min-w-0">
     <!-- Header/Status Bar -->
     <header
-      class="h-12 border-b border-[#1a1a1a] flex items-center justify-between px-5 bg-black/40 backdrop-blur-md z-30"
+      class="h-12 border-b border-[#1a1a1a] flex items-center justify-between px-5 bg-[#080808] z-30"
       class:hidden={nanobot.isVuiActive && !nanobot.isTraining}
     >
       <div class="flex items-center gap-3">
@@ -111,6 +93,13 @@
         </div>
         {@render children()}
       </div>
+
+      <!-- XoHi Widget Modal (NOW scoped to Canvas Area only, NOT covering Footer/OmniCommand) -->
+      <div class="absolute inset-0 z-50 pointer-events-none" class:hidden={nanobot.isVuiActive && !nanobot.isTraining}>
+        <div class="{nanobot.universalModalOpen ? 'pointer-events-auto' : 'pointer-events-none'} w-full h-full">
+          <UniversalModal />
+        </div>
+      </div>
     </div>
 
     <!-- OmniCommand: Floats over modal, wrapper is transparent + click-through -->
@@ -127,26 +116,10 @@
     <!-- Voice Modal (Pure Face) -->
     <VoiceModal />
 
-    <!-- Version Footer (1-line, subtle) -->
-    <div
-      class="text-right pr-4 py-0.5"
-      class:hidden={nanobot.isVuiActive && !nanobot.isTraining}
-    >
-      <p
-        class="text-[8px] font-mono text-gray-500/60 tracking-widest uppercase select-none"
-      >
-        Sv{versions.svelte} · TW{versions.tailwind} · SQLA{versions.sqlalchemy} · Alb{versions.alembic} · Lite{versions.litestar} · PAI{versions.pydantic_ai} · LLM{versions.litellm} · Cad{versions.caddy} · Py{versions.python}
-      </p>
-    </div>
+    <!-- Version Footer -->
+    <TechStackFooter />
 
     <MobileActionDrawer />
-
-    <!-- XoHi Widget Modal (covers full main height, NOT the sidebar) -->
-    <div class="absolute inset-0 z-50 pointer-events-none" class:hidden={nanobot.isVuiActive && !nanobot.isTraining}>
-      <div class="{nanobot.universalModalOpen ? 'pointer-events-auto' : 'pointer-events-none'} w-full h-full">
-        <UniversalModal />
-      </div>
-    </div>
 
     <!-- Mission Control Overlays (FullLog, Vault, Confirm — still full-screen) -->
     <div class:hidden={nanobot.isVuiActive && !nanobot.isTraining}>

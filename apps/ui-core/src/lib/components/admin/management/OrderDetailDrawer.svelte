@@ -114,7 +114,7 @@
   <div use:portal class="relative z-[9999]">
     <!-- Backdrop -->
     <div 
-      class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[200]"
+      class="fixed inset-0 bg-black/95 md:bg-black/90 md:backdrop-blur-sm z-[200]"
       transition:fade={{ duration: 200 }}
       onclick={onClose}
       aria-label="Close drawer"
@@ -169,7 +169,7 @@
               <div class="text-lg font-bold {statusInfo.color} tracking-wider">{statusInfo.label}</div>
             </div>
             <div class="w-12 h-12 rounded-full border {statusInfo.border}/20 flex items-center justify-center relative z-10 bg-white/5">
-              <Package size={20} class="{statusInfo.color}" />
+              <Package size={20} class={statusInfo.color} />
             </div>
             <div class="absolute inset-0 opacity-10" style:background="linear-gradient(45deg, transparent, currentColor)" style:color={statusInfo.color.replace('text-', '')}></div>
           </div>
@@ -279,33 +279,33 @@
 
       <!-- Action Bar (Sticky Bottom) -->
       {#if orderData && !isLoading}
-        <div class="p-6 border-t border-white/10 bg-[#050505] shrink-0">
-          <div class="flex items-center gap-3">
+        <div class="p-4 sm:p-6 border-t border-white/10 bg-[#050505] shrink-0">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-3">
             {#if orderData.status === 'pending' || orderData.status === 'paid'}
-              <button onclick={handleCancel} class="px-4 py-2.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 text-[10px] font-mono uppercase tracking-widest transition-all text-center flex items-center justify-center gap-2">
+              <button onclick={handleCancel} class="w-full sm:w-auto px-4 py-2.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 text-[10px] font-mono uppercase tracking-widest transition-all text-center flex items-center justify-center gap-2">
                 <ShieldAlert size={14} /> Huỷ đơn
               </button>
             {/if}
             
-            <div class="flex-1 flex justify-end gap-3">
+            <div class="flex-1 flex flex-col sm:flex-row justify-end gap-3 w-full sm:w-auto">
               {#if orderData.status === 'pending'}
-                <button onclick={() => handleAction('PAID')} class="px-6 py-2.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(22,163,74,0.3)] hover:shadow-[0_0_20px_rgba(22,163,74,0.5)] flex items-center gap-2">
+                <button onclick={() => handleAction('PAID')} class="w-full sm:w-auto justify-center px-6 py-2.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(22,163,74,0.3)] hover:shadow-[0_0_20px_rgba(22,163,74,0.5)] flex items-center gap-2">
                   <CheckCircle size={14} /> Đã thanh toán
                 </button>
               {:else if orderData.status === 'paid'}
-                <button onclick={() => handleAction('PROCESSING')} class="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_20px_rgba(37,99,235,0.5)] flex items-center gap-2">
+                <button onclick={() => handleAction('PROCESSING')} class="w-full sm:w-auto justify-center px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_20px_rgba(37,99,235,0.5)] flex items-center gap-2">
                   <Play size={14} /> Chuẩn bị hàng
                 </button>
               {:else if orderData.status === 'processing'}
-                <button onclick={() => handleAction('SHIPPED')} class="px-6 py-2.5 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(192,38,211,0.3)] hover:shadow-[0_0_20px_rgba(192,38,211,0.5)] flex items-center gap-2">
+                <button onclick={() => handleAction('SHIPPED')} class="w-full sm:w-auto justify-center px-6 py-2.5 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(192,38,211,0.3)] hover:shadow-[0_0_20px_rgba(192,38,211,0.5)] flex items-center gap-2">
                   <Truck size={14} /> Giao hàng
                 </button>
               {:else if orderData.status === 'shipped'}
-                <button onclick={() => handleAction('DELIVERED')} class="px-6 py-2.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(22,163,74,0.3)] hover:shadow-[0_0_20px_rgba(22,163,74,0.5)] flex items-center gap-2">
+                <button onclick={() => handleAction('DELIVERED')} class="w-full sm:w-auto justify-center px-6 py-2.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(22,163,74,0.3)] hover:shadow-[0_0_20px_rgba(22,163,74,0.5)] flex items-center gap-2">
                   <CheckCircle size={14} /> Đã nhận hàng
                 </button>
               {:else if orderData.status === 'delivered'}
-                <button onclick={() => handleAction('COMPLETED')} class="px-6 py-2.5 rounded-lg bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan hover:bg-neon-cyan hover:text-black text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,255,255,0.2)] flex items-center gap-2">
+                <button onclick={() => handleAction('COMPLETED')} class="w-full sm:w-auto justify-center px-6 py-2.5 rounded-lg bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan hover:bg-neon-cyan hover:text-black text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,255,255,0.2)] flex items-center gap-2">
                   <CheckCircle size={14} /> Hoàn thành
                 </button>
               {/if}

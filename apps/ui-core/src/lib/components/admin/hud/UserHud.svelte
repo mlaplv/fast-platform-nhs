@@ -22,7 +22,7 @@
 <div class="relative">
   <button 
     onclick={toggleDropdown}
-    class="flex items-center gap-3 p-1 pl-4 bg-black/40 backdrop-blur-md border border-white/5 rounded-full hover:border-[#00FFFF]/40 hover:bg-[#00FFFF]/5 transition-all group relative overflow-hidden"
+    class="flex items-center gap-3 p-1 pl-4 bg-black/80 md:bg-black/40 md:backdrop-blur-md border border-white/5 rounded-full hover:border-[#00FFFF]/40 hover:bg-[#00FFFF]/5 transition-all group relative overflow-hidden"
   >
     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[#00FFFF]/5 to-transparent -translate-x-full group-hover:animate-scan-fast pointer-events-none"></div>
 
@@ -45,7 +45,7 @@
     <div 
       in:scale={{duration: 250, start: 0.95, opacity: 0}}
       out:fade={{duration: 150}}
-      class="absolute right-0 mt-4 w-80 bg-[#080808]/98 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-[0_20px_80px_rgba(0,0,0,0.9),0_0_30px_rgba(0,255,255,0.05)] z-50 overflow-hidden"
+      class="absolute right-0 mt-4 w-80 bg-[#080808] md:bg-[#080808]/98 md:backdrop-blur-3xl border border-white/10 rounded-2xl shadow-[0_20px_80px_rgba(0,0,0,0.9),0_0_30px_rgba(0,255,255,0.05)] z-50 overflow-hidden"
     >
       <!-- MISSION CONTROL HEADER -->
       <div class="p-6 pb-4 border-b border-white/5 relative">

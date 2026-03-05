@@ -14,10 +14,16 @@
     onSuccess: (updatedUser: User) => void;
   }>();
 
-  let name = $state(initialData?.name || "");
-  let email = $state(initialData?.email || "");
+  let name = $state("");
+  let email = $state("");
   let isLoading = $state(false);
   let error = $state<string | null>(null);
+
+  // Sync state when initialData changes
+  $effect(() => {
+    name = initialData?.name || "";
+    email = initialData?.email || "";
+  });
 
   async function handleSubmit(e: Event) {
     e.preventDefault();
@@ -53,7 +59,7 @@
 <!-- Backdrop -->
 <div
   transition:fade={{ duration: 200 }}
-  class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+  class="fixed inset-0 bg-black/95 md:bg-black/80 md:backdrop-blur-sm z-[100] flex items-center justify-center p-4"
 >
   <!-- Modal Panel -->
   <div
@@ -107,6 +113,7 @@
         <!-- Field: Email (Readonly) -->
         <div class="flex flex-col gap-2 relative group">
           <label
+            for="user-email"
             class="text-[9px] font-mono text-gray-400 uppercase tracking-widest font-bold"
             >Primary Identity (Email) <span class="text-red-500">*</span></label
           >
@@ -117,6 +124,7 @@
               <Mail size={14} class="text-gray-600" />
             </div>
             <input
+              id="user-email"
               type="text"
               bind:value={email}
               disabled={!!editingId}
@@ -130,6 +138,7 @@
         <!-- Field: Name -->
         <div class="flex flex-col gap-2 relative group">
           <label
+            for="user-name"
             class="text-[9px] font-mono text-white/60 uppercase tracking-widest font-bold group-focus-within:text-[#00FFFF] transition-colors"
             >Entity Name Alias</label
           >
@@ -143,6 +152,7 @@
               />
             </div>
             <input
+              id="user-name"
               bind:value={name}
               type="text"
               placeholder="Enter alias..."

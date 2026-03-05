@@ -116,7 +116,7 @@
   >
     <!-- Holographic Popover Frame -->
     <div
-      class="relative bg-[#0a0a0a]/90 backdrop-blur-3xl border border-neon-cyan/20 overflow-hidden shadow-[0_0_50px_rgba(0,243,255,0.1)]"
+      class="relative bg-[#0a0a0a]/95 md:bg-[#0a0a0a]/90 md:backdrop-blur-3xl border border-neon-cyan/20 overflow-hidden shadow-[0_0_50px_rgba(0,243,255,0.1)]"
     >
       <!-- Scanning Line -->
       <div

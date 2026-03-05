@@ -171,7 +171,7 @@
 
       <!-- LOGIN CARD -->
       <div
-        class="bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[40px] p-2 shadow-[0_0_60px_-15px_rgba(0,0,0,0.8)]"
+        class="bg-[#0a0a0a] md:bg-black/40 md:backdrop-blur-3xl border border-white/5 rounded-[40px] p-2 shadow-[0_0_60px_-15px_rgba(0,0,0,0.8)]"
       >
         <!-- Tab Headers -->
         <div class="flex p-2 bg-white/5 rounded-[32px] mb-6">
@@ -421,13 +421,6 @@
         <p class="text-[9px] text-gray-700 uppercase tracking-[0.5em]">
           &copy; 2026 XOHI SYSTEMS AGENTIC ENTITY
         </p>
-        <div class="flex flex-wrap justify-center gap-x-4 gap-y-1 opacity-30 group-hover:opacity-60 transition-opacity">
-          {#each Object.entries(__APP_VERSIONS__) as [key, val]}
-            <p class="text-[7px] font-mono text-cyan-500 uppercase">
-              {key.replace("_", "")}: <span class="text-white">{val}</span>
-            </p>
-          {/each}
-        </div>
       </div>
     </div>
   {/if}

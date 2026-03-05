@@ -7,6 +7,7 @@
   import Eye from "lucide-svelte/icons/eye";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import User from "lucide-svelte/icons/user";
+  import Sparkles from "lucide-svelte/icons/sparkles";
   import { fade, fly } from "svelte/transition";
 
   let { hideHeader = false } = $props();
@@ -121,6 +122,10 @@
     if (isScrollAnchoring) return;
     const target = e.target as HTMLElement;
     const currentScrollTop = target.scrollTop;
+    
+    // Update global scroll position for adaptive UI (V60.2)
+    nanobot.setMobileScrollPosition(currentScrollTop);
+
     const isScrollingUp = currentScrollTop < lastScrollTop;
     lastScrollTop = currentScrollTop;
 
@@ -168,7 +173,14 @@
       !isProgrammaticScrolling
     ) {
       // Small timeout to ensure DOM has updated
-      setTimeout(scrollToBottom, 50);
+      setTimeout(scrollToBottom, 100);
+    }
+  });
+
+  // Force scroll down on mount to ensure logs are visible
+  $effect(() => {
+    if (nanobot.activityLogs.length > 0) {
+      setTimeout(scrollToBottom, 300);
     }
   });
 
@@ -194,22 +206,50 @@
   }
 </script>
 
-<div class="{hideHeader ? '' : 'h-full'} font-mono text-xs flex flex-col">
+<div class="flex-1 h-full min-h-0 font-mono text-xs flex flex-col overflow-hidden">
   {#if !hideHeader}
     <div
-      class="h-12 flex items-center gap-2 text-neon-cyan/60 px-4 border-b border-white/5 shrink-0"
+      class="shrink-0 border-b border-white/5"
     >
-      <Terminal size={14} />
-      <span class="font-bold tracking-[0.3em] uppercase text-[10px]"
-        >Xohi Heartbeat</span
-      >
-      <div class="flex-1 flex justify-center">
-        {#if isSuperAdmin}
-          <div class="flex items-center gap-2 bg-white/5 border border-white/10 rounded px-2 py-0.5 group/select hover:border-neon-cyan/30 transition-all">
-            <User size={10} class="text-neon-cyan/40 group-hover/select:text-neon-cyan transition-colors" />
-            <select 
+      <!-- Row 1: Title + Action Buttons -->
+      <div class="h-12 flex items-center justify-between px-4">
+        <div class="flex items-center gap-2 text-neon-cyan/60 min-w-0">
+          <Terminal size={14} class="shrink-0" />
+          <span class="font-bold tracking-[0.3em] uppercase text-[10px] truncate">Xohi Heartbeat</span>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button
+            onclick={() => nanobot.syncSessionFromDb()}
+            class="p-1 hover:text-white transition-all opacity-40 hover:opacity-100 flex items-center justify-center text-neon-cyan/60"
+            title="Đồng bộ từ DB"
+            disabled={nanobot.chatPagination.isLoading}
+          >
+            <RefreshCw
+              size={12}
+              class={nanobot.chatPagination.isLoading
+                ? "animate-spin text-neon-cyan opacity-100"
+                : ""}
+            />
+          </button>
+          {#if isSuperAdmin}
+            <button
+              onclick={handleClearLogs}
+              class="p-1 hover:text-white transition-colors opacity-40 hover:opacity-100 text-alert-red/80 hover:text-alert-red"
+              title="Clear system logs (SUPER_ADMIN ONLY)"
+            >
+              <Trash2 size={12} />
+            </button>
+          {/if}
+        </div>
+      </div>
+      <!-- Row 2: God-Mode User Selector (only for SUPER_ADMIN) -->
+      {#if isSuperAdmin}
+        <div class="px-4 pb-2">
+          <div class="flex items-center gap-2 bg-white/5 border border-white/10 rounded px-2 py-1 hover:border-neon-cyan/30 transition-all w-full">
+            <User size={10} class="text-neon-cyan/40 shrink-0" />
+            <select
               onchange={handleUserChange}
-              class="bg-transparent border-none text-[9px] font-mono text-white/60 focus:ring-0 outline-none cursor-pointer uppercase tracking-tighter"
+              class="bg-transparent border-none text-[9px] font-mono text-white/60 focus:ring-0 outline-none cursor-pointer uppercase tracking-tighter w-full min-w-0"
             >
               <option value="self" class="bg-[#0a0a0a] text-neon-cyan">IDENTITY: SELF</option>
               {#each availableUsers as user}
@@ -219,32 +259,7 @@
               {/each}
             </select>
           </div>
-        {/if}
-      </div>
-
-      <!-- Sync from DB Button -->
-      <button
-        onclick={() => nanobot.syncSessionFromDb()}
-        class="p-1 hover:text-white transition-all opacity-40 hover:opacity-100 flex items-center justify-center mr-1"
-        title="Đồng bộ từ DB"
-        disabled={nanobot.chatPagination.isLoading}
-      >
-        <RefreshCw
-          size={12}
-          class={nanobot.chatPagination.isLoading
-            ? "animate-spin text-neon-cyan opacity-100"
-            : ""}
-        />
-      </button>
-
-      {#if isSuperAdmin}
-        <button
-          onclick={handleClearLogs}
-          class="p-1 hover:text-white transition-colors opacity-40 hover:opacity-100 text-alert-red/80 hover:text-alert-red"
-          title="Clear system logs (SUPER_ADMIN ONLY)"
-        >
-          <Trash2 size={12} />
-        </button>
+        </div>
       {/if}
     </div>
   {/if}
@@ -252,9 +267,7 @@
   <div
     bind:this={scrollContainer}
     onscroll={handleScroll}
-    class={hideHeader
-      ? "space-y-1.5 px-6 pt-4 pb-16 flex flex-col items-start overflow-y-auto"
-      : "flex-1 overflow-y-auto space-y-1.5 flex flex-col items-start px-6 scrollbar-none"}
+    class="flex-1 overflow-y-auto overflow-x-hidden space-y-1.5 flex flex-col items-start px-3 {hideHeader ? 'pt-4 pb-24' : 'scrollbar-none'}"
   >
     <!-- Infinite Scroll Loading Indicator -->
     {#if nanobot.chatPagination.isLoading && userHasScrolledUp}
@@ -275,83 +288,122 @@
     {/if}
 
     {#each nanobot.activityLogs as log (log.id)}
-      <div
-        in:fly={{ y: 20, duration: 400, opacity: 0 }}
-        out:fade={{ duration: 150 }}
-        class="flex items-start justify-between group/log py-[5px] w-full max-w-full gap-2 border-b border-white/[0.02] last:border-0"
-      >
-        <div class="flex items-start flex-1 min-w-0">
-          <div
-            class="flex items-center justify-end gap-1.5 shrink-0 w-11 mr-2 mt-[3px] opacity-60 group-hover/log:opacity-100 transition-opacity"
-          >
-            {#if log.source === "XOHI" || log.source === "[XOHI]"}
-              <span
-                class="text-[#FF33FF] font-bold tracking-wider text-[8px] uppercase"
-                >XOHI{#if log.routerTier}<span
-                    class="text-[#c0e8ff]/60 ml-0.5 tracking-normal uppercase"
-                    >[t{log.routerTier}]</span
-                  >{/if}</span
-              >
-              <div class="w-1 h-1 rounded-full bg-[#FF33FF] shrink-0"></div>
-            {:else if log.source === "[ADMIN]"}
-              <span
-                class="text-neon-cyan font-bold tracking-wider text-[8px] uppercase"
-                >ADM</span
-              >
-              <div class="w-1 h-1 rounded-full bg-neon-cyan shrink-0"></div>
-            {:else if log.source === "Nanobot-Sec" || log.source === "Nanobot-Vault"}
-              <span
-                class="text-alert-red font-bold tracking-wider text-[8px] uppercase"
-                >SEC</span
-              >
-              <div class="w-1 h-1 rounded-full bg-alert-red shrink-0"></div>
-            {:else if log.source.includes("Admin") || log.source === "Omni-Command"}
-              <span
-                class="text-white font-bold tracking-wider text-[8px] uppercase"
-                >CMD</span
-              >
-              <div class="w-1 h-1 rounded-full bg-white shrink-0"></div>
-            {:else}
-              <span
-                class="text-gray-500 font-bold tracking-wider text-[8px] uppercase"
-                >SYS</span
-              >
-              <div class="w-1 h-1 rounded-full bg-gray-500 shrink-0"></div>
-            {/if}
-          </div>
-
-          <div
-            class="text-gray-400 group-hover/log:text-[#c0e8ff]/90 transition-colors text-[11px] font-mono leading-[1.6] flex-1 min-w-0"
-          >
-            <span class="truncate-2-lines pr-2">
-              {processMessage(log.message)}
-            </span>
-          </div>
-        </div>
-
-        <div class="relative flex flex-col items-end shrink-0 mt-0.5 w-[38px]">
-          {#if isLongMessage(log.message) || log.source === "XOHI" || log.source === "[XOHI]"}
-            <span
-              class="text-[9px] font-mono text-gray-500 opacity-50 group-hover/log:opacity-0 transition-opacity whitespace-nowrap"
-            >
-              {formatRelativeTime(log.timestamp)}
-            </span>
-            <button
-              onclick={() => nanobot.showFullLog(log)}
-              class="absolute top-0 right-0 opacity-0 group-hover/log:opacity-100 text-neon-cyan hover:text-white transition-all z-10 cursor-pointer flex items-center justify-center p-0.5"
-              title="Phóng to"
-            >
-              <Eye size={12} />
-            </button>
+      {#if hideHeader}
+        <!-- CHAT BUBBLE LAYOUT (MOBILE) -->
+        <div
+          in:fly={{ y: 20, duration: 400, opacity: 0 }}
+          out:fade={{ duration: 150 }}
+          class="w-full flex flex-col mb-1 {log.source === 'XOHI' || log.source === '[XOHI]' ? 'items-start pl-2' : log.source === '[ADMIN]' ? 'items-end pr-2' : 'items-center'}"
+        >
+          {#if log.source === 'XOHI' || log.source === '[XOHI]'}
+            <div class="max-w-[85%] bg-[#0a1a1a] border border-neon-cyan/20 rounded-2xl rounded-tl-sm px-4 py-3 shadow-[0_4px_15px_rgba(0,255,255,0.05)]">
+              <div class="flex items-center gap-2 mb-1.5 opacity-60">
+                <Sparkles size={10} class="text-neon-cyan" />
+                <span class="text-[9px] font-mono text-neon-cyan uppercase tracking-widest">XoHi</span>
+                <span class="text-[8px] font-mono text-gray-500">{formatRelativeTime(log.timestamp)}</span>
+              </div>
+              <div class="text-[13px] text-gray-200 leading-relaxed font-sans" style="word-break: break-word;">
+                {processMessage(log.message)}
+              </div>
+            </div>
+          {:else if log.source === '[ADMIN]'}
+            <div class="max-w-[85%] bg-white/5 border border-white/10 rounded-2xl rounded-tr-sm px-4 py-3">
+              <div class="flex items-center justify-end gap-2 mb-1.5 opacity-60">
+                <span class="text-[8px] font-mono text-gray-500">{formatRelativeTime(log.timestamp)}</span>
+                <span class="text-[9px] font-mono text-gray-400 uppercase tracking-widest">{log.source.replace(/[\[\]]/g, '')}</span>
+              </div>
+              <div class="text-[13px] text-gray-300 leading-relaxed font-sans" style="word-break: break-word;">
+                {processMessage(log.message)}
+              </div>
+            </div>
           {:else}
-            <span
-              class="text-[9px] font-mono text-gray-500 opacity-50 group-hover/log:opacity-100 transition-opacity whitespace-nowrap"
-            >
-              {formatRelativeTime(log.timestamp)}
-            </span>
+            <!-- System / Security Logs -->
+            <div class="max-w-[90%] bg-transparent border border-white/5 rounded-xl px-3 py-2 flex flex-col items-center text-center opacity-60 mt-1 mb-1">
+              <span class="text-[8px] font-mono {log.source.includes('Sec') ? 'text-red-400' : 'text-gray-500'} uppercase tracking-widest mb-0.5">{log.source} • {formatRelativeTime(log.timestamp)}</span>
+              <span class="text-[10px] font-mono text-gray-400 truncate w-full">{processMessage(log.message)}</span>
+            </div>
           {/if}
         </div>
-      </div>
+      {:else}
+        <!-- STANDARD DESKTOP LOG LAYOUT -->
+        <div
+          in:fly={{ y: 20, duration: 400, opacity: 0 }}
+          out:fade={{ duration: 150 }}
+          class="flex items-start justify-between group/log py-[5px] w-full max-w-full gap-2 border-b border-white/[0.02] last:border-0"
+        >
+          <div class="flex items-start flex-1 min-w-0">
+            <div
+              class="flex items-center justify-end gap-1.5 shrink-0 w-11 mr-2 mt-[3px] opacity-60 group-hover/log:opacity-100 transition-opacity"
+            >
+              {#if log.source === "XOHI" || log.source === "[XOHI]"}
+                <span
+                  class="text-[#FF33FF] font-bold tracking-wider text-[8px] uppercase"
+                  >XOHI{#if log.routerTier}<span
+                      class="text-[#c0e8ff]/60 ml-0.5 tracking-normal uppercase"
+                      >[t{log.routerTier}]</span
+                    >{/if}</span
+                >
+                <div class="w-1 h-1 rounded-full bg-[#FF33FF] shrink-0"></div>
+              {:else if log.source === "[ADMIN]"}
+                <span
+                  class="text-neon-cyan font-bold tracking-wider text-[8px] uppercase"
+                  >ADM</span
+                >
+                <div class="w-1 h-1 rounded-full bg-neon-cyan shrink-0"></div>
+              {:else if log.source === "Nanobot-Sec" || log.source === "Nanobot-Vault"}
+                <span
+                  class="text-alert-red font-bold tracking-wider text-[8px] uppercase"
+                  >SEC</span
+                >
+                <div class="w-1 h-1 rounded-full bg-alert-red shrink-0"></div>
+              {:else if log.source.includes("Admin") || log.source === "Omni-Command"}
+                <span
+                  class="text-white font-bold tracking-wider text-[8px] uppercase"
+                  >CMD</span
+                >
+                <div class="w-1 h-1 rounded-full bg-white shrink-0"></div>
+              {:else}
+                <span
+                  class="text-gray-500 font-bold tracking-wider text-[8px] uppercase"
+                  >SYS</span
+                >
+                <div class="w-1 h-1 rounded-full bg-gray-500 shrink-0"></div>
+              {/if}
+            </div>
+
+            <div
+              class="text-gray-400 group-hover/log:text-[#c0e8ff]/90 transition-colors text-[11px] font-mono leading-[1.6] flex-1 min-w-0"
+            >
+              <span class="truncate-2-lines pr-2">
+                {processMessage(log.message)}
+              </span>
+            </div>
+          </div>
+
+          <div class="relative flex flex-col items-end shrink-0 mt-0.5 w-[38px]">
+            {#if isLongMessage(log.message) || log.source === "XOHI" || log.source === "[XOHI]"}
+              <span
+                class="text-[9px] font-mono text-gray-500 opacity-50 group-hover/log:opacity-0 transition-opacity whitespace-nowrap"
+              >
+                {formatRelativeTime(log.timestamp)}
+              </span>
+              <button
+                onclick={() => nanobot.showFullLog(log)}
+                class="absolute top-0 right-0 opacity-0 group-hover/log:opacity-100 text-neon-cyan hover:text-white transition-all z-10 cursor-pointer flex items-center justify-center p-0.5"
+                title="Phóng to"
+              >
+                <Eye size={12} />
+              </button>
+            {:else}
+              <span
+                class="text-[9px] font-mono text-gray-500 opacity-50 group-hover/log:opacity-100 transition-opacity whitespace-nowrap"
+              >
+                {formatRelativeTime(log.timestamp)}
+              </span>
+            {/if}
+          </div>
+        </div>
+      {/if}
     {/each}
   </div>
 </div>
