@@ -14,6 +14,11 @@
         reverse_proxy fast_platform_api:8000
     }
 
+    # WebSocket STT (Groq Whisper)
+    handle /ws/* {
+        reverse_proxy fast_platform_api:8000
+    }
+
     # Front-end (Svelte)
     handle /* {
         reverse_proxy fast_platform_ui:5173

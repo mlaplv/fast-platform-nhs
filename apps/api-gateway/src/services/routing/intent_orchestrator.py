@@ -162,19 +162,27 @@ class RouterOrchestrator:
         elif "tuần này" in combined_lower or "tuan nay" in combined_lower:
             timeframe = "this_week"
 
-        # ═══ TIMEFRAME INHERITANCE (V58.3) ═══
+        # ═══ TIMEFRAME & TARGET INHERITANCE (XoHi Next-Gen) ═══
         voice_cache = getattr(app_state, "voice_cache", {})
         user_profile = voice_cache.get(user_id, {})
         
-        if timeframe == "none" and target == "revenue":
-            # If follow-up message about revenue/chart, reuse last timeframe
-            timeframe = user_profile.get("last_revenue_timeframe", "none")
+        # 1. Inherit target if missing
+        if target == "none" and timeframe != "none":
+            target = user_profile.get("last_target", "none")
+            logger.info(f"[Heuristic] Inherited target: {target}")
+
+        # 2. Inherit timeframe if missing (especially for revenue)
+        if timeframe == "none" and target in ["revenue", "order"]:
+            timeframe = user_profile.get("last_timeframe", "none")
             logger.info(f"[Heuristic] Inherited timeframe: {timeframe}")
         
         # Update context for next query
-        if target == "revenue":
-            user_profile["last_revenue_timeframe"] = timeframe
-            voice_cache[user_id] = user_profile
+        if target != "none":
+            user_profile["last_target"] = target
+        if timeframe != "none":
+            user_profile["last_timeframe"] = timeframe
+            
+        voice_cache[user_id] = user_profile
 
         # --- Detect INTENT TYPE ---
         count_keywords = ["bao nhiêu", "mấy", "tổng số", "tổng", "bao nhieu"]

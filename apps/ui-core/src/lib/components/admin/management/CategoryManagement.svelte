@@ -60,14 +60,14 @@
 
   // V22: Voice Mutation Injection - Category Management
   $effect(() => {
-    const data = nanobot.currentData;
+    const data = nanobot.currentData as any;
     const action = nanobot.commandAction;
 
     if (data?.ui_action === "show_category_management" && data?.intent_type === "MUTATE" && !showForm) {
       editingId = null;
-      formName = data.name || data.title || "";
+      formName = data?.name || data?.title || "";
       formSlug = genSlug(formName);
-      formParentId = data.parentId || null;
+      formParentId = data?.parentId || null;
       showForm = true;
       nanobot.clearCurrentData();
       return;

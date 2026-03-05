@@ -152,6 +152,16 @@ export class OmniController {
       return;
     }
 
+    // 2026 Polish: Proactive check for STT support to prevent UI jitter
+    const SR =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+    if (!SR && !this.ws) {
+      // Only fallback if WebSocket isn't already active/connecting
+      // We'll let initSpeechRecognition handle the actual logic,
+      // but this pre-check helps us know if we should even continue.
+    }
+
     this.cmd = "";
     this.wasVoice = true;
     this.liveTrans = "";
@@ -197,9 +207,11 @@ export class OmniController {
     this.maxTimer = setTimeout(() => this.rec && this.stopRec(), 30000);
   }
 
+  private isFallbackActive = false;
+
   private initSpeechRecognition() {
+    this.isFallbackActive = false;
     // 2026 Pipeline: WebSocket → Backend → Groq Whisper v3 (95% Vietnamese accuracy)
-    // Falls back to Web Speech API if WebSocket fails
     const wsProto = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${wsProto}//${window.location.host}/ws/stt`;
 
@@ -207,7 +219,6 @@ export class OmniController {
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
-        // WebSocket connected — MediaRecorder already sends chunks via ondataavailable
         console.info("[STT] Groq Whisper WebSocket connected");
       };
 
@@ -216,7 +227,6 @@ export class OmniController {
           const msg = JSON.parse(evt.data);
           if (msg.event === "final" && msg.text) {
             this.liveTrans = msg.text;
-            // Auto-stop after receiving final transcript
             this.stopRec();
           } else if (msg.event === "timeout") {
             this.stopRec();
@@ -227,49 +237,45 @@ export class OmniController {
       this.ws.onerror = () => {
         console.warn("[STT] WebSocket failed, falling back to Web Speech API");
         this.ws = null;
-        this._initWebSpeechFallback();
+        if (!this.isFallbackActive) this._initWebSpeechFallback();
       };
 
       this.ws.onclose = () => {
-        // Only fallback if we're still recording and have no transcript
-        if (this.rec && !this.liveTrans) {
+        if (this.rec && !this.liveTrans && !this.isFallbackActive) {
           this._initWebSpeechFallback();
         }
       };
     } catch {
-      this._initWebSpeechFallback();
+      if (!this.isFallbackActive) this._initWebSpeechFallback();
     }
   }
 
+  private _sttErrorState = false;
+
   /**
    * Fallback: Web Speech API for browsers where WebSocket STT fails.
-   * Same as the old initSpeechRecognition — Chrome/Edge/Safari only.
    */
   private _initWebSpeechFallback() {
+    this.isFallbackActive = true;
     try {
       const SR =
         (window as any).SpeechRecognition ||
         (window as any).webkitSpeechRecognition;
 
       if (!SR) {
-        nanobot.addLog(
-          "STT unavailable — please use Chrome, Edge, or Safari.",
-          "ERR",
-          "error",
-        );
+        console.warn("[STT] Fallback failed: SpeechRecognition not supported.");
+
+        // V26: SMOOTH TRANSITION — Keep modal open but set state to error/IDLE
+        this._sttErrorState = true;
+
+        const politeMsg =
+          "Dạ thưa sếp, trình duyệt hiện tại chưa hỗ trợ nhận dạng giọng nói ạ. Sếp vui lòng chuyển sang Chrome hoặc Safari để em được phục vụ tốt nhất nhé.";
+
         setTimeout(() => {
           this.stopRec();
-          nanobot.setVoiceResult(
-            "",
-            "Trình duyệt của sếp không hỗ trợ nhận diện giọng nói. Vui lòng dùng Chrome, Edge hoặc Safari ạ.",
-            "",
-            {},
-            "voice",
-          );
-          this.speak(
-            "Trình duyệt của sếp không hỗ trợ nhận diện giọng nói. Vui lòng dùng Chrome, Edge hoặc Safari ạ.",
-          );
-        }, 500);
+          nanobot.setVoiceResult("", politeMsg, "", {}, "voice");
+          this.speak(politeMsg);
+        }, 200);
         return;
       }
 
@@ -291,7 +297,9 @@ export class OmniController {
         }
       };
       this.sr.start();
-    } catch (e) {}
+    } catch (e) {
+      this.isFallbackActive = false;
+    }
   }
 
   stopRec() {
@@ -301,6 +309,7 @@ export class OmniController {
       this.sr?.stop();
     } catch (e) {}
     this.sr = null;
+    this.isFallbackActive = false; // Reset fallback lock
     if (this.ws) {
       // Signal backend to transcribe buffered audio before closing
       if (this.ws.readyState === WebSocket.OPEN) {
@@ -422,6 +431,13 @@ export class OmniController {
     this.interrupt();
     // BƯỚC 3: THE ANTI-ECHO SHIELD (Mở lại Mic sau khi phát xong)
     this.myStream?.getAudioTracks().forEach((t) => (t.enabled = true));
+
+    // V26: Graceful close if we were just speaking an error message
+    if (this._sttErrorState) {
+      this._sttErrorState = false;
+      nanobot.setVuiActive(false);
+      return;
+    }
 
     // RE-ENABLE MULTI-TURN: Restart recording after Xohi finishes speaking
     if (nanobot.isVuiActive) {

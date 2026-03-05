@@ -33,30 +33,38 @@ async def stt_websocket(socket: WebSocket) -> None:
     try:
         while is_active:
             try:
-                data = await asyncio.wait_for(socket.receive_data(mode="binary"), timeout=30.0)
+                # 2026 Refactor: Use low-level receive() to handle both TEXT (STOP) and BINARY (audio)
+                msg = await asyncio.wait_for(socket.receive(), timeout=30.0)
+                
+                if msg["type"] == "websocket.receive":
+                    # For Litestar/Starlette, data is in 'bytes' or 'text'
+                    if "bytes" in msg:
+                        data = msg["bytes"]
+                        # Accumulate audio chunks
+                        audio_buffer.extend(data)
+                    elif "text" in msg:
+                        data = msg["text"]
+                        if data == "STOP":
+                            # Client signals end of speech — transcribe what we have
+                            if len(audio_buffer) > MIN_AUDIO_BYTES:
+                                transcript = await _transcribe(bytes(audio_buffer))
+                                await socket.send_json({"event": "final", "text": transcript})
+                            audio_buffer.clear()
+                            continue
+                        elif data == "CLOSE":
+                            is_active = False
+                            break
+                elif msg["type"] == "websocket.disconnect":
+                    is_active = False
+                    break
+
             except asyncio.TimeoutError:
                 # 30s silence → close connection
                 await socket.send_json({"event": "timeout", "text": ""})
                 break
-
-            if not data:
+            except (KeyError, AttributeError) as e:
+                logger.debug(f"[STT] Ignored non-data message: {e}")
                 continue
-
-            # Check for control messages (text)
-            if isinstance(data, str):
-                if data == "STOP":
-                    # Client signals end of speech — transcribe what we have
-                    if len(audio_buffer) > MIN_AUDIO_BYTES:
-                        transcript = await _transcribe(bytes(audio_buffer))
-                        await socket.send_json({"event": "final", "text": transcript})
-                    audio_buffer.clear()
-                    continue
-                elif data == "CLOSE":
-                    is_active = False
-                    break
-
-            # Accumulate audio chunks
-            audio_buffer.extend(data)
 
             # Safety: force transcribe if buffer too large
             if len(audio_buffer) > MAX_AUDIO_BYTES:

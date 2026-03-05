@@ -70,14 +70,14 @@
 
   // V22: Voice Mutation Injection - News Management
   $effect(() => {
-    const data = nanobot.currentData;
+    const data = nanobot.currentData as any;
     const action = nanobot.commandAction;
 
     if (data?.ui_action === "show_news_management" && data?.intent_type === "MUTATE" && !showDraftForm) {
       editingId = null;
-      formTitle = data.title || data.name || data.entities?.name || "";
-      formCategory = data.category || CATEGORIES[0];
-      formExcerpt = data.excerpt || "";
+      formTitle = data?.title || data?.name || data?.entities?.name || "";
+      formCategory = data?.category || CATEGORIES[0];
+      formExcerpt = data?.excerpt || "";
       showDraftForm = true;
       nanobot.clearCurrentData();
       return;

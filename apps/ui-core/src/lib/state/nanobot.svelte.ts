@@ -580,6 +580,9 @@ export function createNanobotState() {
     clearCurrentData: () => {
       state.currentData = null;
     },
+    clearCommandAction: () => {
+      state.commandAction = null;
+    },
 
     // UI Logic
     showConfirm: ui.showConfirm,

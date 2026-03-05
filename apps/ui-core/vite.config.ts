@@ -3,7 +3,6 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import { defineConfig } from "vite";
 // @ts-ignore
 import fs from "node:fs";
-import process from "node:process";
 
 // ── Auto-detect package versions for dashboard display ──
 // ── Auto-detect package versions for dashboard display ──
@@ -154,13 +153,21 @@ export default defineConfig({
     host: true,
     port: 5173,
     allowedHosts: [
+      // @ts-ignore
       process.env.APP_DOMAIN || "smartshop.test",
+      // @ts-ignore
       process.env.ADMIN_DOMAIN || "admin.smartshop.test",
     ],
     proxy: {
       "/api": {
         // @ts-ignore
         target: process.env.VITE_API_PROXY_TARGET || "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+      "/ws": {
+        // @ts-ignore
+        target: process.env.VITE_API_PROXY_TARGET || "http://127.0.0.1:8000",
+        ws: true,
         changeOrigin: true,
       },
     },

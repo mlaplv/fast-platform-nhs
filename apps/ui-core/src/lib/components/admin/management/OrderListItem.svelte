@@ -164,7 +164,7 @@
     width: 40px;
     height: 40px;
     display: flex;
-    items-center: center;
+    align-items: center;
     justify-content: center;
     border-width: 1px;
     border-style: solid;

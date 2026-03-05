@@ -184,7 +184,7 @@
     display: grid;
     gap: 1.25rem;
     grid-template-columns: 1fr;
-    flex-1: 1;
+    flex: 1;
     display: flex;
     flex-direction: column;
   }

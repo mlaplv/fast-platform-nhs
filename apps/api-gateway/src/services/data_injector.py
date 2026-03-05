@@ -186,7 +186,23 @@ class DataInjector:
             stmt = select(func.count(Order.id)).where(Order.deleted_at.is_(None))
             if time_filter: stmt = stmt.where(Order.created_at >= time_filter)
             if status and status != "none": stmt = stmt.where(Order.status == status.upper())
-            return await repo.session.scalar(stmt)
+            count = await repo.session.scalar(stmt)
+            
+            # --- Insight: So sánh với hôm qua nếu hỏi "today" ---
+            if timeframe == "today":
+                yesterday_start = time_filter - timedelta(days=1)
+                yesterday_end = time_filter
+                stmt_yest = select(func.count(Order.id)).where(
+                    Order.deleted_at.is_(None),
+                    Order.created_at >= yesterday_start,
+                    Order.created_at < yesterday_end
+                )
+                if status and status != "none": stmt_yest = stmt_yest.where(Order.status == status.upper())
+                yest_count = await repo.session.scalar(stmt_yest) or 0
+                diff = count - yest_count
+                trend = "tăng" if diff > 0 else "giảm" if diff < 0 else "bằng"
+                return f"{count} (Hôm qua: {yest_count}, {trend} {abs(diff)})"
+            return count
 
         if target == "product":
             repo = repos.get("product_repo")
@@ -216,7 +232,26 @@ class DataInjector:
             if time_filter: stmt = stmt.where(Order.created_at >= time_filter)
             
             total = await repo.session.scalar(stmt) or 0
-            return f"{total:,.0f}đ".replace(",", ".")
+            
+            # --- Insight: So sánh với hôm qua ---
+            insight = ""
+            if timeframe == "today" and total > 0:
+                yesterday_start = time_filter - timedelta(days=1)
+                yesterday_end = time_filter
+                stmt_yest = select(func.sum(Order.total_amount)).where(
+                    Order.tenant_id == tenant_id,
+                    Order.deleted_at.is_(None),
+                    Order.created_at >= yesterday_start,
+                    Order.created_at < yesterday_end
+                )
+                if status and status != "none": stmt_yest = stmt_yest.where(Order.status == status.upper())
+                yest_total = await repo.session.scalar(stmt_yest) or 0
+                if yest_total > 0:
+                    diff = total - yest_total
+                    trend = "tăng" if diff > 0 else "giảm" if diff < 0 else "bằng"
+                    insight = f" (Hôm qua: {yest_total:,.0f}đ, {trend} {abs(diff):,.0f}đ)"
+            
+            return f"{total:,.0f}đ{insight}".replace(",", ".")
 
         return None
 

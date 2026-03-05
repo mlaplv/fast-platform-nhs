@@ -166,7 +166,6 @@
           class="w-full bg-black/50 border border-white/10 focus:border-cyan-500/50 text-white
             font-mono text-sm px-4 py-3 rounded-lg outline-none transition-colors
             shadow-inner text-center tracking-wider max-w-[80%] mx-auto block"
-          autofocus
         />
       {/if}
     </div>

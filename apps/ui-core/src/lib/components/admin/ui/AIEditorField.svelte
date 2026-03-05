@@ -44,13 +44,13 @@
 
       if (reader) {
         while (true) {
-          const { done, chunk } = await reader.read();
+          const { done, value: chunk } = await reader.read();
           if (done) break;
-          
-          const textChunk = decoder.decode(chunk, { stream: true });
-          const lines = textChunk.split("\n").filter(l => l.startsWith("data: "));
-          
-          for (const line of lines) {
+          if (chunk) {
+            const textChunk = decoder.decode(chunk, { stream: true });
+            const lines = textChunk.split("\n").filter(l => l.startsWith("data: "));
+            
+            for (const line of lines) {
             try {
               const data = JSON.parse(line.slice(6));
               // Bắt phase 'done' hoặc parse token trực tiếp nếu AI_Worker trả stream
@@ -67,7 +67,8 @@
           }
         }
       }
-    } catch (e: any) {
+    }
+  } catch (e: any) {
       if (e.name !== "AbortError") console.error("Ghost Error:", e);
     } finally {
       abortController = null;

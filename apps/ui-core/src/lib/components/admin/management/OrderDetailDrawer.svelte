@@ -20,7 +20,8 @@
   let { 
     isOpen = $bindable(false), 
     orderId = "", 
-    onClose 
+    onClose,
+    onReload
   } = $props<{ 
     isOpen: boolean; 
     orderId: string;
@@ -65,7 +66,7 @@
         await apiClient.patch(`/api/v1/orders/${orderId}/status`, { status: actionType });
         nanobot.addLog("Cập nhật trạng thái " + actionType, "Nanobot-System");
         await loadOrderDetails();
-        if (onReload) onReload();
+        onReload?.();
       } catch (e: any) {
         nanobot.showToast(e.message || "Lỗi cập nhật", "error");
         isLoading = false;
@@ -90,7 +91,7 @@
         await apiClient.patch(`/api/v1/orders/${orderId}/cancel`, { reason });
         nanobot.addLog("Đã huỷ đơn hàng " + orderId.split('-')[0], "Nanobot-System");
         await loadOrderDetails();
-        if (onReload) onReload();
+        onReload?.();
       } catch (e: any) {
         nanobot.showToast(e.message || "Lỗi huỷ đơn", "error");
         isLoading = false;

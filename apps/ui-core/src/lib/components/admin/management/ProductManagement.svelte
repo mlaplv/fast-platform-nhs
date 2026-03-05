@@ -105,16 +105,16 @@
 
   // V22: Voice Mutation Injection - Product Management
   $effect(() => {
-    const data = nanobot.currentData;
+    const data = nanobot.currentData as any;
     const action = nanobot.commandAction;
 
     if (data?.ui_action === "show_product_management" && data?.intent_type === "MUTATE" && !showForm) {
       editingId = null;
-      formName = data.name || data.title || "";
-      formSku = data.sku || "";
-      formPrice = Number(data.price) || 0;
-      formStock = Number(data.stock) || 0;
-      formCategory = data.category || "";
+      formName = data?.name || data?.title || "";
+      formSku = data?.sku || "";
+      formPrice = Number(data?.price) || 0;
+      formStock = Number(data?.stock) || 0;
+      formCategory = data?.category || "";
       formStatus = "draft";
       showForm = true;
       nanobot.clearCurrentData();

@@ -5,7 +5,6 @@
   import XohiNanoSprite from "../XohiNanoSprite.svelte";
   import XohiWatermark from "../XohiWatermark.svelte";
   import VoiceModal from "../VoiceModal.svelte";
-  import MobileActionDrawer from "./MobileActionDrawer.svelte";
   import FullLogView from "../ui/FullLogView.svelte";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import NotificationHud from "../hud/NotificationHud.svelte";
@@ -118,8 +117,6 @@
 
     <!-- Version Footer -->
     <TechStackFooter />
-
-    <MobileActionDrawer />
 
     <!-- Mission Control Overlays (FullLog, Vault, Confirm — still full-screen) -->
     <div class:hidden={nanobot.isVuiActive && !nanobot.isTraining}>

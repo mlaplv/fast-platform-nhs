@@ -14,7 +14,7 @@
   const tabs = ["Ngày", "Tháng", "Quý", "Năm"];
 
   // Data mapping
-  let seriesMap = $derived({
+  let seriesMap: Record<string, any> = $derived({
     Ngày: data?.series_data?.daily,
     Tháng: data?.series_data?.monthly,
     Quý: data?.series_data?.quarterly,
@@ -30,8 +30,8 @@
   let orderData = $derived(series.orders || []);
 
   // Summary values
-  let totalRevenue = $derived(revenueData.reduce((a, b) => a + b, 0));
-  let totalOrders = $derived(orderData.reduce((a, b) => a + b, 0));
+  let totalRevenue = $derived(revenueData.reduce((a: number, b: number) => a + b, 0));
+  let totalOrders = $derived(orderData.reduce((a: number, b: number) => a + b, 0));
   let avgRevenue = $derived(totalRevenue / (labels.length || 1));
 
   // Header value: Synchronize with AI's spoken response (data.revenue)
@@ -186,7 +186,7 @@
         {#if orderData.length > 1}
           {@const d = orderData
             .map(
-              (val, i) =>
+              (val: number, i: number) =>
                 `${i === 0 ? "M" : "L"} ${getX(i)} ${getYOrders(val)}`,
             )
             .join(" ")}

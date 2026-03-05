@@ -23,7 +23,6 @@
   function handleSelect(id: string) {
     if (id === "NONE") {
       nanobot.closeUniversalModal(); // Back to home
-      nanobot.activeWidget = "NONE";
     } else {
       nanobot.openWidget(id as any);
     }
@@ -78,7 +77,7 @@
       </div>
       <div>
         <div class="text-[10px] font-mono text-neon-cyan uppercase tracking-widest mb-1">Trinity Core</div>
-        <div class="text-sm font-bold text-white truncate">{nanobot.currentUserEmail || 'ADMINISTRATOR'}</div>
+        <div class="text-sm font-bold text-white truncate">{nanobot.userEmail || 'ADMINISTRATOR'}</div>
       </div>
     </div>
 
