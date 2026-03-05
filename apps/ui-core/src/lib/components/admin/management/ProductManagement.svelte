@@ -93,7 +93,7 @@
         categories = opts;
       }
     } catch (err) {
-      console.error("[C.O.R.E] Fetch Error:", err);
+      nanobot.showToast("Lỗi tải sản phẩm", "error");
       products = [];
       totalProducts = 0;
     } finally {
@@ -173,7 +173,7 @@
       else await apiClient.post<Product>("/api/v1/products", payload);
       showForm = false;
       await loadProducts();
-    } catch (err) { console.error("[C.O.R.E] Save Failed:", err); }
+    } catch (err) { nanobot.showToast("Lưu sản phẩm thất bại", "error"); }
   }
 
   async function bulk(type: "del" | "act") {
@@ -184,7 +184,7 @@
       else await apiClient.post("/api/v1/products/bulk-activate", { ids });
       selectedIds = new Set();
       await loadProducts();
-    } catch (err) { console.error("[C.O.R.E] Bulk Action Failed:", err); }
+    } catch (err) { nanobot.showToast("Thao tác hàng loạt thất bại", "error"); }
   }
 </script>
 
@@ -312,7 +312,7 @@
             try {
               await apiClient.post("/api/v1/products/bulk-delete", { ids: [id] });
               await loadProducts();
-            } catch (err) { console.error("[C.O.R.E] Delete Failed:", err); }
+            } catch (err) { nanobot.showToast("Xóa sản phẩm thất bại", "error"); }
           }}
         />
       </div>

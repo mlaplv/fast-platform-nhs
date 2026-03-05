@@ -128,7 +128,7 @@
       else await apiClient.post("/api/v1/articles/bulk-publish", { ids });
       selectedIds = new Set();
       await loadArticles();
-    } catch { console.error("Bulk Action Failed"); }
+    } catch { nanobot.showToast("Thao tác hàng loạt thất bại", "error"); }
   }
 </script>
 
@@ -237,7 +237,7 @@
             try {
               await apiClient.post("/api/v1/articles/bulk-delete", { ids: [id] });
               await loadArticles();
-            } catch { console.error("Delete failed"); }
+            } catch { nanobot.showToast("Xóa bài viết thất bại", "error"); }
           }}
         />
       {/if}

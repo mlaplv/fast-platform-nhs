@@ -71,11 +71,11 @@ class Tier1SemanticRouter:
         # BẮT BUỘC: Thêm 'xohi' làm wake word mặc định toàn hệ thống
         system_wake_words = list(set(wake_words + ["xohi"]))
         
-        logger.info(f"[T1 Wake] clean_text='{clean_text}', user_id={user_id}, wake_words={system_wake_words}")
+        logger.debug(f"[T1 Wake] clean_text='{clean_text}', user_id={user_id}, wake_words={system_wake_words}")
         
         for word in system_wake_words:
             if word in clean_text or difflib.SequenceMatcher(None, clean_text, word).ratio() > 0.8:
-                logger.info(f"[T1 Wake] MATCHED wake word '{word}'")
+                logger.debug(f"[T1 Wake] MATCHED wake word '{word}'")
                 return IntentResponse(status="success", action=IntentAction.READ, message=greeting_template, router_tier=RouterTier.TIER_1_HEURISTIC, data={"category": "SESSION_CTRL", "action": "WAKE_ROUTINE", "confidence": 1.0}, cost_tokens=0.0)
 
         for word in sleep_words:
@@ -110,7 +110,7 @@ class Tier1SemanticRouter:
         is_explicit_open = raw_clean.startswith(("mo ", "xem ", "show "))
         
         if any(kw in raw_clean for kw in bypass_keywords) and not is_explicit_open:
-            logger.info(f"[T1] Bypass Filter triggered for '{raw_clean}', delegating to T2")
+            logger.debug(f"[T1] Bypass Filter triggered for '{raw_clean}', delegating to T2")
             return None
 
         # 2. Chuẩn hóa kịch liệt (có lọc stop words) để match widget chính xác
@@ -125,7 +125,7 @@ class Tier1SemanticRouter:
                 if kw in clean_text:
                     ui_action = WIDGET_TO_ACTION.get(widget_id, "")
                     vi_label = WIDGET_VI_LABEL.get(widget_id, widget_id)
-                    logger.info(f"[T1] Exact Match: {widget_id} → {ui_action} (Keyword: '{kw}')")
+                    logger.debug(f"[T1] Exact Match: {widget_id} → {ui_action} (Keyword: '{kw}')")
                     return IntentResponse(
                         status="success", action=IntentAction.READ,
                     data={"matched_query": kw, "confidence": 1.0, "ui_action": ui_action, "intent_type": "UI_NAV", "target": WIDGET_TO_TARGET.get(widget_id, "none"), "timeframe": "none"},
@@ -166,7 +166,7 @@ class Tier1SemanticRouter:
         if best_widget:
             ui_action = WIDGET_TO_ACTION.get(best_widget, "")
             vi_label = WIDGET_VI_LABEL.get(best_widget, best_widget)
-            logger.info(f"[T1] N-gram Match: {best_widget} → {ui_action} (Score: {best_score:.2f}, Keyword: '{best_kw}')")
+            logger.debug(f"[T1] N-gram Match: {best_widget} → {ui_action} (Score: {best_score:.2f}, Keyword: '{best_kw}')")
             return IntentResponse(
                 status="success", action=IntentAction.READ,
                 data={"matched_query": best_kw, "confidence": best_score, "ui_action": ui_action, "intent_type": "UI_NAV", "target": WIDGET_TO_TARGET.get(best_widget, "none"), "timeframe": "none"},

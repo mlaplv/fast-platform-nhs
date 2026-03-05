@@ -222,7 +222,7 @@ class UserController(Controller):
             raise NotFoundException(f"Role {role_id} not found")
         
         # 2. Find permissions by code or ID (Robust mapping)
-        logger.info(f"[Permissions Update] Role: {role.code}, Requested: {data}")
+        logger.debug(f"[Permissions Update] Role: {role.code}, Requested: {data}")
         
         # UI-Mapping Support: If the frontend sends numeric strings like "1", "2", "3"
         # We try to map them to the corresponding permission in the alphabetical list
@@ -234,14 +234,14 @@ class UserController(Controller):
             
             numeric_mapping = {str(i+1): p.code for i, p in enumerate(all_perms)}
             mapped_data = [numeric_mapping.get(d, d) for d in data]
-            logger.info(f"[Permissions Update] Numeric detected. Mapped {data} -> {mapped_data}")
+            logger.debug(f"[Permissions Update] Numeric detected. Mapped {data} -> {mapped_data}")
 
         perm_stmt = select(Permission).where(
             or_(Permission.code.in_(mapped_data), Permission.id.in_(mapped_data))
         )
         perm_result = await role_repo.session.execute(perm_stmt)
         permissions = perm_result.scalars().all()
-        logger.info(f"[Permissions Update] Found {len(permissions)} permissions in DB")
+        logger.debug(f"[Permissions Update] Found {len(permissions)} permissions in DB")
         
         # 3. Update relationship
         role.permissions = list(permissions)
@@ -272,7 +272,7 @@ class UserController(Controller):
         ]
         
         await role_repo.session.commit()
-        logger.info(f"[Permissions Update] Status: SUCCESS, Role: {res_code}")
+        logger.debug(f"[Permissions Update] Status: SUCCESS, Role: {res_code}")
         
         return {
             "ok": True,

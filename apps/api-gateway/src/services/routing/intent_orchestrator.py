@@ -36,7 +36,7 @@ class RouterOrchestrator:
         # 1. TIER 1: Local Semantic Match (0-Token, <10ms)
         t1_response = self.t1_router.route(transcript, user_id, app_state)
         if t1_response is not None:
-            logger.info(f"[T1] HIT: {t1_response.data.get('ui_action')}")
+            logger.debug(f"[T1] HIT: {t1_response.data.get('ui_action')}")
             return t1_response
 
         combined_lower = transcript.lower()
@@ -53,7 +53,7 @@ class RouterOrchestrator:
         if not result:
             result = self._heuristic_classify(combined_lower, user_id, app_state)
             if result:
-                logger.info(f"[Heuristic Fallback] Classified: {result.data}")
+                logger.debug(f"[Heuristic Fallback] Classified: {result.data}")
 
         if not result:
             return self._error_response("Ý sếp chưa rõ lắm, sếp nói chi tiết hơn giúp em nhé.")
@@ -75,7 +75,7 @@ class RouterOrchestrator:
         intent_type = intent_data.get("intent_type", "UNKNOWN")
         if intent_type == "UNKNOWN":
             # Route to T3 with hardened Absolute Boundary prompt for polite rejection
-            logger.info("[C.O.R.E] UNKNOWN intent → Routing to T3 for boundary-aware response")
+            logger.debug("[C.O.R.E] UNKNOWN intent → Routing to T3 for boundary-aware response")
             return result
 
         return result
@@ -97,13 +97,13 @@ class RouterOrchestrator:
         class_action_str = classification.action.value if hasattr(classification.action, "value") else str(classification.action)
 
         if intent_type == "DEEP_ANALYSIS" or intent_type == "UNKNOWN" or class_action_str == "ANALYZE":
-            logger.info(f"[C.O.R.E] Executing T3 Reasoning (intent_type={intent_type})")
+            logger.debug(f"[C.O.R.E] Executing T3 Reasoning (intent_type={intent_type})")
             return await self.t3_router.reason(transcript, context, screen_context=screen_context)
 
         # ══════════════════════════════════════════
         # DEFAULT: UI_NAV / DATA_QUERY → Xử lý Hybrid Loop
         # ══════════════════════════════════════════
-        logger.info(f"[T2] {intent_type} → Passing to Data Injector")
+        logger.debug(f"[T2] {intent_type} → Passing to Data Injector")
         
         t2_response = await data_injector.inject(classification, transcript, **kwargs)
 
@@ -115,7 +115,7 @@ class RouterOrchestrator:
         if intent_type == "DATA_QUERY" or t2_action_str == "COUNT":
             raw_data = t2_response.data.get("injected_count") or t2_response.data.get("raw_count")
             if raw_data is not None:
-                logger.info("[Trinity Loop] Enhancing raw data with NLG Refiner...")
+                logger.debug("[Trinity Loop] Enhancing raw data with NLG Refiner...")
                 target = t2_response.data.get("target", "")
                 
                 # 3. NHẬN CẢ MESSAGE VÀ COST, CỘNG DỒN VÀO BILL (Hàm refine giờ LUÔN trả về msg)
@@ -124,10 +124,10 @@ class RouterOrchestrator:
                 t2_response.message = refined_msg
                 # CỘNG DỒN CHI PHÍ TOKEN CỦA REFINER
                 t2_response.cost_tokens = (t2_response.cost_tokens or 0) + refine_cost
-                logger.info(f"[Trinity Loop] Refined Msg: {refined_msg} (Cost: {refine_cost} tokens)")
+                logger.debug(f"[Trinity Loop] Refined Msg: {refined_msg} (Cost: {refine_cost} tokens)")
 
         duration = int((time.monotonic() - start_time) * 1000)
-        logger.info(f"[C.O.R.E] Trinity Loop Complete in {duration}ms")
+        logger.debug(f"[C.O.R.E] Trinity Loop Complete in {duration}ms")
         return t2_response
 
     def _heuristic_classify(self, combined_lower: str, user_id: str, app_state: object) -> Optional[IntentResponse]:
@@ -169,12 +169,12 @@ class RouterOrchestrator:
         # 1. Inherit target if missing
         if target == "none" and timeframe != "none":
             target = user_profile.get("last_target", "none")
-            logger.info(f"[Heuristic] Inherited target: {target}")
+            logger.debug(f"[Heuristic] Inherited target: {target}")
 
         # 2. Inherit timeframe if missing (especially for revenue)
         if timeframe == "none" and target in ["revenue", "order"]:
             timeframe = user_profile.get("last_timeframe", "none")
-            logger.info(f"[Heuristic] Inherited timeframe: {timeframe}")
+            logger.debug(f"[Heuristic] Inherited timeframe: {timeframe}")
         
         # Update context for next query
         if target != "none":
@@ -259,7 +259,7 @@ class RouterOrchestrator:
             name = extracted_entities.get("name", "")
             mutation_msg = f"Sếp muốn {v_label} {t_label}" + (f' "{name}"' if name else "") + ". Xác nhận thông tin bên dưới ạ."
 
-        logger.info(f"[Heuristic] Result: {intent_type} target={target} verb={verb} widget={widget_id} timeframe={timeframe}")
+        logger.debug(f"[Heuristic] Result: {intent_type} target={target} verb={verb} widget={widget_id} timeframe={timeframe}")
         return IntentResponse(
             status="success",
             action=action,

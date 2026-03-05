@@ -151,7 +151,7 @@
       }
       showForm = false;
     } catch {
-      console.error("Save Category Failed");
+      nanobot.showToast("Lưu danh mục thất bại", "error");
     }
   }
 
