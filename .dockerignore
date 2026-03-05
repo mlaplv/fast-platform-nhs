@@ -1,0 +1,53 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+pnpm-lock.yaml
+.pnpm-store
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+v55_venv/
+**/v55_venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.yml
+Dockerfile*
+
+# App Data
+backups/
+uploads/
+.env
+.cursor/
+.agents/
+.agent/
+_agents/
+_agent/
+brain/
+
+# Docs & generated
+*.md
+openapi*.json

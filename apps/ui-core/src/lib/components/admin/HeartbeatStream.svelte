@@ -1,0 +1,375 @@
+<script lang="ts">
+  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { permissionState } from "$lib/state/permissions.svelte";
+  import { apiClient } from "$lib/utils/apiClient";
+  import Terminal from "lucide-svelte/icons/terminal";
+  import Trash2 from "lucide-svelte/icons/trash-2";
+  import Eye from "lucide-svelte/icons/eye";
+  import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import User from "lucide-svelte/icons/user";
+  import { fade, fly } from "svelte/transition";
+
+  let { hideHeader = false } = $props();
+
+  const TRUNCATE_LIMIT = 120;
+  
+  // GOD-MODE: User Selection State
+  let availableUsers: {id: string, name: string, email: string}[] = $state([]);
+  let isSuperAdmin = $derived(permissionState.roles.includes("SUPER_ADMIN"));
+
+  $effect(() => {
+    if (isSuperAdmin && availableUsers.length === 0) {
+      fetchUsers();
+    }
+  });
+
+  async function fetchUsers() {
+    try {
+      const res = await apiClient.get<any>("/api/v1/users?limit=50");
+      const list = Array.isArray(res) ? res : (res.data || []);
+      availableUsers = list.map((u: any) => ({ id: u.id, name: u.name, email: u.email }));
+    } catch (e) {
+      console.error("Failed to fetch users for God-Mode", e);
+    }
+  }
+
+  function handleUserChange(e: Event) {
+    const target = e.target as HTMLSelectElement;
+    const userId = target.value;
+    nanobot.setGodModeUser(userId === "self" ? null : userId);
+    nanobot.syncSessionFromDb();
+  }
+
+  function maskSensitiveData(message: string) {
+    if (!message) return "";
+    let masked = message;
+
+    // API Keys (sk-...)
+    masked = masked.replace(/(sk-[a-zA-Z0-9]{12,})/g, "sk-****[REDACTED]****");
+
+    // Generic Sensitive Keys in JSON/KV (password, secret, token, etc)
+    const sensitivePattern =
+      /(password|secret|api_key|token|salt|credential|private_key|auth_key)["\s:=]+["']?([^"'\s,}] {4,})["']?/gi;
+    masked = masked.replace(sensitivePattern, (match, key) => {
+      return `${key}: "****[REDACTED]****"`;
+    });
+
+    return masked;
+  }
+
+  function processMessage(message: string) {
+    const masked = maskSensitiveData(message);
+    if (masked.length <= TRUNCATE_LIMIT) return masked;
+    return masked.slice(0, TRUNCATE_LIMIT) + "...";
+  }
+
+  function isLongMessage(message: string) {
+    return message.length > TRUNCATE_LIMIT;
+  }
+
+  function formatRelativeTime(date: Date) {
+    const now = new Date();
+    const isToday =
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday =
+      date.getDate() === yesterday.getDate() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getFullYear() === yesterday.getFullYear();
+
+    if (isToday) {
+      return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      });
+    } else if (isYesterday) {
+      return "Hôm qua";
+    } else {
+      return date.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+      });
+    }
+  }
+
+  let scrollContainer: HTMLElement | undefined = $state();
+  let userHasScrolledUp = $state(false);
+  let isScrollAnchoring = false;
+  let isProgrammaticScrolling = false;
+  let lastScrollTop = 0;
+
+  function scrollToBottom() {
+    if (scrollContainer && !isScrollAnchoring) {
+      isProgrammaticScrolling = true;
+      scrollContainer.scrollTo({
+        top: scrollContainer.scrollHeight,
+        behavior: "smooth",
+      });
+      // Reset programmatic flag after smooth scroll duration
+      setTimeout(() => {
+        isProgrammaticScrolling = false;
+      }, 1000);
+    }
+  }
+
+  async function handleScroll(e: Event) {
+    if (isScrollAnchoring) return;
+    const target = e.target as HTMLElement;
+    const currentScrollTop = target.scrollTop;
+    const isScrollingUp = currentScrollTop < lastScrollTop;
+    lastScrollTop = currentScrollTop;
+
+    if (isProgrammaticScrolling) return;
+
+    const threshold = 100;
+
+    // Bottom detection
+    const isAtBottom =
+      target.scrollHeight - target.scrollTop - target.clientHeight < threshold;
+    userHasScrolledUp = !isAtBottom;
+
+    // Top detection for Infinite Scroll (Zalo style)
+    // CRITICAL: Only trigger if scrolling UP and not programmatic
+    if (
+      isScrollingUp &&
+      currentScrollTop < 50 &&
+      nanobot.chatPagination.hasMore &&
+      !nanobot.chatPagination.isLoading
+    ) {
+      const prevScrollHeight = target.scrollHeight;
+      const prevScrollTop = target.scrollTop;
+
+      isScrollAnchoring = true;
+      await nanobot.loadMoreMessages();
+
+      // Post-load Anchoring: Adjust scroll position to account for new content
+      setTimeout(() => {
+        if (scrollContainer) {
+          const newScrollHeight = scrollContainer.scrollHeight;
+          const heightDiff = newScrollHeight - prevScrollHeight;
+          scrollContainer.scrollTop = prevScrollTop + heightDiff;
+        }
+        isScrollAnchoring = false;
+      }, 50);
+    }
+  }
+
+  $effect(() => {
+    // Auto-scroll to bottom on new logs if not currently scrolled up OR anchoring
+    if (
+      nanobot.activityLogs.length > 0 &&
+      !userHasScrolledUp &&
+      !isScrollAnchoring &&
+      !isProgrammaticScrolling
+    ) {
+      // Small timeout to ensure DOM has updated
+      setTimeout(scrollToBottom, 50);
+    }
+  });
+
+  async function handleClearLogs() {
+    if (!isSuperAdmin) {
+      nanobot.showToast("CHỈ SUPER_ADMIN MỚI CÓ QUYỀN XÓA LOG HỆ THỐNG", "error");
+      return;
+    }
+
+    const confirmed = await nanobot.showConfirm({
+      title: "Security Purge",
+      message:
+        "Xác nhận xóa vĩnh viễn toàn bộ nhật ký chat và log hệ thống hiện tại? Hành động này không thể hoàn tác.",
+      confirmLabel: "EXECUTE_PURGE",
+      cancelLabel: "ABORT_ACTION",
+    });
+
+    if (confirmed) {
+      await nanobot.clearChatLogs();
+    } else {
+      nanobot.showToast("THAO TÁC ĐÃ ĐƯỢC HỦY BỎ AN TOÀN", "info", 3000);
+    }
+  }
+</script>
+
+<div class="{hideHeader ? '' : 'h-full'} font-mono text-xs flex flex-col">
+  {#if !hideHeader}
+    <div
+      class="h-12 flex items-center gap-2 text-neon-cyan/60 px-4 border-b border-white/5 shrink-0"
+    >
+      <Terminal size={14} />
+      <span class="font-bold tracking-[0.3em] uppercase text-[10px]"
+        >Xohi Heartbeat</span
+      >
+      <div class="flex-1 flex justify-center">
+        {#if isSuperAdmin}
+          <div class="flex items-center gap-2 bg-white/5 border border-white/10 rounded px-2 py-0.5 group/select hover:border-neon-cyan/30 transition-all">
+            <User size={10} class="text-neon-cyan/40 group-hover/select:text-neon-cyan transition-colors" />
+            <select 
+              onchange={handleUserChange}
+              class="bg-transparent border-none text-[9px] font-mono text-white/60 focus:ring-0 outline-none cursor-pointer uppercase tracking-tighter"
+            >
+              <option value="self" class="bg-[#0a0a0a] text-neon-cyan">IDENTITY: SELF</option>
+              {#each availableUsers as user}
+                <option value={user.id} class="bg-[#0a0a0a] text-white/80">
+                  FOCUS: {user.name || user.email.split('@')[0].toUpperCase()}
+                </option>
+              {/each}
+            </select>
+          </div>
+        {/if}
+      </div>
+
+      <!-- Sync from DB Button -->
+      <button
+        onclick={() => nanobot.syncSessionFromDb()}
+        class="p-1 hover:text-white transition-all opacity-40 hover:opacity-100 flex items-center justify-center mr-1"
+        title="Đồng bộ từ DB"
+        disabled={nanobot.chatPagination.isLoading}
+      >
+        <RefreshCw
+          size={12}
+          class={nanobot.chatPagination.isLoading
+            ? "animate-spin text-neon-cyan opacity-100"
+            : ""}
+        />
+      </button>
+
+      {#if isSuperAdmin}
+        <button
+          onclick={handleClearLogs}
+          class="p-1 hover:text-white transition-colors opacity-40 hover:opacity-100 text-alert-red/80 hover:text-alert-red"
+          title="Clear system logs (SUPER_ADMIN ONLY)"
+        >
+          <Trash2 size={12} />
+        </button>
+      {/if}
+    </div>
+  {/if}
+
+  <div
+    bind:this={scrollContainer}
+    onscroll={handleScroll}
+    class={hideHeader
+      ? "space-y-1.5 px-6 pt-4 pb-16 flex flex-col items-start overflow-y-auto"
+      : "flex-1 overflow-y-auto space-y-1.5 flex flex-col items-start px-6 scrollbar-none"}
+  >
+    <!-- Infinite Scroll Loading Indicator -->
+    {#if nanobot.chatPagination.isLoading && userHasScrolledUp}
+      <div
+        in:fade
+        class="w-full py-4 flex flex-col items-center justify-center gap-2 border-b border-white/5 bg-white/[0.02]"
+      >
+        <div
+          class="flex items-center gap-2 text-[10px] font-bold text-neon-cyan/40 tracking-[0.2em] uppercase"
+        >
+          <RefreshCw size={10} class="animate-spin" />
+          <span>Synchronizing History</span>
+        </div>
+        <div
+          class="h-[1px] w-24 bg-gradient-to-r from-transparent via-neon-cyan/20 to-transparent"
+        ></div>
+      </div>
+    {/if}
+
+    {#each nanobot.activityLogs as log (log.id)}
+      <div
+        in:fly={{ y: 20, duration: 400, opacity: 0 }}
+        out:fade={{ duration: 150 }}
+        class="flex items-start justify-between group/log py-[5px] w-full max-w-full gap-2 border-b border-white/[0.02] last:border-0"
+      >
+        <div class="flex items-start flex-1 min-w-0">
+          <div
+            class="flex items-center justify-end gap-1.5 shrink-0 w-11 mr-2 mt-[3px] opacity-60 group-hover/log:opacity-100 transition-opacity"
+          >
+            {#if log.source === "XOHI" || log.source === "[XOHI]"}
+              <span
+                class="text-[#FF33FF] font-bold tracking-wider text-[8px] uppercase"
+                >XOHI{#if log.routerTier}<span
+                    class="text-[#c0e8ff]/60 ml-0.5 tracking-normal uppercase"
+                    >[t{log.routerTier}]</span
+                  >{/if}</span
+              >
+              <div class="w-1 h-1 rounded-full bg-[#FF33FF] shrink-0"></div>
+            {:else if log.source === "[ADMIN]"}
+              <span
+                class="text-neon-cyan font-bold tracking-wider text-[8px] uppercase"
+                >ADM</span
+              >
+              <div class="w-1 h-1 rounded-full bg-neon-cyan shrink-0"></div>
+            {:else if log.source === "Nanobot-Sec" || log.source === "Nanobot-Vault"}
+              <span
+                class="text-alert-red font-bold tracking-wider text-[8px] uppercase"
+                >SEC</span
+              >
+              <div class="w-1 h-1 rounded-full bg-alert-red shrink-0"></div>
+            {:else if log.source.includes("Admin") || log.source === "Omni-Command"}
+              <span
+                class="text-white font-bold tracking-wider text-[8px] uppercase"
+                >CMD</span
+              >
+              <div class="w-1 h-1 rounded-full bg-white shrink-0"></div>
+            {:else}
+              <span
+                class="text-gray-500 font-bold tracking-wider text-[8px] uppercase"
+                >SYS</span
+              >
+              <div class="w-1 h-1 rounded-full bg-gray-500 shrink-0"></div>
+            {/if}
+          </div>
+
+          <div
+            class="text-gray-400 group-hover/log:text-[#c0e8ff]/90 transition-colors text-[11px] font-mono leading-[1.6] flex-1 min-w-0"
+          >
+            <span class="truncate-2-lines pr-2">
+              {processMessage(log.message)}
+            </span>
+          </div>
+        </div>
+
+        <div class="relative flex flex-col items-end shrink-0 mt-0.5 w-[38px]">
+          {#if isLongMessage(log.message) || log.source === "XOHI" || log.source === "[XOHI]"}
+            <span
+              class="text-[9px] font-mono text-gray-500 opacity-50 group-hover/log:opacity-0 transition-opacity whitespace-nowrap"
+            >
+              {formatRelativeTime(log.timestamp)}
+            </span>
+            <button
+              onclick={() => nanobot.showFullLog(log)}
+              class="absolute top-0 right-0 opacity-0 group-hover/log:opacity-100 text-neon-cyan hover:text-white transition-all z-10 cursor-pointer flex items-center justify-center p-0.5"
+              title="Phóng to"
+            >
+              <Eye size={12} />
+            </button>
+          {:else}
+            <span
+              class="text-[9px] font-mono text-gray-500 opacity-50 group-hover/log:opacity-100 transition-opacity whitespace-nowrap"
+            >
+              {formatRelativeTime(log.timestamp)}
+            </span>
+          {/if}
+        </div>
+      </div>
+    {/each}
+  </div>
+</div>
+
+<style>
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .truncate-2-lines {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+</style>

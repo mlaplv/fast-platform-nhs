@@ -1,0 +1,17 @@
+[project]
+name = "fast-ai-engine"
+version = "0.1.0"
+description = "NanoBot Core for Fast Platform"
+dependencies = [
+    "pydantic",
+    "fastembed",
+    "litellm",
+    "numpy",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ai_engine"]

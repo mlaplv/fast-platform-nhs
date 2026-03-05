@@ -1,0 +1,31 @@
+{$APP_DOMAIN}, {$ADMIN_DOMAIN} {
+    # Local/Internal TLS for .test domains (Enables Microphone without public SSL)
+    tls internal
+
+    # TTS Streaming (Disabling buffering for real-time delivery)
+    handle /api/v1/tts/stream* {
+        reverse_proxy fast_platform_api:8000 {
+            flush_interval -1
+        }
+    }
+
+    # Back-end API (routed through sub-path if needed, but usually direct for UI)
+    handle /api/* {
+        reverse_proxy fast_platform_api:8000
+    }
+
+    # Front-end (Svelte)
+    handle /* {
+        reverse_proxy fast_platform_ui:5173
+    }
+
+    # Logs for debugging
+    log {
+        output file /var/log/caddy/access.log
+    }
+}
+
+{$API_DOMAIN} {
+    tls internal
+    reverse_proxy fast_platform_api:8000
+}

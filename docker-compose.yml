@@ -1,0 +1,92 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: fast_platform_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fast_platform
+    # R25: No host ports — DB only accessible within Docker network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: fast_platform_redis
+    # R25: No host ports — Redis only accessible within Docker network
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    restart: always
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: fast_platform_caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    env_file:
+      - .env
+    restart: always
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api-gateway/Dockerfile.dev
+    container_name: fast_platform_api
+    # R25: No host ports — API only accessible via Caddy (api.smartshop.test)
+    expose:
+      - "8000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/fast_platform
+      - REDIS_URL=redis://redis:6379/0
+      - CORS_ALLOWED_ORIGINS=https://${APP_DOMAIN},https://${ADMIN_DOMAIN}
+      - STT_USE_STUB=false
+      - TTS_USE_STUB=false
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  ui:
+    image: node:22-alpine
+    container_name: fast_platform_ui
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/ui-core/node_modules
+    # R25: No host ports — UI only accessible via Caddy (smartshop.test / admin.smartshop.test)
+    expose:
+      - "5173"
+    environment:
+      - VITE_API_URL=http://api.smartshop.test
+      - VITE_API_PROXY_TARGET=http://api:8000
+    command: sh -c "corepack enable && pnpm install --no-frozen-lockfile && pnpm --filter ui-core dev --host 0.0.0.0"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

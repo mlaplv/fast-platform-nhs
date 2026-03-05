@@ -1,0 +1,56 @@
+# 1. Tài liệu sinh tử (Tuyệt đối không lên mạng)
+.env
+.env.*
+!.env.example
+keys.txt
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# 2. Rác thư viện & Môi trường
+node_modules/
+.pnpm-store/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+.Python
+poetry.lock
+
+# 3. Dữ liệu sinh ra khi dev
+backups/
+*.resolved
+*.log
+*.sqlite
+*.sqlite3
+*.db
+temp/
+tmp/
+uploads/
+
+# 4. File Build/Compile
+build/
+dist/
+.svelte-kit/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# 5. Rác Hệ điều hành & IDE
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+.cursor/
+.idea/
+*.swp
+*.swo
