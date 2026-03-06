@@ -1,5 +1,6 @@
 from litestar import Controller, get
 
+
 class HealthController(Controller):
     path = "/health"
 

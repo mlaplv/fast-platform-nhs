@@ -153,11 +153,22 @@ class DataInjector:
                     res["orders"].append(int(r.cnt or 0))
             return res
 
+        # ══════════════════════════════════════════
+        # 3. Parallel Execution (ULTRA-FAST)
+        # ══════════════════════════════════════════
+        import asyncio
+        daily, monthly, quarterly, yearly = await asyncio.gather(
+            fetch_grouped('day', 30, '%d/%m', '%d/%m'),
+            fetch_grouped('month', 365, '%m/%y', '%m/%y'),
+            fetch_grouped('quarter', 365 * 2, None, None),
+            fetch_grouped('year', 365 * 5, '%Y', '%Y')
+        )
+
         return {
-            "daily": await fetch_grouped('day', 30, '%d/%m', '%d/%m'),
-            "monthly": await fetch_grouped('month', 365, '%m/%y', '%m/%y'),
-            "quarterly": await fetch_grouped('quarter', 365 * 2, None, None), 
-            "yearly": await fetch_grouped('year', 365 * 5, '%Y', '%Y')
+            "daily": daily,
+            "monthly": monthly,
+            "quarterly": quarterly, 
+            "yearly": yearly
         }
 
     async def _fetch_count(self, target: str, timeframe: str = "none", status: str = "none", **repos) -> Union[str, int, float, None]:

@@ -54,13 +54,12 @@ Bạn là Xô Hi, trợ lý cấp cao duy nhất của hệ thống quản trị
 
 class Tier3CloudRouter:
     def __init__(self):
-        self.primary_model_name = os.getenv("TIER3_MODEL", "gemini/gemini-1.5-pro")
-        self.fallback_model_name = os.getenv("TIER3_FALLBACK_MODEL", "gemini/gemini-2.0-flash")
+        self.primary_model_name = os.getenv("TIER3_MODEL", "gemini-2.5-flash")
+        self.fallback_model_name = os.getenv("TIER3_FALLBACK_MODEL", "gemini-2.5-flash")
         self.rotator = SmartKeyRotator()
         
         # [THIẾT QUÂN LUẬT] PydanticAI Agent with Deps
         self.agent = Agent(
-            model=self.primary_model_name,
             deps_type=Tier3Deps,
             output_type=Tier3Output,
             system_prompt=T3_SYSTEM_PROMPT
@@ -96,20 +95,23 @@ class Tier3CloudRouter:
         for model_name in model_names:
             for attempt in range(max_tries):
                 api_key = self.rotator.get_next_key()
-                os.environ["GEMINI_API_KEY"] = api_key
                 os.environ.pop("GOOGLE_API_KEY", None) # R1.4 SSOT: Prevent LiteLLM conflict
                 
                 try:
                     logger.info(f"[T3 Pro] Reasoning with {model_name}...")
+                    from pydantic_ai.models.google import GoogleModel
+                    from pydantic_ai.providers.google import GoogleProvider
                     
+                    provider = GoogleProvider(api_key=api_key)
+                    model_instance = GoogleModel(model_name, provider=provider)
                     result = await self.agent.run(
                         transcript,
                         message_history=history,
-                        model=model_name,
+                        model=model_instance,
                         deps=deps
                     )
                     
-                    output: Tier3Output = result.data
+                    output: Tier3Output = result.output
 
                     return IntentResponse(
                         status="success",
@@ -131,6 +133,9 @@ class Tier3CloudRouter:
                         await asyncio.sleep(1.0 * (attempt + 1))
                     continue
                 except Exception as e:
+                    if "API key not valid" in str(e) or "400" in str(e) or "API_KEY_INVALID" in str(e):
+                        logger.warning(f"[T3 Pro] {model_name} invalid API key (400) on attempt {attempt+1}. Rotating...")
+                        continue
                     logger.error(f"[T3 Pro] Critical failure: {e}")
                     return IntentResponse(
                         status="error",

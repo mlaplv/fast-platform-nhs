@@ -108,6 +108,7 @@ class IntentController(Controller):
                 app_state=request.app.state,
                 context=context,
                 screen_context=data.screen_context,
+                modality=data.modality
             )
 
             # ── TRINITY PHASE 2: Skill Guard (Constitutional Protection) ──
@@ -138,7 +139,8 @@ class IntentController(Controller):
                             screen_context=data.screen_context,
                             user_repo=user_repo,
                             order_repo=order_repo,
-                            product_repo=product_repo
+                            product_repo=product_repo,
+                            modality=data.modality
                         ),
                         timeout=20.0
                     )

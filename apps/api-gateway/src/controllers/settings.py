@@ -133,15 +133,16 @@ class SettingsController(Controller):
 
         await voice_repo.session.commit()
 
-        # HOT RELOAD
-        voice_cache = request.app.state.get("voice_cache", {})
-        voice_cache[user_id] = {
+        # HOT RELOAD TO REDIS
+        from src.services.xohi_memory import xohi_memory
+        
+        profile_data = {
             "wake_words":        [normalize_vn(w) for w in clean_wake],
             "sleep_words":       [normalize_vn(w) for w in clean_sleep],
             "greeting_template": data.greeting_template,
             "capabilities":      data.capabilities,
         }
-        request.app.state["voice_cache"] = voice_cache
+        await xohi_memory.cache_voice_profile(user_id, profile_data)
 
         return {
             "status": "success",

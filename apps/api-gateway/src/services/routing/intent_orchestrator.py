@@ -1,12 +1,15 @@
-import logging
-import time
-from typing import Optional, List, Dict
+import logging, os, asyncio, json, time, unicodedata
+from typing import List, Dict, Optional, Tuple, Union
 from shared.schemas.intent import IntentResponse, IntentAction, RouterTier
-from .tier1_semantic import Tier1SemanticRouter
 from .tier2_cloud import Tier2CloudRouter
 from .tier3_cloud import Tier3CloudRouter
 from .tier2_refiner import Tier2Refiner
+from .stt_corrector import stt_corrector
 from src.services.data_injector import data_injector
+from ai_engine.core.semantic_router import SemanticRouter, INTENT_TO_ACTION
+from src.services.xohi_memory import xohi_memory
+from src.utils.text import normalize_vn
+from .heuristic_classifier import heuristic_classify
 
 logger = logging.getLogger("api-gateway")
 
@@ -17,7 +20,7 @@ class RouterOrchestrator:
     T1 (Local, 0ms) → T2 (Dispatcher) → Trinity Loop (Inject + Refine).
     """
     def __init__(self):
-        self.t1_router = Tier1SemanticRouter()
+        self.semantic_router = SemanticRouter()  # T1.5: Embedding-based classify
         self.t2_router = Tier2CloudRouter()
         self.t3_router = Tier3CloudRouter()
         self.t2_refiner = Tier2Refiner()
@@ -29,17 +32,177 @@ class RouterOrchestrator:
         app_state: object,
         context: Optional[List[Dict[str, object]]] = None,
         screen_context: Optional[Dict[str, object]] = None,
+        modality: str = "text"
     ) -> IntentResponse:
         """Phase 1: Intent Resolution (T1 -> T2 Dispatch)"""
-        logger.info(f"--- [C.O.R.E] Classifying: '{transcript}' ---")
+        m_tag = "v" if modality == "voice" else "c"
+        transcript = unicodedata.normalize('NFC', transcript.strip())
+        logger.info(f"--- [C.O.R.E][{m_tag}] Raw Transcript: '{transcript}' ---")
         
-        # 1. TIER 1: Local Semantic Match (0-Token, <10ms)
-        t1_response = self.t1_router.route(transcript, user_id, app_state)
-        if t1_response is not None:
-            logger.debug(f"[T1] HIT: {t1_response.data.get('ui_action')}")
-            return t1_response
+        # Use Redis Memory entirely instead of app_state["voice_cache"]
+        import difflib
+        user_profile = await xohi_memory.get_voice_profile(user_id) or {}
+        ctx = await xohi_memory.get_user_context(user_id) or {}
+        
+        # Load STT dictionary from Redis (persistent)
+        redis_stt = await xohi_memory.get_stt_dictionary(user_id)
+        mem_stt = ctx.get("stt_dictionary", {})
+        user_dict = {**redis_stt, **mem_stt}
+        
+        # --- PHASE 0.5: NEURAL WAKE TRIGGERS (CTO V1.9) ---
+        DEFAULT_GREETING = user_profile.get("greeting_template", "Dạ, em nghe đây sếp.")
+        wake_words = user_profile.get("wake_words", [])
+        sleep_words = user_profile.get("sleep_words", [])
+        
+        normalized_transcript = normalize_vn(transcript)
+        
+        # 0.5.1: Heuristic High-Speed Match (0ms)
+        is_wake = any(w in normalized_transcript or difflib.SequenceMatcher(None, normalized_transcript, w).ratio() > 0.9 for w in wake_words + ["xohi"])
+        is_sleep = any(w in normalized_transcript or difflib.SequenceMatcher(None, normalized_transcript, w).ratio() > 0.9 for w in sleep_words + ["cut", "ngu di", "thoat", "tam biet"])
 
+        # 0.5.2: Semantic Fallback (Neural Trigger)
+        if not is_wake and not is_sleep:
+            # Check semantically if the intent is wake/sleep even if words don't match exactly
+            sem_intent, sem_score = await self.semantic_router.classify(
+                transcript, 
+                extra_intents={
+                    "session_wake_user": wake_words,
+                    "session_sleep_user": sleep_words
+                }
+            )
+            if sem_score > 0.85:
+                if sem_intent == "session_wake_user": is_wake = True
+                if sem_intent == "session_sleep_user": is_sleep = True
+                logger.debug(f"[T1.5 Neural Wake] MATCHED via semantics: {sem_intent} (score={sem_score:.2f})")
+
+        if is_wake:
+            return IntentResponse(status="success", action=IntentAction.READ, message=DEFAULT_GREETING, router_tier=RouterTier.TIER_1_HEURISTIC, data={"category": "SESSION_CTRL", "action": "WAKE_ROUTINE", "confidence": 1.0}, cost_tokens=0.0)
+        
+        if is_sleep:
+            return IntentResponse(status="success", action=IntentAction.READ, message="Hẹn gặp lại sếp.", router_tier=RouterTier.TIER_1_HEURISTIC, data={"category": "SESSION_CTRL", "action": "HARDWARE_SLEEP", "confidence": 1.0}, cost_tokens=0.0)
+
+        # --- PHASE 1: INTERACTIVE STT LEARNING (MOLBOOK STYLE) ---
+        if ctx.get("is_confirming_stt"):
+            # We are waiting for a YES/NO
+            yes_keywords = ["đúng", "vâng", "yes", "ừ", "ok", "ok đi", " chuẩn", "đươc", "rồi", "chính xác", "phải", "phai"]
+            no_keywords = ["không", "nhầm", "sai", "no"]
+            
+            if any(kw in lower_trans for kw in yes_keywords) and not any(kw in lower_trans for kw in no_keywords):
+                # User confirmed! Save to memory
+                suspected = ctx.get("pending_stt_correction", {})
+                if suspected:
+                    user_dict.update(suspected)
+                    ctx["stt_dictionary"] = user_dict
+                    
+                    # Persist to Redis (permanent) — survives container restarts
+                    for wrong, right in suspected.items():
+                        await xohi_memory.learn_stt_correction(user_id, wrong, right)
+                    
+                    logger.info(f"[STT Learning] Memorized to Redis: {suspected}")
+                    
+                # Restore the cleaned transcript to continue execution silently
+                transcript = ctx.get("pending_cleaned_transcript", transcript)
+                logger.info(f"[STT Learning] Resuming execution with corrected transcript: '{transcript}'")
+                
+                # Clear state so we don't get stuck in a loop
+                ctx["is_confirming_stt"] = False
+                ctx["pending_stt_correction"] = {}
+                await xohi_memory.set_user_context(user_id, ctx)
+                
+            elif any(kw in lower_trans for kw in no_keywords):
+                ctx["is_confirming_stt"] = False
+                ctx["pending_stt_correction"] = {}
+                await xohi_memory.set_user_context(user_id, ctx)
+                return self._error_response("Dạ vâng, sếp nói lại yêu cầu giúp em nhé.")
+            else:
+                # If they didn't say YES or NO clearly, assume they are asking something else
+                ctx["is_confirming_stt"] = False
+                ctx["pending_stt_correction"] = {}
+                await xohi_memory.set_user_context(user_id, ctx)
+                # Fall through to normal classification
+        else:
+            # 0. AI STT Correction
+            # --- SEMANTIC BYPASS (LOCAL-FIRST) ---
+            cleaned_transcript, suspected = await stt_corrector.correct(transcript, user_dict)
+            logger.info(f"--- [C.O.R.E][{m_tag}] Corrected: '{transcript}' -> '{cleaned_transcript}' ---")
+            
+            # If the transcript was cleaned locally or by AI, and it's 100% clear (no suspect),
+            # we should immediately try T1 Semantic Router and Heuristics BEFORE T2 LLM.
+            if not suspected:
+                # 2. Heuristic Filter (0-Token, <1ms)
+                heur_res = self._heuristic_classify(cleaned_transcript.lower(), user_id, app_state)
+                if heur_res:
+                    if heur_res.data is None:
+                        heur_res.data = {}
+                    heur_res.data["cleaned_transcript"] = cleaned_transcript
+                    logger.debug(f"[Heuristic Bypass] Classified: {heur_res.data}")
+                    return heur_res
+            
+            # Restore original flow for suspected/ambiguous ones
+            if suspected:
+                # Intercept! Ask for confirmation
+                ctx["is_confirming_stt"] = True
+                ctx["pending_stt_correction"] = suspected
+                ctx["pending_cleaned_transcript"] = cleaned_transcript
+                await xohi_memory.set_user_context(user_id, ctx)
+                
+                # Format a friendly confirmation message
+                wrong_word = list(suspected.keys())[0]
+                right_word = suspected[wrong_word]
+                
+                msg = f"Dạ, có phải ý sếp là '{right_word}' không ạ?"
+                return IntentResponse(
+                    status="success",
+                    action=IntentAction.READ,
+                    message=msg,
+                    router_tier=RouterTier.TIER_1_HEURISTIC,
+                    cost_tokens=0.0,
+                    data={"intent_type": "SESSION_CTRL", "action": "STT_CONFIRM", "suspected_correction": right_word}
+                )
+            
+            # Update transcript for the rest of the flow
+            transcript = cleaned_transcript        
+        
         combined_lower = transcript.lower()
+
+        # 1.5 TIER 1.5: Embedding Semantic Classify (~50ms, 0-Token)
+        try:
+            sem_intent, sem_score = await self.semantic_router.classify(transcript)
+            logger.debug(f"[T1.5] Semantic: '{transcript}' → {sem_intent} ({sem_score:.3f})")
+            
+            # Increased threshold to 0.82 to avoid English short phrases from triggering VN embeddings
+            if sem_score >= 0.82 and sem_intent in INTENT_TO_ACTION:
+                mapping = INTENT_TO_ACTION[sem_intent]
+                action_map = {"COUNT": IntentAction.COUNT, "READ": IntentAction.READ,
+                              "MUTATE": IntentAction.MUTATE, "ANALYZE": IntentAction.ANALYZE}
+                
+                # If action gives us HARDWARE_SLEEP, bypass the regular enum mapping
+                # and put it directly into the data payload to trigger the frontend event, 
+                # but keep the intent enum as READ to pass Pydantic validation.
+                action_str = mapping.get("action", "READ")
+                action = action_map.get(action_str, IntentAction.READ)
+                msg_val = mapping.get("message", "")
+                
+                logger.info(f"[T1.5] HIT (score={sem_score:.3f}): {sem_intent} → {mapping['intent_type']}")
+                return IntentResponse(
+                    status="success",
+                    action=action,
+                    message=msg_val,
+                    router_tier=RouterTier.TIER_1_HEURISTIC,
+                    cost_tokens=0.0,
+                    data={
+                        "intent_type": mapping["intent_type"],
+                        "target": mapping.get("target", "none"),
+                        "timeframe": "none",
+                        "ui_action": action_str if action_str == "HARDWARE_SLEEP" else mapping.get("ui_action", ""),
+                        "widget_id": mapping.get("ui_action", ""),
+                        "semantic_score": sem_score,
+                        "cleaned_transcript": transcript,
+                        **({"category": mapping["category"]} if "category" in mapping else {}),
+                    }
+                )
+        except Exception as e:
+            logger.warning(f"[T1.5] SemanticRouter error (non-fatal): {e}")
 
         # 2. TIER 2: Central Dispatcher (Flash)
         result = None
@@ -58,24 +221,16 @@ class RouterOrchestrator:
         if not result:
             return self._error_response("Ý sếp chưa rõ lắm, sếp nói chi tiết hơn giúp em nhé.")
 
-        # 4. HEURISTIC SAFETY NET (post-T2 correction)
-        COUNT_KEYWORDS = ["bao nhiêu", "mấy", "tổng số", "doanh thu", "doanh số"]
-        CHART_KEYWORDS = ["bieu do", "biểu đồ", "mo ", "xem "]
-        
-        if any(kw in combined_lower for kw in COUNT_KEYWORDS) and not any(kw in combined_lower for kw in CHART_KEYWORDS):
-            result.action = IntentAction.COUNT
-            data = result.data or {}
-            data.update({"intent_type": "DATA_QUERY", "action": "COUNT"})
-            if data.get("target") not in ["order", "product", "user", "revenue"]:
-                data["target"] = ("revenue" if ("doanh thu" in combined_lower or "doanh số" in combined_lower)
-                                 else "product")
-            result.data = data
 
         intent_data = result.data or {}
+        if result.data is None:
+            result.data = {}
+        result.data["cleaned_transcript"] = transcript
+        
         intent_type = intent_data.get("intent_type", "UNKNOWN")
         if intent_type == "UNKNOWN":
             # Route to T3 with hardened Absolute Boundary prompt for polite rejection
-            logger.debug("[C.O.R.E] UNKNOWN intent → Routing to T3 for boundary-aware response")
+            logger.debug(f"[C.O.R.E][{m_tag}] UNKNOWN intent → Routing to T3 for boundary-aware response")
             return result
 
         return result
@@ -91,14 +246,40 @@ class RouterOrchestrator:
         """Phase 2: Action Execution (Phase 3 of Trinity Loop)"""
         start_time = time.monotonic()
         intent_data = classification.data or {}
+        
+        # VERY IMPORTANT: Use the cleaned transcript from classification payload to prevent STT hallucinations down the pipeline
+        transcript = intent_data.get("cleaned_transcript", transcript)
+        
         intent_type = intent_data.get("intent_type", "UNKNOWN")
 
         # 1. RÚT ACTION AN TOÀN CHỐNG CRASH
         class_action_str = classification.action.value if hasattr(classification.action, "value") else str(classification.action)
+        modality = kwargs.get("modality", "text")
+        m_tag = "v" if modality == "voice" else "c"
 
         if intent_type == "DEEP_ANALYSIS" or intent_type == "UNKNOWN" or class_action_str == "ANALYZE":
-            logger.debug(f"[C.O.R.E] Executing T3 Reasoning (intent_type={intent_type})")
-            return await self.t3_router.reason(transcript, context, screen_context=screen_context)
+            logger.debug(f"[C.O.R.E][{m_tag}] Executing T3 Reasoning (intent_type={intent_type})")
+            
+            # RAG: Inject vector search context for grounded reasoning
+            rag_context = ""
+            try:
+                from ai_engine.core.vector_memory import VectorMemory
+                # Detect if query involves products or articles
+                lower_t = transcript.lower()
+                if any(kw in lower_t for kw in ["sản phẩm", "hàng", "tồn kho", "giá", "product"]):
+                    rag_context = await VectorMemory.search(transcript, session=None, context_type="product", limit=3)
+                elif any(kw in lower_t for kw in ["bài viết", "tin tức", "chính sách", "article", "news"]):
+                    rag_context = await VectorMemory.search(transcript, session=None, context_type="article", limit=3)
+            except Exception as e:
+                logger.debug(f"[RAG] Vector search skipped: {e}")
+            
+            # Append RAG to transcript for T3
+            enriched_transcript = transcript
+            if rag_context and rag_context not in ["", "Hệ thống vector hóa đang bảo trì."]:
+                enriched_transcript = f"{transcript}\n\n[DỮ LIỆU THAM KHẢO TỪ HỆ THỐNG]\n{rag_context}"
+                logger.info(f"[RAG] Injected {len(rag_context)} chars of context into T3")
+            
+            return await self.t3_router.reason(enriched_transcript, context, screen_context=screen_context)
 
         # ══════════════════════════════════════════
         # DEFAULT: UI_NAV / DATA_QUERY → Xử lý Hybrid Loop
@@ -115,171 +296,60 @@ class RouterOrchestrator:
         if intent_type == "DATA_QUERY" or t2_action_str == "COUNT":
             raw_data = t2_response.data.get("injected_count") or t2_response.data.get("raw_count")
             if raw_data is not None:
-                logger.debug("[Trinity Loop] Enhancing raw data with NLG Refiner...")
                 target = t2_response.data.get("target", "")
-                
-                # 3. NHẬN CẢ MESSAGE VÀ COST, CỘNG DỒN VÀO BILL (Hàm refine giờ LUÔN trả về msg)
-                refined_msg, refine_cost = await self.t2_refiner.refine(transcript, target, str(raw_data))
+                # --- FAST REFINER (OPTIMIZATION) ---
+                # If the count is a simple integer, use a template to bypass LLM Refiner
+                if isinstance(raw_data, (int, float, str)) and str(raw_data).replace('.','',1).isdigit():
+                    timeframe_vi = {
+                        "today": "hôm nay",
+                        "this_month": "tháng này",
+                        "this_week": "tuần này",
+                        "yesterday": "hôm qua",
+                        "last_month": "tháng trước"
+                    }.get(t2_response.data.get("timeframe"), "này")
+                    
+                    target_vi = {
+                        "revenue": "doanh số",
+                        "order": "số đơn hàng",
+                        "product": "số sản phẩm",
+                        "user": "số khách hàng"
+                    }.get(target, target)
+                    
+                    # Format currency if revenue
+                    formatted_val = f"{int(raw_data):,}" if target == "revenue" else str(raw_data)
+                    unit = " đồng" if target == "revenue" else ""
+                    
+                    refined_msg = f"Dạ thưa sếp, {target_vi} {timeframe_vi} là gần {formatted_val}{unit} ạ."
+                    refine_cost = 0.0
+                    logger.debug(f"[Fast Refiner] Local Bypass HIT: {refined_msg}")
+                else:
+                    logger.debug("[Trinity Loop] Enhancing raw data with NLG Refiner...")
+                    # 3. NHẬN CẢ MESSAGE VÀ COST, CỘNG DỒN VÀO BILL
+                    refined_msg, refine_cost = await self.t2_refiner.refine(transcript, target, str(raw_data))
                 
                 t2_response.message = refined_msg
                 # CỘNG DỒN CHI PHÍ TOKEN CỦA REFINER
                 t2_response.cost_tokens = (t2_response.cost_tokens or 0) + refine_cost
-                logger.debug(f"[Trinity Loop] Refined Msg: {refined_msg} (Cost: {refine_cost} tokens)")
+                
+        # --- LOG MODALITY BRACKETING (XOHI[tag] for UI) ---
+        # We modify the router_tier string to include the modality prefix
+        if hasattr(t2_response, "router_tier"):
+            raw_tier = t2_response.router_tier.value if hasattr(t2_response.router_tier, "value") else str(t2_response.router_tier)
+            # Format: 'v][t1' -> passed as data to prevent schema breakdown
+            if t2_response.data is None:
+                t2_response.data = {}
+            t2_response.data["source_tag"] = m_tag
+            t2_response.data["router_tier_label"] = f"t{raw_tier}"
+                
+        logger.debug(f"[Trinity Loop] Final Msg: {t2_response.message} (Cost: {t2_response.cost_tokens} tokens)")
 
         duration = int((time.monotonic() - start_time) * 1000)
-        logger.debug(f"[C.O.R.E] Trinity Loop Complete in {duration}ms")
+        logger.debug(f"[C.O.R.E][{m_tag}] Trinity Loop Complete in {duration}ms")
         return t2_response
 
     def _heuristic_classify(self, combined_lower: str, user_id: str, app_state: object) -> Optional[IntentResponse]:
-        """
-        Zero-LLM Heuristic Fallback — classify known patterns by keyword.
-        Only handles clear-cut queries. Returns None for ambiguous ones.
-        """
-        # --- Detect TARGET ---
-        target = "none"
-        if any(kw in combined_lower for kw in ["doanh thu", "doanh số", "doanh so", "biểu đồ", "bieu do", "tiền"]):
-            target = "revenue"
-        elif any(kw in combined_lower for kw in ["đơn hàng", "don hang", "hoa don", "bill"]):
-            target = "order"
-        elif any(kw in combined_lower for kw in ["sản phẩm", "san pham", "tồn kho", "tong kho", "kho hang"]):
-            target = "product"
-        elif any(kw in combined_lower for kw in ["người dùng", "khách", "nhân viên", "nhan vien", "tai khoan"]):
-            target = "user"
-        elif any(kw in combined_lower for kw in ["danh mục", "danh muc"]):
-            target = "category"
-        elif any(kw in combined_lower for kw in ["tin tức", "tin tuc", "bài viết", "bai viet"]):
-            target = "news"
-
-        if target == "none":
-            return None
-
-        # --- Detect TIMEFRAME ---
-        timeframe = "none"
-        if "hôm nay" in combined_lower or "hom nay" in combined_lower:
-            timeframe = "today"
-        elif "tháng này" in combined_lower or "thang nay" in combined_lower:
-            timeframe = "this_month"
-        elif "tuần này" in combined_lower or "tuan nay" in combined_lower:
-            timeframe = "this_week"
-
-        # ═══ TIMEFRAME & TARGET INHERITANCE (XoHi Next-Gen) ═══
-        voice_cache = getattr(app_state, "voice_cache", {})
-        user_profile = voice_cache.get(user_id, {})
-        
-        # 1. Inherit target if missing
-        if target == "none" and timeframe != "none":
-            target = user_profile.get("last_target", "none")
-            logger.debug(f"[Heuristic] Inherited target: {target}")
-
-        # 2. Inherit timeframe if missing (especially for revenue)
-        if timeframe == "none" and target in ["revenue", "order"]:
-            timeframe = user_profile.get("last_timeframe", "none")
-            logger.debug(f"[Heuristic] Inherited timeframe: {timeframe}")
-        
-        # Update context for next query
-        if target != "none":
-            user_profile["last_target"] = target
-        if timeframe != "none":
-            user_profile["last_timeframe"] = timeframe
-            
-        voice_cache[user_id] = user_profile
-
-        # --- Detect INTENT TYPE ---
-        count_keywords = ["bao nhiêu", "mấy", "tổng số", "tổng", "bao nhieu"]
-        # Vietnamese question patterns: "có ... nào", "có ... mới", "có ... không"
-        question_keywords = ["nào", "nao", "mới", "moi", "có không", "co khong", "chưa", "chua", "rồi", "roi"]
-        mutate_keywords = ["thêm", "tạo", "xóa", "sửa", "update", "create", "delete", "them", "tao", "xoa", "sua"]
-        
-        is_count = any(kw in combined_lower for kw in count_keywords)
-        is_question = any(kw in combined_lower for kw in question_keywords)
-        is_mutate = any(kw in combined_lower for kw in mutate_keywords)
-        
-        # --- Entity Extraction (Heuristic V60.0) ---
-        extracted_entities: dict = {}
-        verb = "create"  # default
-        
-        if is_mutate:
-            # Detect verb
-            create_kw = ["thêm", "tạo", "them", "tao", "create", "mới", "moi"]
-            delete_kw = ["xóa", "xoa", "delete", "bỏ", "bo", "hủy", "huy"]
-            edit_kw = ["sửa", "sua", "edit", "update", "cập nhật", "cap nhat", "đổi", "doi"]
-            
-            if any(kw in combined_lower for kw in delete_kw):
-                verb = "delete"
-            elif any(kw in combined_lower for kw in edit_kw):
-                verb = "edit"
-            else:
-                verb = "create"
-            
-            # Extract name
-            for marker in ["tên là ", "ten la ", "tên ", "ten "]:
-                if marker in combined_lower:
-                    name_part = combined_lower.split(marker)[1].strip()
-                    # Clean up: take until next keyword or end
-                    for stop in ["email", "mật khẩu", "vai trò", "giá", "mô tả"]:
-                        if stop in name_part:
-                            name_part = name_part.split(stop)[0].strip()
-                    extracted_entities["name"] = name_part.title()
-                    break
-            
-            # Extract email
-            import re
-            email_match = re.search(r'[\w.-]+@[\w.-]+\.\w+', combined_lower)
-            if email_match:
-                extracted_entities["email"] = email_match.group(0)
-        
-        if is_mutate:
-            intent_type = "MUTATE"
-            action = IntentAction.MUTATE
-        elif is_count or is_question:
-            intent_type = "DATA_QUERY"
-            action = IntentAction.COUNT
-        else:
-            intent_type = "UI_NAV"
-            action = IntentAction.READ
-
-        # --- Widget mapping ---
-        target_to_widget = {
-            "revenue": "show_revenue_chart",
-            "order": "show_order_management",
-            "product": "show_product_management",
-            "user": "show_user_management",
-            "category": "show_category_management",
-            "news": "show_news_management",
-        }
-        widget_id = target_to_widget.get(target, "")
-
-        # --- Mutation message ---
-        mutation_msg = ""
-        if intent_type == "MUTATE":
-            VI_VERB = {"create": "tạo", "edit": "sửa", "delete": "xóa"}
-            VI_TARGET = {"user": "nhân viên", "product": "sản phẩm", "category": "danh mục", "order": "đơn hàng", "news": "bài viết"}
-            v_label = VI_VERB.get(verb, verb)
-            t_label = VI_TARGET.get(target, target)
-            name = extracted_entities.get("name", "")
-            mutation_msg = f"Sếp muốn {v_label} {t_label}" + (f' "{name}"' if name else "") + ". Xác nhận thông tin bên dưới ạ."
-
-        logger.debug(f"[Heuristic] Result: {intent_type} target={target} verb={verb} widget={widget_id} timeframe={timeframe}")
-        return IntentResponse(
-            status="success",
-            action=action,
-            message=mutation_msg if mutation_msg else "",
-            router_tier=RouterTier.TIER_1_HEURISTIC,
-            cost_tokens=0.0,
-            requires_confirmation=True if intent_type == "MUTATE" else False,
-            data={
-                "intent_type": intent_type,
-                "target": target,
-                "verb": verb,
-                "timeframe": timeframe,
-                "ui_action": widget_id,
-                "widget_id": widget_id,
-                "status": "none",
-                "action": intent_type,
-                "requires_confirmation": True if intent_type == "MUTATE" else False,
-                "entities": extracted_entities
-            }
-        )
+        """V56.0: Delegated to heuristic_classifier.py (Rule 1.3: <300 LOC)."""
+        return heuristic_classify(combined_lower, user_id, app_state)
 
     def _error_response(self, msg: str) -> IntentResponse:
         return IntentResponse(

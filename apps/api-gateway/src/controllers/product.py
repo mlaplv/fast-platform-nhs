@@ -36,9 +36,11 @@ class ProductController(Controller):
             conditions.append(ProductBase.status == status.upper())
         if search:
             safe = escape_like(search)
+            # V56.0 Phase 4: unaccent() for Vietnamese diacritic-insensitive search
+            # "ao thun" matches "Áo thun trắng", "san pham" matches "Sản phẩm"
             conditions.append(or_(
-                ProductBase.name.ilike(f"%{safe}%"),
-                ProductBase.sku.ilike(f"%{safe}%"),
+                func.unaccent(ProductBase.name).ilike(f"%{func.unaccent(safe)}%"),
+                ProductBase.sku.ilike(f"%{safe}%"),  # SKU is ASCII, no unaccent needed
             ))
 
         # 1. COUNT (Zero-Hydration — Rule 1.5)

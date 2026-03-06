@@ -46,9 +46,10 @@ class OrderController(Controller):
             
         if search:
             safe = escape_like(search)
+            # V56.0 Phase 4: unaccent() for Vietnamese diacritic-insensitive search
             conditions.append(or_(
                 Order.id.ilike(f"%{safe}%"),
-                Order.user.has(User.name.ilike(f"%{safe}%"))
+                Order.user.has(func.unaccent(User.name).ilike(f"%{func.unaccent(safe)}%"))
             ))
 
         # 1. Total Count (Rule 1.5 - Scalar Zero-Hydration)

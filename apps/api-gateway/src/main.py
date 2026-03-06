@@ -43,6 +43,13 @@ from advanced_alchemy.extensions.litestar import SQLAlchemyPlugin, SQLAlchemyAsy
 
 load_dotenv("../../.env")
 
+# R72 CRITICAL: LiteLLM prioritizes GOOGLE_API_KEY over GEMINI_API_KEY.
+# .env contains a stale GOOGLE_API_KEY (403 PERMISSION_DENIED).
+# Pop it globally so ALL routers use GEMINI_API_KEY array exclusively.
+os.environ.pop("GOOGLE_API_KEY", None)
+os.environ.pop("GOOGLE_API_KEY_1", None)
+os.environ.pop("GOOGLE_API_KEY_2", None)
+
 # R1.5: SQLAlchemy Async Config (pool defaults adequate for VPS 2GB)
 alchemy_config = SQLAlchemyAsyncConfig(
     connection_string=os.getenv("DATABASE_URL") or "sqlite+aiosqlite:///:memory:",
@@ -113,11 +120,12 @@ cors_config = CORSConfig(allow_origins=allowed_origins)
 
 @asynccontextmanager
 async def lifespan(app: Litestar):
-    from src.database import engine
     from src.database.models import VoiceProfile
     from sqlalchemy import select
     from src.utils.text import normalize_vn
     
+    import asyncio as _aio
+    heartbeat_task = None  # Guard: prevent UnboundLocalError if lifespan crashes early
     try:
         # Pre-load Voice Profiles into Hot Cache (R30: RAM priority)
         # Chuẩn dạng: normalize_vn() đã lowercase + bỏ dấu bên trong
@@ -129,19 +137,70 @@ async def lifespan(app: Litestar):
             results = await session.execute(stmt)
             profiles = results.scalars().all()
             
-            app.state["voice_cache"] = {
-                p.user_id: {
+            from src.services.xohi_memory import xohi_memory
+            
+            count = 0
+            for p in profiles:
+                profile_data = {
                     "wake_words":        [normalize_vn(w) for w in (p.wake_words or [])],
                     "sleep_words":       [normalize_vn(w) for w in (p.sleep_words or [])],
                     "greeting_template": p.greeting_template,
                     "capabilities":      p.capabilities or {},
                 }
-                for p in profiles
-            }
-            logger.info(f"[Trinity Core] Hot Reload Cache: {len(app.state['voice_cache'])} profiles loaded.")
+                await xohi_memory.cache_voice_profile(str(p.user_id), profile_data)
+                count += 1
+                
+            logger.info(f"[Trinity Core] Hot Reload Cache: {count} profiles loaded to Redis.")
+
+        # V56.0 Phase 2: Zero-Cold-Start — Pre-load Embedding Model
+        try:
+            from ai_engine.core.encoder_singleton import warmup_encoder
+            await _aio.wait_for(warmup_encoder(), timeout=30)
+            logger.info("[Trinity Core] Embedding model pre-loaded (Zero-Cold-Start).")
+        except Exception as e:
+            logger.critical(f"[Trinity Core] Embedding warmup FAILED: {e}")
+
+        # V56.0 Phase 2: Pre-compute SemanticRouter intent centroids
+        try:
+            from ai_engine.core.semantic_router import SemanticRouter
+            _sr = SemanticRouter()
+            await _aio.wait_for(_sr.warmup(), timeout=30)
+            logger.info("[Trinity Core] SemanticRouter centroids pre-computed.")
+        except Exception as e:
+            logger.critical(f"[Trinity Core] SemanticRouter warmup FAILED: {e}")
+
+        # V56.0 Phase 3: Autonomous Heartbeat — internal background loop
+        # No cron, no curl, no APScheduler. Pure asyncio.
+        scan_interval = int(os.getenv("ANOMALY_SCAN_INTERVAL", "900"))  # 15 min default
+
+        async def _heartbeat_loop():
+            from src.services.anomaly_detector import AnomalyDetector
+            detector = AnomalyDetector()
+            session_maker = alchemy_config.create_session_maker()
+            await _aio.sleep(60)  # Wait 1 min after boot before first scan
+            while True:
+                try:
+                    async with session_maker() as session:
+                        alerts = await detector.scan(session)
+                        if alerts:
+                            logger.info(f"[Heartbeat] {len(alerts)} anomalies detected.")
+                except Exception as e:
+                    logger.warning(f"[Heartbeat] Scan failed (non-fatal): {e}")
+                await _aio.sleep(scan_interval)
+
+        heartbeat_task = _aio.create_task(_heartbeat_loop())
+        logger.info(f"[Trinity Core] Heartbeat started (interval={scan_interval}s).")
+
         yield
     finally:
-        pass
+        # Graceful shutdown — guard against early crash (BUG-1 fix)
+        if heartbeat_task is not None:
+            heartbeat_task.cancel()
+            try:
+                await heartbeat_task
+            except _aio.CancelledError:
+                pass
+            logger.info("[Trinity Core] Heartbeat stopped.")
 
 # ==========================================
 # PHASE 3: DYNAMIC RATE LIMITING (R23)
@@ -180,7 +239,6 @@ app = Litestar(
     middleware=[BodyLimitMiddleware, rate_limit_config.middleware, AuthMiddleware],
     cors_config=cors_config,
     stores={"memory_store": memory_store},
-    state=State({"voice_cache": {}}),
     openapi_config=OpenAPIConfig(
         title="Fast Platform API Gateway", 
         version="1.0.0",

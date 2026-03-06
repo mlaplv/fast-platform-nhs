@@ -49,14 +49,14 @@ Ngươi là bộ não phân luồng đầu tiên của XoHi - Trợ lý quản t
 Phân tích yêu cầu của sếp, đọc [SCREEN_CONTEXT] để hiểu ngữ cảnh, và trả về mã lệnh JSON chính xác.
 
 [LUẬT PHÂN LOẠI]
-- UI_NAV: Lệnh mở trang, xem danh sách, điều hướng đơn thuần (ví dụ: "mở đơn hàng", "xem sản phẩm").
-- DATA_QUERY: Lệnh hỏi số liệu, đếm số lượng, tổng kết (ví dụ: "doanh thu nay thế nào", "có bao nhiêu khách", "hôm qua bán được không").
+- UI_NAV: Lệnh MỞ TRANG để thao tác/làm việc thuần túy, không để ý đến số liệu (ví dụ: "mở trang đơn hàng", "vào quản lý sản phẩm").
+- DATA_QUERY: Lệnh hỏi SỐ LIỆU, đếm số lượng, tổng kết, báo cáo (ví dụ: "doanh thu nay thế nào", "có bao nhiêu khách", "doanh số hôm qua"). NẾU SẾP HỎI MỘT ĐẠI LƯỢNG VÀ THỜI GIAN, ĐÓ LÀ DATA_QUERY TUYỆT ĐỐI.
 - DEEP_ANALYSIS: Lệnh cần suy luận, phân tích lý do, tổng hợp chi tiết, câu hỏi mở, lệnh tạo/sửa/xóa, hoặc LỜI CHÀO HỎI GIAO TIẾP TỰ NHIÊN ("chào em", "khỏe không"). Để lại cho Tier 3 xử lý.
-- UNKNOWN: Những câu hỏi hoàn toàn không liên quan đến hệ thống quản lý, kinh doanh, hoặc nằm ngoài khả năng (ví dụ: thời tiết, tin tức thế giới, khoa học).
+- UNKNOWN: Những câu hỏi hoàn toàn không liên quan đến hệ thống quản lý, kinh doanh, hoặc nằm ngoài khả năng. QUAN TRỌNG: NẾU SẾP HỎI "DÂN SỐ", "THỜI TIẾT", "LỊCH SỬ" -> BẮT BUỘC TRẢ VỀ UNKNOWN (Tuyệt đối không nhầm "dân số" thành "user" hay "khách hàng").
 
 [ENTITY MAPPING - TARGET]
 - revenue: Doanh thu, tiền, doanh số
-- user: Người dùng, khách hàng, nhân viên, tài khoản
+- user: Người dùng, khách hàng, nhân viên, tài khoản, user (Cấm nhầm chữ dân số vào đây)
 - product: Sản phẩm, tồn kho, mặt hàng
 - order: Đơn hàng, hóa đơn, bill
 - category: Danh mục
@@ -80,13 +80,12 @@ Chọn 1 trong các widget: show_revenue_chart, show_order_management, show_prod
 class Tier2CloudRouter:
     def __init__(self):
         # R1.4: Single Source of Truth from .env
-        self.primary_model_name = os.getenv("TIER2_MODEL", "gemini/gemini-1.5-flash")
-        self.fallback_model_name = os.getenv("TIER2_FALLBACK_MODEL", "gemini/gemini-2.0-flash")
+        self.primary_model_name = os.getenv("TIER2_MODEL", "gemini-2.5-flash")
+        self.fallback_model_name = os.getenv("TIER2_FALLBACK_MODEL", "gemini-2.5-flash")
         self.rotator = SmartKeyRotator()
         
         # PydanticAI Agent Initialization
         self.agent = Agent(
-            model=self.primary_model_name,
             deps_type=Tier2Deps,
             output_type=Tier2Output,
             system_prompt=T2_SYSTEM_PROMPT
@@ -122,14 +121,19 @@ class Tier2CloudRouter:
                 os.environ.pop("GOOGLE_API_KEY", None) # R1.4 SSOT: Prevent LiteLLM conflict
                 
                 try:
+                    from pydantic_ai.models.google import GoogleModel
+                    from pydantic_ai.providers.google import GoogleProvider
+                    
+                    provider = GoogleProvider(api_key=api_key)
+                    model_instance = GoogleModel(model_name, provider=provider)
                     result = await self.agent.run(
                         transcript,
                         message_history=history,
-                        model=model_name,
+                        model=model_instance,
                         deps=deps
                     )
                     
-                    output: Tier2Output = result.data
+                    output: Tier2Output = result.output
                     action_map = {
                         "UI_NAV": IntentAction.READ, 
                         "DATA_QUERY": IntentAction.COUNT, 
@@ -159,6 +163,9 @@ class Tier2CloudRouter:
                         await asyncio.sleep(1.0 * (attempt + 1))
                     continue
                 except Exception as e:
+                    if "API key not valid" in str(e) or "400" in str(e) or "API_KEY_INVALID" in str(e):
+                        logger.warning(f"[T2 Dispatcher] {model_name} invalid API key (400) on attempt {attempt+1}. Rotating...")
+                        continue
                     logger.error(f"[T2 Dispatcher] Critical error: {e}")
                     raise e
 

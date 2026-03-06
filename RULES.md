@@ -1,4 +1,4 @@
-# HIẾN PHÁP FAST-PLATFORM (V55.1 — THIẾT QUÂN LUẬT)
+# HIẾN PHÁP FAST-PLATFORM (V61.0 + V56.0 HOTFIX — THIẾT QUÂN LUẬT)
 
 > **CHỈ THỊ CHO AI IDE:** Dự án Agentic AI 2026. Stack cố định: **SvelteKit 5 (Runes) + Litestar (Python 3.14-slim) + SQLAlchemy 2.0 (AdvancedAlchemy) + PydanticAI + LiteLLM**. Tuyệt đối KHÔNG dùng React/Next.js/FastAPI/Prisma. Mọi file tạo ra phải tuân thủ nghiêm ngặt các nguyên lý "THIẾT QUÂN LUẬT" (Hardened Architecture).
 
@@ -84,6 +84,38 @@ let volume = $state(0); // MỖI FRAME gây re-render
 - Lý do: `difflib.SequenceMatcher` là O(n²) — input 2000 ký tự giam event loop ~50ms trên VPS 2 vCPU.
 - CẤM chạy synchronous CPU-bound > 10ms trên event loop chính.
 
+### 1.9 PydanticAI Dynamic Model Lifecycle (V66+)
+
+- ❌ CẤM khởi tạo `Agent` với tham số `model` cố định ở global scope nếu hệ thống yêu cầu xoay vòng API Key (SmartKeyRotator).
+- ✅ BẮT BUỘC khởi tạo `Agent` không có model, sau đó **instantiate Model instance động** (ví dụ: `GoogleModel` hoặc `GeminiModel`) bên trong vòng lặp retry tại service layer.
+- ✅ Lý do: PydanticAI v1.66+ cache model/key tại thời điểm khởi tạo. Việc thay đổi `os.environ` sau khi Agent đã được gán model sẽ KHÔNG có tác dụng.
+- ✅ Luồng chuẩn: `key = rotator.get_next_key()` -> `model_inst = GoogleModel(name, api_key=key)` -> `await agent.run(..., model=model_inst)`.
+- ✅ **V56.0 Hotfix Applied:** `Tier2Refiner` (tier2_refiner.py) đã sửa — xóa `model=self.primary_model` ra khỏi Agent constructor.
+
+### 1.10 Encoder Singleton Rule (V56.0)
+
+- ❌ CẤM tạo nhiều instance `fastembed.TextEmbedding` ở các module khác nhau. Mỗi instance tốn ~90MB RAM.
+- ✅ BẮT BUỘC dùng `get_shared_encoder()` từ `ai_engine.core.encoder_singleton` — singleton duy nhất cho toàn hệ thống.
+- ✅ Warmup tại lifespan: `await warmup_encoder()` chạy trong `main.py` lifespan hook để đảm bảo Zero-Cold-Start.
+- ✅ Các consumer: `vector_memory.py`, `semantic_router.py`, `embedding_indexer.py` PHẢI delegate tới shared singleton.
+
+### 1.11 Autonomous Heartbeat Rule (V56.0)
+
+- ❌ CẤM chạy APScheduler in-process (SPOF — job crash ảnh hưởng main app).
+- ❌ CẤM dùng cron/curl gọi ngược localhost (API chỉ expose qua Caddy reverse proxy, không bind host).
+- ✅ BẮT BUỘC dùng `asyncio.create_task()` trong lifespan cho background heartbeat.
+- ✅ Interval configurable qua env `ANOMALY_SCAN_INTERVAL` (mặc định 900s = 15 phút).
+- ✅ Graceful shutdown: `task.cancel()` trong `finally` block của lifespan.
+- ✅ Non-fatal: scan failure chỉ log warning, KHÔNG crash app.
+
+### 1.12 Diacritic-Insensitive Search Rule (V56.0)
+
+- ❌ CẤM dùng `ILIKE` thuần cho tìm kiếm sản phẩm/đơn hàng tiếng Việt — không match khi thiếu/thừa dấu.
+- ✅ BẮT BUỘC bọc `func.unaccent()` trong điều kiện search cho các cột tiếng Việt (name, title).
+- ✅ PostgreSQL extension `unaccent` PHẢI được cài (`CREATE EXTENSION IF NOT EXISTS unaccent`).
+- ✅ Cột ASCII thuần (SKU, ID) KHÔNG cần unaccent.
+- ✅ Ví dụ: `func.unaccent(ProductBase.name).ilike(f"%{func.unaccent(safe)}%")`.
+
 ---
 
 ## II. HỆ TRỤC TÁC NHÂN — C.O.R.E ROUTING PROTOCOL
@@ -109,44 +141,68 @@ BẮT BUỘC thực hiện tuần tự qua `Orchestrator` để đảm bảo an 
 
 ```mermaid
 graph TD
-    User([Sếp: "Doanh số tháng này bao nhiêu?"]) --> Gateway[intent.py: Gateway]
+    User([Sếp]) --> Gateway[intent.py: Gateway]
 
-    subgraph CORE ["C.O.R.E Orchestrator"]
-        Gateway --> Classify["<b>Phase 1: Classify</b><br/>T1 Heuristic / T2 PydanticAI Agent"]
-        Classify --> Guard{"<b>Phase 2: Skill Guard</b><br/>(Constitutional Check)"}
+    subgraph CORE ["C.O.R.E Orchestrator (Sub-Second Path)"]
+        Gateway --> NFC_Normalize["<b>Phase 0: NFC Normalization</b><br/>unicodedata.normalize('NFC')"]
 
-        Guard -- "Restricted" --> FinalErr([Xohi: "Dạ, năng lực này đang khóa..."])
+        NFC_Normalize --> STTLayer{"<b>STT Pre-Processor</b><br/>stt_corrector.py<br/><i>(Redis Memory)</i>"}
 
-        Guard -- "Allowed" --> Execute["<b>Phase 3: Execute</b><br/>Execute Trinity / T3"]
+        STTLayer -- "Memory Bypass < 1ms" --> T1_Check
+        STTLayer -- "Ambiguous" --> STT_AI[Gemini 1.5 Flash]
+        STT_AI -- "Suspected" --> Confirmation([Hỏi: Ý sếp là...?])
+        Confirmation -- "Learn" --> STTLayer
+
+        T1_Check{"<b>Tier 1: Wake/Sleep</b><br/><i>(Heuristic)</i>"}
+
+        STTLayer -- "Learned Path" --> T1_Check
+        T1_Check -- "Match < 10ms" --> Guard
+
+        T1_Check -- "Miss" --> T15_Check["<b>Tier 1.5: Semantic Router</b><br/><i>(Embedding Cosine Sim)</i>"]
+
+        T15_Check -- "Score ≥ 0.75" --> Guard
+        T15_Check -- "Score < 0.75" --> T2_AI[Tier 2 Cloud Router]
+
+        Guard{"<b>Phase 2: Skill Guard</b><br/><i>(RBAC Check)</i>"}
+        T2_AI --> Guard
+
+        Guard -- "Allowed" --> Execute{"<b>Phase 3: Execute</b>"}
 
         subgraph TrinityLoop ["Hybrid Trinity Loop"]
             direction TB
-            Execute --> Provider[<b>Step A: Provider</b><br/>data_injector.py<br/>Fetch DB via SQLAlchemy]
-            Provider --> Refiner[<b>Step B: Refiner</b><br/>tier2_refiner.py<br/>NLG: "Dạ sếp, doanh số là..."]
+            Execute -- "Data Query" --> Provider[<b>Step A: Provider</b><br/>data_injector.py]
+            Provider --> RefinerCheck{"<b>Step B: Refiner Logic</b>"}
+            RefinerCheck -- "Simple Num < 200ms" --> FastRefiner[Fast Template]
+            RefinerCheck -- "Complex Text" --> RefinerAI[Tier 2 Refiner LLM]
+
+            Execute -- "Deep Analysis / Unknown" --> RAG[<b>Vector RAG</b><br/>pgvector search]
+            RAG --> T3_Pro[<b>Tier 3 Pro Reasoning</b><br/>Deep/Agentic Planning]
         end
     end
 
-    Refiner --> Final([Xohi: "Báo cáo Sếp, doanh số tháng này..."])
-    Execute -- "T3 Reason" --> Final
+    FastRefiner --> Final
+    RefinerAI --> Final
+    T3_Pro --> Final
+    Final([Xohi: "Báo cáo sếp..."])
 
-    classDef trinity fill:#00d2ff,stroke:#0055ff,stroke-width:2px,color:#000
-    class Execute,Provider,Refiner trinity
-    classDef brain fill:#f9f,stroke:#333,stroke-width:2px
-    class Classify brain
-    classDef security fill:#ff4d4d,stroke:#990000,stroke-width:2px,color:#fff
-    class Guard security
+    classDef fast fill:#9f9,stroke:#333,stroke-width:2px;
+    class NFC_Normalize,STTLayer,T1_Check,T15_Check,FastRefiner,Provider fast;
+    classDef ai fill:#f9f,stroke:#333,stroke-width:2px;
+    class STT_AI,T2_AI,RefinerAI,T3_Pro ai;
+    classDef memory fill:#ff9,stroke:#333,stroke-width:2px;
+    class STTLayer,RAG memory;
 ```
 
 ```text
 intent.py (Gateway)
   └─ Orchestrator (Classify)
-       ├─ T1: Semantic Heuristic (0ms)
-       ├─ T2: PydanticAI Agent Dispatcher (tier2_cloud.py) -> Type-Safe JSON
-       └─ T1.5: Heuristic Fallback (0ms, khi T2 sập)
+       ├─ Phase 0: Redis STT Pre-processing & Inline Wake/Sleep Check (0ms)
+       ├─ Tier 1.5: Semantic Router (Cosine Similarity Embedding) -> Bypass T2
+       └─ Tier 2: PydanticAI Agent Dispatcher (tier2_cloud.py) -> Type-Safe JSON
   └─ SKILL GUARD (Constitutional Gate)
   └─ Orchestrator (Execute)
        ├─ Trinity Loop: Injector (SQLAlchemy) -> Refiner (tier2_refiner.py)
-       └─ Tier 3: PydanticAI Agent Reasoning COO (Deep Analysis)
+       └─ Tier 3 (RAG Enabled): pgvector Search -> PydanticAI Deep Analysis
 ```
 
 ### 2.2 PydanticAI Agent Wrapping — The "Deps" Protocol
@@ -159,8 +215,8 @@ class Tier2Deps:
     screen_context: Optional[dict] = None
     rotator: SmartKeyRotator = None
 
+# V56.0: CẤM model= ở đây nếu dùng SmartKeyRotator (Rule 1.9)
 agent = Agent(
-    model="gemini/gemini-1.5-flash",
     deps_type=Tier2Deps,
     result_type=Tier2Output
 )
@@ -234,7 +290,27 @@ Mọi `ui_action` từ T1/T2 BẮT BUỘC thuộc whitelist sau (1:1 với front
 - **UI_NAV:** Giữ `ui_action` → frontend mở widget + Data Injector bơm `data.revenue`/`data.period_label`.
 - **T1:** Phải inject `intent_type: "UI_NAV"`, `target`, `timeframe` vào data để Data Injector fetch DB.
 
-### 2.6 Bản đồ Thư mục (Thực tế V55.0)
+### 2.7 Giao thức STT & Bộ Nhớ Tương Tác (V61.0+)
+
+Hệ thống BẮT BUỘC tuân thủ cơ chế **"Local-First, AI-Last"** để đảm bảo phản hồi < 1 giây:
+
+1.  **Phase 0: NFC Normalization (BẮT BUỘC)**:
+    - Mọi input transcript BẮT BUỘC được `unicodedata.normalize('NFC', text)` tại gateway.
+    - Lý do: Tiếng Việt có 2 cách mã hóa dấu (NFC/NFD). Nếu không chuẩn hóa, so khớp cục bộ (Memory/Pattern) sẽ bị lệch "ma trận", dẫn đến việc phải gọi AI tốn kém dù sếp nói đúng 100%.
+2.  **Lớp Memory & Pattern Bypass (Bypass 1 - Sub-1ms)**:
+    - BẮT BUỘC chạy `local_correct` (Learned Memory) và `NAV_PATTERNS` check trước khi khởi tạo LLM.
+    - Cấu trúc: So khớp memory trước -> Sửa lỗi STT -> Check pattern điều hướng (mở biểu đồ, cút, thoát).
+    - Nếu khớp -> **Trả kết quả ngay lập tức, bỏ qua hoàn toàn AI STT**.
+3.  **Lớp Tự Học (Interaction Loop)**:
+    - Nếu AI không chắc chắn (`suspected_correction`), BẮT BUỘC dừng luồng `execute`, chuyển sang trạng thái chờ xác nhận (`is_confirming_stt = True`).
+    - Khi nhận "Phải / OK / Đúng", BẮT BUỘC ghi vĩnh viễn vào `stt_dictionary`.
+4.  **Lớp Parallel Data Injection (Execute Phase)**:
+    - Trong `data_injector.py`, các lời gọi DB aggregation (Daily/Monthly/Yearly/Quarterly) BẮT BUỘC dùng `asyncio.gather` để chạy song song.
+    - Lý do: Giảm latency từ ~800ms xuống < 200ms cho các dashboard phức tạp.
+5.  **Lớp Fast Refiner (Bypass 2)**:
+    - Với các câu trả lời số liệu đơn giản (INT/FLOAT), BẮT BUỘC dùng Template tĩnh tiếng Việt kèm Modality Log Prefix (`[c]` / `[v]`).
+
+### 2.8 Bản đồ Thư mục (Thực tế V55.0)
 
 ```text
 fast-platform/
@@ -252,19 +328,28 @@ fast-platform/
 │   │   ├── migrations/                # Alembic Migrations (Source of Truth)
 │   │   ├── scripts/                   # seed_admin.py (RBAC Seed)
 │   │   ├── src/
-│   │   │   ├── main.py                # Entry point + Security Middleware
+│   │   │   ├── main.py                # Entry point + Lifespan (Warmup + Heartbeat)
 │   │   │   ├── guards.py              # PermissionGuard (Many-to-Many RBAC)
 │   │   │   ├── middleware.py          # Auth + Security Headers (R51)
 │   │   │   ├── database/
 │   │   │   │   ├── models.py          # SQLAlchemy ORM (M2M RBAC Schema)
 │   │   │   │   └── repositories.py    # Async Repositories (AdvancedAlchemy)
 │   │   │   ├── controllers/           # Class-based Controllers (N+1 Optimized)
+│   │   │   │   └── health.py          # V56.0: HealthCheck + AnomalyScanner
 │   │   │   ├── routers/
 │   │   │   │   └── intent.py          # C.O.R.E Gateway
-│   │   │   └── services/              # PydanticAI Agents & Data Injector
+│   │   │   └── services/
+│   │   │       ├── anomaly_detector.py # V56.0: Scalar-only anomaly detection
+│   │   │       └── routing/
+│   │   │           ├── intent_orchestrator.py  # C.O.R.E (≤363 LOC)
+│   │   │           └── heuristic_classifier.py # V56.0: Extracted from orchestrator
 │   │   └── tests/                     # Security & RBAC Bypass Tests
 └── packages/
-    └── ai-engine/                     # SemanticShield & AI Core
+    └── ai-engine/
+        └── core/
+            ├── encoder_singleton.py    # V56.0: Shared fastembed model
+            ├── semantic_router.py      # T1.5 Intent Classification
+            └── vector_memory.py        # pgvector Search
 ```
 
 ### 2.7 Resilience: Model Fallback Chain + Backoff
@@ -325,18 +410,20 @@ Fallback (gemini-2.0-flash)
 - Engine config:
 
 ```python
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+# V56.0: Engine tạo bởi AdvancedAlchemy plugin (main.py alchemy_config)
+# CẤM tạo engine riêng trong database/__init__.py — gây Dual Engine Trap
+from advanced_alchemy.extensions.litestar import SQLAlchemyAsyncConfig
 
-engine = create_async_engine(
-    os.getenv("DATABASE_URL"),  # postgresql+asyncpg://...
+alchemy_config = SQLAlchemyAsyncConfig(
+    connection_string=os.getenv("DATABASE_URL"),  # postgresql+asyncpg://...
     pool_size=5,
     max_overflow=10,
     pool_recycle=3600,
 )
-async_session = async_sessionmaker(engine, expire_on_commit=False)
 ```
 
 - Litestar integration: Dùng `AdvancedAlchemy` plugin (`SQLAlchemyPlugin`) để tự động inject `AsyncSession` vào dependency injection.
+- ⚠️ **V56.0 Known Debt:** `database/__init__.py` vẫn tạo engine riêng cho `async_session_maker` (5 files phụ thuộc). Cần migrate trong sprint sau.
 
 #### 3.2.2 Tenant Isolation — Multi-Tenancy
 
@@ -765,6 +852,14 @@ Hệ thống bảo vệ đa lớp (Skill Guard) được cấu hình tại trang
 - ❌ CẤM hardcode câu chào wake word ("Tôi đây") trong code Frontend.
 - ✅ Wake word locally-detected BẮT BUỘC dùng `greeting_template` từ cấu hình người dùng.
 - ✅ Đảm bảo XoHi dẻo miệng đúng chất riêng của sếp ngay từ câu chào đầu tiên.
+
+### R72 – AI-Driven STT Correction & Self-Learning (V60.1)
+
+- ❌ CẤM hardcode các sửa lỗi chính tả phụ thuộc vào Speech-To-Text (STT) như "nhân số", "dân số", "doanh tu" vào logic C.O.R.E / Router / Regex.
+- ✅ BẮT BUỘC sử dụng màng lọc **STT Corrector Layer** (AI Pre-processor) nằm ở cửa ngõ đầu vào (`stt_corrector.py`) trước khi Classify.
+- ✅ **Giao thức Tự Học (Self-Learning)**: Nếu AI Corrector nghi ngờ lỗi, BẮT BUỘC trả về `suspected_correction`. Orchestrator phải chặn luồng để hỏi xác nhận sếp. Khi sếp xác nhận "Đúng", hệ thống phải lưu vào `stt_dictionary` (User Profile) để tự sửa vĩnh viễn mà không cần hỏi lại.
+- ✅ STT Corrector dùng PydanticAI + Gemini Flash để nắn các từ vựng sai do nhận diện giọng nói tiếng Việt về đúng ngữ cảnh hệ thống E-commerce.
+- ✅ Luồng dữ liệu mới: `Raw STT` -> `STT Corrector (Inject User Dict)` -> `C.O.R.E Classify/Router` -> `Execute`.
 
 ---
 
@@ -1429,7 +1524,8 @@ DesktopLayout (flex h-screen)
 - [x] **V58.1** CTOP AUDIT ENFORCEMENT: Kiểm định toàn diện code base. Thêm R69 (LOC ≤ 300), R70 (Dependency Pinning), R71 (Test Mandate). Fix load_dotenv ordering, cookie parsing, duplicate Base, dead imports. Tách 3 file LOC vi phạm (VoiceSettings, Nanobot, Omni). Thêm pytest unit tests. Cập nhật user_global rules.
 - [x] **V58.2** LAYOUT & PERFORMANCE SURGERY: Sửa UniversalModal scope (Canvas Area only). MissionControlShell `fixed→absolute`. Loại bỏ `backdrop-blur` toàn bộ container/sticky header (6 components). Zero-Reflow Hover Pattern (`contain: layout style`). Fix scrollbar flicker (`overflow-y: scroll`). HeartbeatStream header 2-hàng. Loại bỏ ContextualSplitView khỏi NewsManagement.
 - [x] **V58.3** XOHI MOBILE — AI ADMIN ASSISTANT APP: Kiến trúc di động độc lập. Màn hình chính trò chuyện Voice-first (`MobileHome.svelte`, `MobileInputBar.svelte`). `MobileContextSheet.svelte` thay thế Modal bằng vuốt chạm trượt ngang. Bảng điều khiển Mobile sử dụng Responsive Stacked Cards để chống chật hẹp, bỏ hiệu ứng blur cho mobile. Tích hợp PWA.
+- [x] **V56.0** AUTONOMOUS AWAKENING (HOTFIX): Fix 4 bugs production (NameError `is_mutate`, Rule 1.9 Tier2Refiner, MagicMock fallback, cost_tokens=0). Encoder Singleton (`encoder_singleton.py`) gộp 3 instances → 1 (~180MB RAM saved). Zero-Cold-Start embedding warmup tại lifespan. Tách `heuristic_classifier.py` (515→363 LOC). AnomalyDetector (3 scalar checks) + asyncio heartbeat loop. PostgreSQL `unaccent` extension cho Vietnamese search.
 
 ---
 
-_V58.3: XOHI MOBILE APP — Native App-like, Voice-First, Responsive Cards, Zero-lag PWA._
+_V56.0: AUTONOMOUS AWAKENING — Bug Fixes, Encoder Singleton, Zero-Cold-Start, Anomaly Heartbeat, Vietnamese Search._

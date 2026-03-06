@@ -5,22 +5,13 @@ from typing import Optional
 
 logger = logging.getLogger("vector_memory")
 
-_encoder = None
+# V56.0: Use shared encoder singleton (merges 3 instances → 1)
+from ai_engine.core.encoder_singleton import get_shared_encoder
+
 
 def get_encoder():
-    """Elite Lazy Loading for TextEmbedding (R41: Performance Built-in)."""
-    global _encoder
-    if _encoder is None:
-        try:
-            from fastembed import TextEmbedding
-            # R11: Use the model pre-cached in Dockerfile to avoid download during runtime
-            model_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-            logger.info(f"[VectorMemory] Loading embedding model: {model_name}...")
-            _encoder = TextEmbedding(model_name=model_name)
-        except Exception as e:
-            logger.error(f"[VectorMemory] Failed to load encoder: {e}")
-            _encoder = None
-    return _encoder
+    """Compatibility wrapper — delegates to shared singleton."""
+    return get_shared_encoder()
 
 class VectorMemory:
     """

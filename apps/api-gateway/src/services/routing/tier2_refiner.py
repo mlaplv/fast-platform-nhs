@@ -35,13 +35,13 @@ Bạn là Xô Hi. Nhiệm vụ của bạn là đọc số liệu thô từ Data
 
 class Tier2Refiner:
     def __init__(self):
-        self.primary_model = os.getenv("TIER2_MODEL", "gemini/gemini-1.5-flash")
-        self.fallback_model = os.getenv("TIER2_FALLBACK_MODEL", "gemini/gemini-2.0-flash")
+        self.primary_model = os.getenv("TIER2_MODEL", "gemini-2.5-flash")
+        self.fallback_model = os.getenv("TIER2_FALLBACK_MODEL", "gemini-2.5-flash")
         self.rotator = SmartKeyRotator()
         
         # [THIẾT QUÂN LUẬT] PydanticAI Agent for NLG
+        # V56.0: Rule 1.9 — CẤM model= cố định khi dùng SmartKeyRotator
         self.agent = Agent(
-            model=self.primary_model,
             deps_type=Tier2RefinerDeps,
             system_prompt=REFINER_PROMPT
         )
@@ -64,13 +64,25 @@ class Tier2Refiner:
                 os.environ.pop("GOOGLE_API_KEY", None) # R1.4 SSOT: Prevent LiteLLM conflict
                 
                 try:
+                    from pydantic_ai.models.google import GoogleModel
+                    from pydantic_ai.providers.google import GoogleProvider
+                    
+                    provider = GoogleProvider(api_key=api_key)
+                    model_instance = GoogleModel(model_name, provider=provider)
                     result = await self.agent.run(
                         f"Hãy báo cáo số liệu {raw_data} này cho sếp.",
-                        model=model_name,
+                        model=model_instance,
                         deps=deps
                     )
                     # PydanticAI wraps result.data based on output_type. Here it's str (default).
-                    return result.data.strip(), 0 
+                    # V56.0: Extract actual token cost for telemetry
+                    cost = 0
+                    try:
+                        usage = result.usage()
+                        cost = (usage.request_tokens or 0) + (usage.response_tokens or 0)
+                    except Exception:
+                        pass
+                    return result.output.strip(), cost
 
                 except (ServiceUnavailableError, RateLimitError, LiteLLMTimeout, AuthenticationError) as e:
                     logger.warning(f"[NLG Refiner] {model_name} attempt {attempt+1} failed. Rotating...")
@@ -78,8 +90,15 @@ class Tier2Refiner:
                         await asyncio.sleep(1.0 * (attempt + 1))
                     continue
                 except Exception as e:
+                    # R1.1: If it's a 400 Invalid API Key from pydantic_ai or LiteLLM, catch and rotate!
+                    if "API key not valid" in str(e) or "400" in str(e) or "API_KEY_INVALID" in str(e):
+                        logger.warning(f"[NLG Refiner] {model_name} invalid API key (400) on attempt {attempt+1}. Rotating...")
+                        continue
+                        
                     logger.warning(f"[NLG Refiner] Unexpected error: {e}")
-                    continue
+                    if attempt < max_tries - 1:
+                        continue
+                    break
 
         # 🛡️ HARD FALLBACK (Rule 3.3)
         target_vn = {
