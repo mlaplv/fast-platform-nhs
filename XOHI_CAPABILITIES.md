@@ -54,28 +54,32 @@ Giao thức Mini-Form (R65) giúp sếp ra lệnh thay đổi dữ liệu bằng
 
 ---
 
-## 4. SIÊU NĂNG LỰC TỰ HÀNH (V56.0 - NEW)
+## 4. HỆ THẦN KINH CHỦ ĐỘNG (V56.5 - NEW)
 
-### 🛰️ Autonomous Heartbeat (Anomaly Detection)
+### ⚡ Proactive Event Bus (0-Latency)
 
-Hệ thống tự động quét 15 phút/lần (Background Task) để cảnh báo sếp:
+XoHi không còn "quét bị động" (polling). Hệ thống sử dụng trục xương sống **Internal Event Bus**:
 
-1.  **Ccancelled Spike:** Đơn hủy tăng >200% so với trung bình.
-2.  **Volume Spike:** Lượng đơn hàng mới tăng đột biến.
-3.  **Revenue Drop:** Doanh thu hôm nay thấp hơn 70% so với cùng giờ hôm qua.
+- **Phản ứng 0 giây:** Mọi hành động từ khách (Đặt hàng, Hủy đơn) được đẩy về bộ não XoHi ngay lập tức.
+- **XoHi Responder:** Tự động phân tích và đưa ra phản hồi/cảnh báo tức thì.
 
-- _Thông báo sẽ xuất hiện tại Heartbeat Sidebar._
+### 🛡️ Anti-Spam Shield (Lá chắn Đối thủ)
+
+Bảo vệ ngân sách Marketing và Stock hàng trước các cuộc tấn công phá hoại:
+
+1.  **Device Fingerprinting:** Nhận diện "vân tay trình duyệt". Dù đối thủ đổi IP, XoHi vẫn nhận ra thiết bị cũ.
+2.  **Velocity Guard:** Chặn đứng tool/robot đặt đơn hàng loạt (Flood attack).
+3.  **Auto-Isolation:** Tự động gắn tag `SPAM` cho các đơn hàng nghi vấn, không cho phép trừ tồn kho thật và cảnh báo đỏ cho sếp.
 
 ### ⚡ Zero-Cold-Start (Instant Wake)
 
 - Embedding models & Intent centroids được tải ngay khi boot app.
-- **Response Time:** <100ms cho câu lệnh đầu tiên (không còn độ trễ startup).
+- **Response Time:** <100ms cho câu lệnh đầu tiên.
 
 ### 🇻🇳 Smart Vietnamese Search (Unaccent)
 
-- Hỗ trợ tìm kiếm tiếng Việt không dấu.
-- "ao thun" match "Áo thun", "nguyen" match "Nguyễn".
-- Áp dụng đồng bộ cho Sản phẩm và Khách hàng.
+- Hỗ trợ tìm kiếm tiếng Việt không dấu. Match "ao thun" -> "Áo thun".
+- Áp dụng cho Sản phẩm và Khách hàng.
 
 ### 🧠 Modality Recovery & Memory
 

@@ -123,6 +123,12 @@ async def lifespan(app: Litestar):
     from src.database.models import VoiceProfile
     from sqlalchemy import select
     from src.utils.text import normalize_vn
+    from src.services.event_bus import event_bus
+    from src.services.xohi_responder import setup_subscriptions
+    
+    # Start Proactive Nerve System (V56.5)
+    setup_subscriptions()
+    await event_bus.start()
     
     import asyncio as _aio
     heartbeat_task = None  # Guard: prevent UnboundLocalError if lifespan crashes early
@@ -201,6 +207,10 @@ async def lifespan(app: Litestar):
             except _aio.CancelledError:
                 pass
             logger.info("[Trinity Core] Heartbeat stopped.")
+        
+        # Stop Proactive Nerve System
+        await event_bus.stop()
+        logger.info("[Trinity Core] EventBus stopped.")
 
 # ==========================================
 # PHASE 3: DYNAMIC RATE LIMITING (R23)

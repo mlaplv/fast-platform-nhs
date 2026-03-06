@@ -1,5 +1,10 @@
 import logging
+import uuid
 from datetime import datetime, timezone
+from src.services.event_bus import event_bus
+from src.services.anti_spam import AntiSpamService
+
+logger = logging.getLogger("api-gateway")
 from litestar import Controller, get, patch, Request
 from litestar.di import Provide
 from litestar.exceptions import NotFoundException
@@ -30,6 +35,7 @@ class OrderController(Controller):
     @get("/")
     async def list_orders(
         self,
+        request: Request,
         order_repo: OrderRepository,
         limit: int = 20,
         offset: int = 0,
@@ -140,6 +146,14 @@ class OrderController(Controller):
         order.history = history
         
         await order_repo.session.commit()
+        
+        # V56.5 Proactive Nerve System: Emit event
+        await event_bus.emit("ORDER_UPDATED", {
+            "id": order_id, 
+            "status": new_status, 
+            "tenant_id": str(order.user.id) if order.user else None
+        })
+        
         return {"success": True, "new_status": new_status.lower()}
 
     @patch("/{order_id:str}/cancel", guards=[PermissionGuard("order:write")])
@@ -167,4 +181,12 @@ class OrderController(Controller):
         order.history = history
         
         await order_repo.session.commit()
+        
+        # V56.5 Proactive Nerve System: Emit event instantly
+        await event_bus.emit("ORDER_CANCELLED", {
+            "id": order_id, 
+            "reason": data.reason,
+            "tenant_id": str(order.user.id) if order.user else None
+        })
+        
         return {"success": True, "new_status": "cancelled"}
