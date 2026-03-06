@@ -1,6 +1,6 @@
 from typing import Dict, List
 from pydantic import BaseModel, Field
-
+from src.constants.voice import DEFAULT_GREETING, DEFAULT_FAREWELL
 
 class VoiceResponse(BaseModel):
     """Response from voice processing pipeline"""
@@ -9,7 +9,6 @@ class VoiceResponse(BaseModel):
     transcript: str = Field(description="Original STT transcript from audio")
     ui_action: str = Field(default="", description="Widget action: show_revenue_chart, etc.")
     data: Dict[str, object] = Field(default_factory=dict, description="Payload for UI widget")
-
 
 class CapabilityMetadata(BaseModel):
     id: str
@@ -22,7 +21,8 @@ class CapabilityMetadata(BaseModel):
 class VoiceSettingsResponse(BaseModel):
     wake_words: List[str]
     sleep_words: List[str]
-    greeting_template: str
+    greeting_template: str = Field(default=DEFAULT_GREETING)
+    farewell_template: str = Field(default=DEFAULT_FAREWELL)
     capabilities: List[CapabilityMetadata]
 
 class VoiceSettingsPayload(BaseModel):
@@ -30,7 +30,8 @@ class VoiceSettingsPayload(BaseModel):
     wake_words: List[str] = Field(description="List of wake words")
     sleep_words: List[str] = Field(description="List of sleep words")
     capabilities: Dict[str, bool] = Field(default_factory=dict, description="Mapped AI capabilities (READ, MUTATE, ANALYZE)")
-    greeting_template: str = Field(default="Dạ, em nghe đây sếp {name}.", description="Optional greeting template")
+    greeting_template: str = Field(default=DEFAULT_GREETING, description="Optional greeting template")
+    farewell_template: str = Field(default=DEFAULT_FAREWELL, description="Optional farewell template")
 
 class CampaignModePayload(BaseModel):
     """Payload for global campaign mode toggle"""

@@ -4,6 +4,7 @@ from sqlalchemy import (
     String, Integer, Float, Boolean, Text, JSON, DateTime, ForeignKey, text, Column, Table, Index
 )
 from sqlalchemy.orm import declarative_base, Mapped, mapped_column, relationship
+from src.constants.voice import DEFAULT_GREETING, DEFAULT_FAREWELL
 
 Base = declarative_base()
 
@@ -75,7 +76,8 @@ class VoiceProfile(Base, AuditMixin):
     user: Mapped["User"] = relationship("User", back_populates="voice_profile")
     wake_words: Mapped[list[str]] = mapped_column(JSON, default=list) # Replace array with JSON
     sleep_words: Mapped[list[str]] = mapped_column(JSON, default=list) # Replace array with JSON
-    greeting_template: Mapped[str] = mapped_column(String)
+    greeting_template: Mapped[str] = mapped_column(String, default=DEFAULT_GREETING)
+    farewell_template: Mapped[str] = mapped_column(String, default=DEFAULT_FAREWELL)
     capabilities: Mapped[dict] = mapped_column(JSON, default=dict)
 
 class Role(Base, AuditMixin, SoftDeleteMixin, TenantMixin):

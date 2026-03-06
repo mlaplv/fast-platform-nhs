@@ -3,19 +3,23 @@ import json
 import os
 import uuid
 from typing import Dict, List, Optional, Union
-from litestar import Controller, post, get, Request
+from litestar import Controller, post, get, delete, Request
 from litestar.di import Provide
 from litestar.exceptions import HTTPException
 from sqlalchemy import select, update, and_
 from sqlalchemy.orm import selectinload
 
-from src.schemas.voice import VoiceSettingsPayload, VoiceSettingsResponse, CapabilityMetadata, CampaignModePayload, LexiconOverridePayload, LexiconStopwordPayload
+from src.schemas.voice import (
+    VoiceSettingsPayload, VoiceSettingsResponse, CapabilityMetadata, 
+    CampaignModePayload, LexiconOverridePayload, LexiconStopwordPayload
+)
 from src.database.models import User, VoiceProfile
 from src.database.repositories import UserRepository, VoiceProfileRepository, provide_user_repo, provide_voice_repo
-from litestar import Controller, post, get, delete, Request
+from src.constants.voice import DEFAULT_GREETING, DEFAULT_FAREWELL
 from src.utils.text import normalize_vn
 from src.services.capability_registry import capability_registry
 from src.guards import PermissionGuard
+from src.constants.voice import DEFAULT_GREETING, DEFAULT_FAREWELL
 
 
 logger = logging.getLogger("api-gateway")
@@ -40,12 +44,10 @@ class SettingsController(Controller):
         if not user_info or "sub" not in user_info:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        # Use direct SQLAlchemy with selectinload (Rule R41)
-        stmt = select(User).where(User.email == user_info["sub"]).options(
-            selectinload(User.voice_profile)
+        user = await user_repo.get_one_or_none(
+            email=user_info["sub"],
+            load=[User.voice_profile]
         )
-        res = await user_repo.session.execute(stmt)
-        user = res.scalar_one_or_none()
         
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -66,12 +68,18 @@ class SettingsController(Controller):
 
         wake = profile.wake_words if profile else ["xohi"]
         sleep = profile.sleep_words if profile else ["ngu di"]
-        greeting = profile.greeting_template if profile else "Dạ, em nghe đây sếp."
+        
+        # Consistent fallbacks from SSOT
+        greeting = (profile.greeting_template if profile and profile.greeting_template 
+                   else DEFAULT_GREETING)
+        farewell = (profile.farewell_template if profile and profile.farewell_template 
+                   else DEFAULT_FAREWELL)
         
         return VoiceSettingsResponse(
             wake_words=wake,
             sleep_words=sleep,
             greeting_template=greeting,
+            farewell_template=farewell,
             capabilities=capabilities
         )
 
@@ -86,12 +94,10 @@ class SettingsController(Controller):
         if not user_info or "sub" not in user_info:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        # Use direct SQLAlchemy with selectinload (Rule R41)
-        stmt = select(User).where(User.email == user_info["sub"]).options(
-            selectinload(User.voice_profile)
+        user = await user_repo.get_one_or_none(
+            email=user_info["sub"],
+            load=[User.voice_profile]
         )
-        res = await user_repo.session.execute(stmt)
-        user = res.scalar_one_or_none()
         
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -123,6 +129,7 @@ class SettingsController(Controller):
                 wake_words=clean_wake,
                 sleep_words=clean_sleep,
                 greeting_template=data.greeting_template,
+                farewell_template=data.farewell_template,
                 capabilities=data.capabilities
             )
             await voice_repo.add(profile)
@@ -130,6 +137,7 @@ class SettingsController(Controller):
             profile.wake_words = clean_wake
             profile.sleep_words = clean_sleep
             profile.greeting_template = data.greeting_template
+            profile.farewell_template = data.farewell_template
             profile.capabilities = data.capabilities
 
         await voice_repo.session.commit()
@@ -141,6 +149,7 @@ class SettingsController(Controller):
             "wake_words":        [normalize_vn(w) for w in clean_wake],
             "sleep_words":       [normalize_vn(w) for w in clean_sleep],
             "greeting_template": data.greeting_template,
+            "farewell_template": data.farewell_template,
             "capabilities":      data.capabilities,
         }
         await xohi_memory.cache_voice_profile(user_id, profile_data)
@@ -152,6 +161,7 @@ class SettingsController(Controller):
                 "wake_words": clean_wake,
                 "sleep_words": clean_sleep,
                 "greeting_template": data.greeting_template,
+                "farewell_template": data.farewell_template,
                 "capabilities": data.capabilities
             }
         }

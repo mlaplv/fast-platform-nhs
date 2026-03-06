@@ -69,6 +69,8 @@ export function createNanobotState() {
       routerTier?: number;
     } | null,
     mobileScrollPosition: 0,
+    isCampaignMode: false,
+    isTogglingCampaign: false,
   });
 
   // INITIAL HYDRATION: Sync with RBAC state (V47.0)
@@ -103,10 +105,17 @@ export function createNanobotState() {
             );
           if (res?.greeting_template)
             voice.setGreetingTemplate(res.greeting_template);
-        })
-        .catch(() => {
-          /* Keep defaults */
         });
+
+      // Hydrate Campaign Mode (V56.0 Persistent Fix)
+      apiClient
+        .get<any>("/api/v1/settings/campaign-mode")
+        .then((res) => {
+          if (res && res.is_campaign_mode !== undefined) {
+            state.isCampaignMode = res.is_campaign_mode;
+          }
+        })
+        .catch(() => {});
     }
   }
 
@@ -144,6 +153,29 @@ export function createNanobotState() {
     // CRITICAL: Reset VUI to prevent VoiceModal from appearing
     voice.resetVui();
     import("./omni.svelte").then(({ omni }) => omni.stopTrainingRec());
+  }
+
+  async function toggleCampaignMode() {
+    state.isTogglingCampaign = true;
+    try {
+      const newVal = !state.isCampaignMode;
+      const res = await apiClient.post<any>("/api/v1/settings/campaign-mode", {
+        is_campaign_mode: newVal,
+      });
+      if (res && res.status === "success") {
+        state.isCampaignMode = newVal;
+        log.addLog(
+          "Fortress Mode: " + (newVal ? "ENGAGED" : "STANDBY"),
+          "SYS",
+          newVal ? "warning" : "success",
+        );
+        ui.showToast(res.message, "success");
+      }
+    } catch (e: any) {
+      ui.showToast("Failed to toggle Campaign Mode", "error");
+    } finally {
+      state.isTogglingCampaign = false;
+    }
   }
 
   function resetVui() {
@@ -502,6 +534,12 @@ export function createNanobotState() {
     get isMobileHeaderMinimized() {
       return state.mobileScrollPosition > 20;
     },
+    get isCampaignMode() {
+      return state.isCampaignMode;
+    },
+    get isTogglingCampaign() {
+      return state.isTogglingCampaign;
+    },
 
     // Voice Delegation
     get isVuiActive() {
@@ -548,6 +586,7 @@ export function createNanobotState() {
     setTraining,
     completeTraining,
     cancelTraining,
+    toggleCampaignMode,
     updateVoiceSettings,
     setActiveHudPopup(val: HudPopupType) {
       state.activeHudPopup = val;
