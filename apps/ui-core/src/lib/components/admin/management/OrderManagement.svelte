@@ -154,6 +154,28 @@
           nanobot.showToast(e.message || "Lỗi khi huỷ đơn", "error");
         }
       }
+    } else if (actionType === 'TOGGLE_SPAM') {
+      const order = orders.find(o => o.id === orderId);
+      const isMarking = !order?.isSpam;
+      
+      const confirm = await nanobot.showConfirm({
+        title: isMarking ? "XÁC NHẬN ĐÁNH DẤU SPAM" : "XÁC NHẬN GỠ BỎ SPAM",
+        message: isMarking 
+          ? "Đánh dấu đơn hàng này là SPAM và chuyển vào khu vực cách ly?" 
+          : "Gỡ bỏ nhãn SPAM và cho phép xử lý đơn hàng này như bình thường?",
+        confirmLabel: "XÁC NHẬN",
+        cancelLabel: "QUAY LẠI"
+      });
+
+      if (confirm) {
+        try {
+          await apiClient.patch(`/api/v1/orders/${orderId}/spam`);
+          nanobot.addLog(isMarking ? "Đã đánh dấu SPAM" : "Đã gỡ bỏ SPAM", "Nanobot-System");
+          loadOrders();
+        } catch (e: any) {
+          nanobot.showToast(e.message || "Lỗi cập nhật trạng thái SPAM", "error");
+        }
+      }
     } else {
       const label = ORDER_STATUS_MAP[actionType.toLowerCase()]?.label || actionType;
 

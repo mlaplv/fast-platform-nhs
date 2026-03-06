@@ -31,3 +31,14 @@ class VoiceSettingsPayload(BaseModel):
     sleep_words: List[str] = Field(description="List of sleep words")
     capabilities: Dict[str, bool] = Field(default_factory=dict, description="Mapped AI capabilities (READ, MUTATE, ANALYZE)")
     greeting_template: str = Field(default="Dạ, em nghe đây sếp {name}.", description="Optional greeting template")
+
+class CampaignModePayload(BaseModel):
+    """Payload for global campaign mode toggle"""
+    is_campaign_mode: bool = Field(description="Enable Ad Campaign Fortress Mode")
+
+class LexiconOverridePayload(BaseModel):
+    wrong_word: str = Field(description="The misspelled or misheard word")
+    right_word: str = Field(description="The correct target word")
+
+class LexiconStopwordPayload(BaseModel):
+    word: str = Field(description="The filler word to strip out")

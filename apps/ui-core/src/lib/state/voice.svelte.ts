@@ -17,6 +17,7 @@ export function createVoiceState(
     isProcessingSpeech: false,
     routerTier: undefined as number | undefined,
     greetingTemplate: "Tôi đây thưa bạn ✨", // V57.5
+    farewellTemplate: "Tạm biệt",
   });
 
   function resetVui() {
@@ -119,6 +120,10 @@ export function createVoiceState(
       return state.greetingTemplate;
     },
     setGreetingTemplate: (val: string) => (state.greetingTemplate = val),
+    get farewellTemplate() {
+      return state.farewellTemplate;
+    },
+    setFarewellTemplate: (val: string) => (state.farewellTemplate = val),
     triggerVoice: (showVui: boolean = false) => {
       if (showVui) state.isVuiActive = true;
       state.voiceTrigger += 1;

@@ -12,6 +12,7 @@ from typing import Optional
 
 from shared.schemas.intent import IntentResponse, IntentAction, RouterTier
 from src.utils.text import normalize_vn
+from src.services.xohi_memory import xohi_memory
 
 logger = logging.getLogger("api-gateway")
 
@@ -54,7 +55,17 @@ VI_VERB_MAP = {"create": "tạo", "edit": "sửa", "delete": "xóa"}
 VI_TARGET_MAP = {"user": "nhân viên", "product": "sản phẩm", "category": "danh mục", "order": "đơn hàng", "news": "bài viết"}
 
 
-def heuristic_classify(
+def _merge_lists(a, b):
+    # deduplicate list keeping order approximately
+    seen = set(a)
+    res = list(a)
+    for x in b:
+        if x not in seen:
+            seen.add(x)
+            res.append(x)
+    return res
+
+async def heuristic_classify(
     combined_lower: str,
     user_id: str,
     app_state: object
@@ -64,10 +75,20 @@ def heuristic_classify(
     Only handles clear-cut queries. Returns None for ambiguous ones.
     """
     norm_query = normalize_vn(combined_lower)
+    
+    # Fetch dynamic intent mapping from local memory (Sub-1ms)
+    dynamic_mapping = await xohi_memory.get_system_intent_mapping()
+    merged_target_keywords = {**TARGET_KEYWORDS}
+    if dynamic_mapping:
+        for tgt, kws in dynamic_mapping.items():
+            if tgt in merged_target_keywords:
+                merged_target_keywords[tgt] = _merge_lists(merged_target_keywords[tgt], kws)
+            else:
+                merged_target_keywords[tgt] = kws
 
     # --- Detect TARGET ---
     target = "none"
-    for tgt, keywords in TARGET_KEYWORDS.items():
+    for tgt, keywords in merged_target_keywords.items():
         if any(kw in norm_query for kw in keywords):
             target = tgt
             break
@@ -129,10 +150,12 @@ def heuristic_classify(
             extracted_entities["email"] = email_match.group(0)
 
     # --- Resolve intent type + action ---
+    is_nav_explicit = any(kw in norm_query for kw in ["bieu do", "mo ", "xem "])
+    
     if is_mutate:
         intent_type = "MUTATE"
         action = IntentAction.MUTATE
-    elif is_count or is_question or (target != "none" and timeframe != "none"):
+    elif not is_nav_explicit and (is_count or is_question or (target != "none" and timeframe != "none") or target == "revenue"):
         intent_type = "DATA_QUERY"
         action = IntentAction.COUNT
     else:

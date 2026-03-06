@@ -161,6 +161,7 @@ class Order(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     is_spam: Mapped[bool] = mapped_column(Boolean, default=False)
     spam_score: Mapped[float] = mapped_column(Float, default=0.0)
     fingerprint: Mapped[Optional[str]] = mapped_column(String)
+    spam_reason: Mapped[Optional[str]] = mapped_column(String)
 
     
     __table_args__ = (

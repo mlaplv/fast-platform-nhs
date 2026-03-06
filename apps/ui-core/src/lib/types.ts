@@ -40,6 +40,10 @@ export interface Order {
   status: string;
   total: number;
   items: number;
+  isSpam: boolean;
+  spamScore?: number;
+  spamReason?: string;
+  fingerprint?: string;
   createdAt: string;
 }
 

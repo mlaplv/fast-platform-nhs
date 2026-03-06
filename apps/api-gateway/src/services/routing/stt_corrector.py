@@ -1,15 +1,19 @@
 import os
-import asyncio
+import json
 import logging
+import asyncio
+import unicodedata
+from typing import Dict, Optional, Tuple
+
+from rapidfuzz import fuzz
+from litellm.exceptions import ServiceUnavailableError, RateLimitError, Timeout as LiteLLMTimeout, AuthenticationError, NotFoundError
+
 from pydantic_ai import Agent, RunContext
 from dataclasses import dataclass, field
-from typing import Optional, Tuple, Dict
-from src.utils.text import normalize_vn
 from pydantic import BaseModel, Field
-from litellm import RateLimitError, AuthenticationError, ServiceUnavailableError, Timeout as LiteLLMTimeout, NotFoundError
 from ai_engine.core.key_rotator import SmartKeyRotator
-import unicodedata
-from rapidfuzz import fuzz
+from src.utils.text import normalize_vn
+from src.services.xohi_memory import xohi_memory
 
 logger = logging.getLogger("api-gateway")
 
@@ -101,21 +105,20 @@ class STTCorrector:
         norm_trans = transcript.lower()
         if not norm_trans:
             return "", None
+        # 0.5 LEXICON STOPWORDS FILTERING (Sub-1ms)
+        # Strip out redundant thán từ, đại từ (à, ừm, nhé, dạ, thưa,...)
+        stopwords = await xohi_memory.get_system_stt_stopwords()
+        if stopwords:
+            words = transcript.split()
+            filtered_words = [w for w in words if normalize_vn(w.lower()) not in stopwords]
+            transcript = " ".join(filtered_words)
+            norm_trans = transcript.lower()
+            if not norm_trans:
+                return "", None
 
         # Inject system overrides first to avoid LLM trip for known bad words
-        # CTO Point: These are system-wide defaults, user-dictionary can override.
-        system_overrides = {
-            "dân số": "doanh số",
-            "nhân số": "doanh số",
-            "dan so": "doanh so",
-            "nhan so": "doanh so",
-            "doanh tu": "doanh thu",
-            "doanh tuu": "doanh thu",
-            "zanh sach": "danh sach",
-            "danh sách": "danh sách",
-            "săng phẩm": "sản phẩm",
-            "đau hàng": "đơn hàng"
-        }
+        # CTO Point: Fetched dynamically from Redis via xohi_memory
+        system_overrides = await xohi_memory.get_system_stt_overrides()
         effective_dict = {**system_overrides, **(user_dictionary or {})}
 
         # 1. SEMANTIC BYPASS (LOCAL-FIRST) (Sub-5ms)
@@ -218,8 +221,8 @@ class STTCorrector:
                 
                 if score >= 90:
                     replacement = user_dict[key]
-                    # Case-sensitive replace if possible, else just replace
-                    current_text = current_text.replace(window, replacement)
+                    if replacement not in current_text:
+                        current_text = current_text.replace(window, replacement)
                     max_score = max(max_score, score)
                     logger.debug(f"[STT Local] Match: '{window}' -> '{replacement}' (score={score:.1f})")
                     

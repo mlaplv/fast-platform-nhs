@@ -88,6 +88,7 @@ class RouterOrchestrator:
             yes_keywords = ["đúng", "vâng", "yes", "ừ", "ok", "ok đi", " chuẩn", "đươc", "rồi", "chính xác", "phải", "phai"]
             no_keywords = ["không", "nhầm", "sai", "no"]
             
+            lower_trans = transcript.lower()
             if any(kw in lower_trans for kw in yes_keywords) and not any(kw in lower_trans for kw in no_keywords):
                 # User confirmed! Save to memory
                 suspected = ctx.get("pending_stt_correction", {})
@@ -132,7 +133,7 @@ class RouterOrchestrator:
             # we should immediately try T1 Semantic Router and Heuristics BEFORE T2 LLM.
             if not suspected:
                 # 2. Heuristic Filter (0-Token, <1ms)
-                heur_res = self._heuristic_classify(cleaned_transcript.lower(), user_id, app_state)
+                heur_res = await self._heuristic_classify(cleaned_transcript.lower(), user_id, app_state)
                 if heur_res:
                     if heur_res.data is None:
                         heur_res.data = {}
@@ -217,7 +218,7 @@ class RouterOrchestrator:
         # 3. T2 FAILED → HEURISTIC FALLBACK (0-Token, <1ms)
         #    Classify straightforward queries by keyword WITHOUT LLM
         if not result:
-            result = self._heuristic_classify(combined_lower, user_id, app_state)
+            result = await self._heuristic_classify(combined_lower, user_id, app_state)
             if result:
                 logger.debug(f"[Heuristic Fallback] Classified: {result.data}")
 
@@ -391,9 +392,9 @@ class RouterOrchestrator:
             return f"{int(val)} nghìn đồng"
         return f"{int(amount)} đồng"
 
-    def _heuristic_classify(self, combined_lower: str, user_id: str, app_state: object) -> Optional[IntentResponse]:
+    async def _heuristic_classify(self, combined_lower: str, user_id: str, app_state: object) -> Optional[IntentResponse]:
         """V56.0: Delegated to heuristic_classifier.py (Rule 1.3: <300 LOC)."""
-        return heuristic_classify(combined_lower, user_id, app_state)
+        return await heuristic_classify(combined_lower, user_id, app_state)
 
     def _error_response(self, msg: str) -> IntentResponse:
         return IntentResponse(

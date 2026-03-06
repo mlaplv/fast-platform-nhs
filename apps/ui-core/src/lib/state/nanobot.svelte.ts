@@ -114,10 +114,12 @@ export function createNanobotState() {
     wake: string[],
     sleep: string[],
     greeting?: string,
+    farewell?: string,
   ) {
     state.wakeWords = wake.map((w: string) => normalizeVn(w));
     state.sleepWords = sleep.map((w: string) => normalizeVn(w));
     if (greeting) voice.setGreetingTemplate(greeting);
+    if (farewell) voice.setFarewellTemplate(farewell);
   }
 
   function setTraining(val: boolean, type: "wake" | "sleep" | null = null) {

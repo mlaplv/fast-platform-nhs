@@ -31,6 +31,8 @@ class OrderCreateRequest(BaseModel):
     total_amount: float
     customer_name: str
     customer_email: str
+    customer_phone: Optional[str] = None
+    customer_address: Optional[str] = None
 
 class OrderController(Controller):
     """R2: Class-based Litestar Controller for Order operations."""
@@ -69,6 +71,8 @@ class OrderController(Controller):
             "ip": ip,
             "user_agent": ua,
             "customer": data.customer_name,
+            "phone": data.customer_phone,
+            "address": data.customer_address,
             "total_amount": data.total_amount,
             "tenant_id": None # Global tenant or resolve from header
         })
@@ -122,7 +126,9 @@ class OrderController(Controller):
                 "items": len(o.items) if isinstance(o.items, list) else 0,
                 "createdAt": o.created_at.isoformat() if o.created_at else "",
                 "isSpam": o.is_spam, # Anti-Spam Signal
-                "spamScore": o.spam_score
+                "spamScore": o.spam_score,
+                "spamReason": o.spam_reason,
+                "fingerprint": o.fingerprint
             }
             for o in orders
         ]
@@ -150,6 +156,10 @@ class OrderController(Controller):
             "items": order.items,
             "createdAt": order.created_at.isoformat() if order.created_at else "",
             "cancellationReason": order.cancellation_reason,
+            "isSpam": order.is_spam,
+            "spamScore": order.spam_score,
+            "spamReason": order.spam_reason,
+            "fingerprint": order.fingerprint,
             "history": order.history or []
         }
 
@@ -234,3 +244,46 @@ class OrderController(Controller):
         })
         
         return {"success": True, "new_status": "cancelled"}
+
+    @patch("/{order_id:str}/spam", guards=[PermissionGuard("order:write")])
+    async def toggle_order_spam(self, request: Request, order_repo: OrderRepository, order_id: str) -> dict[str, object]:
+        """Manually toggle the spam status of an order."""
+        order = await order_repo.get(order_id)
+        if not order:
+            raise NotFoundException(f"Order {order_id} not found")
+
+        # Toggle state
+        new_spam_state = not order.is_spam
+        order.is_spam = new_spam_state
+        
+        # If manually unmarking, we clear the low scores/reasons to indicate trust
+        if not new_spam_state:
+            order.spam_score = 0.0
+            order.spam_reason = "Manual Whitelist (Admin)"
+        else:
+            order.spam_score = 100.0
+            order.spam_reason = "Manual Blacklist (Admin)"
+
+        user_state = request.scope.get("state", {}).get("user", {})
+        user_email = user_state.get("sub", "System")
+        
+        history = list(order.history or [])
+        history.append({
+            "status": order.status,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "actor": user_email,
+            "note": f"Manual Spam Override: {'SPAM_MARKED' if new_spam_state else 'SPAM_REMOVED'}"
+        })
+        order.history = history
+        
+        res_score = order.spam_score
+        res_reason = order.spam_reason
+        
+        await order_repo.session.commit()
+        
+        return {
+            "success": True, 
+            "isSpam": new_spam_state,
+            "spamScore": res_score,
+            "spamReason": res_reason
+        }
