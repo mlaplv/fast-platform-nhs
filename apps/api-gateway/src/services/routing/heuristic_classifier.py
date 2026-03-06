@@ -17,9 +17,9 @@ logger = logging.getLogger("api-gateway")
 
 # --- Keyword Dictionaries (avoid hardcode — centralized here for easy tuning) ---
 TARGET_KEYWORDS = {
-    "revenue": ["doanh thu", "doanh so", "bieu do", "tien"],
-    "order":   ["don hang", "hoa don", "bill"],
-    "product": ["san pham", "ton kho", "kho hang"],
+    "revenue": ["doanh thu", "doanh so", "bieu do", "tien", "dan so", "nhan so", "doanh tu"],
+    "order":   ["don hang", "hoa don", "bill", "dau hang"],
+    "product": ["san pham", "ton kho", "kho hang", "sang pham"],
     "user":    ["nguoi dung", "khach", "nhan vien", "tai khoan"],
     "category": ["danh muc"],
     "news":    ["tin tuc", "bai viet"],
@@ -141,32 +141,47 @@ def heuristic_classify(
 
     widget_id = TARGET_TO_WIDGET.get(target, "")
 
-    # --- Mutation message ---
-    mutation_msg = ""
+    # --- Build response message ---
     if intent_type == "MUTATE":
         v_label = VI_VERB_MAP.get(verb, verb)
         t_label = VI_TARGET_MAP.get(target, target)
         name = extracted_entities.get("name", "")
-        mutation_msg = f"Sếp muốn {v_label} {t_label}" + (f' "{name}"' if name else "") + ". Xác nhận thông tin bên dưới ạ."
+        response_msg = f"Sếp muốn {v_label} {t_label}" + (f' "{name}"' if name else "") + ". Xác nhận thông tin bên dưới ạ."
+    elif intent_type == "UI_NAV":
+        nav_msg_map = {
+            "revenue":  "Dạ, em mở biểu đồ doanh thu cho sếp.",
+            "order":    "Dạ, em mở quản lý đơn hàng cho sếp.",
+            "product":  "Dạ, em mở quản lý sản phẩm cho sếp.",
+            "user":     "Dạ, em mở danh sách nhân viên cho sếp.",
+            "category": "Dạ, em mở quản lý danh mục cho sếp.",
+            "news":     "Dạ, em mở quản lý bài viết cho sếp.",
+        }
+        response_msg = nav_msg_map.get(target, "")
+    else:
+        response_msg = ""
 
     logger.debug(f"[Heuristic] Result: {intent_type} target={target} verb={verb} widget={widget_id} timeframe={timeframe}")
+    
+    res_data = {
+        "intent_type": intent_type,
+        "target": target,
+        "verb": verb,
+        "timeframe": timeframe,
+        "ui_action": widget_id,
+        "entities": extracted_entities,
+    }
+
+    # Signal frontend to end conversation on navigation
+    if intent_type == "UI_NAV":
+        res_data["category"] = "SESSION_CTRL"
+        res_data["action"] = "HARDWARE_SLEEP"
+
     return IntentResponse(
         status="success",
         action=action,
-        message=mutation_msg if mutation_msg else "",
+        message=response_msg,
         router_tier=RouterTier.TIER_1_HEURISTIC,
         cost_tokens=0.0,
         requires_confirmation=intent_type == "MUTATE",
-        data={
-            "intent_type": intent_type,
-            "target": target,
-            "verb": verb,
-            "timeframe": timeframe,
-            "ui_action": widget_id,
-            "widget_id": widget_id,
-            "status": "none",
-            "action": intent_type,
-            "requires_confirmation": intent_type == "MUTATE",
-            "entities": extracted_entities
-        }
+        data=res_data,
     )

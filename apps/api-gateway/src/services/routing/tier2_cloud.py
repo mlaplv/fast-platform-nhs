@@ -154,7 +154,9 @@ class Tier2CloudRouter:
                             "target": output.target, 
                             "timeframe": output.timeframe, 
                             "widget_id": output.widget_id, 
-                            "status": output.status
+                            "status": output.status,
+                            # Signal frontend to end conversation on navigation
+                            **({"category": "SESSION_CTRL", "action": "HARDWARE_SLEEP"} if output.intent_type == "UI_NAV" else {})
                         }
                     )
                 except (ServiceUnavailableError, RateLimitError, LiteLLMTimeout, AuthenticationError) as e:

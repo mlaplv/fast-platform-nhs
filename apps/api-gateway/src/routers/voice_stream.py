@@ -21,7 +21,7 @@ MIN_AUDIO_BYTES = 5000
 MAX_AUDIO_BYTES = 20_000_000
 
 
-@websocket("/ws/stt")
+@websocket("/ws/stt", guards=[])
 async def stt_websocket(socket: WebSocket) -> None:
     """WebSocket endpoint: receive audio chunks, transcribe via Groq Whisper."""
     await socket.accept()

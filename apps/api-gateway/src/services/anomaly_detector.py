@@ -178,11 +178,18 @@ class AnomalyDetector:
         """Create Notification records for detected anomalies (with dedup)."""
         for alert in alerts:
             # DEBT-4 fix: skip if same alert type already exists in last hour
+            # DEBT-4 fix: platform-agnostic interval logic
+            is_postgres = "postgresql" in str(session.bind.url)
+            if is_postgres:
+                interval_clause = "created_at > NOW() - interval '1 hour'"
+            else:
+                interval_clause = "created_at > datetime('now', '-1 hour')"
+                
             existing = await session.scalar(
-                text("""
+                text(f"""
                     SELECT COUNT(*) FROM notifications
                     WHERE tenant_id = :tid AND message = :msg
-                    AND created_at > NOW() - interval '1 hour'
+                    AND {interval_clause}
                 """),
                 {"tid": tenant_id, "msg": alert["message"]}
             ) or 0

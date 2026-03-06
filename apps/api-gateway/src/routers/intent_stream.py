@@ -136,7 +136,10 @@ class IntentStreamController(Controller):
 
                 # ── Phase 3: Execute ──
                 result_category = (result.data or {}).get("category")
-                if result.status != "error" and result_category != "SESSION_CTRL":
+                intent_type = (result.data or {}).get("intent_type")
+                
+                # EXECUTE Phase: Run if success AND (not SESSION_CTRL OR is UI_NAV navigation)
+                if result.status != "error" and (result_category != "SESSION_CTRL" or intent_type == "UI_NAV"):
                     yield _sse("execute", {"status": "working"})
                     try:
                         result = await asyncio.wait_for(

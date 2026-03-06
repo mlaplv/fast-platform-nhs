@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from litellm import RateLimitError, AuthenticationError, ServiceUnavailableError, Timeout as LiteLLMTimeout, NotFoundError
 from ai_engine.core.key_rotator import SmartKeyRotator
 import unicodedata
+from rapidfuzz import fuzz
 
 logger = logging.getLogger("api-gateway")
 
@@ -104,10 +105,16 @@ class STTCorrector:
         # Inject system overrides first to avoid LLM trip for known bad words
         # CTO Point: These are system-wide defaults, user-dictionary can override.
         system_overrides = {
+            "dân số": "doanh số",
+            "nhân số": "doanh số",
             "dan so": "doanh so",
             "nhan so": "doanh so",
             "doanh tu": "doanh thu",
-            "zanh sach": "danh sach"
+            "doanh tuu": "doanh thu",
+            "zanh sach": "danh sach",
+            "danh sách": "danh sách",
+            "săng phẩm": "sản phẩm",
+            "đau hàng": "đơn hàng"
         }
         effective_dict = {**system_overrides, **(user_dictionary or {})}
 
@@ -203,17 +210,18 @@ class STTCorrector:
             
             for i in range(len(transcript_words) - key_word_count + 1):
                 window = " ".join(transcript_words[i : i + key_word_count])
-                # Higher threshold for multi-word matches
-                score = fuzz.ratio(window.lower(), key.lower())
+                # Normalize both for comparison
+                norm_window = normalize_vn(window)
+                norm_key = normalize_vn(key)
+                
+                score = fuzz.ratio(norm_window, norm_key)
                 
                 if score >= 90:
                     replacement = user_dict[key]
-                    # Replace the window in the original text
-                    # We use a simple replace but could be more robust with word boundaries
-                    # To be safe, we only replace if it matches exactly or is very close
+                    # Case-sensitive replace if possible, else just replace
                     current_text = current_text.replace(window, replacement)
                     max_score = max(max_score, score)
-                    # Once replaced, words might shift, but for simple STT errors this works well
+                    logger.debug(f"[STT Local] Match: '{window}' -> '{replacement}' (score={score:.1f})")
                     
         return current_text, max_score
 

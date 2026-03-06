@@ -10,16 +10,14 @@ logger = logging.getLogger("api-gateway")
 class DataInjector:
     """
     [CTO Mode] Trinity Loop: Data Provider.
-    Tasks: 
-    1. Fetch raw database metrics (counts, revenue).
-    2. Populate intent.data with raw values for the Refiner.
-    3. Ensure data accuracy by fixing timeframe edge cases.
+    Single Responsibility: Fetch scalar metrics OR series data.
+    Zero-Hydration: Scalar SQL only, no ORM object loading.
     """
 
     async def inject(self, intent: IntentResponse, user_query: str, **kwargs) -> IntentResponse:
         """
-        Entry point for data injection.
-        [THIẾT QUÂN LUẬT] Uses injected repositories from kwargs (Litestar DI).
+        Inject a single data point into intent.data.
+        One query. One number. Fast.
         """
         if intent.status != "success":
             return intent
@@ -28,42 +26,32 @@ class DataInjector:
         target = data_dict.get("target")
         timeframe = data_dict.get("timeframe", "none")
         status = data_dict.get("status", "none")
+        ui_action = data_dict.get("ui_action", "")
 
-        # Robust Timeframe Correction: Only default to 'today' if explicitly asked
+        # Robust Timeframe Correction
         time_keywords = ["nay", "hôm nay", "ngày này", "chiều nay", "sáng nay", "tối nay"]
         if timeframe == "today" and not any(kw in user_query.lower() for kw in time_keywords):
-            logger.debug(f"[Data Injector] Downgrading 'today' -> 'none' (Query: {user_query})")
             timeframe = "none"
 
         if target in ["order", "revenue", "product", "user"]:
             try:
-                # Injection: Grounding Data using injected repositories
+                # 1. Fetch scalar count (Fast Path)
                 count = await self._fetch_count(target, timeframe, status, **kwargs)
                 
                 intent.data["raw_count"] = count
+                intent.data["injected_count"] = count
                 intent.data["raw_timeframe"] = timeframe
-                intent.data["raw_status"] = status
                 intent.data["raw_target"] = target
                 
-                # [V59.0] Advanced Charting: Always inject series data for revenue queries
-                if target == "revenue":
-                    # Extract numeric value for legacy charting
-                    raw_val = str(count).replace("đ", "").replace(".", "").replace(",", "")
-                    try:
-                        intent.data["revenue"] = float(raw_val)
-                    except ValueError:
-                        intent.data["revenue"] = 0.0
-                    
-                    series_data = await self._fetch_revenue_series(**kwargs)
-                    intent.data["series_data"] = series_data
-
-                    period_map = {
-                        "today": "hôm nay",
-                        "this_week": "tuần này",
-                        "this_month": "tháng này",
-                        "none": "Hệ thống"
-                    }
-                    intent.data["period_label"] = period_map.get(timeframe, "Toàn thời gian")
+                # 2. RESTORE: Fetch ALL revenue series ONLY if explicitly opening the chart
+                # This keeps voice counts fast but fills the chart with all tabs when needed.
+                if target == "revenue" and ui_action == "show_revenue_chart":
+                    logger.info(f"[Data Injector] Target={target}, Action={ui_action} -> Fetching Full Series (D/M/Q/Y)")
+                    series = await self._fetch_revenue_series(**kwargs)
+                    intent.data["series_data"] = series
+                    logger.info(f"[Data Injector] Full series data fetched: {list(series.keys())}")
+                else:
+                    intent.data["series_data"] = None
 
             except Exception as e:
                 logger.error(f"[Data Injector] DB Error: {e}", exc_info=True)
@@ -73,29 +61,23 @@ class DataInjector:
 
     async def _fetch_revenue_series(self, **repos) -> Dict[str, dict]:
         """
-        [V59.3] Fetches multi-level revenue and order count series with tenant isolation.
-        - daily: last 30 days
-        - monthly: last 12 months
-        - quarterly: last 8 quarters
-        - yearly: last 5 years
+        Streamlined series fetcher. Parallel SQL grouping.
+        Supports both Postgres (date_trunc) and SQLite (strftime).
         """
-        from sqlalchemy import select, func, cast, Date, text
+        from sqlalchemy import select, func, text
         from src.database.models import Order
         from src.database import current_tenant_id
-        from datetime import datetime, timedelta
         
         repo = repos.get("order_repo")
         if not repo: return {"daily": {"labels": [], "revenue": [], "orders": []}}
 
-        # ═══ TENANT ISOLATION (V59.3) ═══
         tenant_id = current_tenant_id.get() or os.getenv("DEFAULT_TENANT_ID", "default")
-        
         now = datetime.now(ZoneInfo(os.getenv("APP_TIMEZONE", "Asia/Ho_Chi_Minh")))
         
-        async def fetch_grouped(trunc_unit: str, lookback_days: int, sqlite_fmt: str, label_fmt: str):
+        async def fetch_grouped(trunc_unit: str, lookback_days: int, pg_label_fmt: str):
             res = {"labels": [], "revenue": [], "orders": []}
             try:
-                # 1. Try Postgres date_trunc
+                # 1. Postgres Attempt (date_trunc)
                 stmt = (
                     select(
                         func.date_trunc(trunc_unit, Order.created_at).label("period"),
@@ -105,166 +87,114 @@ class DataInjector:
                     .where(
                         Order.tenant_id == tenant_id,
                         Order.created_at >= (now - timedelta(days=lookback_days)),
-                        Order.deleted_at.is_(None)
+                        Order.deleted_at.is_(None),
+                        Order.is_spam.is_(False)
                     )
-                    .group_by(text("1"))
-                    .order_by(text("1"))
+                    .group_by(text("1")).order_by(text("1"))
                 )
                 rows = await repo.session.execute(stmt)
                 for r in rows:
                     if trunc_unit == 'quarter':
-                        q = (r.period.month - 1) // 3 + 1
-                        res["labels"].append(f"Q{q}/{r.period.strftime('%y')}")
+                        label = f"Q{(r.period.month-1)//3+1}/{r.period.strftime('%y')}"
+                    elif trunc_unit == 'year':
+                        label = r.period.strftime('%Y')
                     else:
-                        res["labels"].append(r.period.strftime(label_fmt))
+                        label = r.period.strftime(pg_label_fmt)
+                    res["labels"].append(label)
                     res["revenue"].append(float(r.rev or 0))
                     res["orders"].append(int(r.cnt or 0))
-            except Exception as e:
-                logger.debug(f"[Data Injector] PG grouping failed for {trunc_unit}, trying SQLite logic: {e}")
-                
-                # 2. Try SQLite strftime Fallback logic
-                if trunc_unit == 'quarter':
-                    group_expr = text("(strftime('%Y', created_at) || '-Q' || ((CAST(strftime('%m', created_at) AS INTEGER) - 1) / 3 + 1))")
-                elif trunc_unit == 'year':
-                    group_expr = func.strftime('%Y', Order.created_at)
-                elif trunc_unit == 'month':
-                    group_expr = func.strftime('%m/%y', Order.created_at)
-                else: # 'day'
-                    group_expr = func.strftime('%d/%m', Order.created_at)
-                
-                stmt = (
-                    select(
-                        group_expr.label("period"),
-                        func.sum(Order.total_amount).label("rev"),
-                        func.count(Order.id).label("cnt")
+            except Exception as pg_err:
+                logger.debug(f"[Data Injector] Postgres grouping failed for {trunc_unit}, trying SQLite: {pg_err}")
+                # 2. SQLite Fallback (strftime)
+                try:
+                    if trunc_unit == 'year':
+                        group_expr = func.strftime('%Y', Order.created_at)
+                    elif trunc_unit == 'month':
+                        group_expr = func.strftime('%m/%y', Order.created_at)
+                    elif trunc_unit == 'quarter':
+                        # SQLite quarter logic: Q + ((month-1)/3 + 1)
+                        group_expr = text("(strftime('%Y', created_at) || '-Q' || ((CAST(strftime('%m', created_at) AS INTEGER) - 1) / 3 + 1))")
+                    else: # 'day'
+                        group_expr = func.strftime('%d/%m', Order.created_at)
+                    
+                    stmt = (
+                        select(
+                            group_expr.label("period"),
+                            func.sum(Order.total_amount).label("rev"),
+                            func.count(Order.id).label("cnt")
+                        )
+                        .where(
+                            Order.tenant_id == tenant_id,
+                            Order.created_at >= (now - timedelta(days=lookback_days)),
+                            Order.deleted_at.is_(None),
+                            Order.is_spam.is_(False)
+                        )
+                        .group_by(text("period")).order_by(text("period"))
                     )
-                    .where(
-                        Order.tenant_id == tenant_id,
-                        Order.created_at >= (now - timedelta(days=lookback_days)),
-                        Order.deleted_at.is_(None)
-                    )
-                    .group_by(text("period"))
-                    .order_by(text("period"))
-                )
-                rows = await repo.session.execute(stmt)
-                for r in rows:
-                    res["labels"].append(str(r.period))
-                    res["revenue"].append(float(r.rev or 0))
-                    res["orders"].append(int(r.cnt or 0))
+                    rows = await repo.session.execute(stmt)
+                    for r in rows:
+                        res["labels"].append(str(r.period))
+                        res["revenue"].append(float(r.rev or 0))
+                        res["orders"].append(int(r.cnt or 0))
+                except Exception as sql_err:
+                    logger.error(f"[Data Injector] SQLite grouping failed for {trunc_unit}: {sql_err}")
             return res
 
-        # ══════════════════════════════════════════
-        # 3. Parallel Execution (ULTRA-FAST)
-        # ══════════════════════════════════════════
         import asyncio
         daily, monthly, quarterly, yearly = await asyncio.gather(
-            fetch_grouped('day', 30, '%d/%m', '%d/%m'),
-            fetch_grouped('month', 365, '%m/%y', '%m/%y'),
-            fetch_grouped('quarter', 365 * 2, None, None),
-            fetch_grouped('year', 365 * 5, '%Y', '%Y')
+            fetch_grouped('day', 30, '%d/%m'),
+            fetch_grouped('month', 365, '%m/%y'),
+            fetch_grouped('quarter', 365 * 2, None),
+            fetch_grouped('year', 365 * 5, '%Y')
         )
-
         return {
-            "daily": daily,
+            "daily": daily, 
             "monthly": monthly,
-            "quarterly": quarterly, 
+            "quarterly": quarterly,
             "yearly": yearly
         }
 
-    async def _fetch_count(self, target: str, timeframe: str = "none", status: str = "none", **repos) -> Union[str, int, float, None]:
-        """
-        [R1.5 Zero-Hydration] Fetches aggregates using scalar queries only.
-        CẤM load ORM objects vào RAM cho COUNT/SUM.
-        """
+    async def _fetch_count(self, target: str, timeframe: str = "none", status: str = "none", **repos) -> Union[int, float, None]:
         from sqlalchemy import select, func
         from src.database.models import Order, ProductBase, User
-        
         now = datetime.now(ZoneInfo(os.getenv("APP_TIMEZONE", "Asia/Ho_Chi_Minh")))
         
-        # Build timeframe filter
         time_filter = None
-        if timeframe == "today":
-            time_filter = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        elif timeframe == "this_week":
-            time_filter = now - timedelta(days=7)
-        elif timeframe == "this_month":
-            time_filter = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if timeframe == "today":     time_filter = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif timeframe == "this_week": time_filter = now - timedelta(days=7)
+        elif timeframe == "this_month": time_filter = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        # Zero-Hydration: Scalar queries only — no ORM object loading
         if target == "order":
             repo = repos.get("order_repo")
             if not repo: return None
-            stmt = select(func.count(Order.id)).where(Order.deleted_at.is_(None))
+            stmt = select(func.count(Order.id)).where(Order.deleted_at.is_(None), Order.is_spam.is_(False))
             if time_filter: stmt = stmt.where(Order.created_at >= time_filter)
             if status and status != "none": stmt = stmt.where(Order.status == status.upper())
-            count = await repo.session.scalar(stmt)
-            
-            # --- Insight: So sánh với hôm qua nếu hỏi "today" ---
-            if timeframe == "today":
-                yesterday_start = time_filter - timedelta(days=1)
-                yesterday_end = time_filter
-                stmt_yest = select(func.count(Order.id)).where(
-                    Order.deleted_at.is_(None),
-                    Order.created_at >= yesterday_start,
-                    Order.created_at < yesterday_end
-                )
-                if status and status != "none": stmt_yest = stmt_yest.where(Order.status == status.upper())
-                yest_count = await repo.session.scalar(stmt_yest) or 0
-                diff = count - yest_count
-                trend = "tăng" if diff > 0 else "giảm" if diff < 0 else "bằng"
-                return f"{count} (Hôm qua: {yest_count}, {trend} {abs(diff)})"
-            return count
+            return await repo.session.scalar(stmt) or 0
 
         if target == "product":
             repo = repos.get("product_repo")
             if not repo: return None
             stmt = select(func.count(ProductBase.id)).where(ProductBase.deleted_at.is_(None))
             if time_filter: stmt = stmt.where(ProductBase.created_at >= time_filter)
-            return await repo.session.scalar(stmt)
+            return await repo.session.scalar(stmt) or 0
 
         if target == "user":
             repo = repos.get("user_repo")
             if not repo: return None
             stmt = select(func.count(User.id)).where(User.deleted_at.is_(None))
             if time_filter: stmt = stmt.where(User.created_at >= time_filter)
-            return await repo.session.scalar(stmt)
+            return await repo.session.scalar(stmt) or 0
 
         if target == "revenue":
             repo = repos.get("order_repo")
             if not repo: return None
             from src.database import current_tenant_id
             tenant_id = current_tenant_id.get() or os.getenv("DEFAULT_TENANT_ID", "default")
-            
-            stmt = select(func.sum(Order.total_amount)).where(
-                Order.tenant_id == tenant_id,
-                Order.deleted_at.is_(None)
-            )
+            stmt = select(func.sum(Order.total_amount)).where(Order.tenant_id == tenant_id, Order.deleted_at.is_(None), Order.is_spam.is_(False))
             if status and status != "none": stmt = stmt.where(Order.status == status.upper())
             if time_filter: stmt = stmt.where(Order.created_at >= time_filter)
-            
-            total = await repo.session.scalar(stmt) or 0
-            
-            # --- Insight: So sánh với hôm qua ---
-            insight = ""
-            if timeframe == "today" and total > 0:
-                yesterday_start = time_filter - timedelta(days=1)
-                yesterday_end = time_filter
-                stmt_yest = select(func.sum(Order.total_amount)).where(
-                    Order.tenant_id == tenant_id,
-                    Order.deleted_at.is_(None),
-                    Order.created_at >= yesterday_start,
-                    Order.created_at < yesterday_end
-                )
-                if status and status != "none": stmt_yest = stmt_yest.where(Order.status == status.upper())
-                yest_total = await repo.session.scalar(stmt_yest) or 0
-                if yest_total > 0:
-                    diff = total - yest_total
-                    trend = "tăng" if diff > 0 else "giảm" if diff < 0 else "bằng"
-                    insight = f" (Hôm qua: {yest_total:,.0f}đ, {trend} {abs(diff):,.0f}đ)"
-            
-            return f"{total:,.0f}đ{insight}".replace(",", ".")
-
+            return await repo.session.scalar(stmt) or 0
         return None
 
 data_injector = DataInjector()
-

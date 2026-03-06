@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 # Suppress expected library warnings (Purge Campaign)
 warnings.filterwarnings("ignore", message=".*Pydantic V1 functionality isn't compatible.*")
 warnings.filterwarnings("ignore", message=".*now uses mean pooling instead of CLS embedding.*")
+warnings.filterwarnings("ignore", category=UserWarning, module="pydantic_ai")
 
 from litestar import Litestar, Request, Response, MediaType
 from litestar.config.cors import CORSConfig
@@ -39,7 +40,8 @@ from src.controllers.tts_handler import TTSController
 from src.middleware import AuthMiddleware
 from src.body_limit import BodyLimitMiddleware
 
-from advanced_alchemy.extensions.litestar import SQLAlchemyPlugin, SQLAlchemyAsyncConfig
+from src.database import alchemy_config
+from advanced_alchemy.extensions.litestar import SQLAlchemyPlugin
 
 load_dotenv("../../.env")
 
@@ -50,12 +52,8 @@ os.environ.pop("GOOGLE_API_KEY", None)
 os.environ.pop("GOOGLE_API_KEY_1", None)
 os.environ.pop("GOOGLE_API_KEY_2", None)
 
-# R1.5: SQLAlchemy Async Config (pool defaults adequate for VPS 2GB)
-alchemy_config = SQLAlchemyAsyncConfig(
-    connection_string=os.getenv("DATABASE_URL") or "sqlite+aiosqlite:///:memory:",
-    create_all=False,
-)
-alchemy_plugin = SQLAlchemyPlugin(config=alchemy_config)
+# R1.5 Unified Engine Integration
+alchemy_plugin = SQLAlchemyPlugin(config=alchemy_config.litestar_config)
 
 import src.mcp.tools # Register tools on import
 

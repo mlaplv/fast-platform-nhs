@@ -1,4 +1,4 @@
-# HIẾN PHÁP FAST-PLATFORM (V61.0 + V56.0 HOTFIX — THIẾT QUÂN LUẬT)
+# HIẾN PHÁP FAST-PLATFORM (V56.0 — XOHI NEXUS AWAKENING)
 
 > **CHỈ THỊ CHO AI IDE:** Dự án Agentic AI 2026. Stack cố định: **SvelteKit 5 (Runes) + Litestar (Python 3.14-slim) + SQLAlchemy 2.0 (AdvancedAlchemy) + PydanticAI + LiteLLM**. Tuyệt đối KHÔNG dùng React/Next.js/FastAPI/Prisma. Mọi file tạo ra phải tuân thủ nghiêm ngặt các nguyên lý "THIẾT QUÂN LUẬT" (Hardened Architecture).
 
@@ -135,16 +135,18 @@ Mọi request từ `intent.py` được giao toàn quyền cho `intent_orchestra
 BẮT BUỘC thực hiện tuần tự qua `Orchestrator` để đảm bảo an toàn hiến pháp:
 
 1.  **Phase 1: Classify (Nhận diện)**:
-    - T1 (Heuristic) hoặc T2 (Dispatcher - `tier2_cloud.py`).
-    - Mục tiêu: Chỉ xác định `IntentAction` và trích xuất tham số thô.
-    - **PydanticAI Agent**: T2 Dispatcher BẮT BUỘC bọc trong `pydantic_ai.Agent` với `result_type` là Pydantic model ép kiểu tĩnh 100%. LLM output tự động được validate và self-correct khi ảo giác (hallucination).
+    - **T1 Heuristic (<1ms)**: Keyword matching trực tiếp, không gọi LLM.
+    - **T1.5 Semantic (~50ms)**: Embedding-based similarity (shared encoder singleton).
+    - **T2 Cloud Router**: Gemini 1.5 Flash (PydanticAI Agent).
 2.  **Phase 2: Skill Guard (Chốt chặn)**:
-    - Kiểm tra quyền hạn tại `intent.py` NGAY LẬP TỨC sau khi Classify.
-    - Nếu bị khóa (Restricted) -> Dừng toàn bộ, KHÔNG gọi Data Injector hay Tier 3.
+    - Kiểm tra `IntentAction` qua Matrix trong `VoiceProfile`. Chặn đứng nếu Restricted.
 3.  **Phase 3: Execute (Thực thi)**:
-    - **Loop A (Provider)**: `DataInjector` bơm dữ liệu thực từ SQLAlchemy queries.
-    - **Loop B (Refiner)**: `Tier2Refiner` (`tier2_refiner.py`) thẩm mỹ hóa dữ liệu thành văn bản.
-    - **Deep Analysis**: Gọi Tier 3 Pro Reasoning (bọc trong PydanticAI Agent).
+    - **Zero-LLM Fast Path**: Nếu là `DATA_QUERY` hoặc `UI_NAV`, dùng Template tĩnh tiếng Việt thay cho LLM Refiner. Tốc độ < 1s.
+    - **Hardware Signal (SESSION_CTRL)**: Inject `HARDWARE_SLEEP` cho `UI_NAV` để tự động tắt Mic ở Frontend.
+    - **On-Demand Injection**: Chỉ fetch chuỗi dữ liệu (daily/monthly/quarterly/yearly) khi `ui_action` là `show_revenue_chart`.
+4.  **Phase 4: Feedback (Phản hồi)**:
+    - Typewriter sync với Voice.
+    - Tự động bật Mic sau khi kết thúc Nói (trừ trường hợp `HARDWARE_SLEEP`).
 
 ```mermaid
 graph TD

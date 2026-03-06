@@ -1,100 +1,45 @@
-# XOHI NEXUS CAPABILITIES (V56.0)
+# XOHI NEXUS CAPABILITIES (V56.0 — THE AWAKENING)
 
-> Tóm tắt toàn bộ năng lực của Trợ lý XoHi — Từ nhận diện cơ bản đến tự hành cao cấp.
-
----
-
-## 1. TRUY VẤN DỮ LIỆU (DATA_QUERY/READ)
-
-XoHi hỗ trợ báo cáo nhanh bằng giọng nói cho 6 nhóm thực thể chính bằng cách quét trực tiếp Database (Zero-ORM):
-
-- **Doanh thu (Revenue):**
-  - "Doanh thu hôm nay bao nhiêu?"
-  - "Doanh số tháng này thế nào sếp?"
-  - "Tổng thu nhập tuần này."
-- **Đơn hàng (Orders):**
-  - "Có bao nhiêu đơn hàng mới?"
-  - "Đếm số đơn hàng đang chờ xử lý."
-  - "Xem đơn hàng đã hủy hôm nay."
-- **Sản phẩm (Products):**
-  - "Kho còn bao nhiêu sản phẩm?"
-  - "Có sản phẩm nào hết hàng không?"
-  - "Thống kê tồn kho sản phẩm Áo thun."
-- **Khách hàng & Nhân viên (Users):**
-  - "Hệ thống có bao nhiêu nhân viên?"
-  - "Tìm khách hàng tên Nguyễn Văn A."
-  - "Tổng số tài khoản đang hoạt động."
-- **Danh mục & Tin tức (Category/News):**
-  - "Có bao nhiêu bài viết mới?"
-  - "Thống kê danh mục sản phẩm."
+> Hệ điều hành trợ lý XoHi: Tốc độ ánh sáng, trí tuệ hội tụ, tự học không giới hạn.
 
 ---
 
-## 2. ĐIỀU HƯỚNG GIAO DIỆN (UI_NAV)
+## ⚡ 1. TỐC ĐỘ "ZEN" (ZERO-LLM PATH)
 
-XoHi điều khiển giao diện Dashboard thay sếp:
+XoHi đạt tốc độ phản hồi **dưới 1 giây** cho các yêu cầu phổ biến nhờ bỏ qua AI khi không cần thiết:
 
-- **Biểu đồ:** "Mở biểu đồ doanh thu", "XoHi ơi, xem Chart."
-- **Quản lý:**
-  - "Vào trang đơn hàng."
-  - "Mở quản lý sản phẩm."
-  - "Xem danh sách khách hàng."
-  - "Mở cấu hình XoHi."
+- **Truy vấn số liệu**: Doanh thu, đơn hàng, khách hàng, sản phẩm (Count/Sum).
+- **Mở tính năng**: Biểu đồ, Quản lý đơn, Cài đặt, Danh sách nhân viên.
+- **Kết quả**: Phản ứng tức thì như một ứng dụng native, không còn độ trễ 5-7 giây của LLM truyền thống.
 
----
+## 🧠 2. TRÍ NHỚ TƯƠNG TÁC (PERSISTENT MEMORY)
 
-## 3. THAY ĐỔI DỮ LIỆU TỰ HÀNH (MUTATE - MiniForm)
+Sử dụng **Redis Nexus** để ghi nhớ sếp vĩnh viễn:
 
-Giao thức Mini-Form (R65) giúp sếp ra lệnh thay đổi dữ liệu bằng giọng nói:
+- **Self-Learning STT**: Tự học từ vựng sếp sửa (ví dụ: "dân số" -> "doanh số"). Lần sau sếp nói, XoHi sửa lỗi trong 0ms.
+- **Context Inheritance**: Nhớ sếp đang nói về "tháng này" hay "ngày hôm nay" để áp dụng cho các câu lệnh biểu đồ tiếp theo mà sếp không cần nhắc lại.
 
-- **Thêm mới:** "Tạo sản phẩm tên là Áo khoác giá 500k."
-- **Sửa đổi:** "Sửa tên khách hàng này thành Trần B."
-- **Xóa bỏ:** "Xóa bài viết vừa rồi."
-- **Cơ chế:** AI tự điền Form -> Hiện Modal -> Sếp chỉ cần nhấn **"Xác nhận"**.
+## 📊 3. BIỂU ĐỒ TRỰC QUAN ĐA CHIỀU
 
----
+Hệ thống báo cáo thông minh, chỉ tải dữ liệu khi cần (On-Demand):
 
-## 4. HỆ THẦN KINH CHỦ ĐỘNG (V56.5 - NEW)
+- **4 Chế độ**: Ngày, Tháng, Quý, Năm.
+- **Tự động hóa**: "Mở biểu đồ" kích hoạt luồng SQL grouping song song (Parallel Data Injection).
+- **Hệ quản trị**: Tấn công mọi DB (Postgres/SQLite) với cùng một độ chính xác cao.
 
-### ⚡ Proactive Event Bus (0-Latency)
+## 🎙️ 4. ĐIỀU KHIỂN PHẦN CỨNG (SESSION_CTRL)
 
-XoHi không còn "quét bị động" (polling). Hệ thống sử dụng trục xương sống **Internal Event Bus**:
+XoHi giao tiếp trực tiếp với Micro của sếp:
 
-- **Phản ứng 0 giây:** Mọi hành động từ khách (Đặt hàng, Hủy đơn) được đẩy về bộ não XoHi ngay lập tức.
-- **XoHi Responder:** Tự động phân tích và đưa ra phản hồi/cảnh báo tức thì.
+- **Auto-Stop Mic**: Tự động tắt Mic ngay khi hoàn thành lệnh mở biểu đồ hoặc chuyển trang. Sếp không cần tắt tay, tạo cảm giác chuyên nghiệp 100%.
+- **Voice-Sync Typewriter**: Chữ chạy trên màn hình đồng bộ tuyệt đối với giọng nói của AI.
 
-### 🛡️ Anti-Spam Shield (Lá chắn Đối thủ)
+## 🛡️ 5. BẢO MẬT & TỰ HÀNH (AUTONOMOUS)
 
-Bảo vệ ngân sách Marketing và Stock hàng trước các cuộc tấn công phá hoại từ đối thủ:
-
-1.  **Device Fingerprinting:** Nhận diện "vân tay trình duyệt" duy nhất cho mỗi khách. Dù đối thủ đổi IP liên tục, XoHi vẫn nhận ra thiết bị cũ.
-2.  **Velocity Guard:** Tự động chặn đứng robot/tool đặt đơn hàng loạt (Flood attack) dựa trên tần suất (Request per minute/hour).
-3.  **Auto-Isolation & Signal:** Tự động gắn tag `SPAM` cho các đơn hàng nghi vấn. Admin sẽ thấy tín hiệu cảnh báo ĐỎ ngay trong danh sách đơn hàng để xử lý click-fraud.
-4.  **Zero-Effect Architecture:** Luồng kiểm tra chạy ngầm và bất đồng bộ, đảm bảo khách hàng thật không bao giờ bị chậm trễ khi đặt hàng.
-
-### ⚡ Zero-Cold-Start (Instant Wake)
-
-- Embedding models & Intent centroids được tải ngay khi boot app.
-- **Response Time:** <100ms cho câu lệnh đầu tiên.
-
-### 🇻🇳 Smart Vietnamese Search (Unaccent)
-
-- Hỗ trợ tìm kiếm tiếng Việt không dấu. Match "ao thun" -> "Áo thun".
-- Áp dụng cho Sản phẩm và Khách hàng.
-
-### 🧠 Modality Recovery & Memory
-
-- **Inheritance:** Nhớ ngữ cảnh (Timeframe/Target) của câu hỏi trước.
-- **STT Correction:** Tự học từ vựng sếp sửa để nắn chỉnh STT vĩnh viễn.
+- **Trinity Guard**: Chốt chặn quyền hạn ngay tại cổng vào (READ/MUTATE/ANALYZE).
+- **Mini-Form (MUTATE)**: Tạo/Sửa dữ liệu bằng giọng nói, sếp chỉ cần nhấn 1 nút "Xác nhận".
+- **Anti-Spam Shield**: Bảo vệ hệ thống trước các cuộc tấn công dữ liệu ảo từ đối thủ.
 
 ---
 
-## 5. THÔNG SỐ KỸ THUẬT (V56.0)
-
-- **Routing Tier:** T1 (Heuristic) -> T1.5 (Semantic) -> T2 (Agent Cloud).
-- **Resource:** Encoder Singleton tiết kiệm ~180MB RAM.
-- **Security:** RBAC Many-to-Many, Tenant Isolation 100%.
-
----
-
-_V56.0: ARCHITECT PROFESSOR — XoHi Nexus Awakening._
+_V56.0: XOHI NEXUS — THE AUTONOMOUS AWAKENING._

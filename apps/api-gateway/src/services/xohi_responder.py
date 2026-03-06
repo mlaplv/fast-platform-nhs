@@ -39,14 +39,21 @@ class XoHiResponder:
         
         # 2. Immediate Notification
         customer = payload.get("customer", "Khách lạ")
+        severity = "info"
         msg = f"Đơn hàng mới từ {customer} (ID: {order_id[:8]})"
+        
         if is_spam:
-            msg = f"🚩 CẢNH BÁO SPAM: {msg} - {reason}"
+            if score >= 90:
+                severity = "critical"
+                msg = f"🚨 RED ALERT: Phát hiện tấn công Click-Fraud cực mạnh! Đơn {order_id[:8]} đã bị cô lập hoàn toàn. Lý do: {reason}"
+            else:
+                severity = "warning"
+                msg = f"🚩 CẢNH BÁO SPAM: {msg} - {reason}"
         
         await self._push_notification(
             tenant_id=tenant_id,
             msg=msg,
-            severity="info" if not is_spam else "critical"
+            severity=severity
         )
         logger.info(f"[XoHiResponder] Handled ORDER_CREATED: {order_id} (is_spam={is_spam})")
 
