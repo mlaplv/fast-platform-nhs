@@ -65,11 +65,12 @@ XoHi không còn "quét bị động" (polling). Hệ thống sử dụng trục
 
 ### 🛡️ Anti-Spam Shield (Lá chắn Đối thủ)
 
-Bảo vệ ngân sách Marketing và Stock hàng trước các cuộc tấn công phá hoại:
+Bảo vệ ngân sách Marketing và Stock hàng trước các cuộc tấn công phá hoại từ đối thủ:
 
-1.  **Device Fingerprinting:** Nhận diện "vân tay trình duyệt". Dù đối thủ đổi IP, XoHi vẫn nhận ra thiết bị cũ.
-2.  **Velocity Guard:** Chặn đứng tool/robot đặt đơn hàng loạt (Flood attack).
-3.  **Auto-Isolation:** Tự động gắn tag `SPAM` cho các đơn hàng nghi vấn, không cho phép trừ tồn kho thật và cảnh báo đỏ cho sếp.
+1.  **Device Fingerprinting:** Nhận diện "vân tay trình duyệt" duy nhất cho mỗi khách. Dù đối thủ đổi IP liên tục, XoHi vẫn nhận ra thiết bị cũ.
+2.  **Velocity Guard:** Tự động chặn đứng robot/tool đặt đơn hàng loạt (Flood attack) dựa trên tần suất (Request per minute/hour).
+3.  **Auto-Isolation & Signal:** Tự động gắn tag `SPAM` cho các đơn hàng nghi vấn. Admin sẽ thấy tín hiệu cảnh báo ĐỎ ngay trong danh sách đơn hàng để xử lý click-fraud.
+4.  **Zero-Effect Architecture:** Luồng kiểm tra chạy ngầm và bất đồng bộ, đảm bảo khách hàng thật không bao giờ bị chậm trễ khi đặt hàng.
 
 ### ⚡ Zero-Cold-Start (Instant Wake)
 

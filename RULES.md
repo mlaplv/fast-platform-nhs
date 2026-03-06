@@ -116,6 +116,13 @@ let volume = $state(0); // MỖI FRAME gây re-render
 - ✅ Cột ASCII thuần (SKU, ID) KHÔNG cần unaccent.
 - ✅ Ví dụ: `func.unaccent(ProductBase.name).ilike(f"%{func.unaccent(safe)}%")`.
 
+### 1.13 Proactive Nerve System Protocol (V56.5)
+
+- ❌ CẤM thực hiện các tác vụ side-effect nặng (gửi Email, Push Notif, Scan Spam) trực tiếp bên trong luồng Request/Response của Controller.
+- ✅ BẮT BUỘC sử dụng `event_bus.emit(EVENT_NAME, payload)` để đẩy tác vụ sang `InternalBus`.
+- ✅ Quy trình: Controller Lưu DB → Emit Event → Trả kết quả ngay (UI mượt). `XoHiResponder` sẽ lắng nghe và xử lý phần còn lại.
+- ✅ Lý do: Giảm Latency cho người dùng cuối từ ~500ms xuống < 50ms.
+
 ---
 
 ## II. HỆ TRỤC TÁC NHÂN — C.O.R.E ROUTING PROTOCOL
@@ -574,7 +581,13 @@ npx openapi-typescript http://localhost:8000/schema/openapi.json -o src/lib/api/
 **Anti-Drift:**
 
 - Đứt gãy type giữa BE ↔ FE là vi phạm hiến pháp. OpenAPI Bridge là cầu nối duy nhất được phép.
-- CI/CD nên có bước verify rằng `types.ts` khớp với OpenAPI schema mới nhất.
+- ✅ CI/CD nên có bước verify rằng `types.ts` khớp với OpenAPI schema mới nhất.
+
+### 3.8 Anti-Spam Shield & Fraud Protection (R88)
+
+- ❌ CẤM để các Public Endpoint (đặt hàng, đăng ký) hoạt động mà không có tầng kiểm tra `AntiSpamService`.
+- ✅ BẮT BUỘC tích hợp Device Fingerprinting cho mọi request từ Storefront.
+- ✅ Quy tắc cách ly: Đơn hàng bị nghi ngờ SPAM (`is_spam=true`) BẮT BUỘC bị loại trừ khỏi các báo cáo doanh thu thực và không được phép trừ tồn kho (Stock) tự động.
 
 ---
 

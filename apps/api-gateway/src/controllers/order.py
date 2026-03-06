@@ -5,7 +5,7 @@ from src.services.event_bus import event_bus
 from src.services.anti_spam import AntiSpamService
 
 logger = logging.getLogger("api-gateway")
-from litestar import Controller, get, patch, Request
+from litestar import Controller, get, patch, post, Request
 from litestar.di import Provide
 from litestar.exceptions import NotFoundException
 from typing import List, Dict, Optional, Union
@@ -26,11 +26,54 @@ class OrderStatusUpdate(BaseModel):
 class CancelOrderRequest(BaseModel):
     reason: str
 
+class OrderCreateRequest(BaseModel):
+    items: List[Dict[str, Union[str, int, float]]]
+    total_amount: float
+    customer_name: str
+    customer_email: str
+
 class OrderController(Controller):
     """R2: Class-based Litestar Controller for Order operations."""
     path = "/api/v1/orders"
     guards = [PermissionGuard("order:read")]
     dependencies = {"order_repo": Provide(provide_order_repo)}
+
+    @post("/", guards=[])  # PUBLIC: Storefront Checkout
+    async def create_order(self, request: Request, order_repo: OrderRepository, data: OrderCreateRequest) -> dict[str, object]:
+        """PUBLIC: Handle storefront checkout with Anti-Spam Shield integration."""
+        ip = request.client.host if request.client else "unknown"
+        ua = request.headers.get("user-agent", "unknown")
+        
+        new_id = str(uuid.uuid4())
+        # Note: In a real system, we would link to a User or create a guest user
+        order = Order(
+            id=new_id,
+            items=data.items,
+            total_amount=data.total_amount,
+            status="PENDING",
+            history=[{
+                "status": "PENDING",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "actor": "Storefront",
+                "note": "Order created via checkout"
+            }]
+        )
+        
+        await order_repo.add(order)
+        await order_repo.session.commit()
+        
+        # V56.5 Proactive Nerve System: Emit event instantly
+        # XoHiResponder will pick this up and run Anti-Spam check asynchronously
+        await event_bus.emit("ORDER_CREATED", {
+            "id": new_id,
+            "ip": ip,
+            "user_agent": ua,
+            "customer": data.customer_name,
+            "total_amount": data.total_amount,
+            "tenant_id": None # Global tenant or resolve from header
+        })
+        
+        return {"success": True, "order_id": new_id}
 
     @get("/")
     async def list_orders(
@@ -52,18 +95,17 @@ class OrderController(Controller):
             
         if search:
             safe = escape_like(search)
-            # V56.0 Phase 4: unaccent() for Vietnamese diacritic-insensitive search
             conditions.append(or_(
                 Order.id.ilike(f"%{safe}%"),
                 Order.user.has(func.unaccent(User.name).ilike(f"%{func.unaccent(safe)}%"))
             ))
 
-        # 1. Total Count (Rule 1.5 - Scalar Zero-Hydration)
+        # 1. Total Count
         count_stmt = select(func.count(Order.id)).where(and_(*conditions))
         total_res = await order_repo.session.execute(count_stmt)
         total = total_res.scalar_one()
         
-        # 2. Optimized Fetch (Rule R41 - N+1 Safe with selectinload)
+        # 2. Optimized Fetch
         stmt = select(Order).where(and_(*conditions)).options(
             selectinload(Order.user)
         ).limit(limit).offset(offset).order_by(Order.created_at.desc())
@@ -74,11 +116,13 @@ class OrderController(Controller):
         data = [
             {
                 "id": str(o.id),
-                "customerName": o.user.name if o.user else "Unknown",
+                "customerName": o.user.name if o.user else "Storefront Customer",
                 "status": o.status.lower() if o.status else "pending",
                 "total": float(o.total_amount) if o.total_amount else 0.0,
                 "items": len(o.items) if isinstance(o.items, list) else 0,
                 "createdAt": o.created_at.isoformat() if o.created_at else "",
+                "isSpam": o.is_spam, # Anti-Spam Signal
+                "spamScore": o.spam_score
             }
             for o in orders
         ]

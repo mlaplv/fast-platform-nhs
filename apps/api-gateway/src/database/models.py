@@ -156,6 +156,11 @@ class Order(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     items: Mapped[Optional[dict]] = mapped_column(JSON)
     cancellation_reason: Mapped[Optional[str]] = mapped_column(String)
     history: Mapped[Optional[list]] = mapped_column(JSON, default=list)
+    
+    # V56.5 Anti-Spam Shield Fields
+    is_spam: Mapped[bool] = mapped_column(Boolean, default=False)
+    spam_score: Mapped[float] = mapped_column(Float, default=0.0)
+    fingerprint: Mapped[Optional[str]] = mapped_column(String)
 
     
     __table_args__ = (

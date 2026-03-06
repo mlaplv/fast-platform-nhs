@@ -16,23 +16,39 @@ class XoHiResponder:
         self.session_maker = alchemy_config.create_session_maker()
 
     async def handle_order_created(self, payload: Dict[str, Any]):
-        """Callback for ORDER_CREATED event."""
+        """Callback for ORDER_CREATED event. Marks spam and notifies admins."""
         order_id = payload.get("id")
-        customer = payload.get("customer", "Khách lạ")
-        is_spam = payload.get("is_spam", False)
+        ip = payload.get("ip", "unknown")
+        ua = payload.get("user_agent", "unknown")
         tenant_id = payload.get("tenant_id")
+        total_amount = payload.get("total_amount", 0.0)
         
-        # 1. Immediate Notification
+        # 1. Anti-Spam Check (Proactive Defense)
+        from src.services.anti_spam import anti_spam_service as anti_spam
+        is_spam, reason, score = await anti_spam.check_order_spam(ip, ua, tenant_id, {"total": total_amount})
+        
+        if is_spam:
+            logger.warning(f"[Anti-Spam Shield] Detect SPAM order {order_id}: {reason}")
+            # Mark it in DB instantly
+            async with self.session_maker() as session:
+                await session.execute(
+                    text("UPDATE orders SET is_spam = true, spam_score = :score WHERE id = :id"),
+                    {"score": score, "id": order_id}
+                )
+                await session.commit()
+        
+        # 2. Immediate Notification
+        customer = payload.get("customer", "Khách lạ")
         msg = f"Đơn hàng mới từ {customer} (ID: {order_id[:8]})"
         if is_spam:
-            msg = f"🚩 CẢNH BÁO SPAM: {msg} - Đã tự động gắn tag SPAM."
+            msg = f"🚩 CẢNH BÁO SPAM: {msg} - {reason}"
         
         await self._push_notification(
             tenant_id=tenant_id,
             msg=msg,
             severity="info" if not is_spam else "critical"
         )
-        logger.info(f"[XoHiResponder] Handled ORDER_CREATED: {order_id}")
+        logger.info(f"[XoHiResponder] Handled ORDER_CREATED: {order_id} (is_spam={is_spam})")
 
     async def handle_order_cancelled(self, payload: Dict[str, Any]):
         """Callback for ORDER_CANCELLED event."""

@@ -22,15 +22,13 @@ class AntiSpamService:
         raw = f"{ip}|{user_agent}|{extra}"
         return hashlib.sha256(raw.encode()).hexdigest()
 
-    async def check_order_spam(self, fingerprint: str, tenant_id: str) -> Tuple[bool, str]:
+    async def check_velocity(self, fingerprint: str, tenant_id: str) -> Tuple[bool, str]:
         """
-        Check if the current order attempt is spam.
-        Returns: (is_spam, reason)
+        Check if the current device/fingerprint has exceeded limits for this tenant.
         """
         if not self.redis:
             return False, "Redis unavailable, skipping check"
 
-        now = int(time.time())
         minute_key = f"spam:min:{tenant_id}:{fingerprint}"
         hour_key = f"spam:hour:{tenant_id}:{fingerprint}"
 
@@ -58,8 +56,28 @@ class AntiSpamService:
             return False, ""
 
         except Exception as e:
-            logger.error(f"[AntiSpam] Check failed: {e}")
+            logger.error(f"[AntiSpam] Velocity check failed: {e}")
             return False, "Check error"
+
+    async def check_order_spam(self, ip: str, user_agent: str, tenant_id: str, order_data: dict) -> Tuple[bool, str, float]:
+        """
+        Holistic Anti-Spam Check:
+        1. Device Fingerprinting (R88)
+        2. Velocity Check (R88.5)
+        3. Simple Heuristics
+        Returns (is_spam, reason, score)
+        """
+        fingerprint = self.generate_fingerprint(ip, user_agent)
+        is_spammed, reason = await self.check_velocity(fingerprint, tenant_id)
+        
+        score = 0.0
+        if is_spammed:
+            score = 100.0
+            return True, f"Anti-Spam Shield: {reason}", score
+            
+        # Optional: Add more checks here
+        
+        return False, "Legitimate", 0.0
 
 # Initialize with fallback (handled in controllers via DI or manual init)
 anti_spam_service = None # To be initialized in main or controller
