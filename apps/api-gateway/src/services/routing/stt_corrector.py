@@ -137,8 +137,9 @@ class NeuralLocalCorrector:
                     # Quick length filter
                     if abs(len(key.split()) - n) > 1: continue
                     # Phonetic similarity (Levenshtein based)
-                    # For short words, we use a lower threshold (40%) to avoid missing hits
-                    thresh = 40 if len(normalize_vn(window)) < 5 else 60
+                    # For short words, we use a HIGHER threshold (75%) because 
+                    # generic embeddings can be noisy for 1-3 char strings.
+                    thresh = 75 if len(normalize_vn(window)) < 5 else 60
                     if fuzz.ratio(normalize_vn(window), normalize_vn(key)) >= thresh:
                         potential_keys.append(key)
                 
@@ -155,7 +156,8 @@ class NeuralLocalCorrector:
                     score = self._cosine_similarity(window_vec, key_vec)
                     fuzzy_score = fuzz.ratio(normalize_vn(window), normalize_vn(key))
                     
-                    if score >= 0.75 or fuzzy_score >= 80:
+                    # V61.2: Stricter threshold for total confidence (0.85 sem or 90 fuzz)
+                    if score >= 0.85 or fuzzy_score >= 90:
                         replacement = user_dict[key]
                         if window in current_text:
                             current_text = current_text.replace(window, replacement)
@@ -281,17 +283,20 @@ class STTCorrector:
             logger.info(f"[STT Corrector] Neural HIT (score={score:.2f}): '{neural_cleaned}'")
             return neural_cleaned, None
 
-        # 2. PATTERN BYPASS
+        # 2. PATTERN BYPASS (High-Speed Local Bypass)
         NAV_PATTERNS = [
             "mo bieu do", "xem bieu do", "doanh so thang nay", "doanh thu hom nay", 
-            "xem don hang", "danh sach san pham", "ok", "dung", "vang", "phai", "thoat"
+            "xem don hang", "danh sach san pham", "ok", "dung", "vang", "phai", "thoat",
+            "mo danh muc", "vao danh muc", "mo tin tuc", "vao tin tuc", "mo cai dat"
         ]
         norm_query = normalize_vn(transcript)
+        # Bypass for very short phrases or explicit nav patterns
         if norm_query in NAV_PATTERNS or (len(norm_query.split()) <= 2 and len(norm_query) < 15):
             return transcript, None
-
-        # 3. CLEAR CHECK
-        if any(kw in norm_query for kw in ["doanh so", "doanh thu", "don hang", "san pham"]):
+            
+        # 3. CLEAR CHECK (Protect core e-commerce keywords from LLM hallucination)
+        PROTECTED_KEYWORDS = ["doanh so", "doanh thu", "don hang", "san pham", "danh muc", "tin tuc", "cai dat", "setting"]
+        if any(kw in norm_query for kw in PROTECTED_KEYWORDS):
             return transcript, None
 
         # 4. TRINITY DISPATCHER (Cloud Fallback)

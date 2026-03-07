@@ -95,6 +95,7 @@ async def heuristic_classify(
             target = tgt
             break
 
+
     if target == "none":
         return None
 
@@ -152,7 +153,7 @@ async def heuristic_classify(
             extracted_entities["email"] = email_match.group(0)
 
     # --- Resolve intent type + action ---
-    is_nav_explicit = any(kw in norm_query for kw in ["bieu do", "mo ", "xem "])
+    is_nav_explicit = any(kw in norm_query for kw in ["bieu do", "mo", "xem", "vao", "show"])
     
     if is_mutate:
         intent_type = "MUTATE"
@@ -174,13 +175,13 @@ async def heuristic_classify(
         response_msg = f"Sếp muốn {v_label} {t_label}" + (f' "{name}"' if name else "") + ". Xác nhận thông tin bên dưới ạ."
     elif intent_type == "UI_NAV":
         nav_msg_map = {
-            "revenue":  "Dạ, em mở biểu đồ doanh thu cho sếp.",
-            "order":    "Dạ, em mở quản lý đơn hàng cho sếp.",
-            "product":  "Dạ, em mở quản lý sản phẩm cho sếp.",
-            "user":     "Dạ, em mở danh sách nhân viên cho sếp.",
-            "category": "Dạ, em mở quản lý danh mục cho sếp ạ.",
-            "news":     "Dạ, em mở quản lý bài viết cho sếp ạ.",
-            "settings": "Dạ, em mở cài đặt giọng nói cho sếp ạ.",
+            "revenue":  "Dạ sếp, em mở biểu đồ doanh thu cho sếp ngay đây ạ.",
+            "order":    "Dạ sếp, em mở quản lý đơn hàng cho sếp ngay đây ạ.",
+            "product":  "Dạ sếp, em mở quản lý sản phẩm cho sếp ngay đây ạ.",
+            "user":     "Dạ sếp, em mở danh sách nhân viên cho sếp ngay đây ạ.",
+            "category": "Dạ sếp, em mở quản lý danh mục cho sếp ngay đây ạ.",
+            "news":     "Dạ sếp, em mở quản lý bài viết cho sếp ngay đây ạ.",
+            "settings": "Dạ sếp, em mở cài đặt giọng nói cho sếp ngay đây ạ.",
         }
         response_msg = nav_msg_map.get(target, "")
     else:
