@@ -25,6 +25,7 @@ class VoiceSettingsResponse(BaseModel):
     farewell_template: str = Field(default=DEFAULT_FAREWELL)
     is_campaign_mode: bool = Field(default=False)
     capabilities: List[CapabilityMetadata]
+    chat_settings: Dict[str, object] = Field(default_factory=dict)
 
 class VoiceSettingsPayload(BaseModel):
     """Payload for updating user voice settings"""
@@ -34,6 +35,7 @@ class VoiceSettingsPayload(BaseModel):
     greeting_template: str = Field(default=DEFAULT_GREETING, description="Optional greeting template")
     farewell_template: str = Field(default=DEFAULT_FAREWELL, description="Optional farewell template")
     is_campaign_mode: Optional[bool] = Field(default=None, description="Global Campaign Mode toggle")
+    chat_settings: Optional[Dict[str, object]] = Field(default=None, description="Advanced chat persistence settings")
 
 class CampaignModePayload(BaseModel):
     """Payload for global campaign mode toggle"""

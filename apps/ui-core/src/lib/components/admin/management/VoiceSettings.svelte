@@ -11,6 +11,7 @@
   import LexiconControl from "./voice/LexiconControl.svelte";
   import NeuralIdentity from "./voice/NeuralIdentity.svelte";
   import CapabilitiesGrid from "./voice/CapabilitiesGrid.svelte";
+  import ChatPersistence from "./voice/ChatPersistence.svelte";
   import SecurityFooter from "./voice/SecurityFooter.svelte";
 
   let wakeTriggers = $state<string[]>([]);
@@ -20,6 +21,12 @@
   let capabilities = $state<any[]>([]);
   let sttOverrides = $state<Record<string, string>>({});
   let sttStopwords = $state<string[]>([]);
+  let chatSettings = $state<Record<string, any>>({
+    selective_persistence: true,
+    save_ai_responses: false,
+    auto_purge_days: 30,
+    cache_limit: 10
+  });
 
   let isLoading = $state(true);
   let isSaving = $state(false);
@@ -47,6 +54,7 @@
         greetingTemplate = voice.greeting_template || "";
         farewellTemplate = voice.farewell_template || "";
         capabilities = voice.capabilities || [];
+        if (voice.chat_settings) chatSettings = { ...chatSettings, ...voice.chat_settings };
       }
       if (over?.overrides) sttOverrides = over.overrides;
       if (stop?.stopwords) sttStopwords = stop.stopwords.filter((w: string) => w?.trim());
@@ -65,7 +73,8 @@
         greeting_template: greetingTemplate,
         farewell_template: farewellTemplate,
         capabilities: capMap,
-        is_campaign_mode: nanobot.isCampaignMode // Unified Commit
+        is_campaign_mode: nanobot.isCampaignMode,
+        chat_settings: chatSettings
       });
 
       if (res?.status === "success" && res.data) {
@@ -75,7 +84,8 @@
           d.sleep_words,
           d.greeting_template,
           d.farewell_template,
-          d.is_campaign_mode
+          d.is_campaign_mode,
+          d.chat_settings
         );
         nanobot.addLog("Agent Capabilities Synchronized", "Nanobot-Core", "success");
         nanobot.showToast("Cognitive Matrix committed successfully.", "success");
@@ -131,6 +141,7 @@
             <TriggersGrid bind:wakeTriggers bind:sleepTriggers onStartTraining={startTraining} />
             <LexiconControl bind:sttOverrides bind:sttStopwords onStartTraining={startTraining} />
           </div>
+          <ChatPersistence bind:chatSettings />
           <NeuralIdentity bind:greetingTemplate bind:farewellTemplate />
         </div>
       </section>

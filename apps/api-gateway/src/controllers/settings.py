@@ -68,25 +68,27 @@ class SettingsController(Controller):
 
         wake = profile.wake_words if profile else ["xohi"]
         sleep = profile.sleep_words if profile else ["ngu di"]
+        greeting = profile.greeting_template if profile else "Dạ"
+        farewell = profile.farewell_template if profile else "Tạm biệt"
+        is_campaign = profile.is_campaign_mode if profile else False
         
-        # Consistent fallbacks from SSOT
-        greeting = (profile.greeting_template if profile and profile.greeting_template 
-                   else DEFAULT_GREETING)
-        farewell = (profile.farewell_template if profile and profile.farewell_template 
-                   else DEFAULT_FAREWELL)
-        
-        # Unified: Include global campaign mode in response
-        from src.services.xohi_memory import xohi_memory
-        val = await xohi_memory.client.get("system:campaign_mode")
-        is_campaign = val == "1"
-        
+        # Consistent fallbacks for chat_settings
+        default_chat = {
+            "selective_persistence": True,
+            "save_ai_responses": False,
+            "auto_purge_days": 30,
+            "cache_limit": 10
+        }
+        chat_settings = profile.chat_settings if profile and profile.chat_settings else default_chat
+
         return VoiceSettingsResponse(
             wake_words=wake,
             sleep_words=sleep,
             greeting_template=greeting,
             farewell_template=farewell,
             is_campaign_mode=is_campaign,
-            capabilities=capabilities
+            capabilities=capabilities,
+            chat_settings=chat_settings
         )
 
     @post("/voice")
@@ -136,7 +138,8 @@ class SettingsController(Controller):
                 sleep_words=clean_sleep,
                 greeting_template=data.greeting_template,
                 farewell_template=data.farewell_template,
-                capabilities=data.capabilities
+                capabilities=data.capabilities,
+                chat_settings=data.chat_settings
             )
             await voice_repo.add(profile)
         else:
@@ -145,6 +148,8 @@ class SettingsController(Controller):
             profile.greeting_template = data.greeting_template
             profile.farewell_template = data.farewell_template
             profile.capabilities = data.capabilities
+            if data.chat_settings is not None:
+                profile.chat_settings = data.chat_settings
 
         await voice_repo.session.commit()
 
@@ -163,6 +168,7 @@ class SettingsController(Controller):
             "greeting_template": data.greeting_template,
             "farewell_template": data.farewell_template,
             "capabilities":      data.capabilities,
+            "chat_settings":     profile.chat_settings,
         }
         await xohi_memory.cache_voice_profile(user_id, profile_data)
 

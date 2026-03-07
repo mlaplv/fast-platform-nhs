@@ -43,6 +43,12 @@ export function createNanobotState() {
     isCampaignMode: false,
     isTogglingCampaign: false,
     isHydrated: false,
+    chatSettings: {
+      selective_persistence: true,
+      save_ai_responses: false,
+      auto_purge_days: 30,
+      cache_limit: 10
+    } as Record<string, any>,
     agenticSuggestions: [
       { label: "Quản lý User", command: "manage users" },
       { label: "Quản lý Quyền", command: "manage permissions" },
@@ -91,6 +97,7 @@ export function createNanobotState() {
       if (res?.greeting_template) voice.setGreetingTemplate(res.greeting_template);
       if (res?.farewell_template) voice.setFarewellTemplate(res.farewell_template);
       if (res?.is_campaign_mode !== undefined) state.isCampaignMode = res.is_campaign_mode;
+      if (res?.chat_settings) state.chatSettings = { ...state.chatSettings, ...res.chat_settings };
     } catch (e) {
       state.isHydrated = false;
     }
@@ -203,7 +210,7 @@ export function createNanobotState() {
     closeFullLog: log.closeFullLog,
     
     loadMoreMessages: () => chat.loadMoreMessages((logs: any) => {
-      const ids = new Set(log.activityLogs.map(l => l.id));
+      const ids = new Set(log.activityLogs.map((l: any) => l.id));
       log.setActivityLogs([...logs.filter((l: any) => !ids.has(l.id)), ...log.activityLogs].sort((a,b) => a.timestamp.getTime() - b.timestamp.getTime()));
     }, "account", state.godModeUser || undefined),
     syncSessionFromDb: async () => {
@@ -233,12 +240,13 @@ export function createNanobotState() {
     setUserRole: (val: string) => {},
 
     // Settings Sync
-    updateVoiceSettings: (wake: string[], sleep: string[], greeting: string, farewell: string, campaign: boolean) => {
+    updateVoiceSettings: (wake: string[], sleep: string[], greeting: string, farewell: string, campaign: boolean, chatSettings?: Record<string, any>) => {
       state.wakeWords = wake;
       state.sleepWords = sleep;
       voice.setGreetingTemplate(greeting);
       voice.setFarewellTemplate(farewell);
       state.isCampaignMode = campaign;
+      if (chatSettings) state.chatSettings = { ...state.chatSettings, ...chatSettings };
     },
 
     toggleCampaignMode: async () => {

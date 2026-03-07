@@ -51,11 +51,35 @@ class ChatController(Controller):
             "created_at": created_at.isoformat()
         }
         if user_id:
-            await xohi_memory.add_chat_to_cache(user_id, msg_dict)
+            cache_limit = chat_settings.get("cache_limit", 10)
+            await xohi_memory.add_chat_to_cache(user_id, msg_dict, limit=cache_limit)
 
-        # ═══ R30: SELECTIVE PERSISTENCE ═══
-        # Only persist to DB if it's a user message or voice modality (for STT audit)
-        should_persist = data.role == "user" or data.modality == "voice"
+        # ═══ R30/R74: SELECTIVE PERSISTENCE ═══
+        # Default policy: User messages & Voice are persistent. AI is ephemeral.
+        profile = await xohi_memory.get_voice_profile(user_id) if user_id else None
+        chat_settings = profile.get("chat_settings", {}) if profile else {}
+        
+        # Policy rules:
+        # 1. If selective_persistence is ON (default): Only 'user' or 'voice' persists.
+        # 2. If save_ai_responses is OFF (default): 'assistant' role never persists to DB.
+        
+        is_user = data.role == "user"
+        is_voice = data.modality == "voice"
+        is_assistant = data.role == "assistant"
+        
+        selective = chat_settings.get("selective_persistence", True)
+        save_ai = chat_settings.get("save_ai_responses", False)
+        
+        should_persist = False
+        if selective:
+            # Command-centric: Save if user-initiated or voice-recorded
+            if is_user or is_voice:
+                should_persist = True
+        else:
+            # Full logs: Save everything UNLESS it's an AI response and save_ai is False
+            should_persist = True
+            if is_assistant and not save_ai:
+                should_persist = False
         
         if should_persist:
             try:
@@ -69,7 +93,6 @@ class ChatController(Controller):
                     created_at=created_at
                 )
                 db_session.add(msg)
-                # Auto-commit by Litestar
                 return {"status": "success", "id": msg_id, "persisted": True}
             except Exception as e:
                 logger.error(f"[ChatMessage] POST save failed: {e}")

@@ -228,13 +228,14 @@ class XoHiMemory:
             logger.debug(f"[XoHiMemory] Redis chat get failed: {e}")
         return []
 
-    async def add_chat_to_cache(self, user_id: str, message: dict):
-        """Push a message to user's Redis chat list and trim to 10."""
+    async def add_chat_to_cache(self, user_id: str, message: dict, limit: int = 10):
+        """Push a message to user's Redis chat list and trim to specified limit."""
         key = f"xohi:chat:{user_id}"
         try:
             if self._use_redis:
                 await self.client.lpush(key, json.dumps(message, ensure_ascii=False))
-                await self.client.ltrim(key, 0, 9)
+                # Trim to limit - 1 (e.g. limit 10 -> index 0-9)
+                await self.client.ltrim(key, 0, max(0, limit - 1))
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis chat push failed: {e}")
 

@@ -560,8 +560,8 @@ export class OmniController {
           visible_data_ids: this.getVisibleDataIds(),
         },
         system_context: {
-          domain: "admin.smartshop.test",
-          role: "E-commerce ERP Admin Dashboard",
+          domain: window.location.hostname,
+          role: window.location.hostname.includes("admin") ? "E-commerce ERP Admin Dashboard" : "E-commerce Storefront",
           database_schema: [
             "User (Tài khoản, Khách hàng, Admin)",
             "Product (Sản phẩm, Hàng hóa, Tồn kho)",

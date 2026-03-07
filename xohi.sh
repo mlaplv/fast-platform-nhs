@@ -29,6 +29,52 @@ function deep_clean() {
     echo -e "${GREEN}[OK] Đã dọn dẹp môi trường sạch bóng.${NC}"
 }
 
+function clean_docker_completely() {
+    echo -e "${YELLOW}Bắt đầu làm sạch Docker HOÀN TOÀN...${NC}"
+    echo "---------------------------"
+    echo -e "${RED}CẢNH BÁO: Hành động này sẽ xóa SẠCH Docker như lúc mới cài đặt!${NC}"
+    echo -e "${RED}Tất cả container, image, volume, network sẽ bị xóa vĩnh viễn!${NC}"
+    echo "---------------------------"
+
+    read -p "$(echo -e "${RED}Bạn có CHẮC CHẮN muốn xóa sạch Docker hoàn toàn không? (gõ 'yyes' để xác nhận): ${NC}")" confirm
+    if [[ "$confirm" != "yyes" ]]; then
+        echo -e "${YELLOW}Đã hủy thao tác. Docker không bị thay đổi.${NC}"
+        return 1
+    fi
+
+    echo -e "${CYAN}Đang thực hiện dọn dẹp Docker hoàn toàn...${NC}"
+
+    echo -e "${CYAN}1. Dừng tất cả container...${NC}"
+    docker stop $(docker ps -aq) 2>/dev/null || true
+
+    echo -e "${CYAN}2. Xóa tất cả container...${NC}"
+    docker rm $(docker ps -aq) 2>/dev/null || true
+
+    echo -e "${CYAN}3. Xóa tất cả image...${NC}"
+    docker rmi -f $(docker images -aq) 2>/dev/null || true
+
+    echo -e "${CYAN}4. Xóa tất cả volume...${NC}"
+    docker volume rm $(docker volume ls -q) 2>/dev/null || true
+
+    echo -e "${CYAN}5. Xóa tất cả network...${NC}"
+    docker network rm $(docker network ls -q --filter "type=custom") 2>/dev/null || true
+
+    echo -e "${CYAN}6. Xóa build cache...${NC}"
+    docker builder prune -af 2>/dev/null || true
+
+    echo -e "${CYAN}7. Dọn dẹp hệ thống hoàn toàn...${NC}"
+    docker system prune -af --volumes 2>/dev/null || true
+
+    echo -e "${CYAN}8. Xóa Docker Compose volumes và networks...${NC}"
+    docker volume prune -f 2>/dev/null || true
+    docker network prune -f 2>/dev/null || true
+
+    echo "---------------------------"
+    echo -e "${GREEN}✅ Docker đã được xóa sạch hoàn toàn!${NC}"
+    echo -e "${GREEN}✅ Docker hiện tại như lúc mới cài đặt!${NC}"
+    echo "---------------------------"
+}
+
 while true; do
     clear
     echo -e "${CYAN}"
@@ -46,9 +92,10 @@ while true; do
     echo "5) SIÊU DỌN DẸP ĐỂ SAO LƯU (Nuke & Backup - Cực nhẹ)"
     echo "6) CÀI ĐẶT & TRIỂN KHAI (Production Deploy)"
     echo "7) THIẾT LẬP SSL (Trust SSL Certificate)"
+    echo "8) XÓA SẠCH DOCKER HOÀN TOÀN (Như lúc mới cài đặt)"
     echo "0) Thoát (Exit)"
     echo ""
-    read -p "Lựa chọn của anh [0-6]: " choice
+    read -p "Lựa chọn của anh [0-8]: " choice
 
     case $choice in
         1)
@@ -124,6 +171,10 @@ while true; do
             echo -e "${YELLOW}[INFO] Đang khởi chạy thiết lập SSL...${NC}"
             bash scripts/setup-ssl.sh
             read -p "Nhấn Enter để quay lại menu..."
+            ;;
+        8)
+            clean_docker_completely
+            read -p "Nhấn Enter để tiếp tục..."
             ;;
         0)
             exit 0
