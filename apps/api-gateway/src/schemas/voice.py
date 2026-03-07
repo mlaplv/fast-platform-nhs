@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 from src.constants.voice import DEFAULT_GREETING, DEFAULT_FAREWELL
 
@@ -23,15 +23,17 @@ class VoiceSettingsResponse(BaseModel):
     sleep_words: List[str]
     greeting_template: str = Field(default=DEFAULT_GREETING)
     farewell_template: str = Field(default=DEFAULT_FAREWELL)
+    is_campaign_mode: bool = Field(default=False)
     capabilities: List[CapabilityMetadata]
 
 class VoiceSettingsPayload(BaseModel):
     """Payload for updating user voice settings"""
-    wake_words: List[str] = Field(description="List of wake words")
-    sleep_words: List[str] = Field(description="List of sleep words")
+    wake_words: List[str] = Field(default_factory=list, description="List of wake words")
+    sleep_words: List[str] = Field(default_factory=list, description="List of sleep words")
     capabilities: Dict[str, bool] = Field(default_factory=dict, description="Mapped AI capabilities (READ, MUTATE, ANALYZE)")
     greeting_template: str = Field(default=DEFAULT_GREETING, description="Optional greeting template")
     farewell_template: str = Field(default=DEFAULT_FAREWELL, description="Optional farewell template")
+    is_campaign_mode: Optional[bool] = Field(default=None, description="Global Campaign Mode toggle")
 
 class CampaignModePayload(BaseModel):
     """Payload for global campaign mode toggle"""

@@ -5,7 +5,7 @@ import { safeRandomUUID } from "./utils";
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
-  content: { text: string };
+  content: { text: string; [key: string]: any };
   modality: string;
   timestamp: Date;
 }
@@ -31,7 +31,13 @@ export function persistMessage(
     .catch((e: any) => console.warn("[Persist] Save failed:", e?.message));
 }
 
-export function createChatState(addLogFn: (msg: string, src?: string) => void) {
+export function createChatState(
+  addLogFn: (msg: string, src?: string) => void,
+  showToastFn?: (msg: string, type: "success" | "error" | "info") => void,
+) {
+  const cache = new Map<string, { data: any; timestamp: number }>();
+  const CHAT_CACHE_TTL = 60_000; // 60 seconds
+
   const state = $state({
     history: [] as ChatMessage[],
     pagination: {
@@ -41,12 +47,68 @@ export function createChatState(addLogFn: (msg: string, src?: string) => void) {
     },
   });
 
+  // Internal helper to avoid code duplication and satisfy SWR
+  function _processLogs(hydrated: ChatMessage[]): SystemLog[] {
+    const logsToAppend: any[] = [];
+    for (const m of hydrated) {
+      if (m.role === "user") {
+        logsToAppend.push({
+          id: m.id,
+          message: m.content.text,
+          source: "[ADMIN]",
+          timestamp: m.timestamp,
+          type: "info",
+        });
+      } else if (m.role === "assistant") {
+        if (m.content.text && m.content.text !== "NONE" && m.content.text.trim().length > 0) {
+          logsToAppend.push({
+            id: m.id + "_text",
+            message: m.content.text,
+            source: "XOHI",
+            timestamp: m.timestamp,
+            type: "info",
+            routerTier: m.content.router_tier,
+          });
+        }
+      }
+    }
+    return logsToAppend;
+  }
+
   async function hydrateHistory(
     sessionId: string,
     appendLogsCallback?: (logs: SystemLog[]) => void,
     userId?: string, // Added for God-Mode
   ) {
     const targetSessionId = sessionId || "account";
+    const cacheKey = userId ? `${targetSessionId}:${userId}` : targetSessionId;
+    
+    // ═══════════════════════════════════════════════════════
+    // SWR Strategy (Stale-While-Revalidate)
+    // ═══════════════════════════════════════════════════════
+    const cached = cache.get(cacheKey);
+    const now = Date.now();
+    
+    if (cached && (now - cached.timestamp < CHAT_CACHE_TTL)) {
+       // Return cached data immediately to UI (Zero Latency)
+       state.history = cached.data.messages.map((m: any) => ({
+         id: m.id,
+         role: m.role,
+         content: m.content,
+         modality: m.modality,
+         timestamp: new Date(m.created_at),
+       }));
+       state.pagination.cursor = cached.data.next_cursor;
+       state.pagination.hasMore = cached.data.has_more;
+       
+       if (appendLogsCallback) {
+         // Process logs from cache
+         const logs = _processLogs(state.history);
+         appendLogsCallback(logs);
+       }
+       return;
+    }
+
     if (state.pagination.isLoading) return;
     state.pagination.isLoading = true;
     try {
@@ -55,6 +117,9 @@ export function createChatState(addLogFn: (msg: string, src?: string) => void) {
         : `/api/v1/chat/sessions/${targetSessionId}/messages?limit=35`;
 
       const data = await apiClient.get<any>(url);
+      
+      // Update Cache
+      cache.set(cacheKey, { data, timestamp: now });
 
       const hydrated = data.messages.map((m: any) => ({
         id: m.id,
@@ -69,38 +134,15 @@ export function createChatState(addLogFn: (msg: string, src?: string) => void) {
       state.pagination.hasMore = data.has_more;
 
       if (appendLogsCallback) {
-        const logsToAppend: any[] = [];
-        for (const m of hydrated) {
-          if (m.role === "user") {
-            logsToAppend.push({
-              id: m.id,
-              message: m.content.text,
-              source: "[ADMIN]",
-              timestamp: m.timestamp,
-              type: "info",
-            });
-          } else if (m.role === "assistant") {
-            if (
-              m.content.text &&
-              m.content.text !== "NONE" &&
-              m.content.text.trim().length > 0
-            ) {
-              logsToAppend.push({
-                id: m.id + "_text",
-                message: m.content.text,
-                source: "XOHI",
-                timestamp: m.timestamp,
-                type: "info",
-                routerTier: m.content.router_tier,
-              });
-            }
-          }
-        }
-        appendLogsCallback(logsToAppend);
+        const logs = _processLogs(hydrated);
+        appendLogsCallback(logs);
       }
-    } catch (e) {
-      console.error("Failed to hydrate history", e);
-      // Fallback or retry logic could go here
+    } catch (e: any) {
+      if (e?.status === 429) {
+        showToastFn?.("Truy cập quá nhanh, vui lòng thử lại sau giây lát.", "error");
+      } else {
+        showToastFn?.("Không thể tải lịch sử trò chuyện.", "error");
+      }
     } finally {
       state.pagination.isLoading = false;
     }
@@ -134,36 +176,13 @@ export function createChatState(addLogFn: (msg: string, src?: string) => void) {
       state.pagination.hasMore = data.has_more;
 
       if (appendLogsCallback) {
-        const logsToAppend: any[] = [];
-        for (const m of olderMessages) {
-          if (m.role === "user") {
-            logsToAppend.push({
-              id: m.id,
-              message: m.content.text,
-              source: "[ADMIN]",
-              timestamp: m.timestamp,
-              type: "info",
-            });
-          } else if (m.role === "assistant") {
-            if (
-              m.content.text &&
-              m.content.text !== "NONE" &&
-              m.content.text.trim().length > 0
-            ) {
-              logsToAppend.push({
-                id: m.id + "_text",
-                message: m.content.text,
-                source: "XOHI",
-                timestamp: m.timestamp,
-                type: "info",
-              });
-            }
-          }
-        }
-        appendLogsCallback(logsToAppend);
+        const logs = _processLogs(olderMessages);
+        appendLogsCallback(logs);
       }
-    } catch (e) {
-      console.error("Failed to load more messages", e);
+    } catch (e: any) {
+      if (e?.status === 429) {
+        showToastFn?.("Yêu cầu quá dồn dập, hãy thử lại sau.", "error");
+      }
     } finally {
       state.pagination.isLoading = false;
     }
@@ -179,8 +198,7 @@ export function createChatState(addLogFn: (msg: string, src?: string) => void) {
       state.pagination.hasMore = false;
       addLogFn("Chat history has been permanently cleared.", "System");
       return true;
-    } catch (e) {
-      console.error("Failed to clear history", e);
+    } catch (e: any) {
       addLogFn("Failed to clear chat history.", "Err");
       return false;
     } finally {

@@ -212,11 +212,31 @@
       class="shrink-0 border-b border-white/5"
     >
       <!-- Row 1: Title + Action Buttons -->
-      <div class="h-12 flex items-center justify-between px-4">
+       <div class="h-12 flex items-center justify-between px-4 gap-2">
         <div class="flex items-center gap-2 text-neon-cyan/60 min-w-0">
           <Terminal size={14} class="shrink-0" />
           <span class="font-bold tracking-[0.3em] uppercase text-[10px] truncate">Xohi Heartbeat</span>
+          
+          <!-- Compact User Selector (V60.5) -->
+          {#if isSuperAdmin}
+            <div class="ml-1 flex items-center gap-1.5 bg-white/[0.03] border border-white/5 rounded px-1.5 py-0.5 hover:border-neon-cyan/20 hover:bg-white/[0.05] transition-all max-w-[140px] group/usr shrink-0">
+              <User size={9} class="text-neon-cyan/30 group-hover/usr:text-neon-cyan/60 shrink-0 transition-colors" />
+              <select
+                onchange={handleUserChange}
+                class="bg-transparent border-none text-[8px] font-mono text-white/40 group-hover/usr:text-white/70 focus:ring-0 outline-none cursor-pointer uppercase tracking-tighter w-full min-w-0"
+                value={nanobot.godModeUser || "self"}
+              >
+                <option value="self" class="bg-[#0a1a1a] text-neon-cyan font-bold">ID: SELF</option>
+                {#each availableUsers as user}
+                  <option value={user.id} class="bg-[#0a0a0a] text-white/80">
+                    ID: {user.name || (user.email.split('@')[0].toUpperCase())}
+                  </option>
+                {/each}
+              </select>
+            </div>
+          {/if}
         </div>
+
         <div class="flex items-center gap-1 shrink-0">
           <button
             onclick={() => nanobot.syncSessionFromDb()}
@@ -242,25 +262,6 @@
           {/if}
         </div>
       </div>
-      <!-- Row 2: God-Mode User Selector (only for SUPER_ADMIN) -->
-      {#if isSuperAdmin}
-        <div class="px-4 pb-2">
-          <div class="flex items-center gap-2 bg-white/5 border border-white/10 rounded px-2 py-1 hover:border-neon-cyan/30 transition-all w-full">
-            <User size={10} class="text-neon-cyan/40 shrink-0" />
-            <select
-              onchange={handleUserChange}
-              class="bg-transparent border-none text-[9px] font-mono text-white/60 focus:ring-0 outline-none cursor-pointer uppercase tracking-tighter w-full min-w-0"
-            >
-              <option value="self" class="bg-[#0a0a0a] text-neon-cyan">IDENTITY: SELF</option>
-              {#each availableUsers as user}
-                <option value={user.id} class="bg-[#0a0a0a] text-white/80">
-                  FOCUS: {user.name || user.email.split('@')[0].toUpperCase()}
-                </option>
-              {/each}
-            </select>
-          </div>
-        </div>
-      {/if}
     </div>
   {/if}
 

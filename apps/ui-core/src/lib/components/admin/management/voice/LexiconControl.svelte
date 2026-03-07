@@ -157,25 +157,25 @@
     {#if lexiconTab === "overrides"}
       <div class="space-y-3">
         {#each Object.entries(sttOverrides) as [wrong, right]}
-          <div class="group relative p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex items-center justify-between transition-all duration-300">
-            <div class="flex items-center gap-4">
-              <button onclick={() => { editingOverride = wrong; editingOverrideField = "wrong"; }} class="text-xs font-mono font-bold text-zinc-400 hover:text-zinc-200">
+          <div class="group relative p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl flex items-center justify-between transition-all duration-300 overflow-hidden">
+            <div class="flex items-center gap-4 min-w-0 mr-2">
+              <button onclick={() => { editingOverride = wrong; editingOverrideField = "wrong"; }} class="text-xs font-mono font-bold text-zinc-400 hover:text-zinc-200 truncate max-w-[120px]">
                 {#if editingOverride === wrong && editingOverrideField === "wrong"}
-                  <input value={wrong} onfocusout={(e) => updateOverride(wrong, "wrong", e.currentTarget.value)} onkeydown={(e) => e.key === "Enter" && updateOverride(wrong, "wrong", e.currentTarget.value)} class="bg-transparent outline-none border-b border-emerald-500/40 w-24" autofocus />
+                  <input value={wrong} onfocusout={(e) => updateOverride(wrong, "wrong", e.currentTarget.value)} onkeydown={(e) => e.key === "Enter" && updateOverride(wrong, "wrong", e.currentTarget.value)} class="bg-transparent outline-none border-b border-emerald-500/40 w-full" autofocus />
                 {:else}
                   {wrong}
                 {/if}
               </button>
-              <div class="w-8 h-px bg-zinc-800"></div>
-              <button onclick={() => { editingOverride = wrong; editingOverrideField = "right"; }} class="text-xs font-mono font-bold text-emerald-400 hover:text-emerald-300">
+              <div class="w-8 h-px bg-zinc-800 flex-shrink-0"></div>
+              <button onclick={() => { editingOverride = wrong; editingOverrideField = "right"; }} class="text-xs font-mono font-bold text-emerald-400 hover:text-emerald-300 truncate max-w-[120px]">
                 {#if editingOverride === wrong && editingOverrideField === "right"}
-                  <input value={right} onfocusout={(e) => updateOverride(wrong, "right", e.currentTarget.value)} onkeydown={(e) => e.key === "Enter" && updateOverride(wrong, "right", e.currentTarget.value)} class="bg-transparent outline-none border-b border-emerald-500/40 w-24" autofocus />
+                  <input value={right} onfocusout={(e) => updateOverride(wrong, "right", e.currentTarget.value)} onkeydown={(e) => e.key === "Enter" && updateOverride(wrong, "right", e.currentTarget.value)} class="bg-transparent outline-none border-b border-emerald-500/40 w-full" autofocus />
                 {:else}
                   {right}
                 {/if}
               </button>
             </div>
-            <button onclick={() => deleteOverride(wrong)} class="opacity-0 group-hover:opacity-100 text-zinc-700 hover:text-red-400 transition-all">
+            <button onclick={() => deleteOverride(wrong)} class="opacity-0 group-hover:opacity-100 text-zinc-700 hover:text-red-400 transition-all flex-shrink-0">
               <Trash2 size={14} />
             </button>
           </div>
@@ -194,13 +194,13 @@
     {:else}
       <div class="flex flex-wrap gap-3">
         {#each sttStopwords as word, i}
-          <div class="group px-6 py-3 bg-zinc-900/80 border border-white/5 rounded-full flex items-center gap-4 hover:bg-zinc-800 transition-all ring-1 ring-white/5 hover:ring-emerald-500/30 shadow-xl animate-in">
+          <div class="group px-6 py-3 bg-zinc-900/80 border border-white/5 rounded-full flex items-center gap-4 hover:bg-zinc-800 transition-all ring-1 ring-white/5 hover:ring-emerald-500/30 shadow-xl animate-in max-w-full overflow-hidden">
             {#if editingStopword === i}
-              <input bind:value={sttStopwords[i]} onfocusout={() => updateStopword(i, word)} onkeydown={(e) => e.key === "Enter" && updateStopword(i, word)} class="bg-transparent outline-none text-xs font-mono text-emerald-400 w-24" autofocus />
+              <input bind:value={sttStopwords[i]} onfocusout={() => updateStopword(i, word)} onkeydown={(e) => e.key === "Enter" && updateStopword(i, word)} class="bg-transparent outline-none text-xs font-mono text-emerald-400 w-full min-w-[4rem]" autofocus />
             {:else}
-              <button onclick={() => (editingStopword = i)} class="text-xs font-mono font-bold text-zinc-300">{word}</button>
+              <button onclick={() => (editingStopword = i)} class="text-xs font-mono font-bold text-zinc-300 truncate">{word}</button>
             {/if}
-            <button onclick={() => deleteStopword(word)} class="text-zinc-600 hover:text-red-400 transition-all">
+            <button onclick={() => deleteStopword(word)} class="text-zinc-600 hover:text-red-400 transition-all flex-shrink-0">
               <Trash2 size={12} />
             </button>
           </div>

@@ -64,11 +64,19 @@
         sleep_words: sleepTriggers,
         greeting_template: greetingTemplate,
         farewell_template: farewellTemplate,
-        capabilities: capMap
+        capabilities: capMap,
+        is_campaign_mode: nanobot.isCampaignMode // Unified Commit
       });
 
-      if (res?.status === "success") {
-        nanobot.updateVoiceSettings(wakeTriggers, sleepTriggers, greetingTemplate, farewellTemplate);
+      if (res?.status === "success" && res.data) {
+        const d = res.data;
+        nanobot.updateVoiceSettings(
+          d.wake_words,
+          d.sleep_words,
+          d.greeting_template,
+          d.farewell_template,
+          d.is_campaign_mode
+        );
         nanobot.addLog("Agent Capabilities Synchronized", "Nanobot-Core", "success");
         nanobot.showToast("Cognitive Matrix committed successfully.", "success");
       }
@@ -92,11 +100,11 @@
     <header class="h-auto min-h-[5rem] lg:h-24 px-4 sm:px-8 lg:px-12 border-b border-white/5 flex flex-col lg:flex-row items-start lg:items-center justify-between bg-zinc-950/20 backdrop-blur-md gap-4 py-4 lg:py-0 z-50 sticky top-0">
       <div class="flex items-center gap-6">
         <div class="space-y-1">
-          <h1 class="text-xl lg:text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 to-zinc-600">V56.0 AGENT COCKPIT</h1>
+          <h1 class="text-xl lg:text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 to-zinc-600">AGENT COCKPIT</h1>
           <div class="flex items-center gap-3">
              <div class="flex items-center gap-2 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
                 <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span class="text-[9px] font-mono text-emerald-500 uppercase tracking-widest text-nowrap">Latency: 12ms</span>
+                <span class="text-[9px] font-mono text-emerald-500 uppercase tracking-widest text-nowrap">Neural Link Active</span>
              </div>
           </div>
         </div>
@@ -111,7 +119,7 @@
       </div>
     </header>
 
-    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+    <main class="flex-1 flex flex-col lg:flex-row min-h-0">
       <aside class="w-full lg:w-96 border-b lg:border-b-0 lg:border-r border-white/5 bg-zinc-950/20 overflow-y-auto custom-scrollbar flex flex-col p-6 sm:p-8 gap-12">
         <CapabilitiesGrid bind:capabilities />
         <SecurityFooter />
@@ -131,8 +139,5 @@
 </div>
 
 <style>
-  .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.03); border-radius: 20px; }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.08); }
   @keyframes fadeScaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 </style>

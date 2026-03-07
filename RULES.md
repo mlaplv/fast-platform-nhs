@@ -1,4 +1,4 @@
-# HIẾN PHÁP FAST-PLATFORM (V56.0 — XOHI NEXUS AWAKENING)
+# HIẾN PHÁP FAST-PLATFORM (V60.0 — THE ULTRA-LIGHT REVOLUTION)
 
 > **CHỈ THỊ CHO AI IDE:** Dự án Agentic AI 2026. Stack cố định: **SvelteKit 5 (Runes) + Litestar (Python 3.14-slim) + SQLAlchemy 2.0 (AdvancedAlchemy) + PydanticAI + LiteLLM**. Tuyệt đối KHÔNG dùng React/Next.js/FastAPI/Prisma. Mọi file tạo ra phải tuân thủ nghiêm ngặt các nguyên lý "THIẾT QUÂN LUẬT" (Hardened Architecture).
 
@@ -1478,6 +1478,46 @@ DesktopLayout (flex h-screen)
 | **P5** | `overflow-y: auto` trên list container                | `overflow-y: scroll` (scrollbar cố định)                   |
 | **P6** | `flex-wrap` trên list item content                    | `flex` (no wrap) — tránh reflow khi hover                  |
 
+## XXII. ULTRA-LIGHT ARCHITECTURE & RESOURCE DISCIPLINE (V60.0)
+
+> **Mục tiêu:** Đạt tốc độ phản hồi < 100ms cho mọi module hội thoại và tối ưu hoá RAM/Storage trên hạ tầng yếu (2GB RAM).
+
+### R72 – Identity Bypass (Zero-DB Auth)
+- ❌ CẤM truy vấn `users` table chỉ để lấy `user_id` trong mỗi request từ AuthMiddleware.
+- ✅ BẮT BUỘC nhồi trường `id` vào JWT Payload lúc Login.
+- ✅ Backend Controller truy xuất thẳng qua `scope.state.user_id` (với Litestar) hoặc `request.state.user_id`.
+
+### R73 – Redis-Last-10 (Hybrid Cache Protocol)
+- ❌ CẤM đọc Database cho 10 tin nhắn hội thoại gần nhất.
+- ✅ BẮT BUỘC dùng Redis List (`LPUSH` + `LTRIM 10`) lưu 10 tin nhắn cuối/user.
+- ✅ Tốc độ truy xuất phải đạt ngưỡng < 1ms (Cache Hit). 
+
+### R74 – Selective Persistence (Selective Data Aging)
+- ❌ CẤM lưu vô tội vạ mọi tin nhắn AI Text vào Database (Vi phạm R30).
+- ✅ BẮT BUỘC phân loại:
+    - **Persistent**: Tin nhắn của User, Modality Voice/Image.
+    - **Ephemeral**: Tin nhắn AI Text thông thường (Chỉ lưu Redis, tự xoá sau TTL).
+- ✅ Lý do: Tránh phình DB (~500% tiết kiệm storage cho chat log).
+
+### R75 – Ghost Audit (Asynchronous Internal Bus)
+- ❌ CẤM ghi log bảo mật hoặc gửi thông báo (Audit/Notification) đồng bộ trong luồng request chính.
+- ✅ BẮT BUỘC dùng `InternalBus.emit()` để xử lý background. Không được phép làm chậm phản hồi của User vì khâu ghi log.
+
+### R76 – Scalar Projection (Zero-Hydration Enforcement)
+- ❌ CẤM `select(Model)` cho các API danh sách/lịch sử có traffic cao.
+- ✅ BẮT BUỘC dùng `select(Model.id, Model.name, ...)` để chỉ lấy các cột cần thiết. Tiết kiệm ~70% RAM so với việc nạp đầy đủ ORM Objects.
+
+### R77 – Frontend SWR (Smart Sync Syncing)
+- ❌ CẤM UI hiển thị Loading Spinner mỗi khi sếp chuyển tab Chat.
+- ✅ BẮT BUỘC dùng Stale-While-Revalidate (SWR) với TTL 60s tại Frontend. 
+- ✅ Dữ liệu cũ hiện ra ngay, sync ngầm bên dưới. Giúp hệ thống sống sót qua lỗi 429 và mang lại trải nghiệm Zero-Latency.
+
+### R78 – Compact Density UI (Admin Efficiency)
+- ✅ Ưu tiên gộp các nút chức năng (Filter, Search, User-selection) vào thanh tiêu đề (Header row).
+- ✅ Sử dụng font chữ nhỏ (text-[8px] - text-[10px]) cho các metadata kỹ thuật để tối đa hoá diện tích hiển thị dữ liệu thực.
+
+---
+
 #### 24.7.4 Zero-Reflow Hover Pattern
 
 ```css
@@ -1518,29 +1558,51 @@ DesktopLayout (flex h-screen)
 
 ---
 
-## VI. ROADMAP
+## XXIII. ULTRA-LIGHT ARCHITECTURE & RESOURCE DISCIPLINE (V60.0)
 
-- [x] **V40→V45** Skills Matrix, System Purge, Cognitive Persistence, Voice Onboarding, Emotion & Context Protocol.
-- [x] **V46→V47** Legacy Protocol, Martial Law.
-- [x] **V48.0** The C.O.R.E Protocol — Đại tu kiến trúc routing.
-- [x] **V49.0** STT NLP Engine (NFC, Pre-compiled Regex, Word Boundary, Longest-Match), Training Pipeline Separation, Capability Toggle Fix, T1 Dynamic N-gram, T2 Regex JSON Parser.
-- [x] **V50.0** Skill Guard Hardening: fix MUTATE missing from ACTION_VI, fix bypass khi caps key vắng mặt (`caps.get(..., True)`), ghi chú kiến trúc rõ IntentAction Guard vs Tier routing.
-- [x] **V51.0** Silicon Valley CTO Reboot: Trinity Loop Protocol. Loại bỏ manual templates, triển khai Data-Grounded NLG (Dispatcher → Provider → Refiner). Tối ưu hóa Tier 2 cho khâu biên soạn câu trả lời (Refine). Sửa lỗi logic timeframe gây sai lệch số liệu.
-- [x] **V52.0** Trinity Loop Stability: Triển khai Giao thức Nhiệt độ 1.0 cho Gemini 3 (fix lag 20s), cơ chế xoay key xử lý lỗi 503 (Service Unavailable), dọn dẹp xung đột Lexicon "dân số" vs "doanh số".
-- [x] **V53.0** Hybrid Trinity Architecture: Phẫu thuật C.O.R.E thành Classify-Guard-Execute. Tách bạch Dispatcher vs Refiner (`tier2_refiner.py`). Gia cố an toàn Enum và cộng dồn Token Bill.
-- [x] **V54.0** Resilient Trinity: Model Fallback Chain toàn hệ thống (T2 + T3). Nâng cấp T3 lên `gemini-2.5-pro`. `TIER2_FALLBACK_MODEL` + `TIER3_FALLBACK_MODEL` env vars. Backoff cho 429. Tách riêng exception handling (503/429/Auth). T3 giới hạn 3 key + request_timeout 15s.
-- [x] **V55.0** THE PYTHONIC AWAKENING: Xóa sổ Prisma. Chuyển toàn bộ data layer sang SQLAlchemy 2.0 + AdvancedAlchemy. Bọc LLM logic trong PydanticAI Agent (Type-Safe 100%). OpenAPI-TypeScript Bridge sinh type tự động cho FE. Alembic migrations thay Prisma migrate. Many-to-Many RBAC & Security Headers (R51).
-- [x] **V55.1** THIẾT QUÂN LUẬT (Hardening Phase): Gia cố toàn diện Backend DI/Repositories/Mixins. Tối ưu PydanticAI Deps (loại bỏ os.environ hacks). Chuẩn hóa Svelte 5 Runes ($derived.by, $bindable). Technical Debt: ZERO.
-- [x] **V56.0** ARCHITECT PROFESSOR MODE: Phẫu thuật Não XoHi — Absolute Boundary (R62), Modality-Based Widget UX (R63), Vietnamese Question Pattern (R64). Fix MissingGreenlet (chat.py, order.py), RouterTier enum, AdvancedAlchemy LimitOffset. Tách rạch ròi Chat vs Voice behavior. Dedup ORDER_STATUS_MAP. State Machine Rule (R60), Anti-misclick (R61).
-- [x] **V57.0** THE MINI-FORM REVOLUTION: Triển khai Giao thức Mini-Form cho Voice Mutation (R65). Tự động pre-fill form User/Product/Category/News từ dữ liệu AI. Xử lý logic Stateless Injection (`clearCurrentData`). Khắc phục lỗi "hứa suông" của AI và lỗi 422 thiếu data.
-- [x] **V57.1→V57.4** VOICE PROTOCOL HARDENING: Đồng bộ hóa Lời chào động (R68), Hot-Reload Voice Settings (R66), Nâng cấp Tier 1 Flexible Matching (R67). Clean Nanobot reactivity logic.
-- [x] **V57.5→V57.6** XOI PROTOCOL: Kiểm tra "xoi" kỹ lưỡng, tối ưu hóa triệt để và cập nhật Hiến pháp Voice UX.
-- [x] **V58.0** CONSOLIDATED WAKE WORD: Xóa sổ logic Wake Word rải rác ở Frontend. Chuyển dịch toàn bộ sang Backend-Driven Architecture. Fix lỗi cướp mic (race condition) gây mất tiếng chào. Nhất quán định danh `XOHI` toàn hệ thống.
-- [x] **V58.1** CTOP AUDIT ENFORCEMENT: Kiểm định toàn diện code base. Thêm R69 (LOC ≤ 300), R70 (Dependency Pinning), R71 (Test Mandate). Fix load_dotenv ordering, cookie parsing, duplicate Base, dead imports. Tách 3 file LOC vi phạm (VoiceSettings, Nanobot, Omni). Thêm pytest unit tests. Cập nhật user_global rules.
-- [x] **V58.2** LAYOUT & PERFORMANCE SURGERY: Sửa UniversalModal scope (Canvas Area only). MissionControlShell `fixed→absolute`. Loại bỏ `backdrop-blur` toàn bộ container/sticky header (6 components). Zero-Reflow Hover Pattern (`contain: layout style`). Fix scrollbar flicker (`overflow-y: scroll`). HeartbeatStream header 2-hàng. Loại bỏ ContextualSplitView khỏi NewsManagement.
-- [x] **V58.3** XOHI MOBILE — AI ADMIN ASSISTANT APP: Kiến trúc di động độc lập. Màn hình chính trò chuyện Voice-first (`MobileHome.svelte`, `MobileInputBar.svelte`). `MobileContextSheet.svelte` thay thế Modal bằng vuốt chạm trượt ngang. Bảng điều khiển Mobile sử dụng Responsive Stacked Cards để chống chật hẹp, bỏ hiệu ứng blur cho mobile. Tích hợp PWA.
-- [x] **V56.0** AUTONOMOUS AWAKENING (HOTFIX): Fix 4 bugs production (NameError `is_mutate`, Rule 1.9 Tier2Refiner, MagicMock fallback, cost_tokens=0). Encoder Singleton (`encoder_singleton.py`) gộp 3 instances → 1 (~180MB RAM saved). Zero-Cold-Start embedding warmup tại lifespan. Tách `heuristic_classifier.py` (515→363 LOC). AnomalyDetector (3 scalar checks) + asyncio heartbeat loop. PostgreSQL `unaccent` extension cho Vietnamese search.
+> **Mục tiêu:** Đạt tốc độ phản hồi < 100ms cho mọi module hội thoại và tối ưu hoá RAM/Storage trên hạ tầng yếu (2GB RAM).
+
+### R72 – Identity Bypass (Zero-DB Auth)
+- ❌ CẤM truy vấn `users` table chỉ để lấy `user_id` trong mỗi request từ AuthMiddleware.
+- ✅ BẮT BUỘC nhồi trường `id` vào JWT Payload lúc Login.
+- ✅ Backend Controller truy xuất thẳng qua `scope.state.user_id` (với Litestar) hoặc `request.state.user_id`.
+
+### R73 – Redis-Last-10 (Hybrid Cache Protocol)
+- ❌ CẤM đọc Database cho 10 tin nhắn hội thoại gần nhất.
+- ✅ BẮT BUỘC dùng Redis List (`LPUSH` + `LTRIM 10`) lưu 10 tin nhắn cuối/user.
+- ✅ Tốc độ truy xuất phải đạt ngưỡng < 1ms (Cache Hit). 
+
+### R74 – Selective Persistence (Selective Data Aging)
+- ❌ CẤM lưu vô tội vạ mọi tin nhắn AI Text vào Database (Vi phạm R30).
+- ✅ BẮT BUỘC phân loại:
+    - **Persistent**: Tin nhắn của User, Modality Voice/Image.
+    - **Ephemeral**: Tin nhắn AI Text thông thường (Chỉ lưu Redis, tự xoá sau TTL).
+- ✅ Lý do: Tránh phình DB (~500% tiết kiệm storage cho chat log).
+
+### R75 – Ghost Audit (Asynchronous Internal Bus)
+- ❌ CẤM ghi log bảo mật hoặc gửi thông báo (Audit/Notification) đồng bộ trong luồng request chính.
+- ✅ BẮT BUỘC dùng `InternalBus.emit()` để xử lý background. Không được phép làm chậm phản hồi của User vì khâu ghi log.
+
+### R76 – Scalar Projection (Zero-Hydration Enforcement)
+- ❌ CẤM `select(Model)` cho các API danh sách/lịch sử có traffic cao.
+- ✅ BẮT BUỘC dùng `select(Model.id, Model.name, ...)` để chỉ lấy các cột cần thiết. Tiết kiệm ~70% RAM so với việc nạp đầy đủ ORM Objects.
+
+### R77 – Frontend SWR (Smart Sync Syncing)
+- ❌ CẤM UI hiển thị Loading Spinner mỗi khi sếp chuyển tab Chat.
+- ✅ BẮT BUỘC dùng Stale-While-Revalidate (SWR) với TTL 60s tại Frontend. 
+- ✅ Dữ liệu cũ hiện ra ngay, sync ngầm bên dưới. Giúp hệ thống sống sót qua lỗi 429 và mang lại trải nghiệm Zero-Latency.
+
+### R78 – Compact Density UI (Admin Efficiency)
+- ✅ Ưu tiên gộp các nút chức năng (Filter, Search, User-selection) vào thanh tiêu đề (Header row).
+- ✅ Sử dụng font chữ nhỏ (text-[8px] - text-[10px]) cho các metadata kỹ thuật để tối đa hoá diện tích hiển thị dữ liệu thực.
 
 ---
 
-_V56.0: AUTONOMOUS AWAKENING — Bug Fixes, Encoder Singleton, Zero-Cold-Start, Anomaly Heartbeat, Vietnamese Search._
+## VI. ROADMAP
+
+- [x] **V56.0** AUTONOMOUS AWAKENING (HOTFIX): Fix 4 bugs production, Encoder Singleton, Zero-Cold-Start, Anomaly Heartbeat, Vietnamese Search.
+- [x] **V60.0** THE ULTRA-LIGHT REVOLUTION: Triển khai Identity Bypass (JWT ID), Redis-Last-10 Caching, Selective Persistence (DB Cleanup), Ghost Audit (Async Logging), Scalar Projection (RAM Optimization), và SWR Frontend State. 429 Errors triệt tiêu hoàn toàn.
+
+---
+
+_V60.0: THE ULTRA-LIGHT REVOLUTION — Zero-Hydration, Hybrid Cache, Identity Bypass, SWR Sync._

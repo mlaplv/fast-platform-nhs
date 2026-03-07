@@ -29,36 +29,53 @@ class ChatController(Controller):
         middleware=[chat_sync_limit.middleware]
     )
     async def save_message(self, db_session: AsyncSession, session_id: str, request: Request, data: CreateChatMessageRequest) -> dict:
-        """Save a chat message to DB. Used by frontend for widget shortcuts and local commands."""
+        """Save a chat message to DB with Selective Persistence and Redis Caching."""
         user_state = getattr(request.state, "user", {})
-        user_email = user_state.get("sub")
-
-        user_id = None
-        if user_email:
-            user_repo = UserRepository(session=db_session)
-            user = await user_repo.get_one_or_none(email=user_email)
-            if user:
-                user_id = str(user.id)
+        user_id = user_state.get("id")
 
         if data.role not in ("user", "assistant"):
             raise HTTPException(status_code=400, detail="Invalid role. Must be 'user' or 'assistant'.")
 
-        try:
-            msg_id = str(uuid.uuid4())
-            msg = ChatMessage(
-                id=msg_id,
-                session_id=session_id,
-                user_id=user_id,
-                role=data.role,
-                content=data.content,
-                modality=data.modality or "text"
-            )
-            db_session.add(msg)
-            await db_session.commit()
-            return {"status": "success", "id": msg_id}
-        except Exception as e:
-            logger.error(f"[ChatMessage] POST save failed: {e}")
-            raise HTTPException(status_code=500, detail="Failed to persist message.")
+        msg_id = str(uuid.uuid4())
+        created_at = datetime.now(timezone.utc)
+        
+        # ═══ REDIS CACHE: Redis-Last-10 ═══
+        from src.services.xohi_memory import xohi_memory
+        msg_dict = {
+            "id": msg_id,
+            "session_id": session_id,
+            "user_id": user_id,
+            "role": data.role,
+            "content": data.content,
+            "modality": data.modality or "text",
+            "created_at": created_at.isoformat()
+        }
+        if user_id:
+            await xohi_memory.add_chat_to_cache(user_id, msg_dict)
+
+        # ═══ R30: SELECTIVE PERSISTENCE ═══
+        # Only persist to DB if it's a user message or voice modality (for STT audit)
+        should_persist = data.role == "user" or data.modality == "voice"
+        
+        if should_persist:
+            try:
+                msg = ChatMessage(
+                    id=msg_id,
+                    session_id=session_id,
+                    user_id=user_id,
+                    role=data.role,
+                    content=data.content,
+                    modality=data.modality or "text",
+                    created_at=created_at
+                )
+                db_session.add(msg)
+                # Auto-commit by Litestar
+                return {"status": "success", "id": msg_id, "persisted": True}
+            except Exception as e:
+                logger.error(f"[ChatMessage] POST save failed: {e}")
+                raise HTTPException(status_code=500, detail="Failed to persist critical message.")
+        
+        return {"status": "success", "id": msg_id, "persisted": False}
 
 
     @get(
@@ -76,67 +93,94 @@ class ChatController(Controller):
         user_id_query: Optional[str] = None  # New: Target user for God-Mode
     ) -> ChatHistoryResponse:
         """
-        Retrieves messages for a session or user using Cursor Pagination.
+        Retrieves messages for a session or user using Hybrid Redis/DB strategy.
         If session_id is 'account', it fetches by authenticated user_id.
         """
         user_state = getattr(request.state, "user", {})
-        user_email = user_state.get("sub")
+        user_id = user_state.get("id")
         user_roles = user_state.get("roles", [])
         is_super_admin = "SUPER_ADMIN" in user_roles
         
-        user_repo = UserRepository(session=db_session)
-        current_user = None
-        if user_email:
-            current_user = await user_repo.get_one_or_none(email=user_email)
-        
-        target_user_id = str(current_user.id) if current_user else None
+        target_user_id = user_id
         
         # ═══ GOD-MODE: ADMIN OVERRIDE ═══
         if is_super_admin and user_id_query:
             target_user_id = user_id_query
-            # Audit log for God-Mode access
-            new_notif = Notification(
-                id=str(uuid.uuid4()), # RSR: Satisfy NotNull for ID
-                user_id=str(current_user.id) if current_user else None,
-                type="SECURITY",
-                message=f"GOD-MODE ACCESS: System logs for user_id '{user_id_query}' accessed by {user_email}"
-            )
-            db_session.add(new_notif)
-            # We don't explicit commit here to avoid MissingGreenlet if IO is pending elsewhere
-            await db_session.flush()
+            # R1.13: GHOST AUDIT — emit background event, don't block response
+            from src.services.event_bus import event_bus
+            await event_bus.emit("SECURITY_AUDIT", {
+                "user_id": user_id,
+                "type": "SECURITY",
+                "message": f"GOD-MODE ACCESS: System logs for user_id '{user_id_query}' accessed by {user_state.get('sub')}"
+            })
 
-        # ═══ SECURITY: OWNERSHIP ENFORCEMENT ═══
-        if not is_super_admin and session_id != "account":
-            stmt = select(ChatMessage).where(ChatMessage.session_id == session_id).limit(1)
+        # ═══ CACHE BYPASS / REDIS CHECK ═══
+        from src.services.xohi_memory import xohi_memory
+        if session_id == "account" and not cursor and limit <= 10 and target_user_id:
+            cached = await xohi_memory.get_recent_chat(target_user_id)
+            if cached:
+                return ChatHistoryResponse(
+                    session_id=session_id,
+                    has_more=True, # Conservatively assume more exists in DB
+                    next_cursor=str(cached[-1]["id"]),
+                    messages=[ChatMessageSchema(**m) for m in reversed(cached)] # Redis is LPUSH (newest first)
+                )
+
+        # ═══ OWNERSHIP ENFORCEMENT ═══
+        if not is_super_admin and session_id != "account" and target_user_id:
+            # R1.5: Zero-Hydration — only select the user_id column
+            stmt = select(ChatMessage.user_id).where(ChatMessage.session_id == session_id).limit(1)
             res = await db_session.execute(stmt)
-            first_msg = res.scalar_one_or_none()
-            if first_msg and first_msg.user_id and str(first_msg.user_id) != target_user_id:
-                raise HTTPException(status_code=403, detail="[SECURITY] Access Denied: Identity mismatch for requested session.")
+            owner_id = res.scalar()
+            if owner_id and str(owner_id) != target_user_id:
+                raise HTTPException(status_code=403, detail="[SECURITY] Access Denied: Identity mismatch.")
         
-        # Build Query
-        stmt = select(ChatMessage).where(ChatMessage.deleted_at == None)
+        # ═══ DB QUERY: SCALAR PROJECTION (V56.0) ═══
+        # We select specific columns to avoid hydrating full ORM objects (Rule 1.5)
+        from sqlalchemy import text
+        cols = [
+            ChatMessage.id, ChatMessage.session_id, ChatMessage.user_id,
+            ChatMessage.role, ChatMessage.content, ChatMessage.modality,
+            ChatMessage.created_at
+        ]
+        stmt = select(*cols).where(ChatMessage.deleted_at == None)
+        
         if session_id == "account" and target_user_id:
             stmt = stmt.where(ChatMessage.user_id == target_user_id)
         else:
             stmt = stmt.where(ChatMessage.session_id == session_id)
 
-        # Cursor Pagination Logic
+        # Cursor Pagination
         if cursor:
             cursor_stmt = select(ChatMessage.created_at).where(ChatMessage.id == cursor)
             cursor_res = await db_session.execute(cursor_stmt)
-            cursor_time = cursor_res.scalar_one_or_none()
+            cursor_time = cursor_res.scalar()
             if cursor_time:
                 stmt = stmt.where(ChatMessage.created_at < cursor_time)
 
         stmt = stmt.order_by(ChatMessage.created_at.desc()).limit(limit + 1)
         
         res = await db_session.execute(stmt)
-        messages = list(res.scalars().all())
+        # Results are tuples of columns
+        rows = res.all()
         
-        has_more = len(messages) > limit
+        has_more = len(rows) > limit
         if has_more:
-            messages = messages[:limit]
+            rows = rows[:limit]
         
+        messages = []
+        for r in rows:
+            messages.append(ChatMessageSchema(
+                id=str(r.id),
+                session_id=r.session_id,
+                user_id=str(r.user_id) if r.user_id else None,
+                role=r.role,
+                content=r.content,
+                modality=r.modality,
+                created_at=r.created_at,
+                updated_at=r.created_at
+            ))
+            
         next_cursor = str(messages[-1].id) if messages else None
         messages.reverse() 
 
@@ -144,18 +188,7 @@ class ChatController(Controller):
             session_id=session_id,
             has_more=has_more,
             next_cursor=next_cursor,
-            messages=[
-                ChatMessageSchema(
-                    id=str(m.id),
-                    session_id=m.session_id,
-                    user_id=str(m.user_id) if m.user_id else None,
-                    role=m.role,
-                    content=m.content,
-                    modality=m.modality,
-                    created_at=m.created_at,
-                    updated_at=getattr(m, 'updated_at', m.created_at)
-                ) for m in messages
-            ]
+            messages=messages
         )
     
     @delete(

@@ -75,11 +75,17 @@ class SettingsController(Controller):
         farewell = (profile.farewell_template if profile and profile.farewell_template 
                    else DEFAULT_FAREWELL)
         
+        # Unified: Include global campaign mode in response
+        from src.services.xohi_memory import xohi_memory
+        val = await xohi_memory.client.get("system:campaign_mode")
+        is_campaign = val == "1"
+        
         return VoiceSettingsResponse(
             wake_words=wake,
             sleep_words=sleep,
             greeting_template=greeting,
             farewell_template=farewell,
+            is_campaign_mode=is_campaign,
             capabilities=capabilities
         )
 
@@ -145,6 +151,12 @@ class SettingsController(Controller):
         # HOT RELOAD TO REDIS
         from src.services.xohi_memory import xohi_memory
         
+        # Unified: Update global campaign mode if provided
+        if data.is_campaign_mode is not None:
+            val = "1" if data.is_campaign_mode else "0"
+            await xohi_memory.client.set("system:campaign_mode", val)
+            logger.info(f"[Settings] Unified commit: Campaign Mode set to {data.is_campaign_mode}")
+
         profile_data = {
             "wake_words":        [normalize_vn(w) for w in clean_wake],
             "sleep_words":       [normalize_vn(w) for w in clean_sleep],
@@ -154,6 +166,10 @@ class SettingsController(Controller):
         }
         await xohi_memory.cache_voice_profile(user_id, profile_data)
 
+        # Re-fetch campaign mode to ensure sync
+        val = await xohi_memory.client.get("system:campaign_mode")
+        current_campaign = val == "1"
+
         return {
             "status": "success",
             "message": "Đã cập nhật bộ nhận diện giọng nói cho sếp.",
@@ -162,7 +178,8 @@ class SettingsController(Controller):
                 "sleep_words": clean_sleep,
                 "greeting_template": data.greeting_template,
                 "farewell_template": data.farewell_template,
-                "capabilities": data.capabilities
+                "capabilities": data.capabilities,
+                "is_campaign_mode": current_campaign
             }
         }
 
@@ -175,7 +192,7 @@ class SettingsController(Controller):
             
         from src.services.xohi_memory import xohi_memory
         val = await xohi_memory.client.get("system:campaign_mode")
-        is_campaign = val == b"1"
+        is_campaign = val == "1"
         return {"is_campaign_mode": is_campaign}
 
     @post("/campaign-mode", dependencies={})

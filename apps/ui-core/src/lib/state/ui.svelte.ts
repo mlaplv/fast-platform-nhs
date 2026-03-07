@@ -6,6 +6,8 @@ export function createUiState() {
     confirmDialog: null as ConfirmDialog | null,
     toasts: [] as Toast[],
     universalModalOpen: false,
+    activeHudPopup: null as string | null,
+    showQuickTips: false,
   });
 
   function showConfirm(
@@ -82,6 +84,18 @@ export function createUiState() {
 
     setUniversalModalOpen(val: boolean) {
       state.universalModalOpen = val;
+    },
+    get activeHudPopup() {
+      return state.activeHudPopup;
+    },
+    set activeHudPopup(val: string | null) {
+      state.activeHudPopup = val;
+    },
+    get showQuickTips() {
+      return state.showQuickTips;
+    },
+    set showQuickTips(val: boolean) {
+      state.showQuickTips = val;
     },
     showConfirm,
     showToast,

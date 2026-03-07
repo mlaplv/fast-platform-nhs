@@ -208,6 +208,36 @@ class XoHiMemory:
             logger.debug(f"[XoHiMemory] Redis set system:intent_mapping failed: {e}")
         self._fallback_cache[key] = mapping
 
+    # ═══════════════════════════════════════════════════════
+    # CHAT CACHE: Redis-Last-10 (V56.0)
+    # ═══════════════════════════════════════════════════════
+
+    async def get_recent_chat(self, user_id: str) -> List[dict]:
+        """Get the last 10 chat messages for a user from Redis."""
+        key = f"xohi:chat:{user_id}"
+        try:
+            if self._use_redis:
+                data = await self.client.lrange(key, 0, 9)
+                if data:
+                    # Redis list preserves order (LPUSH makes [9, 8, ... 0])
+                    # We want chronological [0...9] if we return the list as is, 
+                    # but typically FE wants the newest at the bottom or top.
+                    # Controllers will handle sorting to match DB standard (DESC).
+                    return [json.loads(m) for m in data]
+        except Exception as e:
+            logger.debug(f"[XoHiMemory] Redis chat get failed: {e}")
+        return []
+
+    async def add_chat_to_cache(self, user_id: str, message: dict):
+        """Push a message to user's Redis chat list and trim to 10."""
+        key = f"xohi:chat:{user_id}"
+        try:
+            if self._use_redis:
+                await self.client.lpush(key, json.dumps(message, ensure_ascii=False))
+                await self.client.ltrim(key, 0, 9)
+        except Exception as e:
+            logger.debug(f"[XoHiMemory] Redis chat push failed: {e}")
+
 
 # Singleton
 xohi_memory = XoHiMemory()

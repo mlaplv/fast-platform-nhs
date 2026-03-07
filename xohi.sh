@@ -45,6 +45,7 @@ while true; do
     echo "4) SAO LƯU DỮ LIỆU & MEDIA (Backup Data)"
     echo "5) SIÊU DỌN DẸP ĐỂ SAO LƯU (Nuke & Backup - Cực nhẹ)"
     echo "6) CÀI ĐẶT & TRIỂN KHAI (Production Deploy)"
+    echo "7) THIẾT LẬP SSL (Trust SSL Certificate)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Lựa chọn của anh [0-6]: " choice
@@ -118,6 +119,11 @@ while true; do
             ./deploy.sh
             echo -e "${GREEN}== TRIỂN KHAI HOÀN TẤT ==${NC}"
             read -p "Nhấn Enter để tiếp tục..."
+            ;;
+        7)
+            echo -e "${YELLOW}[INFO] Đang khởi chạy thiết lập SSL...${NC}"
+            bash scripts/setup-ssl.sh
+            read -p "Nhấn Enter để quay lại menu..."
             ;;
         0)
             exit 0

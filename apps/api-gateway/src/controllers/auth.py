@@ -112,6 +112,7 @@ class AuthController(Controller):
         expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "120"))
         access_token = self._create_access_token(
             data={
+                "id": str(user.id),
                 "sub": user.email, 
                 "roles": roles,
                 "perms": permissions,

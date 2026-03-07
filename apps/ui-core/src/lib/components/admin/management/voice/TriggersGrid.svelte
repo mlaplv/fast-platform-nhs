@@ -57,19 +57,19 @@
 
       <div class="flex flex-wrap gap-3">
         {#each wakeTriggers as word, i}
-          <div class="group min-h-[44px] px-5 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-200 border border-white/5 rounded-full flex items-center gap-3 transition-all ring-1 ring-white/5 hover:ring-cyan-500/30 animate-in">
+          <div class="group min-h-[44px] max-w-full px-5 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-200 border border-white/5 rounded-full flex items-center gap-3 transition-all ring-1 ring-white/5 hover:ring-cyan-500/30 animate-in overflow-hidden">
             {#if editingWake === i}
               <input
                 bind:value={wakeTriggers[i]}
                 onblur={() => (editingWake = null)}
                 onkeydown={(e) => e.key === "Enter" && (editingWake = null)}
-                class="bg-transparent outline-none text-xs font-mono text-cyan-400 w-24"
+                class="bg-transparent outline-none text-xs font-mono text-cyan-400 w-full min-w-[4rem]"
                 autofocus
               />
             {:else}
-              <button onclick={() => (editingWake = i)} class="text-xs font-mono tracking-wide leading-none">{word || "---"}</button>
+              <button onclick={() => (editingWake = i)} class="text-xs font-mono tracking-wide leading-none truncate">{word || "---"}</button>
             {/if}
-            <button onclick={() => removeWakeWord(i)} class="opacity-0 group-hover:opacity-100 transition-all text-zinc-600 hover:text-red-400">
+            <button onclick={() => removeWakeWord(i)} class="opacity-0 group-hover:opacity-100 transition-all text-zinc-600 hover:text-red-400 flex-shrink-0">
               <Trash2 size={12} />
             </button>
           </div>
@@ -98,19 +98,19 @@
 
       <div class="flex flex-wrap gap-3">
         {#each sleepTriggers as word, i}
-          <div class="group min-h-[44px] px-5 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-200 border border-white/5 rounded-full flex items-center gap-3 transition-all ring-1 ring-white/5 hover:ring-red-500/30 animate-in">
+          <div class="group min-h-[44px] max-w-full px-5 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-200 border border-white/5 rounded-full flex items-center gap-3 transition-all ring-1 ring-white/5 hover:ring-red-500/30 animate-in overflow-hidden">
             {#if editingSleep === i}
               <input
                 bind:value={sleepTriggers[i]}
                 onblur={() => (editingSleep = null)}
                 onkeydown={(e) => e.key === "Enter" && (editingSleep = null)}
-                class="bg-transparent outline-none text-xs font-mono text-red-400 w-24"
+                class="bg-transparent outline-none text-xs font-mono text-red-400 w-full min-w-[4rem]"
                 autofocus
               />
             {:else}
-              <button onclick={() => (editingSleep = i)} class="text-xs font-mono tracking-wide leading-none">{word || "---"}</button>
+              <button onclick={() => (editingSleep = i)} class="text-xs font-mono tracking-wide leading-none truncate">{word || "---"}</button>
             {/if}
-            <button onclick={() => removeSleepWord(i)} class="opacity-0 group-hover:opacity-100 transition-all text-zinc-600 hover:text-red-400">
+            <button onclick={() => removeSleepWord(i)} class="opacity-0 group-hover:opacity-100 transition-all text-zinc-600 hover:text-red-400 flex-shrink-0">
               <Trash2 size={12} />
             </button>
           </div>
