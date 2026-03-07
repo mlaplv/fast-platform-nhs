@@ -355,7 +355,21 @@ class RouterOrchestrator:
                 t2_response.message = refined_msg
                 # CỘNG DỒN CHI PHÍ TOKEN CỦA REFINER
                 t2_response.cost_tokens = (t2_response.cost_tokens or 0) + refine_cost
-                
+        
+        elif intent_type == "UI_NAV" and not t2_response.message:
+            # Default friendly message for T2 navigation if empty
+            target = t2_response.data.get("target", "none")
+            target_vi = {
+                "revenue":  "biểu đồ doanh thu",
+                "order":    "quản lý đơn hàng",
+                "product":  "quản lý sản phẩm",
+                "user":     "danh sách nhân viên",
+                "category": "quản lý danh mục",
+                "news":     "quản lý bài viết",
+                "settings": "cài đặt giọng nói"
+            }.get(target, "trang quản trị")
+            t2_response.message = f"Dạ sếp, em mở {target_vi} cho sếp ngay đây ạ."
+
         # --- LOG MODALITY BRACKETING (XOHI[tag] for UI) ---
         # We modify the router_tier string to include the modality prefix
         if hasattr(t2_response, "router_tier"):

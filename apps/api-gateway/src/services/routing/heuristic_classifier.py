@@ -24,6 +24,7 @@ TARGET_KEYWORDS = {
     "user":    ["nguoi dung", "khach", "nhan vien", "tai khoan"],
     "category": ["danh muc"],
     "news":    ["tin tuc", "bai viet"],
+    "settings": ["cai dat", "setting", "cau hinh", "voice"],
 }
 
 TIMEFRAME_KEYWORDS = {
@@ -49,6 +50,7 @@ TARGET_TO_WIDGET = {
     "user":     "show_user_management",
     "category": "show_category_management",
     "news":     "show_news_management",
+    "settings": "show_voice_settings",
 }
 
 VI_VERB_MAP = {"create": "tạo", "edit": "sửa", "delete": "xóa"}
@@ -176,8 +178,9 @@ async def heuristic_classify(
             "order":    "Dạ, em mở quản lý đơn hàng cho sếp.",
             "product":  "Dạ, em mở quản lý sản phẩm cho sếp.",
             "user":     "Dạ, em mở danh sách nhân viên cho sếp.",
-            "category": "Dạ, em mở quản lý danh mục cho sếp.",
-            "news":     "Dạ, em mở quản lý bài viết cho sếp.",
+            "category": "Dạ, em mở quản lý danh mục cho sếp ạ.",
+            "news":     "Dạ, em mở quản lý bài viết cho sếp ạ.",
+            "settings": "Dạ, em mở cài đặt giọng nói cho sếp ạ.",
         }
         response_msg = nav_msg_map.get(target, "")
     else:

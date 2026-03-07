@@ -75,7 +75,8 @@ INTENT_DEFINITIONS: dict[str, list[str]] = {
     ],
     "nav_settings": [
         "cài đặt giọng nói", "mở cài đặt", "voice settings",
-        "chỉnh cài đặt xohi", "cấu hình giọng nói",
+        "chỉnh cài đặt xohi", "cấu hình giọng nói", "mở giọng nói",
+        "cấu hình xohi", "voice setting", "mở voice setting",
     ],
 
     # --- MUTATION ---
