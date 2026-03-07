@@ -37,11 +37,23 @@ fi
 echo -e "${GREEN}[OK] Đã lưu chứng chỉ vào: $CERT_PATH${NC}"
 echo -e ""
 
-# Tự động hóa phần Linux System Trust
-echo -e "${YELLOW}Bước 1: Đang tự động thiết lập tin cậy trên hệ thống Linux...${NC}"
-sudo cp "$CERT_PATH" /usr/local/share/ca-certificates/caddy-root-ca.crt
-sudo update-ca-certificates
-echo -e "${GREEN}[OK] Hệ thống đã tin tưởng chứng chỉ.${NC}"
+# Bước 1: Thiết lập tin cậy trên hệ thống (OS Specific)
+OS_TYPE=$(uname -s)
+
+if [ "$OS_TYPE" == "Linux" ]; then
+    echo -e "${YELLOW}Đang tự động thiết lập tin cậy trên hệ thống Linux...${NC}"
+    sudo cp "$CERT_PATH" /usr/local/share/ca-certificates/caddy-root-ca.crt
+    sudo update-ca-certificates
+    echo -e "${GREEN}[OK] Hệ thống Linux đã tin tưởng chứng chỉ.${NC}"
+elif [ "$OS_TYPE" == "Darwin" ]; then
+    echo -e "${YELLOW}Đang tự động thiết lập tin cậy trên hệ thống macOS...${NC}"
+    # Thêm vào System Keychain và đặt chế độ Always Trust cho các extension cần thiết
+    sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$CERT_PATH"
+    echo -e "${GREEN}[OK] macOS đã tin tưởng chứng chỉ trong System Keychain.${NC}"
+else
+    echo -e "${YELLOW}[WARNING] Hệ điều hành $OS_TYPE chưa hỗ trợ tự động. Hãy thêm chứng chỉ thủ công.${NC}"
+fi
+
 echo -e ""
 
 echo -e "${YELLOW}Bước 2: THIẾT LẬP TRÌNH DUYỆT (BẮT BUỘC)${NC}"
@@ -52,7 +64,5 @@ echo -e "2. Chọn file: ${YELLOW}$CERT_PATH${NC}"
 echo -e "3. Sau khi Import xong, anh sẽ thấy 'Caddy Local Authority' xuất hiện trong danh sách."
 echo -e ""
 echo -e "${YELLOW}Bước 3: Khởi động lại trình duyệt hoàn toàn và tải lại trang.${NC}"
-echo -e ""
-echo -e "${GREEN}== THIẾT LẬP HOÀN TẤT ==${NC}"
 echo -e ""
 echo -e "${GREEN}== THIẾT LẬP HOÀN TẤT ==${NC}"

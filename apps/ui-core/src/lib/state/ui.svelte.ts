@@ -8,6 +8,11 @@ export function createUiState() {
     universalModalOpen: false,
     activeHudPopup: null as string | null,
     showQuickTips: false,
+    heartbeatCollapsed: typeof window !== "undefined" 
+      ? (localStorage.getItem("xohi_heartbeat_collapsed") !== null 
+          ? localStorage.getItem("xohi_heartbeat_collapsed") === "true" 
+          : null)
+      : null,
   });
 
   function showConfirm(
@@ -63,12 +68,12 @@ export function createUiState() {
     state.toasts = [...state.toasts, newToast];
 
     setTimeout(() => {
-      state.toasts = state.toasts.filter((t) => t.id !== id);
+      state.toasts = state.toasts.filter((t: Toast) => t.id !== id);
     }, duration);
   }
 
   function removeToast(id: string) {
-    state.toasts = state.toasts.filter((t) => t.id !== id);
+    state.toasts = state.toasts.filter((t: Toast) => t.id !== id);
   }
 
   return {
@@ -96,6 +101,19 @@ export function createUiState() {
     },
     set showQuickTips(val: boolean) {
       state.showQuickTips = val;
+    },
+    get heartbeatCollapsed() {
+      return state.heartbeatCollapsed;
+    },
+    set heartbeatCollapsed(val: boolean | null) {
+      state.heartbeatCollapsed = val;
+      if (typeof window !== "undefined") {
+        if (val === null) {
+          localStorage.removeItem("xohi_heartbeat_collapsed");
+        } else {
+          localStorage.setItem("xohi_heartbeat_collapsed", String(val));
+        }
+      }
     },
     showConfirm,
     showToast,

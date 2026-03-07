@@ -225,6 +225,16 @@ export function createNanobotState() {
     },
 
     // Layout
+    get heartbeatCollapsed() { return ui.heartbeatCollapsed; },
+    toggleHeartbeat: () => {
+      if (typeof window === "undefined") return;
+      if (ui.heartbeatCollapsed === null) {
+        // If in auto mode, toggle to manual state opposite of current width-based behavior
+        ui.heartbeatCollapsed = window.innerWidth >= 1280; // If >= 1280 (Expanded), set to true (Collapse). Else expand.
+      } else {
+        ui.heartbeatCollapsed = !ui.heartbeatCollapsed;
+      }
+    },
     get showMobileSidebar() { return state.showMobileSidebar; },
     get showMobileDrawer() { return state.showMobileSidebar; },
     toggleMobileSidebar: () => (state.showMobileSidebar = !state.showMobileSidebar),

@@ -218,11 +218,6 @@
                   <input
                     id="email"
                     bind:value={email}
-                    onfocus={(e) =>
-                      setTimeout(
-                        () => (e.target as HTMLInputElement).select(),
-                        0,
-                      )}
                     type="text"
                     required
                     class="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-cyan-500/30 transition-all font-mono placeholder:text-gray-800 relative z-10"
@@ -249,11 +244,6 @@
                   <input
                     id="password"
                     bind:value={password}
-                    onfocus={(e) =>
-                      setTimeout(
-                        () => (e.target as HTMLInputElement).select(),
-                        0,
-                      )}
                     type={showPassword ? "text" : "password"}
                     required
                     class="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl py-4 pl-12 pr-12 text-sm text-white focus:outline-none focus:border-cyan-500/30 transition-all font-mono placeholder:text-gray-800 relative z-10"

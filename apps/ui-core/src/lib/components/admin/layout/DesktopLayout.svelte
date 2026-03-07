@@ -57,16 +57,20 @@
     >
       <div class="flex items-center gap-3">
         <XohiNanoSprite />
-        <div>
+        <button 
+          onclick={() => nanobot.toggleHeartbeat()}
+          class="flex flex-col items-start hover:brightness-125 transition-all group/xohi"
+          title={nanobot.heartbeatCollapsed ? "Mở rộng Heartbeat" : "Thu gọn Heartbeat"}
+        >
           <h1
-            class="text-xs font-mono tracking-[0.2em] uppercase text-[#00FFFF] opacity-80"
+            class="text-xs font-mono tracking-[0.2em] uppercase text-[#00FFFF] opacity-80 group-hover/xohi:opacity-100 group-hover/xohi:drop-shadow-[0_0_8px_rgba(0,255,255,0.5)] transition-all"
           >
-            Xohi Darkboard
+            &gt;_Xohi
           </h1>
-          <p class="text-[10px] font-mono text-gray-500 uppercase">
-            V55.0 Core // {nanobot.userEmail || "ADMIN_ACTIVE"}
+          <p class="text-[10px] font-mono text-gray-500 uppercase group-hover/xohi:text-gray-400 transition-colors">
+            Core // {nanobot.userEmail || "ADMIN_ACTIVE"}
           </p>
-        </div>
+        </button>
       </div>
 
       <div class="flex gap-4 items-center">
@@ -103,7 +107,7 @@
 
     <!-- OmniCommand: Floats over modal, wrapper is transparent + click-through -->
     <div
-      class="relative z-[60] py-3 pointer-events-none"
+      class="relative z-[60] pt-3 pb-6 pointer-events-none"
       class:hidden={nanobot.isVuiActive && !nanobot.isTraining}
       class:omni-waterdrop={nanobot.universalModalOpen}
     >
@@ -115,10 +119,6 @@
     <!-- Voice Modal (Pure Face) -->
     <VoiceModal />
 
-    <!-- Version Footer -->
-    <TechStackFooter />
-
-    <!-- Mission Control Overlays (FullLog, Vault, Confirm — still full-screen) -->
     <div class:hidden={nanobot.isVuiActive && !nanobot.isTraining}>
       <FullLogView />
       <VaultModal />
@@ -128,16 +128,96 @@
 
   <!-- Right Sidebar: Heartbeat -->
   <aside
-    class="w-[300px] xl:w-[350px] shrink-0 h-full relative z-20 shadow-[-20px_0_30px_rgba(0,0,0,0.5)] border-l border-[#1a1a1a] bg-[#080808]"
+    class="relative h-full z-20 shadow-[-20px_0_30px_rgba(0,0,0,0.5)] border-l border-[#1a1a1a] bg-[#080808] transition-all duration-300 ease-in-out group/sidebar overflow-visible"
+    class:heartbeat-manual-collapse={nanobot.heartbeatCollapsed === true}
+    class:heartbeat-manual-expand={nanobot.heartbeatCollapsed === false}
     class:hidden={nanobot.isVuiActive && !nanobot.isTraining}
+    id="heartbeat-sidebar"
   >
-    <HeartbeatStream />
+    <div class="h-full w-full transition-opacity duration-300 sidebar-content">
+      <HeartbeatStream />
+    </div>
+
+    <!-- Collapsed Indicator (Vertical Text) -->
+    <div 
+      class="absolute inset-0 flex flex-col items-center pt-8 pointer-events-none vertical-indicator transition-opacity duration-300"
+    >
+      <div class="rotate-90 origin-center whitespace-nowrap text-[10px] font-mono tracking-[0.3em] uppercase text-neon-cyan/20">
+        Heartbeat
+      </div>
+    </div>
   </aside>
+
+  <!-- Version Footer (Global Bottom) -->
+  <TechStackFooter />
 </div>
 
 <style>
-  /* Waterdrop Glass Effect — Safari iOS address bar style */
-  /* Only target the plus button (.relative > button), NOT the mic button inside the input pill */
+  /* Adaptive Heartbeat Sidebar Logic */
+  #heartbeat-sidebar {
+    --sidebar-w: 300px;
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+  }
+
+  /* Default for Laptop/Small Screens: Auto-Collapse */
+  @media (max-width: 1535.9px) {
+    #heartbeat-sidebar {
+      --sidebar-w: 40px;
+    }
+    #heartbeat-sidebar .sidebar-content {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #heartbeat-sidebar .vertical-indicator {
+      opacity: 1;
+    }
+  }
+
+  /* Default for Large Screens: Auto-Expand */
+  @media (min-width: 1536px) {
+    #heartbeat-sidebar {
+      --sidebar-w: 300px;
+    }
+    #heartbeat-sidebar .sidebar-content {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #heartbeat-sidebar .vertical-indicator {
+      opacity: 0;
+    }
+  }
+
+  /* Manual Override: Force Collapse (Trumps Auto) */
+  :global(.heartbeat-manual-collapse) {
+    --sidebar-w: 40px !important;
+  }
+  :global(.heartbeat-manual-collapse) .sidebar-content {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  :global(.heartbeat-manual-collapse) .vertical-indicator {
+    opacity: 1 !important;
+  }
+
+  /* Manual Override: Force Expand (Trumps Auto) */
+  :global(.heartbeat-manual-expand) {
+    --sidebar-w: 300px !important;
+  }
+  @media (min-width: 1280px) {
+    :global(.heartbeat-manual-expand) {
+      --sidebar-w: 350px !important; /* XL width on large screens */
+    }
+  }
+  :global(.heartbeat-manual-expand) .sidebar-content {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+  :global(.heartbeat-manual-expand) .vertical-indicator {
+    opacity: 0 !important;
+  }
+
+  /* Standard Waterdrop Styles */
   :global(.omni-waterdrop) :global(.relative > button),
   :global(.omni-waterdrop) :global(.flex-1.rounded-full) {
     background: rgba(0, 255, 255, 0.04) !important;

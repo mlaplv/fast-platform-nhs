@@ -19,7 +19,6 @@ from src.constants.voice import DEFAULT_GREETING, DEFAULT_FAREWELL
 from src.utils.text import normalize_vn
 from src.services.capability_registry import capability_registry
 from src.guards import PermissionGuard
-from src.constants.voice import DEFAULT_GREETING, DEFAULT_FAREWELL
 
 
 logger = logging.getLogger("api-gateway")
@@ -37,6 +36,12 @@ class SettingsController(Controller):
         "voice_repo": Provide(provide_voice_repo),
     }
 
+    async def _get_user_with_profile(self, user_repo: UserRepository, email: str) -> Optional[User]:
+        """Core helper to fetch user with voice profile (N+1 Optimized)"""
+        stmt = select(User).where(User.email == email).options(selectinload(User.voice_profile))
+        result = await user_repo.session.execute(stmt)
+        return result.scalar_one_or_none()
+
     @get("/voice")
     async def get_voice_settings(self, user_repo: UserRepository, request: Request) -> VoiceSettingsResponse:
         """Fetch current voice and cognitive settings (Dynamic Matrix)"""
@@ -44,10 +49,7 @@ class SettingsController(Controller):
         if not user_info or "sub" not in user_info:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        user = await user_repo.get_one_or_none(
-            email=user_info["sub"],
-            load=[User.voice_profile]
-        )
+        user = await self._get_user_with_profile(user_repo, user_info["sub"])
         
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -70,7 +72,11 @@ class SettingsController(Controller):
         sleep = profile.sleep_words if profile else ["ngu di"]
         greeting = profile.greeting_template if profile else "Dạ"
         farewell = profile.farewell_template if profile else "Tạm biệt"
-        is_campaign = profile.is_campaign_mode if profile else False
+        
+        # [XOHI] Campaign Mode is global in Redis, not in DB Profile
+        from src.services.xohi_memory import xohi_memory
+        val = await xohi_memory.client.get("system:campaign_mode")
+        is_campaign = val == "1"
         
         # Consistent fallbacks for chat_settings
         default_chat = {
@@ -102,10 +108,7 @@ class SettingsController(Controller):
         if not user_info or "sub" not in user_info:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        user = await user_repo.get_one_or_none(
-            email=user_info["sub"],
-            load=[User.voice_profile]
-        )
+        user = await self._get_user_with_profile(user_repo, user_info["sub"])
         
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
