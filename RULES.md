@@ -123,13 +123,14 @@ let volume = $state(0); // MỖI FRAME gây re-render
 - ✅ Quy trình: Controller Lưu DB → Emit Event → Trả kết quả ngay (UI mượt). `XoHiResponder` sẽ lắng nghe và xử lý phần còn lại.
 - ✅ Lý do: Giảm Latency cho người dùng cuối từ ~500ms xuống < 50ms.
 
-### 1.14 Neural Local Intelligence (V61.1 - Viral 2026 Strategy)
+### 1.14 Neural Local Intelligence (V61.2 - Hybrid Viral Strategy)
 
 - ❌ CẤM phụ thuộc 100% vào Cloud LLM cho việc sửa lỗi STT/Chính tả sau khi sếp đã "dạy" hệ thống.
-- ✅ BẮT BUỘC dùng `NeuralLocalCorrector` (Local AI) với shared encoder singleton để thực hiện **"Sàng lọc Thần kinh" (Neural Sieve)**.
-- ✅ Giao thức Hybrid (V61.1): Kết hợp **Phonetic Sieve (N-gram < 2ms)** để lọc nhanh trước khi dùng **Semantic Similarity (Cosine >= 0.75)**.
-- ✅ Neural Thinking: BẮT BUỘC dùng **Smart Consolidation** (gộp các lỗi tương đồng về ngữ nghĩa) và **Neural Aging** (tự động xóa synaptic cũ/không dùng) để giữ dictionary luôn tinh gọn.
-- ✅ Bypass Policy: Nếu local hit score >= 0.70 -> Trả kết quả ngay sau **10ms**, hoàn toàn bypass Gemini STT Pre-processor.
+- ✅ **Giao thức Hybrid (V61.2)**: Kết hợp **Hardcoded Heuristics (Phản xạ < 5ms)** cho các lệnh lõi và **Neural Local (Bản năng < 20ms)** cho sự linh hoạt.
+- ✅ **Phonetic Sieve 2.0**: BẮT BUỘC dùng ngưỡng **75%** cho từ ngắn (< 5 ký tự) để chống "ảo giác" (nhầm lệnh "Vào" sang "Doanh số").
+- ✅ **Protected Keywords**: Các từ khóa điều hướng (`mở`, `xem`, `vào`, `danh mục`, `tin tức`, `cài đặt`) BẮT BUỘC được bảo vệ, bỏ qua mọi xử lý LLM/STT để đảm bảo độ chính xác tuyệt đối.
+- ✅ **Neural Thinking**: BẮT BUỘC dùng **Smart Consolidation** (gộp lỗi tương đồng) và **Neural Aging** (tự xóa synaptic cũ) để giữ dictionary tinh gọn.
+- ✅ **Bypass Policy**: Nếu local hit score >= 0.70 -> Trả kết quả ngay, hoàn toàn bypass Gemini STT Pre-processor.
 
 ---
 
@@ -319,10 +320,11 @@ Hệ thống BẮT BUỘC tuân thủ cơ chế **"Local-First, AI-Last"** để
     - BẮT BUỘC chạy `local_correct` (Learned Memory) và `NAV_PATTERNS` check trước khi khởi tạo LLM.
     - Cấu trúc: So khớp memory trước -> Sửa lỗi STT -> Check pattern điều hướng (mở biểu đồ, cút, thoát).
     - Nếu khớp -> **Trả kết quả ngay lập tức, bỏ qua hoàn toàn AI STT**.
-3.  **Lớp Neural Local (Phễu lọc 2026 - Sub-10ms)**:
+3.  **Lớp Neural Local (Phễu lọc 2026 - V61.2)**:
     - BẮT BUỘC chạy `NeuralLocalCorrector` sử dụng local embeddings.
-    - **Phonetic Sieve**: Lọc nhanh bằng N-gram trước khi Analyze sâu (Bypass 90% CPU load).
+    - **Phonetic Sieve 2.0**: Ngưỡng 75% cho từ ngắn để chặn đứng "sửa lỗi nhầm" các động từ điều hướng.
     - **Smart Consolidation**: Tự động gộp các lỗi đánh máy tương đồng (nhan so, nhan sô -> dân số).
+    - **Hardcode Hybrid**: Các lệnh điều hướng rõ ràng (`mở`, `vào`...) được xử lý ưu tiên tuyệt đối qua Heuristic Gateway.
     - Nếu khớp (Hybrid Score >= 0.70) -> **Bypass hoàn toàn Cloud LLM**.
 4.  **Lớp Tự Học (Interaction Loop)**:
     - Nếu AI không chắc chắn (`suspected_correction`), BẮT BUỘC dừng luồng `execute`, chuyển sang trạng thái chờ xác nhận (`is_confirming_stt = True`).
