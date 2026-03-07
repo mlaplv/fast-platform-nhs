@@ -82,75 +82,46 @@ class Tier3CloudRouter:
                 if msg.get("role") != "system":
                     history.append(msg)
 
-        all_keys = self.rotator.get_all_keys()
-        max_tries = min(len(all_keys), 3)
-        model_names = [self.primary_model_name, self.fallback_model_name]
-        
+        # [TRINITY DISPATCHER] Waterfall logic decoupled
+        from ai_engine.core.trinity_bridge import trinity_bridge
+
         deps = Tier3Deps(
             screen_context=screen_context, 
             rotator=self.rotator,
             base_directive=os.getenv("SYSTEM_CORE_DIRECTIVE", "")
         )
 
-        for model_name in model_names:
-            for attempt in range(max_tries):
-                api_key = self.rotator.get_next_key()
-                os.environ.pop("GOOGLE_API_KEY", None) # R1.4 SSOT: Prevent LiteLLM conflict
-                
-                try:
-                    logger.info(f"[T3 Pro] Reasoning with {model_name}...")
-                    from pydantic_ai.models.google import GoogleModel
-                    from pydantic_ai.providers.google import GoogleProvider
-                    
-                    provider = GoogleProvider(api_key=api_key)
-                    model_instance = GoogleModel(model_name, provider=provider)
-                    result = await self.agent.run(
-                        transcript,
-                        message_history=history,
-                        model=model_instance,
-                        deps=deps
-                    )
-                    
-                    output: Tier3Output = result.output
+        try:
+            result = await trinity_bridge.run(
+                self.agent,
+                transcript,
+                deps=deps,
+                message_history=history
+            )
+            
+            output: Tier3Output = result.output
 
-                    return IntentResponse(
-                        status="success",
-                        action=output.action,
-                        message=output.message,
-                        router_tier=RouterTier.TIER_3_CLOUD,
-                        cost_tokens=0.0,
-                        requires_confirmation=output.requires_confirmation,
-                        data={
-                            "intent_type": output.intent_type,
-                            "ui_action": output.ui_action,
-                            **output.action_data
-                        },
-                    )
+            return IntentResponse(
+                status="success",
+                action=output.action,
+                message=output.message,
+                router_tier=RouterTier.TIER_3_CLOUD,
+                cost_tokens=0.0,
+                requires_confirmation=output.requires_confirmation,
+                data={
+                    "intent_type": output.intent_type,
+                    "ui_action": output.widget_id if hasattr(output, 'widget_id') else output.ui_action,
+                    **output.action_data
+                },
+            )
 
-                except (RateLimitError, ServiceUnavailableError, LiteLLMTimeout, AuthenticationError) as e:
-                    logger.warning(f"[T3 Pro] {model_name} key rotation due to {type(e).__name__}")
-                    if attempt < max_tries - 1:
-                        await asyncio.sleep(1.0 * (attempt + 1))
-                    continue
-                except Exception as e:
-                    if "API key not valid" in str(e) or "400" in str(e) or "API_KEY_INVALID" in str(e):
-                        logger.warning(f"[T3 Pro] {model_name} invalid API key (400) on attempt {attempt+1}. Rotating...")
-                        continue
-                    logger.error(f"[T3 Pro] Critical failure: {e}")
-                    return IntentResponse(
-                        status="error",
-                        action=IntentAction.ANALYZE,
-                        message="Lõi xử lý đang bận, Sếp đợi em một chút hoặc thử lại sau nhé.",
-                        router_tier=RouterTier.TIER_3_CLOUD,
-                        cost_tokens=0.0,
-                        data={"error": str(e)},
-                    )
-
-        return IntentResponse(
-            status="error",
-            action=IntentAction.ANALYZE,
-            message="Hệ thống đang quá tải. Xô Hi sẽ phản hồi sếp sớm nhất có thể.",
-            router_tier=RouterTier.TIER_3_CLOUD,
-            cost_tokens=0.0,
-            data={},
-        )
+        except Exception as e:
+            logger.error(f"[T3 Waterfall] Trinity critical failure: {e}")
+            return IntentResponse(
+                status="error",
+                action=IntentAction.ANALYZE,
+                message="Hệ thống đang quá tải. Xô Hi sẽ phản hồi sếp sớm nhất có thể.",
+                router_tier=RouterTier.TIER_3_CLOUD,
+                cost_tokens=0.0,
+                data={},
+            )

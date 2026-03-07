@@ -18,7 +18,7 @@ logger = logging.getLogger("api-gateway")
 
 # --- Keyword Dictionaries (avoid hardcode — centralized here for easy tuning) ---
 TARGET_KEYWORDS = {
-    "revenue": ["doanh thu", "doanh so", "bieu do", "tien", "dan so", "nhan so", "doanh tu"],
+    "revenue": ["doanh thu", "doanh so", "bieu do", "tien", "doanh tu"],
     "order":   ["don hang", "hoa don", "bill", "dau hang"],
     "product": ["san pham", "ton kho", "kho hang", "sang pham"],
     "user":    ["nguoi dung", "khach", "nhan vien", "tai khoan"],

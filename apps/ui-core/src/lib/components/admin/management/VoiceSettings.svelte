@@ -25,7 +25,7 @@
     selective_persistence: true,
     save_ai_responses: false,
     auto_purge_days: 30,
-    cache_limit: 10
+    cache_limit: 10,
   });
 
   let isLoading = $state(true);
@@ -44,8 +44,12 @@
     try {
       const [voice, over, stop] = await Promise.all([
         apiClient.get<any>("/api/v1/settings/voice").catch(() => null),
-        apiClient.get<any>("/api/v1/settings/lexicon/overrides").catch(() => null),
-        apiClient.get<any>("/api/v1/settings/lexicon/stopwords").catch(() => null)
+        apiClient
+          .get<any>("/api/v1/settings/lexicon/overrides")
+          .catch(() => null),
+        apiClient
+          .get<any>("/api/v1/settings/lexicon/stopwords")
+          .catch(() => null),
       ]);
 
       if (voice) {
@@ -54,10 +58,12 @@
         greetingTemplate = voice.greeting_template || "";
         farewellTemplate = voice.farewell_template || "";
         capabilities = voice.capabilities || [];
-        if (voice.chat_settings) chatSettings = { ...chatSettings, ...voice.chat_settings };
+        if (voice.chat_settings)
+          chatSettings = { ...chatSettings, ...voice.chat_settings };
       }
       if (over?.overrides) sttOverrides = over.overrides;
-      if (stop?.stopwords) sttStopwords = stop.stopwords.filter((w: string) => w?.trim());
+      if (stop?.stopwords)
+        sttStopwords = stop.stopwords.filter((w: string) => w?.trim());
     } finally {
       isLoading = false;
     }
@@ -66,7 +72,10 @@
   async function saveSettings() {
     isSaving = true;
     try {
-      const capMap = capabilities.reduce((acc, c) => ({ ...acc, [c.id]: c.active }), {});
+      const capMap = capabilities.reduce(
+        (acc, c) => ({ ...acc, [c.id]: c.active }),
+        {},
+      );
       const res = await apiClient.post<any>("/api/v1/settings/voice", {
         wake_words: wakeTriggers,
         sleep_words: sleepTriggers,
@@ -74,7 +83,7 @@
         farewell_template: farewellTemplate,
         capabilities: capMap,
         is_campaign_mode: nanobot.isCampaignMode,
-        chat_settings: chatSettings
+        chat_settings: chatSettings,
       });
 
       if (res?.status === "success" && res.data) {
@@ -85,10 +94,17 @@
           d.greeting_template,
           d.farewell_template,
           d.is_campaign_mode,
-          d.chat_settings
+          d.chat_settings,
         );
-        nanobot.addLog("Agent Capabilities Synchronized", "Nanobot-Core", "success");
-        nanobot.showToast("Cognitive Matrix committed successfully.", "success");
+        nanobot.addLog(
+          "Agent Capabilities Synchronized",
+          "Nanobot-Core",
+          "success",
+        );
+        nanobot.showToast(
+          "Cognitive Matrix committed successfully.",
+          "success",
+        );
       }
     } catch (e: any) {
       nanobot.showToast("Failed to synchronize. See Neural Logs.", "error");
@@ -98,48 +114,91 @@
   }
 </script>
 
-<div class="w-full h-full flex flex-col bg-[#020202] text-zinc-100 selection:bg-cyan-500/30 font-sans">
+<div
+  class="w-full h-full flex flex-col bg-[#020202] text-zinc-100 selection:bg-cyan-500/30 font-sans"
+>
   {#if isLoading}
     <div class="flex-1 flex flex-col items-center justify-center gap-8">
       <div class="relative">
-        <div class="w-24 h-24 border-2 border-cyan-500/5 border-t-cyan-400 rounded-full animate-spin"></div>
+        <div
+          class="w-24 h-24 border-2 border-cyan-500/5 border-t-cyan-400 rounded-full animate-spin"
+        ></div>
       </div>
-      <h2 class="text-xs font-mono text-cyan-400 uppercase tracking-[0.6em] animate-pulse">Initializing Neuro-Link</h2>
+      <h2
+        class="text-xs font-mono text-cyan-400 uppercase tracking-[0.6em] animate-pulse"
+      >
+        Initializing Neuro-Link
+      </h2>
     </div>
   {:else}
-    <header class="h-auto min-h-[5rem] lg:h-24 px-4 sm:px-8 lg:px-12 border-b border-white/5 flex flex-col lg:flex-row items-start lg:items-center justify-between bg-zinc-950/20 backdrop-blur-md gap-4 py-4 lg:py-0 z-50 sticky top-0">
-      <div class="flex items-center gap-6">
-        <div class="space-y-1">
-          <h1 class="text-xl lg:text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 to-zinc-600">AGENT COCKPIT</h1>
-          <div class="flex items-center gap-3">
-             <div class="flex items-center gap-2 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-                <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span class="text-[9px] font-mono text-emerald-500 uppercase tracking-widest text-nowrap">Neural Link Active</span>
-             </div>
+    <header
+      class="h-auto min-h-[3.5rem] lg:h-16 px-4 sm:px-6 lg:px-8 border-b border-white/5 flex flex-col lg:flex-row items-center justify-between bg-zinc-950/40 backdrop-blur-xl gap-4 py-2 lg:py-0 z-50 sticky top-0"
+    >
+      <div class="flex items-center gap-4">
+        <div class="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4">
+          <h1
+            class="text-lg lg:text-xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 to-zinc-500"
+          >
+            AGENT COCKPIT
+          </h1>
+          <div
+            class="flex items-center gap-2 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md"
+          >
+            <div
+              class="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"
+            ></div>
+            <span
+              class="text-[8px] font-mono text-emerald-500 uppercase tracking-widest"
+              >Neural Link Active</span
+            >
           </div>
         </div>
       </div>
 
-      <div class="flex items-center gap-4 w-full lg:w-auto justify-end">
-        <button onclick={saveSettings} disabled={isSaving} class="group relative h-10 lg:h-12 px-8 bg-cyan-600 hover:bg-cyan-500 text-black font-bold rounded-xl shadow-[0_0_20px_rgba(8,145,178,0.4)] transition-all disabled:opacity-50 flex items-center gap-3">
-          {#if isSaving} <RefreshCw size={16} class="animate-spin" />
-          {:else} <Save size={16} class="group-hover:scale-110 transition-transform" /> {/if}
-          <span class="text-xs uppercase tracking-[0.2em]">{isSaving ? 'Syncing...' : 'Commit Matrix'}</span>
+      <div class="flex items-center gap-3">
+        <button
+          onclick={saveSettings}
+          disabled={isSaving}
+          class="group relative h-9 lg:h-10 px-6 bg-cyan-600 hover:bg-cyan-500 text-black font-bold rounded-lg shadow-[0_0_15px_rgba(8,145,178,0.3)] transition-all disabled:opacity-50 flex items-center gap-2"
+        >
+          {#if isSaving}
+            <RefreshCw size={14} class="animate-spin" />
+          {:else}
+            <Save
+              size={14}
+              class="group-hover:scale-110 transition-transform"
+            />
+          {/if}
+          <span class="text-[10px] uppercase tracking-[0.15em] font-black"
+            >{isSaving ? "Syncing..." : "Commit Matrix"}</span
+          >
         </button>
       </div>
     </header>
 
     <main class="flex-1 flex flex-col lg:flex-row min-h-0">
-      <aside class="w-full lg:w-96 border-b lg:border-b-0 lg:border-r border-white/5 bg-zinc-950/20 overflow-y-auto custom-scrollbar flex flex-col p-6 sm:p-8 gap-12">
+      <aside
+        class="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-white/5 bg-zinc-950/20 overflow-y-auto custom-scrollbar flex flex-col p-4 sm:p-6 gap-8"
+      >
         <CapabilitiesGrid bind:capabilities />
         <SecurityFooter />
       </aside>
 
-      <section class="flex-1 overflow-y-auto custom-scrollbar bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.03),transparent_70%)] p-4 sm:p-8 lg:p-10">
-        <div class="max-w-7xl mx-auto space-y-10">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            <TriggersGrid bind:wakeTriggers bind:sleepTriggers onStartTraining={startTraining} />
-            <LexiconControl bind:sttOverrides bind:sttStopwords onStartTraining={startTraining} />
+      <section
+        class="flex-1 overflow-y-auto custom-scrollbar bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.03),transparent_70%)] p-4 sm:p-6 lg:p-8"
+      >
+        <div class="max-w-7xl mx-auto space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <TriggersGrid
+              bind:wakeTriggers
+              bind:sleepTriggers
+              onStartTraining={startTraining}
+            />
+            <LexiconControl
+              bind:sttOverrides
+              bind:sttStopwords
+              onStartTraining={startTraining}
+            />
           </div>
           <ChatPersistence bind:chatSettings />
           <NeuralIdentity bind:greetingTemplate bind:farewellTemplate />
@@ -150,5 +209,14 @@
 </div>
 
 <style>
-  @keyframes fadeScaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+  @keyframes fadeScaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 </style>

@@ -47,8 +47,9 @@ class RouterOrchestrator:
         
         # Load STT dictionary from Redis (persistent)
         redis_stt = await xohi_memory.get_stt_dictionary(user_id)
+        sys_stt = await xohi_memory.get_system_stt_overrides()
         mem_stt = ctx.get("stt_dictionary", {})
-        user_dict = {**redis_stt, **mem_stt}
+        user_dict = {**sys_stt, **redis_stt, **mem_stt}
         
         # --- PHASE 0.5: NEURAL WAKE TRIGGERS (CTO V1.9) ---
         DEFAULT_GREETING = user_profile.get("greeting_template", "Dạ, em nghe đây sếp.")
@@ -98,7 +99,7 @@ class RouterOrchestrator:
                     
                     # Persist to Redis (permanent) — survives container restarts
                     for wrong, right in suspected.items():
-                        await xohi_memory.learn_stt_correction(user_id, wrong, right)
+                        await stt_corrector.smart_learn(user_id, wrong, right)
                     
                     logger.info(f"[STT Learning] Memorized to Redis: {suspected}")
                     

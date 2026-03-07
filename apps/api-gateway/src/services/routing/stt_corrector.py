@@ -47,25 +47,131 @@ Các khái niệm có trong hệ thống:
 - Bài viết, tin tức, danh mục
 
 [QUY TẮC CỐT LÕI]
-1. NHẬN DIỆN LỖI PHÁT ÂM: STT Tiếng Việt hay sai những từ nghe giống nhau.
-   Ví dụ: 
-   - "dân số", "nhân số" -> sửa thành "doanh số"
-   - "giang sách xăng phẩm" -> sửa thành "danh sách sản phẩm"
-   - "đau hàng" -> sửa thành "đơn hàng"
-   - "báo cáo danh tu" -> sửa thành "báo cáo doanh thu"
+1. NHẬN DIỆN LỖI PHÁT ÂM: STT Tiếng Việt hay sai những từ nghe giống nhau trong ngữ cảnh bán hàng.
+   Ví dụ về các cặp từ dễ nhầm lẫn (Hãy nghi ngờ và đề xuất sửa):
+   - "dân số", "nhân số" -> "doanh số"
+   - "doanh tu" -> "doanh thu"
+   - "đau hàng" -> "đơn hàng"
+   - "sang phẩm" -> "sản phẩm"
    
-2. CHỈ SỬA LỖI, KHÔNG TRẢ LỜI: Nếu input là "doanh số tháng này bao nhiêu", output CHỈ LÀ "doanh số tháng này bao nhiêu". Không được thêm câu trả lời (kiểu "Doanh số là 10 triệu").
+2. CHỈ SỬA LỖI, KHÔNG TRẢ LỜI: Nếu input là "doanh số tháng này bao nhiêu", output CHỈ LÀ "doanh số tháng này bao nhiêu". Không được thêm câu trả lời.
 
 3. GIỮ NGUYÊN NẾU KHÔNG CÓ LỖI: Nếu câu nghe có vẻ đã đúng chuyên ngành, xuất lại y nguyên.
 
-5. TỪ ĐIỂN MẶC ĐỊNH TRANH CÃI (THƯỜNG NHẦM): 
-   - "dân số" -> LUÔN sửa thành "doanh số" (Đây là hệ thống bán lẻ, không có dân số).
-   - "doanh tu" -> LUÔN sửa thành "doanh thu".
+5. SỬ DỤNG TỪ ĐIỂN CỦA SẾP: Ưu tiên tuyệt đối các từ trong [USER_DICTIONARY_CONTEXT] nếu có.
 
-6. NẾU BẠN SỬA MỘT TỪ, và từ đó KHÔNG CÓ TRONG [USER_DICTIONARY_CONTEXT], hãy điền cặp từ đó vào trường `suspected_correction` để hệ thống hỏi lại người dùng.
+6. FLAG NGHI VẤN (QUAN TRỌNG): Nếu bạn sửa một từ/cụm từ mà bạn không chắc chắn 100%, hoặc nó KHÔNG CÓ TRONG [USER_DICTIONARY_CONTEXT], hãy điền cặp đó vào trường `suspected_correction`.
+   LƯU Ý: 
+   - Phải dùng CHÍNH XÁC từ xuất hiện trong INPUT cho phần từ sai (Ví dụ: Trả về {"dân số": "doanh số"} nếu input có chữ "dân số"). KHÔNG tự ý chế từ mới.
+   - Phải trả về ĐẦY ĐỦ CỤM TỪ CÓ NGHĨA (Ví dụ: "doanh số" thay vì chỉ "doanh"). 
+   Hệ thống sẽ dùng thông tin này để hỏi lại Sếp và tự học cho lần sau.
 
 7. TRẢ VỀ JSON: Kết quả bắt buộc dưới định dạng JSON theo schema đã chỉ định.
 """
+
+import numpy as np
+from ai_engine.core.encoder_singleton import get_shared_encoder
+
+class NeuralLocalCorrector:
+    """
+    T1.2 - Local Neural Sieve (2026 Viral Strategy).
+    Uses multilingual embeddings to match transcripts against learned 'wrong' words semantically.
+    """
+    def __init__(self):
+        self.encoder = None
+        self._embedding_cache = {} # { "wrong_phrase": vector }
+
+    async def _ensure_encoder(self):
+        if self.encoder is None:
+            loop = asyncio.get_event_loop()
+            self.encoder = await loop.run_in_executor(None, get_shared_encoder)
+
+    def _cosine_similarity(self, a, b):
+        return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+    async def correct(self, transcript: str, user_dict: Dict[str, str]) -> Tuple[str, float]:
+        """
+        Semantic match with Phonetic Sieve (2026 Optimization).
+        Skips embedding for windows that don't pass a lightweight fuzzy pre-filter.
+        """
+        if not user_dict:
+            return transcript, 0.0
+
+        await self._ensure_encoder()
+        loop = asyncio.get_event_loop()
+        
+        # 1. Update/Prune embedding cache (Neural Aging)
+        # Periodically prune unused synapses (> 100 entries or random chance)
+        if len(self._embedding_cache) > 200:
+            # Simple LRU: Keep only active keys
+            active_keys = set(user_dict.keys())
+            self._embedding_cache = {k: v for k, v in self._embedding_cache.items() if k in active_keys}
+
+        sorted_keys = sorted(user_dict.keys(), key=len, reverse=True)
+        new_keys = [k for k in sorted_keys if k not in self._embedding_cache]
+        if new_keys:
+            try:
+                embeddings = await loop.run_in_executor(None, lambda: list(self.encoder.embed(new_keys)))
+                for k, v in zip(new_keys, embeddings):
+                    self._embedding_cache[k] = v
+            except Exception as e:
+                logger.error(f"[Neural Local] Embedding failed: {e}")
+                return transcript, 0.0
+
+        current_text = transcript
+        words = transcript.split()
+        max_total_score = 0.0
+        applied_corrections = False
+        hit_keys = set()
+
+        # 2. Sliding window (up to 3 words)
+        for n in range(min(3, len(words)), 0, -1):
+            for i in range(len(words) - n + 1):
+                window = " ".join(words[i : i + n])
+                if not window.strip(): continue
+                
+                # --- PHONETIC SIEVE (2026 Optimization) ---
+                # Only embed if window "sounds like" at least one key
+                potential_keys = []
+                for key in sorted_keys:
+                    # Quick length filter
+                    if abs(len(key.split()) - n) > 1: continue
+                    # Phonetic similarity (Levenshtein based)
+                    # For short words, we use a lower threshold (40%) to avoid missing hits
+                    thresh = 40 if len(normalize_vn(window)) < 5 else 60
+                    if fuzz.ratio(normalize_vn(window), normalize_vn(key)) >= thresh:
+                        potential_keys.append(key)
+                
+                if not potential_keys:
+                    continue # Skip expensive embedding
+
+                # Embed window ONLY for candidates
+                try:
+                    window_vec = (await loop.run_in_executor(None, lambda: list(self.encoder.embed([window]))))[0]
+                except Exception: continue
+                
+                for key in potential_keys:
+                    key_vec = self._embedding_cache[key]
+                    score = self._cosine_similarity(window_vec, key_vec)
+                    fuzzy_score = fuzz.ratio(normalize_vn(window), normalize_vn(key))
+                    
+                    if score >= 0.75 or fuzzy_score >= 80:
+                        replacement = user_dict[key]
+                        if window in current_text:
+                            current_text = current_text.replace(window, replacement)
+                            applied_corrections = True
+                            hit_keys.add(key)
+                        
+                        composite_score = max(score, fuzzy_score / 100.0)
+                        max_total_score = max(max_total_score, composite_score)
+                        logger.debug(f"[Neural Local] HIT: '{window}' ~ '{key}' (sem={score:.2f}, fuzz={fuzzy_score}%)")
+        
+        # 3. Frequency Tracking (Async heartbeat)
+        if applied_corrections:
+            for k in hit_keys:
+                asyncio.create_task(xohi_memory.increment_stt_usage(k))
+        
+        return current_text, (max_total_score if applied_corrections else 0.0)
 
 class STTCorrector:
     """
@@ -75,12 +181,9 @@ class STTCorrector:
     def __init__(self):
         import json as _json
         # Kill GOOGLE_API_KEY immediately — LiteLLM prefers it over GEMINI_API_KEY
-        # but the .env GOOGLE_API_KEY is stale/broken (403). Must pop BEFORE Agent init.
         os.environ.pop("GOOGLE_API_KEY", None)
-        # Always prioritize fastest/cheapest model for pre-processing.
-        self.primary_model = os.getenv("TIER2_MODEL", "gemini-2.5-flash")
-        self.fallback_model = os.getenv("TIER2_FALLBACK_MODEL", "gemini-2.5-flash")
         self.rotator = SmartKeyRotator()
+        self.neural_corrector = NeuralLocalCorrector()
         
         self.agent = Agent(
             deps_type=STTCorrectorDeps,
@@ -88,144 +191,118 @@ class STTCorrector:
             system_prompt=STT_CORRECTOR_PROMPT
         )
         
-        # Register dynamic prompt AFTER agent is created
         @self.agent.system_prompt
         def inject_user_dict(ctx: RunContext[STTCorrectorDeps]) -> str:
             if ctx.deps.user_dictionary:
                 return f"\n[USER_DICTIONARY_CONTEXT]\n{_json.dumps(ctx.deps.user_dictionary, ensure_ascii=False)}"
             return "\n[USER_DICTIONARY_CONTEXT]\n{}"
 
+    async def _ensure_aging_task(self):
+        """Lazy start for Neural Aging background task."""
+        if not hasattr(self, "_aging_task") or self._aging_task is None or self._aging_task.done():
+            try:
+                self._aging_task = asyncio.create_task(self._neural_aging_loop())
+            except RuntimeError:
+                pass # Still no loop (unit tests?)
+
+    async def _neural_aging_loop(self):
+        """Periodic background pruning of old/unused synapses."""
+        while True:
+            await asyncio.sleep(3600) # Every hour
+            try:
+                await xohi_memory.prune_stt_overrides(max_size=300)
+            except Exception: pass
+
+    async def smart_learn(self, user_id: str, wrong: str, right: str, is_global: bool = True):
+        """
+        Smart Learning (2026 Thinking):
+        Consolidates mistakes if they are semantically identical to a known one.
+        """
+        from src.utils.text import normalize_vn
+        norm_wrong = normalize_vn(wrong.strip())
+        
+        # 1. Look up existing overrides
+        overrides = await xohi_memory.get_system_stt_overrides() if is_global else await xohi_memory.get_stt_dictionary(user_id)
+        
+        # 2. Check for semantic dups
+        if norm_wrong in overrides:
+            return # Already exactly known
+            
+        # 3. Use Neural Corrector to see if we "already know" this mistake pattern
+        # If score is very high (>= 0.95), it's just a slight spelling variation of a known wrong word.
+        # We don't add a new entry, we just increment usage of the "root" mistake.
+        await self.neural_corrector._ensure_encoder()
+        loop = asyncio.get_event_loop()
+        try:
+            w_vec = (await loop.run_in_executor(None, lambda: list(self.neural_corrector.encoder.embed([norm_wrong]))))[0]
+            for existing_wrong, existing_right in overrides.items():
+                if existing_right == right:
+                    # Same correction target, check if mistake is similar
+                    e_vec = self.neural_corrector._embedding_cache.get(existing_wrong)
+                    if e_vec is not None:
+                        score = self.neural_corrector._cosine_similarity(w_vec, e_vec)
+                        if score >= 0.95:
+                            logger.info(f"[Neural Thinker] Consolidated '{norm_wrong}' into existing root '{existing_wrong}'")
+                            await xohi_memory.increment_stt_usage(existing_wrong, is_global)
+                            return
+        except Exception: pass
+
+        # 4. If not consolidated, learn normally
+        await xohi_memory.learn_stt_correction(user_id, wrong, right, is_global)
+
     async def correct(self, transcript: str, user_dictionary: Optional[Dict[str, str]] = None) -> Tuple[str, Optional[Dict[str, str]]]:
         """
         Takes raw STT transcript, returns (cleaned transcript, suspected_corrections).
-        Optimized flow: Local Memory -> Global Patterns -> Clear Check -> LLM Fallback.
+        Flow: Normalize -> Stopwords -> Neural Local -> Global Patterns -> Trinity Fallback.
         """
-        # 0. NORMALIZE (NFC for Vietnamese consistency)
+        # 0. Background tasks
+        await self._ensure_aging_task()
+
+        # 0. NORMALIZE
         transcript = unicodedata.normalize('NFC', transcript.strip())
-        norm_trans = transcript.lower()
-        if not norm_trans:
-            return "", None
-        # 0.5 LEXICON STOPWORDS FILTERING (Sub-1ms)
-        # Strip out redundant thán từ, đại từ (à, ừm, nhé, dạ, thưa,...)
+        if not transcript: return "", None
+
+        # 0.5 STOPWORDS
         stopwords = await xohi_memory.get_system_stt_stopwords()
         if stopwords:
+            norm_stopwords = {normalize_vn(sw) for sw in stopwords}
             words = transcript.split()
-            filtered_words = [w for w in words if normalize_vn(w.lower()) not in stopwords]
+            filtered_words = [w for w in words if normalize_vn(w.lower()) not in norm_stopwords]
             transcript = " ".join(filtered_words)
-            norm_trans = transcript.lower()
-            if not norm_trans:
-                return "", None
+            if not transcript: return "", None
 
-        # Inject system overrides first to avoid LLM trip for known bad words
-        # CTO Point: Fetched dynamically from Redis via xohi_memory
+        # 1. NEURAL LOCAL CORRECTION (Sub-20ms)
+        # 2026 Strategy: Use local embeddings to bypass cloud
         system_overrides = await xohi_memory.get_system_stt_overrides()
         effective_dict = {**system_overrides, **(user_dictionary or {})}
+        
+        neural_cleaned, score = await self.neural_corrector.correct(transcript, effective_dict)
+        if score >= 0.70:
+            logger.info(f"[STT Corrector] Neural HIT (score={score:.2f}): '{neural_cleaned}'")
+            return neural_cleaned, None
 
-        # 1. SEMANTIC BYPASS (LOCAL-FIRST) (Sub-5ms)
-        # Check learned vocabulary first. If 'dân số' -> 'doanh số' is in memory, fix it now.
-        local_cleaned, score = self.local_correct(transcript, effective_dict)
-        if score >= 90:
-            logger.debug(f"[STT Corrector] Local Memory HIT (score={score:.1f}): '{local_cleaned}'")
-            # Continue to check patterns with the CLEANED text
-            transcript = local_cleaned
-            norm_trans = transcript.lower()
-
-        # 2. GLOBAL PATTERN BYPASS (Sub-1ms)
-        # Common navigation / session commands that don't need AI.
-        # CTO R2.1: Normalized-only patterns for simplicity
+        # 2. PATTERN BYPASS
         NAV_PATTERNS = [
-            "mo bieu do", "xem bieu do",
-            "doanh so thang nay", "doanh thu hom nay", 
-            "xem don hang", "danh sach san pham",
-            "ok", "dung", "vang", "phai", "thoat", "cut", "chao xohi", "tam biet"
+            "mo bieu do", "xem bieu do", "doanh so thang nay", "doanh thu hom nay", 
+            "xem don hang", "danh sach san pham", "ok", "dung", "vang", "phai", "thoat"
         ]
-        
-        normalized_query = normalize_vn(transcript)
-        
-        if normalized_query in NAV_PATTERNS or (len(normalized_query.split()) <= 2 and len(normalized_query) < 15):
-            logger.debug(f"[STT Corrector] Pattern/Short Bypass HIT: '{transcript}'")
+        norm_query = normalize_vn(transcript)
+        if norm_query in NAV_PATTERNS or (len(norm_query.split()) <= 2 and len(norm_query) < 15):
             return transcript, None
 
-        # 3. CORE KEYWORD "CLEAR" CHECK (Sub-1ms)
-        # If it contains core keywords and isn't caught by memory, it's likely already correct.
-        CLEAR_KEYWORDS = ["doanh so", "doanh thu", "don hang", "san pham", "bieu do"]
-        if any(kw in normalized_query for kw in CLEAR_KEYWORDS):
-            logger.debug(f"[STT Corrector] Clear Check HIT: '{transcript}'")
+        # 3. CLEAR CHECK
+        if any(kw in norm_query for kw in ["doanh so", "doanh thu", "don hang", "san pham"]):
             return transcript, None
 
-        # 4. LLM FALLBACK (The expensive 2-4s path)
-        all_keys = self.rotator.get_all_keys()
-        max_tries = min(len(all_keys), 2)
-        model_names = [self.primary_model, self.fallback_model]
+        # 4. TRINITY DISPATCHER (Cloud Fallback)
+        from ai_engine.core.trinity_bridge import trinity_bridge
         deps = STTCorrectorDeps(user_dictionary=user_dictionary or {})
 
-        from pydantic_ai.models.google import GoogleModel
-        from pydantic_ai.providers.google import GoogleProvider
-
-        for model_name in model_names:
-            for attempt in range(max_tries):
-                api_key = self.rotator.get_next_key()
-                # Local env update is fast
-                os.environ["GEMINI_API_KEY"] = api_key
-                os.environ.pop("GOOGLE_API_KEY", None)
-                
-                try:
-                    provider = GoogleProvider(api_key=api_key)
-                    model_instance = GoogleModel(model_name, provider=provider)
-                    result = await self.agent.run(transcript, model=model_instance, deps=deps)
-                    
-                    logger.debug(f"[STT Corrector] Cleaned: '{transcript}' -> '{result.output.cleaned_text}' | Suspect: {result.output.suspected_correction}")
-                    return result.output.cleaned_text, result.output.suspected_correction
-
-                except (ServiceUnavailableError, RateLimitError, LiteLLMTimeout, AuthenticationError, NotFoundError) as e:
-                    logger.warning(f"[STT Corrector] {model_name} attempt {attempt+1} failed ({type(e).__name__}). Rotating...")
-                    if attempt < max_tries - 1:
-                        await asyncio.sleep(0.3 * (attempt + 1))
-                    continue
-                except Exception as e:
-                    logger.warning(f"[STT Corrector] Unexpected error: {e}. Returning raw.")
-                    return transcript, None
-
-        # Absolute Fallback: LLM completely dead, just return raw
-        logger.warning(f"[STT Corrector] Exhausted keys/models. Falling back to raw STT: '{transcript}'")
-        return transcript, None
-
-# Provide singleton instance
-    def local_correct(self, transcript: str, user_dict: Dict[str, str]) -> Tuple[str, float]:
-        """
-        Attempts to fix transcript using high-confidence fuzzy matching against learned vocabulary.
-        Supports multi-word phrase matching via sliding window.
-        Returns (output_text, max_confidence_score).
-        """
-        if not user_dict:
-            return transcript, 0.0
-            
-        current_text = transcript
-        max_score = 0.0
-        
-        # Sort keys by length (descending) to match longer phrases first
-        sorted_keys = sorted(user_dict.keys(), key=len, reverse=True)
-        
-        for key in sorted_keys:
-            # We use a sliding window approach for phrases
-            key_word_count = len(key.split())
-            transcript_words = current_text.split()
-            
-            for i in range(len(transcript_words) - key_word_count + 1):
-                window = " ".join(transcript_words[i : i + key_word_count])
-                # Normalize both for comparison
-                norm_window = normalize_vn(window)
-                norm_key = normalize_vn(key)
-                
-                score = fuzz.ratio(norm_window, norm_key)
-                
-                if score >= 90:
-                    replacement = user_dict[key]
-                    if replacement not in current_text:
-                        current_text = current_text.replace(window, replacement)
-                    max_score = max(max_score, score)
-                    logger.debug(f"[STT Local] Match: '{window}' -> '{replacement}' (score={score:.1f})")
-                    
-        return current_text, max_score
+        try:
+            result = await trinity_bridge.run(self.agent, transcript, deps=deps)
+            return result.output.cleaned_text, result.output.suspected_correction
+        except Exception as e:
+            logger.error(f"[STT Corrector] Trinity failure: {e}")
+            return transcript, None
 
 stt_corrector = STTCorrector()

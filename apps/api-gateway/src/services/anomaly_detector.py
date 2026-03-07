@@ -58,6 +58,20 @@ class AnomalyDetector:
         except Exception as e:
             logger.warning(f"[AnomalyDetector] revenue check failed: {e}")
 
+        try:
+            latency_alert = await self._check_ai_latency(session, tenant_id)
+            if latency_alert:
+                alerts.append(latency_alert)
+        except Exception as e:
+            logger.warning(f"[AnomalyDetector] ai_latency check failed: {e}")
+
+        try:
+            pool_alert = await self._check_db_pool(session)
+            if pool_alert:
+                alerts.append(pool_alert)
+        except Exception as e:
+            logger.warning(f"[AnomalyDetector] db_pool check failed: {e}")
+
         if alerts:
             await self._persist_alerts(session, alerts, tenant_id)
             logger.info(f"[AnomalyDetector] {len(alerts)} anomalies detected and persisted.")
@@ -65,6 +79,48 @@ class AnomalyDetector:
             logger.debug("[AnomalyDetector] Scan complete — no anomalies.")
 
         return alerts
+
+    async def _check_ai_latency(self, session: AsyncSession, tenant_id: str) -> Dict[str, Any] | None:
+        """Check if recent AI response latencies are spiking using telemetry logs."""
+        # AgentTelemetryLog has duration_ms and tenant_id
+        avg_latency = await session.scalar(
+            text("""
+                SELECT AVG(duration_ms) 
+                FROM agent_telemetry_logs 
+                WHERE tenant_id = :tid 
+                AND created_at > NOW() - interval '30 minutes'
+            """),
+            {"tid": tenant_id}
+        ) or 0
+
+        if avg_latency > 5000: # Spike above 5s
+            return {
+                "type": "ai_latency_spike",
+                "severity": "WARNING",
+                "message": f"⚡ Độ trễ AI đang tăng cao: Trung bình {avg_latency:.0f}ms trong 30p qua.",
+                "data": {"avg_latency": avg_latency}
+            }
+        return None
+
+    async def _check_db_pool(self, session: AsyncSession) -> Dict[str, Any] | None:
+        """Check SQLAlchemy connection pool utilization."""
+        # SQLAlchemy engine pool stats
+        engine = session.bind
+        if hasattr(engine, "pool"):
+            pool = engine.pool
+            checkedin = pool.checkedin()
+            checkedout = pool.checkedout()
+            size = pool.size()
+            
+            # If checked out is near size
+            if size > 0 and checkedout > size * 0.8:
+                return {
+                    "type": "db_pool_near_capacity",
+                    "severity": "CRITICAL",
+                    "message": f"🔥 Database Connection Pool gần cạn: {checkedout}/{size} đang sử dụng.",
+                    "data": {"checkedout": checkedout, "size": size}
+                }
+        return None
 
     async def _check_cancelled_orders(self, session: AsyncSession, tenant_id: str) -> Dict[str, Any] | None:
         """Compare cancelled orders last 1h vs 7-day hourly average."""
@@ -177,21 +233,16 @@ class AnomalyDetector:
     async def _persist_alerts(self, session: AsyncSession, alerts: List[Dict], tenant_id: str):
         """Create Notification records for detected anomalies (with dedup)."""
         for alert in alerts:
-            # DEBT-4 fix: skip if same alert type already exists in last hour
             # DEBT-4 fix: platform-agnostic interval logic
-            is_postgres = "postgresql" in str(session.bind.url)
-            if is_postgres:
-                interval_clause = "created_at > NOW() - interval '1 hour'"
-            else:
-                interval_clause = "created_at > datetime('now', '-1 hour')"
+            since = datetime.now(timezone.utc) - timedelta(hours=1)
                 
             existing = await session.scalar(
                 text(f"""
                     SELECT COUNT(*) FROM notifications
                     WHERE tenant_id = :tid AND message = :msg
-                    AND {interval_clause}
+                    AND created_at > :since
                 """),
-                {"tid": tenant_id, "msg": alert["message"]}
+                {"tid": tenant_id, "msg": alert["message"], "since": since}
             ) or 0
 
             if existing > 0:
@@ -201,13 +252,14 @@ class AnomalyDetector:
             await session.execute(
                 text("""
                     INSERT INTO notifications (id, type, message, is_read, tenant_id, created_at, updated_at)
-                    VALUES (:id, :type, :msg, false, :tid, NOW(), NOW())
+                    VALUES (:id, :type, :msg, false, :tid, :now, :now)
                 """),
                 {
                     "id": str(uuid.uuid4()),
                     "type": alert["severity"],
                     "msg": alert["message"],
-                    "tid": tenant_id
+                    "tid": tenant_id,
+                    "now": datetime.now(timezone.utc)
                 }
             )
         await session.commit()

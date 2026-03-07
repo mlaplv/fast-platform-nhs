@@ -41,7 +41,7 @@ class Tier2Deps:
     screen_context: Optional[dict] = None
     rotator: Optional[SmartKeyRotator] = None
 
-T2_SYSTEM_PROMPT = """[ROLE] TRỢ LÝ ĐIỀU PHỐI CẤP CAO (CORE DISPATCHER) — admin.smartshop.test
+T2_SYSTEM_PROMPT = f"""[ROLE] TRỢ LÝ ĐIỀU PHỐI CẤP CAO (CORE DISPATCHER) — {os.getenv('PUBLIC_SSOT_ADMIN_URL', 'admin.smartshop.test')}
 
 Ngươi là bộ não phân luồng đầu tiên của XoHi - Trợ lý quản trị viên.
 
@@ -108,69 +108,43 @@ class Tier2CloudRouter:
                 if msg.get("role") != "system":
                     history.append(msg)
         
-        all_keys = self.rotator.get_all_keys()
-        max_tries = min(len(all_keys), 3)
-        model_names = [self.primary_model_name, self.fallback_model_name]
-        
+        # [TRINITY DISPATCHER] Waterfall logic decoupled
+        from ai_engine.core.trinity_bridge import trinity_bridge
         deps = Tier2Deps(screen_context=screen_context, rotator=self.rotator)
 
-        for model_name in model_names:
-            for attempt in range(max_tries):
-                api_key = self.rotator.get_next_key()
-                os.environ["GEMINI_API_KEY"] = api_key
-                os.environ.pop("GOOGLE_API_KEY", None) # R1.4 SSOT: Prevent LiteLLM conflict
-                
-                try:
-                    from pydantic_ai.models.google import GoogleModel
-                    from pydantic_ai.providers.google import GoogleProvider
-                    
-                    provider = GoogleProvider(api_key=api_key)
-                    model_instance = GoogleModel(model_name, provider=provider)
-                    result = await self.agent.run(
-                        transcript,
-                        message_history=history,
-                        model=model_instance,
-                        deps=deps
-                    )
-                    
-                    output: Tier2Output = result.output
-                    action_map = {
-                        "UI_NAV": IntentAction.READ, 
-                        "DATA_QUERY": IntentAction.COUNT, 
-                        "DEEP_ANALYSIS": IntentAction.ANALYZE, 
-                        "UNKNOWN": IntentAction.READ
-                    }
-                    action = action_map.get(output.intent_type, IntentAction.READ)
+        try:
+            result = await trinity_bridge.run(
+                self.agent, 
+                transcript, 
+                deps=deps, 
+                message_history=history
+            )
+            
+            output: Tier2Output = result.output
+            action_map = {
+                "UI_NAV": IntentAction.READ, 
+                "DATA_QUERY": IntentAction.COUNT, 
+                "DEEP_ANALYSIS": IntentAction.ANALYZE, 
+                "UNKNOWN": IntentAction.READ
+            }
+            action = action_map.get(output.intent_type, IntentAction.READ)
 
-                    return IntentResponse(
-                        status="success", 
-                        action=action, 
-                        message="", 
-                        router_tier=RouterTier.TIER_2_SEMANTIC, 
-                        cost_tokens=0.0, 
-                        data={
-                            "intent_type": output.intent_type, 
-                            "ui_action": output.widget_id, 
-                            "target": output.target, 
-                            "timeframe": output.timeframe, 
-                            "widget_id": output.widget_id, 
-                            "status": output.status,
-                            # Signal frontend to end conversation on navigation
-                            **({"category": "SESSION_CTRL", "action": "HARDWARE_SLEEP"} if output.intent_type == "UI_NAV" else {})
-                        }
-                    )
-                except (ServiceUnavailableError, RateLimitError, LiteLLMTimeout, AuthenticationError) as e:
-                    logger.warning(f"[T2 Dispatcher] {model_name} attempt {attempt+1} failed ({type(e).__name__}). Rotating...")
-                    if attempt < max_tries - 1:
-                        await asyncio.sleep(1.0 * (attempt + 1))
-                    continue
-                except Exception as e:
-                    if "API key not valid" in str(e) or "400" in str(e) or "API_KEY_INVALID" in str(e):
-                        logger.warning(f"[T2 Dispatcher] {model_name} invalid API key (400) on attempt {attempt+1}. Rotating...")
-                        continue
-                    logger.error(f"[T2 Dispatcher] Critical error: {e}")
-                    raise e
-
-            logger.warning(f"[T2 Dispatcher] {model_name} exhausted {max_tries} keys. Falling back...")
-
-        return None
+            return IntentResponse(
+                status="success", 
+                action=action, 
+                message="", 
+                router_tier=RouterTier.TIER_2_SEMANTIC, 
+                cost_tokens=0.0, 
+                data={
+                    "intent_type": output.intent_type, 
+                    "ui_action": output.widget_id, 
+                    "target": output.target, 
+                    "timeframe": output.timeframe, 
+                    "widget_id": output.widget_id, 
+                    "status": output.status,
+                    **({"category": "SESSION_CTRL", "action": "HARDWARE_SLEEP"} if output.intent_type == "UI_NAV" else {})
+                }
+            )
+        except Exception as e:
+            logger.error(f"[T2 Dispatcher] Trinity failure: {e}")
+            return None

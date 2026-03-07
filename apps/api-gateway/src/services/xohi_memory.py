@@ -88,19 +88,92 @@ class XoHiMemory:
 
         return self._fallback_cache.get(f"stt:{user_id}", {})
 
-    async def learn_stt_correction(self, user_id: str, wrong: str, right: str):
-        """Permanently store a learned STT correction."""
-        key = f"xohi:stt:{user_id}"
+    async def learn_stt_correction(self, user_id: str, wrong: str, right: str, is_global: bool = True):
+        """Permanently store a learned STT correction (normalized) with metadata."""
+        from src.utils.text import normalize_vn
+        import time
+        norm_wrong = normalize_vn(wrong.strip())
+        
+        # Determine target key
+        key = "system:stt_overrides" if is_global else f"xohi:stt:{user_id}"
+        meta_key = f"{key}:meta"
+        
         try:
-            await self.client.hset(key, wrong, right)
-            logger.info(f"[XoHiMemory] Learned: '{wrong}' → '{right}' for {user_id}")
+            # Update mapping
+            await self.client.hset(key, norm_wrong, right.strip())
+            
+            # Update metadata (Neural Synapse)
+            meta_raw = await self.client.hget(meta_key, norm_wrong)
+            meta = json.loads(meta_raw) if meta_raw else {"count": 0, "created_at": time.time()}
+            meta["count"] += 1
+            meta["last_used"] = time.time()
+            await self.client.hset(meta_key, norm_wrong, json.dumps(meta))
+            
+            logger.info(f"[XoHiMemory] Learned {'GLOBAL' if is_global else 'USER'}: '{norm_wrong}' → '{right}' (uses={meta['count']})")
         except Exception as e:
-            logger.debug(f"[XoHiMemory] Redis hset failed: {e}")
+            logger.debug(f"[XoHiMemory] Redis hash set failed: {e}")
 
-        # Also update fallback
-        if f"stt:{user_id}" not in self._fallback_cache:
-            self._fallback_cache[f"stt:{user_id}"] = {}
-        self._fallback_cache[f"stt:{user_id}"][wrong] = right
+        # Update fallback
+        self._fallback_cache[key] = self._fallback_cache.get(key, {})
+        self._fallback_cache[key][norm_wrong] = right
+
+    async def increment_stt_usage(self, wrong_word: str, is_global: bool = True):
+        """Neural Aging: Increment usage count and update timestamp."""
+        import time
+        key = "system:stt_overrides" if is_global else "xohi:stt:default" # Simplified
+        meta_key = f"{key}:meta"
+        try:
+            meta_raw = await self.client.hget(meta_key, wrong_word)
+            if meta_raw:
+                meta = json.loads(meta_raw)
+                meta["count"] += 1
+                meta["last_used"] = time.time()
+                await self.client.hset(meta_key, wrong_word, json.dumps(meta))
+        except Exception: pass
+
+    async def get_stt_metadata(self, is_global: bool = True) -> Dict[str, dict]:
+        """Fetch all metadata for pruning analysis."""
+        key = "system:stt_overrides" if is_global else "xohi:stt:default"
+        meta_key = f"{key}:meta"
+        try:
+            data = await self.client.hgetall(meta_key)
+            if data:
+                return {k: json.loads(v) for k, v in data.items()}
+        except Exception: pass
+        return {}
+
+    async def prune_stt_overrides(self, max_size: int = 500, is_global: bool = True):
+        """Neural Pruning: Remove low-utility synapses to keep memory lean."""
+        import time
+        key = "system:stt_overrides" if is_global else "xohi:stt:default"
+        meta_key = f"{key}:meta"
+        
+        try:
+            metadata = await self.get_stt_metadata(is_global)
+            if len(metadata) <= max_size:
+                return
+            
+            # Sort by utility: (count * intensity) / age
+            now = time.time()
+            # We'll just sort by last_used and count for simplicity (Lightweight)
+            # Bottom 20% or those exceeding limit
+            items = sorted(
+                metadata.items(), 
+                key=lambda x: (x[1].get("count", 1), x[1].get("last_used", 0))
+            )
+            
+            to_remove = [k for k, v in items[:len(metadata) - max_size]]
+            if to_remove:
+                await self.client.hdel(key, *to_remove)
+                await self.client.hdel(meta_key, *to_remove)
+                logger.info(f"[XoHiMemory] Pruned {len(to_remove)} obsolete STT synapses.")
+                
+                # Update fallback
+                if key in self._fallback_cache:
+                    for k in to_remove:
+                        self._fallback_cache[key].pop(k, None)
+        except Exception as e:
+            logger.warning(f"[XoHiMemory] Pruning failed: {e}")
 
     # ═══════════════════════════════════════════════════════
     # VOICE PROFILE: wake_words, sleep_words, capabilities

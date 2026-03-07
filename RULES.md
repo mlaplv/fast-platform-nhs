@@ -123,6 +123,14 @@ let volume = $state(0); // MỖI FRAME gây re-render
 - ✅ Quy trình: Controller Lưu DB → Emit Event → Trả kết quả ngay (UI mượt). `XoHiResponder` sẽ lắng nghe và xử lý phần còn lại.
 - ✅ Lý do: Giảm Latency cho người dùng cuối từ ~500ms xuống < 50ms.
 
+### 1.14 Neural Local Intelligence (V61.1 - Viral 2026 Strategy)
+
+- ❌ CẤM phụ thuộc 100% vào Cloud LLM cho việc sửa lỗi STT/Chính tả sau khi sếp đã "dạy" hệ thống.
+- ✅ BẮT BUỘC dùng `NeuralLocalCorrector` (Local AI) với shared encoder singleton để thực hiện **"Sàng lọc Thần kinh" (Neural Sieve)**.
+- ✅ Giao thức Hybrid (V61.1): Kết hợp **Phonetic Sieve (N-gram < 2ms)** để lọc nhanh trước khi dùng **Semantic Similarity (Cosine >= 0.75)**.
+- ✅ Neural Thinking: BẮT BUỘC dùng **Smart Consolidation** (gộp các lỗi tương đồng về ngữ nghĩa) và **Neural Aging** (tự động xóa synaptic cũ/không dùng) để giữ dictionary luôn tinh gọn.
+- ✅ Bypass Policy: Nếu local hit score >= 0.70 -> Trả kết quả ngay sau **10ms**, hoàn toàn bypass Gemini STT Pre-processor.
+
 ---
 
 ## II. HỆ TRỤC TÁC NHÂN — C.O.R.E ROUTING PROTOCOL
@@ -206,8 +214,9 @@ graph TD
 intent.py (Gateway)
   └─ Orchestrator (Classify)
        ├─ Phase 0: Redis STT Pre-processing & Inline Wake/Sleep Check (0ms)
+       ├─ Phase 1.2: Neural Local Corrector (Semantic + Phonetic Hybrid) -> Bypass Cloud AI
        ├─ Tier 1.5: Semantic Router (Cosine Similarity Embedding) -> Bypass T2
-       └─ Tier 2: PydanticAI Agent Dispatcher (tier2_cloud.py) -> Type-Safe JSON
+       └─ Trinity Bridge: Centralized Waterfall (2.5-pro -> 1.5-flash) with Health Tracking
   └─ SKILL GUARD (Constitutional Gate)
   └─ Orchestrator (Execute)
        ├─ Trinity Loop: Injector (SQLAlchemy) -> Refiner (tier2_refiner.py)
@@ -310,14 +319,19 @@ Hệ thống BẮT BUỘC tuân thủ cơ chế **"Local-First, AI-Last"** để
     - BẮT BUỘC chạy `local_correct` (Learned Memory) và `NAV_PATTERNS` check trước khi khởi tạo LLM.
     - Cấu trúc: So khớp memory trước -> Sửa lỗi STT -> Check pattern điều hướng (mở biểu đồ, cút, thoát).
     - Nếu khớp -> **Trả kết quả ngay lập tức, bỏ qua hoàn toàn AI STT**.
-3.  **Lớp Tự Học (Interaction Loop)**:
+3.  **Lớp Neural Local (Phễu lọc 2026 - Sub-10ms)**:
+    - BẮT BUỘC chạy `NeuralLocalCorrector` sử dụng local embeddings.
+    - **Phonetic Sieve**: Lọc nhanh bằng N-gram trước khi Analyze sâu (Bypass 90% CPU load).
+    - **Smart Consolidation**: Tự động gộp các lỗi đánh máy tương đồng (nhan so, nhan sô -> dân số).
+    - Nếu khớp (Hybrid Score >= 0.70) -> **Bypass hoàn toàn Cloud LLM**.
+4.  **Lớp Tự Học (Interaction Loop)**:
     - Nếu AI không chắc chắn (`suspected_correction`), BẮT BUỘC dừng luồng `execute`, chuyển sang trạng thái chờ xác nhận (`is_confirming_stt = True`).
-    - Khi nhận "Phải / OK / Đúng", BẮT BUỘC ghi vĩnh viễn vào `stt_dictionary`.
-4.  **Lớp Parallel Data Injection (Execute Phase)**:
-    - Trong `data_injector.py`, các lời gọi DB aggregation (Daily/Monthly/Yearly/Quarterly) BẮT BUỘC dùng `asyncio.gather` để chạy song song.
-    - Lý do: Giảm latency từ ~800ms xuống < 200ms cho các dashboard phức tạp.
-5.  **Lớp Fast Refiner (Bypass 2)**:
-    - Với các câu trả lời số liệu đơn giản (INT/FLOAT), BẮT BUỘC dùng Template tĩnh tiếng Việt kèm Modality Log Prefix (`[c]` / `[v]`).
+    - Khi nhận "Phải / OK / Đúng", BẮT BUỘC ghi vĩnh viễn vào `stt_dictionary` (Redis).
+5.  **Lớp Trinity Bridge (Resilien Cloud)**:
+    - Mọi lời gọi LLM Cloud phải đi qua `TrinityModelBridge`.
+    - **Health Map**: Tự động cách ly API Key/Model bị 429 hoặc lỗi trong thời gian Cooldown.
+    - **Predictive Selection**: Ưu tiên Key/Model thành công gần nhất để đạt phản hồi "không râu ria".
+6.  **Lớp Parallel Data Injection (Execute Phase)**:
 
 ### 2.8 Bản đồ Thư mục (Thực tế V55.0)
 
@@ -1483,36 +1497,43 @@ DesktopLayout (flex h-screen)
 > **Mục tiêu:** Đạt tốc độ phản hồi < 100ms cho mọi module hội thoại và tối ưu hoá RAM/Storage trên hạ tầng yếu (2GB RAM).
 
 ### R72 – Identity Bypass (Zero-DB Auth)
+
 - ❌ CẤM truy vấn `users` table chỉ để lấy `user_id` trong mỗi request từ AuthMiddleware.
 - ✅ BẮT BUỘC nhồi trường `id` vào JWT Payload lúc Login.
 - ✅ Backend Controller truy xuất thẳng qua `scope.state.user_id` (với Litestar) hoặc `request.state.user_id`.
 
 ### R73 – Redis-Last-10 (Hybrid Cache Protocol)
+
 - ❌ CẤM đọc Database cho 10 tin nhắn hội thoại gần nhất.
 - ✅ BẮT BUỘC dùng Redis List (`LPUSH` + `LTRIM 10`) lưu 10 tin nhắn cuối/user.
-- ✅ Tốc độ truy xuất phải đạt ngưỡng < 1ms (Cache Hit). 
+- ✅ Tốc độ truy xuất phải đạt ngưỡng < 1ms (Cache Hit).
 
 ### R74 – Selective Persistence (Selective Data Aging)
+
 - ❌ CẤM lưu vô tội vạ mọi tin nhắn AI Text vào Database (Vi phạm R30).
 - ✅ BẮT BUỘC phân loại:
-    - **Persistent**: Tin nhắn của User, Modality Voice/Image.
-    - **Ephemeral**: Tin nhắn AI Text thông thường (Chỉ lưu Redis, tự xoá sau TTL).
+  - **Persistent**: Tin nhắn của User, Modality Voice/Image.
+  - **Ephemeral**: Tin nhắn AI Text thông thường (Chỉ lưu Redis, tự xoá sau TTL).
 - ✅ Lý do: Tránh phình DB (~500% tiết kiệm storage cho chat log).
 
 ### R75 – Ghost Audit (Asynchronous Internal Bus)
+
 - ❌ CẤM ghi log bảo mật hoặc gửi thông báo (Audit/Notification) đồng bộ trong luồng request chính.
 - ✅ BẮT BUỘC dùng `InternalBus.emit()` để xử lý background. Không được phép làm chậm phản hồi của User vì khâu ghi log.
 
 ### R76 – Scalar Projection (Zero-Hydration Enforcement)
+
 - ❌ CẤM `select(Model)` cho các API danh sách/lịch sử có traffic cao.
 - ✅ BẮT BUỘC dùng `select(Model.id, Model.name, ...)` để chỉ lấy các cột cần thiết. Tiết kiệm ~70% RAM so với việc nạp đầy đủ ORM Objects.
 
 ### R77 – Frontend SWR (Smart Sync Syncing)
+
 - ❌ CẤM UI hiển thị Loading Spinner mỗi khi sếp chuyển tab Chat.
-- ✅ BẮT BUỘC dùng Stale-While-Revalidate (SWR) với TTL 60s tại Frontend. 
+- ✅ BẮT BUỘC dùng Stale-While-Revalidate (SWR) với TTL 60s tại Frontend.
 - ✅ Dữ liệu cũ hiện ra ngay, sync ngầm bên dưới. Giúp hệ thống sống sót qua lỗi 429 và mang lại trải nghiệm Zero-Latency.
 
 ### R78 – Compact Density UI (Admin Efficiency)
+
 - ✅ Ưu tiên gộp các nút chức năng (Filter, Search, User-selection) vào thanh tiêu đề (Header row).
 - ✅ Sử dụng font chữ nhỏ (text-[8px] - text-[10px]) cho các metadata kỹ thuật để tối đa hoá diện tích hiển thị dữ liệu thực.
 
@@ -1563,36 +1584,43 @@ DesktopLayout (flex h-screen)
 > **Mục tiêu:** Đạt tốc độ phản hồi < 100ms cho mọi module hội thoại và tối ưu hoá RAM/Storage trên hạ tầng yếu (2GB RAM).
 
 ### R72 – Identity Bypass (Zero-DB Auth)
+
 - ❌ CẤM truy vấn `users` table chỉ để lấy `user_id` trong mỗi request từ AuthMiddleware.
 - ✅ BẮT BUỘC nhồi trường `id` vào JWT Payload lúc Login.
 - ✅ Backend Controller truy xuất thẳng qua `scope.state.user_id` (với Litestar) hoặc `request.state.user_id`.
 
 ### R73 – Redis-Last-10 (Hybrid Cache Protocol)
+
 - ❌ CẤM đọc Database cho 10 tin nhắn hội thoại gần nhất.
 - ✅ BẮT BUỘC dùng Redis List (`LPUSH` + `LTRIM 10`) lưu 10 tin nhắn cuối/user.
-- ✅ Tốc độ truy xuất phải đạt ngưỡng < 1ms (Cache Hit). 
+- ✅ Tốc độ truy xuất phải đạt ngưỡng < 1ms (Cache Hit).
 
 ### R74 – Selective Persistence (Selective Data Aging)
+
 - ❌ CẤM lưu vô tội vạ mọi tin nhắn AI Text vào Database (Vi phạm R30).
 - ✅ BẮT BUỘC phân loại:
-    - **Persistent**: Tin nhắn của User, Modality Voice/Image.
-    - **Ephemeral**: Tin nhắn AI Text thông thường (Chỉ lưu Redis, tự xoá sau TTL).
+  - **Persistent**: Tin nhắn của User, Modality Voice/Image.
+  - **Ephemeral**: Tin nhắn AI Text thông thường (Chỉ lưu Redis, tự xoá sau TTL).
 - ✅ Lý do: Tránh phình DB (~500% tiết kiệm storage cho chat log).
 
 ### R75 – Ghost Audit (Asynchronous Internal Bus)
+
 - ❌ CẤM ghi log bảo mật hoặc gửi thông báo (Audit/Notification) đồng bộ trong luồng request chính.
 - ✅ BẮT BUỘC dùng `InternalBus.emit()` để xử lý background. Không được phép làm chậm phản hồi của User vì khâu ghi log.
 
 ### R76 – Scalar Projection (Zero-Hydration Enforcement)
+
 - ❌ CẤM `select(Model)` cho các API danh sách/lịch sử có traffic cao.
 - ✅ BẮT BUỘC dùng `select(Model.id, Model.name, ...)` để chỉ lấy các cột cần thiết. Tiết kiệm ~70% RAM so với việc nạp đầy đủ ORM Objects.
 
 ### R77 – Frontend SWR (Smart Sync Syncing)
+
 - ❌ CẤM UI hiển thị Loading Spinner mỗi khi sếp chuyển tab Chat.
-- ✅ BẮT BUỘC dùng Stale-While-Revalidate (SWR) với TTL 60s tại Frontend. 
+- ✅ BẮT BUỘC dùng Stale-While-Revalidate (SWR) với TTL 60s tại Frontend.
 - ✅ Dữ liệu cũ hiện ra ngay, sync ngầm bên dưới. Giúp hệ thống sống sót qua lỗi 429 và mang lại trải nghiệm Zero-Latency.
 
 ### R78 – Compact Density UI (Admin Efficiency)
+
 - ✅ Ưu tiên gộp các nút chức năng (Filter, Search, User-selection) vào thanh tiêu đề (Header row).
 - ✅ Sử dụng font chữ nhỏ (text-[8px] - text-[10px]) cho các metadata kỹ thuật để tối đa hoá diện tích hiển thị dữ liệu thực.
 

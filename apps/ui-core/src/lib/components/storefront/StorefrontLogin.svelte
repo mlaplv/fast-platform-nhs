@@ -12,15 +12,13 @@
   import { apiClient } from "$lib/utils/apiClient";
   import { fallbackSha256 } from "$lib/utils/cryptoFallback";
 
-  let email = $state("");
-  let password = $state("");
-  let phone = $state("");
+  import LoginForm from "./LoginForm.svelte";
+
   let isLoading = $state(false);
   let error = $state("");
   let showPage = $state(false);
-  let showPassword = $state(false);
   let tab = $state("EMAIL"); // EMAIL | PHONE | SOCIAL
-  let rememberMe = $state(false);
+  let phone = $state("");
 
   $effect(() => {
     showPage = true;
@@ -39,8 +37,11 @@
     return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
   }
 
-  async function handleLogin(e: Event) {
-    e.preventDefault();
+  async function handleLogin(
+    email: string,
+    password: string,
+    rememberMe: boolean,
+  ) {
     isLoading = true;
     error = "";
 
@@ -140,124 +141,7 @@
         </div>
 
         {#if tab === "EMAIL"}
-          <form onsubmit={handleLogin} class="space-y-5" in:fade>
-            {#if error}
-              <div
-                in:fade
-                class="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs text-center font-medium"
-              >
-                {error}
-              </div>
-            {/if}
-
-            <div class="space-y-1.5">
-              <label
-                for="email"
-                class="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1"
-                >Tài khoản Email</label
-              >
-              <div class="relative group">
-                <span
-                  class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors"
-                >
-                  <LucideMail size={18} />
-                </span>
-                <input
-                  bind:value={email}
-                  type="email"
-                  id="email"
-                  required
-                  class="w-full bg-gray-50 border border-transparent rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:bg-white focus:border-black/5 focus:ring-4 focus:ring-black/5 transition-all outline-none"
-                  placeholder="your@email.com"
-                />
-              </div>
-            </div>
-
-            <div class="space-y-1.5">
-              <label
-                for="password"
-                class="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1"
-                >Mật khẩu bảo mật</label
-              >
-              <div class="relative group">
-                <span
-                  class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors"
-                >
-                  <LucideLock size={18} />
-                </span>
-                <input
-                  bind:value={password}
-                  type={showPassword ? "text" : "password"}
-                  id="password"
-                  required
-                  class="w-full bg-gray-50 border border-transparent rounded-2xl py-3.5 pl-12 pr-12 text-sm focus:bg-white focus:border-black/5 focus:ring-4 focus:ring-black/5 transition-all outline-none"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onclick={() => (showPassword = !showPassword)}
-                  class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-black transition-colors"
-                >
-                  {#if showPassword}
-                    <LucideEyeOff size={18} />
-                  {:else}
-                    <LucideEye size={18} />
-                  {/if}
-                </button>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-2 mt-2">
-              <button
-                type="button"
-                class="w-4 h-4 rounded border border-gray-300 flex items-center justify-center transition-colors {rememberMe
-                  ? 'bg-black border-black'
-                  : 'bg-transparent'}"
-                onclick={() => {
-                  rememberMe = !rememberMe;
-                }}
-              >
-                {#if rememberMe}
-                  <svg
-                    class="w-3 h-3 text-white"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="3"
-                    ><path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M5 13l4 4L19 7"
-                    /></svg
-                  >
-                {/if}
-              </button>
-              <button
-                type="button"
-                class="text-[11px] text-gray-500 font-bold uppercase tracking-widest cursor-pointer hover:text-black"
-                onclick={() => {
-                  rememberMe = !rememberMe;
-                }}
-              >
-                Lưu phiên mua sắm (7 ngày)
-              </button>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              class="w-full bg-black text-white font-bold py-4 rounded-2xl hover:bg-gray-900 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 shadow-xl shadow-black/10"
-            >
-              {#if isLoading}
-                <div
-                  class="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"
-                ></div>
-              {:else}
-                <span>Tiếp tục</span>
-                <LucideArrowRight size={18} />
-              {/if}
-            </button>
-          </form>
+          <LoginForm onLogin={handleLogin} {isLoading} {error} />
         {:else if tab === "PHONE"}
           <div class="space-y-5" in:fade>
             <div class="space-y-1.5">

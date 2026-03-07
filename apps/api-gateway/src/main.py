@@ -111,8 +111,16 @@ def global_exception_handler(request: Request, exc: Exception) -> Response:
     )
 
 # CORS configs from env (R4 - Zero-Trust CORS)
-allowed_origins_str = os.getenv("BACKEND_CORS_ORIGINS", "https://smartshop.test,https://admin.smartshop.test,https://api.smartshop.test")
-allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
+# Rule 1.4: Single Source of Truth (.env) - BẮT BUỘC khai báo mọi URL từ .env
+admin_url = os.getenv("PUBLIC_SSOT_ADMIN_URL", "https://admin.smartshop.test")
+api_url = os.getenv("PUBLIC_SSOT_API_URL", "https://api.smartshop.test")
+store_url = os.getenv("PUBLIC_SSOT_STORE_URL", "https://smartshop.test")
+
+allowed_origins = [admin_url, api_url, store_url]
+# Fallback to backend config if provided
+allowed_origins_str = os.getenv("BACKEND_CORS_ORIGINS")
+if allowed_origins_str:
+    allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
 
 cors_config = CORSConfig(allow_origins=allowed_origins)
 

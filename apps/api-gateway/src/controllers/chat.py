@@ -39,8 +39,12 @@ class ChatController(Controller):
         msg_id = str(uuid.uuid4())
         created_at = datetime.now(timezone.utc)
         
-        # ═══ REDIS CACHE: Redis-Last-10 ═══
+        # ═══ R30/R74: LOAD SETTINGS FIRST ═══
         from src.services.xohi_memory import xohi_memory
+        profile = await xohi_memory.get_voice_profile(user_id) if user_id else None
+        chat_settings = profile.get("chat_settings", {}) if profile else {}
+
+        # ═══ REDIS CACHE: Redis-Last-10 ═══
         msg_dict = {
             "id": msg_id,
             "session_id": session_id,
@@ -56,8 +60,6 @@ class ChatController(Controller):
 
         # ═══ R30/R74: SELECTIVE PERSISTENCE ═══
         # Default policy: User messages & Voice are persistent. AI is ephemeral.
-        profile = await xohi_memory.get_voice_profile(user_id) if user_id else None
-        chat_settings = profile.get("chat_settings", {}) if profile else {}
         
         # Policy rules:
         # 1. If selective_persistence is ON (default): Only 'user' or 'voice' persists.

@@ -154,6 +154,15 @@ class SettingsController(Controller):
             if data.chat_settings is not None:
                 profile.chat_settings = data.chat_settings
 
+        profile_data = {
+            "wake_words":        [normalize_vn(w) for w in clean_wake],
+            "sleep_words":       [normalize_vn(w) for w in clean_sleep],
+            "greeting_template": data.greeting_template,
+            "farewell_template": data.farewell_template,
+            "capabilities":      data.capabilities,
+            "chat_settings":     profile.chat_settings,
+        }
+
         await voice_repo.session.commit()
 
         # HOT RELOAD TO REDIS
@@ -165,14 +174,6 @@ class SettingsController(Controller):
             await xohi_memory.client.set("system:campaign_mode", val)
             logger.info(f"[Settings] Unified commit: Campaign Mode set to {data.is_campaign_mode}")
 
-        profile_data = {
-            "wake_words":        [normalize_vn(w) for w in clean_wake],
-            "sleep_words":       [normalize_vn(w) for w in clean_sleep],
-            "greeting_template": data.greeting_template,
-            "farewell_template": data.farewell_template,
-            "capabilities":      data.capabilities,
-            "chat_settings":     profile.chat_settings,
-        }
         await xohi_memory.cache_voice_profile(user_id, profile_data)
 
         # Re-fetch campaign mode to ensure sync
