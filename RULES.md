@@ -357,7 +357,7 @@ fast-platform/
 │   │   │   ├── guards.py              # PermissionGuard (Many-to-Many RBAC)
 │   │   │   ├── middleware.py          # Auth + Security Headers (R51)
 │   │   │   ├── database/
-│   │   │   │   ├── models.py          # SQLAlchemy ORM (M2M RBAC Schema)
+│   │   │   │   ├── models.py          # SQLAlchemy ORM (M2M RBAC + ContentCampaign)
 │   │   │   │   └── repositories.py    # Async Repositories (AdvancedAlchemy)
 │   │   │   ├── controllers/           # Class-based Controllers (N+1 Optimized)
 │   │   │   │   └── health.py          # V56.0: HealthCheck + AnomalyScanner
@@ -365,9 +365,20 @@ fast-platform/
 │   │   │   │   └── intent.py          # C.O.R.E Gateway
 │   │   │   └── services/
 │   │   │       ├── anomaly_detector.py # V56.0: Scalar-only anomaly detection
-│   │   │       └── routing/
-│   │   │           ├── intent_orchestrator.py  # C.O.R.E (≤363 LOC)
-│   │   │           └── heuristic_classifier.py # V56.0: Extracted from orchestrator
+│   │   │       ├── routing/
+│   │   │       │   ├── intent_orchestrator.py  # C.O.R.E (≤363 LOC)
+│   │   │       │   └── heuristic_classifier.py # V56.0: Extracted from orchestrator
+│   │   │       └── xohi/
+│   │   │           └── creative_studio/        # V62.1: Content Factory (Hardened)
+│   │   │               ├── orchestrator.py     # 6-Step State Machine + Golden Thread
+│   │   │               ├── models/
+│   │   │               │   ├── vision_insight.py  # Step 1: Keyword Extraction
+│   │   │               │   └── creative_pen.py    # Step 3-4: Outline & Drafting
+│   │   │               ├── operatives/
+│   │   │               │   ├── asset_hunter.py    # Step 2: Image Hunt + Circuit Breaker
+│   │   │               │   └── plagiarism_cop.py  # Step 5: Semantic Uniqueness
+│   │   │               └── formatters/
+│   │   │                   └── media_compressor.py # Step 6: WebP Localization & SEO
 │   │   └── tests/                     # Security & RBAC Bypass Tests
 └── packages/
     └── ai-engine/
@@ -626,7 +637,7 @@ sequenceDiagram
     participant UI Layer (Chat/Voice)
 
     Sếp->>Frontend (Nanobot Core): Ra lệnh (Voice: "1 2 3" / Text: "Sản phẩm")
-    Frontend (Nanobot Core)->>API Gateway (C.O.R.E): omni.processGhost (POST /intent)
+    Frontend (Nanobot Core)->>API Gateway (C.O.R.E): vuiController.processGhost (POST /intent)
 
     API Gateway (C.O.R.E)->>Tier 1 Semantic: Scan global intercepts ("xohi", wake/sleep)
 
@@ -636,20 +647,20 @@ sequenceDiagram
     API Gateway (C.O.R.E)-->>Frontend (Nanobot Core): Standard Payload
 
     Frontend (Nanobot Core)->>UI Layer (Chat/Voice): setVoiceResult (Log + UI Trigger)
-    UI Layer (Chat/Voice)->>Sếp: omni.speak (TTS) + Typewriter
+    UI Layer (Chat/Voice)->>Sếp: vuiController.speak (TTS) + Typewriter
 
     Note over UI Layer (Chat/Voice): TTS Kết thúc -> Tự động bật Mic (Multi-turn)
 ```
 
 **Chi tiết luồng thực thi (V58.0):**
 
-1. **User Ra Lệnh** → `Nanobot Core` KHÔNG kiểm tra wake word tại chỗ. Tất cả đẩy xuống `omni.processGhost()`.
+1. **User Ra Lệnh** → `Nanobot Core` KHÔNG kiểm tra wake word tại chỗ. Tất cả đẩy xuống `vuiController.processGhost()`.
 2. **STT Pipeline (2026)**: Browser Mic → WebSocket `/ws/stt` → Backend → **Groq Whisper v3-turbo** (via `litellm.atranscription()`) → 95% accuracy tiếng Việt. Fallback: Web Speech API (Chrome/Edge).
 3. **Backend Gateway**: `SemanticShield.scan()` (jailbreak detection) → `Tier 1 Semantic` kiểm tra bộ từ khóa người dùng + `xohi` (Global Intercept).
 4. **SSE Streaming**: `processGhost()` gọi `POST /api/v1/intent/stream` → SSE events real-time (classify → execute → done). Fallback: `/api/v1/intent/` (sync).
 5. **Session Control**: Nếu khớp Wake Word, Backend trả về `category: "SESSION_CTRL"` và `action: "WAKE_ROUTINE"`.
 6. **Unified Registry**: Mọi lệnh (Wake/Nav/Query) đều dùng chung hàm `setVoiceResult` của Frontend.
-7. **Auto-Mic Feedback**: `omni.speak()` quản lý vòng đời âm thanh. Khi kết thúc, nó tự động kích hoạt mic nếu đang trong chế độ Hội thoại (VUI).
+7. **Auto-Mic Feedback**: `vuiController.speak()` quản lý vòng đời âm thanh. Khi kết thúc, nó tự động kích hoạt mic nếu đang trong chế độ Hội thoại (VUI).
 8. **Race Condition Guard**: Tuyệt đối CẤM increment `voiceTrigger` thủ công khi phát hiện wake word ở frontend — nó sẽ gây `stopAudio()` và làm XoHi bị "câm" khi đang chào.
 
 ### 4.2 VUI Separation
@@ -658,7 +669,7 @@ sequenceDiagram
 - `isVuiActive` CHỈ set `true` khi `source === "voice"`. Text commands KHÔNG bật VUI.
 - `MissionControlShell` PHẢI dùng `position: fixed`.
 - `CategoryMenu` PHẢI gọi `nanobot.openWidget()` trực tiếp. CẤM đi qua `processCommand()`.
-- Mọi method `omni.svelte.ts` gọi PHẢI export trong `nanobot` return object. Thiếu = silent fail.
+- Mọi method `vuiController` gọi PHẢI export trong `nanobot` return object. Thiếu = silent fail.
 
 ### 4.3 Luật 15 Từ
 
@@ -670,7 +681,7 @@ Typewriter text trên `VoiceModal` BẮT BUỘC đồng bộ với âm lượng 
 
 ### 4.5 Fake 200 Error Protocol
 
-Backend Litestar hứng **MỌI** exception (sập LLM, đứt mạng) → trả HTTP 200 kèm `{"status": "error", "message": "..."}`. Frontend `omni.svelte.ts` kiểm tra `r.status === "error"` ngay lập tức. CẤM để UI crash vì HTTP 500.
+Backend Litestar hứng **MỌI** exception (sập LLM, đứt mạng) → trả HTTP 200 kèm `{"status": "error", "message": "..."}`. Frontend `vuiController` kiểm tra `r.status === "error"` ngay lập tức. CẤM để UI crash vì HTTP 500.
 
 ### 4.6 Luồng Modal (3 đường vào)
 
@@ -690,11 +701,11 @@ PIPELINE TRAINING (riêng):   startTrainingRec → SR only → liveTrans → UI 
 ```
 
 ```text
-1. VoiceSettings → TRAIN → nanobot.setTraining(true) → omni.startTrainingRec()
+1. VoiceSettings → TRAIN → nanobot.setTraining(true) → vuiController.startRecording()
 2. SpeechRecognition riêng (continuous, auto-restart) → liveTrans → vuiUserQuery
 3. +layout.svelte → Neural Capture HUD hiện phrase chips real-time
-4. REGISTER → completeTraining() → omni.stopTrainingRec() → isTraining = false
-5. ABORT → cancelTraining() → omni.stopTrainingRec() → huỷ tất cả
+4. REGISTER → completeTraining() → vuiController.interruptAll() → isTraining = false
+5. ABORT → cancelTraining() → vuiController.interruptAll() → huỷ tất cả
 6. COMMIT MATRIX → saveSettings() → POST /api/v1/settings/voice → DB
 ```
 
@@ -765,7 +776,7 @@ Hệ thống bảo vệ đa lớp (Skill Guard) được cấu hình tại trang
   - Dùng `$derived.by` cho logic filter/sort phức tạp để đảm bảo hiệu năng và readable.
   - `$effect` chỉ dùng cho side-effects ngoại vi (API calls, Nanobot sync). CẤM dùng `$effect` để sync state nội bộ (dùng `$derived` thay thế).
 - **Litestar Controllers:** Tổ chức API theo Class-based Controllers.
-- **State Import:** Component CHỈ import từ `nanobot` hoặc `omni`. CẤM import trực tiếp `voice`, `ui`, `log`, `vault`.
+- **State Import:** Component CHỈ import từ `nanobot`, `vuiState`, hoặc `vuiController`. CẤM import trực tiếp `voice`, `ui`, `log`, `vault`.
 - **Page Load < 1s:** Tuyệt đối.
 - **AdvancedAlchemy Integration:** Dùng `SQLAlchemyPlugin` + `SQLAlchemyInitPlugin` của AdvancedAlchemy cho Litestar. Session lifecycle tự động quản lý qua dependency injection.
 
@@ -789,7 +800,7 @@ Hệ thống bảo vệ đa lớp (Skill Guard) được cấu hình tại trang
 ### R10.7 – Pushing UI Paradigms (Anti-Interrupt)
 
 - ❌ Nếu XoHi nhận lệnh `MUTATE` (Tạo mới/Chỉnh sửa), KHÔNG ĐƯỢC chặn họng hiện cái Popup Confirm nghèo nàn bắt điền thông tin nếu đó là 1 Workspace Lớn (như Bài Viết).
-- ✅ BẮT BUỘC Intent Gateway (`omni.svelte.ts`) phải có **Bypass Interception** cho các tác vụ sâu (`target === "news"`). Trỏ thẳng luồng Action sang `ContextualSplitView` cho Sếp thỏa sức soạn thảo chuẩn 2026.
+- ✅ BẮT BUỘC Intent Gateway (`vuiController`) phải có **Bypass Interception** cho các tác vụ sâu (`target === "news"`). Trỏ thẳng luồng Action sang `ContextualSplitView` cho Sếp thỏa sức soạn thảo chuẩn 2026.
 
 ---
 
@@ -917,7 +928,7 @@ Hệ thống bảo vệ đa lớp (Skill Guard) được cấu hình tại trang
 - ❌ Merge PR không có test cho business logic mới.
 - ❌ "QA will catch bugs" hoặc "Test sau".
 - ✅ Backend: `pytest` + `pytest-asyncio`. Minimum coverage 60% cho business logic.
-- ✅ Frontend: Vitest (khi cần). Ưu tiên test cho state logic (`nanobot`, `omni`).
+- ✅ Frontend: Vitest (khi cần). Ưu tiên test cho state logic (`nanobot`, `vuiState`).
 - ✅ Ưu tiên test: Guards → Routing (T1) → Middleware → Data Injector → Controllers.
 
 ---
@@ -1232,26 +1243,27 @@ erDiagram
     }
 ```
 
-#### 24.5.1 Bảng Tổng Kê Thực Thể (16 Entities)
+#### 24.5.1 Bảng Tổng Kê Thực Thể (17 Entities)
 
-| #   | Entity            | Table                  | Mixins                   | Owner (FK)             | Ghi chú                      |
-| --- | ----------------- | ---------------------- | ------------------------ | ---------------------- | ---------------------------- |
-| 1   | User              | `users`                | Audit + SoftDel + Tenant | — (Root)               | Tâm điểm RBAC, Hub trung tâm |
-| 2   | VoiceProfile      | `voice_profiles`       | Audit                    | User (1:1)             | Cấu hình XoHi cá nhân hóa    |
-| 3   | Role              | `roles`                | Audit + SoftDel + Tenant | — (M2M User)           | RBAC: Vai trò                |
-| 4   | Permission        | `permissions`          | Audit + SoftDel          | — (M2M Role)           | RBAC: Quyền hạn              |
-| 5   | Category          | `categories`           | Audit + SoftDel + Tenant | Self (parent_id)       | Cây danh mục đệ quy          |
-| 6   | Article           | `articles`             | Audit + SoftDel + Tenant | User (author_id)       | Bài viết / Tin tức           |
-| 7   | Order             | `orders`               | Audit + SoftDel + Tenant | User (user_id)         | Đơn hàng                     |
-| 8   | ProductBase       | `product_bases`        | Audit + SoftDel + Tenant | Category (category_id) | Sản phẩm gốc                 |
-| 9   | ProductVariant    | `product_variants`     | Audit + SoftDel          | ProductBase            | Biến thể (size/color)        |
-| 10  | RentalContract    | `rental_contracts`     | Audit + SoftDel          | ProductBase            | Hợp đồng thuê                |
-| 11  | Draft             | `drafts`               | Audit + SoftDel + Tenant | User (reviewer_id)     | Nháp chờ duyệt               |
-| 12  | AgentTelemetryLog | `agent_telemetry_logs` | Audit + Tenant           | — (Standalone)         | Log AI chi phí token         |
-| 13  | ChatMessage       | `chat_messages`        | Audit + SoftDel + Tenant | User (user_id)         | Lịch sử hội thoại XoHi       |
-| 14  | Notification      | `notifications`        | Audit + SoftDel + Tenant | User (user_id)         | Thông báo hệ thống           |
-| 15  | ProductEmbedding  | `product_embeddings`   | Audit                    | ProductBase (1:1)      | Vector tìm kiếm ngữ nghĩa    |
-| 16  | ArticleEmbedding  | `article_embeddings`   | Audit                    | Article (1:1)          | Vector tìm kiếm ngữ nghĩa    |
+| #   | Entity            | Table                  | Mixins                   | Owner (FK)             | Ghi chú                        |
+| --- | ----------------- | ---------------------- | ------------------------ | ---------------------- | ------------------------------ |
+| 1   | User              | `users`                | Audit + SoftDel + Tenant | — (Root)               | Tâm điểm RBAC, Hub trung tâm   |
+| 2   | VoiceProfile      | `voice_profiles`       | Audit                    | User (1:1)             | Cấu hình XoHi cá nhân hóa      |
+| 3   | Role              | `roles`                | Audit + SoftDel + Tenant | — (M2M User)           | RBAC: Vai trò                  |
+| 4   | Permission        | `permissions`          | Audit + SoftDel          | — (M2M Role)           | RBAC: Quyền hạn                |
+| 5   | Category          | `categories`           | Audit + SoftDel + Tenant | Self (parent_id)       | Cây danh mục đệ quy            |
+| 6   | Article           | `articles`             | Audit + SoftDel + Tenant | User (author_id)       | Bài viết / Tin tức             |
+| 7   | Order             | `orders`               | Audit + SoftDel + Tenant | User (user_id)         | Đơn hàng                       |
+| 8   | ProductBase       | `product_bases`        | Audit + SoftDel + Tenant | Category (category_id) | Sản phẩm gốc                   |
+| 9   | ProductVariant    | `product_variants`     | Audit + SoftDel          | ProductBase            | Biến thể (size/color)          |
+| 10  | RentalContract    | `rental_contracts`     | Audit + SoftDel          | ProductBase            | Hợp đồng thuê                  |
+| 11  | Draft             | `drafts`               | Audit + SoftDel + Tenant | User (reviewer_id)     | Nháp chờ duyệt                 |
+| 12  | AgentTelemetryLog | `agent_telemetry_logs` | Audit + Tenant           | — (Standalone)         | Log AI chi phí token           |
+| 13  | ChatMessage       | `chat_messages`        | Audit + SoftDel + Tenant | User (user_id)         | Lịch sử hội thoại XoHi         |
+| 14  | Notification      | `notifications`        | Audit + SoftDel + Tenant | User (user_id)         | Thông báo hệ thống             |
+| 15  | ProductEmbedding  | `product_embeddings`   | Audit                    | ProductBase (1:1)      | Vector tìm kiếm ngữ nghĩa      |
+| 16  | ArticleEmbedding  | `article_embeddings`   | Audit                    | Article (1:1)          | Vector tìm kiếm ngữ nghĩa      |
+| 17  | ContentCampaign   | `content_campaigns`    | Audit + SoftDel + Tenant | — (Standalone)         | V62.1: Nhà máy Content Factory |
 
 #### 24.5.2 Phân Tích Nâng Cao & Phản Biện Kiến Trúc (CTO Critical Review)
 
@@ -1316,8 +1328,8 @@ graph TB
 
     subgraph StateLayer["State Layer (Runes)"]
         NB["nanobot.svelte.ts\n(Central Orchestrator)\n$state, $derived"]
-        OM["omni.svelte.ts\n(Voice/Audio Controller)\nMediaRecorder, SpeechRecognition, TTS"]
-        VO["voice.svelte.ts\n(VUI State)\nvuiUserQuery, vuiResponse"]
+        OM["vuiController\n(Voice/Audio Orchestrator)\nMicrophoneEngine, WebSocket, TTS"]
+        VO["vuiState\n(VUI Core State)\ntranscript, phase, volume"]
         UI["ui.svelte.ts\n(UI State)\nactiveWidget, sidebar"]
         LG["log.svelte.ts\n(Activity Logs)"]
         PM["permissions.svelte.ts\n(RBAC State)"]
@@ -1346,9 +1358,9 @@ graph TB
 
 **Quy tắc State Import:**
 
-- Components CHỈ import từ `nanobot` hoặc `omni`. CẤM import `voice`, `ui`, `log` trực tiếp.
+- Components CHỈ import từ `nanobot`, `vuiState` hoặc `vuiController`. CẤM import `voice`, `ui`, `log` trực tiếp.
 - `nanobot` là **Central Orchestrator** — controller duy nhất cho state mutation.
-- `omni` quản lý hardware (mic, audio, TTS) — component nào cần voice thì gọi `omni`.
+- `vuiController` quản lý hardware (mic, audio, TTS) — component nào cần voice thì gọi `vuiController`.
 
 ---
 
@@ -1632,7 +1644,100 @@ DesktopLayout (flex h-screen)
 
 - [x] **V56.0** AUTONOMOUS AWAKENING (HOTFIX): Fix 4 bugs production, Encoder Singleton, Zero-Cold-Start, Anomaly Heartbeat, Vietnamese Search.
 - [x] **V60.0** THE ULTRA-LIGHT REVOLUTION: Triển khai Identity Bypass (JWT ID), Redis-Last-10 Caching, Selective Persistence (DB Cleanup), Ghost Audit (Async Logging), Scalar Projection (RAM Optimization), và SWR Frontend State. 429 Errors triệt tiêu hoàn toàn.
+- [x] **V62.1** CONTENT FACTORY (HARDENED): Nhà máy sản xuất nội dung SEO Agentic. 6-Step Gated Workflow, Golden Thread Prompt Engineering, API Circuit Breaker, Media Localization (Anti-Broken Links), Semantic Plagiarism Check.
 
 ---
 
-_V60.0: THE ULTRA-LIGHT REVOLUTION — Zero-Hydration, Hybrid Cache, Identity Bypass, SWR Sync._
+## XXV. CONTENT FACTORY V62.1 (HARDENED ARCHITECTURE)
+
+> **Mục tiêu:** Xây dựng hệ thống sản xuất nội dung SEO tự động, bán-tự-trị, với 6 cổng kiểm duyệt (Gated Reviews) do Admin điều phối. Kiến trúc được gia cố (Hardened) chống lỗi link ảnh chết, drift AI, API bị ban, và đạo văn ý tưởng.
+
+### R80 – 6-Step Gated Workflow (Content Pipeline)
+
+- ❌ CẤM AI tự ý sản xuất và xuất bản bài viết từ A-Z mà không có sự kiểm duyệt của con người.
+- ✅ BẮT BUỘC mọi chiến dịch nội dung (`ContentCampaign`) phải đi qua 6 bước duyệt tuần tự:
+  1. **Keyword Approval** → 2. **Image Selection** → 3. **Outline Approval** → 4. **Draft Review** → 5. **Plagiarism Check** → 6. **SEO Finalization**.
+- ✅ Mỗi bước phải dừng lại ở trạng thái `WAITING_FOR_REVIEW` cho đến khi Admin (hoặc AI Supervisor V63+) phê duyệt.
+- ✅ `ContentOrchestrator` quản lý state machine. CẤM nhảy bước. Step 4 chỉ chạy được nếu Step 3 đã `APPROVED`.
+
+### R81 – Golden Thread (Prompt Lineage Lock)
+
+- ❌ CẤM các bước AI sau (Outline, Draft) chạy mà không có bộ Keywords đã được Admin phê duyệt.
+- ✅ BẮT BUỘC khi Admin duyệt Step 1 (Keywords), dữ liệu `topic_data` phải được sao chép vào `gold_metadata` và **KHÓA CỨNG** (Immutable sau bước này).
+- ✅ Mọi System Prompt gửi cho AI ở Step 3 (Outline) và Step 4 (Draft) BẮT BUỘC chứa câu: `"Bạn PHẢI sử dụng các từ khóa sau: [gold_metadata.primary_keyword, gold_metadata.secondary_keywords]"`.
+- ✅ Lý do: Chống hiện tượng **Context Drift** — AI càng viết càng xa rời chủ đề ban đầu.
+
+### R82 – API Circuit Breaker (External Service Protection)
+
+- ❌ CẤM gọi lặp API bên thứ 3 (Google Search, LLM) khi đã nhận liên tiếp >5 lỗi (429, 500).
+- ✅ BẮT BUỘC `AssetHunter` và mọi client API ngoài có cơ chế **Circuit Breaker**: sau 5 lỗi liên tiếp → chuyển `ContentCampaign.status` sang `COOLDOWN` → ngừng gọi API trong 15 phút.
+- ✅ BẮT BUỘC dùng `KeyRotator` xoay vòng API Key khi gặp lỗi 429. Thứ tự: `Key1 → Key2 → ... → KeyN → Circuit Break`.
+- ✅ Lịch sử lỗi ghi vào `ContentCampaign.error_logs` (JSON Array) để Admin theo dõi sức khỏe API.
+
+### R83 – Media Localization (Anti-Broken Links)
+
+- ❌ CẤM xuất bản bài viết với link ảnh trỏ trực tiếp đến nguồn bên ngoài (Google Search, CDN đối thủ).
+- ✅ BẮT BUỘC tại Step 6 (Finalization), `MediaCompressor` phải **tải ảnh về máy chủ local**, convert sang **WebP 80%**, lưu vào `/static/uploads/v62/{campaign_id}_{index}.webp`.
+- ✅ BẮT BUỘC cập nhật `assets_data` từ URL gốc sang path local sau khi localize.
+- ✅ Lý do: Ảnh từ Google Search có thể bị xóa/thay đổi bất cứ lúc nào. Media Localization đảm bảo ảnh trong bài viết **sống vĩnh viễn**.
+
+### R84 – Semantic Plagiarism Check (Content Integrity)
+
+- ❌ CẤM chỉ dùng text matching (so chuỗi ký tự) để kiểm tra đạo văn.
+- ✅ BẮT BUỘC `PlagiarismCop` (Step 5) sử dụng **Semantic Similarity** (Vector Embedding) để so khớp ý nghĩa giữa bài viết và nội dung Top 3 kết quả Google tương tự.
+- ✅ Ngưỡng: `unique_score >= 0.8` (80% độc bản). Nếu dưới ngưỡng → AI phải tự viết lại đoạn bị trùng.
+
+### R85 – Structured AI Output (Content Models)
+
+- ❌ CẤM AI trả về free-text không có cấu trúc khi sinh Keywords, Outline, hoặc Draft.
+- ✅ BẮT BUỘC dùng `Pydantic BaseModel` (e.g. `TopicSeed`, `ArticleOutline`) làm `response_schema` cho mọi lời gọi AI trong Content Factory.
+- ✅ Lý do: Đảm bảo dữ liệu luôn parse được, lưu DB sạch, và frontend render chính xác.
+
+### R86 – Content Campaign State Persistence (Resume-ability)
+
+- ❌ CẤM mất dữ liệu chiến dịch khi server restart hoặc user refresh trình duyệt.
+- ✅ BẮT BUỘC mọi kết quả trung gian (Keywords, Assets, Outline, Draft, Score) phải lưu vào `content_campaigns` table ngay sau khi step hoàn thành.
+- ✅ `ContentOrchestrator.get_campaign(id)` phải load đúng trạng thái từ DB và tiếp tục từ step đang dở.
+
+### 25.1 Content Campaign Schema (`content_campaigns`)
+
+| Column          | Type    | Mô tả                                                                               |
+| --------------- | ------- | ----------------------------------------------------------------------------------- |
+| `id`            | String  | UUID Primary Key                                                                    |
+| `source_input`  | Text    | Đầu vào gốc của Admin (Text/URL/Image)                                              |
+| `reviewer_type` | String  | `ADMIN_MANUAL` (V62) / `AI_SUPERVISOR_AGENT` (V63+)                                 |
+| `current_step`  | Integer | Bước hiện tại (1-6)                                                                 |
+| `status`        | String  | `PROCESSING` / `WAITING_FOR_REVIEW` / `COMPLETED` / `COOLDOWN` / `ERROR`            |
+| `gold_metadata` | JSON    | **Sợi chỉ vàng**: Topic, Primary/Secondary Keywords, Persona (Khóa cứng sau Step 1) |
+| `topic_data`    | JSON    | Kết quả Step 1                                                                      |
+| `assets_data`   | JSON    | Kết quả Step 2 + Local paths sau Step 6                                             |
+| `outline_data`  | JSON    | Kết quả Step 3                                                                      |
+| `draft_content` | Text    | Kết quả Step 4                                                                      |
+| `unique_score`  | Float   | Kết quả Step 5 (0.0 - 1.0)                                                          |
+| `final_html`    | Text    | Kết quả Step 6 (HTML chuẩn SEO)                                                     |
+| `error_logs`    | JSON    | Lịch sử lỗi API/Circuit Breaker                                                     |
+
+### 25.2 Content Factory Module Map
+
+```text
+creative_studio/
+├── orchestrator.py          # Bộ não: 6-step state machine + Golden Thread transfer
+├── models/
+│   ├── vision_insight.py    # Step 1: Gemini Pro → TopicSeed (Pydantic)
+│   └── creative_pen.py      # Step 3-4: Outline + Draft (Golden Thread Injection)
+├── operatives/
+│   ├── asset_hunter.py      # Step 2: Google Search + KeyRotator + Circuit Breaker
+│   └── plagiarism_cop.py    # Step 5: crawl4ai + Semantic Similarity Check
+└── formatters/
+    └── media_compressor.py  # Step 6: Pillow WebP + Alt-tag SEO + HTML Wrapping
+```
+
+### 25.3 Tầm nhìn V63+: AI Supervisor Agent
+
+- Toàn bộ 6 Cổng Duyệt được thiết kế theo chuẩn **API Abstraction**. UI (Mini-modals) chỉ gọi các API Review độc lập (VD: `PUT /api/content/{id}/review/step1`).
+- **V62 (Hiện tại)**: Admin là người bấm Duyệt.
+- **V63+ (Tương lai)**: Cấu hình `reviewer_type = 'AI_SUPERVISOR_AGENT'`. Một Model siêu cấp sẽ tự gọi các API duyệt bài, tự check đạo văn, tự chốt bài — hoàn toàn Zero-touch.
+
+---
+
+_V62.1: CONTENT FACTORY (HARDENED) — Golden Thread, Circuit Breaker, Media Localization, Semantic Plagiarism._

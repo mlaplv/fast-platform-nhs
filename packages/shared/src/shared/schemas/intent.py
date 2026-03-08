@@ -8,6 +8,10 @@ class IntentAction(str, Enum):
     READ = "READ"
     MUTATE = "MUTATE" # Chuyển cho Draft mutation (R11)
     ANALYZE = "ANALYZE" # Chuyển cho AI phân tích sâu
+    CONTENT_CREATE = "CONTENT_CREATE" # V62.1: Content Factory — Sáng tạo nội dung SEO
+    CONTENT_APPROVE = "CONTENT_APPROVE" # V62.1: Duyệt bước bài viết
+    CONTENT_REJECT = "CONTENT_REJECT" # V62.1: Từ chối / Yêu cầu sửa lại
+
 
 class RouterTier(int, Enum):
     """Phễu Lọc 3 Tầng - Router Tier indicator"""

@@ -1,14 +1,14 @@
 <script lang="ts">
   import "./layout.css";
   import { nanobot } from "$lib/state/nanobot.svelte";
-  import { omni } from "$lib/state/omni.svelte";
+  import { vuiState } from "$lib/vui";
   import { fade, scale, slide } from "svelte/transition";
   import Sparkles from "lucide-svelte/icons/sparkles";
   import X from "lucide-svelte/icons/x";
 
   let { children } = $props();
 
-  let capturedText = $derived(nanobot.voice.vuiUserQuery || omni.liveTrans);
+  let capturedText = $derived(nanobot.voice.vuiUserQuery || vuiState.liveText);
 
   // Split captured text into individual phrases (2-3 word chunks)
   let capturedPhrases = $derived.by(() => {

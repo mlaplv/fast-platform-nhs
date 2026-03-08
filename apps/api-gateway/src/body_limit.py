@@ -23,7 +23,7 @@ class BodyLimitMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
-            return await self.app(scope, receive)
+            return await self.app(scope, receive, send)
 
         request = Request(scope, receive)
         

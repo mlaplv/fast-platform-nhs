@@ -11,6 +11,7 @@ import { createTrainingState } from "./training_state.svelte";
 import { createIntentManager } from "./intent_manager.svelte.ts";
 import { permissionState } from "./permissions.svelte";
 import { normalizeVn } from "$lib/utils/text";
+import { vuiState, vuiController } from "$lib/vui";
 
 export * from "./types";
 
@@ -109,9 +110,9 @@ export function createNanobotState() {
         if (permissionState.isInitialized) {
           untrack(() => {
             hydrateGlobalSettings();
-            if (!window.location.pathname.includes("/login") && !state.isHydrated) {
-                notification.fetchNotifications();
-                chat.hydrateHistory("account", (logs: any) => {
+            if (!window.location.pathname.includes("/login")) {
+              notification.fetchNotifications();
+              chat.hydrateHistory("account", (logs: any) => {
                 const existingIds = new Set(log.activityLogs.map((l: any) => l.id));
                 log.setActivityLogs([...log.activityLogs, ...logs.filter((l: any) => !existingIds.has(l.id))].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()));
               }, state.godModeUser || undefined);
@@ -154,13 +155,18 @@ export function createNanobotState() {
     get ui() { return ui; },
     get isVuiActive() { return voice.isVuiActive; },
     get isSpeaking() { return voice.isProcessingSpeech; },
-    get isProcessingSpeech() { return voice.isProcessingSpeech; },
     get vuiResponse() { return voice.vuiResponse; },
     get vuiUserQuery() { return voice.vuiUserQuery; },
     get voiceTrigger() { return voice.voiceTrigger; },
     setVuiActive: voice.setVuiActive,
     clearVuiResponse: voice.clearVuiResponse,
     setProcessingSpeech: voice.setProcessingSpeech,
+
+    // Orchestrator Proxies (Rule 4.2 Compliance)
+    startRecording: (auto?: boolean) => vuiController.startRecording(auto),
+    stopRecording: () => vuiController.stopRecording(),
+    interruptAll: () => vuiController.interruptAll(),
+    speak: (text: string) => vuiController.speak(text),
 
     get universalModalOpen() { return ui.universalModalOpen; },
     get confirmDialog() { return ui.confirmDialog; },
@@ -225,12 +231,18 @@ export function createNanobotState() {
     },
 
     // Layout
+    get screenContext() {
+      return {
+        current_route: typeof window !== "undefined" ? window.location.pathname : "/",
+        active_widget: state.activeWidget,
+        active_data: state.currentData,
+      };
+    },
     get heartbeatCollapsed() { return ui.heartbeatCollapsed; },
     toggleHeartbeat: () => {
       if (typeof window === "undefined") return;
       if (ui.heartbeatCollapsed === null) {
-        // If in auto mode, toggle to manual state opposite of current width-based behavior
-        ui.heartbeatCollapsed = window.innerWidth >= 1280; // If >= 1280 (Expanded), set to true (Collapse). Else expand.
+        ui.heartbeatCollapsed = window.innerWidth >= 1280;
       } else {
         ui.heartbeatCollapsed = !ui.heartbeatCollapsed;
       }
@@ -266,11 +278,7 @@ export function createNanobotState() {
       try {
         const nextMode = !originalMode;
         state.isCampaignMode = nextMode;
-        
-        await apiClient.post("/api/v1/settings/voice", {
-          is_campaign_mode: nextMode
-        });
-        
+        await apiClient.post("/api/v1/settings/voice", { is_campaign_mode: nextMode });
         ui.showToast(nextMode ? "Fortress Mode: ENGAGED" : "Fortress Mode: STANDBY", "success");
         log.addLog(`Neural Grid: ${nextMode ? 'RESTRICTED' : 'OPEN'}`, "SYS", "success");
       } catch (e) {

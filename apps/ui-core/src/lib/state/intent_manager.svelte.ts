@@ -1,7 +1,7 @@
-import { apiClient } from "$lib/utils/apiClient";
-import { persistMessage } from "./chat.svelte";
-import { COMMAND_WIDGET_MAP, ACTION_WIDGET_MAP, WIDGET_VI_LABEL } from "./constants";
-import type { WidgetType } from "./types";
+import { ACTION_WIDGET_MAP } from "./constants";
+import { handleFastAction, type HandlerDeps } from "./intent/FastActionHandler";
+import { handleChatIntent } from "./intent/ChatIntentHandler";
+import { handleVoiceIntent } from "./intent/VoiceIntentHandler";
 
 interface IntentDeps {
   state: any;
@@ -36,6 +36,12 @@ export function createIntentManager(
   resetVui: () => void,
   setThinking: (val: boolean, source?: "text" | "voice") => void
 ) {
+  const deps: HandlerDeps = { state, voice, log, ui, resetVui };
+
+  function isNavAction(uiAction: string, intentType: string) {
+    return intentType === "UI_NAV";
+  }
+
   function setVoiceResult(
     transcript: string,
     responseText: string,
@@ -54,10 +60,26 @@ export function createIntentManager(
     voice.setVoiceResult(transcript, responseText, uiAction, source, routerTier);
     state.nanoBotStatus = voice.status === "VOICE" ? "IDLE" : "SUCCESS";
 
+    // Phase 60: Always persist session context for multi-turn conversation
+    if (data?.session_id) {
+      state.currentData = { ...state.currentData, ...data };
+    }
+
+    // ═══ SESSION CONTROL OVERRIDES (Wake/Sleep) ═══
+    if (data?.action === "HARDWARE_SLEEP") {
+      log.addLog("Deactivating Neural Link", "SYS", "info");
+      if (source === "voice") {
+        voice.setVuiActive(false);
+        import("$lib/vui").then(({ vuiController }) => {
+          vuiController.setStopAfterSpeech(true);
+        });
+      }
+    }
+
     if (uiAction) {
       const targetWidget = ACTION_WIDGET_MAP[uiAction];
       if (targetWidget) {
-        state.currentData = data;
+        state.currentData = { ...state.currentData, ...data };
         const intentType = (data?.intent_type as string) || "";
 
         const requiresConfirmationForVoice = (d: any) => {
@@ -68,20 +90,26 @@ export function createIntentManager(
         };
 
         if (
-          intentType === "UI_NAV" ||
+          isNavAction(uiAction, intentType) ||
           uiAction.includes("edit") ||
-          uiAction === "show_news_management" ||
           data?.restricted === false ||
           requiresConfirmationForVoice(data)
         ) {
           state.activeWidget = targetWidget;
           ui.setUniversalModalOpen(true);
           log.addLog(uiAction.replace("show_", "").replace(/_/g, " "), "[ACTION]");
-        } else if (source === "voice") {
-          // Speak only
+          
+          if (source === "voice" && isNavAction(uiAction, intentType)) {
+            voice.setVuiActive(false);
+            import("$lib/vui").then(({ vuiController }) => {
+              vuiController.setStopAfterSpeech(true);
+            });
+          }
         } else {
           state.lastSuggestedWidget = targetWidget;
-          log.addLog("Sếp gõ 'mở' nếu muốn xem chi tiết.", "SYS");
+          if (source !== "voice") {
+            log.addLog("Sếp gõ 'mở' nếu muốn xem chi tiết.", "SYS");
+          }
         }
       }
     }
@@ -95,6 +123,7 @@ export function createIntentManager(
       return;
     }
 
+    // Anti-Spam Gate
     const isFragment =
       state.lastProcessedCommand &&
       (cmd.includes(state.lastProcessedCommand) || state.lastProcessedCommand.includes(cmd));
@@ -117,8 +146,6 @@ export function createIntentManager(
     setThinking(true, source);
     const myEpoch = ++state.commandEpoch;
 
-    if (source === "voice") voice.setVuiActive(true);
-
     try {
       if (cmd === "clear" || cmd === "reset") {
         state.activeWidget = "NONE";
@@ -126,49 +153,25 @@ export function createIntentManager(
         return;
       }
 
-      if (cmd === "mở" && state.lastSuggestedWidget !== "NONE") {
-        state.activeWidget = state.lastSuggestedWidget;
-        ui.setUniversalModalOpen(true);
-        state.lastSuggestedWidget = "NONE";
-        state.nanoBotStatus = "SUCCESS";
-        state.isBusy = false;
+      // ═══ TRI-FLUX ROUTING ═══
+
+      // 1. LUỒNG FAST ACTION (UI Click / Direct Match)
+      // Check local system commands BEFORE AI Ghost to ensure instant UI response.
+      const isFastActionHandled = await handleFastAction(cmd, deps, source);
+      if (isFastActionHandled) return;
+
+      // 2. LUỒNG CHAT AI (Bàn phím)
+      if (source === "text") {
+        await handleChatIntent(cmd, deps);
         return;
       }
 
-      const matchedWidget =
-        COMMAND_WIDGET_MAP[cmd] ||
-        Object.entries(COMMAND_WIDGET_MAP).find(([k]) => {
-          const words = cmd.split(" ");
-          return cmd === k || (words.length <= 4 && cmd.includes(k));
-        })?.[1];
-
-      if (matchedWidget) {
-        const viLabel = WIDGET_VI_LABEL[matchedWidget] || matchedWidget.replace(/_/g, " ");
-        const xohiReply = `Dạ, em mở ${viLabel} cho sếp ạ.`;
-        log.addLog(xohiReply, "XOHI");
-
-        if (source === "voice") {
-          persistMessage("account", "user", command, source);
-          persistMessage("account", "assistant", xohiReply, source, {
-            ui_action: `show_${matchedWidget.toLowerCase()}`,
-          });
-          const { omni } = await import("./omni.svelte");
-          await omni.speak(xohiReply);
-        } else {
-          state.activeWidget = matchedWidget;
-          ui.setUniversalModalOpen(true);
-          persistMessage("account", "user", command, source);
-          persistMessage("account", "assistant", xohiReply, source, {
-            ui_action: `show_${matchedWidget.toLowerCase()}`,
-          });
-        }
-        state.nanoBotStatus = "SUCCESS";
-        state.isBusy = false;
+      // 3. LUỒNG VOICE (Giọng nói)
+      if (source === "voice") {
+        await handleVoiceIntent(cmd, deps);
         return;
       }
 
-      const { omni } = await import("./omni.svelte");
-      await omni.processGhost(cmd, source);
     } catch (e: any) {
       state.nanoBotStatus = "ERROR";
       log.addLog(`Command failed: ${e.message}`, "Nanobot-Core");

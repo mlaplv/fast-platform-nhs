@@ -1,6 +1,6 @@
-# XOHI NEXUS CAPABILITIES (V61.2 — NEURAL EVOLUTION)
+# XOHI NEXUS CAPABILITIES (V62.1 — CONTENT FACTORY HARDENED)
 
-> Hệ điều hành trợ lý XoHi: Tốc độ ánh sáng, trí tuệ hội tụ, tự học không giới hạn.
+> Hệ điều hành trợ lý XoHi: Tốc độ ánh sáng, trí tuệ hội tụ, tự học không giới hạn, sản xuất nội dung SEO tự trị.
 
 ---
 
@@ -50,6 +50,18 @@ Hệ thống quản lý trí tuệ Cloud siêu bền bỉ:
 - **Health Map**: Tự động phát hiện và né tránh các cụm máy chủ Cloud (Gemini) đang quá tải hoặc gặp sự cố.
 - **Predictive Selection**: Luôn chọn con đường nhanh nhất, ổn định nhất để Cloud AI phản hồi sếp mà không có bất kỳ "râu ria" hay độ trễ thừa thãi nào.
 
+## 🏭 7. NHÀ MÁY NỘI DUNG V62.1 (CONTENT FACTORY — HARDENED)
+
+Hệ thống sản xuất bài viết SEO Agentic với **6 cổng kiểm duyệt**, gia cố chống mọi rủi ro kỹ thuật:
+
+- **6-Step Gated Workflow**: Quy trình 6 bước (Keyword → Ảnh → Dàn ý → Viết bài → Check đạo văn → Đóng gói). Mỗi bước dừng lại chờ sếp duyệt, CẤM AI tự xuất bản.
+- **Golden Thread (Sợi chỉ vàng)**: Keywords sếp duyệt ở Bước 1 được "khóa cứng" và nhồi vào mọi chỉ thị AI ở các bước sau. AI không bao giờ viết lạc đề.
+- **API Circuit Breaker (Cầu chì)**: Nếu Google Search bị lỗi liên tiếp, hệ thống tự ngắt 15 phút và báo sếp, thay vì cố chạy tiếp gây treo server hoặc bị ban key.
+- **Media Localization (Chống ảnh chết)**: Ảnh sếp chọn được tải về host, nén WebP và lưu local. Dù nguồn gốc trên Google bị xóa, ảnh trong bài viết vẫn sống vĩnh viễn.
+- **Semantic Plagiarism (Quét đạo văn thông minh)**: Không chỉ tìm từ giống nhau, mà check cả "ý tưởng" bằng Vector Embedding. Đảm bảo bài viết độc bản 100%.
+- **Resume-ability (Bền bỉ)**: Sập nguồn, refresh trình duyệt — Orchestrator tự nhớ sếp đang ở bước mấy và chạy tiếp đúng chỗ đó.
+- **V63+ Ready**: Kiến trúc sẵn sàng cho AI Supervisor tự duyệt bài hoàn toàn Zero-touch khi sếp cần.
+
 ---
 
-_V61.1: XOHI NEXUS — NEURAL EVOLUTION (2026 READY)._
+_V62.1: XOHI NEXUS — CONTENT FACTORY HARDENED (2026 READY)._

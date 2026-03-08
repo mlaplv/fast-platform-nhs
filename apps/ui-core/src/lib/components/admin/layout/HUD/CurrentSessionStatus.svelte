@@ -1,6 +1,6 @@
 <script lang="ts">
   import { nanobot } from "$lib/state/nanobot.svelte";
-  import { omni } from "$lib/state/omni.svelte";
+  import { vuiState } from "$lib/vui";
   import { globalLatency } from "$lib/utils/telemetry.svelte";
   import { permissionState } from "$lib/state/permissions.svelte";
   import Activity from "lucide-svelte/icons/activity";
@@ -45,8 +45,11 @@
       >
       <div class="flex items-center gap-1.5 opacity-60">
         <!-- V45.0: Passive Latency -->
-        <span class="text-[10px] font-mono uppercase tracking-widest {latencyColor}"
-          >PING:{globalLatency.ms !== null ? `${globalLatency.ms}ms` : "--"}</span
+        <span
+          class="text-[10px] font-mono uppercase tracking-widest {latencyColor}"
+          >PING:{globalLatency.ms !== null
+            ? `${globalLatency.ms}ms`
+            : "--"}</span
         >
       </div>
     </div>
@@ -54,18 +57,28 @@
 
   <!-- V45.0: MIC Status LED -->
   <div class="flex items-center gap-1.5 pr-3 border-r border-white/5">
-    <div class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/30 border border-white/10">
-      {#if omni.rec}
+    <div
+      class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/30 border border-white/10"
+    >
+      {#if vuiState.phase === "listening"}
         <div class="relative flex items-center gap-1">
-          <div class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_6px_rgba(74,222,128,0.6)]"></div>
+          <div
+            class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_6px_rgba(74,222,128,0.6)]"
+          ></div>
           <Mic size={9} class="text-green-400" />
-          <span class="text-[10px] font-mono uppercase tracking-widest text-green-400 opacity-80">LISTENING</span>
+          <span
+            class="text-[10px] font-mono uppercase tracking-widest text-green-400 opacity-80"
+            >LISTENING</span
+          >
         </div>
       {:else}
         <div class="flex items-center gap-1">
           <div class="w-1.5 h-1.5 bg-gray-600 rounded-full"></div>
           <Mic size={9} class="text-gray-600" />
-          <span class="text-[10px] font-mono uppercase tracking-widest text-gray-600 opacity-80">IDLE</span>
+          <span
+            class="text-[10px] font-mono uppercase tracking-widest text-gray-600 opacity-80"
+            >IDLE</span
+          >
         </div>
       {/if}
     </div>
@@ -78,7 +91,9 @@
         class="flex items-center gap-1 px-1 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-500"
       >
         <ShieldAlert size={9} />
-        <span class="text-[10px] font-mono font-bold uppercase tracking-widest">AUDIT</span>
+        <span class="text-[10px] font-mono font-bold uppercase tracking-widest"
+          >AUDIT</span
+        >
       </div>
     </div>
   {/if}

@@ -3,7 +3,8 @@ from advanced_alchemy.repository import SQLAlchemyAsyncRepository
 from src.database.models import (
     User, VoiceProfile, Role, Permission, Category, Article, Order,
     ProductBase, ProductVariant, RentalContract, ProductEmbedding,
-    ArticleEmbedding, Draft, AgentTelemetryLog, ChatMessage, Notification
+    ArticleEmbedding, Draft, AgentTelemetryLog, ChatMessage, Notification,
+    ContentCampaign
 )
 
 class UserRepository(SQLAlchemyAsyncRepository[User]):
@@ -54,6 +55,9 @@ class ChatMessageRepository(SQLAlchemyAsyncRepository[ChatMessage]):
 class NotificationRepository(SQLAlchemyAsyncRepository[Notification]):
     model_type = Notification
 
+class ContentCampaignRepository(SQLAlchemyAsyncRepository[ContentCampaign]):
+    model_type = ContentCampaign
+
 # ==========================================
 # REPOSITORY PROVIDERS (V55.0 DI PATTERN)
 # ==========================================
@@ -84,3 +88,6 @@ async def provide_chat_repo(db_session: AsyncSession) -> ChatMessageRepository:
 
 async def provide_telemetry_repo(db_session: AsyncSession) -> AgentTelemetryLogRepository:
     return AgentTelemetryLogRepository(session=db_session)
+
+async def provide_campaign_repo(db_session: AsyncSession) -> ContentCampaignRepository:
+    return ContentCampaignRepository(session=db_session)

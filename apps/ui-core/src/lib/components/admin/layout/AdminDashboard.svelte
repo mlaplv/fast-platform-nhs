@@ -2,7 +2,7 @@
   import { type Component } from "svelte";
   import ToastNotification from "$lib/components/admin/ui/ToastNotification.svelte";
   import { nanobot } from "$lib/state/nanobot.svelte";
-  import { omni } from "$lib/state/omni.svelte";
+  import { vuiController } from "$lib/vui";
 
   let { children, userEmail, isMobile } = $props<{
     children?: import("svelte").Snippet;
@@ -38,11 +38,14 @@
     })();
   });
 
-  let lastTrig = nanobot.voiceTrigger;
+  let lastTrig = -1;
   $effect(() => {
-    if (nanobot.voiceTrigger > lastTrig) {
+    if (lastTrig === -1) {
+      // First mount: just capture the current value, do NOT start mic
       lastTrig = nanobot.voiceTrigger;
-      omni.startRec();
+    } else if (nanobot.voiceTrigger > lastTrig) {
+      lastTrig = nanobot.voiceTrigger;
+      vuiController.startRecording();
     }
   });
 </script>

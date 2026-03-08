@@ -56,11 +56,30 @@ class RouterOrchestrator:
         wake_words = user_profile.get("wake_words", [])
         sleep_words = user_profile.get("sleep_words", [])
         
-        normalized_transcript = normalize_vn(transcript)
+        # Quick STT Dict bypass for Wake/Sleep (0ms)
+        transcript_lower = transcript.lower()
+        for wrong, right in user_dict.items():
+            if wrong in transcript_lower:
+                transcript_lower = transcript_lower.replace(wrong, right)
+        
+        normalized_transcript = normalize_vn(transcript_lower)
         
         # 0.5.1: Heuristic High-Speed Match (0ms)
-        is_wake = any(w in normalized_transcript or difflib.SequenceMatcher(None, normalized_transcript, w).ratio() > 0.9 for w in wake_words + ["xohi"])
-        is_sleep = any(w in normalized_transcript or difflib.SequenceMatcher(None, normalized_transcript, w).ratio() > 0.9 for w in sleep_words + ["cut", "ngu di", "thoat", "tam biet"])
+        def _match_trigger(words_list, trans):
+            # Phonetic equivalence check: "kút" vs "cút", "quá" vs "cá"
+            trans_pho = trans.replace("k", "c").replace("q", "c")
+            for w in words_list:
+                w_pho = w.replace("k", "c").replace("q", "c")
+                if w in trans or w_pho in trans_pho:
+                    return True
+                # For very short triggers (like "cut", "xohi"), be more lenient on the ratio
+                threshold = 0.8 if len(w) <= 4 else 0.9
+                if difflib.SequenceMatcher(None, trans_pho, w_pho).ratio() > threshold:
+                    return True
+            return False
+
+        is_wake = _match_trigger(wake_words + ["xohi"], normalized_transcript)
+        is_sleep = _match_trigger(sleep_words + ["cut", "ngu di", "thoat", "tam biet"], normalized_transcript)
 
         # 0.5.2: Semantic Fallback (Neural Trigger)
         if not is_wake and not is_sleep:
@@ -179,7 +198,10 @@ class RouterOrchestrator:
             if sem_score >= 0.82 and sem_intent in INTENT_TO_ACTION:
                 mapping = INTENT_TO_ACTION[sem_intent]
                 action_map = {"COUNT": IntentAction.COUNT, "READ": IntentAction.READ,
-                              "MUTATE": IntentAction.MUTATE, "ANALYZE": IntentAction.ANALYZE}
+                              "MUTATE": IntentAction.MUTATE, "ANALYZE": IntentAction.ANALYZE,
+                              "CONTENT_CREATE": IntentAction.CONTENT_CREATE,
+                "CONTENT_APPROVE": IntentAction.CONTENT_APPROVE,
+                "CONTENT_REJECT": IntentAction.CONTENT_REJECT}
                 
                 # If action gives us HARDWARE_SLEEP, bypass the regular enum mapping
                 # and put it directly into the data payload to trigger the frontend event, 
@@ -287,6 +309,36 @@ class RouterOrchestrator:
             return await self.t3_router.reason(enriched_transcript, context, screen_context=screen_context)
 
         # ══════════════════════════════════════════
+        # V62.1: CONTENT_CREATE → Content Factory Pipeline
+        # ══════════════════════════════════════════
+        if intent_type == "CONTENT_CREATE" or class_action_str == "CONTENT_CREATE":
+            logger.info(f"[C.O.R.E][{m_tag}] Delegating to Content Factory V62.1. kwargs keys: {list(kwargs.keys())}")
+            from src.services.xohi.creative_studio.orchestrator import content_factory
+            return await content_factory.handle_voice_request(
+                transcript, context, 
+                campaign_repo=kwargs.get("campaign_repo")
+            )
+
+        if intent_type == "CONTENT_APPROVE" or class_action_str == "CONTENT_APPROVE":
+            logger.info(f"[C.O.R.E][{m_tag}] Approving Content Campaign...")
+            from src.services.xohi.creative_studio.orchestrator import content_factory
+            campaign_repo = kwargs.get("campaign_repo")
+            latest = await content_factory.get_latest_pending(campaign_repo)
+            if latest:
+                return await content_factory.approve_step(latest.id, {"approved": True}, campaign_repo)
+            return self._error_response("Dạ sếp muốn duyệt gì ạ? Hiện tại em chưa thấy có yêu cầu nào đang chờ duyệt.")
+
+        if intent_type == "CONTENT_REJECT" or class_action_str == "CONTENT_REJECT":
+            logger.info(f"[C.O.R.E][{m_tag}] Retrying/Rejecting Content Campaign...")
+            from src.services.xohi.creative_studio.orchestrator import content_factory
+            campaign_repo = kwargs.get("campaign_repo")
+            latest = await content_factory.get_latest_pending(campaign_repo)
+            if latest:
+                return await content_factory.retry_step(latest.id, campaign_repo)
+            return self._error_response("Dạ sếp muốn tạo lại gì ạ? Hiện tại em chưa thấy có bài viết nào đang dở.")
+
+        # ══════════════════════════════════════════
+
         # DEFAULT: UI_NAV / DATA_QUERY → Xử lý Hybrid Loop
         # ══════════════════════════════════════════
         logger.debug(f"[T2] {intent_type} → Passing to Data Injector")

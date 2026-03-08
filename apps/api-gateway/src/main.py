@@ -35,6 +35,7 @@ from src.controllers.order import OrderController
 from src.controllers.settings import SettingsController
 
 from src.controllers.chat import ChatController
+from src.routers.content_router import ContentRouter
 from src.routers.voice_stream import stt_websocket
 from src.controllers.tts_handler import TTSController
 from src.middleware import AuthMiddleware
@@ -138,6 +139,7 @@ async def lifespan(app: Litestar):
     
     import asyncio as _aio
     heartbeat_task = None  # Guard: prevent UnboundLocalError if lifespan crashes early
+    purge_task = None
     try:
         # Pre-load Voice Profiles into Hot Cache (R30: RAM priority)
         # Chuẩn dạng: normalize_vn() đã lowercase + bỏ dấu bên trong
@@ -203,6 +205,41 @@ async def lifespan(app: Litestar):
         heartbeat_task = _aio.create_task(_heartbeat_loop())
         logger.info(f"[Trinity Core] Heartbeat started (interval={scan_interval}s).")
 
+        # ═══ AUTO-PURGE: Chat Log Cleanup (Rule 1.11 compliant) ═══
+        purge_interval = int(os.getenv("CHAT_PURGE_INTERVAL", "21600"))  # 6h default
+
+        async def _auto_purge_loop():
+            from datetime import datetime, timedelta, timezone
+            from sqlalchemy import delete as sql_delete
+            from src.database.models import ChatMessage, VoiceProfile as VP
+            session_maker = alchemy_config.create_session_maker()
+            await _aio.sleep(300)  # Wait 5 min after boot
+            while True:
+                try:
+                    async with session_maker() as session:
+                        profiles = (await session.execute(select(VP.user_id, VP.chat_settings))).all()
+                        total_purged = 0
+                        for row in profiles:
+                            days = (row.chat_settings or {}).get("auto_purge_days", 30)
+                            if not days or days <= 0:
+                                continue
+                            cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+                            stmt = sql_delete(ChatMessage).where(
+                                ChatMessage.user_id == row.user_id,
+                                ChatMessage.created_at < cutoff
+                            )
+                            result = await session.execute(stmt)
+                            total_purged += result.rowcount
+                        await session.commit()
+                        if total_purged > 0:
+                            logger.info(f"[AutoPurge] Cleaned {total_purged} expired chat messages.")
+                except Exception as e:
+                    logger.warning(f"[AutoPurge] Cycle failed (non-fatal): {e}")
+                await _aio.sleep(purge_interval)
+
+        purge_task = _aio.create_task(_auto_purge_loop())
+        logger.info(f"[Trinity Core] AutoPurge started (interval={purge_interval}s).")
+
         yield
     finally:
         # Graceful shutdown — guard against early crash (BUG-1 fix)
@@ -213,6 +250,14 @@ async def lifespan(app: Litestar):
             except _aio.CancelledError:
                 pass
             logger.info("[Trinity Core] Heartbeat stopped.")
+        
+        if purge_task is not None:
+            purge_task.cancel()
+            try:
+                await purge_task
+            except _aio.CancelledError:
+                pass
+            logger.info("[Trinity Core] AutoPurge stopped.")
         
         # Stop Proactive Nerve System
         await event_bus.stop()
@@ -249,6 +294,7 @@ app = Litestar(
         OrderController,
         ChatController,
         SettingsController,
+        ContentRouter,
         stt_websocket,
         TTSController,
     ],

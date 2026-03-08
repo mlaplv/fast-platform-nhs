@@ -55,26 +55,37 @@
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     {#each options as opt}
-      <button 
-        onclick={() => chatSettings[opt.id] = !chatSettings[opt.id]}
-        class="flex items-start gap-4 p-4 rounded-2xl border transition-all text-left group
+      <div 
+        class="flex items-start gap-4 p-4 rounded-2xl border transition-all text-left
                {chatSettings[opt.id] 
                  ? 'bg-cyan-500/5 border-cyan-500/20 shadow-[0_4px_20px_rgba(8,145,178,0.1)]' 
-                 : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]'}"
+                 : 'bg-white/[0.02] border-white/5'}"
       >
         <div class="p-2 rounded-xl {chatSettings[opt.id] ? 'bg-cyan-500/20 ' + opt.color : 'bg-white/5 text-zinc-500'} transition-colors">
           <opt.icon size={20} />
         </div>
-        <div class="space-y-1">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold uppercase tracking-tight {chatSettings[opt.id] ? 'text-cyan-400' : 'text-zinc-400'}">{opt.label}</span>
-            {#if chatSettings[opt.id]}
-              <span class="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 text-[8px] font-black italic">ACTIVE</span>
-            {/if}
+        <div class="flex-1 space-y-1 min-w-0">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-xs font-bold uppercase tracking-tight {chatSettings[opt.id] ? 'text-cyan-400' : 'text-zinc-400'}">{opt.label}</span>
+            </div>
+            <!-- Toggle Switch -->
+            <button
+              onclick={() => chatSettings[opt.id] = !chatSettings[opt.id]}
+              class="relative flex-shrink-0 w-10 h-[22px] rounded-full transition-colors duration-200 ease-in-out focus:outline-none
+                     {chatSettings[opt.id] ? 'bg-cyan-500/80' : 'bg-zinc-700'}"
+              role="switch"
+              aria-checked={chatSettings[opt.id]}
+            >
+              <span 
+                class="absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ease-in-out
+                       {chatSettings[opt.id] ? 'translate-x-[18px]' : 'translate-x-0'}"
+              ></span>
+            </button>
           </div>
           <p class="text-[10px] leading-relaxed text-zinc-500">{opt.desc}</p>
         </div>
-      </button>
+      </div>
     {/each}
   </div>
 

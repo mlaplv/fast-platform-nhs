@@ -23,10 +23,13 @@ from ai_engine.core.semantic_shield import SemanticShield
 from src.database.repositories import (
     UserRepository, ChatMessageRepository, VoiceProfileRepository,
     AgentTelemetryLogRepository, OrderRepository, ProductBaseRepository,
+    ContentCampaignRepository,
     provide_user_repo, provide_chat_repo, provide_voice_repo,
-    provide_telemetry_repo, provide_order_repo, provide_product_repo
+    provide_telemetry_repo, provide_order_repo, provide_product_repo,
+    provide_campaign_repo
 )
 from src.database.models import ChatMessage, AgentTelemetryLog
+from src.constants.action_vi import ACTION_VI
 
 logger = logging.getLogger("api-gateway")
 
@@ -53,6 +56,7 @@ class IntentStreamController(Controller):
         "telemetry_repo": Provide(provide_telemetry_repo),
         "order_repo": Provide(provide_order_repo),
         "product_repo": Provide(provide_product_repo),
+        "campaign_repo": Provide(provide_campaign_repo),
     }
 
     def __init__(self, **kwargs):
@@ -70,6 +74,7 @@ class IntentStreamController(Controller):
         telemetry_repo: AgentTelemetryLogRepository,
         order_repo: OrderRepository,
         product_repo: ProductBaseRepository,
+        campaign_repo: ContentCampaignRepository,
     ) -> Stream:
         """Stream intent processing phases via SSE."""
 
@@ -134,29 +139,44 @@ class IntentStreamController(Controller):
                             yield _sse("error", {"message": msg, "restricted": True, "action": action})
                             return
 
-                # ── Phase 3: Execute ──
+                # ── Phase 3: Execute — Streaming for Voice Truth 2026 ──
                 result_category = (result.data or {}).get("category")
                 intent_type = (result.data or {}).get("intent_type")
                 
-                # EXECUTE Phase: Run if success AND (not SESSION_CTRL OR is UI_NAV navigation)
                 if result.status != "error" and (result_category != "SESSION_CTRL" or intent_type == "UI_NAV"):
                     yield _sse("execute", {"status": "working"})
-                    try:
-                        result = await asyncio.wait_for(
-                            orchestrator.execute(
-                                classification=result,
-                                transcript=data.query,
-                                context=context,
-                                screen_context=data.screen_context,
-                                user_repo=user_repo,
-                                order_repo=order_repo,
-                                product_repo=product_repo
-                            ),
-                            timeout=20.0
-                        )
-                    except asyncio.TimeoutError:
-                        yield _sse("error", {"message": "Giao thức kết nối đang bận, Sếp thử lại sau nhé."})
-                        return
+                    
+                    if intent_type in ["DEEP_ANALYSIS", "UNKNOWN"] or result.action.value == "ANALYZE":
+                        # ZERO-LATENCY: Stream text chunks for T3
+                        full_message = ""
+                        async for chunk in orchestrator.t3_router.stream_reason(
+                            data.query, context, screen_context=data.screen_context
+                        ):
+                            full_message += chunk
+                            yield _sse("text_delta", {"text": chunk})
+                        
+                        # Once done, update the result message for the 'done' phase and saving
+                        result.message = full_message
+                    else:
+                        # Non-reasoning tasks (UI_NAV etc.) are usually fast enough
+                        try:
+                            result = await asyncio.wait_for(
+                                orchestrator.execute(
+                                    classification=result,
+                                    transcript=data.query,
+                                    context=context,
+                                    screen_context=data.screen_context,
+                                    user_repo=user_repo,
+                                    order_repo=order_repo,
+                                    product_repo=product_repo,
+                                    campaign_repo=campaign_repo,
+                                    modality=data.modality
+                                ),
+                                timeout=20.0
+                            )
+                        except asyncio.TimeoutError:
+                            yield _sse("error", {"message": "Giao thức kết nối đang bận, Sếp thử lại sau nhé."})
+                            return
 
                 # ── Phase 4: Done — Full response ──
                 yield _sse("done", {

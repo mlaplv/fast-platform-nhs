@@ -9,6 +9,7 @@
   import User from "lucide-svelte/icons/user";
   import Sparkles from "lucide-svelte/icons/sparkles";
   import { fade, fly } from "svelte/transition";
+  import ContentReviewCard from "./ui/ContentReviewCard.svelte";
 
   let { hideHeader = false } = $props();
 
@@ -460,6 +461,15 @@
               <span class="truncate-2-lines pr-2">
                 {processMessage(log.message)}
               </span>
+
+              {#if (log.source === "XOHI" || log.source === "[XOHI]") && log.data?.category === "CONTENT_CREATE"}
+                <ContentReviewCard
+                  campaign_id={log.data.campaign_id}
+                  keywords={log.data.keywords}
+                  step={log.data.step || 1}
+                  status={log.data.status || "WAITING_FOR_REVIEW"}
+                />
+              {/if}
             </div>
           </div>
 

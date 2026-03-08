@@ -8,9 +8,10 @@ class CapabilityRegistry:
     Tier routing (1/2/3) là kiến trúc xử lý nội tại, độc lập với cấu hình này.
 
     Mapping:
-      READ    → chặn IntentAction.READ + COUNT  (truy vấn Dữ liệu / đếm)
-      MUTATE  → chặn IntentAction.MUTATE        (tạo/sửa/xoá qua Final Glance R11)
-      ANALYZE → chặn IntentAction.ANALYZE       (phân tích sâu, chủ yếu Tier 3)
+      READ           → chặn IntentAction.READ + COUNT  (truy vấn Dữ liệu / đếm)
+      MUTATE         → chặn IntentAction.MUTATE        (tạo/sửa/xoá qua Final Glance R11)
+      ANALYZE        → chặn IntentAction.ANALYZE       (phân tích sâu, chủ yếu Tier 3)
+      CONTENT_CREATE → chặn IntentAction.CONTENT_CREATE (V62.1: Sáng tạo nội dung SEO)
     """
     
     @staticmethod
@@ -36,6 +37,13 @@ class CapabilityRegistry:
                 "desc": "Chặn action ANALYZE: phân tích sâu, báo cáo liên module, insight chiến lược (Tier 3).",
                 "color": "text-purple-400",
                 "icon": "Brain"
+            },
+            {
+                "id": "CONTENT_CREATE",
+                "name": "Content Factory",
+                "desc": "V62.1: Sáng tạo nội dung SEO. Bao gồm viết bài, lập dàn ý, check đạo văn qua 6 cổng kiểm duyệt.",
+                "color": "text-emerald-400",
+                "icon": "Pencil"
             }
         ]
 

@@ -15,7 +15,7 @@ export function createTrainingState(voice: any) {
     state.trainingResult = result;
     state.isTraining = false;
     voice.resetVui();
-    import("./omni.svelte").then(({ omni }) => omni.stopTrainingRec());
+    import("$lib/vui").then(({ vuiController }) => vuiController.interruptAll());
   }
 
   function cancelTraining() {
@@ -23,7 +23,7 @@ export function createTrainingState(voice: any) {
     state.trainingType = null;
     state.trainingResult = null;
     voice.resetVui();
-    import("./omni.svelte").then(({ omni }) => omni.stopTrainingRec());
+    import("$lib/vui").then(({ vuiController }) => vuiController.interruptAll());
   }
 
   return {

@@ -60,15 +60,15 @@ export function createVoiceState(
       state.vuiResponse = { text: state.greetingTemplate, type: "greeting" };
     } else {
       state.isVuiActive = true;
-      const { omni } = await import("./omni.svelte");
-      omni.speak(state.greetingTemplate);
+      const { vuiController } = await import("$lib/vui");
+      vuiController.speak(state.greetingTemplate);
       state.voiceTrigger += 1;
     }
   }
 
   function hard_sleep() {
-    import("./omni.svelte").then(({ omni }) => {
-      omni.interrupt();
+    import("$lib/vui").then(({ vuiController }) => {
+      vuiController.interruptAll();
       resetVui();
       addLog(
         "TERMINATE_SESSION: Hardware lock released.",

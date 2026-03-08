@@ -8,20 +8,17 @@ import json, time, hashlib, uuid, asyncio, logging
 from src.database.repositories import (
     UserRepository, ChatMessageRepository, VoiceProfileRepository, 
     AgentTelemetryLogRepository, OrderRepository, ProductBaseRepository,
+    ContentCampaignRepository,
     provide_user_repo, provide_chat_repo, provide_voice_repo, 
-    provide_telemetry_repo, provide_order_repo, provide_product_repo
+    provide_telemetry_repo, provide_order_repo, provide_product_repo,
+    provide_campaign_repo
 )
 from src.database.models import User, ChatMessage, AgentTelemetryLog
 
 logger = logging.getLogger("api-gateway")
 
 # Tên tiếng Việt của từng IntentAction — dùng trong Skill Guard thông báo lỗi
-ACTION_VI = {
-    "READ":    "Truy xuất Dữ liệu",
-    "COUNT":   "Truy xuất Số liệu",
-    "MUTATE":  "Chỉnh sửa Hệ thống",
-    "ANALYZE": "Suy luận Chuyên sâu",
-}
+from src.constants.action_vi import ACTION_VI
 
 # ui_action → target entity (dùng trong heuristic fallback)
 UI_ACTION_TARGET = {
@@ -49,6 +46,7 @@ class IntentController(Controller):
         "telemetry_repo": Provide(provide_telemetry_repo),
         "order_repo": Provide(provide_order_repo),
         "product_repo": Provide(provide_product_repo),
+        "campaign_repo": Provide(provide_campaign_repo),
     }
 
     def __init__(self, **kwargs):
@@ -65,7 +63,8 @@ class IntentController(Controller):
         profile_repo: VoiceProfileRepository,
         telemetry_repo: AgentTelemetryLogRepository,
         order_repo: OrderRepository,
-        product_repo: ProductBaseRepository
+        product_repo: ProductBaseRepository,
+        campaign_repo: ContentCampaignRepository,
     ) -> IntentResponse:
         """
         Phễu Lọc 3 Tầng — [THIẾT QUÂN LUẬT] Fully DI-based.
@@ -127,8 +126,9 @@ class IntentController(Controller):
             # ── TRINITY PHASE 3: Execution (Provider -> Refiner) ──
             # Only execute Trinity Loop or Tier 3 if NOT restricted
             # BẮT BUỘC: Bỏ qua Execute cho SESSION_CTRL (Wake/Sleep) — đã hoàn thành ở T1
-            result_category = (result.data or {}).get("category")
-            if result.status != "error" and result_category != "SESSION_CTRL":
+            # Tuy nhiên, UI_NAV cần Execute để Inject dữ liệu (ví dụ: Biểu đồ)
+            intent_type = (result.data or {}).get("intent_type")
+            if result.status != "error" and (result_category != "SESSION_CTRL" or intent_type == "UI_NAV"):
                 try:
                     # GLOBAL TIMEOUT GUARD: Force response within 20s to prevent hanging
                     result = await asyncio.wait_for(
@@ -140,6 +140,7 @@ class IntentController(Controller):
                             user_repo=user_repo,
                             order_repo=order_repo,
                             product_repo=product_repo,
+                            campaign_repo=campaign_repo,
                             modality=data.modality
                         ),
                         timeout=20.0

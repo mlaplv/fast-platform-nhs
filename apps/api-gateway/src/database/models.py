@@ -283,3 +283,31 @@ class ArticleEmbedding(Base, AuditMixin):
     article_id: Mapped[str] = mapped_column(String, ForeignKey('articles.id'), unique=True)
     article: Mapped["Article"] = relationship("Article", back_populates="embedding")
     embedding: Mapped[str] = mapped_column(Text)
+
+class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
+    __tablename__ = 'content_campaigns'
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    source_input: Mapped[str] = mapped_column(Text)
+    reviewer_type: Mapped[str] = mapped_column(String, default="ADMIN_MANUAL")
+    current_step: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String, default="WAITING_FOR_REVIEW")
+    
+    # The Golden Thread (Khóa cứng sau Bước 1)
+    gold_metadata: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
+    
+    # Step Data
+    topic_data: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
+    assets_data: Mapped[Optional[list]] = mapped_column(JSON, default=list)
+    outline_data: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
+    draft_content: Mapped[Optional[str]] = mapped_column(Text)
+    unique_score: Mapped[float] = mapped_column(Float, default=0.0)
+    final_html: Mapped[Optional[str]] = mapped_column(Text)
+    
+    # Hardened Logs (Lịch sử lỗi API/Circuit Breaker)
+    error_logs: Mapped[Optional[list]] = mapped_column(JSON, default=list)
+
+    __table_args__ = (
+        Index("ix_campaigns_tenant_deleted", "tenant_id", "deleted_at"),
+        Index("ix_campaigns_status", "status"),
+    )

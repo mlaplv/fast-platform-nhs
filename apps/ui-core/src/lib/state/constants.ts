@@ -22,6 +22,8 @@ export const COMMAND_WIDGET_MAP: Record<string, WidgetType> = {
   skill: "VOICE_SETTINGS",
   "voice settings": "VOICE_SETTINGS",
   "mở cài đặt giọng": "VOICE_SETTINGS",
+  "manage skills": "VOICE_SETTINGS",
+  "skills": "VOICE_SETTINGS",
 };
 
 export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {

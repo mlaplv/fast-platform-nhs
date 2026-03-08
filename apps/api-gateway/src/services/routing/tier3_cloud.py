@@ -114,7 +114,7 @@ class Tier3CloudRouter:
                     **output.action_data
                 },
             )
-
+            
         except Exception as e:
             logger.error(f"[T3 Waterfall] Trinity critical failure: {e}")
             return IntentResponse(
@@ -125,3 +125,33 @@ class Tier3CloudRouter:
                 cost_tokens=0.0,
                 data={},
             )
+
+    async def stream_reason(self, transcript: str, context: list = None, screen_context: dict | None = None):
+        """Streaming version of deep reasoning."""
+        history = []
+        if context:
+            for msg in context:
+                if msg.get("role") != "system":
+                    history.append(msg)
+
+        from ai_engine.core.trinity_bridge import trinity_bridge
+        deps = Tier3Deps(
+            screen_context=screen_context, 
+            rotator=self.rotator,
+            base_directive=os.getenv("SYSTEM_CORE_DIRECTIVE", "")
+        )
+
+        try:
+            async with trinity_bridge.run_stream(
+                self.agent,
+                transcript,
+                deps=deps,
+                message_history=history
+            ) as result:
+                # We yield text chunks as they arrive
+                async for text in result.stream_text(delta=True):
+                    yield text
+                    
+        except Exception as e:
+            logger.error(f"[T3 Stream] Critical failure: {e}")
+            yield "Dạ, hệ thống đang gặp lỗi xử lý dòng dữ liệu ạ."

@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { nanobot } from "$lib/state/nanobot.svelte";
-  import { omni } from "$lib/state/omni.svelte";
+  import { vuiController } from "$lib/vui";
 
   import Save from "lucide-svelte/icons/save";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
@@ -35,7 +35,7 @@
     nanobot.voice.clearVuiResponse();
     nanobot.setTraining(true, type);
     nanobot.setModality("voice");
-    omni.startTrainingRec();
+    vuiController.startRecording();
     nanobot.addLog(`Initializing Neural Capture: ${type.toUpperCase()}`, "SYS");
   }
 

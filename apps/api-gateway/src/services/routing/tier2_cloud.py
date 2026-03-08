@@ -14,7 +14,7 @@ logger = logging.getLogger("api-gateway")
 
 class Tier2Output(BaseModel):
     """Structured output for Tier 2 Dispatcher extraction."""
-    intent_type: Literal["UI_NAV", "DATA_QUERY", "DEEP_ANALYSIS", "UNKNOWN"] = Field(
+    intent_type: Literal["UI_NAV", "DATA_QUERY", "DEEP_ANALYSIS", "CONTENT_CREATE", "CONTENT_APPROVE", "CONTENT_REJECT", "UNKNOWN"] = Field(
         description="Type of user intent classification"
     )
     target: Literal["order", "revenue", "product", "user", "category", "news", "none"] = Field(
@@ -52,6 +52,9 @@ Phân tích yêu cầu của sếp, đọc [SCREEN_CONTEXT] để hiểu ngữ c
 - UI_NAV: Lệnh MỞ TRANG để thao tác/làm việc thuần túy, không để ý đến số liệu (ví dụ: "mở trang đơn hàng", "vào quản lý sản phẩm").
 - DATA_QUERY: Lệnh hỏi SỐ LIỆU, đếm số lượng, tổng kết, báo cáo (ví dụ: "doanh thu nay thế nào", "có bao nhiêu khách", "doanh số hôm qua"). NẾU SẾP HỎI MỘT ĐẠI LƯỢNG VÀ THỜI GIAN, ĐÓ LÀ DATA_QUERY TUYỆT ĐỐI.
 - DEEP_ANALYSIS: Lệnh cần suy luận, phân tích lý do, tổng hợp chi tiết, câu hỏi mở, lệnh tạo/sửa/xóa, hoặc LỜI CHÀO HỎI GIAO TIẾP TỰ NHIÊN ("chào em", "khỏe không"). Để lại cho Tier 3 xử lý.
+- CONTENT_CREATE: Lệnh YÊU CẦU VIẾT BÀI, sáng tạo nội dung, quảng cáo, bài SEO, tin tức, bài viết mới (ví dụ: "viết bài về cà phê", "tạo nội dung quảng cáo", "viết bài PR sản phẩm"). Chuyển cho Content Factory V62.1.
+- CONTENT_APPROVE: Lệnh DUYÊT, đồng ý, xác nhận bài viết hoặc từ khóa đang chờ (ví dụ: "duyệt", "ok", "đồng ý", "chạy tiếp đi", "tốt rồi").
+- CONTENT_REJECT: Lệnh TỪ CHỐI, yêu cầu sửa lại, làm lại nội dung (ví dụ: "không duyệt", "sửa lại cho sếp", "làm lại đi", "chưa ổn", "tạo lại").
 - UNKNOWN: Những câu hỏi hoàn toàn không liên quan đến hệ thống quản lý, kinh doanh, hoặc nằm ngoài khả năng. QUAN TRỌNG: NẾU SẾP HỎI "DÂN SỐ", "THỜI TIẾT", "LỊCH SỬ" -> BẮT BUỘC TRẢ VỀ UNKNOWN (Tuyệt đối không nhầm "dân số" thành "user" hay "khách hàng").
 
 [ENTITY MAPPING - TARGET]
@@ -125,6 +128,9 @@ class Tier2CloudRouter:
                 "UI_NAV": IntentAction.READ, 
                 "DATA_QUERY": IntentAction.COUNT, 
                 "DEEP_ANALYSIS": IntentAction.ANALYZE, 
+                "CONTENT_CREATE": IntentAction.CONTENT_CREATE,
+                "CONTENT_APPROVE": IntentAction.CONTENT_APPROVE,
+                "CONTENT_REJECT": IntentAction.CONTENT_REJECT,
                 "UNKNOWN": IntentAction.READ
             }
             action = action_map.get(output.intent_type, IntentAction.READ)

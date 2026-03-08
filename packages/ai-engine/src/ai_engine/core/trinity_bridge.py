@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 import asyncio
 from typing import List, Optional, Any, Callable
@@ -119,7 +120,74 @@ class TrinityModelBridge:
                     
                     continue
 
-        raise Exception("TrinityBridge: All model tiers and keys exhausted.")
+    def _update_health(self, model: str, key: str, healthy: bool):
+        """Update the health status of a model/key pair."""
+        now = time.time() if not healthy else 0
+        self._health_map[f"{model}:{key}"] = now + (60 if not healthy else 0)
+
+    async def run_stream(
+        self,
+        agent: Agent,
+        transcript: str,
+        deps: Any = None,
+        message_history: List[Any] = None,
+        model_waterfall: Optional[List[str]] = None
+    ) -> Any:
+        """
+        Streaming version of run() with full Waterfall fallback and Key Rotation.
+        """
+        import time
+        now = time.time()
+
+        if not model_waterfall:
+            waterfall_str = os.getenv(
+                "MODEL_WATERFALL", 
+                "gemini-2.0-flash,gemini-1.5-flash"
+            )
+            model_names = [m.strip() for m in waterfall_str.split(",")]
+        else:
+            model_names = model_waterfall
+
+        all_keys = self.rotator.get_all_keys()
+
+        # Try Tiered Waterfall
+        for model_name in model_names:
+            for _ in range(len(all_keys)):
+                api_key = self.rotator.get_next_key()
+                
+                # Health Check
+                if self._health_map.get(f"{model_name}:{api_key}", 0) > now:
+                    continue
+
+                try:
+                    provider = GoogleProvider(api_key=api_key)
+                    model_instance = GoogleModel(model_name, provider=provider)
+                    
+                    # We return the stream immediately. 
+                    # Note: Errors during streaming connection will be caught by the caller's 'async with'
+                    # But the initial model instantiation and agent.run_stream call should be safe here.
+                    logger.debug(f"[TrinityBridge] Attempting Stream: {model_name} (key {api_key[:8]}...)")
+                    
+                    # Store as potential LKG if successful (though we don't know yet)
+                    self._last_known_good = (model_name, api_key)
+                    
+                    return agent.run_stream(
+                        transcript,
+                        deps=deps,
+                        message_history=message_history,
+                        model=model_instance
+                    )
+
+                except Exception as e:
+                    logger.warning(f"[TrinityBridge] Stream Init Fail {model_name}: {e}")
+                    continue
+
+        # Last Resort: Try one more time with a fresh key from the pool
+        api_key = self.rotator.get_next_key()
+        model_name = model_names[-1]
+        provider = GoogleProvider(api_key=api_key)
+        model_instance = GoogleModel(model_name, provider=provider)
+        return agent.run_stream(transcript, deps=deps, message_history=message_history, model=model_instance)
 
 # Singleton instance
 trinity_bridge = TrinityModelBridge()
