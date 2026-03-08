@@ -5,6 +5,7 @@ export interface SystemLog {
   source: string;
   type?: string;
   routerTier?: number;
+  data?: Record<string, any>;
 }
 
 export interface Notification {

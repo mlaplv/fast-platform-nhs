@@ -5,6 +5,7 @@
   import { playSciFiBeep, playSiriDing } from "$lib/utils/sfx";
   import VoiceOrb from "./vui/VoiceOrb.svelte";
   import VoiceStatusCaption from "./vui/VoiceStatusCaption.svelte";
+  import ContentReviewCard from "./ui/ContentReviewCard.svelte";
 
   $effect(() => {
     if (nanobot.isVuiActive) playSciFiBeep();
@@ -89,6 +90,17 @@
     >
       <VoiceOrb {phase} />
       <VoiceStatusCaption {phase} />
+
+      {#if nanobot.vuiResponse?.data?.category === "CONTENT_CREATE" && nanobot.vuiResponse?.data?.keywords}
+        <div class="mt-8 w-full max-w-2xl px-4 animate-in slide-in-from-bottom-10 fade-in duration-700 z-50 relative pointer-events-auto">
+          <ContentReviewCard 
+            campaign_id={nanobot.vuiResponse.data.campaign_id}
+            keywords={nanobot.vuiResponse.data.keywords}
+            step={nanobot.vuiResponse.data.step || 1}
+            status={nanobot.vuiResponse.data.status || 'WAITING_FOR_REVIEW'}
+          />
+        </div>
+      {/if}
     </div>
   </div>
 {/if}

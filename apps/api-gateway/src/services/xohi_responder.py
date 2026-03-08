@@ -114,12 +114,7 @@ class XoHiResponder:
     async def _persist_xohi_log(self, tenant_id: str, msg: str, order_id: str, score: float):
         """Persist security alert to ChatMessage history for XoHi console visibility."""
         try:
-            # We target session_id='account' which is the default for user-specific logs in frontend
-            # In a multi-user system, we might want to target specific admin user_ids
-            # For now, following 'account' session pattern from ChatController
             async with self.session_maker() as session:
-                # Get the first admin user to associate the log with (optional but better for consistency)
-                # If no user_id, it will still show up if frontend filters by session_id='account'
                 await session.execute(
                     text("""
                         INSERT INTO chat_messages (id, session_id, role, content, modality, tenant_id, created_at, updated_at)
@@ -141,6 +136,51 @@ class XoHiResponder:
         except Exception as e:
             logger.error(f"[XoHiResponder] XoHi log persistence failed: {e}")
 
+    async def handle_content_step_completed(self, payload: Dict[str, Any]):
+        """Callback for CONTENT_STEP_COMPLETED event."""
+        campaign_id = payload.get("campaign_id")
+        step = payload.get("step")
+        status = payload.get("status")
+        tenant_id = payload.get("tenant_id", "default")
+        data = payload.get("data", {})
+
+        msg = f"Dạ sếp, em đã hoàn thành Bước {step}. Mời sếp xem kết quả và duyệt để em chạy tiếp ạ!"
+        if step == 2:
+            msg = f"Dạ sếp, em đã tìm xong bộ ảnh cho bài viết (Bước 2). Sếp chọn ảnh ưng ý để em lập dàn ý nhé!"
+        elif step == 3:
+            msg = f"Dạ sếp, dàn ý chi tiết (Bước 3) đã sẵn sàng. Sếp xem qua có cần chỉnh sửa gì không ạ?"
+        elif step == 4:
+            msg = f"Dạ sếp, em đã viết xong bản thảo (Bước 4). Sếp duyệt bài để em kiểm tra đạo văn nhé!"
+        elif step == 6:
+            msg = f"Chúc mừng sếp! Bài viết đã hoàn tất toàn bộ 6 bước và sẵn sàng xuất bản ạ."
+
+        try:
+            async with self.session_maker() as session:
+                await session.execute(
+                    text("""
+                        INSERT INTO chat_messages (id, session_id, role, content, modality, tenant_id, created_at, updated_at)
+                        VALUES (:id, 'account', 'assistant', :content, 'text', :tid, NOW(), NOW())
+                    """),
+                    {
+                        "id": str(uuid.uuid4()),
+                        "content": json.dumps({
+                            "text": msg,
+                            "category": "CONTENT_CREATE",
+                            "campaign_id": campaign_id,
+                            "step": step,
+                            "status": status,
+                            "keywords": data.get("keywords") if step == 2 else None,
+                            "assets": data.get("assets") if step == 2 else None,
+                            "outline": data.get("outline") if step == 3 else None,
+                        }),
+                        "tid": tenant_id
+                    }
+                )
+                await session.commit()
+            logger.info(f"[XoHiResponder] Proactive content log persisted for step {step}")
+        except Exception as e:
+            logger.error(f"[XoHiResponder] Content log persistence failed: {e}")
+
 # Initialize and subscribe
 xohi_responder = XoHiResponder()
 
@@ -148,4 +188,5 @@ def setup_subscriptions():
     """Register all proactive sensors."""
     event_bus.subscribe("ORDER_CREATED", xohi_responder.handle_order_created)
     event_bus.subscribe("ORDER_CANCELLED", xohi_responder.handle_order_cancelled)
+    event_bus.subscribe("CONTENT_STEP_COMPLETED", xohi_responder.handle_content_step_completed)
     logger.info("[XoHiResponder] Subscriptions initialized.")

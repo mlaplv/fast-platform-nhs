@@ -10,7 +10,8 @@ interface IntentDeps {
       transcript: string,
       responseText: string,
       uiAction: string,
-      source: "text" | "voice",
+      data?: Record<string, any>,
+      source?: "text" | "voice",
       routerTier?: number
     ) => void;
     status: string;
@@ -18,7 +19,7 @@ interface IntentDeps {
     resetVui: () => void;
   };
   log: {
-    addLog: (msg: string, source?: string, type?: string, tier?: number) => void;
+    addLog: (msg: string, source?: string, type?: string, tier?: number, data?: Record<string, any>) => void;
   };
   ui: {
     setUniversalModalOpen: (val: boolean) => void;
@@ -54,10 +55,10 @@ export function createIntentManager(
     state.lastSpokenTime = Date.now();
 
     if (responseText && responseText !== "NONE" && responseText.trim().length > 0) {
-      log.addLog(responseText, "XOHI", "info", routerTier);
+      log.addLog(responseText, "XOHI", "info", routerTier, data);
     }
 
-    voice.setVoiceResult(transcript, responseText, uiAction, source, routerTier);
+    voice.setVoiceResult(transcript, responseText, uiAction, data, source, routerTier);
     state.nanoBotStatus = voice.status === "VOICE" ? "IDLE" : "SUCCESS";
 
     // Phase 60: Always persist session context for multi-turn conversation

@@ -3,13 +3,14 @@ import { safeRandomUUID } from "./utils";
 export type VoiceStatus = "IDLE" | "VOICE" | "THINKING" | "ERROR" | "SUCCESS";
 
 export function createVoiceState(
-  addLog: (msg: string, source?: string, type?: string) => void,
+  addLog: (msg: string, source?: string, type?: string, routerTier?: number, data?: Record<string, any>) => void,
 ) {
   const state = $state({
     isVuiActive: false,
     vuiResponse: null as {
       text: string;
       type: "greeting" | "answer" | "action" | "error";
+      data?: Record<string, any>;
     } | null,
     vuiUserQuery: "",
     voiceTrigger: 0,
@@ -33,6 +34,7 @@ export function createVoiceState(
     transcript: string,
     responseText: string,
     uiAction: string,
+    data?: Record<string, any>,
     source: "text" | "voice" = "text",
     routerTier?: number,
   ) {
@@ -40,6 +42,7 @@ export function createVoiceState(
     state.vuiResponse = {
       text: responseText,
       type: uiAction ? "action" : "answer",
+      data,
     };
     state.routerTier = routerTier;
 

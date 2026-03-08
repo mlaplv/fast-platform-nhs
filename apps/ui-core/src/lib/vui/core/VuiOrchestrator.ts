@@ -119,6 +119,13 @@ class VuiOrchestrator {
   setStopAfterSpeech(val: boolean) { this.stopAfterSpeech = val; }
 
   private onTTSFinished() {
+    if (vuiState.isWaitingForAction) {
+      this.mic.stop(); // Phase 61: Quiet mic but keep UI open
+      vuiState.setPhase("idle");
+      vuiState.setLiveText("Waiting for review...");
+      return;
+    }
+
     if (this.stopAfterSpeech) {
       this.stopAfterSpeech = false;
       this.interruptAll();

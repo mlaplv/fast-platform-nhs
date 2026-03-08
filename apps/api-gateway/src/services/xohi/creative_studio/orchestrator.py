@@ -1,6 +1,7 @@
+import os
 import uuid
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 from src.database.models import ContentCampaign
 from src.database.repositories import ContentCampaignRepository
@@ -10,6 +11,7 @@ from src.services.xohi.creative_studio.models.creative_pen import CreativePen
 from src.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
 from src.services.xohi.creative_studio.formatters.media_compressor import MediaCompressor
 from shared.schemas.intent import IntentResponse, IntentAction, RouterTier
+from src.services.event_bus import event_bus
 
 logger = logging.getLogger("api-gateway")
 
@@ -22,6 +24,16 @@ class ContentOrchestrator:
 
     def __init__(self):
         self.vision = VisionInsight()
+        
+        # Initialize AssetHunter with 3 key pairs from .env (Rule R90)
+        keys = []
+        for i in ["", "_1", "_2"]:
+            k = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}")
+            cx = os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
+            if k and cx:
+                keys.append({"key": k, "cx": cx})
+        
+        self.hunter = AssetHunter(keys)
 
     async def get_latest_pending(self, campaign_repo: ContentCampaignRepository, tenant_id: str = "default") -> Optional[ContentCampaign]:
         """Find the most recent campaign that is waiting for review."""
@@ -58,6 +70,12 @@ class ContentOrchestrator:
             )
 
         try:
+            # 1. Resume Check: Nếu đang có bài dang dở, ưu tiên hỏi tiếp (R81: Continuity)
+            stale = await self.get_latest_pending(campaign_repo, tenant_id)
+            if stale and "tiếp" in transcript.lower():
+                # Pseudo-intent: User wants to resume
+                return await self.approve_step(stale.id, {"approved": True}, campaign_repo)
+
             # 1. Tạo campaign trong DB ngay lập tức (R86: Persistence)
             campaign = ContentCampaign(
                 id=str(uuid.uuid4()),
@@ -66,7 +84,8 @@ class ContentOrchestrator:
                 current_step=1,
                 status="PROCESSING",
                 gold_metadata={},
-                error_logs=[]
+                error_logs=[],
+                search_count=0
             )
             campaign = await campaign_repo.add(campaign)
             logger.info(f"[Content Factory] Campaign created: {campaign.id}")
@@ -83,6 +102,14 @@ class ContentOrchestrator:
             # 4. Format response cho voice + UI card
             voice_msg = self._format_keywords_for_voice(seed)
 
+            # 5. Notify Nerve System for UI tracking
+            await event_bus.emit("CONTENT_STEP_COMPLETED", {
+                "campaign_id": campaign.id,
+                "step": 1,
+                "status": "WAITING_FOR_REVIEW",
+                "tenant_id": tenant_id
+            })
+
             return IntentResponse(
                 status="success",
                 action=IntentAction.CONTENT_CREATE,
@@ -93,6 +120,7 @@ class ContentOrchestrator:
                     "action": "STEP1_REVIEW",
                     "campaign_id": campaign.id,
                     "keywords": seed.model_dump(),
+                    "step": 1
                 },
                 cost_tokens=0.0
             )
@@ -138,12 +166,29 @@ class ContentOrchestrator:
         campaign = await campaign_repo.get(campaign_id)
         if not campaign: return
         try:
-            hunter = AssetHunter()
+            # Rule R90: Search Quota Enforcement (Max 3)
+            if (campaign.search_count or 0) >= 3:
+                logger.warning(f"[Content Factory] Search Quota EXHAUSTED for {campaign_id}")
+                campaign.status = "WAITING_FOR_REVIEW"
+                await campaign_repo.update(campaign)
+                return
+
             query = campaign.topic_data.get("primary_keyword", campaign.source_input)
-            urls = await hunter.fetch_images(query)
+            urls = await self.hunter.fetch_images(query)
+            
             campaign.assets_data = urls
             campaign.status = "WAITING_FOR_REVIEW"
+            campaign.search_count = (campaign.search_count or 0) + 1
             await campaign_repo.update(campaign)
+            
+            # Notify Nerve System
+            await event_bus.emit("CONTENT_STEP_COMPLETED", {
+                "campaign_id": campaign.id,
+                "step": 2,
+                "status": "WAITING_FOR_REVIEW",
+                "tenant_id": campaign.tenant_id,
+                "data": {"keywords": campaign.topic_data, "assets": urls}
+            })
         except Exception as e:
             await self._log_error(campaign_id, campaign_repo, "COOLDOWN", str(e))
 
@@ -156,6 +201,15 @@ class ContentOrchestrator:
             campaign.outline_data = outline.model_dump()
             campaign.status = "WAITING_FOR_REVIEW"
             await campaign_repo.update(campaign)
+            
+            # Notify Nerve System
+            await event_bus.emit("CONTENT_STEP_COMPLETED", {
+                "campaign_id": campaign.id,
+                "step": 3,
+                "status": "WAITING_FOR_REVIEW",
+                "tenant_id": campaign.tenant_id,
+                "data": {"outline": campaign.outline_data}
+            })
         except Exception as e:
             await self._log_error(campaign_id, campaign_repo, "ERROR", str(e))
 
@@ -168,6 +222,15 @@ class ContentOrchestrator:
             campaign.draft_content = content
             campaign.status = "WAITING_FOR_REVIEW"
             await campaign_repo.update(campaign)
+
+            # Notify Nerve System
+            await event_bus.emit("CONTENT_STEP_COMPLETED", {
+                "campaign_id": campaign.id,
+                "step": 4,
+                "status": "WAITING_FOR_REVIEW",
+                "tenant_id": campaign.tenant_id,
+                "data": {"content_preview": content[:100] + "..."}
+            })
         except Exception as e:
             await self._log_error(campaign_id, campaign_repo, "ERROR", str(e))
 
@@ -179,6 +242,15 @@ class ContentOrchestrator:
             await cop.run_audit(campaign)
             campaign.status = "WAITING_FOR_REVIEW"
             await campaign_repo.update(campaign)
+
+            # Notify Nerve System
+            await event_bus.emit("CONTENT_STEP_COMPLETED", {
+                "campaign_id": campaign.id,
+                "step": 5,
+                "status": "WAITING_FOR_REVIEW",
+                "tenant_id": campaign.tenant_id,
+                "data": {"unique_score": campaign.unique_score}
+            })
         except Exception as e:
             await self._log_error(campaign_id, campaign_repo, "ERROR", str(e))
 
@@ -194,6 +266,14 @@ class ContentOrchestrator:
             campaign.status = "COMPLETED"
             campaign.current_step = 6
             await campaign_repo.update(campaign)
+
+            # Notify Nerve System
+            await event_bus.emit("CONTENT_STEP_COMPLETED", {
+                "campaign_id": campaign.id,
+                "step": 6,
+                "status": "COMPLETED",
+                "tenant_id": campaign.tenant_id
+            })
         except Exception as e:
             await self._log_error(campaign_id, campaign_repo, "ERROR", str(e))
 

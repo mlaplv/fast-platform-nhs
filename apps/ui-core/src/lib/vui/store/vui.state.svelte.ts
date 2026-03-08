@@ -12,9 +12,11 @@ export const vuiState = $state({
   activeTier: "",
   cmdBuffer: "",
   hasSpoken: false,
+  isWaitingForAction: false,
 
   // VUI 2026: Helper methods for unified state transitions
   setActive(val: boolean) { this.isActive = val; },
+  setIsWaitingForAction(val: boolean) { this.isWaitingForAction = val; },
   setPhase(val: VuiPhase) { 
     this.phase = val; 
     if (val === "listening" || val === "idle") this.errorMsg = "";
@@ -44,5 +46,6 @@ export const vuiState = $state({
     this.errorMsg = "";
     this.hasSpoken = false;
     this.cmdBuffer = "";
+    this.isWaitingForAction = false;
   }
 });

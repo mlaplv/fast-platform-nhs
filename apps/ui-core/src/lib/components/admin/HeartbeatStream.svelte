@@ -466,6 +466,8 @@
                 <ContentReviewCard
                   campaign_id={log.data.campaign_id}
                   keywords={log.data.keywords}
+                  assets={log.data.assets}
+                  outline={log.data.outline}
                   step={log.data.step || 1}
                   status={log.data.status || "WAITING_FOR_REVIEW"}
                 />

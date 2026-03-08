@@ -111,7 +111,12 @@ export class VuiStreamManager {
         vuiState.setLiveText(`Action: ${this.lastActionType.toUpperCase().replace("_", " ")}`);
       }
 
-      nanobot.setVoiceResult(query, finalMsg, this.lastActionType, { ...lastData?.data, session_id: lastData?.session_id || lastData?.data?.session_id || "" }, source, lastData?.router_tier);
+      const dataPkg = { ...lastData?.data, session_id: lastData?.session_id || lastData?.data?.session_id || "" };
+      if (dataPkg.category === "CONTENT_CREATE") {
+        vuiState.setIsWaitingForAction(true);
+      }
+      
+      nanobot.setVoiceResult(query, finalMsg, this.lastActionType, dataPkg, source, lastData?.router_tier);
 
       if (source === "text") {
         vuiState.setPhase("idle");

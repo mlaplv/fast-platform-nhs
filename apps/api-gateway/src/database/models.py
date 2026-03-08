@@ -302,6 +302,7 @@ class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     outline_data: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
     draft_content: Mapped[Optional[str]] = mapped_column(Text)
     unique_score: Mapped[float] = mapped_column(Float, default=0.0)
+    search_count: Mapped[int] = mapped_column(Integer, default=0)
     final_html: Mapped[Optional[str]] = mapped_column(Text)
     
     # Hardened Logs (Lịch sử lỗi API/Circuit Breaker)

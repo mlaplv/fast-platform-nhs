@@ -104,6 +104,37 @@ export function createNanobotState() {
     }
   };
 
+  let pollingInterval: ReturnType<typeof setInterval> | undefined;
+
+  const startSmartPolling = () => {
+    if (pollingInterval) return;
+    pollingInterval = setInterval(async () => {
+      // Check if any log is in PROCESSING state (or if we have a flag)
+      const hasProcessing = log.activityLogs.some(l => 
+        l.data?.category === "CONTENT_CREATE" && l.data?.status === "PROCESSING"
+      );
+      
+      if (hasProcessing) {
+        await chat.hydrateHistory("account", (logs: any) => {
+          const existingIds = new Set(log.activityLogs.map((l: any) => l.id));
+          const newLogs = logs.filter((l: any) => !existingIds.has(l.id));
+          if (newLogs.length > 0) {
+            log.setActivityLogs([...log.activityLogs, ...newLogs].sort((a,b) => a.timestamp.getTime() - b.timestamp.getTime()));
+          }
+        }, state.godModeUser || undefined);
+      } else {
+        stopSmartPolling();
+      }
+    }, 5000);
+  };
+
+  const stopSmartPolling = () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      pollingInterval = undefined;
+    }
+  };
+
   if (typeof window !== "undefined") {
     $effect.root(() => {
       $effect(() => {
@@ -115,6 +146,17 @@ export function createNanobotState() {
               chat.hydrateHistory("account", (logs: any) => {
                 const existingIds = new Set(log.activityLogs.map((l: any) => l.id));
                 log.setActivityLogs([...log.activityLogs, ...logs.filter((l: any) => !existingIds.has(l.id))].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()));
+                
+                // Auto-Resume Check (R81)
+                const pending = logs.find((l: any) => l.data?.category === "CONTENT_CREATE" && l.data?.status === "WAITING_FOR_REVIEW");
+                if (pending) {
+                  ui.showToast(`Phát hiện bài viết chưa xong: ${pending.data.keywords?.title || 'Bản thảo cũ'}. Sếp duyệt tiếp nhé!`, "info", 8000);
+                }
+                
+                // Start polling if something is processing
+                if (logs.some((l: any) => l.data?.status === "PROCESSING")) {
+                  startSmartPolling();
+                }
               }, state.godModeUser || undefined);
             }
           });

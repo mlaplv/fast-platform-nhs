@@ -11,7 +11,8 @@ export function createLogState() {
     message: string,
     source: string = "Nanobot-Core",
     type: string = "info",
-    routerTier?: number
+    routerTier?: number,
+    data?: Record<string, any>
   ) {
     const newLog: SystemLog = {
       id: safeRandomUUID(),
@@ -19,7 +20,8 @@ export function createLogState() {
       message,
       source,
       type,
-      routerTier
+      routerTier,
+      data
     };
     // Ensure uniqueness and limit size
     const updated = [...state.activityLogs, newLog];
