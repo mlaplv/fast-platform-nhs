@@ -1,0 +1,42 @@
+name: 🚨 CodeQL Security Analysis
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '30 2 * * 0' # Chạy tự động lúc 2:30 sáng Chủ Nhật hàng tuần
+
+jobs:
+  analyze:
+    name: Phân tích Tĩnh (Static Application Security Testing)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'python', 'javascript-typescript' ]
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Khởi tạo CodeQL Database
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        # Tự động chọn các query mặc định xịn nhất để bắt Injection, XSS...
+        queries: security-extended,security-and-quality
+
+    - name: Tiến hành Build (Autobuild)
+      uses: github/codeql-action/autobuild@v3
+
+    - name: Phân tích & Xuất Report
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
