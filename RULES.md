@@ -1,8 +1,28 @@
-# HIẾN PHÁP FAST-PLATFORM (V60.0 — THE ULTRA-LIGHT REVOLUTION)
+# HIẾN PHÁP FAST-PLATFORM (V61.0 — VIRAL AGENTIC STANDARD)
 
 > **CHỈ THỊ CHO AI IDE:** Dự án Agentic AI 2026. Stack cố định: **SvelteKit 5 (Runes) + Litestar (Python 3.14-slim) + SQLAlchemy 2.0 (AdvancedAlchemy) + PydanticAI + LiteLLM**. Tuyệt đối KHÔNG dùng React/Next.js/FastAPI/Prisma. Mọi file tạo ra phải tuân thủ nghiêm ngặt các nguyên lý "THIẾT QUÂN LUẬT" (Hardened Architecture).
 
 ---
+
+## R00 – ĐẠO LUẬT TRÌNH BÁO (PROPOSE-FIRST PROTOCOL)
+
+- ❌ CẤM TUYỆT ĐỐI AI tự ý xuất code, tạo file, hoặc sửa logic khi chưa được Sếp phê duyệt phương án.
+- ✅ BẮT BUỘC tuân thủ quy trình 3 bước cho MỌI yêu cầu:
+  1. **PROPOSE:** Trình bày phương án giải quyết (file nào sẽ bị sửa, logic thay đổi ra sao).
+  2. **CRITIQUE:** Tự phản biện rủi ro (Cách này có ngốn thêm RAM VPS 2GB không? Có phá vỡ kiến trúc Lean/Zero-Hydration không?).
+  3. **HALT:** Dừng lại và hỏi: "Sếp có duyệt phương án và chấp nhận rủi ro này không?". CHỈ KHI Sếp gõ "Duyệt" hoặc "Ok", mới được phép in code ra màn hình.
+  4. **Đảm bả**o các gói cài đặt luôn mới nhất(latest), cấm đưa về bản củ.
+
+## R01.1 – ĐẠO LUẬT TRINH SÁT (SCOUT & REPORT PROTOCOL)
+
+AI IDE là một người cộng sự, không phải cái máy gõ phím mù quáng. Trong quá trình quét Context và phân tích mã nguồn để thực hiện yêu cầu của Sếp:
+
+- ❌ **CẤM ÂM THẦM SỬA LỖI:** Nếu phát hiện bugs, code thối (code smell), hoặc điểm nghẽn hiệu năng nằm ngoài phạm vi yêu cầu hiện tại, TUYỆT ĐỐI KHÔNG được tự ý sửa để tránh side-effects.
+- ❌ **CẤM IM LẶNG:** Không được lờ đi các vấn đề nghiêm trọng đập vào mắt bạn trong lúc đọc file.
+- ✅ **BẮT BUỘC BÁO CÁO (THE SCOUT REPORT):** Ở cuối mỗi luồng phân tích (trước bước HALT chờ duyệt), bạn BẮT BUỘC phải mở một mục có tên `[💡 PHÁT HIỆN DỊ THƯỜNG / TỐI ƯU]`.
+- ✅ **Cấu trúc Báo cáo Ngắn gọn:** Liệt kê theo format: `[Tên File] -> [Dòng/Hàm] -> [Phát hiện vấn đề: Bug/Performance/Security] -> [Hậu quả nếu để nguyên]`.
+
+Ví dụ: "💡 _Phát hiện: Trong `order.py`, hàm `get_total()` đang dùng vòng lặp for thay vì query scalar (Vi phạm R1.5). Sẽ gây OOM nếu đơn hàng > 10,000. Đề xuất: Đợi xong task này em sẽ viết prompt tối ưu nhé sếp._"
 
 ## I. ĐIỀU KIỆN NỀN & MÔI TRƯỜNG
 
@@ -92,7 +112,14 @@ let volume = $state(0); // MỖI FRAME gây re-render
 - ✅ Luồng chuẩn: `key = rotator.get_next_key()` -> `model_inst = GoogleModel(name, api_key=key)` -> `await agent.run(..., model=model_inst)`.
 - ✅ **V56.0 Hotfix Applied:** `Tier2Refiner` (tier2_refiner.py) đã sửa — xóa `model=self.primary_model` ra khỏi Agent constructor.
 
-### 1.10 Encoder Singleton Rule (V56.0)
+### 1.10 Network & Latency Protocol (Military Grade)
+
+- ❌ CẤM TUYỆT ĐỐI thiết kế bất kỳ màn hình UI nào có thời gian chờ tải (TTFB + Render) **vượt quá 1 giây**.
+- ❌ CẤM mở luồng Server-Sent Event (SSE) hoặc WebSocket bừa bãi trong vòng lặp (ví dụ: `forEach` trên danh sách dài) mà không có điều kiện trạng thái cực kỳ khắt khe (VD: chỉ mở khi status = `PROCESSING`).
+- ✅ **Lý do**: Trình duyệt (ví dụ Chrome) áp đặt giới hạn phần cứng **6 kết nối HTTP/1.1 đồng thời trên cùng một domain**. Việc mở SSE/WS vô tội vạ cho các Entity đang ở trạng thái Idle/Draft sẽ vắt kiệt Resource Pool của trình duyệt, đẩy toàn bộ hệ thống vào trạng thái "Ping Spikes" (Stalled network > 1000ms).
+- ✅ BẮT BUỘC sử dụng chiến lược **Smart Lifecycle**: Kết nối mạng phải "Sống khi Cần, Chết khi Rảnh" (Auto-disconnect).
+
+### 1.11 Encoder Singleton Rule (V56.0)
 
 - ❌ CẤM tạo nhiều instance `fastembed.TextEmbedding` ở các module khác nhau. Mỗi instance tốn ~90MB RAM.
 - ✅ BẮT BUỘC dùng `get_shared_encoder()` từ `ai_engine.core.encoder_singleton` — singleton duy nhất cho toàn hệ thống.
@@ -136,6 +163,20 @@ let volume = $state(0); // MỖI FRAME gây re-render
 
 ## II. HỆ TRỤC TÁC NHÂN — C.O.R.E ROUTING PROTOCOL
 
+### GIAO THỨC THIẾT QUÂN LUẬT V61.0 (VIRAL AGENTIC STANDARD)
+
+- **R101: Concurrency Guard**: Mọi tiến trình chạy ngầm (Background Workers) gọi tới LLM/Search BẮT BUỘC phải đi qua `asyncio.Semaphore(ORCHESTRATOR_SEMAPHORE_LIMIT)`. VPS 2GB RAM không cho phép chạy quá n agent song song để tránh OOM.
+- **R102: Database Hygiene**:
+  - CÁM lưu `error_logs` trực tiếp vào bảng chính `ContentCampaign`. BẮT BUỘC tách sang bảng `CampaignEvent` (Event-driven logging).
+  - Các trường dữ liệu nặng (HTML > 10KB) BẮT BUỘC dùng `deferred()` loading trong SQLAlchemy để giữ RAM sạch khi query danh sách.
+- **R103: Graceful Degradation**: Cho phép `PARTIAL_SUCCESS` khi fail công đoạn phụ.
+- **R104: Self-Healing Resume**: Mọi Orchestrator BẮT BUỘC có logic quét trạng thái khi khởi động (Lifespan Hook) để Resume các bài đang dở dang.
+- **R105: Strict Schema Isolation**: Mọi Pydantic model dùng cho Agent BẮT BUỘC bật `strict=True`. Một bài viết sai type = Reject ngay tại cửa ngõ.
+- **R106: Connection Recycling**: CẤM khởi tạo `httpx.AsyncClient()` trong vòng lặp. BẮT BUỘC dùng Shared Client (Singleton) để tiết kiệm Overhead TCP/SSL.
+- **R107: DI Registry Architecture**: Mọi Orchestrator BẮT BUỘC sử dụng `OperativeRegistry` (Borg Pattern) để quản lý Đặc vụ. CẤM hardcode logic `if/elif` kiểm tra Step. Các Đặc vụ BẮT BUỘC trả về `AgentResponse` object chứa `AgentSignal`.
+- **R108: Agentic Backtracking Protocol**: Khi Đặc vụ bắn tín hiệu `AgentSignal.REDO_PREVIOUS`, Orchestrator phải tự động lùi bước (`current_step -= 1`) và ghi log vào bảng `CampaignEvent` với `event_type = "BACKTRACK"`. CẤM lặp vô tận (Giới hạn tối đa 2 lần backtrack per step).
+- **R109: Golden Thread Immutability**: Dữ liệu `gold_metadata` là Single Source of Truth duy nhất được phê duyệt sau Bước 1. Mọi Đặc vụ ở Bước 2-6 BẮT BUỘC đọc từ `gold_metadata` và CẤM TUYỆT ĐỐI việc mutate (thay đổi) trường này.
+
 **C.O.R.E = Central Orchestrated Routing Engine.**
 Mọi request từ `intent.py` được giao toàn quyền cho `intent_orchestrator.py`. CẤM duplicate T1 call ở gateway.
 
@@ -143,19 +184,19 @@ Mọi request từ `intent.py` được giao toàn quyền cho `intent_orchestra
 
 BẮT BUỘC thực hiện tuần tự qua `Orchestrator` để đảm bảo an toàn hiến pháp:
 
-1.  **Phase 1: Classify (Nhận diện)**:
-    - **T1 Heuristic (<1ms)**: Keyword matching trực tiếp, không gọi LLM.
-    - **T1.5 Semantic (~50ms)**: Embedding-based similarity (shared encoder singleton).
-    - **T2 Cloud Router**: Gemini 1.5 Flash (PydanticAI Agent).
-2.  **Phase 2: Skill Guard (Chốt chặn)**:
-    - Kiểm tra `IntentAction` qua Matrix trong `VoiceProfile`. Chặn đứng nếu Restricted.
-3.  **Phase 3: Execute (Thực thi)**:
-    - **Zero-LLM Fast Path**: Nếu là `DATA_QUERY` hoặc `UI_NAV`, dùng Template tĩnh tiếng Việt thay cho LLM Refiner. Tốc độ < 1s.
-    - **Hardware Signal (SESSION_CTRL)**: Inject `HARDWARE_SLEEP` cho `UI_NAV` để tự động tắt Mic ở Frontend.
-    - **On-Demand Injection**: Chỉ fetch chuỗi dữ liệu (daily/monthly/quarterly/yearly) khi `ui_action` là `show_revenue_chart`.
-4.  **Phase 4: Feedback (Phản hồi)**:
-    - Typewriter sync với Voice.
-    - Tự động bật Mic sau khi kết thúc Nói (trừ trường hợp `HARDWARE_SLEEP`).
+1. **Phase 1: Classify (Nhận diện)**:
+   - **T1 Heuristic (<1ms)**: Keyword matching trực tiếp, không gọi LLM.
+   - **T1.5 Semantic (~50ms)**: Embedding-based similarity (shared encoder singleton).
+   - **T2 Cloud Router**: Gemini 1.5 Flash (PydanticAI Agent).
+2. **Phase 2: Skill Guard (Chốt chặn)**:
+   - Kiểm tra `IntentAction` qua Matrix trong `VoiceProfile`. Chặn đứng nếu Restricted.
+3. **Phase 3: Execute (Thực thi)**:
+   - **Zero-LLM Fast Path**: Nếu là `DATA_QUERY` hoặc `UI_NAV`, dùng Template tĩnh tiếng Việt thay cho LLM Refiner. Tốc độ < 1s.
+   - **Hardware Signal (SESSION_CTRL)**: Inject `HARDWARE_SLEEP` cho `UI_NAV` để tự động tắt Mic ở Frontend.
+   - **On-Demand Injection**: Chỉ fetch chuỗi dữ liệu (daily/monthly/quarterly/yearly) khi `ui_action` là `show_revenue_chart`.
+4. **Phase 4: Feedback (Phản hồi)**:
+   - Typewriter sync với Voice.
+   - Tự động bật Mic sau khi kết thúc Nói (trừ trường hợp `HARDWARE_SLEEP`).
 
 ```mermaid
 graph TD
@@ -313,80 +354,64 @@ Mọi `ui_action` từ T1/T2 BẮT BUỘC thuộc whitelist sau (1:1 với front
 
 Hệ thống BẮT BUỘC tuân thủ cơ chế **"Local-First, AI-Last"** để đảm bảo phản hồi < 1 giây:
 
-1.  **Phase 0: NFC Normalization (BẮT BUỘC)**:
-    - Mọi input transcript BẮT BUỘC được `unicodedata.normalize('NFC', text)` tại gateway.
-    - Lý do: Tiếng Việt có 2 cách mã hóa dấu (NFC/NFD). Nếu không chuẩn hóa, so khớp cục bộ (Memory/Pattern) sẽ bị lệch "ma trận", dẫn đến việc phải gọi AI tốn kém dù sếp nói đúng 100%.
-2.  **Lớp Memory & Pattern Bypass (Bypass 1 - Sub-1ms)**:
-    - BẮT BUỘC chạy `local_correct` (Learned Memory) và `NAV_PATTERNS` check trước khi khởi tạo LLM.
-    - Cấu trúc: So khớp memory trước -> Sửa lỗi STT -> Check pattern điều hướng (mở biểu đồ, cút, thoát).
-    - Nếu khớp -> **Trả kết quả ngay lập tức, bỏ qua hoàn toàn AI STT**.
-3.  **Lớp Neural Local (Phễu lọc 2026 - V61.2)**:
-    - BẮT BUỘC chạy `NeuralLocalCorrector` sử dụng local embeddings.
-    - **Phonetic Sieve 2.0**: Ngưỡng 75% cho từ ngắn để chặn đứng "sửa lỗi nhầm" các động từ điều hướng.
-    - **Smart Consolidation**: Tự động gộp các lỗi đánh máy tương đồng (nhan so, nhan sô -> dân số).
-    - **Hardcode Hybrid**: Các lệnh điều hướng rõ ràng (`mở`, `vào`...) được xử lý ưu tiên tuyệt đối qua Heuristic Gateway.
-    - Nếu khớp (Hybrid Score >= 0.70) -> **Bypass hoàn toàn Cloud LLM**.
-4.  **Lớp Tự Học (Interaction Loop)**:
-    - Nếu AI không chắc chắn (`suspected_correction`), BẮT BUỘC dừng luồng `execute`, chuyển sang trạng thái chờ xác nhận (`is_confirming_stt = True`).
-    - Khi nhận "Phải / OK / Đúng", BẮT BUỘC ghi vĩnh viễn vào `stt_dictionary` (Redis).
-5.  **Lớp Trinity Bridge (Resilien Cloud)**:
-    - Mọi lời gọi LLM Cloud phải đi qua `TrinityModelBridge`.
-    - **Health Map**: Tự động cách ly API Key/Model bị 429 hoặc lỗi trong thời gian Cooldown.
-    - **Predictive Selection**: Ưu tiên Key/Model thành công gần nhất để đạt phản hồi "không râu ria".
-6.  **Lớp Parallel Data Injection (Execute Phase)**:
+1. **Phase 0: NFC Normalization (BẮT BUỘC)**:
+   - Mọi input transcript BẮT BUỘC được `unicodedata.normalize('NFC', text)` tại gateway.
+   - Lý do: Tiếng Việt có 2 cách mã hóa dấu (NFC/NFD). Nếu không chuẩn hóa, so khớp cục bộ (Memory/Pattern) sẽ bị lệch "ma trận", dẫn đến việc phải gọi AI tốn kém dù sếp nói đúng 100%.
+2. **Lớp Memory & Pattern Bypass (Bypass 1 - Sub-1ms)**:
+   - BẮT BUỘC chạy `local_correct` (Learned Memory) và `NAV_PATTERNS` check trước khi khởi tạo LLM.
+   - Cấu trúc: So khớp memory trước -> Sửa lỗi STT -> Check pattern điều hướng (mở biểu đồ, cút, thoát).
+   - Nếu khớp -> **Trả kết quả ngay lập tức, bỏ qua hoàn toàn AI STT**.
+3. **Lớp Neural Local (Phễu lọc 2026 - V61.2)**:
+   - BẮT BUỘC chạy `NeuralLocalCorrector` sử dụng local embeddings.
+   - **Phonetic Sieve 2.0**: Ngưỡng 75% cho từ ngắn để chặn đứng "sửa lỗi nhầm" các động từ điều hướng.
+   - **Smart Consolidation**: Tự động gộp các lỗi đánh máy tương đồng (nhan so, nhan sô -> dân số).
+   - **Hardcode Hybrid**: Các lệnh điều hướng rõ ràng (`mở`, `vào`...) được xử lý ưu tiên tuyệt đối qua Heuristic Gateway.
+   - Nếu khớp (Hybrid Score >= 0.70) -> **Bypass hoàn toàn Cloud LLM**.
+4. **Lớp Tự Học (Interaction Loop)**:
+   - Nếu AI không chắc chắn (`suspected_correction`), BẮT BUỘC dừng luồng `execute`, chuyển sang trạng thái chờ xác nhận (`is_confirming_stt = True`).
+   - Khi nhận "Phải / OK / Đúng", BẮT BUỘC ghi vĩnh viễn vào `stt_dictionary` (Redis).
+5. **Lớp Trinity Bridge (Resilien Cloud)**:
+   - Mọi lời gọi LLM Cloud phải đi qua `TrinityModelBridge`.
+   - **Health Map**: Tự động cách ly API Key/Model bị 429 hoặc lỗi trong thời gian Cooldown.
+   - **Predictive Selection**: Ưu tiên Key/Model thành công gần nhất để đạt phản hồi "không râu ria".
+6. **Lớp Parallel Data Injection (Execute Phase)**:
 
-### 2.8 Bản đồ Thư mục (Thực tế V55.0)
+### 2.8 Bản đồ Thư mục Lean Monorepo (V60.1)
 
 ```text
 fast-platform/
-├── apps/
-│   ├── ui-core/                       # SvelteKit 5 (Runes, Tailwind v4)
-│   │   └── src/
-│   │       ├── lib/
-│   │       │   ├── components/admin/  # V55.0 Unified Admin UI
-│   │       │   │   ├── layout/         # DesktopLayout, MobileLayout (V55.0 Branding)
-│   │       │   │   ├── management/     # RBAC UI, Product, Order, Category, News, Voice
-│   │       │   │   └── ui/             # UniversalModal, MissionControlShell
-│   │       │   ├── state/              # NanoBot Orchestrator (Svelte Runes)
-│   │       │   └── api/                # Auto-generated Types (Rule 3.5)
-│   ├── api-gateway/                   # Litestar (Python 3.14-slim)
-│   │   ├── migrations/                # Alembic Migrations (Source of Truth)
-│   │   ├── scripts/                   # seed_admin.py (RBAC Seed)
-│   │   ├── src/
-│   │   │   ├── main.py                # Entry point + Lifespan (Warmup + Heartbeat)
-│   │   │   ├── guards.py              # PermissionGuard (Many-to-Many RBAC)
-│   │   │   ├── middleware.py          # Auth + Security Headers (R51)
-│   │   │   ├── database/
-│   │   │   │   ├── models.py          # SQLAlchemy ORM (M2M RBAC + ContentCampaign)
-│   │   │   │   └── repositories.py    # Async Repositories (AdvancedAlchemy)
-│   │   │   ├── controllers/           # Class-based Controllers (N+1 Optimized)
-│   │   │   │   └── health.py          # V56.0: HealthCheck + AnomalyScanner
-│   │   │   ├── routers/
-│   │   │   │   └── intent.py          # C.O.R.E Gateway
-│   │   │   └── services/
-│   │   │       ├── anomaly_detector.py # V56.0: Scalar-only anomaly detection
-│   │   │       ├── routing/
-│   │   │       │   ├── intent_orchestrator.py  # C.O.R.E (≤363 LOC)
-│   │   │       │   └── heuristic_classifier.py # V56.0: Extracted from orchestrator
-│   │   │       └── xohi/
-│   │   │           └── creative_studio/        # V62.1: Content Factory (Hardened)
-│   │   │               ├── orchestrator.py     # 6-Step State Machine + Golden Thread
-│   │   │               ├── models/
-│   │   │               │   ├── vision_insight.py  # Step 1: Keyword Extraction
-│   │   │               │   └── creative_pen.py    # Step 3-4: Outline & Drafting
-│   │   │               ├── operatives/
-│   │   │               │   ├── asset_hunter.py    # Step 2: Image Hunt + Circuit Breaker
-│   │   │               │   └── plagiarism_cop.py  # Step 5: Semantic Uniqueness
-│   │   │               └── formatters/
-│   │   │                   └── media_compressor.py # Step 6: WebP Localization & SEO
-│   │   └── tests/                     # Security & RBAC Bypass Tests
-└── packages/
-    └── ai-engine/
-        └── core/
-            ├── encoder_singleton.py    # V56.0: Shared fastembed model
-            ├── semantic_router.py      # T1.5 Intent Classification
-            └── vector_memory.py        # pgvector Search
+├── frontend/                          # SvelteKit 5 (Runes, Zero-Hydration)
+│   ├── src/lib/
+│   │   ├── components/admin/          # UI Components (Unified)
+│   │   ├── state/                     # NanoBot Orchestrator
+│   │   └── api/                       # API Types
+│   └── svelte.config.js               # static-adapter, No Node.js process
+└── backend/                           # Litestar (Python 3.14-slim, Full Async I/O)
+    ├── api/                           # API Handlers
+    ├── controllers/                   # Control flows
+    ├── database/                      # AdvancedAlchemy Models + Repositories
+    ├── middleware.py                  # Auth + Security Headers
+    ├── routers/                       # Endpoint registration
+    ├── schemas/                       # Pydantic Schemas / Types
+    ├── services/                      # Business Logics & Orchestrators
+    │   ├── routing/                   # C.O.R.E intents
+    │   ├── xohi/                      # Agents and Core Intelligence
+    │   │   └── creative_studio/       # Content Factory (Hardened)
+    │   │       ├── orchestrator.py    # Brain execution
+    │   │       ├── operatives/        # Step logic (vision, hunter, pen, cop)
+    │   │       ├── models/schemas.py  # Shared step types
+    │   │       └── formatters/        # Output finalization
+    │   └── ai_engine/                 # Embeddings & Memory Worker
+    └── main.py                        # App Entrypoint
 ```
+
+> **Kỷ luật V60.1:**
+>
+> - ROOT chỉ có `backend` và `frontend`. Không dùng cấu trúc `apps/`, `packages/` cũ lẻ tẻ.
+> - **Import Backend**: Từ nay BẮT BUỘC dùng `from backend.module import ...`.
+> - **Import Frontend**: Từ nay BẮT BUỘC dùng `$lib/...` cho các file chia sẻ.
+> - **Resource Limit**: VPS 2GB cực yếu -> hệ thống ưu tiên generator, streaming và async tối đa.
+> - **Logging**: `error_logs` db limit < 2KB payload.
 
 ### 2.7 Resilience: Model Fallback Chain + Backoff
 
@@ -617,6 +642,17 @@ npx openapi-typescript http://localhost:8000/schema/openapi.json -o src/lib/api/
 - ❌ CẤM để các Public Endpoint (đặt hàng, đăng ký) hoạt động mà không có tầng kiểm tra `AntiSpamService`.
 - ✅ BẮT BUỘC tích hợp Device Fingerprinting cho mọi request từ Storefront.
 - ✅ Quy tắc cách ly: Đơn hàng bị nghi ngờ SPAM (`is_spam=true`) BẮT BUỘC bị loại trừ khỏi các báo cáo doanh thu thực và không được phép trừ tồn kho (Stock) tự động.
+
+### 3.9 Giao Thức Log Siêu Nhẹ (Ultra-Light Audit - R90)
+
+- ❌ **Tuyệt đối KHÔNG** lưu trữ String Prompt hoặc Full Response từ Cloud API (LLM, Google Search) vào Database `telemetry_logs` hay bất kỳ bảng nào.
+- ✅ Chỉ log các metadata định danh: `RequestID`, `Status_Code`, `Latency_ms`, `Total_Tokens`, `Cost`.
+- ✅ Đối với bảng log lỗi (`error_logs` hoặc text column chứa trace), dữ liệu JSON lưu trữ KHÔNG ĐƯỢC vượt quá **2KB** mỗi bản ghi. Nếu lỗi dài hơn, BẮT BUỘC phải cắt bỏ (Truncate) lấy phần đầu và đuôi quan trọng nhất.
+
+### 3.10 In-Memory Creative Execution (Ephemeral Data - R91)
+
+- ❌ Mọi dữ liệu trung gian sinh ra trong luồng 6 bước Sáng tạo (Content Factory) KHÔNG ĐƯỢC ghi vĩnh viễn xuống Disk (DB) lặp đi lặp lại ở từng `progress_tick`.
+- ✅ Mọi thao tác trung gian phải nằm trong bộ nhớ đệm (Redis/In-memory) và sẽ "bốc hơi" sau khi hoàn thành Task hoặc bị timeout, chỉ giữ lại bản ghi cuối cùng (Single Source of Truth) và Log Audit mỏng nhất.
 
 ---
 
@@ -1457,13 +1493,14 @@ flowchart TB
 ```
 
 **Performance Budget:**
-| Tier | Latency | Token Cost | Khi nào |
-|------|---------|-----------|---------|
-| T1 Heuristic | 0ms | 0 | Keyword match / Wake-Sleep |
-| T1.5 Fallback | 0ms | 0 | LLM sập, fallback heuristic |
-| T2 Dispatcher | 300-800ms | ~200 | Intent classification |
-| T2 Refiner | 300-500ms | ~150 | Data → Vietnamese text |
-| T3 Reasoning | 1-5s | ~500-2000 | Deep analysis / Complex query |
+
+| Tier          | Latency   | Token Cost | Khi nào                       |
+| ------------- | --------- | ---------- | ----------------------------- |
+| T1 Heuristic  | 0ms       | 0          | Keyword match / Wake-Sleep    |
+| T1.5 Fallback | 0ms       | 0          | LLM sập, fallback heuristic   |
+| T2 Dispatcher | 300-800ms | ~200       | Intent classification         |
+| T2 Refiner    | 300-500ms | ~150       | Data → Vietnamese text        |
+| T3 Reasoning  | 1-5s      | ~500-2000  | Deep analysis / Complex query |
 
 ---
 
@@ -1717,27 +1754,61 @@ DesktopLayout (flex h-screen)
 | `final_html`    | Text    | Kết quả Step 6 (HTML chuẩn SEO)                                                     |
 | `error_logs`    | JSON    | Lịch sử lỗi API/Circuit Breaker                                                     |
 
-### 25.2 Content Factory Module Map
+### 25.2 Content Factory (V61.0 — Viral Optimized)
+
+Cấu trúc thư mục được thiết kế để **Dependency Injection** và **Self-Healing**:
 
 ```text
 creative_studio/
-├── orchestrator.py          # Bộ não: 6-step state machine + Golden Thread transfer
+├── orchestrator.py        # Brain (Resume Logic + Semaphore + DI)
+├── registry.py            # Operative Registry (Quản lý Model LLM động)
+├── operatives/            # Independent Workers (DI-Ready)
+│   ├── vision_insight.py
+│   ├── asset_hunter.py    # Shared Client Access
+│   ├── creative_pen.py
+│   └── plagiarism_cop.py
 ├── models/
-│   ├── vision_insight.py    # Step 1: Gemini Pro → TopicSeed (Pydantic)
-│   └── creative_pen.py      # Step 3-4: Outline + Draft (Golden Thread Injection)
-├── operatives/
-│   ├── asset_hunter.py      # Step 2: Google Search + KeyRotator + Circuit Breaker
-│   └── plagiarism_cop.py    # Step 5: crawl4ai + Semantic Similarity Check
-└── formatters/
-    └── media_compressor.py  # Step 6: Pillow WebP + Alt-tag SEO + HTML Wrapping
+│   ├── schemas.py         # Strict Pydantic Models (R105)
+│   └── events.py          # Event-driven State History
+└── cache/                 # Viral LRU Cache Layer (Local-Redis/Valkey)
 ```
 
-### 25.3 Tầm nhìn V63+: AI Supervisor Agent
+### 25.1 God Mode: Trinity Bridge & LLM Lifecycle
 
-- Toàn bộ 6 Cổng Duyệt được thiết kế theo chuẩn **API Abstraction**. UI (Mini-modals) chỉ gọi các API Review độc lập (VD: `PUT /api/content/{id}/review/step1`).
-- **V62 (Hiện tại)**: Admin là người bấm Duyệt.
-- **V63+ (Tương lai)**: Cấu hình `reviewer_type = 'AI_SUPERVISOR_AGENT'`. Một Model siêu cấp sẽ tự gọi các API duyệt bài, tự check đạo văn, tự chốt bài — hoàn toàn Zero-touch.
+- **Trinity Bridge**: Cầu nối AI tập trung (Centralized AI Gateway) quản lý toàn bộ vòng đời của Agent.
+- **Key Rotation**: Tự động quay vòng API Key (Round-robin) qua `SmartKeyRotator` để vượt qua giới hạn Rate Limit của Free Tier.
+- **Managed AI Call**: Mọi Operative CẤM gọi trực tiếp cho LLM; phải thông qua `trinity_bridge.run()` để được hưởng các cơ chế Circuit Breaker và Logging tập trung.
+
+### 25.2 Agentic Backtracking (CampaignEvent)
+
+- **Tín hiệu REDO_PREVIOUS**: Khi AI phát hiện lỗi logic hoặc độ trùng lặp cao, nó sẽ bắn tín hiệu Backtracking.
+- **Persistence**: Mọi sự kiện Backtrack bắt buộc được lưu vào bảng `campaign_events` (SQLAlchemy model) để phục vụ Audit và Debug "hộp đen" AI.
+- **Frontend Sync**: Tín hiệu Backtrack truyền qua Pulse (Websocket/SSE) sẽ kích hoạt trạng thái "Đang sửa lại..." trên UI, đảm bảo User luôn biết AI đang làm gì.
+
+### 25.3 Tầm nhìn V63+: AI Supervisor Protocol (Headless Contract)
+
+Để chuẩn bị cho việc AI tự động duyệt bài (Autonomous Review), mọi module phát triển từ V61.1 trở đi PHẢI tuân thủ 4 ranh giới kỹ thuật sau:
+
+1. **[ZERO-DB MACHINE AUTH]**:
+   - Tuyệt đối KHÔNG dùng luồng JWT/OIDC của User cho AI Agent.
+   - Supervisor sẽ truy cập qua Header `X-Agent-Key`.
+   - Tầng Guard phải kiểm tra Key bằng biến môi trường (Environment Variable) hoặc mã hóa tại chỗ, KHÔNG được query Database để bảo vệ RAM 2GB khỏi các cuộc tấn công Brute-force Header.
+
+2. **[HEADLESS API CONTRACT]**:
+   - Chốt sẵn Endpoint dự kiến: `PUT /api/v1/supervisor/campaigns/{id}/review/{step}`.
+   - **Ràng buộc**: Toàn bộ logic duyệt bài (Approve/Reject/Retry) PHẢI nằm trọn vẹn trong `orchestrator.py` (Service Layer). UI Controller (Admin/Client) chỉ đóng vai trò Trigger. Điều này đảm bảo Headless API sau này gọi chung một hàm Service mà không bị dính mã nguồn UI.
+
+3. **[STRICT PAYLOAD ISOLATION]**:
+   - Dữ liệu đầu vào từ AI Supervisor phải dùng Schema Pydantic với `strict=True`.
+   - Chỉ chấp nhận 2 trạng thái `action`: `APPROVE` (Proceed step) hoặc `REJECT` (Trigger Backtrack).
+   - `feedback`: Bắt buộc là String.
+   - Mọi trường dữ liệu lạ đều phải bị loại bỏ ngay tại cửa ngõ (Data Poisoning Prevention).
+
+4. **[ORCHESTRATOR HOOKS]**:
+   - Hàm điều phối trong `orchestrator.py` phải đóng sẵn 2 method logic:
+     - `approve_step(campaign_id, feedback)`: Đẩy tiến trình tới bước kế tiếp.
+     - `trigger_backtrack(campaign_id, feedback)`: Gửi tín hiệu `REDO_PREVIOUS` cho Operative tương ứng.
 
 ---
 
-_V62.1: CONTENT FACTORY (HARDENED) — Golden Thread, Circuit Breaker, Media Localization, Semantic Plagiarism._
+_V61.0: VIRAL AGENTIC STANDARD — Self-Healing, Strict Typing, Connection Recycling, DI Architecture._

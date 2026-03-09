@@ -6,7 +6,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: fast_platform
-    # R25: No host ports — DB only accessible within Docker network
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -19,7 +20,8 @@ services:
   redis:
     image: redis:7-alpine
     container_name: fast_platform_redis
-    # R25: No host ports — Redis only accessible within Docker network
+    ports:
+      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -46,7 +48,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: apps/api-gateway/Dockerfile.dev
+      dockerfile: backend/Dockerfile.dev
     container_name: fast_platform_api
     # R25: No host ports — API only accessible via Caddy (api.smartshop.test)
     expose:
@@ -70,18 +72,17 @@ services:
   ui:
     image: node:22-alpine
     container_name: fast_platform_ui
-    working_dir: /app
+    working_dir: /app/frontend
     volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/apps/ui-core/node_modules
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
     # R25: No host ports — UI only accessible via Caddy (smartshop.test / admin.smartshop.test)
     expose:
       - "5173"
     environment:
       - VITE_API_URL=http://api.smartshop.test
       - VITE_API_PROXY_TARGET=http://api:8000
-    command: sh -c "corepack enable && pnpm install --no-frozen-lockfile && pnpm --filter ui-core dev --host 0.0.0.0"
+    command: sh -c "corepack enable && pnpm install --no-frozen-lockfile && pnpm dev --host 0.0.0.0"
     depends_on:
       - api
 

@@ -1,0 +1,50 @@
+# Lý do chọn giải pháp:
+# - Quản lý package bằng `uv`, nhanh nhẹ, thay thế hoàn toàn pip/poetry trên môi trường hạn chế (VPS 2GB).
+# - Gắn chặt python 3.14-slim, với litestar và advanced-alchemy.
+# - Ràng buộc asyncpg (cho Postgres) và pydantic-ai + litellm cho AI agents.
+
+[project]
+name = "fast-platform-core"
+version = "0.1.0"
+description = "Hệ thống Agentic AI hiện đại theo chuẩn kiến trúc V60.0"
+authors = [
+    { name = "Admin", email = "admin@example.com" }
+]
+requires-python = ">=3.14"
+
+dependencies = [
+    "litestar[standard]>=2.14.0",
+    "advanced-alchemy[asyncpg]>=0.20.0",
+    "asyncpg>=0.30.0",
+    "pydantic-ai>=0.0.12",
+    "litellm>=1.52.0",
+    "rapidfuzz>=3.14.3",
+    "redis>=7.3.0",
+    "aiosqlite>=0.22.1",
+    "numpy>=2.4.3",
+    "bcrypt>=5.0.0",
+    "pillow>=12.1.1",
+    "edge-tts>=7.2.7",
+    "sqlalchemy-utils>=0.42.1",
+    "psutil>=7.2.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend"]
+
+[tool.uv]
+managed = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+]

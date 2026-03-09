@@ -1,0 +1,34 @@
+{
+  "name": "fast-platform",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Fast Platform Monorepo - Token Saver & A2A Edition",
+  "scripts": {
+    "dev": "vite dev --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@lucide/svelte": "latest",
+    "clsx": "latest",
+    "idb-keyval": "latest",
+    "lucide": "latest",
+    "lucide-svelte": "latest",
+    "tailwind-merge": "latest"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "latest",
+    "@sveltejs/kit": "latest",
+    "@sveltejs/vite-plugin-svelte": "latest",
+    "@tailwindcss/vite": "latest",
+    "@testing-library/svelte": "^5.3.1",
+    "jsdom": "^28.1.0",
+    "openapi-typescript": "^7.13.0",
+    "svelte": "latest",
+    "tailwindcss": "latest",
+    "vite": "latest",
+    "vitest": "^4.0.18"
+  }
+}

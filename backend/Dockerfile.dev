@@ -1,0 +1,26 @@
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+
+# R4.1 Zero-Trust & Performance Optimized
+WORKDIR /app
+
+# Install essential system tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# SSOT: Synchronize environment via UV
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project
+
+# Copy project structure
+COPY . .
+
+# Infrastructure Limits (R60.1: 2GB RAM Compliance)
+ENV PYTHONUNBUFFERED=1
+
+EXPOSE 8000
+
+# GOD MODE COMMAND: Entrypoint for Litestar
+CMD ["uv", "run", "litestar", "--app", "backend.main:app", "run", "--port", "8000", "--host", "0.0.0.0", "--reload"]

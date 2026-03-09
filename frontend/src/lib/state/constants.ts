@@ -1,0 +1,58 @@
+import type { WidgetType } from "./types";
+
+export const COMMAND_WIDGET_MAP: Record<string, WidgetType> = {
+  "manage orders": "ORDER_MANAGEMENT",
+  "mở đơn hàng": "ORDER_MANAGEMENT",
+  "đơn hàng": "ORDER_MANAGEMENT",
+  "manage products": "PRODUCT_MANAGEMENT",
+  "mở sản phẩm": "PRODUCT_MANAGEMENT",
+  "sản phẩm": "PRODUCT_MANAGEMENT",
+  "manage categories": "CATEGORY_MANAGEMENT",
+  "mở danh mục": "CATEGORY_MANAGEMENT",
+  "danh mục": "CATEGORY_MANAGEMENT",
+  "manage users": "USER_MANAGEMENT",
+  "mở người dùng": "USER_MANAGEMENT",
+  "người dùng": "USER_MANAGEMENT",
+  "manage permissions": "PERMISSION_MANAGEMENT",
+  "mở phân quyền": "PERMISSION_MANAGEMENT",
+  "phân quyền": "PERMISSION_MANAGEMENT",
+  "manage news": "NEWS_MANAGEMENT",
+  "mở tin tức": "NEWS_MANAGEMENT",
+  "tin tức": "NEWS_MANAGEMENT",
+  skill: "VOICE_SETTINGS",
+  "voice settings": "VOICE_SETTINGS",
+  "mở cài đặt giọng": "VOICE_SETTINGS",
+  "manage skills": "VOICE_SETTINGS",
+  "skills": "VOICE_SETTINGS",
+  "campaigns": "CAMPAIGNS",
+  "content factory": "CAMPAIGNS",
+  "mở campaigns": "CAMPAIGNS",
+};
+
+export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
+  show_revenue_chart: "REVENUE_CHART",
+  show_revenue: "SHOW_REVENUE",
+  show_product_edit: "SHOW_PRODUCT_EDIT",
+  show_user_table: "USER_TABLE",
+  show_user_management: "USER_MANAGEMENT",
+  show_category_management: "CATEGORY_MANAGEMENT",
+  show_product_management: "PRODUCT_MANAGEMENT",
+  show_order_management: "ORDER_MANAGEMENT",
+  show_news_management: "NEWS_MANAGEMENT",
+  show_permission_management: "PERMISSION_MANAGEMENT",
+  show_voice_settings: "VOICE_SETTINGS",
+  show_skills: "VOICE_SETTINGS",
+  show_campaigns: "CAMPAIGNS",
+  show_content_factory: "CAMPAIGNS",
+};
+
+export const WIDGET_VI_LABEL: Record<string, string> = {
+  ORDER_MANAGEMENT: "Quản lý Đơn hàng",
+  PRODUCT_MANAGEMENT: "Quản lý Sản phẩm",
+  CATEGORY_MANAGEMENT: "Quản lý Danh mục",
+  USER_MANAGEMENT: "Quản lý Người dùng",
+  PERMISSION_MANAGEMENT: "Phân quyền Hệ thống",
+  NEWS_MANAGEMENT: "Quản lý Tin tức",
+  VOICE_SETTINGS: "Cài đặt Giọng nói",
+  CAMPAIGNS: "Content Factory",
+};

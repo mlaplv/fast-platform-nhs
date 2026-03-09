@@ -13,6 +13,7 @@ keys.txt
 # 2. Rác thư viện & Môi trường
 node_modules/
 .pnpm-store/
+.venv/
 venv/
 env/
 __pycache__/
@@ -35,6 +36,7 @@ uploads/
 # 4. File Build/Compile
 build/
 dist/
+frontend/dist/
 .svelte-kit/
 .next/
 out/
