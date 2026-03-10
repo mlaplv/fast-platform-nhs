@@ -112,6 +112,13 @@ jobs:
           ENCRYPTION_SALT: "dummy_salt_for_testing_only_12345"
           GEMINI_API_KEY_1: "dummy_key_1"
         run: |
-          echo "Bắt đầu chạy Unit Tests..."
-          uv run pytest backend/tests/
+          echo "Kiểm tra kết nối Database..."
+          nc -zv localhost 5432 || echo "Postgres chưa mở cổng"
+          nc -zv localhost 6379 || echo "Redis chưa mở cổng"
+          
+          echo "Danh sách thư viện đã cài:"
+          uv pip list
+          
+          echo "Bắt đầu chạy Unit Tests (Verbose)..."
+          uv run pytest -vv backend/tests/
           echo "✅ Backend Tests Passed"
