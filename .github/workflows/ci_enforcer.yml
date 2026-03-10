@@ -106,6 +106,8 @@ jobs:
           # Cắm env trỏ thẳng vào các Database Ảo cục bộ
           DATABASE_URL: postgresql+asyncpg://mlap:admin@123A3%StrongPassword@localhost:5432/fast_platform_db
           REDIS_URL: redis://localhost:6379/0
+          ENCRYPTION_SALT: "dummy_salt_for_testing_only_12345"
+          GEMINI_API_KEY_1: "dummy_key_1"
         run: |
           echo "Bắt đầu chạy Unit Tests..."
           uv run pytest backend/tests/
