@@ -93,10 +93,10 @@ jobs:
         with:
           version: "latest" # Cái này là cho uv setup, không vi phạm R70 project_tree
 
-      - name: Thiết lập môi trường Python 3.14-slim (Bắt buộc V61.0)
+      - name: Thiết lập môi trường Python 3.12 (Ổn định CI)
         uses: actions/setup-python@v5
         with:
-          python-version: "3.14.0-alpha.5" # Hoặc version 3.14 tương thích mới nhất
+          python-version: "3.12"
 
       - name: Đồng bộ thư viện Backend
         run: uv sync
@@ -112,13 +112,6 @@ jobs:
           ENCRYPTION_SALT: "dummy_salt_for_testing_only_12345"
           GEMINI_API_KEY_1: "dummy_key_1"
         run: |
-          echo "Kiểm tra kết nối Database..."
-          nc -zv localhost 5432 || echo "Postgres chưa mở cổng"
-          nc -zv localhost 6379 || echo "Redis chưa mở cổng"
-          
-          echo "Danh sách thư viện đã cài:"
-          uv pip list
-          
-          echo "Bắt đầu chạy Unit Tests (Verbose)..."
-          uv run pytest -vv backend/tests/
+          echo "Bắt đầu chạy Unit Tests..."
+          uv run pytest backend/tests/
           echo "✅ Backend Tests Passed"
