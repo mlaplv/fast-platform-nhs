@@ -4,7 +4,7 @@ import uuid
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
 from pydantic_ai import Agent
-from backend.services.ai_engine.core.key_rotator import SmartKeyRotator
+from backend.services.ai_engine.core.trinity_bridge import trinity_bridge, AIConfigurationError
 from backend.services.xohi.creative_studio.models.schemas import TopicSeed, AgentResponse, AgentSignal
 
 logger = logging.getLogger("api-gateway")
@@ -27,8 +27,6 @@ class VisionInsight:
     Uses PydanticAI Agent with Structured Output (TopicSeed).
     """
     def __init__(self):
-        self.model_name = os.getenv("TIER2_MODEL", "gemini-2.0-flash")
-        self.rotator = SmartKeyRotator()
         self.agent = Agent(
             output_type=TopicSeed,
             system_prompt=VISION_PROMPT
@@ -40,7 +38,11 @@ class VisionInsight:
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
         
-        seed = await self.analyze_input(campaign)
+        seed = await self.analyze_input(
+            raw_input=campaign.source_input,
+            campaign_id=campaign.id,
+            user_id=str(campaign.user_id) if campaign.user_id else "default"
+        )
         
         return AgentResponse(
             signal=AgentSignal.PROCEED_NEXT,
@@ -54,9 +56,9 @@ class VisionInsight:
         cleaned = re.sub(r'^(viết bài|tạo bài|làm bài|thiết kế|viết một bài về|viết bài về|tạo bài về|viết)\s+', '', text, flags=re.IGNORECASE)
         return cleaned.strip().capitalize()
 
-    async def analyze_input(self, campaign: ContentCampaign) -> TopicSeed:
+    async def analyze_input(self, raw_input: str, campaign_id: str, user_id: str = "default") -> TopicSeed:
         """
-        Uses AI to extract structured keywords from campaign.source_input.
+        Uses AI to extract structured keywords from input text.
         R85: Strict Structured Output via Pydantic.
         """
         import asyncio
@@ -64,13 +66,17 @@ class VisionInsight:
         from backend.services.event_bus import event_bus
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
-        clean_topic = self._sanitize_topic(campaign.source_input)
+        # R109: Use direct variables to avoid 'MissingGreenlet' lazy-load error 
+        c_id = campaign_id
+        u_id = user_id
+
+        clean_topic = self._sanitize_topic(raw_input)
         prompt = f"Chủ đề bài viết: {clean_topic}"
 
         async def _emit_progress(msg: str):
             await event_bus.emit("CONTENT_PROGRESS", {
-                "campaign_id": campaign.id,
-                "user_id": str(campaign.user_id),
+                "campaign_id": c_id,
+                "user_id": u_id,
                 "step": 1,
                 "message": msg,
                 "status": "PROCESSING",
@@ -104,6 +110,9 @@ class VisionInsight:
             
             # result.data is the TopicSeed instance when using PydanticAI
             return result.data if hasattr(result, "data") else result.output
+        except AIConfigurationError:
+            # R109: Re-raise config errors so Orchestrator can report model/key status to sếp
+            raise
         except Exception as e:
             logger.error(f"[VisionInsight] AI failed, using fallback: {e}")
             # Fallback: Tạo keywords từ transcript đã gọt râu ria (Graceful Degradation R103)

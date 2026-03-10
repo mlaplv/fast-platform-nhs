@@ -18,9 +18,11 @@ class AlchemyConfig:
         self._url = self.db_url or "sqlite+aiosqlite:///:memory:"
         
         # Plugin Config for Litestar
+        from advanced_alchemy.extensions.litestar import SQLAlchemyAsyncConfig, AsyncSessionConfig
         self.litestar_config = SQLAlchemyAsyncConfig(
             connection_string=self._url,
             create_all=False,
+            session_config=AsyncSessionConfig(expire_on_commit=False)
         )
         
         self._engine = None

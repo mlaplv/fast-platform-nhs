@@ -18,6 +18,7 @@ from litestar.repository.filters import LimitOffset
 from backend.database.alchemy_config import alchemy_config
 from backend.constants.agentic import ORCHESTRATOR_SEMAPHORE_LIMIT, STEP_ARTIFICIAL_LATENCY_SECONDS
 from backend.services.xohi.creative_studio.registry import registry
+from backend.services.ai_engine.core.trinity_bridge import AIConfigurationError
 
 logger = logging.getLogger("api-gateway")
 
@@ -30,7 +31,7 @@ class ContentOrchestrator:
     def __init__(self, vision=None, hunter=None, pen=None, cop=None, media=None):
         # R107: Dependency Injection for Agentic Collaboration
         self.vision = vision or VisionInsight()
-        self.pen = pen or CreativePen()
+        self.pen = pen or CreativePen(model_name=os.getenv("TIER3_MODEL", "gemini-3.1-pro-preview-customtools"))
         self.cop = cop or PlagiarismCop()
         self.media = media or MediaCompressor()
         
@@ -171,23 +172,36 @@ class ContentOrchestrator:
                 gold_metadata={},
                 search_count=0
             )
-            campaign = await campaign_repo.add(campaign)
-            logger.info(f"[Content Factory] Campaign created: {campaign.id}")
+            c_id = campaign.id
+            u_id_str = str(campaign.user_id) if campaign.user_id else "default"
+            raw_input = campaign.source_input
 
-            seed: TopicSeed = await self.vision.analyze_input(campaign)
+            campaign = await campaign_repo.add(campaign)
+            if hasattr(campaign_repo, "session"):
+                await campaign_repo.session.commit()
+                await campaign_repo.session.refresh(campaign) # Ensure object is reloaded and safe
+                
+            logger.info(f"[Content Factory] Campaign created and committed: {c_id}")
+
+            seed: TopicSeed = await self.vision.analyze_input(raw_input, c_id, u_id_str)
             seed_data = seed.model_dump()
 
             campaign.topic_data = seed_data
             campaign.status = "WAITING_FOR_REVIEW"
             await campaign_repo.update(campaign)
-            logger.info(f"[Content Factory] Step 1 done: {campaign.id} → WAITING_FOR_REVIEW")
+            
+            if hasattr(campaign_repo, "session"):
+                await campaign_repo.session.commit()
+            
+            logger.info(f"[Content Factory] Step 1 done: {c_id} → committed WAITING_FOR_REVIEW")
 
             voice_msg = self._format_keywords_for_voice(seed_data)
 
             await event_bus.emit("CONTENT_STEP_COMPLETED", {
-                "campaign_id": campaign.id,
+                "campaign_id": c_id,
                 "step": 1,
                 "status": "WAITING_FOR_REVIEW",
+                "user_id": u_id_str,
                 "data": {"keywords": seed_data}
             })
 
@@ -207,13 +221,22 @@ class ContentOrchestrator:
                 cost_tokens=0.0
             )
 
+        except AIConfigurationError as ae:
+            logger.error(f"[Content Factory] AI Configuration Error: {ae}")
+            return IntentResponse(
+                status="success", action=IntentAction.CONTENT_CREATE,
+                message=f"Dạ sếp, lỗi LLM: {str(ae)}. Model: {ae.model}, Key Index: {ae.key_index}. Sếp kiểm tra lại Key hoặc Model trong .env nhé!",
+                router_tier=RouterTier.TIER_2_SEMANTIC,
+                data={"category": "CONTENT_CREATE", "source_input": transcript, "error_type": "AI_CONFIG", "model": ae.model},
+                cost_tokens=0.0
+            )
         except Exception as e:
             import traceback
             error_details = traceback.format_exc()
             logger.error(f"[Content Factory] handle_voice_request CRASH: {e}\n{error_details}")
             return IntentResponse(
                 status="success", action=IntentAction.CONTENT_CREATE,
-                message="Dạ sếp, em ghi nhận chủ đề rồi nhưng AI đang bận. Sếp thử lại sau chút nhé!",
+                message=f"Dạ sếp, có lỗi hệ thống: {str(e)}. Sếp thử lại sau chút nhé!",
                 router_tier=RouterTier.TIER_2_SEMANTIC,
                 data={"category": "CONTENT_CREATE", "source_input": transcript, "debug_error": str(e)},
                 cost_tokens=0.0
@@ -293,12 +316,13 @@ class ContentOrchestrator:
                     
                     campaign.current_step = max(1, step - 1)
                     campaign.status = "PROCESSING"
+                    curr_step = campaign.current_step
                     await campaign_repo.update(campaign)
                     
                     if hasattr(campaign_repo, "session"):
                         await campaign_repo.session.commit()
                     
-                    asyncio.create_task(self._trigger_next_step(campaign_id, force_step=campaign.current_step))
+                    asyncio.create_task(self._trigger_next_step(campaign_id, force_step=curr_step))
                     return
                 else:
                     logger.error(f"[Content Factory] MAX BACKTRACK EXCEEDED at Step {step}.")

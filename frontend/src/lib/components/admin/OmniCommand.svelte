@@ -24,9 +24,7 @@
 </script>
 
 <div
-  class="w-full max-w-4xl mx-auto z-50 px-4 sm:px-6 relative transition-all duration-700 {nanobot.isVuiActive
-    ? 'opacity-0 translate-y-10 pointer-events-none'
-    : 'opacity-100 translate-y-0'}"
+  class="w-full max-w-4xl mx-auto z-[1100] px-4 sm:px-6 relative transition-all duration-700 opacity-100 translate-y-0"
 >
   <!-- Command Input Bar (SILENCE / CHAT FLOW) -->
   <div class="flex items-center gap-2 md:gap-3">
@@ -73,13 +71,18 @@
         onclick={vuiState.cmdBuffer
           ? () => executeCommand()
           : () => {
-              playTick();
-              nanobot.startRecording();
+              if (nanobot.isVuiActive) {
+                nanobot.interruptAll();
+                nanobot.resetVui();
+              } else {
+                playTick();
+                nanobot.startRecording();
+              }
             }}
         class="p-2 mr-1 flex items-center justify-center transition-all {vuiState.cmdBuffer
           ? 'text-black bg-white rounded-full'
-          : vuiState.phase === 'listening'
-            ? 'text-red-400 animate-pulse'
+          : nanobot.isVuiActive
+            ? 'text-red-500 animate-pulse'
             : 'text-gray-500 hover:text-white'}"
       >
         {#if vuiState.cmdBuffer}

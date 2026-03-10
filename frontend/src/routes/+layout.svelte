@@ -7,9 +7,11 @@
   import X from "lucide-svelte/icons/x";
 
   let { children } = $props();
-  
+
   // God Mode: Bulletproof derive for hydration safety
-  let capturedText = $derived(nanobot?.voice?.vuiUserQuery || vuiState?.liveText || "");
+  let capturedText = $derived(
+    nanobot?.voice?.vuiUserQuery || vuiState?.liveText || "",
+  );
 
   // Split captured text into individual phrases (2-3 word chunks)
   let capturedPhrases = $derived.by(() => {
@@ -183,9 +185,7 @@
       </div>
 
       <div class="pt-4 opacity-20 relative z-10">
-        <p class="text-[8px] font-mono text-white uppercase tracking-[0.5em]">
-          Xohi Neural Sync Protocol v4.4.3
-        </p>
+        <!-- Neural Sync Text Removed -->
       </div>
     </div>
   </div>

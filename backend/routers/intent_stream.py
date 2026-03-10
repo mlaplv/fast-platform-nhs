@@ -84,6 +84,34 @@ class IntentStreamController(Controller):
             session_id = data.session_id or str(uuid.uuid4())
 
             try:
+                # ── Yield STT Listening immediately ──
+                yield _sse("status", {"step": "stt", "msg": "listening"})
+
+                # Phase 3 Kill-switch: Empty transcript (Noise rejection)
+                if not data.query or not data.query.strip():
+                    logger.warning("[SSE] Empty transcript detected. Yielding SLEEP via SESSION_CTRL.")
+                    yield _sse("done", {
+                        "category": "SESSION_CTRL",
+                        "type": "SLEEP",
+                        "status": "success",
+                        "message": "",
+                        "ui_action": ""
+                    })
+                    
+                    # Log noise rejected in background
+                    asyncio.create_task(_background_save_logs(
+                        session_id=session_id, user_id=user_id,
+                        telemetry_data={
+                            "id": str(uuid.uuid4()),
+                            "session_id": session_id,
+                            "agent_name": "NoiseFilter",
+                            "intent_hash": "empty",
+                            "input_tokens": 0, "output_tokens": 0, "cost_token": 0.0, "duration_ms": 1
+                        },
+                        is_noise=True
+                    ))
+                    return
+
                 # ── Jailbreak scan (STT corrections removed — Groq Whisper handles accuracy) ──
                 if not self.shield.scan(data.query):
                     yield _sse("error", {"message": "Lõi nhận thức gián đoạn..."})
@@ -195,33 +223,68 @@ class IntentStreamController(Controller):
                 })
 
                 # ── Background: Telemetry + Chat save ──
-                try:
-                    await telemetry_repo.add(AgentTelemetryLog(
-                        id=str(uuid.uuid4()),
-                        session_id=session_id,
-                        agent_name=f"TrinityCore-Tier_{tier_str}",
-                        intent_hash=hashlib.sha256(data.query.lower().strip().encode()).hexdigest()[:16],
-                        input_tokens=getattr(result, "input_tokens", 0),
-                        output_tokens=getattr(result, "output_tokens", 0),
-                        cost_token=float(result.cost_tokens),
-                        duration_ms=int((time.monotonic() - start_time) * 1000)
-                    ))
-                    await telemetry_repo.session.commit()
-                except Exception:
-                    pass
-
                 ui_action = (result.data or {}).get("ui_action")
-                try:
-                    await _save(chat_repo, session_id, "user", data.query, None, data.modality, user_id=user_id)
-                    await _save(chat_repo, session_id, "assistant", result.message, ui_action, data.modality, tier_str, user_id=user_id, data_extra=result.data)
-                except Exception:
-                    pass
+                
+                # Format extra data with Phase 4 Truncate
+                data_extra = dict(result.data or {})
+                if "error_trace" in data_extra:
+                    from backend.utils.data_stripper import DataStripper
+                    data_extra["error_trace"] = DataStripper.truncate_payload(str(data_extra["error_trace"]))
+                
+                asyncio.create_task(_background_save_logs(
+                    session_id=session_id, user_id=user_id,
+                    data_query=data.query, modality=data.modality,
+                    result_message=result.message, result_ui_action=ui_action, 
+                    tier_str=tier_str, data_extra=data_extra,
+                    telemetry_data={
+                        "id": str(uuid.uuid4()),
+                        "session_id": session_id,
+                        "agent_name": f"TrinityCore-Tier_{tier_str}",
+                        "intent_hash": hashlib.sha256(data.query.lower().strip().encode()).hexdigest()[:16],
+                        "input_tokens": getattr(result, "input_tokens", 0),
+                        "output_tokens": getattr(result, "output_tokens", 0),
+                        "cost_token": float(result.cost_tokens),
+                        "duration_ms": int((time.monotonic() - start_time) * 1000)
+                    }
+                ))
 
             except Exception as e:
                 logger.exception(f"[SSE Gateway Error] {e}")
                 yield _sse("error", {"message": "Giao thức kết nối đang bận, Sếp thử lại sau nhé."})
 
         return Stream(generate(), media_type="text/event-stream")
+
+
+async def _background_save_logs(
+    session_id: str, 
+    user_id: Optional[UUID] = None,
+    data_query: str = "",
+    modality: str = "text",
+    result_message: str = "",
+    result_ui_action: str = "",
+    tier_str: str = "",
+    data_extra: Optional[Dict[str, Any]] = None,
+    telemetry_data: Optional[Dict[str, Any]] = None,
+    is_noise: bool = False
+) -> None:
+    from backend.database import async_session_maker
+    from backend.database.repositories import ChatMessageRepository, AgentTelemetryLogRepository
+    
+    try:
+        async with async_session_maker() as session:
+            telemetry_repo = AgentTelemetryLogRepository(session=session)
+            chat_repo = ChatMessageRepository(session=session)
+            
+            if telemetry_data:
+                await telemetry_repo.add(AgentTelemetryLog(**telemetry_data))
+            
+            if not is_noise:
+                await _save(chat_repo, session_id, "user", data_query, None, modality, user_id=user_id)
+                await _save(chat_repo, session_id, "assistant", result_message, result_ui_action, modality, tier_str, user_id=user_id, data_extra=data_extra)
+            
+            await session.commit()
+    except Exception as e:
+        logger.error(f"[SSE Background Log Error] {e}")
 
 
 async def _save(chat_repo: ChatMessageRepository, session_id: str, role: str, content: str, ui_action: Optional[str], modality: str, router_tier: Optional[str] = None, user_id: Optional[UUID] = None, data_extra: Optional[Dict[str, Any]] = None) -> None:
@@ -246,4 +309,3 @@ async def _save(chat_repo: ChatMessageRepository, session_id: str, role: str, co
         content=payload,
         modality=modality or "text",
     ))
-    await chat_repo.session.commit()

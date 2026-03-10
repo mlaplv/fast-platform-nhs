@@ -28,7 +28,11 @@
   function intersect(node: HTMLElement) {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && pagination.hasMore && !pagination.isLoading) {
+        if (
+          entries[0].isIntersecting &&
+          pagination.hasMore &&
+          !pagination.isLoading
+        ) {
           handleLoadMore();
         }
       },
@@ -49,14 +53,18 @@
     if (history.length > 0 && scrollContainer) {
       // Chỉ tự động cuộn nếu người dùng đang ở gần đáy (trong khoảng 300px)
       // Hoặc nếu đó là tin nhắn đầu tiên/vừa khởi tạo
-      const isNearBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < 300;
-      
+      const isNearBottom =
+        scrollContainer.scrollHeight -
+          scrollContainer.scrollTop -
+          scrollContainer.clientHeight <
+        300;
+
       if (isNearBottom || pagination.isLoading === false) {
         tick().then(() => {
           if (scrollContainer) {
             scrollContainer.scrollTo({
               top: scrollContainer.scrollHeight,
-              behavior: 'smooth'
+              behavior: "smooth",
             });
           }
         });
@@ -117,11 +125,13 @@
             : 'items-start'}"
           transition:fade
         >
-          <div class="text-[10px] font-mono uppercase tracking-widest opacity-40">
+          <div
+            class="text-[10px] font-mono uppercase tracking-widest opacity-40"
+          >
             {msg.role} • {msg.timestamp.toLocaleTimeString()}
           </div>
           <div
-            class="max-w-[85%] p-4 rounded-2xl backdrop-blur-md border 
+            class="max-w-[85%] p-4 rounded-2xl backdrop-blur-md border
                         {msg.role === 'user'
               ? 'bg-cyan-400/10 border-cyan-400/20 rounded-tr-none text-cyan-50'
               : 'bg-white/5 border-white/10 rounded-tl-none text-white/90'}"
@@ -133,7 +143,7 @@
     {/if}
   </div>
 
-  <div class="fixed bottom-8 left-0 right-0 pointer-events-none">
+  <div class="fixed bottom-8 left-0 right-0 pointer-events-none z-[1100]">
     <div class="pointer-events-auto">
       <OmniCommand />
     </div>

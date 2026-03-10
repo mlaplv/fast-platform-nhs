@@ -11,6 +11,7 @@ import type { VuiAudioEngine } from "./VuiAudioEngine";
 export class VuiStreamManager {
   private sttGuardTimer: ReturnType<typeof setTimeout> | null = null;
   private lastActionType = "";
+  private isProcessingFinal = false; // Phase 82: Race Condition Guard
   
   constructor(
     private audio: VuiAudioEngine,
@@ -49,14 +50,22 @@ export class VuiStreamManager {
 
     if (!text || !isFinal) return;
 
-    if (vuiState.phase !== "listening" && vuiState.phase !== "thinking") {
-       console.warn("[VUI] Ignored late final event (Wrong Phase):", text, vuiState.phase);
+    if (vuiState.transcript || this.isProcessingFinal) {
+       console.warn("[VUI] Ignored duplicate final event (Processing in progress):", text);
        return;
     }
+
+    this.isProcessingFinal = true;
     
-    if (vuiState.transcript) {
-       console.warn("[VUI] Ignored duplicate final event (Transcript already exists):", text);
-       return;
+    // Phase 82.2: De-duplication Shield
+    // If text is like "A A" or "A. A.", common in Whisper glitches
+    let cleanedText = text;
+    const mid = Math.floor(text.length / 2);
+    const firstHalf = text.substring(0, mid).trim();
+    const secondHalf = text.substring(mid).trim();
+    if (firstHalf === secondHalf && firstHalf.length > 5) {
+      console.warn("[VUI] De-duplication triggered:", text, "->", firstHalf);
+      cleanedText = firstHalf;
     }
 
     this.clearSttGuard();
@@ -67,12 +76,15 @@ export class VuiStreamManager {
       return;
     }
     
-    vuiState.setTranscript(text);
+    vuiState.setTranscript(cleanedText);
     vuiState.setPhase("thinking");
-    // Keep the actual text instead of dots
-    vuiState.setLiveText(text);
+    vuiState.setLiveText(cleanedText);
     
-    await this.streamLLM(text, nanobot.currentData?.session_id || "");
+    try {
+      await this.streamLLM(cleanedText, nanobot.currentData?.session_id || "");
+    } finally {
+      this.isProcessingFinal = false;
+    }
   }
 
   public async streamLLM(query: string, session_id: string, source: "text" | "voice" = "voice") {
@@ -103,6 +115,13 @@ export class VuiStreamManager {
         } else if (parsed.phase === "done") {
           lastData = parsed;
           if (parsed.ui_action) this.lastActionType = parsed.ui_action;
+          
+          // Phase 6: Hardware Signal Listener for SLEEP
+          if (parsed.category === "SESSION_CTRL" && parsed.type === "SLEEP") {
+             console.warn("[VUI] Hardware SLEEP signal received.");
+             nanobot.voice.hard_sleep();
+             return;
+          }
         } else if (parsed.phase === "error") {
           throw new Error(parsed.message || "Neural Gateway Error");
         }
@@ -144,6 +163,7 @@ export class VuiStreamManager {
     } catch (e: any) {
       console.error("[VUI] Stream Execution Error:", e);
       vuiState.setError("Neural Connection Stall");
+      vuiState.setActiveTier("");
       this.audio.flush();
       await this.callbacks.speak(VUI_CONFIG.NEURAL.FALLBACK_ERROR_VOICE);
     }

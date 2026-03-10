@@ -81,19 +81,37 @@ export class VuiAudioEngine {
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
         
-        audio.onended = () => { 
-          resolve(); 
-          if (this.currentUrl === url) {
-            URL.revokeObjectURL(url);
-            this.currentUrl = null;
-          }
+        let isResolved = false;
+        const finalize = () => {
+          if (isResolved) return;
+          isResolved = true;
+          // Phase 6: 500ms Anti-Death Loop Lock to prevent mic feedback
+          setTimeout(() => {
+            resolve();
+            if (this.currentUrl === url) {
+              URL.revokeObjectURL(url);
+              this.currentUrl = null;
+            }
+          }, 500);
         };
-        audio.onerror = () => { resolve(); URL.revokeObjectURL(url); };
+
+        audio.onended = finalize;
+        audio.onpause = finalize;
+        audio.onabort = finalize;
+        audio.onerror = () => { 
+          if (isResolved) return; 
+          isResolved = true; 
+          resolve(); 
+          URL.revokeObjectURL(url); 
+        };
         
         // Phase 85: Optimized Switching - only pause previous if it's still alive
         if (this.currentAudio) {
-           this.currentAudio.pause();
            this.currentAudio.onended = null;
+           this.currentAudio.onpause = null;
+           this.currentAudio.onabort = null;
+           this.currentAudio.onerror = null;
+           this.currentAudio.pause();
         }
         
         this.currentAudio = audio;
@@ -101,7 +119,10 @@ export class VuiAudioEngine {
         
         audio.play().catch(e => {
           console.warn("[AudioEngine] playback blocked", e);
-          resolve(); 
+          if (!isResolved) {
+             isResolved = true;
+             resolve();
+          }
         });
       } catch (e) {
         resolve();
@@ -114,9 +135,11 @@ export class VuiAudioEngine {
    */
   private interruptAudio() {
     if (this.currentAudio) {
-      this.currentAudio.pause();
       this.currentAudio.onended = null;
+      this.currentAudio.onpause = null;
+      this.currentAudio.onabort = null;
       this.currentAudio.onerror = null;
+      this.currentAudio.pause();
       this.currentAudio = null;
     }
     if (this.currentUrl) {

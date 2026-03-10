@@ -26,6 +26,8 @@ class VoiceSettingsResponse(BaseModel):
     is_campaign_mode: bool = Field(default=False)
     capabilities: List[CapabilityMetadata]
     chat_settings: Dict[str, object] = Field(default_factory=dict)
+    stt_anchors: List[str] = Field(default_factory=list)
+    mic_sensitivity: float = Field(default=0.6)
 
 class VoiceSettingsPayload(BaseModel):
     """Payload for updating user voice settings"""
@@ -36,6 +38,8 @@ class VoiceSettingsPayload(BaseModel):
     farewell_template: str = Field(default=DEFAULT_FAREWELL, description="Optional farewell template")
     is_campaign_mode: Optional[bool] = Field(default=None, description="Global Campaign Mode toggle")
     chat_settings: Optional[Dict[str, object]] = Field(default=None, description="Advanced chat persistence settings")
+    stt_anchors: Optional[List[str]] = Field(default=None, description="Keywords to anchor STT context")
+    mic_sensitivity: Optional[float] = Field(default=None, description="Sensitivity threshold for mic noise rejection")
 
 class CampaignModePayload(BaseModel):
     """Payload for global campaign mode toggle"""

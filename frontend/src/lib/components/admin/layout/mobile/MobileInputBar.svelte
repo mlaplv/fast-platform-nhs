@@ -50,7 +50,7 @@
 </script>
 
 <div
-  class="fixed bottom-0 left-0 right-0 z-[80] pb-[env(safe-area-inset-bottom)] flex flex-col items-center pointer-events-none transition-opacity duration-300"
+  class="fixed bottom-0 left-0 right-0 z-[1100] pb-[env(safe-area-inset-bottom)] flex flex-col items-center pointer-events-none transition-opacity duration-300"
   style:transform="translateY({(1 - $scrollSpring) * 35}px)"
   style:opacity={0.4 + $scrollSpring * 0.6}
 >
@@ -102,12 +102,17 @@
               vuiState.cmdBuffer = "";
             }
           : () => {
-              playTick();
-              vuiController.startRecording();
+              if (nanobot.isVuiActive) {
+                nanobot.interruptAll();
+                nanobot.resetVui();
+              } else {
+                playTick();
+                vuiController.startRecording();
+              }
             }}
         class="w-9 h-9 shrink-0 flex items-center justify-center rounded-full transition-all duration-300 active:scale-90 {vuiState.cmdBuffer
           ? 'bg-neon-cyan/20 text-neon-cyan shadow-[0_0_15px_rgba(0,255,255,0.2)]'
-          : vuiState.phase === 'listening'
+          : nanobot.isVuiActive
             ? 'text-red-500 animate-pulse'
             : 'text-white/50'}"
       >

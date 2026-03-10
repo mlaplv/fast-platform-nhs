@@ -1,5 +1,12 @@
 export type VuiPhase = "idle" | "listening" | "thinking" | "executing" | "speaking" | "error";
 
+export interface VuiInteraction {
+  id: string;
+  userQuery: string;
+  aiResponse: string;
+  duration: number;
+}
+
 export const vuiState = $state({
   isActive: false,
   phase: "idle" as VuiPhase,
@@ -13,11 +20,17 @@ export const vuiState = $state({
   cmdBuffer: "",
   hasSpoken: false,
   isWaitingForAction: false,
+  history: [] as VuiInteraction[],
 
   // VUI 2026: Helper methods for unified state transitions
   setActive(val: boolean) { this.isActive = val; },
   setIsWaitingForAction(val: boolean) { this.isWaitingForAction = val; },
   setPhase(val: VuiPhase) { 
+    // Logic: If transitioning AWAY from speaking/executing or error
+    if ((this.phase === "speaking" || this.phase === "executing" || this.phase === "error") && 
+        (val === "listening" || val === "idle" || val === "thinking")) {
+      this.finalizeInteraction();
+    }
     this.phase = val; 
     if (val === "listening" || val === "idle") this.errorMsg = "";
   },
@@ -33,8 +46,24 @@ export const vuiState = $state({
   setActiveTier(val: string) { this.activeTier = val; },
   setCmdBuffer(val: string) { this.cmdBuffer = val; },
   setHasSpoken(val: boolean) { this.hasSpoken = val; },
+  
+  finalizeInteraction() {
+    if (this.transcript || this.systemMessage) {
+        this.history.push({
+            id: Math.random().toString(36).substr(2, 9),
+            userQuery: this.transcript || this.liveText,
+            aiResponse: this.systemMessage,
+            duration: 0 
+        });
+        // Clear buffers to prevent double-saving or ghost text in next turn
+        this.transcript = "";
+        this.systemMessage = "";
+        this.liveText = "";
+    }
+  },
 
   reset() {
+    this.finalizeInteraction();
     this.isActive = false;
     this.phase = "idle";
     this.volume = 0;
@@ -47,5 +76,14 @@ export const vuiState = $state({
     this.hasSpoken = false;
     this.cmdBuffer = "";
     this.isWaitingForAction = false;
+  },
+
+  clearHistory() {
+    this.history = [];
+  },
+
+  newChat() {
+    this.clearHistory();
+    this.reset();
   }
 });

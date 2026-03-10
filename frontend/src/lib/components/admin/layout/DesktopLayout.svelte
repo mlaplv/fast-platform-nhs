@@ -57,17 +57,21 @@
     >
       <div class="flex items-center gap-3">
         <XohiNanoSprite />
-        <button 
+        <button
           onclick={() => nanobot.toggleHeartbeat()}
           class="flex flex-col items-start hover:brightness-125 transition-all group/xohi"
-          title={nanobot.heartbeatCollapsed ? "Mở rộng Heartbeat" : "Thu gọn Heartbeat"}
+          title={nanobot.heartbeatCollapsed
+            ? "Mở rộng Heartbeat"
+            : "Thu gọn Heartbeat"}
         >
           <h1
             class="text-xs font-mono tracking-[0.2em] uppercase text-[#00FFFF] opacity-80 group-hover/xohi:opacity-100 group-hover/xohi:drop-shadow-[0_0_8px_rgba(0,255,255,0.5)] transition-all"
           >
             &gt;_Xohi
           </h1>
-          <p class="text-[10px] font-mono text-gray-500 uppercase group-hover/xohi:text-gray-400 transition-colors">
+          <p
+            class="text-[10px] font-mono text-gray-500 uppercase group-hover/xohi:text-gray-400 transition-colors"
+          >
             Core // {nanobot.userEmail || "ADMIN_ACTIVE"}
           </p>
         </button>
@@ -95,29 +99,33 @@
           <DynamicCanvas />
         </div>
         {@render children()}
+        <VoiceModal />
       </div>
 
       <!-- XoHi Widget Modal (NOW scoped to Canvas Area only, NOT covering Footer/OmniCommand) -->
-      <div class="absolute inset-0 z-50 pointer-events-none" class:hidden={nanobot.isVuiActive && !nanobot.isTraining}>
-        <div class="{nanobot.universalModalOpen ? 'pointer-events-auto' : 'pointer-events-none'} w-full h-full">
+      <div
+        class="absolute inset-0 z-50 pointer-events-none"
+        class:hidden={nanobot.isVuiActive && !nanobot.isTraining}
+      >
+        <div
+          class="{nanobot.universalModalOpen
+            ? 'pointer-events-auto'
+            : 'pointer-events-none'} w-full h-full"
+        >
           <UniversalModal />
         </div>
       </div>
     </div>
 
-    <!-- OmniCommand: Floats over modal, wrapper is transparent + click-through -->
+    <!-- OmniCommand: Floats over everything, persistent for VUI control -->
     <div
-      class="relative z-[60] pt-3 pb-6 pointer-events-none"
-      class:hidden={nanobot.isVuiActive && !nanobot.isTraining}
+      class="relative z-[1100] pt-3 pb-6 pointer-events-none"
       class:omni-waterdrop={nanobot.universalModalOpen}
     >
       <div class="pointer-events-auto max-w-4xl mx-auto px-4 sm:px-6">
         <OmniCommand />
       </div>
     </div>
-
-    <!-- Voice Modal (Pure Face) -->
-    <VoiceModal />
 
     <div class:hidden={nanobot.isVuiActive && !nanobot.isTraining}>
       <FullLogView />
@@ -138,10 +146,12 @@
     </div>
 
     <!-- Collapsed Indicator (Vertical Text) -->
-    <div 
+    <div
       class="absolute inset-0 flex flex-col items-center pt-8 pointer-events-none vertical-indicator transition-opacity duration-300"
     >
-      <div class="rotate-90 origin-center whitespace-nowrap text-[10px] font-mono tracking-[0.3em] uppercase text-neon-cyan/20">
+      <div
+        class="rotate-90 origin-center whitespace-nowrap text-[10px] font-mono tracking-[0.3em] uppercase text-neon-cyan/20"
+      >
         Heartbeat
       </div>
     </div>

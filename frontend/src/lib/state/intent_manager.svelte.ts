@@ -104,9 +104,6 @@ export function createIntentManager(
           
           if (source === "voice" && isNavAction(uiAction, intentType)) {
             voice.setVuiActive(false);
-            import("$lib/vui").then(({ vuiController }) => {
-              vuiController.setStopAfterSpeech(true);
-            });
           }
         } else {
           state.lastSuggestedWidget = targetWidget;

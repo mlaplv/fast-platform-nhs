@@ -135,11 +135,28 @@ class RouterOrchestrator:
         # --- PHASE 1: INTERACTIVE STT LEARNING (MOLBOOK STYLE) ---
         if ctx.get("is_confirming_stt"):
             # We are waiting for a YES/NO
-            yes_keywords = ["đúng", "vâng", "yes", "ừ", "ok", "ok đi", " chuẩn", "đươc", "rồi", "chính xác", "phải", "phai"]
+            yes_keywords = ["đúng", "vâng", "yes", "ừ", "ok", "ok đi", "chuẩn", "đươc", "rồi", "chính xác", "phải", "phai", "có"]
             no_keywords = ["không", "nhầm", "sai", "no"]
             
             lower_trans = transcript.lower()
-            if any(kw in lower_trans for kw in yes_keywords) and not any(kw in lower_trans for kw in no_keywords):
+            
+            # Use exact word boundaries for short words like "ok", "ừ", "có" to prevent false positives, 
+            # but allow substring for longer ones.
+            import re
+            is_yes = False
+            for kw in yes_keywords:
+                 if len(kw) <= 3:
+                     if re.search(r'\b' + re.escape(kw) + r'\b', lower_trans):
+                         is_yes = True
+                         break
+                 else:
+                     if kw in lower_trans:
+                         is_yes = True
+                         break
+                         
+            is_no = any(kw in lower_trans for kw in no_keywords)
+            
+            if is_yes and not is_no:
                 # User confirmed! Save to memory
                 suspected = ctx.get("pending_stt_correction", {})
                 if suspected:
@@ -241,6 +258,11 @@ class RouterOrchestrator:
                 # and put it directly into the data payload to trigger the frontend event, 
                 # but keep the intent enum as READ to pass Pydantic validation.
                 action_str = mapping.get("action", "READ")
+                
+                # CTO Fix: Only trigger HARDWARE_SLEEP if the intent type is explicitly SESSION_CTRL 
+                if action_str == "HARDWARE_SLEEP" and mapping.get("intent_type") != "SESSION_CTRL":
+                    action_str = "READ"
+
                 action = action_map.get(action_str, IntentAction.READ)
                 msg_val = mapping.get("message", "")
                 
@@ -282,13 +304,27 @@ class RouterOrchestrator:
         if not result:
             return self._error_response("Ý sếp chưa rõ lắm, sếp nói chi tiết hơn giúp em nhé.")
 
-
-        intent_data = result.data or {}
-        if result.data is None:
+        if result and result.data is None:
             result.data = {}
         result.data["cleaned_transcript"] = transcript
         
+        intent_data = result.data
         intent_type = intent_data.get("intent_type", "UNKNOWN")
+
+        # ══════════════════════════════════════════════════════════════════════════
+        # Rule R82.25: Global UI Action Enforcer (Decouple Query from Navigation)
+        # ══════════════════════════════════════════════════════════════════════════
+        if intent_type == "DATA_QUERY" or result.action == IntentAction.COUNT:
+            # Check for explicit navigation intent in transcript
+            nav_keywords = ["mở", "xem", "vào", "biểu đồ", "show", "open", "display", "chart"]
+            has_nav_target = any(kw in transcript.lower() for kw in nav_keywords)
+            
+            if not has_nav_target and (result.data.get("ui_action") or result.data.get("widget_id")):
+                logger.debug(f"[CORE][Filter] Stripping unsolicited UI action '{result.data.get('ui_action')}' from DATA_QUERY")
+                result.data["ui_action"] = ""
+                result.data["widget_id"] = ""
+        # ══════════════════════════════════════════════════════════════════════════
+
         if intent_type == "UNKNOWN":
             # Route to T3 with hardened Absolute Boundary prompt for polite rejection
             logger.debug(f"[C.O.R.E][{m_tag}] UNKNOWN intent → Routing to T3 for boundary-aware response")

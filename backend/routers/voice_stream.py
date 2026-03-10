@@ -9,7 +9,9 @@ import io
 import os
 import logging
 import asyncio
+import unicodedata
 from litestar import WebSocket, websocket
+from backend.services.xohi_memory import xohi_memory
 
 logger = logging.getLogger("api-gateway")
 
@@ -28,7 +30,7 @@ HALLUCINATION_BLACKLIST = [
     "liên hệ với chúng tôi", "tạm biệt", "video", "youtube", "mọi người",
     "ủng hộ", "bình luận", "zalo", "facebook", "website", "chào mừng",
     "theo dõi chúng tôi", "đừng quên", "nhấn chuông", "thông báo",
-    "tập trung vào ngữ cảnh"
+    "tập trung vào ngữ cảnh", "cảm ơn", "cảm ơn bạn", "...", "dạ"
 ]
 
 
@@ -56,12 +58,17 @@ async def stt_websocket(socket: WebSocket) -> None:
                         data = msg["bytes"]
                         audio_buffer.extend(data)
                         
-                        # ZERO-DELAY LOGIC: Partial transcription every ~0.5s (Phase 46: Ultralight)
+                        # ZERO-DELAY LOGIC: Partial transcription every ~0.3s (C.T.O Sub-1s Extreme Optimization)
                         now = asyncio.get_event_loop().time()
-                        if now - last_partial_time > 0.5 and len(audio_buffer) > (last_transcribed_size + 1000):
+                        if now - last_partial_time > 0.3 and len(audio_buffer) > (last_transcribed_size + 1000):
                             last_partial_time = now
                             last_transcribed_size = len(audio_buffer)
-                            asyncio.create_task(_send_partial(socket, bytes(audio_buffer), transcription_lock))
+                            
+                            # Extract user info
+                            user_info = getattr(socket.state, "user", None) or socket.scope.get("user")
+                            user_id = user_info.get("id") if isinstance(user_info, dict) else getattr(user_info, "id", None) if user_info else None
+                            
+                            asyncio.create_task(_send_partial(socket, bytes(audio_buffer), transcription_lock, user_id))
 
                         if len(audio_buffer) % 20000 < len(data): 
                             logger.debug(f"[STT] Buffer Memory: {len(audio_buffer)/1024:.1f} KB")
@@ -74,7 +81,9 @@ async def stt_websocket(socket: WebSocket) -> None:
                                 async with transcription_lock:
                                     try:
                                         logger.info("[STT] Calling Groq Whisper via litellm...")
-                                        transcript = await _transcribe(bytes(audio_buffer))
+                                        user_info = getattr(socket.state, "user", None) or socket.scope.get("user")
+                                        user_id = user_info.get("id") if isinstance(user_info, dict) else getattr(user_info, "id", None) if user_info else None
+                                        transcript = await _transcribe(bytes(audio_buffer), user_id)
                                         logger.info(f"[STT] Final transcript received: '{transcript}'")
                                         await socket.send_json({
                                             "event": "final", 
@@ -104,7 +113,9 @@ async def stt_websocket(socket: WebSocket) -> None:
 
             # Safety: force transcribe if buffer too large
             if len(audio_buffer) > MAX_AUDIO_BYTES:
-                transcript = await _transcribe(bytes(audio_buffer))
+                user_info = getattr(socket.state, "user", None) or socket.scope.get("user")
+                user_id = user_info.get("id") if isinstance(user_info, dict) else getattr(user_info, "id", None) if user_info else None
+                transcript = await _transcribe(bytes(audio_buffer), user_id)
                 await socket.send_json({"event": "final", "text": transcript})
                 audio_buffer.clear()
                 last_transcribed_size = 0
@@ -117,14 +128,16 @@ async def stt_websocket(socket: WebSocket) -> None:
         if len(audio_buffer) > MIN_AUDIO_BYTES:
             try:
                 # We need to pass the actual data buffer
-                transcript = await _transcribe(bytes(audio_buffer))
+                user_info = getattr(socket.state, "user", None) or socket.scope.get("user")
+                user_id = user_info.get("id") if isinstance(user_info, dict) else getattr(user_info, "id", None) if user_info else None
+                transcript = await _transcribe(bytes(audio_buffer), user_id)
                 await socket.send_json({"event": "final", "text": transcript})
             except Exception:
                 pass
         logger.info("[STT] Client disconnected")
 
 
-async def _send_partial(socket: WebSocket, audio_data: bytes, lock: asyncio.Lock) -> None:
+async def _send_partial(socket: WebSocket, audio_data: bytes, lock: asyncio.Lock, user_id: str = None) -> None:
     """Auxiliary task to send interim transcription results."""
     # Concurrency Rule 2026: Skip if another transcription is in progress
     # to avoid out-of-order results and flickering UI.
@@ -133,7 +146,7 @@ async def _send_partial(socket: WebSocket, audio_data: bytes, lock: asyncio.Lock
         
     async with lock:
         try:
-            transcript = await _transcribe(audio_data)
+            transcript = await _transcribe(audio_data, user_id)
             # PHASE 14: Always send interim event, even if transcript is empty (filtered)
             # This keeps the frontend 'live' visually.
             await socket.send_json({"event": "interim", "text": transcript})
@@ -141,7 +154,7 @@ async def _send_partial(socket: WebSocket, audio_data: bytes, lock: asyncio.Lock
             logger.debug(f"[STT] Partial transcription skipped: {e}")
 
 
-async def _transcribe(audio_data: bytes) -> str:
+async def _transcribe(audio_data: bytes, user_id: str = None) -> str:
     """Send audio to Groq Whisper via litellm and return transcript."""
     try:
         import litellm
@@ -157,21 +170,53 @@ async def _transcribe(audio_data: bytes) -> str:
             
         audio_file.name = f"audio.{ext}"
 
-        # Contextual Grounding 2026: 
-        # Phase 50: Removed specific keywords that cause prompt echoes.
-        # Phase 58: Disabled condition_on_previous_text to prevent hallucination death spirals.
+        # Contextual Grounding 2026: Fetch STT Context from Redis Fast Cache
+        stt_anchors = []
+        mic_sensitivity = 0.6
+        if user_id:
+            profile = await xohi_memory.get_voice_profile(user_id)
+            if profile:
+                stt_anchors = profile.get("stt_anchors", [])
+                mic_sensitivity = profile.get("mic_sensitivity", 0.6)
+        
+        # Combine base anchors with system intent mapping for a robust prompt
+        system_mapping = await xohi_memory.get_system_intent_mapping()
+        system_intents = list(system_mapping.keys())[:10] if system_mapping else []
+        final_anchors = " ".join(stt_anchors + system_intents)
+        prompt_text = final_anchors[:500]  # Whisper prompt limit
 
         response = await litellm.atranscription(
             model=WHISPER_MODEL,
             file=audio_file,
             language="vi",
             api_key=GROQ_API_KEY,
-            prompt="", # Empty prompt to prevent echoing
-            temperature=0.0, 
+            prompt=prompt_text,
+            temperature=0.0,
+            response_format="verbose_json",
             extra_body={} # Groq does not support condition_on_previous_text or no_speech_threshold
         )
 
-        transcript = response.text.strip() if hasattr(response, "text") else ""
+         # Extract and Normalize Text (NFC)
+        raw_text = getattr(response, "text", "")
+        if isinstance(raw_text, str):
+            transcript = unicodedata.normalize('NFC', raw_text.strip())
+        else:
+            transcript = ""
+
+        # Phase 2: Kill-Switch -> mic_sensitivity & compression_ratio guard
+        # Parse segments if response is verbose_json
+        kill_switch_triggered = False
+        segments = getattr(response, "segments", []) or (response.get("segments", []) if isinstance(response, dict) else [])
+        for seg in segments:
+            no_speech = seg.get("no_speech_prob", 0.0)
+            comp_ratio = seg.get("compression_ratio", 0.0)
+            if no_speech > mic_sensitivity or comp_ratio > 2.4:
+                logger.warning(f"[STT] Kill-Switch triggered! no_speech={no_speech:.2f}, comp_ratio={comp_ratio:.2f}. Suppressing block.")
+                kill_switch_triggered = True
+                break
+                
+        if kill_switch_triggered:
+            return ""
         
         # Phase 50: Aggressive Superstring Deduplication
         if transcript:

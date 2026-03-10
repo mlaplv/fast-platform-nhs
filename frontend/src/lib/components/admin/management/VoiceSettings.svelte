@@ -21,6 +21,8 @@
   let capabilities = $state<any[]>([]);
   let sttOverrides = $state<Record<string, string>>({});
   let sttStopwords = $state<string[]>([]);
+  let sttAnchors = $state<string[]>([]);
+  let micSensitivity = $state(0.6);
   let chatSettings = $state<Record<string, any>>({
     selective_persistence: true,
     save_ai_responses: false,
@@ -60,6 +62,8 @@
         capabilities = voice.capabilities || [];
         if (voice.chat_settings)
           chatSettings = { ...chatSettings, ...voice.chat_settings };
+        if (voice.stt_anchors) sttAnchors = voice.stt_anchors;
+        if (voice.mic_sensitivity !== undefined) micSensitivity = voice.mic_sensitivity;
       }
       if (over?.overrides) sttOverrides = over.overrides;
       if (stop?.stopwords)
@@ -84,6 +88,8 @@
         capabilities: capMap,
         is_campaign_mode: nanobot.isCampaignMode,
         chat_settings: chatSettings,
+        stt_anchors: sttAnchors,
+        mic_sensitivity: micSensitivity,
       });
 
       if (res?.status === "success" && res.data) {
@@ -95,6 +101,8 @@
           d.farewell_template,
           d.is_campaign_mode,
           d.chat_settings,
+          d.stt_anchors,
+          d.mic_sensitivity
         );
         nanobot.addLog(
           "Agent Capabilities Synchronized",
@@ -199,6 +207,45 @@
               bind:sttStopwords
               onStartTraining={startTraining}
             />
+            <!-- STT Engine Tuning Block -->
+            <div class="bg-zinc-950/40 border border-white/5 rounded-xl p-5 space-y-4 lg:col-span-2">
+              <h3 class="text-sm font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                STT Engine Tuning
+              </h3>
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <label class="block text-xs text-zinc-400 mb-1 font-bold">Context Anchors (Max 30)</label>
+                  <p class="text-[10px] text-zinc-500 mb-2">Inject exact domain keywords to help Whisper detect accents perfectly. Press Enter to add.</p>
+                  <div class="flex flex-wrap gap-2 p-2 bg-black/50 border border-white/5 rounded-lg min-h-[2.5rem]">
+                    {#each sttAnchors as anchor, i}
+                      <span class="px-2 py-1 bg-cyan-950/30 text-cyan-300 text-xs rounded border border-cyan-500/20 flex items-center gap-1 group">
+                        {anchor}
+                        <button onclick={() => sttAnchors = sttAnchors.filter((_, idx) => idx !== i)} class="text-cyan-500/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">×</button>
+                      </span>
+                    {/each}
+                    <input 
+                      type="text" 
+                      placeholder="Type & press Enter..." 
+                      class="bg-transparent border-none text-xs text-white focus:outline-none flex-1 min-w-[120px]"
+                      onkeydown={(e) => {
+                        if (e.key === 'Enter' && e.currentTarget.value.trim() && sttAnchors.length < 30) {
+                          sttAnchors = [...sttAnchors, e.currentTarget.value.trim()];
+                          e.currentTarget.value = '';
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between items-center mb-1">
+                    <label class="text-xs text-zinc-400 font-bold">Mic Sensitivity (Kill-Switch)</label>
+                    <span class="text-xs font-mono text-cyan-400">{Number(micSensitivity).toFixed(2)}</span>
+                  </div>
+                  <p class="text-[10px] text-zinc-500 mb-2">Strictness of noise rejection. 0.1 is paranoid. 0.9 allows noise. Sweet spot: 0.6</p>
+                  <input type="range" min="0.1" max="1.0" step="0.05" bind:value={micSensitivity} class="w-full accent-cyan-500 mt-2 cursor-pointer" />
+                </div>
+              </div>
+            </div>
           </div>
           <ChatPersistence bind:chatSettings />
           <NeuralIdentity bind:greetingTemplate bind:farewellTemplate />

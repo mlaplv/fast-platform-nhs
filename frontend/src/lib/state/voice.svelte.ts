@@ -76,6 +76,9 @@ export function createVoiceState(
   }
 
   async function handleWakeWord(source: "text" | "voice" = "voice") {
+    // Phase 6: Race Condition Guard
+    if (state.isVuiActive || state.status !== "IDLE" || state.isProcessingSpeech) return;
+    
     if (source === "text") {
       addLog(state.greetingTemplate, "XOHI");
       state.status = "SUCCESS";

@@ -3,7 +3,7 @@ import json
 import logging
 import asyncio
 import unicodedata
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 
 from rapidfuzz import fuzz
 from litellm.exceptions import ServiceUnavailableError, RateLimitError, Timeout as LiteLLMTimeout, AuthenticationError, NotFoundError
@@ -22,11 +22,15 @@ class STTCorrectorDeps:
     """Dependencies for STT Corrector."""
     user_dictionary: Dict[str, str] = field(default_factory=dict)
 
+class STTCorrectionItem(BaseModel):
+    wrong_word: str = Field(description="The misspelled or misheard word exactly as it appeared in the input transcript.")
+    right_word: str = Field(description="The correct target word.")
+
 class STTCorrectionOutput(BaseModel):
     cleaned_text: str = Field(description="The corrected transcript. If no correction is needed, return the original.")
-    suspected_correction: Optional[Dict[str, str]] = Field(
+    suspected_correction: Optional[List[STTCorrectionItem]] = Field(
         default=None, 
-        description="If you made a correction that is NOT in the user's dictionary and you are not 100% sure, return the mapping of {wrong_word: right_word}."
+        description="If you made a correction that is NOT in the user's dictionary and you are not 100% sure, return a list of correction pairs."
     )
 
 # We are using an extremely focused prompt.
@@ -327,7 +331,12 @@ class STTCorrector:
 
         try:
             result = await trinity_bridge.run(self.agent, transcript, deps=deps)
-            return result.output.cleaned_text, result.output.suspected_correction
+            out_suspected = None
+            if result.output.suspected_correction:
+                out_suspected = {}
+                for item in result.output.suspected_correction:
+                    out_suspected[item.wrong_word.lower()] = item.right_word
+            return result.output.cleaned_text, out_suspected
         except Exception as e:
             logger.error(f"[STT Corrector] Trinity failure: {e}")
             return transcript, None

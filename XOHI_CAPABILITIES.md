@@ -1,6 +1,6 @@
-# XOHI NEXUS CAPABILITIES (V62.1 — CONTENT FACTORY HARDENED)
+# XOHI NEXUS CAPABILITIES (V62.2 — ULTRA-STT & MIC LIFECYCLE GUARD)
 
-> Hệ điều hành trợ lý XoHi: Tốc độ ánh sáng, trí tuệ hội tụ, tự học không giới hạn, sản xuất nội dung SEO tự trị.
+> Hệ điều hành trợ lý XoHi: Tốc độ ánh sáng, trí tuệ hội tụ, tự học không giới hạn, sản xuất nội dung SEO tự trị, nhận diện giọng nói siêu phân giải.
 
 ---
 
@@ -64,4 +64,13 @@ Hệ thống sản xuất bài viết SEO Agentic với **6 cổng kiểm duyệ
 
 ---
 
-_V62.1: XOHI NEXUS — CONTENT FACTORY HARDENED (2026 READY)._
+## 🎙️ 8. GIAO THỨC MICROPHONE & ULTRA-STT (V62.2)
+
+Khắc phục hoàn toàn bệnh hallucination (ảo giác) của AI STT và tiếng ồn môi trường:
+- **Dynamic Context (STT Anchors)**: Inject ngay lập tức từ khóa bối cảnh dựa vào Profile người dùng, giúp bắt dính cả giọng địa phương khó nghe.
+- **Paranoid Kill-Switch**: Bộ lọc nhiễu tự động "bóp cổ" Whisper nếu phát hiện nó lảm nhảm dựa trên tỷ lệ thu gọn `compression_ratio` > 2.4. Tùy chỉnh trực tiếp qua thanh trượt độ nhạy âm tanh ở Cấu hình Giọng nói.
+- **Chống Feedback Loop (Half-Duplex)**: Khóa cứng Mic ngay khi XoHi bắt đầu nói và mở khóa qua một đệm an toàn 500ms khi Audio kết thúc, dập tắt mọi vòng lặp "tự nghe tự nói".
+
+---
+
+_V62.2: XOHI NEXUS — ULTRA-STT, DYNAMIC SETTINGS & MIC LIFECYCLE GUARD (2026 READY)._

@@ -34,9 +34,6 @@ export function createNanobotState() {
     lastSuggestedWidget: "NONE" as WidgetType,
     lastProcessedCommand: "",
     lastProcessedTime: 0,
-    lastSpokenText: "",
-    lastSpokenTime: 0,
-    commandEpoch: 0,
     isBusy: false,
     godModeUser: null as string | null,
     wakeWords: ["xohi"] as string[],
@@ -60,6 +57,8 @@ export function createNanobotState() {
     ] as Suggestion[],
     mobileScrollPosition: 0,
     isExpanded: false,
+    sttAnchors: [] as string[],
+    micSensitivity: 0.6,
   });
 
   const THINKING_TIMEOUT_MS = 30_000;
@@ -109,6 +108,8 @@ export function createNanobotState() {
       if (res?.farewell_template) voice.setFarewellTemplate(res.farewell_template);
       if (res?.is_campaign_mode !== undefined) state.isCampaignMode = res.is_campaign_mode;
       if (res?.chat_settings) state.chatSettings = { ...state.chatSettings, ...res.chat_settings };
+      if (res?.stt_anchors) state.sttAnchors = res.stt_anchors;
+      if (res?.mic_sensitivity !== undefined) state.micSensitivity = res.mic_sensitivity;
     } catch (e) {
       state.isHydrated = false;
     } finally {
@@ -253,8 +254,11 @@ export function createNanobotState() {
       $effect(() => {
         if (permissionState.isInitialized) {
           untrack(() => {
+            if (state.isHydrated && !window.location.pathname.includes("/login")) return; // Rule R82.45: Hydration Lock
+            
             hydrateGlobalSettings();
             if (!window.location.pathname.includes("/login")) {
+              state.isHydrated = true; // Mark as hydrated globally
               notification.fetchNotifications();
               chat.hydrateHistory("account", (logs: any) => {
                 const combined = [...log.activityLogs];
@@ -475,6 +479,8 @@ export function createNanobotState() {
     get modality() { return state?.modality || "text"; },
     get wakeWords() { return state?.wakeWords || ["xohi"]; },
     get sleepWords() { return state?.sleepWords || ["tạm biệt"]; },
+    get sttAnchors() { return state?.sttAnchors || []; },
+    get micSensitivity() { return state?.micSensitivity || 0.6; },
     get agenticSuggestions() { return state.agenticSuggestions; },
     get chatPagination() { return chat.pagination; },
 
@@ -630,13 +636,15 @@ export function createNanobotState() {
     setUserRole: (val: string) => {},
 
     // Settings Sync
-    updateVoiceSettings: (wake: string[], sleep: string[], greeting: string, farewell: string, campaign: boolean, chatSettings?: Record<string, any>) => {
+    updateVoiceSettings: (wake: string[], sleep: string[], greeting: string, farewell: string, campaign: boolean, chatSettings?: Record<string, any>, sttAnchors?: string[], micSensitivity?: number) => {
       state.wakeWords = wake;
       state.sleepWords = sleep;
       voice.setGreetingTemplate(greeting);
       voice.setFarewellTemplate(farewell);
       state.isCampaignMode = campaign;
       if (chatSettings) state.chatSettings = { ...state.chatSettings, ...chatSettings };
+      if (sttAnchors) state.sttAnchors = sttAnchors;
+      if (micSensitivity !== undefined) state.micSensitivity = micSensitivity;
     },
 
     toggleCampaignMode: async () => {

@@ -172,7 +172,10 @@ async def heuristic_classify(
         intent_type = "UI_NAV"
         action = IntentAction.READ
 
-    widget_id = TARGET_TO_WIDGET.get(target, "")
+    # Rule R82.25: Decouple UI Actions from Data Queries
+    # Only assign widget_id if it's explicitly a navigation request or certain navigation keywords are present
+    is_nav_keywords = any(kw in norm_query for kw in ["mo ", "xem ", "vao ", "bieu do"])
+    widget_id = TARGET_TO_WIDGET.get(target, "") if (intent_type == "UI_NAV" or is_nav_keywords) else ""
 
     # --- Build response message ---
     if intent_type == "MUTATE":

@@ -6,6 +6,13 @@ from backend.services.ai_engine.core.key_rotator import SmartKeyRotator
 
 logger = logging.getLogger("api-gateway")
 
+class AIConfigurationError(Exception):
+    """Detailed error for AI diagnostics (V62.2)"""
+    def __init__(self, message: str, model: str = None, key_index: int = None):
+        super().__init__(message)
+        self.model = model
+        self.key_index = (key_index + 1) if key_index is not None else None
+
 class TrinityBridge:
     """
     V61.0: Centralized AI Bridge for Managed Calls.
@@ -13,8 +20,8 @@ class TrinityBridge:
     """
     def __init__(self):
         self.rotator = SmartKeyRotator()
-        self.default_model_name = os.getenv("TIER2_MODEL", "gemini-2.0-flash")
-        self.fallback_model_name = os.getenv("TIER2_FALLBACK_MODEL", "gemini-2.0-flash")
+        self.default_model_name = os.getenv("TIER2_MODEL", "gemini-2.5-flash")
+        self.fallback_model_name = os.getenv("TIER2_FALLBACK_MODEL", "gemini-2.5-pro")
 
     async def run(self, agent: Agent, prompt: str, **kwargs):
         """
@@ -43,6 +50,11 @@ class TrinityBridge:
                     return await agent.run(prompt, model=model, **kwargs)
                 except Exception as e:
                     error_str = str(e).lower()
+                    if "tool output is not supported" in error_str:
+                        # R109: If this model doesn't support tools, rotating keys is useless. Switch model immediately.
+                        logger.warning(f"[TrinityBridge] Model {model_name} DOES NOT support Tool calling. Jumping to next model...")
+                        break 
+                    
                     if "429" in error_str or "quota" in error_str or "rate limit" in error_str or "timeout" in error_str:
                         # R2.7 Fail-Fast on exhaustion: 
                         # Only wait 0.5s before rotating to the next key. If all keys fail, we fallback to TIER2_FALLBACK_MODEL.
@@ -58,9 +70,14 @@ class TrinityBridge:
                         continue
                     else:
                         logger.error(f"[TrinityBridge] Unhandled AI Error for {model_name}: {e}")
-                        raise
+                        raise AIConfigurationError(f"Unhandled AI Error: {str(e)}", model_name, attempt)
                         
         logger.error(f"[TrinityBridge] Exhausted all keys and fallback models!")
-        raise Exception("All models and keys exhausted due to 429/503/Errors.")
+        # Thống kê lỗi cuối cùng để báo cáo sếp
+        raise AIConfigurationError(
+            f"Tất cả Model/Key đã cạn kiệt. Lần thử cuối: {models_to_try[-1]} (Key index: {max_keys})",
+            models_to_try[-1],
+            max_keys - 1
+        )
 
 trinity_bridge = TrinityBridge()

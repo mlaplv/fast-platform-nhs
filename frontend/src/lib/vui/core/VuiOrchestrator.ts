@@ -50,6 +50,7 @@ class VuiOrchestrator {
     vuiState.setTranscript("");
     vuiState.setLiveText("");
     vuiState.setSystemMessage("");
+    vuiState.setActiveTier("");
     vuiState.setPhase("listening");
 
     try {
@@ -164,17 +165,19 @@ class VuiOrchestrator {
   setStopAfterSpeech(val: boolean) { this.stopAfterSpeech = val; }
 
   private onTTSFinished() {
-    if (vuiState.phase === "executing") {
-      // Rule R82.20: Keep 'executing' phase active during transitions
-      if (import.meta.env.DEV) console.log("[VuiOrchestrator] TTS Finished during EXECUTION. Keeping phase.");
-      return; 
-    }
-
     if (vuiState.isWaitingForAction) {
+      if (import.meta.env.DEV) console.log("[VuiOrchestrator] TTS Finished. Waiting for user action, going idle.");
       this.mic.stop(); // Phase 61: Quiet mic but keep UI open
       vuiState.setPhase("idle");
       vuiState.setLiveText("Sẵn sàng thưa sếp...");
       return;
+    }
+
+    if (vuiState.phase === "executing" || vuiState.phase === "speaking") {
+      // General actions or speech must not freeze VUI. Exiting to idle.
+      if (import.meta.env.DEV) console.log(`[VuiOrchestrator] TTS Finished during ${vuiState.phase}. Clearing locks.`);
+      vuiState.setPhase("idle");
+      vuiState.setActiveTier("");
     }
 
     if (this.stopAfterSpeech) {
@@ -197,7 +200,7 @@ class VuiOrchestrator {
         }
       }, delay);
     } else {
-      this.interruptAll();
+      setTimeout(() => this.interruptAll(), 1000);
     }
   }
 
@@ -218,6 +221,10 @@ class VuiOrchestrator {
   }
 
   async speak(text: string) {
+    // Phase 6: Half-Duplex Enforcer (R4.1)
+    this.mic.stop();
+    if (vuiState.phase === "listening") vuiState.setPhase("thinking");
+    
     if (!text || !vuiState.isActive) return;
     if (vuiState.phase !== "executing") {
         vuiState.setPhase("speaking");

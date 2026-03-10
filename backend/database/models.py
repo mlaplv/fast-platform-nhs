@@ -87,6 +87,8 @@ class VoiceProfile(Base, AuditMixin):
         "auto_purge_days": 30,
         "cache_limit": 10
     })
+    stt_anchors: Mapped[list[str]] = mapped_column(JSON, default=list)
+    mic_sensitivity: Mapped[float] = mapped_column(Float, default=0.6)
 
 class Role(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'roles'

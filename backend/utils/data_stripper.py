@@ -84,3 +84,13 @@ class DataStripper:
         if isinstance(value, str) and len(value) > _MAX_FIELD_LENGTH:
             return value[:_MAX_FIELD_LENGTH] + "…"
         return value
+
+    @staticmethod
+    def truncate_payload(data: str, max_len: int = 2000) -> str:
+        """R90 & R75 Ultra-Light Audit: Truncate large payloads keeping start and end."""
+        if not isinstance(data, str):
+            return ""
+        if len(data) <= max_len:
+            return data
+        half = max_len // 2 - 10
+        return data[:half] + "\n...[TRUNCATED_R90]...\n" + data[-half:]
