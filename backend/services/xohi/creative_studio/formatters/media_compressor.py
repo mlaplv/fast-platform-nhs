@@ -13,7 +13,7 @@ class MediaCompressor:
     Hardened Rule 6: Download, Compress (WebP), Store Local.
     V61.0: Zero-Copy Optimization & Non-blocking I/O.
     """
-    def __init__(self, upload_dir: str = "/Users/lv/Desktop/fast-platform-core/static/uploads/v62"):
+    def __init__(self, upload_dir: str = "static/uploads/v62"):
         self.upload_dir = upload_dir
         os.makedirs(self.upload_dir, exist_ok=True)
         # R106: Limit concurrent image processing for 2GB RAM safety
