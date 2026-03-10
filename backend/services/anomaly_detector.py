@@ -237,7 +237,7 @@ class AnomalyDetector:
             since = datetime.now(timezone.utc) - timedelta(hours=1)
                 
             existing = await session.scalar(
-                text(f"""
+                text("""
                     SELECT COUNT(*) FROM notifications
                     WHERE tenant_id = :tid AND message = :msg
                     AND created_at > :since

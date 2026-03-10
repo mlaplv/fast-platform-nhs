@@ -75,7 +75,7 @@ class AntiSpamService:
         fingerprint = self.generate_fingerprint(ip, user_agent)
         phone = order_data.get("phone", "unspecified")
         address = self.normalize_address(order_data.get("address", ""))
-        addr_hash = hashlib.md5(address.encode()).hexdigest() if address else "no_addr"
+        addr_hash = hashlib.sha256(address.encode()).hexdigest() if address else "no_addr"
         
         score = 0.0
         reasons = []

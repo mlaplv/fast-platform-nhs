@@ -24,21 +24,23 @@ class ArticleVectorService:
             vector_str = f"[{','.join(map(str, embedding_array))}]"
 
             # 3. Cú pháp SQL thuần BẮT BUỘC sử dụng (<=>) và Type Casting (::vector)
-            raw_query = f"""
-                SELECT a.id, a.title, a.slug, a.category, e.embedding <=> '{vector_str}'::vector AS cosine_distance
+            # 3. Cú pháp SQL thuần BẮT BUỘC sử dụng (<=>) và Type Casting (::vector)
+            raw_query = """
+                SELECT a.id, a.title, a.slug, a.category, e.embedding <=> :v::vector AS cosine_distance
                 FROM "articles" a
                 JOIN "article_embeddings" e ON a.id = e.article_id
                 WHERE a.deleted_at IS NULL 
-                  AND a.tenant_id = $1
-                  AND e.tenant_id = $1
+                  AND a.tenant_id = :tid
+                  AND e.tenant_id = :tid
                 ORDER BY cosine_distance ASC
-                LIMIT {limit};
+                LIMIT :lim;
             """
 
             # Thực thi thông qua SQLAlchemy/Raw
+            from sqlalchemy import text
             from backend.database import async_session_maker
             async with async_session_maker() as session:
-                res = await session.execute(text(raw_query), {"tenant_id": tenant_id})
+                res = await session.execute(text(raw_query), {"tid": tenant_id, "v": vector_str, "lim": limit})
                 results = res.mappings().all()
 
             # Format Data

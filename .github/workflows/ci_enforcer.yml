@@ -61,6 +61,19 @@ jobs:
             echo '✅ frontend/package.json tuân thủ nghiêm ngặt (không dùng "latest").'
           fi
 
+  rule-r72-security-lint:
+    name: "R72: Backend Security Lint"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cài đặt Bandit
+        run: pip install bandit
+      - name: Quét lỗ hổng bảo mật (Bandit)
+        run: |
+          echo "Bắt đầu quét quy tắc R72 (Security Linting)..."
+          bandit -r backend/ -x backend/tests/ -ll
+          echo "✅ Security Audit Passed"
+
   rule-r71-test-mandate:
     name: "R71: Backend Unit Test Mandate"
     runs-on: ubuntu-latest

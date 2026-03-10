@@ -24,22 +24,22 @@ class ProductVectorService:
             vector_str = f"[{','.join(map(str, embedding_array))}]"
 
             # 3. Cú pháp SQL thuần BẮT BUỘC sử dụng (<=>) và Type Casting (::vector)
-            raw_query = f"""
-                SELECT p.id, p."name", p."price", p."stock", p."description", e.embedding <=> '{vector_str}'::vector AS cosine_distance
+            raw_query = """
+                SELECT p.id, p."name", p."price", p."stock", p."description", e.embedding <=> :v::vector AS cosine_distance
                 FROM "product_bases" p
                 JOIN "product_embeddings" e ON p.id = e."productBaseId"
                 WHERE p."deleted_at" IS NULL 
-                  AND p.tenant_id = $1
-                  AND e.tenant_id = $1
+                  AND p.tenant_id = :tid
+                  AND e.tenant_id = :tid
                 ORDER BY cosine_distance ASC
-                LIMIT {limit};
+                LIMIT :lim;
             """
 
             # Thực thi thông qua SQLAlchemy/Raw
             from sqlalchemy import text
             from backend.database import async_session_maker
             async with async_session_maker() as session:
-                res = await session.execute(text(raw_query), {"tenant_id": tenant_id})
+                res = await session.execute(text(raw_query), {"tid": tenant_id, "v": vector_str, "lim": limit})
                 results = res.mappings().all()
 
             # Format Data
