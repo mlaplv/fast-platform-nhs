@@ -71,7 +71,7 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_USER: mlap
-          POSTGRES_PASSWORD: admin@123A3%StrongPassword
+          POSTGRES_PASSWORD: admin123
           POSTGRES_DB: fast_platform_db
         ports:
           - 5432:5432
@@ -100,11 +100,14 @@ jobs:
 
       - name: Đồng bộ thư viện Backend
         run: uv sync
+
+      - name: Wait for DB readiness
+        run: sleep 10
         
       - name: Chạy Pytest & Check Health
         env:
           # Cắm env trỏ thẳng vào các Database Ảo cục bộ
-          DATABASE_URL: postgresql+asyncpg://mlap:admin@123A3%StrongPassword@localhost:5432/fast_platform_db
+          DATABASE_URL: postgresql+asyncpg://mlap:admin123@localhost:5432/fast_platform_db
           REDIS_URL: redis://localhost:6379/0
           ENCRYPTION_SALT: "dummy_salt_for_testing_only_12345"
           GEMINI_API_KEY_1: "dummy_key_1"

@@ -1,10 +1,6 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
-import sys
-import os
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from main import app
+from backend.main import app
 
 @pytest.mark.asyncio
 async def test_health_check_endpoint():
