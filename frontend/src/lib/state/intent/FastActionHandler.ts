@@ -7,6 +7,7 @@ export interface HandlerDeps {
   log: any;
   ui: any;
   resetVui: () => void;
+  softReset: () => void;
 }
 
 /**
@@ -19,7 +20,7 @@ export async function handleFastAction(
   deps: HandlerDeps,
   source: "text" | "voice" = "text"
 ): Promise<boolean> {
-  const { state, voice, log, ui, resetVui } = deps;
+  const { state, voice, log, ui, resetVui, softReset } = deps;
   const cmd = command.toLowerCase().trim();
 
   // 1. Strict Mapping Lookup
@@ -58,8 +59,8 @@ export async function handleFastAction(
        vuiController.setStopAfterSpeech(true);
        await vuiController.speak(xohiReply);
     } else {
-       // Phase 55 Enforcement: Clean up VUI state for fast actions triggered by text
-       resetVui();
+       // Phase 55/61 Enforcement: Surgical cleanup for fast actions triggered by text
+       softReset();
     }
 
     state.nanoBotStatus = "SUCCESS";
@@ -74,7 +75,7 @@ export async function handleFastAction(
     state.lastSuggestedWidget = "NONE";
     state.nanoBotStatus = "SUCCESS";
     state.isBusy = false;
-    resetVui();
+    softReset();
     return true;
   }
 

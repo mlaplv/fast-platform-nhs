@@ -37,6 +37,18 @@ export function createVoiceState(
     console.warn("[VoiceState] Nuclear Reset complete.");
   }
 
+  function softReset() {
+    // Phase 61: Surgical cleanup without aggressive logs/interrupts
+    state.vuiResponse = null;
+    state.vuiUserQuery = "";
+    if (state.status !== "IDLE") state.status = "IDLE";
+    
+    // Only interrupt if actually active to avoid SSE/Pulse flapping
+    if (state.isVuiActive || state.isProcessingSpeech) {
+       resetVui();
+    }
+  }
+
   function setVoiceResult(
     transcript: string,
     responseText: string,
@@ -123,6 +135,7 @@ export function createVoiceState(
       state.vuiUserQuery = "";
     },
     resetVui,
+    softReset,
     setVoiceResult,
     handleWakeWord,
     hard_sleep,

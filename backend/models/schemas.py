@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Dict, Any, Optional
 from uuid import UUID, uuid4
 from enum import Enum
@@ -18,12 +18,21 @@ class CampaignStep(BaseModel):
     retry_count: int = 0
 
 class ContentCampaign(BaseModel):
-    id: UUID = Field(default_factory=uuid4)
-    name: str
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    user_id: Optional[str] = None
+    source_input: str
+    reviewer_type: str = "ADMIN_MANUAL"
     current_step: int = 1
-    status: str = "RUNNING"
-    steps: List[CampaignStep] = []
-    gold_metadata: Dict[str, Any] = {}
+    status: str = "WAITING_FOR_REVIEW"
+    gold_metadata: Optional[Dict[str, Any]] = {}
+    topic_data: Optional[Dict[str, Any]] = {}
+    assets_data: Optional[List[Any]] = []
+    outline_data: Optional[Dict[str, Any]] = {}
+    draft_content: Optional[str] = None
+    unique_score: float = 0.0
+    search_count: int = 0
     created_at: datetime = Field(default_factory=datetime.now)
 
 class AgentResponse(BaseModel):

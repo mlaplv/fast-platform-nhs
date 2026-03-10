@@ -1,10 +1,14 @@
 <script lang="ts">
   import { vuiState } from "$lib/vui";
+  import { nanobot } from "$lib/state/nanobot.svelte";
   import { VUI_CONFIG } from "$lib/vui/core/VuiConstants";
   import { scale } from "svelte/transition";
   import { typewriter } from "$lib/actions/typewriter";
 
   let { phase } = $props();
+
+  // Bulletproof Focus Mode: Hide all technical titles/pills if we are in a campaign flow
+  let isCampaignTask = $derived(!!nanobot.vuiResponse?.data?.campaign_id || vuiState.isWaitingForAction);
 </script>
 
 <div
@@ -27,12 +31,14 @@
     </p>
   {:else if phase === "thinking"}
     <div class="flex flex-col items-center gap-2">
-      <p
-        class="text-[10px] font-mono text-[#9d4edd]/70 uppercase tracking-[0.3em] animate-pulse"
-      >
-        Neural Processing
-      </p>
-      {#if vuiState.activeTier}
+      {#if !isCampaignTask}
+        <p
+          class="text-[10px] font-mono text-[#9d4edd]/70 uppercase tracking-[0.3em] animate-pulse"
+        >
+          Neural Processing
+        </p>
+      {/if}
+      {#if vuiState.activeTier && !isCampaignTask}
         <div
           class="flex items-center gap-2 bg-purple-500/10 px-3 py-1 rounded border border-purple-500/20"
           in:scale={{ duration: 400, start: 0.95 }}
@@ -49,12 +55,14 @@
     </div>
   {:else if phase === "executing"}
     <div class="flex flex-col items-center gap-2">
-      <p
-        class="text-[10px] font-mono text-pink-400/70 uppercase tracking-[0.3em] animate-pulse"
-      >
-        {VUI_CONFIG.UX.PHASE_LABELS.executing}
-      </p>
-      {#if vuiState.liveText}
+      {#if !isCampaignTask}
+        <p
+          class="text-[10px] font-mono text-pink-400/70 uppercase tracking-[0.3em] animate-pulse"
+        >
+          {VUI_CONFIG.UX.PHASE_LABELS.executing}
+        </p>
+      {/if}
+      {#if vuiState.liveText && !isCampaignTask}
         <div
           class="flex items-center gap-2 bg-pink-500/10 px-3 py-1 rounded border border-pink-500/20"
           in:scale={{ duration: 400, start: 0.95 }}
@@ -71,11 +79,13 @@
     </div>
   {:else if phase === "speaking"}
     <div class="flex flex-col items-center gap-3">
-      <p
-        class="text-[10px] font-mono text-[#00FFFF]/70 uppercase tracking-[0.3em] animate-pulse"
-      >
-        {VUI_CONFIG.UX.PHASE_LABELS.speaking}
-      </p>
+      {#if !isCampaignTask}
+        <p
+          class="text-[10px] font-mono text-[#00FFFF]/70 uppercase tracking-[0.3em] animate-pulse"
+        >
+          {VUI_CONFIG.UX.PHASE_LABELS.speaking}
+        </p>
+      {/if}
       {#if vuiState.systemMessage}
         <p
           class="text-lg md:text-xl text-white/90 font-medium tracking-wide drop-shadow-md leading-relaxed scifi-text w-full"
@@ -91,9 +101,11 @@
       {/if}
     </div>
   {:else}
-    <p class="text-[10px] font-mono text-white/20 uppercase tracking-[0.3em]">
-      {VUI_CONFIG.UX.PHASE_LABELS.idle}
-    </p>
+    {#if !isCampaignTask}
+      <p class="text-[10px] font-mono text-white/20 uppercase tracking-[0.3em]">
+        {VUI_CONFIG.UX.PHASE_LABELS.idle}
+      </p>
+    {/if}
   {/if}
   {#if vuiState.errorMsg}
     <p class="text-xs text-red-500 mt-2 font-mono tracking-wide">

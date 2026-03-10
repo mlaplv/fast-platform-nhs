@@ -122,7 +122,7 @@ class SettingsController(Controller):
             for w in words:
                 w_strip = w.strip()
                 if not w_strip: continue
-                w_norm = normalize_vn(w_strip)
+                w_norm = w_strip.lower()
                 if w_norm not in seen:
                     seen.add(w_norm)
                     res.append(w_strip)
@@ -155,8 +155,8 @@ class SettingsController(Controller):
                 profile.chat_settings = data.chat_settings
 
         profile_data = {
-            "wake_words":        [normalize_vn(w) for w in clean_wake],
-            "sleep_words":       [normalize_vn(w) for w in clean_sleep],
+            "wake_words":        [w.lower() for w in clean_wake],
+            "sleep_words":       [w.lower() for w in clean_sleep],
             "greeting_template": data.greeting_template,
             "farewell_template": data.farewell_template,
             "capabilities":      data.capabilities,
@@ -240,7 +240,7 @@ class SettingsController(Controller):
     async def add_lexicon_override(self, request: Request, data: LexiconOverridePayload) -> dict:
         """Add or update a system-wide STT Override"""
         from backend.services.xohi_memory import xohi_memory
-        mapping = {normalize_vn(data.wrong_word.strip()): data.right_word.strip()}
+        mapping = {data.wrong_word.strip().lower(): data.right_word.strip()}
         await xohi_memory.set_system_stt_overrides(mapping)
         logger.info(f"[Lexicon] Added override '{data.wrong_word}' -> '{data.right_word}'")
         return {"status": "success", "message": f"Đã thêm luật nắn lỗi: {data.wrong_word} ➔ {data.right_word}"}
@@ -249,7 +249,7 @@ class SettingsController(Controller):
     async def delete_lexicon_override(self, request: Request, wrong_word: str) -> dict:
         """Delete a system-wide STT Override"""
         from backend.services.xohi_memory import xohi_memory
-        await xohi_memory.delete_system_stt_override(normalize_vn(wrong_word.strip()))
+        await xohi_memory.delete_system_stt_override(wrong_word.strip().lower())
         logger.info(f"[Lexicon] Deleted override '{wrong_word}'")
         return {"status": "success", "message": f"Đã xóa luật nắn lỗi cho từ: {wrong_word}"}
 
@@ -264,7 +264,7 @@ class SettingsController(Controller):
     async def add_lexicon_stopword(self, request: Request, data: LexiconStopwordPayload) -> dict:
         """Add a Stopword to the system"""
         from backend.services.xohi_memory import xohi_memory
-        word = normalize_vn(data.word.strip())
+        word = data.word.strip().lower()
         await xohi_memory.add_system_stt_stopword(word)
         logger.info(f"[Lexicon] Added stopword '{word}'")
         return {"status": "success", "message": f"Đã thêm từ dư thừa: {word}"}
@@ -273,7 +273,7 @@ class SettingsController(Controller):
     async def delete_lexicon_stopword(self, request: Request, word: str) -> dict:
         """Delete a Stopword from the system"""
         from backend.services.xohi_memory import xohi_memory
-        norm_word = normalize_vn(word.strip())
+        norm_word = word.strip().lower()
         await xohi_memory.delete_system_stt_stopword(norm_word)
         logger.info(f"[Lexicon] Deleted stopword '{word}'")
         return {"status": "success", "message": f"Đã xóa từ dư thừa: {word}"}

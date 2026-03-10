@@ -22,6 +22,7 @@ class VuiOrchestrator {
   private sessionStartTime = 0;
   private resumptionTimer: any = null;
   private stopAfterSpeech = false;
+  private recordingMaxTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.streamManager = new VuiStreamManager(this.audio, {
@@ -64,6 +65,14 @@ class VuiOrchestrator {
           this.handleSilenceDetection(vol);
         }
       );
+      
+      // Phase 71: Hard safety limit for recording duration
+      this.recordingMaxTimer = setTimeout(() => {
+        if (vuiState.phase === "listening") {
+           console.warn("[VuiOrchestrator] Recording exceeded MAX_DURATION. Auto-finalizing.");
+           this.stopRecording();
+        }
+      }, VUI_CONFIG.VAD.MAX_RECORDING_DURATION_MS);
     } catch (e: any) {
       vuiState.setError(e.message || "Lỗi truy cập Microphone");
       this.interruptAll();
@@ -96,6 +105,7 @@ class VuiOrchestrator {
     if (vuiState.phase !== "listening") return;
     vuiState.setPhase("thinking");
     if (this.silenceTimer) { clearTimeout(this.silenceTimer); this.silenceTimer = null; }
+    if (this.recordingMaxTimer) { clearTimeout(this.recordingMaxTimer); this.recordingMaxTimer = null; }
     this.ws.sendStopSignal();
     this.streamManager.startSttGuard();
     this.mic.stop();
@@ -105,6 +115,7 @@ class VuiOrchestrator {
   interruptAll() {
     if (this.resumptionTimer) { clearTimeout(this.resumptionTimer); this.resumptionTimer = null; }
     if (this.silenceTimer) { clearTimeout(this.silenceTimer); this.silenceTimer = null; }
+    if (this.recordingMaxTimer) { clearTimeout(this.recordingMaxTimer); this.recordingMaxTimer = null; }
     this.streamManager.clearSttGuard();
     this.audio.abort();
     this.mic.stop();
@@ -208,7 +219,9 @@ class VuiOrchestrator {
 
   async speak(text: string) {
     if (!text || !vuiState.isActive) return;
-    vuiState.setPhase("speaking");
+    if (vuiState.phase !== "executing") {
+        vuiState.setPhase("speaking");
+    }
     vuiState.setSystemMessage(text);
     
     // Neural Streaming: Break down formal messages into chunks to bypass full-blob latency

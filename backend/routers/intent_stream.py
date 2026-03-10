@@ -176,7 +176,7 @@ class IntentStreamController(Controller):
                                     campaign_repo=campaign_repo,
                                     modality=data.modality
                                 ),
-                                timeout=20.0
+                                timeout=45.0  # Increased to 45s to tolerate TrinityBridge 429 backoff & key rotation
                             )
                         except asyncio.TimeoutError:
                             yield _sse("error", {"message": "Giao thức kết nối đang bận, Sếp thử lại sau nhé."})

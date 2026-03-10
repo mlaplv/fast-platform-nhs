@@ -71,6 +71,13 @@ export function createNanobotState() {
     voice.resetVui();
   };
 
+  const softReset = () => {
+    // Only drop busy/status if we aren't in a terminal state
+    if (state.nanoBotStatus !== "ERROR") state.nanoBotStatus = "IDLE";
+    state.isBusy = false;
+    voice.softReset();
+  };
+
   const setThinking = (val: boolean, source: "text" | "voice" = "text") => {
     if (val) {
       if (source === "voice") state.nanoBotStatus = "THINKING";
@@ -87,11 +94,13 @@ export function createNanobotState() {
     }
   };
 
-  const intent = createIntentManager(state, voice, log, ui, chat, resetVui, setThinking);
+  const intent = createIntentManager(state, voice, log, ui, chat, resetVui, softReset, setThinking);
 
+  let isHydratingSettings = false;
   const hydrateGlobalSettings = async () => {
-    if (typeof window === "undefined" || window.location.pathname.includes("/login") || !permissionState.isInitialized || state.isHydrated) return;
+    if (typeof window === "undefined" || window.location.pathname.includes("/login") || !permissionState.isInitialized || state.isHydrated || isHydratingSettings) return;
     try {
+      isHydratingSettings = true;
       state.isHydrated = true;
       const res = await apiClient.get<any>("/api/v1/settings/voice");
       if (res?.wake_words) state.wakeWords = res.wake_words.map((w: string) => normalizeVn(w));
@@ -102,6 +111,8 @@ export function createNanobotState() {
       if (res?.chat_settings) state.chatSettings = { ...state.chatSettings, ...res.chat_settings };
     } catch (e) {
       state.isHydrated = false;
+    } finally {
+      isHydratingSettings = false;
     }
   };
 

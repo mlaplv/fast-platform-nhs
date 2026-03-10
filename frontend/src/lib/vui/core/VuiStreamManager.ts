@@ -38,7 +38,7 @@ export class VuiStreamManager {
        return;
     }
     
-    if (hasSpoken && text.length > 0) {
+    if (text.length > 0) {
       const currentLive = vuiState.liveText;
       if (isFinal || text !== currentLive) {
         vuiState.setLiveText(text);
@@ -69,14 +69,16 @@ export class VuiStreamManager {
     
     vuiState.setTranscript(text);
     vuiState.setPhase("thinking");
-    vuiState.setLiveText(VUI_CONFIG.NEURAL.STT_FEEDBACK_DOTS);
+    // Keep the actual text instead of dots
+    vuiState.setLiveText(text);
     
     await this.streamLLM(text, nanobot.currentData?.session_id || "");
   }
 
   public async streamLLM(query: string, session_id: string, source: "text" | "voice" = "voice") {
-    if (source === "voice") vuiState.setPhase("speaking");
-    vuiState.setLiveText(""); // Clear "Đang chuyển pha..." or previous status
+    vuiState.setPhase("thinking");
+    // Leave the STT text as liveText so the user can read it.
+    // vuiState.setLiveText(""); 
     vuiState.setSystemMessage(""); // Clear previous AI text
     this.lastActionType = ""; 
     let txtResult = "";
@@ -95,11 +97,14 @@ export class VuiStreamManager {
           txtResult += parsed.text;
           vuiState.setSystemMessage(txtResult);
           if (source === "voice") {
+            vuiState.setPhase("speaking");
             this.audio.processChunk(parsed.text);
           }
         } else if (parsed.phase === "done") {
           lastData = parsed;
           if (parsed.ui_action) this.lastActionType = parsed.ui_action;
+        } else if (parsed.phase === "error") {
+          throw new Error(parsed.message || "Neural Gateway Error");
         }
       }
 

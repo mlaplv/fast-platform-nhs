@@ -20,7 +20,13 @@ __pycache__/
 *.pyc
 *.pyo
 .Python
+
+# 2.1 File Lock (Không lên Git - Để mỗi máy tự sinh)
+package-lock.json
+pnpm-lock.yaml
+uv.lock
 poetry.lock
+yarn.lock
 
 # 3. Dữ liệu sinh ra khi dev
 backups/

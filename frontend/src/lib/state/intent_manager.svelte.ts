@@ -17,6 +17,7 @@ interface IntentDeps {
     status: string;
     setVuiActive: (val: boolean) => void;
     resetVui: () => void;
+    softReset: () => void;
   };
   log: {
     addLog: (msg: string, source?: string, type?: string, tier?: number, data?: Record<string, any>) => void;
@@ -35,9 +36,10 @@ export function createIntentManager(
   ui: IntentDeps["ui"],
   chat: IntentDeps["chat"],
   resetVui: () => void,
+  softReset: () => void,
   setThinking: (val: boolean, source?: "text" | "voice") => void
 ) {
-  const deps: HandlerDeps = { state, voice, log, ui, resetVui };
+  const deps: HandlerDeps = { state, voice, log, ui, resetVui, softReset };
 
   function isNavAction(uiAction: string, intentType: string) {
     return intentType === "UI_NAV";

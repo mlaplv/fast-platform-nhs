@@ -13,11 +13,12 @@ export const VUI_CONFIG = {
 
   // Voice Activity Detection (VAD)
   VAD: {
-    SILENCE_THRESHOLD: 0.010,   // Cực nhạy để đảm bảo chữ hiện lên ngay (0.010)
-    SILENCE_DURATION_MS: 800,  // Phase 40: Giảm xuống 800ms để phản hồi thần tốc
-    INITIAL_TIMEOUT_MS: 7000,  // Tăng lên 7s chờ đợi ban đầu
-    SPEECH_CONFIRM_MS: 100,    // Chỉ cần 100ms có tiếng động là bắt đầu truyền tải
+    SILENCE_THRESHOLD: 0.015,   // Tăng từ 0.010 lên 0.015 để bớt nhạy cảm với tiếng ồn (Phase 61/71)
+    SILENCE_DURATION_MS: 600,  // Giảm từ 800ms xuống 600ms để dứt khoát hơn (Phase 71)
+    INITIAL_TIMEOUT_MS: 7000,  
+    SPEECH_CONFIRM_MS: 100,    
     STT_GUARD_TIMEOUT_MS: 20000, 
+    MAX_RECORDING_DURATION_MS: 15000, // Chốt chặn 15s tự động ngắt nếu quá ồn (Phase 71)
   },
 
   // Microphone

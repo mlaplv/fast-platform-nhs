@@ -7,10 +7,15 @@ let _sfxCtx: AudioContext | null = null;
 
 function getSfxCtx(): AudioContext {
   if (!_sfxCtx || _sfxCtx.state === "closed") {
-    const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const Ctor = window.AudioContext || (window as any).webkitAudioContext;
     _sfxCtx = new Ctor();
   }
-  if (_sfxCtx.state === "suspended") _sfxCtx.resume();
+  // R85.2: Autoplay safety — only attempt resume if suspended, and silent catch
+  if (_sfxCtx.state === "suspended") {
+    _sfxCtx.resume().catch(() => {
+      /* Silently ignore autoplay restrictions */
+    });
+  }
   return _sfxCtx;
 }
 

@@ -2,8 +2,9 @@ import httpx
 import asyncio
 import logging
 from typing import List, Optional, Dict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from backend.utils.http_client import get_http_client
+from backend.services.event_bus import event_bus
 from backend.constants.agentic import MAX_SEARCH_RETRY_PER_STEP, SEARCH_CIRCUIT_BREAKER_COOLDOWN_MINUTES
 
 logger = logging.getLogger("api-gateway")
@@ -37,11 +38,22 @@ class AssetHunter:
         if not campaign: return
         
         query = campaign.topic_data.get("primary_keyword", campaign.source_input)
-        urls = await self.fetch_images(query)
+        
+        await event_bus.emit("CONTENT_PROGRESS", {
+            "campaign_id": campaign_id,
+            "user_id": str(campaign.user_id),
+            "step": 2,
+            "message": f"⏳ Đang kích hoạt radar tìm kiếm ảnh cho '{query}'...",
+            "status": "PROCESSING",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        
+        urls = await self.fetch_images(query, campaign_id=campaign_id, user_id=str(campaign.user_id))
         campaign.assets_data = urls
+        await repo.update(campaign)
         return urls
 
-    async def fetch_images(self, query: str, num_results: int = 10) -> List[str]:
+    async def fetch_images(self, query: str, campaign_id: str = None, user_id: str = None, num_results: int = 10) -> List[str]:
         """
         Fetches image URLs from Google.
         Hardened with Circuit Breaker and Key Rotation on 429.
@@ -70,6 +82,17 @@ class AssetHunter:
                     }
                     
                     logger.info(f"[AssetHunter] Searching index {self.current_index} for: {query}")
+                    
+                    if campaign_id:
+                        await event_bus.emit("CONTENT_PROGRESS", {
+                            "campaign_id": campaign_id,
+                            "user_id": user_id,
+                            "step": 2,
+                            "message": f"🔍 Đang truy quét qua API Key #{self.current_index}...",
+                            "status": "PROCESSING",
+                            "timestamp": datetime.now(timezone.utc).isoformat()
+                        })
+
                     response = await client.get(url, params=params, timeout=10.0)
                     
                     if response.status_code == 429:
@@ -89,6 +112,17 @@ class AssetHunter:
                         logger.warning(f"[AssetHunter] Key {self.current_index} returned 0 results. Total results from Google: {search_info.get('totalResults')}")
                     
                     urls = [item['link'] for item in items]
+                    
+                    if campaign_id:
+                        await event_bus.emit("CONTENT_PROGRESS", {
+                            "campaign_id": campaign_id,
+                            "user_id": user_id,
+                            "step": 2,
+                            "message": f"✅ Đã tóm gọn {len(urls)} bức ảnh chất lượng cao!",
+                            "status": "PROCESSING",
+                            "timestamp": datetime.now(timezone.utc).isoformat()
+                        })
+
                     return urls
 
                 except Exception as e:
@@ -100,7 +134,6 @@ class AssetHunter:
                         # R103: Graceful Degradation — Return empty list instead of crashing
                         logger.error("[AssetHunter] All Search API keys exhausted or failed.")
                         from backend.constants.agentic import SEARCH_CIRCUIT_BREAKER_COOLDOWN_MINUTES
-                        from datetime import timezone
                         self.cooldown_until = datetime.now(timezone.utc) + timedelta(minutes=SEARCH_CIRCUIT_BREAKER_COOLDOWN_MINUTES)
                     continue
             

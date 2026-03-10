@@ -1,4 +1,4 @@
-import logging, os, asyncio, json, time, unicodedata
+import logging, os, asyncio, json, time, unicodedata, re
 from typing import List, Dict, Optional, Tuple, Union
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from .tier2_cloud import Tier2CloudRouter
@@ -152,8 +152,12 @@ class RouterOrchestrator:
                     
                     logger.info(f"[STT Learning] Memorized to Redis: {suspected}")
                     
-                # Restore the cleaned transcript to continue execution silently
-                transcript = ctx.get("pending_cleaned_transcript", transcript)
+                # Restore the cleaned transcript AND APPLY the learned correction (v56.2)
+                transcript = ctx.get("pending_cleaned_transcript", "").strip()
+                for wrong, right in suspected.items():
+                    pattern = re.compile(re.escape(wrong), re.IGNORECASE)
+                    transcript = pattern.sub(right, transcript)
+                    
                 logger.info(f"[STT Learning] Resuming execution with corrected transcript: '{transcript}'")
                 
                 # Clear state so we don't get stuck in a loop

@@ -48,30 +48,72 @@ class VisionInsight:
             data=seed.model_dump()
         )
 
+    def _sanitize_topic(self, text: str) -> str:
+        import re
+        # Strip common command prefixes
+        cleaned = re.sub(r'^(viết bài|tạo bài|làm bài|thiết kế|viết một bài về|viết bài về|tạo bài về|viết)\s+', '', text, flags=re.IGNORECASE)
+        return cleaned.strip().capitalize()
+
     async def analyze_input(self, campaign: ContentCampaign) -> TopicSeed:
         """
         Uses AI to extract structured keywords from campaign.source_input.
         R85: Strict Structured Output via Pydantic.
         """
+        import asyncio
+        from datetime import datetime, timezone
+        from backend.services.event_bus import event_bus
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
-        prompt = f"Chủ đề bài viết: {campaign.source_input}"
+        clean_topic = self._sanitize_topic(campaign.source_input)
+        prompt = f"Chủ đề bài viết: {clean_topic}"
+
+        async def _emit_progress(msg: str):
+            await event_bus.emit("CONTENT_PROGRESS", {
+                "campaign_id": campaign.id,
+                "user_id": str(campaign.user_id),
+                "step": 1,
+                "message": msg,
+                "status": "PROCESSING",
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
 
         try:
+            await _emit_progress("🧠 Đang kích hoạt lõi phân tích SEO Content...")
+            
             # R101/R106: Using trinity_bridge for managed AI calls
-            result = await trinity_bridge.run(
-                self.agent,
-                prompt,
-            )
+            ai_task = asyncio.create_task(trinity_bridge.run(self.agent, prompt))
+            
+            progress_msgs = [
+                "🔍 Đang phân tích Search Intent cốt lõi...",
+                "📊 Đang truy xuất tập dữ liệu Keyword Volume...",
+                "✍️ Đang xây dựng cấu trúc Persona chiến lược...",
+                "⚙️ Đang đóng gói dữ liệu Golden Thread..."
+            ]
+            
+            for msg in progress_msgs:
+                if ai_task.done():
+                    break
+                # Triggers next progress message every 1.5 seconds if AI is still working
+                await asyncio.sleep(1.5)
+                if not ai_task.done():
+                    await _emit_progress(msg)
+                    
+            result = await ai_task
+            
+            await _emit_progress("✅ Phân tích chủ đề hoàn tất. Dữ liệu SEO đã sẵn sàng!")
+            
             # result.data is the TopicSeed instance when using PydanticAI
             return result.data if hasattr(result, "data") else result.output
         except Exception as e:
             logger.error(f"[VisionInsight] AI failed, using fallback: {e}")
-            # Fallback: Tạo keywords từ transcript gốc (Graceful Degradation R103)
-            words = campaign.source_input.split()
+            # Fallback: Tạo keywords từ transcript đã gọt râu ria (Graceful Degradation R103)
+            words = clean_topic.split()
+            if not words:
+                clean_topic = "Nội dung Sáng tạo"
+                words = [clean_topic]
             return TopicSeed(
-                title=f"Khám phá {campaign.source_input}",
-                primary_keyword=campaign.source_input[:50],
+                title=f"Khám phá {clean_topic}",
+                primary_keyword=clean_topic[:50],
                 secondary_keywords=words[:3] if len(words) >= 3 else words,
                 persona="Chuyên gia, giọng văn thân thiện và chuyên nghiệp"
             )

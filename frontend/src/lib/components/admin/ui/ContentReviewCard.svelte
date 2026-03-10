@@ -13,6 +13,8 @@
     CheckCircle,
     Maximize2,
     Minimize2,
+    Trash2,
+    Star
   } from "lucide-svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { vuiState, vuiController } from "$lib/vui";
@@ -28,7 +30,7 @@
     title: incomingTitle = "",
     keywords: incomingKeywords = {},
     assets: incomingAssets = [],
-    outline: incomingOutline = []
+    outline: incomingOutline = {}
   } = $props();
 
   // Unified Local Reactive States (Editable by UI or synced from Props)
@@ -40,13 +42,89 @@
   // keywords is an object like { title: "...", primary_keyword: "...", secondary_keywords: [...] }
   let keywords = $state(untrack(() => incomingKeywords || {}));
   let assets = $state(untrack(() => incomingAssets || []));
-  let outline = $state(untrack(() => incomingOutline || []));
+  let outline = $state(untrack(() => incomingOutline || {}));
   
   // Secondary State for Editing (Deep Copy)
   let editedKeywords = $state(untrack(() => ({ ...incomingKeywords })));
   let isLoading = $state(false);
   let resultMsg = $state("");
   let selectedAssetIndex = $state(0);
+  let selectedAvatarUrl = $state<string | null>(null);
+  let isHydrating = $state(false);
+  let hasHydrated = $state(false);
+
+  async function syncAssetChanges() {
+    if (!campaign_id) return;
+    try {
+      await apiClient.put(`/api/v1/content/campaigns/${campaign_id}/metadata`, {
+        assets: $state.snapshot(assets),
+        avatar: selectedAvatarUrl,
+        selected_index: selectedAssetIndex
+      });
+    } catch (e) {
+      console.warn("[ContentReviewCard] Failed to sync asset changes:", e);
+    }
+  }
+
+  function deleteAsset(index: number, e?: Event) {
+    if (e) e.stopPropagation();
+    const removedUrl = assets[index];
+    assets = assets.filter((_, i) => i !== index);
+    if (selectedAssetIndex >= assets.length) {
+      selectedAssetIndex = Math.max(0, assets.length - 1);
+    }
+    if (selectedAvatarUrl === removedUrl) {
+      selectedAvatarUrl = assets[0] || null;
+    }
+    // Phase 85.1: Persist curation immediately
+    syncAssetChanges();
+  }
+
+  function handleImageError(url: string) {
+    const index = assets.indexOf(url);
+    if (index !== -1) {
+      if (import.meta.env.DEV) console.warn(`[ContentReviewCard] Auto-removing broken image: ${url}`);
+      deleteAsset(index);
+    }
+  }
+
+  async function hydrate() {
+    if (!campaign_id || isHydrating || hasHydrated) return;
+    isHydrating = true;
+    hasHydrated = true; // Mark as "tried" immediately to prevent loop during the async await call
+    try {
+      if (import.meta.env.DEV) console.log(`[ContentReviewCard] Hydrating slimmed log: ${campaign_id}`);
+      const c = await apiClient.get<any>(`/api/v1/content/campaigns/${campaign_id}`);
+      if (c) {
+        keywords = { ...(c.topic_data || {}) };
+        if (!editedKeywords.title) editedKeywords = { ...(c.topic_data || {}) };
+        assets = [...(c.assets_data || [])];
+        const gold = c.gold_metadata || {};
+        if (gold.avatar) {
+          selectedAvatarUrl = gold.avatar;
+        } else if (!selectedAvatarUrl && assets.length > 0) {
+          selectedAvatarUrl = assets[0];
+        }
+
+        if (gold.selected_index !== undefined && gold.selected_index < assets.length) {
+          selectedAssetIndex = gold.selected_index;
+        } else if (selectedAvatarUrl) {
+          const idx = assets.indexOf(selectedAvatarUrl);
+          if (idx !== -1) selectedAssetIndex = idx;
+        }
+
+        outline = { ...(c.outline_data || {}) };
+        if (c.current_step > step) step = c.current_step;
+        // Don't override PROCESSING status if we are already there
+        if (c.status !== "PROCESSING" && status !== "PROCESSING") status = c.status;
+      }
+    } catch (e) {
+      console.error("[ContentReviewCard] Hydration failed:", e);
+      // Do NOT reset hasHydrated = false here, to prevent infinite loop on failure (e.g. 429)
+    } finally {
+      isHydrating = false;
+    }
+  }
 
   // UI Derived States
   let isEditing = $derived(status === "EDITING");
@@ -55,53 +133,94 @@
 
   // Rule R82.22: Smart Sync Effect — Bridging Props and Local State
   $effect(() => {
-    // 1. Step Sync (Anti-Regression Logic)
-    // Only accept incoming steps if they are ahead or if we are not in a PROCESSING state
-    if (incomingStep > step) {
-      if (import.meta.env.DEV) console.log(`[ContentReviewCard] Prop Step Advance: ${step} -> ${incomingStep}`);
-      step = incomingStep;
-      selectedAssetIndex = 0; // Reset focus on step change
-    }
+    // We only read props reactively. 
+    // Any assignment to local state MUST be untracked if we also read that state here,
+    // otherwise Svelte 5 will throw a maximum update depth exceeded error.
+    const newStep = incomingStep;
+    const newStatus = incomingStatus;
+    const newProgressMsg = incomingProgressMsg;
+    const newKeywords = incomingKeywords;
+    const newAssets = incomingAssets;
+    const newOutline = incomingOutline;
 
-    // 2. Status Sync (Elite Transition Logic)
-    if (incomingStatus !== status) {
-      // Don't let a stale "WAITING_FOR_REVIEW" from an old step pull us back
-      if (incomingStep === step || (incomingStep > step)) {
-        if (import.meta.env.DEV) console.log(`[ContentReviewCard] Prop Status Sync: ${status} -> ${incomingStatus}`);
-        status = incomingStatus;
-        
-        if (status === "WAITING_FOR_REVIEW") {
-           vuiController.resetToIdle();
-           resultMsg = ""; 
+    untrack(() => {
+      // 1. Step Sync (Anti-Regression Logic)
+      if (newStep > step) {
+        if (import.meta.env.DEV) console.log(`[ContentReviewCard] Prop Step Advance: ${step} -> ${newStep}`);
+        step = newStep;
+        selectedAssetIndex = 0; // Reset focus on step change
+        hasHydrated = false; // Allow hydration for the new step's heavy payloads
+      }
+
+      // 2. Status Sync (Elite Transition Logic)
+      if (newStatus !== status) {
+        if (newStep === step || (newStep > step)) {
+          if (import.meta.env.DEV) console.log(`[ContentReviewCard] Prop Status Sync: ${status} -> ${newStatus}`);
+          const oldStatus = status;
+          status = newStatus;
+          
+          if (status === "WAITING_FOR_REVIEW") {
+             vuiController.resetToIdle();
+             resultMsg = ""; 
+             
+             // R81.30: If we just finished processing, drop the hydration lock 
+             // to fetch the heavy payload (assets/outline) that the ultra-slim log omitted.
+             if (oldStatus === "PROCESSING") {
+                 hasHydrated = false;
+             }
+          }
         }
       }
-    }
 
-    // 3. Metadata & Asset Sync
-    // Only refresh local state if we aren't editing, AND if data is actually present.
-    if (!isEditing) {
-      if (incomingKeywords && Object.keys(incomingKeywords).length > 0) {
-        keywords = { ...incomingKeywords };
-        // Update editing copy too if it's a fresh step
-        if (incomingStep > step || !editedKeywords.title) {
-          editedKeywords = { ...incomingKeywords };
+      // 3. Metadata & Asset Sync
+      // Only refresh local state if we aren't editing, AND if data is actually present.
+      if (!isEditing) {
+        if (newKeywords && Object.keys(newKeywords).length > 0) {
+          keywords = { ...newKeywords };
+          if (newStep > step || !editedKeywords.title) {
+            editedKeywords = { ...newKeywords };
+          }
+        }
+
+        if (newAssets && newAssets.length > 0) {
+          assets = [...newAssets];
+        }
+
+        if (newOutline && newOutline.sections?.length > 0) {
+          outline = { ...newOutline };
         }
       }
 
-      if (incomingAssets && incomingAssets.length > 0) {
-        assets = [...incomingAssets];
+      // 4. Progress Message & VUI Phasing
+      progress_msg = newProgressMsg;
+      if (status === "PROCESSING" && vuiState.phase === "executing") {
+        vuiState.setLiveText(progress_msg || "AI đang xử lý...");
       }
 
-      if (incomingOutline && incomingOutline.sections?.length > 0) {
-        outline = { ...incomingOutline };
-      }
-    }
+      // 5. Self-Hydration R81.30: Because backend streams Ultra-Slim logs, we must fetch heavy payloads via API.
+      const needsKeyword = !keywords.title;
+      const needsAssets = step === 2 && (!assets || assets.length === 0);
+      const needsOutline = step === 3 && (!outline || !outline.sections || outline.sections.length === 0);
+      const needsContent = step === 4 && !editedKeywords.content; // assuming content preview
+      
+      const isCurrentlyProcessing = newStatus === "PROCESSING";
 
-    // 4. Progress Message & VUI Phasing
-    progress_msg = incomingProgressMsg;
-    if (status === "PROCESSING" && vuiState.phase === "executing") {
-      vuiState.setLiveText(progress_msg || "AI đang xử lý...");
-    }
+      if (import.meta.env.DEV) {
+          console.log(`[ContentReviewCard] Hydration check: step=${step}, status=${newStatus}, isProcessing=${isCurrentlyProcessing}, hasHydrated=${hasHydrated}`);
+          console.log(`[ContentReviewCard] Needs: kw=${needsKeyword}, assets=${needsAssets} (len=${assets?.length}), outline=${needsOutline}`);
+      }
+
+      if (campaign_id && !isCurrentlyProcessing && (needsKeyword || needsAssets || needsOutline)) {
+         // Reset hydration lock if we are missing mandatory step data
+         hasHydrated = false;
+         if (import.meta.env.DEV) console.log(`[ContentReviewCard] Dropping hasHydrated lock!`);
+      }
+      
+      if (campaign_id && !isCurrentlyProcessing && !hasHydrated) {
+        if (import.meta.env.DEV) console.log(`[ContentReviewCard] Executing hydrate()`);
+        hydrate();
+      }
+    });
   });
 
   async function handleApprove() {
@@ -146,6 +265,9 @@
           approved: true,
           step: step,
           edited_data: isEditing ? editedKeywords : null,
+          assets: step === 2 ? assets : null,
+          avatar: step === 2 ? selectedAvatarUrl : null,
+          selected_index: step === 2 ? selectedAssetIndex : null
         },
       )) as any;
       resultMsg = resp.message || "Sếp đã duyệt. Đang chuyển pha...";
@@ -425,14 +547,25 @@
           <div class="{nanobot.isExpanded ? 'flex-1' : 'max-h-[500px]'} overflow-y-auto pr-2 custom-scrollbar space-y-4 min-h-0">
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {#each (assets || []) as url, i}
-                <button 
+                <div 
+                  role="button"
+                  tabindex="0"
                   onclick={() => {
                     selectedAssetIndex = i;
                     // Rule R82.20: Immediate reaction - speak selection
                     vuiController.speak(`Đã chọn ảnh số ${i+1} ạ.`);
+                    syncAssetChanges();
+                  }}
+                  onkeydown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      selectedAssetIndex = i;
+                      vuiController.speak(`Đã chọn ảnh số ${i+1} ạ.`);
+                      syncAssetChanges();
+                    }
                   }}
                   onmousemove={handleMouseMove}
-                  class="group/item relative aspect-[4/3] rounded-2xl overflow-hidden border transition-all duration-500 
+                  class="group/item relative aspect-[4/3] rounded-2xl overflow-hidden border transition-all duration-500 cursor-pointer
                     {selectedAssetIndex === i ? 'border-blue-500 ring-2 ring-blue-500/30 base-shadow-blue' : 'border-white/5 bg-white/[0.02] hover:border-white/20 hover:scale-[1.02]'}
                     {i % 5 === 0 ? 'lg:col-span-2 lg:row-span-2 aspect-square' : ''}"
                   in:scale={{ duration: 500, delay: i * 40, start: 0.95 }}
@@ -442,11 +575,34 @@
                     src={url} 
                     alt="Asset {i}" 
                     class="w-full h-full object-cover transition-all duration-1000 group-hover/item:scale-110 {selectedAssetIndex === i ? 'brightness-110' : 'brightness-75 group-hover/item:brightness-100'}"
-                    onerror={(e) => (e.currentTarget.src = 'https://picsum.photos/seed/' + i + '/800/600')}
+                    onerror={() => handleImageError(url)}
                   />
+
+                  <!-- Top Actions -->
+                  <div class="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 group-hover/item:opacity-100 transition-opacity z-20">
+                    <button 
+                      class="p-1.5 rounded-full bg-black/50 hover:bg-red-500/80 text-white/70 hover:text-white backdrop-blur-sm transition-all"
+                      onclick={(e) => deleteAsset(i, e)}
+                      title="Xóa ảnh"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                    <button 
+                      class="p-1.5 rounded-full {selectedAvatarUrl === url ? 'bg-amber-500 text-white' : 'bg-black/50 text-white/70 hover:bg-amber-500/50 hover:text-white'} backdrop-blur-sm transition-all shadow-md"
+                      onclick={(e) => {
+                         e.stopPropagation();
+                         selectedAvatarUrl = url;
+                         selectedAssetIndex = i; // Align focus with avatar choice
+                         syncAssetChanges();
+                      }}
+                      title="Chọn làm Ảnh Đại Diện"
+                    >
+                      <Star size={12} class={selectedAvatarUrl === url ? 'fill-current' : ''} />
+                    </button>
+                  </div>
                   
                   <!-- Smart Selection Glow -->
-                  <div class="absolute inset-0 transition-opacity duration-500 {selectedAssetIndex === i ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'} bg-gradient-to-t from-black/80 via-transparent to-transparent">
+                  <div class="absolute inset-0 transition-opacity duration-500 {selectedAssetIndex === i ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'} bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none">
                     <div class="absolute bottom-3 left-3 flex items-center gap-2">
                        <div class="p-1.5 rounded-full {selectedAssetIndex === i ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]' : 'bg-black/40 backdrop-blur-md'} border border-white/20 transition-all duration-500">
                           <Check size={12} class="text-white" />
@@ -462,7 +618,7 @@
                   
                   <!-- Dynamic Mouse Trace -->
                   <div class="absolute inset-0 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 pointer-events-none bg-[radial-gradient(circle_at_var(--mouse-x,50%)_var(--mouse-y,50%),rgba(59,130,246,0.15)_0%,transparent_50%)]"></div>
-                </button>
+                </div>
               {/each}
             </div>
           </div>

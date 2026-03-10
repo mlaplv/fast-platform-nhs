@@ -98,6 +98,9 @@ class NeuralLocalCorrector:
             return transcript, 0.0
 
         await self._ensure_encoder()
+        if self.encoder is None:
+            return transcript, 0.0
+            
         loop = asyncio.get_event_loop()
         
         # 1. Update/Prune embedding cache (Neural Aging)
@@ -263,6 +266,15 @@ class STTCorrector:
         # 0. NORMALIZE
         transcript = unicodedata.normalize('NFC', transcript.strip())
         if not transcript: return "", None
+        
+        # 2026 SPEED OPTIMIZATION: If transcript is just 1-3 words and no specific error suspected, 
+        # assume it's a simple query/target and skip the heavy 8s LLM process.
+        words_count = len(transcript.split())
+        if words_count <= 4 and words_count >= 1:
+            # Check for very common patterns that don't need correction
+            if any(kw in transcript.lower() for kw in ["bài viết", "sản phẩm", "đơn hàng", "doanh thu"]):
+                logger.debug(f"[STT Corrector] Fast-Bypass for simple context: '{transcript}'")
+                return transcript, None
 
         # 0.5 STOPWORDS
         stopwords = await xohi_memory.get_system_stt_stopwords()
@@ -290,14 +302,24 @@ class STTCorrector:
             "mo danh muc", "vao danh muc", "mo tin tuc", "vao tin tuc", "mo cai dat"
         ]
         norm_query = normalize_vn(transcript)
-        # Bypass for very short phrases or explicit nav patterns
-        if norm_query in NAV_PATTERNS or (len(norm_query.split()) <= 2 and len(norm_query) < 15):
+        # Bypass for explicit nav patterns (v56.1: removed length-based bypass to allow "Dân số" -> "Doanh số" learning)
+        if norm_query in NAV_PATTERNS:
             return transcript, None
             
-        # 3. CLEAR CHECK (Protect core e-commerce keywords from LLM hallucination)
-        PROTECTED_KEYWORDS = ["doanh so", "doanh thu", "don hang", "san pham", "danh muc", "tin tuc", "cai dat", "setting"]
-        if any(kw in norm_query for kw in PROTECTED_KEYWORDS):
-            return transcript, None
+        # 3. NEURAL SWITCH (Sound-alike Fallback - 2026 Strategy)
+        # Low-latency check for common Vietnamese STT mistakes that sound like protected keywords.
+        SOUND_ALIKES = {
+            "dân số": "doanh số",
+            "nhân số": "doanh số",
+            "doanh tu": "doanh thu",
+            "đau hàng": "đơn hàng",
+            "sang phẩm": "sản phẩm",
+        }
+        for wrong, right in SOUND_ALIKES.items():
+            if wrong in transcript.lower():
+                logger.info(f"[STT Corrector] Neural Switch Triggered: '{wrong}' -> '{right}'")
+                # Return original transcript but flag as suspected to trigger the confirmation UI
+                return transcript, {wrong: right}
 
         # 4. TRINITY DISPATCHER (Cloud Fallback)
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge

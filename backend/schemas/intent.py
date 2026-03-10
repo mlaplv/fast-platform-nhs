@@ -18,9 +18,10 @@ class RouterTier(str, Enum):
     TIER_3_REASONING = "3"
 
 class IntentRequest(BaseModel):
-    transcript: str
-    user_id: str
+    query: str
+    user_id: Optional[str] = None
     session_id: Optional[str] = None
+    modality: Optional[str] = "voice"
     context: Optional[Dict[str, Any]] = Field(default_factory=dict)
     screen_context: Optional[Dict[str, Any]] = Field(default_factory=dict)
 

@@ -4,15 +4,20 @@ import type { Notification } from "./types";
 export function createNotificationState() {
   const state = $state({
     notifications: [] as Notification[],
+    isLoading: false,
   });
 
   async function fetchNotifications() {
+    if (state.isLoading) return;
+    state.isLoading = true;
     try {
       state.notifications = await apiClient.get<Notification[]>(
         "/api/v1/notifications",
       );
     } catch {
       state.notifications = [];
+    } finally {
+      state.isLoading = false;
     }
   }
 

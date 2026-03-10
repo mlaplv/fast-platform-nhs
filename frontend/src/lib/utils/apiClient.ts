@@ -135,6 +135,13 @@ export const apiClient = {
       ...options,
     });
   },
+  put<T>(url: string, payload: any, options?: ApiOptions) {
+    return this.request<T>(url, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+      ...options,
+    });
+  },
   patch<T>(url: string, payload: any, options?: ApiOptions) {
     return this.request<T>(url, {
       method: "PATCH",

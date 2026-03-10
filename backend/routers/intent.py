@@ -150,7 +150,7 @@ class IntentController(Controller):
                             modality=data.modality,
                             user_id=user_id # Propagate identity for R86
                         ),
-                        timeout=20.0
+                        timeout=45.0 # Increased to 45s to tolerate TrinityBridge 429 backoff & key rotation
                     )
                 except asyncio.TimeoutError:
                     logger.error(f"[Gateway Timeout] Request hung too long: {data.query}")

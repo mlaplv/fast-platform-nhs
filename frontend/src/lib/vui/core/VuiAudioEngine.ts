@@ -78,15 +78,28 @@ export class VuiAudioEngine {
 
     return new Promise((resolve) => {
       try {
-        this.interruptAudio(); // Ensure clean slate
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
         
-        this.currentUrl = URL.createObjectURL(blob);
-        this.currentAudio = new Audio(this.currentUrl);
+        audio.onended = () => { 
+          resolve(); 
+          if (this.currentUrl === url) {
+            URL.revokeObjectURL(url);
+            this.currentUrl = null;
+          }
+        };
+        audio.onerror = () => { resolve(); URL.revokeObjectURL(url); };
         
-        this.currentAudio.onended = () => { resolve(); this.interruptAudio(); };
-        this.currentAudio.onerror = () => { resolve(); this.interruptAudio(); };
+        // Phase 85: Optimized Switching - only pause previous if it's still alive
+        if (this.currentAudio) {
+           this.currentAudio.pause();
+           this.currentAudio.onended = null;
+        }
         
-        this.currentAudio.play().catch(e => {
+        this.currentAudio = audio;
+        this.currentUrl = url;
+        
+        audio.play().catch(e => {
           console.warn("[AudioEngine] playback blocked", e);
           resolve(); 
         });

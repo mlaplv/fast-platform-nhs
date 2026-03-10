@@ -90,9 +90,8 @@ class XoHiMemory:
 
     async def learn_stt_correction(self, user_id: str, wrong: str, right: str, is_global: bool = True):
         """Permanently store a learned STT correction (normalized) with metadata."""
-        from backend.utils.text import normalize_vn
         import time
-        norm_wrong = normalize_vn(wrong.strip())
+        norm_wrong = wrong.strip().lower()
         
         # Determine target key
         key = "system:stt_overrides" if is_global else f"xohi:stt:{user_id}"

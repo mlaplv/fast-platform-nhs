@@ -4,53 +4,61 @@ from litestar import Controller, get, post, put, delete, Request
 from backend.services.xohi.creative_studio.orchestrator import content_factory
 from backend.models.schemas import ContentCampaign, CampaignStep, AgentResponse
 from backend.services.xohi.creative_studio.orchestrator import AgentSignal
+from backend.database.repositories import ContentCampaignRepository, provide_campaign_repo
+from litestar.di import Provide
 
 class ContentController(Controller):
     path = "/api/v1/content"
+    dependencies = {"campaign_repo": Provide(provide_campaign_repo)}
 
     @get("/campaigns")
-    async def list_campaigns(self) -> List[ContentCampaign]:
+    async def list_campaigns(self, campaign_repo: ContentCampaignRepository) -> List[ContentCampaign]:
         """Lấy danh sách tất cả các chiến dịch nội dung đang chạy."""
-        return list(content_factory.campaigns.values())
+        from litestar.repository.filters import LimitOffset
+        campaigns = await campaign_repo.list(LimitOffset(limit=100, offset=0), order_by=[("created_at", "desc")])
+        return [ContentCampaign.model_validate(c) for c in campaigns]
 
     @get("/campaigns/{campaign_id:uuid}")
-    async def get_campaign(self, campaign_id: UUID) -> ContentCampaign:
+    async def get_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> ContentCampaign:
         """Lấy thông tin chi tiết của một chiến dịch cụ thể."""
-        campaign = content_factory.get_campaign(campaign_id)
+        campaign = await campaign_repo.get(str(campaign_id))
         if not campaign:
             from litestar.exceptions import NotFoundException
             raise NotFoundException(f"Campaign {campaign_id} not found")
-        return campaign
+        return ContentCampaign.model_validate(campaign)
 
-    @put("/campaigns/{campaign_id:uuid}/approve")
-    async def approve_step(self, campaign_id: UUID, request: Request) -> Dict[str, Any]:
+    @post("/campaigns/{campaign_id:uuid}/approve")
+    async def approve_step(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
         """
         User phê duyệt kết quả của Step hiện tại và cho phép đi tiếp.
         R81: gold_metadata is IMMUTABLE.
         """
-        success = await content_factory.approve_step(campaign_id)
-        if success:
-            return {"status": "success", "message": "Step approved. Moving to next stage."}
-        return {"status": "error", "message": "Failed to approve step."}
+        data = await request.json()
+        return await content_factory.approve_step(str(campaign_id), data, campaign_repo)
 
     @post("/campaigns/{campaign_id:uuid}/retry")
-    async def retry_step(self, campaign_id: UUID) -> Dict[str, Any]:
+    async def retry_step(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
         """
         Thực hiện chạy lại Step hiện tại (Retry).
         """
-        success = await content_factory.retry_step(campaign_id)
-        if success:
-            return {"status": "success", "message": "Retry initiated."}
-        return {"status": "error", "message": "Failed to initiate retry."}
+        return await content_factory.retry_step(str(campaign_id), campaign_repo)
+
+    @put("/campaigns/{campaign_id:uuid}/metadata")
+    async def update_metadata(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+        """
+        Cập nhật metadata (assets, keywords, etc.) mà không chuyển bước.
+        R85.1: Phục vụ curation thời gian thực (F5 Fix).
+        """
+        data = await request.json()
+        return await content_factory.update_metadata(str(campaign_id), data, campaign_repo)
 
     @delete("/campaigns/{campaign_id:uuid}", status_code=200)
-    async def delete_campaign(self, campaign_id: UUID) -> Dict[str, Any]:
+    async def delete_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
         """
-        Xóa chiến dịch.
-        Note: We use status_code=200 because we return a JSON body. 
-        Litestar's default 204 does not allow bodies.
+        Xóa chiến dịch (Soft Delete).
         """
-        if str(campaign_id) in content_factory.campaigns:
-            del content_factory.campaigns[str(campaign_id)]
+        try:
+            await campaign_repo.delete(str(campaign_id))
             return {"status": "success", "message": "Campaign deleted."}
-        return {"status": "error", "message": "Campaign not found."}
+        except Exception:
+            return {"status": "error", "message": "Campaign not found or could not be deleted."}

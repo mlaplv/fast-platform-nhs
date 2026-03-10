@@ -123,15 +123,43 @@ class ContentOrchestrator:
 
         try:
             stale = await self.get_active_campaign(campaign_repo, user_id, tenant_id)
-            if stale and "tiếp" in transcript.lower():
-                if stale.status == "WAITING_FOR_REVIEW":
-                    return await self.approve_step(stale.id, {"approved": True}, campaign_repo)
-                else:
-                    return IntentResponse(
-                        status="success", action=IntentAction.CONTENT_CREATE,
-                        message=self.format_resume_greeting(stale),
-                        router_tier=RouterTier.TIER_2_SEMANTIC, data={"campaign_id": stale.id, "step": stale.current_step}, cost_tokens=0.0
-                    )
+            if stale:
+                # 1. Lệnh "tiếp" rõ ràng
+                if "tiếp" in transcript.lower():
+                    if stale.status == "WAITING_FOR_REVIEW":
+                        return await self.approve_step(stale.id, {"approved": True}, campaign_repo)
+                    else:
+                        return IntentResponse(
+                            status="success", action=IntentAction.CONTENT_CREATE,
+                            message=self.format_resume_greeting(stale),
+                            router_tier=RouterTier.TIER_2_SEMANTIC, data={"campaign_id": stale.id, "step": stale.current_step}, cost_tokens=0.0
+                        )
+                
+                # 2. Idempotency Latch (15s Chốt chặn): Nếu sếp bấm spam hoặc hệ thống auto-retry
+                # Kiểm tra timestamp created_at của chiến dịch dở dang gần nhất
+                try:
+                    now = datetime.now(timezone.utc)
+                    stale_time = stale.created_at
+                    if stale_time.tzinfo is None:
+                        stale_time = stale_time.replace(tzinfo=timezone.utc)
+                    time_diff = (now - stale_time).total_seconds()
+                    
+                    if time_diff < 15.0:
+                        logger.warning(f"[Content Factory] Idempotency Latch triggered. Blocking duplicate request. Diff: {time_diff}s, ID: {stale.id}")
+                        if stale.status == "WAITING_FOR_REVIEW":
+                            return IntentResponse(
+                                status="success", action=IntentAction.CONTENT_CREATE,
+                                message=f"Dạ sếp, bài viết '{stale.topic_data.get('title', 'này')}' em vừa phân tích xong. Mời sếp duyệt trên màn hình ạ!",
+                                router_tier=RouterTier.TIER_2_SEMANTIC, data={"campaign_id": stale.id, "step": stale.current_step, "keywords": stale.topic_data}, cost_tokens=0.0
+                            )
+                        else:
+                            return IntentResponse(
+                                status="success", action=IntentAction.CONTENT_CREATE,
+                                message=self.format_resume_greeting(stale),
+                                router_tier=RouterTier.TIER_2_SEMANTIC, data={"campaign_id": stale.id, "step": stale.current_step}, cost_tokens=0.0
+                            )
+                except Exception as e:
+                    logger.error(f"[Content Factory] Lỗi khi tính Idempotency Latch: {e}")
 
             campaign = ContentCampaign(
                 id=str(uuid.uuid4()),
@@ -154,9 +182,10 @@ class ContentOrchestrator:
             await campaign_repo.update(campaign)
             logger.info(f"[Content Factory] Step 1 done: {campaign.id} → WAITING_FOR_REVIEW")
 
-            voice_msg = self._format_keywords_for_voice(seed)
+            voice_msg = self._format_keywords_for_voice(seed_data)
 
-            await event_bus.emit(f"content_campaign.{campaign.id}", {
+            await event_bus.emit("CONTENT_STEP_COMPLETED", {
+                "campaign_id": campaign.id,
                 "step": 1,
                 "status": "WAITING_FOR_REVIEW",
                 "data": {"keywords": seed_data}
@@ -190,16 +219,12 @@ class ContentOrchestrator:
                 cost_tokens=0.0
             )
 
-    def _format_keywords_for_voice(self, seed: TopicSeed) -> str:
-        """Format TopicSeed thành câu nói tự nhiên cho XoHi voice."""
-        kw_list = ", ".join(seed.secondary_keywords[:3])
+    def _format_keywords_for_voice(self, seed_data: dict) -> str:
+        """Format TopicSeed thành câu nói tự nhiên, siêu mỏng cho XoHi voice (V80.1)."""
+        title = seed_data.get("title", "mới")
         return (
-            f"Dạ sếp, em gợi ý cho bài viết như sau. "
-            f"Tiêu đề: {seed.title}. "
-            f"Từ khóa chính: {seed.primary_keyword}. "
-            f"Từ khóa phụ: {kw_list}. "
-            f"Phong cách: {seed.persona}. "
-            f"Sếp duyệt bộ keyword này để em chạy tiếp không ạ?"
+            f"Dạ sếp, em đã phân tích xong từ khóa cho chủ đề '{title}'. "
+            f"Mời sếp duyệt trên màn hình để em chạy tiếp ạ!"
         )
 
     async def _run_current_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository, force_step: int = None):
@@ -294,14 +319,14 @@ class ContentOrchestrator:
                 
             await campaign_repo.update(campaign)
             
-            payload = {"step": step, "status": campaign.status, "data": {}}
+            payload = {"campaign_id": campaign_id, "step": step, "status": campaign.status, "data": {}}
             if step == 1: payload["data"]["keywords"] = campaign.topic_data
             elif step == 2: payload["data"]["assets"] = campaign.assets_data
             elif step == 3: payload["data"]["outline"] = campaign.outline_data
             elif step == 4: payload["data"]["preview"] = (campaign.draft_content or "")[:100]
             elif step == 5: payload["data"]["unique_score"] = campaign.unique_score
 
-            await event_bus.emit(f"content_campaign.{campaign_id}", payload)
+            await event_bus.emit("CONTENT_STEP_COMPLETED", payload)
             
             elapsed = time.time() - start_time
             logger.info(f"[Content Factory] Step {step} SUCCESS in {elapsed:.2f}s")
@@ -337,6 +362,21 @@ class ContentOrchestrator:
                 if step == 1: campaign.topic_data = edited_data
                 elif step == 3: campaign.outline_data = edited_data
                 elif step == 4: campaign.draft_content = edited_data.get("content", campaign.draft_content)
+
+            if step == 2:
+                if "assets" in data and data["assets"] is not None:
+                    campaign.assets_data = data["assets"]
+                
+                # R85.2: Sync curated avatar and selection focus
+                avatar = data.get("avatar")
+                selected_index = data.get("selected_index")
+                if avatar or selected_index is not None:
+                    gold = dict(campaign.gold_metadata or {})
+                    if avatar:
+                        gold["avatar"] = avatar
+                    if selected_index is not None:
+                        gold["selected_index"] = selected_index
+                    campaign.gold_metadata = gold
 
             if step == 1:
                 campaign.gold_metadata = campaign.topic_data
@@ -382,9 +422,42 @@ class ContentOrchestrator:
 
         return {"status": "success", "message": f"Em đang chạy lại bước {current_step_val} cho sếp đây!", "campaign_id": campaign_id}
 
+    async def update_metadata(self, campaign_id: str, data: Dict[str, Any], 
+                              campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+        """R85.1: Cập nhật dữ liệu trung gian (Assets/Keywords) mà không chuyển bước."""
+        campaign = await campaign_repo.get(campaign_id)
+        if not campaign:
+            return {"status": "error", "message": "Campaign not found"}
+
+        assets = data.get("assets")
+        if assets is not None:
+            campaign.assets_data = assets
+            
+        keywords = data.get("keywords")
+        if keywords is not None:
+            campaign.topic_data = keywords
+
+        avatar = data.get("avatar")
+        selected_index = data.get("selected_index")
+        
+        if avatar or selected_index is not None:
+            # R85.2: Force new dict to ensure SQLAlchemy detects mutation
+            gold = dict(campaign.gold_metadata or {})
+            if avatar:
+                gold["avatar"] = avatar
+            if selected_index is not None:
+                gold["selected_index"] = selected_index
+            campaign.gold_metadata = gold
+
+        await campaign_repo.update(campaign)
+        if hasattr(campaign_repo, "session"):
+            await campaign_repo.session.commit()
+
+        return {"status": "success", "message": "Neural data synchronized.", "campaign_id": campaign_id}
+
     async def _trigger_next_step(self, campaign_id: str, force_step: int = None):
         import asyncio
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.05)
         
         async with self.semaphore:
             session_maker = alchemy_config.create_session_maker()
@@ -405,7 +478,7 @@ class ContentOrchestrator:
         if data:
             payload["data"] = data
             
-        await event_bus.emit(f"content_campaign.{campaign_id}", payload)
+        await event_bus.emit("CONTENT_PROGRESS", payload)
 
     async def _log_error(self, campaign_id: str, campaign_repo: ContentCampaignRepository, 
                          status: str, error_msg: str):

@@ -20,15 +20,33 @@
   let availableUsers: { id: string; name: string; email: string }[] = $state(
     [],
   );
+  let isLoadingUsers = $state(false);
+  let hasAttemptedFetchUsers = $state(false);
   let isSuperAdmin = $derived(permissionState.roles.includes("SUPER_ADMIN"));
 
+  // Track the latest log ID for each campaign to only render one Modal per campaign
+  let latestLogIdsPerCampaign = $derived(() => {
+    const map = new Map<string, string>();
+    for (const log of nanobot.activityLogs) {
+       if (log.source === "XOHI" || log.source === "[XOHI]") {
+          if (log.data?.campaign_id) {
+             map.set(log.data.campaign_id, log.id);
+          }
+       }
+    }
+    return map;
+  });
+
   $effect(() => {
-    if (isSuperAdmin && availableUsers.length === 0) {
+    if (isSuperAdmin && availableUsers.length === 0 && !isLoadingUsers && !hasAttemptedFetchUsers) {
+      hasAttemptedFetchUsers = true;
       fetchUsers();
     }
   });
 
   async function fetchUsers() {
+    if (isLoadingUsers) return;
+    isLoadingUsers = true;
     try {
       const res = await apiClient.get<any>("/api/v1/users?limit=50");
       const list = Array.isArray(res) ? res : res.data || [];
@@ -39,6 +57,8 @@
       }));
     } catch (e) {
       console.error("Failed to fetch users for God-Mode", e);
+    } finally {
+      isLoadingUsers = false;
     }
   }
 
@@ -193,18 +213,7 @@
 
   // Force scroll down on mount to ensure logs are visible
   $effect(() => {
-    if (nanobot.latestResumeableLog) {
-      setTimeout(scrollToBottom, 300);
-      console.log("%c[RESUME_PROTOCOL] 🚨 ACTIVE_STALE_FLOW detected!", "color: #00ffff; font-weight: bold; font-size: 16px; background: black; padding: 4px;");
-      console.table({
-        ID: nanobot.latestResumeableLog.id,
-        MESSAGE: nanobot.latestResumeableLog.message,
-        CAMPAIGN: nanobot.latestResumeableLog.data?.campaign_id,
-        STEP: nanobot.latestResumeableLog.data?.step,
-        KEYWORDS: !!nanobot.latestResumeableLog.data?.keywords,
-        ASSETS: nanobot.latestResumeableLog.data?.assets?.length || 0
-      });
-    }
+    // Scroll intentionally on mount or updates appropriately
   });
 
   async function handleClearLogs() {
@@ -479,15 +488,23 @@
               </span>
 
               {#if (log.source === "XOHI" || log.source === "[XOHI]") && log.data?.campaign_id}
-                <ContentReviewCard
-                  campaign_id={log.data.campaign_id}
-                  keywords={log.data.keywords}
-                  assets={log.data.assets}
-                  outline={log.data.outline}
-                  step={log.data.step || 1}
-                  status={log.data.status || "WAITING_FOR_REVIEW"}
-                  progress_msg={log.data.progress_msg || ""}
-                />
+                <!-- R81: Single Point of Resume -> Open Full VUI Modal -->
+                {#if log.id === latestLogIdsPerCampaign().get(log.data.campaign_id)}
+                  <div class="mt-2.5 flex items-center justify-between gap-2 p-2 rounded border border-[#c0e8ff]/20 bg-[#c0e8ff]/5">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <div class="w-1.5 h-1.5 rounded-full bg-[#00FF00] animate-pulse"></div>
+                      <span class="text-[10px] text-[#c0e8ff] truncate">
+                        Sẵn sàng duyệt: Bước {log.data.step || 1}
+                      </span>
+                    </div>
+                    <button
+                      onclick={() => nanobot.resumeCampaign(log)}
+                      class="shrink-0 text-[10px] font-bold tracking-wider px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors shadow-lg shadow-blue-500/20"
+                    >
+                      RESUME
+                    </button>
+                  </div>
+                {/if}
               {/if}
             </div>
           </div>
@@ -501,17 +518,7 @@
               >
                 {formatRelativeTime(log.timestamp)}
               </span>
-              <div class="absolute top-0 right-0 flex items-center gap-1.5 {log.id === nanobot.latestResumeableLog?.id ? 'z-50' : 'opacity-0 group-hover/log:opacity-100 transition-opacity whitespace-nowrap'}">
-                {#if log.data?.campaign_id && (log.data?.step || 0) < 6}
-                  <button
-                    onclick={() => nanobot.resumeCampaign(log)}
-                    class="bg-neon-cyan/10 hover:bg-neon-cyan/30 text-neon-cyan border border-neon-cyan/30 hover:border-neon-cyan transition-all cursor-pointer flex items-center justify-center p-1 rounded-md active:scale-90 {log.id === nanobot.latestResumeableLog?.id ? 'animate-pulse shadow-[0_0_10px_rgba(0,255,255,0.3)]' : ''}"
-                    title="Tiếp tục duyệt (Protocol Resume)"
-                  >
-                    <Play size={10} fill="currentColor" />
-                    <span class="text-[8px] font-black ml-1 uppercase">Resume</span>
-                  </button>
-                {/if}
+              <div class="absolute top-0 right-0 flex items-center gap-1.5 opacity-0 group-hover/log:opacity-100 transition-opacity whitespace-nowrap">
                 <button
                   onclick={() => nanobot.showFullLog(log)}
                   class="bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all cursor-pointer flex items-center justify-center p-1 rounded-md"
@@ -534,50 +541,7 @@
 
   </div>
 
-  <!-- Rule R81.30: Persistence Presence — Global Sticky Resume Protocol (Command Line Style) -->
-  {#if nanobot.latestResumeableLog}
-    <div 
-      in:fly={{ y: 20, duration: 500 }}
-      class="shrink-0 z-[1000] border-t border-neon-cyan/40 bg-[#0a0a0a] p-2 relative shadow-[0_-15px_40px_rgba(0,255,255,0.15)] flex flex-col gap-1.5"
-    >
-      <div class="flex items-center justify-between gap-3 bg-white/5 border border-white/10 rounded px-2.5 py-2 hover:bg-white/10 transition-all group">
-        <div class="flex items-center gap-3 min-w-0">
-          <div class="relative">
-            <span class="text-neon-cyan font-black font-mono text-sm leading-none group-hover:animate-pulse">&gt;_</span>
-            <div class="absolute -inset-1 bg-neon-cyan/20 blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          </div>
-          <div class="flex flex-col min-w-0">
-            <span class="text-[11px] font-mono font-bold text-white/90 truncate tracking-tight uppercase">
-              {nanobot.latestResumeableLog.data?.keywords?.title || nanobot.latestResumeableLog.message || 'RESTORE_SESSION'}
-            </span>
-            <div class="flex items-center gap-2">
-              <span class="text-[8px] font-mono text-neon-cyan/60 uppercase tracking-widest font-black">PHASE_{nanobot.latestResumeableLog.data?.step || 0}</span>
-              <span class="w-1 h-1 rounded-full bg-neon-cyan/30"></span>
-              <span class="text-[8px] font-mono text-white/30 uppercase">Sequence v62.1</span>
-            </div>
-          </div>
-        </div>
-        
-        <button 
-          onclick={() => {
-            const entry = nanobot.latestResumeableLog;
-            console.log("[UI] 🚀 RESUME_ACTION triggered!");
-            console.dir({
-               campaign_id: entry?.data?.campaign_id,
-               step: entry?.data?.step,
-               status: entry?.data?.status,
-               data_raw: entry?.data
-            });
-            nanobot.resumeCampaign(entry);
-          }}
-          class="shrink-0 px-4 py-1.5 bg-neon-cyan/10 text-neon-cyan hover:bg-neon-cyan hover:text-black border border-neon-cyan/40 hover:border-neon-cyan transition-all rounded font-mono font-black text-[10px] uppercase flex items-center gap-2 cursor-pointer active:scale-95 shadow-[0_0_20px_rgba(0,255,255,0.1)] hover:shadow-[0_0_25px_rgba(0,255,255,0.3)]"
-        >
-          <Play size={10} fill="currentColor" />
-          RESUME
-        </button>
-      </div>
-    </div>
-  {/if}
+
 </div>
 
 <style>

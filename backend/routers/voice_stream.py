@@ -26,9 +26,9 @@ HALLUCINATION_BLACKLIST = [
     "cám ơn các bạn", "subscribe", "đăng ký kênh", "ghiền mì gõ", 
     "chào các bạn", "hẹn gặp lại", "phimmoichill", "website chính thức",
     "liên hệ với chúng tôi", "tạm biệt", "video", "youtube", "mọi người",
-    "ủng hộ", "bình luận", "zalo", "facebook", "website", "chào mừng", "kênh",
+    "ủng hộ", "bình luận", "zalo", "facebook", "website", "chào mừng",
     "theo dõi chúng tôi", "đừng quên", "nhấn chuông", "thông báo",
-    "tập trung vào ngữ cảnh", "quản trị doanh nghiệp", "smartshop", "tin tức", "đơn hàng"
+    "tập trung vào ngữ cảnh"
 ]
 
 
