@@ -33,8 +33,17 @@ jobs:
         # Tự động chọn các query mặc định xịn nhất để bắt Injection, XSS...
         queries: security-extended,security-and-quality
 
-    - name: Tiến hành Build (Autobuild)
-      uses: github/codeql-action/autobuild@v3
+    # Cài đặt thủ công Dependencies thay vì dùng autobuild (Do cấu trúc Monorepo frontend/backend)
+    - name: Thiết lập Môi trường Thủ công
+      run: |
+        if [ "${{ matrix.language }}" = "javascript-typescript" ]; then
+          npm install -g pnpm
+          pnpm install
+        elif [ "${{ matrix.language }}" = "python" ]; then
+          pip install uv
+          # Đồng bộ Python Backend
+          cd backend && uv sync
+        fi
 
     - name: Phân tích & Xuất Report
       uses: github/codeql-action/analyze@v3

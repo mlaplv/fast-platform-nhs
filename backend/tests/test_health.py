@@ -1,17 +1,20 @@
 import pytest
-from advanced_alchemy.extensions.litestar import SQLAlchemyPlugin
-from litestar import Litestar
-from litestar.testing import TestClient
-from backend.main import app
+from httpx import AsyncClient, ASGITransport
+import sys
+import os
 
-def test_health_endpoint():
-    with TestClient(app=app) as client:
-        response = client.get("/api/v1/health")
-        if response.status_code == 200:
-            assert response.json()["status"] == "online"
-        else:
-            # If the health endpoint doesn't exist or is different, just pass for now
-            assert True
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from main import app
 
-def test_startup():
-    assert True
+@pytest.mark.asyncio
+async def test_health_check_endpoint():
+    """
+    R71 Test Mandate: Verify the core backend API health endpoint is accessible and returns 200 OK.
+    This guarantees the Uvicorn application can assemble successfully.
+    """
+    # Use ASGITransport for Litestar app
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/api/v1/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert data.get("status") == "ok"

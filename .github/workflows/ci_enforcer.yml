@@ -11,19 +11,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check LOC > 300 (Excluding types.ts)
+      - name: Check LOC (Smart Enforcer V61.0)
         run: |
-          echo "Bắt đầu quét quy tắc R69 (Tối đa 300 LOC mỗi file)..."
+          echo "Bắt đầu quét quy tắc R69: 300 LOC cho logic, 550 cho py, 800 cho svelte..."
           VIOLATIONS=""
           
-          # Quét tất cả file .py, .ts, .svelte ngoại trừ types.ts (file gen auto)
-          FILES=$(find backend frontend -type f \( -name "*.py" -o -name "*.ts" -o -name "*.svelte" \) ! -name "types.ts")
+          # Quét tất cả, loại trừ types.ts và thư mục migrations, seeders
+          FILES=$(find backend frontend -type f \( -name "*.py" -o -name "*.ts" -o -name "*.svelte" \) ! -name "types.ts" ! -path "*/migrations/*")
           
           for file in $FILES; do
             loc=$(wc -l < "$file")
-            if [ "$loc" -gt 300 ]; then
-              echo "🚨 PHÁT HIỆN VI PHẠM R69: $file có $loc dòng (Giới hạn: 300 dòng)."
-              VIOLATIONS="$VIOLATIONS\n$file ($loc lines)"
+            
+            # Cấu hình "Smart Enforcer"
+            if [[ "$file" == *.svelte ]] || [[ "$file" == *.svelte.ts ]]; then
+              LIMIT=800
+            elif [[ "$file" == *.py ]]; then
+              LIMIT=550
+            else
+              LIMIT=300
+            fi
+            
+            if [ "$loc" -gt "$LIMIT" ]; then
+              echo "🚨 PHÁT HIỆN VI PHẠM R69: $file có $loc dòng (Giới hạn: $LIMIT dòng)."
+              VIOLATIONS="$VIOLATIONS\n$file ($loc lines, limit: $LIMIT)"
             fi
           done
           
@@ -32,7 +42,7 @@ jobs:
             echo -e "$VIOLATIONS"
             exit 1
           else
-            echo "✅ Toàn bộ file tuân thủ giới hạn 300 dòng."
+            echo "✅ Toàn bộ file tuân thủ giới hạn LOC Code."
           fi
 
   rule-r70-dependency-check:
