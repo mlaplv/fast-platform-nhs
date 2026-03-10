@@ -11,24 +11,24 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@lucide/svelte": "latest",
-    "clsx": "latest",
-    "idb-keyval": "latest",
-    "lucide": "latest",
-    "lucide-svelte": "latest",
-    "tailwind-merge": "latest"
+    "@lucide/svelte": "^0.577.0",
+    "clsx": "^2.1.1",
+    "idb-keyval": "^6.2.2",
+    "lucide": "^0.577.0",
+    "lucide-svelte": "^0.577.0",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
-    "@sveltejs/adapter-static": "latest",
-    "@sveltejs/kit": "latest",
-    "@sveltejs/vite-plugin-svelte": "latest",
-    "@tailwindcss/vite": "latest",
+    "@sveltejs/adapter-static": "^3.0.10",
+    "@sveltejs/kit": "^2.53.4",
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
+    "@tailwindcss/vite": "^4.2.1",
     "@testing-library/svelte": "^5.3.1",
     "jsdom": "^28.1.0",
     "openapi-typescript": "^7.13.0",
-    "svelte": "latest",
-    "tailwindcss": "latest",
-    "vite": "latest",
+    "svelte": "^5.53.8",
+    "tailwindcss": "^4.2.1",
+    "vite": "^7.3.1",
     "vitest": "^4.0.18"
   }
 }

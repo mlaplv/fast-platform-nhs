@@ -17,4 +17,4 @@ async def test_health_check_endpoint():
         response = await client.get("/api/v1/health")
         assert response.status_code == 200
         data = response.json()
-        assert data.get("status") == "ok"
+        assert data.get("status") == "online"
