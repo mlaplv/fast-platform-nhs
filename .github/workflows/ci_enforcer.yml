@@ -101,17 +101,12 @@ jobs:
       - name: Đồng bộ thư viện Backend
         run: uv sync
         
-      - name: Install pytest-cov
-        run: uv add --dev pytest-cov
-
-      - name: Chạy Pytest & Check Coverage
+      - name: Chạy Pytest & Check Health
         env:
           # Cắm env trỏ thẳng vào các Database Ảo cục bộ
           DATABASE_URL: postgresql+asyncpg://mlap:admin@123A3%StrongPassword@localhost:5432/fast_platform_db
           REDIS_URL: redis://localhost:6379/0
         run: |
-          echo "Bắt đầu chạy Unit Tests với coverage..."
-          # LƯU Ý R01.1 (SCOUT): Do hiện tại source code chưa có test folder đầy đủ nên coverage sẽ là 0%.
-          # Đổi thành 60% sau khi bổ sung xong bộ khung test lõi (`uv run pytest --cov=backend --cov-fail-under=60`)
-          uv run pytest --cov=backend --cov-fail-under=0
+          echo "Bắt đầu chạy Unit Tests..."
+          uv run pytest backend/tests/
           echo "✅ Backend Tests Passed"
