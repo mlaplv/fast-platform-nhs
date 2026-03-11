@@ -343,12 +343,20 @@ export function createNanobotState() {
             vuiState.setPhase("executing");
             
             if (voice.vuiResponse) {
+              const current = voice.vuiResponse.data;
+              const newData = payload.data || {};
+              
+              // Rule R82.10: Identify Anchor — Deep Sync Metadata
               voice.vuiResponse.data = {
-                  ...voice.vuiResponse.data,
+                  ...current,
                   progress_msg: payload.message,
                   status: "PROCESSING",
                   step: payload.step,
-                  ...(payload.data || {})
+                  // Only update heavy data if it's provided and not empty
+                  keywords: (newData.keywords || newData.topic_data) || current.keywords,
+                  assets: newData.assets || current.assets,
+                  outline: newData.outline || current.outline,
+                  draft_content: newData.draft_content || current.draft_content
               };
             }
           }
@@ -357,12 +365,17 @@ export function createNanobotState() {
           const existingLogs = [...log.activityLogs];
           const logIdx = existingLogs.findIndex(l => l.data?.campaign_id === payload.campaign_id);
           if (logIdx !== -1) {
+            const current = existingLogs[logIdx].data;
+            const newData = payload.data || {};
             existingLogs[logIdx].data = { 
-              ...existingLogs[logIdx].data, 
+              ...current, 
               step: payload.step, 
               status: "PROCESSING",
               progress_msg: payload.message,
-              ...(payload.data || {})
+              keywords: (newData.keywords || newData.topic_data) || current.keywords,
+              assets: newData.assets || current.assets,
+              outline: newData.outline || current.outline,
+              draft_content: newData.draft_content || current.draft_content
             };
             log.setActivityLogs(existingLogs);
             if (import.meta.env.DEV) console.log("[Pulse] ActivityLog synced (Progress).");
@@ -396,11 +409,17 @@ export function createNanobotState() {
               vuiState.setIsWaitingForAction(true);
               
               if (voice.vuiResponse) {
+                const current = voice.vuiResponse.data;
+                const newData = payload.data || {};
+                
                 voice.vuiResponse.data = {
-                    ...voice.vuiResponse.data,
+                    ...current,
                     status: payload.status,
                     step: payload.step,
-                    ...(payload.data || {})
+                    keywords: (newData.keywords || newData.topic_data) || current.keywords,
+                    assets: newData.assets || current.assets,
+                    outline: newData.outline || current.outline,
+                    draft_content: newData.draft_content || current.draft_content
                 };
               }
           }

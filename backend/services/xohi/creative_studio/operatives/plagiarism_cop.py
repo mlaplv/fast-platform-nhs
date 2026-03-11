@@ -111,8 +111,8 @@ class PlagiarismCop:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
 
         result = await self.analyze(campaign)
-        # campaign.unique_score = result.uniqueness_score  # DELETE: Column dropped from DB, triggers greenlet error
-        # await repo.update(campaign)
+        campaign.unique_score = result.uniqueness_score
+        await repo.update(campaign)
 
         if result.risk_level == "HIGH":
             return AgentResponse(

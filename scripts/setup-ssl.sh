@@ -41,35 +41,14 @@ echo -e ""
 OS_TYPE=$(uname -s)
 
 if [ "$OS_TYPE" == "Linux" ]; then
-    echo -e "${YELLOW}Đang tự động thiết lập tin cậy trên hệ thống Linux...${NC}"
-    echo "$SUDO_PASS" | sudo -S cp "$CERT_PATH" /usr/local/share/ca-certificates/caddy-root-ca.crt
-    echo "$SUDO_PASS" | sudo -S update-ca-certificates
+    echo -e "${YELLOW}Đang thiết lập tin cậy trên hệ thống Linux (Sẽ yêu cầu mật khẩu sudo)...${NC}"
+    sudo cp "$CERT_PATH" /usr/local/share/ca-certificates/caddy-root-ca.crt
+    sudo update-ca-certificates
     echo -e "${GREEN}[OK] Hệ thống Linux đã tin tưởng chứng chỉ.${NC}"
 elif [ "$OS_TYPE" == "Darwin" ]; then
-    echo -e "${YELLOW}Đang tự động thiết lập tin cậy trên hệ thống macOS...${NC}"
-    # Thêm vào System Keychain và đặt chế độ Always Trust cho các extension cần thiết
-    # macOS hiển thị popup bảo mật, dùng AppleScript để tự động điền mật khẩu
-    sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$CERT_PATH" &
-    osascript -e '
-    tell application "System Events"
-        set t to 0
-        repeat until exists process "SecurityAgent"
-            delay 0.5
-            set t to t + 0.5
-            if t > 5 then exit repeat
-        end repeat
-        
-        if exists process "SecurityAgent" then
-            tell process "SecurityAgent"
-                set frontmost to true
-                delay 0.5
-                keystroke "'"$SUDO_PASS"'"
-                delay 0.2
-                keystroke return
-            end tell
-        end if
-    end tell'
-    wait
+    echo -e "${YELLOW}Đang thiết lập tin cậy trên macOS (Sếp vui lòng xác thực khi hiển thị Popup bảo mật)...${NC}"
+    # Thêm vào System Keychain và đặt chế độ Always Trust
+    sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$CERT_PATH"
     echo -e "${GREEN}[OK] macOS đã tin tưởng chứng chỉ trong System Keychain.${NC}"
 else
     echo -e "${YELLOW}[WARNING] Hệ điều hành $OS_TYPE chưa hỗ trợ tự động. Hãy thêm chứng chỉ thủ công.${NC}"

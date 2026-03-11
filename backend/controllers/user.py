@@ -19,16 +19,15 @@ class UserController(Controller):
         "role_repo": Provide(provide_role_repo),
     }
 
-    @get("/")
+    @get("/", guards=[PermissionGuard("system:all")])
     async def list_users(
         self, user_repo: UserRepository,
         limit: int = 10, offset: int = 0,
         status: Optional[str] = None,
         search: Optional[str] = None,
     ) -> Dict[str, object]:
-        """List users with server-side pagination. R60: password hash NEVER sent."""
+        """List users (R76: Scalar Projection). R60: password hash NEVER sent."""
         from sqlalchemy import select, func, and_, or_
-        from sqlalchemy.orm import selectinload
         
         conditions = []
         if status and status != "ALL":
@@ -43,35 +42,64 @@ class UserController(Controller):
 
         where_clause = and_(*conditions) if conditions else True
 
+        # 1. COUNT (Zero-Hydration)
         count_stmt = select(func.count(User.id)).where(where_clause)
         total = await user_repo.session.scalar(count_stmt) or 0
 
-        stmt = select(User).where(where_clause).options(
-            selectinload(User.roles).selectinload(Role.permissions)
-        ).limit(limit).offset(offset)
-        result = await user_repo.session.execute(stmt)
-        users = result.scalars().all()
+        # 2. Scalar Projection Fetch with manual nesting
+        # We fetch only what's needed for the list view
+        stmt = (
+            select(
+                User.id, User.email, User.name, User.status, User.created_at,
+                Role.id.label("role_id"), Role.name.label("role_name"), Role.code.label("role_code"),
+                Permission.id.label("perm_id"), Permission.code.label("perm_code"), Permission.name.label("perm_name")
+            )
+            .outerjoin(User.roles)
+            .outerjoin(Role.permissions)
+            .where(where_clause)
+            .limit(limit).offset(offset)
+        )
         
-        data = [
-            {
-                "id": str(u.id),
-                "email": u.email,
-                "name": u.name or u.username or "",
-                "status": getattr(u, 'status', 'ACTIVE') or "ACTIVE",
-                "createdAt": u.created_at.isoformat() if hasattr(u, 'created_at') and u.created_at else "",
-                "roles": [
-                    {
-                        "id": str(r.id), "name": r.name, "code": r.code,
-                        "permissions": [
-                            {"id": str(p.id), "code": p.code, "name": p.name} 
-                            for p in getattr(r, "permissions", [])
-                        ]
+        result = await user_repo.session.execute(stmt)
+        
+        # Manual grouping logic to avoid full entity hydration
+        users_map = {}
+        for row in result:
+            u_id = str(row.id)
+            if u_id not in users_map:
+                users_map[u_id] = {
+                    "id": u_id,
+                    "email": row.email,
+                    "name": row.name or "Unknown",
+                    "status": row.status or "ACTIVE",
+                    "createdAt": row.created_at.isoformat() if row.created_at else "",
+                    "roles": {}
+                }
+            
+            if row.role_id:
+                r_id = str(row.role_id)
+                if r_id not in users_map[u_id]["roles"]:
+                    users_map[u_id]["roles"][r_id] = {
+                        "id": r_id, "name": row.role_name, "code": row.role_code,
+                        "permissions": {}
                     }
-                    for r in getattr(u, "roles", [])
-                ],
-            }
-            for u in users
-        ]
+                
+                if row.perm_id:
+                    p_id = str(row.perm_id)
+                    users_map[u_id]["roles"][r_id]["permissions"][p_id] = {
+                        "id": p_id, "code": row.perm_code, "name": row.perm_name
+                    }
+
+        # Format back to list
+        data = []
+        for u in users_map.values():
+            u_roles = []
+            for r in u["roles"].values():
+                r["permissions"] = list(r["permissions"].values())
+                u_roles.append(r)
+            u["roles"] = u_roles
+            data.append(u)
+            
         return {"data": data, "total": total}
 
     @get("/roles")

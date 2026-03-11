@@ -61,7 +61,16 @@ export function createVoiceState(
     state.vuiResponse = {
       text: responseText,
       type: uiAction ? "action" : "answer",
-      data,
+      data: {
+        step: 1,
+        status: "WAITING_FOR_REVIEW",
+        progress_msg: "",
+        keywords: {},
+        assets: [],
+        outline: {},
+        draft_content: "",
+        ...data
+      },
     };
     state.routerTier = routerTier;
 

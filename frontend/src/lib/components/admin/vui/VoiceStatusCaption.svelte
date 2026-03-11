@@ -102,7 +102,7 @@
 
 <div
   bind:this={scrollContainer}
-  class="w-full h-full overflow-y-auto scroll-smooth pointer-events-auto p-8 md:p-12 mb-20"
+  class="relative w-full h-full overflow-y-auto scroll-smooth pointer-events-auto p-8 md:p-12 mb-20 transition-all duration-500 {nanobot.vuiResponse?.data?.campaign_id ? 'opacity-10 blur-md pointer-events-none' : ''}"
   style="--history-spacing: {theme.HISTORY_SPACING}"
 >
   <div class="max-w-5xl mx-auto flex flex-col space-y-[var(--history-spacing)]">
@@ -136,7 +136,7 @@
 
     <!-- history interactions -->
     {#each vuiState.history as item (item.id)}
-      <div class="w-full flex flex-col space-y-4" transition:fade>
+      <div class="w-full flex flex-col space-y-4 pointer-events-auto" transition:fade>
         <!-- User Query (Right Aligned Bubble) -->
         <div class="w-full flex justify-end">
           <div
@@ -166,7 +166,7 @@
 
     <!-- CURRENT Active Interaction -->
     {#if phase !== "idle"}
-      <div class="w-full flex flex-col relative pointer-events-none">
+      <div class="w-full flex flex-col relative pointer-events-auto">
         <!-- Step 1: User Query (Top Right Bubble) -->
         <div class="w-full flex justify-end mb-4">
           {#if (phase === "listening" || vuiState.transcript) && vuiState.liveText}

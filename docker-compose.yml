@@ -81,7 +81,7 @@ services:
     expose:
       - "5173"
     environment:
-      - VITE_API_URL=http://api.smartshop.test
+      - VITE_API_URL=${API_DOMAIN}
       - VITE_API_PROXY_TARGET=http://api:8000
     command: sh -c "corepack enable && pnpm install --no-frozen-lockfile && pnpm dev --host 0.0.0.0"
     depends_on:

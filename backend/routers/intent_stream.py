@@ -196,7 +196,8 @@ class IntentStreamController(Controller):
                                     order_repo=order_repo,
                                     product_repo=product_repo,
                                     campaign_repo=campaign_repo,
-                                    modality=data.modality
+                                    modality=data.modality,
+                                    user_id=user_id
                                 ),
                                 timeout=45.0  # Increased to 45s to tolerate TrinityBridge 429 backoff & key rotation
                             )

@@ -23,17 +23,20 @@ class NotificationController(Controller):
         conditions = []
         
         if not user_email:
-            # Public/System-wide notifications only if not logged in? 
-            # Usually we expect a user, but if not, return system ones.
-            stmt = select(Notification).where(Notification.user_id == None).order_by(Notification.created_at.desc()).limit(20)
+            stmt = select(
+                Notification.id, Notification.user_id, Notification.type, 
+                Notification.message, Notification.is_read, Notification.created_at
+            ).where(Notification.user_id == None).order_by(Notification.created_at.desc()).limit(20)
         else:
             user_repo = UserRepository(session=db_session)
             user = await user_repo.get_one_or_none(email=user_email)
             if not user:
                 raise NotAuthorizedException("User context not found")
             
-            # User specific or system wide
-            stmt = select(Notification).where(
+            stmt = select(
+                Notification.id, Notification.user_id, Notification.type, 
+                Notification.message, Notification.is_read, Notification.created_at
+            ).where(
                 or_(
                     Notification.user_id == str(user.id),
                     Notification.user_id == None
@@ -41,18 +44,17 @@ class NotificationController(Controller):
             ).order_by(Notification.created_at.desc()).limit(20)
 
         res = await db_session.execute(stmt)
-        notifications = res.scalars().all()
-        
+        # Result contains rows (tuples), not objects
         return [
             {
-                "id": str(n.id),
-                "userId": str(n.user_id) if n.user_id else None,
-                "type": n.type,
-                "message": n.message,
-                "isRead": n.is_read,
-                "createdAt": n.created_at.isoformat() if n.created_at else "",
+                "id": str(row.id),
+                "userId": str(row.user_id) if row.user_id else None,
+                "type": row.type,
+                "message": row.message,
+                "isRead": row.is_read,
+                "createdAt": row.created_at.isoformat() if row.created_at else "",
             }
-            for n in notifications
+            for row in res
         ]
 
     @patch("/{notification_id:str}/read")

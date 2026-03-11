@@ -28,48 +28,51 @@ class ProductController(Controller):
         status: Optional[str] = None,
         search: Optional[str] = None,
     ) -> Dict[str, object]:
-        """List products with server-side pagination. R41: N+1 Safe. R1.5: Zero-Hydration COUNT."""
+        """List products (R76: Scalar Projection). R41: N+1 Safe."""
         from sqlalchemy import func, and_, or_
+        from backend.database.models import Category
         
         conditions = [ProductBase.deleted_at == None]
         if status and status != "all":
             conditions.append(ProductBase.status == status.upper())
         if search:
             safe = escape_like(search)
-            # V56.0 Phase 4: unaccent() for Vietnamese diacritic-insensitive search
-            # "ao thun" matches "Áo thun trắng", "san pham" matches "Sản phẩm"
             conditions.append(or_(
                 func.unaccent(ProductBase.name).ilike(f"%{func.unaccent(safe)}%"),
-                ProductBase.sku.ilike(f"%{safe}%"),  # SKU is ASCII, no unaccent needed
+                ProductBase.sku.ilike(f"%{safe}%"),
             ))
 
         # 1. COUNT (Zero-Hydration — Rule 1.5)
         count_stmt = select(func.count(ProductBase.id)).where(and_(*conditions))
         total = await prod_repo.session.scalar(count_stmt) or 0
 
-        # 2. Paginated fetch with eager loading
-        stmt = select(ProductBase).where(and_(*conditions)).options(
-            selectinload(ProductBase.category)
+        # 2. R76: Scalar Projection Fetch
+        stmt = select(
+            ProductBase.id, ProductBase.name, ProductBase.sku, 
+            ProductBase.price, ProductBase.stock, ProductBase.status,
+            ProductBase.category_id, ProductBase.description, ProductBase.type,
+            ProductBase.created_at,
+            Category.name.label("category_name")
+        ).outerjoin(Category, ProductBase.category_id == Category.id).where(
+            and_(*conditions)
         ).limit(limit).offset(offset).order_by(ProductBase.created_at.desc())
         
         result = await prod_repo.session.execute(stmt)
-        products = result.scalars().all()
-        
         data = [
             {
-                "id": str(p.id),
-                "name": p.name,
-                "sku": p.sku or "",
-                "price": p.price,
-                "stock": p.stock,
-                "status": p.status.lower() if p.status else "draft",
-                "category": p.category.name if p.category else "",
-                "categoryId": str(p.category_id) if p.category_id else None,
-                "description": p.description,
-                "type": p.type,
-                "createdAt": p.created_at.isoformat() if p.created_at else "",
+                "id": str(row.id),
+                "name": row.name,
+                "sku": row.sku or "",
+                "price": row.price,
+                "stock": row.stock,
+                "status": row.status.lower() if row.status else "draft",
+                "category": row.category_name or "",
+                "categoryId": str(row.category_id) if row.category_id else None,
+                "description": row.description,
+                "type": row.type,
+                "createdAt": row.created_at.isoformat() if row.created_at else "",
             }
-            for p in products
+            for row in result
         ]
         return {"data": data, "total": total}
 

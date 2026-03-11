@@ -385,7 +385,7 @@ class RouterOrchestrator:
             logger.info(f"[C.O.R.E][{m_tag}] Delegating to Content Factory V62.1. kwargs keys: {list(kwargs.keys())}")
             from backend.services.xohi.creative_studio.orchestrator import content_factory
             return await content_factory.handle_voice_request(
-                transcript, context, 
+                transcript, 
                 campaign_repo=kwargs.get("campaign_repo"),
                 user_id=kwargs.get("user_id") # Rule R86: Propagate identity
             )
@@ -394,7 +394,7 @@ class RouterOrchestrator:
             logger.info(f"[C.O.R.E][{m_tag}] Approving Content Campaign...")
             from backend.services.xohi.creative_studio.orchestrator import content_factory
             campaign_repo = kwargs.get("campaign_repo")
-            latest = await content_factory.get_latest_pending(campaign_repo)
+            latest = await content_factory.get_active_campaign(campaign_repo, user_id=kwargs.get("user_id"))
             if latest:
                 return await content_factory.approve_step(latest.id, {"approved": True, "step": latest.current_step}, campaign_repo)
             return self._error_response("Dạ sếp muốn duyệt gì ạ? Hiện tại em chưa thấy có yêu cầu nào đang chờ duyệt.")
@@ -403,7 +403,7 @@ class RouterOrchestrator:
             logger.info(f"[C.O.R.E][{m_tag}] Retrying/Rejecting Content Campaign...")
             from backend.services.xohi.creative_studio.orchestrator import content_factory
             campaign_repo = kwargs.get("campaign_repo")
-            latest = await content_factory.get_latest_pending(campaign_repo)
+            latest = await content_factory.get_active_campaign(campaign_repo, user_id=kwargs.get("user_id"))
             if latest:
                 return await content_factory.retry_step(latest.id, campaign_repo)
             return self._error_response("Dạ sếp muốn tạo lại gì ạ? Hiện tại em chưa thấy có bài viết nào đang dở.")

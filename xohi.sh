@@ -13,8 +13,6 @@ CYAN='\033[0;36m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Password Automation
-export SUDO_PASS="983211"
 
 # Helper: Deep Clean function
 function deep_clean() {

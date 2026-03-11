@@ -3,10 +3,10 @@ from typing import List, Dict, Any, Union, Optional
 from uuid import UUID
 
 logger = logging.getLogger(__name__)
-from litestar import Controller, get, post, put, delete, Request
+from litestar import Controller, get, post, put, patch, delete, Request
 from backend.services.xohi.creative_studio.orchestrator import content_factory
 from backend.models.schemas import ContentCampaign, CampaignStep, AgentResponse
-from backend.services.xohi.creative_studio.orchestrator import AgentSignal
+from backend.services.xohi.creative_studio.models.schemas import AgentSignal
 from backend.database.repositories import ContentCampaignRepository, provide_campaign_repo
 from litestar.di import Provide
 
@@ -15,11 +15,33 @@ class ContentController(Controller):
     dependencies = {"campaign_repo": Provide(provide_campaign_repo)}
 
     @get("/campaigns")
-    async def list_campaigns(self, campaign_repo: ContentCampaignRepository) -> List[ContentCampaign]:
-        """Lấy danh sách tất cả các chiến dịch nội dung đang chạy."""
+    async def list_campaigns(self, campaign_repo: ContentCampaignRepository) -> List[Dict[str, Any]]:
+        """Lấy danh sách các chiến dịch (R76: Scalar Projection)."""
         from litestar.repository.filters import LimitOffset
-        campaigns = await campaign_repo.list(LimitOffset(limit=100, offset=0), order_by=[("created_at", "desc")])
-        return [ContentCampaign.model_validate(c) for c in campaigns]
+        from sqlalchemy import select
+        
+        # R76: Select only necessary columns for the list view to avoid RAM-heavy hydration
+        stmt = select(
+            ContentCampaign.id,
+            ContentCampaign.topic_data,
+            ContentCampaign.status,
+            ContentCampaign.current_step,
+            ContentCampaign.created_at,
+            ContentCampaign.user_id
+        ).limit(100).order_by(ContentCampaign.created_at.desc())
+        
+        result = await campaign_repo.session.execute(stmt)
+        return [
+            {
+                "id": str(row.id),
+                "topic_data": row.topic_data,
+                "status": row.status,
+                "current_step": row.current_step,
+                "created_at": row.created_at.isoformat(),
+                "user_id": str(row.user_id) if row.user_id else None
+            }
+            for row in result
+        ]
 
     @get("/campaigns/{campaign_id:uuid}")
     async def get_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> ContentCampaign:
@@ -51,6 +73,14 @@ class ContentController(Controller):
         """
         Cập nhật metadata (assets, keywords, etc.) mà không chuyển bước.
         R85.1: Phục vụ curation thời gian thực (F5 Fix).
+        """
+        data = await request.json()
+        return await content_factory.update_metadata(str(campaign_id), data, campaign_repo)
+
+    @patch("/campaigns/{campaign_id:uuid}")
+    async def patch_campaign(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+        """
+        Alias cho update_metadata dùng phương thức PATCH chuẩn REST.
         """
         data = await request.json()
         return await content_factory.update_metadata(str(campaign_id), data, campaign_repo)

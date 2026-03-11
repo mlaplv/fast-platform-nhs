@@ -5,6 +5,7 @@
   import { playSciFiBeep, playSiriDing } from "$lib/utils/sfx";
   import VoiceStatusCaption from "./vui/VoiceStatusCaption.svelte";
   import ContentReviewCard from "./ui/ContentReviewCard.svelte";
+  import X from "lucide-svelte/icons/x";
   import { onMount } from "svelte";
 
   onMount(() => {
@@ -70,32 +71,48 @@
   >
     <!-- Main Container (Purely Transparent Overlay) -->
     <div class="relative w-full h-full pointer-events-none">
+      <!-- Pure Minimalist Cyber-Exit (2026 Edition) -->
+      <button
+        onclick={() => {
+          nanobot.interruptAll();
+          nanobot.resetVui();
+        }}
+        class="absolute top-[14px] right-6 z-[110000] group pointer-events-auto transition-all duration-300 active:scale-75"
+        title="Close Session"
+      >
+        <div class="relative w-10 h-10 flex items-center justify-center transition-all duration-300">
+           <X 
+             size={20} 
+             strokeWidth={2} 
+             class="text-white/20 group-hover:text-red-500 group-hover:scale-125 transition-all duration-300 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" 
+           />
+           
+           <!-- Modern Red Glow on Hover -->
+           <div class="absolute inset-0 opacity-0 group-hover:opacity-40 bg-red-500/20 blur-xl transition-all duration-500 -z-10"></div>
+        </div>
+      </button>
+
       <!-- VUI Content (Centered GPT-style) -->
       <div class="{nanobot.isExpanded ? 'absolute inset-0 block overflow-hidden' : 'absolute inset-0 flex justify-center items-center overflow-hidden p-4'}">
-        <!-- Voice Caption pinned to top -->
-        <div class="absolute top-4 left-0 w-full flex justify-center {nanobot.isExpanded ? 'z-[2000]' : 'z-[50]'}">
+        <!-- Voice Caption Layer (GPT-style Background/Overlay) -->
+        <div class="absolute inset-0 left-0 w-full flex justify-center {nanobot.isExpanded ? 'z-[2000]' : 'z-[50]'} pointer-events-none">
           <VoiceStatusCaption {phase} />
         </div>
 
         {#if nanobot.vuiResponse?.data?.category === "CONTENT_CREATE" || nanobot.vuiResponse?.data?.campaign_id}
-          {@const step = nanobot.vuiResponse.data.step || 1}
           <div
-            class="transition-all duration-300 {nanobot.isExpanded ? 'fixed inset-0 w-screen h-screen z-[100000] m-0 rounded-none p-6 md:p-12 md:pb-24 bg-[#030712]/98 backdrop-blur-3xl pointer-events-auto' : (step >= 3 ? 'w-[98%] h-[90vh] bg-black/40 rounded-3xl p-4 mt-12 shadow-2xl animate-in fade-in zoom-in-95' : 'w-[98%] h-[90vh] custom-scrollbar p-2 mt-12 animate-in fade-in zoom-in-95')} z-50 mx-auto relative pointer-events-auto flex flex-col"
+            class="transition-all duration-300 {nanobot.isExpanded ? 'fixed inset-0 w-screen h-screen z-[100000] m-0 rounded-none p-6 md:p-12 md:pb-24 bg-[#030712]/98 backdrop-blur-3xl' : (nanobot.vuiResponse.data.step >= 3 ? 'w-[98%] h-[90vh] bg-black/40 rounded-3xl p-4 mt-12 shadow-2xl animate-in fade-in zoom-in-95 z-[50000]' : 'w-[98%] h-[90vh] custom-scrollbar p-2 mt-12 animate-in fade-in zoom-in-95 z-[50000]')} mx-auto relative pointer-events-auto flex flex-col"
             transition:fade={{ duration: 250 }}
           >
             <ContentReviewCard
               campaign_id={nanobot.vuiResponse.data.campaign_id}
-              keywords={nanobot.vuiResponse.data.keywords ||
-                nanobot.vuiResponse.data.data?.keywords}
-              assets={nanobot.vuiResponse.data.assets ||
-                nanobot.vuiResponse.data.data?.assets}
-              outline={nanobot.vuiResponse.data.outline ||
-                nanobot.vuiResponse.data.data?.outline}
-              draft_content={nanobot.vuiResponse.data.draft_content ||
-                nanobot.vuiResponse.data.data?.draft_content}
-              step={nanobot.vuiResponse.data.step || 1}
-              status={nanobot.vuiResponse.data.status || "WAITING_FOR_REVIEW"}
-              progress_msg={nanobot.vuiResponse.data.progress_msg || ""}
+              bind:keywords={nanobot.vuiResponse.data.keywords}
+              bind:assets={nanobot.vuiResponse.data.assets}
+              bind:outline={nanobot.vuiResponse.data.outline}
+              bind:draft_content={nanobot.vuiResponse.data.draft_content}
+              bind:step={nanobot.vuiResponse.data.step}
+              bind:status={nanobot.vuiResponse.data.status}
+              bind:progress_msg={nanobot.vuiResponse.data.progress_msg}
             />
           </div>
         {/if}

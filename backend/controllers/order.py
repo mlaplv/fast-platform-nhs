@@ -89,9 +89,9 @@ class OrderController(Controller):
         status: Optional[str] = None,
         search: Optional[str] = None,
     ) -> dict[str, object]:
-        """List orders with advanced filtering using direct SQLAlchemy."""
+        """List orders (R76: Scalar Projection)."""
+        from sqlalchemy import select, func, or_, and_
         
-        # Build dynamic where conditions
         conditions = [Order.deleted_at == None]
         
         if status and status != "all":
@@ -104,33 +104,34 @@ class OrderController(Controller):
                 Order.user.has(func.unaccent(User.name).ilike(f"%{func.unaccent(safe)}%"))
             ))
 
-        # 1. Total Count
+        # 1. Total Count (Zero-Hydration)
         count_stmt = select(func.count(Order.id)).where(and_(*conditions))
-        total_res = await order_repo.session.execute(count_stmt)
-        total = total_res.scalar_one()
+        total = await order_repo.session.scalar(count_stmt) or 0
         
-        # 2. Optimized Fetch
-        stmt = select(Order).where(and_(*conditions)).options(
-            selectinload(Order.user)
+        # 2. R76: Scalar Projection Fetch
+        stmt = select(
+            Order.id, Order.status, Order.total_amount, Order.items, Order.created_at,
+            Order.is_spam, Order.spam_score, Order.spam_reason, Order.fingerprint,
+            User.name.label("customer_name")
+        ).outerjoin(User, Order.user_id == User.id).where(
+            and_(*conditions)
         ).limit(limit).offset(offset).order_by(Order.created_at.desc())
         
         result = await order_repo.session.execute(stmt)
-        orders = result.scalars().all()
-        
         data = [
             {
-                "id": str(o.id),
-                "customerName": o.user.name if o.user else "Storefront Customer",
-                "status": o.status.lower() if o.status else "pending",
-                "total": float(o.total_amount) if o.total_amount else 0.0,
-                "items": len(o.items) if isinstance(o.items, list) else 0,
-                "createdAt": o.created_at.isoformat() if o.created_at else "",
-                "isSpam": o.is_spam, # Anti-Spam Signal
-                "spamScore": o.spam_score,
-                "spamReason": o.spam_reason,
-                "fingerprint": o.fingerprint
+                "id": str(row.id),
+                "customerName": row.customer_name or "Storefront Customer",
+                "status": row.status.lower() if row.status else "pending",
+                "total": float(row.total_amount) if row.total_amount else 0.0,
+                "items": len(row.items) if isinstance(row.items, list) else 0,
+                "createdAt": row.created_at.isoformat() if row.created_at else "",
+                "isSpam": row.is_spam,
+                "spamScore": row.spam_score,
+                "spamReason": row.spam_reason,
+                "fingerprint": row.fingerprint
             }
-            for o in orders
+            for row in result
         ]
         
         return {
