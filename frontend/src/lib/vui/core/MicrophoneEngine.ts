@@ -101,4 +101,8 @@ export class MicrophoneEngine {
     this.analyser = null;
     this.dataArr = null;
   }
+
+  isActive(): boolean {
+    return !!this.recorder && this.recorder.state === "recording";
+  }
 }

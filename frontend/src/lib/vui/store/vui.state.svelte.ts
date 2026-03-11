@@ -18,7 +18,7 @@ export const vuiState = $state({
   errorMsg: "",
   activeTier: "",
   cmdBuffer: "",
-  hasSpoken: false,
+
   isWaitingForAction: false,
   history: [] as VuiInteraction[],
 
@@ -45,7 +45,7 @@ export const vuiState = $state({
   },
   setActiveTier(val: string) { this.activeTier = val; },
   setCmdBuffer(val: string) { this.cmdBuffer = val; },
-  setHasSpoken(val: boolean) { this.hasSpoken = val; },
+
   
   finalizeInteraction() {
     if (this.transcript || this.systemMessage) {
@@ -73,17 +73,22 @@ export const vuiState = $state({
     this.activeTier = "";
     this.isStarting = false;
     this.errorMsg = "";
-    this.hasSpoken = false;
+
     this.cmdBuffer = "";
     this.isWaitingForAction = false;
   },
 
   clearHistory() {
     this.history = [];
+    // If we're not speaking/thinking, just reset everything
+    if (this.phase !== "speaking" && this.phase !== "thinking") {
+       this.reset();
+    }
   },
 
   newChat() {
-    this.clearHistory();
-    this.reset();
+    this.reset(); // Finalize current first
+    this.clearHistory(); // Then wipe everything clean
+    this.isActive = false;
   }
 });

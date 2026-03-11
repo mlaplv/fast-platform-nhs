@@ -14,22 +14,10 @@ export interface IntentStreamEvent {
   [key: string]: any;
 }
 
+
 export class VuiService {
   /**
-   * Bước 1: Gửi query nhận Intent & Session ID (Phase 1)
-   */
-  async fetchIntent(query: string, sessionId: string, modality: "voice" | "text" = "voice") {
-    const res = await fetch(VUI_CONFIG.ENDPOINTS.INTENT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, session_id: sessionId, modality })
-    });
-    if (!res.ok) throw new Error("Intent API fail");
-    return res.json();
-  }
-
-  /**
-   * Bước 2: Mở luồng SSE nhận phản hồi đa tầng (Phase 2 & 3)
+   * Stream SSE nhận phản hồi đa tầng từ Intent gateway.
    */
   async *streamIntent(
     query: string,

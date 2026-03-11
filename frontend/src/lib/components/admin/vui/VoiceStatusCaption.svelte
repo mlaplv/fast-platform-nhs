@@ -37,25 +37,44 @@
     return `${m.toString().padStart(2, "0")}:${rs.toString().padStart(2, "0")}`;
   };
 
-  // Auto-scroll logic
+  // Auto-scroll logic: Ultra-Smooth & Resilient (Phase 7)
   let scrollContainer = $state<HTMLDivElement>();
+  let lastHeight = 0;
 
-  $effect(() => {
-    // Scroll to bottom when history or current messages update
-    if (
-      vuiState.history.length ||
-      vuiState.systemMessage ||
-      vuiState.liveText
-    ) {
-      tick().then(() => {
-        if (scrollContainer) {
-          scrollContainer.scrollTo({
-            top: scrollContainer.scrollHeight,
-            behavior: "smooth",
-          });
-        }
+  const scrollToBottom = () => {
+    if (!scrollContainer) return;
+    const { scrollHeight, clientHeight } = scrollContainer;
+    if (scrollHeight > clientHeight) {
+      scrollContainer.scrollTo({
+        top: scrollHeight,
+        behavior: "smooth",
       });
     }
+  };
+
+  $effect(() => {
+    // Watch history and current stream
+    const _watch = [vuiState.history.length, vuiState.systemMessage, vuiState.liveText];
+    
+    tick().then(() => {
+        requestAnimationFrame(scrollToBottom);
+    });
+  });
+
+  // Watch for dynamic height changes (images/typewriter)
+  $effect(() => {
+    if (!scrollContainer) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const height = entry.contentRect.height;
+        if (height !== lastHeight) {
+          lastHeight = height;
+          scrollToBottom();
+        }
+      }
+    });
+    observer.observe(scrollContainer.firstElementChild as Element);
+    return () => observer.disconnect();
   });
 </script>
 
@@ -229,6 +248,20 @@
       </div>
     {/if}
   </div>
+
+  <!-- GPT Hero Overlay: Start talking (Aligned with Chat Bar) -->
+  {#if phase === "listening" && !vuiState.liveText && !vuiState.history.length}
+    <div 
+      class="absolute bottom-[50px] left-0 right-0 flex justify-center pointer-events-none z-[1200]" 
+      transition:fade={{ duration: 300 }}
+    >
+       <div class="w-full max-w-4xl px-4 sm:px-6 flex justify-center">
+          <h2 class="text-[28px] md:text-[34px] font-medium text-white tracking-tight text-center">
+             {VUI_CONFIG.UX.PHASE_LABELS.listening}
+          </h2>
+       </div>
+    </div>
+  {/if}
 </div>
 
 <style>

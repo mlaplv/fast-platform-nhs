@@ -38,8 +38,8 @@ Mọi lời gọi LLM Cloud, database query (SQLAlchemy `AsyncSession`), và net
 
 ### 1.3 Kỷ luật Bộ nhớ
 
-- `AudioContext.close()` sau mỗi recording session.
-- Đóng triệt để WebSockets, DB Connections khi không sử dụng.
+- `AudioContext.close()` hoặc `vad.destroy()` sau mỗi session.
+- Đóng triệt để WebSockets, VAD Workers, DB Connections khi không sử dụng.
 - Component quản lý DOM Stream (thẻ `<audio>`, Camera) CẤM dùng `{#if}` để ẩn/hiện — phải dùng CSS `class="hidden"` để giữ DOM sống.
 - Mọi file KHÔNG ĐƯỢC vượt quá **300 LOC**. Vượt phải tách nhỏ.
 
@@ -255,7 +255,8 @@ graph TD
 ```text
 intent.py (Gateway)
   └─ Orchestrator (Classify)
-       ├─ Phase 0: Redis STT Pre-processing & Inline Wake/Sleep Check (0ms)
+       ├─ Phase 0: Silero VAD (Neural Filter) -> Chặn tiếng ồn, chỉ nhận diện giọng người (0ms sync)
+       ├─ Phase 1.1: Redis STT Pre-processing & Wake/Sleep Check (0ms)
        ├─ Phase 1.2: Neural Local Corrector (Semantic + Phonetic Hybrid) -> Bypass Cloud AI
        ├─ Tier 1.5: Semantic Router (Cosine Similarity Embedding) -> Bypass T2
        └─ Trinity Bridge: Centralized Waterfall (3.x-pro -> 2.5-flash) with Health Tracking
@@ -690,14 +691,15 @@ sequenceDiagram
 
 **Chi tiết luồng thực thi (V62.2):**
 
-1. **User Ra Lệnh** → `Nanobot Core` KHÔNG kiểm tra wake word tại chỗ. Tất cả đẩy xuống `vuiController.processGhost()`.
-2. **STT Pipeline (2026)**: Browser Mic → WebSocket `/ws/stt` → Backend → **Groq Whisper v3-turbo** (via `litellm.atranscription()`) với `temperature=0.0` và `response_format="verbose_json"` → 99% accuracy tiếng Việt nhờ bơm động `stt_anchors` từ Redis `VoiceProfile`.
-3. **Backend Gateway**: Ngay lập tức yield SSE `status: listening`.
-4. **SSE Streaming**: `processGhost()` gọi `POST /api/v1/intent/stream`. Nếu rỗng do cắt rác STT sẽ yield `SESSION_CTRL SLEEP` ra ngay.
-5. **Session Control**: Lắng nghe hardware `SLEEP` ngắt `AudioContext` lập tức.
-6. **Unified Registry**: Mọi lệnh (Wake/Nav/Query) đều dùng chung hàm `setVoiceResult`.
-7. **Auto-Mic Feedback & Half-Duplex (CRITICAL R4.1)**: Hàm `speak()` **bắt buộc** gọi `this.mic.stop()` đầu tiên, đảm bảo tắt micro khi XoHi bắt đầu nói. Quá trình bật lại (ở cuối TTS) được bảo vệ bằng 500ms Anti-Death Loop.
-8. **Race Condition Guard**: Tuyệt đối bảo vệ `voiceTrigger` bằng lock trạng thái `isProcessingSpeech`.
+1. **User Ra Lệnh** → `Nanobot Core` đẩy lệnh xuống `vuiController`.
+2. **NeuVAD Pipeline (V63.0)**: Browser Mic → **Silero VAD (ONNX)** chạy local trên WebWorker → Chỉ gửi audio khi phát hiện thực sự có giọng người. Loại bỏ hoàn toàn nhiễu môi trường và tiếng gõ phím.
+3. **STT Streaming**: WebSocket `/ws/stt` → Backend → **Groq Whisper v3-turbo** (via `litellm.atranscription()`).
+4. **Backend Gateway**: Ngay lập tức yield SSE `status: listening`.
+5. **SSE Streaming**: `processGhost()` gọi `POST /api/v1/intent/stream`.
+6. **Session Control**: Lắng nghe hardware `SLEEP` ngắt `AudioContext` lập tức.
+7. **Unified Registry**: Mọi lệnh (Wake/Nav/Query) đều dùng chung hàm `setVoiceResult`.
+8. **Auto-Mic Feedback & Half-Duplex (CRITICAL R4.1)**: `speak()` gọi `mic.stop()` và `vad.pause()`. Bật lại qua đệm an toàn 500ms.
+9. **Zero-Ghost dots**: Triệt tiêu hoàn toàn "ghost dots" (., ...) nhờ VAD Neural lọc sạch noise-only segments trước khi gửi STT.
 
 ### 4.2 VUI Separation
 

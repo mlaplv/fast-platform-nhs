@@ -12,10 +12,25 @@
   },
   "dependencies": {
     "@lucide/svelte": "^0.577.0",
+    "@ricky0123/vad-web": "^0.0.30",
+    "@tiptap/core": "^3.20.1",
+    "@tiptap/extension-character-count": "^3.20.1",
+    "@tiptap/extension-color": "^3.20.1",
+    "@tiptap/extension-font-family": "^3.20.1",
+    "@tiptap/extension-image": "^3.20.1",
+    "@tiptap/extension-link": "^3.20.1",
+    "@tiptap/extension-placeholder": "^3.20.1",
+    "@tiptap/extension-text-align": "^3.20.1",
+    "@tiptap/extension-text-style": "^3.20.1",
+    "@tiptap/extension-typography": "^3.20.1",
+    "@tiptap/extension-underline": "^3.20.1",
+    "@tiptap/pm": "^3.20.1",
+    "@tiptap/starter-kit": "^3.20.1",
     "clsx": "^2.1.1",
     "idb-keyval": "^6.2.2",
     "lucide": "^0.577.0",
     "lucide-svelte": "^0.577.0",
+    "onnxruntime-web": "^1.24.3",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
@@ -29,11 +44,13 @@
     "svelte": "^5.53.8",
     "tailwindcss": "^4.2.1",
     "vite": "^7.3.1",
+    "vite-plugin-static-copy": "^3.2.0",
     "vitest": "^4.0.18"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "esbuild"
+      "esbuild",
+      "protobufjs"
     ]
   }
 }

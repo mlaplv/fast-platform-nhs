@@ -16,8 +16,13 @@
     }
   });
 
+  let wasActive = false;
   $effect(() => {
-    if (nanobot.isVuiActive) playSciFiBeep();
+    // Only beep if transitioning from inactive to active (prevents autoplay on page load)
+    if (nanobot.isVuiActive && !wasActive) {
+      playSciFiBeep();
+    }
+    wasActive = nanobot.isVuiActive;
   });
 
   let hasDinged = false;
@@ -60,18 +65,22 @@
 
 {#if nanobot.isVuiActive && !nanobot.isTraining}
   <div
-    class="absolute inset-0 z-[900] flex flex-col pointer-events-none"
+    class="absolute inset-0 z-[99999] flex flex-col pointer-events-none"
     transition:fade={{ duration: 400 }}
   >
     <!-- Main Container (Purely Transparent Overlay) -->
     <div class="relative w-full h-full pointer-events-none">
       <!-- VUI Content (Centered GPT-style) -->
-      <div class="absolute inset-0 flex flex-col items-center">
-        <VoiceStatusCaption {phase} />
+      <div class="{nanobot.isExpanded ? 'absolute inset-0 block overflow-hidden' : 'absolute inset-0 flex justify-center items-center overflow-hidden p-4'}">
+        <!-- Voice Caption pinned to top -->
+        <div class="absolute top-4 left-0 w-full flex justify-center {nanobot.isExpanded ? 'z-[2000]' : 'z-[50]'}">
+          <VoiceStatusCaption {phase} />
+        </div>
 
-        {#if nanobot.vuiResponse?.data?.category === "CONTENT_CREATE"}
+        {#if nanobot.vuiResponse?.data?.category === "CONTENT_CREATE" || nanobot.vuiResponse?.data?.campaign_id}
+          {@const step = nanobot.vuiResponse.data.step || 1}
           <div
-            class="mt-8 w-full max-w-4xl animate-in fade-in zoom-in-95 duration-500 z-50 relative pointer-events-auto mb-12"
+            class="transition-all duration-300 {nanobot.isExpanded ? 'fixed inset-0 w-screen h-screen z-[100000] m-0 rounded-none p-6 md:p-12 md:pb-24 bg-[#030712]/98 backdrop-blur-3xl pointer-events-auto' : (step >= 3 ? 'w-[98%] h-[90vh] bg-black/40 rounded-3xl p-4 mt-12 shadow-2xl animate-in fade-in zoom-in-95' : 'w-[98%] h-[90vh] custom-scrollbar p-2 mt-12 animate-in fade-in zoom-in-95')} z-50 mx-auto relative pointer-events-auto flex flex-col"
             transition:fade={{ duration: 250 }}
           >
             <ContentReviewCard
@@ -80,6 +89,10 @@
                 nanobot.vuiResponse.data.data?.keywords}
               assets={nanobot.vuiResponse.data.assets ||
                 nanobot.vuiResponse.data.data?.assets}
+              outline={nanobot.vuiResponse.data.outline ||
+                nanobot.vuiResponse.data.data?.outline}
+              draft_content={nanobot.vuiResponse.data.draft_content ||
+                nanobot.vuiResponse.data.data?.draft_content}
               step={nanobot.vuiResponse.data.step || 1}
               status={nanobot.vuiResponse.data.status || "WAITING_FOR_REVIEW"}
               progress_msg={nanobot.vuiResponse.data.progress_msg || ""}

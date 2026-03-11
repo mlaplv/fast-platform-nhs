@@ -34,12 +34,6 @@ from backend.constants.action_vi import ACTION_VI
 
 logger = logging.getLogger("api-gateway")
 
-ACTION_VI = {
-    "READ":    "Truy xuất Dữ liệu",
-    "COUNT":   "Truy xuất Số liệu",
-    "MUTATE":  "Chỉnh sửa Hệ thống",
-    "ANALYZE": "Suy luận Chuyên sâu",
-}
 
 
 def _sse(phase: str, data: dict) -> bytes:

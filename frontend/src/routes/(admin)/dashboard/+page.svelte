@@ -1,13 +1,21 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import ReviewGates from '$lib/components/admin/management/ReviewGates.svelte';
     import { fade } from 'svelte/transition';
 
     let campaigns = $state([]);
     let loading = $state(true);
+    // Track all open SSE connections so we close them on page unmount
+    const openStreams: EventSource[] = [];
 
     onMount(async () => {
         await loadCampaigns();
+    });
+
+    onDestroy(() => {
+        // LIFECYCLE FIX: Close every SSE opened by this page
+        openStreams.forEach(es => es.close());
+        openStreams.length = 0;
     });
 
     async function loadCampaigns() {
@@ -30,6 +38,8 @@
 
     function startStreaming(id: string) {
         const eventSource = new EventSource(`/api/v1/content/campaigns/${id}/stream`);
+        // LIFECYCLE FIX: Register so onDestroy can close it
+        openStreams.push(eventSource);
         
         eventSource.addEventListener('progress', (event) => {
             const update = JSON.parse(event.data);
@@ -42,9 +52,9 @@
         eventSource.onerror = (e) => {
             console.error(`SSE Error for ${id}:`, e);
             eventSource.close();
+            const i = openStreams.indexOf(eventSource);
+            if (i !== -1) openStreams.splice(i, 1);
         };
-
-        return () => eventSource.close();
     }
 </script>
 

@@ -20,10 +20,12 @@ export class VuiStreamManager {
       stopRecording: () => void;
       onTTSFinished: () => void;
       speak: (text: string) => Promise<void>;
+      hasSpoken: () => boolean;
     }
   ) {}
 
-  public async handleWsMessage(data: any, hasSpoken: boolean) {
+  public async handleWsMessage(data: any) {
+    const hasSpoken = this.callbacks.hasSpoken();
     console.debug(`[VUI] WS Incoming:`, data);
     const text = (data?.text || data?.transcript || "").trim();
     if (data?.tier) vuiState.setActiveTier(data.tier);
@@ -68,13 +70,20 @@ export class VuiStreamManager {
       cleanedText = firstHalf;
     }
 
-    this.clearSttGuard();
-    this.callbacks.stopRecording();
-
-    if (!hasSpoken || text.trim().length < 1) {
-      this.callbacks.interruptAll();
+    if (!hasSpoken || cleanedText.trim().length < 1) {
+      // If VAD hasn't detected speech or text is empty, ignore it but don't close.
+      // E.g., Whisper hallucinates "..." on mic open noise.
       return;
     }
+
+    // Ignore hallucinated dot-only sequences entirely even after speech
+    if (cleanedText.replace(/\./g, "").trim().length === 0) {
+      console.warn("[VUI] Dropped hallucinated dots:", cleanedText);
+      return;
+    }
+
+    this.clearSttGuard();
+    this.callbacks.stopRecording();
     
     vuiState.setTranscript(cleanedText);
     vuiState.setPhase("thinking");

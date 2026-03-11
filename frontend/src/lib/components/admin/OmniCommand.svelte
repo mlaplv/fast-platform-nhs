@@ -71,19 +71,26 @@
         onclick={vuiState.cmdBuffer
           ? () => executeCommand()
           : () => {
-              if (nanobot.isVuiActive) {
-                nanobot.interruptAll();
-                nanobot.resetVui();
+              if (vuiState.phase === 'listening') {
+                // Clicking while listening means "Stop and process"
+                nanobot.stopRecording();
+              } else if (nanobot.isVuiActive) {
+                // If it's active but stuck (thinking/error/speaking), click means "Retry/New Query"
+                playTick();
+                nanobot.startRecording();
               } else {
+                // Just starting
                 playTick();
                 nanobot.startRecording();
               }
             }}
         class="p-2 mr-1 flex items-center justify-center transition-all {vuiState.cmdBuffer
           ? 'text-black bg-white rounded-full'
-          : nanobot.isVuiActive
+          : vuiState.phase === 'listening'
             ? 'text-red-500 animate-pulse'
-            : 'text-gray-500 hover:text-white'}"
+            : nanobot.isVuiActive
+              ? 'text-white/80'
+              : 'text-gray-500 hover:text-white'}"
       >
         {#if vuiState.cmdBuffer}
           <ArrowUp size={18} strokeWidth={2.5} />

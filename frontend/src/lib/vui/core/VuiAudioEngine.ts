@@ -131,6 +131,44 @@ export class VuiAudioEngine {
   }
 
   /**
+   * Play system notification sounds (Mic Beeps)
+   * Using Web Audio API to avoid external asset dependency (Rule 1.3)
+   */
+  playSystemSound(type: 'start' | 'stop') {
+    try {
+      const AC = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AC();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      // GPT-style Beep: Short, soft, high-pitched
+      if (type === 'start') {
+        osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.1);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.1);
+      } else {
+        osc.frequency.setValueAtTime(440, ctx.currentTime); // A4
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.15);
+      }
+
+      // Cleanup context
+      setTimeout(() => ctx.close(), 500);
+    } catch (e) {
+      console.warn("[AudioEngine] System sound failed", e);
+    }
+  }
+
+  /**
    * Decoupled audio interruption to prevent memory leaks (Rule 1.3)
    */
   private interruptAudio() {

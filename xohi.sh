@@ -13,23 +13,51 @@ CYAN='\033[0;36m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Password Automation
+export SUDO_PASS="983211"
+
 # Helper: Deep Clean function
 function deep_clean() {
-    echo -e "${CYAN}[CLEAN] Đang dọn dẹp rác hệ thống...${NC}"
-    
-    echo -e "${YELLOW}-> Đang xóa Frontend rác (node_modules, build caches)...${NC}"
-    sudo rm -rf frontend/node_modules frontend/dist frontend/.svelte-kit frontend/.vite
-    
-    echo -e "${YELLOW}-> Đang xóa Backend rác (.venv, pytest caches)...${NC}"
-    sudo rm -rf .venv .pytest_cache backend/.pytest_cache
-    
-    echo -e "${YELLOW}-> Đang xóa Python caches (__pycache__)...${NC}"
-    sudo find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-    
-    echo -e "${YELLOW}-> Đang xóa Lock files & Logs (.DS_Store)...${NC}"
-    sudo find . -maxdepth 3 -type f \( -name "pnpm-lock.yaml" -o -name "package-lock.json" -o -name "yarn.lock" -o -name "*.log" -o -name ".DS_Store" \) -delete 2>/dev/null || true
-    
-    echo -e "${GREEN}[OK] Đã dọn dẹp môi trường sạch bóng!${NC}"
+    echo -e "${CYAN}[CLEAN] Đang dọn dẹp hệ thống (Code artifacts)...${NC}"
+    echo -e "${GREEN}[SAFE] Giữ lại: .env, certs/, .git/${NC}"
+
+    # === FRONTEND CLEANUP ===
+    echo -e "${YELLOW}-> [1/5] Đang xóa Frontend rác (node_modules, .pnpm-store, build caches)...${NC}"
+    rm -rf frontend/node_modules frontend/dist frontend/.svelte-kit frontend/.vite
+    rm -rf frontend/.pnpm-store
+
+    # === BACKEND CLEANUP ===
+    echo -e "${YELLOW}-> [2/5] Đang xóa Backend rác (.venv, pytest caches)...${NC}"
+    rm -rf .venv .pytest_cache backend/.pytest_cache
+
+    # === PYTHON CACHES ===
+    echo -e "${YELLOW}-> [3/5] Đang xóa Python caches (__pycache__)...${NC}"
+    find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
+    # === LOCK FILES, LOGS, OS JUNK ===
+    echo -e "${YELLOW}-> [4/5] Đang xóa Lock files, Logs, .DS_Store...${NC}"
+    rm -f uv.lock vad.slice kehoach.txt
+    find . -maxdepth 3 -type f \( -name "pnpm-lock.yaml" -o -name "package-lock.json" -o -name "yarn.lock" -o -name "*.log" -o -name ".DS_Store" \) -delete 2>/dev/null || true
+
+    # === ORPHAN EMPTY DIRS ===
+    echo -e "${YELLOW}-> [5/5] Đang xóa thư mục rỗng...${NC}"
+    rm -rf static
+    find . -maxdepth 3 -type d -empty -not -path './.git/*' -not -path './certs/*' -delete 2>/dev/null || true
+
+    echo -e "${GREEN}[OK] Đã dọn dẹp Code artifacts sạch bóng!${NC}"
+}
+
+function hard_reset_docker() {
+    echo -e "${CYAN}[CLEAN] Đang reset TOÀN BỘ Docker (như mới cài)...${NC}"
+    docker compose down --remove-orphans 2>/dev/null || true
+    docker stop $(docker ps -aq) 2>/dev/null || true
+    docker rm -f $(docker ps -aq) 2>/dev/null || true
+    docker rmi -f $(docker images -aq) 2>/dev/null || true
+    docker volume rm -f $(docker volume ls -q) 2>/dev/null || true
+    docker network rm $(docker network ls -q --filter "type=custom") 2>/dev/null || true
+    docker system prune -af --volumes 2>/dev/null || true
+    docker builder prune -af 2>/dev/null || true
+    echo -e "${GREEN}   ✔ Docker đã reset như mới cài!${NC}"
 }
 
 # Helper: Dependency Check
@@ -168,6 +196,7 @@ while true; do
             start_dev
             ;;
         3)
+            hard_reset_docker
             deep_clean
             read -p "Nhấn Enter để tiếp tục..."
             ;;

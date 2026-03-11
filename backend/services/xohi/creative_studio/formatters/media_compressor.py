@@ -88,8 +88,6 @@ class MediaCompressor:
         
         for i, path in enumerate(local_assets):
             placeholder = f"[IMAGE_{i+1}]"
-            alt_text = gold_metadata.get("primary_keyword", "Content Factory V62")
-            img_tag = f'<img src="{path}" alt="{alt_text}" class="v62-localized-asset" />'
-            final_html = final_html.replace(placeholder, img_tag)
+            final_html = final_html.replace(placeholder, path)
             
         return f"<article class='xohi-v62-article'>{final_html}</article>"

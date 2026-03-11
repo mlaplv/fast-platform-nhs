@@ -11,26 +11,25 @@ export const VUI_CONFIG = {
     TTS_STREAM: "/api/v1/tts/stream",
   },
 
-  // Voice Activity Detection (VAD)
+  // Silero VAD (Neural Voice Activity Detection)
   VAD: {
-    SILENCE_THRESHOLD: 0.015,   // Tăng từ 0.010 lên 0.015 để bớt nhạy cảm với tiếng ồn (Phase 61/71)
-    SILENCE_DURATION_MS: 400,  // C.T.O Fix: Giảm từ 600ms xuống cực hạn 400ms để bắt câu ngay tắp lự
-    INITIAL_TIMEOUT_MS: 7000,  
-    SPEECH_CONFIRM_MS: 100,    
-    STT_GUARD_TIMEOUT_MS: 20000, 
-    MAX_RECORDING_DURATION_MS: 15000, // Chốt chặn 15s tự động ngắt nếu quá ồn (Phase 71)
+    THRESHOLD: 0.5,              // Xác suất tối thiểu để xác nhận tiếng người (0.0 - 1.0)
+    MIN_SPEECH_MS: 250,          // Thời gian nói tối thiểu (ms) để xác nhận "đang nói"
+    REDEMPTION_MS: 600,          // Thời gian im lặng (ms) trước khi kết luận "ngừng nói"
+    PRE_SPEECH_PAD_MS: 100,      // Thời gian đệm (ms) phía trước giọng nói
+    INITIAL_TIMEOUT_MS: 7000,    // C.T.O Fix: Chờ 7s nếu chưa có giọng nói
+    STT_GUARD_TIMEOUT_MS: 15000, // Safety: Timeout nếu STT không trả kết quả
+    MAX_RECORDING_DURATION_MS: 30000, // Nâng lên 30s vì VAD đã lọc sạch tiếng ồn
   },
 
   // Microphone
   MIC: {
     CHUNK_DURATION_MS: 500,
-    BOOT_IGNORE_MS: 200, // Phase 56: Ignore initial pop
   },
 
   // LLM / STT
   NEURAL: {
     ECHO_FILTERS: ["ngữ cảnh quản trị", "SmartShop", "chuỗi rỗng"],
-    STT_FEEDBACK_DOTS: "",
     FALLBACK_ERROR_VOICE: "Dạ vâng Sếp, đường truyền đang gặp sự cố, em xin lỗi Sếp và đã khởi động lại hệ thống ạ.",
   },
 
@@ -45,7 +44,7 @@ export const VUI_CONFIG = {
     ACTION_WAIT_TIMEOUT_MS: 1000, 
     POLITE_FALLBACK: "Dạ vâng Sếp, em đã sẵn sàng thưa Sếp.",
     PHASE_LABELS: {
-      listening: "Đang lắng nghe...",
+      listening: "Start talking",
       thinking: "Đang xử lý...",
       executing: "Đang thực thi...",
       speaking: "",

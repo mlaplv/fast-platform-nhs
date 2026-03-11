@@ -335,6 +335,15 @@ class ContentOrchestrator:
                 return
 
             campaign = await campaign_repo.get(campaign_id)
+            
+            # Preserve agent data
+            if response.data:
+                if step == 4:
+                    campaign.draft_content = response.data.get("content", campaign.draft_content)
+                elif step == 5:
+                    campaign.unique_score = response.data.get("score", campaign.unique_score)
+                    campaign.plagiarism_data = response.data
+
             if step < 6:
                 campaign.status = "WAITING_FOR_REVIEW"
                 if step == 2: campaign.search_count = (campaign.search_count or 0) + 1
@@ -347,8 +356,10 @@ class ContentOrchestrator:
             if step == 1: payload["data"]["keywords"] = campaign.topic_data
             elif step == 2: payload["data"]["assets"] = campaign.assets_data
             elif step == 3: payload["data"]["outline"] = campaign.outline_data
-            elif step == 4: payload["data"]["preview"] = (campaign.draft_content or "")[:100]
-            elif step == 5: payload["data"]["unique_score"] = campaign.unique_score
+            elif step == 4: payload["data"]["draft_content"] = campaign.draft_content or ""
+            elif step == 5: 
+                payload["data"]["unique_score"] = campaign.unique_score
+                payload["data"]["plagiarism"] = campaign.plagiarism_data
 
             await event_bus.emit("CONTENT_STEP_COMPLETED", payload)
             
@@ -383,9 +394,19 @@ class ContentOrchestrator:
 
         if approved:
             if edited_data:
-                if step == 1: campaign.topic_data = edited_data
-                elif step == 3: campaign.outline_data = edited_data
-                elif step == 4: campaign.draft_content = edited_data.get("content", campaign.draft_content)
+                if step == 1: 
+                    campaign.topic_data = edited_data
+                elif step == 3: 
+                    # If it's HTML from the editor, store it as the draft_content base for step 4
+                    if isinstance(edited_data, dict) and "html" in edited_data:
+                        campaign.draft_content = edited_data["html"]
+                    else:
+                        campaign.outline_data = edited_data
+                elif step == 4: 
+                    # Support both 'content' and 'html' (from RichTextEditor)
+                    new_content = edited_data.get("html") or edited_data.get("content")
+                    if new_content:
+                        campaign.draft_content = new_content
 
             if step == 2:
                 if "assets" in data and data["assets"] is not None:
@@ -460,6 +481,14 @@ class ContentOrchestrator:
         keywords = data.get("keywords")
         if keywords is not None:
             campaign.topic_data = keywords
+
+        outline = data.get("outline_data")
+        if outline is not None:
+            campaign.outline_data = outline
+
+        draft = data.get("draft_content")
+        if draft is not None:
+            campaign.draft_content = draft
 
         avatar = data.get("avatar")
         selected_index = data.get("selected_index")

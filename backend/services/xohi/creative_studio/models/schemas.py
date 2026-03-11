@@ -19,6 +19,7 @@ class TopicSeed(BaseModel):
     primary_keyword: str = Field(description="Từ khóa chính quan trọng nhất")
     secondary_keywords: List[str] = Field(description="Danh sách 3-5 từ khóa phụ bổ trợ")
     persona: str = Field(description="Mô tả phong cách viết bài (e.g. trẻ trung, chuyên gia)")
+    description: str = Field(description="Mô tả tóm tắt chuẩn SEO cho bài viết (Meta Description)")
     
     model_config = ConfigDict(strict=True) # R105: Security against Data Poisoning
 

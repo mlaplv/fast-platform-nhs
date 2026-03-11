@@ -29,8 +29,7 @@ HALLUCINATION_BLACKLIST = [
     "chào các bạn", "hẹn gặp lại", "phimmoichill", "website chính thức",
     "liên hệ với chúng tôi", "tạm biệt", "video", "youtube", "mọi người",
     "ủng hộ", "bình luận", "zalo", "facebook", "website", "chào mừng",
-    "theo dõi chúng tôi", "đừng quên", "nhấn chuông", "thông báo",
-    "tập trung vào ngữ cảnh", "cảm ơn", "cảm ơn bạn", "...", "dạ"
+    "tập trung vào ngữ cảnh", "cảm ơn", "cảm ơn bạn", "...", "..", "....", "dạ"
 ]
 
 

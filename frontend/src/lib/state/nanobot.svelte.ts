@@ -222,11 +222,17 @@ export function createNanobotState() {
               );
               
               if (latestLog && JSON.stringify(latestLog.data) !== JSON.stringify(voice.vuiResponse.data)) {
+                // R82.10.1: Identity Anchor — Ensure category is preserved even in slim logs
+                const richData = { 
+                  category: "CONTENT_CREATE", // Force anchor
+                  ...(latestLog.data as any) 
+                };
+                
                 voice.setVoiceResult(
                   voice.vuiUserQuery,
                   voice.vuiResponse.text,
                   (latestLog.data as any).action || "CONTENT_CREATE",
-                  latestLog.data as any,
+                  richData,
                   "voice",
                   voice.routerTier
                 );

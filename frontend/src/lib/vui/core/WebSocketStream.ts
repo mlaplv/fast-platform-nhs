@@ -66,7 +66,7 @@ export class WebSocketStream {
   sendBinary(chunk: Blob) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       if (chunk.size > 0) {
-        console.log(`[WS] Sending binary chunk: ${chunk.size} bytes`);
+        console.debug(`[WS] Sending binary chunk: ${chunk.size} bytes`);
         this.ws.send(chunk);
       }
     } else if (this.ws) {
@@ -80,7 +80,6 @@ export class WebSocketStream {
   sendStopSignal() {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       try {
-        console.log("[WS] Sending STOP signal");
         this.ws.send("STOP");
       } catch (e) {
         console.error("[WS] Failed to send STOP signal", e);

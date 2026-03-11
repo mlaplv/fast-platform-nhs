@@ -73,3 +73,18 @@ export interface Product {
     type: string;
     createdAt: string;
 }
+
+export interface EditorAnnotation {
+  text: string;         // Exact text to find and highlight in the editor
+  type: string;         // 'copyright' | 'seo-error' | 'seo-warning' | 'seo-info' | specific type
+  message: string;      // Vietnamese tooltip text
+  source?: string;      // URL (for copyright)
+  severity: string;     // 'low' | 'medium' | 'high' | 'info' | 'warning' | 'error'
+}
+
+export interface ToolbarAction {
+  label: string;
+  loading?: boolean;
+  onclick: () => void | Promise<void>;
+}
+
