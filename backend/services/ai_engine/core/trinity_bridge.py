@@ -1,5 +1,6 @@
 import logging
 import os
+from contextlib import asynccontextmanager
 from pydantic_ai import Agent
 from pydantic_ai.models.gemini import GeminiModel
 from backend.services.ai_engine.core.key_rotator import SmartKeyRotator
@@ -127,5 +128,66 @@ class TrinityBridge:
             models_to_try[-1] if models_to_try else "N/A",
             max_keys - 1
         )
+
+    @asynccontextmanager
+    async def run_stream(self, agent: Agent, prompt: str, **kwargs):
+        """
+        Streaming version of run().
+        V63.1: Supports full key rotation for streaming agents.
+        """
+        requested_model = kwargs.pop("model", None)
+        models_to_try = []
+        if requested_model: models_to_try.append(requested_model)
+            
+        sticky_model = None
+        if self.rotator._use_redis:
+            try: sticky_model = await self.rotator.client.get(self.success_model_key)
+            except Exception: pass
+            
+        if sticky_model and sticky_model not in models_to_try: models_to_try.append(sticky_model)
+        if self.default_model_name not in models_to_try: models_to_try.append(self.default_model_name)
+        if self.fallback_model_name and self.fallback_model_name not in models_to_try: models_to_try.append(self.fallback_model_name)
+            
+        max_keys = max(1, self.rotator.get_count())
+        import asyncio
+        last_error = None
+
+        for model_name in models_to_try:
+            for attempt in range(max_keys):
+                key = await self.rotator.get_key()
+                os.environ["GOOGLE_API_KEY"] = key
+                os.environ["GEMINI_API_KEY"] = key 
+                model = GeminiModel(model_name)
+                
+                try:
+                    logger.info(f"[TrinityBridge][Stream] {model_name} (Attempt {attempt+1}/{max_keys})...")
+                    async with agent.run_stream(prompt, model=model, **kwargs) as stream:
+                        yield stream
+                        
+                    # Store SUCCESS state (Sticky)
+                    await self.rotator.set_success(key)
+                    if self.rotator._use_redis:
+                        await self.rotator.client.set(self.success_model_key, model_name)
+                    return
+                    
+                except Exception as e:
+                    last_error = e
+                    error_str = str(e).lower()
+                    
+                    if any(p in error_str for p in ["context_length_exceeded", "too many tokens", "safety", "blocked", "invalid_argument", "400"]):
+                        if not ("api key not valid" in error_str or "invalid_key" in error_str):
+                            logger.error(f"[TrinityBridge][Stream] Non-rotatable error for {model_name}: {e}")
+                            raise AIConfigurationError(f"AI Fail-Fast: {str(e)}", model_name, attempt)
+
+                    if any(p in error_str for p in ["429", "quota", "rate limit", "timeout", "unavailable", "503", "500"]):
+                        logger.warning(f"[TrinityBridge][Stream] Retriable error for {model_name}. Rotating key...")
+                        await self.rotator.mark_unhealthy(key)
+                        await asyncio.sleep(0.5)
+                        continue
+                        
+                    logger.error(f"[TrinityBridge][Stream] Unknown AI Error: {e}")
+                    continue
+
+        raise AIConfigurationError(f"Tất cả Model/Key đã cạn kiệt cho Stream. Lỗi cuối: {str(last_error)}")
 
 trinity_bridge = TrinityBridge()

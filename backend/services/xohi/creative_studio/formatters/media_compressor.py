@@ -33,7 +33,7 @@ class MediaCompressor:
         return AgentResponse(
             signal=AgentSignal.PROCEED_NEXT,
             message="Media localized and compressed successfully.",
-            data={"assets": local_assets}
+            data={"assets": local_assets, "final_html": final_html}
         )
 
     async def localize_assets(self, campaign: ContentCampaign) -> List[str]:

@@ -284,7 +284,7 @@ async def lifespan(app: Litestar):
 # ==========================================
 memory_store = MemoryStore()
 
-global_limit = int(os.getenv("RATE_LIMIT_GLOBAL_MINUTE", "200"))
+global_limit = int(os.getenv("RATE_LIMIT_GLOBAL_MINUTE", "1000"))
 
 rate_limit_config = RateLimitConfig(
     rate_limit=("minute", global_limit),

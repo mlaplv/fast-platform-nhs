@@ -53,8 +53,8 @@ class ContentOrchestrator:
         registry.register(2, self.hunter)
         registry.register(3, self.pen)
         registry.register(4, self.pen) # CreativePen handles 3 and 4
-        registry.register(5, self.cop)
-        registry.register(6, self.media)
+        # Step 5 is now the Final Publishing/Media Localization step
+        registry.register(5, self.media)
         
         logger.info("[Content Factory] V61.0 Orchestrator initialized with DI & Registry.")
 
@@ -80,6 +80,9 @@ class ContentOrchestrator:
 
     async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: str = None, tenant_id: str = "default") -> Optional[ContentCampaign]:
         """Find the most recent campaign that is either processing or waiting for review."""
+        if user_id == "undefined" or not user_id:
+            user_id = None
+
         results = await campaign_repo.list(
             LimitOffset(limit=5, offset=0),
             order_by=[("created_at", "desc")],
@@ -114,6 +117,10 @@ class ContentOrchestrator:
         Entry point khi sếp nói "viết bài" qua Voice/Text.
         R86: Tạo campaign trong DB TRƯỚC → gọi AI sinh keywords → lưu → trả response.
         """
+        # Rule R86.1: Sanitize user_id (Prevent 'undefined' string from breaking FK constraints)
+        if user_id == "undefined" or not user_id:
+            user_id = None
+
         if campaign_repo is None:
             logger.error("[Content Factory] campaign_repo is strictly None — cannot persist.")
             return IntentResponse(
@@ -234,6 +241,15 @@ class ContentOrchestrator:
             import traceback
             error_details = traceback.format_exc()
             logger.error(f"[Content Factory] handle_voice_request CRASH: {e}\n{error_details}")
+            
+            # Rule R109: Emergency Rollback to prevent dirty session IntegrityErrors on next request
+            if campaign_repo and hasattr(campaign_repo, "session"):
+                try:
+                    await campaign_repo.session.rollback()
+                    logger.info("[Content Factory] Session rolled back after crash.")
+                except Exception as rb_err:
+                    logger.error(f"[Content Factory] Rollback failed: {rb_err}")
+
             return IntentResponse(
                 status="success", action=IntentAction.CONTENT_CREATE,
                 message=f"Dạ sếp, có lỗi hệ thống: {str(e)}. Sếp thử lại sau chút nhé!",
@@ -277,8 +293,7 @@ class ContentOrchestrator:
                 2: "🔍 Hệ thống AssetHunt đang tìm ảnh...",
                 3: "📝 Lập dàn ý bài viết...",
                 4: "🖋️ AI đang chấp bút bản thảo...",
-                5: "🛡️ Đang kiểm tra đạo văn...",
-                6: "📦 Đóng gói sản phẩm cuối cùng..."
+                5: "📦 Đóng gói sản phẩm cuối cùng..."
             }
             await self._emit_progress(campaign_id, step, messages.get(step, "Đang xử lý..."), user_id=campaign.user_id)
             
@@ -338,13 +353,20 @@ class ContentOrchestrator:
             
             # Preserve agent data
             if response.data:
-                if step == 4:
+                if step == 1:
+                    campaign.topic_data = response.data
+                elif step == 2:
+                    # AssetHunter returns list of strings directly or in 'assets' key
+                    campaign.assets_data = response.data.get("assets", response.data) if isinstance(response.data, dict) else response.data
+                elif step == 3:
+                    campaign.outline_data = response.data
+                elif step == 4:
                     campaign.draft_content = response.data.get("content", campaign.draft_content)
                 elif step == 5:
-                    campaign.unique_score = response.data.get("score", campaign.unique_score)
-                    campaign.plagiarism_data = response.data
+                    campaign.final_html = response.data.get("final_html", campaign.final_html)
+                    campaign.assets_data = response.data.get("assets", campaign.assets_data)
 
-            if step < 6:
+            if step < 5:
                 campaign.status = "WAITING_FOR_REVIEW"
                 if step == 2: campaign.search_count = (campaign.search_count or 0) + 1
             else:
@@ -358,8 +380,8 @@ class ContentOrchestrator:
             elif step == 3: payload["data"]["outline"] = campaign.outline_data
             elif step == 4: payload["data"]["draft_content"] = campaign.draft_content or ""
             elif step == 5: 
-                payload["data"]["unique_score"] = campaign.unique_score
-                payload["data"]["plagiarism"] = campaign.plagiarism_data
+                payload["data"]["assets"] = campaign.assets_data
+                payload["data"]["final_html"] = campaign.final_html
 
             await event_bus.emit("CONTENT_STEP_COMPLETED", payload)
             

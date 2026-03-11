@@ -12,8 +12,7 @@
         2: { title: 'Duyệt Assets (Images)', key: 'assets_data' },
         3: { title: 'Duyệt Outline', key: 'outline_data' },
         4: { title: 'Duyệt Draft Content', key: 'draft_content' },
-        5: { title: 'Duyệt Uniqueness', key: 'unique_score' },
-        6: { title: 'Duyệt Format cuối', key: 'final_html' }
+        5: { title: 'Xuất bản & Media', key: 'final_html' }
     }[stepId] || { title: 'Review', key: '' });
 
     onMount(() => {

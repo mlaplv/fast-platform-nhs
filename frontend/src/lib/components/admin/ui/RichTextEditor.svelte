@@ -590,7 +590,8 @@
       {#if assets && assets.length > 0}
          <div class="text-[10px] uppercase font-bold text-blue-400 mb-2 tracking-wider">Chọn từ Kho Ảnh </div>
          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-4 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
-            {#each assets.filter(a => a && typeof a === 'string') as assetUrl}
+            {#each assets.filter(a => a) as asset}
+              {@const assetUrl = typeof asset === 'string' ? asset : (asset.url || asset.link)}
               {@const fullUrl = assetUrl.startsWith('http') || assetUrl.startsWith('data:') ? assetUrl : (assetUrl.startsWith('/') ? assetUrl : '/storage/' + assetUrl)}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->

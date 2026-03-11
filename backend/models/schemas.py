@@ -31,7 +31,6 @@ class ContentCampaign(BaseModel):
     assets_data: Optional[List[Any]] = []
     outline_data: Optional[Dict[str, Any]] = {}
     draft_content: Optional[str] = None
-    unique_score: float = 0.0
     search_count: int = 0
     created_at: datetime = Field(default_factory=datetime.now)
 

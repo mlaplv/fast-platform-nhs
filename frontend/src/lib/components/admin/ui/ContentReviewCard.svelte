@@ -19,6 +19,7 @@
     BarChart2,
     ShieldAlert,
     Edit3,
+    Rocket,
     Link as LinkIcon
   } from "lucide-svelte";
   import RichTextEditor from "./RichTextEditor.svelte";
@@ -51,6 +52,27 @@
     step = incomingStep;
     status = incomingStatus;
     progress_msg = incomingProgressMsg;
+    
+    // Rule R82.10: Reactive UI Sync — Update local state from props if not editing
+    if (!isEditing) {
+       if (JSON.stringify(incomingKeywords) !== JSON.stringify(keywords)) {
+         keywords = { ...incomingKeywords };
+       }
+       if (incomingAssets && incomingAssets.length > 0 && JSON.stringify(incomingAssets) !== JSON.stringify(assets)) {
+         assets = [...incomingAssets];
+       }
+       if (incomingOutline && JSON.stringify(incomingOutline) !== JSON.stringify(outline)) {
+         outline = { ...incomingOutline };
+         // R82.41: Final Step Data Sync — Convert JSON outline to displayable HTML
+         if (step === 3 && !draft_content && outline.sections?.length > 0) {
+           draft_content = `<h2>${outline.title || "Dàn ý"}</h2>\n` + 
+             (outline.sections as any[]).map((s: any) => `<h3>${s.heading}</h3><p>${s.content}</p>`).join("\n");
+         }
+       }
+       if (incomingDraftContent && incomingDraftContent !== draft_content) {
+         draft_content = incomingDraftContent;
+       }
+    }
   });
   
   // keywords is an object like { title: "...", primary_keyword: "...", secondary_keywords: [...] }
@@ -71,9 +93,7 @@
   let isHydrating = $state(false);
   let hasHydrated = $state(false);
   let viewingStep = $state(untrack(() => step));
-  let showContext = $state(false);
-  let isEditingSidebarKeywords = $state(false);
-  let uniqueScore = $state(0);
+  let lastStep = $state(untrack(() => step));
   let finalHtml = $state("");
 
   // ── Step 4 Content Studio State ──
@@ -220,19 +240,17 @@
 
   // Editor ref (used by Auto-Fix to apply text replacements)
   let editorRef = $state<any>(null);
-  
-  // Auto-expand context if we are in Step 3/4 and it's the first visit
-  $effect(() => {
-     if (step >= 3 && !hasHydrated) {
-        showContext = true;
-     }
-  });
 
   $effect(() => {
-    // Only advance viewingStep if it exactly equals step - 1 (meaning step just incremented)
-    // This allows users to manually navigate back by setting viewingStep < step via buttons
-    if (step > viewingStep + 1) {
+    // Auto-advance viewingStep if the underlying campaign step progresses forward.
+    // This still allows users to manually navigate back (viewingStep < step).
+    if (step > lastStep) {
       viewingStep = step;
+      lastStep = step;
+    } else if (step < lastStep) {
+      // Handle back-tracking (e.g., Step 5 failed, went back to Step 4)
+      viewingStep = step;
+      lastStep = step;
     }
   });
 
@@ -299,7 +317,7 @@
         outline = { ...(c.outline_data || { sections: [] }) };
         editedOutline = { sections: [...(outline.sections || [])] };
         draft_content = c.draft_content || "";
-        uniqueScore = c.unique_score || 0;
+        // uniqueScore removed as obsolete
         finalHtml = c.final_html || "";
         
         // Convert Step 3 JSON outline into HTML for the RichTextEditor
@@ -396,9 +414,7 @@
 
       // Sync unique_score, final_html, and draft_content from inbound data props
       const incomingData = nanobot.vuiResponse?.data;
-      if (incomingData?.unique_score !== undefined) {
-        uniqueScore = incomingData.unique_score;
-      }
+      // uniqueScore removed as obsolete
       if (incomingData?.plagiarism) {
         copyrightResult = incomingData.plagiarism;
       }
@@ -524,10 +540,10 @@
     if (isPublishing) return;
     isPublishing = true;
     try {
-      // Step 6: Finalize campaign and "Publish"
+      // Step 5: Finalize campaign and "Publish"
       const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/approve`, {
         approved: true,
-        step: 6
+        step: 5
       });
       if (res) {
         vuiController.addMessage("🚀 BÀI VIẾT ĐÃ ĐƯỢC XUẤT BẢN THÀNH CÔNG!", "success");
@@ -553,7 +569,7 @@
     draft_content = "";
     assets = [];
     outline = { title: "", sections: [] };
-    uniqueScore = 0;
+    // uniqueScore reset removed
     finalHtml = "";
 
     // Capture VUI focus for CURRENT step (Rule R81/R82.20)
@@ -741,8 +757,7 @@
           {:else if viewingStep === 2}Asset Hunting
           {:else if viewingStep === 3}Content Outline
           {:else if viewingStep === 4}Drafting
-          {:else if viewingStep === 5}Plagiarism Audit
-          {:else}Finalization
+          {:else if viewingStep === 5}Website Publisher
           {/if}
         </span>
       </div>
@@ -770,17 +785,6 @@
         {/if}
       </button>
 
-      {#if step > 1}
-      <button
-        onclick={() => showContext = !showContext}
-        class="flex items-center gap-2 px-3 py-1.5 rounded-lg {showContext ? 'bg-blue-500 text-white' : 'bg-white/5 text-white/40 hover:text-white'} border border-white/5 transition-all duration-300"
-        title="Toggle Context Panel (Review previous steps)"
-      >
-        <MessageSquare size={14} />
-        <span class="text-[10px] font-black uppercase tracking-wider">Context</span>
-      </button>
-      {/if}
-
     {#if status === "WAITING_FOR_REVIEW" && (viewingStep === 1 || viewingStep === 3 || viewingStep === 4)}
       <button
         onclick={toggleEdit}
@@ -795,23 +799,65 @@
         {/if}
       </button>
       {/if}
+    </div> <!-- Closes div.flex.items-center.gap-2 (Action Area) -->
+  </div> <!-- Closes div.flex.items-center.justify-between (Header Bar) -->
+
+  <!-- Phase Navigation Timeline (Viral 2026 - Premium Connected Chain) -->
+  {#if step > 1}
+  <div class="mb-12 px-6 relative z-10 w-full max-w-5xl mx-auto">
+    <div class="relative z-10 flex items-start">
+      {#each [
+        { s: 1, icon: Sparkles, label: "Ý tưởng", desc: "Brainstorming" },
+        { s: 2, icon: ImageIcon, label: "Hình ảnh", desc: "Asset Hunt" },
+        { s: 3, icon: FileText, label: "Dàn bài", desc: "Architecture" },
+        { s: 4, icon: FileText, label: "Nội dung", desc: "Creative Pen" },
+        { s: 5, icon: Rocket, label: "Xuất bản", desc: "Publisher" }
+      ] as phase, i}
+        {@const isPast = phase.s < viewingStep}
+        {@const isCurrent = phase.s === viewingStep}
+        {@const isFuture = phase.s > viewingStep}
+        {@const isUnlocked = phase.s <= step}
+        
+        <button
+          disabled={!isUnlocked}
+          onclick={() => { viewingStep = phase.s; isEditing = false; }}
+          class="group flex flex-col items-center gap-3 relative disabled:cursor-not-allowed outline-none shrink-0"
+        >
+          <div class="relative">
+            <div class="absolute -inset-2 rounded-full blur-xl transition-opacity duration-700 {isCurrent ? 'bg-blue-500/40 opacity-100' : 'bg-transparent opacity-0'}"></div>
+            <div class="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-700 border backdrop-blur-xl relative z-10 {isCurrent ? 'bg-blue-600/90 border-blue-400 text-white shadow-[0_0_30px_rgba(59,130,246,0.5)] scale-110' : isPast ? 'bg-blue-900/60 border-blue-500/50 text-blue-200 cursor-pointer hover:bg-blue-800/80 shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'bg-white/5 border-white/10 text-white/20'} {!isFuture && isUnlocked ? 'hover:scale-110 active:scale-95' : ''}">
+              {#if isCurrent}
+                 <div class="absolute inset-0 rounded-full bg-blue-400/20 animate-ping"></div>
+                 <div class="absolute -inset-1 rounded-full border border-blue-400/20 animate-pulse"></div>
+              {/if}
+              {#if isPast}
+                 <Check size={20} strokeWidth={3} class="animate-in zoom-in spin-in-12 duration-500" />
+              {:else}
+                 <phase.icon size={isCurrent ? 22 : 18} strokeWidth={isCurrent ? 2.5 : 2} class="relative z-10 transition-all duration-500 {isCurrent ? 'rotate-[10deg]' : 'opacity-80'}" />
+              {/if}
+            </div>
+            <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full transition-all duration-500 {isCurrent ? 'bg-blue-400 shadow-[0_0_10px_#60a5fa] scale-100' : 'bg-transparent scale-0'}"></div>
+          </div>
+
+          <div class="flex flex-col items-center transition-all duration-500 {isCurrent ? 'translate-y-1' : ''}">
+            <span class="text-[9px] font-black uppercase tracking-[0.25em] transition-colors duration-500 {isCurrent ? 'text-blue-400' : isPast ? 'text-blue-300/40' : 'text-white/10'}">Step 0{phase.s}</span>
+            <span class="text-[14px] font-black tracking-wide transition-colors duration-500 mt-0.5 {isCurrent ? 'text-white' : isPast ? 'text-white/60' : 'text-white/20'}">{phase.label}</span>
+            {#if isCurrent}
+              <span class="text-[8px] font-black uppercase tracking-wider text-blue-400/50 absolute -bottom-4 animate-in fade-in slide-in-from-top-1 duration-700 whitespace-nowrap bg-blue-500/5 px-2 py-0.5 rounded-full border border-blue-500/10">{phase.desc}</span>
+            {/if}
+          </div>
+        </button>
+
+        {#if i < 4}
+           {@const isLinePast = (i + 1) < viewingStep}
+           {@const isLineCurrent = (i + 1) === viewingStep}
+           <div class="flex-1 h-[2px] mt-6 -translate-y-1/2 mx-2 transition-all duration-700 {isLinePast ? 'bg-gradient-to-r from-blue-600 to-cyan-400 shadow-[0_0_10px_rgba(37,99,235,0.4)]' : isLineCurrent ? 'bg-gradient-to-r from-blue-600 to-white/10' : 'bg-white/5'} rounded-full"></div>
+        {/if}
+      {/each}
     </div>
   </div>
-
-  <!-- Phase Navigation Tabs -->
-  {#if step > 1}
-  <div class="flex gap-1 mb-6 p-1 bg-black/20 rounded-xl border border-white/5 w-fit relative z-10">
-    {#each Array.from({length: Math.min(step, 5)}, (_, i) => i + 1) as s}
-      <button
-        onclick={() => { viewingStep = s; isEditing = false; }}
-        class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all
-          {viewingStep === s ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-white/40 hover:text-white/70 hover:bg-white/5'}"
-      >
-        Step {s}
-      </button>
-    {/each}
-  </div>
   {/if}
+
 
   <div class="flex-1 flex gap-6 min-h-0 overflow-hidden relative z-10">
     <div class="flex-1 space-y-5 flex flex-col min-h-0 overflow-hidden">
@@ -874,7 +920,7 @@
             </div>
           </div>
           
-          <!-- Meta Description -->
+          <!-- Mega Description -->
           <div class="group/input">
             <label for="desc-{campaign_id}" class="text-[10px] text-white/40 uppercase font-bold mb-1.5 ml-1 block">Meta Description (SEO)</label>
             <div class="relative">
@@ -888,6 +934,26 @@
               ></textarea>
             </div>
           </div>
+
+          <!-- Category Dropdown -->
+          <div class="group/input">
+            <label for="category-{campaign_id}" class="text-[10px] text-white/40 uppercase font-bold mb-1.5 ml-1 block">Danh mục (Category)</label>
+            <div class="relative">
+              <FileText size={14} class="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" />
+              <select
+                id="category-{campaign_id}"
+                bind:value={editedKeywords.category}
+                class="w-full bg-black/20 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
+              >
+                <option value="Tin tức" class="bg-gray-900 text-white">Tin tức</option>
+                <option value="Chính sách" class="bg-gray-900 text-white">Chính sách</option>
+              </select>
+              <!-- Custom Dropdown Arrow -->
+              <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/40">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+            </div>
+          </div>
         </div>
       {:else}
         <div class="space-y-2">
@@ -896,6 +962,8 @@
           </h4>
           <p class="text-[11px] text-white/40 font-medium uppercase tracking-wider">Style: 
             <span class="text-white/70 italic">{keywords.persona || 'Chuyên gia phân tích'}</span>
+            <span class="mx-2 opacity-30">|</span> Category:
+            <span class="text-white/70 italic">{keywords.category || 'Uncategorized'}</span>
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -1370,408 +1438,132 @@
 
       </div>
 
-    <!-- STEP 5: PLAGIARISM CHECK -->
+    <!-- STEP 5: FINAL PUBLISHER (2026 Viral Design) -->
     {:else if viewingStep === 5}
-      <div class="space-y-6 flex flex-col h-full overflow-hidden">
-        <div class="flex flex-col items-center justify-center py-4 shrink-0">
-          <div class="text-center space-y-1 mb-4">
-            <p class="text-[9px] text-purple-400/60 font-black tracking-[0.4em] uppercase">Neural Shield // Uniqueness Scan</p>
-            <h5 class="text-[13px] font-black text-white uppercase tracking-[0.15em]">XÁC MINH ĐỘ ĐỘC BẢN</h5>
-          </div>
-
-          {#if isProcessing}
-            <div class="w-36 h-36 rounded-full border-4 border-white/10 flex items-center justify-center animate-pulse">
-              <p class="text-white/40 text-xs text-center font-bold px-4 tracking-widest">ĐANG PHÂN TÍCH<br/>NGỮ NGHĨA...</p>
-            </div>
-          {:else}
-            {@const pct = Math.round(uniqueScore * 100)}
-            {@const color = pct >= 85 ? '#10b981' : pct >= 70 ? '#f59e0b' : '#ef4444'}
-            {@const label = pct >= 85 ? 'ĐỘC BẢN CAO' : pct >= 70 ? 'CẦN CẢI THIỆN' : 'CẦN VIẾT LẠI'}
-            {@const circumference = 2 * Math.PI * 54}
-            <div class="relative w-36 h-36">
-              <svg class="w-full h-full -rotate-90" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8" />
-                <circle 
-                  cx="60" cy="60" r="54" fill="none" 
-                  stroke={color}
-                  stroke-width="8"
-                  stroke-dasharray={circumference}
-                  stroke-dashoffset={circumference * (1 - uniqueScore)}
-                  stroke-linecap="round"
-                  style="transition: stroke-dashoffset 1s ease-in-out; filter: drop-shadow(0 0 8px {color})"
-                />
-              </svg>
-              <div class="absolute inset-0 flex flex-col items-center justify-center">
-                <span class="text-3xl font-black" style="color: {color}">{pct}%</span>
-                <span class="text-[8px] font-black uppercase tracking-widest" style="color: {color}">{label}</span>
-              </div>
-            </div>
-          {/if}
-        </div>
-
-        <div class="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1">
-          {#if !isProcessing && copyrightResult}
-            <!-- AI Verdict -->
-            <div class="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
-              <div class="flex items-center gap-2 text-purple-400">
-                <Sparkles size={14} />
-                <span class="text-[10px] font-black uppercase tracking-wider">Nhận định của XoHi</span>
-              </div>
-              <p class="text-[12px] text-white/80 leading-relaxed font-bold italic">"{copyrightResult.verdict}"</p>
-            </div>
-
-            <!-- Flagged Sentences -->
-            {#if copyrightResult.flagged_sentences?.length > 0}
-              <div class="space-y-3">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2 text-red-400">
-                    <ShieldAlert size={14} />
-                    <span class="text-[10px] font-black uppercase tracking-wider">Đoạn văn cần lưu ý</span>
-                  </div>
-                  <button 
-                    onclick={() => { viewingStep = 4; isEditing = true; }}
-                    class="text-[9px] font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase flex items-center gap-1"
-                  >
-                    <Edit3 size={10} /> Sửa Bài Viết
-                  </button>
-                </div>
-                <div class="space-y-2">
-                  {#each copyrightResult.flagged_sentences as sentence}
-                    <div class="p-3 rounded-xl bg-red-500/5 border border-red-500/10 text-[11px] text-white/70 leading-relaxed">
-                      {typeof sentence === 'string' ? sentence : sentence.text}
-                    </div>
-                  {/each}
-                </div>
-              </div>
-            {/if}
-
-            <!-- Similar Sources -->
-            {#if copyrightResult.similar_sources?.length > 0}
-              <div class="space-y-2">
-                <div class="flex items-center gap-2 text-white/30">
-                  <LinkIcon size={14} />
-                  <span class="text-[10px] font-black uppercase tracking-wider">Nguồn tương đồng (Top Google)</span>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                  {#each copyrightResult.similar_sources as url}
-                    <a href={url} target="_blank" class="px-2 py-1 rounded-lg bg-white/5 border border-white/5 text-[9px] text-white/40 hover:text-white transition-all max-w-[200px] truncate">
-                      {url}
-                    </a>
-                  {/each}
-                </div>
-              </div>
-            {/if}
-          {:else if !isProcessing}
-            <div class="flex flex-col items-center justify-center py-12 gap-3 text-white/20">
-              <p class="text-sm italic">"Review the detailed draft below while scan is finalized..."</p>
-            </div>
-          {/if}
-
-          {#if draft_content}
-            <div class="p-4 rounded-xl bg-black/20 border border-white/5 prose prose-invert prose-sm max-w-none text-white/50 text-[12px] leading-relaxed">
-              {@html draft_content}
-            </div>
-          {/if}
-        </div>
-      </div>
-
-    <!-- STEP 6: FINAL PREVIEW & PUBLISH -->
-    {:else if viewingStep === 6}
-      <div class="space-y-4 flex-1 overflow-hidden flex flex-col">
-        <div class="flex items-center gap-3">
+      <div class="h-full flex flex-col overflow-hidden">
+        <div class="flex items-center gap-3 mb-4 shrink-0">
           <div class="w-8 h-px bg-gradient-to-r from-transparent to-green-500/50"></div>
-          <h5 class="text-[11px] font-black uppercase tracking-[0.2em] text-green-400">Final Article Preview</h5>
+          <h5 class="text-[11px] font-black uppercase tracking-[0.2em] text-green-400">Website Publisher 2026</h5>
         </div>
 
-        {#if keywords.title}
-          <div class="flex items-center gap-3 p-3 rounded-xl bg-black/20 border border-white/5 shrink-0">
-            {#if selectedAvatarUrl}
-              <img src={selectedAvatarUrl} alt="avatar" class="w-14 h-14 rounded-xl object-cover shrink-0 border border-white/10" />
-            {/if}
-            <div class="min-w-0">
-              <p class="text-sm font-bold text-white leading-snug line-clamp-2">{keywords.title}</p>
-              {#if keywords.primary_keyword}
-                <span class="mt-1 inline-block px-2 py-0.5 rounded-full bg-green-500/20 text-green-300 text-[10px] font-bold border border-green-500/20">
-                  {keywords.primary_keyword}
-                </span>
-              {/if}
-            </div>
-          </div>
-        {/if}
+        <div class="flex-1 overflow-hidden flex flex-col gap-4">
+          
+          <!-- TOP SECTION: Content & Avatar -->
+          <div class="flex-1 flex flex-col gap-4 overflow-hidden border border-white/5 bg-black/20 rounded-2xl p-4 mr-2">
+             <!-- Title & Avatar Bar -->
+             <div class="flex items-center gap-4 shrink-0">
+                {#if selectedAvatarUrl}
+                  <div class="relative group">
+                    <img src={selectedAvatarUrl} alt="avatar" class="w-16 h-16 rounded-xl object-cover shrink-0 border-2 border-white/10" />
+                    <button 
+                       onclick={() => { viewingStep = 2; isEditing = false; }}
+                       class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl"
+                    >
+                       <Edit2 size={12} class="text-white" />
+                    </button>
+                  </div>
+                {/if}
+                <div class="flex-1">
+                  <span class="text-[9px] font-black uppercase tracking-widest text-white/40 mb-1 block">Post Title</span>
+                  <input 
+                    type="text" 
+                    bind:value={keywords.title}
+                    class="w-full bg-transparent border-none p-0 text-base font-bold text-white focus:ring-0 placeholder:text-white/20"
+                    placeholder="Enter post title..."
+                  />
+                </div>
+             </div>
 
-        <div class="flex-1 overflow-y-auto custom-scrollbar rounded-2xl bg-black/20 border border-white/5 p-4">
-            {#if finalHtml}
-              <div class="prose prose-invert prose-sm max-w-none text-white/90 text-[13px] leading-relaxed selection:bg-green-500/30">
-                {@html finalHtml}
-              </div>
-            {:else if draft_content}
-              <div class="prose prose-invert prose-sm max-w-none text-white/70 text-[13px] leading-relaxed opacity-60">
-                {@html draft_content}
-              </div>
-            {:else}
-              <div class="flex flex-col items-center justify-center py-12 gap-3 text-white/20">
-                <RotateCcw size={32} class="animate-spin opacity-20" />
-                <p class="text-sm">Hệ thống đang đóng gói bản thảo cuối cùng...</p>
-              </div>
-            {/if}
+             <!-- Tiptap Editor / Content Preview -->
+             <div class="flex-1 border-t border-white/5 pt-4 overflow-hidden flex flex-col">
+                <span class="text-[9px] font-black uppercase tracking-widest text-white/40 mb-2 shrink-0">Article Content</span>
+                <div class="flex-1 overflow-y-auto custom-scrollbar rounded-xl bg-white/[0.02] border border-white/5">
+                   {#if finalHtml}
+                      <div class="p-4 prose prose-invert prose-sm max-w-none text-white/90 text-[13px] leading-relaxed selection:bg-green-500/30">
+                        {@html finalHtml}
+                      </div>
+                   {:else if draft_content}
+                      <div class="p-4 prose prose-invert prose-sm max-w-none text-white/70 text-[13px] leading-relaxed opacity-60">
+                        {@html draft_content}
+                      </div>
+                   {:else}
+                      <div class="flex flex-col items-center justify-center h-full gap-3 text-white/20">
+                        <RotateCcw size={32} class="animate-spin opacity-20" />
+                        <p class="text-sm">Hệ thống đang đóng gói nội dung...</p>
+                      </div>
+                   {/if}
+                </div>
+             </div>
           </div>
 
-          <!-- Final Metadata/Publish Controls -->
-          <div class="grid grid-cols-2 gap-3 shrink-0">
-            <div class="p-3 rounded-xl bg-green-500/5 border border-green-500/10 space-y-2">
-              <p class="text-[9px] font-black text-green-400 uppercase tracking-widest">Target Slug</p>
-              <div class="flex items-center gap-2 group">
-                <span class="text-[11px] text-white/40 font-mono tracking-tighter">fast.vn/blog/</span>
-                <input 
-                  type="text" 
-                  bind:value={keywords.slug}
-                  placeholder={keywords.title?.toLowerCase().replace(/\s+/g,'-').replace(/[^\w-]/g,'')} 
-                  class="bg-transparent border-none p-0 text-[11px] font-bold text-white focus:ring-0 w-full"
-                />
-              </div>
+          <!-- BOTTOM ROW: Metadata Cards -->
+          <div class="grid grid-cols-2 gap-4 shrink-0 pr-2">
+            <!-- Category & Slug -->
+            <div class="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10 space-y-4">
+               <div>
+                 <p class="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-2">Category</p>
+                 <div class="flex items-center justify-between pb-1 border-b border-blue-500/20">
+                   <input 
+                     type="text" 
+                     bind:value={keywords.category}
+                     class="bg-transparent border-none p-0 text-[12px] font-bold text-white focus:ring-0 w-full"
+                     placeholder="Uncategorized"
+                   />
+                   <Edit2 size={10} class="text-white/20" />
+                 </div>
+               </div>
+
+               <div>
+                 <p class="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-2">Target Slug (URL)</p>
+                 <div class="flex items-center gap-1 group pb-1 border-b border-blue-500/20">
+                   <span class="text-[10px] text-white/40 font-mono tracking-tighter">/blog/</span>
+                   <input 
+                     type="text" 
+                     bind:value={keywords.slug}
+                     placeholder={keywords.title?.toLowerCase().replace(/\s+/g,'-').replace(/[^\w-]/g,'')} 
+                     class="bg-transparent border-none p-0 text-[11px] font-bold text-white focus:ring-0 w-full"
+                   />
+                 </div>
+               </div>
             </div>
-            <div class="p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 space-y-2">
-              <p class="text-[9px] font-black text-blue-400 uppercase tracking-widest">Category</p>
-              <div class="flex items-center justify-between">
-                <input 
-                  type="text" 
-                  bind:value={keywords.category}
-                  class="bg-transparent border-none p-0 text-[11px] font-bold text-white focus:ring-0 w-full"
-                />
-                <Edit2 size={10} class="text-white/20" />
-              </div>
+
+            <!-- SEO 2026 Box -->
+            <div class="p-4 rounded-xl bg-purple-500/5 border border-purple-500/10 flex flex-col gap-4">
+               <div>
+                  <div class="flex items-center justify-between mb-2">
+                     <p class="text-[9px] font-black text-purple-400 uppercase tracking-widest flex items-center gap-1"><Sparkles size={10} /> Meta Description</p>
+                     <span class="text-[9px] text-white/20 font-mono">{(keywords.description || '').length}/160</span>
+                  </div>
+                  <textarea 
+                     bind:value={keywords.description}
+                     rows="2"
+                     class="w-full bg-black/20 border border-purple-500/20 rounded-lg p-2 text-[11px] text-white/70 leading-relaxed focus:ring-1 focus:ring-purple-500/50 resize-none font-medium italic"
+                     placeholder="Nhập Meta Description cho bài viết..."
+                  ></textarea>
+               </div>
+
+               <div>
+                 <p class="text-[9px] font-black text-purple-400 uppercase tracking-widest mb-2">Focus Keywords</p>
+                 <div class="flex flex-wrap gap-1.5">
+                    {#if keywords.primary_keyword}
+                       <span class="px-2 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-[9px] text-purple-200 font-bold max-w-full truncate">
+                          {keywords.primary_keyword}
+                       </span>
+                    {/if}
+                    {#each (keywords.secondary_keywords || []).slice(0, 3) as kw}
+                       <span class="px-2 py-1 rounded-full bg-white/5 border border-white/5 text-[9px] text-white/40 max-w-full truncate">
+                          {kw}
+                       </span>
+                    {/each}
+                 </div>
+               </div>
             </div>
           </div>
           
-          <!-- Step 6 Meta Description Edit -->
-          <div class="p-3 rounded-xl bg-purple-500/5 border border-purple-500/10 space-y-2 shrink-0">
-             <div class="flex items-center justify-between">
-                <p class="text-[9px] font-black text-purple-400 uppercase tracking-widest">Social Meta Description</p>
-                <span class="text-[9px] text-white/20 font-mono">{(keywords.description || '').length}/160</span>
-             </div>
-             <textarea 
-                bind:value={keywords.description}
-                rows="2"
-                class="w-full bg-transparent border-none p-0 text-[11px] text-white/70 leading-relaxed focus:ring-0 resize-none font-medium italic"
-                placeholder="Nhập Meta Description cho bài viết..."
-             ></textarea>
-          </div>
-
         </div>
-  </div>
-
-
-    <!-- CONTEXT SIDEBAR -->
-    {#if showContext && step > 1}
-      <div 
-        class="w-[300px] border-l border-white/10 pl-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar shrink-0"
-        transition:fade={{ duration: 200 }}
-      >
-         <!-- CONTEXT: STEP 1 (KEYWORDS) -->
-         <div class="space-y-3">
-            <div class="flex items-center gap-2 text-blue-400 opacity-60">
-               <Sparkles size={12} />
-               <span class="text-[9px] font-black uppercase tracking-wider">Context: Phase 1 (Keywords)</span>
-            </div>
-            
-            <div class="bg-black/20 rounded-xl p-3 border border-white/5 space-y-3">
-               {#if isEditingSidebarKeywords}
-                  <div class="space-y-2">
-                     <input 
-                        bind:value={editedKeywords.title} 
-                        placeholder="Tiêu đề..."
-                        class="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white outline-none focus:border-blue-500/50"
-                     />
-                     <input 
-                        bind:value={editedKeywords.primary_keyword} 
-                        placeholder="Từ khóa chính..."
-                        class="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white outline-none focus:border-blue-500/50"
-                     />
-                     <div class="flex gap-1.5">
-                        <button 
-                           onclick={async () => {
-                              await handleUpdateMetadata(1);
-                              isEditingSidebarKeywords = false;
-                           }}
-                           class="flex-1 py-1 rounded-lg bg-blue-600 text-[9px] font-bold text-white uppercase hover:bg-blue-500"
-                        >
-                           Lưu
-                        </button>
-                        <button 
-                           onclick={() => {
-                              editedKeywords = { ...keywords };
-                              isEditingSidebarKeywords = false;
-                           }}
-                           class="flex-1 py-1 rounded-lg bg-white/5 text-[9px] font-bold text-white/50 uppercase hover:bg-white/10"
-                        >
-                           Hủy
-                        </button>
-                     </div>
-                  </div>
-               {:else}
-                  <div>
-                     <div class="text-[8px] text-white/30 uppercase font-bold mb-1">Target Title</div>
-                     <div class="text-[11px] text-white/80 font-bold leading-tight line-clamp-2">{keywords.title || "---"}</div>
-                  </div>
-                  
-                  <div class="flex flex-wrap gap-1.5">
-                     <button 
-                        class="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300 text-[9px] font-bold border border-blue-500/20 cursor-default"
-                        title="Primary Keyword"
-                     >
-                        {keywords.primary_keyword || "---"}
-                     </button>
-                     {#each (keywords.secondary_keywords || []).slice(0, 5) as kw}
-                        <button 
-                           onclick={() => handleSelectKeyword(kw)}
-                           class="px-2 py-0.5 rounded-full bg-white/5 text-white/40 text-[9px] border border-white/5 hover:border-blue-500/30 hover:text-blue-400/80 transition-all active:scale-95"
-                           title="Promote to Primary"
-                        >
-                           {kw}
-                        </button>
-                     {/each}
-                  </div>
-                  
-                  <div class="flex gap-1.5 pt-1">
-                     <button 
-                        onclick={() => {
-                           editedKeywords = { ...keywords };
-                           isEditingSidebarKeywords = true;
-                        }} 
-                        class="flex-1 py-1.5 rounded-lg bg-white/5 text-[9px] text-white/50 hover:text-white hover:bg-white/10 transition-all border border-white/5 font-bold uppercase"
-                     >
-                        Quick Edit
-                     </button>
-                     <button 
-                        onclick={() => { viewingStep = 1; isEditing = true; }} 
-                        class="px-3 py-1.5 rounded-lg bg-white/5 text-[9px] text-white/40 hover:text-white transition-all border border-white/5"
-                        title="Go to Full Keyword Editor"
-                     >
-                        <Maximize2 size={10} />
-                     </button>
-                  </div>
-               {/if}
-            </div>
-         </div>
-
-         <!-- CONTEXT: STEP 2 (ASSETS) - Only show if current step is >= 2 AND we are not already viewing step 2 -->
-         {#if step >= 2 && viewingStep !== 2}
-          <div class="space-y-3" transition:fade>
-            <div class="flex items-center justify-between">
-               <div class="flex items-center gap-2 text-blue-400 opacity-60">
-                  <ImageIcon size={12} />
-                  <span class="text-[9px] font-black uppercase tracking-wider">Context: Phase 2 (Assets)</span>
-               </div>
-               <span class="text-[9px] text-white/30 font-mono italic">{assets.length} items</span>
-            </div>
-            <div class="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-               <div class="grid grid-cols-2 gap-3">
-                  {#each (assets || []) as url, i}
-                     <div 
-                        role="button"
-                        tabindex="0"
-                        onclick={() => {
-                           selectedAssetIndex = i;
-                           syncAssetChanges();
-                        }}
-                        onkeydown={(e) => {
-                           if (e.key === 'Enter' || e.key === ' ') {
-                              selectedAssetIndex = i;
-                              syncAssetChanges();
-                           }
-                        }}
-                        class="aspect-video rounded-xl overflow-hidden border transition-all duration-300 cursor-pointer relative group/ctx
-                           {selectedAssetIndex === i ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-white/10 bg-black/40 hover:border-white/30'}"
-                     >
-                        <img 
-                           src={url} 
-                           alt="asset" 
-                           class="w-full h-full object-cover {selectedAssetIndex === i ? 'opacity-100 brightness-110' : 'opacity-50 group-hover/ctx:opacity-100'} transition-all" 
-                           onerror={() => handleImageError(url)}
-                        />
-                        
-                        <!-- Mini Actions Overlay -->
-                        <div class="absolute top-1 right-1 flex flex-col gap-1 opacity-0 group-hover/ctx:opacity-100 transition-opacity z-10">
-                           <button 
-                              class="p-1 rounded-full bg-black/60 hover:bg-red-500/80 text-white shadow-lg backdrop-blur-md transition-all"
-                              onclick={(e) => deleteAsset(i, e)}
-                              title="Xóa hình"
-                           >
-                              <Trash2 size={10} />
-                           </button>
-                           <button 
-                              class="p-1 rounded-full {selectedAvatarUrl === url ? 'bg-amber-500' : 'bg-black/60 hover:bg-amber-500'} text-white shadow-lg backdrop-blur-md transition-all"
-                              onclick={(e) => {
-                                 e.stopPropagation();
-                                 selectedAvatarUrl = url;
-                                 selectedAssetIndex = i;
-                                 syncAssetChanges();
-                              }}
-                              title="Chọn làm Ảnh Đại Diện"
-                           >
-                              <Star size={10} class={selectedAvatarUrl === url ? 'fill-current' : ''} />
-                           </button>
-                        </div>
-
-                        {#if selectedAssetIndex === i}
-                           <div class="absolute bottom-1 right-1 bg-blue-500 rounded-full p-0.5 shadow-lg">
-                              <Check size={8} class="text-white" />
-                           </div>
-                        {/if}
-                     </div>
-                  {/each}
-               </div>
-            </div>
-            
-            <button 
-               onclick={() => { viewingStep = 2; isEditing = false; }} 
-               class="w-full py-2 rounded-xl bg-white/5 text-[10px] text-white/50 hover:text-white hover:bg-white/10 transition-all border border-white/5 font-extrabold uppercase tracking-tight"
-            >
-               Mở Kho Ảnh Chi Tiết
-            </button>
-         </div>
-         {/if}
-
-         <!-- CONTEXT: STEP 3 (OUTLINE) - Only show if current step is >= 3 AND we are not already viewing step 3 -->
-         {#if step >= 3 && viewingStep !== 3}
-         <div class="space-y-3" transition:fade>
-            <div class="flex items-center gap-2 text-blue-400 opacity-60">
-               <FileText size={12} />
-               <span class="text-[9px] font-black uppercase tracking-wider">Context: Phase 3 (Outline)</span>
-            </div>
-            
-            <div class="bg-black/20 rounded-xl p-3 border border-white/5 space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar">
-               {#if outline.sections && outline.sections.length > 0}
-                  {#each outline.sections as section, i}
-                     <div class="flex items-start gap-2 group/outline">
-                        <span class="text-[9px] text-white/20 mt-1 font-mono">0{i+1}</span>
-                        <div class="flex-1 min-w-0">
-                           <div class="text-[10px] text-white/70 font-bold leading-tight group-hover/outline:text-blue-400 transition-colors cursor-default">
-                              {section.heading}
-                           </div>
-                        </div>
-                     </div>
-                  {/each}
-               {:else}
-                  <div class="text-[10px] text-white/20 italic">Chưa có dàn ý chi tiết...</div>
-               {/if}
-               
-               <button 
-                  onclick={() => { viewingStep = 3; isEditing = false; }} 
-                  class="w-full mt-2 py-1.5 rounded-lg bg-white/5 text-[9px] text-white/40 hover:text-white transition-all border border-white/5 uppercase font-bold"
-               >
-                  Mở Dàn Ý Chi Tiết
-               </button>
-            </div>
-         </div>
-         {/if}
-
-          <div class="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10 text-center mb-6">
-            <div class="text-[9px] text-blue-400/50 uppercase font-black mb-1">Neural Advice</div>
-            <p class="text-[10px] text-white/40 leading-relaxed italic">"Dữ liệu context giúp AI viết đúng trọng tâm từ khóa và phối hợp hình ảnh tốt hơn."</p>
-         </div>
       </div>
     {/if}
+  </div>
   </div>
 
   {#if resultMsg}
@@ -1814,8 +1606,8 @@
         </button>
       {:else}
         <!-- CURRENT STEP ACTION -->
-        {#if viewingStep === 6 && step === 6}
-          <!-- Step 6: Publish Button -->
+        {#if viewingStep === 5 && step === 5}
+          <!-- Step 5: Publish Button -->
           <button
             onclick={handlePublish}
             disabled={isLoading}
@@ -1824,7 +1616,7 @@
             <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn-publish:animate-shimmer pointer-events-none"></div>
             {#if isLoading} <RotateCcw size={16} class="animate-spin" />
             {:else} <Check size={16} strokeWidth={3} />
-              <span>Xuất Bản</span>
+              <span>Xuất Bản Lên Web</span>
             {/if}
           </button>
         {:else}
@@ -1842,7 +1634,7 @@
           {/if}
           
           <button
-            onclick={viewingStep === 6 ? handlePublish : handleApprove}
+            onclick={viewingStep === 5 ? handlePublish : handleApprove}
             disabled={isLoading || isPublishing}
             class="flex-1 group/btn-primary relative overflow-hidden flex items-center justify-center gap-2 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-[0_15px_30px_-10px_rgba(37,99,235,0.4)] disabled:opacity-50 active:scale-95"
           >
@@ -1851,7 +1643,7 @@
             {:else} 
               <Check size={16} strokeWidth={3} />
               <span>
-                {#if viewingStep === 6} Xuất bản ngay
+                {#if viewingStep === 5} Xuất bản ngay
                 {:else if isEditing} Duyệt & Lưu
                 {:else} Duyệt & Tiếp tục
                 {/if}
@@ -1885,6 +1677,9 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(59, 130, 246, 0.6);
     box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:active {
+    background: rgba(59, 130, 246, 0.5);
   }
 
   /* Shimmer Animation 2026 */
