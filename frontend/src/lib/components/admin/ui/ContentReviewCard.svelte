@@ -28,7 +28,9 @@
     finalHtml = $bindable(),
     selectedAvatarUrl = $bindable(), 
     selectedAssetIndex = $bindable(),
-    creation_config = $bindable()
+    creation_config = $bindable(),
+    analysis_cache = $bindable(),
+    analysis_metrics = $bindable()
   } = $props();
 
   // -- Local UI Orchestration --
@@ -73,6 +75,8 @@
     if (creation_config === undefined) creation_config = {};
     if (selectedAvatarUrl === undefined) selectedAvatarUrl = null;
     if (selectedAssetIndex === undefined) selectedAssetIndex = 0;
+    if (analysis_cache === undefined) analysis_cache = {};
+    if (analysis_metrics === undefined) analysis_metrics = {};
 
     // Local UI Orchestration Initialization
     
@@ -295,6 +299,7 @@
         <DraftStep 
           {campaign_id} {isEditing} bind:editedDraft bind:draft_content 
           {assets} isExpanded={nanobot.isExpanded} bind:editorRef {outline}
+          {analysis_cache} {analysis_metrics}
         />
       {:else if viewingStep === 5}
         <PublishStep 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount, untrack } from "svelte";
   import {
     FileText,
     ShieldCheck,
@@ -18,7 +19,9 @@
     outline = {},
     assets,
     isExpanded,
-    editorRef = $bindable(null)
+    editorRef = $bindable(null),
+    analysis_cache = {},
+    analysis_metrics = {}
   } = $props();
 
   // Rule R82.41: Smart Data Mapping — Map structured sections to editor content if draft is empty
@@ -177,6 +180,25 @@
     }
     return null;
   };
+
+  // Expert Optimizer (V71.30): Analysis Hydration from DB Cache
+  $effect(() => {
+    // untrack analysis states to avoid infinite loops if results are reactive
+    untrack(() => {
+      if (analysis_cache) {
+        if (analysis_cache.copyright && !copyrightResult) {
+          copyrightResult = analysis_cache.copyright.data;
+        }
+        if (analysis_cache.seo && !seoResult) {
+          seoResult = analysis_cache.seo.data;
+        }
+        if (analysis_cache.ai_inspect && !aiReadyResult) {
+          aiReadyResult = analysis_cache.ai_inspect.data;
+        }
+      }
+    });
+  });
+
   // Ensure editedDraft is initialized when entering edit mode if it was empty
   $effect(() => {
     if (isEditing && !editedDraft) {
@@ -207,6 +229,11 @@
       {@const ac = aiReadyResult.geo_score >= 85 ? 'text-purple-400' : aiReadyResult.geo_score >= 65 ? 'text-fuchsia-400' : 'text-red-400'}
       <span class="text-[9px] font-black uppercase {ac}">
         · AI {aiReadyResult.geo_score}%
+      </span>
+    {/if}
+    {#if analysis_metrics?.last_analyzed}
+      <span class="text-[8px] font-medium text-white/20 ml-auto">
+        Lân cuối: {new Date(analysis_metrics.last_analyzed).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
       </span>
     {/if}
   </div>

@@ -39,24 +39,21 @@ class SmartKeyRotator:
         Returns the best key to use. 
         Prioritizes the last successful key, skipping unhealthy ones.
         """
-        if not self.keys:
-            return ""
-
-        # Try to start from the last successful index known globally
+        # Orbital Rotation: Always advance the index to spread load across keys
+        # even if the last one was successful.
         start_index = self.index
         if self._use_redis:
             try:
-                global_idx = await self.client.get(self.SUCCESS_INDEX_KEY)
-                if global_idx is not None:
-                    start_index = int(global_idx) % len(self.keys)
-            except Exception: pass
+                global_idx = await self.client.incr(self.SUCCESS_INDEX_KEY)
+                start_index = global_idx % len(self.keys)
+            except Exception:
+                self.index = (self.index + 1) % len(self.keys)
+                start_index = self.index
 
-        # Iterate through keys starting from the best one
         for i in range(len(self.keys)):
             current_idx = (start_index + i) % len(self.keys)
             key = self.keys[current_idx]
             
-            # Check if key is in cooldown
             if self._use_redis:
                 try:
                     is_unhealthy = await self.client.get(f"{self.UNHEALTHY_PREFIX}{current_idx}")
@@ -64,7 +61,6 @@ class SmartKeyRotator:
                         continue 
                 except Exception: pass
 
-            # Update our local index for the next call if this works
             self.index = current_idx
             return key
 

@@ -38,7 +38,9 @@ export function createResumeManager(state: any, voice: any, log: any, ui: any, s
           final_html: campaign.final_html,
           selectedAvatarUrl: campaign.gold_metadata?.avatar || null,
           selectedAssetIndex: campaign.gold_metadata?.selected_index ?? 0,
-          creation_config: campaign.gold_metadata?.creation_config || {}
+          creation_config: campaign.gold_metadata?.creation_config || {},
+          analysis_cache: campaign.gold_metadata?.analysis_cache || {},
+          analysis_metrics: campaign.gold_metadata?.analysis_metrics || {}
         };
       }
     } catch (e) {

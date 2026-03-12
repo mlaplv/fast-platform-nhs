@@ -125,6 +125,8 @@
               bind:selectedAvatarUrl={nanobot.vuiResponse.data.selectedAvatarUrl}
               bind:selectedAssetIndex={nanobot.vuiResponse.data.selectedAssetIndex}
               bind:creation_config={nanobot.vuiResponse.data.creation_config}
+              bind:analysis_cache={nanobot.vuiResponse.data.analysis_cache}
+              bind:analysis_metrics={nanobot.vuiResponse.data.analysis_metrics}
             />
           </div>
         {/if}

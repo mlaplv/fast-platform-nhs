@@ -1,4 +1,5 @@
 import os
+import re
 import httpx
 import asyncio
 from PIL import Image
@@ -90,4 +91,28 @@ class MediaCompressor:
             placeholder = f"[IMAGE_{i+1}]"
             final_html = final_html.replace(placeholder, path)
             
+        # Phase 71.30: Expert Safety Strip — Remove internal analysis markers
+        final_html = self._strip_annotations(final_html)
+            
         return f"<article class='xohi-v62-article'>{final_html}</article>"
+
+    def _strip_annotations(self, html: str) -> str:
+        """
+        Expert Mode: Surgically removes <mark class='xohi-annotation'> tags while 
+        preserving the inner text for professional production HTML.
+        """
+        if not html: return ""
+        
+        # Pattern matches <mark class="xohi-annotation"> ... </mark> Case-Insensitive
+        # Captures group 1: the inner text
+        pattern = re.compile(r'<mark\s+[^>]*class=["\']xohi-annotation["\'][^>]*>(.*?)</mark>', re.DOTALL | re.IGNORECASE)
+        
+        # Recursive replacement to handle any accidentally nested marks (though rare in Tiptap)
+        clean_html = html
+        while True:
+            new_html = pattern.sub(r'\1', clean_html)
+            if new_html == clean_html:
+                break
+            clean_html = new_html
+            
+        return clean_html

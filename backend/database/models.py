@@ -307,6 +307,7 @@ class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     assets_data: Mapped[Optional[list]] = mapped_column(JSON, default=list)
     outline_data: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
     draft_content: Mapped[Optional[str]] = mapped_column(Text)
+    unique_score: Mapped[float] = mapped_column(Float, default=0.0)
     search_count: Mapped[int] = mapped_column(Integer, default=0)
     # R102: Deferred Loading for heavy fields (Saves RAM on list queries)
     final_html: Mapped[Optional[str]] = deferred(mapped_column(Text))

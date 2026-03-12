@@ -1,8 +1,12 @@
 import logging
+import hashlib
+import copy
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Union, Optional
 from uuid import UUID
+from sqlalchemy.orm.attributes import flag_modified
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("api-gateway")
 from litestar import Controller, get, post, put, patch, delete, Request
 from backend.services.xohi.creative_studio.orchestrator import content_factory
 from backend.models.schemas import ContentCampaign, CampaignStep, AgentResponse
@@ -113,8 +117,40 @@ class ContentController(Controller):
         if not campaign.draft_content:
             return {"status": "error", "message": "Chưa có nội dung để kiểm tra."}
         cop = PlagiarismCop()
+        
+        # Expert Optimizer (V71.30): Content Fingerprinting
+        draft_text = campaign.draft_content or ""
+        content_hash = hashlib.sha256(draft_text.encode('utf-8')).hexdigest()
+        gold = campaign.gold_metadata or {}
+        cache = gold.get("analysis_cache", {})
+        
+        if cache.get("copyright", {}).get("hash") == content_hash:
+            logger.info(f"Copyright cache hit for campaign {campaign_id}")
+            return {"status": "success", "data": cache["copyright"]["data"], "cached": True}
+
         result = await cop.analyze(campaign)
-        return {"status": "success", "data": result.model_dump()}
+        result_data = result.model_dump()
+        
+        # Archiving & Metrics
+        cache["copyright"] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
+        metrics = gold.get("analysis_metrics", {})
+        metrics["unique_score"] = result.uniqueness_score
+        metrics["copyright_risk"] = result.risk_level
+        metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
+        
+        # ARCHIVING & METRICS (V71.30)
+        new_gold = copy.deepcopy(campaign.gold_metadata or {})
+        new_gold["analysis_cache"] = cache
+        new_gold["analysis_metrics"] = metrics
+        logger.info(f"[EXPERT] Updating gold_metadata for {campaign_id}: {new_gold}")
+        campaign.gold_metadata = new_gold
+        flag_modified(campaign, "gold_metadata")
+        campaign.unique_score = result.uniqueness_score
+        await campaign_repo.update(campaign)
+        await campaign_repo.session.commit()
+        logger.info(f"[EXPERT] COMMIT SUCCESS for copyright campaign {campaign_id}")
+        
+        return {"status": "success", "data": result_data}
 
     @post("/campaigns/{campaign_id:uuid}/analyze/seo")
     async def analyze_seo(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
@@ -128,8 +164,38 @@ class ContentController(Controller):
         if not campaign.draft_content:
             return {"status": "error", "message": "Chưa có nội dung để phân tích."}
         analyzer = SeoAnalyzer()
+        
+        # Expert Optimizer (V71.30): Content Fingerprinting
+        draft_text = campaign.draft_content or ""
+        content_hash = hashlib.sha256(draft_text.encode('utf-8')).hexdigest()
+        gold = campaign.gold_metadata or {}
+        cache = gold.get("analysis_cache", {})
+        
+        if cache.get("seo", {}).get("hash") == content_hash:
+            logger.info(f"SEO cache hit for campaign {campaign_id}")
+            return {"status": "success", "data": cache["seo"]["data"], "cached": True}
+
         result = await analyzer.analyze(campaign)
-        return {"status": "success", "data": result.model_dump()}
+        result_data = result.model_dump()
+        
+        # Archiving & Metrics
+        cache["seo"] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
+        metrics = gold.get("analysis_metrics", {})
+        metrics["seo_score"] = result.total_score
+        metrics["seo_grade"] = result.grade
+        metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
+        
+        # ARCHIVING & METRICS (V71.30)
+        new_gold = copy.deepcopy(campaign.gold_metadata or {})
+        new_gold["analysis_cache"] = cache
+        new_gold["analysis_metrics"] = metrics
+        campaign.gold_metadata = new_gold
+        flag_modified(campaign, "gold_metadata")
+        await campaign_repo.update(campaign)
+        await campaign_repo.session.commit()
+        logger.info(f"[EXPERT] COMMIT SUCCESS for seo campaign {campaign_id}")
+        
+        return {"status": "success", "data": result_data}
 
     @post("/campaigns/{campaign_id:uuid}/analyze/ai-inspect")
     async def analyze_ai_readiness(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
@@ -149,10 +215,37 @@ class ContentController(Controller):
             return {"status": "error", "message": "Chưa có nội dung để phân tích AI Readiness."}
         
         inspector = AiInspector()
+        # Expert Optimizer (V71.30): Content Fingerprinting
+        draft_text = campaign.draft_content or ""
+        content_hash = hashlib.sha256(draft_text.encode('utf-8')).hexdigest()
+        gold = campaign.gold_metadata or {}
+        cache = gold.get("analysis_cache", {})
+        
+        if cache.get("ai_inspect", {}).get("hash") == content_hash:
+            logger.info(f"AI Inspect cache hit for campaign {campaign_id}")
+            return {"status": "success", "data": cache["ai_inspect"]["data"], "cached": True}
+
         try:
             result = await inspector.analyze(campaign)
-            logger.info(f"AI Inspector output: {result.model_dump_json(indent=2)}")
-            return {"status": "success", "data": result.model_dump()}
+            result_data = result.model_dump()
+            
+            # Archiving & Metrics
+            cache["ai_inspect"] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
+            metrics = gold.get("analysis_metrics", {})
+            metrics["ai_ready_score"] = result.geo_score
+            metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
+            
+            # ARCHIVING & METRICS (V71.30)
+            new_gold = copy.deepcopy(campaign.gold_metadata or {})
+            new_gold["analysis_cache"] = cache
+            new_gold["analysis_metrics"] = metrics
+            campaign.gold_metadata = new_gold
+            flag_modified(campaign, "gold_metadata")
+            await campaign_repo.update(campaign)
+            await campaign_repo.session.commit()
+            logger.info(f"[EXPERT] COMMIT SUCCESS for campaign {campaign_id}")
+            
+            return {"status": "success", "data": result_data}
         except Exception as e:
             logger.error(f"AI Inspector error: {e}")
             return {"status": "error", "message": str(e)}

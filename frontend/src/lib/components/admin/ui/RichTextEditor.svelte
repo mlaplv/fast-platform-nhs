@@ -98,6 +98,7 @@
   let tooltipX = $state(0);
   let tooltipY = $state(0);
   let isFixing = $state(false);
+  let lastTooltipAnchorId = $state(''); // Rule R82.49: Sticky Tooltip — Anchor ID for stability
 
   function updateToolbarState() {
     if (!editor) return;
@@ -293,24 +294,40 @@
     if (isFixing) return;
     
     const target = e.target as HTMLElement;
-    
-    // R62.1: Tooltip Stickiness — If mouse is over the tooltip itself, don't hide it
-    if (tooltipEl && (tooltipEl === target || tooltipEl.contains(target))) {
-      return;
-    }
-
     const annotationEl = target.closest('.xohi-annotation') as HTMLElement | null;
+
     if (annotationEl) {
-      tooltipText = annotationEl.getAttribute('data-annotation-message') || '';
-      tooltipSource = annotationEl.getAttribute('data-annotation-source') || '';
-      tooltipType = annotationEl.getAttribute('data-annotation-type') || '';
-      tooltipId = annotationEl.getAttribute('data-annotation-id') || '';
-      tooltipSnippet = annotationEl.textContent || '';
-      tooltipX = e.clientX;
-      tooltipY = e.clientY;
-      tooltipVisible = true;
+      const annotationId = annotationEl.getAttribute('data-annotation-id') || '';
+      
+      // R62.1: Tooltip Stickiness — If mouse is over the tooltip itself, don't hide it
+      if (tooltipEl && (tooltipEl === target || tooltipEl.contains(target))) {
+        return;
+      }
+
+      // R82.49: Sticky Logic — Only update position if we ENTER a new annotation or toolip was hidden
+      // This stops "đuổi hình bắt bóng" (chasing) because it stays static while in the same mark.
+      if (!tooltipVisible || annotationId !== lastTooltipAnchorId) {
+        tooltipText = annotationEl.getAttribute('data-annotation-message') || '';
+        tooltipSource = annotationEl.getAttribute('data-annotation-source') || '';
+        tooltipType = annotationEl.getAttribute('data-annotation-type') || '';
+        tooltipId = annotationId;
+        tooltipSnippet = annotationEl.textContent || '';
+        lastTooltipAnchorId = annotationId;
+
+        // R82.50: Proximity Optimization — Anchor to mouse pixel horizontally to be "near"
+        // but snap vertically to the current line (approximated by mouse clientY)
+        tooltipX = e.clientX;
+        tooltipY = e.clientY - 8; // Offset upwards slightly from cursor
+        
+        tooltipVisible = true;
+      }
     } else {
+      // If we move out of an annotation, hide it unless we are over the tooltip itself
+      if (tooltipEl && (tooltipEl === target || tooltipEl.contains(target))) {
+        return;
+      }
       tooltipVisible = false;
+      lastTooltipAnchorId = '';
     }
   }
 
@@ -679,10 +696,10 @@
     {@const _isFixed = tooltipType === 'fixed'}
     <div 
       bind:this={tooltipEl}
-      class="fixed z-[100001] pointer-events-auto transition-all duration-200"
-      style="left: {tooltipX}px; top: {tooltipY - 10}px; transform: translate(-50%, -100%)"
+      class="fixed z-[100001] pointer-events-none transition-opacity duration-150"
+      style="left: {tooltipX}px; top: {tooltipY}px; transform: translate(-50%, -100%)"
     >
-      <div class="rounded-xl shadow-2xl border backdrop-blur-xl p-3 text-[10px] leading-relaxed w-56 {
+      <div class="rounded-xl shadow-2xl border backdrop-blur-xl p-3 text-[10px] leading-relaxed w-56 pointer-events-auto {
         _isFixed ? 'bg-emerald-950/95 border-emerald-500/30 text-emerald-100' : 
         tooltipType === 'copyright' ? 'bg-orange-950/95 border-orange-500/30 text-orange-100' :
         tooltipType.startsWith('seo-') ? 'bg-blue-950/95 border-blue-400/30 text-blue-50' :
