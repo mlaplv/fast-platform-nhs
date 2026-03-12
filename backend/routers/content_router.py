@@ -105,7 +105,7 @@ class ContentController(Controller):
             return {"status": "error", "message": "Campaign not found or could not be deleted."}
 
     @post("/campaigns/{campaign_id:uuid}/analyze/copyright")
-    async def analyze_copyright(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def analyze_copyright(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> Dict[str, Any]:
         """
         On-demand: ĐẠO VĂN & BẢN QUYỀN — 2026 Edition.
         Dùng Google Search + Gemini AI để kiểm tra ngữ nghĩa (không phải so ký tự).
@@ -124,9 +124,12 @@ class ContentController(Controller):
         gold = campaign.gold_metadata or {}
         cache = gold.get("analysis_cache", {})
         
-        if cache.get("copyright", {}).get("hash") == content_hash:
+        if not force and cache.get("copyright", {}).get("hash") == content_hash:
             logger.info(f"Copyright cache hit for campaign {campaign_id}")
             return {"status": "success", "data": cache["copyright"]["data"], "cached": True}
+
+        if force:
+            logger.info(f"Copyright force refresh for campaign {campaign_id}")
 
         result = await cop.analyze(campaign)
         result_data = result.model_dump()
@@ -153,7 +156,7 @@ class ContentController(Controller):
         return {"status": "success", "data": result_data}
 
     @post("/campaigns/{campaign_id:uuid}/analyze/seo")
-    async def analyze_seo(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def analyze_seo(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> Dict[str, Any]:
         """
         On-demand: PHÂN TÍCH SEO 2026 — E-E-A-T, Entity Coverage, AI-Naturalness, Featured Snippet.
         """
@@ -171,9 +174,12 @@ class ContentController(Controller):
         gold = campaign.gold_metadata or {}
         cache = gold.get("analysis_cache", {})
         
-        if cache.get("seo", {}).get("hash") == content_hash:
+        if not force and cache.get("seo", {}).get("hash") == content_hash:
             logger.info(f"SEO cache hit for campaign {campaign_id}")
             return {"status": "success", "data": cache["seo"]["data"], "cached": True}
+
+        if force:
+            logger.info(f"SEO force refresh for campaign {campaign_id}")
 
         result = await analyzer.analyze(campaign)
         result_data = result.model_dump()
@@ -198,7 +204,7 @@ class ContentController(Controller):
         return {"status": "success", "data": result_data}
 
     @post("/campaigns/{campaign_id:uuid}/analyze/ai-inspect")
-    async def analyze_ai_readiness(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def analyze_ai_readiness(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> Dict[str, Any]:
         """
         On-demand: AI READINESS INSPECTOR — GEO 2026.
         Dùng LLM chấm điểm bài viết theo 4 tiêu chí cốt lõi (Princeton Study):
@@ -221,9 +227,12 @@ class ContentController(Controller):
         gold = campaign.gold_metadata or {}
         cache = gold.get("analysis_cache", {})
         
-        if cache.get("ai_inspect", {}).get("hash") == content_hash:
+        if not force and cache.get("ai_inspect", {}).get("hash") == content_hash:
             logger.info(f"AI Inspect cache hit for campaign {campaign_id}")
             return {"status": "success", "data": cache["ai_inspect"]["data"], "cached": True}
+
+        if force:
+            logger.info(f"AI Inspect force refresh for campaign {campaign_id}")
 
         try:
             result = await inspector.analyze(campaign)

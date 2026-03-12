@@ -85,6 +85,8 @@ export interface EditorAnnotation {
 export interface ToolbarAction {
   label: string;
   loading?: boolean;
+  disabled?: boolean;       // Gate lock — nút bị khoá
+  lockedMsg?: string;       // Tooltip hiển thị khi bị khoá
   onclick: () => void | Promise<void>;
 }
 

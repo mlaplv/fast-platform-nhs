@@ -14,6 +14,7 @@
   import DraftStep from "./content-factory/DraftStep.svelte";
   import PublishStep from "./content-factory/PublishStep.svelte";
   import ActionButtons from "./content-factory/ActionButtons.svelte";
+  import GateBlockModal from "./content-factory/GateBlockModal.svelte";
 
   let { 
     campaign_id,
@@ -46,6 +47,16 @@
   let editedDraft = $state("");
   let editorRef = $state<any>(null);
   let maxStepSeen = $state(step);
+
+  // -- Gate Score State (synced from DraftStep via bind:) --
+  let copyrightScore = $state<number | null>(null);
+  let seoScore = $state<number | null>(null);
+  let aiScore = $state<number | null>(null);
+
+  // -- Gate Block Modal --
+  let showGateModal = $state(false);
+  let gateBlockers = $state<Array<{ label: string; current: string; required: string; tab: 'copyright' | 'seo' | 'ai' }>>([]);
+  let focusTabFromModal = $state<'copyright' | 'seo' | 'ai' | null>(null);
 
   const DEFAULT_CONFIG = {
     style: "Chuyên nghiệp",
@@ -121,6 +132,34 @@
   // -- Event Handlers --
   async function handleApprove() {
     if (isLoading) return;
+
+    // Gate Check — chỉ áp dụng ở Step 4 (bản thảo)
+    if (viewingStep === 4) {
+      const blockers: typeof gateBlockers = [];
+      if (copyrightScore === null || copyrightScore < 90) {
+        blockers.push({
+          label: '🔍 Bản Quyền',
+          current: copyrightScore !== null ? `${copyrightScore}%` : 'Chưa kiểm tra',
+          required: '≥ 90%',
+          tab: 'copyright'
+        });
+      }
+      if (seoScore === null || seoScore < 70) {
+        blockers.push({
+          label: '📊 SEO Score',
+          current: seoScore !== null ? `${seoScore}/100` : 'Chưa kiểm tra',
+          required: '≥ 70/100',
+          tab: 'seo'
+        });
+      }
+      if (blockers.length > 0) {
+        gateBlockers = blockers;
+        showGateModal = true;
+        vuiController.speak('Bài viết chưa đủ điều kiện. Vui lòng xem hướng dẫn và sửa lỗi trước khi duyệt.');
+        return;
+      }
+    }
+
     isLoading = true;
     try {
       const payload = isEditing ? { 
@@ -130,8 +169,6 @@
       } : {};
       await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/approve`, payload);
       isEditing = false;
-      
-      // Rule R82.5: Descriptive VUI Feedback
       const stepNames: Record<number, string> = {
         1: "ý tưởng và từ khóa",
         2: "các hình ảnh",
@@ -300,6 +337,7 @@
           {campaign_id} {isEditing} bind:editedDraft bind:draft_content 
           {assets} isExpanded={nanobot.isExpanded} bind:editorRef {outline}
           {analysis_cache} {analysis_metrics}
+          bind:copyrightScore bind:seoScore bind:aiScore
         />
       {:else if viewingStep === 5}
         <PublishStep 
@@ -320,6 +358,18 @@
     {handleRetry} {handleUpdateMetadata} {handlePublish} {handleApprove}
   />
 </div>
+
+<!-- Gate Block Modal -->
+{#if showGateModal}
+  <GateBlockModal
+    blockers={gateBlockers}
+    onClose={() => { showGateModal = false; }}
+    onViewDetails={(tab) => {
+      showGateModal = false;
+      focusTabFromModal = tab;
+    }}
+  />
+{/if}
 
 <style>
   .content-review-card { position: relative; isolation: isolate; }

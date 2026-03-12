@@ -47,3 +47,11 @@ class ArticleOutline(BaseModel):
 
 class VisualSearchPlan(BaseModel):
     queries: List[str] = Field(description="List of 3-5 high-quality Google Image search queries (English preferred for professional stock quality)")
+
+class BulkFixRequest(BaseModel):
+    category: str      # "copyright" | "seo" | "ai"
+    annotations: List[Dict[str, Any]]
+
+class BulkFixResponse(BaseModel):
+    new_content: str
+

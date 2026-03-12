@@ -35,44 +35,46 @@ class PlagiarismResult(BaseModel):
 # SYSTEM PROMPT — Semantic Similarity Judge (2026)
 # ══════════════════════════════════════════════════════════════
 
-PLAGIARISM_PROMPT = """[ROLE] SEMANTIC INTEGRITY ANALYST — XoHi Content Studio 2026
+PLAGIARISM_PROMPT = """[ROLE] SENIOR PLAGIARISM AUDITOR — XoHi Content Studio 2026
+Nhiệm vụ: Chấm điểm TRUNG THỰC, KHÁCH QUAN và CÔNG BẰNG.
 
 [NHIỆM VỤ]
-Phân tích mức độ TƯƠNG ĐỒNG NGỮ NGHĨA giữa bài viết cần kiểm tra và các nguồn web được cung cấp.
-KHÔNG chỉ so khớp từng chữ — mà phân tích ý tưởng, luận điểm, cấu trúc lập luận.
+So sánh bài viết với các nguồn cạnh tranh Google để xác định tính độc đáo (Uniqueness).
 
-[TIÊU CHÍ 2026]
-- Tương đồng ký tự (character-level): ít quan trọng nhất
-- Tương đồng ý tưởng/luận điểm (semantic-level): quan trọng nhất  
-- Tương đồng cấu trúc bài viết: quan trọng vừa
-- Google 2026 penalize bài viết "regurgitated" dù đổi từ ngữ
+[QUY TẮC CHẤM ĐIỂM — QUAN TRỌNG]
+1. KHÔNG TRỪ ĐIỂM (FAIRNESS): 
+   - Kiến thức phổ thông, sự thật hiển nhiên (Ví dụ: "Hà Nội là thủ đô Việt Nam").
+   - Thuật ngữ chuyên ngành, từ khóa SEO bắt buộc.
+   - Các trích dẫn pháp luật, quy định chính thức (nếu có dẫn nguồn).
+
+2. PHẢI TRỪ ĐIỂM (STRICTNESS):
+   - Sao chép cấu trúc dàn ý (Flow bài viết) của đối thủ.
+   - Xào nấu ý tưởng (Paraphrasing) nhưng không thêm giá trị mới.
+   - Dùng chung ví dụ cụ thể, số liệu cụ thể độc quyền của nguồn mà không có phân tích riêng.
+   - Trùng lặp cụm từ dài (≥ 10 chữ liên tiếp).
+
+[CALIBRATION — THANG ĐIỂM TRUNG THỰC]
+- 0.90-1.0 (LOW RISK): Bài viết có cấu trúc riêng, ví dụ thực tế riêng, phân tích chuyên sâu hoặc góc nhìn mới mà các nguồn Google chưa có.
+- 0.70-0.89 (MEDIUM RISK): Nội dung gốc nhưng cấu trúc dựa trên các mô-típ phổ biến, chưa có nhiều đột phá về insight.
+- 0.50-0.69 (HIGH RISK): Có dấu hiệu xào nấu rõ rệt từ 1-2 nguồn chính, chỉ thay đổi từ ngữ bề mặt (Spinning).
+- < 0.50 (CRITICAL): Sao chép nguyên văn hoặc cấu trúc gần như tuyệt đối từ nguồn.
 
 [YÊU CẦU ĐẦU RA — JSON]
 {
-  "uniqueness_score": <float 0.0-1.0>,
+  "uniqueness_score": <float 0.0-1.0 — Phải phản ánh đúng sự khác biệt về Insight & Structure>,
   "risk_level": "<LOW|MEDIUM|HIGH>",
-  "flagged_sentences": [<câu hoặc đoạn nào có RỦI RO cao nhất — copy NGUYÊN VĂN từ bài viết>],
+  "flagged_sentences": [<câu/đoạn có dấu hiệu copy hoặc xào nấu — copy NGUYÊN VĂN từ bài viết>],
   "annotations": [
     {
-      "text": "<đoạn VĂN BẢN NGUYÊN VĂN từ bài viết cần highlight — CỰC KỲ QUAN TRỌNG: phải là substring chính xác tồn tại trong bài viết>",
-      "reason": "<lý do ngắn gọn tại sao đoạn này bị gắn cờ — tiếng Việt>",
-      "source_url": "<URL nguồn tương đồng nhất>",
+      "text": "<đoạn NGUYÊN VĂN từ bài viết — substring chính xác, tối đa 200 ký tự>",
+      "reason": "<lý do cụ thể tại sao đoạn này bị coi là trùng lặp — tiếng Việt>",
+      "source_url": "<URL nguồn tương đồng>",
       "severity": "<low|medium|high>"
     }
   ],
   "similar_sources": [<URL nguồn tương đồng nhất>],
-  "verdict": "<nhận định 1-2 câu bằng tiếng Việt>"
-}
-
-QUAN TRỌNG VỀ `annotations[].text`:
-- Phải là chuỗi ký tự NGUYÊN VĂN lấy từ bài viết (không paraphrase, không thêm bớt)
-- Tối đa 200 ký tự mỗi annotation
-- Ưu tiên đoạn câu/mệnh đề hoàn chỉnh (không cắt giữa chừng)
-- Nếu không tìm được đoạn cụ thể, bỏ qua annotation đó (đừng bịa)
-
-LOW = score >= 0.85 (an toàn)
-MEDIUM = 0.65 <= score < 0.85 (cần cải thiện)  
-HIGH = score < 0.65 (rủi ro cao, nên viết lại)"""
+  "verdict": "<Nhận xét công tâm 1-2 câu về tính độc đáo của bài viết so với đối thủ — tiếng Việt>"
+}"""
 
 
 class PlagiarismCop:
@@ -215,8 +217,8 @@ NHIỆM VỤ: Phân tích và trả về JSON đúng schema yêu cầu.
 
     async def _fetch_competitor_snippets(self, keyword: str) -> List[str]:
         """
-        Fetches top 5 web result snippets from Google Custom Search for semantic comparison.
-        Returns list of snippet strings.
+        Fetches top 5 Google results + attempts to crawl page body (3000 chars).
+        Richer content → AI có đủ ngữ cảnh để so sánh chính xác.
         """
         pair = await self._get_search_pair()
         if not pair:
@@ -239,13 +241,42 @@ NHIỆM VỤ: Phân tích và trả về JSON đúng schema yêu cầu.
             )
             response.raise_for_status()
             items = response.json().get("items", [])
-            snippets = []
-            for item in items:
+            if not items:
+                return ["(Google không trả về kết quả)"]
+
+            # Crawl page body concurrently (max 3000 chars each, timeout 5s)
+            async def _crawl_page(item: dict) -> str:
                 url = item.get("link", "")
                 title = item.get("title", "")
                 snippet = item.get("snippet", "")
-                snippets.append(f"URL: {url}\nTitle: {title}\nSnippet: {snippet}")
-            return snippets if snippets else ["(Google không trả về kết quả)"]
+                base = f"URL: {url}\nTitle: {title}\nSnippet: {snippet}"
+                if not url or not url.startswith("http"):
+                    return base
+                try:
+                    page_resp = await client.get(
+                        url, timeout=5.0,
+                        headers={"User-Agent": "Mozilla/5.0 (compatible; XoHi-Cop/2.0)"}
+                    )
+                    if page_resp.status_code == 200:
+                        html = page_resp.text
+                        # Strip tags, get plain text
+                        body = re.sub(r'<(script|style)[^>]*>[\s\S]*?</\1>', ' ', html, flags=re.IGNORECASE)
+                        body = re.sub(r'<[^>]+>', ' ', body)
+                        body = re.sub(r'\s+', ' ', body).strip()
+                        if body and len(body) > len(snippet):
+                            return f"URL: {url}\nTitle: {title}\nContent (3000 chars): {body[:3000]}"
+                except Exception:
+                    pass  # Fallback to snippet only
+                return base
+
+            crawl_tasks = [_crawl_page(item) for item in items[:5]]
+            results = await asyncio.gather(*crawl_tasks, return_exceptions=True)
+            snippets = [
+                r if isinstance(r, str) else f"URL: {items[i].get('link','')}\nSnippet: {items[i].get('snippet','')}"
+                for i, r in enumerate(results)
+            ]
+            logger.info(f"[PlagiarismCop] Fetched {len(snippets)} competitor pages for '{keyword}'")
+            return snippets
 
         except Exception as e:
             logger.error(f"[PlagiarismCop] Google search failed: {e}")

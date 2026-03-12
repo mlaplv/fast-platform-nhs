@@ -1,10 +1,11 @@
-import re
-import logging
-from typing import List
+import os
+import asyncio
+from typing import List, Tuple, Dict, Any
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+from backend.utils.http_client import get_http_client
 
 logger = logging.getLogger("api-gateway")
 
@@ -37,57 +38,45 @@ class SeoReport(BaseModel):
 # ══════════════════════════════════════════════════════════════
 
 SEO_ANALYSIS_PROMPT = """[ROLE] SENIOR SEO STRATEGIST — XoHi Intelligence 2026
+Nhiệm vụ: Chấm điểm SEO TRUNG THỰC và KHÁCH QUAN. Tuyệt đối không nương tay.
 
-[BỐI CẢNH]
-Bạn là chuyên gia SEO hàng đầu 2026, am hiểu sâu về:
-- Google Helpful Content System (HCU)
-- E-E-A-T framework (Experience, Expertise, Authoritativeness, Trustworthiness)
-- Semantic SEO & Entity-based ranking
-- AI-Generated Content Detection & Naturalness
-- Featured Snippets & Position Zero optimization
-- Core Web Vitals & UX signals
+[PHƯƠNG PHÁP LUẬN 2026]
+Google 2026 ưu tiên bài viết mang lại GIÁ TRỊ THỰC (Information Gain).
+- Nếu nội dung chỉ là nhặt nhạnh từ đối thủ mà không có insight khác biệt: ĐIỂM THẤP.
+- Nếu không có dữ liệu thực tế hoặc lời khuyên chuyên gia: ĐIỂM THẤP.
 
 [NHIỆM VỤ]
-1. Chấm điểm SEO bài viết theo 7 tiêu chí 2026.
-2. Tạo danh sách `seo_annotations` — mỗi annotation là một ĐOẠN VĂN NGUYÊN VĂN cụ thể cần cải thiện.
+So sánh bài viết với các nguồn TOP GOOGLE được cung cấp để chấm 7 tiêu chí:
+1. search_intent_match (20%) — Có giải quyết được nỗi đau/câu hỏi của user tốt hơn đối thủ không?
+2. eeat_signals (20%) — Có bằng chứng chuyên gia, kinh nghiệm thực tế không?
+3. entity_coverage (15%) — Bao phủ đầy đủ các concept quan trọng so với đối thủ chưa?
+4. ai_naturalness (15%) — Văn phong có mượt mà, tránh lặp lại cấu trúc máy móc?
+5. featured_snippet_potential (15%) — Cấu trúc câu trả lời có sắc bén để AI trích dẫn?
+6. semantic_richness (10%) — Sử dụng thuật ngữ chuyên sâu thay vì từ ngữ phổ thông?
+7. technical_seo (5%) — H1/H2/H3 structure, CTA.
 
-[7 TIÊU CHÍ VÀ TRỌNG SỐ]
-1. search_intent_match (20%) — Nội dung có đáp ứng đúng INTENT tìm kiếm không?
-2. eeat_signals (20%) — Dấu hiệu E-E-A-T: kinh nghiệm thực tế, chuyên môn, uy tín?
-3. entity_coverage (15%) — Bao phủ các thực thể, khái niệm liên quan đủ sâu chưa?
-4. ai_naturalness (15%) — Nội dung có tự nhiên, không bị "AI cứng nhắc" không?
-5. featured_snippet_potential (15%) — Cấu trúc có phù hợp cho Featured Snippet/PAA không?
-6. semantic_richness (10%) — Từ vựng đa dạng, tránh keyword stuffing?
-7. technical_seo (5%) — H1/H2/H3 structure, keyword trong heading, CTA rõ ràng?
-
-[ĐẦU RA — JSON CHÍNH XÁC]
+[YÊU CẦU ĐẦU RA — JSON]
 {
-  "total_score": <int 0-100>,
+  "total_score": <int 0-100 — Phản ánh chính xác Information Gain so với đối thủ>,
   "grade": "<A|B|C|D|F>",
   "signals": [<7 SeoSignal objects>],
-  "summary": "<2 câu nhận xét tổng quan tiếng Việt>",
+  "summary": "<Nhận xét trung thực 2 câu tiếng Việt — Nêu rõ bài viết đang thua/thắng đối thủ ở điểm nào>",
   "quick_wins": ["<gợi ý 1>", "<gợi ý 2>", "<gợi ý 3>"],
   "seo_annotations": [
     {
       "type": "<missing_h1|missing_h2|keyword_missing|weak_intro|thin_section|ai_stiff|missing_cta|keyword_stuffing>",
-      "text": "<ĐOẠN VĂN NGUYÊN VĂN từ bài viết — phải là substring chính xác>",
-      "message": "<lý do và gợi ý cải thiện — tiếng Việt ngắn gọn>",
+      "text": "<ĐOẠN VĂN NGUYÊN VĂN từ bài viết>",
+      "message": "<lý do và hướng dẫn fix cụ thể — tiếng Việt>",
       "severity": "<info|warning|error>"
     }
   ]
 }
 
-QUY TẮC VỀ `seo_annotations[].text`:
-- PHẢI là chuỗi ký tự NGUYÊN VĂN lấy từ bài viết (không paraphrase)
-- Tối đa 150 ký tự mỗi annotation
-- Ưu tiên đoạn câu/cụm từ hoàn chỉnh
-- Nếu vấn đề là cấu trúc (thiếu H1, thiếu CTA), `text` là "" (chuỗi rỗng)
-- Tối đa 10 annotations, ưu tiên severity "error" trước
-
-ĐIỂM GRADE:
-- A: >= 85 | B: >= 70 | C: >= 55 | D: >= 40 | F: < 40
-
-QUAN TRỌNG: Chỉ trả JSON. Không giải thích thêm."""
+CALIBRATION:
+- A (>= 85): Xuất sắc, có insight/dữ liệu độc quyền vượt trội đối thủ.
+- B (>= 70): Tốt, đầy đủ thông tin nhưng insight chưa thực sự đột phá.
+- C (>= 55): Đạt yêu cầu kỹ thuật nhưng nội dung còn mỏng và chung chung.
+- D/F (< 55): Yếu, xào nấu lộ liễu hoặc thiếu quá nhiều thực thể quan trọng."""
 
 
 class SeoAnalyzer:
@@ -98,8 +87,51 @@ class SeoAnalyzer:
     """
 
     def __init__(self):
+        # Load Google Search keys for competitor fetch
+        self.search_keys = []
+        for i in ["", "_1", "_2"]:
+            k = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}")
+            cx = os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
+            if k and cx:
+                self.search_keys.append({"key": k, "cx": cx})
+        self._key_idx = 0
+        self._key_lock = asyncio.Lock()
+        
         # BUG-07 fix: Cache Agent at class scope — R1.6 prohibits per-request Agent creation
         self._agent = Agent(output_type=SeoReport, system_prompt=SEO_ANALYSIS_PROMPT, retries=3)
+
+    async def _get_search_pair(self):
+        if not self.search_keys: return None
+        async with self._key_lock:
+            pair = self.search_keys[self._key_idx % len(self.search_keys)]
+            self._key_idx += 1
+        return pair
+
+    async def _fetch_competitors(self, keyword: str) -> List[str]:
+        """Fetch top competitor content for semantic comparison."""
+        pair = await self._get_search_pair()
+        if not pair: return ["(Không thể tải nội dung cạnh tranh)"]
+        try:
+            client = await get_http_client()
+            response = await client.get(
+                "https://www.googleapis.com/customsearch/v1",
+                params={"key": pair["key"], "cx": pair["cx"], "q": keyword, "num": 5}
+            )
+            items = response.json().get("items", [])
+            async def _crawl(item):
+                url = item.get("link", "")
+                try:
+                    p_resp = await client.get(url, timeout=5.0)
+                    if p_resp.status_code == 200:
+                        body = re.sub(r'<(script|style)[^>]*>[\s\S]*?</\1>|<[^>]+>', ' ', p_resp.text, flags=re.IGNORECASE)
+                        return f"URL: {url}\nContent: {re.sub(r'\s+', ' ', body)[:3000]}"
+                except: pass
+                return f"URL: {url}\nSnippet: {item.get('snippet', '')}"
+            
+            return await asyncio.gather(*[_crawl(i) for i in items[:5]])
+        except Exception as e:
+            logger.error(f"SEO Search failed: {e}")
+            return ["(Lỗi kết nối Google Search API)"]
 
     async def analyze(self, campaign: ContentCampaign) -> SeoReport:
         """
@@ -137,36 +169,35 @@ class SeoAnalyzer:
         sections = outline.get("sections", [])
         outline_summary = "\n".join([f"- {s.get('heading', '')}" for s in sections[:8]])
 
-        # Extract first 200 chars of each paragraph for the AI to reference
+        # 1. Fetch competitors for information gain analysis
+        competitor_content = await self._fetch_competitors(primary)
+
+        # 2. Extract first 200 chars of each paragraph for the AI to reference
         paragraphs = [p.strip() for p in re.split(r'\n|\r|<p[^>]*>|<\/p>', draft) if len(p.strip()) > 30]
         paragraph_samples = "\n".join([f"[Para {i+1}]: {p[:200]}" for i, p in enumerate(paragraphs[:15])])
 
         prompt = f"""
-[THÔNG TIN BÀI VIẾT]
-Tiêu đề: {title}
-Từ khóa CHÍNH: {primary}
-Từ khóa PHỤ: {', '.join(secondary[:10])}
-Phong cách (Persona): {persona}
+[BÀI VIẾT CỦA BẠN — 4000 ký tự đầu]
+{plain_text[:4000]}
 
-[DÀN Ý ĐÃ ĐƯỢC PHÊ DUYỆT]
+[NỘI DUNG ĐỐI THỦ TOP GOOGLE cho từ khóa "{primary}"]
+{chr(10).join([f'--- Nguồn {i+1}: {s}' for i, s in enumerate(competitor_content)])}
+
+[THÔNG TIN BỔ SUNG]
+Tiêu đề: {title}
+Từ khóa PHỤ: {', '.join(secondary[:10])}
+Persona: {persona}
+
+[DÀN Ý ĐÃ CHỌN]
 {outline_summary or "(Không có dàn ý)"}
 
 [THỐNG KÊ KỸ THUẬT]
-- Số từ: {word_count}
-- H1: {h1_count} | H2: {h2_count} | H3: {h3_count}
-- Hình ảnh: {img_count}
-- Có CTA: {"Có" if has_cta else "Không"}
-- Mật độ từ khóa chính: {kw_density}% ({kw_count} lần / {word_count} từ)
+- Số từ: {word_count} | H1: {h1_count} | H2: {h2_count} | H3: {h3_count}
+- CTA: {"Có" if has_cta else "Không"} | Mật độ KW: {kw_density}%
 
-[NỘI DUNG BÀI VIẾT — 4000 ký tự đầu]
-{plain_text[:4000]}
-
-[CÁC ĐOẠN VĂN (để tạo annotations chính xác)]
-{paragraph_samples}
-
-NHIỆM VỤ: Phân tích và chấm điểm theo 7 tiêu chí.
-Tạo `seo_annotations` với `text` là NGUYÊN VĂN từ [NỘI DUNG BÀI VIẾT] hoặc [CÁC ĐOẠN VĂN] ở trên.
-Trả về JSON theo đúng schema yêu cầu.
+NHIỆM VỤ: Hãy so sánh bài viết của tôi với nội dung đối thủ.
+1. Chấm điểm trung thực. Nếu bài tôi nghèo nàn hơn đối thủ về thông tin, hãy cho điểm THẤP.
+2. Tạo `seo_annotations` chỉ dẫn chính xác đoạn nào cần thêm insight/dữ liệu hoặc sửa cấu trúc.
 """
 
         try:

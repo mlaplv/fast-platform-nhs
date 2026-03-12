@@ -536,16 +536,20 @@
       <div class="tb-divider ml-auto"></div>
       {#each toolbarActions as action}
         <button
-          onclick={action.onclick}
-          disabled={action.loading}
+          onclick={action.disabled ? undefined : action.onclick}
+          disabled={action.loading || action.disabled}
           class="flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wide border transition-all
             {action.loading
               ? 'bg-white/5 border-white/10 text-white/30 cursor-wait'
-              : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white active:scale-95'}"
-          title={action.label}
+              : action.disabled
+                ? 'bg-white/[0.03] border-white/5 text-white/20 cursor-not-allowed opacity-50'
+                : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white active:scale-95'}"
+          title={action.lockedMsg || action.label}
         >
           {#if action.loading}
             <span class="inline-block w-2.5 h-2.5 border border-white/30 border-t-transparent rounded-full animate-spin"></span>
+          {:else if action.disabled}
+            <span class="text-[8px] opacity-60">🔒</span>
           {/if}
           {action.label}
         </button>

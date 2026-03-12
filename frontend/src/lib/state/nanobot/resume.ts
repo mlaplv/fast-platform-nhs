@@ -63,7 +63,43 @@ export function createResumeManager(state: any, voice: any, log: any, ui: any, s
       const trySpeak = async () => {
          if (!greetingActive) return;
          const currentUserName = permissionState.userName || "Admin";
-         const greeting = `Chào mừng ${currentUserName} trở lại! Tôi đã khôi phục bản thảo "${title}".`;
+         
+         // V71.5: Rich Voice Notification
+         const step = parseInt(String(campaignData?.step || 1));
+         const stepNames: Record<number, string> = {
+            1: "Ý tưởng",
+            2: "Hình ảnh",
+            3: "Dàn bài",
+            4: "Nội dung",
+            5: "Xuất bản"
+         };
+         const currentStepName = stepNames[step] || "Sáng tạo";
+         const nextStepName = stepNames[step + 1] || "Hoàn tất";
+
+         let greeting = `Chào mừng ${currentUserName} trở lại! Bạn đang ở bước ${currentStepName} cho bản thảo "${title}".`;
+         
+         // Scores extraction
+         const scores: string[] = [];
+         const copyright = campaignData?.analysis_cache?.copyright?.data?.uniqueness_score ?? campaignData?.uniqueness_score;
+         if (copyright !== undefined && copyright !== null) {
+            scores.push(`Bản quyền ${Math.round(copyright * 100)}%`);
+         }
+         
+         const seoScore = campaignData?.analysis_cache?.seo?.data?.total_score;
+         if (seoScore !== undefined && seoScore !== null) {
+            scores.push(`SEO ${seoScore} điểm`);
+         }
+
+         const aiScore = campaignData?.analysis_cache?.ai_inspect?.data?.geo_score;
+         if (aiScore !== undefined && aiScore !== null) {
+            scores.push(`AI score ${aiScore}%`);
+         }
+
+         if (scores.length > 0) {
+            greeting += ` Điểm số hiện tại: ${scores.join(", ")}.`;
+         }
+
+         greeting += ` Bước tiếp theo là ${nextStepName}.`;
          
          const { vuiState, vuiController } = await import("$lib/vui");
          vuiController.interruptSpeech(); 
@@ -73,7 +109,6 @@ export function createResumeManager(state: any, voice: any, log: any, ui: any, s
          // Phase 46: Signal presence with a subtle ping before the greeting
          vuiController.playNotificationPing();
          
-         // Phase 44/46: Leverage the AudioEngine's "Patient Mode". 
          const success = await vuiController.speak(greeting);
          if (success) {
            log.addLog(`Neural Link Restored: Đã khôi phục bản thảo cho ${currentUserName}.`, "SYS", "success");
