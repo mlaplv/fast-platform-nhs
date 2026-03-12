@@ -123,6 +123,9 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
                     outline: newData.outline || newData.outline_data || current.outline,
                     draft_content: newData.draft_content || current.draft_content,
                     final_html: newData.final_html || current.final_html,
+                    unique_score: newData.unique_score || current.unique_score,
+                    analysis_cache: newData.gold_metadata?.analysis_cache || current.analysis_cache || {},
+                    analysis_metrics: newData.gold_metadata?.analysis_metrics || current.analysis_metrics || {},
                     selectedAvatarUrl: newData.gold_metadata?.avatar || (current as any).selectedAvatarUrl || null,
                     selectedAssetIndex: newData.gold_metadata?.selected_index ?? (current as any).selectedAssetIndex ?? 0,
                     creation_config: newData.gold_metadata?.creation_config || newData.topic_data?.creation_config || newData.keywords?.creation_config || (current as any).creation_config || {}

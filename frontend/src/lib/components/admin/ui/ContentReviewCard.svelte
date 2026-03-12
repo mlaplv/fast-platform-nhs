@@ -104,7 +104,7 @@
     editedDraft = draft_content || "";
     
     // Ensure viewingStep is valid
-    if (viewingStep < 1 || viewingStep > 5) viewingStep = step || 1;
+    if (viewingStep < 1 || viewingStep > 6) viewingStep = step || 1;
     if (viewingStep < 1) viewingStep = 1;
   });
 
@@ -191,7 +191,8 @@
         2: "các hình ảnh",
         3: "dàn ý bài viết",
         4: "bản thảo nội dung",
-        5: "bài viết"
+        5: "kết quả kiểm tra",
+        6: "bài viết hoàn thiện"
       };
       vuiController.speak(`Đã duyệt ${stepNames[viewingStep] || 'thành công'}!`);
     } catch (e) {
@@ -214,7 +215,8 @@
         2: "các hình ảnh",
         3: "dàn ý bài viết",
         4: "bản thảo nội dung",
-        5: "bài viết"
+        5: "kết quả kiểm tra",
+        6: "bài viết hoàn thiện"
       };
       vuiController.speak(`Đang chạy lại bước ${stepNames[viewingStep] || 'này'}.`);
     } catch (e) {
@@ -246,11 +248,12 @@
       editedDraft = ""; // R82.47: Clear edit buffer after successful save
       
       const stepNames: Record<number, string> = {
-        1: "nội dung ý tưởng và từ khóa",
+        1: "ý tưởng và từ khóa",
         2: "các hình ảnh",
         3: "dàn ý bài viết",
         4: "bản thảo nội dung",
-        5: "bài viết"
+        5: "kết quả kiểm tra",
+        6: "bài viết hoàn thiện"
       };
       vuiController.speak(`Đã lưu ${stepNames[viewingStep] || 'thành công'}.`);
     } catch (e) {
@@ -359,9 +362,16 @@
           bind:copyrightScore bind:seoScore bind:aiScore
         />
       {:else if viewingStep === 5}
-        <PublishStep 
-          {selectedAvatarUrl} bind:viewingStep bind:isEditing bind:keywords 
-          {finalHtml} {draft_content} 
+        <DraftStep
+          {campaign_id} {isEditing} bind:editedDraft bind:draft_content
+          {assets} isExpanded={nanobot.isExpanded} bind:editorRef {outline}
+          {analysis_cache} {analysis_metrics}
+          bind:copyrightScore bind:seoScore bind:aiScore
+        />
+      {:else if viewingStep === 6}
+        <PublishStep
+          {selectedAvatarUrl} bind:viewingStep bind:isEditing bind:keywords
+          {finalHtml} {draft_content}
         />
       {/if}
   </div>

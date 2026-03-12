@@ -34,6 +34,7 @@
       {:else if viewingStep === 3} <FileText size={16} />
       {:else if viewingStep === 4} <FileText size={16} />
       {:else if viewingStep === 5} <ShieldCheck size={16} />
+      {:else if viewingStep === 6} <CheckCircle size={16} />
       {:else} <CheckCircle size={16} />
       {/if}
     </div>
@@ -46,7 +47,8 @@
         {:else if viewingStep === 2}Asset Hunting
         {:else if viewingStep === 3}Content Outline
         {:else if viewingStep === 4}Drafting
-        {:else if viewingStep === 5}Website Publisher
+        {:else if viewingStep === 5}Plagiarism Check
+        {:else if viewingStep === 6}Website Publisher
         {/if}
       </span>
     </div>

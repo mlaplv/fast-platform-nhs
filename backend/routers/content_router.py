@@ -76,6 +76,20 @@ class ContentController(Controller):
         """
         return await content_factory.retry_step(str(campaign_id), campaign_repo)
 
+    @post("/campaigns/{campaign_id:uuid}/publish")
+    async def publish_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+        """
+        Xuất bản bài viết cuối cùng.
+        """
+        campaign = await campaign_repo.get(str(campaign_id))
+        if not campaign:
+            return {"status": "error", "message": "Campaign not found"}
+
+        campaign.status = "COMPLETED"
+        await campaign_repo.update(campaign)
+        await campaign_repo.session.commit()
+        return {"status": "success", "message": "Campaign published."}
+
     @put("/campaigns/{campaign_id:uuid}/metadata")
     async def update_metadata(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
         """

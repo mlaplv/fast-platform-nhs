@@ -118,7 +118,34 @@ class PlagiarismCop:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
 
         result = await self.analyze(campaign)
+
+        # Phase 73: Sync with gold_metadata analysis_cache for UI hydration parity
+        import copy
+        import hashlib
+        from datetime import datetime, timezone
+        from sqlalchemy.orm.attributes import flag_modified
+
+        gold = copy.deepcopy(campaign.gold_metadata or {})
+        cache = gold.get("analysis_cache", {})
+        metrics = gold.get("analysis_metrics", {})
+
+        draft_text = campaign.draft_content or ""
+        content_hash = hashlib.sha256(draft_text.encode('utf-8')).hexdigest()
+        result_data = result.model_dump()
+
+        cache["copyright"] = {
+            "hash": content_hash,
+            "data": result_data,
+            "at": datetime.now(timezone.utc).isoformat()
+        }
+        metrics["unique_score"] = result.uniqueness_score
+        metrics["copyright_risk"] = result.risk_level
+        metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
+
+        campaign.gold_metadata = gold
         campaign.unique_score = result.uniqueness_score
+        flag_modified(campaign, "gold_metadata")
+
         await repo.update(campaign)
 
         if result.risk_level == "HIGH":

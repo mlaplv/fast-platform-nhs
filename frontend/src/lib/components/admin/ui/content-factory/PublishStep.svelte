@@ -5,13 +5,13 @@
     Sparkles
   } from "lucide-svelte";
 
-  let { 
-    selectedAvatarUrl, 
-    viewingStep = $bindable(5), 
-    isEditing = $bindable(false), 
-    keywords = $bindable({}), 
-    finalHtml, 
-    draft_content 
+  let {
+    selectedAvatarUrl,
+    viewingStep = $bindable(6),
+    isEditing = $bindable(false),
+    keywords = $bindable({}),
+    finalHtml,
+    draft_content
   } = $props();
 </script>
 

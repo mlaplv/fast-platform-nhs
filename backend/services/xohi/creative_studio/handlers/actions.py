@@ -35,6 +35,10 @@ class ActionHandler:
                 elif step == 4:
                     new_content = edited_data.get("html") or edited_data.get("content")
                     if new_content: campaign.draft_content = new_content
+                elif step == 5:
+                    # Phase 73: Allow minor tweaks during Plagiarism Review
+                    new_content = edited_data.get("html") or edited_data.get("content")
+                    if new_content: campaign.draft_content = new_content
 
             if step == 2:
                 if "assets" in data and data["assets"] is not None:
@@ -60,7 +64,9 @@ class ActionHandler:
             if hasattr(campaign_repo, "session"):
                 await campaign_repo.session.commit()
 
-            asyncio.create_task(self.orchestrator._trigger_next_step(campaign_id, force_step=target_step))
+            # Ensure we don't exceed max steps
+            if target_step <= 6:
+                asyncio.create_task(self.orchestrator._trigger_next_step(campaign_id, force_step=target_step))
             return {"status": "success", "message": f"Dạ sếp, em đang bắt đầu Bước {target_step} ạ.", "campaign_id": campaign_id, "next_step": target_step}
         else:
             campaign.status = "REJECTED"

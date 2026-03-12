@@ -50,8 +50,8 @@
       </button>
     {:else}
       <!-- CURRENT STEP ACTION -->
-      {#if viewingStep === 5 && step === 5}
-        <!-- Step 5: Publish Button -->
+      {#if viewingStep === 6 && step === 6}
+        <!-- Step 6: Publish Button -->
         <button
           onclick={handlePublish}
           disabled={isLoading}
@@ -78,16 +78,16 @@
         {/if}
         
         <button
-          onclick={viewingStep === 5 ? handlePublish : handleApprove}
+          onclick={viewingStep === 6 ? handlePublish : handleApprove}
           disabled={isLoading || isPublishing}
           class="flex-1 group/btn-primary relative overflow-hidden flex items-center justify-center gap-2 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-[0_15px_30px_-10px_rgba(37,99,235,0.4)] disabled:opacity-50 active:scale-95"
         >
           <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn-primary:animate-shimmer pointer-events-none"></div>
           {#if isLoading || isPublishing} <RotateCcw size={16} class="animate-spin" />
-          {:else} 
+          {:else}
             <Check size={16} strokeWidth={3} />
             <span>
-              {#if viewingStep === 5} Xuất bản ngay
+              {#if viewingStep === 6} Xuất bản ngay
               {:else if isEditing} Duyệt & Lưu
               {:else} Duyệt & Tiếp tục
               {/if}

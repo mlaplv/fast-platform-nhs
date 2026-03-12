@@ -41,12 +41,13 @@ class ExecutionEngine:
             campaign.current_step = step
 
         try:
-            operative = registry.get_operative(step)
-            messages = {1: "✍️ Đang phân tích chủ đề...", 2: "🔍 Đang tìm ảnh...", 3: "📝 Lập dàn ý...", 4: "🖋️ AI đang viết...", 5: "📦 Đang hoàn thiện..."}
+            messages = {1: "✍️ Đang phân tích chủ đề...", 2: "🔍 Đang tìm ảnh...", 3: "📝 Lập dàn ý...", 4: "🖋️ AI đang viết...", 5: "🛡️ Đang kiểm tra đạo văn...", 6: "📦 Đang hoàn thiện..."}
             await self._emit_progress(campaign_id, step, messages.get(step, "Đang xử lý..."), user_id=campaign.user_id)
-            
+
+            # Phase 73: Retrieve operative from registry
+            operative = registry.get_operative(step)
             response_task = asyncio.create_task(operative.execute(campaign_id, campaign_repo, step=step))
-            
+
             # Phase 70: Heartbeat Mechanism to prevent "Freezing" during long AI tasks (Step 4)
             pulse_count = 0
             while not response_task.done():
@@ -89,11 +90,20 @@ class ExecutionEngine:
                 elif step == 3: campaign.outline_data = response.data.get("outline", response.data) if isinstance(response.data, dict) else response.data
                 elif step == 4: campaign.draft_content = response.data.get("content", campaign.draft_content)
                 elif step == 5:
+                    # Plagiarism metadata is already saved in PlagiarismCop.execute
+                    pass
+                elif step == 6:
                     campaign.final_html = response.data.get("final_html", campaign.final_html)
                     campaign.assets_data = response.data.get("assets", campaign.assets_data)
 
-            campaign.status = "WAITING_FOR_REVIEW" if step < 5 else "COMPLETED"
+            # Phase 73: Always set to WAITING_FOR_REVIEW after an automated step completes
+            # This allows the user to review Step 5 (Plagiarism) and Step 6 (Final Package)
+            campaign.status = "WAITING_FOR_REVIEW"
             if step == 2: campaign.search_count = (campaign.search_count or 0) + 1
+            if step == 5:
+                # Plagiarism check completed, results are already in campaign.unique_score
+                # We could add more logic here if needed
+                pass
             await campaign_repo.update(campaign)
             
             payload = {
@@ -114,6 +124,8 @@ class ExecutionEngine:
             elif step == 4:
                 payload["data"]["draft_content"] = getattr(campaign, "draft_content", None)
             elif step == 5:
+                payload["data"]["unique_score"] = getattr(campaign, "unique_score", None)
+            elif step == 6:
                 payload["data"]["assets"] = getattr(campaign, "assets_data", None) or []
                 payload["data"]["final_html"] = getattr(campaign, "final_html", None)
             # Always include gold_metadata for avatar/config sync

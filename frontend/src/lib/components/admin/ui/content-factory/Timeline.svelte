@@ -23,7 +23,8 @@
       { s: 2, icon: ImageIcon, label: "Hình ảnh", desc: "Asset Hunt" },
       { s: 3, icon: FileText, label: "Dàn bài", desc: "Architecture" },
       { s: 4, icon: FileText, label: "Nội dung", desc: "Creative Pen" },
-      { s: 5, icon: Rocket, label: "Xuất bản", desc: "Publisher" }
+      { s: 5, icon: Check, label: "Kiểm tra", desc: "Plagiarism Cop" },
+      { s: 6, icon: Rocket, label: "Xuất bản", desc: "Media & SEO" }
     ] as phase, i}
       {@const isPast = phase.s < viewingStep}
       {@const isCurrent = phase.s === viewingStep}
@@ -65,7 +66,7 @@
         </div>
       </button>
 
-      {#if i < 4}
+      {#if i < 5}
          {@const isLinePast = (i + 1) < viewingStep}
          {@const isLineCurrent = (i + 1) === viewingStep}
          <div class="flex-1 h-[2px] mt-6 -translate-y-1/2 mx-2 transition-all duration-700 {isLinePast ? 'bg-gradient-to-r from-blue-600 to-cyan-400 shadow-[0_0_10px_rgba(37,99,235,0.4)]' : isLineCurrent ? 'bg-gradient-to-r from-blue-600 to-white/10' : 'bg-white/5'} rounded-full"></div>
