@@ -21,26 +21,25 @@ function deep_clean() {
 
     # === FRONTEND CLEANUP ===
     echo -e "${YELLOW}-> [1/5] Đang xóa Frontend rác (node_modules, .pnpm-store, build caches)...${NC}"
-    rm -rf frontend/node_modules frontend/dist frontend/.svelte-kit frontend/.vite
-    rm -rf frontend/.pnpm-store
+    sudo rm -rf frontend/node_modules frontend/dist frontend/.svelte-kit frontend/.vite frontend/.pnpm-store
 
     # === BACKEND CLEANUP ===
     echo -e "${YELLOW}-> [2/5] Đang xóa Backend rác (.venv, pytest caches)...${NC}"
-    rm -rf .venv .pytest_cache backend/.pytest_cache
+    sudo rm -rf .venv .pytest_cache backend/.pytest_cache
 
     # === PYTHON CACHES ===
     echo -e "${YELLOW}-> [3/5] Đang xóa Python caches (__pycache__)...${NC}"
-    find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    sudo find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
     # === LOCK FILES, LOGS, OS JUNK ===
     echo -e "${YELLOW}-> [4/5] Đang xóa Lock files, Logs, .DS_Store...${NC}"
-    rm -f uv.lock vad.slice kehoach.txt
-    find . -maxdepth 3 -type f \( -name "pnpm-lock.yaml" -o -name "package-lock.json" -o -name "yarn.lock" -o -name "*.log" -o -name ".DS_Store" \) -delete 2>/dev/null || true
+    sudo rm -f uv.lock vad.slice kehoach.txt
+    sudo find . -maxdepth 3 -type f \( -name "pnpm-lock.yaml" -o -name "package-lock.json" -o -name "yarn.lock" -o -name "*.log" -o -name ".DS_Store" \) -delete 2>/dev/null || true
 
     # === ORPHAN EMPTY DIRS ===
     echo -e "${YELLOW}-> [5/5] Đang xóa thư mục rỗng...${NC}"
-    rm -rf static
-    find . -maxdepth 3 -type d -empty -not -path './.git/*' -not -path './certs/*' -delete 2>/dev/null || true
+    sudo rm -rf static
+    sudo find . -maxdepth 3 -type d -empty -not -path './.git/*' -not -path './certs/*' -delete 2>/dev/null || true
 
     echo -e "${GREEN}[OK] Đã dọn dẹp Code artifacts sạch bóng!${NC}"
 }
@@ -67,6 +66,11 @@ function check_deps() {
         echo -e "${RED}[ERROR] Không tìm thấy 'uv'. Đang tự động cài đặt...${NC}"
         curl -LsSf https://astral.sh/uv/install.sh | sh
         source $HOME/.local/bin/env
+    fi
+
+    if ! command -v pnpm &> /dev/null; then
+        echo -e "${YELLOW}[INFO] Không tìm thấy 'pnpm'. Đang tự động cài đặt qua npm...${NC}"
+        sudo npm install -g pnpm
     fi
 }
 
@@ -97,7 +101,7 @@ function start_dev() {
     echo -e "${YELLOW}-> Cập nhật Database (Migration)...${NC}"
     # Đợi DB sẵn sàng một chút
     sleep 2
-    uv run --env-file .env alembic -c backend/alembic.ini upgrade head || echo -e "${YELLOW}[SKIP] Không có migration mới.${NC}"
+    uv run --env-file "${PWD}/.env" alembic -c backend/alembic.ini upgrade head || echo -e "${YELLOW}[SKIP] Không có migration mới.${NC}"
     
     echo -e "${GREEN}[READY] Hệ thống đã sẵn sàng cho dev!${NC}"
     echo -e "${CYAN}Admin: https://admin.smartshop.test${NC}"
@@ -126,7 +130,7 @@ function init_deploy() {
 
     echo -e "${CYAN}[3/6] Cài đặt dependencies (UV & PNPM)...${NC}"
     uv sync
-    cd frontend && pnpm install && cd ..
+    (cd frontend && pnpm install)
     
     echo -e "${CYAN}[4/6] Xây dựng và khởi động Containers (Docker)...${NC}"
     docker compose up -d --build
@@ -134,11 +138,11 @@ function init_deploy() {
     echo -e "${CYAN}[5/6] Database Migration & SSL Setup...${NC}"
     echo -e "${YELLOW}Đang chờ DB sẵn sàng...${NC}"
     sleep 5
-    uv run alembic -c backend/alembic.ini upgrade head
+    uv run --env-file "${PWD}/.env" alembic -c backend/alembic.ini upgrade head
     chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
     
     echo -e "${CYAN}[6/6] Gieo mầm dữ liệu (Seeding Database)...${NC}"
-    uv run --env-file .env python3 backend/scripts/seed.py
+    uv run --env-file "${PWD}/.env" python3 backend/scripts/seed.py
     
     echo -e "${GREEN}=== HỆ THỐNG ĐÃ SẴN SÀNG! ===${NC}"
     echo -e "${CYAN}Truy cập: https://admin.smartshop.test${NC}"
@@ -148,7 +152,7 @@ function init_deploy() {
 function seed_db() {
     echo -e "${YELLOW}=== [SEED] KHỞI TẠO DỮ LIỆU MẪU (R1.5) ===${NC}"
     check_deps
-    uv run --env-file .env python3 backend/scripts/seed.py
+    uv run --env-file "${PWD}/.env" python3 backend/scripts/seed.py
     echo -e "${GREEN}== SEEDING HOÀN TẤT! ==${NC}"
     read -p "Nhấn Enter để quay lại menu..."
 }
@@ -159,8 +163,7 @@ function run_tests() {
     check_deps
     uv run pytest || echo -e "${RED}Lỗi Test Backend.${NC}"
     echo -e "${CYAN}[2/2] Frontend (Vitest)...${NC}"
-    cd frontend && pnpm run test || echo -e "${RED}Lỗi Test Frontend.${NC}"
-    cd ..
+    (cd frontend && pnpm run test) || echo -e "${RED}Lỗi Test Frontend.${NC}"
     read -p "Nhấn Enter để quay lại menu..."
 }
 
@@ -200,19 +203,19 @@ while true; do
             ;;
         4)
             echo -e "${YELLOW}[INFO] Đang build frontend tĩnh...${NC}"
-            cd frontend && pnpm run build && cd ..
+            (cd frontend && pnpm run build)
             read -p "Nhấn Enter để tiếp tục..."
             ;;
         5)
             check_deps
-            uv run python3 -c "from backend.services.xohi.creative_studio.orchestrator import content_factory; import asyncio; asyncio.run(content_factory.resume_all())"
+            uv run --env-file "${PWD}/.env" python3 -c "from backend.services.xohi.creative_studio.orchestrator import content_factory; import asyncio; asyncio.run(content_factory.resume_all())"
             read -p "Nhấn Enter để tiếp tục..."
             ;;
         6)
             run_tests
             ;;
         7)
-            uv run python3 backend/scripts/audit_v61.py
+            uv run --env-file "${PWD}/.env" python3 backend/scripts/audit_v61.py
             read -p "Nhấn Enter để tiếp tục..."
             ;;
         0)

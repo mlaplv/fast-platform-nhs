@@ -1,7 +1,5 @@
 import os
-import json
 import logging
-import time
 import redis.asyncio as redis
 from typing import Optional
 
@@ -10,17 +8,31 @@ logger = logging.getLogger("api-gateway")
 class SmartKeyRotator:
     """
     R101/R106: Intelligent Key Management for LLM Tiers.
-    V64.0: Sticky session keys and dynamic RPM/RPD cooldown logic.
+    V65.0: Singleton, fixed round-robin, auth cooldown, proper logging.
     """
     SUCCESS_INDEX_KEY = "ai:key_rotator:last_success_index"
+    ROUND_ROBIN_KEY = "ai:key_rotator:round_robin_counter"
     STICKY_PREFIX = "ai:key_rotator:sticky:"
     UNHEALTHY_PREFIX = "ai:key_rotator:unhealthy:"
-    
+
     # Cooldown durations
     COOLDOWN_MINUTE = 60      # Rate Limit (RPM)
+    COOLDOWN_AUTH = 3600      # Invalid/revoked key - 1 hour
     COOLDOWN_DAILY = 86400    # Quota Exhausted (RPD) - 24 hours
 
+    _instance: Optional["SmartKeyRotator"] = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
     def __init__(self):
+        if self._initialized:
+            return
+        self._initialized = True
+
         raw_keys = os.getenv("GEMINI_API_KEY", "")
         self.keys = [k.strip() for k in raw_keys.split(",") if k.strip()]
         self.index = 0
@@ -31,7 +43,7 @@ class SmartKeyRotator:
         try:
             self.client = redis.from_url(redis_url, decode_responses=True)
             self._use_redis = True
-            logger.info(f"[KeyRotator] Connected to Redis for shared state.")
+            logger.info(f"[KeyRotator] Connected to Redis for shared state. Keys loaded: {len(self.keys)}")
         except Exception as e:
             logger.warning(f"[KeyRotator] Redis unavailable, using local memory: {e}")
 
@@ -40,11 +52,11 @@ class SmartKeyRotator:
 
     async def get_key(self, session_id: Optional[str] = None) -> str:
         """
-        Returns the best key to use. 
+        Returns the best key to use.
         Prioritizes 'Sticky' key for the session, or global successful index.
         """
         if not self.keys: return ""
-        
+
         num_keys = len(self.keys)
         start_index = self.index
 
@@ -59,38 +71,44 @@ class SmartKeyRotator:
                     import hashlib
                     hash_val = int(hashlib.md5(session_id.encode()).hexdigest(), 16)
                     start_index = hash_val % num_keys
-            except Exception: pass
+            except Exception as e:
+                logger.debug(f"[KeyRotator] Redis sticky lookup failed for session {session_id}: {e}")
         elif self._use_redis:
-            # Global Orbital Rotation for anonymous sessions
+            # Global round-robin for anonymous sessions (separate from success index)
             try:
-                global_idx = await self.client.incr(self.SUCCESS_INDEX_KEY)
+                global_idx = await self.client.incr(self.ROUND_ROBIN_KEY)
                 start_index = global_idx % num_keys
-            except Exception: pass
+            except Exception as e:
+                logger.debug(f"[KeyRotator] Redis round-robin failed: {e}")
 
         # 2. Iterate through keys starting from the best candidate
         for i in range(num_keys):
             current_idx = (start_index + i) % num_keys
             key = self.keys[current_idx]
-            
+
             if self._use_redis:
                 try:
                     is_unhealthy = await self.client.get(f"{self.UNHEALTHY_PREFIX}{current_idx}")
                     if is_unhealthy:
-                        continue 
-                except Exception: pass
+                        logger.debug(f"[KeyRotator] Key index {current_idx} is unhealthy, skipping.")
+                        continue
+                except Exception as e:
+                    logger.debug(f"[KeyRotator] Redis unhealthy check failed for index {current_idx}: {e}")
 
-            # Foundation: If we found a healthy key, mark it as current
+            # Found a healthy key, mark it as current
             self.index = current_idx
-            
-            # If session-based, update sticky mapping in Redis (Short TTL for session)
+
+            # If session-based, update sticky mapping in Redis
             if session_id and self._use_redis:
                 try:
-                    await self.client.set(f"{self.STICKY_PREFIX}{session_id}", current_idx, ex=3600)  # 1h sticky
-                except Exception: pass
-                
+                    await self.client.set(f"{self.STICKY_PREFIX}{session_id}", current_idx, ex=3600)
+                except Exception as e:
+                    logger.debug(f"[KeyRotator] Redis sticky set failed for session {session_id}: {e}")
+
             return key
 
-        # Fallback: All unhealthy? Force the hash-based one if possible, or index 0
+        # Fallback: All unhealthy? Force the hash-based one
+        logger.warning(f"[KeyRotator] All {num_keys} keys are unhealthy! Forcing fallback key index {start_index % num_keys}.")
         return self.keys[start_index % num_keys]
 
     async def set_success(self, key: str, session_id: Optional[str] = None):
@@ -103,18 +121,31 @@ class SmartKeyRotator:
                 await self.client.delete(f"{self.UNHEALTHY_PREFIX}{idx}")
                 if session_id:
                     await self.client.set(f"{self.STICKY_PREFIX}{session_id}", idx, ex=3600)
-        except Exception: pass
+        except ValueError:
+            logger.warning(f"[KeyRotator] set_success called with unknown key (not in pool).")
+        except Exception as e:
+            logger.warning(f"[KeyRotator] set_success Redis error: {e}")
 
     async def mark_unhealthy(self, key: str, reason: str = "rate_limit", session_id: Optional[str] = None):
-        """Triggers circuit breaker cooldown: 60s for RPM, 24h for RPD."""
+        """Triggers circuit breaker cooldown: 60s RPM, 1h auth, 24h RPD."""
         try:
             idx = self.keys.index(key)
-            cooldown = self.COOLDOWN_DAILY if "daily" in reason.lower() or "quota" in reason.lower() else self.COOLDOWN_MINUTE
-            
+            reason_lower = reason.lower()
+
+            if "daily" in reason_lower or "quota" in reason_lower:
+                cooldown = self.COOLDOWN_DAILY
+            elif "auth" in reason_lower or "invalid" in reason_lower or "server" in reason_lower:
+                cooldown = self.COOLDOWN_AUTH
+            else:
+                cooldown = self.COOLDOWN_MINUTE
+
             if self._use_redis:
-                await self.client.set(f"{self.UNHEALTHY_PREFIX}{idx}", "1", ex=cooldown)
+                await self.client.set(f"{self.UNHEALTHY_PREFIX}{idx}", reason, ex=cooldown)
                 logger.warning(f"[KeyRotator] Key index {idx} UNHEALTHY. Reason: {reason}. Cooldown: {cooldown}s")
-        except Exception: pass
+        except ValueError:
+            logger.warning(f"[KeyRotator] mark_unhealthy called with unknown key (not in pool).")
+        except Exception as e:
+            logger.warning(f"[KeyRotator] mark_unhealthy Redis error: {e}")
 
     def get_count(self) -> int:
         return len(self.keys)
@@ -129,3 +160,7 @@ class SmartKeyRotator:
         key = self.keys[self.index]
         self.index = (self.index + 1) % len(self.keys)
         return key
+
+
+# Module-level singleton
+key_rotator = SmartKeyRotator()

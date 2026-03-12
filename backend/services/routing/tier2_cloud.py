@@ -8,7 +8,7 @@ from pydantic_ai import Agent, RunContext
 from litellm import RateLimitError, AuthenticationError, ServiceUnavailableError, Timeout as LiteLLMTimeout
 
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
-from backend.services.ai_engine.core.key_rotator import SmartKeyRotator
+from backend.services.ai_engine.core.key_rotator import key_rotator
 
 logger = logging.getLogger("api-gateway")
 
@@ -39,7 +39,7 @@ from dataclasses import dataclass
 class Tier2Deps:
     """Dependencies for Tier 2 Dispatcher."""
     screen_context: Optional[dict] = None
-    rotator: Optional[SmartKeyRotator] = None
+    rotator: Optional[object] = None
 
 T2_SYSTEM_PROMPT = f"""[ROLE] TRỢ LÝ ĐIỀU PHỐI CẤP CAO (CORE DISPATCHER) — {os.getenv('PUBLIC_SSOT_ADMIN_URL', 'admin.smartshop.test')}
 
@@ -85,7 +85,7 @@ class Tier2CloudRouter:
         # R1.4: Single Source of Truth from .env
         self.primary_model_name = os.getenv("TIER2_MODEL", "gemini-2.5-flash")
         self.fallback_model_name = os.getenv("TIER2_FALLBACK_MODEL", "gemini-2.5-flash")
-        self.rotator = SmartKeyRotator()
+        self.rotator = key_rotator
         
         # PydanticAI Agent Initialization
         self.agent = Agent(
@@ -113,7 +113,7 @@ class Tier2CloudRouter:
         
         # [TRINITY DISPATCHER] Waterfall logic decoupled
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-        deps = Tier2Deps(screen_context=screen_context, rotator=self.rotator)
+        deps = Tier2Deps(screen_context=screen_context, rotator=key_rotator)
 
         try:
             result = await trinity_bridge.run(

@@ -11,7 +11,7 @@ from litellm.exceptions import ServiceUnavailableError, RateLimitError, Timeout 
 from pydantic_ai import Agent, RunContext
 from dataclasses import dataclass, field
 from pydantic import BaseModel, Field
-from backend.services.ai_engine.core.key_rotator import SmartKeyRotator
+from backend.services.ai_engine.core.key_rotator import key_rotator
 from backend.utils.text import normalize_vn
 from backend.services.xohi_memory import xohi_memory
 
@@ -191,7 +191,7 @@ class STTCorrector:
         import json as _json
         # Kill GOOGLE_API_KEY immediately — LiteLLM prefers it over GEMINI_API_KEY
         os.environ.pop("GOOGLE_API_KEY", None)
-        self.rotator = SmartKeyRotator()
+        self.rotator = key_rotator
         self.neural_corrector = NeuralLocalCorrector()
         
         self.agent = Agent(

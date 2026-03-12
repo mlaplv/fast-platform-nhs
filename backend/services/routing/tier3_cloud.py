@@ -8,7 +8,7 @@ from pydantic_ai import Agent, RunContext
 from litellm import RateLimitError, AuthenticationError, ServiceUnavailableError, Timeout as LiteLLMTimeout
 
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
-from backend.services.ai_engine.core.key_rotator import SmartKeyRotator
+from backend.services.ai_engine.core.key_rotator import key_rotator
 
 logger = logging.getLogger("api-gateway")
 
@@ -27,7 +27,7 @@ from dataclasses import dataclass
 class Tier3Deps:
     """Dependencies for Tier 3 Deep Reasoning (XoHi)."""
     screen_context: Optional[dict] = None
-    rotator: Optional[SmartKeyRotator] = None
+    rotator: Optional[object] = None
     base_directive: str = ""
 
 T3_SYSTEM_PROMPT = """[ROLE] XO HI — TRỢ LÝ GIÁM ĐỐC ĐIỀU HÀNH (COO ASSISTANT) — admin.smartshop.test
@@ -56,7 +56,7 @@ class Tier3CloudRouter:
     def __init__(self):
         self.primary_model_name = os.getenv("TIER3_MODEL", "gemini-2.5-flash")
         self.fallback_model_name = os.getenv("TIER3_FALLBACK_MODEL", "gemini-2.5-flash")
-        self.rotator = SmartKeyRotator()
+        self.rotator = key_rotator
         
         # [THIẾT QUÂN LUẬT] PydanticAI Agent with Deps
         self.agent = Agent(
@@ -87,7 +87,7 @@ class Tier3CloudRouter:
 
         deps = Tier3Deps(
             screen_context=screen_context, 
-            rotator=self.rotator,
+            rotator=key_rotator,
             base_directive=os.getenv("SYSTEM_CORE_DIRECTIVE", "")
         )
 
@@ -137,7 +137,7 @@ class Tier3CloudRouter:
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
         deps = Tier3Deps(
             screen_context=screen_context, 
-            rotator=self.rotator,
+            rotator=key_rotator,
             base_directive=os.getenv("SYSTEM_CORE_DIRECTIVE", "")
         )
 
