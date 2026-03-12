@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from uuid import UUID, uuid4
 from enum import Enum
 from datetime import datetime
@@ -22,14 +22,14 @@ class ContentCampaign(BaseModel):
 
     id: str
     user_id: Optional[str] = None
-    source_input: str
+    source_input: Optional[str] = "" 
     reviewer_type: str = "ADMIN_MANUAL"
     current_step: int = 1
     status: str = "WAITING_FOR_REVIEW"
-    gold_metadata: Optional[Dict[str, Any]] = {}
-    topic_data: Optional[Dict[str, Any]] = {}
-    assets_data: Optional[List[Any]] = []
-    outline_data: Optional[Dict[str, Any]] = {}
+    gold_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    topic_data: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    assets_data: Optional[Union[List[Any], Dict[str, Any]]] = Field(default_factory=list)
+    outline_data: Optional[Dict[str, Any]] = Field(default_factory=dict)
     draft_content: Optional[str] = None
     search_count: int = 0
     created_at: datetime = Field(default_factory=datetime.now)
@@ -38,3 +38,6 @@ class AgentResponse(BaseModel):
     signal: AgentSignal
     data: Any
     message: Optional[str] = None
+
+# Rule R106: Explicit model rebuild for complex type resolution
+ContentCampaign.model_rebuild()

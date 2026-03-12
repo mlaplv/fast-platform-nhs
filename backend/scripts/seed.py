@@ -119,7 +119,7 @@ async def seed_users(session, admin_role):
         id="user_admin",
         email=email,
         username=username,
-        name="Xohi Administrator",
+        name="Xohi",
         password=hashed_password,
         status="ACTIVE",
         tenant_id=TENANT_ID

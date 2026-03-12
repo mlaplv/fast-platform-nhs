@@ -56,18 +56,19 @@ class ContentOrchestrator:
         logger.info("[Content Factory] Orchestrator initialized with lean modular handlers.")
 
     async def resume_all(self):
-        """R104: Self-Healing Resume logic."""
+        """R104: Self-Healing Resume logic. R1.5: Zero-Hydration — only select needed columns."""
         logger.info("[Content Factory] SELF-HEALING: Scanning for PROCESSING campaigns...")
         session_maker = alchemy_config.create_session_maker()
         async with session_maker() as session:
-            repo = ContentCampaignRepository(session=session)
-            from sqlalchemy import select
-            stmt = select(ContentCampaign).where(ContentCampaign.status == "PROCESSING")
+            from sqlalchemy import select, text
+            stmt = select(ContentCampaign.id, ContentCampaign.current_step).where(
+                ContentCampaign.status == "PROCESSING"
+            )
             result = await session.execute(stmt)
-            campaigns = result.scalars().all()
-            for c in campaigns:
-                asyncio.create_task(self.engine.trigger_step(c.id, force_step=c.current_step))
-        logger.info(f"[Content Factory] SELF-HEALING: {len(campaigns)} campaigns restored.")
+            rows = result.all()
+            for row in rows:
+                asyncio.create_task(self.engine.trigger_step(row.id, force_step=row.current_step))
+        logger.info(f"[Content Factory] SELF-HEALING: {len(rows)} campaigns restored.")
 
     # --- Delegated API Surface ---
 

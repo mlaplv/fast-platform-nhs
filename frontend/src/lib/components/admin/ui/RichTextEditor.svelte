@@ -205,46 +205,40 @@
 
   // R82.44: Sync content from props (Only if changed externally)
   $effect(() => {
-    if (!editor || editor.isDestroyed) return;
+    if (!editor || editor.isDestroyed || content === undefined) return;
     
-    // Normalize content for comparison
     const currentHtml = editor.getHTML();
-    if (content !== undefined && content !== currentHtml && content !== '<p></p>') {
-      // Small delay to ensure Tiptap is ready for transaction
-      setTimeout(() => {
-        if (editor && !editor.isDestroyed && content !== editor.getHTML()) {
-          editor.commands.setContent(content, false);
-          updateToolbarState();
-        }
-      }, 0);
+    // Use string comparison with a fallback to empty paragraph for blank content
+    const normalizedContent = content === "" ? "<p></p>" : content;
+    const normalizedCurrent = currentHtml === "" ? "<p></p>" : currentHtml;
+
+    if (normalizedContent !== normalizedCurrent) {
+      editor.commands.setContent(content, false);
+      updateToolbarState();
     }
   });
 
   // ── Annotation Apply Effect ─────────────────────────────────────
-  // When annotations change, clear all existing marks and re-apply by
-  // scanning the document for exact text matches.
   $effect(() => {
     if (!editor || editor.isDestroyed) return;
-    const anns = annotations; // reactive dependency
+    const anns = annotations;
 
-    // Clear all existing annotation marks first
     editor.commands.clearAllAnnotations();
-
     if (!anns || anns.length === 0) return;
 
-    // Apply each annotation by searching for the exact text
     const { doc } = editor.state;
     const { tr } = editor.state;
     let hasChanges = false;
 
-    // Build robust character sequence skipping whitespaces to match across HTML tags
+    // Rule R82.45: Robust Text Matching — Handle NBSP (\u00A0) and standard spaces consistently
     interface CharPos { char: string; pos: number; }
     const docChars: CharPos[] = [];
     doc.descendants((node, pos) => {
       if (node.isText && node.text) {
         for (let i = 0; i < node.text.length; i++) {
           const c = node.text[i];
-          if (c.trim() !== '') {
+          // Use a broader whitespace check including \u00A0 (NBSP)
+          if (!/[\s\u00A0\u200B\uFEFF]/.test(c)) {
             docChars.push({ char: c.toLowerCase(), pos: pos + i });
           }
         }
@@ -254,27 +248,35 @@
     const docStr = docChars.map(c => c.char).join('');
 
     for (const ann of anns) {
-      if (!ann.text || ann.text.trim().length < 3) continue; // skip empty / structural
+      if (!ann.text || ann.text.trim().length < 3) continue;
 
-      const searchStr = ann.text.replace(/\s+/g, '').toLowerCase();
+      const searchStr = ann.text.replace(/[\s\u00A0\u200B\uFEFF]+/g, '').toLowerCase();
       if (!searchStr) continue;
 
       let idx = docStr.indexOf(searchStr);
-      while (idx !== -1) {
-        const startPos = docChars[idx].pos;
-        const endPos = docChars[idx + searchStr.length - 1].pos + 1; // +1 to include last char
+      if (idx === -1) {
+        console.warn(`[RichTextEditor] Annotation Match Failed: "${ann.text.substring(0, 30)}..." not found in docStr.`);
+        continue;
+      }
 
-        tr.addMark(
-          startPos, endPos,
-          editor!.schema.marks.annotation.create({
-            id: `ann-${Math.random().toString(36).substring(2, 9)}`,
-            type: ann.type,
-            message: ann.message,
-            source: ann.source || '',
-            severity: ann.severity,
-          })
-        );
-        hasChanges = true;
+      while (idx !== -1) {
+        // Double check indices are within bounds
+        if (idx < docChars.length && (idx + searchStr.length - 1) < docChars.length) {
+          const startPos = docChars[idx].pos;
+          const endPos = docChars[idx + searchStr.length - 1].pos + 1;
+
+          tr.addMark(
+            startPos, endPos,
+            editor!.schema.marks.annotation.create({
+              id: `ann-${Math.random().toString(36).substring(2, 9)}`,
+              type: ann.type,
+              message: ann.message,
+              source: ann.source || '',
+              severity: ann.severity || 'medium',
+            })
+          );
+          hasChanges = true;
+        }
         idx = docStr.indexOf(searchStr, idx + 1);
       }
     }

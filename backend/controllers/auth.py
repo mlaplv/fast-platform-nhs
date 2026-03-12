@@ -11,8 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
-from backend.database.models import Notification, User, Role
+from backend.database.models import User, Role
 from backend.schemas.auth import LoginRequest, TokenResponse, RegisterRequest
+from backend.schemas.signal import SignalSchema, SignalSeverity
+from backend.services.signal_center import signal_center
 
 SECRET_KEY = os.environ["ENCRYPTION_SALT"]  # MUST be set — crash on start if missing (CTO Audit V2 C2)
 ALGORITHM = "HS256"
@@ -51,13 +53,16 @@ class AuthController(Controller):
         # Flush to get the user inserted before adding notification
         await db_session.flush()
 
-        new_notif = Notification(
-            id=str(uuid.uuid4()),
+        # CNS V70: Unified signal dispatch (replaces manual Notification)
+        await signal_center.dispatch(
             user_id=user_id,
-            type="SYSTEM",
-            message=f"Chào mừng {data.name} gia nhập hệ thống"
+            signal=SignalSchema(
+                message=f"Chào mừng {data.name} gia nhập hệ thống",
+                severity=SignalSeverity.INFO,
+                signal_type="SYSTEM"
+            ),
+            db_session=db_session
         )
-        db_session.add(new_notif)
 
         return {"id": user_id, "message": "Tạo tài khoản thành công"}
 
@@ -97,15 +102,16 @@ class AuthController(Controller):
                     permissions.extend([p.code for p in r.permissions])
         permissions = list(set(permissions))
 
-        # Login notification (Audit Log)
-        import uuid
-        new_notif = Notification(
-            id=str(uuid.uuid4()),
-            user_id=user.id,
-            type="SECURITY",
-            message=f"Identity Verified: Session established for {user.email}"
+        # CNS V70.4: Login signal — Downgraded to INFO to prevent Voice Interruption
+        await signal_center.dispatch(
+            user_id=str(user.id),
+            signal=SignalSchema(
+                message=f"Đăng nhập thành công: {user.email}",
+                severity=SignalSeverity.INFO,
+                signal_type="SECURITY"
+            ),
+            db_session=db_session
         )
-        db_session.add(new_notif)
         # NOTE: Do NOT call db_session.commit() — Litestar auto-commits at end of request
 
         # THIẾT QUÂN LUẬT: Giới hạn phiên 2 giờ

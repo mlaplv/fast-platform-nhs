@@ -15,6 +15,7 @@
   import { apiClient } from "$lib/utils/apiClient";
   import { fallbackSha256 } from "$lib/utils/cryptoFallback";
   import { nanobot } from "$lib/state/nanobot.svelte";
+  import { goto } from "$app/navigation";
 
   let email = $state("");
   let password = $state("");
@@ -91,7 +92,10 @@
       if (!permissionState.roles.includes("SUPER_ADMIN") && role !== "ADMIN") {
         throw new Error("Bạn không có quyền truy cập vùng này");
       }
-      window.location.href = "/";
+      
+      // V70.2: Use soft navigation to preserve Audio Context and SSE connections
+      await goto("/");
+      nanobot.forceHydration();
     } catch (e: unknown) {
       const err = e as Error;
       error = err.message || "Failed to login. Please check your credentials.";

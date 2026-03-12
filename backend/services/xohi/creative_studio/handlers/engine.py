@@ -45,7 +45,32 @@ class ExecutionEngine:
             messages = {1: "✍️ Đang phân tích chủ đề...", 2: "🔍 Đang tìm ảnh...", 3: "📝 Lập dàn ý...", 4: "🖋️ AI đang viết...", 5: "📦 Đang hoàn thiện..."}
             await self._emit_progress(campaign_id, step, messages.get(step, "Đang xử lý..."), user_id=campaign.user_id)
             
-            response = await operative.execute(campaign_id, campaign_repo, step=step)
+            response_task = asyncio.create_task(operative.execute(campaign_id, campaign_repo, step=step))
+            
+            # Phase 70: Heartbeat Mechanism to prevent "Freezing" during long AI tasks (Step 4)
+            pulse_count = 0
+            while not response_task.done():
+                await asyncio.sleep(10) # Pulse every 10s
+                if not response_task.done():
+                    pulse_count += 1
+                    logger.debug(f"[Content Factory] Pulse {pulse_count}: Step {step} still working for {campaign_id}")
+                    
+                    msg = messages.get(step, "Đang xử lý...")
+                    if step == 4:
+                        sub_msgs = [
+                            "Đang phân tích và nhào nặn tiêu đề...",
+                            "Đang xây dựng nội dung chi tiết theo dàn ý...",
+                            "Đang căn chỉnh mật độ từ khóa chuẩn SEO...",
+                            "Đang tối ưu hóa hình ảnh và thẻ figure...",
+                            "Đang kiểm tra tính nhất quán của văn phong...",
+                            "Đang hoàn thiện những bước cuối cùng..."
+                        ]
+                        idx = min(pulse_count - 1, len(sub_msgs) - 1)
+                        msg = sub_msgs[idx]
+                    
+                    await self._emit_progress(campaign_id, step, msg, user_id=campaign.user_id)
+            
+            response = await response_task
             if not isinstance(response, AgentResponse):
                 response = AgentResponse(signal=AgentSignal.PROCEED_NEXT, message="Legacy success", data={"raw": response})
 
@@ -61,7 +86,7 @@ class ExecutionEngine:
             if response.data:
                 if step == 1: campaign.topic_data = response.data
                 elif step == 2: campaign.assets_data = response.data.get("assets", response.data) if isinstance(response.data, dict) else response.data
-                elif step == 3: campaign.outline_data = response.data
+                elif step == 3: campaign.outline_data = response.data.get("outline", response.data) if isinstance(response.data, dict) else response.data
                 elif step == 4: campaign.draft_content = response.data.get("content", campaign.draft_content)
                 elif step == 5:
                     campaign.final_html = response.data.get("final_html", campaign.final_html)
@@ -71,19 +96,36 @@ class ExecutionEngine:
             if step == 2: campaign.search_count = (campaign.search_count or 0) + 1
             await campaign_repo.update(campaign)
             
-            payload = {"campaign_id": campaign_id, "step": step, "status": campaign.status, "data": {}}
-            mapping = {1: "topic_data", 2: "assets_data", 3: "outline_data", 4: "draft_content", 5: ["assets_data", "final_html"]}
-            fields = mapping.get(step)
-            if isinstance(fields, list):
-                for f in fields: payload["data"][f] = getattr(campaign, f)
-            else:
-                payload["data"][fields.split('_')[0]] = getattr(campaign, fields)
+            payload = {
+                "campaign_id": campaign_id,
+                "step": step,
+                "status": campaign.status,
+                "data": {}
+            }
+            # Explicit field mapping to match frontend pulse.ts expectations
+            # Frontend reads: topic_data/keywords, assets (NOT assets_data), outline, draft_content, gold_metadata
+            if step == 1:
+                payload["data"]["topic_data"] = getattr(campaign, "topic_data", None)
+                payload["data"]["keywords"] = getattr(campaign, "topic_data", None)
+            elif step == 2:
+                payload["data"]["assets"] = getattr(campaign, "assets_data", None) or []
+            elif step == 3:
+                payload["data"]["outline"] = getattr(campaign, "outline_data", None)
+            elif step == 4:
+                payload["data"]["draft_content"] = getattr(campaign, "draft_content", None)
+            elif step == 5:
+                payload["data"]["assets"] = getattr(campaign, "assets_data", None) or []
+                payload["data"]["final_html"] = getattr(campaign, "final_html", None)
+            # Always include gold_metadata for avatar/config sync
+            payload["data"]["gold_metadata"] = getattr(campaign, "gold_metadata", None) or {}
 
             await event_bus.emit("CONTENT_STEP_COMPLETED", payload)
             logger.info(f"[Content Factory] Step {step} SUCCESS in {time.time() - start_time:.2f}s")
             
         except Exception as e:
-            logger.error(f"[Content Factory] Step {step} FAILED: {e}")
+            import traceback
+            error_trace = traceback.format_exc()
+            logger.error(f"[Content Factory] Step {step} FAILED for {campaign_id}:\n{error_trace}")
             await self._log_error(campaign, campaign_repo, "ERROR", str(e))
 
     async def _handle_backtrack(self, campaign, repo, step) -> bool:

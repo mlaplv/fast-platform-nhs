@@ -6,6 +6,7 @@
     Rocket,
     Check
   } from "lucide-svelte";
+  import { vuiController } from "$lib/vui";
 
   let { 
     step = 1, 
@@ -32,7 +33,11 @@
       <button
         type="button"
         disabled={!isUnlocked}
-        onclick={() => { viewingStep = phase.s; isEditing = false; }}
+        onclick={() => { 
+          viewingStep = phase.s; 
+          isEditing = false; 
+          vuiController.speak(`Đã chuyển sang bước ${phase.label}.`);
+        }}
         class="group flex flex-col items-center gap-3 relative disabled:cursor-not-allowed outline-none shrink-0"
       >
         <div class="relative">

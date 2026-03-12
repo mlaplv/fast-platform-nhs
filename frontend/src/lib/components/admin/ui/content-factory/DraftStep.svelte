@@ -15,10 +15,51 @@
     isEditing, 
     editedDraft = $bindable(""), 
     draft_content = $bindable(""), 
+    outline = {},
     assets,
     isExpanded,
     editorRef = $bindable(null)
   } = $props();
+
+  // Rule R82.41: Smart Data Mapping — Map structured sections to editor content if draft is empty
+  let displayContent = $derived.by(() => {
+    // Priority 1: Use draft_content if viewing or editedDraft if editing and NOT empty
+    let base = isEditing ? (editedDraft || draft_content) : draft_content;
+    
+    // Fallback: Convert structured outline to readable string (Phase 28 fallback)
+    if (!base) {
+        const sections = outline?.sections || [];
+        if (sections.length > 0) {
+          base = sections.map((s: any) => {
+            const hText = (s.heading || "").replace(/^(H2|H3):/i, "").trim();
+            const tag = (s.heading || "").toUpperCase().startsWith("H3") ? "h3" : "h2";
+            return `<${tag}>${hText}</${tag}><p>${s.content || ""}</p>`;
+          }).join("\n");
+        }
+    }
+
+    // Ultra-Resilience (V70.0): Ensure [IMAGE_N] are replaced on frontend too
+    if (base && base.includes("[IMAGE_")) {
+      const assetList = Array.isArray(assets) ? assets : [];
+      assetList.forEach((url, i) => {
+        const placeholder = `[IMAGE_${i + 1}]`;
+        
+        // Match 1: Placeholder inside an existing img src (e.g., from new backend format)
+        const srcPattern = new RegExp(`src=["']\\s*${placeholder.replace('[', '\\[').replace(']', '\\]')}\\s*["']`, 'g');
+        if (base.includes(placeholder) && srcPattern.test(base)) {
+            base = base.replace(srcPattern, `src="${url}"`);
+        }
+
+        // Match 2: Bare placeholder or placeholder inside figure (original fallback)
+        const figurePattern = new RegExp(`(<figure[^>]*>\\s*)?\\[IMAGE_${i + 1}\\](\\s*<\\/figure>)?`, 'g');
+        base = base.replace(figurePattern, `<figure class="content-image"><img src="${url}" alt="content image" loading="lazy" /></figure>`);
+      });
+      // Safety: strip any broken placeholders
+      base = base.replace(/\[IMAGE_\d+\]/g, "");
+    }
+
+    return base || "";
+  });
 
   // -- Analysis States --
   let copyrightResult = $state<any>(null);
@@ -30,12 +71,12 @@
 
   // -- Computed Editor Annotations --
   let editorAnnotations = $derived<EditorAnnotation[]>([
-    ...((copyrightResult?.flagged_sentences || []).map((s: any) => ({
-      text: (typeof s === 'string' ? s : s.text) || '',
-      type: (typeof s === 'object' && s.type === 'fixed') ? 'fixed' : 'copyright',
-      message: (typeof s === 'object' ? s.reason : '') || 'Cần kiểm tra bản quyền',
-      source: (typeof s === 'object' ? s.source_url : '') || '',
-      severity: (typeof s === 'object' ? (s.severity || 'medium') : 'medium').toLowerCase()
+    ...((copyrightResult?.annotations || []).map((s: any) => ({
+      text: s.text || '',
+      type: s.type || 'copyright',
+      message: s.reason || 'Cần kiểm tra bản quyền',
+      source: s.source_url || '',
+      severity: (s.severity || 'medium').toLowerCase()
     }))),
     ...((seoResult?.seo_annotations || []).map((a: any) => ({
       text: a.text || '',
@@ -122,13 +163,10 @@
               updateMatches(a.text) ? { ...a, text: new_text, type: 'fixed' } : a
             );
           }
-          if (copyrightResult?.flagged_sentences) {
-            copyrightResult.flagged_sentences = copyrightResult.flagged_sentences.map((s: any) => {
-              const isMatch = updateMatches(typeof s === 'string' ? s : s.text);
-              if (isMatch) {
-                return typeof s === 'string' ? { text: new_text, type: 'fixed', message: 'Đã sửa lỗi bản quyền' } : { ...s, text: new_text, type: 'fixed' };
-              }
-              return s;
+          if (copyrightResult?.annotations) {
+            copyrightResult.annotations = copyrightResult.annotations.map((s: any) => {
+              const isMatch = updateMatches(s.text);
+              return isMatch ? { ...s, text: new_text, type: 'fixed' } : s;
             });
           }
         }, 100);
@@ -139,6 +177,13 @@
     }
     return null;
   };
+  // Ensure editedDraft is initialized when entering edit mode if it was empty
+  $effect(() => {
+    if (isEditing && !editedDraft) {
+      const fallback = displayContent;
+      if (fallback) editedDraft = fallback;
+    }
+  });
 </script>
 
 <div class="flex-1 overflow-hidden flex flex-col gap-3">
@@ -158,13 +203,19 @@
         · SEO {seoResult.grade} ({seoResult.total_score}/100)
       </span>
     {/if}
+    {#if aiReadyResult}
+      {@const ac = aiReadyResult.geo_score >= 85 ? 'text-purple-400' : aiReadyResult.geo_score >= 65 ? 'text-fuchsia-400' : 'text-red-400'}
+      <span class="text-[9px] font-black uppercase {ac}">
+        · AI {aiReadyResult.geo_score}%
+      </span>
+    {/if}
   </div>
 
   <!-- Editor (always visible, Copyright/SEO buttons injected into toolbar) -->
   <div class="flex-1 rounded-2xl flex flex-col relative transition-all overflow-hidden min-h-0 {isEditing ? 'border border-white/10 shadow-2xl ring-2 ring-purple-500/30 bg-black/40' : 'bg-transparent'}">
     <RichTextEditor
       bind:this={editorRef}
-      content={isEditing ? editedDraft : draft_content}
+      content={displayContent}
       assets={assets}
       onChange={(val) => {
         if (isEditing) editedDraft = val;

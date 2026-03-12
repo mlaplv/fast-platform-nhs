@@ -14,13 +14,13 @@ export class TTSSpeaker {
   
   private checkIsActive: () => boolean;
   private fetchAudio: (text: string, signal: AbortSignal) => Promise<Blob>;
-  private playAudio: (blob: Blob) => Promise<void>;
+  private playAudio: (blob: Blob) => Promise<boolean>;
   private onFinishedCallback: () => void;
 
   constructor(
     checkIsActive: () => boolean,
     fetchAudio: (text: string, signal: AbortSignal) => Promise<Blob>,
-    playAudio: (blob: Blob) => Promise<void>,
+    playAudio: (blob: Blob) => Promise<boolean>,
     onFinishedCallback: () => void
   ) {
     this.checkIsActive = checkIsActive;

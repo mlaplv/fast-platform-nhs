@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Any
 import sqlalchemy as sa
 from sqlalchemy import (
     String, ForeignKey, Integer, Text, JSON, Index
@@ -70,12 +70,26 @@ class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     
     # Step Data
     topic_data: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
-    assets_data: Mapped[Optional[list]] = mapped_column(JSON, default=list)
+    assets_data: Mapped[Optional[Any]] = mapped_column(JSON, default=list)
     outline_data: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
     draft_content: Mapped[Optional[str]] = mapped_column(Text)
     search_count: Mapped[int] = mapped_column(Integer, default=0)
     unique_score: Mapped[float] = mapped_column(sa.Float, default=1.0)
     
+    # --- PROFESSIONAL CTO HELPERS (Phase 42) ---
+    def get_gold_config(self) -> dict:
+        """Returns the creation configuration from gold_metadata safely."""
+        gold = self.gold_metadata or {}
+        return gold.get("creation_config") or {}
+
+    def get_gold_val(self, key: str, fallback: Any = None) -> Any:
+        """Surgically extracts a value from gold_metadata or falls back to topic_data."""
+        gold = self.gold_metadata or {}
+        if key in gold: return gold[key]
+        
+        topic = self.topic_data or {}
+        return topic.get(key, fallback)
+
     # Deferred Loading for heavy fields (Rule R102)
     final_html: Mapped[Optional[str]] = deferred(mapped_column(Text))
     

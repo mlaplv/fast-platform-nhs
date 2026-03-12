@@ -7,11 +7,28 @@ from backend.utils.http_client import get_http_client
 from backend.services.event_bus import event_bus
 from backend.constants.agentic import MAX_SEARCH_RETRY_PER_STEP, SEARCH_CIRCUIT_BREAKER_COOLDOWN_MINUTES
 
+from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+from pydantic_ai import Agent
+from backend.services.xohi.creative_studio.models.schemas import VisualSearchPlan
+
 logger = logging.getLogger("api-gateway")
+
+PLANNER_PROMPT = """[ROLE] VISUAL CONTENT DIRECTOR — XoHi Content Factory 2026
+
+[NHIỆM VỤ]
+Dựa trên tiêu đề và từ khóa của bài viết, hãy lập kế hoạch tìm kiếm hình ảnh chất lượng cao.
+Tạo ra 3-5 câu lệnh tìm kiếm (search queries) bằng TIẾNG ANH để tối ưu hóa kết quả từ Google Images.
+
+[QUY TẮC TÌM KIẾM]
+1. Ưu tiên phong cách "Professional Photography", "Minimalist", "High Resolution", "Cinematic".
+2. Tránh các từ khóa dẫn đến ảnh rác, ảnh chụp màn hình, hoặc ảnh có watermark.
+3. Tạo các query đa dạng: Hero/Cover image, Context/Office, Action/Conceptual.
+4. Trả về đúng JSON schema."""
 
 class AssetHunter:
     """
     Step 2: Hunt for images using Google Custom Search API.
+    Upgraded with AI Visual Search Planning (V64.2).
     Hardened with Key Rotator and Circuit Breaker (Rule 7).
     """
     def __init__(self, key_pairs: List[Dict[str, str]]):
@@ -22,6 +39,12 @@ class AssetHunter:
         self.current_index = 0
         self.failure_count = 0
         self.cooldown_until: Optional[datetime] = None
+        
+        # Phase 42: Professional Agent Caching (Memory Discipline)
+        self.planner_agent = Agent(
+            output_type=VisualSearchPlan, 
+            system_prompt=PLANNER_PROMPT
+        )
 
     def _get_current_pair(self) -> Dict[str, str]:
         if not self.key_pairs:
@@ -37,104 +60,159 @@ class AssetHunter:
         campaign = await repo.get(campaign_id)
         if not campaign: return
         
-        query = campaign.topic_data.get("primary_keyword", campaign.source_input)
+        # Professional CTO Fix: Using Standardized Golden Context Helpers
+        title = campaign.get_gold_val("title", campaign.source_input)
+        primary = campaign.get_gold_val("primary_keyword", "")
         
         await event_bus.emit("CONTENT_PROGRESS", {
             "campaign_id": campaign_id,
             "user_id": str(campaign.user_id),
             "step": 2,
-            "message": f"⏳ Đang kích hoạt radar tìm kiếm ảnh cho '{query}'...",
+            "message": "🧠 Đang khởi tạo Creative Director để lập kế hoạch hình ảnh...",
             "status": "PROCESSING",
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
         
-        urls = await self.fetch_images(query, campaign_id=campaign_id, user_id=str(campaign.user_id))
-        campaign.assets_data = urls
+        # Step 2.1: AI Search Planning
+        try:
+            prompt = f"Tiêu đề: {title}\nTừ khóa chính: {primary}"
+            result = await trinity_bridge.run(self.planner_agent, prompt)
+            plan: VisualSearchPlan = result.data if hasattr(result, "data") else result.output
+            queries = plan.queries
+            logger.info(f"[AssetHunter] AI generated {len(queries)} search queries.")
+        except Exception as e:
+            logger.error(f"[AssetHunter] AI planning failed, falling back to raw keyword: {e}")
+            queries = [primary if primary else title]
+
+        # Step 2.2: Multi-Query Search & Deduplication
+        all_urls = []
+        # Professional CTO Fix: Using Standardized Golden Context Helpers
+        config = campaign.get_gold_config()
+        target_count = config.get("max_assets", 10)
+        
+        # Step 2.2: Multi-Query Search & Deduplication
+        per_query = max(2, target_count // len(queries) + 1)
+        
+        for i, q in enumerate(queries):
+            await event_bus.emit("CONTENT_PROGRESS", {
+                "campaign_id": campaign_id,
+                "user_id": str(campaign.user_id),
+                "step": 2,
+                "message": f"🔍 [Query {i+1}/{len(queries)}] Đang tìm: {q}",
+                "status": "PROCESSING",
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+            
+            # pass IDs for visibility
+            urls = await self.fetch_images(q, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=per_query)
+            all_urls.extend(urls)
+            
+            # Deduplicate
+            all_urls = list(dict.fromkeys(all_urls))
+            if len(all_urls) >= target_count:
+                all_urls = all_urls[:target_count]
+                break
+
+        # Step 2.3: Graceful Raw Fallback (Rule R103)
+        if not all_urls:
+            fallback_query = primary if primary else title
+            logger.warning(f"[AssetHunter] All AI queries failed. Triggering CRITICAL FALLBACK: {fallback_query}")
+            await event_bus.emit("CONTENT_PROGRESS", {
+                "campaign_id": campaign_id,
+                "user_id": str(campaign.user_id),
+                "step": 2,
+                "message": f"⚠️ Truy quét nâng cao thất bại. Chuyển sang chế độ tìm kiếm thô: {fallback_query}",
+                "status": "PROCESSING",
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+            all_urls = await self.fetch_images(fallback_query, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=target_count)
+
+        campaign.assets_data = all_urls
         await repo.update(campaign)
-        return urls
+        
+        await event_bus.emit("CONTENT_PROGRESS", {
+            "campaign_id": campaign_id,
+            "user_id": str(campaign.user_id),
+            "step": 2,
+            "message": f"✅ Đã tìm thấy {len(all_urls)} ảnh {'chuẩn AI' if queries else 'thô'}. Sẵn sàng duyệt!",
+            "status": "PROCESSING",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        
+        from backend.services.xohi.creative_studio.models.schemas import AgentResponse, AgentSignal
+        return AgentResponse(
+            signal=AgentSignal.PROCEED_NEXT,
+            message=f"Tìm thấy {len(all_urls)} ảnh.",
+            data={"assets": all_urls}
+        )
 
     async def fetch_images(self, query: str, campaign_id: str = None, user_id: str = None, num_results: int = 10) -> List[str]:
         """
         Fetches image URLs from Google.
         Hardened with Circuit Breaker and Key Rotation on 429.
         """
-        if self.cooldown_until and datetime.utcnow() < self.cooldown_until:
-            raise Exception(f"Search Circuit Breaker ACTIVE. Cooldown until {self.cooldown_until}")
+        if self.cooldown_until and datetime.now(timezone.utc) < self.cooldown_until:
+            logger.error(f"[AssetHunter] Circuit Breaker Active until {self.cooldown_until}")
+            return []
 
         url = "https://www.googleapis.com/customsearch/v1"
-        
-        # Max attempts = number of keys we have
         attempts = 0
         max_attempts = len(self.key_pairs)
-
-        # R106: Reuse shared HTTP client to save TCP/SSL overhead
         client = await get_http_client()
+        
         while attempts < max_attempts:
-                pair = self._get_current_pair()
-                try:
-                    params = {
-                        "key": pair["key"],
-                        "cx": pair["cx"],
-                        "q": query,
-                        "searchType": "image",
-                        "num": num_results,
-                        "imgSize": "large" 
-                    }
-                    
-                    logger.info(f"[AssetHunter] Searching index {self.current_index} for: {query}")
-                    
-                    if campaign_id:
-                        await event_bus.emit("CONTENT_PROGRESS", {
-                            "campaign_id": campaign_id,
-                            "user_id": user_id,
-                            "step": 2,
-                            "message": f"🔍 Đang truy quét qua API Key #{self.current_index}...",
-                            "status": "PROCESSING",
-                            "timestamp": datetime.now(timezone.utc).isoformat()
-                        })
+            pair = self._get_current_pair()
+            try:
+                params = {
+                    "key": pair["key"],
+                    "cx": pair["cx"],
+                    "q": query,
+                    "searchType": "image",
+                    "num": num_results,
+                    "imgSize": "large" 
+                }
+                
+                logger.info(f"[AssetHunter] Searching index {self.current_index} for: {query}")
+                
+                if campaign_id:
+                    await event_bus.emit("CONTENT_PROGRESS", {
+                        "campaign_id": campaign_id,
+                        "user_id": user_id,
+                        "step": 2,
+                        "message": f"🔍 Đang truy quét qua kênh tìm kiếm #{self.current_index + 1}...",
+                        "status": "PROCESSING",
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })
 
-                    response = await client.get(url, params=params, timeout=10.0)
-                    
-                    if response.status_code == 429:
-                        logger.warning(f"[AssetHunter] Key index {self.current_index} rate limited (429).")
-                        self._rotate_key()
-                        attempts += 1
-                        continue
-
-                    response.raise_for_status()
-                    data = response.json()
-                    
-                    # Success: Reset failure count and return
-                    self.failure_count = 0
-                    items = data.get('items', [])
-                    if not items:
-                        search_info = data.get('searchInformation', {})
-                        logger.warning(f"[AssetHunter] Key {self.current_index} returned 0 results. Total results from Google: {search_info.get('totalResults')}")
-                    
-                    urls = [item['link'] for item in items]
-                    
-                    if campaign_id:
-                        await event_bus.emit("CONTENT_PROGRESS", {
-                            "campaign_id": campaign_id,
-                            "user_id": user_id,
-                            "step": 2,
-                            "message": f"✅ Đã tóm gọn {len(urls)} bức ảnh chất lượng cao!",
-                            "status": "PROCESSING",
-                            "timestamp": datetime.now(timezone.utc).isoformat()
-                        })
-
-                    return urls
-
-                except Exception as e:
-                    logger.error(f"[AssetHunter] Error with key {self.current_index}: {e}")
-                    self.failure_count += 1
+                response = await client.get(url, params=params, timeout=10.0)
+                
+                if response.status_code == 429:
+                    logger.warning(f"[AssetHunter] Key index {self.current_index} rate limited (429). Rotating...")
                     self._rotate_key()
                     attempts += 1
-                    if attempts >= max_attempts:
-                        # R103: Graceful Degradation — Return empty list instead of crashing
-                        logger.error("[AssetHunter] All Search API keys exhausted or failed.")
-                        from backend.constants.agentic import SEARCH_CIRCUIT_BREAKER_COOLDOWN_MINUTES
-                        self.cooldown_until = datetime.now(timezone.utc) + timedelta(minutes=SEARCH_CIRCUIT_BREAKER_COOLDOWN_MINUTES)
                     continue
+
+                response.raise_for_status()
+                data = response.json()
+                
+                self.failure_count = 0
+                items = data.get('items', [])
+                if not items:
+                    search_info = data.get('searchInformation', {})
+                    total = search_info.get('totalResults', '0')
+                    logger.warning(f"[AssetHunter] Key {self.current_index} returned 0 results for '{query}'. Total results: {total}")
+                
+                urls = [item['link'] for item in items]
+                return urls
+
+            except Exception as e:
+                logger.error(f"[AssetHunter] Error with key {self.current_index}: {e}")
+                self.failure_count += 1
+                self._rotate_key()
+                attempts += 1
+                if attempts >= max_attempts:
+                    logger.error("[AssetHunter] All Search API keys exhausted or failed.")
+                    self.cooldown_until = datetime.now(timezone.utc) + timedelta(minutes=SEARCH_CIRCUIT_BREAKER_COOLDOWN_MINUTES)
+                continue
             
         return []

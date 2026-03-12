@@ -46,11 +46,15 @@ class ContentController(Controller):
     @get("/campaigns/{campaign_id:uuid}")
     async def get_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> ContentCampaign:
         """Lấy thông tin chi tiết của một chiến dịch cụ thể."""
-        campaign = await campaign_repo.get(str(campaign_id))
-        if not campaign:
-            from litestar.exceptions import NotFoundException
-            raise NotFoundException(f"Campaign {campaign_id} not found")
-        return ContentCampaign.model_validate(campaign)
+        try:
+            campaign = await campaign_repo.get(str(campaign_id))
+            if not campaign:
+                from litestar.exceptions import NotFoundException
+                raise NotFoundException(f"Campaign {campaign_id} not found")
+            return ContentCampaign.model_validate(campaign)
+        except Exception as e:
+            logger.error(f"[ContentController] Error fetching campaign {campaign_id}: {str(e)}")
+            raise e
 
     @post("/campaigns/{campaign_id:uuid}/approve")
     async def approve_step(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:

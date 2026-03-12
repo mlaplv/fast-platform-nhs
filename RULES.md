@@ -1,6 +1,6 @@
-# HIẾN PHÁP FAST-PLATFORM (V62.2 — VIRAL AGENTIC STANDARD)
+# HIẾN PHÁP FAST-PLATFORM ÁP DỤNG CHO MỌI VERSION
 
-> **CHỈ THỊ CHO AI IDE:** Dự án Agentic AI 2026. Stack cố định: **SvelteKit 5 (Runes) + Litestar (Python 3.14-slim) + SQLAlchemy 2.0 (AdvancedAlchemy) + PydanticAI + LiteLLM**. Tuyệt đối KHÔNG dùng React/Next.js/FastAPI/Prisma. Mọi file tạo ra phải tuân thủ nghiêm ngặt các nguyên lý "THIẾT QUÂN LUẬT" (Hardened Architecture). Chỉ cho phép chạy trên 3 domain: smartshop.test, api.smartshop.test, admin.smartshop.test, cấm tuyệt đối dùng loalhost, 127.0.0.1
+> **CHỈ THỊ CHO AI IDE:** Dự án Agentic AI 2026. Stack cố định: **SvelteKit 5 (Runes) + Litestar (Python 3.14-slim) + SQLAlchemy 2.0 (AdvancedAlchemy) + PydanticAI + LiteLLM**. Tuyệt đối KHÔNG dùng React/Next.js/FastAPI/Prisma. Mọi file tạo ra phải tuân thủ nghiêm ngặt các nguyên lý "THIẾT QUÂN LUẬT" (Hardened Architecture). Chỉ cho phép chạy trên 3 domain: smartshop.test, api.smartshop.test, admin.smartshop.test, cấm tuyệt đối dùng localhost, 127.0.0.1
 
 ---
 
@@ -13,7 +13,7 @@
   3. **HALT:** Dừng lại và hỏi: "Sếp có duyệt phương án và chấp nhận rủi ro này không?". CHỈ KHI Sếp gõ "Duyệt" hoặc "Ok", mới được phép in code ra màn hình.
   4. **Đảm bả**o các gói cài đặt luôn mới nhất(latest), cấm đưa về bản củ.
 
-## R01.1 – ĐẠO LUẬT TRINH SÁT (SCOUT & REPORT PROTOCOL)
+## R00.1 – ĐẠO LUẬT TRINH SÁT (SCOUT & REPORT PROTOCOL)
 
 AI IDE là một người cộng sự, không phải cái máy gõ phím mù quáng. Trong quá trình quét Context và phân tích mã nguồn để thực hiện yêu cầu của Sếp:
 
@@ -335,17 +335,17 @@ intent.py: fetch 10 tin nhắn → list(context) copy an toàn
 
 Mọi `ui_action` từ T1/T2 BẮT BUỘC thuộc whitelist sau (1:1 với frontend `ACTION_WIDGET_MAP`):
 
-| ui_action                    | Widget                | Target  |
-| ---------------------------- | --------------------- | ------- |
+| ui_action                      | Widget                | Target  |
+| ------------------------------ | --------------------- | ------- |
 | `show_revenue_chart`         | REVENUE_CHART         | revenue |
 | `show_order_management`      | ORDER_MANAGEMENT      | order   |
 | `show_product_management`    | PRODUCT_MANAGEMENT    | product |
 | `show_user_management`       | USER_MANAGEMENT       | user    |
 | `show_user_table`            | USER_TABLE            | user    |
-| `show_category_management`   | CATEGORY_MANAGEMENT   | —       |
-| `show_news_management`       | NEWS_MANAGEMENT       | —       |
-| `show_permission_management` | PERMISSION_MANAGEMENT | —       |
-| `show_voice_settings`        | VOICE_SETTINGS        | —       |
+| `show_category_management`   | CATEGORY_MANAGEMENT   | —      |
+| `show_news_management`       | NEWS_MANAGEMENT       | —      |
+| `show_permission_management` | PERMISSION_MANAGEMENT | —      |
+| `show_voice_settings`        | VOICE_SETTINGS        | —      |
 
 - **DATA_QUERY:** BẮT BUỘC xóa `ui_action = ""` — chỉ đọc số, KHÔNG mở widget.
 - **UI_NAV:** Giữ `ui_action` → frontend mở widget + Data Injector bơm `data.revenue`/`data.period_label`.
@@ -445,11 +445,11 @@ Fallback (gemini-2.0-flash)
 
 **Mapping chính xác:**
 
-| Toggle UI | IntentAction bị chặn | Ghi chú                                                                |
-| --------- | -------------------- | ---------------------------------------------------------------------- |
-| `READ`    | `READ` + `COUNT`     | `COUNT` tự động map vào `READ` guard (dùng chung nhóm Data Extraction) |
-| `MUTATE`  | `MUTATE`             | Chặn mọi draft tạo/sửa/xoá qua Final Glance (R11)                      |
-| `ANALYZE` | `ANALYZE`            | Chặn phân tích sâu — chủ yếu do Tier 3 Cloud LLM xử lý                 |
+| Toggle UI   | IntentAction bị chặn | Ghi chú                                                                         |
+| ----------- | ---------------------- | -------------------------------------------------------------------------------- |
+| `READ`    | `READ` + `COUNT`   | `COUNT` tự động map vào `READ` guard (dùng chung nhóm Data Extraction) |
+| `MUTATE`  | `MUTATE`             | Chặn mọi draft tạo/sửa/xoá qua Final Glance (R11)                           |
+| `ANALYZE` | `ANALYZE`            | Chặn phân tích sâu — chủ yếu do Tier 3 Cloud LLM xử lý                  |
 
 **Logic Guard trong `intent.py`:**
 
@@ -723,10 +723,10 @@ Backend Litestar hứng **MỌI** exception (sập LLM, đứt mạng) → trả
 
 ### 4.6 Luồng Modal (3 đường vào)
 
-| Phương thức    | Luồng                                               | Tốc độ           |
-| -------------- | --------------------------------------------------- | ---------------- |
-| **Click menu** | `CategoryMenu` → `nanobot.openWidget(widget)`       | 0ms              |
-| **Gõ lệnh**    | `processCommand()` → `COMMAND_WIDGET_MAP`           | 0ms              |
+| Phương thức       | Luồng                                                    | Tốc độ        |
+| -------------------- | --------------------------------------------------------- | ---------------- |
+| **Click menu** | `CategoryMenu` → `nanobot.openWidget(widget)`        | 0ms              |
+| **Gõ lệnh**  | `processCommand()` → `COMMAND_WIDGET_MAP`            | 0ms              |
 | **Voice/AI**   | `processGhost()` → SSE Stream → `ACTION_WIDGET_MAP` | <1s first update |
 
 ### 4.7 Voice Training (Neural Capture) — Pipeline Tách Biệt
@@ -887,12 +887,12 @@ Hệ thống bảo vệ đa lớp (Skill Guard) được cấu hình tại trang
 
 ### R63 – Widget Behavior Theo Modality
 
-| Modality  | Intent Type                    | Hành vi                                                  |
-| --------- | ------------------------------ | -------------------------------------------------------- |
-| **Text**  | `UI_NAV`                       | Mở widget bình thường (lệnh điều hướng tường minh)       |
+| Modality        | Intent Type                        | Hành vi                                                          |
+| --------------- | ---------------------------------- | ----------------------------------------------------------------- |
+| **Text**  | `UI_NAV`                         | Mở widget bình thường (lệnh điều hướng tường minh)     |
 | **Text**  | `DATA_QUERY` / `DEEP_ANALYSIS` | Chỉ log text + gợi ý "Sếp gõ 'mở' nếu muốn xem chi tiết" |
-| **Voice** | `READ` / `ANALYZE`             | **KHÔNG mở modal** che mặt XoHi. Chỉ log + speak.        |
-| **Voice** | `MUTATE`                       | **Tự động mở Mini-Form** pre-filled dữ liệu AI (R65).    |
+| **Voice** | `READ` / `ANALYZE`             | **KHÔNG mở modal** che mặt XoHi. Chỉ log + speak.       |
+| **Voice** | `MUTATE`                         | **Tự động mở Mini-Form** pre-filled dữ liệu AI (R65). |
 
 - ❌ Auto-open widget/modal khi user chỉ hỏi dữ liệu bằng text.
 - ❌ Mở overlay che mặt XoHi khi đang voice mode cho các câu hỏi thông thường.
@@ -1281,25 +1281,25 @@ erDiagram
 
 #### 24.5.1 Bảng Tổng Kê Thực Thể (17 Entities)
 
-| #   | Entity            | Table                  | Mixins                   | Owner (FK)             | Ghi chú                        |
-| --- | ----------------- | ---------------------- | ------------------------ | ---------------------- | ------------------------------ |
-| 1   | User              | `users`                | Audit + SoftDel + Tenant | — (Root)               | Tâm điểm RBAC, Hub trung tâm   |
-| 2   | VoiceProfile      | `voice_profiles`       | Audit                    | User (1:1)             | Cấu hình XoHi cá nhân hóa      |
-| 3   | Role              | `roles`                | Audit + SoftDel + Tenant | — (M2M User)           | RBAC: Vai trò                  |
-| 4   | Permission        | `permissions`          | Audit + SoftDel          | — (M2M Role)           | RBAC: Quyền hạn                |
-| 5   | Category          | `categories`           | Audit + SoftDel + Tenant | Self (parent_id)       | Cây danh mục đệ quy            |
-| 6   | Article           | `articles`             | Audit + SoftDel + Tenant | User (author_id)       | Bài viết / Tin tức             |
-| 7   | Order             | `orders`               | Audit + SoftDel + Tenant | User (user_id)         | Đơn hàng                       |
-| 8   | ProductBase       | `product_bases`        | Audit + SoftDel + Tenant | Category (category_id) | Sản phẩm gốc                   |
-| 9   | ProductVariant    | `product_variants`     | Audit + SoftDel          | ProductBase            | Biến thể (size/color)          |
-| 10  | RentalContract    | `rental_contracts`     | Audit + SoftDel          | ProductBase            | Hợp đồng thuê                  |
-| 11  | Draft             | `drafts`               | Audit + SoftDel + Tenant | User (reviewer_id)     | Nháp chờ duyệt                 |
-| 12  | AgentTelemetryLog | `agent_telemetry_logs` | Audit + Tenant           | — (Standalone)         | Log AI chi phí token           |
-| 13  | ChatMessage       | `chat_messages`        | Audit + SoftDel + Tenant | User (user_id)         | Lịch sử hội thoại XoHi         |
-| 14  | Notification      | `notifications`        | Audit + SoftDel + Tenant | User (user_id)         | Thông báo hệ thống             |
-| 15  | ProductEmbedding  | `product_embeddings`   | Audit                    | ProductBase (1:1)      | Vector tìm kiếm ngữ nghĩa      |
-| 16  | ArticleEmbedding  | `article_embeddings`   | Audit                    | Article (1:1)          | Vector tìm kiếm ngữ nghĩa      |
-| 17  | ContentCampaign   | `content_campaigns`    | Audit + SoftDel + Tenant | — (Standalone)         | V62.1: Nhà máy Content Factory |
+| #  | Entity            | Table                    | Mixins                   | Owner (FK)             | Ghi chú                         |
+| -- | ----------------- | ------------------------ | ------------------------ | ---------------------- | -------------------------------- |
+| 1  | User              | `users`                | Audit + SoftDel + Tenant | — (Root)              | Tâm điểm RBAC, Hub trung tâm |
+| 2  | VoiceProfile      | `voice_profiles`       | Audit                    | User (1:1)             | Cấu hình XoHi cá nhân hóa   |
+| 3  | Role              | `roles`                | Audit + SoftDel + Tenant | — (M2M User)          | RBAC: Vai trò                   |
+| 4  | Permission        | `permissions`          | Audit + SoftDel          | — (M2M Role)          | RBAC: Quyền hạn                |
+| 5  | Category          | `categories`           | Audit + SoftDel + Tenant | Self (parent_id)       | Cây danh mục đệ quy          |
+| 6  | Article           | `articles`             | Audit + SoftDel + Tenant | User (author_id)       | Bài viết / Tin tức            |
+| 7  | Order             | `orders`               | Audit + SoftDel + Tenant | User (user_id)         | Đơn hàng                      |
+| 8  | ProductBase       | `product_bases`        | Audit + SoftDel + Tenant | Category (category_id) | Sản phẩm gốc                  |
+| 9  | ProductVariant    | `product_variants`     | Audit + SoftDel          | ProductBase            | Biến thể (size/color)          |
+| 10 | RentalContract    | `rental_contracts`     | Audit + SoftDel          | ProductBase            | Hợp đồng thuê                |
+| 11 | Draft             | `drafts`               | Audit + SoftDel + Tenant | User (reviewer_id)     | Nháp chờ duyệt                |
+| 12 | AgentTelemetryLog | `agent_telemetry_logs` | Audit + Tenant           | — (Standalone)        | Log AI chi phí token            |
+| 13 | ChatMessage       | `chat_messages`        | Audit + SoftDel + Tenant | User (user_id)         | Lịch sử hội thoại XoHi       |
+| 14 | Notification      | `notifications`        | Audit + SoftDel + Tenant | User (user_id)         | Thông báo hệ thống           |
+| 15 | ProductEmbedding  | `product_embeddings`   | Audit                    | ProductBase (1:1)      | Vector tìm kiếm ngữ nghĩa    |
+| 16 | ArticleEmbedding  | `article_embeddings`   | Audit                    | Article (1:1)          | Vector tìm kiếm ngữ nghĩa    |
+| 17 | ContentCampaign   | `content_campaigns`    | Audit + SoftDel + Tenant | — (Standalone)        | V62.1: Nhà máy Content Factory |
 
 #### 24.5.2 Phân Tích Nâng Cao & Phản Biện Kiến Trúc (CTO Critical Review)
 
@@ -1338,13 +1338,13 @@ erDiagram
 
 #### 24.5.3 Bảng Tóm Tắt 5 Điểm Nợ Kỹ Thuật (YAGNI — Chỉ sửa khi cần)
 
-| #   | Vấn đề                                                   | Mức độ        | Trigger sửa                                 |
-| --- | -------------------------------------------------------- | ------------- | ------------------------------------------- |
-| 1   | `Article.category` là String, không FK → `categories.id` | ⚠️ Trung bình | Khi cho phép Admin tạo/xoá Category động    |
-| 2   | `Order.items` là JSON blob, thiếu bảng `order_items`     | 🔴 Cao        | Khi cần Analytics "Top N sản phẩm bán chạy" |
-| 3   | `Draft.proposed_by` là String, không FK → `users.id`     | 🟢 Thấp       | Khi triển khai Approval Workflow            |
-| 4   | Embedding lưu `Text`, không dùng `pgvector VECTOR(dim)`  | 🔴 Cao        | Khi kích hoạt Semantic Search thực thụ      |
-| 5   | `RentalContract` thiếu `renter_id` FK → `users.id`       | ⚠️ Trung bình | Khi triển khai module Cho Thuê              |
+| # | Vấn đề                                                       | Mức độ        | Trigger sửa                                     |
+| - | --------------------------------------------------------------- | ---------------- | ------------------------------------------------ |
+| 1 | `Article.category` là String, không FK → `categories.id` | ⚠️ Trung bình | Khi cho phép Admin tạo/xoá Category động    |
+| 2 | `Order.items` là JSON blob, thiếu bảng `order_items`     | 🔴 Cao           | Khi cần Analytics "Top N sản phẩm bán chạy" |
+| 3 | `Draft.proposed_by` là String, không FK → `users.id`     | 🟢 Thấp         | Khi triển khai Approval Workflow                |
+| 4 | Embedding lưu `Text`, không dùng `pgvector VECTOR(dim)`  | 🔴 Cao           | Khi kích hoạt Semantic Search thực thụ       |
+| 5 | `RentalContract` thiếu `renter_id` FK → `users.id`      | ⚠️ Trung bình | Khi triển khai module Cho Thuê                 |
 
 > [!NOTE]
 > **Tổng kết:** Schema hiện tại được thiết kế **đúng chuẩn MVP** cho giai đoạn phát triển ban đầu. Các điểm nợ kỹ thuật trên đều được ghi nhận theo nguyên tắc **YAGNI (R2)** — chỉ sửa khi thực sự cần. Mọi migration tương lai BẮT BUỘC qua **Alembic** để đảm bảo truy vết lịch sử schema.
@@ -1494,12 +1494,12 @@ flowchart TB
 
 **Performance Budget:**
 
-| Tier          | Latency   | Token Cost | Khi nào                       |
+| Tier          | Latency   | Token Cost | Khi nào                      |
 | ------------- | --------- | ---------- | ----------------------------- |
 | T1 Heuristic  | 0ms       | 0          | Keyword match / Wake-Sleep    |
-| T1.5 Fallback | 0ms       | 0          | LLM sập, fallback heuristic   |
+| T1.5 Fallback | 0ms       | 0          | LLM sập, fallback heuristic  |
 | T2 Dispatcher | 300-800ms | ~200       | Intent classification         |
-| T2 Refiner    | 300-500ms | ~150       | Data → Vietnamese text        |
+| T2 Refiner    | 300-500ms | ~150       | Data → Vietnamese text       |
 | T3 Reasoning  | 1-5s      | ~500-2000  | Deep analysis / Complex query |
 
 ---
@@ -1525,23 +1525,23 @@ DesktopLayout (flex h-screen)
 
 #### 24.7.2 Quy Tắc Modal & Overlay
 
-| Rule   | Mô tả                                                                                |
-| ------ | ------------------------------------------------------------------------------------ |
-| **L1** | `UniversalModal` phải nằm **TRONG** Canvas Area div, KHÔNG ở tầng `<main>`           |
+| Rule         | Mô tả                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| **L1** | `UniversalModal` phải nằm **TRONG** Canvas Area div, KHÔNG ở tầng `<main>`        |
 | **L2** | `MissionControlShell` dùng `position: absolute` (KHÔNG `fixed`) → scope vào `<main>` |
-| **L3** | Modal KHÔNG BAO GIỜ che OmniCommand, Footer, hoặc HeartbeatStream Sidebar            |
-| **L4** | Component render trong modal KHÔNG dùng `ContextualSplitView` — dùng inline flex     |
+| **L3** | Modal KHÔNG BAO GIỜ che OmniCommand, Footer, hoặc HeartbeatStream Sidebar                     |
+| **L4** | Component render trong modal KHÔNG dùng `ContextualSplitView` — dùng inline flex           |
 
 #### 24.7.3 Anti-Lag Rules (Performance Critical)
 
-| Rule   | ❌ CẤM                                                | ✅ ĐÚNG                                                    |
-| ------ | ----------------------------------------------------- | ---------------------------------------------------------- |
-| **P1** | `backdrop-blur-*` trên container/sticky header        | `bg-[#050505]` solid color                                 |
+| Rule         | ❌ CẤM                                                  | ✅ ĐÚNG                                                            |
+| ------------ | -------------------------------------------------------- | -------------------------------------------------------------------- |
+| **P1** | `backdrop-blur-*` trên container/sticky header        | `bg-[#050505]` solid color                                         |
 | **P2** | `transition-all` trên list items                      | `transition-colors duration-150` hoặc **KHÔNG transition** |
-| **P3** | Hover thay đổi border-width/shadow/size               | Hover chỉ đổi `background-color`                           |
-| **P4** | Scan line animation (`translate-x 1000ms`) trên hover | Xóa hoàn toàn                                              |
-| **P5** | `overflow-y: auto` trên list container                | `overflow-y: scroll` (scrollbar cố định)                   |
-| **P6** | `flex-wrap` trên list item content                    | `flex` (no wrap) — tránh reflow khi hover                  |
+| **P3** | Hover thay đổi border-width/shadow/size                | Hover chỉ đổi `background-color`                                |
+| **P4** | Scan line animation (`translate-x 1000ms`) trên hover | Xóa hoàn toàn                                                     |
+| **P5** | `overflow-y: auto` trên list container                | `overflow-y: scroll` (scrollbar cố định)                        |
+| **P6** | `flex-wrap` trên list item content                    | `flex` (no wrap) — tránh reflow khi hover                        |
 
 ## XXII. ULTRA-LIGHT ARCHITECTURE & RESOURCE DISCIPLINE (V60.0)
 
@@ -1679,9 +1679,9 @@ DesktopLayout (flex h-screen)
 
 ## VI. ROADMAP
 
-- [x] **V56.0** AUTONOMOUS AWAKENING (HOTFIX): Fix 4 bugs production, Encoder Singleton, Zero-Cold-Start, Anomaly Heartbeat, Vietnamese Search.
-- [x] **V60.0** THE ULTRA-LIGHT REVOLUTION: Triển khai Identity Bypass (JWT ID), Redis-Last-10 Caching, Selective Persistence (DB Cleanup), Ghost Audit (Async Logging), Scalar Projection (RAM Optimization), và SWR Frontend State. 429 Errors triệt tiêu hoàn toàn.
-- [x] **V62.1** CONTENT FACTORY (HARDENED): Nhà máy sản xuất nội dung SEO Agentic. 6-Step Gated Workflow, Golden Thread Prompt Engineering, API Circuit Breaker, Media Localization (Anti-Broken Links), Semantic Plagiarism Check.
+- [X] **V56.0** AUTONOMOUS AWAKENING (HOTFIX): Fix 4 bugs production, Encoder Singleton, Zero-Cold-Start, Anomaly Heartbeat, Vietnamese Search.
+- [X] **V60.0** THE ULTRA-LIGHT REVOLUTION: Triển khai Identity Bypass (JWT ID), Redis-Last-10 Caching, Selective Persistence (DB Cleanup), Ghost Audit (Async Logging), Scalar Projection (RAM Optimization), và SWR Frontend State. 429 Errors triệt tiêu hoàn toàn.
+- [X] **V62.1** CONTENT FACTORY (HARDENED): Nhà máy sản xuất nội dung SEO Agentic. 6-Step Gated Workflow, Golden Thread Prompt Engineering, API Circuit Breaker, Media Localization (Anti-Broken Links), Semantic Plagiarism Check.
 
 ---
 
@@ -1738,21 +1738,21 @@ DesktopLayout (flex h-screen)
 
 ### 25.1 Content Campaign Schema (`content_campaigns`)
 
-| Column          | Type    | Mô tả                                                                               |
-| --------------- | ------- | ----------------------------------------------------------------------------------- |
-| `id`            | String  | UUID Primary Key                                                                    |
-| `source_input`  | Text    | Đầu vào gốc của Admin (Text/URL/Image)                                              |
-| `reviewer_type` | String  | `ADMIN_MANUAL` (V62) / `AI_SUPERVISOR_AGENT` (V63+)                                 |
-| `current_step`  | Integer | Bước hiện tại (1-6)                                                                 |
-| `status`        | String  | `PROCESSING` / `WAITING_FOR_REVIEW` / `COMPLETED` / `COOLDOWN` / `ERROR`            |
+| Column            | Type    | Mô tả                                                                                        |
+| ----------------- | ------- | ---------------------------------------------------------------------------------------------- |
+| `id`            | String  | UUID Primary Key                                                                               |
+| `source_input`  | Text    | Đầu vào gốc của Admin (Text/URL/Image)                                                    |
+| `reviewer_type` | String  | `ADMIN_MANUAL` (V62) / `AI_SUPERVISOR_AGENT` (V63+)                                        |
+| `current_step`  | Integer | Bước hiện tại (1-6)                                                                        |
+| `status`        | String  | `PROCESSING` / `WAITING_FOR_REVIEW` / `COMPLETED` / `COOLDOWN` / `ERROR`             |
 | `gold_metadata` | JSON    | **Sợi chỉ vàng**: Topic, Primary/Secondary Keywords, Persona (Khóa cứng sau Step 1) |
-| `topic_data`    | JSON    | Kết quả Step 1                                                                      |
-| `assets_data`   | JSON    | Kết quả Step 2 + Local paths sau Step 6                                             |
-| `outline_data`  | JSON    | Kết quả Step 3                                                                      |
-| `draft_content` | Text    | Kết quả Step 4                                                                      |
-| `unique_score`  | Float   | Kết quả Step 5 (0.0 - 1.0)                                                          |
-| `final_html`    | Text    | Kết quả Step 6 (HTML chuẩn SEO)                                                     |
-| `error_logs`    | JSON    | Lịch sử lỗi API/Circuit Breaker                                                     |
+| `topic_data`    | JSON    | Kết quả Step 1                                                                               |
+| `assets_data`   | JSON    | Kết quả Step 2 + Local paths sau Step 6                                                      |
+| `outline_data`  | JSON    | Kết quả Step 3                                                                               |
+| `draft_content` | Text    | Kết quả Step 4                                                                               |
+| `unique_score`  | Float   | Kết quả Step 5 (0.0 - 1.0)                                                                   |
+| `final_html`    | Text    | Kết quả Step 6 (HTML chuẩn SEO)                                                             |
+| `error_logs`    | JSON    | Lịch sử lỗi API/Circuit Breaker                                                             |
 
 ### 25.2 Content Factory (V61.0 — Viral Optimized)
 
@@ -1790,21 +1790,22 @@ creative_studio/
 Để chuẩn bị cho việc AI tự động duyệt bài (Autonomous Review), mọi module phát triển từ V61.1 trở đi PHẢI tuân thủ 4 ranh giới kỹ thuật sau:
 
 1. **[ZERO-DB MACHINE AUTH]**:
+
    - Tuyệt đối KHÔNG dùng luồng JWT/OIDC của User cho AI Agent.
    - Supervisor sẽ truy cập qua Header `X-Agent-Key`.
    - Tầng Guard phải kiểm tra Key bằng biến môi trường (Environment Variable) hoặc mã hóa tại chỗ, KHÔNG được query Database để bảo vệ RAM 2GB khỏi các cuộc tấn công Brute-force Header.
-
 2. **[HEADLESS API CONTRACT]**:
+
    - Chốt sẵn Endpoint dự kiến: `PUT /api/v1/supervisor/campaigns/{id}/review/{step}`.
    - **Ràng buộc**: Toàn bộ logic duyệt bài (Approve/Reject/Retry) PHẢI nằm trọn vẹn trong `orchestrator.py` (Service Layer). UI Controller (Admin/Client) chỉ đóng vai trò Trigger. Điều này đảm bảo Headless API sau này gọi chung một hàm Service mà không bị dính mã nguồn UI.
-
 3. **[STRICT PAYLOAD ISOLATION]**:
+
    - Dữ liệu đầu vào từ AI Supervisor phải dùng Schema Pydantic với `strict=True`.
    - Chỉ chấp nhận 2 trạng thái `action`: `APPROVE` (Proceed step) hoặc `REJECT` (Trigger Backtrack).
    - `feedback`: Bắt buộc là String.
    - Mọi trường dữ liệu lạ đều phải bị loại bỏ ngay tại cửa ngõ (Data Poisoning Prevention).
-
 4. **[ORCHESTRATOR HOOKS]**:
+
    - Hàm điều phối trong `orchestrator.py` phải đóng sẵn 2 method logic:
      - `approve_step(campaign_id, feedback)`: Đẩy tiến trình tới bước kế tiếp.
      - `trigger_backtrack(campaign_id, feedback)`: Gửi tín hiệu `REDO_PREVIOUS` cho Operative tương ứng.

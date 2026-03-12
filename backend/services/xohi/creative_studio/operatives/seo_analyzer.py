@@ -97,6 +97,10 @@ class SeoAnalyzer:
     Returns per-passage seo_annotations for inline editor highlighting.
     """
 
+    def __init__(self):
+        # BUG-07 fix: Cache Agent at class scope — R1.6 prohibits per-request Agent creation
+        self._agent = Agent(output_type=SeoReport, system_prompt=SEO_ANALYSIS_PROMPT, retries=3)
+
     async def analyze(self, campaign: ContentCampaign) -> SeoReport:
         """
         Performs full AI-powered SEO analysis on draft content.
@@ -112,6 +116,8 @@ class SeoAnalyzer:
 
         # Extract readable text
         plain_text = re.sub(r'<[^>]+>', ' ', draft)
+        # Phase 71.20: Strip [IMAGE_N] to match frontend editor content
+        plain_text = re.sub(r'\[IMAGE_\d+\]', '', plain_text)
         plain_text = re.sub(r'\s+', ' ', plain_text).strip()
         word_count = len(plain_text.split())
 
@@ -164,8 +170,7 @@ Trả về JSON theo đúng schema yêu cầu.
 """
 
         try:
-            agent = Agent(output_type=SeoReport, system_prompt=SEO_ANALYSIS_PROMPT)
-            result = await trinity_bridge.run(agent, prompt)
+            result = await trinity_bridge.run(self._agent, prompt)
             raw = result.data if hasattr(result, "data") else result.output
 
             # Post-process: validate annotations reference real text

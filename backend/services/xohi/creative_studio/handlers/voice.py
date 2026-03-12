@@ -115,7 +115,7 @@ class VoiceHandler:
         except AIConfigurationError as ae:
             return IntentResponse(
                 status="success", action=IntentAction.CONTENT_CREATE,
-                message=f"Dạ sếp, lỗi LLM: {str(ae)}. Sếp kiểm tra lại Key hoặc Model trong .env nhé!",
+                message=f"Dạ sếp, hệ thống AI đang tạm thời gián đoạn: {str(ae)}. Sếp đợi vài phút hoặc kiểm tra cấu hình Key nhé!",
                 router_tier=RouterTier.TIER_2_SEMANTIC,
                 data={"category": "CONTENT_CREATE", "source_input": transcript, "error_type": "AI_CONFIG"},
                 cost_tokens=0.0

@@ -15,8 +15,7 @@ class AgentResponse(BaseModel):
     signal: AgentSignal
     message: str
     data: Optional[Dict[str, Any]] = None
-    
-    # model_config = ConfigDict(strict=True) removed for AI output flexibility
+    # NOTE: strict=True intentionally omitted — data wraps arbitrary dict by design (R105 exception)
 
 class TopicSeed(BaseModel):
     title: str = Field(description="Tiêu đề bài viết thu hút, chuẩn viral")
@@ -25,10 +24,26 @@ class TopicSeed(BaseModel):
     persona: str = Field(description="Mô tả phong cách viết bài (e.g. trẻ trung, chuyên gia)")
     description: str = Field(description="Mô tả tóm tắt chuẩn SEO cho bài viết (Meta Description)")
     category: CategoryEnum = Field(default=CategoryEnum.TIN_TUC, description="Phân loại danh mục bài viết (Tin tức hoặc Chính sách)")
-    
-    # model_config = ConfigDict(strict=True) # R105: Security against Data Poisoning
+    creation_config: Dict[str, Any] = Field(
+        default_factory=lambda: {
+            "style": "Chuyên nghiệp",
+            "word_count": 500,
+            "max_assets": 10,
+            "max_sections": 3
+        },
+        description="Cấu hình luồng sáng tạo mặc định"
+    )
+
+    model_config = ConfigDict(strict=False)  # R105: Guarded validation (lenient for LLM stability)
+
+class OutlineSection(BaseModel):
+    heading: str = Field(description="Tiêu đề mục (bắt đầu bằng H2: hoặc H3:)")
+    content: str = Field(description="Mô tả nội dung chi tiết và vị trí [IMAGE_X]")
 
 class ArticleOutline(BaseModel):
-    sections: List[Dict[str, str]] = Field(description="Danh sách các H2, H3 và mô tả nội dung kèm vị trí chèn ảnh [IMAGE_X]")
-    
-    # model_config = ConfigDict(strict=True)
+    sections: List[OutlineSection] = Field(description="Danh sách các H2, H3 và mô tả nội dung kèm vị trí chèn ảnh [IMAGE_X]")
+
+    model_config = ConfigDict(strict=False)  # R105: Guarded validation (lenient for LLM stability)
+
+class VisualSearchPlan(BaseModel):
+    queries: List[str] = Field(description="List of 3-5 high-quality Google Image search queries (English preferred for professional stock quality)")

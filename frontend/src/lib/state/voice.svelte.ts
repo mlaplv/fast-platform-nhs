@@ -1,4 +1,5 @@
 import { safeRandomUUID } from "./utils";
+import { permissionState } from "./permissions.svelte";
 
 export type VoiceStatus = "IDLE" | "VOICE" | "THINKING" | "ERROR" | "SUCCESS";
 
@@ -17,8 +18,8 @@ export function createVoiceState(
     status: "IDLE" as VoiceStatus,
     isProcessingSpeech: false,
     routerTier: undefined as number | undefined,
-    greetingTemplate: "Tôi đây thưa bạn ✨", // V57.5
-    farewellTemplate: "Tạm biệt",
+    get greetingTemplate() { return `Tôi đây thưa ${permissionState.userName || "bạn"} ✨`; }, // V57.5 Dynamic
+    get farewellTemplate() { return `Tạm biệt ${permissionState.userName || "bạn"}`; },
   });
 
   function resetVui() {
@@ -69,18 +70,25 @@ export function createVoiceState(
         assets: [],
         outline: {},
         draft_content: "",
+        creation_config: {},
+        selectedAvatarUrl: null,
+        selectedAssetIndex: 0,
         ...data
       },
     };
     state.routerTier = routerTier;
 
-    // R51: CHỈ kích hoạt VUI khi là voice
-    if (source === "voice") {
+    // Phase 45: CHỈ kích hoạt VUI khi là voice HOẶC nếu không phải silent (Stealth Mode)
+    if (source === "voice" && !data?.isSilent) {
       state.status = "VOICE";
       state.isVuiActive = true;
     } else {
       state.status = "SUCCESS";
       state.isVuiActive = false;
+      // Phase 45: If it's a stealth audio alert, we still need to make sure vuiState is ready
+      if (data?.isSilent) {
+        import("$lib/vui").then(({ vuiState }) => vuiState.setActive(true));
+      }
     }
   }
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { fade } from "svelte/transition";
   import { apiClient } from "$lib/utils/apiClient";
   import { nanobot } from "$lib/state/nanobot.svelte";
@@ -17,16 +17,18 @@
 
   let { 
     campaign_id,
-    step = $bindable(1),
-    status = $bindable("IDLE"),
-    progress_msg = $bindable(""),
-    title = $bindable(""),
-    keywords = $bindable({}),
-    assets = $bindable([]),
-    outline = $bindable({}),
-    draft_content = $bindable(""),
-    finalHtml = $bindable(""),
-    selectedAvatarUrl = $bindable(null),
+    step = $bindable(),
+    status = $bindable(),
+    progress_msg = $bindable(),
+    title = $bindable(),
+    keywords = $bindable(),
+    assets = $bindable(),
+    outline = $bindable(),
+    draft_content = $bindable(),
+    finalHtml = $bindable(),
+    selectedAvatarUrl = $bindable(), 
+    selectedAssetIndex = $bindable(),
+    creation_config = $bindable()
   } = $props();
 
   // -- Local UI Orchestration --
@@ -37,21 +39,78 @@
   let isPublishing = $state(false);
   let resultMsg = $state("");
   let customImageUrl = $state("");
-  let selectedAssetIndex = $state(0);
   let editedKeywords = $state<any>({});
+  let editedConfig = $state<any>({});
   let editedDraft = $state("");
   let editorRef = $state<any>(null);
+  let maxStepSeen = $state(step);
+
+  const DEFAULT_CONFIG = {
+    style: "Chuyên nghiệp",
+    word_count: 500,
+    max_assets: 10,
+    max_sections: 3
+  };
 
   // -- Sync & Initialization --
+  // Rule R82.41: Smart Auto-Advance — Only jump to current step if it increases
   $effect(() => { 
-    if (step > viewingStep) viewingStep = step;
+    if (step > maxStepSeen) {
+      maxStepSeen = step;
+      viewingStep = step;
+    }
   });
 
   onMount(() => {
+    // Rule R82.10.2: Content Integrity Guard — Manual fallbacks for bindable props without defaults (Svelte 5 safety)
+    if (step === undefined) step = 1;
+    if (status === undefined) status = "IDLE";
+    if (progress_msg === undefined) progress_msg = "";
+    if (keywords === undefined) keywords = {};
+    if (assets === undefined) assets = [];
+    if (outline === undefined) outline = {};
+    if (draft_content === undefined) draft_content = "";
+    if (creation_config === undefined) creation_config = {};
+    if (selectedAvatarUrl === undefined) selectedAvatarUrl = null;
+    if (selectedAssetIndex === undefined) selectedAssetIndex = 0;
+
+    // Local UI Orchestration Initialization
+    
+    viewingStep = step;
+    // Merge defaults with creation_config to ensure all keys are present
+    editedConfig = { ...DEFAULT_CONFIG, ...(creation_config || {}) };
+    if (typeof editedConfig !== 'object') editedConfig = {};
     editedKeywords = JSON.parse(JSON.stringify(keywords || {}));
     editedDraft = draft_content || "";
-    if (assets?.length > 0 && !selectedAvatarUrl) {
-      selectedAvatarUrl = assets[0];
+    
+    // Ensure viewingStep is valid
+    if (viewingStep < 1 || viewingStep > 5) viewingStep = step || 1;
+    if (viewingStep < 1) viewingStep = 1;
+  });
+
+  // Rule R82.42: Reactive Prep — Ensure editedDraft is ready for next steps
+  $effect(() => {
+    if (!isEditing && draft_content && draft_content !== editedDraft) {
+      editedDraft = draft_content;
+    }
+  });
+
+  // Keep editedConfig in sync for Ghost UI summary display (Phase 33)
+  $effect(() => {
+     if (!isEditing && creation_config) {
+       const next = { ...DEFAULT_CONFIG, ...creation_config };
+       if (JSON.stringify(next) !== JSON.stringify(untrack(() => editedConfig))) {
+         editedConfig = next;
+       }
+     }
+  });
+
+  // Sync keywords to editedKeywords when not editing
+  $effect(() => {
+    if (!isEditing && keywords) {
+      if (JSON.stringify(keywords) !== JSON.stringify(untrack(() => editedKeywords))) {
+        editedKeywords = JSON.parse(JSON.stringify(keywords));
+      }
     }
   });
 
@@ -60,10 +119,23 @@
     if (isLoading) return;
     isLoading = true;
     try {
-      const payload = isEditing ? { edited_data: viewingStep === 1 ? editedKeywords : { content: editedDraft } } : {};
+      const payload = isEditing ? { 
+        edited_data: viewingStep === 1 
+          ? { ...editedKeywords, creation_config: editedConfig } 
+          : { html: editedDraft } 
+      } : {};
       await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/approve`, payload);
       isEditing = false;
-      vuiController.speak(`Duyệt thành công!`);
+      
+      // Rule R82.5: Descriptive VUI Feedback
+      const stepNames: Record<number, string> = {
+        1: "ý tưởng và từ khóa",
+        2: "các hình ảnh",
+        3: "dàn ý bài viết",
+        4: "bản thảo nội dung",
+        5: "bài viết"
+      };
+      vuiController.speak(`Đã duyệt ${stepNames[viewingStep] || 'thành công'}!`);
     } catch (e) {
       console.error("Approve failed:", e);
     } finally {
@@ -76,7 +148,17 @@
     isLoading = true;
     try {
       await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/retry`);
-      vuiController.speak(`Đang chạy lại bước này.`);
+      editedDraft = ""; // R82.46: Clear edit buffer on retry to show fresh AI output
+      isEditing = false;
+      
+      const stepNames: Record<number, string> = {
+        1: "ý tưởng và từ khóa",
+        2: "các hình ảnh",
+        3: "dàn ý bài viết",
+        4: "bản thảo nội dung",
+        5: "bài viết"
+      };
+      vuiController.speak(`Đang chạy lại bước ${stepNames[viewingStep] || 'này'}.`);
     } catch (e) {
       console.error("Retry failed:", e);
     } finally {
@@ -87,12 +169,30 @@
   async function handleUpdateMetadata() {
     isLoading = true;
     try {
-      const payload = viewingStep === 1 ? { keywords: editedKeywords } : { draft_content: editedDraft };
+      const payload = viewingStep === 1 
+        ? { keywords: editedKeywords } 
+        : (viewingStep === 3 ? { outline_data: { html: editedDraft } } : { draft_content: editedDraft });
+        
       await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, payload);
-      keywords = { ...editedKeywords };
-      draft_content = editedDraft;
+      
+      if (viewingStep === 1) {
+        keywords = { ...editedKeywords };
+      } else if (viewingStep === 3) {
+        outline = { html: editedDraft };
+      } else {
+        draft_content = editedDraft;
+      }
       isEditing = false;
-      vuiController.speak("Đã lưu.");
+      editedDraft = ""; // R82.47: Clear edit buffer after successful save
+      
+      const stepNames: Record<number, string> = {
+        1: "nội dung ý tưởng và từ khóa",
+        2: "các hình ảnh",
+        3: "dàn ý bài viết",
+        4: "bản thảo nội dung",
+        5: "bài viết"
+      };
+      vuiController.speak(`Đã lưu ${stepNames[viewingStep] || 'thành công'}.`);
     } catch (e) {
       console.error("Update failed:", e);
     } finally {
@@ -116,9 +216,11 @@
 
   async function syncAssetChanges(newIndex?: number) {
     try {
+      // Rule R109: REST Alignment — Use keys expected by ActionHandler.update_metadata
       await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, {
-        assets_data: assets,
-        gold_metadata: { ...keywords, selected_avatar: selectedAvatarUrl, selected_index: newIndex ?? selectedAssetIndex }
+        assets: assets, // Backend expects 'assets' NOT 'assets_data' in PATCH alias
+        avatar: selectedAvatarUrl,
+        selected_index: newIndex ?? selectedAssetIndex
       });
     } catch (e) { console.error("Sync failed:", e); }
   }
@@ -133,6 +235,7 @@
     const removed = assets[idx];
     assets = assets.filter((_, i) => i !== idx);
     if (selectedAvatarUrl === removed) selectedAvatarUrl = assets[0] || null;
+    vuiController.speak("Đã xóa ảnh.");
     syncAssetChanges();
   }
 
@@ -156,19 +259,27 @@
 >
   <Header 
     {viewingStep} {status} {progress_msg} {campaign_id} 
-    bind:isEditing toggleExpand={ () => { nanobot.toggleExpand(); } }
+    bind:isEditing 
+    toggleExpand={ () => { nanobot.toggleExpand(); } }
     isExpanded={nanobot.isExpanded}
+    creation_config={isEditing ? editedConfig : creation_config}
   />
 
   <Timeline {step} bind:viewingStep bind:isEditing />
 
-  <div class="flex-1 flex gap-6 min-h-0 overflow-hidden relative z-10">
-    <div class="flex-1 space-y-5 flex flex-col min-h-0 overflow-hidden">
-      {#if viewingStep === 1}
-        <IdeaStep 
-          bind:isEditing {campaign_id} bind:keywords bind:editedKeywords 
-          {handleSelectKeyword} {handleUpdateMetadata} {isLoading} 
-        />
+  <div class="flex-1 flex flex-col p-5 {nanobot.isExpanded ? 'p-8' : ''} overflow-y-auto custom-scrollbar relative z-10">
+    {#if viewingStep === 1}
+      <IdeaStep 
+        bind:isEditing 
+        {campaign_id} 
+        bind:keywords 
+        bind:editedKeywords
+        creation_config={creation_config}
+        bind:editedConfig
+        {handleSelectKeyword}
+        {handleUpdateMetadata}
+        {isLoading} 
+      />
       {:else if viewingStep === 2}
         <AssetStep 
           {isProcessing} isExpanded={nanobot.isExpanded} 
@@ -177,13 +288,13 @@
         />
       {:else if viewingStep === 3}
         <OutlineStep 
-          {isEditing} bind:editedDraft bind:draft_content {assets} 
-          isExpanded={nanobot.isExpanded} editorAnnotations={[]}
+          {isEditing} bind:editedDraft bind:draft_content {outline} {assets} 
+          isExpanded={nanobot.isExpanded} editorAnnotations={[]} {step}
         />
       {:else if viewingStep === 4}
         <DraftStep 
           {campaign_id} {isEditing} bind:editedDraft bind:draft_content 
-          {assets} isExpanded={nanobot.isExpanded} bind:editorRef
+          {assets} isExpanded={nanobot.isExpanded} bind:editorRef {outline}
         />
       {:else if viewingStep === 5}
         <PublishStep 
@@ -191,7 +302,6 @@
           {finalHtml} {draft_content} 
         />
       {/if}
-    </div>
   </div>
 
   {#if resultMsg}

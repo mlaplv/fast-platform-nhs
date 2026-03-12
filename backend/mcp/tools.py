@@ -6,9 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_, update, delete
 from sqlalchemy.orm import selectinload
 
-from backend.database.models import Order, User, Draft, Notification, ProductBase
+from backend.database.models import Order, User, Draft, ProductBase
 from backend.mcp.protocol import mcp_registry
 from backend.schemas.intent import IntentAction
+from backend.schemas.signal import SignalSchema, SignalSeverity
+from backend.services.signal_center import signal_center
 from backend.utils.data_stripper import DataStripper
 
 logger = logging.getLogger("api-gateway")
@@ -67,12 +69,16 @@ async def create_database_draft(db_session: AsyncSession, target_model: str, tar
     )
     db_session.add(draft)
     
-    notification = Notification(
-        id=str(uuid.uuid4()),
-        type="WARNING",
-        message=f"AI Sentinel: New Draft mutation proposed for {target_model} (ID: {target_id}). Approval required."
+    # CNS V70: ACTION severity — triggers Patient Voice + Bell sync
+    await signal_center.dispatch(
+        user_id=proposed_by,
+        signal=SignalSchema(
+            message=f"AI Sentinel: New Draft mutation proposed for {target_model} (ID: {target_id}). Approval required.",
+            severity=SignalSeverity.ACTION,
+            signal_type="WARNING"
+        ),
+        db_session=db_session
     )
-    db_session.add(notification)
     
     await db_session.commit()
 

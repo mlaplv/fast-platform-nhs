@@ -82,8 +82,8 @@
       </div>
       <div>
         <h1 class="text-2xl font-bold text-white tracking-tight leading-tight">
-          Chào Sếp,<br/>
-          <span class="text-gray-400 font-medium text-[15px]">Chúc Sếp một {getGreeting()}.</span>
+          Chào {permissionState.userName || 'Bác'},<br/>
+          <span class="text-gray-400 font-medium text-[15px]">Chúc {permissionState.userName || 'Bác'} một {getGreeting()}.</span>
         </h1>
       </div>
     </div>

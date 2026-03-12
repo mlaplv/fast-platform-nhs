@@ -18,6 +18,7 @@ export const vuiState = $state({
   errorMsg: "",
   activeTier: "",
   cmdBuffer: "",
+  isAudioBlocked: false,
 
   isWaitingForAction: false,
   history: [] as VuiInteraction[],
@@ -45,6 +46,7 @@ export const vuiState = $state({
   },
   setActiveTier(val: string) { this.activeTier = val; },
   setCmdBuffer(val: string) { this.cmdBuffer = val; },
+  setAudioBlocked(val: boolean) { this.isAudioBlocked = val; },
 
   
   finalizeInteraction() {

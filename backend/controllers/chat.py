@@ -9,14 +9,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete as sqlalchemy_delete, func
 
 from backend.database.repositories import UserRepository
-from backend.database.models import User, ChatMessage, Notification
+from backend.database.models import User, ChatMessage
 from backend.schemas.chat import ChatHistoryResponse, ChatMessageSchema, CreateChatMessageRequest
+from backend.schemas.signal import SignalSchema, SignalSeverity
+from backend.services.signal_center import signal_center
 
 logger = logging.getLogger("api-gateway")
 
 # Security Rate Limits
-chat_sync_limit = RateLimitConfig(rate_limit=("minute", 30), store="memory_store")
-chat_clear_limit = RateLimitConfig(rate_limit=("minute", 10), store="memory_store")
+chat_sync_limit = RateLimitConfig(rate_limit=("minute", 200), store="memory_store")
+chat_clear_limit = RateLimitConfig(rate_limit=("minute", 50), store="memory_store")
 
 
 class ChatController(Controller):
@@ -236,15 +238,16 @@ class ChatController(Controller):
         user = await user_repo.get_one_or_none(email=user_email)
         user_id = str(user.id) if user else None
         
-        # ═══ SECURITY: DESTRUCTION AUDIT ═══
-        new_notif = Notification(
-            id=str(uuid.uuid4()),
-            user_id=user_id,
-            type="SECURITY",
-            message=f"DATA DESTRUCTION: Logs purged for session '{session_id}' by {user_email}"
+        # CNS V70: Security audit signal — CRITICAL severity creates audit trail + SSE alert
+        await signal_center.dispatch(
+            user_id=str(user_id) if user_id else "system",
+            signal=SignalSchema(
+                message=f"DATA DESTRUCTION: Logs purged for session '{session_id}' by {user_email}",
+                severity=SignalSeverity.CRITICAL,
+                signal_type="SECURITY"
+            ),
+            db_session=db_session
         )
-        db_session.add(new_notif)
-        await db_session.flush()
 
         if session_id == "account" and user_id:
             stmt = sqlalchemy_delete(ChatMessage).where(ChatMessage.user_id == user_id)

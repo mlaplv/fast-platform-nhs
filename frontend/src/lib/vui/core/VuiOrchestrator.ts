@@ -6,6 +6,7 @@ import { VUI_CONFIG } from "./VuiConstants";
 import { nanobot } from "$lib/state/nanobot.svelte";
 import { VuiStreamManager } from "./VuiStreamManager";
 import { VuiVadEngine } from "./VuiVadEngine";
+import { isDev } from "$lib/state/nanobot/env";
 
 /**
  * VuiOrchestrator 2026: The "Neural Conductor"
@@ -20,10 +21,30 @@ class VuiOrchestrator {
   private vadEngine = new VuiVadEngine();
   
   private hasSpoken = false;
-  private resumptionTimer: any = null;
   private stopAfterSpeech = false;
-  private recordingMaxTimer: ReturnType<typeof setTimeout> | null = null;
-  private initialTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
+  
+  // Phase 42: Neural Lifecycle Control (Premium Timer Management)
+  private activeTimers = new Map<string, any>();
+
+  private clearTimer(key: string) {
+    if (this.activeTimers.has(key)) {
+      clearTimeout(this.activeTimers.get(key));
+      this.activeTimers.delete(key);
+    }
+  }
+
+  private setManagedTimer(key: string, fn: () => void, ms: number) {
+    this.clearTimer(key);
+    this.activeTimers.set(key, setTimeout(() => {
+      this.activeTimers.delete(key);
+      fn();
+    }, ms));
+  }
+
+  private clearAllTimers() {
+    this.activeTimers.forEach(t => clearTimeout(t));
+    this.activeTimers.clear();
+  }
 
   constructor() {
     this.streamManager = new VuiStreamManager(this.audio, {
@@ -80,10 +101,7 @@ class VuiOrchestrator {
           if (vuiState.phase !== "listening") return;
           this.hasSpoken = true;
           // Clear initial timeout — user is speaking
-          if (this.initialTimeoutTimer) {
-            clearTimeout(this.initialTimeoutTimer);
-            this.initialTimeoutTimer = null;
-          }
+          this.clearTimer('initial');
         },
         // onSpeechEnd: Neural network confirmed silence after speech
         (audioBlob) => {
@@ -100,7 +118,7 @@ class VuiOrchestrator {
       );
 
       // Step 4: Initial timeout — if no speech detected within 7s, clean exit
-      this.initialTimeoutTimer = setTimeout(() => {
+      this.setManagedTimer('initial', () => {
         if (vuiState.phase === "listening" && !this.hasSpoken) {
           console.log("[VuiOrchestrator] Initial timeout: No speech detected. Clean exit.");
           this.interruptAll();
@@ -108,7 +126,7 @@ class VuiOrchestrator {
       }, VUI_CONFIG.VAD.INITIAL_TIMEOUT_MS);
 
       // Step 5: Hard safety limit for recording duration
-      this.recordingMaxTimer = setTimeout(() => {
+      this.setManagedTimer('max_duration', () => {
         if (vuiState.phase === "listening") {
            console.warn("[VuiOrchestrator] Recording exceeded MAX_DURATION. Auto-finalizing.");
            this.stopRecording();
@@ -134,8 +152,9 @@ class VuiOrchestrator {
     }
 
     vuiState.setPhase("thinking");
-    if (this.initialTimeoutTimer) { clearTimeout(this.initialTimeoutTimer); this.initialTimeoutTimer = null; }
-    if (this.recordingMaxTimer) { clearTimeout(this.recordingMaxTimer); this.recordingMaxTimer = null; }
+    this.clearTimer('initial');
+    this.clearTimer('max_duration');
+    
     this.ws.sendStopSignal();
     this.streamManager.startSttGuard();
     this.mic.stop();
@@ -146,9 +165,7 @@ class VuiOrchestrator {
   }
 
   interruptAll() {
-    if (this.resumptionTimer) { clearTimeout(this.resumptionTimer); this.resumptionTimer = null; }
-    if (this.initialTimeoutTimer) { clearTimeout(this.initialTimeoutTimer); this.initialTimeoutTimer = null; }
-    if (this.recordingMaxTimer) { clearTimeout(this.recordingMaxTimer); this.recordingMaxTimer = null; }
+    this.clearAllTimers();
     this.streamManager.clearSttGuard();
     this.audio.abort();
     this.mic.stop();
@@ -174,8 +191,7 @@ class VuiOrchestrator {
 
   interruptSpeech() {
     this.audio.abort();
-    if (this.resumptionTimer) { clearTimeout(this.resumptionTimer); this.resumptionTimer = null; }
-    if (this.phaseResetTimer) { clearTimeout(this.phaseResetTimer); this.phaseResetTimer = null; }
+    this.clearAllTimers();
 
     this.mic.stop();
     this.vadEngine.pause();
@@ -185,7 +201,7 @@ class VuiOrchestrator {
     vuiState.setLiveText("Hệ thống đang chuyển pha...");
     this.streamManager.setLastAction("");
 
-    this.phaseResetTimer = setTimeout(() => {
+    this.setManagedTimer('phase_reset', () => {
       if (vuiState.phase === "executing") {
         this.resetToIdle();
       }
@@ -196,7 +212,7 @@ class VuiOrchestrator {
 
   private onTTSFinished() {
     if (vuiState.isWaitingForAction) {
-      if (import.meta.env.DEV) console.log("[VuiOrchestrator] TTS Finished. Waiting for user action, going idle.");
+      if (isDev()) console.log("[VuiOrchestrator] TTS Finished. Waiting for user action, going idle.");
       this.mic.stop();
       this.vadEngine.pause();
       vuiState.setPhase("idle");
@@ -205,7 +221,7 @@ class VuiOrchestrator {
     }
 
     if (vuiState.phase === "executing" || vuiState.phase === "speaking") {
-      if (import.meta.env.DEV) console.log(`[VuiOrchestrator] TTS Finished during ${vuiState.phase}. Clearing locks.`);
+      if (isDev()) console.log(`[VuiOrchestrator] TTS Finished during ${vuiState.phase}. Clearing locks.`);
       vuiState.setPhase("idle");
       vuiState.setActiveTier("");
     }
@@ -218,9 +234,7 @@ class VuiOrchestrator {
 
     if (VUI_CONFIG.UX.CONTINUOUS_CONVERSATION && vuiState.isActive) {
       const delay = this.streamManager.getLastAction() ? VUI_CONFIG.UX.POST_ACTION_DELAY_MS : VUI_CONFIG.UX.POST_SPEECH_DELAY_MS;
-      if (this.resumptionTimer) clearTimeout(this.resumptionTimer);
-      this.resumptionTimer = setTimeout(() => {
-        this.resumptionTimer = null;
+      this.setManagedTimer('resumption', () => {
         if (vuiState.isActive && nanobot.isVuiActive) {
           vuiState.setSystemMessage("");
           vuiState.setLiveText("");
@@ -230,7 +244,7 @@ class VuiOrchestrator {
         }
       }, delay);
     } else {
-      setTimeout(() => this.interruptAll(), 1000);
+      this.setManagedTimer('interrupt', () => this.interruptAll(), 1000);
     }
   }
 
@@ -250,22 +264,26 @@ class VuiOrchestrator {
     await this.streamManager.streamLLM(query, nanobot.currentData?.session_id || "", source);
   }
 
-  async speak(text: string) {
+  async speak(text: string): Promise<boolean> {
     this.mic.stop();
     this.vadEngine.pause();
     if (vuiState.phase === "listening") vuiState.setPhase("thinking");
     
-    if (!text || !vuiState.isActive) return;
+    if (!text || !vuiState.isActive) return false;
     if (vuiState.phase !== "executing") {
         vuiState.setPhase("speaking");
     }
     vuiState.setSystemMessage(text);
     
-    const sentences = text.split(/([.?!]|\n)/);
-    for (const s of sentences) {
-      if (s.trim()) this.audio.processChunk(s);
-    }
-    this.audio.flush();
+    return await this.audio.speak(text);
+  }
+
+  playNotificationPing() {
+    this.audio.playNotificationPing();
+  }
+
+  checkAudioBlocked(): boolean {
+    return this.audio.checkAudioBlocked();
   }
 
   async processGhost(cmd: string, source: "text" | "voice" = "text"): Promise<boolean> {
@@ -274,6 +292,10 @@ class VuiOrchestrator {
        return true; 
     }
     return false; 
+  }
+
+  async unlockAudio() {
+    await this.audio.unlock();
   }
 }
 

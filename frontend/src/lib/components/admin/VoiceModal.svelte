@@ -19,9 +19,12 @@
 
   let wasActive = false;
   $effect(() => {
-    // Only beep if transitioning from inactive to active (prevents autoplay on page load)
+    // Phase 47: Only beep if transitioning from inactive to active AND NOT a silent auto-resume
     if (nanobot.isVuiActive && !wasActive) {
-      playSciFiBeep();
+      const isSilentResume = nanobot.vuiResponse?.data?.isSilent === true;
+      if (!isSilentResume) {
+        playSciFiBeep();
+      }
     }
     wasActive = nanobot.isVuiActive;
   });
@@ -38,7 +41,13 @@
 
   let phase = $derived(vuiState.phase);
 
-  // Rule R82.11: Safety Unmount — If for some reason we are active but have no data and not listening, close it.
+  $effect(() => {
+    if (nanobot.isVuiActive) {
+      console.log("[VoiceModal] ACTIVE. Category:", nanobot.vuiResponse?.data?.category, "CampaignID:", nanobot.vuiResponse?.data?.campaign_id);
+    }
+  });
+
+  // Rule R82.11: Safety Unmount
   $effect(() => {
     if (
       nanobot.isVuiActive &&
@@ -113,6 +122,9 @@
               bind:step={nanobot.vuiResponse.data.step}
               bind:status={nanobot.vuiResponse.data.status}
               bind:progress_msg={nanobot.vuiResponse.data.progress_msg}
+              bind:selectedAvatarUrl={nanobot.vuiResponse.data.selectedAvatarUrl}
+              bind:selectedAssetIndex={nanobot.vuiResponse.data.selectedAssetIndex}
+              bind:creation_config={nanobot.vuiResponse.data.creation_config}
             />
           </div>
         {/if}

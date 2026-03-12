@@ -314,6 +314,20 @@ class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     # Relationships
     events: Mapped[List["CampaignEvent"]] = relationship("CampaignEvent", back_populates="campaign", cascade="all, delete-orphan")
 
+    # --- PROFESSIONAL CTO HELPERS (Phase 42) ---
+    def get_gold_config(self) -> dict:
+        """Returns the creation configuration from gold_metadata safely."""
+        gold = self.gold_metadata or {}
+        return gold.get("creation_config") or {}
+
+    def get_gold_val(self, key: str, default: any = None) -> any:
+        """Surgically extracts a value from gold_metadata or falls back to topic_data."""
+        gold = self.gold_metadata or {}
+        if key in gold: return gold[key]
+        
+        topic = self.topic_data or {}
+        return topic.get(key, default)
+
     __table_args__ = (
         Index("ix_campaigns_tenant_deleted", "tenant_id", "deleted_at"),
         Index("ix_campaigns_status", "status"),

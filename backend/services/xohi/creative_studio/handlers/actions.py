@@ -24,12 +24,14 @@ class ActionHandler:
 
         if approved:
             if edited_data:
-                if step == 1: campaign.topic_data = edited_data
+                if step == 1:
+                    # BUG-05 fix: Merge onto existing topic_data to preserve all TopicSeed fields
+                    existing = dict(campaign.topic_data or {})
+                    existing.update(edited_data)
+                    campaign.topic_data = existing
                 elif step == 3:
-                    if isinstance(edited_data, dict) and "html" in edited_data:
-                        campaign.draft_content = edited_data["html"]
-                    else:
-                        campaign.outline_data = edited_data
+                    # BUG-06 fix: Step 3 ONLY writes outline_data. The html branch was wrong.
+                    campaign.outline_data = edited_data
                 elif step == 4:
                     new_content = edited_data.get("html") or edited_data.get("content")
                     if new_content: campaign.draft_content = new_content
@@ -46,7 +48,7 @@ class ActionHandler:
                     campaign.gold_metadata = gold
 
             if step == 1:
-                campaign.gold_metadata = campaign.topic_data
+                campaign.gold_metadata = campaign.topic_data  # Golden Thread sealed after Step 1 approval
 
             if campaign.status != "WAITING_FOR_REVIEW":
                 return {"status": "error", "message": "Bước này đang được xử lý hoặc đã duyệt rồi ạ."}

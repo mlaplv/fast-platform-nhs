@@ -9,6 +9,7 @@
     RotateCcw
   } from "lucide-svelte";
   import { fade, scale } from "svelte/transition";
+  import { vuiController } from "$lib/vui";
 
   let { 
     isProcessing,
@@ -56,6 +57,7 @@
                    selectedAssetIndex = assets.length - 1;
                  }
                  customImageUrl = "";
+                 vuiController.speak("Đã thêm ảnh từ liên kết.");
                  syncAssetChanges();
               }
             }}
@@ -72,6 +74,7 @@
                    selectedAssetIndex = assets.length - 1;
                  }
                  customImageUrl = "";
+                 vuiController.speak("Đã thêm ảnh từ liên kết.");
                  syncAssetChanges();
               }
             }}
@@ -99,6 +102,7 @@
             tabindex="0"
             onclick={() => {
               selectedAssetIndex = i;
+              vuiController.speak(`Đã chọn ảnh số ${i + 1}.`);
               syncAssetChanges(i);
             }}
             onkeydown={(e) => {
@@ -135,6 +139,7 @@
                    e.stopPropagation();
                    selectedAvatarUrl = url;
                    selectedAssetIndex = i;
+                   vuiController.speak(`Đã chọn làm ảnh đại diện cho ảnh số ${i + 1}.`);
                    syncAssetChanges();
                 }}
                 title="Chọn làm Ảnh Đại Diện"

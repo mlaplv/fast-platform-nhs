@@ -1,12 +1,18 @@
 <script lang="ts">
   import "./layout.css";
   import { nanobot } from "$lib/state/nanobot.svelte";
-  import { vuiState } from "$lib/vui";
+  import { vuiState, vuiController } from "$lib/vui";
   import { fade, scale, slide } from "svelte/transition";
   import Sparkles from "lucide-svelte/icons/sparkles";
   import X from "lucide-svelte/icons/x";
+  import VolumeX from "lucide-svelte/icons/volume-x";
+  import Volume2 from "lucide-svelte/icons/volume-2";
 
   let { children } = $props();
+
+  async function unlockAudio() {
+    await vuiController.unlockAudio();
+  }
 
   // God Mode: Bulletproof derive for hydration safety
   let capturedText = $derived(
@@ -74,6 +80,36 @@
 
 <svelte:head><link rel="icon" href="/favicon.svg" /></svelte:head>
 {@render children()}
+
+<!-- VUI Audio Unlock Overlay (Browser Compliance V66.5) -->
+{#if vuiState.isAudioBlocked}
+  <div 
+    class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100000] flex flex-col items-center gap-4"
+    transition:slide
+  >
+    <button
+      onclick={unlockAudio}
+      class="group relative flex items-center gap-3 px-6 py-3 bg-black/80 border border-cyan-500/50 rounded-full shadow-[0_0_30px_rgba(34,211,238,0.2)] hover:border-cyan-400 hover:shadow-[0_0_40px_rgba(34,211,238,0.4)] transition-all active:scale-95"
+    >
+      <div class="absolute inset-0 bg-cyan-500/10 blur-xl rounded-full group-hover:bg-cyan-500/20 transition-all"></div>
+      
+      <div class="relative flex items-center justify-center w-8 h-8 bg-cyan-500/10 rounded-full text-cyan-400 group-hover:scale-110 transition-transform">
+        <Volume2 size={18} class="hidden group-hover:block" />
+        <VolumeX size={18} class="group-hover:hidden" />
+      </div>
+      
+      <span class="relative text-sm font-bold text-white uppercase tracking-[0.2em] drop-shadow-sm">
+        Bật âm thanh XoHi
+      </span>
+      
+      <div class="relative w-2 h-2 bg-red-500 rounded-full animate-pulse group-hover:bg-cyan-500"></div>
+    </button>
+    
+    <p class="text-[10px] font-mono text-white/40 uppercase tracking-widest bg-black/20 px-3 py-1 rounded-md backdrop-blur-sm">
+      Trình duyệt đang chặn âm thanh tự động
+    </p>
+  </div>
+{/if}
 
 <!-- V44.2 Absolute Surface: Neural Capture (Root Level to prevent clipping) -->
 {#if nanobot.isTraining}

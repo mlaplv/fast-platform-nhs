@@ -92,12 +92,17 @@ class PlagiarismCop:
             if k and cx:
                 self.search_keys.append({"key": k, "cx": cx})
         self._key_idx = 0
+        self._key_lock = asyncio.Lock()  # BUG-08 fix: thread-safe key rotation
+        # BUG-07 fix: Cache Agent at class scope — R1.6 prohibits per-request Agent creation
+        self._agent = Agent(output_type=PlagiarismResult, system_prompt=PLAGIARISM_PROMPT, retries=3)
 
-    def _get_search_pair(self):
+    async def _get_search_pair(self):
+        """BUG-08 fix: async-safe key rotation via lock."""
         if not self.search_keys:
             return None
-        pair = self.search_keys[self._key_idx % len(self.search_keys)]
-        self._key_idx += 1
+        async with self._key_lock:
+            pair = self.search_keys[self._key_idx % len(self.search_keys)]
+            self._key_idx += 1
         return pair
 
     # ──────────────────────────────────────────────────────────
@@ -158,6 +163,8 @@ class PlagiarismCop:
 
         # 1. Extract readable text from HTML
         plain_text = re.sub(r'<[^>]+>', ' ', draft)
+        # Phase 71.20: Strip [IMAGE_N] to match frontend editor content
+        plain_text = re.sub(r'\[IMAGE_\d+\]', '', plain_text)
         plain_text = re.sub(r'\s+', ' ', plain_text).strip()
         # Limit to 3000 chars for analysis efficiency
         snippet = plain_text[:3000]
@@ -167,7 +174,6 @@ class PlagiarismCop:
 
         # 3. AI semantic analysis with per-sentence annotations
         try:
-            agent = Agent(output_type=PlagiarismResult, system_prompt=PLAGIARISM_PROMPT)
             prompt = f"""
 [BÀI VIẾT CẦN KIỂM TRA — đoạn đầu 3000 ký tự]
 {snippet}
@@ -178,7 +184,7 @@ class PlagiarismCop:
 NHIỆM VỤ: Phân tích và trả về JSON đúng schema yêu cầu.
 Đặc biệt chú ý: các `annotations[].text` PHẢI là substring chính xác từ bài viết cần kiểm tra.
 """
-            result = await trinity_bridge.run(agent, prompt)
+            result = await trinity_bridge.run(self._agent, prompt)  # BUG-07 fix
             raw = result.data if hasattr(result, "data") else result.output
 
             # Post-process: validate that annotation texts actually exist in the draft
@@ -212,7 +218,7 @@ NHIỆM VỤ: Phân tích và trả về JSON đúng schema yêu cầu.
         Fetches top 5 web result snippets from Google Custom Search for semantic comparison.
         Returns list of snippet strings.
         """
-        pair = self._get_search_pair()
+        pair = await self._get_search_pair()
         if not pair:
             logger.warning("[PlagiarismCop] No Google Search keys — skipping competitor fetch.")
             return ["(Không thể tải nội dung cạnh tranh — thiếu API key)"]

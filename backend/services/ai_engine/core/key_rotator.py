@@ -94,3 +94,14 @@ class SmartKeyRotator:
 
     def get_count(self) -> int:
         return len(self.keys)
+
+    def get_all_keys(self) -> list[str]:
+        """Legacy support for multi-key iteration (V60.0)"""
+        return self.keys
+
+    def get_next_key(self) -> str:
+        """Simple round-robin without unhealthy check (V56.0 compat)"""
+        if not self.keys: return ""
+        key = self.keys[self.index]
+        self.index = (self.index + 1) % len(self.keys)
+        return key

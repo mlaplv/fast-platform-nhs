@@ -1,5 +1,6 @@
 import { COMMAND_WIDGET_MAP, WIDGET_VI_LABEL } from "../constants";
 import { persistMessage } from "../chat.svelte";
+import { nanobot } from "../nanobot.svelte";
 
 export interface HandlerDeps {
   state: any;
@@ -43,7 +44,7 @@ export async function handleFastAction(
 
   if (matchedWidget) {
     const viLabel = WIDGET_VI_LABEL[matchedWidget] || matchedWidget.replace(/_/g, " ");
-    const xohiReply = `Dạ, em mở ${viLabel} cho sếp ạ.`;
+    const xohiReply = `Dạ, em mở ${viLabel} cho ${nanobot.userName} đây ạ.`;
 
     log.addLog(xohiReply, "XOHI");
     state.activeWidget = matchedWidget;

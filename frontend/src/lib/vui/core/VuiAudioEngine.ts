@@ -7,18 +7,56 @@ import { vuiService } from "./VuiService";
  * Complies with Rule 1.3 (Separation of Concerns) and 1.3.1 (Memory Discipline).
  */
 export class VuiAudioEngine {
-  private currentAudio: HTMLAudioElement | null = null;
-  private currentUrl: string | null = null;
-  private tts: TTSSpeaker;
-
-  constructor(onFinished: () => void) {
-    this.tts = new TTSSpeaker(
-      () => vuiState.isActive,
-      (text, signal) => vuiService.fetchTtsBlob(text, signal),
-      async (blob) => this.playAudio(blob),
-      () => onFinished()
-    );
-  }
+    private currentAudio: HTMLAudioElement | null = null;
+    private currentUrl: string | null = null;
+    private tts: TTSSpeaker;
+  
+    // Phase 44: Patient Queue (R109.2) - Refined for high-frequency race conditions
+    private hasUserInteracted = false;
+    private pendingQueue: { text: string; resolve: (val: boolean) => void }[] = [];
+    private isDrainingQueue = false;
+    private audioCtx: AudioContext | null = null;
+  
+    constructor(onFinished: () => void) {
+      this.tts = new TTSSpeaker(
+        () => vuiState.isActive,
+        (text, signal) => vuiService.fetchTtsBlob(text, signal),
+        async (blob) => this.playAudio(blob),
+        () => onFinished()
+      );
+  
+      // CNS V71.0: Permanent/Resilient Unlocker (Premium Continuous Support)
+      if (typeof window !== 'undefined') {
+        const silentUnlock = async () => {
+           // If AC is already running and nothing in queue, we don't need to do expensive context warm
+           if (this.hasUserInteracted && this.pendingQueue.length === 0) return;
+           
+           console.log(`[VUI LOG] 🎯 Interaction detected (Queue size: ${this.pendingQueue.length}). Warming Context...`);
+           await this.unlock(); 
+           
+           if (this.pendingQueue.length > 0 && !this.isDrainingQueue) {
+             console.log(`[VUI LOG] 🌊 Draining Queue: Starting sequential playback of ${this.pendingQueue.length} items.`);
+             this.isDrainingQueue = true;
+             
+             let index = 0;
+             while(this.pendingQueue.length > 0) {
+                const item = this.pendingQueue.shift();
+                if (item) {
+                   index++;
+                   console.log(`[VUI LOG] 🎙️ Playing Queued Item ${index}: "${item.text.substring(0, 30)}..."`);
+                   const success = await this.speak(item.text);
+                   console.log(`[VUI LOG] ✅ Item ${index} finished. (Success: ${success})`);
+                   item.resolve(success);
+                }
+             }
+             console.log(`[VUI LOG] ✨ Queue Drained. System clear.`);
+             this.isDrainingQueue = false;
+           }
+        };
+        window.addEventListener('click', silentUnlock, { capture: true });
+        window.addEventListener('touchstart', silentUnlock, { capture: true });
+      }
+    }
 
   /**
    * Process a text chunk for TTS playback
@@ -40,6 +78,7 @@ export class VuiAudioEngine {
   abort() {
     this.tts.abort();
     this.interruptAudio();
+    this.pendingQueue = [];
   }
 
   /**
@@ -57,24 +96,60 @@ export class VuiAudioEngine {
   }
 
   /**
-   * Play a standalone text via TTS (Legacy support/Direct speak)
+   * Play a standalone text via TTS
    */
-  async speak(text: string): Promise<void> {
-    if (!vuiState.isActive) return;
-    const signal = this.getSignal();
+  async speak(text: string): Promise<boolean> {
+    if (!vuiState.isActive) return false;
+
+    // CNS V71.1: Auto-Queueing on block logic
+    const attemptPlay = async () => {
+        const signal = this.getSignal();
+        try {
+          const blob = await vuiService.fetchTtsBlob(text, signal);
+          return await this.playAudio(blob);
+        } catch (e) {
+          console.warn("[AudioEngine] speak attempt failed", e);
+          return false;
+        }
+    };
+
+    // If we think we are unlocked, try it
+    if (this.hasUserInteracted) {
+        const success = await attemptPlay();
+        if (success) return true;
+        
+        console.log("[AudioEngine] Interaction was stale or blocked. Falling back to queue.");
+        this.hasUserInteracted = false;
+        vuiState.setAudioBlocked(true);
+    }
+
+    // Always queue if blocked or previous attempt failed
+    return new Promise((resolve) => {
+      this.pendingQueue.push({ text, resolve });
+    });
+  }
+
+  /**
+   * Check if the audio context is suspended or likely blocked
+   */
+  checkAudioBlocked(): boolean {
+    if (typeof window === 'undefined') return false;
+    if (this.pendingQueue.length > 0) return true;
+    if (!this.hasUserInteracted) return false;
+    
     try {
-      const blob = await vuiService.fetchTtsBlob(text, signal);
-      await this.playAudio(blob);
+      if (!this.audioCtx) return true;
+      return this.audioCtx.state === "suspended";
     } catch (e) {
-      console.warn("[AudioEngine] speak failed", e);
+      return true;
     }
   }
 
   /**
    * Internal routine to play an audio blob and manage cleanup
    */
-  private async playAudio(blob: Blob): Promise<void> {
-    if (!vuiState.isActive) return;
+  private async playAudio(blob: Blob): Promise<boolean> {
+    if (!vuiState.isActive) return false;
 
     return new Promise((resolve) => {
       try {
@@ -82,12 +157,11 @@ export class VuiAudioEngine {
         const audio = new Audio(url);
         
         let isResolved = false;
-        const finalize = () => {
+        const finalize = (success = true) => {
           if (isResolved) return;
           isResolved = true;
-          // Phase 6: 500ms Anti-Death Loop Lock to prevent mic feedback
           setTimeout(() => {
-            resolve();
+            resolve(success);
             if (this.currentUrl === url) {
               URL.revokeObjectURL(url);
               this.currentUrl = null;
@@ -95,17 +169,11 @@ export class VuiAudioEngine {
           }, 500);
         };
 
-        audio.onended = finalize;
-        audio.onpause = finalize;
-        audio.onabort = finalize;
-        audio.onerror = () => { 
-          if (isResolved) return; 
-          isResolved = true; 
-          resolve(); 
-          URL.revokeObjectURL(url); 
-        };
+        audio.onended = () => finalize(true);
+        audio.onpause = () => finalize(true); 
+        audio.onabort = () => finalize(false);
+        audio.onerror = () => finalize(false);
         
-        // Phase 85: Optimized Switching - only pause previous if it's still alive
         if (this.currentAudio) {
            this.currentAudio.onended = null;
            this.currentAudio.onpause = null;
@@ -117,54 +185,116 @@ export class VuiAudioEngine {
         this.currentAudio = audio;
         this.currentUrl = url;
         
-        audio.play().catch(e => {
+        audio.play().then(() => {
+          // Playback started successfully
+        }).catch(e => {
           console.warn("[AudioEngine] playback blocked", e);
-          if (!isResolved) {
-             isResolved = true;
-             resolve();
+          if (e.name === 'NotAllowedError' && this.hasUserInteracted) {
+            vuiState.setAudioBlocked(true);
+            this.hasUserInteracted = false;
           }
+          finalize(false);
         });
       } catch (e) {
-        resolve();
+        resolve(false);
       }
     });
   }
 
   /**
    * Play system notification sounds (Mic Beeps)
-   * Using Web Audio API to avoid external asset dependency (Rule 1.3)
    */
   playSystemSound(type: 'start' | 'stop') {
+    if (!this.hasUserInteracted || !this.audioCtx) return;
+    
     try {
-      const AC = window.AudioContext || (window as any).webkitAudioContext;
-      const ctx = new AC();
+      const ctx = this.audioCtx;
+      if (ctx.state === 'suspended') return;
+
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
       osc.connect(gain);
       gain.connect(ctx.destination);
 
-      // GPT-style Beep: Short, soft, high-pitched
       if (type === 'start') {
-        osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+        osc.frequency.setValueAtTime(880, ctx.currentTime); 
         gain.gain.setValueAtTime(0, ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.01);
         gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.1);
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.1);
       } else {
-        osc.frequency.setValueAtTime(440, ctx.currentTime); // A4
+        osc.frequency.setValueAtTime(440, ctx.currentTime); 
         gain.gain.setValueAtTime(0, ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.01);
         gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.15);
       }
-
-      // Cleanup context
-      setTimeout(() => ctx.close(), 500);
     } catch (e) {
       console.warn("[AudioEngine] System sound failed", e);
+    }
+  }
+
+   /**
+    * playNotificationPing: Professional stealth alert sound
+    */
+   playNotificationPing() {
+     if (!this.hasUserInteracted || !this.audioCtx) return;
+     
+     try {
+       const ctx = this.audioCtx;
+       if (ctx.state === 'suspended') return;
+
+       const osc = ctx.createOscillator();
+       const gain = ctx.createGain();
+       osc.connect(gain);
+       gain.connect(ctx.destination);
+       
+       osc.frequency.setValueAtTime(880, ctx.currentTime);
+       osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1);
+       gain.gain.setValueAtTime(0, ctx.currentTime);
+       gain.gain.linearRampToValueAtTime(0.04, ctx.currentTime + 0.01);
+       gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+       
+       osc.start();
+       osc.stop(ctx.currentTime + 0.4);
+     } catch(e) { /* silent fail */ }
+   }
+
+  /**
+   * Unlock AudioContext on User Gesture (R109: Browser Compliance)
+   */
+  async unlock() {
+    try {
+      const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (AC) {
+        if (!this.audioCtx) {
+          this.audioCtx = new AC();
+        }
+        
+        if (this.audioCtx!.state === 'suspended') {
+           await this.audioCtx!.resume();
+        }
+        
+        // Phase 46: Keep context alive with a short-lived silent oscillator
+        const osc = this.audioCtx!.createOscillator();
+        osc.frequency.value = 0;
+        osc.connect(this.audioCtx!.destination);
+        osc.start(0);
+        osc.stop(0.001);
+      }
+      
+      const dummy = new Audio();
+      dummy.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhAAQACABAAAABkYXRhAgAAAAEA";
+      await dummy.play().catch(() => {});
+      
+      this.hasUserInteracted = true;
+      vuiState.setAudioBlocked(false);
+      console.log("[AudioEngine] Audio context WARMED and UNLOCKED.");
+    } catch (e) {
+      console.warn("[AudioEngine] Unlock failed", e);
     }
   }
 

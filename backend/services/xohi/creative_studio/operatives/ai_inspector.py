@@ -113,6 +113,19 @@ class AiInspector:
     Returns exact-match text snippets for frontend Tiptap highlighting.
     """
 
+    def __init__(self):
+        # BUG-07 fix: Cache Agents at class scope — R1.6 prohibits per-request Agent creation
+        self._geo_agent = Agent(
+            system_prompt="Bạn là một hệ thống trả về JSON hợp lệ tuyệt đối theo đúng schema quy định. Bắt buộc dùng Tiếng Việt.",
+            output_type=AiReadyReport,
+            retries=3
+        )
+        self._surgeon_agent = Agent(
+            system_prompt="Bạn là một hệ thống trả về JSON hợp lệ tuyệt đối. Bắt buộc dùng Tiếng Việt.",
+            output_type=AutoFixResponse,
+            retries=3
+        )
+
     async def analyze(self, campaign: ContentCampaign) -> AiReadyReport:
         """
         Performs full GEO analysis on draft content using Trinity Bridge.
@@ -121,23 +134,39 @@ class AiInspector:
         
         # Clean up HTML for token efficiency, but keep it similar enough for substring matching
         plain_text = re.sub(r'<[^>]+>', ' ', draft)
+        # Phase 71.20: Strip [IMAGE_N] to match frontend editor content
+        plain_text = re.sub(r'\[IMAGE_\d+\]', '', plain_text)
         plain_text = re.sub(r'\s+', ' ', plain_text).strip()
 
         # Build chunks if content is too large, otherwise grab first 5000 chars
         content_sample = plain_text[:5000]
 
-        # Use the global trinity_bridge (V61.0 architecture)
-        agent = Agent(
-            system_prompt="Bạn là một hệ thống trả về JSON hợp lệ tuyệt đối theo đúng schema quy định. Bắt buộc dùng Tiếng Việt.",
-            output_type=AiReadyReport
-        )
-        
-        response = await trinity_bridge.run(
-            agent=agent,
-            prompt=f"{GEO_ANALYSIS_PROMPT}\n\n[NỘI DUNG BÀI VIẾT]\n{content_sample}"
-        )
-
-        return response.data if hasattr(response, 'data') else response.output # This is an AiReadyReport object
+        try:
+            # Use the global trinity_bridge (V61.0 architecture)
+            response = await trinity_bridge.run(
+                agent=self._geo_agent,
+                prompt=f"{GEO_ANALYSIS_PROMPT}\n\n[NỘI DUNG BÀI VIẾT]\n{content_sample}"
+            )
+            return response.data if hasattr(response, 'data') else response.output # This is an AiReadyReport object
+        except Exception as e:
+            logger.error(f"[AiInspector] AI analysis failed: {e}")
+            # R103: Graceful Degradation — rule-based GEO score
+            has_stats = any(c.isdigit() for c in plain_text)
+            has_quotes = "theo" in plain_text.lower() or "trích dẫn" in plain_text.lower()
+            word_count = len(plain_text.split())
+            
+            base_score = 60
+            if has_stats: base_score += 10
+            if has_quotes: base_score += 10
+            if word_count > 800: base_score += 10
+            
+            return AiReadyReport(
+                geo_score=min(100, base_score),
+                summary=f"Phân tích AI tạm thời gián đoạn. Điểm GEO ước tính dựa trên cấu trúc: {base_score}/100.",
+                ai_annotations=[
+                    AiAnnotation(type="geo_fluff", text="", message="⚠️ AI đang bận, sếp hãy kiểm tra độ súc tích của các đoạn văn nhé!", severity="info")
+                ]
+            )
 
     async def auto_fix(self, campaign: ContentCampaign, req: AutoFixRequest) -> AutoFixResponse:
         """
@@ -158,14 +187,16 @@ class AiInspector:
 
 Hãy viết lại đoạn văn trên để khắc phục lỗi.
 """
-        agent = Agent(
-            system_prompt="Bạn là một hệ thống trả về JSON hợp lệ tuyệt đối. Bắt buộc dùng Tiếng Việt.",
-            output_type=AutoFixResponse
-        )
-        
-        response = await trinity_bridge.run(
-            agent=agent,
-            prompt=prompt
-        )
-        
-        return response.data if hasattr(response, 'data') else response.output
+        try:
+            agent = self._surgeon_agent
+            response = await trinity_bridge.run(
+                agent=agent,
+                prompt=prompt
+            )
+            return response.data if hasattr(response, 'data') else response.output
+        except Exception as e:
+            logger.error(f"[AiInspector] Auto-fix failed: {e}")
+            return AutoFixResponse(
+                old_text=req.target_snippet,
+                new_text=req.target_snippet # Return original on failure
+            )

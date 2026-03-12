@@ -41,6 +41,17 @@ export function createNotificationState() {
     setNotifications: (val: Notification[]) => {
       state.notifications = val;
     },
+    // CNS V70: Real-time Bell sync — add from SSE without API round-trip
+    addPendingSignal: (signal: { id: string; message: string; severity: string; isRead: boolean }) => {
+      const notif: Notification = {
+        id: signal.id,
+        message: signal.message,
+        isRead: signal.isRead,
+        type: signal.severity,
+        created_at: new Date().toISOString()
+      } as any;
+      state.notifications = [notif, ...state.notifications].slice(0, 200);
+    },
     fetchNotifications,
     markNotificationAsRead,
   };

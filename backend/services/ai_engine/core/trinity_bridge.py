@@ -21,8 +21,14 @@ class TrinityBridge:
     """
     def __init__(self):
         self.rotator = SmartKeyRotator()
+        # V71.17: Neural Waterfall Support (2026 Edition)
         self.default_model_name = os.getenv("TIER2_MODEL", "gemini-2.5-flash")
-        self.fallback_model_name = os.getenv("TIER2_FALLBACK_MODEL", "gemini-2.5-pro")
+        self.fallback_model_name = os.getenv("TIER2_FALLBACK_MODEL", "gemini-2.0-flash")
+        
+        # Load full waterfall if provided
+        waterfall = os.getenv("MODEL_WATERFALL", "")
+        self.model_waterfall = [m.strip() for m in waterfall.split(",") if m.strip()] if waterfall else []
+        
         self.success_model_key = "ai:bridge:last_success_model"
 
     async def run(self, agent: Agent, prompt: str, **kwargs):
@@ -35,18 +41,26 @@ class TrinityBridge:
         
         # Priority order: 
         # a) Explicitly requested model
-        # b) Last successful model (Sticky)
-        # c) Default TIER2 model
-        # d) Fallback TIER2 model
+        # b) MODEL_WATERFALL (if configured)
+        # c) Last successful model (Sticky)
+        # d) Default TIER2 model
+        # e) Fallback TIER2 model
         
         models_to_try = []
         if requested_model:
             models_to_try.append(requested_model)
             
+        if self.model_waterfall:
+            for m in self.model_waterfall:
+                if m not in models_to_try:
+                    models_to_try.append(m)
+
         sticky_model = None
         if self.rotator._use_redis:
             try:
                 sticky_model = await self.rotator.client.get(self.success_model_key)
+                if sticky_model:
+                    sticky_model = sticky_model.decode() if isinstance(sticky_model, bytes) else sticky_model
             except Exception: pass
             
         if sticky_model and sticky_model not in models_to_try:
@@ -124,7 +138,7 @@ class TrinityBridge:
                         
         logger.error(f"[TrinityBridge] Exhausted all keys and fallback models!")
         raise AIConfigurationError(
-            f"Tất cả Model/Key đã cạn kiệt. Lỗi cuối: {str(last_error)}",
+            f"Hệ thống AI đang tạm thời quá tải (Limit reached). Sếp vui lòng đợi 5-10 phút hoặc nâng cấp API Key nhé! Lỗi kỹ thuật: {str(last_error)}",
             models_to_try[-1] if models_to_try else "N/A",
             max_keys - 1
         )
@@ -139,14 +153,25 @@ class TrinityBridge:
         models_to_try = []
         if requested_model: models_to_try.append(requested_model)
             
+        if self.model_waterfall:
+            for m in self.model_waterfall:
+                if m not in models_to_try:
+                    models_to_try.append(m)
+
         sticky_model = None
         if self.rotator._use_redis:
-            try: sticky_model = await self.rotator.client.get(self.success_model_key)
+            try: 
+                sticky_model = await self.rotator.client.get(self.success_model_key)
+                if sticky_model:
+                    sticky_model = sticky_model.decode() if isinstance(sticky_model, bytes) else sticky_model
             except Exception: pass
             
-        if sticky_model and sticky_model not in models_to_try: models_to_try.append(sticky_model)
-        if self.default_model_name not in models_to_try: models_to_try.append(self.default_model_name)
-        if self.fallback_model_name and self.fallback_model_name not in models_to_try: models_to_try.append(self.fallback_model_name)
+        if sticky_model and sticky_model not in models_to_try:
+            models_to_try.append(sticky_model)
+        if self.default_model_name not in models_to_try:
+            models_to_try.append(self.default_model_name)
+        if self.fallback_model_name and self.fallback_model_name not in models_to_try:
+            models_to_try.append(self.fallback_model_name)
             
         max_keys = max(1, self.rotator.get_count())
         import asyncio
@@ -188,6 +213,6 @@ class TrinityBridge:
                     logger.error(f"[TrinityBridge][Stream] Unknown AI Error: {e}")
                     continue
 
-        raise AIConfigurationError(f"Tất cả Model/Key đã cạn kiệt cho Stream. Lỗi cuối: {str(last_error)}")
+        raise AIConfigurationError(f"Hệ thống AI đang tạm thời quá tải cho Stream. Sếp vui lòng đợi 5-10 phút nhé! Lỗi kỹ thuật: {str(last_error)}")
 
 trinity_bridge = TrinityBridge()

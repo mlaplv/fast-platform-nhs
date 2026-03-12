@@ -19,7 +19,7 @@ export class VuiStreamManager {
       interruptAll: () => void;
       stopRecording: () => void;
       onTTSFinished: () => void;
-      speak: (text: string) => Promise<void>;
+      speak: (text: string) => Promise<boolean>;
       hasSpoken: () => boolean;
     }
   ) {}

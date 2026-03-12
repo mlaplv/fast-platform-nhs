@@ -19,7 +19,8 @@
     campaign_id,
     isEditing = $bindable(false),
     toggleExpand,
-    isExpanded
+    isExpanded,
+    creation_config = {}
   } = $props();
 </script>
 
@@ -56,6 +57,28 @@
       >
         <RotateCcw size={10} class="animate-spin" />
         <span class="font-medium">{progress_msg || "AI is working..."}</span>
+      </div>
+    {/if}
+
+    <!-- Phase 33: Ghost UI Summary (Read-only badges) -->
+    {#if viewingStep > 1 && creation_config && Object.keys(creation_config).length > 0}
+      <div 
+        class="ml-4 flex items-center gap-2 opacity-40 hover:opacity-100 transition-opacity duration-500 group/ghost"
+        title="Bản tóm tắt cấu hình"
+      >
+        <div class="h-3 w-[1px] bg-white/10 mx-1"></div>
+        
+        {#if creation_config.style}
+          <div class="px-1.5 py-0.5 rounded-md bg-white/5 border border-white/5 text-[8px] font-black uppercase tracking-wider text-white/40 group-hover/ghost:text-blue-400 group-hover/ghost:border-blue-500/20 transition-all">
+            {creation_config.style}
+          </div>
+        {/if}
+        
+        {#if creation_config.word_count}
+          <div class="px-1.5 py-0.5 rounded-md bg-white/5 border border-white/5 text-[8px] font-black uppercase tracking-wider text-white/40 group-hover/ghost:text-amber-400 group-hover/ghost:border-amber-500/20 transition-all">
+            {creation_config.word_count} từ
+          </div>
+        {/if}
       </div>
     {/if}
   </div>

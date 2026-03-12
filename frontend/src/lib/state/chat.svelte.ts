@@ -55,7 +55,7 @@ export function createChatState(
         logsToAppend.push({
           id: m.id,
           message: m.content.text,
-          source: "[ADMIN]",
+          source: "SẾP",
           timestamp: m.timestamp,
           type: "info",
         });
@@ -68,11 +68,11 @@ export function createChatState(
           logsToAppend.push({
             id: m.id + "_text",
             message: textContent,
-            source: "XOHI",
+            source: "XÔ-HỈ",
             timestamp: m.timestamp,
             type: "info",
             routerTier: metadata.router_tier,
-            data: metadata, // Flat metadata structure for consistency
+            data: { ...metadata, role: "assistant" }, // Flat metadata structure for consistency
           });
         }
       }

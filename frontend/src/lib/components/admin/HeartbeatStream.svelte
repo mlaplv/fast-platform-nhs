@@ -24,18 +24,18 @@
   let hasAttemptedFetchUsers = $state(false);
   let isSuperAdmin = $derived(permissionState.roles.includes("SUPER_ADMIN"));
 
-  // Track the latest log ID for each campaign to only render one Modal per campaign
-  let latestLogIdsPerCampaign = $derived(() => {
-    const map = new Map<string, string>();
-    for (const log of nanobot.activityLogs) {
-       if (log.source === "XOHI" || log.source === "[XOHI]") {
-          if (log.data?.campaign_id) {
-             map.set(log.data.campaign_id, log.id);
-          }
-       }
-    }
-    return map;
-  });
+    // Track the latest log ID for each campaign to only render one Modal per campaign
+    let latestLogIdsPerCampaign = $derived(() => {
+      const map = new Map<string, string>();
+      for (const log of nanobot.activityLogs) {
+         if (log.data?.role === "assistant" || log.source === "XOHI" || log.source === "[XOHI]" || log.source === "XÔ-HỈ") {
+            if (log.data?.campaign_id) {
+               map.set(log.data.campaign_id, log.id);
+            }
+         }
+      }
+      return map;
+    });
 
   $effect(() => {
     if (isSuperAdmin && availableUsers.length === 0 && !isLoadingUsers && !hasAttemptedFetchUsers) {
@@ -368,14 +368,14 @@
         <div
           in:fly={{ y: 20, duration: 400, opacity: 0 }}
           out:fade={{ duration: 150 }}
-          class="w-full flex flex-col mb-1 {log.source === 'XOHI' ||
-          log.source === '[XOHI]'
+          class="w-full flex flex-col mb-1 {log.data?.role === 'assistant' || log.source === 'XOHI' ||
+          log.source === '[XOHI]' || log.source === 'XÔ-HỈ'
             ? 'items-start pl-2'
             : log.source === '[ADMIN]'
               ? 'items-end pr-2'
               : 'items-center'}"
         >
-          {#if log.source === "XOHI" || log.source === "[XOHI]"}
+          {#if log.data?.role === "assistant" || log.source === "XOHI" || log.source === "[XOHI]" || log.source === "XÔ-HỈ"}
             <div
               class="max-w-[85%] bg-neon-cyan/5 border border-neon-cyan/20 rounded-2xl rounded-tl-sm px-4 py-3 shadow-[0_4px_15px_rgba(0,255,255,0.05)]"
             >
@@ -444,7 +444,7 @@
             <div
               class="flex items-center justify-end gap-1.5 shrink-0 w-11 mr-2 mt-[3px] opacity-60 group-hover/log:opacity-100 transition-opacity"
             >
-              {#if log.source === "XOHI" || log.source === "[XOHI]"}
+              {#if log.data?.role === "assistant" || log.source === "XOHI" || log.source === "[XOHI]" || log.source === "XÔ-HỈ"}
                 <span
                   class="text-[#FF33FF] font-bold tracking-wider text-[8px] uppercase"
                   >XOHI{#if log.routerTier}<span
@@ -487,7 +487,7 @@
                 {processMessage(log.message)}
               </span>
 
-              {#if (log.source === "XOHI" || log.source === "[XOHI]") && log.data?.campaign_id}
+              {#if (log.data?.role === "assistant" || log.source === "XOHI" || log.source === "[XOHI]" || log.source === "XÔ-HỈ") && log.data?.campaign_id}
                 <!-- R81: Single Point of Resume -> Open Full VUI Modal -->
                 {#if log.id === latestLogIdsPerCampaign().get(log.data.campaign_id)}
                   <div class="mt-2.5 flex items-center justify-between gap-2 p-2 rounded border border-[#c0e8ff]/20 bg-[#c0e8ff]/5">
@@ -512,7 +512,7 @@
           <div
             class="relative flex flex-col items-end shrink-0 mt-0.5 w-[38px]"
           >
-            {#if isLongMessage(log.message) || log.source === "XOHI" || log.source === "[XOHI]"}
+            {#if isLongMessage(log.message) || log.data?.role === "assistant" || log.source === "XOHI" || log.source === "[XOHI]" || log.source === "XÔ-HỈ"}
               <span
                 class="text-[9px] font-mono text-gray-500 opacity-50 group-hover/log:opacity-0 transition-opacity whitespace-nowrap"
               >
