@@ -10,7 +10,10 @@ logger = logging.getLogger("api-gateway")
 from litestar import Controller, get, post, put, patch, delete, Request
 from backend.services.xohi.creative_studio.orchestrator import content_factory
 from backend.models.schemas import ContentCampaign, CampaignStep, AgentResponse
-from backend.services.xohi.creative_studio.models.schemas import AgentSignal
+from backend.services.xohi.creative_studio.models.schemas import (
+    TopicSeed, ArticleOutline, AgentResponse, VisualSearchPlan, 
+    BulkFixRequest, BulkFixResponse
+)
 from backend.database.repositories import ContentCampaignRepository, provide_campaign_repo
 from litestar.di import Provide
 
@@ -280,3 +283,28 @@ class ContentController(Controller):
         except Exception as e:
             logger.error(f"Auto-Fix error: {e}")
             return {"status": "error", "message": str(e)}
+    @post("/campaigns/{campaign_id:uuid}/analyze/bulk-fix")
+    async def bulk_fix(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, data: BulkFixRequest) -> Dict[str, Any]:
+        """
+        Sửa lỗi hàng loạt cho một hạng mục nhất định (Copyright, SEO, or AI).
+        """
+        campaign = await campaign_repo.get(campaign_id)
+        if not campaign:
+            return {"status": "error", "message": "Campaign not found"}
+
+        from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
+        inspector = AiInspector()
+        
+        result = await inspector.bulk_fix(campaign, data)
+        
+        # Update campaign content with the fixed draft
+        if result.new_content and result.new_content != campaign.draft_content:
+            campaign.draft_content = result.new_content
+            # Invalidate all analysis caches since content changed
+            gold = campaign.gold_metadata or {}
+            gold["analysis_cache"] = {}
+            campaign.gold_metadata = gold
+            flag_modified(campaign, "gold_metadata")
+            await campaign_repo.update(campaign)
+            
+        return {"status": "success", "new_content": result.new_content}

@@ -543,7 +543,9 @@
               ? 'bg-white/5 border-white/10 text-white/30 cursor-wait'
               : action.disabled
                 ? 'bg-white/[0.03] border-white/5 text-white/20 cursor-not-allowed opacity-50'
-                : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white active:scale-95'}"
+                : action.variant === 'primary'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 border-purple-400/50 text-white shadow-lg shadow-purple-900/20 active:scale-95'
+                  : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white active:scale-95'}"
           title={action.lockedMsg || action.label}
         >
           {#if action.loading}

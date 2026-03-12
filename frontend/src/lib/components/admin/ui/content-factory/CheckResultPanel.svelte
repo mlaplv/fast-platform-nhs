@@ -20,9 +20,9 @@
     isSeoLoading: boolean;
     aiReadyResult: any;
     isAiLoading: boolean;
-    runCopyrightCheck: () => void;
-    runSeoAnalysis: () => void;
-    runAiAnalysis: () => void;
+    runCopyrightCheck: (force?: boolean) => Promise<void>;
+    runSeoAnalysis: (force?: boolean) => Promise<void>;
+    runAiAnalysis: (force?: boolean) => Promise<void>;
   } = $props();
 </script>
 
@@ -59,7 +59,7 @@
             <span class="text-[9px] font-black uppercase" style="color:{riskColor}">
               🔍 Bản quyền — {copyrightResult.risk_level === 'LOW' ? 'Rủi ro thấp ✅' : copyrightResult.risk_level === 'MEDIUM' ? 'Cần cải thiện ⚠️' : 'Rủi ro cao 🚨'}
             </span>
-            <button onclick={runCopyrightCheck} class="text-[8px] text-white/20 hover:text-orange-400 transition-colors" title="Chạy lại">↻</button>
+            <button onclick={() => runCopyrightCheck(true)} class="text-[8px] text-white/20 hover:text-orange-400 transition-colors" title="Chạy lại">↻</button>
           </div>
           <p class="text-[9px] text-white/50 leading-relaxed truncate">{copyrightResult.verdict}</p>
           {#if copyrightResult.flagged_sentences?.length > 0}
@@ -97,7 +97,7 @@
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
               <span class="text-[9px] font-black uppercase" style="color:{gradeColor}">📊 SEO Score — {seoResult.total_score}/100</span>
-              <button onclick={runSeoAnalysis} class="text-[8px] text-white/20 hover:text-blue-400 transition-colors" title="Chạy lại">↻</button>
+              <button onclick={() => runSeoAnalysis(true)} class="text-[8px] text-white/20 hover:text-blue-400 transition-colors" title="Chạy lại">↻</button>
             </div>
             <p class="text-[9px] text-white/50 leading-relaxed line-clamp-2">{seoResult.summary}</p>
           </div>
@@ -156,7 +156,7 @@
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="text-[9px] font-black uppercase tracking-wider" style="color:{aiColor}">✨ AI Readiness</span>
-            <button onclick={runAiAnalysis} class="text-[8px] text-white/20 hover:text-purple-400 transition-colors" title="Chạy lại">↻</button>
+            <button onclick={() => runAiAnalysis(true)} class="text-[8px] text-white/20 hover:text-purple-400 transition-colors" title="Chạy lại">↻</button>
           </div>
           <p class="text-[9px] text-white/50 leading-relaxed line-clamp-2">{aiReadyResult.summary}</p>
         </div>
