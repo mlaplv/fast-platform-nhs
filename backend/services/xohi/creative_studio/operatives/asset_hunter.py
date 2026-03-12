@@ -168,7 +168,7 @@ class AssetHunter:
                     "cx": pair["cx"],
                     "q": query,
                     "searchType": "image",
-                    "num": num_results,
+                    "num": min(10, num_results),
                     "imgSize": "large" 
                 }
                 

@@ -93,7 +93,12 @@
     
     viewingStep = step;
     // Merge defaults with creation_config to ensure all keys are present
-    editedConfig = { ...DEFAULT_CONFIG, ...(creation_config || {}) };
+    // Phase 72: Check both prop and keywords.creation_config for robust sync
+    const baseConfig = creation_config && Object.keys(creation_config).length > 0
+      ? creation_config 
+      : (keywords?.creation_config || {});
+    
+    editedConfig = { ...DEFAULT_CONFIG, ...baseConfig };
     if (typeof editedConfig !== 'object') editedConfig = {};
     editedKeywords = JSON.parse(JSON.stringify(keywords || {}));
     editedDraft = draft_content || "";
@@ -168,6 +173,18 @@
           : { html: editedDraft } 
       } : {};
       await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/approve`, payload);
+      
+      // Update local props to prevent $effect sync back to old values
+      if (viewingStep === 1) {
+        // CNS V72: Inclusion of creation_config in keywords prop sync for effect equality
+        keywords = { ...editedKeywords, creation_config: { ...editedConfig } };
+        creation_config = { ...editedConfig };
+      } else if (viewingStep === 3) {
+        outline = { html: editedDraft };
+      } else if (viewingStep === 4) {
+        draft_content = editedDraft;
+      }
+
       isEditing = false;
       const stepNames: Record<number, string> = {
         1: "ý tưởng và từ khóa",
@@ -211,16 +228,18 @@
     isLoading = true;
     try {
       const payload = viewingStep === 1 
-        ? { keywords: editedKeywords } 
+        ? { keywords: { ...editedKeywords, creation_config: editedConfig } } 
         : (viewingStep === 3 ? { outline_data: { html: editedDraft } } : { draft_content: editedDraft });
         
       await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, payload);
       
       if (viewingStep === 1) {
-        keywords = { ...editedKeywords };
+        // CNS V72: Inclusion of creation_config in keywords prop sync for effect equality
+        keywords = { ...editedKeywords, creation_config: { ...editedConfig } };
+        creation_config = { ...editedConfig };
       } else if (viewingStep === 3) {
         outline = { html: editedDraft };
-      } else {
+      } else if (viewingStep === 4) {
         draft_content = editedDraft;
       }
       isEditing = false;

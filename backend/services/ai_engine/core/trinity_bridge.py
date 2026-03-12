@@ -34,10 +34,11 @@ class TrinityBridge:
     async def run(self, agent: Agent, prompt: str, **kwargs):
         """
         Runs an AI Agent with managed context and dynamic model/key injection.
-        V63.0: Sticky success, smart error classification, and multi-level fallback.
+        V64.0: Sticky session, smart error classification (Daily vs Minute).
         """
         # 1. Determine priority model chain
         requested_model = kwargs.pop("model", None)
+        session_id = kwargs.pop("session_id", None)
         
         # Priority order: 
         # a) Explicitly requested model
@@ -80,18 +81,18 @@ class TrinityBridge:
         for model_name in models_to_try:
             # For each model, try all keys if needed, starting from the sticky best key
             for attempt in range(max_keys):
-                key = await self.rotator.get_key()
+                key = await self.rotator.get_key(session_id=session_id)
                 # R101/R106: Set the API key in environment for the current execution
                 os.environ["GOOGLE_API_KEY"] = key
                 os.environ["GEMINI_API_KEY"] = key 
                 model = GeminiModel(model_name)
                 
                 try:
-                    logger.info(f"[TrinityBridge] {model_name} (Attempt {attempt+1}/{max_keys})...")
+                    logger.info(f"[TrinityBridge] {model_name} (Attempt {attempt+1}/{max_keys}) (Session: {session_id})...")
                     res = await agent.run(prompt, model=model, **kwargs)
                     
                     # Store SUCCESS state (Sticky)
-                    await self.rotator.set_success(key)
+                    await self.rotator.set_success(key, session_id=session_id)
                     if self.rotator._use_redis:
                         await self.rotator.client.set(self.success_model_key, model_name)
                     
@@ -117,15 +118,17 @@ class TrinityBridge:
                         logger.warning(f"[TrinityBridge] Model {model_name} DOES NOT support Tool calling. Jumping to next model...")
                         break 
                     
-                    if any(p in error_str for p in ["429", "quota", "rate limit", "timeout"]):
-                        logger.warning(f"[TrinityBridge] 429/Timeout for {model_name}. Key index marked COOLDOWN.")
-                        await self.rotator.mark_unhealthy(key)
+                    # V64.0: Differentiate RPD (Daily) vs RPM (Minute)
+                    if any(p in error_str for p in ["429", "quota", "rate limit", "limit reached"]):
+                        reason = "daily" if "daily" in error_str or "quota" in error_str else "rate_limit"
+                        logger.warning(f"[TrinityBridge] {reason.upper()} for {model_name}. Key marked UNHEALTHY.")
+                        await self.rotator.mark_unhealthy(key, reason=reason, session_id=session_id)
                         await asyncio.sleep(0.5)
                         continue
                         
                     if any(p in error_str for p in ["503", "unavailable", "500", "auth", "401", "403", "api key not valid", "invalid"]):
                         logger.warning(f"[TrinityBridge] Auth/Server Error for {model_name}. Rotating key...")
-                        await self.rotator.mark_unhealthy(key)
+                        await self.rotator.mark_unhealthy(key, reason="auth_or_server", session_id=session_id)
                         continue
                         
                     if "model not found" in error_str or "404" in error_str:
@@ -147,9 +150,11 @@ class TrinityBridge:
     async def run_stream(self, agent: Agent, prompt: str, **kwargs):
         """
         Streaming version of run().
-        V63.1: Supports full key rotation for streaming agents.
+        V64.0: Supports sticky session rotation and smart error classification.
         """
         requested_model = kwargs.pop("model", None)
+        session_id = kwargs.pop("session_id", None)
+        
         models_to_try = []
         if requested_model: models_to_try.append(requested_model)
             
@@ -179,18 +184,18 @@ class TrinityBridge:
 
         for model_name in models_to_try:
             for attempt in range(max_keys):
-                key = await self.rotator.get_key()
+                key = await self.rotator.get_key(session_id=session_id)
                 os.environ["GOOGLE_API_KEY"] = key
                 os.environ["GEMINI_API_KEY"] = key 
                 model = GeminiModel(model_name)
                 
                 try:
-                    logger.info(f"[TrinityBridge][Stream] {model_name} (Attempt {attempt+1}/{max_keys})...")
+                    logger.info(f"[TrinityBridge][Stream] {model_name} (Attempt {attempt+1}/{max_keys}) (Session: {session_id})...")
                     async with agent.run_stream(prompt, model=model, **kwargs) as stream:
                         yield stream
                         
                     # Store SUCCESS state (Sticky)
-                    await self.rotator.set_success(key)
+                    await self.rotator.set_success(key, session_id=session_id)
                     if self.rotator._use_redis:
                         await self.rotator.client.set(self.success_model_key, model_name)
                     return
@@ -204,11 +209,21 @@ class TrinityBridge:
                             logger.error(f"[TrinityBridge][Stream] Non-rotatable error for {model_name}: {e}")
                             raise AIConfigurationError(f"AI Fail-Fast: {str(e)}", model_name, attempt)
 
-                    if any(p in error_str for p in ["429", "quota", "rate limit", "timeout", "unavailable", "503", "500"]):
-                        logger.warning(f"[TrinityBridge][Stream] Retriable error for {model_name}. Rotating key...")
-                        await self.rotator.mark_unhealthy(key)
+                    if any(p in error_str for p in ["429", "quota", "rate limit", "limit reached"]):
+                        reason = "daily" if "daily" in error_str or "quota" in error_str else "rate_limit"
+                        logger.warning(f"[TrinityBridge][Stream] {reason.upper()} for {model_name}. Key marked UNHEALTHY.")
+                        await self.rotator.mark_unhealthy(key, reason=reason, session_id=session_id)
                         await asyncio.sleep(0.5)
                         continue
+                        
+                    if any(p in error_str for p in ["503", "unavailable", "500", "auth", "401", "403", "api key not valid", "invalid"]):
+                        logger.warning(f"[TrinityBridge][Stream] Auth/Server Error for {model_name}. Rotating key...")
+                        await self.rotator.mark_unhealthy(key, reason="auth_or_server", session_id=session_id)
+                        continue
+                        
+                    if "model not found" in error_str or "404" in error_str:
+                        logger.warning(f"[TrinityBridge][Stream] Model {model_name} not found. Jumping to next model...")
+                        break 
                         
                     logger.error(f"[TrinityBridge][Stream] Unknown AI Error: {e}")
                     continue

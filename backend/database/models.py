@@ -317,9 +317,13 @@ class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 
     # --- PROFESSIONAL CTO HELPERS (Phase 42) ---
     def get_gold_config(self) -> dict:
-        """Returns the creation configuration from gold_metadata safely."""
+        """Returns the creation configuration from gold_metadata or topic_data safely."""
         gold = self.gold_metadata or {}
-        return gold.get("creation_config") or {}
+        cfg = gold.get("creation_config")
+        if cfg: return cfg
+        
+        topic = self.topic_data or {}
+        return topic.get("creation_config") or {}
 
     def get_gold_val(self, key: str, default: any = None) -> any:
         """Surgically extracts a value from gold_metadata or falls back to topic_data."""

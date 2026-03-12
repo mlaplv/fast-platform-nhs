@@ -32,16 +32,27 @@
       return "";
     };
 
-    // 2. Logic based on current campaign progress (step prop)
-    if (step === 3) {
-      // In Step 3, we ALWAYS prioritize the outline.
-      if (isEditing) return editedDraft || getStructuredOutline();
-      return getStructuredOutline();
-    } else {
-      // Step 4 or beyond: prioritize draft_content but fallback to outline if empty
-      if (isEditing) return editedDraft || draft_content || getStructuredOutline();
-      return draft_content || getStructuredOutline();
+    // 2. Step 3 logic: ALWAYS prioritize the outline.
+    let base = (isEditing ? editedDraft : "") || getStructuredOutline();
+
+    // 3. Rule R82.42: Image Placeholder Replacement — Ported from DraftStep
+    if (base && base.includes("[IMAGE_")) {
+      const assetList = Array.isArray(assets) ? assets : [];
+      assetList.forEach((url, i) => {
+        const placeholder = `[IMAGE_${i + 1}]`;
+        // Handle markers inside src first
+        const srcPattern = new RegExp(`(src|href)=["']\\s*${placeholder.replace('[', '\\[').replace(']', '\\]')}\\s*["']`, 'g');
+        base = base.replace(srcPattern, `$1="${url}"`);
+        
+        // Then handle standalone markers (even if wrapped in figure by AI)
+        const figurePattern = new RegExp(`(<figure[^>]*>\\s*)?${placeholder.replace('[', '\\[').replace(']', '\\]')}(\\s*<\\/figure>)?`, 'g');
+        base = base.replace(figurePattern, `<figure class="content-image"><img src="${url}" alt="content image" loading="lazy" /></figure>`);
+      });
+      // Cleanup leftover placeholders
+      base = base.replace(/\[IMAGE_\d+\]/g, "");
     }
+
+    return base || "";
   });
 
   // Ensure editedDraft is initialized when entering edit mode if it was empty

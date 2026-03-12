@@ -40,11 +40,12 @@
       const assetList = Array.isArray(assets) ? assets : [];
       assetList.forEach((url, i) => {
         const placeholder = `[IMAGE_${i + 1}]`;
-        const srcPattern = new RegExp(`src=["']\\s*${placeholder.replace('[', '\\[').replace(']', '\\]')}\\s*["']`, 'g');
-        if (base.includes(placeholder) && srcPattern.test(base)) {
-          base = base.replace(srcPattern, `src="${url}"`);
-        }
-        const figurePattern = new RegExp(`(<figure[^>]*>\\s*)?\\[IMAGE_${i + 1}\\](\\s*<\\/figure>)?`, 'g');
+        // Surgical replacement: Handle markers inside src first
+        const srcPattern = new RegExp(`(src|href)=["']\\s*${placeholder.replace('[', '\\[').replace(']', '\\]')}\\s*["']`, 'g');
+        base = base.replace(srcPattern, `$1="${url}"`);
+        
+        // Then handle standalone markers (even if wrapped in figure by AI)
+        const figurePattern = new RegExp(`(<figure[^>]*>\\s*)?${placeholder.replace('[', '\\[').replace(']', '\\]')}(\\s*<\\/figure>)?`, 'g');
         base = base.replace(figurePattern, `<figure class="content-image"><img src="${url}" alt="content image" loading="lazy" /></figure>`);
       });
       base = base.replace(/\[IMAGE_\d+\]/g, "");
