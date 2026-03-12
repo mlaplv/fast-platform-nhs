@@ -107,9 +107,24 @@ class SmartKeyRotator:
 
             return key
 
-        # Fallback: All unhealthy? Force the hash-based one
-        logger.warning(f"[KeyRotator] All {num_keys} keys are unhealthy! Forcing fallback key index {start_index % num_keys}.")
-        return self.keys[start_index % num_keys]
+        # Fallback: All unhealthy?
+        # R106.1: If everything is dead, don't just return index 0.
+        # Check if there's an index that is only on a 60s cooldown vs 24h.
+        best_fallback = start_index % num_keys
+        if self._use_redis:
+            try:
+                for i in range(num_keys):
+                    idx = (start_index + i) % num_keys
+                    reason = await self.client.get(f"{self.UNHEALTHY_PREFIX}{idx}")
+                    if reason and "daily" not in reason.lower() and "quota" not in reason.lower():
+                        # This key is only on a short RPM cooldown, better than a daily one
+                        best_fallback = idx
+                        break
+            except Exception:
+                pass
+
+        logger.warning(f"[KeyRotator] All {num_keys} keys are unhealthy! Forcing best fallback key index {best_fallback}.")
+        return self.keys[best_fallback]
 
     async def set_success(self, key: str, session_id: Optional[str] = None):
         """Marks a key as successful."""

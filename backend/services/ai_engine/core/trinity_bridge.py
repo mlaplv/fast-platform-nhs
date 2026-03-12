@@ -70,11 +70,18 @@ class TrinityBridge:
         return GoogleModel(model_name, provider=provider)
 
     def _classify_error(self, error_str: str) -> str:
-        """Classify error for routing decisions. Returns: 'fail_fast', 'rate_limit', 'auth', 'model_not_found', 'tool_unsupported', 'unknown'."""
-        # Non-rotatable (fail fast) — except "api key not valid" which IS rotatable
+        """
+        Classify error for routing decisions.
+        Returns: 'fail_fast', 'rate_limit', 'auth', 'model_not_found', 'tool_unsupported', 'unknown'.
+        """
+        # R106: Strict Classification.
+        # Don't mark as 'auth' (1h cooldown) unless it's definitely an API Key issue.
+
+        if any(p in error_str for p in ["401", "403", "api key not valid", "invalid_key", "key_expired"]):
+            return "auth"
+
+        # 400 errors (INVALID_ARGUMENT, etc) should FAIL FAST so the dev knows the prompt/config is wrong.
         if any(p in error_str for p in ["context_length_exceeded", "too many tokens", "safety", "blocked", "invalid_argument", "400"]):
-            if "api key not valid" in error_str or "invalid_key" in error_str:
-                return "auth"
             return "fail_fast"
 
         if "tool output is not supported" in error_str:
@@ -83,8 +90,8 @@ class TrinityBridge:
         if any(p in error_str for p in ["429", "quota", "rate limit", "limit reached"]):
             return "rate_limit"
 
-        if any(p in error_str for p in ["503", "unavailable", "500", "auth", "401", "403", "api key not valid", "invalid"]):
-            return "auth"
+        if any(p in error_str for p in ["503", "unavailable", "500"]):
+            return "auth" # Server error - rotatable
 
         if "model not found" in error_str or "404" in error_str:
             return "model_not_found"
@@ -135,6 +142,9 @@ class TrinityBridge:
                     error_str = str(e).lower()
                     category = self._classify_error(error_str)
 
+                    # LOG DETAILED ERROR FOR DIAGNOSTICS
+                    logger.error(f"[TrinityBridge] Model: {model_name} | Key Index: {self.rotator.index} | Category: {category} | Details: {error_str}")
+
                     if category == "fail_fast":
                         logger.error(f"[TrinityBridge] Non-rotatable error for {model_name}: {e}")
                         raise AIConfigurationError(f"AI Fail-Fast: {str(e)}", model_name, attempt)
@@ -144,7 +154,10 @@ class TrinityBridge:
                         break
 
                     if category == "rate_limit":
-                        reason = "daily" if "daily" in error_str or "quota" in error_str else "rate_limit"
+                        # R106 Fix: Gemini uses "quota" for RPM (Minute) and RPD (Daily).
+                        # We MUST NOT mark as daily unless it explicitly says "per day" or "daily".
+                        # Otherwise, 1-minute rate limits kill the key for 24 hours.
+                        reason = "daily" if "daily" in error_str or "per day" in error_str else "rate_limit"
                         logger.warning(f"[TrinityBridge] {reason.upper()} for {model_name}. Key marked UNHEALTHY.")
                         await self.rotator.mark_unhealthy(key, reason=reason, session_id=session_id)
                         await asyncio.sleep(0.5)
@@ -215,12 +228,18 @@ class TrinityBridge:
                     error_str = str(e).lower()
                     category = self._classify_error(error_str)
 
+                    # LOG DETAILED ERROR FOR DIAGNOSTICS
+                    logger.error(f"[TrinityBridge] Model: {model_name} | Key Index: {self.rotator.index} | Category: {category} | Details: {error_str}")
+
                     if category == "fail_fast":
                         logger.error(f"[TrinityBridge][Stream] Non-rotatable error for {model_name}: {e}")
                         raise AIConfigurationError(f"AI Fail-Fast: {str(e)}", model_name, attempt)
 
                     if category == "rate_limit":
-                        reason = "daily" if "daily" in error_str or "quota" in error_str else "rate_limit"
+                        # R106 Fix: Gemini uses "quota" for RPM (Minute) and RPD (Daily).
+                        # We MUST NOT mark as daily unless it explicitly says "per day" or "daily".
+                        # Otherwise, 1-minute rate limits kill the key for 24 hours.
+                        reason = "daily" if "daily" in error_str or "per day" in error_str else "rate_limit"
                         logger.warning(f"[TrinityBridge][Stream] {reason.upper()} for {model_name}. Key marked UNHEALTHY.")
                         await self.rotator.mark_unhealthy(key, reason=reason, session_id=session_id)
                         await asyncio.sleep(0.5)

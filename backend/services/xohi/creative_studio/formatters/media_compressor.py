@@ -47,7 +47,7 @@ class MediaCompressor:
         Enforces Rule 6.1: Explicit memory management for 2GB RAM constraints.
         """
         local_paths = []
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(follow_redirects=True) as client:
             for i, url in enumerate(campaign.assets_data or []):
                 # Phase 73: Skip if already localized
                 if url.startswith("/static/"):
@@ -69,12 +69,13 @@ class MediaCompressor:
                             local_paths.append(f"/static/uploads/v62/{filename}")
                         finally:
                             buffer.close()
-                            
+
                     except Exception as e:
                         import logging
                         logging.getLogger("api-gateway").error(f"[MediaCompressor] Failed for {url}: {e}")
-                        local_paths.append(url)
-                    
+                        # Phase 74.1: If localization fails, use a fallback local path to prevent remote URL leakage
+                        local_paths.append("/static/uploads/v62/placeholder.webp")
+
         return local_paths
 
     def _save_webp(self, buffer: BytesIO, campaign_id: str, index: int):

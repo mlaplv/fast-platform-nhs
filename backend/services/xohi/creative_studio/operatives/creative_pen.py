@@ -119,11 +119,7 @@ class CreativePen:
             return result.data if hasattr(result, "data") else result.output
         except Exception as e:
             logger.error(f"[Content Factory] CreativePen Outline Gen Error: {e}")
-            return ArticleOutline(sections=[
-                {"heading": f"H2: {title}", "content": f"Giới thiệu tổng quan về {primary} theo phong cách {persona}."},
-                {"heading": f"H2: Tại sao nên chọn {primary}", "content": "Phân tích lợi ích chuyên sâu. " + ("[IMAGE_1]" if num_assets > 0 else "")},
-                {"heading": "H2: Kết luận", "content": "Tóm tắt và kêu gọi hành động."}
-            ])
+            raise  # Re-raise instead of returning fallback ArticleOutline
 
     async def write_draft(self, campaign: ContentCampaign) -> str:
         """
@@ -211,49 +207,21 @@ Bắt đầu viết ngay:
             logger.info(f"[Content Factory] CreativePen V71.0 writing full draft for {campaign.id}")
             result = await trinity_bridge.run(self.draft_agent, prompt, session_id=campaign.id)
             content = result.data if hasattr(result, "data") else str(result.output)
-            
+
             # Sanitize: remove markdown code fences if AI wraps them
             if content.startswith("```"):
                 content = content.split("```", 2)[-1] if "```" in content[3:] else content[3:]
                 content = content.lstrip("html\n").rstrip("`")
-            
+
             # V70.0 Fix: Guaranteed [IMAGE_N] replacement
             content = self._replace_image_placeholders(content, assets, primary)
-            
+
             logger.info(f"[Content Factory] Draft generated: {len(content)} chars for {campaign.id}")
             return content
-            
+
         except Exception as e:
             logger.error(f"[Content Factory] CreativePen Draft Gen Error: {e}")
-            
-            # Phase 71: Improved Fallback for Quota Exhaustion
-            if outline_html:
-                # If we have an HTML outline, it's better to return it (with images replaced) 
-                # than a generic fallback!
-                logger.info(f"[Content Factory] AI Failed. Falling back to Step 3 HTML Outline (Ultra-Resilient)")
-                fallback_content = outline_html
-                if not fallback_content.strip().startswith("<h1>") and title:
-                    fallback_content = f"<h1>{title}</h1>\n{fallback_content}"
-            else:
-                # Graceful fallback with structured sections
-                sections_html = ""
-                for section in sections:
-                    heading_raw = section.get("heading", "")
-                    tag = "h2" if heading_raw.upper().startswith("H2") else "h3"
-                    heading_text = heading_raw.replace("H2:", "").replace("H3:", "").replace("h2:", "").replace("h3:", "").strip()
-                    content_text = section.get("content", "")
-                    sections_html += f"<{tag}>{heading_text}</{tag}>\n<p>{content_text}</p>\n"
-                
-                fallback_content = f"""<h1>{title}</h1>
-<p>Bài viết chuyên sâu về <strong>{primary}</strong> theo phong cách {persona}.</p>
-{sections_html}
-<section class="cta">
-  <h2>Kết luận</h2>
-  <p>Hy vọng bài viết này giúp bạn hiểu rõ hơn về <strong>{primary}</strong>. Hãy để lại bình luận hoặc liên hệ với chúng tôi để được tư vấn thêm!</p>
-</section>"""
-
-            # V70.0 Fix: apply replacement to fallback too
-            return self._replace_image_placeholders(fallback_content, assets, primary)
+            raise  # Re-raise instead of returning fallback content
 
     def _replace_image_placeholders(self, content: str, assets: list, alt_text: str = "") -> str:
         """
