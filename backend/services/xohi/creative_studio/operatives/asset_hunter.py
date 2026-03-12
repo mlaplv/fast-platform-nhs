@@ -128,6 +128,13 @@ class AssetHunter:
             all_urls = await self.fetch_images(fallback_query, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=target_count)
 
         campaign.assets_data = all_urls
+        # Phase 74: Seed the Golden Thread with original remote URLs for reliable localized replacement in Step 6
+        from sqlalchemy.orm.attributes import flag_modified
+        gold = campaign.gold_metadata or {}
+        gold["original_remote_assets"] = list(all_urls)
+        campaign.gold_metadata = gold
+        flag_modified(campaign, "gold_metadata")
+
         await repo.update(campaign)
         
         await event_bus.emit("CONTENT_PROGRESS", {

@@ -142,6 +142,8 @@ class PlagiarismCop:
         metrics["copyright_risk"] = result.risk_level
         metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
 
+        gold["analysis_cache"] = cache
+        gold["analysis_metrics"] = metrics
         campaign.gold_metadata = gold
         campaign.unique_score = result.uniqueness_score
         flag_modified(campaign, "gold_metadata")
@@ -152,7 +154,11 @@ class PlagiarismCop:
             return AgentResponse(
                 signal=AgentSignal.REDO_PREVIOUS,
                 message=f"🚨 Phát hiện nguy cơ đạo văn cao (Score: {result.uniqueness_score:.2f}). AI đang viết lại bản thảo.",
-                data={"score": result.uniqueness_score, "risk_level": result.risk_level}
+                data={
+                    "score": result.uniqueness_score,
+                    "risk_level": result.risk_level,
+                    "gold_metadata": gold
+                }
             )
 
         return AgentResponse(
@@ -164,7 +170,8 @@ class PlagiarismCop:
                 "flagged_sentences": result.flagged_sentences,
                 "annotations": [a.model_dump() for a in result.annotations],
                 "similar_sources": result.similar_sources,
-                "verdict": result.verdict
+                "verdict": result.verdict,
+                "gold_metadata": gold
             }
         )
 

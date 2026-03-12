@@ -24,9 +24,13 @@ class MediaCompressor:
         """Standard entry point for DI Registry (V61.0)."""
         campaign = await repo.get(campaign_id)
         if not campaign: return
-        
+
+        # Phase 74: Retrieve original remote URLs from Golden Thread if available
+        # This ensures reliable URL swapping even if assets_data has already been localized.
+        original_assets = campaign.get_gold_val("original_remote_assets", list(campaign.assets_data or []))
+
         local_assets = await self.localize_assets(campaign)
-        final_html = self.wrap_html(campaign.draft_content, local_assets, campaign.gold_metadata)
+        final_html = self.wrap_html(campaign.draft_content, local_assets, original_assets)
         campaign.final_html = final_html
         campaign.assets_data = local_assets
         # Explicit return for Registry protocol
@@ -45,6 +49,11 @@ class MediaCompressor:
         local_paths = []
         async with httpx.AsyncClient() as client:
             for i, url in enumerate(campaign.assets_data or []):
+                # Phase 73: Skip if already localized
+                if url.startswith("/static/"):
+                    local_paths.append(url)
+                    continue
+
                 # R106: Throttle concurrency using semaphore
                 async with self.semaphore:
                     try:
@@ -81,16 +90,28 @@ class MediaCompressor:
             # R105: Explicit close to reclaim RAM (2GB limit)
             img.close()
 
-    def wrap_html(self, content: str, local_assets: List[str], gold_metadata: Dict) -> str:
+    def wrap_html(self, content: str, local_assets: List[str], original_assets: List[str] = None) -> str:
         """Injects localized assets and applies final SEO formatting."""
         final_html = content
         # Ensure we don't crash if content is None
         if not final_html: return ""
-        
+
+        # Phase 74: Dual-mode Replacement
+        # 1. Replace traditional [IMAGE_N] placeholders
+        # 2. Replace absolute URLs (in case Step 4 already swapped them)
         for i, path in enumerate(local_assets):
             placeholder = f"[IMAGE_{i+1}]"
             final_html = final_html.replace(placeholder, path)
-            
+
+            if original_assets and i < len(original_assets):
+                original_url = original_assets[i]
+                if original_url and original_url != path:
+                    # Replace both quoted and unquoted (though quotes are safer)
+                    final_html = final_html.replace(f'"{original_url}"', f'"{path}"')
+                    final_html = final_html.replace(f"'{original_url}'", f"'{path}'")
+                    # Fallback for raw text replacement if needed
+                    final_html = final_html.replace(original_url, path)
+
         # Phase 71.30: Expert Safety Strip — Remove internal analysis markers
         final_html = self._strip_annotations(final_html)
             

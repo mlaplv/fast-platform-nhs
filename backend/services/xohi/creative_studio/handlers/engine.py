@@ -5,6 +5,7 @@ import time
 from datetime import datetime, timezone
 from typing import Dict, Any
 from sqlalchemy import select, func
+from sqlalchemy.orm.attributes import flag_modified
 from backend.database.models import ContentCampaign, CampaignEvent
 from backend.database.repositories import ContentCampaignRepository
 from backend.services.xohi.creative_studio.models.schemas import AgentResponse, AgentSignal
@@ -75,6 +76,11 @@ class ExecutionEngine:
             if not isinstance(response, AgentResponse):
                 response = AgentResponse(signal=AgentSignal.PROCEED_NEXT, message="Legacy success", data={"raw": response})
 
+            # Phase 73: Sync metadata from response if present (Prevents overwriting agent-side changes)
+            if response.data and "gold_metadata" in response.data:
+                campaign.gold_metadata = response.data["gold_metadata"]
+                flag_modified(campaign, "gold_metadata")
+
             if response.signal == AgentSignal.REDO_PREVIOUS:
                 if await self._handle_backtrack(campaign, campaign_repo, step):
                     return
@@ -83,29 +89,31 @@ class ExecutionEngine:
                 await self._log_error(campaign, campaign_repo, "ERROR", f"Agent Escalation: {response.message}")
                 return
 
-            # Update campaign data from response
+            # Update campaign data from response (Specific step fields)
             if response.data:
-                if step == 1: campaign.topic_data = response.data
+                if step == 1:
+                    campaign.topic_data = response.data
+                    campaign.gold_metadata = response.data # First seal
                 elif step == 2: campaign.assets_data = response.data.get("assets", response.data) if isinstance(response.data, dict) else response.data
                 elif step == 3: campaign.outline_data = response.data.get("outline", response.data) if isinstance(response.data, dict) else response.data
                 elif step == 4: campaign.draft_content = response.data.get("content", campaign.draft_content)
                 elif step == 5:
-                    # Plagiarism metadata is already saved in PlagiarismCop.execute
-                    pass
+                    if "score" in response.data:
+                        campaign.unique_score = response.data["score"]
                 elif step == 6:
-                    campaign.final_html = response.data.get("final_html", campaign.final_html)
-                    campaign.assets_data = response.data.get("assets", campaign.assets_data)
+                    # Step 6 might update final_html and assets
+                    if "final_html" in response.data:
+                        campaign.final_html = response.data["final_html"]
+                    if "assets" in response.data:
+                        campaign.assets_data = response.data["assets"]
 
             # Phase 73: Always set to WAITING_FOR_REVIEW after an automated step completes
             # This allows the user to review Step 5 (Plagiarism) and Step 6 (Final Package)
             campaign.status = "WAITING_FOR_REVIEW"
             if step == 2: campaign.search_count = (campaign.search_count or 0) + 1
-            if step == 5:
-                # Plagiarism check completed, results are already in campaign.unique_score
-                # We could add more logic here if needed
-                pass
+
             await campaign_repo.update(campaign)
-            
+
             payload = {
                 "campaign_id": campaign_id,
                 "step": step,
@@ -126,8 +134,15 @@ class ExecutionEngine:
             elif step == 5:
                 payload["data"]["unique_score"] = getattr(campaign, "unique_score", None)
             elif step == 6:
+                # IMPORTANT: Ensure deferred column is refreshed before payload construction
+                try:
+                    await campaign_repo.session.refresh(campaign, ["final_html"])
+                except Exception as refresh_err:
+                    logger.warning(f"[Content Factory] Refresh failed for final_html: {refresh_err}")
+
                 payload["data"]["assets"] = getattr(campaign, "assets_data", None) or []
                 payload["data"]["final_html"] = getattr(campaign, "final_html", None)
+
             # Always include gold_metadata for avatar/config sync
             payload["data"]["gold_metadata"] = getattr(campaign, "gold_metadata", None) or {}
 
