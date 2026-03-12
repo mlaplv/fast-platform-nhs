@@ -59,7 +59,6 @@
   let isSeoLoading = $state(false);
   let aiReadyResult = $state<any>(null);
   let isAiLoading = $state(false);
-  let isBulkFixing = $state(false);
 
   // -- Tab Filter State --
   let activeTab = $state<'copyright' | 'seo' | 'ai' | null>(null);
@@ -111,12 +110,12 @@
           : [] // Không có tab active = không highlight gì
   );
 
-  const runCopyrightCheck = async (force = false) => {
+  const runCopyrightCheck = async () => {
     if (!campaign_id || isCopyrightLoading) return;
     isCopyrightLoading = true;
     copyrightResult = null;
     try {
-      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/copyright${force ? '?force=true' : ''}`);
+      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/copyright`);
       if (res?.data) copyrightResult = res.data;
     } catch (e) {
       console.error("[DraftStep] Copyright check failed:", e);
@@ -126,12 +125,12 @@
     }
   };
 
-  const runSeoAnalysis = async (force = false) => {
+  const runSeoAnalysis = async () => {
     if (!campaign_id || isSeoLoading || seoLocked) return;
     isSeoLoading = true;
     seoResult = null;
     try {
-      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/seo${force ? '?force=true' : ''}`);
+      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/seo`);
       if (res?.data) seoResult = res.data;
     } catch (e) {
       console.error("[DraftStep] SEO analysis failed:", e);
@@ -141,12 +140,12 @@
     }
   };
 
-  const runAiAnalysis = async (force = false) => {
+  const runAiAnalysis = async () => {
     if (!campaign_id || isAiLoading || aiLocked) return;
     isAiLoading = true;
     aiReadyResult = null;
     try {
-      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/ai-inspect${force ? '?force=true' : ''}`);
+      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/ai-inspect`);
       if (res?.data) aiReadyResult = res.data;
     } catch (e) {
       console.error("[DraftStep] AI Inspect failed:", e);
@@ -204,40 +203,6 @@
     return null;
   };
 
-  const runBulkFix = async (category: 'copyright' | 'seo' | 'ai') => {
-    if (!campaign_id || isBulkFixing) return;
-    
-    // Get current annotations for the category
-    let currentAnnotations = [];
-    if (category === 'copyright') currentAnnotations = copyrightResult?.annotations || [];
-    if (category === 'seo') currentAnnotations = seoResult?.seo_annotations || [];
-    if (category === 'ai') currentAnnotations = aiReadyResult?.ai_annotations || [];
-    
-    if (currentAnnotations.length === 0) return;
-
-    isBulkFixing = true;
-    try {
-      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/bulk-fix`, {
-        category,
-        annotations: currentAnnotations
-      });
-      
-        if (res?.data?.status === 'success' && res.data.new_content) {
-        draft_content = res.data.new_content;
-        if (isEditing) editedDraft = res.data.new_content;
-        
-        // Auto-refresh the check for this category (with force=true to bypass cache on content change)
-        if (category === 'copyright') await runCopyrightCheck(true);
-        if (category === 'seo') await runSeoAnalysis(true);
-        if (category === 'ai') await runAiAnalysis(true);
-      }
-    } catch (e) {
-      console.error("[DraftStep] Bulk-Fix failed:", e);
-    } finally {
-      isBulkFixing = false;
-    }
-  };
-
   // Expert Optimizer (V71.30): Analysis Hydration from DB Cache
   $effect(() => {
     untrack(() => {
@@ -272,26 +237,6 @@
   const aiBadge = $derived(
     _aiScore !== null ? `${_aiScore}%` : null
   );
-
-  // Bulk Fix Action Derived
-  let bulkFixAction = $derived.by(() => {
-    if (!activeTab || isBulkFixing) return null;
-    
-    let hasAnnotations = false;
-    if (activeTab === 'copyright') hasAnnotations = (copyrightResult?.annotations?.length > 0);
-    if (activeTab === 'seo') hasAnnotations = (seoResult?.seo_annotations?.length > 0);
-    if (activeTab === 'ai') hasAnnotations = (aiReadyResult?.ai_annotations?.length > 0);
-    
-    if (!hasAnnotations) return null;
-
-    const currentTab = activeTab; // Capture for closure
-    return {
-      label: isBulkFixing ? '...' : `🪄 Sửa nhanh ${currentTab === 'copyright' ? 'Bản Quyền' : currentTab.toUpperCase()}`,
-      loading: isBulkFixing,
-      onclick: () => runBulkFix(currentTab as any),
-      variant: 'primary'
-    };
-  });
 </script>
 
 <div class="flex-1 overflow-hidden flex flex-col gap-3">
@@ -354,9 +299,7 @@
             ? `🔒 AI 2026 bị khoá — Cần SEO ≥ 70 trước (hiện: ${_seoScore !== null ? _seoScore + '/100' : 'chưa check'})`
             : undefined,
           onclick: runAiAnalysis
-        },
-        // -- Bulk Fix Action (Magic Wand) --
-        ...(bulkFixAction ? [bulkFixAction] : [])
+        }
       ]}
       annotations={editorAnnotations}
       onfix={runAutoFix}
