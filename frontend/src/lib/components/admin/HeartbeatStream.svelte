@@ -378,8 +378,14 @@
               : 'items-center'}"
         >
           {#if log.data?.role === "assistant" || log.source === "XOHI" || log.source === "[XOHI]" || log.source === "XÔ-HỈ"}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
-              class="max-w-[85%] bg-neon-cyan/5 border border-neon-cyan/20 rounded-2xl rounded-tl-sm px-4 py-3 shadow-[0_4px_15px_rgba(0,255,255,0.05)]"
+              ondblclick={() => {
+                if (log.data?.campaign_id && log.id === latestLogIdsPerCampaign().get(log.data.campaign_id)) {
+                  nanobot.resumeCampaign(log);
+                }
+              }}
+              class="max-w-[85%] bg-neon-cyan/5 border border-neon-cyan/20 rounded-2xl rounded-tl-sm px-4 py-3 shadow-[0_4px_15px_rgba(0,255,255,0.05)] cursor-default"
             >
               <div class="flex items-center gap-2 mb-1.5 opacity-60">
                 <Sparkles size={10} class="text-neon-cyan" />
@@ -396,6 +402,26 @@
               >
                 {processMessage(log.message)}
               </div>
+              
+              {#if log.data?.campaign_id && log.id === latestLogIdsPerCampaign().get(log.data.campaign_id)}
+                <div class="mt-3 flex items-center justify-between gap-2 p-2 rounded-xl border border-neon-cyan/30 bg-neon-cyan/10">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <div class="w-1.5 h-1.5 rounded-full bg-[#00FF00] animate-pulse"></div>
+                    <span class="text-[10px] text-neon-cyan truncate">
+                      Sẵn sàng duyệt: Bước {log.data.step || 1}
+                    </span>
+                  </div>
+                  <button
+                    onclick={(e) => {
+                      e.stopPropagation();
+                      nanobot.resumeCampaign(log);
+                    }}
+                    class="shrink-0 text-[10px] font-bold tracking-wider px-3 py-1.5 bg-neon-cyan hover:bg-neon-cyan/80 text-black rounded-lg transition-colors shadow-lg shadow-neon-cyan/20"
+                  >
+                    MỞ DUYỆT
+                  </button>
+                </div>
+              {/if}
             </div>
           {:else if log.source === "[ADMIN]"}
             <div
