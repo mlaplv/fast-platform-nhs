@@ -151,6 +151,21 @@ export class VuiStreamManager {
         vuiState.setIsWaitingForAction(true);
       }
       
+      // Phase 63: Selective Pop-up for Chat
+      const isCreationTask = dataPkg.category === "CONTENT_CREATE" || 
+                            lastData?.action === "CONTENT_CREATE" ||
+                            this.lastActionType === "CONTENT_CREATE";
+
+      const shouldPopUp = source === "voice" || 
+                         isCreationTask || 
+                         this.lastActionType !== "";
+      
+      if (shouldPopUp && source === "text") {
+        console.debug("[VUI] Intent-based pop-up triggered for source=text");
+        nanobot.setVuiActive(true);
+        vuiState.setActive(true);
+      }
+
       nanobot.setVoiceResult(query, finalMsg, this.lastActionType, dataPkg, source, lastData?.router_tier);
 
       if (source === "text") {
@@ -160,7 +175,7 @@ export class VuiStreamManager {
       }
 
       // Phase 57: Ensure voice responses are spoken even if no streaming deltas came
-      if (finalMsg && !txtResult) {
+      if (source === "voice" && finalMsg && !txtResult) {
         await this.callbacks.speak(finalMsg);
       } else if (!finalMsg && this.lastActionType) {
         await new Promise(r => setTimeout(r, VUI_CONFIG.UX.ACTION_WAIT_TIMEOUT_MS));

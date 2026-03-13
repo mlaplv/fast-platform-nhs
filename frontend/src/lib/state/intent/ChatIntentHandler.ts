@@ -11,8 +11,8 @@ export async function handleChatIntent(
 ): Promise<boolean> {
   const { state, voice, resetVui } = deps;
   
-  // Phase 55: Ensure VUI visuals are forced OFF for chat
-  voice.setVuiActive(false);
+  // Phase 55: Ensure VUI visuals are forced OFF for chat initially
+  // Reverted blind VUI activation. VUI state is now managed by the VuiOrchestrator based on source.
   
   const { vuiController } = await import("$lib/vui");
   

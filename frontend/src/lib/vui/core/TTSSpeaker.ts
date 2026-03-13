@@ -32,6 +32,11 @@ export class TTSSpeaker {
   reset() {
     this.sentenceBuffer = "";
     this.speechQueue = [];
+    // Revoke all prefetched blobs before clearing
+    this.prefetchedBlobs.forEach((blob, text) => {
+        const url = (blob as any)._objectUrl;
+        if (url) URL.revokeObjectURL(url);
+    });
     this.prefetchedBlobs.clear();
     this.isProcessingQueue = false;
     this.hasFirstSpeechStarted = false;
@@ -52,6 +57,11 @@ export class TTSSpeaker {
     this.abortController?.abort();
     this.abortController = null;
     this.speechQueue = [];
+    // Revoke all prefetched blobs before clearing
+    this.prefetchedBlobs.forEach((blob, text) => {
+        const url = (blob as any)._objectUrl;
+        if (url) URL.revokeObjectURL(url);
+    });
     this.prefetchedBlobs.clear();
     this.isProcessingQueue = false;
   }
@@ -113,6 +123,9 @@ export class TTSSpeaker {
     try {
       const signal = this.abortController?.signal || new AbortController().signal;
       const blob = await this.fetchAudio(text, signal);
+      // Attach URL for later revocation
+      const url = URL.createObjectURL(blob);
+      (blob as any)._objectUrl = url;
       this.prefetchedBlobs.set(text, blob);
     } catch (e) {
       console.warn("[TTSSpeaker] Prefetch failed", text, e);
@@ -148,7 +161,9 @@ export class TTSSpeaker {
 
         // 3. Play
         if (blob) {
+          const url = (blob as any)._objectUrl || URL.createObjectURL(blob);
           await this.playAudio(blob);
+          URL.revokeObjectURL(url);
         }
       } catch (e) {
         console.error("[TTSSpeaker] Playback failed", e);

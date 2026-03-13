@@ -119,16 +119,17 @@ class VisionInsight:
             # R109: Re-raise config errors so Orchestrator can report model/key status to sếp
             raise
         except Exception as e:
-            logger.error(f"[VisionInsight] AI failed, using fallback: {e}")
+            logger.error(f"[VisionInsight] AI failed (Campaign: {c_id}): {e}", exc_info=True)
             # Fallback: Tạo keywords từ transcript đã gọt râu ria (Graceful Degradation R103)
-            words = clean_topic.split()
-            if not words:
+            # Fix: Tránh split từng từ tiếng Việt (e.g. "Thời" "trang" "nữ") -> Giữ nguyên cụm từ hoặc fallback thông minh hơn
+            if not clean_topic:
                 clean_topic = "Nội dung Sáng tạo"
-                words = [clean_topic]
+            
+            # Thay vì split(), chúng ta dùng title làm primary và tạo secondary từ các biến thể đơn giản
             return TopicSeed(
                 title=f"Khám phá {clean_topic}",
                 primary_keyword=clean_topic[:50],
-                secondary_keywords=words[:3] if len(words) >= 3 else words,
+                secondary_keywords=[clean_topic[:50], f"{clean_topic} mới nhất", "Xohi AI Strategy"],
                 persona="Chuyên gia, giọng văn thân thiện và chuyên nghiệp",
                 description=f"Khám phá kiến thức chuyên sâu về {clean_topic} để tối ưu hóa hiệu quả công việc và cuộc sống.",
                 category=CategoryEnum.TIN_TUC

@@ -16,14 +16,16 @@ logger = logging.getLogger("api-gateway")
 PLANNER_PROMPT = """[ROLE] VISUAL CONTENT DIRECTOR — XoHi Content Factory 2026
 
 [NHIỆM VỤ]
-Dựa trên tiêu đề và từ khóa của bài viết, hãy lập kế hoạch tìm kiếm hình ảnh chất lượng cao.
-Tạo ra 3-5 câu lệnh tìm kiếm (search queries) bằng TIẾNG ANH để tối ưu hóa kết quả từ Google Images.
+Dựa trên tiêu đề và từ khóa bài viết PR Viral, hãy tạo duy nhất 01 câu lệnh tìm kiếm (ONE best search query) bằng TIẾNG ANH để tìm hình ảnh MIÊU TẢ CẢNH THỰC (Real Scene).
 
-[QUY TẮC TÌM KIẾM]
-1. Ưu tiên phong cách "Professional Photography", "Minimalist", "High Resolution", "Cinematic".
-2. Tránh các từ khóa dẫn đến ảnh rác, ảnh chụp màn hình, hoặc ảnh có watermark.
-3. Tạo các query đa dạng: Hero/Cover image, Context/Office, Action/Conceptual.
-4. Trả về đúng JSON schema."""
+[QUY TẮC BẮT BUỘC - ANTI-TEXT POLICY]
+1. TUYỆT ĐỐI KHÔNG tìm ảnh có chữ, văn bản, trích dẫn (quotes), hoặc infographic. 
+2. Sử dụng các từ khóa phủ định (negative keywords) trong query như: `-text`, `-word`, `-typography`, `-quote`, `-infographic`.
+3. Ưu tiên phong cách: "Cinematic photography", "Authentic lifestyle", "High-end stock", "Clean background", "No text".
+4. Ảnh phải có chiều sâu, ánh sáng chuyên nghiệp, không được giống ảnh chụp màn hình hay ảnh rác.
+
+[ĐỊNH DẠNG ĐẦU RA]
+Trả về đúng JSON schema VisualSearchPlan với duy nhất 01 phần tử trong danh sách `queries`."""
 
 class AssetHunter:
     """
@@ -90,28 +92,26 @@ class AssetHunter:
         config = campaign.get_gold_config()
         target_count = config.get("max_assets", 10)
         
-        # Step 2.2: Multi-Query Search & Deduplication
-        per_query = max(2, target_count // len(queries) + 1)
+        # Step 2.2: Single-Query Search (Efficiency R88)
+        # We take the FIRST query from the plan (User preference: 1 request/10 results)
+        best_query = queries[0] if queries else (primary if primary else title)
         
-        for i, q in enumerate(queries):
-            await event_bus.emit("CONTENT_PROGRESS", {
-                "campaign_id": campaign_id,
-                "user_id": str(campaign.user_id),
-                "step": 2,
-                "message": f"🔍 [Query {i+1}/{len(queries)}] Đang tìm: {q}",
-                "status": "PROCESSING",
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
-            
-            # pass IDs for visibility
-            urls = await self.fetch_images(q, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=per_query)
-            all_urls.extend(urls)
-            
-            # Deduplicate
-            all_urls = list(dict.fromkeys(all_urls))
-            if len(all_urls) >= target_count:
-                all_urls = all_urls[:target_count]
-                break
+        await event_bus.emit("CONTENT_PROGRESS", {
+            "campaign_id": campaign_id,
+            "user_id": str(campaign.user_id),
+            "step": 2,
+            "message": f"🔍 Đang tìm kiếm ảnh với 01 request duy nhất: {best_query}",
+            "status": "PROCESSING",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        
+        # Google CSE returns max 10 per request. We fetch 10 and then clip to target_count.
+        all_urls = await self.fetch_images(best_query, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=10)
+        
+        # Selection logic based on target_count from Step 1
+        if len(all_urls) > target_count:
+            logger.info(f"[AssetHunter] Clipping {len(all_urls)} images to target {target_count}")
+            all_urls = all_urls[:target_count]
 
         # Step 2.3: Graceful Raw Fallback (Rule R103)
         if not all_urls:

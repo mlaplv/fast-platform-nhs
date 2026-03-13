@@ -253,12 +253,13 @@ class VuiOrchestrator {
     this.audio.abort();
     this.ws.disconnect();
 
-    const isVoice = source === "voice";
-    vuiState.setActive(isVoice);
-    nanobot.setVuiActive(isVoice);
+    // Unified VUI: Always active for both voice and text sources
+    vuiState.setActive(true);
+    nanobot.setVuiActive(true);
     
     vuiState.setPhase("thinking");
     vuiState.setTranscript(query);
+    vuiState.setLiveText(query); // Ensure query is visible in VUI modal
     vuiState.setSystemMessage("");
 
     await this.streamManager.streamLLM(query, nanobot.currentData?.session_id || "", source);

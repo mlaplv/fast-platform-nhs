@@ -12,11 +12,17 @@ export function createLogState() {
       const timeDiff = a.timestamp.getTime() - b.timestamp.getTime();
       const p = (source: string) => {
          const src = String(source || "").toUpperCase();
-         if (src.includes('ADMIN') || src.includes('ADM') || src.includes('SẾP')) return 0;
-         if (src.includes('XOHI') || src.includes('XÔ-HỈ')) return 1;
-         return 2;
+         // V71.1: Refined priorities for natural flow
+         // System/Security (Top) -> User (ADM) -> Assistant (XOHI) -> Default
+         if (src.includes('SEC') || src.includes('VAULT')) return 0;
+         if (src.includes('ADMIN') || src.includes('ADM') || src.includes('SẾP')) return 1;
+         if (src.includes('XOHI') || src.includes('XÔ-HỈ')) return 2;
+         return 3;
       };
-      if (Math.abs(timeDiff) < 60000) {
+      
+      // V71.2: Reduced snap window to 2s (from 60s) to keep conversations interleaved
+      // while still grouping simultaneous system logs.
+      if (Math.abs(timeDiff) < 2000) {
         const pA = p(a.source);
         const pB = p(b.source);
         if (pA !== pB) return pA - pB;

@@ -19,8 +19,8 @@
 
   let wasActive = false;
   $effect(() => {
-    // Phase 47: Only beep if transitioning from inactive to active AND NOT a silent auto-resume
-    if (nanobot.isVuiActive && !wasActive) {
+    // Phase 47/63: Only beep if voice modality AND transitioning from inactive to active
+    if (nanobot.isVuiActive && !wasActive && nanobot.modality === "voice") {
       const isSilentResume = nanobot.vuiResponse?.data?.isSilent === true;
       if (!isSilentResume) {
         playSciFiBeep();
@@ -31,7 +31,8 @@
 
   let hasDinged = false;
   $effect(() => {
-    if (vuiState.phase === "listening" && !hasDinged) {
+    // Only ding for voice modality
+    if (vuiState.phase === "listening" && !hasDinged && nanobot.modality === "voice") {
       playSiriDing();
       hasDinged = true;
     } else if (vuiState.phase !== "listening") {

@@ -18,8 +18,8 @@ export function createVoiceState(
     status: "IDLE" as VoiceStatus,
     isProcessingSpeech: false,
     routerTier: undefined as number | undefined,
-    get greetingTemplate() { return `Tôi đây thưa ${permissionState.userName || "bạn"} ✨`; }, // V57.5 Dynamic
-    get farewellTemplate() { return `Tạm biệt ${permissionState.userName || "bạn"}`; },
+    greetingTemplate: `Tôi đây thưa ${permissionState.userName || "bạn"} ✨`, // V57.5 Dynamic
+    farewellTemplate: `Tạm biệt ${permissionState.userName || "bạn"}`,
   });
 
   function resetVui() {
@@ -62,30 +62,21 @@ export function createVoiceState(
     state.vuiResponse = {
       text: responseText,
       type: uiAction ? "action" : "answer",
-      data: {
-        step: 1,
-        status: "WAITING_FOR_REVIEW",
-        progress_msg: "",
-        keywords: {},
-        assets: [],
-        outline: {},
-        draft_content: "",
-        creation_config: {},
-        selectedAvatarUrl: null,
-        selectedAssetIndex: 0,
-        ...data
-      },
+      data: data || {}, // Phase 62: Clean data
     };
     state.routerTier = routerTier;
 
-    // Phase 45: CHỈ kích hoạt VUI khi là voice HOẶC nếu không phải silent (Stealth Mode)
+    // Phase 45/62: Deactivation Logic
     if (source === "voice" && !data?.isSilent) {
       state.status = "VOICE";
       state.isVuiActive = true;
     } else {
       state.status = "SUCCESS";
-      state.isVuiActive = false;
-      // Phase 45: If it's a stealth audio alert, we still need to make sure vuiState is ready
+      // ONLY close if we are not already in a VUI session (Fix Flicker)
+      if (source === "text" && !state.isVuiActive) {
+         state.isVuiActive = false;
+      }
+      
       if (data?.isSilent) {
         import("$lib/vui").then(({ vuiState }) => vuiState.setActive(true));
       }

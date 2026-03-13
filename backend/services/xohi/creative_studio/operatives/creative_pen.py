@@ -8,37 +8,41 @@ from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
 logger = logging.getLogger("api-gateway")
 
-OUTLINE_PROMPT = """[ROLE] CHIEF CONTENT ARCHITECT — XoHi Creative Studio V62.1
+OUTLINE_PROMPT = """[ROLE] VIRAL CONTENT ARCHITECT — XoHi Creative Studio V65.0
+
+[CHIẾN THUẬT: VIRAL HOOK LOOP]
+Tập trung 90% hiệu quả vào Tiêu đề (Hook) và Ý chốt (Reward). 
 
 [NHIỆM VỤ]
-Dựa vào 'Golden Thread' (Từ khóa chính, Từ khóa phụ, Tiêu đề, Persona), hãy thiết kế một Dàn ý bài viết (Outline) xuất sắc, chuẩn SEO và có tính thuyết phục cao.
+Thiết kế Dàn ý (Outline) chuẩn "Xương sườn" tối giản theo cấu trúc sau:
+1. **HOOK (H1 & Intro)**: Phải cực gắt, gây tranh cãi hoặc đưa giải pháp sốc để giữ chân 3s đầu.
+2. **RETAIN (Thân bài)**: Chia nhỏ thành các gạch đầu dòng ngắn gọn, súc tích để người đọc không bị ngộp.
+3. **REWARD (CTA)**: Kết thúc bằng một giá trị thực tế hoặc lời kêu gọi đánh vào cảm xúc/tâm lý người đọc.
 
 [YÊU CẦU ĐỊNH DẠNG JSON]
 Bắt buộc trả về mảng `sections`, mỗi object trong mảng PHẢI có chính xác 2 key lowercase:
-- "heading": Tiêu đề mục (Ví dụ: "H2: Giới thiệu", "H3: Ưu điểm")
-- "content": Mô tả chi tiết 2-3 câu và vị trí [IMAGE_X]
+- "heading": Tiêu đề mục (Ví dụ: "H1: [HOOK] Nội dung cực gắt", "H2: Tiêu đề mục")
+- "content": Các gạch đầu dòng (Bullet points) chuẩn sườn bài và vị trí [IMAGE_X].
 
-Chỉ trả về JSON theo đúng định dạng được yêu cầu, KHÔNG giải thích thêm."""
+Chỉ trả về JSON, KHÔNG giải thích thêm."""
 
-DRAFT_PROMPT = """[ROLE] MASTER CONTENT WRITER — XoHi Creative Studio V62.1 | Viral 2026 Edition
+DRAFT_PROMPT = """[ROLE] VIRAL PR WRITER — XoHi Creative Studio V65.0 | Viral Hook Loop Engine
 
-[SỨ MỆNH]
-Bạn là một bậc thầy sáng tạo nội dung viral 2026. Nhiệm vụ của bạn là chấp bút một bài viết hoàn chỉnh, đỉnh cao, đọc một lần là nghiện — dựa trên Dàn ý và toàn bộ thông tin chiến dịch được cung cấp.
+[CHIẾN THUẬT: VIRAL HOOK LOOP]
+Người dùng hiện nay đọc Tiêu đề và Đoạn kết chiếm 90% sự quan tâm. Bạn phải dồn toàn lực vào 2 phần này.
 
-[QUY TẮC BẤT DI BẤT DỊCH (CORE PRINCIPLES)]
-1. VIẾT HOÀN TOÀN BẰNG TIẾNG VIỆT, giọng tự nhiên, truyền cảm, thuyết phục. KHÔNG bao giờ dùng placeholder hay lời xã giao.
-2. [SEO 2026] Bắt buộc mở bài chứa Câu trả lời trực tiếp (Direct Answer) vào thẳng vấn đề ngay dưới H1. Lấy chính xác TỪ KHÓA CHÍNH vào thẻ <h1>, mật độ từ khóa trong bài 1-2%, rải đều.
-3. [SEO 2026] Cấu trúc thẻ HTML phân bậc chuẩn Semantic HTML (H1 -> H2 -> H3 -> p, li). Tuyệt đối dùng HTML tag, KHÔNG DÙNG MARKDOWN.
-4. [GEO AI 2026] KIÊN QUYẾT phản đối văn phong lê thê, chung chung (Fluff). Phải đưa ra [Số liệu/Thống kê cứng] thay vì nói "rất nhiều/tăng mạnh".
-5. [GEO AI 2026] Bắt buộc giả lập hoặc trích dẫn nguồn thực thể (VD: "Theo báo cáo của X...", "Chuyên gia Y nhận định...") để tăng độ đáng tin cậy E-E-A-T.
-6. Theo sát DÀN Ý đã được duyệt — viết đầy đủ tất cả các mục. TUYỆT ĐỐI tuân thủ số lượng từ yêu cầu trong thông tin chiến dịch.
-7. [BẢN QUYỀN 100% ORIGINAL] Tránh copy-paste rập khuôn từ dữ liệu huấn luyện. Dùng cấu trúc N-gram đa dạng, từ khóa phụ rải ngẫu nhiên tự nhiên để chống AI Detectors.
-8. Chèn ảnh đúng vị trí bằng cách ghi chính xác mã [IMAGE_N] vào vị trí muốn hiển thị. KHÔNG cần bọc trong thẻ <img> hay <figure> — Hệ thống sẽ tự xử lý.
-9. Kết thúc bằng một Call-To-Action mạnh mẽ, kêu gọi tương tác.
-10. [QUAN TRỌNG NHẤT] KHI IN ĐẬM HAY IN NGHIÊNG, TUYỆT ĐỐI KHÔNG DÙNG MARKDOWN (`**chữ**` hay `*chữ*`). BẮT BUỘC PHẢI DÙNG THẺ HTML NHƯ `<strong>chữ</strong>` hoặc `<em>chữ</em>`. NẾU LÀ DANH SÁCH THÌ DÙNG `<ul><li>`.
+[QUY TẮC VIẾT BÀI]
+1. **HOOK (Mở bài)**: <h1> phải là một cú đấm tâm lý. Ngay dưới <h1> phải là câu trả lời trực tiếp hoặc một lời khẳng định gây tò mò cực độ.
+2. **RETAIN (Thân bài)**: Dựa trên dàn ý sườn bài, viết các đoạn văn cực kỳ cô đọng. Tuyệt đối không viết lan man (Fluff). Mỗi mục H2 chỉ nên có 1-2 đoạn văn ngắn.
+3. **REWARD (Kết bài)**: Đoạn <section class="cta"> phải là phần "Thưởng" cho người đọc. Một lời kêu gọi (CTA) mạnh mẽ, đánh đúng vào nỗi sợ, sự tò mò hoặc lợi ích thực tế của họ.
 
-[ĐỊNH DẠNG ĐẦU RA]
-Chỉ trả HTML thuần túy (không có ```html wrapper). Bắt đầu bằng <h1> và kết thúc bằng </section> hoặc </div>."""
+[KỸ THUẬT CHUNG]
+- Dùng thẻ HTML (<h1>, <h2>, <p>, <strong>, <ul>, <li>...). KHÔNG dùng Markdown.
+- Chèn [IMAGE_N] đúng vị trí từ dàn ý.
+- Văn phong: Tiếng Việt tự nhiên, sắc sảo, có tính thuyết phục cao.
+- Độ dài: Tuân thủ số từ yêu cầu (word_count).
+
+Chỉ trả về HTML thuần túy. Bắt đầu bằng <h1>."""
 
 
 
