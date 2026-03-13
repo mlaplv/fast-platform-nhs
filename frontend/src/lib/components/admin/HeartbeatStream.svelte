@@ -245,9 +245,9 @@
   class="flex-1 h-full min-h-0 font-mono text-xs flex flex-col overflow-hidden"
 >
   {#if !hideHeader}
-    <div class="shrink-0 border-b border-white/5 bg-black/20 backdrop-blur-sm">
+    <div class="h-12 shrink-0 border-b border-white/5 bg-black/20 backdrop-blur-sm">
       <!-- Neural Control Bar (Minimalist Icon Row) -->
-      <div class="h-10 flex items-center justify-between px-3">
+      <div class="h-full flex items-center justify-between px-5">
         <!-- Left Group: Branding & View Controls -->
         <div class="flex items-center gap-1">
           <!-- Logo Restored (Static) -->
@@ -262,14 +262,6 @@
               >Xohi Hearting</span
             >
           </div>
-
-          <button
-            onclick={() => nanobot.toggleHeartbeat()}
-            class="p-1.5 rounded-md hover:bg-white/5 transition-all text-neon-cyan/40 hover:text-neon-cyan active:scale-95"
-            title="Đóng sidebar"
-          >
-            <PanelRight size={14} strokeWidth={2.5} />
-          </button>
 
           <div class="w-[1px] h-4 bg-white/5 mx-1"></div>
 
@@ -332,6 +324,16 @@
               />
             </button>
           {/if}
+
+          <div class="w-[1px] h-4 bg-white/5 mx-1"></div>
+
+          <button
+            onclick={() => nanobot.toggleHeartbeat()}
+            class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-white/5 text-neon-cyan/60 hover:text-neon-cyan transition-colors"
+            title="Đóng sidebar"
+          >
+            <PanelRight size={18} strokeWidth={2.5} />
+          </button>
         </div>
       </div>
     </div>

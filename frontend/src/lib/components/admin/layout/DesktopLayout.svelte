@@ -85,6 +85,16 @@
         <div class="flex items-center gap-3 pl-4 border-l border-white/5">
           <NotificationHud />
           <UserHud />
+          
+          {#if nanobot.heartbeatCollapsed}
+            <button
+              onclick={() => nanobot.toggleHeartbeat()}
+              class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-white/5 text-neon-cyan/60 hover:text-neon-cyan transition-colors"
+              title="Mở rộng Heartbeat"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M15 3v18"/></svg>
+            </button>
+          {/if}
         </div>
       </div>
     </header>
@@ -145,16 +155,6 @@
       <HeartbeatStream />
     </div>
 
-    <!-- Collapsed Indicator (Vertical Text) -->
-    <div
-      class="absolute inset-0 flex flex-col items-center pt-8 pointer-events-none vertical-indicator transition-opacity duration-300"
-    >
-      <div
-        class="rotate-90 origin-center whitespace-nowrap text-[10px] font-mono tracking-[0.3em] uppercase text-neon-cyan/20"
-      >
-        Heartbeat
-      </div>
-    </div>
   </aside>
 
   <!-- Version Footer (Global Bottom) -->
@@ -172,14 +172,14 @@
   /* Default for Laptop/Small Screens: Auto-Collapse */
   @media (max-width: 1535.9px) {
     #heartbeat-sidebar {
-      --sidebar-w: 40px;
+      --sidebar-w: 0px;
     }
     #heartbeat-sidebar .sidebar-content {
       opacity: 0;
       pointer-events: none;
     }
     #heartbeat-sidebar .vertical-indicator {
-      opacity: 1;
+      display: none;
     }
   }
 
@@ -193,20 +193,21 @@
       pointer-events: auto;
     }
     #heartbeat-sidebar .vertical-indicator {
-      opacity: 0;
+      display: none;
     }
   }
 
   /* Manual Override: Force Collapse (Trumps Auto) */
   :global(.heartbeat-manual-collapse) {
-    --sidebar-w: 40px !important;
+    --sidebar-w: 0px !important;
+    border-left: none !important;
   }
   :global(.heartbeat-manual-collapse) .sidebar-content {
     opacity: 0 !important;
     pointer-events: none !important;
   }
   :global(.heartbeat-manual-collapse) .vertical-indicator {
-    opacity: 1 !important;
+    display: none !important;
   }
 
   /* Manual Override: Force Expand (Trumps Auto) */
