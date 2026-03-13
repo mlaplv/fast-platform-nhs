@@ -16,34 +16,32 @@ logger = logging.getLogger("api-gateway")
 PLANNER_PROMPT = """[ROLE] VISUAL CONTENT DIRECTOR — XoHi Content Factory 2026
 
 [NHIỆM VỤ]
-Dựa trên tiêu đề và từ khóa bài viết PR Viral, hãy tạo duy nhất 01 câu lệnh tìm kiếm (ONE best search query) bằng TIẾNG ANH để tìm hình ảnh MIÊU TẢ CẢNH THỰC (Real Scene).
+Dựa trên tiêu đề, từ khóa và phong cách bài viết, hãy tạo duy nhất 01 câu lệnh tìm kiếm (ONE best search query) bằng TIẾNG ANH để tìm hình ảnh MIÊU TẢ CHÍNH XÁC CHỦ THỂ (Subject Accuracy).
 
-[QUY TẮC BẮT BUỘC - ANTI-TEXT POLICY]
-1. TUYỆT ĐỐI KHÔNG tìm ảnh có chữ, văn bản, trích dẫn (quotes), hoặc infographic. 
-2. Sử dụng các từ khóa phủ định (negative keywords) trong query như: `-text`, `-word`, `-typography`, `-quote`, `-infographic`, `-youtube`, `-video`.
-3. Ưu tiên phong cách: "Cinematic photography", "Authentic lifestyle", "High-end stock", "Clean background", "No text".
-4. Ảnh phải có chiều sâu, ánh sáng chuyên nghiệp, không được giống ảnh chụp màn hình hay ảnh rác.
+[QUY TẮC ƯU TIÊN - THIẾT QUÂN LUẬT]
+1. CHỦ THỂ LÀ SỐ 1 (Subject First): Query BẮT BUỘC phải chứa các từ khóa cốt lõi về thực thể (Giới tính, Độ tuổi, Vật thể, Ngữ cảnh). Ví dụ: Nếu bài về "Nam giới", query phải có 'men' hoặc 'male'.
+2. ANTI-TEXT POLICY: Tuyệt đối dùng từ khóa phủ định để tránh ảnh có chữ: `-text -word -typography -quote -infographic -youtube -video`.
+3. STYLE SECOND: Sau khi đảm bảo đúng chủ thể, mới áp dụng phong cách: "Cinematic", "Authentic lifestyle", "Professional photography", "Clean background".
+4. ĐỊNH DẠNG: Trả về JSON VisualSearchPlan với 01 query tối ưu nhất.
 
-[ĐỊNH DẠNG ĐẦU RA]
-Trả về đúng JSON schema VisualSearchPlan với duy nhất 01 phần tử trong danh sách `queries`."""
+[VÍ DỤ]
+- Input: "Thời trang nam công sở", Keywords: "vest, lịch lãm" -> Query: "professional male fashion office wear men suit cinematic -text -word"
+- Input: "Mỹ phẩm dưỡng da nữ", Keywords: "spa, làm đẹp" -> Query: "woman facial skincare spa treatment authentic lifestyle -text -word"
+"""
 
 class AssetHunter:
     """
     Step 2: Hunt for images using Google Custom Search API.
-    Upgraded with AI Visual Search Planning (V64.2).
-    Hardened with Key Rotator and Circuit Breaker (Rule 7).
+    Standards: Subject-First Intelligence (V65.0).
     """
-    def __init__(self, key_pairs: List[Dict[str, str]]):
-        """
-        key_pairs: List of {"key": "...", "cx": "..."}
-        """
-        self.key_pairs = key_pairs
-        self.current_index = 0
-        self.failure_count = 0
+    def __init__(self, key_pairs: List[Dict[str, str]]) -> None:
+        self.key_pairs: List[Dict[str, str]] = key_pairs
+        self.current_index: int = 0
+        self.failure_count: int = 0
         self.cooldown_until: Optional[datetime] = None
         
-        # Phase 42: Professional Agent Caching (Memory Discipline)
-        self.planner_agent = Agent(
+        # Phase 42: Agent Caching
+        self.planner_agent: Agent = Agent(
             output_type=VisualSearchPlan, 
             system_prompt=PLANNER_PROMPT
         )
@@ -53,37 +51,45 @@ class AssetHunter:
             raise Exception("No Google Search API Keys configured.")
         return self.key_pairs[self.current_index]
 
-    def _rotate_key(self):
+    def _rotate_key(self) -> None:
         self.current_index = (self.current_index + 1) % len(self.key_pairs)
-        logger.info(f"[AssetHunter] Rotating to key index {self.current_index}")
+        logger.info(f"[AssetHunter] Rotating key to index {self.current_index}")
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs):
+    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: Any) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0)."""
-        campaign = await repo.get(campaign_id)
-        if not campaign: return
+        campaign: Optional[ContentCampaign] = await repo.get(campaign_id)
+        if not campaign:
+            return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found.", data={})
         
-        # Professional CTO Fix: Using Standardized Golden Context Helpers
-        title = campaign.get_gold_val("title", campaign.source_input)
-        primary = campaign.get_gold_val("primary_keyword", "")
+        # R108: Pull Comprehensive Context for Intelligence
+        title: str = campaign.get_gold_val("title", campaign.source_input)
+        primary: str = campaign.get_gold_val("primary_keyword", "")
+        secondary: List[str] = campaign.get_gold_val("secondary_keywords", [])
+        persona: str = campaign.get_gold_val("persona", "Professional")
         
         await event_bus.emit("CONTENT_PROGRESS", {
             "campaign_id": campaign_id,
             "user_id": str(campaign.user_id),
             "step": 2,
-            "message": "🧠 Đang khởi tạo Creative Director để lập kế hoạch hình ảnh...",
+            "message": "🧠 Đang phân tích thực thể và lập kế hoạch săn ảnh...",
             "status": "PROCESSING",
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
         
-        # Step 2.1: AI Search Planning
+        # Step 2.1: AI Search Planning (Subject-First Logic)
         try:
-            prompt = f"Tiêu đề: {title}\nTừ khóa chính: {primary}"
+            prompt = (
+                f"Title: {title}\n"
+                f"Primary Keyword: {primary}\n"
+                f"Secondary Keywords: {', '.join(secondary)}\n"
+                f"Persona: {persona}"
+            )
             result = await trinity_bridge.run(self.planner_agent, prompt)
             plan: VisualSearchPlan = result.data if hasattr(result, "data") else result.output
-            queries = plan.queries
-            logger.info(f"[AssetHunter] AI generated {len(queries)} search queries.")
+            queries: List[str] = plan.queries
+            logger.info(f"[AssetHunter] AI Planner query: {queries[0] if queries else 'None'}")
         except Exception as e:
-            logger.error(f"[AssetHunter] AI planning failed, falling back to raw keyword: {e}")
+            logger.error(f"[AssetHunter] AI planning failed, fallback to keywords: {e}")
             queries = [primary if primary else title]
 
         # Step 2.2: Multi-Query Search & Deduplication

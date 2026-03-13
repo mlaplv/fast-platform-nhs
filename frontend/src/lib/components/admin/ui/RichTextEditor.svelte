@@ -48,6 +48,7 @@
     toolbarActions = [] as ToolbarAction[],
     annotations = [] as EditorAnnotation[],
     onfix = null as ((snippet: string, type: string, message: string) => Promise<string | null>) | null,
+    onblur = () => {},
   }: {
     content?: string;
     onChange?: (val: string) => void;
@@ -58,6 +59,7 @@
     toolbarActions?: ToolbarAction[];
     annotations?: EditorAnnotation[];
     onfix?: ((snippet: string, type: string, message: string) => Promise<string | null>) | null;
+    onblur?: () => void;
   } = $props();
   let editor = $state<Editor | null>(null);
   let element: HTMLElement;
@@ -154,7 +156,7 @@
         }),
         Image.configure({
           inline: false,
-          HTMLAttributes: { class: 'rounded-xl max-w-full mx-auto my-4 shadow-lg' },
+          HTMLAttributes: { class: 'max-w-full mx-auto my-4 shadow-lg' },
         }),
         TextAlign.configure({ types: ['heading', 'paragraph'] }),
         TextStyle,
@@ -180,7 +182,9 @@
       },
       onSelectionUpdate: () => updateToolbarState(),
       onFocus: () => isFocused = true,
-      onBlur: () => isFocused = false,
+      onBlur: () => {
+        isFocused = false;
+      },
     });
 
     updateToolbarState();
@@ -494,10 +498,24 @@
   function clearAnnotations() {
     if (editor) editor.commands.clearAllAnnotations();
   }
+
+  function handleFocusOut(e: FocusEvent) {
+    // Phase 73: Only trigger onblur if focus is moving OUTSIDE the entire shell
+    // This prevents closing the editor when clicking on toolbar buttons
+    const currentTarget = e.currentTarget as HTMLElement;
+    const relatedTarget = e.relatedTarget as Node;
+    
+    if (editable && onblur && currentTarget && !currentTarget.contains(relatedTarget)) {
+      onblur();
+    }
+  }
 </script>
 
 <!-- Main editor container -->
-<div class="editor-shell flex flex-col w-full h-full {editable ? 'bg-[#0d1117] border ' + (isFocused ? 'border-blue-500/40' : 'border-white/10') + ' rounded-2xl overflow-hidden' : 'bg-transparent border-none overflow-visible'} transition-all duration-300">
+<div 
+  class="editor-shell flex flex-col w-full h-full {editable ? 'bg-[#0d1117] border ' + (isFocused ? 'border-blue-500/40' : 'border-white/10') + ' overflow-hidden' : 'bg-transparent border-none overflow-visible'} transition-all duration-300"
+  onfocusout={handleFocusOut}
+>
 
   {#if editable}
   <!-- Row 1: Primary toolbar -->
@@ -566,14 +584,14 @@
       {#each COLORS as color}
         <button
           onclick={() => editor?.chain().focus().setColor(color).run()}
-          class="w-4 h-4 rounded-[3px] border border-white/20 hover:scale-110 transition-transform shadow-inner"
+          class="w-4 h-4 border border-white/20 hover:scale-110 transition-transform shadow-inner"
           style="background: {color}"
           title="Text color: {color}"
         ></button>
       {/each}
       <button
         onclick={() => editor?.chain().focus().unsetColor().run()}
-        class="w-4 h-4 rounded-[3px] border border-white/20 hover:scale-110 transition-transform text-[8px] text-white/50 flex items-center justify-center"
+        class="w-4 h-4 border border-white/20 hover:scale-110 transition-transform text-[8px] text-white/50 flex items-center justify-center"
         title="Reset color"
       >↺</button>
     </div>
@@ -585,7 +603,7 @@
         <button
           onclick={action.disabled ? undefined : action.onclick}
           disabled={action.loading || action.disabled}
-          class="flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wide border transition-all
+          class="flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide border transition-all
             {action.loading
               ? 'bg-white/5 border-white/10 text-white/30 cursor-wait'
               : action.disabled
@@ -610,7 +628,7 @@
       {/if}
       <button
         onclick={clearAnnotations}
-        class="flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wide border transition-all bg-white/5 hover:bg-white/10 border-white/10 text-white/40 hover:text-white active:scale-95"
+        class="flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide border transition-all bg-white/5 hover:bg-white/10 border-white/10 text-white/40 hover:text-white active:scale-95"
         title="Xóa tất cả highlights"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
@@ -628,7 +646,7 @@
     onmouseleave={handleEditorMouseLeave}
   >
     <!-- White page with shadow -->
-    <div class="{editable ? (fullScreen ? 'max-w-[95%] mx-auto my-0 bg-[#0f172a] min-h-screen px-20 py-16 shadow-none border-x border-white/5' : 'max-w-[95%] mx-auto my-8 bg-[#111827] rounded-xl shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_20px_60px_rgba(0,0,0,0.5)] min-h-[600px] px-16 py-12') : (fullScreen ? 'max-w-[95%] mx-auto px-10 py-12' : 'max-w-full mx-auto px-6 py-4')}">
+    <div class="{editable ? (fullScreen ? 'max-w-[95%] mx-auto my-0 bg-[#0f172a] min-h-screen px-20 py-16 shadow-none border-x border-white/5' : 'max-w-[95%] mx-auto my-8 bg-[#111827] shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_20px_60px_rgba(0,0,0,0.5)] min-h-[600px] px-16 py-12') : (fullScreen ? 'max-w-[95%] mx-auto px-10 py-12' : 'max-w-full mx-auto px-6 py-4')}">
       <div bind:this={element} class="editor-content transition-all duration-300"></div>
     </div>
   </div>
@@ -651,7 +669,7 @@
   <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm" onclick={() => showImageDialog = false}>
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <div class="bg-[#1a2233] border border-white/10 rounded-2xl p-6 shadow-2xl w-[90%] max-w-[800px]" onclick={(e) => e.stopPropagation()}>
+    <div class="bg-[#1a2233] border border-white/10 p-6 shadow-2xl w-[90%] max-w-[800px]" onclick={(e) => e.stopPropagation()}>
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-sm font-bold text-white">Chèn hình ảnh</h3>
         <button onclick={() => showImageDialog = false} class="text-white/40 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
@@ -666,7 +684,7 @@
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div 
-                 class="aspect-video rounded-lg overflow-hidden border border-white/10 hover:border-blue-500 cursor-pointer transition-colors bg-white/5"
+                 class="aspect-video overflow-hidden border border-white/10 hover:border-blue-500 cursor-pointer transition-colors bg-white/5"
                  onclick={() => { imageUrl = fullUrl; insertImage(); }}
                  title="Chèn ảnh này"
               >
@@ -689,7 +707,7 @@
       <div class="flex flex-col gap-3 mb-4">
         <button 
           onclick={() => fileInput?.click()}
-          class="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all text-xs font-bold"
+          class="w-full flex items-center justify-center gap-2 py-3 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all text-xs font-bold"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Tải ảnh lên từ thiết bị
@@ -711,8 +729,8 @@
         class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-blue-500/50 mb-3"
       />
       <div class="flex gap-2 justify-end">
-        <button onclick={() => showImageDialog = false} class="px-4 py-2 rounded-xl text-xs text-white/60 hover:text-white transition-colors">Hủy</button>
-        <button onclick={insertImage} class="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 text-white text-xs font-bold transition-colors">Chèn URL</button>
+        <button onclick={() => showImageDialog = false} class="px-4 py-2 text-xs text-white/60 hover:text-white transition-colors">Hủy</button>
+        <button onclick={insertImage} class="px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white text-xs font-bold transition-colors">Chèn URL</button>
       </div>
     </div>
   </div>
@@ -725,7 +743,7 @@
   <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm" onclick={() => showLinkDialog = false}>
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <div class="bg-[#1a2233] border border-white/10 rounded-2xl p-6 shadow-2xl w-96" onclick={(e) => e.stopPropagation()}>
+    <div class="bg-[#1a2233] border border-white/10 p-6 shadow-2xl w-96" onclick={(e) => e.stopPropagation()}>
       <h3 class="text-sm font-bold text-white mb-3">Chèn liên kết</h3>
       <input
         type="url"
@@ -735,8 +753,8 @@
         class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-blue-500/50 mb-3"
       />
       <div class="flex gap-2 justify-end">
-        <button onclick={() => showLinkDialog = false} class="px-4 py-2 rounded-xl text-xs text-white/60 hover:text-white transition-colors">Hủy</button>
-        <button onclick={setLink} class="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 text-white text-xs font-bold transition-colors">Áp dụng</button>
+        <button onclick={() => showLinkDialog = false} class="px-4 py-2 text-xs text-white/60 hover:text-white transition-colors">Hủy</button>
+        <button onclick={setLink} class="px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white text-xs font-bold transition-colors">Áp dụng</button>
       </div>
     </div>
   </div>
@@ -751,7 +769,7 @@
       class="fixed z-[100001] pointer-events-none transition-opacity duration-150"
       style="left: {tooltipX}px; top: {tooltipY}px; transform: translate(-50%, -100%)"
     >
-      <div class="rounded-xl shadow-2xl border backdrop-blur-xl p-3 text-[10px] leading-relaxed w-56 pointer-events-auto {
+      <div class="shadow-2xl border backdrop-blur-xl p-3 text-[10px] leading-relaxed w-56 pointer-events-auto {
         _isFixed ? 'bg-emerald-950/95 border-emerald-500/30 text-emerald-100' : 
         _isInternal ? 'bg-fuchsia-950/95 border-fuchsia-500/30 text-fuchsia-100' :
         tooltipType === 'copyright' ? 'bg-orange-950/95 border-orange-500/30 text-orange-100' :
@@ -764,7 +782,7 @@
               {_isFixed ? '✨ Hoàn tất' : tooltipType.replace(/_/g, ' ')}
             </span>
             {#if _isFixed}
-              <span class="text-emerald-400 font-bold bg-emerald-400/10 px-1.5 py-0.5 rounded-md flex items-center gap-1 shrink-0">
+              <span class="text-emerald-400 font-bold bg-emerald-400/10 px-1.5 py-0.5 flex items-center gap-1 shrink-0">
                 <Check size={10} /> ĐÃ SỬA
               </span>
             {/if}
@@ -781,7 +799,7 @@
               <span class="text-[8px] opacity-30 italic shrink-0">Surgical Agent Ready</span>
               
               <button 
-                class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all font-bold disabled:opacity-40"
+                class="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white transition-all font-bold disabled:opacity-40"
                 onclick={handleTooltipFix}
                 disabled={isFixing}
               >

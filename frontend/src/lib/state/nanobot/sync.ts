@@ -40,7 +40,7 @@ export function createSyncManager(state: any, log: any, chat: any, notification:
     chat.hydrateHistory("account", (logs: any) => {
       log.upsertLogs(logs);
       const uniqueLogs = log.activityLogs;
-      const pending = [...uniqueLogs].reverse().find((l: any) => l.data?.campaign_id && (l.data?.status === "WAITING_FOR_REVIEW" || l.data?.status === "PROCESSING" || (parseInt(String(l.data?.step || 0)) < 6)));
+      const pending = [...uniqueLogs].reverse().find((l: any) => l.data?.campaign_id && (l.data?.status === "WAITING_FOR_REVIEW" || l.data?.status === "PROCESSING" || (parseInt(String(l.data?.step || 0)) <= 6)));
       
       if (pending) {
         ui.showToast(`Phát hiện bản thảo cũ. Đang khôi phục...`, "info", 5000);

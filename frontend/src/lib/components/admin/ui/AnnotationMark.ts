@@ -129,7 +129,7 @@ const ANNOTATION_STYLES = `
     color: inherit;
     position: relative;
     cursor: pointer;
-    border-radius: 2px;
+    border-radius: 0;
     transition: background 0.2s ease, text-shadow 0.2s ease;
   }
 

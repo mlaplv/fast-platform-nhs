@@ -338,7 +338,7 @@
   </div>
 
   <!-- Editor -->
-  <div class="flex-1 rounded-2xl flex flex-col relative transition-all overflow-hidden min-h-0 {isEditing ? 'border border-white/10 shadow-2xl ring-2 ring-purple-500/30 bg-black/40' : 'bg-transparent'}">
+  <div class="flex-1 flex flex-col relative transition-all overflow-hidden min-h-0 {isEditing ? 'border border-white/10 shadow-2xl ring-2 ring-purple-500/30 bg-black/40' : 'bg-transparent'}">
     <RichTextEditor
       bind:this={editorRef}
       content={displayContent}
@@ -401,7 +401,7 @@
           }
         }}
         disabled={isCopyrightLoading}
-        class="group relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all
+        class="group relative flex items-center gap-1.5 px-3 py-1.5 transition-all
           {activeTab === 'copyright'
             ? 'bg-orange-500/15 border border-orange-500/40 text-orange-300'
             : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}
@@ -431,7 +431,7 @@
             }
           }}
           disabled={isSeoLoading || seoLocked}
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all
+          class="flex items-center gap-1.5 px-3 py-1.5 transition-all
             {activeTab === 'seo'
               ? 'bg-blue-500/15 border border-blue-500/40 text-blue-300'
               : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}
@@ -453,7 +453,7 @@
         </button>
         <!-- Tooltip khi locked -->
         {#if seoLocked}
-          <div class="absolute bottom-full left-0 mb-1.5 px-2 py-1 rounded-lg bg-black/90 border border-white/10 text-[8px] text-orange-400 whitespace-nowrap opacity-0 group-hover/seo:opacity-100 transition-opacity pointer-events-none z-10">
+          <div class="absolute bottom-full left-0 mb-1.5 px-2 py-1 bg-black/90 border border-white/10 text-[8px] text-orange-400 whitespace-nowrap opacity-0 group-hover/seo:opacity-100 transition-opacity pointer-events-none z-10">
             ⚠️ Cần Bản Quyền ≥ 90 trước ({_copyrightScore !== null ? `hiện: ${_copyrightScore}%` : 'chưa kiểm tra'})
           </div>
         {/if}
@@ -470,7 +470,7 @@
             }
           }}
           disabled={isAiLoading || aiLocked}
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all
+          class="flex items-center gap-1.5 px-3 py-1.5 transition-all
             {activeTab === 'ai'
               ? 'bg-purple-500/15 border border-purple-500/40 text-purple-300'
               : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}
@@ -493,7 +493,7 @@
         </button>
         <!-- Tooltip khi locked -->
         {#if aiLocked}
-          <div class="absolute bottom-full left-0 mb-1.5 px-2 py-1 rounded-lg bg-black/90 border border-white/10 text-[8px] text-blue-400 whitespace-nowrap opacity-0 group-hover/ai:opacity-100 transition-opacity pointer-events-none z-10">
+          <div class="absolute bottom-full left-0 mb-1.5 px-2 py-1 bg-black/90 border border-white/10 text-[8px] text-blue-400 whitespace-nowrap opacity-0 group-hover/ai:opacity-100 transition-opacity pointer-events-none z-10">
             ⚠️ Cần SEO ≥ 70 trước ({_seoScore !== null ? `hiện: ${_seoScore}/100` : 'chưa kiểm tra'})
           </div>
         {/if}
@@ -524,6 +524,6 @@
 
 <style>
   :global(.custom-scrollbar::-webkit-scrollbar) { width: 3px; }
-  :global(.custom-scrollbar::-webkit-scrollbar-thumb) { background: rgba(59,130,246,0.1); border-radius: 20px; }
+  :global(.custom-scrollbar::-webkit-scrollbar-thumb) { background: rgba(59,130,246,0.1); border-radius: 0; }
   :global(.custom-scrollbar::-webkit-scrollbar-thumb:hover) { background: rgba(59,130,246,0.6); }
 </style>

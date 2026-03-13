@@ -54,6 +54,21 @@
   let seoScore = $state<number | null>(null);
   let aiScore = $state<number | null>(null);
 
+  // Phase 73: Initialize scores from metrics if DraftStep is skipped
+  $effect(() => {
+    if (analysis_metrics && copyrightScore === null) {
+      if (analysis_metrics.unique_score !== undefined) {
+        copyrightScore = Math.round(analysis_metrics.unique_score * 100);
+      }
+      if (seoScore === null && analysis_metrics.seo_score !== undefined) {
+        seoScore = analysis_metrics.seo_score;
+      }
+      if (aiScore === null && analysis_metrics.ai_ready_score !== undefined) {
+        aiScore = analysis_metrics.ai_ready_score;
+      }
+    }
+  });
+
   // -- Gate Block Modal --
   let showGateModal = $state(false);
   let gateBlockers = $state<Array<{ label: string; current: string; required: string; tab: 'copyright' | 'seo' | 'ai' }>>([]);
@@ -94,7 +109,6 @@
     
     viewingStep = step;
     // Merge defaults with creation_config to ensure all keys are present
-    // Phase 72: Check both prop and keywords.creation_config for robust sync
     const baseConfig = creation_config && Object.keys(creation_config).length > 0
       ? creation_config 
       : (keywords?.creation_config || {});
@@ -102,7 +116,19 @@
     editedConfig = { ...DEFAULT_CONFIG, ...baseConfig };
     if (typeof editedConfig !== 'object') editedConfig = {};
     editedKeywords = JSON.parse(JSON.stringify(keywords || {}));
-    editedDraft = draft_content || "";
+    
+    // CNS V73.5: Multi-source content restoration
+    // Prioritize draft_content, then metrics content, then outline.html
+    const fallbackFromMetrics = analysis_metrics?.draft_content;
+    const fallbackFromOutline = outline?.html;
+    
+    draft_content = draft_content || fallbackFromMetrics || fallbackFromOutline || "";
+    editedDraft = draft_content;
+    
+    // Ensure finalHtml is not empty if we are in step 6
+    if (viewingStep >= 6 && !finalHtml) {
+      finalHtml = draft_content;
+    }
     
     // Ensure viewingStep is valid
     if (viewingStep < 1 || viewingStep > 6) viewingStep = step || 1;
@@ -111,8 +137,10 @@
 
   // Rule R82.42: Reactive Prep — Ensure editedDraft is ready for next steps
   $effect(() => {
-    if (!isEditing && draft_content && draft_content !== editedDraft) {
-      editedDraft = draft_content;
+    // CNS V73.8: More aggressive sync if local editedDraft is empty
+    const source = draft_content || finalHtml || "";
+    if (!isEditing && source && (source !== editedDraft || !editedDraft)) {
+      editedDraft = source;
     }
   });
 
@@ -340,7 +368,7 @@
 </script>
 
 <div 
-  class="content-review-card w-full {nanobot.isExpanded ? 'h-full bg-transparent' : 'h-full md:h-[85vh] bg-[#0c0a0f]/80 md:backdrop-blur-3xl md:border md:border-white/10 md:rounded-[2.5rem]'} flex flex-col p-4 md:p-6 transition-all duration-700 overflow-hidden md:shadow-[0_30px_100px_rgba(0,0,0,0.8)]"
+  class="content-review-card w-full {nanobot.isExpanded ? 'h-full bg-transparent' : 'h-full md:h-[85vh] bg-[#0c0a0f]/80 md:backdrop-blur-3xl md:border md:border-white/10'} flex flex-col p-4 md:p-6 transition-all duration-700 overflow-hidden md:shadow-[0_30px_100px_rgba(0,0,0,0.8)]"
   in:fade={{ duration: 600 }}
 >
   <Header 
@@ -396,13 +424,14 @@
       {:else if viewingStep === 6}
         <PublishStep
           {selectedAvatarUrl} bind:viewingStep bind:isEditing bind:keywords
-          {finalHtml} {draft_content} {assets} {campaign_id} {apiClient}
+          bind:finalHtml bind:draft_content {assets} {campaign_id} {apiClient}
+          {copyrightScore} {seoScore} {aiScore} {analysis_cache}
         />
       {/if}
   </div>
 
   {#if resultMsg}
-    <div class="mt-6 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-300 text-[13px] font-bold">
+    <div class="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 text-blue-300 text-[13px] font-bold">
       {resultMsg}
     </div>
   {/if}
@@ -429,7 +458,7 @@
 <style>
   .content-review-card { position: relative; isolation: isolate; }
   :global(.custom-scrollbar::-webkit-scrollbar) { width: 3px; }
-  :global(.custom-scrollbar::-webkit-scrollbar-thumb) { background: rgba(59, 130, 246, 0.1); border-radius: 20px; }
+  :global(.custom-scrollbar::-webkit-scrollbar-thumb) { background: rgba(59, 130, 246, 0.1); border-radius: 0; }
   :global(.custom-scrollbar::-webkit-scrollbar-thumb:hover) { background: rgba(59, 130, 246, 0.6); }
   @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
   :global(.animate-shimmer) { position: relative; overflow: hidden; }

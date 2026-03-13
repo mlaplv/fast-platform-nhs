@@ -92,13 +92,14 @@ class ActionHandler:
         if not campaign:
             return {"status": "error", "message": "Campaign not found"}
 
-        for field in ["assets", "keywords", "outline_data", "draft_content"]:
-            val = data.get(field if field != "keywords" else "keywords")
+        for field in ["assets", "keywords", "outline_data", "draft_content", "final_html"]:
+            val = data.get(field)
             if val is not None:
                 if field == "assets": campaign.assets_data = val
                 elif field == "keywords": campaign.topic_data = val
                 elif field == "outline_data": campaign.outline_data = val
                 elif field == "draft_content": campaign.draft_content = val
+                elif field == "final_html": campaign.final_html = val
 
         avatar = data.get("avatar")
         selected_index = data.get("selected_index")
