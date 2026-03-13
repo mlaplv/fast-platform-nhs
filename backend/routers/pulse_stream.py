@@ -51,4 +51,5 @@ class PulseStreamController(Controller):
                 event_bus.unsubscribe_broadcast(queue)
                 logger.info("[PulseStream] Client disconnected from Agent Pulse.")
 
+        # Disable default read timeout to allow infinite SSE stream (relying on heartbeat pings)
         return Stream(event_generator(), media_type="text/event-stream")

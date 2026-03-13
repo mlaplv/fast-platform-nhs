@@ -11,7 +11,8 @@
     isAiLoading,
     runCopyrightCheck,
     runSeoAnalysis,
-    runAiAnalysis
+    runAiAnalysis,
+    onfix = null
   }: {
     activeTab: 'copyright' | 'seo' | 'ai' | null;
     copyrightResult: any;
@@ -23,7 +24,20 @@
     runCopyrightCheck: () => void;
     runSeoAnalysis: () => void;
     runAiAnalysis: () => void;
+    onfix?: ((snippet: string, type: string, message: string) => Promise<string | null>) | null;
   } = $props();
+
+  let isFixing = $state<string | null>(null);
+
+  async function handleInternalFix(snippet: string, type: string, message: string) {
+    if (!onfix || isFixing) return;
+    isFixing = snippet;
+    try {
+      await onfix(snippet, type, message);
+    } finally {
+      isFixing = null;
+    }
+  }
 </script>
 
 <div class="shrink-0 flex flex-col gap-2">
@@ -62,12 +76,52 @@
             <button onclick={runCopyrightCheck} class="text-[8px] text-white/20 hover:text-orange-400 transition-colors" title="Chạy lại">↻</button>
           </div>
           <p class="text-[9px] text-white/50 leading-relaxed truncate">{copyrightResult.verdict}</p>
-          {#if copyrightResult.flagged_sentences?.length > 0}
-            <p class="text-[8px] text-orange-400/60 mt-0.5">⚠️ {copyrightResult.flagged_sentences.length} đoạn có rủi ro</p>
-            <div class="mt-1 flex flex-col gap-0.5">
-              {#each copyrightResult.flagged_sentences.slice(0, 3) as sentence}
-                {@const snippetKey = typeof sentence === 'string' ? sentence : (sentence.text || '')}
-                <p class="text-[8px] text-white/30 truncate">• "{snippetKey.slice(0, 50)}..."</p>
+          {#if copyrightResult.annotations?.length > 0}
+            <div class="mt-2 flex flex-col gap-1.5">
+              {#each copyrightResult.annotations as ann}
+                {@const isInternal = ann.type === 'internal-dedup'}
+                {@const annColor = ann.severity === 'high' ? 'red' : ann.severity === 'medium' ? 'orange' : 'yellow'}
+                {@const annHex = ann.severity === 'high' ? '#ef4444' : ann.severity === 'medium' ? '#f59e0b' : '#eab308'}
+                
+                <div class="p-2 rounded-lg border bg-white/[0.02] flex flex-col gap-1.5 transition-all hover:bg-white/[0.04]"
+                     style="border-color: {annHex}20"
+                >
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-[7px] font-black px-1 py-0.5 rounded uppercase" 
+                        style="background: {annHex}20; color: {annHex}">
+                        {isInternal ? '🔁 TRÙNG LẶP NỘI BỘ' : `🚨 BẢN QUYỀN ${ann.severity}`}
+                      </span>
+                    </div>
+                    
+                    <button 
+                      onclick={() => handleInternalFix(ann.text, ann.type || 'copyright', ann.reason)}
+                      disabled={!!isFixing}
+                      class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border border-white/10 hover:bg-white/10 text-[7px] font-black uppercase transition-all disabled:opacity-40"
+                    >
+                      {#if isFixing === ann.text}
+                        <span class="w-2 h-2 border border-white/30 border-t-white rounded-full animate-spin"></span>
+                        FIXING...
+                      {:else if ann.type === 'fixed'}
+                        <ShieldCheck size={8} class="text-emerald-400" />
+                        ĐÃ SỬA
+                      {:else}
+                        <Sparkles size={8} class="text-yellow-400" />
+                        SỬA LỖI
+                      {/if}
+                    </button>
+                  </div>
+
+                  <p class="text-[8px] text-white/70 leading-relaxed">
+                    <span class="text-white/30 italic">"{ann.text}"</span> — {ann.reason}
+                  </p>
+
+                  {#if ann.source_url && !isInternal}
+                    <a href={ann.source_url} target="_blank" class="text-[7px] text-blue-400/60 hover:text-blue-400 underline truncate">
+                      🔗 Nguồn: {ann.source_url}
+                    </a>
+                  {/if}
+                </div>
               {/each}
             </div>
           {/if}

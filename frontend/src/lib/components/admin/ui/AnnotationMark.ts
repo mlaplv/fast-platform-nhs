@@ -194,6 +194,19 @@ const ANNOTATION_STYLES = `
     text-decoration-thickness: 1.5px;
     text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
   }
+  
+  /* ══ INTERNAL DEDUP — tím dashed ══ */
+  .xohi-annotation[data-annotation-type="internal-dedup" i] {
+    color: #e879f9 !important;    /* fuchsia-400 */
+    background: rgba(217, 70, 239, 0.12);
+    text-decoration: underline dashed rgba(217, 70, 239, 1);
+    text-decoration-thickness: 1.5px;
+    text-shadow: 0 0 12px rgba(217, 70, 239, 0.4);
+  }
+  .xohi-annotation[data-annotation-type="internal-dedup" i]:hover {
+    background: rgba(217, 70, 239, 0.25);
+    text-shadow: 0 0 18px rgba(217, 70, 239, 0.6);
+  }
 
   /* ══ AI READINESS / GEO — tím neon nhạt ══ */
   .xohi-annotation[data-annotation-type="geo-info" i],

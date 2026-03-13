@@ -60,6 +60,7 @@
   let isSeoLoading = $state(false);
   let aiReadyResult = $state<any>(null);
   let isAiLoading = $state(false);
+  let isBulkFixing = $state(false);
 
   // -- Tab Filter State --
   let activeTab = $state<'copyright' | 'seo' | 'ai' | null>(null);
@@ -204,6 +205,61 @@
     return null;
   };
 
+  const runBulkFix = async () => {
+    if (!campaign_id || isBulkFixing || !activeTab || editorAnnotations.length === 0) return;
+    isBulkFixing = true;
+    try {
+      // Deduplicate and gather annotations to send
+      let category = '';
+      let annotationsToSend = [];
+      if (activeTab === 'copyright') {
+        category = 'copyright';
+        annotationsToSend = copyrightResult?.annotations || [];
+      } else if (activeTab === 'seo') {
+        category = 'seo';
+        annotationsToSend = seoResult?.seo_annotations || [];
+      } else if (activeTab === 'ai') {
+        category = 'ai';
+        annotationsToSend = aiReadyResult?.ai_annotations || [];
+      }
+
+      if (annotationsToSend.length === 0) return;
+
+      const res = (await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/bulk-fix`, {
+        category: category,
+        annotations: annotationsToSend
+      })) as any;
+
+      if (res?.status === 'success' && res.data?.new_content) {
+        // AI returned entirely new content
+        const newHtml = res.data.new_content;
+        
+        // Let the editor reactivity naturally pick it up through editedDraft/draft_content binding
+        if (isEditing) {
+            editedDraft = newHtml;
+        } else {
+            draft_content = newHtml;
+        }
+        
+        // Optimistically clear the errors for the active tab since bulk fix "promises" to fix them all
+        setTimeout(() => {
+          const clearAll = (arr: any[]) => arr.map(a => ({...a, type: 'fixed'}));
+          if (activeTab === 'copyright' && copyrightResult?.annotations) {
+            copyrightResult.annotations = clearAll(copyrightResult.annotations);
+          } else if (activeTab === 'seo' && seoResult?.seo_annotations) {
+            seoResult.seo_annotations = clearAll(seoResult.seo_annotations);
+          } else if (activeTab === 'ai' && aiReadyResult?.ai_annotations) {
+            aiReadyResult.ai_annotations = clearAll(aiReadyResult.ai_annotations);
+          }
+        }, 300);
+      }
+    } catch (e) {
+      console.error('[DraftStep] Bulk Fix failed:', e);
+    } finally {
+      isBulkFixing = false;
+    }
+  };
+
   // Expert Optimizer (V71.30): Analysis Hydration from DB Cache
   $effect(() => {
     untrack(() => {
@@ -300,7 +356,13 @@
             ? `🔒 AI 2026 bị khoá — Cần SEO ≥ 70 trước (hiện: ${_seoScore !== null ? _seoScore + '/100' : 'chưa check'})`
             : undefined,
           onclick: runAiAnalysis
-        }
+        },
+        // Bulk Fix Action rendered only IF there's an active tab and errors
+        ...(activeTab && editorAnnotations.filter(a => a.type !== 'fixed').length > 0 ? [{
+          label: isBulkFixing ? '✨ ĐANG PHẪU THUẬT...' : `✨ SỬA TOÀN BỘ (${editorAnnotations.filter(a => a.type !== 'fixed').length} LỖI ${activeTab.toUpperCase()})`,
+          loading: isBulkFixing,
+          onclick: runBulkFix
+        }] : [])
       ]}
       annotations={editorAnnotations}
       onfix={runAutoFix}
@@ -436,6 +498,7 @@
           {runCopyrightCheck}
           {runSeoAnalysis}
           {runAiAnalysis}
+          onfix={runAutoFix}
         />
       </div>
     {/if}

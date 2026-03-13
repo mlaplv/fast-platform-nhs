@@ -353,29 +353,76 @@
         let maxPos = -Infinity;
         const markType = editor.schema.marks.annotation;
 
+        // If fixing internal-dedup, replace ALL exact matches in the document to save user clicks
+        const isInternalDedup = tooltipType === 'internal-dedup';
+        let foundMatches = false;
+
         console.log(`===============================================`);
         console.log(`[AutoFix] 1. STARTING FIX FOR ID:`, tooltipId);
         console.log(`[AutoFix]    Snippet: "${tooltipSnippet}"`);
         console.log(`[AutoFix]    Target New Text: "${newText}"`);
+        console.log(`[AutoFix]    Bulk Replace Mode (Dedup):`, isInternalDedup);
 
-        // Traverse document to find the exact DOM-mapped annotation mark by ID
-        editor.state.doc.descendants((node, pos) => {
-          if (node.isText) {
-            const hasMark = node.marks.find(m => m.type === markType && m.attrs.id === tooltipId);
-            if (hasMark) {
-              minPos = Math.min(minPos, pos);
-              maxPos = Math.max(maxPos, pos + node.nodeSize);
+        let currentTr = editor.state.tr;
+
+        // For internal-dedup, we want to replace ALL exact text matches in the document
+        if (isInternalDedup) {
+           // We must collect ranges first, then apply in REVERSE order so positions don't shift
+           const rangesToReplace: {start: number, end: number}[] = [];
+           
+           editor.state.doc.descendants((node, pos) => {
+             if (node.isText && node.text) {
+               // Find ALL occurrences within this specific text node
+               let startIndex = 0;
+               let matchIdx = node.text.indexOf(tooltipSnippet, startIndex);
+               while (matchIdx !== -1) {
+                 const absoluteStart = pos + matchIdx;
+                 const absoluteEnd = absoluteStart + tooltipSnippet.length;
+                 rangesToReplace.push({ start: absoluteStart, end: absoluteEnd });
+                 
+                 // Move start index forward to find subsequent matches in the same node
+                 startIndex = matchIdx + tooltipSnippet.length;
+                 matchIdx = node.text.indexOf(tooltipSnippet, startIndex);
+               }
+             }
+           });
+           
+           // Sort descending by start position to prevent offset shifts during replacement
+           rangesToReplace.sort((a, b) => b.start - a.start);
+           
+           for (const range of rangesToReplace) {
+             currentTr = currentTr.insertText(newText, range.start, range.end);
+             foundMatches = true;
+           }
+           
+        } else {
+          // Standard logic: find ONLY the mark with the matching ID
+          let minPos = Infinity;
+          let maxPos = -Infinity;
+          
+          editor.state.doc.descendants((node, pos) => {
+            if (node.isText) {
+              const hasMark = node.marks.find(m => m.type === markType && m.attrs.id === tooltipId);
+              if (hasMark) {
+                minPos = Math.min(minPos, pos);
+                maxPos = Math.max(maxPos, pos + node.nodeSize);
+              }
             }
-          }
-        });
+          });
 
-        if (minPos !== Infinity && maxPos !== -Infinity) {
-          console.log(`[AutoFix] 2. FOUND MARK IN AST! Pos: ${minPos} -> ${maxPos}`);
-          editor.view.dispatch(editor.state.tr.insertText(newText, minPos, maxPos));
+          if (minPos !== Infinity && maxPos !== -Infinity) {
+             currentTr = currentTr.insertText(newText, minPos, maxPos);
+             foundMatches = true;
+          }
+        }
+
+        if (foundMatches) {
+          editor.view.dispatch(currentTr);
           tooltipSnippet = newText;
+          tooltipType = 'fixed'; // Show completed state
           console.log(`[AutoFix] 3. SUCCESS! Text Replaced in Editor.`);
         } else {
-          console.error(`[AutoFix] 2. FAILED! Could not locate Mark ID. ID was either already replaced or Svelte wiped it.`);
+          console.error(`[AutoFix] 2. FAILED! Could not locate text or Mark ID.`);
         }
         console.log(`===============================================`);
       }
@@ -698,6 +745,7 @@
   <!-- Annotation Tooltip -->
   {#if tooltipVisible && (tooltipText || tooltipType === 'fixed')}
     {@const _isFixed = tooltipType === 'fixed'}
+    {@const _isInternal = tooltipType === 'internal-dedup'}
     <div 
       bind:this={tooltipEl}
       class="fixed z-[100001] pointer-events-none transition-opacity duration-150"
@@ -705,6 +753,7 @@
     >
       <div class="rounded-xl shadow-2xl border backdrop-blur-xl p-3 text-[10px] leading-relaxed w-56 pointer-events-auto {
         _isFixed ? 'bg-emerald-950/95 border-emerald-500/30 text-emerald-100' : 
+        _isInternal ? 'bg-fuchsia-950/95 border-fuchsia-500/30 text-fuchsia-100' :
         tooltipType === 'copyright' ? 'bg-orange-950/95 border-orange-500/30 text-orange-100' :
         tooltipType.startsWith('seo-') ? 'bg-blue-950/95 border-blue-400/30 text-blue-50' :
         'bg-slate-900/95 border-white/10 text-white'
@@ -721,7 +770,7 @@
             {/if}
           </div>
 
-          <p class="font-medium { _isFixed ? 'text-emerald-200/80' : 'text-white/80' }">
+          <p class="font-medium { _isFixed ? 'text-emerald-200/80' : _isInternal ? 'text-fuchsia-200/80' : 'text-white/80' }">
             {_isFixed ? 'Đoạn văn này đã được Surgical Agent xử lý chuẩn xác.' : tooltipText}
           </p>
           
@@ -747,7 +796,7 @@
             </div>
           {/if}
           
-          {#if tooltipSource && !_isFixed}
+          {#if tooltipSource && !_isFixed && !_isInternal}
             <a
               href={tooltipSource}
               target="_blank"
@@ -760,6 +809,7 @@
       <!-- Triangle pointer -->
       <div class="w-3 h-3 rotate-45 mx-auto -mt-1.5 border-r border-b backdrop-blur-xl {
         _isFixed ? 'bg-emerald-950/95 border-emerald-500/30' : 
+        _isInternal ? 'bg-fuchsia-950/95 border-fuchsia-500/30' :
         tooltipType === 'copyright' ? 'bg-orange-950/95 border-orange-500/30' :
         tooltipType.startsWith('seo-') ? 'bg-blue-950/95 border-blue-400/30' :
         'bg-slate-900/95 border-white/10'

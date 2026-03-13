@@ -294,3 +294,27 @@ class ContentController(Controller):
         except Exception as e:
             logger.error(f"Auto-Fix error: {e}")
             return {"status": "error", "message": str(e)}
+
+    @post("/campaigns/{campaign_id:uuid}/analyze/bulk-fix")
+    async def analyze_bulk_fix(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+        """
+        On-Demand Bulk Surgical Rewrite: Fixes ALL identified errors for a category.
+        """
+        try:
+            from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
+            from backend.services.xohi.creative_studio.models.schemas import BulkFixRequest
+            campaign = await campaign_repo.get(str(campaign_id))
+            if not campaign:
+                return {"status": "error", "message": "Campaign not found"}
+            if not campaign.draft_content:
+                return {"status": "error", "message": "Chưa có nội dung để biên tập."}
+            
+            inspector = AiInspector()
+            data = await request.json()
+            fix_req = BulkFixRequest(**data)
+            
+            result = await inspector.bulk_fix(campaign, fix_req)
+            return {"status": "success", "data": result.model_dump()}
+        except Exception as e:
+            logger.error(f"Bulk-Fix error: {e}")
+            return {"status": "error", "message": str(e)}

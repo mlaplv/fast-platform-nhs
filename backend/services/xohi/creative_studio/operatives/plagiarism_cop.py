@@ -98,6 +98,92 @@ class PlagiarismCop:
         # BUG-07 fix: Cache Agent at class scope — R1.6 prohibits per-request Agent creation
         self._agent = Agent(output_type=PlagiarismResult, system_prompt=PLAGIARISM_PROMPT, retries=3)
 
+    # ──────────────────────────────────────────────────────────
+    # V76.0: Internal Dedup Detection (Zero AI Cost)
+    # ──────────────────────────────────────────────────────────
+
+    def _detect_internal_duplicates(self, plain_text: str) -> List[CopyrightAnnotation]:
+        """
+        Detect duplicate sentences/phrases within the same article.
+        Pure logic — no AI calls. Splits into sentences, normalizes,
+        and finds exact or near-duplicate repetitions.
+        Returns CopyrightAnnotation objects with severity based on repetition count.
+        """
+        if not plain_text or len(plain_text) < 50:
+            return []
+
+        # Split into sentences (Vietnamese + English punctuation)
+        sentences = re.split(r'(?<=[.!?。])\s+', plain_text)
+        # Filter out very short "sentences" (less than 15 chars are likely fragments)
+        sentences = [s.strip() for s in sentences if len(s.strip()) >= 15]
+
+        if len(sentences) < 2:
+            return []
+
+        # Normalize for comparison (lowercase, collapse whitespace, strip punctuation)
+        def normalize(text: str) -> str:
+            text = text.lower().strip()
+            text = re.sub(r'[^\w\sàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]', '', text)
+            text = re.sub(r'\s+', ' ', text)
+            return text
+
+        # Track seen sentences → first occurrence index
+        seen: dict[str, int] = {}
+        duplicates: List[CopyrightAnnotation] = []
+        reported_norms: set[str] = set()
+
+        for idx, sentence in enumerate(sentences):
+            norm = normalize(sentence)
+            if len(norm) < 10:
+                continue
+
+            if norm in seen and norm not in reported_norms:
+                # Found a duplicate!
+                reported_norms.add(norm)
+                duplicates.append(CopyrightAnnotation(
+                    text=sentence[:200],  # Max 200 chars as per prompt schema
+                    reason=f"Câu này xuất hiện ít nhất 2 lần trong bài viết (lần đầu ở vị trí {seen[norm] + 1}, lặp lại ở vị trí {idx + 1}). Trùng lặp nội bộ làm giảm chất lượng nội dung.",
+                    source_url="(nội bộ — trùng lặp trong cùng bài viết)",
+                    severity="medium"
+                ))
+            elif norm not in seen:
+                seen[norm] = idx
+
+        # Phase 2: N-gram overlap detection for near-duplicates (≥10 word phrases)
+        word_sequences: dict[str, list[int]] = {}
+        for idx, sentence in enumerate(sentences):
+            words = normalize(sentence).split()
+            if len(words) < 10:
+                continue
+            # Extract 10-word sliding windows
+            for i in range(len(words) - 9):
+                ngram = ' '.join(words[i:i + 10])
+                if ngram not in word_sequences:
+                    word_sequences[ngram] = []
+                word_sequences[ngram].append(idx)
+
+        # Find n-grams that appear in multiple distinct sentences
+        flagged_sentence_indices: set[int] = set()
+        for ngram, indices in word_sequences.items():
+            unique_indices = list(set(indices))
+            if len(unique_indices) >= 2:
+                for si in unique_indices:
+                    if si not in flagged_sentence_indices:
+                        norm_s = normalize(sentences[si])
+                        if norm_s not in reported_norms:
+                            flagged_sentence_indices.add(si)
+                            reported_norms.add(norm_s)
+                            duplicates.append(CopyrightAnnotation(
+                                text=sentences[si][:200],
+                                reason=f"Cụm ≥10 từ liên tiếp trong câu này trùng lặp với câu khác trong bài. Cần viết lại để đảm bảo nội dung không bị lặp.",
+                                source_url="(nội bộ — trùng cụm từ dài)",
+                                severity="low" if len(unique_indices) == 2 else "high"
+                            ))
+
+        if duplicates:
+            logger.info(f"[PlagiarismCop] Internal Dedup: Found {len(duplicates)} duplicate/near-duplicate segments.")
+        return duplicates
+
     async def _get_search_pair(self):
         """BUG-08 fix: async-safe key rotation via lock."""
         if not self.search_keys:
@@ -210,6 +296,9 @@ class PlagiarismCop:
 
         # 3. AI semantic analysis with per-sentence annotations
         try:
+            # V76.0: Run Internal Dedup concurrently (Zero cost)
+            internal_annotations = self._detect_internal_duplicates(plain_text)
+
             prompt = f"""
 [BÀI VIẾT CẦN KIỂM TRA — đoạn đầu 3000 ký tự]
 {snippet}
@@ -217,24 +306,41 @@ class PlagiarismCop:
 [NỘI DUNG CÁC NGUỒN CẠNH TRANH TOP GOOGLE cho từ khóa "{primary_keyword}"]
 {chr(10).join([f'--- Nguồn {i+1}: {s}' for i, s in enumerate(competitor_snippets)])}
 
-NHIỆM VỤ: Phân tích và trả về JSON đúng schema yêu cầu.
+NHIỆM VỤ: Phân tích và trả về JSON đúng schema yêu cầu. 
 Đặc biệt chú ý: các `annotations[].text` PHẢI là substring chính xác từ bài viết cần kiểm tra.
 """
             result = await trinity_bridge.run(self._agent, prompt)  # BUG-07 fix
             raw = result.data if hasattr(result, "data") else result.output
 
-            # Post-process: validate that annotation texts actually exist in the draft
+            # Post-process: validate annotations and merge internal duplicates
             if hasattr(raw, 'annotations'):
                 validated_annotations = []
+                # Add AI annotations if they exist in text
                 for ann in raw.annotations:
                     if ann.text and ann.text in plain_text:
                         validated_annotations.append(ann)
                     elif ann.text:
-                        # Try fuzzy: accept if 80%+ of the text appears
                         first_20 = ann.text[:20]
                         if first_20 and first_20 in plain_text:
                             validated_annotations.append(ann)
+                
+                # Merge Internal Dedup annotations (they are already from plain_text)
+                for iann in internal_annotations:
+                    # Update uniqueness score based on internal dedup
+                    raw.uniqueness_score = max(0.0, raw.uniqueness_score - 0.05) # Small penalty per lặp
+                    # Add to list with internal type
+                    # Mapping to schema
+                    validated_annotations.append({
+                        "text": iann.text,
+                        "reason": iann.reason,
+                        "source_url": iann.source_url,
+                        "severity": iann.severity,
+                        "type": "internal-dedup" # Inject type for frontend
+                    })
+                
                 raw.annotations = validated_annotations
+                if raw.uniqueness_score < 0.8:
+                    raw.risk_level = "HIGH" if raw.uniqueness_score < 0.6 else "MEDIUM"
 
             return raw
 
