@@ -16,7 +16,7 @@
 </script>
 
 <div class="h-full flex flex-col overflow-hidden">
-  <div class="flex items-center gap-3 mb-4 shrink-0">
+  <div class="hidden md:flex items-center gap-3 mb-4 shrink-0">
     <div class="w-8 h-px bg-gradient-to-r from-transparent to-green-500/50"></div>
     <h5 class="text-[11px] font-black uppercase tracking-[0.2em] text-green-400">Website Publisher 2026</h5>
   </div>

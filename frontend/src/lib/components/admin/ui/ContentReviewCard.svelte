@@ -314,10 +314,32 @@
     vuiController.speak(`Đã chọn ${kw}.`);
     apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, { keywords });
   }
+
+  let lastScrollY = 0;
+  let isCompact = $state(false);
+
+  function handleScroll(e: Event) {
+    const target = e.target as HTMLElement;
+    const currentScrollY = target.scrollTop;
+    
+    // Rule: Compact when scrolling down, expand when scrolling up or at extremeties
+    if (currentScrollY > lastScrollY && currentScrollY > 100) {
+      isCompact = true;
+    } else {
+      isCompact = false;
+    }
+    
+    // Auto-expand at bottom
+    if (target.scrollHeight - target.scrollTop <= target.clientHeight + 50) {
+      isCompact = false;
+    }
+    
+    lastScrollY = currentScrollY;
+  }
 </script>
 
 <div 
-  class="content-review-card w-full {nanobot.isExpanded ? 'h-full bg-transparent' : 'bg-white/[0.02] border border-white/5 rounded-3xl'} flex flex-col p-8 transition-all duration-700 overflow-hidden shadow-2xl"
+  class="content-review-card w-full {nanobot.isExpanded ? 'h-full bg-transparent' : 'h-full md:h-[85vh] bg-[#0c0a0f]/80 md:backdrop-blur-3xl md:border md:border-white/10 md:rounded-[2.5rem]'} flex flex-col p-4 md:p-6 transition-all duration-700 overflow-hidden md:shadow-[0_30px_100px_rgba(0,0,0,0.8)]"
   in:fade={{ duration: 600 }}
 >
   <Header 
@@ -330,7 +352,10 @@
 
   <Timeline {step} bind:viewingStep bind:isEditing />
 
-  <div class="flex-1 flex flex-col p-5 {nanobot.isExpanded ? 'p-8' : ''} overflow-y-auto custom-scrollbar relative z-10">
+  <div 
+    class="flex-1 flex flex-col p-4 md:p-5 {nanobot.isExpanded ? 'p-8' : ''} overflow-y-auto custom-scrollbar relative z-10 pb-32 md:pb-5"
+    onscroll={handleScroll}
+  >
     {#if viewingStep === 1}
       <IdeaStep 
         bind:isEditing 
@@ -385,6 +410,7 @@
   <ActionButtons 
     {isLoading} {status} {viewingStep} {step} {isEditing} {isProcessing} {isPublishing}
     {handleRetry} {handleUpdateMetadata} {handlePublish} {handleApprove}
+    {isCompact}
   />
 </div>
 

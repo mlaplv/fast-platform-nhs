@@ -112,7 +112,7 @@
 
     <!-- Phase 35: Creative Brief Configuration -->
     <div class="pt-4 mt-4 border-t border-white/5 space-y-4">
-      <div class="flex items-center gap-2 mb-2">
+      <div class="hidden md:flex items-center gap-2 mb-2">
         <Sparkles size={12} class="text-blue-400" />
         <span class="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Cấu hình luồng sáng tạo</span>
       </div>

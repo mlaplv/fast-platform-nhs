@@ -19,16 +19,20 @@ class SmartKeyRotator:
     STICKY_PREFIX = "ai:key_rotator:sticky:"
     
     # New V70.0 Redis Keys
-    METADATA_PREFIX = "ai:key:v70:meta:"    # Hash: fail_count, last_used, health_score
-    TPM_PREFIX = "ai:key:v70:tpm:"         # ZSET for sliding window token tracking
-    BLACKLIST_PREFIX = "ai:key:v70:black:"  # Set/Key for dead keys
+    METADATA_PREFIX = "ai:key:v70:meta:"     # Hash: fail_count, last_used, health_score
+    TPM_PREFIX = "ai:key:v70:tpm:"           # ZSET for sliding window token tracking
+    BLACKLIST_PREFIX = "ai:key:v70:black:"   # Set/Key for dead keys (auth fail, etc)
+    MODEL_DAILY_PREFIX = "ai:key:v70:daily:" # Key for (key, model) daily quota exhaustion
 
     # Cooldown settings
     BASE_COOLDOWN = 60
     MAX_COOLDOWN = 86400  # 24h
     
     # Google API Safety Limits (Mức an toàn free tier, chống 429)
-    MAX_RPM = int(os.getenv("GEMINI_MAX_RPM", 10))       # Limit là 15, set 10 cho an toàn
+    # Free Tier Pro (gemini-2.5-pro, gemini-3.x-pro): limit thực tế là 2 RPM!
+    # Free Tier Flash (gemini-2.x-flash): limit là 10 RPM.
+    # Paid Tier: có thể set cao hơn qua GEMINI_MAX_RPM trong .env
+    MAX_RPM = int(os.getenv("GEMINI_MAX_RPM", 2))        # Default an toàn nhất cho Free Tier Pro
     MAX_TPM = int(os.getenv("GEMINI_MAX_TPM", 800000))   # Limit là 1M, set 800k an toàn dư dả
     
     _instance: Optional["SmartKeyRotator"] = None
@@ -43,9 +47,8 @@ class SmartKeyRotator:
         if self._initialized:
             return
         self._initialized = True
-
-        raw_keys = os.getenv("GEMINI_API_KEY", "")
-        self.keys = [k.strip() for k in raw_keys.split(",") if k.strip()]
+        
+        self.keys = []
         self.index = 0
         self._use_redis = False
         self.client: Optional[redis.Redis] = None
@@ -54,12 +57,54 @@ class SmartKeyRotator:
         try:
             self.client = redis.from_url(redis_url, decode_responses=True)
             self._use_redis = True
-            logger.info(f"[KeyRotator] V70.0 Connected to Redis. Keys loaded: {len(self.keys)}")
+            logger.info(f"[KeyRotator] V70.0 Connected to Redis.")
         except Exception as e:
-            logger.warning(f"[KeyRotator] Redis unavailable, using local memory (DEGRADED): {e}")
+            logger.warning(f"[KeyRotator] Redis unavailable: {e}")
 
+    async def load_keys(self):
+        """Standardized Key Loading: Merges ENV and DB keys (V72.0)."""
+        # 1. From Environment
+        raw_env_keys = os.getenv("GEMINI_API_KEY", "")
+        env_keys = [k.strip() for k in raw_env_keys.split(",") if k.strip()]
+        
+        # 2. From Database (Rule R102)
+        db_keys = []
+        try:
+            db_keys = await self._recover_from_db()
+        except Exception as e:
+            logger.warning(f"[KeyRotator] Could not recover keys from DB: {e}")
+
+        # 3. Merge & Deduplicate
+        all_keys = list(dict.fromkeys(env_keys + db_keys))
+        self.keys = all_keys
+        self.index = 0
+        
+        if self._use_redis:
+            logger.info(f"[KeyRotator] Pool refreshed. Total unique keys: {len(self.keys)} (ENV: {len(env_keys)}, DB: {len(db_keys)})")
+        
         if not self.keys:
-            logger.warning("[KeyRotator] No GEMINI_API_KEY found in environment!")
+            logger.warning("[KeyRotator] NO Gemini keys found in ENV or DB!")
+
+    async def _recover_from_db(self) -> list[str]:
+        """Recovers Gemini keys from the primary VoiceProfile in the database."""
+        from backend.database.alchemy_config import alchemy_config
+        from backend.database.models import VoiceProfile
+        from backend.utils.security import GeminiSecurity
+        from sqlalchemy import select
+
+        session_maker = alchemy_config.create_session_maker()
+        async with session_maker() as session:
+            # We take the first active profile or iterate all
+            stmt = select(VoiceProfile).where(VoiceProfile.gemini_keys_enc != None)
+            result = await session.execute(stmt)
+            profiles = result.scalars().all()
+            
+            recovered = []
+            for p in profiles:
+                keys = GeminiSecurity.decrypt_keys(p.gemini_keys_enc)
+                recovered.extend(keys)
+            
+            return list(set(recovered)) # Unique
 
     def _get_key_id(self, key: str) -> str:
         """Standardize key identification via Hashing to survive pool reordering."""
@@ -135,6 +180,30 @@ class SmartKeyRotator:
         
         return chosen_key
 
+    async def mark_model_daily(self, key: str, model_name: str):
+        """Mark (key, model) pair as daily-quota-exhausted. Auto-expires in 24h."""
+        if not self._use_redis or not self.client: return
+        kid = self._get_key_id(key)
+        # Use model slug to avoid Redis key issues
+        model_slug = model_name.replace("/", "_").replace("-", "_")[:40]
+        redis_key = f"{self.MODEL_DAILY_PREFIX}{kid}:{model_slug}"
+        try:
+            await self.client.set(redis_key, "DAILY_EXHAUSTED", ex=self.MAX_COOLDOWN)  # 24h TTL
+            logger.warning(f"[KeyRotator] Key {kid[:8]} daily quota exhausted for model '{model_name}'. Auto-recovers in 24h.")
+        except Exception as e:
+            logger.error(f"[KeyRotator] Failed to mark model daily quota: {e}")
+
+    async def is_model_daily_exhausted(self, key: str, model_name: str) -> bool:
+        """Check if (key, model) daily quota is exhausted."""
+        if not self._use_redis or not self.client: return False
+        kid = self._get_key_id(key)
+        model_slug = model_name.replace("/", "_").replace("-", "_")[:40]
+        redis_key = f"{self.MODEL_DAILY_PREFIX}{kid}:{model_slug}"
+        try:
+            return bool(await self.client.exists(redis_key))
+        except Exception:
+            return False
+
     async def set_success(self, key: str, session_id: Optional[str] = None):
         """Marks a key as successful, resets fail_count using Hash ID."""
         if not self._use_redis: return
@@ -152,16 +221,36 @@ class SmartKeyRotator:
         if not self._use_redis: return
         kid = self._get_key_id(key)
         reason_lower = reason.lower()
+        now = time.time()
         
-        # 1. Critical Failures -> Blacklist
+        # 1. Critical Failures -> Blacklist (Khoá vĩnh viễn trong phiên)
         if any(p in reason_lower for p in ["auth", "invalid", "disabled", "expired", "401", "403"]):
             await self.client.set(f"{self.BLACKLIST_PREFIX}{kid}", reason, ex=self.MAX_COOLDOWN * 30)
             logger.error(f"[KeyRotator] Key {kid[:8]} (hash) BLACKLISTED. Reason: {reason}")
             return
 
-        # 2. Transient Failures -> Backoff (như lỗi 429)
+        # 2. Daily Quota Exceeded -> Semi-Blacklist (Khóa 24h)
+        if "daily" in reason_lower or "quota" in reason_lower:
+             await self.client.set(f"{self.BLACKLIST_PREFIX}{kid}", f"DAILY_LIMIT_REACHED: {reason}", ex=self.MAX_COOLDOWN)
+             logger.warning(f"[KeyRotator] Key {kid[:8]} hit DAILY QUOTA. Locked for 24h.")
+             return
+
+        # 3. Soft 429 (Transient Rate Limit) -> No fail_count increment
+        # Thay vào đó, ta đánh dấu key này đang "bận" bằng cách nạp ảo vào TPM sliding window
+        # Điều này giúp key được nghỉ ngơi 1 phút mà không bị nâng fail_count lên cao (tránh cooldown 2, 4, 8h...)
+        if reason_lower == "rate_limit" or "429" in reason_lower:
+            logger.warning(f"[KeyRotator] Key {kid[:8]} hit soft rate_limit. Resting temporarily.")
+            # Nạp ảo 1 request vào TPM để current_rpm tăng lên, loop skip key này tự nhiên
+            await self.track_tokens(key, 100) # Thêm ảo 100 tokens để "lấp" quota
+            await self.client.hset(f"{self.METADATA_PREFIX}{kid}", "last_used", now)
+            return
+
+        # 4. Other Transient Failures -> Exponential Backoff
         fail_count = await self.client.hincrby(f"{self.METADATA_PREFIX}{kid}", "fail_count", 1)
-        await self.client.hset(f"{self.METADATA_PREFIX}{kid}", "health_score", max(0, 100 - (fail_count * 20)))
+        await self.client.hset(f"{self.METADATA_PREFIX}{kid}", mapping={
+            "health_score": max(0, 100 - (fail_count * 20)),
+            "last_used": now
+        })
         logger.warning(f"[KeyRotator] Key {kid[:8]} (hash) fail_count={fail_count}. Reason: {reason}")
 
     async def track_tokens(self, key: str, tokens: int):
@@ -179,10 +268,40 @@ class SmartKeyRotator:
         except Exception as e:
             logger.warning(f"[KeyRotator] Tracking token lỗi tạm thời: {e}")
 
-    def set_keys(self, keys: List[str]):
-        """Standardized Pool Update."""
-        self.keys = keys
-        logger.info(f"[KeyRotator] Cognitive pool updated with {len(keys)} keys.")
+    async def reset_health(self) -> int:
+        """Clears ALL health metadata and blacklists from Redis (Rule R101)."""
+        if not self._use_redis or not self.client:
+            return 0
+        
+        cleared = 0
+        try:
+            # 1. Clear Blacklists
+            async for k in self.client.scan_iter(f"{self.BLACKLIST_PREFIX}*"):
+                await self.client.delete(k)
+                cleared += 1
+            
+            # 2. Reset Metadata
+            async for k in self.client.scan_iter(f"{self.METADATA_PREFIX}*"):
+                await self.client.hset(k, mapping={"fail_count": 0, "health_score": 100})
+                cleared += 1
+            
+            # 3. Clear MODEL-LEVEL daily exhaustion
+            async for k in self.client.scan_iter(f"{self.MODEL_DAILY_PREFIX}*"):
+                await self.client.delete(k)
+                cleared += 1
+
+            # 4. Clear TPM windows (Force full fresh start)
+            async for k in self.client.scan_iter(f"{self.TPM_PREFIX}*"):
+                await self.client.delete(k)
+                cleared += 1
+
+            # 4. Reload from DB/ENV
+            await self.load_keys()
+            
+            return cleared
+        except Exception as e:
+            logger.error(f"[KeyRotator] Reset failed: {e}")
+            return cleared
 
     def get_count(self) -> int:
         return len(self.keys)

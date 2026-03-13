@@ -338,12 +338,11 @@
       </div>
     </div>
   {/if}
-
   <div
     bind:this={scrollContainer}
     onscroll={handleScroll}
-    class="flex-1 overflow-y-auto overflow-x-hidden space-y-1.5 flex flex-col items-start px-3 {hideHeader
-      ? 'pt-4 pb-24'
+    class="flex-1 overflow-y-auto overflow-x-hidden space-y-4 flex flex-col items-start px-4 {hideHeader
+      ? 'pt-6 pb-24'
       : 'scrollbar-none pb-16'}"
   >
     <!-- Infinite Scroll Loading Indicator -->
@@ -366,49 +365,36 @@
 
     {#each nanobot.activityLogs as log (log.id)}
       {#if hideHeader}
-        <!-- CHAT BUBBLE LAYOUT (MOBILE) -->
+        <!-- CHAT BUBBLE LAYOUT (MOBILE MINIMALIST) -->
         <div
           in:fly={{ y: 20, duration: 400, opacity: 0 }}
           out:fade={{ duration: 150 }}
-          class="w-full flex flex-col mb-1 {log.data?.role === 'assistant' || log.source === 'XOHI' ||
+          class="w-full flex flex-col {log.data?.role === 'assistant' || log.source === 'XOHI' ||
           log.source === '[XOHI]' || log.source === 'XÔ-HỈ'
-            ? 'items-start pl-2'
+            ? 'items-start'
             : log.source === '[ADMIN]'
-              ? 'items-end pr-2'
+              ? 'items-end'
               : 'items-center'}"
         >
           {#if log.data?.role === "assistant" || log.source === "XOHI" || log.source === "[XOHI]" || log.source === "XÔ-HỈ"}
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
-              ondblclick={() => {
-                if (log.data?.campaign_id && log.id === latestLogIdsPerCampaign().get(log.data.campaign_id)) {
-                  nanobot.resumeCampaign(log);
-                }
-              }}
-              class="max-w-[85%] bg-neon-cyan/5 border border-neon-cyan/20 rounded-2xl rounded-tl-sm px-4 py-3 shadow-[0_4px_15px_rgba(0,255,255,0.05)] cursor-default"
+              class="max-w-[88%] bg-white/[0.03] rounded-2xl rounded-tl-none px-4 py-3.5 shadow-sm border border-white/[0.05]"
             >
-              <div class="flex items-center gap-2 mb-1.5 opacity-60">
+              <div class="flex items-center gap-2 mb-2 opacity-40">
                 <Sparkles size={10} class="text-neon-cyan" />
-                <span
-                  class="text-[9px] font-mono text-neon-cyan uppercase tracking-widest"
-                  >XoHi</span
-                >
-                <span class="text-[8px] font-mono text-gray-500"
-                  >{formatRelativeTime(log.timestamp)}</span
-                >
+                <span class="text-[9px] font-medium text-white uppercase tracking-widest">XoHi</span>
+                <span class="text-[8px] font-mono text-gray-500">{formatRelativeTime(log.timestamp)}</span>
               </div>
-              <div
-                class="text-[13px] text-gray-200 leading-relaxed font-sans break-words"
-              >
+              <div class="text-[14px] text-white/90 leading-[1.6] font-normal tracking-wide break-words">
                 {processMessage(log.message)}
               </div>
               
               {#if log.data?.campaign_id && log.id === latestLogIdsPerCampaign().get(log.data.campaign_id)}
-                <div class="mt-3 flex items-center justify-between gap-2 p-2 rounded-xl border border-neon-cyan/30 bg-neon-cyan/10">
-                  <div class="flex items-center gap-1.5 min-w-0">
-                    <div class="w-1.5 h-1.5 rounded-full bg-[#00FF00] animate-pulse"></div>
-                    <span class="text-[10px] text-neon-cyan truncate">
-                      Sẵn sàng duyệt: Bước {log.data.step || 1}
+                <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-4">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <div class="w-1.5 h-1.5 rounded-full bg-neon-cyan shadow-[0_0_8px_rgba(0,255,255,0.5)] animate-pulse"></div>
+                    <span class="text-[11px] font-medium text-neon-cyan/80 truncate">
+                      Giai đoạn {log.data.step || 1}
                     </span>
                   </div>
                   <button
@@ -416,7 +402,7 @@
                       e.stopPropagation();
                       nanobot.resumeCampaign(log);
                     }}
-                    class="shrink-0 text-[10px] font-bold tracking-wider px-3 py-1.5 bg-neon-cyan hover:bg-neon-cyan/80 text-black rounded-lg transition-colors shadow-lg shadow-neon-cyan/20"
+                    class="shrink-0 text-[11px] font-bold tracking-tight px-4 py-1.5 bg-white text-black rounded-full hover:bg-neon-cyan transition-all active:scale-95 shadow-lg"
                   >
                     MỞ DUYỆT
                   </button>
@@ -425,39 +411,28 @@
             </div>
           {:else if log.source === "[ADMIN]"}
             <div
-              class="max-w-[85%] bg-white/5 border border-white/10 rounded-2xl rounded-tr-sm px-4 py-3"
+              class="max-w-[85%] bg-neon-cyan/10 border border-neon-cyan/10 rounded-2xl rounded-tr-none px-4 py-3"
             >
-              <div
-                class="flex items-center justify-end gap-2 mb-1.5 opacity-60"
-              >
-                <span class="text-[8px] font-mono text-gray-500"
-                  >{formatRelativeTime(log.timestamp)}</span
-                >
-                <span
-                  class="text-[9px] font-mono text-gray-400 uppercase tracking-widest"
-                  >{log.source.replace(/[\[\]]/g, "")}</span
-                >
+              <div class="flex items-center justify-end gap-2 mb-1.5 opacity-40">
+                <span class="text-[8px] font-mono text-gray-500">{formatRelativeTime(log.timestamp)}</span>
+                <span class="text-[9px] font-medium text-neon-cyan uppercase tracking-widest">Admin</span>
               </div>
-              <div
-                class="text-[13px] text-gray-300 leading-relaxed font-sans break-words"
-              >
+              <div class="text-[14px] text-white/90 leading-[1.6] font-normal tracking-wide break-words">
                 {processMessage(log.message)}
               </div>
             </div>
           {:else}
             <!-- System / Security Logs -->
             <div
-              class="max-w-[90%] bg-transparent border border-white/5 rounded-xl px-3 py-2 flex flex-col items-center text-center opacity-60 mt-1 mb-1"
+              class="max-w-[90%] bg-transparent border border-white/5 rounded-full px-4 py-1.5 flex flex-col items-center text-center opacity-40 mt-1 mb-1"
             >
               <span
                 class="text-[8px] font-mono {log.source.includes('Sec')
                   ? 'text-red-400'
-                  : 'text-gray-500'} uppercase tracking-widest mb-0.5"
+                  : 'text-gray-500'} uppercase tracking-widest"
                 >{log.source} • {formatRelativeTime(log.timestamp)}</span
               >
-              <span class="text-[10px] font-mono text-gray-400 truncate w-full"
-                >{processMessage(log.message)}</span
-              >
+              <!-- <span class="text-[9px] font-mono text-gray-400 truncate w-full">{processMessage(log.message)}</span> -->
             </div>
           {/if}
         </div>

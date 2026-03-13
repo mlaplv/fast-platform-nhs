@@ -1,6 +1,7 @@
 <script lang="ts">
   import HeartbeatStream from "../../HeartbeatStream.svelte";
   import { nanobot } from "$lib/state/nanobot.svelte";
+  import { permissionState } from "$lib/state/permissions.svelte";
   import { spring } from "svelte/motion";
   import ShoppingCart from "lucide-svelte/icons/shopping-cart";
   import Package from "lucide-svelte/icons/package";
@@ -60,47 +61,52 @@
 </script>
 
 <div class="flex-1 flex flex-col relative w-full h-full overflow-hidden bg-[#020202]">
-  <!-- Absolute Adaptive Header (Phase 13.3: Hyper-Aggressive x3) -->
+  <!-- Absolute Adaptive Header (Phase 13.3: Minimalist Premium) -->
   <div 
-    class="absolute top-0 left-0 right-0 z-30 px-6 pt-12 pb-6 transition-opacity duration-300 pointer-events-none"
+    class="absolute top-0 left-0 right-0 z-30 px-6 pt-14 pb-8 transition-all duration-500 ease-out pointer-events-none"
     style:opacity={$scrollSpring}
-    style:transform="translateY({(1 - $scrollSpring) * -120}px)"
+    style:transform="translateY({(1 - $scrollSpring) * -100}px)"
   >
-    <!-- Background Material -->
+    <!-- Background Material: Subtle Blur -->
     <div 
-      class="absolute inset-x-0 top-0 h-full bg-black/80 backdrop-blur-[40px] -z-10"
+      class="absolute inset-x-0 top-0 h-full bg-black/60 backdrop-blur-[25px] -z-10"
       style:opacity={1 - $scrollSpring}
     ></div>
 
     <div 
-      class="flex items-start gap-4 mb-8 pointer-events-auto"
-      style:transform="scale({0.6 + ($scrollSpring * 0.4)})"
+      class="flex flex-col gap-1 mb-10 transition-transform duration-500 pointer-events-auto"
+      style:transform="scale({0.85 + ($scrollSpring * 0.15)})"
       style:transform-origin="left top"
     >
-      <div class="w-12 h-12 rounded-full border border-neon-cyan/20 flex items-center justify-center bg-black/40 shadow-[0_0_25px_rgba(0,255,255,0.15)] shrink-0">
-        <Sparkles size={22} class="text-neon-cyan animate-pulse" />
+      <div class="flex items-center gap-2 mb-2">
+        <div class="w-8 h-8 rounded-full border border-neon-cyan/10 flex items-center justify-center bg-white/5 shrink-0">
+          <Sparkles size={16} class="text-neon-cyan/60" />
+        </div>
       </div>
       <div>
-        <h1 class="text-2xl font-bold text-white tracking-tight leading-tight">
-          Chào {permissionState.userName || 'Bác'},<br/>
-          <span class="text-gray-400 font-medium text-[15px]">Chúc {permissionState.userName || 'Bác'} một {getGreeting()}.</span>
+        <h1 class="text-3xl font-light text-white tracking-tight leading-tight">
+          Chào {permissionState.userName || 'Sếp'},
         </h1>
+        <p class="text-gray-400 font-normal text-[14px] mt-1 tracking-wide opacity-80">
+          Chúc {permissionState.userName || 'Sếp'} một {getGreeting()}.
+        </p>
       </div>
     </div>
     
-    <!-- Quick Actions Scroll Row -->
+    <!-- Quick Actions: Glass Pills Redesign -->
     <div 
-      class="flex overflow-x-auto custom-scrollbar -mx-6 px-6 gap-3 snap-x pointer-events-auto transition-all"
+      class="flex gap-2 overflow-x-auto custom-scrollbar -mx-6 px-6 pointer-events-auto transition-all duration-700"
+      style:opacity={0.4 + ($scrollSpring * 0.6)}
     >
       {#each quickActions as action}
         <button
           onclick={() => openWidget(action.widget)}
-          class="flex items-center gap-2.5 py-2.5 px-4 rounded-xl border {action.border} {action.bg} backdrop-blur-md active:scale-95 transition-all shrink-0 snap-start shadow-xl"
+          class="flex items-center gap-2 py-2 px-4 rounded-full border border-white/5 bg-white/5 backdrop-blur-xl active:scale-95 active:bg-white/10 transition-all shrink-0 shadow-sm"
         >
-          <div class="{action.color} opacity-90">
-            <action.icon size={16} />
+          <div class="{action.color} opacity-70 group-active:opacity-100">
+            <action.icon size={14} />
           </div>
-          <span class="font-bold text-white text-[12px] whitespace-nowrap tracking-wide">{action.label}</span>
+          <span class="font-medium text-white/90 text-[13px] whitespace-nowrap tracking-wide">{action.label}</span>
         </button>
       {/each}
     </div>

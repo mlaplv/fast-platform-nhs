@@ -34,7 +34,7 @@
 </script>
 
 <div
-  class="bg-black/40 backdrop-blur-md border border-white/10 rounded-[2.5rem] p-8 flex flex-col shadow-2xl h-[500px] lg:h-[580px]"
+  class="bg-black/40 backdrop-blur-md border border-white/10 rounded-[2.5rem] p-8 flex flex-col shadow-2xl min-h-[420px] max-h-[600px] transition-all"
 >
   <div class="flex items-center justify-between mb-6">
     <div class="flex items-center gap-4 text-cyan-400">

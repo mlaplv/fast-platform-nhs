@@ -77,6 +77,7 @@ function check_deps() {
 function bootstrap_all() {
     check_deps
     echo -e "${YELLOW}=== [GOD MODE] KHỞI ĐỘNG TỔNG LỰC (DOCKER) ===${NC}"
+    mkdir -p certs/caddy/pki
     deep_clean
     echo -e "${CYAN}[1/2] Đang xây dựng và khởi động Containers...${NC}"
     docker compose up -d --build
@@ -129,6 +130,7 @@ function init_deploy() {
     fi
 
     echo -e "${CYAN}[3/6] Cài đặt dependencies (UV & PNPM)...${NC}"
+    mkdir -p certs/caddy/pki
     uv sync
     (cd frontend && pnpm install)
     
@@ -167,6 +169,12 @@ function run_tests() {
     read -p "Nhấn Enter để quay lại menu..."
 }
 
+function view_logs() {
+    echo -e "${CYAN}[LOGS] Đang xem log LỖI Backend (api)...${NC}"
+    echo -e "${YELLOW}Nhấn Ctrl+C để quay lại menu.${NC}"
+    docker compose logs -f api --tail 1000 --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION"
+}
+
 while true; do
     clear
     echo -e "${CYAN}"
@@ -185,6 +193,7 @@ while true; do
     echo "5) SELF-HEAL (Resume Orchestrator)"
     echo "6) CHẠY TEST (Backend/Frontend)"
     echo "7) AUDIT V61.1"
+    echo "8) XEM LOG BACKEND"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -217,6 +226,9 @@ while true; do
         7)
             uv run --env-file "${PWD}/.env" python3 backend/scripts/audit_v61.py
             read -p "Nhấn Enter để tiếp tục..."
+            ;;
+        8)
+            view_logs
             ;;
         0)
             exit 0

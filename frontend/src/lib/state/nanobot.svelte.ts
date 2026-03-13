@@ -62,6 +62,7 @@ export function createNanobotState() {
     signalQueue: [] as string[],
     isResumingManually: false,
     lastMessageHash: "" as string,
+    discoveredModels: ["gemini-2.0-flash", "gemini-2.0-flash-lite-preview-02-05", "gemini-1.5-pro", "gemini-1.5-flash"] as string[],
   });
 
   const audioThrottle = createAudioThrottle(state);
@@ -270,6 +271,8 @@ export function createNanobotState() {
       } catch (e) { state.isCampaignMode = originalMode; ui.showToast("Neural link sync failed", "error"); } 
       finally { state.isTogglingCampaign = false; }
     },
+    get discoveredModels() { return state.discoveredModels; },
+    setDiscoveredModels: (val: string[]) => (state.discoveredModels = val),
     resumeCampaign: (logEntry: any) => resumeManager.internalResumeCampaign(logEntry)
   };
 }

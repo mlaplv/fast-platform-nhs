@@ -111,7 +111,7 @@
 
         {#if nanobot.vuiResponse?.data?.category === "CONTENT_CREATE" || nanobot.vuiResponse?.data?.campaign_id}
           <div
-            class="transition-all duration-300 {nanobot.isExpanded ? 'fixed inset-0 w-screen h-screen z-[100000] m-0 rounded-none p-6 md:p-12 md:pb-24 bg-[#030712]/98 backdrop-blur-3xl' : (nanobot.vuiResponse.data.step >= 3 ? 'w-[98%] h-[90vh] bg-black/40 rounded-3xl p-4 mt-12 shadow-2xl animate-in fade-in zoom-in-95 z-[50000]' : 'w-[98%] h-[90vh] custom-scrollbar p-2 mt-12 animate-in fade-in zoom-in-95 z-[50000]')} mx-auto relative pointer-events-auto flex flex-col"
+            class="transition-all duration-300 {nanobot.isExpanded ? 'fixed inset-0 w-screen h-screen z-[100000] m-0 rounded-none p-6 md:p-12 md:pb-24 bg-[#030712]/98 backdrop-blur-3xl' : 'fixed inset-0 w-full h-full md:relative md:w-[98%] md:h-[90vh] md:bg-black/40 md:rounded-3xl md:mt-12 md:shadow-2xl bg-[#020202] z-[50000] flex flex-col'} mx-auto pointer-events-auto"
             transition:fade={{ duration: 250 }}
           >
             <ContentReviewCard

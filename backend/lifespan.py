@@ -43,29 +43,20 @@ async def lifespan(app: Litestar):
             results = await session.execute(stmt)
             profiles = results.all()
             
-            all_keys = set()
-            count = 0
+            count = len(profiles)
+            
+            # Load profile for cache
             for row in profiles:
-                # Load profile for cache
                 await xohi_memory.cache_voice_profile(str(row.user_id), {
                     "wake_words": [normalize_vn(w) for w in (row.wake_words or [])],
                     "sleep_words": [normalize_vn(w) for w in (row.sleep_words or [])],
                     "greeting_template": row.greeting_template,
                     "capabilities": row.capabilities or {},
                 })
-                
-                # Load & Decrypt Gemini Keys
-                if row.gemini_keys_enc:
-                    decrypted = GeminiSecurity.decrypt_keys(row.gemini_keys_enc)
-                    all_keys.update(decrypted)
-                
-                count += 1
-            
-            if all_keys:
-                key_rotator.set_keys(list(all_keys))
-                logger.info(f"[Trinity Core] Recovered {len(all_keys)} Gemini keys from DB.")
-            
-            logger.info(f"[Trinity Core] Hot Reload Cache: {count} profiles loaded (Scalar Projection used).")
+
+            # Load & Decrypt Gemini Keys (Unified V72.0)
+            await key_rotator.load_keys()
+            logger.info(f"[Trinity Core] Hot Reload Cache: {count} profiles and all keys loaded.")
 
         # Zero-Cold-Start Warmups
         try:

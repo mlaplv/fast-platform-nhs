@@ -20,7 +20,7 @@ Dựa trên tiêu đề và từ khóa bài viết PR Viral, hãy tạo duy nh�
 
 [QUY TẮC BẮT BUỘC - ANTI-TEXT POLICY]
 1. TUYỆT ĐỐI KHÔNG tìm ảnh có chữ, văn bản, trích dẫn (quotes), hoặc infographic. 
-2. Sử dụng các từ khóa phủ định (negative keywords) trong query như: `-text`, `-word`, `-typography`, `-quote`, `-infographic`.
+2. Sử dụng các từ khóa phủ định (negative keywords) trong query như: `-text`, `-word`, `-typography`, `-quote`, `-infographic`, `-youtube`, `-video`.
 3. Ưu tiên phong cách: "Cinematic photography", "Authentic lifestyle", "High-end stock", "Clean background", "No text".
 4. Ảnh phải có chiều sâu, ánh sáng chuyên nghiệp, không được giống ảnh chụp màn hình hay ảnh rác.
 
@@ -92,26 +92,78 @@ class AssetHunter:
         config = campaign.get_gold_config()
         target_count = config.get("max_assets", 10)
         
-        # Step 2.2: Single-Query Search (Efficiency R88)
-        # We take the FIRST query from the plan (User preference: 1 request/10 results)
+        # Step 2.2: Dual-Page Search for Buffer (Efficiency R88)
+        # We fetch up to 20 images (2 pages) to ensure enough valid buffer after filtering.
         best_query = queries[0] if queries else (primary if primary else title)
         
         await event_bus.emit("CONTENT_PROGRESS", {
             "campaign_id": campaign_id,
             "user_id": str(campaign.user_id),
             "step": 2,
-            "message": f"🔍 Đang tìm kiếm ảnh với 01 request duy nhất: {best_query}",
+            "message": f"🔍 Đang truy quét ảnh diện rộng (20 candidates): {best_query}",
             "status": "PROCESSING",
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
         
-        # Google CSE returns max 10 per request. We fetch 10 and then clip to target_count.
-        all_urls = await self.fetch_images(best_query, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=10)
+        # Fetch 20 images to provide enough buffer for filtration (YT thumbnails, dead links, hotlink protection)
+        raw_urls = await self.fetch_images(best_query, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=20)
+        
+        # Step 2.3: Anti-YouTube, HTTPS-Only & Integrity Check (Rule R110)
+        valid_urls = []
+        client = await get_http_client()
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+            "Referer": "https://www.google.com/"
+        }
+        
+        skip_domains = ["ytimg.com", "img.youtube.com", "vimeo.com", "fbsbx.com", "fbcdn.net", "licdn.com"]
+        
+        for url in raw_urls:
+            # Rule R112: Force HTTPS (Avoid Mixed Content)
+            if not url.startswith("https://"):
+                logger.info(f"[AssetHunter] Skipping non-HTTPS URL: {url}")
+                continue
+
+            # Skip video thumbnails & Unstable social links
+            if any(domain in url.lower() for domain in skip_domains):
+                logger.info(f"[AssetHunter] Skipping unstable/video domain: {url}")
+                continue
+                
+            try:
+                # Sanitize URL for httpx (Fixes 'illegal request line')
+                from urllib.parse import urlparse, quote, urlunparse
+                p = urlparse(url)
+                sanitized_url = urlunparse(p._replace(path=quote(p.path), query=quote(p.query, safe='/=&?')))
+
+                # Ping URL (Rule R111: Link Integrity)
+                # First try HEAD (Fast)
+                resp = await client.head(sanitized_url, timeout=4.0, follow_redirects=True, headers=headers)
+                
+                # If HEAD is 403 or 405 (Many CDNs block HEAD), try GET (with stream to avoid downloading full image)
+                if resp.status_code in [403, 404, 405]:
+                    async with client.stream("GET", sanitized_url, timeout=4.0, follow_redirects=True, headers=headers) as stream_resp:
+                        if stream_resp.status_code == 200:
+                            valid_urls.append(url)
+                        continue # End processing this URL
+                
+                if resp.status_code == 200:
+                    valid_urls.append(url)
+                else:
+                    logger.warning(f"[AssetHunter] Link rejected ({resp.status_code}): {url}")
+            except Exception as e:
+                logger.warning(f"[AssetHunter] Integrity check failed for {url}: {e}")
+                
+        all_urls = valid_urls
         
         # Selection logic based on target_count from Step 1
         if len(all_urls) > target_count:
             logger.info(f"[AssetHunter] Clipping {len(all_urls)} images to target {target_count}")
             all_urls = all_urls[:target_count]
+        
+        # If too few, we might want to log a warning
+        if len(all_urls) < target_count:
+            logger.warning(f"[AssetHunter] Found only {len(all_urls)} valid images, target was {target_count}")
 
         # Step 2.3: Graceful Raw Fallback (Rule R103)
         if not all_urls:
@@ -153,15 +205,30 @@ class AssetHunter:
             data={"assets": all_urls}
         )
 
-    async def fetch_images(self, query: str, campaign_id: str = None, user_id: str = None, num_results: int = 10) -> List[str]:
+    async def fetch_images(self, query: str, campaign_id: str = None, user_id: str = None, num_results: int = 20) -> List[str]:
         """
         Fetches image URLs from Google.
-        Hardened with Circuit Breaker and Key Rotation on 429.
+        Supports pagination up to num_results (max 2 requests).
         """
         if self.cooldown_until and datetime.now(timezone.utc) < self.cooldown_until:
             logger.error(f"[AssetHunter] Circuit Breaker Active until {self.cooldown_until}")
             return []
 
+        all_urls = []
+        # Google CSE allows max 10 per request. We iterate to fill num_results.
+        # R88.5: Fetch at most 20 for buffer balance.
+        pages_to_fetch = (num_results + 9) // 10
+        
+        for page in range(pages_to_fetch):
+            start_index = page * 10 + 1
+            urls = await self._fetch_page(query, start_index, campaign_id, user_id)
+            all_urls.extend(urls)
+            if len(urls) < 10: break # No more results
+            if len(all_urls) >= num_results: break
+
+        return all_urls[:num_results]
+
+    async def _fetch_page(self, query: str, start: int, campaign_id: str = None, user_id: str = None) -> List[str]:
         url = "https://www.googleapis.com/customsearch/v1"
         attempts = 0
         max_attempts = len(self.key_pairs)
@@ -175,18 +242,19 @@ class AssetHunter:
                     "cx": pair["cx"],
                     "q": query,
                     "searchType": "image",
-                    "num": min(10, num_results),
+                    "num": 10,
+                    "start": start,
                     "imgSize": "large" 
                 }
                 
-                logger.info(f"[AssetHunter] Searching index {self.current_index} for: {query}")
+                logger.info(f"[AssetHunter] Searching index {self.current_index} (start={start}) for: {query}")
                 
                 if campaign_id:
                     await event_bus.emit("CONTENT_PROGRESS", {
                         "campaign_id": campaign_id,
                         "user_id": user_id,
                         "step": 2,
-                        "message": f"🔍 Đang truy quét qua kênh tìm kiếm #{self.current_index + 1}...",
+                        "message": f"🔍 Đang truy quét qua kênh tìm kiếm #{self.current_index + 1} (trang { (start-1)//10 + 1 })...",
                         "status": "PROCESSING",
                         "timestamp": datetime.now(timezone.utc).isoformat()
                     })
@@ -204,22 +272,13 @@ class AssetHunter:
                 
                 self.failure_count = 0
                 items = data.get('items', [])
-                if not items:
-                    search_info = data.get('searchInformation', {})
-                    total = search_info.get('totalResults', '0')
-                    logger.warning(f"[AssetHunter] Key {self.current_index} returned 0 results for '{query}'. Total results: {total}")
-                
-                urls = [item['link'] for item in items]
-                return urls
+                return [item['link'] for item in items]
 
             except Exception as e:
-                logger.error(f"[AssetHunter] Error with key {self.current_index}: {e}")
+                logger.error(f"[AssetHunter] Search Page Error (Key {self.current_index}): {e}")
                 self.failure_count += 1
                 self._rotate_key()
                 attempts += 1
-                if attempts >= max_attempts:
-                    logger.error("[AssetHunter] All Search API keys exhausted or failed.")
-                    self.cooldown_until = datetime.now(timezone.utc) + timedelta(minutes=SEARCH_CIRCUIT_BREAKER_COOLDOWN_MINUTES)
                 continue
             
         return []

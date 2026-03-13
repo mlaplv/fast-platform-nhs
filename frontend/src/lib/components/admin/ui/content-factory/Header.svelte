@@ -39,10 +39,21 @@
       {/if}
     </div>
     <div class="flex flex-col">
-      <span class="text-[10px] uppercase font-black tracking-[0.2em] text-blue-400/80">
-        Phase {viewingStep}
-      </span>
-      <span class="text-xs font-bold text-white/90">
+      <div class="flex items-center gap-1.5 md:flex-col md:items-start">
+        <span class="text-[10px] uppercase font-black tracking-[0.2em] text-blue-400/80">
+          Phase {viewingStep}
+        </span>
+        <span class="md:hidden text-[10px] font-bold text-white/40 border-l border-white/10 pl-1.5 ml-0.5">
+          {#if viewingStep === 1}Ý tưởng
+          {:else if viewingStep === 2}Hình ảnh
+          {:else if viewingStep === 3}Dàn bài
+          {:else if viewingStep === 4}Bản thảo
+          {:else if viewingStep === 5}Kiểm tra
+          {:else if viewingStep === 6}Xuất bản
+          {/if}
+        </span>
+      </div>
+      <span class="text-xs font-bold text-white/90 hidden md:block">
         {#if viewingStep === 1}Keyword Analysis
         {:else if viewingStep === 2}Asset Hunting
         {:else if viewingStep === 3}Content Outline
@@ -58,14 +69,15 @@
         class="ml-2 flex items-center gap-1.5 px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-400 animate-pulse"
       >
         <RotateCcw size={10} class="animate-spin" />
-        <span class="font-medium">{progress_msg || "AI is working..."}</span>
+        <span class="font-medium hidden md:inline">{progress_msg || "AI is working..."}</span>
+        <span class="font-medium md:hidden">AI...</span>
       </div>
     {/if}
 
-    <!-- Phase 33: Ghost UI Summary (Read-only badges) -->
+    <!-- Phase 33: Ghost UI Summary (Read-only badges) - Hidden on mobile to avoid clutter -->
     {#if viewingStep > 1 && creation_config && Object.keys(creation_config).length > 0}
       <div 
-        class="ml-4 flex items-center gap-2 opacity-40 hover:opacity-100 transition-opacity duration-500 group/ghost"
+        class="ml-4 hidden md:flex items-center gap-2 opacity-40 hover:opacity-100 transition-opacity duration-500 group/ghost"
         title="Bản tóm tắt cấu hình"
       >
         <div class="h-3 w-[1px] bg-white/10 mx-1"></div>
@@ -88,7 +100,7 @@
   <div class="flex items-center gap-2 relative z-[2100]">
     <button
       onclick={toggleExpand}
-      class="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-white border border-white/5 transition-all duration-300"
+      class="hidden md:flex p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-white border border-white/5 transition-all duration-300"
       title={isExpanded ? "Collapse View" : "Expand to Neural Fullview"}
     >
       {#if isExpanded}

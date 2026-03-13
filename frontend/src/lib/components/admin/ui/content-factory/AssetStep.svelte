@@ -26,27 +26,28 @@
   } = $props();
 </script>
 
-<div class="space-y-4 {isExpanded ? 'flex-1 overflow-hidden flex flex-col' : 'min-h-[400px]'}">
-  <div class="flex items-center justify-between mb-1">
-    <div class="flex items-center gap-3">
-       <div class="relative w-4 h-4">
-          <div class="absolute inset-0 bg-blue-500/40 blur-[4px] rounded-full animate-pulse"></div>
-          <div class="absolute inset-1 bg-blue-400 rounded-full shadow-[0_0_8px_rgba(59,130,246,1)]"></div>
+<div class="space-y-6 flex-1 flex flex-col min-h-0">
+  <!-- Modern Minimalist Header -->
+  <div class="flex items-center justify-between">
+    <div class="hidden md:flex items-center gap-4">
+       <div class="relative w-2 h-2">
+          <div class="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-20"></div>
+          <div class="absolute inset-0 bg-blue-400 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
        </div>
        <div class="flex flex-col">
-          <span class="text-[9px] text-blue-400/60 font-black tracking-[0.4em] leading-none mb-1 uppercase">Neural Asset Repository</span>
-          <span class="text-[11px] text-white font-bold opacity-90 tracking-tight leading-none uppercase">SELECT_MODE://ACTIVE</span>
+          <span class="text-[8px] text-blue-400/50 font-black tracking-[0.3em] uppercase mb-0.5">Asset Intelligence</span>
+          <span class="text-[12px] text-white/90 font-bold tracking-tight uppercase">SELECT_MODE://ACTIVE</span>
        </div>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-3">
       {#if !isProcessing}
-        <div class="flex bg-white/5 p-1 rounded-xl border border-white/10 ring-1 ring-black/20 focus-within:ring-blue-500/50 focus-within:border-blue-500/30 transition-all h-8 mr-2">
-          <div class="flex items-center justify-center pl-2 text-white/40">
-            <LinkIcon size={12} />
+        <div class="flex bg-white/[0.03] hover:bg-white/[0.05] p-1 rounded-xl border border-white/5 transition-all h-9 group/input">
+          <div class="flex items-center justify-center pl-3 text-white/20 group-focus-within/input:text-blue-400 transition-colors">
+            <LinkIcon size={14} />
           </div>
           <input 
             type="url" 
-            placeholder="Dán link ảnh và Enter..." 
+            placeholder="Paste image link..." 
             bind:value={customImageUrl}
             onkeydown={(e) => {
               if (e.key === 'Enter' && customImageUrl.trim() && customImageUrl.startsWith('http')) {
@@ -57,14 +58,14 @@
                    selectedAssetIndex = assets.length - 1;
                  }
                  customImageUrl = "";
-                 vuiController.speak("Đã thêm ảnh từ liên kết.");
+                 vuiController.speak("Added.");
                  syncAssetChanges();
               }
             }}
-            class="bg-transparent border-none outline-none text-[10px] text-white placeholder:text-white/30 px-3 w-36 transition-all focus:w-48"
+            class="bg-transparent border-none outline-none text-[11px] text-white placeholder:text-white/20 px-3 w-40 transition-all focus:w-64"
           />
           <button 
-            class="p-1 rounded-lg bg-blue-500 text-white hover:bg-blue-400 disabled:opacity-50 disabled:hover:bg-blue-500 transition-colors"
+            class="px-2 rounded-lg bg-blue-500/80 text-white hover:bg-blue-500 transition-all"
             disabled={!customImageUrl.trim() || !customImageUrl.startsWith('http')}
             onclick={() => {
               if (customImageUrl.trim() && customImageUrl.startsWith('http')) {
@@ -74,35 +75,32 @@
                    selectedAssetIndex = assets.length - 1;
                  }
                  customImageUrl = "";
-                 vuiController.speak("Đã thêm ảnh từ liên kết.");
+                 vuiController.speak("Added.");
                  syncAssetChanges();
               }
             }}
-            title="Thêm ảnh"
           >
-            <Plus size={12} />
+            <Plus size={14} />
           </button>
         </div>
       {/if}
 
-      <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/10 backdrop-blur-xl h-8">
-         <span class="text-[11px] text-white/50 font-mono">ASSETS: <span class="text-blue-400">{assets.length}</span></span>
+      <div class="hidden md:block px-4 py-1.5 rounded-xl bg-white/[0.03] border border-white/5">
+         <span class="text-[10px] text-white/40 font-bold uppercase tracking-widest">Found <span class="text-blue-400 ml-1 font-black">{assets.length}</span></span>
       </div>
     </div>
   </div>
 
-  <div class="relative group/matrix {isExpanded ? 'flex-1 overflow-hidden flex flex-col' : ''}">
-    <div class="absolute inset-0 pointer-events-none z-10 opacity-[0.02] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]"></div>
-    
-    <div class="{isExpanded ? 'flex-1' : 'max-h-[500px]'} overflow-y-auto pr-2 custom-scrollbar space-y-4 min-h-0">
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+  <div class="relative flex-1 min-h-0">
+    <div class="h-full overflow-y-auto pr-1 custom-scrollbar min-h-0">
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {#each (assets || []) as url, i}
           <div 
             role="button"
             tabindex="0"
             onclick={() => {
               selectedAssetIndex = i;
-              vuiController.speak(`Đã chọn ảnh số ${i + 1}.`);
+              vuiController.speak(`Photo ${i + 1}`);
               syncAssetChanges(i);
             }}
             onkeydown={(e) => {
@@ -113,55 +111,58 @@
               }
             }}
             onmousemove={handleMouseMove}
-            class="group/item relative aspect-[4/3] rounded-2xl overflow-hidden border transition-all duration-500 cursor-pointer
-              {selectedAssetIndex === i ? 'border-blue-500 ring-2 ring-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.4)]' : 'border-white/5 bg-white/[0.02] hover:border-white/20 hover:scale-[1.02]'}
-              {i % 5 === 0 ? 'lg:col-span-2 lg:row-span-2 aspect-square' : ''}"
-            in:scale={{ duration: 500, delay: i * 40, start: 0.95 }}
+            class="group/item relative aspect-square rounded-[2rem] overflow-hidden border transition-all duration-700 cursor-pointer
+              {selectedAssetIndex === i ? 'border-blue-500/50 ring-4 ring-blue-500/10 shadow-[0_20px_50px_rgba(59,130,246,0.2)] scale-95' : 'border-white/5 bg-white/[0.01] hover:border-white/20 hover:scale-[1.02] hover:rounded-[1.5rem]'}"
+            in:scale={{ duration: 600, delay: i * 30, start: 0.9 }}
           >
             <img 
               src={url} 
               alt="Asset {i}" 
-              class="w-full h-full object-cover transition-all duration-1000 group-hover/item:scale-110 {selectedAssetIndex === i ? 'brightness-110' : 'brightness-75 group-hover/item:brightness-100'}"
+              class="w-full h-full object-cover transition-all duration-700 group-hover/item:scale-110 {selectedAssetIndex === i ? 'brightness-110' : 'brightness-90 group-hover/item:brightness-100'}"
               onerror={() => handleImageError(url)}
             />
 
-            <div class="absolute top-2 right-2 flex flex-col gap-1.5 opacity-0 group-hover/item:opacity-100 transition-opacity z-20">
-              <button 
-                class="p-1.5 rounded-full bg-black/50 hover:bg-red-500/80 text-white/70 hover:text-white backdrop-blur-sm transition-all"
-                onclick={(e) => deleteAsset(i, e)}
-                title="Xóa ảnh"
-              >
-                <Trash2 size={12} />
-              </button>
-              <button 
-                class="p-1.5 rounded-full {selectedAvatarUrl === url ? 'bg-amber-500 text-white' : 'bg-black/50 text-white/70 hover:bg-amber-500/50 hover:text-white'} backdrop-blur-sm transition-all shadow-md"
-                onclick={(e) => {
-                   e.stopPropagation();
-                   selectedAvatarUrl = url;
-                   selectedAssetIndex = i;
-                   vuiController.speak(`Đã chọn làm ảnh đại diện cho ảnh số ${i + 1}.`);
-                   syncAssetChanges();
-                }}
-                title="Chọn làm Ảnh Đại Diện"
-              >
-                <Star size={12} class={selectedAvatarUrl === url ? 'fill-current' : ''} />
-              </button>
-            </div>
-            
-            <div class="absolute inset-0 transition-opacity duration-500 {selectedAssetIndex === i ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'} bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none">
-              <div class="absolute bottom-3 left-3 flex items-center gap-2">
-                 <div class="p-1.5 rounded-full {selectedAssetIndex === i ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]' : 'bg-black/40 backdrop-blur-md'} border border-white/20 transition-all duration-500">
-                    <Check size={12} class="text-white" />
-                 </div>
-                 <span class="text-[9px] font-black text-white uppercase tracking-widest">{selectedAssetIndex === i ? 'Selected' : 'Click to select'}</span>
+            <!-- Advanced Controls Overlay -->
+            <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 opacity-0 group-hover/item:opacity-100 transition-all duration-500">
+              <div class="absolute top-4 right-4 flex flex-col gap-2 translate-y-2 group-hover/item:translate-y-0 transition-transform duration-500">
+                <button 
+                  class="w-8 h-8 rounded-full bg-white/10 hover:bg-red-500/80 text-white/50 hover:text-white backdrop-blur-md border border-white/10 transition-all flex items-center justify-center shadow-xl"
+                  onclick={(e) => deleteAsset(i, e)}
+                >
+                  <Trash2 size={13} />
+                </button>
+                <button 
+                  class="w-8 h-8 rounded-full {selectedAvatarUrl === url ? 'bg-amber-500 text-white' : 'bg-white/10 text-white/50 hover:bg-amber-500/80 hover:text-white'} backdrop-blur-md border border-white/10 transition-all flex items-center justify-center shadow-xl"
+                  onclick={(e) => {
+                     e.stopPropagation();
+                     selectedAvatarUrl = url;
+                     selectedAssetIndex = i;
+                     vuiController.speak("Hero image set.");
+                     syncAssetChanges();
+                  }}
+                >
+                  <Star size={13} class={selectedAvatarUrl === url ? 'fill-current' : ''} />
+                </button>
+              </div>
+              
+              <div class="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                   <div class="w-6 h-6 rounded-lg {selectedAssetIndex === i ? 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)]' : 'bg-white/10 backdrop-blur-md'} border border-white/10 flex items-center justify-center transition-all duration-500">
+                      <Check size={12} class="text-white" />
+                   </div>
+                   <span class="text-[10px] font-bold text-white/80 uppercase tracking-widest">{selectedAssetIndex === i ? 'Selected' : 'Use this'}</span>
+                </div>
+                <span class="text-[9px] font-medium text-white/30 font-mono">#{i + 1}</span>
               </div>
             </div>
 
+            <!-- Focus Animation -->
             {#if selectedAssetIndex === i}
-              <div class="absolute inset-0 border-2 border-blue-400/50 rounded-2xl animate-pulse pointer-events-none"></div>
+              <div class="absolute inset-0 bg-blue-500/5 pointer-events-none"></div>
             {/if}
             
-            <div class="absolute inset-0 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 pointer-events-none bg-[radial-gradient(circle_at_var(--mouse-x,50%)_var(--mouse-y,50%),rgba(59,130,246,0.15)_0%,transparent_50%)]"></div>
+            <!-- Dynamic Gloss Effect -->
+            <div class="absolute inset-0 opacity-0 group-hover/item:opacity-100 transition-opacity duration-500 pointer-events-none bg-[radial-gradient(circle_at_var(--mouse-x,50%)_var(--mouse-y,50%),rgba(255,255,255,0.08)_0%,transparent_60%)]"></div>
           </div>
         {/each}
       </div>

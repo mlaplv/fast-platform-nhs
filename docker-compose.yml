@@ -39,6 +39,7 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./certs/caddy/pki:/data/caddy/pki
       - caddy_data:/data
       - caddy_config:/config
     env_file:

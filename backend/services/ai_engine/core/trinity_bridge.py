@@ -27,19 +27,66 @@ class TrinityBridge:
         self.default_model_name = os.getenv("TIER2_MODEL", "gemini-2.5-flash")
         self.fallback_model_name = os.getenv("TIER2_FALLBACK_MODEL", "gemini-2.0-flash")
 
+        # Dynamic Model Pool (V75)
+        self.db_primary_model = None
+        self.db_waterfall = []
+
         # Load full waterfall if provided
         waterfall = os.getenv("MODEL_WATERFALL", "")
         self.model_waterfall = [m.strip() for m in waterfall.split(",") if m.strip()] if waterfall else []
 
         self.success_model_key = "ai:bridge:last_success_model"
+        
+        # Initial load (Safe to fail if DB not ready)
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(self.reload_models())
+        except Exception:
+            pass
+
+    async def reload_models(self):
+        """Standardized Model Loading: Fetches waterfall from DB (V75)."""
+        from backend.database.alchemy_config import alchemy_config
+        from backend.database.models import VoiceProfile
+        from sqlalchemy import select
+
+        session_maker = alchemy_config.create_session_maker()
+        try:
+            async with session_maker() as session:
+                # We take the first profile's config (Shared settings)
+                stmt = select(VoiceProfile).limit(1)
+                result = await session.execute(stmt)
+                profile = result.scalar_one_or_none()
+                
+                if profile:
+                    self.db_primary_model = profile.primary_model
+                    self.db_waterfall = profile.ai_models or []
+                    logger.info(f"[TrinityBridge] Models hot-reloaded. Primary: {self.db_primary_model}, Chain: {len(self.db_waterfall)}")
+        except Exception as e:
+            logger.warning(f"[TrinityBridge] Could not hot-reload models from DB: {e}")
+
 
     def _build_model_chain(self) -> list[str]:
         """Build priority model chain (shared between run and run_stream)."""
         models = []
+        
+        # 1. DB Priority (V75)
+        if self.db_primary_model:
+            models.append(self.db_primary_model)
+        if self.db_waterfall:
+            for m in self.db_waterfall:
+                if m not in models:
+                    models.append(m)
+
+        # 2. Waterfall ENV Priority
         if self.model_waterfall:
             for m in self.model_waterfall:
                 if m not in models:
                     models.append(m)
+        
+        # 3. Default ENV Fallbacks
         if self.default_model_name not in models:
             models.append(self.default_model_name)
         if self.fallback_model_name and self.fallback_model_name not in models:
@@ -75,28 +122,32 @@ class TrinityBridge:
         Returns: 'fail_fast', 'rate_limit', 'auth', 'model_not_found', 'tool_unsupported', 'unknown'.
         """
         # R106: Strict Classification.
-        # Don't mark as 'auth' (1h cooldown) unless it's definitely an API Key issue.
-
         if any(p in error_str for p in ["401", "403", "api key not valid", "invalid_key", "key_expired", "project disabled", "deleted"]):
-            return "auth" # Will trigger Blacklist in Rotator V70.0
+            return "auth"
 
-        # 400 errors (INVALID_ARGUMENT, etc) should FAIL FAST so the dev knows the prompt/config is wrong.
+        # 400 errors (INVALID_ARGUMENT) → fail fast (bad prompt/config, not key issue)
         if any(p in error_str for p in ["context_length_exceeded", "too many tokens", "safety", "blocked", "invalid_argument", "400"]):
             return "fail_fast"
 
         if "tool output is not supported" in error_str:
             return "tool_unsupported"
 
-        if any(p in error_str for p in ["429", "quota", "rate limit", "limit reached"]):
+        # resource_exhausted = Google gRPC code for quota exceeded (429 OR daily)
+        if any(p in error_str for p in ["429", "quota", "rate limit", "limit reached", "resource_exhausted"]):
             return "rate_limit"
 
-        if any(p in error_str for p in ["503", "unavailable", "500"]):
-            return "auth" # Server error - rotatable
+        # R106-FIX: Server errors (500, 503) are transient, not auth failures.
+        if any(p in error_str for p in ["503", "unavailable", "500", "internal server error", "service unavailable"]):
+            return "rate_limit"
 
         if "model not found" in error_str or "404" in error_str:
             return "model_not_found"
 
         return "unknown"
+
+    def _is_daily_quota(self, error_str: str) -> bool:
+        """Detect if a rate_limit error is actually a daily quota (not a per-minute spike)."""
+        return any(p in error_str for p in ["daily", "per_day", "per day", "perday", "requests_per_day", "generaterequestsperdayperproject"])
 
     async def run(self, agent: Agent, prompt: str, **kwargs):
         """
@@ -125,8 +176,18 @@ class TrinityBridge:
         last_error = None
 
         for model_name in models_to_try:
+            daily_exhausted_count = 0  # Track how many keys hit daily quota for this model
             for attempt in range(max_keys):
                 key = await self.rotator.get_key(session_id=session_id)
+
+                # V73.0: Skip (key+model) combos already known to be daily-exhausted
+                if await self.rotator.is_model_daily_exhausted(key, model_name):
+                    daily_exhausted_count += 1
+                    if daily_exhausted_count >= max_keys:
+                        logger.warning(f"[TrinityBridge] ALL keys daily-exhausted for model '{model_name}'. Falling back to next model.")
+                        break
+                    continue
+
                 model = self._create_model(model_name, api_key=key)
 
                 try:
@@ -150,11 +211,10 @@ class TrinityBridge:
                     last_error = e
                     error_str = str(e).lower()
                     category = self._classify_error(error_str)
-
-                    # LOG DETAILED ERROR FOR DIAGNOSTICS
+                    
                     kid = self.rotator._get_key_id(key)
-                    logger.error(f"[TrinityBridge] Model: {model_name} | Key: {key[:8]}... | KID: {kid} | Category: {category} | Details: {error_str}")
-
+                    logger.warning(f"[TrinityBridge] Model: {model_name} | Key: {key[:8]}... | KID: {kid} | Category: {category} | Details: {error_str}")
+                    
                     if "429 too many requests: hệ thống ai đang tạm thời đạt giới hạn an toàn" in error_str:
                         logger.error(f"[TrinityBridge] AI Engine overloaded, failing fast.")
                         raise AIConfigurationError(f"Hệ thống AI đang tạm thời vượt mức tải an toàn. Vui lòng thử lại sau 1 phút.", model_name, attempt)
@@ -168,14 +228,19 @@ class TrinityBridge:
                         break
 
                     if category == "rate_limit":
-                        # R106 Fix: Gemini uses "quota" for RPM (Minute) and RPD (Daily).
-                        # We MUST NOT mark as daily unless it explicitly says "per day" or "daily".
-                        # Otherwise, 1-minute rate limits kill the key for 24 hours.
-                        reason = "daily" if "daily" in error_str or "per day" in error_str else "rate_limit"
-                        logger.warning(f"[TrinityBridge] {reason.upper()} for {model_name}. Key marked UNHEALTHY.")
-                        await self.rotator.mark_unhealthy(key, reason=reason, session_id=session_id)
-                        await asyncio.sleep(0.5)
-                        continue
+                        if self._is_daily_quota(error_str):
+                            # V73.0: Lock only this (key, model) pair for 24h. Key stays alive for other models!
+                            await self.rotator.mark_model_daily(key, model_name)
+                            daily_exhausted_count += 1
+                            if daily_exhausted_count >= max_keys:
+                                logger.warning(f"[TrinityBridge] ALL keys daily-exhausted for '{model_name}'. Auto-falling back.")
+                                break
+                            continue
+                        else:
+                            # Per-minute RPM → soft rest, try next key
+                            await self.rotator.mark_unhealthy(key, reason="rate_limit", session_id=session_id)
+                            await asyncio.sleep(0.5)
+                            continue
 
                     if category == "auth":
                         logger.warning(f"[TrinityBridge] Auth/Server Error for {model_name}. Rotating key...")
@@ -186,7 +251,6 @@ class TrinityBridge:
                         logger.warning(f"[TrinityBridge] Model {model_name} không được hỗ trợ bởi Key hiện tại. Đang chuyển sang model dự phòng tiếp theo...")
                         break
 
-                    # Unknown error
                     logger.error(f"[TrinityBridge] Unknown AI Error for {model_name}: {e}")
                     continue
 
@@ -224,8 +288,18 @@ class TrinityBridge:
         last_error = None
 
         for model_name in models_to_try:
+            daily_exhausted_count = 0
             for attempt in range(max_keys):
                 key = await self.rotator.get_key(session_id=session_id)
+
+                # V73.0: Skip (key+model) combos already known to be daily-exhausted
+                if await self.rotator.is_model_daily_exhausted(key, model_name):
+                    daily_exhausted_count += 1
+                    if daily_exhausted_count >= max_keys:
+                        logger.warning(f"[TrinityBridge][Stream] ALL keys daily-exhausted for model '{model_name}'. Falling back.")
+                        break
+                    continue
+
                 model = self._create_model(model_name, api_key=key)
 
                 try:
@@ -244,7 +318,7 @@ class TrinityBridge:
 
                     # LOG DETAILED ERROR FOR DIAGNOSTICS
                     kid = self.rotator._get_key_id(key)
-                    logger.error(f"[TrinityBridge] [Stream] Model: {model_name} | Key: {key[:8]}... | KID: {kid} | Category: {category} | Details: {error_str}")
+                    logger.error(f"[TrinityBridge][Stream] Model: {model_name} | Key: {key[:8]}... | KID: {kid} | Category: {category} | Details: {error_str}")
 
                     if "429 too many requests: hệ thống ai đang tạm thời đạt giới hạn an toàn" in error_str:
                         logger.error(f"[TrinityBridge][Stream] AI Engine overloaded, failing fast.")
@@ -255,14 +329,18 @@ class TrinityBridge:
                         raise AIConfigurationError(f"AI Fail-Fast: {str(e)}", model_name, attempt)
 
                     if category == "rate_limit":
-                        # R106 Fix: Gemini uses "quota" for RPM (Minute) and RPD (Daily).
-                        # We MUST NOT mark as daily unless it explicitly says "per day" or "daily".
-                        # Otherwise, 1-minute rate limits kill the key for 24 hours.
-                        reason = "daily" if "daily" in error_str or "per day" in error_str else "rate_limit"
-                        logger.warning(f"[TrinityBridge][Stream] {reason.upper()} for {model_name}. Key marked UNHEALTHY.")
-                        await self.rotator.mark_unhealthy(key, reason=reason, session_id=session_id)
-                        await asyncio.sleep(0.5)
-                        continue
+                        if self._is_daily_quota(error_str):
+                            # V73.0: Per-(key, model) daily lock — key stays usable for other models!
+                            await self.rotator.mark_model_daily(key, model_name)
+                            daily_exhausted_count += 1
+                            if daily_exhausted_count >= max_keys:
+                                logger.warning(f"[TrinityBridge][Stream] ALL keys daily-exhausted for '{model_name}'. Auto-falling back.")
+                                break
+                            continue
+                        else:
+                            await self.rotator.mark_unhealthy(key, reason="rate_limit", session_id=session_id)
+                            await asyncio.sleep(0.5)
+                            continue
 
                     if category == "auth":
                         logger.warning(f"[TrinityBridge][Stream] Auth/Server Error for {model_name}. Rotating key...")

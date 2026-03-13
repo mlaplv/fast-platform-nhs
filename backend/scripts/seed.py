@@ -8,6 +8,10 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, delete, text
 from sqlalchemy.orm import selectinload
+from dotenv import load_dotenv
+
+# SSOT: Load environment before anything else
+load_dotenv(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../.env")))
 
 from backend.database import async_session_maker
 from backend.database.models import (
@@ -15,9 +19,19 @@ from backend.database.models import (
     Article, Order, VoiceProfile, Notification, 
     Draft, AgentTelemetryLog, ChatMessage
 )
+from backend.utils.security import GeminiSecurity
 
 # Domain SSOT
 TENANT_ID = "smartshop"
+
+"""
+GEMINI KEY SEEDING PROTOCOL (V72.0):
+These keys are the 'Gold Reserve'. They are automatically injected into the 
+primary Admin's VoiceProfile whenever 'xohi.sh 1' (Full Init) is run.
+
+If you change keys here, run 'xohi.sh 1' or 'docker exec ... python backend/scripts/seed.py'
+to update the DB. Then use the UI 'Reset All Keys' to live-sync.
+"""
 
 def utcnow():
     return datetime.now(timezone.utc)
@@ -128,6 +142,16 @@ async def seed_users(session, admin_role):
     session.add(admin)
     
     # Add Voice Profile for Admin (Rule R30)
+    # R55.0/V70: Pre-seed Gemini Keys (Requested by user)
+    gemini_keys = [
+        "AIzaSyAsl3t1zInuOo8tskrz1_FzO9o8GOPrk4A",
+        "AIzaSyAdWxvdliDJCdRTRc3wDjPqMbBuQWTpRmI",
+        "AIzaSyBUwokbBFhIcaZR9PQ0mlb7W9awGN0odsk",
+        "AIzaSyAMEVZrNziQi1zPINg09iURV5LEtqcI7bo",
+        "AIzaSyBYYrrjd61yL98W61owDVbkH6MCchXLHj8",
+        "AIzaSyAW1C9a66Cy4TeiE5SO5hnCVRGE2KfM"
+    ]
+    
     voice_profile = VoiceProfile(
         id=str(uuid.uuid4()),
         user_id=admin.id,
@@ -139,7 +163,11 @@ async def seed_users(session, admin_role):
             "COUNT": True,
             "MUTATE": True,
             "ANALYZE": True
-        }
+        },
+        gemini_keys_enc=GeminiSecurity.encrypt_keys(gemini_keys),
+        primary_model="gemini-2.0-flash",
+        ai_models=["gemini-2.0-flash-lite-preview-02-05", "gemini-1.5-pro", "gemini-1.5-flash"],
+        discovered_models=["gemini-2.0-flash", "gemini-2.0-flash-lite-preview-02-05", "gemini-1.5-pro", "gemini-1.5-flash"]
     )
     session.add(voice_profile)
     

@@ -50,6 +50,23 @@
     }
   }
 
+  async function resetAllKeys() {
+    isLoading = true;
+    try {
+      const res = await apiClient.post<any>("/api/v1/admin/ai/keys/reset");
+      if (res?.status === "success") {
+        nanobot.showToast(res.message || "Đã reset toàn bộ keys về ACTIVE.", "success");
+        await fetchStats();
+      } else {
+        nanobot.showToast(res?.message || "Reset thất bại.", "error");
+      }
+    } catch (e) {
+      nanobot.showToast("Reset thất bại.", "error");
+    } finally {
+      isLoading = false;
+    }
+  }
+
   $effect(() => {
     if (show) fetchStats();
   });
@@ -159,14 +176,24 @@
             <span class="text-[10px] text-zinc-500 font-bold">DEAD: {keyStats.filter(k => k.status === 'DEAD').length}</span>
           </div>
         </div>
-        
-        <button 
-          onclick={fetchStats}
-          class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-lg border border-white/10 transition-all flex items-center gap-2"
-        >
-          <RefreshCw size={12} class={isLoading ? 'animate-spin' : ''} />
-          Refresh Matrix
-        </button>
+        <div class="flex items-center gap-2">
+          <button 
+            onclick={resetAllKeys}
+            disabled={isLoading}
+            class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest rounded-lg border border-red-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            <Skull size={12} />
+            Reset All Keys
+          </button>
+          <button 
+            onclick={fetchStats}
+            disabled={isLoading}
+            class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-lg border border-white/10 transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            <RefreshCw size={12} class={isLoading ? 'animate-spin' : ''} />
+            Refresh Matrix
+          </button>
+        </div>
       </footer>
     </div>
   </div>

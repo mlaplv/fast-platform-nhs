@@ -16,7 +16,7 @@
 </script>
 
 {#if step > 1}
-<div class="mb-12 px-6 relative z-10 w-full max-w-5xl mx-auto">
+<div class="hidden md:block mb-12 px-6 relative z-10 w-full max-w-5xl mx-auto">
   <div class="relative z-10 flex items-start">
     {#each [
       { s: 1, icon: Sparkles, label: "Ý tưởng", desc: "Brainstorming" },

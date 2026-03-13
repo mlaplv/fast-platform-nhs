@@ -68,6 +68,9 @@ class VoiceProfile(Base, AuditMixin):
     stt_anchors: Mapped[list[str]] = mapped_column(JSON, default=list)
     mic_sensitivity: Mapped[float] = mapped_column(Float, default=0.6)
     gemini_keys_enc: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True) # V70: Secure keys
+    ai_models: Mapped[list[str]] = mapped_column(JSON, default=list) # V75: Model waterfall
+    primary_model: Mapped[Optional[str]] = mapped_column(String, nullable=True) # V75: Main model
+    discovered_models: Mapped[list[str]] = mapped_column(JSON, default=list) # V75.7: Cached suggestions
 
 class Role(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'roles'

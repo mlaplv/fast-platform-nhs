@@ -17,16 +17,23 @@ CONTAINER_NAME="fast_platform_caddy"
 CERT_DIR="$PROJECT_ROOT/certs"
 CERT_PATH="$CERT_DIR/caddy-root-ca.crt"
 
-echo -e "${CYAN}[SSL] Đang kiểm tra container Caddy...${NC}"
-
-if ! docker ps | grep -q "$CONTAINER_NAME"; then
-    echo -e "${RED}[ERROR] Container $CONTAINER_NAME không chạy. Hãy chạy './xohi.sh' rồi chọn Hot Restart trước.${NC}"
-    exit 1
-fi
-
-echo -e "${CYAN}[SSL] Đang trích xuất Caddy Root CA...${NC}"
+echo -e "${CYAN}[SSL] Đang kiểm tra Root CA từ Persistent Mount...${NC}"
 mkdir -p "$CERT_DIR"
-docker exec "$CONTAINER_NAME" cat /data/caddy/pki/authorities/local/root.crt > "$CERT_PATH"
+
+PERSISTENT_ROOT_CRT="$PROJECT_ROOT/certs/caddy/pki/authorities/local/root.crt"
+
+if [ -f "$PERSISTENT_ROOT_CRT" ]; then
+    echo -e "${GREEN}[OK] Phát hiện Root CA trong thư mục persistent.${NC}"
+    cp "$PERSISTENT_ROOT_CRT" "$CERT_PATH"
+else
+    echo -e "${YELLOW}[INFO] Không tìm thấy Root CA persistent. Đang trích xuất từ Container...${NC}"
+    if docker ps | grep -q "$CONTAINER_NAME"; then
+        docker exec "$CONTAINER_NAME" cat /data/caddy/pki/authorities/local/root.crt > "$CERT_PATH"
+    else
+        echo -e "${RED}[ERROR] Container $CONTAINER_NAME không chạy và không tìm thấy cert persistent.${NC}"
+        exit 1
+    fi
+fi
 chmod 644 "$CERT_PATH"
 
 if [ ! -s "$CERT_PATH" ]; then

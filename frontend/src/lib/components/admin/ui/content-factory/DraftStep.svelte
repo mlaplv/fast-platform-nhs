@@ -243,8 +243,8 @@
 <div class="flex-1 overflow-hidden flex flex-col gap-3">
   <!-- Studio Label -->
   <div class="flex items-center gap-3 shrink-0">
-    <div class="w-8 h-px bg-gradient-to-r from-transparent to-purple-500/50"></div>
-    <h5 class="text-[11px] font-black uppercase tracking-[0.2em] text-purple-400">Content Studio 2026</h5>
+    <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-purple-500/50"></div>
+    <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-purple-400">Content Studio 2026</h5>
     {#if _copyrightScore !== null}
       {@const rc = _copyrightScore >= 90 ? 'text-emerald-400' : _copyrightScore >= 70 ? 'text-yellow-400' : 'text-red-400'}
       <span class="text-[9px] font-black uppercase {rc}">· Copyright {_copyrightScore}%</span>
