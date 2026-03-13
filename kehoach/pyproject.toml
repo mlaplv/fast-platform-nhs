@@ -1,0 +1,19 @@
+# Step 5 Certification Dashboard (V2026)
+
+- [x] **Backend: Re-route Step 5 Logic**
+    - [x] Update [orchestrator.py](file:///home/lv/Desktop/fast-platform-core/backend/services/xohi/creative_studio/orchestrator.py) to decouple [PlagiarismCop](file:///home/lv/Desktop/fast-platform-core/backend/services/xohi/creative_studio/operatives/plagiarism_cop.py#80-424) from Step 5.
+    - [x] Modify [engine.py](file:///home/lv/Desktop/fast-platform-core/backend/services/xohi/creative_studio/handlers/engine.py) so Step 5 acts as a pure presentation layer and doesn't wipe cache.
+    - [x] Update `action.py` state transitions to correctly advance without AI rewriting.
+- [ ] **Frontend: Component Architecture**
+    - [ ] Create `ValidationPreviewStep.svelte`.
+    - [ ] Import and replace `DraftStep` usage for Step 5 in [ContentReviewCard.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/admin/ui/ContentReviewCard.svelte).
+- [ ] **Frontend: UI Implementation (ValidationPreviewStep)**
+    - [ ] Implement Left Panel: News Article Desktop/Mobile toggle preview.
+    - [ ] Implement Right Panel: SERP Simulator (Title, URL, Meta).
+    - [ ] Implement Right Panel: SGE Simulator (AI Overviews).
+    - [ ] Implement Right Panel: Social Media Card Preview (Facebook/Zalo Open Graph).
+    - [ ] Build the "Trust Badges" module (Copyright, SEO, AI scores from Step 4).
+- [ ] **Verification**
+    - [ ] Trigger Step 5 transition, verify no long-running API calls.
+    - [ ] Verify SGE/SERP simulators render correctly.
+    - [ ] Ensure mobile toggle works smoothly.

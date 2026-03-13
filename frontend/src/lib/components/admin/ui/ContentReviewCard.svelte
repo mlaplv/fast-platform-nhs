@@ -12,6 +12,7 @@
   import AssetStep from "./content-factory/AssetStep.svelte";
   import OutlineStep from "./content-factory/OutlineStep.svelte";
   import DraftStep from "./content-factory/DraftStep.svelte";
+  import ValidationPreviewStep from "./content-factory/ValidationPreviewStep.svelte";
   import PublishStep from "./content-factory/PublishStep.svelte";
   import ActionButtons from "./content-factory/ActionButtons.svelte";
   import GateBlockModal from "./content-factory/GateBlockModal.svelte";
@@ -387,11 +388,10 @@
           bind:copyrightScore bind:seoScore bind:aiScore
         />
       {:else if viewingStep === 5}
-        <DraftStep
-          {campaign_id} {isEditing} bind:editedDraft bind:draft_content
-          {assets} isExpanded={nanobot.isExpanded} bind:editorRef {outline}
-          {analysis_cache} {analysis_metrics}
-          bind:copyrightScore bind:seoScore bind:aiScore
+        <ValidationPreviewStep
+          {draft_content} {assets} {keywords}
+          {copyrightScore} {seoScore} {aiScore}
+          {analysis_cache} isExpanded={nanobot.isExpanded}
         />
       {:else if viewingStep === 6}
         <PublishStep

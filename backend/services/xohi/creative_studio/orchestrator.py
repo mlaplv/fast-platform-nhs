@@ -47,7 +47,8 @@ class ContentOrchestrator:
         # Step Registry
         registry.register(1, self.vision); registry.register(2, self.hunter)
         registry.register(3, self.pen); registry.register(4, self.pen)
-        registry.register(5, self.cop); registry.register(6, self.media)
+        # Step 5 is now a pure Presentation/Certification Step (No automated AI assigned)
+        registry.register(6, self.media)
         
         # Initialize Handlers
         self.voice_handler = VoiceHandler(self)
