@@ -112,12 +112,24 @@
           : [] // Không có tab active = không highlight gì
   );
 
-  const runCopyrightCheck = async () => {
+  const saveBeforeAnalysis = async () => {
+    const currentText = isEditing ? (editedDraft || draft_content) : draft_content;
+    if (currentText && campaign_id) {
+       try {
+         await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, { draft_content: currentText });
+       } catch (e) {
+         console.warn("[DraftStep] Auto-save before analysis failed:", e);
+       }
+    }
+  };
+
+  const runCopyrightCheck = async (force: boolean = false) => {
     if (!campaign_id || isCopyrightLoading) return;
     isCopyrightLoading = true;
     copyrightResult = null;
     try {
-      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/copyright`);
+      await saveBeforeAnalysis();
+      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/copyright?force=${force}`);
       if (res?.data) copyrightResult = res.data;
     } catch (e) {
       console.error("[DraftStep] Copyright check failed:", e);
@@ -127,12 +139,13 @@
     }
   };
 
-  const runSeoAnalysis = async () => {
+  const runSeoAnalysis = async (force: boolean = false) => {
     if (!campaign_id || isSeoLoading || seoLocked) return;
     isSeoLoading = true;
     seoResult = null;
     try {
-      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/seo`);
+      await saveBeforeAnalysis();
+      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/seo?force=${force}`);
       if (res?.data) seoResult = res.data;
     } catch (e) {
       console.error("[DraftStep] SEO analysis failed:", e);
@@ -142,12 +155,13 @@
     }
   };
 
-  const runAiAnalysis = async () => {
+  const runAiAnalysis = async (force: boolean = false) => {
     if (!campaign_id || isAiLoading || aiLocked) return;
     isAiLoading = true;
     aiReadyResult = null;
     try {
-      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/ai-inspect`);
+      await saveBeforeAnalysis();
+      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/ai-inspect?force=${force}`);
       if (res?.data) aiReadyResult = res.data;
     } catch (e) {
       console.error("[DraftStep] AI Inspect failed:", e);
@@ -176,23 +190,26 @@
         const new_text = payload.new_text;
         setTimeout(() => {
           const normTarget = targetSnippet.replace(/[\s\*\u200B\uFEFF]+/g, '').toLowerCase();
-          const updateMatches = (text: string) => {
-            if (typeof text !== 'string') return false;
-            return text.replace(/[\s\*\u200B\uFEFF]+/g, '').toLowerCase() === normTarget;
+          const updateMatches = (a: any) => {
+            if (!a || typeof a.text !== 'string') return false;
+            const normText = a.text.replace(/[\s\*\u200B\uFEFF]+/g, '').toLowerCase();
+            const msgMatch = (a.message === errorMessage || a.reason === errorMessage);
+            const typeMatch = (a.type === annotationType);
+            return (normText.includes(normTarget) || normTarget.includes(normText)) && msgMatch && typeMatch;
           };
           if (seoResult?.seo_annotations) {
             seoResult.seo_annotations = seoResult.seo_annotations.map((a: any) =>
-              updateMatches(a.text) ? { ...a, text: new_text, type: 'fixed' } : a
+              updateMatches(a) ? { ...a, text: new_text, type: 'fixed' } : a
             );
           }
           if (aiReadyResult?.ai_annotations) {
             aiReadyResult.ai_annotations = aiReadyResult.ai_annotations.map((a: any) =>
-              updateMatches(a.text) ? { ...a, text: new_text, type: 'fixed' } : a
+              updateMatches(a) ? { ...a, text: new_text, type: 'fixed' } : a
             );
           }
           if (copyrightResult?.annotations) {
             copyrightResult.annotations = copyrightResult.annotations.map((s: any) => {
-              const isMatch = updateMatches(s.text);
+              const isMatch = updateMatches(s);
               return isMatch ? { ...s, text: new_text, type: 'fixed' } : s;
             });
           }
@@ -241,17 +258,17 @@
             draft_content = newHtml;
         }
         
-        // Optimistically clear the errors for the active tab since bulk fix "promises" to fix them all
-        setTimeout(() => {
-          const clearAll = (arr: any[]) => arr.map(a => ({...a, type: 'fixed'}));
-          if (activeTab === 'copyright' && copyrightResult?.annotations) {
-            copyrightResult.annotations = clearAll(copyrightResult.annotations);
-          } else if (activeTab === 'seo' && seoResult?.seo_annotations) {
-            seoResult.seo_annotations = clearAll(seoResult.seo_annotations);
-          } else if (activeTab === 'ai' && aiReadyResult?.ai_annotations) {
-            aiReadyResult.ai_annotations = clearAll(aiReadyResult.ai_annotations);
-          }
-        }, 300);
+        // Wait a small tick so Svelte can sync the draft content to the editor before we re-analyze
+        await new Promise(r => setTimeout(r, 300));
+
+        // Rerun the analysis with force=true to guarantee fresh scores and highlights!
+        if (activeTab === 'copyright') {
+          await runCopyrightCheck(true);
+        } else if (activeTab === 'seo') {
+          await runSeoAnalysis(true);
+        } else if (activeTab === 'ai') {
+          await runAiAnalysis(true);
+        }
       }
     } catch (e) {
       console.error('[DraftStep] Bulk Fix failed:', e);

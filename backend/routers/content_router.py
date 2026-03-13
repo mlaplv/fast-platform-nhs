@@ -9,9 +9,10 @@ from sqlalchemy.orm.attributes import flag_modified
 logger = logging.getLogger("api-gateway")
 from litestar import Controller, get, post, put, patch, delete, Request
 from backend.services.xohi.creative_studio.orchestrator import content_factory
-from backend.models.schemas import ContentCampaign, CampaignStep, AgentResponse
+from backend.models.schemas import ContentCampaign as CampaignSchema, CampaignStep, AgentResponse
 from backend.services.xohi.creative_studio.models.schemas import AgentSignal
 from backend.database.repositories import ContentCampaignRepository, provide_campaign_repo
+from backend.database.models import ContentCampaign as CampaignModel
 from litestar.di import Provide
 
 class ContentController(Controller):
@@ -21,18 +22,17 @@ class ContentController(Controller):
     @get("/campaigns")
     async def list_campaigns(self, campaign_repo: ContentCampaignRepository) -> List[Dict[str, Any]]:
         """Lấy danh sách các chiến dịch (R76: Scalar Projection)."""
-        from litestar.repository.filters import LimitOffset
         from sqlalchemy import select
         
         # R76: Select only necessary columns for the list view to avoid RAM-heavy hydration
         stmt = select(
-            ContentCampaign.id,
-            ContentCampaign.topic_data,
-            ContentCampaign.status,
-            ContentCampaign.current_step,
-            ContentCampaign.created_at,
-            ContentCampaign.user_id
-        ).limit(100).order_by(ContentCampaign.created_at.desc())
+            CampaignModel.id,
+            CampaignModel.topic_data,
+            CampaignModel.status,
+            CampaignModel.current_step,
+            CampaignModel.created_at,
+            CampaignModel.user_id
+        ).limit(100).order_by(CampaignModel.created_at.desc())
         
         result = await campaign_repo.session.execute(stmt)
         return [
@@ -48,75 +48,71 @@ class ContentController(Controller):
         ]
 
     @get("/campaigns/{campaign_id:uuid}")
-    async def get_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> ContentCampaign:
-        """Lấy thông tin chi tiết của một chiến dịch cụ thể."""
+    async def get_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> CampaignSchema:
+        """Lấy thông tin chi tiết một chiến dịch (Undefer support)."""
+        from sqlalchemy.orm import undefer
+        from sqlalchemy import select
         try:
-            campaign = await campaign_repo.get(str(campaign_id))
+            # R102: Explicitly undefer final_html for detail view
+            stmt = select(CampaignModel).where(CampaignModel.id == str(campaign_id)).options(undefer(CampaignModel.final_html))
+            result = await campaign_repo.session.execute(stmt)
+            campaign = result.scalar_one_or_none()
+            
             if not campaign:
                 from litestar.exceptions import NotFoundException
                 raise NotFoundException(f"Campaign {campaign_id} not found")
-            return ContentCampaign.model_validate(campaign)
+            return CampaignSchema.model_validate(campaign)
         except Exception as e:
             logger.error(f"[ContentController] Error fetching campaign {campaign_id}: {str(e)}")
             raise e
 
     @post("/campaigns/{campaign_id:uuid}/approve")
     async def approve_step(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
-        """
-        User phê duyệt kết quả của Step hiện tại và cho phép đi tiếp.
-        R81: gold_metadata is IMMUTABLE.
-        """
-        data = await request.json()
+        """User phê duyệt bước sáng tạo hiện tại."""
+        data: Dict[str, Any] = await request.json()
         return await content_factory.approve_step(str(campaign_id), data, campaign_repo)
 
     @post("/campaigns/{campaign_id:uuid}/retry")
     async def retry_step(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
-        """
-        Thực hiện chạy lại Step hiện tại (Retry).
-        """
+        """Chạy lại bước sáng tạo hiện tại."""
         return await content_factory.retry_step(str(campaign_id), campaign_repo)
 
     @post("/campaigns/{campaign_id:uuid}/publish")
     async def publish_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
-        """
-        Xuất bản bài viết cuối cùng.
-        """
-        campaign = await campaign_repo.get(str(campaign_id))
+        """Xuất bản và địa phương hóa toàn bộ tài nguyên."""
+        campaign: Optional[CampaignModel] = await campaign_repo.get(str(campaign_id))
         if not campaign:
             return {"status": "error", "message": "Campaign not found"}
+
+        from backend.services.xohi.creative_studio.formatters.media_compressor import MediaCompressor
+        compressor = MediaCompressor()
+        await compressor.execute(str(campaign_id), campaign_repo)
 
         campaign.status = "COMPLETED"
         await campaign_repo.update(campaign)
         await campaign_repo.session.commit()
-        return {"status": "success", "message": "Campaign published."}
+        return {"status": "success", "message": "Campaign published and localized."}
 
     @put("/campaigns/{campaign_id:uuid}/metadata")
     async def update_metadata(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
-        """
-        Cập nhật metadata (assets, keywords, etc.) mà không chuyển bước.
-        R85.1: Phục vụ curation thời gian thực (F5 Fix).
-        """
-        data = await request.json()
+        """Cập nhật dữ liệu chiến dịch (keywords, assets...)."""
+        data: Dict[str, Any] = await request.json()
         return await content_factory.update_metadata(str(campaign_id), data, campaign_repo)
 
     @patch("/campaigns/{campaign_id:uuid}")
     async def patch_campaign(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
-        """
-        Alias cho update_metadata dùng phương thức PATCH chuẩn REST.
-        """
-        data = await request.json()
+        """RESTful Alias cho update_metadata."""
+        data: Dict[str, Any] = await request.json()
         return await content_factory.update_metadata(str(campaign_id), data, campaign_repo)
 
     @delete("/campaigns/{campaign_id:uuid}", status_code=200)
     async def delete_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
-        """
-        Xóa chiến dịch (Soft Delete).
-        """
+        """Xóa chiến dịch (Hard/Soft delete tùy Repo)."""
         try:
             await campaign_repo.delete(str(campaign_id))
             return {"status": "success", "message": "Campaign deleted."}
         except Exception:
-            return {"status": "error", "message": "Campaign not found or could not be deleted."}
+            return {"status": "error", "message": "Campaign not found."}
 
     @post("/campaigns/{campaign_id:uuid}/analyze/copyright")
     async def analyze_copyright(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> Dict[str, Any]:

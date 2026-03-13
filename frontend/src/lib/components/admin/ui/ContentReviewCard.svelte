@@ -396,7 +396,7 @@
       {:else if viewingStep === 6}
         <PublishStep
           {selectedAvatarUrl} bind:viewingStep bind:isEditing bind:keywords
-          {finalHtml} {draft_content}
+          {finalHtml} {draft_content} {assets} {campaign_id} {apiClient}
         />
       {/if}
   </div>

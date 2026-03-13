@@ -123,6 +123,7 @@
               bind:step={nanobot.vuiResponse.data.step}
               bind:status={nanobot.vuiResponse.data.status}
               bind:progress_msg={nanobot.vuiResponse.data.progress_msg}
+              bind:finalHtml={nanobot.vuiResponse.data.final_html}
               bind:selectedAvatarUrl={nanobot.vuiResponse.data.selectedAvatarUrl}
               bind:selectedAssetIndex={nanobot.vuiResponse.data.selectedAssetIndex}
               bind:creation_config={nanobot.vuiResponse.data.creation_config}

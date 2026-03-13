@@ -31,6 +31,7 @@ class ContentCampaign(BaseModel):
     assets_data: Optional[Union[List[Any], Dict[str, Any]]] = Field(default_factory=list)
     outline_data: Optional[Dict[str, Any]] = Field(default_factory=dict)
     draft_content: Optional[str] = None
+    final_html: Optional[str] = None
     search_count: int = 0
     created_at: datetime = Field(default_factory=datetime.now)
 

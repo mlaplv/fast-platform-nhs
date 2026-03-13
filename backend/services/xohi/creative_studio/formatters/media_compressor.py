@@ -2,139 +2,182 @@ import os
 import re
 import httpx
 import asyncio
+import logging
+import hashlib
 from PIL import Image
 from io import BytesIO
-from typing import List, Dict
+from typing import List, Dict, Any, Optional, Union
+from datetime import datetime, timezone
+from sqlalchemy.orm.attributes import flag_modified
+
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
+from backend.services.xohi.creative_studio.models.schemas import AgentResponse, AgentSignal
+
+logger = logging.getLogger("api-gateway")
 
 class MediaCompressor:
     """
-    Step 6: Media Localization.
-    Hardened Rule 6: Download, Compress (WebP), Store Local.
-    V61.0: Zero-Copy Optimization & Non-blocking I/O.
+    Step 6: Media Localization & Optimization.
+    Standards: SvelteKit 5 + SQLAlchemy 2.0 + Litestar.
+    R115: Zero External Links in Final Production Content.
     """
-    def __init__(self, upload_dir: str = "static/uploads/v62"):
-        self.upload_dir = upload_dir
+    def __init__(self, upload_dir: str = "frontend/static/uploads/v62") -> None:
+        self.upload_dir: str = upload_dir
         os.makedirs(self.upload_dir, exist_ok=True)
-        # R106: Limit concurrent image processing for 2GB RAM safety
-        self.semaphore = asyncio.Semaphore(3)
+        # R106: Semaphore-based concurrency to protect 2GB RAM limits.
+        self.semaphore: asyncio.Semaphore = asyncio.Semaphore(3)
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs):
-        """Standard entry point for DI Registry (V61.0)."""
-        campaign = await repo.get(campaign_id)
-        if not campaign: return
+    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: Any) -> AgentResponse:
+        """Entry point for standard agentic flow."""
+        campaign: Optional[ContentCampaign] = await repo.get(campaign_id)
+        if not campaign:
+            return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found.", data={})
 
-        # Phase 74: Retrieve original remote URLs from Golden Thread if available
-        # This ensures reliable URL swapping even if assets_data has already been localized.
-        original_assets = campaign.get_gold_val("original_remote_assets", list(campaign.assets_data or []))
+        # Step 1: Localize standard assets (images from Step 2)
+        original_assets: List[str] = campaign.get_gold_val("original_remote_assets", list(campaign.assets_data or []))
+        local_assets: List[str] = await self.localize_assets(campaign)
+        
+        # Step 2: Localize Avatar (Gold Metadata)
+        gold: Dict[str, Any] = dict(campaign.gold_metadata or {})
+        remote_avatar: Optional[str] = gold.get("avatar")
+        
+        if remote_avatar and remote_avatar.startswith("http"):
+            async with httpx.AsyncClient(follow_redirects=True) as client:
+                local_avatar = await self._download_and_save(client, remote_avatar, str(campaign.id), "avatar")
+                if local_avatar:
+                    gold["avatar"] = local_avatar
+                    campaign.gold_metadata = gold
+                    flag_modified(campaign, "gold_metadata")
 
-        local_assets = await self.localize_assets(campaign)
-        final_html = self.wrap_html(campaign.draft_content, local_assets, original_assets)
+        # Step 3: Wrap Draft Content and apply asset replacement
+        final_html: str = self.wrap_html(campaign.draft_content or "", local_assets, original_assets)
+        
+        # Step 4: Final Surgical Scan for manual/rogue external links
+        final_html = await self._localize_remaining_html_images(final_html, str(campaign.id))
+
         campaign.final_html = final_html
         campaign.assets_data = local_assets
-        # Explicit return for Registry protocol
-        from backend.services.xohi.creative_studio.models.schemas import AgentResponse, AgentSignal
+
+        # Synchronize persistence
+        await repo.update(campaign)
+        if hasattr(repo, "session"):
+            await repo.session.commit()
+
         return AgentResponse(
             signal=AgentSignal.PROCEED_NEXT,
-            message="Media localized and compressed successfully.",
+            message="Media localized and verified for production.",
             data={"assets": local_assets, "final_html": final_html}
         )
 
     async def localize_assets(self, campaign: ContentCampaign) -> List[str]:
-        """
-        Downloads images from assets_data, converts to WebP, and updates paths.
-        Enforces Rule 6.1: Explicit memory management for 2GB RAM constraints.
-        """
-        local_paths = []
+        """Downloads and processes all assets defined in assets_data."""
+        local_paths: List[str] = []
         async with httpx.AsyncClient(follow_redirects=True) as client:
             for i, url in enumerate(campaign.assets_data or []):
-                # Phase 73: Skip if already localized
-                if url.startswith("/static/"):
-                    local_paths.append(url)
+                # Phase 73: Fast Path for already localized assets
+                if url.startswith("/") or url.startswith("static"):
+                    # Normalize paths (Remove /static prefix if present)
+                    norm_path = url if url.startswith("/") else f"/{url}"
+                    if norm_path.startswith("/static/uploads/"):
+                        norm_path = norm_path.replace("/static/uploads/", "/uploads/")
+                    local_paths.append(norm_path)
                     continue
 
-                # R106: Throttle concurrency using semaphore
                 async with self.semaphore:
-                    try:
-                        response = await client.get(url, timeout=10.0)
-                        response.raise_for_status()
-                        
-                        # Process image with Pillow (Rule: Zero-Leak)
-                        buffer = BytesIO(response.content)
-                        try:
-                            # R105: Use asyncio.to_thread for CPU-bound Pillow ops
-                            await asyncio.to_thread(self._save_webp, buffer, campaign.id, i)
-                            filename = f"{campaign.id}_{i}.webp"
-                            local_paths.append(f"/static/uploads/v62/{filename}")
-                        finally:
-                            buffer.close()
-
-                    except Exception as e:
-                        import logging
-                        logging.getLogger("api-gateway").error(f"[MediaCompressor] Failed for {url}: {e}")
-                        # Phase 74.1: If localization fails, use a fallback local path to prevent remote URL leakage
-                        local_paths.append("/static/uploads/v62/placeholder.webp")
+                    local_path = await self._download_and_save(client, url, str(campaign.id), i)
+                    local_paths.append(local_path if local_path else "/uploads/v62/placeholder.webp")
 
         return local_paths
 
-    def _save_webp(self, buffer: BytesIO, campaign_id: str, index: int):
-        """Internal synchronous worker for thread pool."""
+    async def _download_and_save(self, client: httpx.AsyncClient, url: str, campaign_id: str, suffix: Union[int, str]) -> Optional[str]:
+        """Robust download and WebP conversion flow."""
+        if not url.startswith("http"):
+            return url
+
+        try:
+            response = await client.get(url, timeout=15.0)
+            response.raise_for_status()
+            
+            buffer = BytesIO(response.content)
+            try:
+                # Offload blocking Pillow logic to thread pool
+                await asyncio.to_thread(self._save_webp, buffer, campaign_id, suffix)
+                return f"/uploads/v62/{campaign_id}_{suffix}.webp"
+            finally:
+                buffer.close()
+        except Exception as e:
+            logger.error(f"[MediaCompressor] Localization failure for {url}: {str(e)}")
+            return None
+
+    def _save_webp(self, buffer: BytesIO, campaign_id: str, suffix: Union[int, str]) -> None:
+        """Internal worker for image processing (Resampling + WebP)."""
+        filename: str = f"{campaign_id}_{suffix}.webp"
+        filepath: str = os.path.join(self.upload_dir, filename)
+        
         with Image.open(buffer) as img:
-            filename = f"{campaign_id}_{index}.webp"
-            filepath = os.path.join(self.upload_dir, filename)
-            # Hardened Rule: Max 1920px for web display
+            # R105: Downscale for performance (max 1920px)
             if max(img.size) > 1920:
                 img.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
             
-            img.save(filepath, "WEBP", quality=80)
-            # R105: Explicit close to reclaim RAM (2GB limit)
-            img.close()
+            # Save as optimized WebP
+            img.save(filepath, "WEBP", quality=85)
 
-    def wrap_html(self, content: str, local_assets: List[str], original_assets: List[str] = None) -> str:
-        """Injects localized assets and applies final SEO formatting."""
-        final_html = content
-        # Ensure we don't crash if content is None
-        if not final_html: return ""
+    async def _localize_remaining_html_images(self, html: str, campaign_id: str) -> str:
+        """Surgical scan to catch any escaped external links in HTML tags."""
+        if not html: return ""
+        
+        # Hardened Regex for all quote types
+        img_pattern = re.compile(r'<img[^>]+src\s*=\s*["\']?(https?://[^"\' >]+)["\']?', re.IGNORECASE)
+        urls: List[str] = list(set(img_pattern.findall(html)))
+        
+        if not urls: return html
 
-        # Phase 74: Dual-mode Replacement
-        # 1. Replace traditional [IMAGE_N] placeholders
-        # 2. Replace absolute URLs (in case Step 4 already swapped them)
+        final_html: str = html
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            for i, url in enumerate(urls):
+                if url.startswith("/") or url.startswith("static"):
+                    continue
+                
+                async with self.semaphore:
+                    local_path = await self._download_and_save(client, url, campaign_id, f"ext_{i}")
+                    if local_path:
+                        final_html = final_html.replace(url, local_path)
+        
+        return final_html
+
+    def wrap_html(self, content: str, local_assets: List[str], original_assets: Optional[List[str]] = None) -> str:
+        """Standardizes article container and performs mass asset substitution."""
+        if not content: return ""
+        
+        final_html: str = content
         for i, path in enumerate(local_assets):
-            placeholder = f"[IMAGE_{i+1}]"
-            final_html = final_html.replace(placeholder, path)
+            # Replacement Group A: Placeholders [IMAGE_N]
+            final_html = final_html.replace(f"[IMAGE_{i+1}]", path)
 
+            # Replacement Group B: Absolute remote URLs
             if original_assets and i < len(original_assets):
-                original_url = original_assets[i]
-                if original_url and original_url != path:
-                    # Replace both quoted and unquoted (though quotes are safer)
-                    final_html = final_html.replace(f'"{original_url}"', f'"{path}"')
-                    final_html = final_html.replace(f"'{original_url}'", f"'{path}'")
-                    # Fallback for raw text replacement if needed
-                    final_html = final_html.replace(original_url, path)
+                orig_url = original_assets[i]
+                if orig_url and orig_url != path and orig_url.startswith("http"):
+                    # Catch both quoted and raw URL strings
+                    final_html = final_html.replace(f'"{orig_url}"', f'"{path}"')
+                    final_html = final_html.replace(f"'{orig_url}'", f"'{path}'")
+                    final_html = final_html.replace(orig_url, path)
 
-        # Phase 71.30: Expert Safety Strip — Remove internal analysis markers
+        # Cleanup: Remove internal Xohi annotations
         final_html = self._strip_annotations(final_html)
-            
         return f"<article class='xohi-v62-article'>{final_html}</article>"
 
     def _strip_annotations(self, html: str) -> str:
-        """
-        Expert Mode: Surgically removes <mark class='xohi-annotation'> tags while 
-        preserving the inner text for professional production HTML.
-        """
+        """Surgically unwrap <mark> tags used during internal analysis."""
         if not html: return ""
         
-        # Pattern matches <mark class="xohi-annotation"> ... </mark> Case-Insensitive
-        # Captures group 1: the inner text
         pattern = re.compile(r'<mark\s+[^>]*class=["\']xohi-annotation["\'][^>]*>(.*?)</mark>', re.DOTALL | re.IGNORECASE)
         
-        # Recursive replacement to handle any accidentally nested marks (though rare in Tiptap)
-        clean_html = html
+        clean_html: str = html
         while True:
             new_html = pattern.sub(r'\1', clean_html)
             if new_html == clean_html:
                 break
             clean_html = new_html
-            
         return clean_html
