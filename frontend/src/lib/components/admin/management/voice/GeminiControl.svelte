@@ -58,6 +58,8 @@
         waterfallModels = res.ai_models || [];
         savedPrimary = primaryModel;
         savedWaterfall = [...waterfallModels];
+        // If DB already has config (from seed or previous save), mark as synced
+        if (primaryModel) hasSavedOnce = true;
         if (res.discovered_models) {
           nanobot.setDiscoveredModels(res.discovered_models);
         }
