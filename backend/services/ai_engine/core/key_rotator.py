@@ -27,6 +27,10 @@ class SmartKeyRotator:
     BASE_COOLDOWN = 60
     MAX_COOLDOWN = 86400  # 24h
     
+    # Google API Safety Limits (Mức an toàn free tier, chống 429)
+    MAX_RPM = int(os.getenv("GEMINI_MAX_RPM", 10))       # Limit là 15, set 10 cho an toàn
+    MAX_TPM = int(os.getenv("GEMINI_MAX_TPM", 800000))   # Limit là 1M, set 800k an toàn dư dả
+    
     _instance: Optional["SmartKeyRotator"] = None
 
     def __new__(cls):
@@ -92,7 +96,21 @@ class SmartKeyRotator:
                 if now - last_used < cooldown:
                     continue 
 
-            # 3. Calculate Weight
+            # 3. Chủ động kiểm tra Limits (RPM & TPM) trước khi chọn key
+            try:
+                # Cleanup records cũ
+                await self.client.zremrangebyscore(f"{self.TPM_PREFIX}{kid}", 0, now - 60)
+                tpm_members = await self.client.zrangebyscore(f"{self.TPM_PREFIX}{kid}", now - 60, now)
+                
+                current_rpm = len(tpm_members)
+                current_tpm = sum(int(m.split(":")[1]) for m in tpm_members if ":" in m and len(m.split(":")) >= 2)
+                
+                if current_rpm >= self.MAX_RPM or current_tpm >= self.MAX_TPM:
+                    continue  # Bỏ qua key này nếu đang bị nóng, để Google không khóa
+            except Exception as e:
+                logger.debug(f"[KeyRotator] Bỏ qua lỗi check TPM cho {kid}: {e}")
+
+            # 4. Calculate Weight
             idle_time = now - last_used
             weight = (idle_time + 1) * (health_score / 100.0)
             
@@ -100,20 +118,20 @@ class SmartKeyRotator:
             weights.append(weight)
 
         if not candidate_indices:
-            logger.warning("[KeyRotator] No healthy keys available. Using raw rotation.")
-            return self.get_next_key()
+            logger.warning("[KeyRotator] TẤT CẢ API KEY đều quá tải (vượt Limit/Cooldown). Chặn request để bảo vệ tài khoản.")
+            raise Exception("429 Too Many Requests: Hệ thống AI đang tạm thời đạt giới hạn an toàn. Vui lòng đợi 1 phút để hồi phục.")
 
-        # 4. Weighted Random Choice
+        # 5. Weighted Random Choice
         chosen_idx = random.choices(candidate_indices, weights=weights, k=1)[0]
         chosen_key = self.keys[chosen_idx]
         chosen_kid = self._get_key_id(chosen_key)
         
-        # 5. Micro-Jitter (Standard Anti-Scraping)
-        await asyncio.sleep(random.uniform(0.1, 0.25))
-
-        # 6. Update last_used by Hash ID
+        # 6. Lock-in tức thì để chống Race-Condition (dùng chung key do chưa kíp nhảy sleep)
         await self.client.hset(f"{self.METADATA_PREFIX}{chosen_kid}", "last_used", now)
         self.index = chosen_idx
+        
+        # 7. Micro-Jitter (Standard Anti-Scraping) nhảy sau khi đã lock key
+        await asyncio.sleep(random.uniform(0.05, 0.15))
         
         return chosen_key
 
@@ -138,26 +156,28 @@ class SmartKeyRotator:
         # 1. Critical Failures -> Blacklist
         if any(p in reason_lower for p in ["auth", "invalid", "disabled", "expired", "401", "403"]):
             await self.client.set(f"{self.BLACKLIST_PREFIX}{kid}", reason, ex=self.MAX_COOLDOWN * 30)
-            logger.error(f"[KeyRotator] Key {key[:10]}... BLACKLISTED. Reason: {reason}")
+            logger.error(f"[KeyRotator] Key {kid[:8]} (hash) BLACKLISTED. Reason: {reason}")
             return
 
-        # 2. Transient Failures -> Backoff
+        # 2. Transient Failures -> Backoff (như lỗi 429)
         fail_count = await self.client.hincrby(f"{self.METADATA_PREFIX}{kid}", "fail_count", 1)
         await self.client.hset(f"{self.METADATA_PREFIX}{kid}", "health_score", max(0, 100 - (fail_count * 20)))
-        logger.warning(f"[KeyRotator] Key {key[:10]}... fail_count={fail_count}. Reason: {reason}")
+        logger.warning(f"[KeyRotator] Key {kid[:8]} (hash) fail_count={fail_count}. Reason: {reason}")
 
     async def track_tokens(self, key: str, tokens: int):
-        """Track tokens for TPM management using Hash ID."""
+        """Track tokens for TPM/RPM management using Hash ID sliding window."""
         if not self._use_redis or tokens <= 0: return
         kid = self._get_key_id(key)
         now = time.time()
+        # Format: timestamp:tokens:random_id (để zadd không đè member trùng thời gian)
+        member = f"{now}:{tokens}:{random.randint(10000, 99999)}"
         try:
             async with self.client.pipeline() as pipe:
-                pipe.zadd(f"{self.TPM_PREFIX}{kid}", {str(now): now})
+                pipe.zadd(f"{self.TPM_PREFIX}{kid}", {member: now})
                 pipe.zremrangebyscore(f"{self.TPM_PREFIX}{kid}", 0, now - 60)
                 await pipe.execute()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[KeyRotator] Tracking token lỗi tạm thời: {e}")
 
     def set_keys(self, keys: List[str]):
         """Standardized Pool Update."""

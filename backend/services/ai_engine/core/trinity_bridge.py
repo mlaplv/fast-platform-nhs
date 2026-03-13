@@ -155,6 +155,10 @@ class TrinityBridge:
                     kid = self.rotator._get_key_id(key)
                     logger.error(f"[TrinityBridge] Model: {model_name} | Key: {key[:8]}... | KID: {kid} | Category: {category} | Details: {error_str}")
 
+                    if "429 too many requests: hệ thống ai đang tạm thời đạt giới hạn an toàn" in error_str:
+                        logger.error(f"[TrinityBridge] AI Engine overloaded, failing fast.")
+                        raise AIConfigurationError(f"Hệ thống AI đang tạm thời vượt mức tải an toàn. Vui lòng thử lại sau 1 phút.", model_name, attempt)
+
                     if category == "fail_fast":
                         logger.error(f"[TrinityBridge] Non-rotatable error for {model_name}: {e}")
                         raise AIConfigurationError(f"AI Fail-Fast: {str(e)}", model_name, attempt)
@@ -179,7 +183,7 @@ class TrinityBridge:
                         continue
 
                     if category == "model_not_found":
-                        logger.warning(f"[TrinityBridge] Model {model_name} not found. Jumping to next model...")
+                        logger.warning(f"[TrinityBridge] Model {model_name} không được hỗ trợ bởi Key hiện tại. Đang chuyển sang model dự phòng tiếp theo...")
                         break
 
                     # Unknown error
@@ -241,6 +245,10 @@ class TrinityBridge:
                     # LOG DETAILED ERROR FOR DIAGNOSTICS
                     kid = self.rotator._get_key_id(key)
                     logger.error(f"[TrinityBridge] [Stream] Model: {model_name} | Key: {key[:8]}... | KID: {kid} | Category: {category} | Details: {error_str}")
+
+                    if "429 too many requests: hệ thống ai đang tạm thời đạt giới hạn an toàn" in error_str:
+                        logger.error(f"[TrinityBridge][Stream] AI Engine overloaded, failing fast.")
+                        raise AIConfigurationError(f"Hệ thống AI đang tạm thời vượt mức tải an toàn. Vui lòng thử lại sau 1 phút.", model_name, attempt)
 
                     if category == "fail_fast":
                         logger.error(f"[TrinityBridge][Stream] Non-rotatable error for {model_name}: {e}")
