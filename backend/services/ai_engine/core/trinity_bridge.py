@@ -77,8 +77,8 @@ class TrinityBridge:
         # R106: Strict Classification.
         # Don't mark as 'auth' (1h cooldown) unless it's definitely an API Key issue.
 
-        if any(p in error_str for p in ["401", "403", "api key not valid", "invalid_key", "key_expired"]):
-            return "auth"
+        if any(p in error_str for p in ["401", "403", "api key not valid", "invalid_key", "key_expired", "project disabled", "deleted"]):
+            return "auth" # Will trigger Blacklist in Rotator V70.0
 
         # 400 errors (INVALID_ARGUMENT, etc) should FAIL FAST so the dev knows the prompt/config is wrong.
         if any(p in error_str for p in ["context_length_exceeded", "too many tokens", "safety", "blocked", "invalid_argument", "400"]):
@@ -133,6 +133,15 @@ class TrinityBridge:
                     logger.info(f"[TrinityBridge] {model_name} (Attempt {attempt+1}/{max_keys}) (Session: {session_id})...")
                     res = await agent.run(prompt, model=model, **kwargs)
 
+                    # V70.0: Track tokens on success
+                    try:
+                        usage = getattr(res, 'usage', None)
+                        if usage:
+                            total_tokens = getattr(usage, 'total_tokens', 0)
+                            await self.rotator.track_tokens(key, total_tokens)
+                    except Exception as te:
+                        logger.debug(f"[TrinityBridge] Token tracking failed: {te}")
+
                     await self.rotator.set_success(key, session_id=session_id)
                     await self._save_sticky_model(model_name)
                     return res
@@ -143,7 +152,8 @@ class TrinityBridge:
                     category = self._classify_error(error_str)
 
                     # LOG DETAILED ERROR FOR DIAGNOSTICS
-                    logger.error(f"[TrinityBridge] Model: {model_name} | Key Index: {self.rotator.index} | Category: {category} | Details: {error_str}")
+                    kid = self.rotator._get_key_id(key)
+                    logger.error(f"[TrinityBridge] Model: {model_name} | Key: {key[:8]}... | KID: {kid} | Category: {category} | Details: {error_str}")
 
                     if category == "fail_fast":
                         logger.error(f"[TrinityBridge] Non-rotatable error for {model_name}: {e}")
@@ -229,7 +239,8 @@ class TrinityBridge:
                     category = self._classify_error(error_str)
 
                     # LOG DETAILED ERROR FOR DIAGNOSTICS
-                    logger.error(f"[TrinityBridge] Model: {model_name} | Key Index: {self.rotator.index} | Category: {category} | Details: {error_str}")
+                    kid = self.rotator._get_key_id(key)
+                    logger.error(f"[TrinityBridge] [Stream] Model: {model_name} | Key: {key[:8]}... | KID: {kid} | Category: {category} | Details: {error_str}")
 
                     if category == "fail_fast":
                         logger.error(f"[TrinityBridge][Stream] Non-rotatable error for {model_name}: {e}")

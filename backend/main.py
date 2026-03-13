@@ -37,6 +37,7 @@ from backend.controllers.product import ProductController
 from backend.controllers.article import ArticleController
 from backend.controllers.order import OrderController
 from backend.controllers.settings import SettingsController
+from backend.controllers.ai_management import AIController
 from backend.controllers.chat import ChatController
 from backend.routers.content_router import ContentController
 from backend.routers.voice_stream import stt_websocket
@@ -81,7 +82,7 @@ app = Litestar(
         HealthController, MCPController, AuthController, AuthExtendedController, 
         NotificationController, AuditorController, UserController,
         CategoryController, ProductController, ArticleController, OrderController,
-        ChatController, SettingsController, ContentController, stt_websocket, TTSController,
+        ChatController, SettingsController, AIController, ContentController, stt_websocket, TTSController,
     ],
     middleware=[BodyLimitMiddleware, rate_limit_config.middleware, AuthMiddleware],
     cors_config=cors_config,

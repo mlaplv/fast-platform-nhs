@@ -13,6 +13,8 @@
   import CapabilitiesGrid from "./voice/CapabilitiesGrid.svelte";
   import ChatPersistence from "./voice/ChatPersistence.svelte";
   import SecurityFooter from "./voice/SecurityFooter.svelte";
+  import GeminiControl from "./voice/GeminiControl.svelte";
+  import GeminiDiagnosticsModal from "./voice/GeminiDiagnosticsModal.svelte";
 
   let wakeTriggers = $state<string[]>([]);
   let sleepTriggers = $state<string[]>([]);
@@ -29,6 +31,7 @@
     auto_purge_days: 30,
     cache_limit: 10,
   });
+  let showGeminiDiagnostics = $state(false);
 
   let isLoading = $state(true);
   let isSaving = $state(false);
@@ -248,12 +251,18 @@
             </div>
           </div>
           <ChatPersistence bind:chatSettings />
+          <GeminiControl onOpenDiagnostics={() => showGeminiDiagnostics = true} />
           <NeuralIdentity bind:greetingTemplate bind:farewellTemplate />
         </div>
       </section>
     </main>
   {/if}
 </div>
+
+<GeminiDiagnosticsModal 
+  show={showGeminiDiagnostics} 
+  onClose={() => showGeminiDiagnostics = false} 
+/>
 
 <style>
   @keyframes fadeScaleIn {

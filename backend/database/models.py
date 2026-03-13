@@ -89,6 +89,7 @@ class VoiceProfile(Base, AuditMixin):
     })
     stt_anchors: Mapped[list[str]] = mapped_column(JSON, default=list)
     mic_sensitivity: Mapped[float] = mapped_column(Float, default=0.6)
+    gemini_keys_enc: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # V70: Secure keys storage
 
 class Role(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'roles'

@@ -8,6 +8,8 @@ from litestar import Litestar
 
 from backend.database import alchemy_config
 from backend.database.models import VoiceProfile, ChatMessage
+from backend.services.ai_engine.core.key_rotator import key_rotator
+from backend.utils.security import GeminiSecurity
 from backend.utils.text import normalize_vn
 from backend.services.event_bus import event_bus
 from backend.services.xohi_responder import setup_subscriptions
@@ -35,20 +37,34 @@ async def lifespan(app: Litestar):
                 VoiceProfile.wake_words, 
                 VoiceProfile.sleep_words, 
                 VoiceProfile.greeting_template, 
-                VoiceProfile.capabilities
+                VoiceProfile.capabilities,
+                VoiceProfile.gemini_keys_enc
             )
             results = await session.execute(stmt)
             profiles = results.all()
             
+            all_keys = set()
             count = 0
             for row in profiles:
+                # Load profile for cache
                 await xohi_memory.cache_voice_profile(str(row.user_id), {
                     "wake_words": [normalize_vn(w) for w in (row.wake_words or [])],
                     "sleep_words": [normalize_vn(w) for w in (row.sleep_words or [])],
                     "greeting_template": row.greeting_template,
                     "capabilities": row.capabilities or {},
                 })
+                
+                # Load & Decrypt Gemini Keys
+                if row.gemini_keys_enc:
+                    decrypted = GeminiSecurity.decrypt_keys(row.gemini_keys_enc)
+                    all_keys.update(decrypted)
+                
                 count += 1
+            
+            if all_keys:
+                key_rotator.set_keys(list(all_keys))
+                logger.info(f"[Trinity Core] Recovered {len(all_keys)} Gemini keys from DB.")
+            
             logger.info(f"[Trinity Core] Hot Reload Cache: {count} profiles loaded (Scalar Projection used).")
 
         # Zero-Cold-Start Warmups
