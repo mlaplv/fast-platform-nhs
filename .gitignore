@@ -9,6 +9,7 @@ keys.txt
 *.crt
 *.p12
 *.pfx
+certs/caddy/pki/
 
 # 2. Rác thư viện & Môi trường
 node_modules/

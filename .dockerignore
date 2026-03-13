@@ -36,6 +36,7 @@ Thumbs.db
 # Docker
 docker-compose.yml
 Dockerfile*
+certs/caddy/pki/
 
 # App Data
 backups/

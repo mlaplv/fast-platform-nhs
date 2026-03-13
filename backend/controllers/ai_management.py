@@ -1,8 +1,9 @@
 import logging
 import time
 import uuid
-from typing import List, Dict
+from typing import List, Dict, Optional
 from litestar import Controller, get, post, Request
+from litestar.exceptions import NotAuthorizedException
 from litestar.di import Provide
 from backend.services.ai_engine.core.key_rotator import key_rotator
 from backend.utils.security import GeminiSecurity
@@ -229,9 +230,11 @@ class AIController(Controller):
         
         await voice_repo.session.commit()
         
-        # Hot-reload in TrinityBridge
+        # V75.11: Hyper-Fast Hot-Reload (Direct Inject)
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-        await trinity_bridge.reload_models()
+        trinity_bridge.db_primary_model = data.primary_model
+        trinity_bridge.db_waterfall = data.ai_models
+        logger.info(f"[AIController] TrinityBridge hot-reloaded via Direct Inject.")
         
         return {"status": "success", "message": "Model configuration updated and hot-reloaded."}
 

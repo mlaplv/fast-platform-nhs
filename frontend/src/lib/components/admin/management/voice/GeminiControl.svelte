@@ -7,6 +7,7 @@
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import Layers from "lucide-svelte/icons/layers";
   import Zap from "lucide-svelte/icons/zap";
+  import Check from "lucide-svelte/icons/check";
 
   let { onOpenDiagnostics } = $props<{
     onOpenDiagnostics: () => void;
@@ -19,13 +20,17 @@
   let isSyncing = $state(false);
   let isSavingModels = $state(false);
   let isDiscovering = $state(false);
+  
+  // V75.12: Visual Confirmation State (Sticky)
+  let hasSavedOnce = $state(false);
+  let savedPrimary = $state("");
+  let savedWaterfall = $state<string[]>([]);
 
   async function discoverModels() {
     isDiscovering = true;
     try {
       const res = await apiClient.get<any>("/api/v1/admin/ai/models/discover");
       if (res?.status === "success" && res.models?.length) {
-        // V75.6: Store in global persistent state
         nanobot.setDiscoveredModels(res.models);
         nanobot.showToast(`Neural Discovery: Found ${res.models.length} active models.`, "success");
       }
@@ -39,6 +44,11 @@
   // Reactive derived state for the UI list
   let geminiModels = $derived(nanobot.discoveredModels);
 
+  // V75.5: Custom Dropdown Logic
+  let showPrimaryDropdown = $state(false);
+  let showWaterfallDropdown = $state(false);
+
+  // V75.12: Single consolidated onMount (fixes duplicate fetch bug)
   onMount(async () => {
     // 1. Fetch saved config
     try {
@@ -46,7 +56,8 @@
       if (res) {
         primaryModel = res.primary_model || "";
         waterfallModels = res.ai_models || [];
-        // V75.7: Populate global state with suggestions from DB
+        savedPrimary = primaryModel;
+        savedWaterfall = [...waterfallModels];
         if (res.discovered_models) {
           nanobot.setDiscoveredModels(res.discovered_models);
         }
@@ -54,6 +65,17 @@
     } catch (e) {
       console.error("Failed to fetch model config:", e);
     }
+
+    // 2. Click away logic
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.model-dropdown-container')) {
+        showPrimaryDropdown = false;
+        showWaterfallDropdown = false;
+      }
+    };
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
   });
 
   async function syncKeys() {
@@ -85,7 +107,25 @@
         ai_models: waterfallModels
       });
       if (res?.status === "success") {
-        nanobot.showToast("AI Model Waterfall logic updated successfully.", "success");
+        // V75.12: Re-fetch to confirm what was actually persisted
+        const confirmed = await apiClient.get<any>("/api/v1/admin/ai/models");
+        if (confirmed) {
+          primaryModel = confirmed.primary_model || "";
+          waterfallModels = confirmed.ai_models || [];
+          savedPrimary = primaryModel;
+          savedWaterfall = [...waterfallModels];
+        }
+        
+        // Visual confirmation (sticky until next change)
+        hasSavedOnce = true;
+        
+        // Detailed toast
+        const chainPreview = waterfallModels.slice(0, 3).join(' → ');
+        const extra = waterfallModels.length > 3 ? ` (+${waterfallModels.length - 3} more)` : '';
+        nanobot.showToast(
+          `✅ Confirmed! Primary: ${primaryModel} | Chain: ${chainPreview}${extra}`,
+          "success"
+        );
       }
     } catch (e) {
       nanobot.showToast("Failed to update model configuration.", "error");
@@ -100,34 +140,34 @@
     }
   }
 
-  // V75.5: Custom Dropdown Logic (Premium Vibe)
-  let showPrimaryDropdown = $state(false);
-  let showWaterfallDropdown = $state(false);
+  // V75.8: Sync Primary with Waterfall (Expert Logic)
+  function handlePrimaryChange(model: string) {
+    if (!model) return;
+    const filtered = waterfallModels.filter(m => m !== model);
+    waterfallModels = [model, ...filtered];
+    nanobot.showToast(`Neural Link: ${model} is now the Lead Operative.`, "success");
+  }
 
-  onMount(async () => {
-    // 1. Fetch saved config
-    try {
-      const res = await apiClient.get<any>("/api/v1/admin/ai/models");
-      if (res) {
-        primaryModel = res.primary_model || "";
-        waterfallModels = res.ai_models || [];
-      }
-    } catch (e) {
-      console.error("Failed to fetch model config:", e);
-    }
-
-    // 2. Click away logic
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.model-dropdown-container')) {
-        showPrimaryDropdown = false;
-        showWaterfallDropdown = false;
-      }
-    };
-    window.addEventListener('click', handleClick);
-    return () => window.removeEventListener('click', handleClick);
-  });
+  // V75.12: Dirty state detection 
+  let hasUnsavedChanges = $derived(
+    primaryModel !== savedPrimary || 
+    JSON.stringify(waterfallModels) !== JSON.stringify(savedWaterfall)
+  );
+  
+  // Sticky "saved" = has been saved at least once AND no unsaved changes
+  let justSaved = $derived(hasSavedOnce && !hasUnsavedChanges);
 </script>
+
+<style>
+  @keyframes saveFlash {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+    50% { box-shadow: 0 0 20px 4px rgba(16, 185, 129, 0.3); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+  .save-flash {
+    animation: saveFlash 1.5s ease-out;
+  }
+</style>
 
 <div class="bg-zinc-950/40 border border-white/5 rounded-xl p-5 space-y-6">
   <div class="flex items-center justify-between">
@@ -193,6 +233,9 @@
         <label class="block text-[10px] text-zinc-500 font-bold uppercase tracking-wider flex items-center gap-2">
           <Zap size={10} class="text-amber-400" />
           Primary Model (Default)
+          {#if justSaved}
+            <span class="text-emerald-400 text-[9px] font-black animate-pulse">✅ SAVED</span>
+          {/if}
         </label>
         <div class="relative group">
           <input 
@@ -200,7 +243,7 @@
             bind:value={primaryModel}
             onfocus={() => showPrimaryDropdown = true}
             placeholder="Select or type model ID..."
-            class="w-full h-10 bg-black/50 border border-white/10 rounded-lg px-3 text-xs font-mono text-cyan-400 focus:outline-none focus:border-cyan-500/50 transition-all placeholder:text-zinc-700"
+            class="w-full h-10 bg-black/50 border rounded-lg px-3 text-xs font-mono text-cyan-400 focus:outline-none focus:border-cyan-500/50 transition-all placeholder:text-zinc-700 {justSaved ? 'border-emerald-500/50 save-flash' : 'border-white/10'}"
           />
           <button 
             type="button"
@@ -278,14 +321,26 @@
       <button
         onclick={saveModelConfig}
         disabled={isSavingModels}
-        class="h-8 px-4 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 text-[10px] font-black uppercase tracking-widest rounded-md border border-cyan-500/20 transition-all flex items-center gap-2 disabled:opacity-50 shadow-[0_4px_20px_rgba(34,211,238,0.1)]"
+        class="h-8 px-4 text-[10px] font-black uppercase tracking-widest rounded-md transition-all flex items-center gap-2 disabled:opacity-50 {justSaved ? 'bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/20 shadow-[0_4px_20px_rgba(16,185,129,0.15)]' : hasUnsavedChanges ? 'bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/30 shadow-[0_4px_20px_rgba(245,158,11,0.15)]' : 'bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 border border-cyan-500/20 shadow-[0_4px_20px_rgba(34,211,238,0.1)]'}"
       >
         {#if isSavingModels}
           <RefreshCw size={12} class="animate-spin" />
+        {:else if justSaved}
+          <Check size={12} />
+        {:else if hasUnsavedChanges}
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
         {:else}
           <Layers size={12} />
         {/if}
-        {isSavingModels ? "Re-Routing..." : "Update Neural Waterfall"}
+        {#if isSavingModels}
+          Re-Routing...
+        {:else if justSaved}
+          ✅ Saved!
+        {:else if hasUnsavedChanges}
+          ⚠ Unsaved — Click to Update
+        {:else}
+          Update Neural Waterfall
+        {/if}
       </button>
     </div>
   </div>

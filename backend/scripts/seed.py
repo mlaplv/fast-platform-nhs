@@ -166,8 +166,23 @@ async def seed_users(session, admin_role):
         },
         gemini_keys_enc=GeminiSecurity.encrypt_keys(gemini_keys),
         primary_model="gemini-2.0-flash",
-        ai_models=["gemini-2.0-flash-lite-preview-02-05", "gemini-1.5-pro", "gemini-1.5-flash"],
-        discovered_models=["gemini-2.0-flash", "gemini-2.0-flash-lite-preview-02-05", "gemini-1.5-pro", "gemini-1.5-flash"]
+        ai_models=[
+            "gemini-2.0-flash-lite-preview-02-05", 
+            "gemini-1.5-pro", 
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-8b",
+            "gemini-1.0-pro"
+        ],
+        discovered_models=[
+            "gemini-2.0-flash", 
+            "gemini-2.0-flash-lite-preview-02-05", 
+            "gemini-1.5-pro", 
+            "gemini-1.5-pro-002",
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-002",
+            "gemini-1.5-flash-8b",
+            "gemini-1.0-pro"
+        ]
     )
     session.add(voice_profile)
     
