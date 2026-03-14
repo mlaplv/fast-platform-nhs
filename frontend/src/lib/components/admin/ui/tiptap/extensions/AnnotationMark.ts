@@ -118,21 +118,24 @@ const ANNOTATION_STYLES = `
     transition: background 0.2s ease, text-shadow 0.2s ease;
     pointer-events: auto !important;
   }
-  .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="low" i] {
+  .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="low" i],
+  .xohi-annotation[data-annotation-type="external" i][data-annotation-severity="low" i] {
     color: #fef08a !important;
     background: rgba(234, 179, 8, 0.18);
     text-decoration: underline wavy rgba(234, 179, 8, 1);
     text-decoration-thickness: 2px;
     text-shadow: 0 0 12px rgba(234, 179, 8, 0.4);
   }
-  .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="medium" i] {
+  .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="medium" i],
+  .xohi-annotation[data-annotation-type="external" i][data-annotation-severity="medium" i] {
     color: #fed7aa !important;
     background: rgba(249, 115, 22, 0.20);
     text-decoration: underline wavy rgba(249, 115, 22, 1);
     text-decoration-thickness: 2px;
     text-shadow: 0 0 14px rgba(249, 115, 22, 0.45);
   }
-  .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="high" i] {
+  .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="high" i],
+  .xohi-annotation[data-annotation-type="external" i][data-annotation-severity="high" i] {
     color: #fca5a5 !important;
     background: rgba(239, 68, 68, 0.22);
     text-decoration: underline wavy rgba(239, 68, 68, 1);
@@ -140,7 +143,6 @@ const ANNOTATION_STYLES = `
     text-shadow: 0 0 18px rgba(239, 68, 68, 0.55);
   }
   .xohi-annotation[data-annotation-type="seo-error" i],
-  .xohi-annotation[data-annotation-type="missing_h1" i],
   .xohi-annotation[data-annotation-type="keyword_stuffing" i] {
     color: #fca5a5 !important;
     background: rgba(239, 68, 68, 0.18);
@@ -197,15 +199,18 @@ const ANNOTATION_STYLES = `
     text-decoration-thickness: 2px;
     text-shadow: 0 0 12px rgba(16, 185, 129, 0.45);
   }
-  .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="high" i]:hover {
+  .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="high" i]:hover,
+  .xohi-annotation[data-annotation-type="external" i][data-annotation-severity="high" i]:hover {
     background: rgba(239, 68, 68, 0.35);
     text-shadow: 0 0 22px rgba(239, 68, 68, 0.75);
   }
-  .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="medium" i]:hover {
+  .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="medium" i]:hover,
+  .xohi-annotation[data-annotation-type="external" i][data-annotation-severity="medium" i]:hover {
     background: rgba(249, 115, 22, 0.32);
     text-shadow: 0 0 18px rgba(249, 115, 22, 0.65);
   }
-  .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="low" i]:hover {
+  .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="low" i]:hover,
+  .xohi-annotation[data-annotation-type="external" i][data-annotation-severity="low" i]:hover {
     background: rgba(234, 179, 8, 0.28);
     text-shadow: 0 0 14px rgba(234, 179, 8, 0.55);
   }
@@ -221,7 +226,11 @@ const ANNOTATION_STYLES = `
     background: rgba(96, 165, 250, 0.22);
     text-shadow: 0 0 14px rgba(96, 165, 250, 0.45);
   }
-  .xohi-annotation[data-annotation-type="geo-info" i]:hover {
+  .xohi-annotation[data-annotation-type="geo-info" i]:hover,
+  .xohi-annotation[data-annotation-type="geo_stats" i]:hover,
+  .xohi-annotation[data-annotation-type="geo_quotes" i]:hover,
+  .xohi-annotation[data-annotation-type="geo_fluff" i]:hover,
+  .xohi-annotation[data-annotation-type="geo_snippet" i]:hover {
     background: rgba(192, 38, 211, 0.25);
     text-shadow: 0 0 16px rgba(192, 38, 211, 0.55);
   }

@@ -29,20 +29,20 @@
 {#if visible && (text || isFixed)}
   <div 
     bind:this={tooltipEl}
-    class="fixed z-[100001] pointer-events-none transition-opacity duration-150"
+    class="tiptap-tooltip fixed z-[100001] pointer-events-none transition-opacity duration-150"
     style="left: {x}px; top: {y}px; transform: translate(-50%, -100%)"
   >
-    <div class="shadow-2xl border backdrop-blur-xl p-3 text-[10px] leading-relaxed w-56 pointer-events-auto {
+    <div class="shadow-2xl border backdrop-blur-xl p-3 text-[10px] leading-relaxed w-64 pointer-events-auto {
       isFixed ? 'bg-emerald-950/95 border-emerald-500/30 text-emerald-100' : 
       isInternal ? 'bg-fuchsia-950/95 border-fuchsia-500/30 text-fuchsia-100' :
-      type === 'copyright' ? 'bg-orange-950/95 border-orange-500/30 text-orange-100' :
-      type.startsWith('seo-') ? 'bg-blue-950/95 border-blue-400/30 text-blue-50' :
+      type === 'copyright' || type === 'external' ? 'bg-orange-950/95 border-orange-500/30 text-orange-100' :
+      type.startsWith('seo-') || type.includes('seo') ? 'bg-blue-950/95 border-blue-400/30 text-blue-50' :
       'bg-slate-900/95 border-white/10 text-white'
     }">
       <div class="flex flex-col gap-2">
         <div class="flex items-start justify-between gap-3">
           <span class="font-black uppercase tracking-widest opacity-40 shrink-0 text-[8px] mt-0.5">
-            {isFixed ? '✨ Hoàn tất' : type.replace(/_/g, ' ')}
+            {isFixed ? '✨ Hoàn tất' : `PHÂN TÍCH · ${type.replace(/_/g, ' ')}`}
           </span>
           {#if isFixed}
             <span class="text-emerald-400 font-bold bg-emerald-400/10 px-1.5 py-0.5 flex items-center gap-1 shrink-0">

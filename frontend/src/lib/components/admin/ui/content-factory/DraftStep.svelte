@@ -106,7 +106,7 @@
           ? (aiReadyResult?.ai_annotations || []).map((a: any) => ({
               text: a.text || '',
               type: a.type || 'geo-info',
-              message: a.message || '',
+              message: a.message || 'Cần tối ưu cho AI/GEO',
               severity: (a.severity || 'info').toLowerCase()
             }))
           : [] // Không có tab active = không highlight gì
@@ -370,7 +370,7 @@
           onclick: () => runSeoAnalysis()
         },
         {
-          label: isAiLoading ? '...' : '✨ AI 2026',
+          label: isAiLoading ? '...' : '✨ AI MOD',
           loading: isAiLoading,
           disabled: aiLocked,
           lockedMsg: aiLocked
@@ -464,9 +464,6 @@
       </div>
 
       <!-- AI 2026 -->
-      <div class="relative group/ai">
-        <button
-          onclick={() => {
             if (activeTab !== 'ai' && !aiReadyResult && !isAiLoading && !aiLocked) {
               runAiAnalysis();
             } else {
@@ -480,14 +477,14 @@
               : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}
             {aiLocked ? 'cursor-not-allowed opacity-50' : ''}
             disabled:opacity-50"
-          title="Kiểm tra mức độ thân thiện với LLM/AI Crawlers"
+          title="Kiểm tra AI Readiness / GEO Mod"
         >
           {#if isAiLoading}
             <span class="inline-block w-3 h-3 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></span>
           {:else}
             <Sparkles size={12} />
           {/if}
-          <span class="text-[10px] uppercase font-bold tracking-wider">AI 2026</span>
+          <span class="text-[10px] uppercase font-bold tracking-wider">AI MOD</span>
           {#if aiLocked}
             <span class="text-[8px] opacity-50">🔒</span>
           {:else if aiBadge}

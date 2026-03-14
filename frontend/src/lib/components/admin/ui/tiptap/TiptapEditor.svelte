@@ -329,7 +329,13 @@
   <div 
     class="flex-1 overflow-y-auto document-scroll {fullScreen ? 'bg-[#0a0d14]' : 'bg-[#0d1117] p-6'}"
     onmousemove={handleMouseMove}
-    onmouseleave={() => { if (!isFixing) tooltipVisible = false; }}
+    onmouseleave={(e) => { 
+      const related = e.relatedTarget as HTMLElement;
+      if (!isFixing && !related?.closest('.tiptap-tooltip')) {
+        tooltipVisible = false;
+        lastTooltipAnchorId = '';
+      }
+    }}
   >
     <div class="
       {fullScreen ? 'max-w-4xl mx-auto my-0 bg-[#0f172a] min-h-screen px-20 py-16 border-x border-white/5' : 'max-w-4xl mx-auto my-8 bg-[#111827] shadow-2xl min-h-[700px] px-16 py-12 border border-white/5'}
