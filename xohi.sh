@@ -13,6 +13,42 @@ CYAN='\033[0;36m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Helper: OS & Arch check
+# [LONG-TERM NOTE: INTEL MAC WORKAROUND]
+# Starting from 2024/2025, modern AI libraries (like onnxruntime) dropped support 
+# for x86_64 macOS wheels. To keep these "legacy" Intel Macs alive for development,
+# we detect them here and shift the heavy lifting into Docker.
+IS_INTEL_MAC=false
+if [[ "$OSTYPE" == "darwin"* ]] && [[ "$(uname -m)" == "x86_64" ]]; then
+    IS_INTEL_MAC=true
+fi
+
+# Helper: Run Backend Command (Intelligence Routing)
+# Why this exists: 
+# 1. On Linux/Ubuntu: We run natively for maximum speed.
+# 2. On Intel Mac: The local Python environment cannot install core AI deps (onnxruntime).
+#    So we "teleport" the command to run inside the Docker container instead.
+#    We also fix the path for .env because host absolute paths don't match container paths.
+function run_backend() {
+    if [ "$IS_INTEL_MAC" = true ]; then
+        # On Intel Mac, we MUST run inside the container.
+        # We need to transform absolute host paths (like /Users/lv/...) into relative paths (.env)
+        # because the container has a different file system.
+        local args=()
+        for arg in "$@"; do
+            if [[ "$arg" == "$PWD/.env" ]]; then
+                args+=(".env")
+            else
+                args+=("$arg")
+            fi
+        done
+        docker compose exec -T api uv run "${args[@]}"
+    else
+        # On Ubuntu/Linux, run local for speed
+        uv run "$@"
+    fi
+}
+
 
 # Helper: Deep Clean function
 function deep_clean() {
@@ -93,7 +129,13 @@ function start_dev() {
     check_deps
     
     echo -e "${YELLOW}-> Đồng bộ thư viện (UV & PNPM)...${NC}"
-    uv sync
+    if [ "$IS_INTEL_MAC" = true ]; then
+        echo -e "${YELLOW}[INTEL MAC] Đang bỏ qua uv sync local để tránh lỗi onnxruntime. Docker sẽ lo việc này.${NC}"
+        # Chạy uv sync nhưng không dừng nếu lỗi (nếu sếp muốn thử vận may)
+        uv sync || echo -e "${YELLOW}[SKIP] Không thể sync local trên Intel Mac. Chuyển sang dùng Docker...${NC}"
+    else
+        uv sync
+    fi
     (cd frontend && pnpm install)
     
     echo -e "${YELLOW}-> Khởi động Containers...${NC}"
@@ -102,7 +144,7 @@ function start_dev() {
     echo -e "${YELLOW}-> Cập nhật Database (Migration)...${NC}"
     # Đợi DB sẵn sàng một chút
     sleep 2
-    uv run --env-file "${PWD}/.env" alembic -c backend/alembic.ini upgrade head || echo -e "${YELLOW}[SKIP] Không có migration mới.${NC}"
+    run_backend --env-file "${PWD}/.env" alembic -c backend/alembic.ini upgrade head || echo -e "${YELLOW}[SKIP] Không có migration mới.${NC}"
     
     echo -e "${GREEN}[READY] Hệ thống đã sẵn sàng cho dev!${NC}"
     echo -e "${CYAN}Admin: https://admin.smartshop.test${NC}"
@@ -131,7 +173,12 @@ function init_deploy() {
 
     echo -e "${CYAN}[3/6] Cài đặt dependencies (UV & PNPM)...${NC}"
     mkdir -p certs/caddy/pki
-    uv sync
+    if [ "$IS_INTEL_MAC" = true ]; then
+        echo -e "${YELLOW}[INTEL MAC] Skip uv sync local...${NC}"
+        uv sync || true
+    else
+        uv sync
+    fi
     (cd frontend && pnpm install)
     
     echo -e "${CYAN}[4/6] Xây dựng và khởi động Containers (Docker)...${NC}"
@@ -140,11 +187,11 @@ function init_deploy() {
     echo -e "${CYAN}[5/6] Database Migration & SSL Setup...${NC}"
     echo -e "${YELLOW}Đang chờ DB sẵn sàng...${NC}"
     sleep 5
-    uv run --env-file "${PWD}/.env" alembic -c backend/alembic.ini upgrade head
+    run_backend --env-file "${PWD}/.env" alembic -c backend/alembic.ini upgrade head
     chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
     
     echo -e "${CYAN}[6/6] Gieo mầm dữ liệu (Seeding Database)...${NC}"
-    uv run --env-file "${PWD}/.env" python3 backend/scripts/seed.py
+    run_backend --env-file "${PWD}/.env" python3 backend/scripts/seed.py
     
     echo -e "${GREEN}=== HỆ THỐNG ĐÃ SẴN SÀNG! ===${NC}"
     echo -e "${CYAN}Truy cập: https://admin.smartshop.test${NC}"
@@ -154,7 +201,7 @@ function init_deploy() {
 function seed_db() {
     echo -e "${YELLOW}=== [SEED] KHỞI TẠO DỮ LIỆU MẪU (R1.5) ===${NC}"
     check_deps
-    uv run --env-file "${PWD}/.env" python3 backend/scripts/seed.py
+    run_backend --env-file "${PWD}/.env" python3 backend/scripts/seed.py
     echo -e "${GREEN}== SEEDING HOÀN TẤT! ==${NC}"
     read -p "Nhấn Enter để quay lại menu..."
 }
@@ -163,7 +210,7 @@ function run_tests() {
     echo -e "${YELLOW}=== [TEST] KIỂM THỬ HỆ THỐNG ===${NC}"
     echo -e "${CYAN}[1/2] Backend (Pytest)...${NC}"
     check_deps
-    uv run pytest || echo -e "${RED}Lỗi Test Backend.${NC}"
+    run_backend pytest || echo -e "${RED}Lỗi Test Backend.${NC}"
     echo -e "${CYAN}[2/2] Frontend (Vitest)...${NC}"
     (cd frontend && pnpm run test) || echo -e "${RED}Lỗi Test Frontend.${NC}"
     read -p "Nhấn Enter để quay lại menu..."
@@ -217,14 +264,14 @@ while true; do
             ;;
         5)
             check_deps
-            uv run --env-file "${PWD}/.env" python3 -c "from backend.services.xohi.creative_studio.orchestrator import content_factory; import asyncio; asyncio.run(content_factory.resume_all())"
+            run_backend --env-file "${PWD}/.env" python3 -c "from backend.services.xohi.creative_studio.orchestrator import content_factory; import asyncio; asyncio.run(content_factory.resume_all())"
             read -p "Nhấn Enter để tiếp tục..."
             ;;
         6)
             run_tests
             ;;
         7)
-            uv run --env-file "${PWD}/.env" python3 backend/scripts/audit_v61.py
+            run_backend --env-file "${PWD}/.env" python3 backend/scripts/audit_v61.py
             read -p "Nhấn Enter để tiếp tục..."
             ;;
         8)
