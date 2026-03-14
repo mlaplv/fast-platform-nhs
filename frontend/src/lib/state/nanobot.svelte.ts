@@ -245,7 +245,17 @@ export function createNanobotState() {
     // Layout Context
     get screenContext() { return { current_route: typeof window !== "undefined" ? window.location.pathname : "/", active_widget: state.activeWidget, active_data: state.currentData }; },
     get heartbeatCollapsed() { return ui.heartbeatCollapsed; },
-    toggleHeartbeat: () => { if (typeof window === "undefined") return; if (ui.heartbeatCollapsed === null) ui.heartbeatCollapsed = window.innerWidth >= 1280; else ui.heartbeatCollapsed = !ui.heartbeatCollapsed; },
+    toggleHeartbeat: () => {
+      if (typeof window === "undefined") return;
+      // V71.1: Unified Breakpoint logic at 1536px (2XL) for Laptop safety
+      // If null (Auto), calculate current state then flip it to force Manual override
+      if (ui.heartbeatCollapsed === null) {
+        const isCurrentlySmall = window.innerWidth < 1536;
+        ui.heartbeatCollapsed = !isCurrentlySmall;
+      } else {
+        ui.heartbeatCollapsed = !ui.heartbeatCollapsed;
+      }
+    },
     get showMobileSidebar() { return state.showMobileSidebar; },
     get showMobileDrawer() { return state.showMobileSidebar; },
     toggleMobileSidebar: () => (state.showMobileSidebar = !state.showMobileSidebar),

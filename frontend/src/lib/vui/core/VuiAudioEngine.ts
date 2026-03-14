@@ -274,25 +274,29 @@ export class VuiAudioEngine {
           this.audioCtx = new AC();
         }
         
-        if (this.audioCtx!.state === 'suspended') {
+        // V71.3: Enhanced Safari/Firefox Waking
+        if (this.audioCtx!.state === 'suspended' || this.audioCtx!.state === 'interrupted') {
            await this.audioCtx!.resume();
         }
         
         // Phase 46: Keep context alive with a short-lived silent oscillator
         const osc = this.audioCtx!.createOscillator();
-        osc.frequency.value = 0;
-        osc.connect(this.audioCtx!.destination);
+        const gain = this.audioCtx!.createGain();
+        gain.gain.value = 0;
+        osc.connect(gain);
+        gain.connect(this.audioCtx!.destination);
         osc.start(0);
         osc.stop(0.001);
       }
       
+      // Safari specific: Playing a bone-dry silent buffer is often more reliable than just resume()
       const dummy = new Audio();
       dummy.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhAAQACABAAAABkYXRhAgAAAAEA";
       await dummy.play().catch(() => {});
       
       this.hasUserInteracted = true;
       vuiState.setAudioBlocked(false);
-      console.log("[AudioEngine] Audio context WARMED and UNLOCKED.");
+      console.log(`[AudioEngine] 🔊 Context WARMED (${this.audioCtx?.state}). Interaction: ${this.hasUserInteracted}`);
     } catch (e) {
       console.warn("[AudioEngine] Unlock failed", e);
     }

@@ -76,6 +76,8 @@ class VuiOrchestrator {
     vuiState.setPhase("listening");
 
     try {
+      // V71.4: Multi-Browser Warmup. Proactively ensure context is unlocked.
+      await this.audio.unlock();
       this.audio.playSystemSound('start');
       
       // Step 1: Connect WebSocket for STT streaming

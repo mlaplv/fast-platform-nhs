@@ -86,15 +86,16 @@
           <NotificationHud />
           <UserHud />
           
-          {#if nanobot.heartbeatCollapsed}
-            <button
-              onclick={() => nanobot.toggleHeartbeat()}
-              class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-white/5 text-neon-cyan/60 hover:text-neon-cyan transition-colors"
-              title="Mở rộng Heartbeat"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M15 3v18"/></svg>
-            </button>
-          {/if}
+          <!-- V71.2: Dynamic Toggle visibility - Always show Expand button if sidebar is not visible -->
+          <button
+            onclick={() => nanobot.toggleHeartbeat()}
+            class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-white/5 text-neon-cyan/60 hover:text-neon-cyan transition-colors"
+            class:hidden={nanobot.heartbeatCollapsed === false}
+            class:2xl:hidden={nanobot.heartbeatCollapsed === null}
+            title="Mở rộng Heartbeat"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M15 3v18"/></svg>
+          </button>
         </div>
       </div>
     </header>
@@ -182,8 +183,8 @@
       display: none;
     }
   }
-
-  /* Default for Large Screens: Auto-Expand */
+  
+  /* Default for Desktop/Large Screens: Auto-Expand (2XL Breakpoint) */
   @media (min-width: 1536px) {
     #heartbeat-sidebar {
       --sidebar-w: 300px;
