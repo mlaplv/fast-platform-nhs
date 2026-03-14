@@ -463,7 +463,9 @@
         {/if}
       </div>
 
-      <!-- AI 2026 -->
+      <div class="relative group/ai">
+        <button
+          onclick={() => {
             if (activeTab !== 'ai' && !aiReadyResult && !isAiLoading && !aiLocked) {
               runAiAnalysis();
             } else {
