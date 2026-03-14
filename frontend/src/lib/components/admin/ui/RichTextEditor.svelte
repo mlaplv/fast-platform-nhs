@@ -129,7 +129,6 @@
   let fileInput = $state<HTMLInputElement | null>(null);
 
   onMount(() => {
-    console.log("[RichTextEditor] onMount. Content size:", content?.length);
     injectAnnotationStyles();
 
     editor = new Editor({
@@ -214,7 +213,6 @@
     if (!editor || editor.isDestroyed || content === undefined) return;
     
     const currentHtml = editor.getHTML();
-    console.log("[RichTextEditor] Prop 'content' sync:", { content, currentHtml });
     // Use string comparison with a fallback to empty paragraph for blank content
     const normalizedContent = content === "" ? "<p></p>" : content;
     const normalizedCurrent = currentHtml === "" ? "<p></p>" : currentHtml;
@@ -363,12 +361,6 @@
         const isInternalDedup = tooltipType === 'internal-dedup';
         let foundMatches = false;
 
-        console.log(`===============================================`);
-        console.log(`[AutoFix] 1. STARTING FIX FOR ID:`, tooltipId);
-        console.log(`[AutoFix]    Snippet: "${tooltipSnippet}"`);
-        console.log(`[AutoFix]    Target New Text: "${newText}"`);
-        console.log(`[AutoFix]    Bulk Replace Mode (Dedup):`, isInternalDedup);
-
         let currentTr = editor.state.tr;
 
         // For internal-dedup, we want to replace ALL exact text matches in the document
@@ -426,11 +418,7 @@
           editor.view.dispatch(currentTr);
           tooltipSnippet = newText;
           tooltipType = 'fixed'; // Show completed state
-          console.log(`[AutoFix] 3. SUCCESS! Text Replaced in Editor.`);
-        } else {
-          console.error(`[AutoFix] 2. FAILED! Could not locate text or Mark ID.`);
         }
-        console.log(`===============================================`);
       }
     } finally {
       isFixing = false;

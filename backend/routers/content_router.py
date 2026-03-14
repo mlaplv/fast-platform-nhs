@@ -12,7 +12,6 @@ from backend.services.xohi.creative_studio.orchestrator import content_factory
 from backend.models.schemas import ContentCampaign as CampaignSchema, CampaignStep, AgentResponse
 from backend.services.xohi.creative_studio.models.schemas import AgentSignal
 from backend.database.repositories import ContentCampaignRepository, provide_campaign_repo
-from backend.database.models import ContentCampaign as CampaignModel
 from litestar.di import Provide
 
 class ContentController(Controller):
@@ -23,6 +22,8 @@ class ContentController(Controller):
     async def list_campaigns(self, campaign_repo: ContentCampaignRepository) -> List[Dict[str, Any]]:
         """Lấy danh sách các chiến dịch (R76: Scalar Projection)."""
         from sqlalchemy import select
+        # R106: Force ORM model to avoid collision with Pydantic schema
+        from backend.database.models import ContentCampaign as CampaignModel
         
         # R76: Select only necessary columns for the list view to avoid RAM-heavy hydration
         stmt = select(
@@ -52,7 +53,8 @@ class ContentController(Controller):
         """Lấy thông tin chi tiết một chiến dịch (Undefer support)."""
         from sqlalchemy.orm import undefer
         from sqlalchemy import select
-        from backend.database.models.content import ContentCampaign as CampaignModel
+        # R106: Force ORM model to avoid collision with Pydantic schema
+        from backend.database.models import ContentCampaign as CampaignModel
         try:
             # R102: Explicitly undefer final_html for detail view
             stmt = select(CampaignModel).where(CampaignModel.id == str(campaign_id)).options(undefer(CampaignModel.final_html))
@@ -81,6 +83,7 @@ class ContentController(Controller):
     @post("/campaigns/{campaign_id:uuid}/publish")
     async def publish_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
         """Xuất bản và địa phương hóa toàn bộ tài nguyên."""
+        from backend.database.models import ContentCampaign as CampaignModel
         campaign: Optional[CampaignModel] = await campaign_repo.get(str(campaign_id))
         if not campaign:
             return {"status": "error", "message": "Campaign not found"}
@@ -136,7 +139,6 @@ class ContentController(Controller):
         cache = gold.get("analysis_cache", {})
         
         if not force and cache.get("copyright", {}).get("hash") == content_hash:
-            logger.info(f"Copyright cache hit for campaign {campaign_id}")
             return {"status": "success", "data": cache["copyright"]["data"], "cached": True}
 
         if force:
@@ -156,13 +158,9 @@ class ContentController(Controller):
         new_gold = copy.deepcopy(campaign.gold_metadata or {})
         new_gold["analysis_cache"] = cache
         new_gold["analysis_metrics"] = metrics
-        logger.info(f"[EXPERT] Updating gold_metadata for {campaign_id}: {new_gold}")
-        campaign.gold_metadata = new_gold
-        flag_modified(campaign, "gold_metadata")
         campaign.unique_score = result.uniqueness_score
         await campaign_repo.update(campaign)
         await campaign_repo.session.commit()
-        logger.info(f"[EXPERT] COMMIT SUCCESS for copyright campaign {campaign_id}")
         
         return {"status": "success", "data": result_data}
 
@@ -186,7 +184,6 @@ class ContentController(Controller):
         cache = gold.get("analysis_cache", {})
         
         if not force and cache.get("seo", {}).get("hash") == content_hash:
-            logger.info(f"SEO cache hit for campaign {campaign_id}")
             return {"status": "success", "data": cache["seo"]["data"], "cached": True}
 
         if force:
@@ -210,7 +207,6 @@ class ContentController(Controller):
         flag_modified(campaign, "gold_metadata")
         await campaign_repo.update(campaign)
         await campaign_repo.session.commit()
-        logger.info(f"[EXPERT] COMMIT SUCCESS for seo campaign {campaign_id}")
         
         return {"status": "success", "data": result_data}
 

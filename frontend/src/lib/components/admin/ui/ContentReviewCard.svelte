@@ -4,6 +4,7 @@
   import { apiClient } from "$lib/utils/apiClient";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { vuiController } from "$lib/vui";
+  import type { CampaignKeywords, CampaignMetrics } from "$lib/state/types";
   
   // -- Sub-Components --
   import Header from "./content-factory/Header.svelte";
@@ -43,10 +44,10 @@
   let isPublishing = $state(false);
   let resultMsg = $state("");
   let customImageUrl = $state("");
-  let editedKeywords = $state<any>({});
-  let editedConfig = $state<any>({});
+  let editedKeywords = $state<CampaignKeywords>({});
+  let editedConfig = $state<Record<string, any>>({});
   let editedDraft = $state("");
-  let editorRef = $state<any>(null);
+  let editorRef = $state<HTMLDivElement | null>(null);
   let maxStepSeen = $state(step);
 
   // -- Gate Score State (synced from DraftStep via bind:) --
@@ -127,10 +128,8 @@
     
     // Ensure finalHtml is not empty if we are in step 6
     if (viewingStep >= 6 && !finalHtml) {
-      console.log("[ContentReviewCard] Forcing finalHtml from draft_content (Step 6 init)");
       finalHtml = draft_content;
     }
-    console.log("[ContentReviewCard] Initialized:", { draft_content: draft_content?.substring(0, 30), finalHtml: finalHtml?.substring(0, 30) });
     
     // Ensure viewingStep is valid
     if (viewingStep < 1 || viewingStep > 6) viewingStep = step || 1;

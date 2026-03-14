@@ -148,9 +148,14 @@ class Tier3CloudRouter:
                 deps=deps,
                 message_history=history
             ) as result:
-                # We yield text chunks as they arrive
-                async for text in result.stream_text(delta=True):
-                    yield text
+                # [V81.2] Use stream_structured for agents with output_type
+                last_len = 0
+                async for structured in result.stream_structured(debounce_by=None):
+                    msg = structured.message or ""
+                    if len(msg) > last_len:
+                        chunk = msg[last_len:]
+                        yield chunk
+                        last_len = len(msg)
                     
         except Exception as e:
             logger.error(f"[T3 Stream] Critical failure: {e}")

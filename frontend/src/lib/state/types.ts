@@ -122,3 +122,59 @@ export interface Toast {
   message: string;
   duration?: number;
 }
+
+// ── Phase 8: Campaign & Content Types (@agrules) ──
+
+export interface CampaignKeywords {
+  title?: string;
+  primary_keyword?: string;
+  secondary_keywords?: string[];
+  persona?: string;
+  category?: string;
+  slug?: string;
+  description?: string;
+  creation_config?: Record<string, any>;
+}
+
+export interface CampaignMetrics {
+  unique_score?: number;
+  seo_score?: number;
+  ai_ready_score?: number;
+  draft_content?: string;
+}
+
+export interface CampaignData {
+  campaign_id: string;
+  category: string;
+  step: number;
+  status: string;
+  progress_msg?: string;
+  keywords?: CampaignKeywords;
+  assets?: string[];
+  outline?: { html?: string };
+  draft_content?: string;
+  final_html?: string;
+  unique_score?: number;
+  analysis_cache?: Record<string, any>;
+  analysis_metrics?: CampaignMetrics;
+  selectedAvatarUrl?: string | null;
+  selectedAssetIndex?: number;
+  creation_config?: Record<string, any>;
+  isSilent?: boolean;
+  data?: any; 
+}
+
+export interface PulsePayload {
+  campaign_id: string;
+  step: number;
+  message: string;
+  status?: string;
+  reason?: string;
+  data?: any; 
+}
+
+export interface PulseSignal {
+  notification_id: string;
+  message: string;
+  severity: "CRITICAL" | "ACTION" | "PROGRESS" | "INFO";
+}

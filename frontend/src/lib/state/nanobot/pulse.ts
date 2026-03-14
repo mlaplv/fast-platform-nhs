@@ -1,5 +1,6 @@
 import { normalizeAssets } from "./utils";
 import { isDev } from "./env";
+import type { CampaignData, PulseSignal } from "../types";
 
 // CNS V70: Voice Discipline — maps server severity to frontend action
 const VOICE_DISCIPLINE = {
@@ -25,29 +26,29 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
 
     eventSource.onopen = () => {
       retryCount = 0;
-      if (isDev()) console.log("[Pulse] Connection established. Pulse Active.");
     };
 
-    eventSource.onmessage = (event) => {
+    eventSource.onmessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
-        const { event: eventName, payload } = data;
+        const { event: eventName, payload }: { event: string; payload: any } = data;
 
         if (eventName === "CONTENT_PROGRESS") {
-          if (voice?.vuiResponse?.data?.campaign_id === payload.campaign_id) {
+          const contentPayload = payload as CampaignData & { message: string };
+          if (voice?.vuiResponse?.data?.campaign_id === contentPayload.campaign_id) {
             vuiState.setActive(true);
             vuiState.setPhase("executing");
-            vuiState.setSystemMessage(payload.message); // CNS V71.6: Keep VUI alive with heartbeat text
+            vuiState.setSystemMessage(contentPayload.message);
             
-            if (voice.vuiResponse && voice.vuiResponse.data) {
+            if (voice.vuiResponse?.data) {
               const current = voice.vuiResponse.data;
-              const newData = payload.data || {};
+              const newData = contentPayload.data || {};
               
               voice.vuiResponse.data = {
                   ...current,
-                  progress_msg: payload.message,
+                  progress_msg: contentPayload.message,
                   status: "PROCESSING",
-                  step: payload.step,
+                  step: contentPayload.step,
                   keywords: newData.keywords || newData.topic_data || current.keywords,
                   assets: normalizeAssets(newData.assets || newData.assets_data || current.assets),
                   outline: newData.outline || newData.outline_data || current.outline,
@@ -61,17 +62,17 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
 
           const existingLogs = [...log.activityLogs];
           const logIdx = existingLogs.findIndex(l => 
-            l.data?.campaign_id === payload.campaign_id && 
-            String(l.data?.step ?? "") === String(payload.step ?? "")
+            l.data?.campaign_id === contentPayload.campaign_id && 
+            String(l.data?.step ?? "") === String(contentPayload.step ?? "")
           );
           if (logIdx !== -1) {
             const current = (existingLogs[logIdx].data || {}) as any;
-            const newData = payload.data || {};
+            const newData = contentPayload.data || {};
             existingLogs[logIdx].data = { 
               ...current, 
-              step: payload.step, 
+              step: contentPayload.step, 
               status: "PROCESSING",
-              progress_msg: payload.message,
+              progress_msg: contentPayload.message,
               keywords: newData.keywords || newData.topic_data || current.keywords,
               assets: normalizeAssets(newData.assets || newData.assets_data || current.assets),
               outline: newData.outline || newData.outline_data || current.outline,
@@ -81,43 +82,42 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
           }
           startSmartPolling();
         } else if (eventName === "BACKTRACK") {
-          // CNS V70: BACKTRACK = PROGRESS level — log-only, no toast spam
-          log.addLog(`🔄 AI: ${payload.reason || 'Đang sửa lại nội dung...'}`, "XOHI", "warning", 2, {
-            campaign_id: payload.campaign_id, step: payload.step
+          const backtrackPayload = payload as { campaign_id: string; step: number; reason: string };
+          log.addLog(`🔄 AI: ${backtrackPayload.reason || 'Đang sửa lại nội dung...'}`, "XOHI", "warning", 2, {
+            campaign_id: backtrackPayload.campaign_id, step: backtrackPayload.step
           });
-          if (voice.vuiResponse?.data?.campaign_id === payload.campaign_id) {
+          if (voice.vuiResponse?.data?.campaign_id === backtrackPayload.campaign_id) {
             vuiState.setPhase("executing");
-            if (voice.vuiResponse && voice.vuiResponse.data) {
+            if (voice.vuiResponse?.data) {
               voice.vuiResponse.data = {
                 ...voice.vuiResponse.data,
                 status: "PROCESSING",
-                step: payload.step,
+                step: backtrackPayload.step,
                 progress_msg: "🔄 Hệ thống đang tự động sửa lại bản thảo..."
               };
             }
           }
           startSmartPolling();
         } else if (eventName === "CONTENT_STEP_COMPLETED") {
-          if (voice?.vuiResponse?.data?.campaign_id === payload.campaign_id) {
+          const completedPayload = payload as CampaignData & { message: string };
+          if (voice?.vuiResponse?.data?.campaign_id === completedPayload.campaign_id) {
               vuiState.setActive(true);
               vuiState.setPhase("idle"); 
               vuiState.setIsWaitingForAction(true);
               
-              // R82.1.1: Intelligent Sync — Ensure modal data is fresh
               if (!voice.vuiResponse) {
-                // Initialize if null to allow modal to trigger
-                voice.setVoiceResult("Neural Update", "Cập nhật từ hệ thống...", "CONTENT_CREATE", { campaign_id: payload.campaign_id }, "text");
+                voice.setVoiceResult("Neural Update", "Cập nhật từ hệ thống...", "CONTENT_CREATE", { campaign_id: completedPayload.campaign_id }, "text");
               }
 
-              if (voice.vuiResponse && voice.vuiResponse.data) {
+              if (voice.vuiResponse?.data) {
                 const current = voice.vuiResponse.data;
-                const newData = payload.data || {};
+                const newData = completedPayload.data || {};
                 
                 voice.vuiResponse.data = {
                     ...current,
-                    status: payload.status,
-                    step: payload.step,
-                    progress_msg: "", // CNS V71.10: Clear heartbeat msg on success
+                    status: completedPayload.status,
+                    step: completedPayload.step,
+                    progress_msg: "",
                     keywords: newData.keywords || newData.topic_data || current.keywords,
                     assets: normalizeAssets(newData.assets || newData.assets_data || current.assets),
                     outline: newData.outline || newData.outline_data || current.outline,
@@ -134,38 +134,33 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
           }
 
           const existingLogs = [...log.activityLogs];
-          const logIdx = existingLogs.findIndex(l => l.data?.campaign_id === payload.campaign_id && l.data?.step === payload.step);
+          const logIdx = existingLogs.findIndex(l => l.data?.campaign_id === completedPayload.campaign_id && l.data?.step === completedPayload.step);
           if (logIdx !== -1) {
-            existingLogs[logIdx].data = { ...existingLogs[logIdx].data, status: payload.status, ...(payload.data || {}) };
+            existingLogs[logIdx].data = { ...existingLogs[logIdx].data, status: completedPayload.status, ...(completedPayload.data || {}) };
             log.setActivityLogs(existingLogs);
           } else {
-            log.addLog(payload.message || `Bước ${payload.step} hoàn tất.`, "XOHI", "info", 2, {
+            log.addLog(completedPayload.message || `Bước ${completedPayload.step} hoàn tất.`, "XOHI", "info", 2, {
               category: "CONTENT_CREATE",
-              campaign_id: payload.campaign_id,
-              step: payload.step,
-              status: payload.status,
-              ...(payload.data || {}),
-              assets: normalizeAssets(payload.data?.assets)
+              campaign_id: completedPayload.campaign_id,
+              step: completedPayload.step,
+              status: completedPayload.status,
+              ...(completedPayload.data || {}),
+              assets: normalizeAssets(completedPayload.data?.assets)
             });
           }
           startSmartPolling();
         } else if (eventName === "SYSTEM_SIGNAL") {
-          // CNS V70: SignalDistributor — hub for all system alerts
-          const { message, severity, notification_id } = payload;
+          const signalPayload = payload as PulseSignal;
+          const { message, severity, notification_id } = signalPayload;
           const discipline: VoiceDiscipline = VOICE_DISCIPLINE[severity as keyof typeof VOICE_DISCIPLINE] ?? "silent";
 
-          if (isDev()) console.log(`[CNS] SYSTEM_SIGNAL [${severity}] -> Voice: ${discipline}`);
-
-          // 1. Real-time Bell sync (no fetch needed)
           if (typeof (notification as any).addPendingSignal === "function") {
             (notification as any).addPendingSignal({ id: notification_id, message, severity, isRead: false });
           }
 
-          // 2. Toast for CRITICAL + ACTION only
           if (discipline === "interrupt") ui.showToast(message, "error", 7000);
           else if (discipline === "patient") ui.showToast(message, "warning", 7000);
 
-          // 3. Voice Discipline
           if (discipline === "interrupt") {
             import("$lib/vui").then(({ vuiController, vuiState }) => {
               vuiController.interruptSpeech();
@@ -185,10 +180,9 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
               vuiController.playNotificationPing();
             }).catch(() => {});
           }
-          // "silent" = do nothing
         }
       } catch (err) {
-        if (isDev()) console.warn("[Pulse] Error parsing data:", err);
+        // Fallback error handling if structure is broken
       }
     };
 
@@ -197,15 +191,11 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
         eventSource.close();
         eventSource = null;
 
-        // Skip retry log if the page is literally unloading (F5/Close)
         const isUnloading = typeof window !== "undefined" && (window.performance?.navigation?.type === 1 || !window.navigator.onLine);
         
         const delay = Math.min(30000, 5000 * Math.pow(1.5, retryCount));
         retryCount++;
         
-        if (isDev() && !isUnloading) {
-          console.log(`[Pulse] SSE connection interrupted. Retrying in ${delay}ms...`);
-        }
         pulseRetryTimeout = setTimeout(connectPulse, delay);
       }
     };
@@ -214,7 +204,6 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
   const disconnectPulse = () => {
     if (pulseRetryTimeout) clearTimeout(pulseRetryTimeout);
     if (eventSource) {
-      if (isDev()) console.log("[Pulse] Auto-Disconnecting SSE (Idle Mode)...");
       eventSource.close();
       eventSource = null;
     }

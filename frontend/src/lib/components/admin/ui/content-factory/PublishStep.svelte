@@ -1,13 +1,14 @@
 <script lang="ts">
   import { Edit2, Sparkles } from "lucide-svelte";
   import RichTextEditor from "../RichTextEditor.svelte";
+  import type { CampaignKeywords } from "$lib/state/types";
 
   let {
     assets = [],
     selectedAvatarUrl = $bindable(null),
     viewingStep = $bindable(6),
     isEditing = $bindable(false),
-    keywords = $bindable({}),
+    keywords = $bindable<CampaignKeywords>({}),
     finalHtml = $bindable(),
     draft_content = $bindable(),
     campaign_id,
