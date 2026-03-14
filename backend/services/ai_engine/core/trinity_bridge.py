@@ -1,5 +1,7 @@
 import logging
 import os
+import asyncio
+from typing import Optional, List, Dict
 from contextlib import asynccontextmanager
 from pydantic_ai import Agent
 from pydantic_ai.models.google import GoogleModel
@@ -36,15 +38,15 @@ class TrinityBridge:
         self.model_waterfall = []
 
         self.success_model_key = "ai:bridge:last_success_model"
-        
-        # Initial load (Safe to fail if DB not ready)
-        import asyncio
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                loop.create_task(self.reload_models())
-        except Exception:
-            pass
+
+        # Initial load state
+        self._initialized = False
+
+    async def initialize(self):
+        """Explicit initialization for lifespan hooks (V76)."""
+        if not self._initialized:
+            await self.reload_models()
+            self._initialized = True
 
     async def reload_models(self):
         """Standardized Model Loading: Fetches waterfall from DB (V75)."""
@@ -171,7 +173,6 @@ class TrinityBridge:
                 models_to_try.append(m)
 
         max_keys = max(1, self.rotator.get_count())
-        import asyncio
 
         last_error = None
 
@@ -284,7 +285,6 @@ class TrinityBridge:
                 models_to_try.append(m)
 
         max_keys = max(1, self.rotator.get_count())
-        import asyncio
         last_error = None
 
         for model_name in models_to_try:

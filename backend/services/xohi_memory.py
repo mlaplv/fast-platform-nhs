@@ -12,6 +12,7 @@ Key Patterns:
 """
 import os
 import json
+import time
 import logging
 from typing import Optional, Dict
 
@@ -90,7 +91,6 @@ class XoHiMemory:
 
     async def learn_stt_correction(self, user_id: str, wrong: str, right: str, is_global: bool = True):
         """Permanently store a learned STT correction (normalized) with metadata."""
-        import time
         norm_wrong = wrong.strip().lower()
         
         # Determine target key
@@ -118,7 +118,6 @@ class XoHiMemory:
 
     async def increment_stt_usage(self, wrong_word: str, is_global: bool = True):
         """Neural Aging: Increment usage count and update timestamp."""
-        import time
         key = "system:stt_overrides" if is_global else "xohi:stt:default" # Simplified
         meta_key = f"{key}:meta"
         try:
@@ -143,7 +142,6 @@ class XoHiMemory:
 
     async def prune_stt_overrides(self, max_size: int = 500, is_global: bool = True):
         """Neural Pruning: Remove low-utility synapses to keep memory lean."""
-        import time
         key = "system:stt_overrides" if is_global else "xohi:stt:default"
         meta_key = f"{key}:meta"
         

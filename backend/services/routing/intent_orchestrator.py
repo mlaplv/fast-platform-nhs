@@ -1,4 +1,4 @@
-import logging, os, asyncio, json, time, unicodedata, re
+import logging, os, asyncio, json, time, unicodedata, re, difflib
 from typing import List, Dict, Optional, Tuple, Union
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from .tier2_cloud import Tier2CloudRouter
@@ -10,8 +10,17 @@ from backend.services.ai_engine.core.semantic_router import SemanticRouter, INTE
 from backend.services.xohi_memory import xohi_memory
 from backend.utils.text import normalize_vn
 from .heuristic_classifier import heuristic_classify
+from backend.services.xohi.creative_studio.orchestrator import content_factory
+from backend.database.alchemy_config import alchemy_config
+from backend.database.repositories import ContentCampaignRepository
 
 logger = logging.getLogger("api-gateway")
+
+# Pre-compiled regex for STT confirmed word boundaries
+STT_CONFIRM_RE_CACHE = {}
+
+# Pre-created session maker for proactive resume checks (V76)
+async_session_maker = alchemy_config.create_session_maker()
 
 class RouterOrchestrator:
     """
@@ -66,6 +75,7 @@ class RouterOrchestrator:
         
         # 0.5.1: Heuristic High-Speed Match (0ms)
         def _match_trigger(words_list, trans):
+            if not words_list: return False
             # Phonetic equivalence check: "kút" vs "cút", "quá" vs "cá"
             trans_pho = trans.replace("k", "c").replace("q", "c")
             for w in words_list:
@@ -100,28 +110,23 @@ class RouterOrchestrator:
             # 0.5.3: Proactive Resume Check (Rule R81)
             # If sếp just wakes XoHi, check if there's an active campaign to report
             try:
-                from backend.services.xohi.creative_studio.orchestrator import content_factory
-                from backend.database.alchemy_config import alchemy_config
-                from backend.database.repositories import ContentCampaignRepository
-                
-                session_maker = alchemy_config.create_session_maker()
-                async with session_maker() as session:
+                async with async_session_maker() as session:
                     repo = ContentCampaignRepository(session=session)
                     active = await content_factory.get_active_campaign(repo)
                     if active:
                         resume_msg = content_factory.format_resume_greeting(active)
                         logger.info(f"[Proactive Resume] Found active campaign {active.id}, hijacking greeting.")
                         return IntentResponse(
-                            status="success", action=IntentAction.READ, 
-                            message=resume_msg, 
-                            router_tier=RouterTier.TIER_1_HEURISTIC, 
+                            status="success", action=IntentAction.READ,
+                            message=resume_msg,
+                            router_tier=RouterTier.TIER_1_HEURISTIC,
                             data={
-                                "category": "CONTENT_CREATE", 
-                                "action": "RESUME_ROUTINE", 
+                                "category": "CONTENT_CREATE",
+                                "action": "RESUME_ROUTINE",
                                 "campaign_id": active.id,
                                 "step": active.current_step,
                                 "status": active.status
-                            }, 
+                            },
                             cost_tokens=0.0
                         )
             except Exception as e:
@@ -140,13 +145,14 @@ class RouterOrchestrator:
             
             lower_trans = transcript.lower()
             
-            # Use exact word boundaries for short words like "ok", "ừ", "có" to prevent false positives, 
+            # Use exact word boundaries for short words like "ok", "ừ", "có" to prevent false positives,
             # but allow substring for longer ones.
-            import re
             is_yes = False
             for kw in yes_keywords:
                  if len(kw) <= 3:
-                     if re.search(r'\b' + re.escape(kw) + r'\b', lower_trans):
+                     if kw not in STT_CONFIRM_RE_CACHE:
+                         STT_CONFIRM_RE_CACHE[kw] = re.compile(r'\b' + re.escape(kw) + r'\b', re.IGNORECASE)
+                     if STT_CONFIRM_RE_CACHE[kw].search(lower_trans):
                          is_yes = True
                          break
                  else:
@@ -383,16 +389,14 @@ class RouterOrchestrator:
         # ══════════════════════════════════════════
         if intent_type == "CONTENT_CREATE" or class_action_str == "CONTENT_CREATE":
             logger.info(f"[C.O.R.E][{m_tag}] Delegating to Content Factory V62.1. kwargs keys: {list(kwargs.keys())}")
-            from backend.services.xohi.creative_studio.orchestrator import content_factory
             return await content_factory.handle_voice_request(
-                transcript, 
+                transcript,
                 campaign_repo=kwargs.get("campaign_repo"),
                 user_id=kwargs.get("user_id") # Rule R86: Propagate identity
             )
 
         if intent_type == "CONTENT_APPROVE" or class_action_str == "CONTENT_APPROVE":
             logger.info(f"[C.O.R.E][{m_tag}] Approving Content Campaign...")
-            from backend.services.xohi.creative_studio.orchestrator import content_factory
             campaign_repo = kwargs.get("campaign_repo")
             latest = await content_factory.get_active_campaign(campaign_repo, user_id=kwargs.get("user_id"))
             if latest:
@@ -401,7 +405,6 @@ class RouterOrchestrator:
 
         if intent_type == "CONTENT_REJECT" or class_action_str == "CONTENT_REJECT":
             logger.info(f"[C.O.R.E][{m_tag}] Retrying/Rejecting Content Campaign...")
-            from backend.services.xohi.creative_studio.orchestrator import content_factory
             campaign_repo = kwargs.get("campaign_repo")
             latest = await content_factory.get_active_campaign(campaign_repo, user_id=kwargs.get("user_id"))
             if latest:

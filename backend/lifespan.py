@@ -9,13 +9,14 @@ from litestar import Litestar
 from backend.database import alchemy_config
 from backend.database.models import VoiceProfile, ChatMessage
 from backend.services.ai_engine.core.key_rotator import key_rotator
+from backend.services.xohi_memory import xohi_memory
 from backend.utils.security import GeminiSecurity
 from backend.utils.text import normalize_vn
 from backend.services.event_bus import event_bus
 from backend.services.xohi_responder import setup_subscriptions
 from backend.services.xohi.creative_studio.orchestrator import content_factory
+from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.http_client import SharedHttpClient
-from backend.services.xohi_memory import xohi_memory
 
 logger = logging.getLogger("api-gateway")
 
@@ -24,7 +25,10 @@ async def lifespan(app: Litestar):
     # Start Proactive Nerve System
     setup_subscriptions()
     await event_bus.start()
-    
+
+    # Initialize AI Bridge (V76)
+    await trinity_bridge.initialize()
+
     heartbeat_task = None
     purge_task = None
     

@@ -7,6 +7,7 @@ Free tier: 2000 req/day — more than enough for single admin.
 """
 import io
 import os
+import re
 import logging
 import asyncio
 import unicodedata
@@ -25,12 +26,15 @@ MAX_AUDIO_BYTES = 20_000_000
 # Zero-Hallucination 2026: Blacklist for common Whisper phantoms in silence/noise
 # Expanded Phase 44: Catching Prompt Echoes
 HALLUCINATION_BLACKLIST = [
-    "cám ơn các bạn", "subscribe", "đăng ký kênh", "ghiền mì gõ", 
+    "cám ơn các bạn", "subscribe", "đăng ký kênh", "ghiền mì gõ",
     "chào các bạn", "hẹn gặp lại", "phimmoichill", "website chính thức",
     "liên hệ với chúng tôi", "tạm biệt", "video", "youtube", "mọi người",
     "ủng hộ", "bình luận", "zalo", "facebook", "website", "chào mừng",
-    "tập trung vào ngữ cảnh", "cảm ơn", "cảm ơn bạn", "...", "..", "....", "dạ"
+    "tập trung vào ngữ cảnh", "cảm ơn", "cảm ơn bạn", "dạ"
 ]
+
+SENTENCE_SPLIT_RE = re.compile(r'(?<=[.!?])\s+')
+DOT_HALLUCINATION_RE = re.compile(r'^\.+$')
 
 
 @websocket("/ws/stt", guards=[])
@@ -42,6 +46,7 @@ async def stt_websocket(socket: WebSocket) -> None:
     audio_buffer = bytearray()
     is_active = True
     transcription_lock = asyncio.Lock() # Serializer to prevent jitter/out-of-order partials
+    background_tasks = set() # Track tasks to avoid memory leaks (V76)
     last_partial_time = asyncio.get_event_loop().time()
     last_transcribed_size = 0
 
@@ -50,26 +55,28 @@ async def stt_websocket(socket: WebSocket) -> None:
             try:
                 # 2026 Refactor: Use low-level receive() to handle both TEXT (STOP) and BINARY (audio)
                 msg = await asyncio.wait_for(socket.receive(), timeout=30.0)
-                
+
                 if msg["type"] == "websocket.receive":
                     # For Litestar/Starlette, data is in 'bytes' or 'text'
                     if "bytes" in msg:
                         data = msg["bytes"]
                         audio_buffer.extend(data)
-                        
+
                         # ZERO-DELAY LOGIC: Partial transcription every ~0.3s (C.T.O Sub-1s Extreme Optimization)
                         now = asyncio.get_event_loop().time()
                         if now - last_partial_time > 0.3 and len(audio_buffer) > (last_transcribed_size + 1000):
                             last_partial_time = now
                             last_transcribed_size = len(audio_buffer)
-                            
+
                             # Extract user info
                             user_info = getattr(socket.state, "user", None) or socket.scope.get("user")
                             user_id = user_info.get("id") if isinstance(user_info, dict) else getattr(user_info, "id", None) if user_info else None
-                            
-                            asyncio.create_task(_send_partial(socket, bytes(audio_buffer), transcription_lock, user_id))
 
-                        if len(audio_buffer) % 20000 < len(data): 
+                            task = asyncio.create_task(_send_partial(socket, bytes(audio_buffer), transcription_lock, user_id))
+                            background_tasks.add(task)
+                            task.add_done_callback(background_tasks.discard)
+
+                        if len(audio_buffer) % 20000 < len(data):
                             logger.debug(f"[STT] Buffer Memory: {len(audio_buffer)/1024:.1f} KB")
                     elif "text" in msg:
                         data = msg["text"]
@@ -219,12 +226,14 @@ async def _transcribe(audio_data: bytes, user_id: str = None) -> str:
         
         # Phase 50: Aggressive Superstring Deduplication
         if transcript:
-            import re
             # Split by punctuation (. ? !) followed by a space
-            parts = [p.strip() for p in re.split(r'(?<=[.!?])\s+', transcript) if p.strip()]
+            parts = [p.strip() for p in SENTENCE_SPLIT_RE.split(transcript) if p.strip()]
             unique_parts = []
             for p in parts:
                 p_lower = p.lower()
+                # Skip dots hallucinations early
+                if DOT_HALLUCINATION_RE.match(p_lower):
+                    continue
                 # If this sentence is already contained in the previous one, or contains the previous one, merge.
                 if not unique_parts:
                     unique_parts.append(p)

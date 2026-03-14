@@ -12,12 +12,13 @@ import uuid
 from uuid import UUID
 import asyncio
 import logging
-from typing import AsyncGenerator, Optional, Dict, Union
+from typing import AsyncGenerator, Optional, Dict, Union, List
 
 from litestar import Controller, post, Request
 from litestar.di import Provide
 from litestar.response import Stream
 from litestar.repository.filters import LimitOffset
+
 from backend.schemas.intent import IntentRequest, IntentResponse, IntentAction, RouterTier
 from backend.services.routing.intent_orchestrator import orchestrator
 from backend.services.ai_engine.core.semantic_shield import SemanticShield
@@ -30,9 +31,14 @@ from backend.database.repositories import (
     provide_campaign_repo
 )
 from backend.database.models import ChatMessage, AgentTelemetryLog
+from backend.database.alchemy_config import alchemy_config
 from backend.constants.action_vi import ACTION_VI
+from backend.utils.data_stripper import DataStripper
 
 logger = logging.getLogger("api-gateway")
+
+# Pre-created session maker for background tasks (V76)
+async_session_maker = alchemy_config.create_session_maker()
 
 
 
@@ -40,6 +46,9 @@ def _sse(phase: str, data: Dict[str, object]) -> bytes:
     """Format a Server-Sent Event line."""
     return f"data: {json.dumps({'phase': phase, **data}, ensure_ascii=False)}\n\n".encode("utf-8")
 
+
+# Global background task tracker for memory safety (V76)
+background_tasks = set()
 
 class IntentStreamController(Controller):
     """SSE streaming version of IntentController — phased real-time response."""
@@ -76,6 +85,7 @@ class IntentStreamController(Controller):
         async def generate() -> AsyncGenerator[bytes, None]:
             start_time = time.monotonic()
             session_id = data.session_id or str(uuid.uuid4())
+            user_id = None # Initialize for log safety
 
             try:
                 # ── Yield STT Listening immediately ──
@@ -91,10 +101,10 @@ class IntentStreamController(Controller):
                         "message": "",
                         "ui_action": ""
                     })
-                    
+
                     # Log noise rejected in background
-                    asyncio.create_task(_background_save_logs(
-                        session_id=session_id, user_id=user_id,
+                    task = asyncio.create_task(_background_save_logs(
+                        session_id=session_id, user_id=None,
                         telemetry_data={
                             "id": str(uuid.uuid4()),
                             "session_id": session_id,
@@ -104,6 +114,8 @@ class IntentStreamController(Controller):
                         },
                         is_noise=True
                     ))
+                    background_tasks.add(task)
+                    task.add_done_callback(background_tasks.discard)
                     return
 
                 # ── Jailbreak scan (STT corrections removed — Groq Whisper handles accuracy) ──
@@ -219,17 +231,16 @@ class IntentStreamController(Controller):
 
                 # ── Background: Telemetry + Chat save ──
                 ui_action = (result.data or {}).get("ui_action")
-                
+
                 # Format extra data with Phase 4 Truncate
                 data_extra = dict(result.data or {})
                 if "error_trace" in data_extra:
-                    from backend.utils.data_stripper import DataStripper
                     data_extra["error_trace"] = DataStripper.truncate_payload(str(data_extra["error_trace"]))
-                
-                asyncio.create_task(_background_save_logs(
+
+                task = asyncio.create_task(_background_save_logs(
                     session_id=session_id, user_id=user_id,
                     data_query=data.query, modality=data.modality,
-                    result_message=result.message, result_ui_action=ui_action, 
+                    result_message=result.message, result_ui_action=ui_action,
                     tier_str=tier_str, data_extra=data_extra,
                     telemetry_data={
                         "id": str(uuid.uuid4()),
@@ -242,6 +253,8 @@ class IntentStreamController(Controller):
                         "duration_ms": int((time.monotonic() - start_time) * 1000)
                     }
                 ))
+                background_tasks.add(task)
+                task.add_done_callback(background_tasks.discard)
 
             except Exception as e:
                 logger.exception(f"[SSE Gateway Error] {e}")
@@ -251,7 +264,7 @@ class IntentStreamController(Controller):
 
 
 async def _background_save_logs(
-    session_id: str, 
+    session_id: str,
     user_id: Optional[UUID] = None,
     data_query: str = "",
     modality: str = "text",
@@ -262,9 +275,6 @@ async def _background_save_logs(
     telemetry_data: Optional[Dict[str, object]] = None,
     is_noise: bool = False
 ) -> None:
-    from backend.database import async_session_maker
-    from backend.database.repositories import ChatMessageRepository, AgentTelemetryLogRepository
-    
     try:
         async with async_session_maker() as session:
             telemetry_repo = AgentTelemetryLogRepository(session=session)

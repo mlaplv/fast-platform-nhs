@@ -4,6 +4,14 @@ import { nanobot } from "$lib/state/nanobot.svelte";
 import { VUI_CONFIG } from "./VuiConstants";
 import type { VuiAudioEngine } from "./VuiAudioEngine";
 
+interface VuiWsMessage {
+  text?: string;
+  transcript?: string;
+  tier?: string;
+  is_final?: boolean;
+  event?: string;
+}
+
 /**
  * VuiStreamManager: Logic for LLM Streaming & STT Response Handling
  * COMPLIANCE: Rule 1.3 (< 300 LOC)
@@ -12,7 +20,7 @@ export class VuiStreamManager {
   private sttGuardTimer: ReturnType<typeof setTimeout> | null = null;
   private lastActionType = "";
   private isProcessingFinal = false; // Phase 82: Race Condition Guard
-  
+
   constructor(
     private audio: VuiAudioEngine,
     private callbacks: {
@@ -24,12 +32,13 @@ export class VuiStreamManager {
     }
   ) {}
 
-  public async handleWsMessage(data: any) {
+  public async handleWsMessage(data: VuiWsMessage) {
     const hasSpoken = this.callbacks.hasSpoken();
-    console.debug(`[VUI] WS Incoming:`, data);
+    // V76: Reduced log noise in production
+    if (import.meta.env.DEV) console.debug(`[VUI] WS Incoming:`, data);
     const text = (data?.text || data?.transcript || "").trim();
     if (data?.tier) vuiState.setActiveTier(data.tier);
-    
+
     // Phase 43: Emotional Live Streaming - Show progress but smooth the friction
     const isFinal = data?.is_final || data?.event?.includes("final");
     
@@ -184,7 +193,7 @@ export class VuiStreamManager {
         if (!receivedAny) throw new Error("Stream Timeout/Empty");
         this.callbacks.onTTSFinished();
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("[VUI] Stream Execution Error:", e);
       vuiState.setError("Neural Connection Stall");
       vuiState.setActiveTier("");

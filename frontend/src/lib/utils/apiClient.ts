@@ -61,7 +61,7 @@ export const apiClient = {
       globalLatency.set(Math.round(performance.now() - t0));
 
       // 3. SECURE JSON PARSING (The core fix for "Unexpected end of JSON input")
-      let data: any = null;
+      let data: unknown = null;
       const contentType = response.headers.get("content-type");
 
       if (contentType && contentType.includes("application/json")) {
@@ -96,10 +96,11 @@ export const apiClient = {
           }
         }
 
+        const errorData = data as { detail?: string; message?: string } | null;
         throw new ApiError(
           response.status,
-          data?.detail ||
-            data?.message ||
+          errorData?.detail ||
+            errorData?.message ||
             `Lỗi máy chủ (${response.status} ${response.statusText})`,
           data,
         );

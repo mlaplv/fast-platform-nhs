@@ -20,7 +20,7 @@ import { createPulseManager } from "./nanobot/pulse";
 import { createSyncManager } from "./nanobot/sync";
 
 export * from "./types";
-import type { WidgetType, Suggestion, CommandAction, ToastType } from "./types";
+import type { WidgetType, Suggestion, CommandAction, ToastType, ChatSettings } from "./types";
 
 export function createNanobotState() {
   const log = createLogState();
@@ -45,7 +45,12 @@ export function createNanobotState() {
     isCampaignMode: false,
     isTogglingCampaign: false,
     isHydrated: false,
-    chatSettings: { selective_persistence: true, save_ai_responses: false, auto_purge_days: 30, cache_limit: 10 } as Record<string, any>,
+    chatSettings: {
+      selective_persistence: true,
+      save_ai_responses: false,
+      auto_purge_days: 30,
+      cache_limit: 10
+    } as ChatSettings,
     agenticSuggestions: [
       { label: "Quản lý User", command: "manage users" },
       { label: "Quản lý Quyền", command: "manage permissions" },
@@ -192,7 +197,7 @@ export function createNanobotState() {
     setUniversalModalOpen: ui.setUniversalModalOpen,
     showUniversalModal: () => ui.setUniversalModalOpen(true),
     closeUniversalModal: () => { ui.setUniversalModalOpen(false); state.activeWidget = "NONE"; },
-    openWidget: (widget: WidgetType, data?: any) => { state.activeWidget = widget; if (data) state.currentData = data; ui.setUniversalModalOpen(true); },
+    openWidget: (widget: WidgetType, data?: Record<string, unknown>) => { state.activeWidget = widget; if (data) state.currentData = data; ui.setUniversalModalOpen(true); },
 
     // HUD & Tips
     get activeHudPopup() { return ui.activeHudPopup; },
@@ -229,16 +234,16 @@ export function createNanobotState() {
     startPolling: () => sync.startSmartPolling(),
     stopPolling: () => sync.stopSmartPolling(),
     get latestResumeableLog() { return resumeManager.latestResumeableLog; },
-    
-    loadMoreMessages: () => chat.loadMoreMessages((logs: any) => {
-      log.upsertLogs(logs);
+
+    loadMoreMessages: () => chat.loadMoreMessages((logs: unknown[]) => {
+      log.upsertLogs(logs as any[]); // Casting here temporarily as we migrate other files
     }, "account", state.godModeUser || undefined),
     syncSessionFromDb: async () => {
       log.setActivityLogs([]);
-      await chat.hydrateHistory("account", (logs: any) => {
-        log.upsertLogs(logs);
+      await chat.hydrateHistory("account", (logs: unknown[]) => {
+        log.upsertLogs(logs as any[]);
       }, state.godModeUser || undefined);
-      ui.showToast(state.godModeUser ? `Đồng bộ log [V69.0]: ${state.godModeUser}` : "Đã đồng bộ dữ liệu V69.0 (Unified)", "success");
+      ui.showToast(state.godModeUser ? `Đồng bộ log [V69.0]: ${state.godModeUser}` : "Đã bộ dữ liệu V69.0 (Unified)", "success");
     },
     clearChatLogs: async () => { if (await chat.clearHistory("account")) { log.setActivityLogs([]); ui.showToast("Dữ liệu đã được quét sạch", "success"); } },
 
@@ -266,7 +271,7 @@ export function createNanobotState() {
     toggleExpand: (val?: boolean) => { state.isExpanded = val !== undefined ? val : !state.isExpanded; if (typeof window !== "undefined") document.body.style.overflow = state.isExpanded ? "hidden" : ""; },
 
     // Settings
-    updateVoiceSettings: (wake: string[], sleep: string[], greeting: string, farewell: string, campaign: boolean, chatSettings?: Record<string, any>, sttAnchors?: string[], micSensitivity?: number) => {
+    updateVoiceSettings: (wake: string[], sleep: string[], greeting: string, farewell: string, campaign: boolean, chatSettings?: Record<string, unknown>, sttAnchors?: string[], micSensitivity?: number) => {
       state.wakeWords = wake; state.sleepWords = sleep; voice.setGreetingTemplate(greeting); voice.setFarewellTemplate(farewell); state.isCampaignMode = campaign;
       if (chatSettings) state.chatSettings = { ...state.chatSettings, ...chatSettings }; if (sttAnchors) state.sttAnchors = sttAnchors; if (micSensitivity !== undefined) state.micSensitivity = micSensitivity;
     },
@@ -278,12 +283,12 @@ export function createNanobotState() {
         state.isCampaignMode = !originalMode;
         await apiClient.post("/api/v1/settings/voice", { is_campaign_mode: state.isCampaignMode });
         ui.showToast(state.isCampaignMode ? "Fortress Mode: ENGAGED" : "Fortress Mode: STANDBY", "success");
-      } catch (e) { state.isCampaignMode = originalMode; ui.showToast("Neural link sync failed", "error"); } 
+      } catch (e) { state.isCampaignMode = originalMode; ui.showToast("Neural link sync failed", "error"); }
       finally { state.isTogglingCampaign = false; }
     },
     get discoveredModels() { return state.discoveredModels; },
     setDiscoveredModels: (val: string[]) => (state.discoveredModels = val),
-    resumeCampaign: (logEntry: any) => resumeManager.internalResumeCampaign(logEntry)
+    resumeCampaign: (logEntry: Record<string, unknown>) => resumeManager.internalResumeCampaign(logEntry)
   };
 }
 

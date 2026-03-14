@@ -107,8 +107,8 @@ class SmartKeyRotator:
             return list(set(recovered)) # Unique
 
     def _get_key_id(self, key: str) -> str:
-        """Standardize key identification via Hashing to survive pool reordering."""
-        return hashlib.md5(key.encode()).hexdigest()[:16]
+        """Standardize key identification via SHA256 (Truncated) for 2026 standards."""
+        return hashlib.sha256(key.encode()).hexdigest()[:16]
 
     async def get_key(self, session_id: Optional[str] = None) -> str:
         """

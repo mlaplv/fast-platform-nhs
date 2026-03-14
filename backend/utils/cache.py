@@ -45,5 +45,6 @@ class ViralCache:
 
 # Global instances for different domains
 from backend.constants.agentic import CONTENT_CACHE_MAXSIZE, CONTENT_CACHE_TTL
-viral_content_cache = ViralCache(maxsize=CONTENT_CACHE_MAXSIZE, ttl=CONTENT_CACHE_TTL) # Content states cache (1 min)
-viral_api_cache = ViralCache(maxsize=1000, ttl=300)   # Generic API responses (5 min)
+# R1.5: Conservative limits for 2GB RAM VPS (V76)
+viral_content_cache = ViralCache(maxsize=max(100, CONTENT_CACHE_MAXSIZE), ttl=CONTENT_CACHE_TTL)
+viral_api_cache = ViralCache(maxsize=300, ttl=300)   # Reduced from 1000 for RAM safety

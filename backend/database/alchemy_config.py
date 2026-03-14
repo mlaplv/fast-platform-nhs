@@ -36,8 +36,10 @@ class AlchemyConfig:
             }
             # Rule: Only add pooling for Postgres (SQLite uses StaticPool)
             if self._url.startswith("postgresql"):
-                engine_kwargs["pool_size"] = 20
-                engine_kwargs["max_overflow"] = 30
+                engine_kwargs["pool_size"] = 10
+                engine_kwargs["max_overflow"] = 10
+                engine_kwargs["pool_pre_ping"] = True
+                engine_kwargs["pool_recycle"] = 300
                 
             self._engine = create_async_engine(self._url, **engine_kwargs)
         return self._engine

@@ -52,6 +52,14 @@ export interface PendingAction {
   actionType: "DELETE_USER" | "UPDATE_SYSTEM";
 }
 
+export interface ChatSettings {
+  selective_persistence: boolean;
+  save_ai_responses: boolean;
+  auto_purge_days: number;
+  cache_limit: number;
+  [key: string]: unknown;
+}
+
 export interface IntentResponse {
   message?: string;
   action?: "READ" | "MUTATE" | "COUNT" | "ANALYZE";
