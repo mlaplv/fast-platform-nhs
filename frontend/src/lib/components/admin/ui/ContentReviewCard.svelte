@@ -20,7 +20,7 @@
 
   let { 
     campaign_id,
-    step = $bindable(),
+    step = $bindable(1),
     status = $bindable(),
     progress_msg = $bindable(),
     title = $bindable(),
@@ -37,7 +37,7 @@
   } = $props();
 
   // -- Local UI Orchestration --
-  let viewingStep = $state(step);
+  let viewingStep = $state(step || 1);
   let isEditing = $state(false);
   let isProcessing = $derived(status === "PROCESSING");
   let isLoading = $state(false);

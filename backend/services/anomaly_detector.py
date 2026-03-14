@@ -9,6 +9,7 @@ Rules:
 - Generates Notification records when anomalies detected
 """
 import logging
+import asyncio
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Union, TypedDict, Optional
@@ -41,23 +42,25 @@ class AnomalyDetector:
         Run all anomaly checks in parallel (V76). Returns list of alerts.
         Each alert: {type, severity, message, data}
         """
-        # Phase 76: Parallel Scalar Scanning for VPS 2GB Optimization
-        tasks = [
-            self._check_cancelled_orders(session, tenant_id),
-            self._check_order_volume(session, tenant_id),
-            self._check_revenue_anomaly(session, tenant_id),
-            self._check_ai_latency(session, tenant_id),
-            self._check_db_pool(session)
-        ]
-
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
+        # Phase 76: Sequential Scalar Scanning for VPS 2GB Optimization
+        # Rule: AsyncSession is NOT concurrency-safe on the same instance.
+        # We call them one-by-one to avoid race conditions and "never awaited" warnings.
         alerts: List[AnomalyAlert] = []
-        for i, res in enumerate(results):
-            if isinstance(res, Exception):
-                logger.warning(f"[AnomalyDetector] Check {i} failed: {res}")
-            elif res:
-                alerts.append(res)
+        
+        # Helper to run check safely
+        async def run_check(name, coro_func, *args):
+            try:
+                res = await coro_func(*args)
+                if res:
+                    alerts.append(res)
+            except Exception as e:
+                logger.warning(f"[AnomalyDetector] Check '{name}' failed: {e}")
+
+        await run_check("cancelled_orders", self._check_cancelled_orders, session, tenant_id)
+        await run_check("order_volume", self._check_order_volume, session, tenant_id)
+        await run_check("revenue_anomaly", self._check_revenue_anomaly, session, tenant_id)
+        await run_check("ai_latency", self._check_ai_latency, session, tenant_id)
+        await run_check("db_pool", self._check_db_pool, session)
 
         if alerts:
             await self._persist_alerts(session, alerts, tenant_id)

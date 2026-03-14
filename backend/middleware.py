@@ -55,6 +55,8 @@ class AuthMiddleware(AbstractMiddleware):
         if token:
             try:
                 payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                if "state" not in scope:
+                    scope["state"] = {}
                 scope["state"]["user"] = payload
                 
                 # If JWT has a tenant_id, it OVERRIDES the header/host for security (prevents spoofing)

@@ -217,9 +217,9 @@ function run_tests() {
 }
 
 function view_logs() {
-    echo -e "${CYAN}[LOGS] Đang xem log LỖI Backend (api)...${NC}"
+    echo -e "${CYAN}[LOGS] Đang xem log LỖI Backend (api) trong 5 phút qua...${NC}"
     echo -e "${YELLOW}Nhấn Ctrl+C để quay lại menu.${NC}"
-    docker compose logs -f api --tail 1000 --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION"
+    docker compose logs -f api --tail 100 --since 5m --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION"
 }
 
 while true; do

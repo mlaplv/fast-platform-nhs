@@ -174,7 +174,8 @@
   const handleTabClick = (tab: 'copyright' | 'seo' | 'ai') => {
     if (tab === 'seo' && seoLocked) return;
     if (tab === 'ai' && aiLocked) return;
-    activeTab = activeTab === tab ? null : tab;
+    // Rule: Clicking an already active tab does NOT toggle it off (to avoid hiding buttons)
+    activeTab = tab;
   };
 
   const runAutoFix = async (targetSnippet: string, annotationType: string, errorMessage: string): Promise<string | null> => {
@@ -354,7 +355,7 @@
         {
           label: isCopyrightLoading ? '...' : '🔍 Bản Quyền',
           loading: isCopyrightLoading,
-          onclick: runCopyrightCheck
+          onclick: () => runCopyrightCheck()
         },
         {
           label: isSeoLoading ? '...' : '📊 SEO',
@@ -363,7 +364,7 @@
           lockedMsg: seoLocked
             ? `🔒 SEO bị khoá — Cần Bản Quyền ≥ 90 trước (hiện: ${_copyrightScore !== null ? _copyrightScore + '%' : 'chưa check'})`
             : undefined,
-          onclick: runSeoAnalysis
+          onclick: () => runSeoAnalysis()
         },
         {
           label: isAiLoading ? '...' : '✨ AI 2026',
@@ -372,7 +373,7 @@
           lockedMsg: aiLocked
             ? `🔒 AI 2026 bị khoá — Cần SEO ≥ 70 trước (hiện: ${_seoScore !== null ? _seoScore + '/100' : 'chưa check'})`
             : undefined,
-          onclick: runAiAnalysis
+          onclick: () => runAiAnalysis()
         },
         // Bulk Fix Action rendered only IF there's an active tab and errors
         ...(activeTab && editorAnnotations.filter(a => a.type !== 'fixed').length > 0 ? [{

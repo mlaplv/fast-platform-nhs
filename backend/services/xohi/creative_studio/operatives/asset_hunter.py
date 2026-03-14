@@ -19,7 +19,7 @@ logger = logging.getLogger("api-gateway")
 PLANNER_PROMPT = """[ROLE] VISUAL CONTENT DIRECTOR — XoHi Content Factory 2026
 
 [NHIỆM VỤ]
-Dựa trên tiêu đề, từ khóa, phong cách và CHẾ ĐỘ NỘI DUNG, hãy tạo duy nhất 01 câu lệnh tìm kiếm (ONE best search query) bằng TIẾNG ANH để tìm hình ảnh MIÊU TẢ CHÍNH XÁC CHỦ THỂ (Subject Accuracy).
+Dựa trên tiêu đề, từ khóa, phong cách và CHẾ ĐỘ NỘI DUNG, hãy tạo 3-5 câu lệnh tìm kiếm (High-quality search queries) bằng TIẾNG ANH để tìm hình ảnh MIÊU TẢ CHÍNH XÁC CHỦ THỂ (Subject Accuracy).
 
 [CHIẾN THUẬT THEO CHẾ ĐỘ]
 - VIRAL MODE: Tập trung vào cảm xúc, con người, hành động, màu sắc rực rỡ (Cinematic, Vibrant).
@@ -29,7 +29,8 @@ Dựa trên tiêu đề, từ khóa, phong cách và CHẾ ĐỘ NỘI DUNG, hã
 1. CHỦ THỂ LÀ SỐ 1 (Subject First): Query BẮT BUỘC phải chứa các từ khóa cốt lõi về thực thể (Giới tính, Độ tuổi, Vật thể, Ngữ cảnh).
 2. ANTI-TEXT POLICY: Tuyệt đối dùng từ khóa phủ định để tránh ảnh có chữ: `-text -word -typography -quote -infographic -youtube -video`.
 3. STYLE SECOND: Sau khi đảm bảo đúng chủ thể, mới áp dụng phong cách phù hợp với chế độ nội dung.
-4. ĐỊNH DẠNG: Trả về JSON VisualSearchPlan với 01 query tối ưu nhất.
+4. ĐA DẠNG HÓA: Các query nên tiếp cận ở nhiều góc độ (Close-up, Lifestyle, Studio, Action) để đảm bảo kho ảnh phong phú.
+5. ĐỊNH DẠNG: Trả về JSON VisualSearchPlan với danh sách các query tối ưu nhất.
 """
 
 class AssetHunter:
@@ -92,35 +93,39 @@ class AssetHunter:
             result = await trinity_bridge.run(self.planner_agent, prompt, session_id=campaign.id)
             plan: VisualSearchPlan = result.data if hasattr(result, "data") else result.output
             queries: List[str] = plan.queries
-            logger.info(f"[AssetHunter] AI Planner query: {queries[0] if queries else 'None'}")
+            logger.info(f"[AssetHunter] AI Planner queries: {queries}")
         except Exception as e:
             logger.error(f"[AssetHunter] AI planning failed, fallback to keywords: {e}")
             queries = [primary if primary else title]
 
         # Step 2.2: Multi-Query Search & Deduplication
         all_urls = []
-        # Professional CTO Fix: Using Standardized Golden Context Helpers
         config = campaign.get_gold_config()
         target_count = int(config.get("max_assets", 10))
 
-        # Step 2.2: Dual-Page Search for Buffer (Efficiency R88)
-        # We fetch up to candidate_limit images to ensure enough valid buffer after filtering.
-        best_query = queries[0] if queries else (primary if primary else title)
+        # Rule R88.6: Multi-Query Expansion for High Recall
+        raw_candidates = []
+        seen_urls = set()
+        candidate_goal = target_count * 3 # Expanded buffer for filtering
 
-        # V77: Expand buffer for Deep-Dive to ensure enough images for long content
-        candidate_limit = 30 if content_mode == "deep_dive" else 20
+        for i, q in enumerate(queries[:3]): # Try up to 3 best queries
+            if len(raw_candidates) >= candidate_goal:
+                break
 
-        await event_bus.emit("CONTENT_PROGRESS", {
-            "campaign_id": campaign_id,
-            "user_id": str(campaign.user_id),
-            "step": 2,
-            "message": f"🔍 Đang truy quét ảnh diện rộng ({candidate_limit} candidates): {best_query}",
-            "status": "PROCESSING",
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+            await event_bus.emit("CONTENT_PROGRESS", {
+                "campaign_id": campaign_id,
+                "user_id": str(campaign.user_id),
+                "step": 2,
+                "message": f"🔍 Truy quét ảnh với truy vấn #{i+1}: {q}",
+                "status": "PROCESSING",
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
 
-        # Fetch candidate images to provide enough buffer for filtration
-        raw_urls = await self.fetch_images(best_query, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=candidate_limit)
+            page_results = await self.fetch_images(q, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=10)
+            for url in page_results:
+                if url not in seen_urls:
+                    seen_urls.add(url)
+                    raw_candidates.append(url)
 
         # Step 2.3: Parallel Anti-YouTube, HTTPS-Only & Integrity Check (Rule R110-V76)
         client = await get_http_client()
@@ -147,7 +152,7 @@ class AssetHunter:
                     resp = await client.head(sanitized_url, timeout=4.0, follow_redirects=True, headers=headers)
                     if resp.status_code == 200: return url
 
-                    # Fallback to GET stream for stubborn CDNs
+                    # Fallback to GET for stubborn CDNs but only first few bytes
                     if resp.status_code in [403, 404, 405]:
                         async with client.stream("GET", sanitized_url, timeout=4.0, follow_redirects=True, headers=headers) as stream_resp:
                             if stream_resp.status_code == 200: return url
@@ -156,20 +161,24 @@ class AssetHunter:
             return None
 
         # Execute parallel pinging
-        tasks = [_check_url(url) for url in raw_urls]
+        tasks = [_check_url(url) for url in raw_candidates]
         results = await asyncio.gather(*tasks)
         valid_urls = [r for r in results if r is not None]
 
         all_urls = valid_urls
-        
+
         # Selection logic based on target_count from Step 1
         if len(all_urls) > target_count:
             logger.info(f"[AssetHunter] Clipping {len(all_urls)} images to target {target_count}")
             all_urls = all_urls[:target_count]
-        
-        # If too few, we might want to log a warning
-        if len(all_urls) < target_count:
-            logger.warning(f"[AssetHunter] Found only {len(all_urls)} valid images, target was {target_count}")
+
+        # Final Fallback to raw candidates if filtering was too aggressive
+        if len(all_urls) < (target_count // 2) and raw_candidates:
+            logger.warning(f"[AssetHunter] Filtering too aggressive, adding raw candidates to reach quota.")
+            for url in raw_candidates:
+                if url not in all_urls:
+                    all_urls.append(url)
+                    if len(all_urls) >= target_count: break
 
         # Step 2.3: Graceful Raw Fallback (Rule R103)
         if not all_urls:

@@ -158,7 +158,10 @@ class ContentController(Controller):
         new_gold = copy.deepcopy(campaign.gold_metadata or {})
         new_gold["analysis_cache"] = cache
         new_gold["analysis_metrics"] = metrics
+        campaign.gold_metadata = new_gold
         campaign.unique_score = result.uniqueness_score
+        flag_modified(campaign, "gold_metadata")
+        
         await campaign_repo.update(campaign)
         await campaign_repo.session.commit()
         

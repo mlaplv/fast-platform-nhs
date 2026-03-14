@@ -55,6 +55,11 @@
   let tooltipY = $state(0);
   let isFixing = $state(false);
   let lastTooltipAnchorId = $state('');
+  let isInternalUpdating = false;
+
+  function stripMarks(html: string): string {
+    return html.replace(/<mark[^>]*>|<\/mark>/g, '');
+  }
   
   const containerClass = $derived(`tiptap-shell flex flex-col w-full h-full ${
     editable 
@@ -78,7 +83,9 @@
       extensions: getEditorExtensions(placeholder),
       editorProps,
       onUpdate: () => {
-        onChange(editor?.getHTML() ?? '');
+        if (isInternalUpdating) return;
+        const html = editor?.getHTML() ?? '';
+        onChange(stripMarks(html));
         updateMetrics();
       },
       onFocus: () => isFocused = true,
@@ -99,54 +106,107 @@
   $effect(() => {
     if (!editor || editor.isDestroyed) return;
     const normalizedContent = content || "<p></p>";
-    if (normalizedContent !== editor.getHTML()) {
+    const currentHTML = editor.getHTML();
+    
+    if (stripMarks(normalizedContent) !== stripMarks(currentHTML)) {
+      isInternalUpdating = true;
       editor.commands.setContent(content, false);
       updateMetrics();
+      isInternalUpdating = false;
     }
   });
 
   $effect(() => {
     if (!editor || editor.isDestroyed) return;
-    editor.commands.clearAllAnnotations();
-    if (!annotations?.length) return;
+    
+    // Proactive lock to avoid onUpdate loops during clearing/adding marks
+    isInternalUpdating = true;
+    
+    try {
+      const { doc, tr } = editor.state;
+      let hasChanges = false;
 
-    const { doc } = editor.state;
-    const tr = editor.state.tr;
-    let hasChanges = false;
+      // 1. Clear all existing annotations in this transaction
+      const annotationMarkType = editor.schema.marks.annotation;
+      doc.descendants((node, pos) => {
+        if (node.isText && node.marks.some(m => m.type === annotationMarkType)) {
+          tr.removeMark(pos, pos + node.nodeSize, annotationMarkType);
+          hasChanges = true;
+        }
+      });
 
-    // Fast pos look-up (Same logic as RichTextEditor.svelte)
-    const docChars: { char: string; pos: number }[] = [];
-    doc.descendants((node, pos) => {
-      if (node.isText && node.text) {
-        for (let i = 0; i < node.text.length; i++) {
-          const c = node.text[i];
-          if (!/[\s\u00A0\u200B\uFEFF]/.test(c)) {
-            docChars.push({ char: c.toLowerCase(), pos: pos + i });
+      if (!annotations?.length) {
+        if (hasChanges) editor.view.dispatch(tr);
+        return;
+      }
+
+      // 2. Build doc mapping
+      const docChars: { char: string; pos: number }[] = [];
+      doc.descendants((node, pos) => {
+        if (node.isText && node.text) {
+          for (let i = 0; i < node.text.length; i++) {
+            const c = node.text[i];
+            // Collect all characters except whitespace/invisibles
+            if (!/[\s\u00A0\u200B\uFEFF]/.test(c)) {
+              docChars.push({ char: c.toLowerCase(), pos: pos + i });
+            }
           }
         }
-      }
-    });
-    const docStr = docChars.map(c => c.char).join('');
+      });
 
-    for (const ann of annotations) {
-      if (!ann.text || ann.text.length < 3) continue;
-      const searchStr = ann.text.replace(/[\s\u00A0\u200B\uFEFF]+/g, '').toLowerCase();
-      let idx = docStr.indexOf(searchStr);
-      while (idx !== -1) {
-        const startPos = docChars[idx].pos;
-        const endPos = docChars[idx + searchStr.length - 1].pos + 1;
-        tr.addMark(startPos, endPos, editor.schema.marks.annotation.create({
-          id: `ann-${Math.random().toString(36).substring(2, 9)}`,
-          type: ann.type,
-          message: ann.message,
-          source: ann.source || '',
-          severity: ann.severity || 'medium',
-        }));
-        hasChanges = true;
-        idx = docStr.indexOf(searchStr, idx + 1);
+      // 3. Create a normalized version (ONLY alphanumeric) for extra robustness
+      // and keep a mapping to the indices in docChars.
+      const isAlphaNum = (c: string) => /[a-z0-9\u00C0-\u1EF9]/i.test(c); // Basic Vietnamese + Latin AlphaNum
+      const docNormalMap: number[] = [];
+      let docStrNormalized = '';
+      for (let i = 0; i < docChars.length; i++) {
+        if (isAlphaNum(docChars[i].char)) {
+          docStrNormalized += docChars[i].char;
+          docNormalMap.push(i);
+        }
       }
+
+      // 4. Add new annotations
+      for (const ann of annotations) {
+        if (!ann.text || ann.text.length < 3) continue;
+        
+        // Normalize search string: remove all punctuation/formatting
+        const searchStrNorm = ann.text.toLowerCase().split('').filter(isAlphaNum).join('');
+        if (searchStrNorm.length < 3) continue;
+        
+        let startSearchIdx = 0;
+        let normIdx = docStrNormalized.indexOf(searchStrNorm, startSearchIdx);
+        
+        while (normIdx !== -1) {
+          // Map back to docChars indices
+          const startDocCharIdx = docNormalMap[normIdx];
+          const endDocCharIdx = docNormalMap[normIdx + searchStrNorm.length - 1];
+          
+          if (startDocCharIdx !== undefined && endDocCharIdx !== undefined) {
+            const startPos = docChars[startDocCharIdx].pos;
+            const endPos = docChars[endDocCharIdx].pos + 1;
+            
+            tr.addMark(startPos, endPos, annotationMarkType.create({
+              id: `ann-${Math.random().toString(36).substring(2, 9)}`,
+              type: ann.type,
+              message: ann.message,
+              source: ann.source || '',
+              severity: ann.severity || 'medium',
+            }));
+            hasChanges = true;
+          }
+          
+          startSearchIdx = normIdx + 1;
+          normIdx = docStrNormalized.indexOf(searchStrNorm, startSearchIdx);
+        }
+      }
+      
+      if (hasChanges) {
+        editor.view.dispatch(tr);
+      }
+    } finally {
+      setTimeout(() => { isInternalUpdating = false; }, 50);
     }
-    if (hasChanges) editor.view.dispatch(tr);
   });
 
   function handleMouseMove(e: MouseEvent) {

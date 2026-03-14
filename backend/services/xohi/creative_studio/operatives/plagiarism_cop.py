@@ -319,23 +319,19 @@ NHIỆM VỤ: Phân tích và trả về JSON đúng schema yêu cầu.
             result = await trinity_bridge.run(self._agent, prompt)  # BUG-07 fix
             raw = result.data if hasattr(result, "data") else result.output
 
-            # Post-process: validate annotations and merge internal duplicates
+            # Post-process: manage annotations and merge internal duplicates
             if hasattr(raw, 'annotations'):
                 validated_annotations = []
-                # Add AI annotations if they exist in text
+                # Add AI annotations if they have text
                 for ann in raw.annotations:
-                    if ann.text and ann.text in plain_text:
+                    if ann.text:
+                        # We used to check exact match here, but it was too strict for Tiptap's robust matching.
+                        # We'll trust the AI for now and let the frontend handle the highlight search.
                         validated_annotations.append(ann)
-                    elif ann.text:
-                        first_20 = ann.text[:20]
-                        if first_20 and first_20 in plain_text:
-                            validated_annotations.append(ann)
-                
-                # Merge Internal Dedup annotations (they are already from plain_text)
+
+                # Merge Internal Dedup annotations
                 for iann in internal_annotations:
-                    # Update uniqueness score based on internal dedup
-                    raw.uniqueness_score = max(0.0, raw.uniqueness_score - 0.05) # Small penalty per lặp
-                    # Add to list with internal type
+                    raw.uniqueness_score = max(0.0, raw.uniqueness_score - 0.05)
                     iann.type = "internal-dedup"
                     validated_annotations.append(iann)
 

@@ -59,9 +59,9 @@ class CreativePen:
     Step 3 & 4: Generate Outline and Draft Content.
     V62.1: Full AI-powered content generation with Golden Thread injection.
     """
-    def __init__(self, model_name: str = "gemini-1.5-pro"):
+    def __init__(self, model_name: str = "gemini-2.0-flash"):
         self.model_name = model_name
-        
+
         # Phase 42: Professional Agent Caching (Memory Discipline)
         self.outline_agent = Agent(
             output_type=ArticleOutline,
@@ -126,8 +126,8 @@ class CreativePen:
         """
         
         try:
-            logger.info(f"[Content Factory] CreativePen generating outline for {campaign.id}")
-            result = await trinity_bridge.run(self.outline_agent, prompt, session_id=campaign.id)
+            logger.info(f"[Content Factory] CreativePen generating outline for {campaign.id} using {self.model_name}")
+            result = await trinity_bridge.run(self.outline_agent, prompt, session_id=campaign.id, model=self.model_name)
             return result.data if hasattr(result, "data") else result.output
         except Exception as e:
             logger.error(f"[Content Factory] CreativePen Outline Gen Error: {e}")
@@ -226,8 +226,8 @@ Bắt đầu viết ngay:
 """
         
         try:
-            logger.info(f"[Content Factory] CreativePen V71.0 writing full draft for {campaign.id}")
-            result = await trinity_bridge.run(self.draft_agent, prompt, session_id=campaign.id)
+            logger.info(f"[Content Factory] CreativePen V71.0 writing full draft for {campaign.id} using {self.model_name}")
+            result = await trinity_bridge.run(self.draft_agent, prompt, session_id=campaign.id, model=self.model_name)
             content = result.data if hasattr(result, "data") else str(result.output)
 
             # Sanitize: remove markdown code fences if AI wraps them

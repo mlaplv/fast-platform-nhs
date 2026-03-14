@@ -111,8 +111,11 @@ class ActionHandler:
         """
         try:
             # 1. Ensure final_html is loaded (it is a deferred column)
-            if hasattr(campaign_repo, "session") and campaign.final_html is None:
-                await campaign_repo.session.refresh(campaign, ["final_html"])
+            if hasattr(campaign_repo, "session"):
+                from sqlalchemy import inspect
+                ins = inspect(campaign)
+                if "final_html" in ins.unloaded:
+                    await campaign_repo.session.refresh(campaign, ["final_html"])
 
             # 2. Create Article (Tin tức)
             article_repo = ArticleRepository(session=campaign_repo.session)

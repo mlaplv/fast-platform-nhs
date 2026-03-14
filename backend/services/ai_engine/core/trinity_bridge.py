@@ -115,6 +115,11 @@ class TrinityBridge:
 
     def _create_model(self, model_name: str, api_key: str) -> GoogleModel:
         """Create a GoogleModel with the API key passed directly (no env race)."""
+        if not api_key:
+            logger.error(f"[TrinityBridge] CRITICAL: api_key is EMPTY for model {model_name}")
+            raise AIConfigurationError(f"API Key is missing for {model_name}")
+
+        logger.info(f"[TrinityBridge] Creating model {model_name} with key: {api_key[:8]}...")
         provider = GoogleProvider(api_key=api_key)
         return GoogleModel(model_name, provider=provider)
 

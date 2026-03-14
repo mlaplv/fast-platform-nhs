@@ -219,20 +219,10 @@ NHIỆM VỤ: Hãy so sánh bài viết của tôi với nội dung đối thủ
             result = await trinity_bridge.run(self._agent, prompt)
             raw = result.data if hasattr(result, "data") else result.output
 
-            # Post-process: validate annotations reference real text
+            # Post-process: manage annotations
             if hasattr(raw, 'seo_annotations'):
-                validated = []
-                for ann in raw.seo_annotations:
-                    if not ann.text:  # Structural issues (empty text) are always valid
-                        validated.append(ann)
-                    elif ann.text in plain_text:
-                        validated.append(ann)
-                    else:
-                        # Accept partial match (first 15 chars)
-                        first_15 = ann.text[:15]
-                        if first_15 and first_15 in plain_text:
-                            validated.append(ann)
-                raw.seo_annotations = validated
+                # We'll trust the AI-generated annotations and let the frontend handle the highlight search
+                pass
 
             # Add rule-based structural annotations (always accurate, no hallucination risk)
             structural_annotations = self._build_structural_annotations(

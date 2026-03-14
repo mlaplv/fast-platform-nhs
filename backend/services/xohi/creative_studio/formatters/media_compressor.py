@@ -22,7 +22,7 @@ class MediaCompressor:
     Standards: SvelteKit 5 + SQLAlchemy 2.0 + Litestar.
     R115: Zero External Links in Final Production Content.
     """
-    def __init__(self, upload_dir: str = "frontend/static/uploads/v62") -> None:
+    def __init__(self, upload_dir: str = "frontend/static/v65_assets") -> None:
         self.upload_dir: str = upload_dir
         os.makedirs(self.upload_dir, exist_ok=True)
         # R106: Semaphore-based concurrency to protect 2GB RAM limits.
@@ -37,11 +37,11 @@ class MediaCompressor:
         # Step 1: Localize standard assets (images from Step 2)
         original_assets: List[str] = campaign.get_gold_val("original_remote_assets", list(campaign.assets_data or []))
         local_assets: List[str] = await self.localize_assets(campaign)
-        
+
         # Step 2: Localize Avatar (Gold Metadata)
         gold: Dict[str, object] = dict(campaign.gold_metadata or {})
         remote_avatar: Optional[str] = gold.get("avatar") # type: ignore
-        
+
         if remote_avatar and remote_avatar.startswith("http"):
             async with httpx.AsyncClient(follow_redirects=True) as client:
                 local_avatar = await self._download_and_save(client, remote_avatar, str(campaign.id), "avatar")
@@ -52,7 +52,7 @@ class MediaCompressor:
 
         # Step 3: Wrap Draft Content and apply asset replacement
         final_html: str = self.wrap_html(campaign.draft_content or "", local_assets, original_assets)
-        
+
         # Step 4: Final Surgical Scan for manual/rogue external links
         final_html = await self._localize_remaining_html_images(final_html, str(campaign.id))
 
@@ -79,14 +79,14 @@ class MediaCompressor:
                 if url.startswith("/") or url.startswith("static"):
                     # Normalize paths (Remove /static prefix if present)
                     norm_path = url if url.startswith("/") else f"/{url}"
-                    if norm_path.startswith("/static/uploads/"):
-                        norm_path = norm_path.replace("/static/uploads/", "/uploads/")
+                    if norm_path.startswith("/static/v65_assets/"):
+                        norm_path = norm_path.replace("/static/v65_assets/", "/v65_assets/")
                     local_paths.append(norm_path)
                     continue
 
                 async with self.semaphore:
                     local_path = await self._download_and_save(client, url, str(campaign.id), i)
-                    local_paths.append(local_path if local_path else "/uploads/v62/placeholder.webp")
+                    local_paths.append(local_path if local_path else "/v65_assets/placeholder.webp")
 
         return local_paths
 
@@ -98,12 +98,12 @@ class MediaCompressor:
         try:
             response = await client.get(url, timeout=15.0)
             response.raise_for_status()
-            
+
             buffer = BytesIO(response.content)
             try:
                 # Offload blocking Pillow logic to thread pool
                 await asyncio.to_thread(self._save_webp, buffer, campaign_id, suffix)
-                return f"/uploads/v62/{campaign_id}_{suffix}.webp"
+                return f"/v65_assets/{campaign_id}_{suffix}.webp"
             finally:
                 buffer.close()
         except Exception as e:
