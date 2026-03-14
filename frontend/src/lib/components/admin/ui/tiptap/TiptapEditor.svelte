@@ -10,6 +10,7 @@
   import LinkDialog from './ui/LinkDialog.svelte';
   import StatusBar from './ui/StatusBar.svelte';
   import AnnotationTooltip from './ui/AnnotationTooltip.svelte';
+  import ImageBubbleMenu from './ui/ImageBubbleMenu.svelte';
 
   let {
     content = "",
@@ -17,7 +18,7 @@
     editable = true,
     placeholder = "Start writing...",
     assets = [] as string[],
-    fullScreen = false,
+    fullScreen = $bindable(false),
     toolbarActions = [] as ToolbarAction[],
     annotations = [] as EditorAnnotation[],
     onfix = null,
@@ -57,6 +58,12 @@
   let lastTooltipAnchorId = $state('');
   let isInternalUpdating = false;
 
+  // Image Menu tracking
+  let imageMenuVisible = $state(false);
+  let imageMenuX = $state(0);
+  let imageMenuY = $state(0);
+  let selectedImageNode = $state<any>(null);
+
   function stripMarks(html: string): string {
     return html.replace(/<mark[^>]*>|<\/mark>/g, '');
   }
@@ -71,7 +78,9 @@
     return (hash >>> 0).toString(36);
   }
   
-  const containerClass = $derived(`tiptap-shell flex flex-col w-full h-full ${
+  const containerClass = $derived(`tiptap-shell flex flex-col ${
+    fullScreen ? 'fixed inset-0 z-[2000] bg-[#0d1117]' : 'w-full h-full'
+    } ${
     editable 
       ? 'bg-[#0d1117] border ' + (isFocused ? 'border-blue-500/40' : 'border-white/10') + ' overflow-hidden shadow-2xl' 
       : 'bg-transparent border-none overflow-visible'
@@ -106,6 +115,12 @@
 
   onDestroy(() => {
     if (editor) editor.destroy();
+  });
+
+  $effect(() => {
+    if (showImageDialog || showLinkDialog) {
+      imageMenuVisible = false;
+    }
   });
 
   // Reactive Syncs
@@ -279,7 +294,33 @@
         if (!target.closest('.tiptap-tooltip')) {
             tooltipVisible = false;
             lastTooltipAnchorId = '';
-        }
+      }
+    }
+  }
+
+  function handleImageClick(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    const img = target.closest('.tiptap-content img') as HTMLImageElement | null;
+    if (img && editor) {
+      const pos = editor.view.posAtDOM(img, 0);
+      if (pos >= 0) {
+        const rect = img.getBoundingClientRect();
+        imageMenuX = rect.left + rect.width / 2;
+        imageMenuY = rect.top - 10;
+        imageMenuVisible = true;
+        editor.commands.setNodeSelection(pos);
+      }
+    } else if (!target.closest('.image-bubble-menu')) {
+      imageMenuVisible = false;
+    }
+  }
+
+  function handleDoubleClick(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    const img = target.closest('.tiptap-content img') as HTMLImageElement | null;
+    if (img && editor) {
+      showImageDialog = true;
+      // We'll replace the current image when selected
     }
   }
 
@@ -309,7 +350,14 @@
     }
   }
 
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape' && fullScreen) {
+      fullScreen = false;
+    }
+  }
 </script>
+
+<svelte:window onkeydown={handleKeyDown} />
 
 <div 
   class={containerClass}
@@ -323,12 +371,15 @@
       onOpenImage={() => showImageDialog = true}
       onOpenLink={() => { currentLinkUrl = editor?.getAttributes('link').href || ''; showLinkDialog = true; }}
       onClearHighlights={() => editor?.commands.clearAllAnnotations()}
+      bind:fullScreen
     />
   {/if}
 
   <div 
     class="flex-1 overflow-y-auto document-scroll {fullScreen ? 'bg-[#0a0d14]' : 'bg-[#0d1117] p-6'}"
     onmousemove={handleMouseMove}
+    onclick={handleImageClick}
+    ondblclick={handleDoubleClick}
     onmouseleave={(e) => { 
       const related = e.relatedTarget as HTMLElement;
       if (!isFixing && !related?.closest('.tiptap-tooltip')) {
@@ -350,9 +401,33 @@
   {/if}
 </div>
 
-<ImageDialog bind:show={showImageDialog} {assets} onSelect={(url) => editor?.chain().focus().setImage({ src: url }).run()} />
+<ImageDialog 
+  bind:show={showImageDialog} 
+  {assets} 
+  onSelect={(url) => {
+    if (editor) {
+      const { selection } = editor.state;
+      if (selection instanceof editor.view.state.NodeSelection && selection.node.type.name === 'image') {
+        // Correct replacement: update attributes of the current node
+        editor.chain().focus().updateAttributes('image', { src: url }).run();
+      } else {
+        editor.chain().focus().setImage({ src: url }).run();
+      }
+      imageMenuVisible = false;
+    }
+  }} 
+/>
 <LinkDialog bind:show={showLinkDialog} currentUrl={currentLinkUrl} onApply={(url) => url ? editor?.chain().focus().setLink({ href: url }).run() : editor?.chain().focus().unsetLink().run()} />
 <AnnotationTooltip bind:visible={tooltipVisible} x={tooltipX} y={tooltipY} type={tooltipType} text={tooltipText} {isFixing} onFix={handleFix} />
+
+{#if imageMenuVisible && editor}
+  <div 
+    class="fixed image-bubble-menu z-[3000]"
+    style="left: {imageMenuX}px; top: {imageMenuY}px; transform: translate(-50%, -100%);"
+  >
+    <ImageBubbleMenu {editor} onReplace={() => showImageDialog = true} />
+  </div>
+{/if}
 
 <style>
   @reference "tailwindcss";

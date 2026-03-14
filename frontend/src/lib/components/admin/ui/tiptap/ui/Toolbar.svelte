@@ -18,6 +18,8 @@
   import BlockquoteIcon from 'lucide-svelte/icons/quote';
   import CodeIcon from 'lucide-svelte/icons/code';
   import MinusIcon from 'lucide-svelte/icons/minus';
+  import Maximize2Icon from 'lucide-svelte/icons/maximize-2';
+  import Minimize2Icon from 'lucide-svelte/icons/minimize-2';
 
   let { 
     editor, 
@@ -25,7 +27,8 @@
     annotations = [],
     onOpenImage,
     onOpenLink,
-    onClearHighlights
+    onClearHighlights,
+    fullScreen = $bindable(false)
   }: {
     editor: Editor | null;
     toolbarActions?: ToolbarAction[];
@@ -33,6 +36,7 @@
     onOpenImage: () => void;
     onOpenLink: () => void;
     onClearHighlights: () => void;
+    fullScreen?: boolean;
   } = $props();
 
   const FONTS = ['Inter', 'Roboto', 'Georgia', 'Times New Roman', 'Courier New', 'Arial'];
@@ -153,7 +157,6 @@
     {/each}
   {/if}
 
-  <!-- Clear Highlights -->
   {#if annotations && annotations.length > 0}
     <div class="tb-divider ml-auto"></div>
     <button
@@ -165,6 +168,20 @@
       Xóa Highlight
     </button>
   {/if}
+
+  <!-- Full Screen Toggle -->
+  <div class="tb-divider {annotations && annotations.length > 0 ? '' : 'ml-auto'}"></div>
+  <button 
+    onclick={() => fullScreen = !fullScreen} 
+    class="tb-btn {fullScreen ? 'active' : ''}" 
+    title={fullScreen ? "Thu nhỏ (Esc)" : "Toàn màn hình"}
+  >
+    {#if fullScreen}
+      <Minimize2Icon size={13} />
+    {:else}
+      <Maximize2Icon size={13} />
+    {/if}
+  </button>
 </div>
 
 <style>
@@ -177,5 +194,16 @@
   }
   .tb-divider {
     @apply w-px h-4 bg-white/10 mx-1;
+  }
+  select {
+    @apply appearance-none transition-all;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white' stroke-opacity='0.4'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.25rem center;
+    background-size: 0.8rem;
+    padding-right: 1.25rem;
+  }
+  option {
+    @apply bg-[#1a1f26] text-white/70;
   }
 </style>
