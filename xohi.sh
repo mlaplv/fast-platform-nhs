@@ -35,22 +35,23 @@ fi
 #    So we "teleport" the command to run inside the Docker container instead.
 #    We also fix the path for .env because host absolute paths don't match container paths.
 function run_backend() {
+    # Chuẩn hóa tham số: Chuyển đường dẫn tuyệt đối của .env sang tương đối
+    # Điều này cực kỳ quan trọng để lệnh chạy được cả local (Ubuntu) và trong Docker (Mac)
+    local args=()
+    for arg in "$@"; do
+        if [[ "$arg" == "$PWD/.env" ]]; then
+            args+=(".env")
+        else
+            args+=("$arg")
+        fi
+    done
+
     if [ "$IS_INTEL_MAC" = true ]; then
         # On Intel Mac, we MUST run inside the container.
-        # We need to transform absolute host paths (like /Users/lv/...) into relative paths (.env)
-        # because the container has a different file system.
-        local args=()
-        for arg in "$@"; do
-            if [[ "$arg" == "$PWD/.env" ]]; then
-                args+=(".env")
-            else
-                args+=("$arg")
-            fi
-        done
         docker compose exec -T api uv run "${args[@]}"
     else
         # On Ubuntu/Linux, run local for speed
-        uv run "$@"
+        uv run "${args[@]}"
     fi
 }
 
