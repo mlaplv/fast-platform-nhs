@@ -21,3 +21,13 @@ def normalize_vn(text: str) -> str:
     text = RE_CLEAN_VN.sub("", text)
 
     return " ".join(text.split()).strip()
+
+def slugify(text: str) -> str:
+    """
+    Tạo slug từ văn bản tiếng Việt.
+    """
+    if not text:
+        return ""
+
+    text = normalize_vn(text)
+    return text.replace(" ", "-")

@@ -264,7 +264,7 @@ class RouterOrchestrator:
         else:
             # 0. AI STT Correction
             # --- SEMANTIC BYPASS (LOCAL-FIRST) ---
-            cleaned_transcript, suspected = await stt_corrector.correct(transcript, user_dict)
+            cleaned_transcript, suspected = await stt_corrector.correct(transcript, user_dict, norm_query=normalized_transcript)
             t_stt = int((time.monotonic() - t0) * 1000)
             logger.info(f"--- [C.O.R.E][{m_tag}] Corrected: '{transcript}' -> '{cleaned_transcript}' ({t_stt}ms) ---")
             

@@ -23,9 +23,30 @@
 - ✅ **TỰ KIỂM THỨC:** AI phải tự check log/lỗi UI sau khi code. Luôn bắt đầu bằng "Dạ vâng Sếp" hoặc "Thưa Sếp".
 - ✅ **LATEST ONLY:** Luôn ưu tiên cài đặt/cập nhật thư viện bản mới nhất.
 
+## 🚀 R03 – GIAO THỨC TIẾN HÓA (EVOLUTION PROTOCOL)
+
+- 🧪 **TRINH SÁT CÔNG NGHỆ:** AI không được dậm chân tại chỗ. Phải luôn chủ động tìm kiếm các kỹ thuật lập trình, thuật toán và giải pháp kiến trúc mới nhất/tầng cao nhất để áp dụng cho Sếp.
+- 💡 **ĐỀ XUẤT CẢI TIẾN:** Nếu thấy một giải pháp cũ (legacy) có thể thay thế bằng công nghệ mới hiệu quả hơn, BẮT BUỘC phải đề xuất trong bước PROPOSE.
+
+
 ## 🏗️ I. ĐỊA BÀN & HIỆU NĂNG (ULTRA-LEAN ARCHITECTURE)
 
 - **Backend Logic:** `/backend/services/` (C.O.R.E Engine).
 - **Frontend State:** `/frontend/src/lib/state/` (Nanobot Store).
 - **Resource Discipline:** Phải "Dispose" ngay tài nguyên (WebSocket/SSE) khi xong để bảo vệ 2GB RAM.
 - **Ultra-Fast UX:** Phản hồi <200ms. Luôn có Loading cho tác vụ dài. Cấm Request trùng lặp (Double-call).
+
+## 🚫 III. DANH MỤC LỖI CẤM (ANTI-PATTERNS)
+
+### 1. Lỗi Kỹ thuật (Technical Sins)
+- ❌ **Blocking Async:** Cấm dùng hàm đồng bộ (sync) trong luồng async gây treo event loop.
+- ❌ **Memory Leak:** Cấm quên `revokeObjectURL` hoặc không dọn dẹp `Event Listener` khi hủy component.
+- ❌ **Rune Abuse:** Cấm lạm dụng `$effect` trong Svelte 5 khi có thể dùng `$derived`.
+- ❌ **Silent Fail:** Cấm dùng `try-catch` rỗng mà không có log hoặc báo cáo cho Sếp.
+
+### 2. Lỗi "Làm biếng" (Laziness Sins)
+- ❌ **Placeholder Addiction:** Cấm viết `// TODO`, `// implementation here`. Code xuất ra phải chạy được ngay.
+- ❌ **Skip Verification:** Cấm báo cáo "Xong" khi chưa thực sự chạy lệnh test hoặc check log terminal.
+- ❌ **Assumptive Coding:** Cấm sửa code dựa trên suy đoán mà không đọc kỹ nội dung file thực tế.
+- ❌ **Incomplete Work:** Cấm bỏ qua các trường hợp biên (edge cases) chỉ để xong việc nhanh.
+

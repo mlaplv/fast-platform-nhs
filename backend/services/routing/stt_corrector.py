@@ -308,7 +308,7 @@ class STTCorrector:
         # 4. If not consolidated, learn normally
         await xohi_memory.learn_stt_correction(user_id, wrong, right, is_global)
 
-    async def correct(self, transcript: str, user_dictionary: Optional[Dict[str, str]] = None) -> Tuple[str, Optional[Dict[str, str]]]:
+    async def correct(self, transcript: str, user_dictionary: Optional[Dict[str, str]] = None, norm_query: Optional[str] = None) -> Tuple[str, Optional[Dict[str, str]]]:
         """
         Takes raw STT transcript, returns (cleaned transcript, suspected_corrections).
         Flow: Normalize -> Stopwords -> Neural Local -> Global Patterns -> Trinity Fallback.
@@ -318,7 +318,7 @@ class STTCorrector:
 
         # Phase 76.3: Assume transcript is already NFC normalized by Orchestrator
         if not transcript: return "", None
-        
+
         # 2026 SPEED OPTIMIZATION: If transcript is extremely short (1-2 words),
         # it's likely a command or greeting. Bypass heavy processing immediately.
         words_count = len(transcript.split())
@@ -355,14 +355,16 @@ class STTCorrector:
         # 2026 Strategy: Use local embeddings to bypass cloud
         system_overrides = await xohi_memory.get_system_stt_overrides()
         effective_dict = {**system_overrides, **(user_dictionary or {})}
-        
+
         neural_cleaned, score = await self.neural_corrector.correct(transcript, effective_dict)
         if score >= 0.70:
             logger.info(f"[STT Corrector] Neural HIT (score={score:.2f}): '{neural_cleaned}'")
             return neural_cleaned, None
 
         # 2. PATTERN BYPASS (High-Speed Local Bypass)
-        norm_query = normalize_vn(transcript)
+        if norm_query is None:
+            norm_query = normalize_vn(transcript)
+
         # Bypass for explicit nav patterns
         if norm_query in NORM_NAV_PATTERNS:
             return transcript, None

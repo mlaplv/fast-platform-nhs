@@ -121,7 +121,9 @@ class XoHiResponder:
         tenant_id = payload.get("tenant_id", "default")
 
         msg = f"[Content] Hoàn thành Bước {step}. Đang chờ sếp duyệt."
-        if step == 2: msg = f"[Content] Đã tìm xong bộ ảnh (Bước 2). Mời sếp chọn."
+        if status == "COMPLETED" and step == 6:
+            msg = "🎉 Chúc mừng sếp! Bài viết sáng tạo đã được xuất bản thành công vào mục Tin tức. Em đã dọn dẹp bộ nhớ để hệ thống luôn mượt mà ạ!"
+        elif step == 2: msg = f"[Content] Đã tìm xong bộ ảnh (Bước 2). Mời sếp chọn."
         elif step == 3: msg = f"[Content] Đàn ý Bước 3 đã sẵn sàng."
         elif step == 4: msg = f"[Content] Bản thảo Bước 4 đã hoàn tất."
         elif step == 6: msg = f"✨ Bài viết đã hoàn thành 6 bước. Sẵn sàng xuất bản!"

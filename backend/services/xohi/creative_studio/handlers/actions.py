@@ -1,7 +1,11 @@
 import asyncio
 import logging
+import uuid
 from typing import Dict, Union, Optional
-from backend.database.repositories import ContentCampaignRepository
+from backend.database.repositories import ContentCampaignRepository, ArticleRepository
+from backend.database.models import Article
+from backend.utils.text import slugify
+from backend.services.event_bus import event_bus
 
 logger = logging.getLogger("api-gateway")
 
@@ -57,6 +61,31 @@ class ActionHandler:
             if campaign.status != "WAITING_FOR_REVIEW":
                 return {"status": "error", "message": "Bước này đang được xử lý hoặc đã duyệt rồi ạ."}
 
+            if step == 6:
+                # Terminal Step: Publish to News + Cleanup
+                success = await self._publish_and_cleanup(campaign, campaign_repo)
+                if success:
+                    if hasattr(campaign_repo, "session"):
+                        await campaign_repo.session.commit()
+
+                    # Notify Responder to announce success
+                    await event_bus.emit("CONTENT_STEP_COMPLETED", {
+                        "campaign_id": campaign_id,
+                        "user_id": campaign.user_id,
+                        "step": 6,
+                        "status": "COMPLETED",
+                        "tenant_id": campaign.tenant_id
+                    })
+
+                    return {
+                        "status": "success",
+                        "message": "🎉 Chúc mừng sếp! Bài viết đã được xuất bản vào mục 'Tin tức' và hệ thống đã được dọn dẹp sạch sẽ ạ.",
+                        "campaign_id": campaign_id,
+                        "next_step": 7
+                    }
+                else:
+                    return {"status": "error", "message": "Dạ sếp, có lỗi khi xuất bản bài viết. Sếp thử lại giúp em nhé."}
+
             campaign.current_step += 1
             campaign.status = "PROCESSING"
             await campaign_repo.update(campaign)
@@ -72,6 +101,54 @@ class ActionHandler:
             campaign.status = "REJECTED"
             await campaign_repo.update(campaign)
             return {"status": "success", "message": "Đã ghi nhận sếp không duyệt bước này.", "campaign_id": campaign_id}
+
+    async def _publish_and_cleanup(self, campaign, campaign_repo: ContentCampaignRepository) -> bool:
+        """
+        Phase 76.3: Publication to News (Articles) + Hard Memory Cleanup.
+        Moves final content to the public table and strips heavy JSON from campaign to save 2GB RAM.
+        """
+        try:
+            # 1. Ensure final_html is loaded (it is a deferred column)
+            if hasattr(campaign_repo, "session") and campaign.final_html is None:
+                await campaign_repo.session.refresh(campaign, ["final_html"])
+
+            # 2. Create Article (Tin tức)
+            article_repo = ArticleRepository(session=campaign_repo.session)
+
+            title = campaign.get_gold_val("topic") or campaign.get_gold_val("title", "Bài viết sáng tạo mới")
+            content = campaign.final_html or campaign.draft_content
+
+            if not content:
+                logger.warning(f"[ActionHandler] No content found for campaign {campaign.id}")
+                return False
+
+            new_article = Article(
+                id=str(uuid.uuid4()),
+                title=title,
+                slug=f"{slugify(title)}-{str(uuid.uuid4())[:8]}",
+                content=content,
+                author_id=campaign.user_id,
+                status="PUBLISHED",
+                tenant_id=campaign.tenant_id,
+                category="Tin tức"
+            )
+            await article_repo.add(new_article)
+
+            # 3. Hard Cleanup (Rule R82.25: Zero-Allocation & Memory Safety)
+            campaign.status = "COMPLETED"
+            # Strip heavy metadata to keep DB and memory lean on 2GB RAM VPS
+            campaign.topic_data = {}
+            campaign.assets_data = []
+            campaign.outline_data = {}
+            campaign.draft_content = ""
+            campaign.final_html = ""
+
+            await campaign_repo.update(campaign)
+            logger.info(f"[ActionHandler] Published campaign {campaign.id} to Article {new_article.id} and cleaned up.")
+            return True
+        except Exception as e:
+            logger.exception(f"[ActionHandler] Publication failed for campaign {campaign.id}: {e}")
+            return False
 
     async def retry_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
         campaign = await campaign_repo.get(campaign_id)
