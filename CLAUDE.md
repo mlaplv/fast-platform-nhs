@@ -6,7 +6,8 @@
 
 ## 🛑 R00 – KỶ LUẬT TÁC CHIẾN (WAR ROOM PROTOCOL)
 
-- ❌ **CẤM:** Sửa code/tạo file khi chưa được duyệt. CẤM dùng code `// TODO` hoặc dữ liệu giả (Placeholders).
+- ❌ **CẤM:** Sửa code/tạo file khi chưa được duyệt.
+- ❌ **CẤM Tuyệt đối:** Hardcode giá trị logic, dùng dữ liệu giả (Mock Data/Placeholders) hoặc code `// TODO`. Mọi dữ liệu phải flow từ DB/API hoặc Config chính thống.
 - ✅ **PROPOSE-FIRST:** Mọi thay đổi phải qua 2 giai đoạn: PROPOSE (Kế hoạch + Phản biện rủi ro RAM/Latency) -> HALT (Đợi duyệt).
 - ✅ **QUY TRÌNH QUẢN TRỊ:** Bắt buộc duy trì `task.md` (check-list) và `walkthrough.md` (bằng chứng) cho mọi task.
 - ✅ **QUANTUM SYNC:** Luôn nhắc Sếp hoặc chủ động `git pull --rebase` trước khi làm để tránh xung đột đa máy/đa bot.
