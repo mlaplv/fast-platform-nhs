@@ -95,6 +95,22 @@
   <!-- ===== HEADER: Title + Avatar (cố định, không co giãn) ===== -->
   <div class="shrink-0 flex items-center gap-3 p-3 border-b border-white/5 bg-black/20">
     
+    <!-- Scores mini -->
+    {#if copyrightScore !== null || seoScore !== null}
+      <div class="hidden md:flex items-center gap-2 text-[8px] font-black uppercase">
+        {#if copyrightScore !== null}
+          <span class="{copyrightScore >= 90 ? 'text-emerald-400' : 'text-yellow-400'}">©{copyrightScore}%</span>
+        {/if}
+        {#if seoScore !== null}
+          <span class="text-blue-400">SEO {seoScore}</span>
+        {/if}
+        {#if aiScore !== null}
+          <span class="text-purple-400">AI {aiScore}%</span>
+        {/if}
+      </div>
+      <div class="hidden md:block w-px h-4 bg-white/10"></div>
+    {/if}
+
     <!-- Avatar -->
     <div class="relative shrink-0">
       <button
@@ -154,60 +170,39 @@
     </div>
 
     <!-- Actual content: flex-1 overflow-y-auto -->
-    <div class="flex-1 min-h-0 flex flex-col {editingField === 'content' ? 'bg-black/40' : ''} overflow-hidden">
-      {#if displayContent || editingField === 'content'}
+    {#if editingField === 'content'}
+      <div class="flex-1 min-h-0 flex flex-col bg-black/40">
         <TiptapEditor
           content={displayContent}
           assets={assets}
           onChange={(val) => { draft_content = val; finalHtml = val; }}
-          editable={editingField === 'content'}
+          editable={true}
           placeholder="Chỉnh sửa nội dung..."
           onblur={saveField}
+        />
+        <div class="shrink-0 p-2 border-t border-white/5 flex justify-end">
+          <button onclick={saveField}
+            class="px-3 py-1 bg-purple-500 text-[9px] font-black text-white hover:bg-purple-600 uppercase"
+          >Lưu nội dung</button>
+        </div>
+      </div>
+    {:else if displayContent}
+      <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <TiptapEditor
+          content={displayContent}
+          assets={assets}
+          editable={false}
           fullScreen={false}
         />
-        {#if editingField === 'content'}
-          <div class="shrink-0 p-2 border-t border-white/5 flex justify-end">
-            <button onclick={saveField}
-              class="px-3 py-1 bg-purple-500 text-[9px] font-black text-white hover:bg-purple-600 uppercase"
-            >Lưu nội dung</button>
-          </div>
-        {/if}
-      {:else}
-        <div class="flex-1 flex flex-col items-center justify-center gap-2 p-4 bg-red-950/20">
-          <span class="text-red-400 text-xs font-bold">⚠ Lỗi tải nội dung</span>
-          <code class="text-[9px] text-red-300/50 text-center">
-            draft: {(draft_content || '').length}c · html: {(finalHtml || '').length}c · assets: {assets.length}
-          </code>
-        </div>
-      {/if}
-    </div>
-
-    <!-- Analysis Badges Sync (Step 4 Style) -->
-    <div class="shrink-0 flex items-center gap-2 px-3 py-2 bg-black/40 border-t border-white/5">
-      {#if copyrightScore !== null}
-        {@const bc = copyrightScore >= 90 ? 'bg-emerald-500/20 text-emerald-400' : copyrightScore >= 70 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}
-        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/15 border border-orange-500/40 text-orange-300">
-          <span class="text-[10px] uppercase font-bold tracking-wider">Bản Quyền</span>
-          <span class="text-[8px] font-black px-1.5 py-0.5 rounded-full {bc}">{copyrightScore}%</span>
-        </div>
-      {/if}
-
-      {#if seoScore !== null}
-        {@const sc = seoScore >= 85 ? 'bg-emerald-500/20 text-emerald-400' : seoScore >= 70 ? 'bg-blue-500/20 text-blue-400' : 'bg-yellow-500/20 text-yellow-400'}
-        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/15 border border-blue-500/40 text-blue-300">
-          <span class="text-[10px] uppercase font-bold tracking-wider">SEO</span>
-          <span class="text-[8px] font-black px-1.5 py-0.5 rounded-full {sc}">{seoScore}</span>
-        </div>
-      {/if}
-
-      {#if aiScore !== null}
-        {@const ac = aiScore >= 85 ? 'bg-purple-500/20 text-purple-400' : aiScore >= 65 ? 'bg-fuchsia-500/20 text-fuchsia-400' : 'bg-red-500/20 text-red-400'}
-        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/15 border border-purple-500/40 text-purple-300">
-          <span class="text-[10px] uppercase font-bold tracking-wider">AI MOD</span>
-          <span class="text-[8px] font-black px-1.5 py-0.5 rounded-full {ac}">{aiScore}%</span>
-        </div>
-      {/if}
-    </div>
+      </div>
+    {:else}
+      <div class="flex-1 flex flex-col items-center justify-center gap-2 p-4 bg-red-950/20">
+        <span class="text-red-400 text-xs font-bold">⚠ Lỗi tải nội dung</span>
+        <code class="text-[9px] text-red-300/50 text-center">
+          draft: {(draft_content || '').length}c · html: {(finalHtml || '').length}c · assets: {assets.length}
+        </code>
+      </div>
+    {/if}
   </div>
 
   <!-- ===== FOOTER: Category/Slug + Meta (cố định ở dưới) ===== -->

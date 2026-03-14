@@ -9,7 +9,7 @@
 
   let { 
     campaign_id,
-    isEditing = $bindable(false), 
+    isEditing, 
     editedDraft = $bindable(""), 
     draft_content = $bindable(""), 
     outline = {},
@@ -106,7 +106,7 @@
           ? (aiReadyResult?.ai_annotations || []).map((a: any) => ({
               text: a.text || '',
               type: a.type || 'geo-info',
-              message: a.message || 'Cần tối ưu cho AI/GEO',
+              message: a.message || '',
               severity: (a.severity || 'info').toLowerCase()
             }))
           : [] // Không có tab active = không highlight gì
@@ -132,10 +132,6 @@
       await saveBeforeAnalysis();
       const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/copyright?force=${isForce}`);
       if (res?.data) copyrightResult = res.data;
-      if (res?.draft_content) {
-        if (isEditing) editedDraft = res.draft_content;
-        else draft_content = res.draft_content;
-      }
     } catch (e) {
       console.error("[DraftStep] Copyright check failed:", e);
     } finally {
@@ -153,10 +149,6 @@
       await saveBeforeAnalysis();
       const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/seo?force=${isForce}`);
       if (res?.data) seoResult = res.data;
-      if (res?.draft_content) {
-        if (isEditing) editedDraft = res.draft_content;
-        else draft_content = res.draft_content;
-      }
     } catch (e) {
       console.error("[DraftStep] SEO analysis failed:", e);
     } finally {
@@ -174,10 +166,6 @@
       await saveBeforeAnalysis();
       const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/ai-inspect?force=${isForce}`);
       if (res?.data) aiReadyResult = res.data;
-      if (res?.draft_content) {
-        if (isEditing) editedDraft = res.draft_content;
-        else draft_content = res.draft_content;
-      }
     } catch (e) {
       console.error("[DraftStep] AI Inspect failed:", e);
     } finally {
@@ -230,7 +218,6 @@
             });
           }
         }, 100);
-        isEditing = true;
         return new_text;
       }
     } catch (e) {
@@ -274,7 +261,6 @@
         } else {
             draft_content = newHtml;
         }
-        isEditing = true;
         
         // Wait a small tick so Svelte can sync the draft content to the editor before we re-analyze
         await new Promise(r => setTimeout(r, 300));
@@ -384,7 +370,7 @@
           onclick: () => runSeoAnalysis()
         },
         {
-          label: isAiLoading ? '...' : '✨ AI MOD',
+          label: isAiLoading ? '...' : '✨ AI 2026',
           loading: isAiLoading,
           disabled: aiLocked,
           lockedMsg: aiLocked
@@ -477,6 +463,7 @@
         {/if}
       </div>
 
+      <!-- AI 2026 -->
       <div class="relative group/ai">
         <button
           onclick={() => {
@@ -493,14 +480,14 @@
               : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}
             {aiLocked ? 'cursor-not-allowed opacity-50' : ''}
             disabled:opacity-50"
-          title="Kiểm tra AI Readiness / GEO Mod"
+          title="Kiểm tra mức độ thân thiện với LLM/AI Crawlers"
         >
           {#if isAiLoading}
             <span class="inline-block w-3 h-3 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></span>
           {:else}
             <Sparkles size={12} />
           {/if}
-          <span class="text-[10px] uppercase font-bold tracking-wider">AI MOD</span>
+          <span class="text-[10px] uppercase font-bold tracking-wider">AI 2026</span>
           {#if aiLocked}
             <span class="text-[8px] opacity-50">🔒</span>
           {:else if aiBadge}

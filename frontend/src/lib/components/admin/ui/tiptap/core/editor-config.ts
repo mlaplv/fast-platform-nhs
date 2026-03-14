@@ -28,24 +28,9 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
     openOnClick: false,
     HTMLAttributes: { class: 'text-blue-400 underline hover:text-blue-300 transition-colors cursor-pointer' },
   }),
-  Image.extend({
-    addAttributes() {
-      return {
-        ...this.parent?.(),
-        class: {
-          default: 'max-w-full mx-auto my-4',
-          renderHTML: attributes => ({ class: attributes.class }),
-          parseHTML: element => element.getAttribute('class'),
-        },
-        width: {
-          default: '100%',
-          renderHTML: attributes => ({ style: `width: ${attributes.width}` }),
-          parseHTML: element => element.style.width || element.getAttribute('width'),
-        }
-      };
-    },
-  }).configure({
+  Image.configure({
     inline: false,
+    HTMLAttributes: { class: 'max-w-full mx-auto my-4 shadow-lg' },
   }),
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
   TextStyle,

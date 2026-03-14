@@ -111,33 +111,37 @@ class PlagiarismCop:
         self._agent = Agent(output_type=PlagiarismResult, system_prompt=PLAGIARISM_PROMPT, retries=3)
 
     # ──────────────────────────────────────────────────────────
-    # V76.5: Internal Dedup Sensor (Zero AI Cost)
+    # V76.0: Internal Dedup Detection (Zero AI Cost)
     # ──────────────────────────────────────────────────────────
 
-    def _audit_internal_dedup(self, plain_text: str) -> List[CopyrightAnnotation]:
+    def _detect_internal_duplicates(self, plain_text: str) -> List[CopyrightAnnotation]:
         """
-        Detects Internal duplicates (original logic).
-        Trash & Trailing debris are now handled by TextSanitizer at Router level.
+        Detect duplicate sentences/phrases within the same article.
+        Pure logic — no AI calls. Splits into sentences, normalizes,
+        and finds exact or near-duplicate repetitions.
+        Returns CopyrightAnnotation objects with severity based on repetition count.
         """
         if not plain_text or len(plain_text) < 50:
             return []
 
-        findings: List[CopyrightAnnotation] = []
-
-        # Split into sentences for dedup
+        # Split into sentences (Vietnamese + English punctuation)
         sentences = RE_SENTENCE_SPLIT.split(plain_text)
+        # Filter out very short "sentences" (less than 15 chars are likely fragments)
         sentences = [s.strip() for s in sentences if len(s.strip()) >= 15]
 
         if len(sentences) < 2:
-            return findings
+            return []
 
+        # Normalize for comparison (lowercase, collapse whitespace, strip punctuation)
         def normalize(text: str) -> str:
             text = text.lower().strip()
             text = RE_NORMALIZE.sub('', text)
             text = RE_WHITESPACE.sub(' ', text)
             return text
 
+        # Track seen sentences → first occurrence index
         seen: dict[str, int] = {}
+        duplicates: List[CopyrightAnnotation] = []
         reported_norms: set[str] = set()
 
         for idx, sentence in enumerate(sentences):
@@ -146,18 +150,51 @@ class PlagiarismCop:
                 continue
 
             if norm in seen and norm not in reported_norms:
+                # Found a duplicate!
                 reported_norms.add(norm)
-                findings.append(CopyrightAnnotation(
-                    text=sentence[:200],
-                    reason=f"Câu này xuất hiện ít nhất 2 lần trong bài viết (lần đầu ở vị trí {seen[norm] + 1}). Trùng lặp nội bộ làm giảm chất lượng nội dung.",
-                    source_url="(nội bộ — trùng lặp)",
-                    severity="medium",
-                    type="internal-dedup"
+                duplicates.append(CopyrightAnnotation(
+                    text=sentence[:200],  # Max 200 chars as per prompt schema
+                    reason=f"Câu này xuất hiện ít nhất 2 lần trong bài viết (lần đầu ở vị trí {seen[norm] + 1}, lặp lại ở vị trí {idx + 1}). Trùng lặp nội bộ làm giảm chất lượng nội dung.",
+                    source_url="(nội bộ — trùng lặp trong cùng bài viết)",
+                    severity="medium"
                 ))
             elif norm not in seen:
                 seen[norm] = idx
 
-        return findings
+        # Phase 2: N-gram overlap detection for near-duplicates (≥10 word phrases)
+        word_sequences: dict[str, list[int]] = {}
+        for idx, sentence in enumerate(sentences):
+            words = normalize(sentence).split()
+            if len(words) < 10:
+                continue
+            # Extract 10-word sliding windows
+            for i in range(len(words) - 9):
+                ngram = ' '.join(words[i:i + 10])
+                if ngram not in word_sequences:
+                    word_sequences[ngram] = []
+                word_sequences[ngram].append(idx)
+
+        # Find n-grams that appear in multiple distinct sentences
+        flagged_sentence_indices: set[int] = set()
+        for ngram, indices in word_sequences.items():
+            unique_indices = list(set(indices))
+            if len(unique_indices) >= 2:
+                for si in unique_indices:
+                    if si not in flagged_sentence_indices:
+                        norm_s = normalize(sentences[si])
+                        if norm_s not in reported_norms:
+                            flagged_sentence_indices.add(si)
+                            reported_norms.add(norm_s)
+                            duplicates.append(CopyrightAnnotation(
+                                text=sentences[si][:200],
+                                reason=f"Cụm ≥10 từ liên tiếp trong câu này trùng lặp với câu khác trong bài. Cần viết lại để đảm bảo nội dung không bị lặp.",
+                                source_url="(nội bộ — trùng cụm từ dài)",
+                                severity="low" if len(unique_indices) == 2 else "high"
+                            ))
+
+        if duplicates:
+            logger.info(f"[PlagiarismCop] Internal Dedup: Found {len(duplicates)} duplicate/near-duplicate segments.")
+        return duplicates
 
     async def _get_search_pair(self):
         """BUG-08 fix: async-safe key rotation via lock."""
@@ -266,8 +303,8 @@ class PlagiarismCop:
 
         # 3. AI semantic analysis with per-sentence annotations
         try:
-            # V76.5: Run Internal Dedup Sensor concurrently (Zero cost)
-            quality_annotations = self._audit_internal_dedup(plain_text)
+            # V76.0: Run Internal Dedup concurrently (Zero cost)
+            internal_annotations = self._detect_internal_duplicates(plain_text)
 
             prompt = f"""
 [BÀI VIẾT CẦN KIỂM TRA — đoạn đầu 3000 ký tự]
@@ -276,30 +313,31 @@ class PlagiarismCop:
 [NỘI DUNG CÁC NGUỒN CẠNH TRANH TOP GOOGLE cho từ khóa "{primary_keyword}"]
 {chr(10).join([f'--- Nguồn {i+1}: {s}' for i, s in enumerate(competitor_snippets)])}
 
-NHIỆM VỤ: Phân tích và trả về JSON đúng schema yêu cầu.
+NHIỆM VỤ: Phân tích và trả về JSON đúng schema yêu cầu. 
 Đặc biệt chú ý: các `annotations[].text` PHẢI là substring chính xác từ bài viết cần kiểm tra.
 """
             result = await trinity_bridge.run(self._agent, prompt)  # BUG-07 fix
             raw = result.data if hasattr(result, "data") else result.output
 
-            # Post-process: manage annotations and merge hybrid findings
+            # Post-process: manage annotations and merge internal duplicates
             if hasattr(raw, 'annotations'):
                 validated_annotations = []
                 # Add AI annotations if they have text
                 for ann in raw.annotations:
                     if ann.text:
+                        # We used to check exact match here, but it was too strict for Tiptap's robust matching.
+                        # We'll trust the AI for now and let the frontend handle the highlight search.
                         validated_annotations.append(ann)
 
-                # Merge Quality & Internal Dedup findings
-                for q_ann in quality_annotations:
-                    # Penalize score for quality issues or duplicates
-                    penalty = 0.05 if q_ann.type == "internal-dedup" else 0.1
-                    raw.uniqueness_score = max(0.0, raw.uniqueness_score - penalty)
-                    validated_annotations.append(q_ann)
+                # Merge Internal Dedup annotations
+                for iann in internal_annotations:
+                    raw.uniqueness_score = max(0.0, raw.uniqueness_score - 0.05)
+                    iann.type = "internal-dedup"
+                    validated_annotations.append(iann)
 
                 raw.annotations = validated_annotations
-                if raw.uniqueness_score < 0.9: # R00: Stricter gate for Elite articles
-                    raw.risk_level = "HIGH" if raw.uniqueness_score < 0.7 else "MEDIUM"
+                if raw.uniqueness_score < 0.8:
+                    raw.risk_level = "HIGH" if raw.uniqueness_score < 0.6 else "MEDIUM"
 
             return raw
 

@@ -125,27 +125,13 @@ class ContentController(Controller):
         Dùng Google Search + Gemini AI để kiểm tra ngữ nghĩa (không phải so ký tự).
         """
         from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
-        from backend.services.xohi.creative_studio.formatters.text_sanitizer import TextSanitizer
-
         campaign = await campaign_repo.get(str(campaign_id))
         if not campaign:
             return {"status": "error", "message": "Campaign not found"}
         if not campaign.draft_content:
             return {"status": "error", "message": "Chưa có nội dung để kiểm tra."}
-
-        # Elite Sanitization (V76.8): Tự động dọn rác văn bản trước khi check
-        sanitizer = TextSanitizer()
-        cleaned_content = sanitizer.sanitize(campaign.draft_content)
-
-        if cleaned_content != campaign.draft_content:
-            logger.info(f"[Sanitizer] Auto-cleaned debris for campaign {campaign_id}")
-            campaign.draft_content = cleaned_content
-            # Lưu lại bản sạch vào DB ngay lập tức
-            await campaign_repo.update(campaign)
-            await campaign_repo.session.commit()
-
         cop = PlagiarismCop()
-
+        
         # Expert Optimizer (V71.30): Content Fingerprinting
         draft_text = campaign.draft_content or ""
         content_hash = hashlib.sha256(draft_text.encode('utf-8')).hexdigest()
@@ -178,8 +164,8 @@ class ContentController(Controller):
         
         await campaign_repo.update(campaign)
         await campaign_repo.session.commit()
-
-        return {"status": "success", "data": result_data, "draft_content": campaign.draft_content}
+        
+        return {"status": "success", "data": result_data}
 
     @post("/campaigns/{campaign_id:uuid}/analyze/seo")
     async def analyze_seo(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> Dict[str, object]:
@@ -187,18 +173,11 @@ class ContentController(Controller):
         On-demand: PHÂN TÍCH SEO 2026 — E-E-A-T, Entity Coverage, AI-Naturalness, Featured Snippet.
         """
         from backend.services.xohi.creative_studio.operatives.seo_analyzer import SeoAnalyzer
-        from backend.services.xohi.creative_studio.formatters.text_sanitizer import TextSanitizer
         campaign = await campaign_repo.get(str(campaign_id))
         if not campaign:
             return {"status": "error", "message": "Campaign not found"}
-        sanitizer = TextSanitizer()
-        cleaned_content = sanitizer.sanitize(campaign.draft_content)
-        if cleaned_content != campaign.draft_content:
-            logger.info(f"[Sanitizer] SEO Auto-cleaned debris for campaign {campaign_id}")
-            campaign.draft_content = cleaned_content
-            await campaign_repo.update(campaign)
-            await campaign_repo.session.commit()
-
+        if not campaign.draft_content:
+            return {"status": "error", "message": "Chưa có nội dung để phân tích."}
         analyzer = SeoAnalyzer()
         
         # Expert Optimizer (V71.30): Content Fingerprinting
@@ -231,8 +210,8 @@ class ContentController(Controller):
         flag_modified(campaign, "gold_metadata")
         await campaign_repo.update(campaign)
         await campaign_repo.session.commit()
-
-        return {"status": "success", "data": result_data, "draft_content": campaign.draft_content}
+        
+        return {"status": "success", "data": result_data}
 
     @post("/campaigns/{campaign_id:uuid}/analyze/ai-inspect")
     async def analyze_ai_readiness(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> Dict[str, object]:
@@ -245,18 +224,12 @@ class ContentController(Controller):
         4. Quotable Snippet Structure
         """
         from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
-        from backend.services.xohi.creative_studio.formatters.text_sanitizer import TextSanitizer
         campaign = await campaign_repo.get(str(campaign_id))
         if not campaign:
             return {"status": "error", "message": "Campaign not found"}
-        sanitizer = TextSanitizer()
-        cleaned_content = sanitizer.sanitize(campaign.draft_content)
-        if cleaned_content != campaign.draft_content:
-            logger.info(f"[Sanitizer] AI-Inspect Auto-cleaned debris for campaign {campaign_id}")
-            campaign.draft_content = cleaned_content
-            await campaign_repo.update(campaign)
-            await campaign_repo.session.commit()
-
+        if not campaign.draft_content:
+            return {"status": "error", "message": "Chưa có nội dung để phân tích AI Readiness."}
+        
         inspector = AiInspector()
         # Expert Optimizer (V71.30): Content Fingerprinting
         draft_text = campaign.draft_content or ""
@@ -290,8 +263,8 @@ class ContentController(Controller):
             await campaign_repo.update(campaign)
             await campaign_repo.session.commit()
             logger.info(f"[EXPERT] COMMIT SUCCESS for campaign {campaign_id}")
-
-            return {"status": "success", "data": result_data, "draft_content": campaign.draft_content}
+            
+            return {"status": "success", "data": result_data}
         except Exception as e:
             logger.error(f"AI Inspector error: {e}")
             return {"status": "error", "message": str(e)}

@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { page } from "$app/state";
+  import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import XohiNanoSprite from "$lib/components/admin/XohiNanoSprite.svelte";
   
   // Safely extract status and message
-  let status = $derived(page.status ?? 404);
-  let message = $derived(page.error?.message ?? "Không tìm thấy dữ liệu (Not Found)");
+  let status = $derived($page.status ?? 404);
+  let message = $derived($page.error?.message ?? "Không tìm thấy dữ liệu (Not Found)");
 </script>
 
 <div class="min-h-screen bg-[#050505] flex flex-col items-center justify-center font-sans text-gray-100 p-6 selection:bg-[#00FFFF]/30">
