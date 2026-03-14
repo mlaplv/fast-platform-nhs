@@ -54,8 +54,6 @@ Bạn là Xô Hi, trợ lý cấp cao duy nhất của hệ thống quản trị
 
 class Tier3CloudRouter:
     def __init__(self):
-        self.primary_model_name = os.getenv("TIER3_MODEL", "gemini-2.0-flash")
-        self.fallback_model_name = os.getenv("TIER3_FALLBACK_MODEL", "gemini-1.5-pro")
         self.rotator = key_rotator
         
         # [THIẾT QUÂN LUẬT] PydanticAI Agent with Deps

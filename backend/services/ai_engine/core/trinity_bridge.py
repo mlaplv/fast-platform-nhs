@@ -24,16 +24,16 @@ class TrinityBridge:
     def __init__(self):
         self.rotator = key_rotator
         # V71.17: Neural Waterfall Support (2026 Edition)
-        self.default_model_name = os.getenv("TIER2_MODEL", "gemini-2.0-flash")
-        self.fallback_model_name = os.getenv("TIER2_FALLBACK_MODEL", "gemini-2.0-flash")
+        # Default hardcoded fallbacks if DB is empty
+        self.default_model_name = "gemini-2.0-flash"
+        self.fallback_model_name = "gemini-1.5-pro"
 
         # Dynamic Model Pool (V75)
         self.db_primary_model = None
         self.db_waterfall = []
 
-        # Load full waterfall if provided
-        waterfall = os.getenv("MODEL_WATERFALL", "")
-        self.model_waterfall = [m.strip() for m in waterfall.split(",") if m.strip()] if waterfall else []
+        # NOTE: Model waterfall is now managed primarily via DB (VoiceProfile).
+        self.model_waterfall = []
 
         self.success_model_key = "ai:bridge:last_success_model"
         
