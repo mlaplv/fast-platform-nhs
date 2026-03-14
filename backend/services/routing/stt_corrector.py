@@ -3,6 +3,7 @@ import json
 import logging
 import asyncio
 import unicodedata
+import time
 import numpy as np
 from typing import Dict, Optional, Tuple, List
 
@@ -76,7 +77,7 @@ Các khái niệm có trong hệ thống:
 7. TRẢ VỀ JSON: Kết quả bắt buộc dưới định dạng JSON theo schema đã chỉ định.
 """
 
-# --- Phase 76.3: Zero-Allocation Constants ---
+# --- Phase 76.3: Zero-Allocation Constants & Caches ---
 NAV_PATTERNS = {
     "mo bieu do", "xem bieu do", "doanh so thang nay", "doanh thu hom nay",
     "xem don hang", "danh sach san pham", "ok", "dung", "vang", "phai", "thoat",
@@ -95,6 +96,14 @@ SOUND_ALIKES = {
 }
 # Pre-normalize keys for robust matching
 NORM_SOUND_ALIKES = {normalize_vn(k): v for k, v in SOUND_ALIKES.items()}
+
+# Global normalization cache to avoid redundant calls to normalize_vn (V76.3)
+_GLOBAL_NORM_CACHE = {} # { "word/phrase": "normalized" }
+def _get_norm(text: str) -> str:
+    if text not in _GLOBAL_NORM_CACHE:
+        if len(_GLOBAL_NORM_CACHE) > 1000: _GLOBAL_NORM_CACHE.clear()
+        _GLOBAL_NORM_CACHE[text] = normalize_vn(text)
+    return _GLOBAL_NORM_CACHE[text]
 
 class NeuralLocalCorrector:
     """
@@ -163,7 +172,6 @@ class NeuralLocalCorrector:
         max_total_score = 0.0
         applied_corrections = False
         hit_keys = set()
-        norm_cache = {}
 
         # 2. Sliding window (up to 3 words)
         for n in range(min(3, len(words)), 0, -1):
@@ -171,9 +179,7 @@ class NeuralLocalCorrector:
                 window = " ".join(words[i : i + n])
                 if not window.strip(): continue
 
-                if window not in norm_cache:
-                    norm_cache[window] = normalize_vn(window)
-                norm_window = norm_cache[window]
+                norm_window = _get_norm(window)
 
                 potential_keys = []
                 for key in sorted_keys:
@@ -336,14 +342,10 @@ class STTCorrector:
         norm_stopwords = await self._get_cached_stopwords()
         if norm_stopwords:
             words = transcript.split()
-            # 76.3: Local cache to avoid redundant normalize_vn on duplicate words in same transcript
-            word_norm_map = {}
             filtered_words = []
             for w in words:
                 w_lower = w.lower()
-                if w_lower not in word_norm_map:
-                    word_norm_map[w_lower] = normalize_vn(w_lower)
-                if word_norm_map[w_lower] not in norm_stopwords:
+                if _get_norm(w_lower) not in norm_stopwords:
                     filtered_words.append(w)
 
             # Zero-Allocation: Only join if words were actually removed

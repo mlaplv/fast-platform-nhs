@@ -68,6 +68,12 @@ async_session_maker = alchemy_config.create_session_maker()
 
 # --- Phase 76.3: Trigger Optimization Cache ---
 TRIGGER_PHO_CACHE = {} # { "word": "word_pho" }
+TRIGGER_NORM_CACHE = {} # { "word": "word_norm" }
+
+def _get_norm_trigger(word: str) -> str:
+    if word not in TRIGGER_NORM_CACHE:
+        TRIGGER_NORM_CACHE[word] = normalize_vn(word)
+    return TRIGGER_NORM_CACHE[word]
 
 def _get_phonetic(word: str) -> str:
     if word not in TRIGGER_PHO_CACHE:
@@ -82,9 +88,8 @@ def _match_trigger(words_list, trans_norm, trans_pho=None):
         trans_pho = trans_norm.replace("k", "c").replace("q", "c")
 
     for w in words_list:
-        # We assume words_list might contain raw or normalized words
-        # but triggers are usually simple, so we normalize here if not cached
-        w_norm = normalize_vn(w)
+        # 76.3: Use cached normalization and phonetic mapping
+        w_norm = _get_norm_trigger(w)
         w_pho = _get_phonetic(w_norm)
 
         if w_norm in trans_norm or w_pho in trans_pho:
@@ -107,6 +112,18 @@ class RouterOrchestrator:
         self.t2_router = Tier2CloudRouter()
         self.t3_router = Tier3CloudRouter()
         self.t2_refiner = Tier2Refiner()
+
+    async def _get_rag_context(self, transcript: str) -> str:
+        """Phase 76.4: Unified RAG Context Fetcher."""
+        try:
+            lower_t = transcript.lower()
+            if any(kw in lower_t for kw in ["sản phẩm", "hàng", "tồn kho", "giá", "mặt hàng", "product"]):
+                return await VectorMemory.search(transcript, session=None, context_type="product", limit=3)
+            elif any(kw in lower_t for kw in ["bài viết", "tin tức", "chính sách", "hướng dẫn", "article", "news"]):
+                return await VectorMemory.search(transcript, session=None, context_type="article", limit=3)
+        except Exception as e:
+            logger.debug(f"[RAG] Vector search skipped: {e}")
+        return ""
 
     async def classify(
         self,
@@ -230,6 +247,19 @@ class RouterOrchestrator:
                     for wrong, right in suspected.items():
                         await stt_corrector.smart_learn(user_id, wrong, right)
 
+                    # Phase 77: Dynamic Intent Learning (Reinforcement)
+                    # If user confirmed the correction, we should also teach the semantic router
+                    # that the original transcript (even if noisy) mapped to this context.
+                    # We'll re-classify the CLEANED transcript to see what the intent was,
+                    # then tell the router to associate the ORIGINAL transcript with that intent.
+                    try:
+                        sem_intent, sem_score = await self.semantic_router.classify(transcript)
+                        if sem_score > 0.7:
+                             raw_transcript = ctx.get("pending_raw_transcript", "") # Need to ensure this is saved
+                             if raw_transcript:
+                                 await self.semantic_router.learn_intent(sem_intent, raw_transcript)
+                    except Exception: pass
+
                     logger.info(f"[STT Learning] Memorized to Redis: {suspected}")
 
                 # Restore the cleaned transcript AND APPLY the learned correction
@@ -271,21 +301,31 @@ class RouterOrchestrator:
             # If the transcript was cleaned locally or by AI, and it's 100% clear (no suspect),
             # we should immediately try T1 Semantic Router and Heuristics BEFORE T2 LLM.
             if not suspected:
-                # 2. Heuristic Filter (0-Token, <1ms)
-                # Phase 76.3: Reuse normalized transcript if no change to avoid redundant normalize_vn calls
-                target_norm = normalized_transcript if cleaned_transcript == transcript else normalize_vn(cleaned_transcript)
-
+                # Phase 76.4: Inherit context-aware classification
                 heur_res = await self._heuristic_classify(
                     cleaned_transcript.lower(),
                     user_id,
-                    app_state,
+                    ctx=ctx, # Pass Redis context
                     intent_map=intent_map,
-                    norm_query=target_norm
+                    norm_query=normalized_transcript
                 )
                 if heur_res:
                     if heur_res.data is None:
                         heur_res.data = {}
                     heur_res.data["cleaned_transcript"] = cleaned_transcript
+
+                    # Phase 76.4: Proactive RAG for Heuristic Bypass
+                    if heur_res.data.get("intent_type") == "DATA_QUERY":
+                        rag_res = await self._get_rag_context(cleaned_transcript)
+                        if rag_res:
+                            heur_res.semantic_results = rag_res
+                            logger.info(f"[Heuristic RAG] Injected semantic results")
+
+                    # Update Redis context for continuity
+                    ctx["last_target"] = heur_res.data.get("target")
+                    ctx["last_timeframe"] = heur_res.data.get("timeframe")
+                    await xohi_memory.set_user_context(user_id, ctx)
+
                     t_heur = int((time.monotonic() - t0) * 1000)
                     logger.info(f"[Heuristic Bypass] Classified in {t_heur}ms: {heur_res.data.get('intent_type')} target={heur_res.data.get('target')}")
                     return heur_res
@@ -296,6 +336,7 @@ class RouterOrchestrator:
                 ctx["is_confirming_stt"] = True
                 ctx["pending_stt_correction"] = suspected
                 ctx["pending_cleaned_transcript"] = cleaned_transcript
+                ctx["pending_raw_transcript"] = transcript # Phase 77: Save for learning loop
                 await xohi_memory.set_user_context(user_id, ctx)
                 
                 # Format a friendly confirmation message
@@ -329,7 +370,9 @@ class RouterOrchestrator:
                               "MUTATE": IntentAction.MUTATE, "ANALYZE": IntentAction.ANALYZE,
                               "CONTENT_CREATE": IntentAction.CONTENT_CREATE,
                 "CONTENT_APPROVE": IntentAction.CONTENT_APPROVE,
-                "CONTENT_REJECT": IntentAction.CONTENT_REJECT}
+                "CONTENT_REJECT": IntentAction.CONTENT_REJECT,
+                "WAKE_ROUTINE": IntentAction.WAKE_ROUTINE,
+                "HARDWARE_SLEEP": IntentAction.HARDWARE_SLEEP}
                 
                 # If action gives us HARDWARE_SLEEP, bypass the regular enum mapping
                 # and put it directly into the data payload to trigger the frontend event, 
@@ -343,6 +386,11 @@ class RouterOrchestrator:
                 action = action_map.get(action_str, IntentAction.READ)
                 msg_val = mapping.get("message", "")
                 
+                # Phase 76.4: Proactive Semantic Result Injection
+                semantic_results = ""
+                if sem_intent == "product_query":
+                    semantic_results = await self._get_rag_context(transcript)
+
                 logger.info(f"[T1.5] HIT (score={sem_score:.3f}): {sem_intent} → {mapping['intent_type']}")
                 return IntentResponse(
                     status="success",
@@ -350,6 +398,7 @@ class RouterOrchestrator:
                     message=msg_val,
                     router_tier=RouterTier.TIER_1_HEURISTIC,
                     cost_tokens=0.0,
+                    semantic_results=semantic_results or None,
                     data={
                         "intent_type": mapping["intent_type"],
                         "target": mapping.get("target", "none"),
@@ -374,12 +423,29 @@ class RouterOrchestrator:
         # 3. T2 FAILED → HEURISTIC FALLBACK (0-Token, <1ms)
         #    Classify straightforward queries by keyword WITHOUT LLM
         if not result:
-            result = await self._heuristic_classify(combined_lower, user_id, app_state, intent_map=intent_map)
+            result = await self._heuristic_classify(combined_lower, user_id, ctx=ctx, intent_map=intent_map)
             if result:
                 logger.debug(f"[Heuristic Fallback] Classified: {result.data}")
 
+        # Update persistent context for VUI Continuity (Phase 76.4)
+        if result and result.status == "success":
+            ctx["last_target"] = result.data.get("target")
+            ctx["last_timeframe"] = result.data.get("timeframe")
+            if result.semantic_results:
+                ctx["last_semantic_results"] = result.semantic_results
+            await xohi_memory.set_user_context(user_id, ctx)
+
+        # Phase 77: Hardening — Fallback to Tier 3 Reasoning instead of error
         if not result:
-            return self._error_response("Ý sếp chưa rõ lắm, sếp nói chi tiết hơn giúp em nhé.")
+            logger.info(f"[C.O.R.E][{m_tag}] Classification inconclusive -> Defaulting to Tier 3 Reasoning")
+            return IntentResponse(
+                status="success",
+                action=IntentAction.ANALYZE,
+                message="",
+                router_tier=RouterTier.TIER_3_REASONING,
+                data={"intent_type": "UNKNOWN", "cleaned_transcript": transcript},
+                cost_tokens=0.0
+            )
 
         if result and result.data is None:
             result.data = {}
@@ -387,6 +453,15 @@ class RouterOrchestrator:
         
         intent_data = result.data
         intent_type = intent_data.get("intent_type", "UNKNOWN")
+
+        # Phase 76.4: Proactive RAG for Tier 2 Cloud Results
+        if intent_type in ["DATA_QUERY", "PRODUCT_INFO"] and not result.semantic_results:
+            lower_t = transcript.lower()
+            if any(kw in lower_t for kw in ["sản phẩm", "hàng", "giá", "tồn kho"]):
+                rag_res = await self._get_rag_context(transcript)
+                if rag_res:
+                    result.semantic_results = rag_res
+                    logger.info(f"[T2 RAG] Injected semantic results for {intent_type}")
 
         # ══════════════════════════════════════════════════════════════════════════
         # Rule R82.25: Global UI Action Enforcer (Decouple Query from Navigation)
@@ -434,23 +509,14 @@ class RouterOrchestrator:
             logger.debug(f"[C.O.R.E][{m_tag}] Executing T3 Reasoning (intent_type={intent_type})")
 
             # RAG: Inject vector search context for grounded reasoning
-            rag_context = ""
-            try:
-                # Detect if query involves products or articles
-                lower_t = transcript.lower()
-                if any(kw in lower_t for kw in ["sản phẩm", "hàng", "tồn kho", "giá", "product"]):
-                    rag_context = await VectorMemory.search(transcript, session=None, context_type="product", limit=3)
-                elif any(kw in lower_t for kw in ["bài viết", "tin tức", "chính sách", "article", "news"]):
-                    rag_context = await VectorMemory.search(transcript, session=None, context_type="article", limit=3)
-            except Exception as e:
-                logger.debug(f"[RAG] Vector search skipped: {e}")
-            
+            rag_context = await self._get_rag_context(transcript)
+
             # Append RAG to transcript for T3
             enriched_transcript = transcript
-            if rag_context and rag_context not in ["", "Hệ thống vector hóa đang bảo trì."]:
+            if rag_context and rag_context not in ["", "Hệ thống tri thức đang khởi động, sếp đợi em chút ạ."]:
                 enriched_transcript = f"{transcript}\n\n[DỮ LIỆU THAM KHẢO TỪ HỆ THỐNG]\n{rag_context}"
                 logger.info(f"[RAG] Injected {len(rag_context)} chars of context into T3")
-            
+
             return await self.t3_router.reason(enriched_transcript, context, screen_context=screen_context)
 
         # ══════════════════════════════════════════
@@ -586,12 +652,12 @@ class RouterOrchestrator:
         self,
         combined_lower: str,
         user_id: str,
-        app_state: object,
+        ctx: Optional[dict] = None,
         intent_map: Optional[dict] = None,
         norm_query: Optional[str] = None
     ) -> Optional[IntentResponse]:
         """V56.0: Delegated to heuristic_classifier.py (Rule 1.3: <300 LOC)."""
-        return await heuristic_classify(combined_lower, user_id, app_state, intent_map=intent_map, norm_query=norm_query)
+        return await heuristic_classify(combined_lower, user_id, context=ctx, intent_map=intent_map, norm_query=norm_query)
 
     def _error_response(self, msg: str) -> IntentResponse:
         return IntentResponse(

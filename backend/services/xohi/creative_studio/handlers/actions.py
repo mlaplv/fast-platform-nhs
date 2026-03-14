@@ -1,11 +1,13 @@
 import asyncio
 import logging
 import uuid
+import numpy as np
 from typing import Dict, Union, Optional
-from backend.database.repositories import ContentCampaignRepository, ArticleRepository
-from backend.database.models import Article
+from backend.database.repositories import ContentCampaignRepository, ArticleRepository, ArticleEmbeddingRepository
+from backend.database.models import Article, ArticleEmbedding
 from backend.utils.text import slugify
 from backend.services.event_bus import event_bus
+from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
 
 logger = logging.getLogger("api-gateway")
 
@@ -133,6 +135,26 @@ class ActionHandler:
                 category="Tin tức"
             )
             await article_repo.add(new_article)
+
+            # 2.5. Generate and save Embedding (Phase 77: Deep Memory)
+            try:
+                encoder = get_shared_encoder()
+                if encoder:
+                    loop = asyncio.get_event_loop()
+                    # We embed the title for semantic retrieval
+                    vector = (await loop.run_in_executor(None, lambda: list(encoder.embed([title]))))[0]
+                    vector_np = np.array(vector, dtype=np.float32)
+
+                    emb_repo = ArticleEmbeddingRepository(session=campaign_repo.session)
+                    new_emb = ArticleEmbedding(
+                        id=str(uuid.uuid4()),
+                        article_id=new_article.id,
+                        embedding=vector_np.tobytes().hex()
+                    )
+                    await emb_repo.add(new_emb)
+                    logger.info(f"[ActionHandler] Generated embedding for article {new_article.id}")
+            except Exception as emb_err:
+                logger.error(f"[ActionHandler] Embedding generation failed: {emb_err}")
 
             # 3. Hard Cleanup (Rule R82.25: Zero-Allocation & Memory Safety)
             campaign.status = "COMPLETED"

@@ -143,10 +143,10 @@ export function createNanobotState() {
     setVoiceResult: intent.setVoiceResult,
     resetVui,
     setThinking,
-    setModality: (val: "text" | "voice") => (state.modality = val),
-    setGodModeUser: (val: string | null) => (state.godModeUser = val),
-    clearCurrentData: () => (state.currentData = null),
-    clearCommandAction: () => (state.commandAction = null),
+    setModality: (val: "text" | "voice") => { state.modality = val; },
+    setGodModeUser: (val: string | null) => { state.godModeUser = val; },
+    clearCurrentData: () => { state.currentData = null; },
+    clearCommandAction: () => { state.commandAction = null; },
     forceHydration: () => {
       // V70.2 Fix: Manual trigger for soft navigation (goto)
       state.isHydrated = true;
@@ -263,10 +263,10 @@ export function createNanobotState() {
     },
     get showMobileSidebar() { return state.showMobileSidebar; },
     get showMobileDrawer() { return state.showMobileSidebar; },
-    toggleMobileSidebar: () => (state.showMobileSidebar = !state.showMobileSidebar),
-    toggleMobileDrawer: () => (state.showMobileSidebar = !state.showMobileSidebar),
+    toggleMobileSidebar: () => { state.showMobileSidebar = !state.showMobileSidebar; },
+    toggleMobileDrawer: () => { state.showMobileSidebar = !state.showMobileSidebar; },
     get mobileScrollPosition() { return state.mobileScrollPosition; },
-    setMobileScrollPosition: (val: number) => (state.mobileScrollPosition = val),
+    setMobileScrollPosition: (val: number) => { state.mobileScrollPosition = val; },
     get isExpanded() { return state.isExpanded; },
     toggleExpand: (val?: boolean) => { state.isExpanded = val !== undefined ? val : !state.isExpanded; if (typeof window !== "undefined") document.body.style.overflow = state.isExpanded ? "hidden" : ""; },
 
@@ -287,7 +287,7 @@ export function createNanobotState() {
       finally { state.isTogglingCampaign = false; }
     },
     get discoveredModels() { return state.discoveredModels; },
-    setDiscoveredModels: (val: string[]) => (state.discoveredModels = val),
+    setDiscoveredModels: (val: string[]) => { state.discoveredModels = val; },
     resumeCampaign: (logEntry: Record<string, unknown>) => resumeManager.internalResumeCampaign(logEntry)
   };
 }

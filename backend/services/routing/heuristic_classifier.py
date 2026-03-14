@@ -73,6 +73,10 @@ NORM_COUNT_KEYWORDS = [normalize_vn(kw) for kw in COUNT_KEYWORDS]
 NORM_QUESTION_KEYWORDS = [normalize_vn(kw) for kw in QUESTION_KEYWORDS]
 NORM_MUTATE_KEYWORDS = [normalize_vn(kw) for kw in MUTATE_KEYWORDS]
 
+# Navigation & Content Factory Pre-normalized (Zero-Allocation)
+NORM_NAV_EXPLICIT = {normalize_vn(kw) for kw in ["bieu do", "mo", "xem", "vao", "show"]}
+NORM_CONTENT_FACTORY = {normalize_vn(kw) for kw in ["viet bai", "sang tac", "content"]}
+
 # Cached merged target keywords (static + dynamic)
 _DYNAMIC_MERGE_CACHE = {} # { (user_id_or_system, mapping_hash): merged_dict }
 
@@ -89,7 +93,7 @@ def _merge_lists(a, b):
 async def heuristic_classify(
     combined_lower: str,
     user_id: str,
-    app_state: object,
+    context: Optional[dict] = None,
     intent_map: Optional[dict] = None,
     norm_query: Optional[str] = None
 ) -> Optional[IntentResponse]:
@@ -97,6 +101,9 @@ async def heuristic_classify(
     Zero-LLM Heuristic Fallback — classify known patterns by keyword.
     Only handles clear-cut queries. Returns None for ambiguous ones.
     """
+    # Phase 76.4: Use persistent context from xohi_memory
+    ctx = context if context is not None else {}
+
     # Phase 76.3: Reuse pre-normalized query from orchestrator
     if norm_query is None:
         norm_query = normalize_vn(combined_lower)
@@ -132,38 +139,45 @@ async def heuristic_classify(
     # --- Detect TARGET ---
     target = "none"
     for tgt, keywords in merged_target_keywords.items():
-        # Using pre-normalized keywords and query
         if any(kw in norm_query for kw in keywords):
             target = tgt
             break
 
-    if target == "none":
-        return None
-
-    # --- Detect TIMEFRAME ---
+    # --- Detect TIMEFRAME (Shadow-safe detection) ---
     timeframe = "none"
-    for tf, keywords in NORM_TIMEFRAME_KEYWORDS.items():
+    # Sort keys to check longer/more specific timeframes first (e.g., 'this_month' before 'today')
+    for tf in ["this_month", "this_week", "today"]:
+        keywords = NORM_TIMEFRAME_KEYWORDS.get(tf, [])
         if any(kw in norm_query for kw in keywords):
             timeframe = tf
             break
 
-    # ═══ TIMEFRAME & TARGET INHERITANCE (XoHi Next-Gen) ═══
-    voice_cache = getattr(app_state, "voice_cache", {})
-    user_profile = voice_cache.get(user_id, {})
+    # ═══ CONTEXTUAL RESOLUTION (Phase 76.4) ═══
+    # Rule 1: Explicit Product Ellipsis (Priority)
+    is_product_ellipsis = any(kw in norm_query for kw in ["gia bao nhieu", "con hang khong", "con ko", "gia sao"])
+    if is_product_ellipsis:
+        target = "product"
+        logger.debug("[Heuristic] Product Ellipsis detected -> target: product")
 
-    if target == "none" and timeframe != "none":
-        target = user_profile.get("last_target", "none")
-        logger.debug(f"[Heuristic] Inherited target: {target}")
+    # Rule 2: Inheritance for follow-up questions (e.g., "thế còn tháng này?")
+    if target == "none":
+        if timeframe != "none" or any(kw in norm_query for kw in ["the con", "con", "va"]):
+            target = ctx.get("last_target", "none")
+            if target != "none":
+                logger.debug(f"[Heuristic] Inherited target: {target}")
 
+    if target == "none":
+        return None
+
+    # Rule 3: Timeframe Inheritance (Only for data-heavy targets)
     if timeframe == "none" and target in ["revenue", "order"]:
-        timeframe = user_profile.get("last_timeframe", "none")
-        logger.debug(f"[Heuristic] Inherited timeframe: {timeframe}")
+        timeframe = ctx.get("last_timeframe", "none")
+        if timeframe != "none":
+            logger.debug(f"[Heuristic] Inherited timeframe: {timeframe}")
 
-    if target != "none":
-        user_profile["last_target"] = target
-    if timeframe != "none":
-        user_profile["last_timeframe"] = timeframe
-    voice_cache[user_id] = user_profile
+    # Persistence for next turn (XoHi memory)
+    ctx["last_target"] = target
+    ctx["last_timeframe"] = timeframe
 
     # --- Detect INTENT TYPE ---
     is_count = any(kw in norm_query for kw in NORM_COUNT_KEYWORDS)
@@ -195,11 +209,11 @@ async def heuristic_classify(
 
     # --- Resolve intent type + action ---
     # 76.3: Use pre-normalized navigation keywords
-    is_nav_explicit = any(kw in norm_query for kw in ["bieu do", "mo", "xem", "vao", "show"])
+    is_nav_explicit = any(kw in norm_query for kw in NORM_NAV_EXPLICIT)
 
     # Rule R82.23: Content Factory Priority
     # 76.3: Use pre-normalized keywords for content factory
-    is_content_factory = (target == "news" and (verb == "create" or "viet bai" in norm_query)) or any(kw in norm_query for kw in ["viet bai", "sang tac", "content"])
+    is_content_factory = (target == "news" and verb == "create") or any(kw in norm_query for kw in NORM_CONTENT_FACTORY)
 
     content_mode = "viral"
     if is_content_factory:

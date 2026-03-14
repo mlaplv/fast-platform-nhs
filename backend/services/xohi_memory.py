@@ -279,6 +279,29 @@ class XoHiMemory:
         self._fallback_cache[key] = mapping
 
     # ═══════════════════════════════════════════════════════
+    # SEMANTIC MEMORY: Vector Centroids (Phase 77)
+    # ═══════════════════════════════════════════════════════
+
+    async def get_semantic_centroids(self) -> Dict[str, bytes]:
+        """Fetch all pre-calculated intent centroids from Redis."""
+        key = "system:semantic_centroids"
+        try:
+            if self._use_redis:
+                return await self.client.hgetall(key)
+        except Exception as e:
+            logger.debug(f"[XoHiMemory] Redis get semantic_centroids failed: {e}")
+        return {}
+
+    async def update_semantic_centroid(self, intent: str, vector_bytes: bytes):
+        """Update a specific intent centroid in Redis."""
+        key = "system:semantic_centroids"
+        try:
+            if self._use_redis:
+                await self.client.hset(key, intent, vector_bytes)
+        except Exception as e:
+            logger.debug(f"[XoHiMemory] Redis set semantic_centroid failed: {e}")
+
+    # ═══════════════════════════════════════════════════════
     # ATOMIC AGGREGATION: High-Load Performance (V76.3)
     # ═══════════════════════════════════════════════════════
 

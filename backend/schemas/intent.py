@@ -11,6 +11,7 @@ class IntentAction(str, Enum):
     CONTENT_APPROVE = "CONTENT_APPROVE"
     CONTENT_REJECT = "CONTENT_REJECT"
     HARDWARE_SLEEP = "HARDWARE_SLEEP"
+    WAKE_ROUTINE = "WAKE_ROUTINE"
 
 class RouterTier(str, Enum):
     TIER_1_HEURISTIC = "1"
@@ -31,6 +32,11 @@ class IntentResponse(BaseModel):
     action: IntentAction = Field(default=IntentAction.READ)
     router_tier: RouterTier = Field(default=RouterTier.TIER_2_SEMANTIC)
     data: Optional[Dict[str, object]] = Field(default_factory=dict)
+
+    # Phase 76.4: Explicit VUI & Semantic Context
+    semantic_results: Optional[str] = Field(default=None)
+    vui_context: Optional[Dict[str, object]] = Field(default_factory=dict)
+
     cost_tokens: float = Field(default=0.0)
 
     class Config:

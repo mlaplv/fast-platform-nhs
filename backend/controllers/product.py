@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import uuid
 import logging
+import numpy as np
 from litestar import Controller, get, post, patch, delete
 from litestar.di import Provide
 from typing import List, Dict, Union, Optional
@@ -186,15 +187,16 @@ class ProductController(Controller):
             if not embeddings:
                 return
             
-            vector = embeddings[0].tolist()
-            vector_str = "[" + ",".join(map(str, vector)) + "]"
-            
+            vector = embeddings[0]
+            vector_np = np.array(vector, dtype=np.float32)
+            vector_hex = vector_np.tobytes().hex()
+
             sql = text("""
                 INSERT INTO product_embeddings (id, product_base_id, embedding, created_at, updated_at)
-                VALUES (:id, :product_id, :vector::vector, NOW(), NOW())
-                ON CONFLICT (product_base_id) 
-                DO UPDATE SET embedding = :vector::vector, updated_at = NOW();
+                VALUES (:id, :product_id, :vector, NOW(), NOW())
+                ON CONFLICT (product_base_id)
+                DO UPDATE SET embedding = :vector, updated_at = NOW();
             """)
-            await prod_repo.session.execute(sql, {"id": str(uuid.uuid4()), "product_id": product_id, "vector": vector_str})
+            await prod_repo.session.execute(sql, {"id": str(uuid.uuid4()), "product_id": product_id, "vector": vector_hex})
         except Exception as e:
             logger.error(f"[RAG] Embedding failed for {product_id}: {e}")
