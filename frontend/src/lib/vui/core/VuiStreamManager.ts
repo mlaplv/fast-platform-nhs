@@ -110,32 +110,48 @@ export class VuiStreamManager {
     // Leave the STT text as liveText so the user can read it.
     // vuiState.setLiveText(""); 
     vuiState.setSystemMessage(""); // Clear previous AI text
-    this.lastActionType = ""; 
+    this.lastActionType = "";
     let txtResult = "";
     let lastData = null;
     let receivedAny = false;
 
+    // Phase 76.3.4: Throttled State Updates (Sub-100ms batching)
+    let lastUpdateAt = 0;
+    const UPDATE_THRESHOLD_MS = 64; // ~15fps for text deltas to save CPU on 2GB RAM devices
+
     try {
       const stream = vuiService.streamIntent(query, session_id, source, nanobot.screenContext);
-      
+
       for await (const parsed of stream) {
         receivedAny = true;
         this.clearSttGuard();
         if (parsed.router_tier) vuiState.setActiveTier(parsed.router_tier.toUpperCase());
 
-        if (parsed.phase === "text_delta" && parsed.text) {
+        if (parsed.phase === "transcript" && parsed.text) {
+          // Phase 76.3.2: Immediate Feedback from Backend
+          vuiState.setLiveText(parsed.text);
+          vuiState.setTranscript(parsed.text);
+        } else if (parsed.phase === "text_delta" && parsed.text) {
           txtResult += parsed.text;
-          vuiState.setSystemMessage(txtResult);
+
           if (source === "voice") {
             vuiState.setPhase("speaking");
             this.audio.processChunk(parsed.text);
           }
+
+          // Throttle UI updates for systemMessage
+          const now = Date.now();
+          if (now - lastUpdateAt > UPDATE_THRESHOLD_MS) {
+            vuiState.setSystemMessage(txtResult);
+            lastUpdateAt = now;
+          }
         } else if (parsed.phase === "done") {
           lastData = parsed;
           if (parsed.ui_action) this.lastActionType = parsed.ui_action;
-          
-          // Phase 6: Hardware Signal Listener for SLEEP
-          if (parsed.category === "SESSION_CTRL" && parsed.type === "SLEEP") {
+
+          // Phase 76.3: Hardware Signal Listener (Aligned with Orchestrator)
+          const isSleep = (parsed.category === "SESSION_CTRL" && (parsed.type === "SLEEP" || parsed.action === "HARDWARE_SLEEP"));
+          if (isSleep) {
              console.warn("[VUI] Hardware SLEEP signal received.");
              nanobot.voice.hard_sleep();
              return;

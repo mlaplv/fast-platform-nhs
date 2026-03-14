@@ -32,7 +32,7 @@ NORM_NO_KEYWORDS = {normalize_vn(kw) for kw in NO_KEYWORDS}
 NORM_NAV_KEYWORDS = {normalize_vn(kw) for kw in NAV_KEYWORDS}
 
 WAKE_TRIGGERS = ["xohi"]
-SLEEP_TRIGGERS = ["cut", "ngu di", "thoat", "tam biet"]
+SLEEP_TRIGGERS = ["cut", "ngu di", "thoat", "tam biet", "bye", "chao"]
 NORM_WAKE_TRIGGERS = [normalize_vn(kw) for kw in WAKE_TRIGGERS]
 NORM_SLEEP_TRIGGERS = [normalize_vn(kw) for kw in SLEEP_TRIGGERS]
 
@@ -130,7 +130,7 @@ class RouterOrchestrator:
         trans_pho = normalized_transcript.replace("k", "c").replace("q", "c")
 
         # Check sleep/exit commands first to avoid any delay
-        is_sleep = _match_trigger(["cut", "ngu di", "thoat", "tam biet", "bye", "chao"], normalized_transcript, trans_pho=trans_pho)
+        is_sleep = _match_trigger(NORM_SLEEP_TRIGGERS, normalized_transcript, trans_pho=trans_pho)
         if is_sleep:
              return IntentResponse(status="success", action=IntentAction.READ, message="Hẹn gặp lại sếp.", router_tier=RouterTier.TIER_1_HEURISTIC, data={"category": "SESSION_CTRL", "action": "HARDWARE_SLEEP", "confidence": 1.0}, cost_tokens=0.0)
 

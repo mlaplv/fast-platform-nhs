@@ -153,7 +153,8 @@ class IntentStreamController(Controller):
                 ]
 
                 # ── Phase 1: Classify ──
-                yield _sse("classify", {"status": "thinking"})
+                # Phase 76.3: Do not yield 'thinking' immediately to avoid flicker on T1 hits.
+                # The orchestrator will return T1 results in <50ms.
 
                 result = await orchestrator.classify(
                     transcript=data.query,
@@ -164,6 +165,11 @@ class IntentStreamController(Controller):
                 )
 
                 tier_str = str(result.router_tier.value if hasattr(result.router_tier, "value") else result.router_tier)
+
+                # Only show 'thinking' if it wasn't a T1 hit, to provide feedback for slower T2/T3 routes
+                if tier_str != "1":
+                    yield _sse("classify", {"status": "thinking"})
+
                 yield _sse("classify", {
                     "status": "done",
                     "tier": tier_str,

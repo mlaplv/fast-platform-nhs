@@ -93,8 +93,8 @@ SOUND_ALIKES = {
     "đau hàng": "đơn hàng",
     "sang phẩm": "sản phẩm",
 }
-# Pre-lowercase keys for fast lookup
-NORM_SOUND_ALIKES = {k.lower(): v for k, v in SOUND_ALIKES.items()}
+# Pre-normalize keys for robust matching
+NORM_SOUND_ALIKES = {normalize_vn(k): v for k, v in SOUND_ALIKES.items()}
 
 class NeuralLocalCorrector:
     """
@@ -104,7 +104,9 @@ class NeuralLocalCorrector:
     def __init__(self):
         self.encoder = None
         self._embedding_cache = {} # { "wrong_phrase": vector }
+        self._norm_key_cache = {} # { "raw_key": "norm_key" }
         self._cache_access_count = 0
+        self._sorted_keys_cache = ([], 0) # (keys, hash_of_dict)
 
     async def _ensure_encoder(self):
         if self.encoder is None:
@@ -130,14 +132,22 @@ class NeuralLocalCorrector:
 
         # 1. Update/Prune embedding cache (Neural Aging)
         self._cache_access_count += 1
+        dict_hash = hash(frozenset(user_dict.items()))
+
         if self._cache_access_count > 50 or len(self._embedding_cache) > 200:
             self._cache_access_count = 0
             # Keep only keys present in current user_dict to avoid leaks
             active_keys = set(user_dict.keys())
             self._embedding_cache = {k: v for k, v in self._embedding_cache.items() if k in active_keys}
+            self._norm_key_cache = {k: v for k, v in self._norm_key_cache.items() if k in active_keys}
 
-        # Zero-Allocation: Sort once if possible, but here keys change per user
-        sorted_keys = sorted(user_dict.keys(), key=len, reverse=True)
+        # 76.3: Avoid redundant sorting
+        if self._sorted_keys_cache[1] == dict_hash:
+            sorted_keys = self._sorted_keys_cache[0]
+        else:
+            sorted_keys = sorted(user_dict.keys(), key=len, reverse=True)
+            self._sorted_keys_cache = (sorted_keys, dict_hash)
+
         new_keys = [k for k in sorted_keys if k not in self._embedding_cache]
         if new_keys:
             try:
@@ -153,13 +163,7 @@ class NeuralLocalCorrector:
         max_total_score = 0.0
         applied_corrections = False
         hit_keys = set()
-
-        # Pre-normalize the transcript windows for fuzzy match
-        # To avoid re-normalizing same window, we can use a small local cache
         norm_cache = {}
-
-        # Pre-normalize and cache user_dict keys for this request
-        user_keys_norm = {key: normalize_vn(key) for key in sorted_keys}
 
         # 2. Sliding window (up to 3 words)
         for n in range(min(3, len(words)), 0, -1):
@@ -167,7 +171,6 @@ class NeuralLocalCorrector:
                 window = " ".join(words[i : i + n])
                 if not window.strip(): continue
 
-                # --- PHONETIC SIEVE (2026 Optimization) ---
                 if window not in norm_cache:
                     norm_cache[window] = normalize_vn(window)
                 norm_window = norm_cache[window]
@@ -177,8 +180,9 @@ class NeuralLocalCorrector:
                     # Quick length filter
                     if abs(len(key.split()) - n) > 1: continue
 
-                    # 76.3: Use pre-calculated normalized key
-                    norm_key = user_keys_norm[key]
+                    if key not in self._norm_key_cache:
+                        self._norm_key_cache[key] = normalize_vn(key)
+                    norm_key = self._norm_key_cache[key]
 
                     # Phonetic similarity (Levenshtein based)
                     thresh = 75 if len(norm_window) < 5 else 60
@@ -186,7 +190,7 @@ class NeuralLocalCorrector:
                         potential_keys.append((key, norm_key))
 
                 if not potential_keys:
-                    continue # Skip expensive embedding
+                    continue
 
                 # Embed window ONLY for candidates
                 try:

@@ -108,17 +108,24 @@ export function typewriter(node: HTMLElement, params: TypewriterParams) {
 
   return {
     update(p: TypewriterParams) {
+      const isExtension = p.text.startsWith(text) && p.text.length > text.length;
+
       if (p.text !== text) {
+        const oldText = text;
         text = p.text;
         speed = p.speed ?? 60;
         getVolume = p.getVolume;
         isSpeaking = p.isSpeaking;
         onComplete = p.onComplete;
-        idx = 0;
-        lastTime = 0;
-        pauseUntil = 0;
+
+        if (!isExtension) {
+          idx = 0;
+          lastTime = 0;
+          pauseUntil = 0;
+          node.textContent = "";
+        }
+
         node.style.willChange = "contents";
-        node.textContent = "";
         if (frameId) cancelAnimationFrame(frameId);
         frameId = requestAnimationFrame(tick);
       }

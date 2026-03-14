@@ -133,11 +133,8 @@ async def heuristic_classify(
     target = "none"
     for tgt, keywords in merged_target_keywords.items():
         # Using pre-normalized keywords and query
-        for kw in keywords:
-            if kw in norm_query:
-                target = tgt
-                break
-        if target != "none":
+        if any(kw in norm_query for kw in keywords):
+            target = tgt
             break
 
     if target == "none":
@@ -146,11 +143,8 @@ async def heuristic_classify(
     # --- Detect TIMEFRAME ---
     timeframe = "none"
     for tf, keywords in NORM_TIMEFRAME_KEYWORDS.items():
-        for kw in keywords:
-            if kw in norm_query:
-                timeframe = tf
-                break
-        if timeframe != "none":
+        if any(kw in norm_query for kw in keywords):
+            timeframe = tf
             break
 
     # ═══ TIMEFRAME & TARGET INHERITANCE (XoHi Next-Gen) ═══

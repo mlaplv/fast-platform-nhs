@@ -48,16 +48,29 @@ export const vuiState = $state({
   setCmdBuffer(val: string) { this.cmdBuffer = val; },
   setAudioBlocked(val: boolean) { this.isAudioBlocked = val; },
 
-  
+  /**
+   * Phase 76.3.3: Visual Continuity Shield
+   * Ensures that when we push to history, the UI doesn't "blink" due to clearing liveText too early.
+   */
   finalizeInteraction() {
-    if (this.transcript || this.systemMessage) {
+    const hasContent = this.transcript || this.liveText || this.systemMessage;
+    if (hasContent) {
+        // Use a stable ID for Svelte list diffing performance
+        const interactionId = `vui_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+
         this.history.push({
-            id: Math.random().toString(36).substr(2, 9),
-            userQuery: this.transcript || this.liveText,
-            aiResponse: this.systemMessage,
-            duration: 0 
+            id: interactionId,
+            userQuery: (this.transcript || this.liveText || "").trim(),
+            aiResponse: (this.systemMessage || "").trim(),
+            duration: 0
         });
-        // Clear buffers to prevent double-saving or ghost text in next turn
+
+        // Rule: Limit history size to prevent memory leaks on 2GB RAM systems
+        if (this.history.length > 30) {
+          this.history.shift();
+        }
+
+        // Clear buffers
         this.transcript = "";
         this.systemMessage = "";
         this.liveText = "";

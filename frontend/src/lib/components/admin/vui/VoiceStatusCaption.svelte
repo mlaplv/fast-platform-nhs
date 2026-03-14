@@ -19,16 +19,26 @@
 
   // GPT Style Timer Simulation
   let timer = $state(0);
-  let intervalId: any;
+  let intervalId: ReturnType<typeof setInterval> | null = null;
 
   $effect(() => {
     if (phase === "listening") {
       timer = 0;
-      intervalId = setInterval(() => timer++, 1000);
+      if (!intervalId) {
+        intervalId = setInterval(() => timer++, 1000);
+      }
     } else {
-      clearInterval(intervalId);
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
     }
-    return () => clearInterval(intervalId);
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
   });
 
   const formatTime = (s: number) => {
@@ -37,43 +47,54 @@
     return `${m.toString().padStart(2, "0")}:${rs.toString().padStart(2, "0")}`;
   };
 
-  // Auto-scroll logic: Ultra-Smooth & Resilient (Phase 7)
+  // Auto-scroll logic: Ultra-Smooth & Resilient (Phase 76.3 Optimization)
   let scrollContainer = $state<HTMLDivElement>();
-  let lastHeight = 0;
+  let lastScrollHeight = 0;
 
-  const scrollToBottom = () => {
+  const scrollToBottom = (force = false) => {
     if (!scrollContainer) return;
-    const { scrollHeight, clientHeight } = scrollContainer;
-    if (scrollHeight > clientHeight) {
+    const { scrollHeight, clientHeight, scrollTop } = scrollContainer;
+
+    // Only scroll if we are already near the bottom (user hasn't scrolled up to read history)
+    // or if forced (e.g., new interaction started)
+    const isNearBottom = scrollHeight - clientHeight - scrollTop < 150;
+
+    if (force || isNearBottom) {
       scrollContainer.scrollTo({
         top: scrollHeight,
-        behavior: "smooth",
+        behavior: force ? "auto" : "smooth",
       });
     }
   };
 
   $effect(() => {
-    // Watch history and current stream
-    const _watch = [vuiState.history.length, vuiState.systemMessage, vuiState.liveText];
-    
-    tick().then(() => {
-        requestAnimationFrame(scrollToBottom);
-    });
+    // Watch history length for major jumps, and stream text for minor updates
+    const _len = vuiState.history.length;
+    const _msg = vuiState.systemMessage;
+    const _live = vuiState.liveText;
+
+    // Phase 76.3: Use requestAnimationFrame directly to avoid unnecessary tick() overhead
+    // and batch multiple state changes into one scroll frame.
+    requestAnimationFrame(() => scrollToBottom(_len > 0 && phase === "idle"));
   });
 
   // Watch for dynamic height changes (images/typewriter)
   $effect(() => {
     if (!scrollContainer) return;
+    const container = scrollContainer;
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const height = entry.contentRect.height;
-        if (height !== lastHeight) {
-          lastHeight = height;
+        const height = entry.target.scrollHeight;
+        if (height !== lastScrollHeight) {
+          lastScrollHeight = height;
           scrollToBottom();
         }
       }
     });
-    observer.observe(scrollContainer.firstElementChild as Element);
+
+    const content = container.firstElementChild;
+    if (content) observer.observe(content);
+
     return () => observer.disconnect();
   });
 </script>
