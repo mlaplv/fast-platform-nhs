@@ -95,22 +95,6 @@
   <!-- ===== HEADER: Title + Avatar (cố định, không co giãn) ===== -->
   <div class="shrink-0 flex items-center gap-3 p-3 border-b border-white/5 bg-black/20">
     
-    <!-- Scores mini -->
-    {#if copyrightScore !== null || seoScore !== null}
-      <div class="hidden md:flex items-center gap-2 text-[8px] font-black uppercase">
-        {#if copyrightScore !== null}
-          <span class="{copyrightScore >= 90 ? 'text-emerald-400' : 'text-yellow-400'}">©{copyrightScore}%</span>
-        {/if}
-        {#if seoScore !== null}
-          <span class="text-blue-400">SEO {seoScore}</span>
-        {/if}
-        {#if aiScore !== null}
-          <span class="text-purple-400">AI {aiScore}%</span>
-        {/if}
-      </div>
-      <div class="hidden md:block w-px h-4 bg-white/10"></div>
-    {/if}
-
     <!-- Avatar -->
     <div class="relative shrink-0">
       <button
@@ -203,6 +187,33 @@
         </code>
       </div>
     {/if}
+
+    <!-- Analysis Badges Sync (Step 4 Style) -->
+    <div class="shrink-0 flex items-center gap-2 px-3 py-2 bg-black/40 border-t border-white/5">
+      {#if copyrightScore !== null}
+        {@const bc = copyrightScore >= 90 ? 'bg-emerald-500/20 text-emerald-400' : copyrightScore >= 70 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}
+        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/15 border border-orange-500/40 text-orange-300">
+          <span class="text-[10px] uppercase font-bold tracking-wider">Bản Quyền</span>
+          <span class="text-[8px] font-black px-1.5 py-0.5 rounded-full {bc}">{copyrightScore}%</span>
+        </div>
+      {/if}
+
+      {#if seoScore !== null}
+        {@const sc = seoScore >= 85 ? 'bg-emerald-500/20 text-emerald-400' : seoScore >= 70 ? 'bg-blue-500/20 text-blue-400' : 'bg-yellow-500/20 text-yellow-400'}
+        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/15 border border-blue-500/40 text-blue-300">
+          <span class="text-[10px] uppercase font-bold tracking-wider">SEO</span>
+          <span class="text-[8px] font-black px-1.5 py-0.5 rounded-full {sc}">{seoScore}</span>
+        </div>
+      {/if}
+
+      {#if aiScore !== null}
+        {@const ac = aiScore >= 85 ? 'bg-purple-500/20 text-purple-400' : aiScore >= 65 ? 'bg-fuchsia-500/20 text-fuchsia-400' : 'bg-red-500/20 text-red-400'}
+        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/15 border border-purple-500/40 text-purple-300">
+          <span class="text-[10px] uppercase font-bold tracking-wider">AI MOD</span>
+          <span class="text-[8px] font-black px-1.5 py-0.5 rounded-full {ac}">{aiScore}%</span>
+        </div>
+      {/if}
+    </div>
   </div>
 
   <!-- ===== FOOTER: Category/Slug + Meta (cố định ở dưới) ===== -->
