@@ -16,17 +16,27 @@ class VoiceHandler:
     def __init__(self, orchestrator: "ContentOrchestrator"):
         self.orchestrator = orchestrator
 
-    async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default") -> Optional[ContentCampaign]:
+    async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None) -> Optional[ContentCampaign]:
         if user_id == "undefined" or not user_id:
             user_id = None
 
+        # R104: Scan last 5 campaigns for potential resume (V76.2)
         results = await campaign_repo.list(
             LimitOffset(limit=5, offset=0),
             order_by=[("created_at", "desc")],
             deleted_at=None
         )
+
+        # If a query is provided, try to find a title/keyword match first
+        if query:
+            q_norm = query.lower()
+            for c in results:
+                title = c.topic_data.get("title", "").lower() if c.topic_data else ""
+                if title and title in q_norm or q_norm in title:
+                    return c
+
         for c in results:
-            if c.status in ["PROCESSING", "WAITING_FOR_REVIEW"] and c.tenant_id == tenant_id:
+            if c.status in ["PROCESSING", "WAITING_FOR_REVIEW", "WAITING_FOR_NEXT_STEP"] and c.tenant_id == tenant_id:
                 if user_id and c.user_id == user_id:
                     return c
                 elif not user_id:
@@ -35,11 +45,11 @@ class VoiceHandler:
 
     def format_resume_greeting(self, campaign: ContentCampaign) -> str:
         step = campaign.current_step
-        title = campaign.topic_data.get("title", "bài viết mới")
+        title = campaign.topic_data.get("title", "bài viết mới") if campaign.topic_data else "bài viết mới"
         if campaign.status == "PROCESSING":
-            return f"Chào sếp, em đang tiếp tục thực hiện Bước {step} cho bài viết '{title}' ạ. Sếp đợi em chút nhé!"
+            return f"Dạ sếp, em đang tiếp tục thực hiện Bước {step} cho bài viết '{title}' ạ. Sếp đợi em một chút nhé!"
         else:
-            return f"Chào sếp, em đã hoàn thành xong Bước {step} cho bài viết '{title}'. Mời sếp xem qua và duyệt để em chạy tiếp ạ!"
+            return f"Dạ sếp, em đã sẵn sàng ở Bước {step} cho bài viết '{title}'. Mời sếp xem qua và duyệt để em chạy tiếp ạ!"
 
     async def handle_request(
         self, transcript: str, campaign_repo: ContentCampaignRepository,
@@ -48,11 +58,19 @@ class VoiceHandler:
         if user_id == "undefined" or not user_id:
             user_id = None
 
+        t_lower = transcript.lower()
+        resume_keywords = ["tiếp", "làm tiếp", "chạy tiếp", "duyệt đi", "tiếp tục"]
+        is_resume_request = any(kw in t_lower for kw in resume_keywords)
+
         try:
-            stale = await self.get_active_campaign(campaign_repo, user_id, tenant_id)
+            # V76.2: Smarter Resume Detection
+            stale = await self.get_active_campaign(campaign_repo, user_id, tenant_id, query=transcript if not is_resume_request else None)
+
             if stale:
-                if "tiếp" in transcript.lower():
+                # 1. Explicit Resume Request
+                if is_resume_request:
                     if stale.status == "WAITING_FOR_REVIEW":
+                        # If user says "approve" or "tiếp" while waiting for review, proceed
                         return await self.orchestrator.approve_step(stale.id, {"approved": True}, campaign_repo)
                     else:
                         return IntentResponse(
@@ -60,24 +78,32 @@ class VoiceHandler:
                             message=self.format_resume_greeting(stale),
                             router_tier=RouterTier.TIER_2_SEMANTIC, data={"campaign_id": stale.id, "step": stale.current_step}, cost_tokens=0.0
                         )
-                
-                # Idempotency Latch
+
+                # 2. Idempotency Latch (Extended to 5 mins for V76.2)
                 now = datetime.now(timezone.utc)
                 stale_time = stale.created_at
                 if stale_time.tzinfo is None:
                     stale_time = stale_time.replace(tzinfo=timezone.utc)
-                if (now - stale_time).total_seconds() < 15.0:
+
+                if (now - stale_time).total_seconds() < 300.0:
+                    # If user repeats a request for a very recent campaign, don't create a duplicate
                     if stale.status == "WAITING_FOR_REVIEW":
                         return IntentResponse(
                             status="success", action=IntentAction.CONTENT_CREATE,
                             message=f"Dạ sếp, bài viết '{stale.topic_data.get('title', 'này')}' em vừa phân tích xong. Mời sếp duyệt trên màn hình ạ!",
                             router_tier=RouterTier.TIER_2_SEMANTIC, data={"campaign_id": stale.id, "step": stale.current_step, "keywords": stale.topic_data}, cost_tokens=0.0
                         )
-                    else:
+
+                    # 3. Proactive Reminder (V76.2)
+                    # If user asks for something NEW while a RECENT campaign is pending review
+                    if not is_resume_request and stale.status == "WAITING_FOR_REVIEW":
+                        title = stale.topic_data.get("title", "bài viết cũ")
                         return IntentResponse(
                             status="success", action=IntentAction.CONTENT_CREATE,
-                            message=self.format_resume_greeting(stale),
-                            router_tier=RouterTier.TIER_2_SEMANTIC, data={"campaign_id": stale.id, "step": stale.current_step}, cost_tokens=0.0
+                            message=f"Dạ sếp, em thấy bài '{title}' đang chờ sếp duyệt ở Bước {stale.current_step}. Sếp muốn em làm tiếp bài đó hay khởi tạo bài mới này ạ?",
+                            router_tier=RouterTier.TIER_2_SEMANTIC,
+                            data={"campaign_id": stale.id, "step": stale.current_step, "pending_review": True, "new_request": transcript},
+                            cost_tokens=0.0
                         )
 
             campaign = ContentCampaign(

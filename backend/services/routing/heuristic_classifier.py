@@ -18,22 +18,22 @@ logger = logging.getLogger("api-gateway")
 
 # --- Keyword Dictionaries (avoid hardcode — centralized here for easy tuning) ---
 TARGET_KEYWORDS = {
-    "revenue": ["doanh thu", "doanh so", "bieu do", "tien", "doanh tu"],
-    "order":   ["don hang", "hoa don", "bill", "dau hang"],
-    "product": ["san pham", "ton kho", "kho hang", "sang pham"],
-    "user":    ["nguoi dung", "khach", "nhan vien", "tai khoan"],
-    "category": ["danh muc"],
-    "news":    ["tin tuc", "bai viet", "viet bai"],
-    "settings": ["cai dat", "setting", "cau hinh", "voice"],
+    "revenue": ["doanh thu", "doanh so", "bieu do", "tien", "doanh tu", "doanh thuu", "gianh thu", "danh thu", "dan thu"],
+    "order":   ["don hang", "hoa don", "bill", "dau hang", "don han", "ton hang", "don hanh", "don hangg"],
+    "product": ["san pham", "ton kho", "kho hang", "sang pham", "sam pham", "san phan", "san bam"],
+    "user":    ["nguoi dung", "khach", "nhan vien", "tai khoan", "khach hang", "khach han", "cat hang"],
+    "category": ["danh muc", "nhom hang", "loai hang"],
+    "news":    ["tin tuc", "bai viet", "viet bai", "sang tac", "content", "bai dang"],
+    "settings": ["cai dat", "setting", "cau hinh", "voice", "giong noi", "am thanh"],
 }
 
 TIMEFRAME_KEYWORDS = {
-    "today":      ["hom nay"],
-    "this_month": ["thang nay"],
-    "this_week":  ["tuan nay"],
+    "today":      ["hom nay", "hom ni", "nay"],
+    "this_month": ["thang nay", "thang ni"],
+    "this_week":  ["tuan nay", "tuan ni"],
 }
 
-COUNT_KEYWORDS = ["bao nhieu", "may", "tong so", "tong", "thong ke", "chi tiet", "nao", "duoc khong"]
+COUNT_KEYWORDS = ["bao nhieu", "may", "tong so", "tong", "thong ke", "chi tiet", "nao", "duoc khong", "het bao nhieu"]
 QUESTION_KEYWORDS = ["co khong", "chua", "roi"]
 MUTATE_KEYWORDS = ["them", "tao", "xoa", "sua", "update", "create", "delete"]
 
@@ -70,16 +70,17 @@ def _merge_lists(a, b):
 async def heuristic_classify(
     combined_lower: str,
     user_id: str,
-    app_state: object
+    app_state: object,
+    intent_map: Optional[dict] = None
 ) -> Optional[IntentResponse]:
     """
     Zero-LLM Heuristic Fallback — classify known patterns by keyword.
     Only handles clear-cut queries. Returns None for ambiguous ones.
     """
     norm_query = normalize_vn(combined_lower)
-    
+
     # Fetch dynamic intent mapping from local memory (Sub-1ms)
-    dynamic_mapping = await xohi_memory.get_system_intent_mapping()
+    dynamic_mapping = intent_map if intent_map is not None else await xohi_memory.get_system_intent_mapping()
     merged_target_keywords = {**TARGET_KEYWORDS}
     if dynamic_mapping:
         for tgt, kws in dynamic_mapping.items():

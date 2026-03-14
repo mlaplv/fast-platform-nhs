@@ -279,6 +279,57 @@ class XoHiMemory:
         self._fallback_cache[key] = mapping
 
     # ═══════════════════════════════════════════════════════
+    # ATOMIC AGGREGATION: High-Load Performance (V76.3)
+    # ═══════════════════════════════════════════════════════
+
+    async def get_full_orchestrator_context(self, user_id: str) -> dict:
+        """
+        Atomic Context Fetch — Fetches profile, ctx, and STT dict in 1-2 RTTs.
+        Optimized for 1M+ requests scaling (Rule R82.25).
+        """
+        if not self._use_redis:
+            return {
+                "profile": self._fallback_cache.get(f"profile:{user_id}", {}),
+                "ctx": self._fallback_cache.get(f"ctx:{user_id}", {}),
+                "stt": self._fallback_cache.get(f"stt:{user_id}", {}),
+                "sys_stt": self._fallback_cache.get("system:stt_overrides", {}),
+                "intent_map": self._fallback_cache.get("system:intent_mapping", {})
+            }
+
+        keys = [
+            f"xohi:profile:{user_id}",
+            f"xohi:ctx:{user_id}",
+            "system:stt_overrides",
+            "system:intent_mapping"
+        ]
+
+        try:
+            # Use Pipeline for atomic read performance
+            async with self.client.pipeline(transaction=False) as pipe:
+                pipe.get(keys[0])
+                pipe.get(keys[1])
+                pipe.hgetall(keys[2])
+                pipe.hgetall(f"xohi:stt:{user_id}")
+                pipe.get(keys[3])
+                results = await pipe.execute()
+
+            profile = json.loads(results[0]) if results[0] else {}
+            ctx = json.loads(results[1]) if results[1] else {}
+            sys_stt = dict(results[2]) if results[2] else {}
+            user_stt = dict(results[3]) if results[3] else {}
+            intent_map = json.loads(results[4]) if results[4] else {}
+
+            return {
+                "profile": profile,
+                "ctx": ctx,
+                "stt": {**sys_stt, **user_stt, **ctx.get("stt_dictionary", {})},
+                "intent_map": intent_map
+            }
+        except Exception as e:
+            logger.error(f"[XoHiMemory] Atomic Fetch Failed: {e}")
+            return {"profile": {}, "ctx": {}, "stt": {}, "intent_map": {}}
+
+    # ═══════════════════════════════════════════════════════
     # CHAT CACHE: Redis-Last-10 (V56.0)
     # ═══════════════════════════════════════════════════════
 

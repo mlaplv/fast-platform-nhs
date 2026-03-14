@@ -75,8 +75,8 @@ class ContentOrchestrator:
     async def handle_voice_request(self, transcript: str, campaign_repo: ContentCampaignRepository, tenant_id: str = "default", user_id: Optional[str] = None) -> IntentResponse:
         return await self.voice_handler.handle_request(transcript, campaign_repo, tenant_id, user_id)
 
-    async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default") -> Optional[ContentCampaign]:
-        return await self.voice_handler.get_active_campaign(campaign_repo, user_id, tenant_id)
+    async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None) -> Optional[ContentCampaign]:
+        return await self.voice_handler.get_active_campaign(campaign_repo, user_id, tenant_id, query=query)
 
     async def approve_step(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
         return await self.action_handler.approve_step(campaign_id, data, campaign_repo)

@@ -49,17 +49,14 @@ class RouterOrchestrator:
         transcript = unicodedata.normalize('NFC', transcript.strip())
         logger.info(f"--- [C.O.R.E][{m_tag}] Raw Transcript: '{transcript}' ---")
         
-        # Use Redis Memory entirely instead of app_state["voice_cache"]
-        import difflib
-        user_profile = await xohi_memory.get_voice_profile(user_id) or {}
-        ctx = await xohi_memory.get_user_context(user_id) or {}
-        
-        # Load STT dictionary from Redis (persistent)
-        redis_stt = await xohi_memory.get_stt_dictionary(user_id)
-        sys_stt = await xohi_memory.get_system_stt_overrides()
-        mem_stt = ctx.get("stt_dictionary", {})
-        user_dict = {**sys_stt, **redis_stt, **mem_stt}
-        
+        # Phase 76.3: Atomic Aggregation (Rule R82.25)
+        # Fetch profile, context, STT, and intent mapping in 1 RTT
+        orchestrator_ctx = await xohi_memory.get_full_orchestrator_context(user_id)
+        user_profile = orchestrator_ctx.get("profile", {})
+        ctx = orchestrator_ctx.get("ctx", {})
+        user_dict = orchestrator_ctx.get("stt", {})
+        intent_map = orchestrator_ctx.get("intent_map", {})
+
         # --- PHASE 0.5: NEURAL WAKE TRIGGERS (CTO V1.9) ---
         DEFAULT_GREETING = user_profile.get("greeting_template", "Dạ, em nghe đây sếp.")
         wake_words = user_profile.get("wake_words", [])
@@ -210,7 +207,7 @@ class RouterOrchestrator:
             # we should immediately try T1 Semantic Router and Heuristics BEFORE T2 LLM.
             if not suspected:
                 # 2. Heuristic Filter (0-Token, <1ms)
-                heur_res = await self._heuristic_classify(cleaned_transcript.lower(), user_id, app_state)
+                heur_res = await self._heuristic_classify(cleaned_transcript.lower(), user_id, app_state, intent_map=intent_map)
                 if heur_res:
                     if heur_res.data is None:
                         heur_res.data = {}
@@ -303,7 +300,7 @@ class RouterOrchestrator:
         # 3. T2 FAILED → HEURISTIC FALLBACK (0-Token, <1ms)
         #    Classify straightforward queries by keyword WITHOUT LLM
         if not result:
-            result = await self._heuristic_classify(combined_lower, user_id, app_state)
+            result = await self._heuristic_classify(combined_lower, user_id, app_state, intent_map=intent_map)
             if result:
                 logger.debug(f"[Heuristic Fallback] Classified: {result.data}")
 
@@ -533,9 +530,9 @@ class RouterOrchestrator:
             return f"{int(val)} nghìn đồng"
         return f"{int(amount)} đồng"
 
-    async def _heuristic_classify(self, combined_lower: str, user_id: str, app_state: object) -> Optional[IntentResponse]:
+    async def _heuristic_classify(self, combined_lower: str, user_id: str, app_state: object, intent_map: Optional[dict] = None) -> Optional[IntentResponse]:
         """V56.0: Delegated to heuristic_classifier.py (Rule 1.3: <300 LOC)."""
-        return await heuristic_classify(combined_lower, user_id, app_state)
+        return await heuristic_classify(combined_lower, user_id, app_state, intent_map=intent_map)
 
     def _error_response(self, msg: str) -> IntentResponse:
         return IntentResponse(
