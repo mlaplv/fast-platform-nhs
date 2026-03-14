@@ -33,10 +33,15 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
       return {
         ...this.parent?.(),
         class: {
-          default: 'max-w-full mx-auto my-4 shadow-lg',
+          default: 'max-w-full mx-auto my-4',
           renderHTML: attributes => ({ class: attributes.class }),
           parseHTML: element => element.getAttribute('class'),
         },
+        width: {
+          default: '100%',
+          renderHTML: attributes => ({ style: `width: ${attributes.width}` }),
+          parseHTML: element => element.style.width || element.getAttribute('width'),
+        }
       };
     },
   }).configure({

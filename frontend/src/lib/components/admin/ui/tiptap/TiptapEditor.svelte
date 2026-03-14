@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy, untrack } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { Editor } from '@tiptap/core';
   import { getEditorExtensions, editorProps } from './core/editor-config';
   import { injectAnnotationStyles } from './extensions/AnnotationMark';
@@ -56,19 +56,26 @@
   let tooltipY = $state(0);
   let isFixing = $state(false);
   let lastTooltipAnchorId = $state('');
-  let isInternalUpdating = false;
+  let isInternalUpdating = $state(false);
+  let isSyncLocked = $state(false);
+  let lastInternalActionAt = $state(0);
+  let blockClicks = $state(false);
+  let lastSentContent = $state("");
 
   // Image Menu tracking
+  let scrollContainer: HTMLElement;
   let imageMenuVisible = $state(false);
   let imageMenuX = $state(0);
   let imageMenuY = $state(0);
-  let selectedImageNode = $state<any>(null);
 
   function stripMarks(html: string): string {
-    return html.replace(/<mark[^>]*>|<\/mark>/g, '');
+    // Loại bỏ các thẻ mark (highlights) và các thuộc tính data-annotation để so sánh nội dung thuần
+    return html
+      .replace(/<mark[^>]*>|<\/mark>/g, '')
+      .replace(/ data-annotation-[^=]*="[^"]*"/g, '')
+      .replace(/ class="xohi-annotation[^"]*"/g, '');
   }
 
-  // Stable ID Hashing (djb2) to prevent tooltip flickering
   function generateStableId(text: string, message: string): string {
     let hash = 5381;
     const str = text + message;
@@ -77,12 +84,12 @@
     }
     return (hash >>> 0).toString(36);
   }
-  
+
   const containerClass = $derived(`tiptap-shell flex flex-col ${
     fullScreen ? 'fixed inset-0 z-[2000] bg-[#0d1117]' : 'w-full h-full'
     } ${
-    editable 
-      ? 'bg-[#0d1117] border ' + (isFocused ? 'border-blue-500/40' : 'border-white/10') + ' overflow-hidden shadow-2xl' 
+    editable
+      ? 'bg-[#0d1117] border ' + (isFocused ? 'border-blue-500/40' : 'border-white/10') + ' overflow-hidden shadow-2xl'
       : 'bg-transparent border-none overflow-visible'
   } transition-all duration-300 rounded-none`);
 
@@ -91,6 +98,23 @@
     const text = editor.getText();
     charCount = text.length;
     wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+  }
+
+  function updateImageMenuPosition() {
+    if (!editor || !element || !scrollContainer) return;
+
+    const selectedImg = element.querySelector('.ProseMirror-selectednode') as HTMLElement;
+    if (selectedImg && editor.isActive('image')) {
+      const scrollRect = scrollContainer.getBoundingClientRect();
+      const imgRect = selectedImg.getBoundingClientRect();
+
+      // Calculate position relative to scroll container
+      imageMenuX = imgRect.left + (imgRect.width / 2);
+      imageMenuY = imgRect.top - 10;
+      imageMenuVisible = true;
+    } else {
+      imageMenuVisible = false;
+    }
   }
 
   onMount(() => {
@@ -102,10 +126,15 @@
       extensions: getEditorExtensions(placeholder),
       editorProps,
       onUpdate: () => {
-        if (isInternalUpdating) return;
-        const html = editor?.getHTML() ?? '';
-        onChange(stripMarks(html));
-        updateMetrics();
+      if (isInternalUpdating) return;
+      const html = editor?.getHTML() ?? '';
+      console.log('[Tiptap] Content Changed:', html.substring(0, 50) + '...');
+      onChange(stripMarks(html));
+      updateMetrics();
+      updateImageMenuPosition();
+    },
+      onSelectionUpdate: () => {
+        updateImageMenuPosition();
       },
       onFocus: () => isFocused = true,
       onBlur: () => isFocused = false,
@@ -118,41 +147,42 @@
   });
 
   $effect(() => {
-    if (showImageDialog || showLinkDialog) {
-      imageMenuVisible = false;
-    }
-  });
-
-  // Reactive Syncs
-  $effect(() => {
     if (editor && !editor.isDestroyed) editor.setEditable(editable);
   });
 
   $effect(() => {
     if (!editor || editor.isDestroyed) return;
+    // Không tự động cập nhật content nếu đang focus hoặc đang mở Dialog
+    if (isFocused || showImageDialog || showLinkDialog) {
+      return;
+    }
+
+    // CHẶN CỰC MẠNH: Nếu đang khóa đồng bộ hoặc vừa có cập nhật nội bộ trong 1.5 giây qua
+    if (isSyncLocked || (Date.now() - lastInternalActionAt < 1500)) {
+      console.log('[Tiptap] Sync Locked - Protecting internal state');
+      return;
+    }
+
     const normalizedContent = content || "<p></p>";
     const currentHTML = editor.getHTML();
-    
+
     if (stripMarks(normalizedContent) !== stripMarks(currentHTML)) {
+      console.log('[Tiptap] Syncing content from prop');
       isInternalUpdating = true;
       editor.commands.setContent(content, false);
       updateMetrics();
-      isInternalUpdating = false;
+      setTimeout(() => { isInternalUpdating = false; }, 50);
     }
   });
 
   $effect(() => {
     if (!editor || editor.isDestroyed) return;
-    
-    // Proactive lock to avoid onUpdate loops during clearing/adding marks
     isInternalUpdating = true;
-    
     try {
       const { doc, tr } = editor.state;
       let hasChanges = false;
-
-      // 1. Clear all existing annotations in this transaction
       const annotationMarkType = editor.schema.marks.annotation;
+
       doc.descendants((node, pos) => {
         if (node.isText && node.marks.some(m => m.type === annotationMarkType)) {
           tr.removeMark(pos, pos + node.nodeSize, annotationMarkType);
@@ -165,13 +195,11 @@
         return;
       }
 
-      // 2. Build doc mapping
       const docChars: { char: string; pos: number }[] = [];
       doc.descendants((node, pos) => {
         if (node.isText && node.text) {
           for (let i = 0; i < node.text.length; i++) {
             const c = node.text[i];
-            // Collect all characters except whitespace/invisibles
             if (!/[\s\u00A0\u200B\uFEFF]/.test(c)) {
               docChars.push({ char: c.toLowerCase(), pos: pos + i });
             }
@@ -179,9 +207,7 @@
         }
       });
 
-      // 3. Create a normalized version (ONLY alphanumeric) for extra robustness
-      // and keep a mapping to the indices in docChars.
-      const isAlphaNum = (c: string) => /[a-z0-9\u00C0-\u1EF9]/i.test(c); // Basic Vietnamese + Latin AlphaNum
+      const isAlphaNum = (c: string) => /[a-z0-9\u00C0-\u1EF9]/i.test(c);
       const docNormalMap: number[] = [];
       let docStrNormalized = '';
       for (let i = 0; i < docChars.length; i++) {
@@ -191,69 +217,37 @@
         }
       }
 
-      // 4. Add new annotations via Bitap-inspired robust matching
       for (const ann of annotations) {
-        if (!ann.text || ann.text.length < 3) {
-          // Handle structural errors
-          if (docChars.length > 0) {
-            const firstPos = docChars[0].pos;
-            const stableId = generateStableId("-structural-", ann.message);
-            tr.addMark(firstPos, firstPos + 1, annotationMarkType.create({
-              id: `ann-${stableId}`,
-              type: ann.type,
-              message: ann.message,
-              source: ann.source || '',
-              severity: ann.severity || 'medium',
-            }));
-            hasChanges = true;
-          }
-          continue;
-        }
-        
-        // Matcher Logic: Bitap-lite (Fuzzy search)
-        // We look for the pattern in docStrNormalized allowing small variances
+        if (!ann.text || ann.text.length < 3) continue;
         const pattern = ann.text.toLowerCase().split('').filter(isAlphaNum).join('');
         if (pattern.length < 3) continue;
 
-        const maxErrors = Math.max(1, Math.floor(pattern.length * 0.1)); // 10% tolerance
+        const maxErrors = Math.max(1, Math.floor(pattern.length * 0.1));
         const stableId = generateStableId(ann.text, ann.message);
 
-        // Simple but robust sliding window bit-parallel like search
-        let bestMatchIdx = -1;
-        let bestDistance = maxErrors + 1;
-
-        // Optimization: try exact match first
-        const exactIdx = docStrNormalized.indexOf(pattern);
-        if (exactIdx !== -1) {
-            bestMatchIdx = exactIdx;
-            bestDistance = 0;
-        } else {
-            // Fuzzy search if exact fails
-            for (let i = 0; i <= docStrNormalized.length - pattern.length; i++) {
-                let distance = 0;
-                for (let j = 0; j < pattern.length; j++) {
-                    if (docStrNormalized[i+j] !== pattern[j]) {
-                        distance++;
-                        if (distance > maxErrors) break;
-                    }
-                }
-                if (distance < bestDistance) {
-                    bestDistance = distance;
-                    bestMatchIdx = i;
-                    if (bestDistance === 0) break;
-                }
+        let bestMatchIdx = docStrNormalized.indexOf(pattern);
+        if (bestMatchIdx === -1) {
+          let bestDistance = maxErrors + 1;
+          for (let i = 0; i <= docStrNormalized.length - pattern.length; i++) {
+            let distance = 0;
+            for (let j = 0; j < pattern.length; j++) {
+              if (docStrNormalized[i+j] !== pattern[j]) {
+                distance++;
+                if (distance > maxErrors) break;
+              }
             }
+            if (distance < bestDistance) {
+              bestDistance = distance;
+              bestMatchIdx = i;
+            }
+          }
         }
 
         if (bestMatchIdx !== -1) {
           const startDocCharIdx = docNormalMap[bestMatchIdx];
           const endDocCharIdx = docNormalMap[bestMatchIdx + pattern.length - 1];
-          
           if (startDocCharIdx !== undefined && endDocCharIdx !== undefined) {
-            const startPos = docChars[startDocCharIdx].pos;
-            const endPos = docChars[endDocCharIdx].pos + 1;
-            
-            tr.addMark(startPos, endPos, annotationMarkType.create({
+            tr.addMark(docChars[startDocCharIdx].pos, docChars[endDocCharIdx].pos + 1, annotationMarkType.create({
               id: `ann-${stableId}`,
               type: ann.type,
               message: ann.message,
@@ -264,10 +258,7 @@
           }
         }
       }
-      
-      if (hasChanges) {
-        editor.view.dispatch(tr);
-      }
+      if (hasChanges) editor.view.dispatch(tr);
     } finally {
       setTimeout(() => { isInternalUpdating = false; }, 50);
     }
@@ -277,7 +268,6 @@
     if (isFixing) return;
     const target = e.target as HTMLElement;
     const annEl = target.closest('.xohi-annotation') as HTMLElement | null;
-
     if (annEl) {
       const id = annEl.getAttribute('data-annotation-id') || '';
       if (!tooltipVisible || id !== lastTooltipAnchorId) {
@@ -290,38 +280,30 @@
         tooltipY = e.clientY - 8;
         tooltipVisible = true;
       }
-    } else {
-        if (!target.closest('.tiptap-tooltip')) {
-            tooltipVisible = false;
-            lastTooltipAnchorId = '';
-      }
+    } else if (!target.closest('.tiptap-tooltip')) {
+      tooltipVisible = false;
+      lastTooltipAnchorId = '';
     }
   }
 
   function handleImageClick(e: MouseEvent) {
+    if (blockClicks) return;
     const target = e.target as HTMLElement;
     const img = target.closest('.tiptap-content img') as HTMLImageElement | null;
     if (img && editor) {
+      editor.commands.focus();
       const pos = editor.view.posAtDOM(img, 0);
-      if (pos >= 0) {
-        const rect = img.getBoundingClientRect();
-        imageMenuX = rect.left + rect.width / 2;
-        imageMenuY = rect.top - 10;
-        imageMenuVisible = true;
-        editor.commands.setNodeSelection(pos);
-      }
-    } else if (!target.closest('.image-bubble-menu')) {
-      imageMenuVisible = false;
+      if (pos >= 0) editor.commands.setNodeSelection(pos);
     }
   }
 
   function handleDoubleClick(e: MouseEvent) {
+    if (blockClicks) return;
+    // Nếu vừa mới cập nhật nội bộ, chặn mở lại dialog ngay lập tức (phòng trường hợp click đúp quá nhanh)
+    if (Date.now() - lastInternalActionAt < 800) return;
+
     const target = e.target as HTMLElement;
-    const img = target.closest('.tiptap-content img') as HTMLImageElement | null;
-    if (img && editor) {
-      showImageDialog = true;
-      // We'll replace the current image when selected
-    }
+    if (target.closest('.tiptap-content img')) showImageDialog = true;
   }
 
   async function handleFix() {
@@ -351,36 +333,40 @@
   }
 
   function handleKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Escape' && fullScreen) {
-      fullScreen = false;
-    }
+    if (e.key === 'Escape' && fullScreen) fullScreen = false;
   }
 </script>
 
 <svelte:window onkeydown={handleKeyDown} />
 
-<div 
+<div
   class={containerClass}
   onfocusout={(e) => { if (onblur && !e.currentTarget.contains(e.relatedTarget as Node)) onblur(); }}
 >
   {#if editable}
-    <Toolbar 
-      {editor} 
-      {toolbarActions} 
+    <Toolbar
+      {editor}
+      {toolbarActions}
       {annotations}
-      onOpenImage={() => showImageDialog = true}
-      onOpenLink={() => { currentLinkUrl = editor?.getAttributes('link').href || ''; showLinkDialog = true; }}
-      onClearHighlights={() => editor?.commands.clearAllAnnotations()}
+      onOpenImage={() => { if (!blockClicks) showImageDialog = true; }}
+      onOpenLink={() => {
+        if (blockClicks) return;
+        currentLinkUrl = editor?.getAttributes('link').href || '';
+        showLinkDialog = true;
+      }}
+      onClearHighlights={() => { if (!blockClicks) editor?.commands.clearAllAnnotations(); }}
       bind:fullScreen
     />
   {/if}
 
-  <div 
-    class="flex-1 overflow-y-auto document-scroll {fullScreen ? 'bg-[#0a0d14]' : 'bg-[#0d1117] p-6'}"
+  <div
+    bind:this={scrollContainer}
+    class="flex-1 overflow-y-auto document-scroll relative {fullScreen ? 'bg-[#0a0d14]' : 'bg-[#0d1117] p-6'}"
     onmousemove={handleMouseMove}
+    onscroll={updateImageMenuPosition}
     onclick={handleImageClick}
     ondblclick={handleDoubleClick}
-    onmouseleave={(e) => { 
+    onmouseleave={(e) => {
       const related = e.relatedTarget as HTMLElement;
       if (!isFixing && !related?.closest('.tiptap-tooltip')) {
         tooltipVisible = false;
@@ -401,31 +387,52 @@
   {/if}
 </div>
 
-<ImageDialog 
-  bind:show={showImageDialog} 
-  {assets} 
+<ImageDialog
+  bind:show={showImageDialog}
+  {assets}
   onSelect={(url) => {
     if (editor) {
-      const { selection } = editor.state;
-      if (selection instanceof editor.view.state.NodeSelection && selection.node.type.name === 'image') {
-        // Correct replacement: update attributes of the current node
-        editor.chain().focus().updateAttributes('image', { src: url }).run();
+      console.log('[Tiptap] Internal UI Action: Image Replace');
+      isInternalUpdating = true; // Chặn onUpdate tự động để tránh phát tin trùng lặp
+      isSyncLocked = true;
+      blockClicks = true;
+      lastInternalActionAt = Date.now();
+
+      // Đảm bảo focus để editor giữ trạng thái
+      editor.commands.focus();
+
+      // Thực hiện thay đổi
+      if (editor.isActive('image')) {
+        const attrs = editor.getAttributes('image');
+        editor.chain().updateAttributes('image', { ...attrs, src: url }).run();
       } else {
-        editor.chain().focus().setImage({ src: url }).run();
+        editor.chain().setImage({ src: url }).run();
       }
-      imageMenuVisible = false;
+
+      // ÉP BUỘC báo cáo cho Parent ngay lập tức
+      const html = editor.getHTML();
+      onChange(stripMarks(html));
+
+      showImageDialog = false;
+
+      // Giải phóng block clicks sớm, nhưng giữ sync lock lâu hơn
+      setTimeout(() => { blockClicks = false; }, 400);
+      setTimeout(() => {
+        isInternalUpdating = false;
+        isSyncLocked = false;
+      }, 1500);
     }
-  }} 
+  }}
 />
 <LinkDialog bind:show={showLinkDialog} currentUrl={currentLinkUrl} onApply={(url) => url ? editor?.chain().focus().setLink({ href: url }).run() : editor?.chain().focus().unsetLink().run()} />
 <AnnotationTooltip bind:visible={tooltipVisible} x={tooltipX} y={tooltipY} type={tooltipType} text={tooltipText} {isFixing} onFix={handleFix} />
 
-{#if imageMenuVisible && editor}
-  <div 
-    class="fixed image-bubble-menu z-[3000]"
-    style="left: {imageMenuX}px; top: {imageMenuY}px; transform: translate(-50%, -100%);"
+  {#if editor && editable && imageMenuVisible && !blockClicks}
+  <div
+    class="fixed z-[3000] -translate-x-1/2 pointer-events-auto transition-all duration-75 ease-out"
+    style="left: {imageMenuX}px; top: {imageMenuY}px;"
   >
-    <ImageBubbleMenu {editor} onReplace={() => showImageDialog = true} />
+    <ImageBubbleMenu {editor} onReplace={() => { if (!blockClicks) showImageDialog = true; }} />
   </div>
 {/if}
 
@@ -436,5 +443,6 @@
   :global(.tiptap-content h1) { @apply text-3xl font-black mb-6 text-white; }
   :global(.tiptap-content h2) { @apply text-2xl font-bold mb-4 mt-8 text-white/80; }
   :global(.tiptap-content h3) { @apply text-xl font-bold mb-3 mt-6 text-white/70; }
-  :global(.tiptap-content img) { @apply rounded-lg shadow-xl my-8 mx-auto border border-white/5; }
+  :global(.tiptap-content img) { @apply rounded-lg my-4 mx-auto cursor-pointer border-2 border-transparent transition-all duration-200; }
+  :global(.tiptap-content img.ProseMirror-selectednode) { @apply border-blue-500/50 shadow-lg shadow-blue-500/10; }
 </style>
