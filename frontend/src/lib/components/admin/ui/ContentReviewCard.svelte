@@ -127,8 +127,10 @@
     
     // Ensure finalHtml is not empty if we are in step 6
     if (viewingStep >= 6 && !finalHtml) {
+      console.log("[ContentReviewCard] Forcing finalHtml from draft_content (Step 6 init)");
       finalHtml = draft_content;
     }
+    console.log("[ContentReviewCard] Initialized:", { draft_content: draft_content?.substring(0, 30), finalHtml: finalHtml?.substring(0, 30) });
     
     // Ensure viewingStep is valid
     if (viewingStep < 1 || viewingStep > 6) viewingStep = step || 1;
@@ -138,9 +140,16 @@
   // Rule R82.42: Reactive Prep — Ensure editedDraft is ready for next steps
   $effect(() => {
     // CNS V73.8: More aggressive sync if local editedDraft is empty
+    // CNS V73.8: More aggressive sync if local editedDraft is empty
     const source = draft_content || finalHtml || "";
     if (!isEditing && source && (source !== editedDraft || !editedDraft)) {
       editedDraft = source;
+    }
+    
+    // R102: Mirroring to prevent vanishing editor content in Step 6
+    if (source) {
+      if (!draft_content) draft_content = source;
+      if (!finalHtml) finalHtml = source;
     }
   });
 
@@ -368,7 +377,7 @@
 </script>
 
 <div 
-  class="content-review-card w-full {nanobot.isExpanded ? 'h-full bg-transparent' : 'h-full md:h-[85vh] bg-[#0c0a0f]/80 md:backdrop-blur-3xl md:border md:border-white/10'} flex flex-col p-4 md:p-6 transition-all duration-700 overflow-hidden md:shadow-[0_30px_100px_rgba(0,0,0,0.8)]"
+  class="content-review-card w-full {nanobot.isExpanded ? 'h-full bg-transparent' : 'h-full md:h-[85vh] bg-[#0c0a0f]/80 md:backdrop-blur-3xl md:border md:border-white/10'} flex flex-col p-4 md:p-6 transition-all duration-700 overflow-hidden md:shadow-[0_30px_100px_rgba(0,0,0,0.8)] rounded-none"
   in:fade={{ duration: 600 }}
 >
   <Header 
@@ -382,7 +391,7 @@
   <Timeline {step} bind:viewingStep bind:isEditing />
 
   <div 
-    class="flex-1 flex flex-col p-4 md:p-5 {nanobot.isExpanded ? 'p-8' : ''} overflow-y-auto custom-scrollbar relative z-10 pb-32 md:pb-5"
+    class="flex-1 min-h-0 flex flex-col p-4 md:p-5 {nanobot.isExpanded ? 'p-8' : ''} {viewingStep === 6 ? 'overflow-hidden pb-5' : 'overflow-y-auto pb-32 md:pb-5'} custom-scrollbar relative z-10"
     onscroll={handleScroll}
   >
     {#if viewingStep === 1}

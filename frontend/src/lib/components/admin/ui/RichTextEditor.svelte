@@ -129,6 +129,7 @@
   let fileInput = $state<HTMLInputElement | null>(null);
 
   onMount(() => {
+    console.log("[RichTextEditor] onMount. Content size:", content?.length);
     injectAnnotationStyles();
 
     editor = new Editor({
@@ -213,6 +214,7 @@
     if (!editor || editor.isDestroyed || content === undefined) return;
     
     const currentHtml = editor.getHTML();
+    console.log("[RichTextEditor] Prop 'content' sync:", { content, currentHtml });
     // Use string comparison with a fallback to empty paragraph for blank content
     const normalizedContent = content === "" ? "<p></p>" : content;
     const normalizedCurrent = currentHtml === "" ? "<p></p>" : currentHtml;

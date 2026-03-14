@@ -52,6 +52,7 @@ class ContentController(Controller):
         """Lấy thông tin chi tiết một chiến dịch (Undefer support)."""
         from sqlalchemy.orm import undefer
         from sqlalchemy import select
+        from backend.database.models.content import ContentCampaign as CampaignModel
         try:
             # R102: Explicitly undefer final_html for detail view
             stmt = select(CampaignModel).where(CampaignModel.id == str(campaign_id)).options(undefer(CampaignModel.final_html))
