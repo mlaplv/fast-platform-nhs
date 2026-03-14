@@ -12,7 +12,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
-    public data?: any,
+    public data?: unknown,
   ) {
     super(message);
     this.name = "ApiError";
@@ -107,7 +107,7 @@ export const apiClient = {
 
       // 5. Success
       return data as T;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Catch pure network failures (e.g. docker container down completely)
       if (error instanceof TypeError && error.message.includes("fetch")) {
         throw new ApiError(
@@ -120,7 +120,7 @@ export const apiClient = {
       if (error instanceof ApiError) {
         throw error;
       }
-      throw new ApiError(500, "Lỗi không xác định", error);
+      throw new ApiError(500, "Lỗi không xác định", error instanceof Error ? error.message : String(error));
     }
   },
 
@@ -128,21 +128,21 @@ export const apiClient = {
   get<T>(url: string, options?: ApiOptions) {
     return this.request<T>(url, { method: "GET", ...options });
   },
-  post<T>(url: string, payload: any, options?: ApiOptions) {
+  post<T>(url: string, payload: unknown, options?: ApiOptions) {
     return this.request<T>(url, {
       method: "POST",
       body: JSON.stringify(payload),
       ...options,
     });
   },
-  put<T>(url: string, payload: any, options?: ApiOptions) {
+  put<T>(url: string, payload: unknown, options?: ApiOptions) {
     return this.request<T>(url, {
       method: "PUT",
       body: JSON.stringify(payload),
       ...options,
     });
   },
-  patch<T>(url: string, payload: any, options?: ApiOptions) {
+  patch<T>(url: string, payload: unknown, options?: ApiOptions) {
     return this.request<T>(url, {
       method: "PATCH",
       body: JSON.stringify(payload),
@@ -185,7 +185,7 @@ export const apiClient = {
       const response = await fetch(url.toString(), config);
       globalLatency.set(Math.round(performance.now() - t0));
 
-      let data: any = null;
+      let data: unknown = null;
       const contentType = response.headers.get("content-type");
 
       if (contentType && contentType.includes("application/json")) {
@@ -214,7 +214,7 @@ export const apiClient = {
 
         throw new ApiError(
           response.status,
-          data?.detail || data?.message || `Upload Error (${response.status})`,
+          (data as { detail?: string; message?: string })?.detail || (data as { detail?: string; message?: string })?.message || `Upload Error (${response.status})`,
           data,
         );
       }

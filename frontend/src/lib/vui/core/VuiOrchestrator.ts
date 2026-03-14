@@ -109,7 +109,6 @@ class VuiOrchestrator {
         (audioBlob) => {
           if (vuiState.phase !== "listening") return;
           if (this.hasSpoken) {
-            console.log("[VuiOrchestrator] VAD: Speech ended. Auto-finalizing.");
             this.stopRecording();
           }
         },
@@ -122,7 +121,6 @@ class VuiOrchestrator {
       // Step 4: Initial timeout — if no speech detected within 7s, clean exit
       this.setManagedTimer('initial', () => {
         if (vuiState.phase === "listening" && !this.hasSpoken) {
-          console.log("[VuiOrchestrator] Initial timeout: No speech detected. Clean exit.");
           this.interruptAll();
         }
       }, VUI_CONFIG.VAD.INITIAL_TIMEOUT_MS);
@@ -214,7 +212,6 @@ class VuiOrchestrator {
 
   private onTTSFinished() {
     if (vuiState.isWaitingForAction) {
-      if (isDev()) console.log("[VuiOrchestrator] TTS Finished. Waiting for user action, going idle.");
       this.mic.stop();
       this.vadEngine.pause();
       vuiState.setPhase("idle");
@@ -223,7 +220,6 @@ class VuiOrchestrator {
     }
 
     if (vuiState.phase === "executing" || vuiState.phase === "speaking") {
-      if (isDev()) console.log(`[VuiOrchestrator] TTS Finished during ${vuiState.phase}. Clearing locks.`);
       vuiState.setPhase("idle");
       vuiState.setActiveTier("");
     }

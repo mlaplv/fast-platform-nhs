@@ -11,7 +11,13 @@ Rules:
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Any
+from typing import List, Dict, Union, TypedDict, Optional
+# Phase 12: Rule R105 — CẤM dùng Any, dùng TypedDict cho cấu trúc tường minh.
+class AnomalyAlert(TypedDict):
+    type: str
+    severity: str
+    message: str
+    data: Dict[str, object]
 
 from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,12 +36,12 @@ class AnomalyDetector:
     Compares recent metrics vs historical baseline to detect spikes.
     """
 
-    async def scan(self, session: AsyncSession, tenant_id: str = "default") -> List[Dict[str, Any]]:
+    async def scan(self, session: AsyncSession, tenant_id: str = "default") -> List[AnomalyAlert]:
         """
         Run all anomaly checks. Returns list of alerts.
         Each alert: {type, severity, message, data}
         """
-        alerts: List[Dict[str, Any]] = []
+        alerts: List[AnomalyAlert] = []
 
         try:
             cancelled_alert = await self._check_cancelled_orders(session, tenant_id)
@@ -80,7 +86,7 @@ class AnomalyDetector:
 
         return alerts
 
-    async def _check_ai_latency(self, session: AsyncSession, tenant_id: str) -> Dict[str, Any] | None:
+    async def _check_ai_latency(self, session: AsyncSession, tenant_id: str) -> Optional[AnomalyAlert]:
         """Check if recent AI response latencies are spiking using telemetry logs."""
         # AgentTelemetryLog has duration_ms and tenant_id
         avg_latency = await session.scalar(
@@ -102,7 +108,7 @@ class AnomalyDetector:
             }
         return None
 
-    async def _check_db_pool(self, session: AsyncSession) -> Dict[str, Any] | None:
+    async def _check_db_pool(self, session: AsyncSession) -> Optional[AnomalyAlert]:
         """Check SQLAlchemy connection pool utilization."""
         # SQLAlchemy engine pool stats
         engine = session.bind
@@ -122,7 +128,7 @@ class AnomalyDetector:
                 }
         return None
 
-    async def _check_cancelled_orders(self, session: AsyncSession, tenant_id: str) -> Dict[str, Any] | None:
+    async def _check_cancelled_orders(self, session: AsyncSession, tenant_id: str) -> Optional[AnomalyAlert]:
         """Compare cancelled orders last 1h vs 7-day hourly average."""
         now = datetime.now(timezone.utc)
         one_hour_ago = now - timedelta(hours=1)
@@ -159,7 +165,7 @@ class AnomalyDetector:
             }
         return None
 
-    async def _check_order_volume(self, session: AsyncSession, tenant_id: str) -> Dict[str, Any] | None:
+    async def _check_order_volume(self, session: AsyncSession, tenant_id: str) -> Optional[AnomalyAlert]:
         """Compare new order volume last 1h vs 7-day hourly average."""
         now = datetime.now(timezone.utc)
         one_hour_ago = now - timedelta(hours=1)
@@ -194,7 +200,7 @@ class AnomalyDetector:
             }
         return None
 
-    async def _check_revenue_anomaly(self, session: AsyncSession, tenant_id: str) -> Dict[str, Any] | None:
+    async def _check_revenue_anomaly(self, session: AsyncSession, tenant_id: str) -> Optional[AnomalyAlert]:
         """Compare today's revenue vs yesterday same hour."""
         now = datetime.now(timezone.utc)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -230,7 +236,7 @@ class AnomalyDetector:
             }
         return None
 
-    async def _persist_alerts(self, session: AsyncSession, alerts: List[Dict], tenant_id: str):
+    async def _persist_alerts(self, session: AsyncSession, alerts: List[AnomalyAlert], tenant_id: str):
         """Create Notification records for detected anomalies (with dedup)."""
         for alert in alerts:
             # DEBT-4 fix: platform-agnostic interval logic

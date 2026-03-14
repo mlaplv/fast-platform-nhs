@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import { ShieldCheck, BarChart2, Sparkles } from "lucide-svelte";
-  import RichTextEditor from "../RichTextEditor.svelte";
+  import TiptapEditor from "../tiptap/TiptapEditor.svelte";
   import CheckResultPanel from "./CheckResultPanel.svelte";
 
   import { apiClient } from "$lib/utils/apiClient";
@@ -339,7 +339,7 @@
 
   <!-- Editor -->
   <div class="flex-1 flex flex-col relative transition-all overflow-hidden min-h-0 {isEditing ? 'border border-white/10 shadow-2xl ring-2 ring-purple-500/30 bg-black/40' : 'bg-transparent'}">
-    <RichTextEditor
+    <TiptapEditor
       bind:this={editorRef}
       content={displayContent}
       assets={assets}

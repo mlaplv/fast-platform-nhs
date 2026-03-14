@@ -44,7 +44,6 @@
 
   $effect(() => {
     if (nanobot.isVuiActive) {
-      console.log("[VoiceModal] ACTIVE. Category:", nanobot.vuiResponse?.data?.category, "CampaignID:", nanobot.vuiResponse?.data?.campaign_id);
     }
   });
 

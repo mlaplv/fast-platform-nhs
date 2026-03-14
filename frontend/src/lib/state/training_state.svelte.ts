@@ -1,4 +1,9 @@
-export function createTrainingState(voice: any) {
+export interface VoiceState {
+  resetVui: () => void;
+  // Add other methods if needed, but training_state only uses resetVui
+}
+
+export function createTrainingState(voice: VoiceState) {
   const state = $state({
     isTraining: false,
     trainingType: null as "wake" | "sleep" | null,

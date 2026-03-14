@@ -31,11 +31,9 @@ export class VuiAudioEngine {
            // If AC is already running and nothing in queue, we don't need to do expensive context warm
            if (this.hasUserInteracted && this.pendingQueue.length === 0) return;
            
-           console.log(`[VUI LOG] 🎯 Interaction detected (Queue size: ${this.pendingQueue.length}). Warming Context...`);
            await this.unlock(); 
            
            if (this.pendingQueue.length > 0 && !this.isDrainingQueue) {
-             console.log(`[VUI LOG] 🌊 Draining Queue: Starting sequential playback of ${this.pendingQueue.length} items.`);
              this.isDrainingQueue = true;
              
              let index = 0;
@@ -43,13 +41,10 @@ export class VuiAudioEngine {
                 const item = this.pendingQueue.shift();
                 if (item) {
                    index++;
-                   console.log(`[VUI LOG] 🎙️ Playing Queued Item ${index}: "${item.text.substring(0, 30)}..."`);
                    const success = await this.speak(item.text);
-                   console.log(`[VUI LOG] ✅ Item ${index} finished. (Success: ${success})`);
                    item.resolve(success);
                 }
              }
-             console.log(`[VUI LOG] ✨ Queue Drained. System clear.`);
              this.isDrainingQueue = false;
            }
         };
@@ -118,7 +113,6 @@ export class VuiAudioEngine {
         const success = await attemptPlay();
         if (success) return true;
         
-        console.log("[AudioEngine] Interaction was stale or blocked. Falling back to queue.");
         this.hasUserInteracted = false;
         vuiState.setAudioBlocked(true);
     }
@@ -296,7 +290,6 @@ export class VuiAudioEngine {
       
       this.hasUserInteracted = true;
       vuiState.setAudioBlocked(false);
-      console.log(`[AudioEngine] 🔊 Context WARMED (${this.audioCtx?.state}). Interaction: ${this.hasUserInteracted}`);
     } catch (e) {
       console.warn("[AudioEngine] Unlock failed", e);
     }

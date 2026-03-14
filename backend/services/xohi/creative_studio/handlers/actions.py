@@ -1,15 +1,15 @@
 import asyncio
 import logging
-from typing import Dict, Any
+from typing import Dict, Union, Optional
 from backend.database.repositories import ContentCampaignRepository
 
 logger = logging.getLogger("api-gateway")
 
 class ActionHandler:
-    def __init__(self, orchestrator):
+    def __init__(self, orchestrator: "ContentOrchestrator"):
         self.orchestrator = orchestrator
 
-    async def approve_step(self, campaign_id: str, data: Dict[str, Any], campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def approve_step(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
         campaign = await campaign_repo.get(campaign_id)
         if not campaign:
             return {"status": "error", "message": "Campaign not found"}
@@ -73,7 +73,7 @@ class ActionHandler:
             await campaign_repo.update(campaign)
             return {"status": "success", "message": "Đã ghi nhận sếp không duyệt bước này.", "campaign_id": campaign_id}
 
-    async def retry_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def retry_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
         campaign = await campaign_repo.get(campaign_id)
         if not campaign:
             return {"status": "error", "message": "Campaign not found"}
@@ -87,7 +87,7 @@ class ActionHandler:
         asyncio.create_task(self.orchestrator._trigger_next_step(campaign_id, force_step=step_val))
         return {"status": "success", "message": f"Em đang chạy lại bước {step_val} cho sếp đây!", "campaign_id": campaign_id}
 
-    async def update_metadata(self, campaign_id: str, data: Dict[str, Any], campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def update_metadata(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
         campaign = await campaign_repo.get(campaign_id)
         if not campaign:
             return {"status": "error", "message": "Campaign not found"}

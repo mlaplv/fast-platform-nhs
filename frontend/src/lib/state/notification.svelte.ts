@@ -49,7 +49,7 @@ export function createNotificationState() {
         isRead: signal.isRead,
         type: signal.severity,
         created_at: new Date().toISOString()
-      } as any;
+      };
       state.notifications = [notif, ...state.notifications].slice(0, 200);
     },
     fetchNotifications,

@@ -4,7 +4,7 @@ Single Source of Truth for system-wide signal definition.
 Follows R105: Strict Schema Isolation.
 """
 from enum import Enum
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Dict, Union
 from pydantic import BaseModel
 
 
@@ -29,4 +29,4 @@ class SignalSchema(BaseModel):
     message: str
     severity: SignalSeverity
     signal_type: str = "SYSTEM"      # e.g. SYSTEM, SECURITY, CONTENT_PROGRESS
-    payload: Optional[Dict[str, Any]] = None
+    payload: Optional[Dict[str, object]] = None

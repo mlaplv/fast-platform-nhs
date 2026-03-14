@@ -2,7 +2,7 @@ import os
 import asyncio
 import logging
 import re
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Union, Optional
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
@@ -102,7 +102,7 @@ class SeoAnalyzer:
         # BUG-07 fix: Cache Agent at class scope — R1.6 prohibits per-request Agent creation
         self._agent = Agent(output_type=SeoReport, system_prompt=SEO_ANALYSIS_PROMPT, retries=3)
 
-    async def _get_search_pair(self):
+    async def _get_search_pair(self) -> Optional[Dict[str, str]]:
         if not self.search_keys: return None
         async with self._key_lock:
             pair = self.search_keys[self._key_idx % len(self.search_keys)]

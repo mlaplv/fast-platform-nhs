@@ -83,8 +83,8 @@ Chọn 1 trong các widget: show_revenue_chart, show_order_management, show_prod
 class Tier2CloudRouter:
     def __init__(self):
         # R1.4: Single Source of Truth from .env
-        self.primary_model_name = os.getenv("TIER2_MODEL", "gemini-2.5-flash")
-        self.fallback_model_name = os.getenv("TIER2_FALLBACK_MODEL", "gemini-2.5-flash")
+        self.primary_model_name = os.getenv("TIER2_MODEL", "gemini-2.0-flash")
+        self.fallback_model_name = os.getenv("TIER2_FALLBACK_MODEL", "gemini-1.5-flash")
         self.rotator = key_rotator
         
         # PydanticAI Agent Initialization

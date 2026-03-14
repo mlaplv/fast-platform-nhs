@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import time
-from typing import Callable, Any, Dict, List, AsyncGenerator
+from typing import Callable, Union, Dict, List, AsyncGenerator
 from dataclasses import dataclass, field
 from contextlib import asynccontextmanager
 
@@ -10,7 +10,7 @@ logger = logging.getLogger("api-gateway")
 @dataclass
 class SystemEvent:
     name: str
-    payload: Dict[str, Any]
+    payload: Dict[str, object]
     timestamp: float = field(default_factory=time.time)
 
 class InternalBus:
@@ -48,7 +48,7 @@ class InternalBus:
         """
         queue = asyncio.Queue()
         
-        async def callback(payload: Any):
+        async def callback(payload: object):
             await queue.put(payload)
             
         self.subscribe(event_name, callback)
@@ -66,7 +66,7 @@ class InternalBus:
             self.broadcast_subscribers.remove(queue)
             logger.debug(f"[EventBus] Removed broadcast subscriber")
 
-    async def emit(self, event_name: str, payload: Dict[str, Any]):
+    async def emit(self, event_name: str, payload: Dict[str, object]):
         """Emit event to queue for background processing (Non-blocking for Request)"""
         event = SystemEvent(name=event_name, payload=payload)
         await self.queue.put(event)

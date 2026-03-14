@@ -10,7 +10,7 @@ logger = logging.getLogger("api-gateway")
 
 class AIConfigurationError(Exception):
     """Detailed error for AI diagnostics (V62.2)"""
-    def __init__(self, message: str, model: str = None, key_index: int = None):
+    def __init__(self, message: str, model: Optional[str] = None, key_index: Optional[int] = None):
         super().__init__(message)
         self.model = model
         self.key_index = (key_index + 1) if key_index is not None else None
@@ -24,7 +24,7 @@ class TrinityBridge:
     def __init__(self):
         self.rotator = key_rotator
         # V71.17: Neural Waterfall Support (2026 Edition)
-        self.default_model_name = os.getenv("TIER2_MODEL", "gemini-2.5-flash")
+        self.default_model_name = os.getenv("TIER2_MODEL", "gemini-2.0-flash")
         self.fallback_model_name = os.getenv("TIER2_FALLBACK_MODEL", "gemini-2.0-flash")
 
         # Dynamic Model Pool (V75)
@@ -149,7 +149,7 @@ class TrinityBridge:
         """Detect if a rate_limit error is actually a daily quota (not a per-minute spike)."""
         return any(p in error_str for p in ["daily", "per_day", "per day", "perday", "requests_per_day", "generaterequestsperdayperproject"])
 
-    async def run(self, agent: Agent, prompt: str, **kwargs):
+    async def run(self, agent: Agent, prompt: str, **kwargs: object):
         """
         Runs an AI Agent with managed context and dynamic model/key injection.
         V65.0: API key passed directly via GoogleProvider — no env race condition.
@@ -262,7 +262,7 @@ class TrinityBridge:
         )
 
     @asynccontextmanager
-    async def run_stream(self, agent: Agent, prompt: str, **kwargs):
+    async def run_stream(self, agent: Agent, prompt: str, **kwargs: object):
         """
         Streaming version of run().
         V65.0: API key passed directly via GoogleProvider — no env race condition.
@@ -304,12 +304,28 @@ class TrinityBridge:
 
                 try:
                     logger.info(f"[TrinityBridge][Stream] {model_name} (Attempt {attempt+1}/{max_keys}) (Session: {session_id})...")
-                    async with agent.run_stream(prompt, model=model, **kwargs) as stream:
-                        yield stream
+                    
+                    stream_started = False
+                    try:
+                        async with agent.run_stream(prompt, model=model, **kwargs) as stream:
+                            stream_started = True
+                            yield stream
+                        
+                        # Success: we yielded and the caller finished without exception
+                        await self.rotator.set_success(key, session_id=session_id)
+                        await self._save_sticky_model(model_name)
+                        return
+                    except Exception as inner_e:
+                        if stream_started:
+                            # CRITICAL: If stream already yielded, we CANNOT rotate.
+                            # Re-raise to let caller handle it.
+                            logger.error(f"[TrinityBridge][Stream] Error during stream consumption: {inner_e}")
+                            raise inner_e
+                        # Otherwise, fall through to rotation logic
+                        raise inner_e
 
-                    await self.rotator.set_success(key, session_id=session_id)
-                    await self._save_sticky_model(model_name)
-                    return
+                except AIConfigurationError:
+                    raise
 
                 except Exception as e:
                     last_error = e

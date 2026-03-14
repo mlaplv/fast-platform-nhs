@@ -16,15 +16,6 @@ declare module '@tiptap/core' {
 
 /**
  * AnnotationMark — Custom Tiptap Mark for inline Copyright & SEO highlighting.
- * 
- * Renders text passages as colored underlines with a hover tooltip.
- * Does NOT interfere with editing — marks are just visual overlays.
- * 
- * Types:
- *  - copyright (severity: low/medium/high)  → yellow/orange/red underline
- *  - seo-error                              → red wavy underline
- *  - seo-warning                            → orange wavy underline
- *  - seo-info                               → blue underline
  */
 export const AnnotationMark = Mark.create<AnnotationOptions>({
   name: 'annotation',
@@ -104,7 +95,6 @@ export const AnnotationMark = Mark.create<AnnotationOptions>({
             }
           });
 
-          // Apply removals in reverse order to not mess up positions
           if (dispatch) {
             let newTr = tr;
             for (const { from, to } of changes.reverse()) {
@@ -118,12 +108,7 @@ export const AnnotationMark = Mark.create<AnnotationOptions>({
   },
 });
 
-// ─── CSS injected globally (once) ───────────────────────────────────────────
-
 const ANNOTATION_STYLES = `
-  /* AnnotationMark — XoHi Content Studio 2026 — Dark Background Edition */
-
-  /* Base: MUST override browser <mark> defaults (yellow bg, black text) */
   .xohi-annotation {
     background: transparent;
     color: inherit;
@@ -132,10 +117,6 @@ const ANNOTATION_STYLES = `
     border-radius: 0;
     transition: background 0.2s ease, text-shadow 0.2s ease;
   }
-
-  /* ══ COPYRIGHT —— Việt Nam scale: vàng → cam → đỏ ══ */
-
-  /* LOW: vàng, text #fef08a (yellow-200) rõ trên nền #111827 */
   .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="low" i] {
     color: #fef08a !important;
     background: rgba(234, 179, 8, 0.18);
@@ -143,7 +124,6 @@ const ANNOTATION_STYLES = `
     text-decoration-thickness: 2px;
     text-shadow: 0 0 12px rgba(234, 179, 8, 0.4);
   }
-  /* MEDIUM: cam, text #fed7aa (orange-200) */
   .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="medium" i] {
     color: #fed7aa !important;
     background: rgba(249, 115, 22, 0.20);
@@ -151,7 +131,6 @@ const ANNOTATION_STYLES = `
     text-decoration-thickness: 2px;
     text-shadow: 0 0 14px rgba(249, 115, 22, 0.45);
   }
-  /* HIGH: đỏ nổi, text #fca5a5 (red-300) */
   .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="high" i] {
     color: #fca5a5 !important;
     background: rgba(239, 68, 68, 0.22);
@@ -159,45 +138,37 @@ const ANNOTATION_STYLES = `
     text-decoration-thickness: 2.5px;
     text-shadow: 0 0 18px rgba(239, 68, 68, 0.55);
   }
-
-  /* ══ SEO ERROR — đỏ crisp ══ */
   .xohi-annotation[data-annotation-type="seo-error" i],
   .xohi-annotation[data-annotation-type="missing_h1" i],
   .xohi-annotation[data-annotation-type="keyword_stuffing" i] {
-    color: #fca5a5 !important;    /* red-300 — rõ trên nền tối */
+    color: #fca5a5 !important;
     background: rgba(239, 68, 68, 0.18);
     text-decoration: underline wavy rgba(239, 68, 68, 1);
     text-decoration-thickness: 2px;
     text-shadow: 0 0 14px rgba(239, 68, 68, 0.45);
   }
-
-  /* ══ SEO WARNING — cam ấm ══ */
   .xohi-annotation[data-annotation-type="seo-warning" i],
   .xohi-annotation[data-annotation-type="missing_h2" i],
   .xohi-annotation[data-annotation-type="weak_intro" i],
   .xohi-annotation[data-annotation-type="thin_section" i],
   .xohi-annotation[data-annotation-type="missing_cta" i],
   .xohi-annotation[data-annotation-type="keyword_missing" i] {
-    color: #fed7aa !important;    /* orange-200 — ấm, đọc được ngay */
+    color: #fed7aa !important;
     background: rgba(249, 115, 22, 0.16);
     text-decoration: underline wavy rgba(249, 115, 22, 1);
     text-decoration-thickness: 2px;
     text-shadow: 0 0 12px rgba(249, 115, 22, 0.4);
   }
-
-  /* ══ SEO INFO — xanh dương nhạt ══ */
   .xohi-annotation[data-annotation-type="seo-info" i],
   .xohi-annotation[data-annotation-type="ai_stiff" i] {
-    color: #bae6fd !important;    /* sky-200 — dế chịu không làm mỏi mắt */
+    color: #bae6fd !important;
     background: rgba(96, 165, 250, 0.12);
     text-decoration: underline dotted rgba(96, 165, 250, 1);
     text-decoration-thickness: 1.5px;
     text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
   }
-  
-  /* ══ INTERNAL DEDUP — tím dashed ══ */
   .xohi-annotation[data-annotation-type="internal-dedup" i] {
-    color: #e879f9 !important;    /* fuchsia-400 */
+    color: #e879f9 !important;
     background: rgba(217, 70, 239, 0.12);
     text-decoration: underline dashed rgba(217, 70, 239, 1);
     text-decoration-thickness: 1.5px;
@@ -207,30 +178,24 @@ const ANNOTATION_STYLES = `
     background: rgba(217, 70, 239, 0.25);
     text-shadow: 0 0 18px rgba(217, 70, 239, 0.6);
   }
-
-  /* ══ AI READINESS / GEO — tím neon nhạt ══ */
   .xohi-annotation[data-annotation-type="geo-info" i],
   .xohi-annotation[data-annotation-type="geo_stats" i],
   .xohi-annotation[data-annotation-type="geo_quotes" i],
   .xohi-annotation[data-annotation-type="geo_fluff" i],
   .xohi-annotation[data-annotation-type="geo_snippet" i] {
-    color: #f0abfc !important;    /* fuchsia-300 */
-    background: rgba(192, 38, 211, 0.15); /* fuchsia-600 with opacity */
+    color: #f0abfc !important;
+    background: rgba(192, 38, 211, 0.15);
     text-decoration: underline dashed rgba(192, 38, 211, 0.8);
     text-decoration-thickness: 1.5px;
     text-shadow: 0 0 12px rgba(192, 38, 211, 0.4);
   }
-
-  /* ══ FIXED / SUCCESS — xanh lá (Emerald) ══ */
   .xohi-annotation[data-annotation-type="fixed" i] {
-    color: #6ee7b7 !important;    /* emerald-300 */
+    color: #6ee7b7 !important;
     background: rgba(16, 185, 129, 0.15);
     text-decoration: underline rgba(16, 185, 129, 1);
     text-decoration-thickness: 2px;
     text-shadow: 0 0 12px rgba(16, 185, 129, 0.45);
   }
-
-  /* ══ HOVER — amplify glow ══ */
   .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="high" i]:hover {
     background: rgba(239, 68, 68, 0.35);
     text-shadow: 0 0 22px rgba(239, 68, 68, 0.75);
@@ -243,29 +208,19 @@ const ANNOTATION_STYLES = `
     background: rgba(234, 179, 8, 0.28);
     text-shadow: 0 0 14px rgba(234, 179, 8, 0.55);
   }
-  .xohi-annotation[data-annotation-type="seo-error" i]:hover,
-  .xohi-annotation[data-annotation-type="missing_h1" i]:hover,
-  .xohi-annotation[data-annotation-type="keyword_stuffing" i]:hover {
+  .xohi-annotation[data-annotation-type="seo-error" i]:hover {
     background: rgba(239, 68, 68, 0.30);
     text-shadow: 0 0 20px rgba(239, 68, 68, 0.65);
   }
-  .xohi-annotation[data-annotation-type="seo-warning" i]:hover,
-  .xohi-annotation[data-annotation-type="missing_h2" i]:hover,
-  .xohi-annotation[data-annotation-type="missing_cta" i]:hover,
-  .xohi-annotation[data-annotation-type="keyword_missing" i]:hover {
+  .xohi-annotation[data-annotation-type="seo-warning" i]:hover {
     background: rgba(249, 115, 22, 0.28);
     text-shadow: 0 0 16px rgba(249, 115, 22, 0.6);
   }
-  .xohi-annotation[data-annotation-type="seo-info" i]:hover,
-  .xohi-annotation[data-annotation-type="ai_stiff" i]:hover {
+  .xohi-annotation[data-annotation-type="seo-info" i]:hover {
     background: rgba(96, 165, 250, 0.22);
     text-shadow: 0 0 14px rgba(96, 165, 250, 0.45);
   }
-  .xohi-annotation[data-annotation-type="geo-info" i]:hover,
-  .xohi-annotation[data-annotation-type="geo_stats" i]:hover,
-  .xohi-annotation[data-annotation-type="geo_quotes" i]:hover,
-  .xohi-annotation[data-annotation-type="geo_fluff" i]:hover,
-  .xohi-annotation[data-annotation-type="geo_snippet" i]:hover {
+  .xohi-annotation[data-annotation-type="geo-info" i]:hover {
     background: rgba(192, 38, 211, 0.25);
     text-shadow: 0 0 16px rgba(192, 38, 211, 0.55);
   }

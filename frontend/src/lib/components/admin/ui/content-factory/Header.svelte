@@ -114,7 +114,6 @@
     <button
       onclick={() => { 
         isEditing = !isEditing; 
-        if (import.meta.env.DEV) console.log("[Header] Toggle isEditing:", isEditing); 
       }}
       class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white border border-white/5 transition-all duration-300"
     >

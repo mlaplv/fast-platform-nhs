@@ -1,6 +1,6 @@
 import re
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Union, Optional
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign

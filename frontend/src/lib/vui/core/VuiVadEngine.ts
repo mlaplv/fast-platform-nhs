@@ -40,13 +40,11 @@ export class VuiVadEngine {
       startOnLoad: true,
 
       onSpeechStart: () => {
-        console.log("[VuiVadEngine] 🎙️ Speech detected (Neural)");
         this._isSpeaking = true;
         onSpeechStart();
       },
 
       onSpeechEnd: (audio: Float32Array) => {
-        console.log(`[VuiVadEngine] 🔇 Speech ended (${audio.length} samples)`);
         this._isSpeaking = false;
         // Convert Float32Array (16kHz PCM) to WAV Blob for STT
         const wavBuffer = utils.encodeWAV(audio);

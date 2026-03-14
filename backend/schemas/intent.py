@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Dict, Optional, Union
 from pydantic import BaseModel, Field
 
 class IntentAction(str, Enum):
@@ -22,15 +22,15 @@ class IntentRequest(BaseModel):
     user_id: Optional[str] = None
     session_id: Optional[str] = None
     modality: Optional[str] = "voice"
-    context: Optional[Dict[str, Any]] = Field(default_factory=dict)
-    screen_context: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    context: Optional[Dict[str, object]] = Field(default_factory=dict)
+    screen_context: Optional[Dict[str, object]] = Field(default_factory=dict)
 
 class IntentResponse(BaseModel):
     status: str = Field(default="success")
     message: str = Field(default="")
     action: IntentAction = Field(default=IntentAction.READ)
     router_tier: RouterTier = Field(default=RouterTier.TIER_2_SEMANTIC)
-    data: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    data: Optional[Dict[str, object]] = Field(default_factory=dict)
     cost_tokens: float = Field(default=0.0)
 
     class Config:

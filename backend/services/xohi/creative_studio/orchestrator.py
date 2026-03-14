@@ -1,7 +1,7 @@
 import os
 import logging
 import asyncio
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Union
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
 from backend.services.xohi.creative_studio.operatives.vision_insight import VisionInsight
@@ -72,19 +72,19 @@ class ContentOrchestrator:
 
     # --- Delegated API Surface ---
 
-    async def handle_voice_request(self, transcript: str, campaign_repo: ContentCampaignRepository, tenant_id: str = "default", user_id: str = None) -> IntentResponse:
+    async def handle_voice_request(self, transcript: str, campaign_repo: ContentCampaignRepository, tenant_id: str = "default", user_id: Optional[str] = None) -> IntentResponse:
         return await self.voice_handler.handle_request(transcript, campaign_repo, tenant_id, user_id)
 
-    async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: str = None, tenant_id: str = "default") -> Optional[ContentCampaign]:
+    async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default") -> Optional[ContentCampaign]:
         return await self.voice_handler.get_active_campaign(campaign_repo, user_id, tenant_id)
 
-    async def approve_step(self, campaign_id: str, data: Dict[str, Any], campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def approve_step(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
         return await self.action_handler.approve_step(campaign_id, data, campaign_repo)
 
-    async def retry_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def retry_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
         return await self.action_handler.retry_step(campaign_id, campaign_repo)
 
-    async def update_metadata(self, campaign_id: str, data: Dict[str, Any], campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def update_metadata(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
         return await self.action_handler.update_metadata(campaign_id, data, campaign_repo)
 
     async def _trigger_next_step(self, campaign_id: str, force_step: int = None):

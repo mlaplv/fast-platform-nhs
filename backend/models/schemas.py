@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Optional, Union
 from uuid import UUID, uuid4
 from enum import Enum
 from datetime import datetime
@@ -13,7 +13,7 @@ class CampaignStep(BaseModel):
     step_number: int
     name: str
     status: str = "PENDING"
-    result: Optional[Dict[str, Any]] = None
+    result: Optional[Dict[str, object]] = None
     agent_msg: Optional[str] = None
     retry_count: int = 0
 
@@ -26,10 +26,10 @@ class ContentCampaign(BaseModel):
     reviewer_type: str = "ADMIN_MANUAL"
     current_step: int = 1
     status: str = "WAITING_FOR_REVIEW"
-    gold_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
-    topic_data: Optional[Dict[str, Any]] = Field(default_factory=dict)
-    assets_data: Optional[Union[List[Any], Dict[str, Any]]] = Field(default_factory=list)
-    outline_data: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    gold_metadata: Optional[Dict[str, object]] = Field(default_factory=dict)
+    topic_data: Optional[Dict[str, object]] = Field(default_factory=dict)
+    assets_data: Optional[Union[List[object], Dict[str, object]]] = Field(default_factory=list)
+    outline_data: Optional[Dict[str, object]] = Field(default_factory=dict)
     draft_content: Optional[str] = None
     final_html: Optional[str] = None
     search_count: int = 0
@@ -37,7 +37,7 @@ class ContentCampaign(BaseModel):
 
 class AgentResponse(BaseModel):
     signal: AgentSignal
-    data: Any
+    data: object
     message: Optional[str] = None
 
 # Rule R106: Explicit model rebuild for complex type resolution

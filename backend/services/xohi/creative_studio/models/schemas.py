@@ -1,6 +1,6 @@
 from enum import Enum
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Union, Optional
 
 class AgentSignal(str, Enum):
     PROCEED_NEXT = "PROCEED_NEXT"
@@ -14,7 +14,7 @@ class CategoryEnum(str, Enum):
 class AgentResponse(BaseModel):
     signal: AgentSignal
     message: str
-    data: Optional[Dict[str, Any]] = None
+    data: Optional[Dict[str, object]] = None
     # NOTE: strict=True intentionally omitted — data wraps arbitrary dict by design (R105 exception)
 
 class TopicSeed(BaseModel):
@@ -24,7 +24,7 @@ class TopicSeed(BaseModel):
     persona: str = Field(description="Mô tả phong cách viết bài (e.g. trẻ trung, chuyên gia)")
     description: str = Field(description="Mô tả tóm tắt chuẩn SEO cho bài viết (Meta Description)")
     category: CategoryEnum = Field(default=CategoryEnum.TIN_TUC, description="Phân loại danh mục bài viết (Tin tức hoặc Chính sách)")
-    creation_config: Dict[str, Any] = Field(
+    creation_config: Dict[str, object] = Field(
         default_factory=lambda: {
             "style": "Chuyên nghiệp",
             "word_count": 500,
@@ -65,7 +65,7 @@ class AutoFixResponse(BaseModel):
 
 class BulkFixRequest(BaseModel):
     category: str      # "copyright" | "seo" | "ai"
-    annotations: List[Dict[str, Any]]
+    annotations: List[Dict[str, object]]
 
 class BulkFixResponse(BaseModel):
     new_content: str

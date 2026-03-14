@@ -37,7 +37,7 @@ class VisionInsight:
             retries=3
         )
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs) -> AgentResponse:
+    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0)."""
         campaign = await repo.get(campaign_id)
         if not campaign:

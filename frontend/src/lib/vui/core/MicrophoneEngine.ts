@@ -34,7 +34,6 @@ export class MicrophoneEngine {
       
     this.recorder = new MediaRecorder(this.stream, mime ? { mimeType: mime } : undefined);
     
-    console.log("[MicEngine] Started MediaRecorder with mimeType:", mime);
     
     this.recorder.ondataavailable = (e: BlobEvent) => {
       if (e.data.size > 0) {
@@ -52,7 +51,6 @@ export class MicrophoneEngine {
       await this.audioCtx.resume();
     }
     
-    console.log("[MicEngine] AudioContext state:", this.audioCtx.state);
     
     this.analyser = this.audioCtx.createAnalyser();
     const source = this.audioCtx.createMediaStreamSource(this.stream);

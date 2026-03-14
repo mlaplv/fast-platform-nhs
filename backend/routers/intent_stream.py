@@ -12,7 +12,7 @@ import uuid
 from uuid import UUID
 import asyncio
 import logging
-from typing import AsyncGenerator, Optional, Dict, Any
+from typing import AsyncGenerator, Optional, Dict, Union
 
 from litestar import Controller, post, Request
 from litestar.di import Provide
@@ -36,7 +36,7 @@ logger = logging.getLogger("api-gateway")
 
 
 
-def _sse(phase: str, data: dict) -> bytes:
+def _sse(phase: str, data: Dict[str, object]) -> bytes:
     """Format a Server-Sent Event line."""
     return f"data: {json.dumps({'phase': phase, **data}, ensure_ascii=False)}\n\n".encode("utf-8")
 
@@ -129,7 +129,7 @@ class IntentStreamController(Controller):
                     order_by=[("created_at", "desc")],
                     deleted_at=None
                 )
-                context = [
+                context: List[Dict[str, str]] = [
                     {"role": m.role, "content": m.content["text"]}
                     for m in reversed(list(recent_msgs))
                     if isinstance(m.content, dict) and "text" in m.content
@@ -258,8 +258,8 @@ async def _background_save_logs(
     result_message: str = "",
     result_ui_action: str = "",
     tier_str: str = "",
-    data_extra: Optional[Dict[str, Any]] = None,
-    telemetry_data: Optional[Dict[str, Any]] = None,
+    data_extra: Optional[Dict[str, object]] = None,
+    telemetry_data: Optional[Dict[str, object]] = None,
     is_noise: bool = False
 ) -> None:
     from backend.database import async_session_maker
@@ -282,7 +282,7 @@ async def _background_save_logs(
         logger.error(f"[SSE Background Log Error] {e}")
 
 
-async def _save(chat_repo: ChatMessageRepository, session_id: str, role: str, content: str, ui_action: Optional[str], modality: str, router_tier: Optional[str] = None, user_id: Optional[UUID] = None, data_extra: Optional[Dict[str, Any]] = None) -> None:
+async def _save(chat_repo: ChatMessageRepository, session_id: str, role: str, content: str, ui_action: Optional[str], modality: str, router_tier: Optional[str] = None, user_id: Optional[UUID] = None, data_extra: Optional[Dict[str, object]] = None) -> None:
     payload = {"text": content}
     if ui_action:   payload["ui_action"] = ui_action
     if router_tier: payload["router_tier"] = router_tier

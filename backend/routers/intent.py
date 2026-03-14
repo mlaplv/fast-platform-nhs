@@ -192,7 +192,7 @@ class IntentController(Controller):
             logger.exception(f"[Gateway Error] {e}")
             return _error("Giao thức kết nối đang bận, Sếp đợi em một chút hoặc thử lại sau nhé.")
 
-    async def _save_message(self, chat_repo: ChatMessageRepository, session_id: str, role: str, content: str, ui_action: Optional[str], modality: str, router_tier: Optional[str] = None, user_id: Optional[UUID] = None, data_extra: Optional[Dict[str, Any]] = None) -> None:
+    async def _save_message(self, chat_repo: ChatMessageRepository, session_id: str, role: str, content: str, ui_action: Optional[str], modality: str, router_tier: Optional[str] = None, user_id: Optional[UUID] = None, data_extra: Optional[Dict[str, object]] = None) -> None:
         payload = {"text": content}
         if ui_action:    payload["ui_action"]   = ui_action
         if router_tier:  payload["router_tier"]  = router_tier

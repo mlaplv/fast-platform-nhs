@@ -1,7 +1,7 @@
 import uuid
 import logging
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Dict, Union
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
 from backend.services.xohi.creative_studio.models.schemas import TopicSeed
@@ -13,10 +13,10 @@ from litestar.repository.filters import LimitOffset
 logger = logging.getLogger("api-gateway")
 
 class VoiceHandler:
-    def __init__(self, orchestrator):
+    def __init__(self, orchestrator: "ContentOrchestrator"):
         self.orchestrator = orchestrator
 
-    async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: str = None, tenant_id: str = "default") -> Optional[ContentCampaign]:
+    async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default") -> Optional[ContentCampaign]:
         if user_id == "undefined" or not user_id:
             user_id = None
 
@@ -43,7 +43,7 @@ class VoiceHandler:
 
     async def handle_request(
         self, transcript: str, campaign_repo: ContentCampaignRepository,
-        tenant_id: str = "default", user_id: str = None
+        tenant_id: str = "default", user_id: Optional[str] = None
     ) -> IntentResponse:
         if user_id == "undefined" or not user_id:
             user_id = None

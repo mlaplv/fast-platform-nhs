@@ -1,5 +1,5 @@
 import time
-from typing import Any, Optional, Dict
+from typing import Optional, Dict, Union
 from collections import OrderedDict
 import logging
 
@@ -16,7 +16,7 @@ class ViralCache:
         self.ttl = ttl # Default 5 minutes
         self._stats = {"hits": 0, "misses": 0}
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Optional[object]:
         if key not in self.cache:
             self._stats["misses"] += 1
             return None
@@ -32,7 +32,7 @@ class ViralCache:
         self._stats["hits"] += 1
         return val
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None):
+    def set(self, key: str, value: object, ttl: Optional[int] = None):
         if len(self.cache) >= self.maxsize:
             self.cache.popitem(last=False) # Remove LRU
         

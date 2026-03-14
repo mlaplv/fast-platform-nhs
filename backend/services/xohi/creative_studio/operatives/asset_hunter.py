@@ -1,7 +1,7 @@
 import httpx
 import asyncio
 import logging
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union
 from datetime import datetime, timedelta, timezone
 from backend.utils.http_client import get_http_client
 from backend.services.event_bus import event_bus
@@ -55,7 +55,7 @@ class AssetHunter:
         self.current_index = (self.current_index + 1) % len(self.key_pairs)
         logger.info(f"[AssetHunter] Rotating key to index {self.current_index}")
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: Any) -> AgentResponse:
+    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0)."""
         campaign: Optional[ContentCampaign] = await repo.get(campaign_id)
         if not campaign:

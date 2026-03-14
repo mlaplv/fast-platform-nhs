@@ -3,7 +3,7 @@ import logging
 import asyncio
 import time
 from datetime import datetime, timezone
-from typing import Dict, Any
+from typing import Dict, Union, Optional
 from sqlalchemy import select, func
 from sqlalchemy.orm.attributes import flag_modified
 from backend.database.models import ContentCampaign, CampaignEvent
@@ -16,10 +16,10 @@ from backend.constants.agentic import STEP_ARTIFICIAL_LATENCY_SECONDS
 logger = logging.getLogger("api-gateway")
 
 class ExecutionEngine:
-    def __init__(self, orchestrator):
+    def __init__(self, orchestrator: "ContentOrchestrator"):
         self.orchestrator = orchestrator
 
-    async def trigger_step(self, campaign_id: str, force_step: int = None):
+    async def trigger_step(self, campaign_id: str, force_step: Optional[int] = None):
         await asyncio.sleep(0.05)
         async with self.orchestrator.semaphore:
             from backend.database.alchemy_config import alchemy_config
@@ -29,7 +29,7 @@ class ExecutionEngine:
                 await self._execute_step(campaign_id, repo, force_step=force_step)
                 await session.commit()
 
-    async def _execute_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository, force_step: int = None):
+    async def _execute_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository, force_step: Optional[int] = None):
         campaign = await campaign_repo.get(campaign_id)
         if not campaign: return
         
@@ -197,7 +197,7 @@ class ExecutionEngine:
             return True
         return False
 
-    async def _emit_progress(self, campaign_id: str, step: int, message: str, user_id: str = None):
+    async def _emit_progress(self, campaign_id: str, step: int, message: str, user_id: Optional[str] = None):
         await event_bus.emit("CONTENT_PROGRESS", {
             "campaign_id": campaign_id, "user_id": user_id, "step": step,
             "message": message, "status": "PROCESSING",

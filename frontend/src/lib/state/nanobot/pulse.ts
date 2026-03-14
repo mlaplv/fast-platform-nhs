@@ -21,7 +21,6 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
   const connectPulse = () => {
     if (typeof window === "undefined" || eventSource) return;
 
-    if (isDev()) console.log("[Pulse] Connecting to Native Agent Pulse SSE...");
     eventSource = new EventSource("/api/v1/pulse/stream");
 
     eventSource.onopen = () => {

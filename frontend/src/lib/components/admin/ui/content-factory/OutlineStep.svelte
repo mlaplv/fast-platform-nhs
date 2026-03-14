@@ -1,5 +1,5 @@
 <script lang="ts">
-  import RichTextEditor from "../RichTextEditor.svelte";
+  import TiptapEditor from "../tiptap/TiptapEditor.svelte";
 
   let { 
     isEditing, 
@@ -66,7 +66,7 @@
 
 <div class="space-y-4 flex-1 overflow-hidden flex flex-col">
   <div class="flex-1 rounded-2xl flex flex-col relative group transition-all overflow-hidden {isEditing ? 'border border-white/10 shadow-2xl ring-2 ring-blue-500/30 bg-black/40' : 'bg-transparent'}">
-     <RichTextEditor 
+     <TiptapEditor 
        content={displayContent}
        assets={assets}
        onChange={(val) => {

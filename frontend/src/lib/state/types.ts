@@ -5,7 +5,7 @@ export interface SystemLog {
   source: string;
   type?: string;
   routerTier?: number;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 export interface Notification {
@@ -13,7 +13,7 @@ export interface Notification {
   type: string;
   message: string;
   isRead: boolean;
-  createdAt: string;
+  created_at: string;
 }
 
 export type WidgetType =
@@ -133,7 +133,7 @@ export interface CampaignKeywords {
   category?: string;
   slug?: string;
   description?: string;
-  creation_config?: Record<string, any>;
+  creation_config?: Record<string, unknown>;
 }
 
 export interface CampaignMetrics {
@@ -155,13 +155,13 @@ export interface CampaignData {
   draft_content?: string;
   final_html?: string;
   unique_score?: number;
-  analysis_cache?: Record<string, any>;
+  analysis_cache?: Record<string, unknown>;
   analysis_metrics?: CampaignMetrics;
   selectedAvatarUrl?: string | null;
   selectedAssetIndex?: number;
-  creation_config?: Record<string, any>;
+  creation_config?: Record<string, unknown>;
   isSilent?: boolean;
-  data?: any; 
+  data?: Record<string, unknown>; 
 }
 
 export interface PulsePayload {
@@ -170,7 +170,7 @@ export interface PulsePayload {
   message: string;
   status?: string;
   reason?: string;
-  data?: any; 
+  data?: Record<string, unknown>; 
 }
 
 export interface PulseSignal {

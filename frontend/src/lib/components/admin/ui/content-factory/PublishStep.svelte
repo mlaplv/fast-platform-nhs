@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Edit2, Sparkles } from "lucide-svelte";
-  import RichTextEditor from "../RichTextEditor.svelte";
+  import TiptapEditor from "../tiptap/TiptapEditor.svelte";
   import type { CampaignKeywords } from "$lib/state/types";
 
   let {
@@ -172,7 +172,7 @@
     <!-- Actual content: flex-1 overflow-y-auto -->
     {#if editingField === 'content'}
       <div class="flex-1 min-h-0 flex flex-col bg-black/40">
-        <RichTextEditor
+        <TiptapEditor
           content={displayContent}
           assets={assets}
           onChange={(val) => { draft_content = val; finalHtml = val; }}
@@ -187,8 +187,13 @@
         </div>
       </div>
     {:else if displayContent}
-      <div class="flex-1 overflow-y-auto custom-scrollbar px-4 py-3 prose prose-invert prose-sm max-w-none text-white">
-        {@html displayContent}
+      <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <TiptapEditor
+          content={displayContent}
+          assets={assets}
+          editable={false}
+          fullScreen={false}
+        />
       </div>
     {:else}
       <div class="flex-1 flex flex-col items-center justify-center gap-2 p-4 bg-red-950/20">

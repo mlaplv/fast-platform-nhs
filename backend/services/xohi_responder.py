@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import Dict, Any
+from typing import Dict, Union, Optional
 from sqlalchemy import text
 from backend.services.event_bus import event_bus
 import json
@@ -16,7 +16,7 @@ class XoHiResponder:
     def __init__(self):
         self.session_maker = alchemy_config.create_session_maker()
 
-    async def handle_order_created(self, payload: Dict[str, Any]):
+    async def handle_order_created(self, payload: Dict[str, object]):
         """Callback for ORDER_CREATED event. Marks spam and notifies admins."""
         order_id = payload.get("id")
         ip = payload.get("ip", "unknown")
@@ -81,7 +81,7 @@ class XoHiResponder:
 
         logger.info(f"[XoHiResponder] Handled ORDER_CREATED: {order_id} (is_spam={is_spam})")
 
-    async def handle_order_cancelled(self, payload: Dict[str, Any]):
+    async def handle_order_cancelled(self, payload: Dict[str, object]):
         """Callback for ORDER_CANCELLED event."""
         order_id = payload.get("id")
         reason = payload.get("reason", "Không rõ lý do")
@@ -136,7 +136,7 @@ class XoHiResponder:
         except Exception as e:
             logger.error(f"[XoHiResponder] XoHi log persistence failed: {e}")
 
-    async def handle_content_step_completed(self, payload: Dict[str, Any]):
+    async def handle_content_step_completed(self, payload: Dict[str, object]):
         """Callback for CONTENT_STEP_COMPLETED event."""
         campaign_id = payload.get("campaign_id")
         user_id = payload.get("user_id")
@@ -212,7 +212,7 @@ class XoHiResponder:
         except Exception as e:
             logger.error(f"[XoHiResponder] Content log persistence failed: {e}")
 
-    async def handle_content_progress(self, payload: Dict[str, Any]):
+    async def handle_content_progress(self, payload: Dict[str, object]):
         """Callback for CONTENT_PROGRESS event. Progress is ephemeral — no DB write."""
         # Progress ticks are real-time signals only (streamed via SSE/Pulse).
         # They are NOT worth storing to DB — high frequency, low value, large volume.

@@ -2,7 +2,7 @@ import asyncio
 import logging
 import os
 import re
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Union, Optional
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
@@ -197,7 +197,7 @@ class PlagiarismCop:
     # PIPELINE ENTRY POINT
     # ──────────────────────────────────────────────────────────
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs) -> AgentResponse:
+    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0) — called by orchestrator Step 5."""
         campaign = await repo.get(campaign_id)
         if not campaign:

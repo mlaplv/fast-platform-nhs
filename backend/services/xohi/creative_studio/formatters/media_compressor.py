@@ -6,7 +6,7 @@ import logging
 import hashlib
 from PIL import Image
 from io import BytesIO
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Optional, Union
 from datetime import datetime, timezone
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -28,7 +28,7 @@ class MediaCompressor:
         # R106: Semaphore-based concurrency to protect 2GB RAM limits.
         self.semaphore: asyncio.Semaphore = asyncio.Semaphore(3)
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: Any) -> AgentResponse:
+    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
         """Entry point for standard agentic flow."""
         campaign: Optional[ContentCampaign] = await repo.get(campaign_id)
         if not campaign:
@@ -39,8 +39,8 @@ class MediaCompressor:
         local_assets: List[str] = await self.localize_assets(campaign)
         
         # Step 2: Localize Avatar (Gold Metadata)
-        gold: Dict[str, Any] = dict(campaign.gold_metadata or {})
-        remote_avatar: Optional[str] = gold.get("avatar")
+        gold: Dict[str, object] = dict(campaign.gold_metadata or {})
+        remote_avatar: Optional[str] = gold.get("avatar") # type: ignore
         
         if remote_avatar and remote_avatar.startswith("http"):
             async with httpx.AsyncClient(follow_redirects=True) as client:

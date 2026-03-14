@@ -10,7 +10,6 @@ export function createResumeManager(state: any, voice: any, log: any, ui: any, s
   const cleanupGreeting = () => {
     greetingActive = false;
     if (pendingGreetingUnlock) {
-      if (isDev()) console.log("[Resume] Cleaning up pending subtle greeting listener.");
       window.removeEventListener('click', pendingGreetingUnlock);
       pendingGreetingUnlock = null;
     }

@@ -2,7 +2,7 @@ import logging
 import hashlib
 import copy
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Union, Optional
+from typing import List, Dict, Union, Optional
 from uuid import UUID
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -19,7 +19,7 @@ class ContentController(Controller):
     dependencies = {"campaign_repo": Provide(provide_campaign_repo)}
 
     @get("/campaigns")
-    async def list_campaigns(self, campaign_repo: ContentCampaignRepository) -> List[Dict[str, Any]]:
+    async def list_campaigns(self, campaign_repo: ContentCampaignRepository) -> List[Dict[str, object]]:
         """Lấy danh sách các chiến dịch (R76: Scalar Projection)."""
         from sqlalchemy import select
         # R106: Force ORM model to avoid collision with Pydantic schema
@@ -70,18 +70,18 @@ class ContentController(Controller):
             raise e
 
     @post("/campaigns/{campaign_id:uuid}/approve")
-    async def approve_step(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def approve_step(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> object:
         """User phê duyệt bước sáng tạo hiện tại."""
-        data: Dict[str, Any] = await request.json()
+        data: Dict[str, object] = await request.json()
         return await content_factory.approve_step(str(campaign_id), data, campaign_repo)
 
     @post("/campaigns/{campaign_id:uuid}/retry")
-    async def retry_step(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def retry_step(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> object:
         """Chạy lại bước sáng tạo hiện tại."""
         return await content_factory.retry_step(str(campaign_id), campaign_repo)
 
     @post("/campaigns/{campaign_id:uuid}/publish")
-    async def publish_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def publish_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, str]:
         """Xuất bản và địa phương hóa toàn bộ tài nguyên."""
         from backend.database.models import ContentCampaign as CampaignModel
         campaign: Optional[CampaignModel] = await campaign_repo.get(str(campaign_id))
@@ -98,19 +98,19 @@ class ContentController(Controller):
         return {"status": "success", "message": "Campaign published and localized."}
 
     @put("/campaigns/{campaign_id:uuid}/metadata")
-    async def update_metadata(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def update_metadata(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> object:
         """Cập nhật dữ liệu chiến dịch (keywords, assets...)."""
-        data: Dict[str, Any] = await request.json()
+        data: Dict[str, object] = await request.json()
         return await content_factory.update_metadata(str(campaign_id), data, campaign_repo)
 
     @patch("/campaigns/{campaign_id:uuid}")
-    async def patch_campaign(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def patch_campaign(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> object:
         """RESTful Alias cho update_metadata."""
-        data: Dict[str, Any] = await request.json()
+        data: Dict[str, object] = await request.json()
         return await content_factory.update_metadata(str(campaign_id), data, campaign_repo)
 
     @delete("/campaigns/{campaign_id:uuid}", status_code=200)
-    async def delete_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def delete_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, str]:
         """Xóa chiến dịch (Hard/Soft delete tùy Repo)."""
         try:
             await campaign_repo.delete(str(campaign_id))
@@ -119,7 +119,7 @@ class ContentController(Controller):
             return {"status": "error", "message": "Campaign not found."}
 
     @post("/campaigns/{campaign_id:uuid}/analyze/copyright")
-    async def analyze_copyright(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> Dict[str, Any]:
+    async def analyze_copyright(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> Dict[str, object]:
         """
         On-demand: ĐẠO VĂN & BẢN QUYỀN — 2026 Edition.
         Dùng Google Search + Gemini AI để kiểm tra ngữ nghĩa (không phải so ký tự).
@@ -165,7 +165,7 @@ class ContentController(Controller):
         return {"status": "success", "data": result_data}
 
     @post("/campaigns/{campaign_id:uuid}/analyze/seo")
-    async def analyze_seo(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> Dict[str, Any]:
+    async def analyze_seo(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> Dict[str, object]:
         """
         On-demand: PHÂN TÍCH SEO 2026 — E-E-A-T, Entity Coverage, AI-Naturalness, Featured Snippet.
         """
@@ -211,7 +211,7 @@ class ContentController(Controller):
         return {"status": "success", "data": result_data}
 
     @post("/campaigns/{campaign_id:uuid}/analyze/ai-inspect")
-    async def analyze_ai_readiness(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> Dict[str, Any]:
+    async def analyze_ai_readiness(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> Dict[str, object]:
         """
         On-demand: AI READINESS INSPECTOR — GEO 2026.
         Dùng LLM chấm điểm bài viết theo 4 tiêu chí cốt lõi (Princeton Study):
@@ -266,7 +266,7 @@ class ContentController(Controller):
             logger.error(f"AI Inspector error: {e}")
             return {"status": "error", "message": str(e)}
     @post("/campaigns/{campaign_id:uuid}/analyze/auto-fix")
-    async def analyze_auto_fix(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def analyze_auto_fix(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
         """
         On-Demand Surgical Auto-Fix (Contextual Local Rewrite)
         """
@@ -289,7 +289,7 @@ class ContentController(Controller):
             return {"status": "error", "message": str(e)}
 
     @post("/campaigns/{campaign_id:uuid}/analyze/bulk-fix")
-    async def analyze_bulk_fix(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, Any]:
+    async def analyze_bulk_fix(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
         """
         On-Demand Bulk Surgical Rewrite: Fixes ALL identified errors for a category.
         """

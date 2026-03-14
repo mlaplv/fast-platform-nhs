@@ -1,4 +1,4 @@
-from typing import Optional, List, Any
+from typing import Optional, List, Union
 import sqlalchemy as sa
 from sqlalchemy import (
     String, ForeignKey, Integer, Text, JSON, Index
@@ -70,7 +70,7 @@ class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     
     # Step Data
     topic_data: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
-    assets_data: Mapped[Optional[Any]] = mapped_column(JSON, default=list)
+    assets_data: Mapped[Optional[Union[List[object], dict]]] = mapped_column(JSON, default=list)
     outline_data: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
     draft_content: Mapped[Optional[str]] = mapped_column(Text)
     search_count: Mapped[int] = mapped_column(Integer, default=0)
@@ -82,7 +82,7 @@ class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
         gold = self.gold_metadata or {}
         return gold.get("creation_config") or {}
 
-    def get_gold_val(self, key: str, fallback: Any = None) -> Any:
+    def get_gold_val(self, key: str, fallback: object = None) -> object:
         """Surgically extracts a value from gold_metadata or falls back to topic_data."""
         gold = self.gold_metadata or {}
         if key in gold: return gold[key]

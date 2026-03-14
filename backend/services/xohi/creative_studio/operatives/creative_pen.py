@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Union, Optional
 import logging
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
@@ -62,7 +62,7 @@ class CreativePen:
         )
         self.draft_agent = Agent(system_prompt=DRAFT_PROMPT)
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs) -> AgentResponse:
+    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0)."""
         campaign = await repo.get(campaign_id)
         if not campaign:
@@ -227,7 +227,7 @@ Bắt đầu viết ngay:
             logger.error(f"[Content Factory] CreativePen Draft Gen Error: {e}")
             raise  # Re-raise instead of returning fallback content
 
-    def _replace_image_placeholders(self, content: str, assets: list, alt_text: str = "") -> str:
+    def _replace_image_placeholders(self, content: str, assets: List[str], alt_text: str = "") -> str:
         """
         V72.0: Surgical [IMAGE_N] replacement pass.
         Handles both standalone markers and markers already inside src/attributes.
