@@ -18,9 +18,13 @@ NC='\033[0m' # No Color
 # Starting from 2024/2025, modern AI libraries (like onnxruntime) dropped support 
 # for x86_64 macOS wheels. To keep these "legacy" Intel Macs alive for development,
 # we detect them here and shift the heavy lifting into Docker.
-IS_INTEL_MAC=false
 if [[ "$OSTYPE" == "darwin"* ]] && [[ "$(uname -m)" == "x86_64" ]]; then
     IS_INTEL_MAC=true
+    echo -e "${YELLOW}------------------------------------------------${NC}"
+    echo -e "${YELLOW}[LONG-TERM NOTE] Hệ thống phát hiện đây là Intel Mac.${NC}"
+    echo -e "${YELLOW}Kể từ 2024, onnxruntime đã ngừng hỗ trợ kiến trúc này.${NC}"
+    echo -e "${YELLOW}XOHI OS sẽ tự động điều hướng mọi lệnh vào Docker.${NC}"
+    echo -e "${YELLOW}------------------------------------------------${NC}"
 fi
 
 # Helper: Run Backend Command (Intelligence Routing)
