@@ -9,7 +9,7 @@
 
   let { 
     campaign_id,
-    isEditing, 
+    isEditing = $bindable(false), 
     editedDraft = $bindable(""), 
     draft_content = $bindable(""), 
     outline = {},
@@ -218,6 +218,7 @@
             });
           }
         }, 100);
+        isEditing = true;
         return new_text;
       }
     } catch (e) {
@@ -261,6 +262,7 @@
         } else {
             draft_content = newHtml;
         }
+        isEditing = true;
         
         // Wait a small tick so Svelte can sync the draft content to the editor before we re-analyze
         await new Promise(r => setTimeout(r, 300));
