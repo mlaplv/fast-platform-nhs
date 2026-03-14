@@ -173,10 +173,19 @@ class CreativePen:
         min_words = int(target_words * 0.9)
         max_words = int(target_words * 1.2)
         
-        # V72.0: Strict Paragraph Count Injection
+        # V76.0: Adaptive Paragraph Control (Deep Dive Support)
         max_sections = int(config.get("max_sections", 3))
-        # Roughly 1-2 paragraphs per segment to keep total paragraph count under control
-        paras_per_section = 1 if max_sections >= 8 else 2
+        content_mode = config.get("content_mode", "viral") # default to viral
+
+        if content_mode == "deep_dive":
+            paras_per_section = 4 # Allow more depth for analytical content
+            total_para_limit = max_sections * 5
+            mode_instruction = "Viết chi tiết, phân tích sâu sắc, cung cấp nhiều giá trị chuyên môn."
+        else:
+            # Roughly 1-2 paragraphs per segment to keep total paragraph count under control
+            paras_per_section = 1 if max_sections >= 8 else 2
+            total_para_limit = max_sections * 2
+            mode_instruction = "Viết cực kỳ cô đọng, tập trung vào tính viral và nhịp điệu nhanh (Fast-paced)."
 
         prompt = f"""
 [THÔNG TIN CHIẾN DỊCH NỘI DUNG]
@@ -186,6 +195,7 @@ class CreativePen:
 - Từ khóa CHÍNH (phải xuất hiện nhiều nhất): **{primary}**
 - Từ khóa PHỤ (phân bổ tự nhiên): {', '.join(secondary_list)}
 - Phong cách viết (Persona): {persona}
+- Chế độ nội dung: {content_mode.upper()} ({mode_instruction})
 
 ## DÀN Ý ĐÃ ĐƯỢC DUYỆT (BƯỚC 3)
 Viết đầy đủ và đúng thứ tự tất cả các mục sau:
@@ -197,7 +207,7 @@ Viết đầy đủ và đúng thứ tự tất cả các mục sau:
 
 ## YÊU CẦU BẮT BUỘC (CRITICAL ENFORCEMENT)
 - Bắt đầu bài viết bằng: <h1>{title}</h1>
-- **GIỚI HẠN ĐOẠN VĂN**: Mỗi mục (H2/H3) CHỈ ĐƯỢC PHÉP có tối đa {paras_per_section} đoạn văn (<p>). Tổng bài viết KHÔNG QUÁ {max_sections * 2} đoạn văn. Đây là yêu cầu quan trọng để đảm bảo tính cô đọng.
+- **GIỚI HẠN ĐOẠN VĂN**: Mỗi mục (H2/H3) CHỈ ĐƯỢC PHÉP có tối đa {paras_per_section} đoạn văn (<p>). Tổng bài viết KHÔNG QUÁ {total_para_limit} đoạn văn.
 - Chèn mã [IMAGE_N] vào vị trí muốn hiển thị. Bạn có thể ghi [IMAGE_N] đứng một mình hoặc chèn vào giữa văn bản.
 - **ĐỘ DÀI BẮT BUỘC**: Bài viết PHẢI nằm trong khoảng từ {min_words} đến {max_words} từ.
 - Giàu thông tin, hấp dẫn và viral.

@@ -1,6 +1,8 @@
 import hashlib
 import logging
 import time
+import re
+import unicodedata
 from typing import Optional, Dict, Tuple
 import redis.asyncio as _redis
 
@@ -49,10 +51,8 @@ class AntiSpamService:
 
     def normalize_address(self, address: str) -> str:
         if not address: return ""
-        import re
         addr = address.lower().strip()
         addr = re.sub(r'\s+', ' ', addr)
-        import unicodedata
         addr = "".join(c for c in unicodedata.normalize('NFD', addr) if unicodedata.category(c) != 'Mn')
         addr = addr.replace('đ', 'd').replace('Đ', 'd')
         return addr

@@ -69,14 +69,22 @@ class ExecutionEngine:
             operative = registry.get_operative(step)
             response_task = asyncio.create_task(operative.execute(campaign_id, campaign_repo, step=step))
 
-            # Phase 70: Heartbeat Mechanism to prevent "Freezing" during long AI tasks (Step 4)
+            # Phase 76: Zero-Latency Heartbeat (V76)
+            # Replaces busy-wait sleep(10) with instant completion detection
             pulse_count = 0
             while not response_task.done():
-                await asyncio.sleep(10) # Pulse every 10s
+                # Wait for task completion OR 10s timeout for next pulse
+                try:
+                    done, pending = await asyncio.wait([response_task], timeout=10.0)
+                except Exception:
+                    # Defensive: in case of rare cancellation issues
+                    if response_task.done(): break
+                    raise
+
                 if not response_task.done():
                     pulse_count += 1
                     logger.debug(f"[Content Factory] Pulse {pulse_count}: Step {step} still working for {campaign_id}")
-                    
+
                     msg = messages.get(step, "Đang xử lý...")
                     if step == 4:
                         sub_msgs = [
@@ -89,9 +97,9 @@ class ExecutionEngine:
                         ]
                         idx = min(pulse_count - 1, len(sub_msgs) - 1)
                         msg = sub_msgs[idx]
-                    
+
                     await self._emit_progress(campaign_id, step, msg, user_id=campaign.user_id)
-            
+
             response = await response_task
             if not isinstance(response, AgentResponse):
                 response = AgentResponse(signal=AgentSignal.PROCEED_NEXT, message="Legacy success", data={"raw": response})

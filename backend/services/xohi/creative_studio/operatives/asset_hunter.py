@@ -113,53 +113,46 @@ class AssetHunter:
         
         # Fetch 20 images to provide enough buffer for filtration (YT thumbnails, dead links, hotlink protection)
         raw_urls = await self.fetch_images(best_query, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=20)
-        
-        # Step 2.3: Anti-YouTube, HTTPS-Only & Integrity Check (Rule R110)
-        valid_urls = []
+
+        # Step 2.3: Parallel Anti-YouTube, HTTPS-Only & Integrity Check (Rule R110-V76)
         client = await get_http_client()
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-            "Referer": "https://www.google.com/"
-        }
-        
-        skip_domains = ["ytimg.com", "img.youtube.com", "vimeo.com", "fbsbx.com", "fbcdn.net", "licdn.com"]
-        
-        for url in raw_urls:
-            # Rule R112: Force HTTPS (Avoid Mixed Content)
-            if not url.startswith("https://"):
-                logger.info(f"[AssetHunter] Skipping non-HTTPS URL: {url}")
-                continue
+        sem = asyncio.Semaphore(8) # Limit concurrency to protect VPS 2GB RAM
 
-            # Skip video thumbnails & Unstable social links
-            if any(domain in url.lower() for domain in skip_domains):
-                logger.info(f"[AssetHunter] Skipping unstable/video domain: {url}")
-                continue
-                
-            try:
-                # Sanitize URL for httpx (Fixes 'illegal request line')
-                from urllib.parse import urlparse, quote, urlunparse
-                p = urlparse(url)
-                sanitized_url = urlunparse(p._replace(path=quote(p.path), query=quote(p.query, safe='/=&?')))
+        async def _check_url(url: str) -> Optional[str]:
+            if not url.startswith("https://"): return None
 
-                # Ping URL (Rule R111: Link Integrity)
-                # First try HEAD (Fast)
-                resp = await client.head(sanitized_url, timeout=4.0, follow_redirects=True, headers=headers)
-                
-                # If HEAD is 403 or 405 (Many CDNs block HEAD), try GET (with stream to avoid downloading full image)
-                if resp.status_code in [403, 404, 405]:
-                    async with client.stream("GET", sanitized_url, timeout=4.0, follow_redirects=True, headers=headers) as stream_resp:
-                        if stream_resp.status_code == 200:
-                            valid_urls.append(url)
-                        continue # End processing this URL
-                
-                if resp.status_code == 200:
-                    valid_urls.append(url)
-                else:
-                    logger.warning(f"[AssetHunter] Link rejected ({resp.status_code}): {url}")
-            except Exception as e:
-                logger.warning(f"[AssetHunter] Integrity check failed for {url}: {e}")
-                
+            skip_domains = ["ytimg.com", "img.youtube.com", "vimeo.com", "fbsbx.com", "fbcdn.net", "licdn.com"]
+            if any(domain in url.lower() for domain in skip_domains): return None
+
+            async with sem:
+                try:
+                    from urllib.parse import urlparse, quote, urlunparse
+                    p = urlparse(url)
+                    sanitized_url = urlunparse(p._replace(path=quote(p.path), query=quote(p.query, safe='/=&?')))
+
+                    headers = {
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                        "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+                        "Referer": "https://www.google.com/"
+                    }
+
+                    # Try HEAD first
+                    resp = await client.head(sanitized_url, timeout=4.0, follow_redirects=True, headers=headers)
+                    if resp.status_code == 200: return url
+
+                    # Fallback to GET stream for stubborn CDNs
+                    if resp.status_code in [403, 404, 405]:
+                        async with client.stream("GET", sanitized_url, timeout=4.0, follow_redirects=True, headers=headers) as stream_resp:
+                            if stream_resp.status_code == 200: return url
+                except Exception as e:
+                    logger.debug(f"[AssetHunter] Parallel check failed for {url}: {e}")
+            return None
+
+        # Execute parallel pinging
+        tasks = [_check_url(url) for url in raw_urls]
+        results = await asyncio.gather(*tasks)
+        valid_urls = [r for r in results if r is not None]
+
         all_urls = valid_urls
         
         # Selection logic based on target_count from Step 1

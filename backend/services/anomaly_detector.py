@@ -38,45 +38,26 @@ class AnomalyDetector:
 
     async def scan(self, session: AsyncSession, tenant_id: str = "default") -> List[AnomalyAlert]:
         """
-        Run all anomaly checks. Returns list of alerts.
+        Run all anomaly checks in parallel (V76). Returns list of alerts.
         Each alert: {type, severity, message, data}
         """
+        # Phase 76: Parallel Scalar Scanning for VPS 2GB Optimization
+        tasks = [
+            self._check_cancelled_orders(session, tenant_id),
+            self._check_order_volume(session, tenant_id),
+            self._check_revenue_anomaly(session, tenant_id),
+            self._check_ai_latency(session, tenant_id),
+            self._check_db_pool(session)
+        ]
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
         alerts: List[AnomalyAlert] = []
-
-        try:
-            cancelled_alert = await self._check_cancelled_orders(session, tenant_id)
-            if cancelled_alert:
-                alerts.append(cancelled_alert)
-        except Exception as e:
-            logger.warning(f"[AnomalyDetector] cancelled_orders check failed: {e}")
-
-        try:
-            volume_alert = await self._check_order_volume(session, tenant_id)
-            if volume_alert:
-                alerts.append(volume_alert)
-        except Exception as e:
-            logger.warning(f"[AnomalyDetector] order_volume check failed: {e}")
-
-        try:
-            revenue_alert = await self._check_revenue_anomaly(session, tenant_id)
-            if revenue_alert:
-                alerts.append(revenue_alert)
-        except Exception as e:
-            logger.warning(f"[AnomalyDetector] revenue check failed: {e}")
-
-        try:
-            latency_alert = await self._check_ai_latency(session, tenant_id)
-            if latency_alert:
-                alerts.append(latency_alert)
-        except Exception as e:
-            logger.warning(f"[AnomalyDetector] ai_latency check failed: {e}")
-
-        try:
-            pool_alert = await self._check_db_pool(session)
-            if pool_alert:
-                alerts.append(pool_alert)
-        except Exception as e:
-            logger.warning(f"[AnomalyDetector] db_pool check failed: {e}")
+        for i, res in enumerate(results):
+            if isinstance(res, Exception):
+                logger.warning(f"[AnomalyDetector] Check {i} failed: {res}")
+            elif res:
+                alerts.append(res)
 
         if alerts:
             await self._persist_alerts(session, alerts, tenant_id)
