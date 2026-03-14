@@ -108,9 +108,9 @@
       const scrollRect = scrollContainer.getBoundingClientRect();
       const imgRect = selectedImg.getBoundingClientRect();
 
-      // Calculate position relative to scroll container
+      // Calculate position relative to viewport (for fixed positioning)
       imageMenuX = imgRect.left + (imgRect.width / 2);
-      imageMenuY = imgRect.top - 10;
+      imageMenuY = imgRect.top - 8;
       imageMenuVisible = true;
     } else {
       imageMenuVisible = false;
@@ -354,6 +354,15 @@
         currentLinkUrl = editor?.getAttributes('link').href || '';
         showLinkDialog = true;
       }}
+      onAction={() => {
+        isInternalUpdating = true;
+        isSyncLocked = true;
+        lastInternalActionAt = Date.now();
+        setTimeout(() => {
+          isInternalUpdating = false;
+          isSyncLocked = false;
+        }, 1000);
+      }}
       onClearHighlights={() => { if (!blockClicks) editor?.commands.clearAllAnnotations(); }}
       bind:fullScreen
     />
@@ -427,12 +436,24 @@
 <LinkDialog bind:show={showLinkDialog} currentUrl={currentLinkUrl} onApply={(url) => url ? editor?.chain().focus().setLink({ href: url }).run() : editor?.chain().focus().unsetLink().run()} />
 <AnnotationTooltip bind:visible={tooltipVisible} x={tooltipX} y={tooltipY} type={tooltipType} text={tooltipText} {isFixing} onFix={handleFix} />
 
-  {#if editor && editable && imageMenuVisible && !blockClicks}
+  {#if editor && editable && imageMenuVisible && !blockClicks && !showImageDialog && !showLinkDialog}
   <div
-    class="fixed z-[3000] -translate-x-1/2 pointer-events-auto transition-all duration-75 ease-out"
+    class="fixed z-[3000] -translate-x-1/2 -translate-y-full pointer-events-auto transition-all duration-75 ease-out"
     style="left: {imageMenuX}px; top: {imageMenuY}px;"
   >
-    <ImageBubbleMenu {editor} onReplace={() => { if (!blockClicks) showImageDialog = true; }} />
+    <ImageBubbleMenu
+      {editor}
+      onAction={() => {
+        isInternalUpdating = true;
+        isSyncLocked = true;
+        lastInternalActionAt = Date.now();
+        setTimeout(() => {
+          isInternalUpdating = false;
+          isSyncLocked = false;
+        }, 1000);
+      }}
+      onReplace={() => { if (!blockClicks) showImageDialog = true; }}
+    />
   </div>
 {/if}
 
@@ -443,6 +464,6 @@
   :global(.tiptap-content h1) { @apply text-3xl font-black mb-6 text-white; }
   :global(.tiptap-content h2) { @apply text-2xl font-bold mb-4 mt-8 text-white/80; }
   :global(.tiptap-content h3) { @apply text-xl font-bold mb-3 mt-6 text-white/70; }
-  :global(.tiptap-content img) { @apply rounded-lg my-4 mx-auto cursor-pointer border-2 border-transparent transition-all duration-200; }
+  :global(.tiptap-content img) { @apply rounded-lg my-4 cursor-pointer border-2 border-transparent transition-all duration-200; }
   :global(.tiptap-content img.ProseMirror-selectednode) { @apply border-blue-500/50 shadow-lg shadow-blue-500/10; }
 </style>

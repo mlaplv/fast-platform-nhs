@@ -10,9 +10,18 @@
     ImagePlus
   } from 'lucide-svelte';
 
-  let { editor, onReplace }: { editor: Editor; onReplace: () => void } = $props();
+  let {
+    editor,
+    onReplace,
+    onAction = () => {}
+  }: {
+    editor: Editor;
+    onReplace: () => void;
+    onAction?: () => void;
+  } = $props();
 
   function setAlign(alignment: string) {
+    onAction();
     const baseClass = 'max-w-full my-4';
     let alignClass = 'mx-auto block';
 
@@ -25,6 +34,7 @@
   }
 
   function deleteImage() {
+    onAction();
     editor.chain().focus().deleteSelection().run();
   }
 </script>

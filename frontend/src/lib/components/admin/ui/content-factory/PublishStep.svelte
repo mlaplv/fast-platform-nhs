@@ -154,39 +154,33 @@
     </div>
 
     <!-- Actual content: flex-1 overflow-y-auto -->
-    {#if editingField === 'content'}
-      <div class="flex-1 min-h-0 flex flex-col bg-black/40">
+    <div class="flex-1 min-h-0 flex flex-col {editingField === 'content' ? 'bg-black/40' : ''} overflow-hidden">
+      {#if displayContent || editingField === 'content'}
         <TiptapEditor
           content={displayContent}
           assets={assets}
           onChange={(val) => { draft_content = val; finalHtml = val; }}
-          editable={true}
+          editable={editingField === 'content'}
           placeholder="Chỉnh sửa nội dung..."
           onblur={saveField}
-        />
-        <div class="shrink-0 p-2 border-t border-white/5 flex justify-end">
-          <button onclick={saveField}
-            class="px-3 py-1 bg-purple-500 text-[9px] font-black text-white hover:bg-purple-600 uppercase"
-          >Lưu nội dung</button>
-        </div>
-      </div>
-    {:else if displayContent}
-      <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
-        <TiptapEditor
-          content={displayContent}
-          assets={assets}
-          editable={false}
           fullScreen={false}
         />
-      </div>
-    {:else}
-      <div class="flex-1 flex flex-col items-center justify-center gap-2 p-4 bg-red-950/20">
-        <span class="text-red-400 text-xs font-bold">⚠ Lỗi tải nội dung</span>
-        <code class="text-[9px] text-red-300/50 text-center">
-          draft: {(draft_content || '').length}c · html: {(finalHtml || '').length}c · assets: {assets.length}
-        </code>
-      </div>
-    {/if}
+        {#if editingField === 'content'}
+          <div class="shrink-0 p-2 border-t border-white/5 flex justify-end">
+            <button onclick={saveField}
+              class="px-3 py-1 bg-purple-500 text-[9px] font-black text-white hover:bg-purple-600 uppercase"
+            >Lưu nội dung</button>
+          </div>
+        {/if}
+      {:else}
+        <div class="flex-1 flex flex-col items-center justify-center gap-2 p-4 bg-red-950/20">
+          <span class="text-red-400 text-xs font-bold">⚠ Lỗi tải nội dung</span>
+          <code class="text-[9px] text-red-300/50 text-center">
+            draft: {(draft_content || '').length}c · html: {(finalHtml || '').length}c · assets: {assets.length}
+          </code>
+        </div>
+      {/if}
+    </div>
 
     <!-- Analysis Badges Sync (Step 4 Style) -->
     <div class="shrink-0 flex items-center gap-2 px-3 py-2 bg-black/40 border-t border-white/5">

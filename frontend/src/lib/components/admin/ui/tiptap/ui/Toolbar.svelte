@@ -36,6 +36,7 @@
     onOpenImage: () => void;
     onOpenLink: () => void;
     onClearHighlights: () => void;
+    onAction?: () => void;
     fullScreen?: boolean;
   } = $props();
 
@@ -44,6 +45,7 @@
 
   function handleParagraphChange(e: Event) {
     const val = (e.target as HTMLSelectElement).value;
+    onAction?.();
     if (val === 'p') editor?.chain().focus().setParagraph().run();
     else if (val === 'h1') editor?.chain().focus().toggleHeading({ level: 1 }).run();
     else if (val === 'h2') editor?.chain().focus().toggleHeading({ level: 2 }).run();
@@ -51,14 +53,15 @@
   }
 
   function handleFontChange(e: Event) {
+    onAction?.();
     editor?.chain().focus().setFontFamily((e.target as HTMLSelectElement).value).run();
   }
 </script>
 
 <div class="flex flex-wrap items-center gap-0.5 px-2 py-1.5 bg-white/[0.03] border-b border-white/5 pb-2">
   <!-- History -->
-  <button onclick={() => editor?.chain().focus().undo().run()} class="tb-btn" title="Undo"><UndoIcon size={13} /></button>
-  <button onclick={() => editor?.chain().focus().redo().run()} class="tb-btn" title="Redo"><RedoIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={() => { onAction?.(); editor?.chain().focus().undo().run(); }} class="tb-btn" title="Undo"><UndoIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={() => { onAction?.(); editor?.chain().focus().redo().run(); }} class="tb-btn" title="Redo"><RedoIcon size={13} /></button>
   <div class="tb-divider"></div>
 
   <!-- Paragraph Style -->
@@ -85,33 +88,33 @@
   <div class="tb-divider"></div>
 
   <!-- Formatting -->
-  <button onclick={() => editor?.chain().focus().toggleBold().run()} class="tb-btn {editor?.isActive('bold') ? 'active' : ''}" title="Bold (Ctrl+B)"><BoldIcon size={13} /></button>
-  <button onclick={() => editor?.chain().focus().toggleItalic().run()} class="tb-btn {editor?.isActive('italic') ? 'active' : ''}" title="Italic (Ctrl+I)"><ItalicIcon size={13} /></button>
-  <button onclick={() => editor?.chain().focus().toggleUnderline().run()} class="tb-btn {editor?.isActive('underline') ? 'active' : ''}" title="Underline (Ctrl+U)"><UnderlineIcon size={13} /></button>
-  <button onclick={() => editor?.chain().focus().toggleStrike().run()} class="tb-btn {editor?.isActive('strike') ? 'active' : ''}" title="Strikethrough"><StrikethroughIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={() => editor?.chain().focus().toggleBold().run()} class="tb-btn {editor?.isActive('bold') ? 'active' : ''}" title="Bold (Ctrl+B)"><BoldIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={() => editor?.chain().focus().toggleItalic().run()} class="tb-btn {editor?.isActive('italic') ? 'active' : ''}" title="Italic (Ctrl+I)"><ItalicIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={() => editor?.chain().focus().toggleUnderline().run()} class="tb-btn {editor?.isActive('underline') ? 'active' : ''}" title="Underline (Ctrl+U)"><UnderlineIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={() => editor?.chain().focus().toggleStrike().run()} class="tb-btn {editor?.isActive('strike') ? 'active' : ''}" title="Strikethrough"><StrikethroughIcon size={13} /></button>
 
   <div class="tb-divider"></div>
 
   <!-- Text alignment -->
-  <button onclick={() => editor?.chain().focus().setTextAlign('left').run()} class="tb-btn {editor?.isActive({ textAlign: 'left' }) ? 'active' : ''}" title="Align Left"><AlignLeftIcon size={13} /></button>
-  <button onclick={() => editor?.chain().focus().setTextAlign('center').run()} class="tb-btn {editor?.isActive({ textAlign: 'center' }) ? 'active' : ''}" title="Align Center"><AlignCenterIcon size={13} /></button>
-  <button onclick={() => editor?.chain().focus().setTextAlign('right').run()} class="tb-btn {editor?.isActive({ textAlign: 'right' }) ? 'active' : ''}" title="Align Right"><AlignRightIcon size={13} /></button>
-  <button onclick={() => editor?.chain().focus().setTextAlign('justify').run()} class="tb-btn {editor?.isActive({ textAlign: 'justify' }) ? 'active' : ''}" title="Justify"><AlignJustifyIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={() => editor?.chain().focus().setTextAlign('left').run()} class="tb-btn {editor?.isActive({ textAlign: 'left' }) ? 'active' : ''}" title="Align Left"><AlignLeftIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={() => editor?.chain().focus().setTextAlign('center').run()} class="tb-btn {editor?.isActive({ textAlign: 'center' }) ? 'active' : ''}" title="Align Center"><AlignCenterIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={() => editor?.chain().focus().setTextAlign('right').run()} class="tb-btn {editor?.isActive({ textAlign: 'right' }) ? 'active' : ''}" title="Align Right"><AlignRightIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={() => editor?.chain().focus().setTextAlign('justify').run()} class="tb-btn {editor?.isActive({ textAlign: 'justify' }) ? 'active' : ''}" title="Justify"><AlignJustifyIcon size={13} /></button>
 
   <div class="tb-divider"></div>
 
   <!-- Lists -->
-  <button onclick={() => editor?.chain().focus().toggleBulletList().run()} class="tb-btn {editor?.isActive('bulletList') ? 'active' : ''}" title="Bullet List"><ListIcon size={13} /></button>
-  <button onclick={() => editor?.chain().focus().toggleOrderedList().run()} class="tb-btn {editor?.isActive('orderedList') ? 'active' : ''}" title="Ordered List"><ListOrderedIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={() => editor?.chain().focus().toggleBulletList().run()} class="tb-btn {editor?.isActive('bulletList') ? 'active' : ''}" title="Bullet List"><ListIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={() => editor?.chain().focus().toggleOrderedList().run()} class="tb-btn {editor?.isActive('orderedList') ? 'active' : ''}" title="Ordered List"><ListOrderedIcon size={13} /></button>
 
   <div class="tb-divider"></div>
 
   <!-- Insert -->
-  <button onclick={onOpenImage} class="tb-btn" title="Insert Image"><ImageIcon size={13} /></button>
-  <button title="Insert Link" onclick={onOpenLink} class="tb-btn"><Link2Icon size={13} /></button>
-  <button onclick={() => editor?.chain().focus().toggleBlockquote().run()} class="tb-btn {editor?.isActive('blockquote') ? 'active' : ''}" title="Blockquote"><BlockquoteIcon size={13} /></button>
-  <button onclick={() => editor?.chain().focus().toggleCodeBlock().run()} class="tb-btn {editor?.isActive('codeBlock') ? 'active' : ''}" title="Code Block"><CodeIcon size={13} /></button>
-  <button onclick={() => editor?.chain().focus().setHorizontalRule().run()} class="tb-btn" title="Horizontal Rule"><MinusIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={onOpenImage} class="tb-btn" title="Insert Image"><ImageIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} title="Insert Link" onclick={onOpenLink} class="tb-btn"><Link2Icon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={() => editor?.chain().focus().toggleBlockquote().run()} class="tb-btn {editor?.isActive('blockquote') ? 'active' : ''}" title="Blockquote"><BlockquoteIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={() => editor?.chain().focus().toggleCodeBlock().run()} class="tb-btn {editor?.isActive('codeBlock') ? 'active' : ''}" title="Code Block"><CodeIcon size={13} /></button>
+  <button onmousedown={(e) => e.preventDefault()} onclick={() => editor?.chain().focus().setHorizontalRule().run()} class="tb-btn" title="Horizontal Rule"><MinusIcon size={13} /></button>
 
   <div class="tb-divider"></div>
 
@@ -119,14 +122,16 @@
   <div class="flex items-center gap-0.5 mr-1">
     {#each COLORS as color}
       <button
-        onclick={() => editor?.chain().focus().setColor(color).run()}
+        onmousedown={(e) => e.preventDefault()}
+        onclick={() => { onAction?.(); editor?.chain().focus().setColor(color).run(); }}
         class="w-4 h-4 border border-white/20 hover:scale-110 transition-transform shadow-inner"
         style="background: {color}"
         title="Text color: {color}"
       ></button>
     {/each}
     <button
-      onclick={() => editor?.chain().focus().unsetColor().run()}
+      onmousedown={(e) => e.preventDefault()}
+      onclick={() => { onAction?.(); editor?.chain().focus().unsetColor().run(); }}
       class="w-4 h-4 border border-white/20 hover:scale-110 transition-transform text-[8px] text-white/50 flex items-center justify-center"
       title="Reset color"
     >↺</button>

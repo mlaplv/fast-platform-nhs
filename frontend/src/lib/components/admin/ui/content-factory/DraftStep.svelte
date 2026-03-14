@@ -132,6 +132,10 @@
       await saveBeforeAnalysis();
       const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/copyright?force=${isForce}`);
       if (res?.data) copyrightResult = res.data;
+      if (res?.draft_content) {
+        if (isEditing) editedDraft = res.draft_content;
+        else draft_content = res.draft_content;
+      }
     } catch (e) {
       console.error("[DraftStep] Copyright check failed:", e);
     } finally {
@@ -149,6 +153,10 @@
       await saveBeforeAnalysis();
       const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/seo?force=${isForce}`);
       if (res?.data) seoResult = res.data;
+      if (res?.draft_content) {
+        if (isEditing) editedDraft = res.draft_content;
+        else draft_content = res.draft_content;
+      }
     } catch (e) {
       console.error("[DraftStep] SEO analysis failed:", e);
     } finally {
@@ -166,6 +174,10 @@
       await saveBeforeAnalysis();
       const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/ai-inspect?force=${isForce}`);
       if (res?.data) aiReadyResult = res.data;
+      if (res?.draft_content) {
+        if (isEditing) editedDraft = res.draft_content;
+        else draft_content = res.draft_content;
+      }
     } catch (e) {
       console.error("[DraftStep] AI Inspect failed:", e);
     } finally {
