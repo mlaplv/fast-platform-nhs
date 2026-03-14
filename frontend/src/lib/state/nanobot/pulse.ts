@@ -196,10 +196,16 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
       if (eventSource) {
         eventSource.close();
         eventSource = null;
-        // Rules R82.36: Hardened Exponential Backoff
+
+        // Skip retry log if the page is literally unloading (F5/Close)
+        const isUnloading = typeof window !== "undefined" && (window.performance?.navigation?.type === 1 || !window.navigator.onLine);
+        
         const delay = Math.min(30000, 5000 * Math.pow(1.5, retryCount));
         retryCount++;
-        if (isDev()) console.error(`[Pulse] SSE failed. Retrying in ${delay}ms...`);
+        
+        if (isDev() && !isUnloading) {
+          console.log(`[Pulse] SSE connection interrupted. Retrying in ${delay}ms...`);
+        }
         pulseRetryTimeout = setTimeout(connectPulse, delay);
       }
     };
