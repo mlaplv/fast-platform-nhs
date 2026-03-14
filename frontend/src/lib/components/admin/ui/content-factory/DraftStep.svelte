@@ -125,11 +125,12 @@
 
   const runCopyrightCheck = async (force: boolean = false) => {
     if (!campaign_id || isCopyrightLoading) return;
+    const isForce = force === true;
     isCopyrightLoading = true;
     copyrightResult = null;
     try {
       await saveBeforeAnalysis();
-      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/copyright?force=${force}`);
+      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/copyright?force=${isForce}`);
       if (res?.data) copyrightResult = res.data;
     } catch (e) {
       console.error("[DraftStep] Copyright check failed:", e);
@@ -141,11 +142,12 @@
 
   const runSeoAnalysis = async (force: boolean = false) => {
     if (!campaign_id || isSeoLoading || seoLocked) return;
+    const isForce = force === true;
     isSeoLoading = true;
     seoResult = null;
     try {
       await saveBeforeAnalysis();
-      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/seo?force=${force}`);
+      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/seo?force=${isForce}`);
       if (res?.data) seoResult = res.data;
     } catch (e) {
       console.error("[DraftStep] SEO analysis failed:", e);
@@ -157,11 +159,12 @@
 
   const runAiAnalysis = async (force: boolean = false) => {
     if (!campaign_id || isAiLoading || aiLocked) return;
+    const isForce = force === true;
     isAiLoading = true;
     aiReadyResult = null;
     try {
       await saveBeforeAnalysis();
-      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/ai-inspect?force=${force}`);
+      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/ai-inspect?force=${isForce}`);
       if (res?.data) aiReadyResult = res.data;
     } catch (e) {
       console.error("[DraftStep] AI Inspect failed:", e);
