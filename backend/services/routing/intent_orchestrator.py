@@ -147,12 +147,17 @@ class RouterOrchestrator:
         sleep_words = user_profile.get("sleep_words", [])
         
         # Quick STT Dict bypass for Wake/Sleep (0ms)
-        transcript_lower = transcript.lower()
-        for wrong, right in user_dict.items():
-            if wrong in transcript_lower:
-                transcript_lower = transcript_lower.replace(wrong, right)
-        
-        normalized_transcript = normalize_vn(transcript_lower)
+        # 76.3: Reuse transcript_lower from fast-path
+        if user_dict:
+            applied_correction = False
+            for wrong, right in user_dict.items():
+                if wrong in transcript_lower:
+                    transcript_lower = transcript_lower.replace(wrong, right)
+                    applied_correction = True
+
+            if applied_correction:
+                normalized_transcript = normalize_vn(transcript_lower)
+                trans_pho = normalized_transcript.replace("k", "c").replace("q", "c")
 
         # 0.5.1: Heuristic High-Speed Match (0ms)
         # 76.3: Pre-calculate phonetic version once
