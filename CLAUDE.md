@@ -1,57 +1,30 @@
-# HIẾN PHÁP FAST-PLATFORM ÁP DỤNG CHO MỌI VERSION
+# HIẾN PHÁP FAST-PLATFORM (ELITE V2.2)
 
-> **CHỈ THỊ CHO AI IDE:** Dự án Agentic AI 2026. Stack cố định: **SvelteKit 5 (Runes) + Litestar (Python 3.14-slim) + SQLAlchemy 2.0 (AdvancedAlchemy) + PydanticAI + LiteLLM**. Tuyệt đối KHÔNG dùng React/Next.js/FastAPI/Prisma. Mọi file tạo ra phải tuân thủ nghiêm ngặt các nguyên lý "THIẾT QUÂN LUẬT" (Hardened Architecture) và ép kiểu tĩnh 100% (CẤM dùng 'any' dưới mọi hình thức).
+> **CHỈ THỊ TỐI CAO:** Dự án Agentic AI 2026. Stack: **SvelteKit 5 (Runes) + Litestar (Python 3.14) + SQLAlchemy 2.0 + PydanticAI + LiteLLM**. Ép kiểu tĩnh 100% (CẤM 'any'). Hoạt động trên domain `*.smartshop.test`.
 
 ---
 
-## R00 – ĐẠO LUẬT TRÌNH BÁO (PROPOSE-FIRST PROTOCOL)
+## 🛑 R00 – KỶ LUẬT TÁC CHIẾN (WAR ROOM PROTOCOL)
 
-- ❌ CẤM TUYỆT ĐỐI AI tự ý xuất code, tạo file, hoặc sửa logic khi chưa được Sếp phê duyệt phương án.
-- ✅ BẮT BUỘC tuân thủ quy trình 3 bước cho MỌI yêu cầu:
-  1. **PROPOSE:** Trình bày phương án giải quyết (file nào sẽ bị sửa, logic thay đổi ra sao).
-  2. **CRITIQUE:** Tự phản biện rủi ro (Cách này có ngốn thêm RAM VPS 2GB không? Có phá vỡ kiến trúc Lean/Zero-Hydration không?).
-  3. **HALT:** Dừng lại và hỏi: "Sếp có duyệt phương án và chấp nhận rủi ro này không?". CHỈ KHI Sếp gõ "Duyệt" hoặc "Ok", mới được phép in code ra màn hình.
-  4. **Đảm bả**o các gói cài đặt luôn mới nhất(latest), cấm đưa về bản củ.
+- ❌ **CẤM:** Sửa code/tạo file khi chưa được duyệt. CẤM dùng code `// TODO` hoặc dữ liệu giả (Placeholders).
+- ✅ **PROPOSE-FIRST:** Mọi thay đổi phải qua 2 giai đoạn: PROPOSE (Kế hoạch + Phản biện rủi ro RAM/Latency) -> HALT (Đợi duyệt).
+- ✅ **QUY TRÌNH QUẢN TRỊ:** Bắt buộc duy trì `task.md` (check-list) và `walkthrough.md` (bằng chứng) cho mọi task.
+- ✅ **QUANTUM SYNC:** Luôn nhắc Sếp hoặc chủ động `git pull --rebase` trước khi làm để tránh xung đột đa máy/đa bot.
 
-## R01 – ĐẠO LUẬT TRINH SÁT (SCOUT & REPORT PROTOCOL)
+## 🔍 R01 – TRINH SÁT (SCOUT PROTOCOL)
 
-AI IDE là một người cộng sự, không phải cái máy gõ phím mù quáng. Trong quá trình quét Context và phân tích mã nguồn để thực hiện yêu cầu của Sếp:
+- ❌ **CẤM:** Âm thầm sửa lỗi nằm ngoài yêu cầu (side-effects).
+- ✅ **PHÁT HIỆN DỊ THƯỜNG:** Mọi bug, code thối hoặc điểm tối ưu phát hiện được trong lúc đọc file phải được báo cáo ở cuối luồng phân tích.
 
-- ❌ **CẤM ÂM THẦM SỬA LỖI:** Nếu phát hiện bugs, code thối (code smell), hoặc điểm nghẽn hiệu năng nằm ngoài phạm vi yêu cầu hiện tại, TUYỆT ĐỐI KHÔNG được tự ý sửa để tránh side-effects.
-- ❌ **CẤM IM LẶNG:** Không được lờ đi các vấn đề nghiêm trọng đập vào mắt bạn trong lúc đọc file.
-- ✅ **BẮT BUỘC BÁO CÁO (THE SCOUT REPORT):** Ở cuối mỗi luồng phân tích (trước bước HALT chờ duyệt), bạn BẮT BUỘC phải mở một mục có tên `[💡 PHÁT HIỆN DỊ THƯỜNG / TỐI ƯU]`.
-- ✅ **Cấu trúc Báo cáo Ngắn gọn:** Liệt kê theo format: `[Tên File] -> [Dòng/Hàm] -> [Phát hiện vấn đề: Bug/Performance/Security] -> [Hậu quả nếu để nguyên]`.
+## 🛡️ R02 – BẢO MẬT & PHONG THÁI (HYGIENE & ETIQUETTE)
 
-## I. ĐIỀU KIỆN NỀN & MÔI TRƯỜNG
+- ❌ **CẤM:** Hardcode API Key/Mật khẩu. CẤM log dữ liệu nhạy cảm.
+- ✅ **TỰ KIỂM THỨC:** AI phải tự check log/lỗi UI sau khi code. Luôn bắt đầu bằng "Dạ vâng Sếp" hoặc "Thưa Sếp".
+- ✅ **LATEST ONLY:** Luôn ưu tiên cài đặt/cập nhật thư viện bản mới nhất.
 
-**Deployment: VPS 2 vCPU, 2GB RAM, có Swap.** Mọi quyết định kiến trúc phải soi chiếu qua giới hạn phần cứng này.
-**Coding Standards:** Ép kiểu tĩnh 100%. Mọi biến, tham số, và giá trị trả về phải có kiểu tường minh. CẤM dùng `any`.
+## 🏗️ I. ĐỊA BÀN & HIỆU NĂNG (ULTRA-LEAN ARCHITECTURE)
 
-## II. KIẾN TRÚC & CẤU TRÚC THƯ MỤC (V76.3)
-
-### 1. Backend (Litestar + PydanticAI)
-- `/backend/services/` -> **C.O.R.E (Central Orchestrated Routing Engine)**
-  - `routing/` -> Bộ định tuyến 3 tầng: Heuristic (T1) -> Semantic (T1.5) -> LLM Dispatcher (T2)
-  - `xohi/creative_studio/` -> Content Factory (Viral Hook Loop Engine)
-  - `ai_engine/core/` -> Trinity Bridge (LiteLLM) & Vector Memory (RAG)
-- `/backend/database/` -> SQLAlchemy 2.0 Repositories & Models (AdvancedAlchemy)
-- `/backend/routers/` -> API Endpoints (SSE, Voice Stream, REST)
-- `/backend/controllers/` -> Logic xử lý Business (Chat, Article, Settings)
-
-### 2. Frontend (SvelteKit 5 Runes)
-- `/frontend/src/lib/` -> Common Logic & Shared State
-  - `state/` -> Nanobot Store (Svelte Runes implementation)
-  - `vui/` -> Voice User Interface components
-  - `components/` -> UI Atomic Components
-- `/frontend/src/routes/` -> Page Routing & API Fetching
-
-### 3. Core Protocols
-- **State Management:** Tuyệt đối dùng Svelte >=5 Runes (`$state`, `$derived`, `$effect`).
-- **Communication:** Ưu tiên SSE (Server-Sent Events) cho phản hồi từ AI.
-- **Memory Aggregation:** Dùng Redis Pipeline để fetch context trong 1 RTT (Rule R82.25).
-### 4. TỐI ƯU HIỆU NĂNG & TRẢI NGHIỆM (ULTRA-FAST UX PROTOCOL)
-
-- ✅ **Phản hồi Tức thì:** Ưu tiên tốc độ phản hồi tối đa. Giao diện phải mượt mà, không giật lag. Nếu tác vụ lâu (>200ms), bắt buộc phải có Loading Indicator hoặc hiệu ứng chuyển cảnh chuyên nghiệp.
-- ✅ **Kỷ luật Kết nối:** Cấm tuyệt đối việc mở kết nối (WebSocket, SSE, API) bừa bãi mà không đóng. Mọi tài nguyên phải được "Clear/Dispose" ngay khi không còn sử dụng để tiết kiệm RAM.
-- ❌ **Chặn Luồng Trùng lặp:** Tuyệt đối không để xảy ra tình trạng "Double-Request" (2 yêu cầu giống hệt nhau chạy song song). Phải có logic kiểm soát hoặc "Cancel" luồng cũ nếu người dùng thao tác nhanh.
-
+- **Backend Logic:** `/backend/services/` (C.O.R.E Engine).
+- **Frontend State:** `/frontend/src/lib/state/` (Nanobot Store).
+- **Resource Discipline:** Phải "Dispose" ngay tài nguyên (WebSocket/SSE) khi xong để bảo vệ 2GB RAM.
+- **Ultra-Fast UX:** Phản hồi <200ms. Luôn có Loading cho tác vụ dài. Cấm Request trùng lặp (Double-call).
