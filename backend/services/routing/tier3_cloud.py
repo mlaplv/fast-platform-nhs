@@ -2,6 +2,7 @@ import asyncio
 import os
 import logging
 import json
+from dataclasses import dataclass
 from typing import Optional
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
@@ -9,6 +10,7 @@ from litellm import RateLimitError, AuthenticationError, ServiceUnavailableError
 
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from backend.services.ai_engine.core.key_rotator import key_rotator
+from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
 logger = logging.getLogger("api-gateway")
 
@@ -21,7 +23,7 @@ class Tier3Output(BaseModel):
     ui_action: str = Field(default="", description="The frontend widget to trigger, if applicable")
     action_data: dict = Field(default_factory=dict, description="Pre-filled data for the frontend form")
 
-from dataclasses import dataclass
+SYSTEM_CORE_DIRECTIVE = os.getenv("SYSTEM_CORE_DIRECTIVE", "")
 
 @dataclass
 class Tier3Deps:
@@ -81,12 +83,10 @@ class Tier3CloudRouter:
                     history.append(msg)
 
         # [TRINITY DISPATCHER] Waterfall logic decoupled
-        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-
         deps = Tier3Deps(
-            screen_context=screen_context, 
+            screen_context=screen_context,
             rotator=key_rotator,
-            base_directive=os.getenv("SYSTEM_CORE_DIRECTIVE", "")
+            base_directive=SYSTEM_CORE_DIRECTIVE
         )
 
         try:
@@ -132,11 +132,10 @@ class Tier3CloudRouter:
                 if msg.get("role") != "system":
                     history.append(msg)
 
-        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
         deps = Tier3Deps(
-            screen_context=screen_context, 
+            screen_context=screen_context,
             rotator=key_rotator,
-            base_directive=os.getenv("SYSTEM_CORE_DIRECTIVE", "")
+            base_directive=SYSTEM_CORE_DIRECTIVE
         )
 
         try:

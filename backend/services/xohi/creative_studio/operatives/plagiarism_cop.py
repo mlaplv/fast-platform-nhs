@@ -2,9 +2,13 @@ import asyncio
 import logging
 import os
 import re
+import copy
+import hashlib
+from datetime import datetime, timezone
 from typing import List, Tuple, Dict, Union, Optional
 from pydantic import BaseModel
 from pydantic_ai import Agent
+from sqlalchemy.orm.attributes import flag_modified
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
 from backend.services.xohi.creative_studio.models.schemas import AgentResponse, AgentSignal
@@ -12,6 +16,13 @@ from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.http_client import get_http_client
 
 logger = logging.getLogger("api-gateway")
+
+# Pre-compiled Regex for Performance (V76.3)
+RE_HTML_TAGS = re.compile(r'<[^>]+>')
+RE_IMAGE_PLACEHOLDERS = re.compile(r'\[IMAGE_\d+\]')
+RE_WHITESPACE = re.compile(r'\s+')
+RE_SENTENCE_SPLIT = re.compile(r'(?<=[.!?。])\s+')
+RE_NORMALIZE = re.compile(r'[^\w\sàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]')
 
 # ══════════════════════════════════════════════════════════════
 # SCHEMAS — 2026 Edition with Inline Annotations
@@ -22,6 +33,7 @@ class CopyrightAnnotation(BaseModel):
     reason: str         # Why this is risky (Vietnamese)
     source_url: str     # Competitor URL that this resembles
     severity: str       # "low" | "medium" | "high"
+    type: Optional[str] = "external"  # "external" | "internal-dedup"
 
 class PlagiarismResult(BaseModel):
     uniqueness_score: float  # 0.0 (full copy) → 1.0 (100% unique)
@@ -113,7 +125,7 @@ class PlagiarismCop:
             return []
 
         # Split into sentences (Vietnamese + English punctuation)
-        sentences = re.split(r'(?<=[.!?。])\s+', plain_text)
+        sentences = RE_SENTENCE_SPLIT.split(plain_text)
         # Filter out very short "sentences" (less than 15 chars are likely fragments)
         sentences = [s.strip() for s in sentences if len(s.strip()) >= 15]
 
@@ -123,8 +135,8 @@ class PlagiarismCop:
         # Normalize for comparison (lowercase, collapse whitespace, strip punctuation)
         def normalize(text: str) -> str:
             text = text.lower().strip()
-            text = re.sub(r'[^\w\sàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]', '', text)
-            text = re.sub(r'\s+', ' ', text)
+            text = RE_NORMALIZE.sub('', text)
+            text = RE_WHITESPACE.sub(' ', text)
             return text
 
         # Track seen sentences → first occurrence index
@@ -206,11 +218,6 @@ class PlagiarismCop:
         result = await self.analyze(campaign)
 
         # Phase 73: Sync with gold_metadata analysis_cache for UI hydration parity
-        import copy
-        import hashlib
-        from datetime import datetime, timezone
-        from sqlalchemy.orm.attributes import flag_modified
-
         gold = copy.deepcopy(campaign.gold_metadata or {})
         cache = gold.get("analysis_cache", {})
         metrics = gold.get("analysis_metrics", {})
@@ -284,10 +291,10 @@ class PlagiarismCop:
             )
 
         # 1. Extract readable text from HTML
-        plain_text = re.sub(r'<[^>]+>', ' ', draft)
+        plain_text = RE_HTML_TAGS.sub(' ', draft)
         # Phase 71.20: Strip [IMAGE_N] to match frontend editor content
-        plain_text = re.sub(r'\[IMAGE_\d+\]', '', plain_text)
-        plain_text = re.sub(r'\s+', ' ', plain_text).strip()
+        plain_text = RE_IMAGE_PLACEHOLDERS.sub('', plain_text)
+        plain_text = RE_WHITESPACE.sub(' ', plain_text).strip()
         # Limit to 3000 chars for analysis efficiency
         snippet = plain_text[:3000]
 
@@ -329,15 +336,9 @@ NHIỆM VỤ: Phân tích và trả về JSON đúng schema yêu cầu.
                     # Update uniqueness score based on internal dedup
                     raw.uniqueness_score = max(0.0, raw.uniqueness_score - 0.05) # Small penalty per lặp
                     # Add to list with internal type
-                    # Mapping to schema
-                    validated_annotations.append({
-                        "text": iann.text,
-                        "reason": iann.reason,
-                        "source_url": iann.source_url,
-                        "severity": iann.severity,
-                        "type": "internal-dedup" # Inject type for frontend
-                    })
-                
+                    iann.type = "internal-dedup"
+                    validated_annotations.append(iann)
+
                 raw.annotations = validated_annotations
                 if raw.uniqueness_score < 0.8:
                     raw.risk_level = "HIGH" if raw.uniqueness_score < 0.6 else "MEDIUM"

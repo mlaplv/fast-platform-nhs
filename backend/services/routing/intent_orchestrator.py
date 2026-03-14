@@ -1,4 +1,5 @@
-import logging, os, asyncio, json, time, unicodedata, re, difflib
+import logging, os, asyncio, json, time, unicodedata, re
+from rapidfuzz import fuzz
 from typing import List, Dict, Optional, Tuple, Union
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from .tier2_cloud import Tier2CloudRouter
@@ -13,14 +14,87 @@ from .heuristic_classifier import heuristic_classify
 from backend.services.xohi.creative_studio.orchestrator import content_factory
 from backend.database.alchemy_config import alchemy_config
 from backend.database.repositories import ContentCampaignRepository
+from backend.services.ai_engine.core.vector_memory import VectorMemory
 
 logger = logging.getLogger("api-gateway")
 
 # Pre-compiled regex for STT confirmed word boundaries
 STT_CONFIRM_RE_CACHE = {}
 
+# --- Global Keywords & Mappings (R1.6: Zero-Hydration Constants) ---
+YES_KEYWORDS = ["đúng", "vâng", "yes", "ừ", "ok", "ok đi", "chuẩn", "đươc", "rồi", "chính xác", "phải", "phai", "có"]
+NO_KEYWORDS = ["không", "nhầm", "sai", "no"]
+NAV_KEYWORDS = ["mở", "xem", "vào", "biểu đồ", "show", "open", "display", "chart"]
+
+# Phase 76.3: Pre-normalized versions for O(1) or fast O(N) lookup
+NORM_YES_KEYWORDS = {normalize_vn(kw) for kw in YES_KEYWORDS}
+NORM_NO_KEYWORDS = {normalize_vn(kw) for kw in NO_KEYWORDS}
+NORM_NAV_KEYWORDS = {normalize_vn(kw) for kw in NAV_KEYWORDS}
+
+WAKE_TRIGGERS = ["xohi"]
+SLEEP_TRIGGERS = ["cut", "ngu di", "thoat", "tam biet"]
+NORM_WAKE_TRIGGERS = [normalize_vn(kw) for kw in WAKE_TRIGGERS]
+NORM_SLEEP_TRIGGERS = [normalize_vn(kw) for kw in SLEEP_TRIGGERS]
+
+TIMEFRAME_VI_MAP = {
+    "today": "hôm nay",
+    "this_month": "tháng này",
+    "this_week": "tuần này",
+    "yesterday": "hôm qua",
+    "last_month": "tháng trước",
+    "none": ""
+}
+
+TARGET_VI_MAP = {
+    "revenue": "doanh số",
+    "order": "số đơn hàng",
+    "product": "số sản phẩm",
+    "user": "số khách hàng"
+}
+
+NAV_MSG_MAP = {
+    "revenue":  "biểu đồ doanh thu",
+    "order":    "quản lý đơn hàng",
+    "product":  "quản lý sản phẩm",
+    "user":     "danh sách nhân viên",
+    "category": "quản lý danh mục",
+    "news":     "quản lý bài viết",
+    "settings": "cài đặt giọng nói"
+}
+# -------------------------------------------------------------------
+
 # Pre-created session maker for proactive resume checks (V76)
 async_session_maker = alchemy_config.create_session_maker()
+
+# --- Phase 76.3: Trigger Optimization Cache ---
+TRIGGER_PHO_CACHE = {} # { "word": "word_pho" }
+
+def _get_phonetic(word: str) -> str:
+    if word not in TRIGGER_PHO_CACHE:
+        TRIGGER_PHO_CACHE[word] = word.replace("k", "c").replace("q", "c")
+    return TRIGGER_PHO_CACHE[word]
+
+def _match_trigger(words_list, trans_norm, trans_pho=None):
+    if not words_list: return False
+
+    # 76.3: Use pre-calculated phonetic transcript if provided
+    if trans_pho is None:
+        trans_pho = trans_norm.replace("k", "c").replace("q", "c")
+
+    for w in words_list:
+        # We assume words_list might contain raw or normalized words
+        # but triggers are usually simple, so we normalize here if not cached
+        w_norm = normalize_vn(w)
+        w_pho = _get_phonetic(w_norm)
+
+        if w_norm in trans_norm or w_pho in trans_pho:
+            return True
+
+        # For very short triggers (like "cut", "xohi"), be more lenient on the ratio
+        threshold = 80 if len(w_norm) <= 4 else 90
+        if fuzz.ratio(trans_pho, w_pho) > threshold:
+            return True
+    return False
 
 class RouterOrchestrator:
     """
@@ -48,9 +122,19 @@ class RouterOrchestrator:
         m_tag = "v" if modality == "voice" else "c"
         transcript = unicodedata.normalize('NFC', transcript.strip())
         logger.info(f"--- [C.O.R.E][{m_tag}] Raw Transcript: '{transcript}' ---")
-        
+
+        # 76.3.1: FAST-PATH FOR SYSTEM COMMANDS (0ms)
+        # Nhận diện lệnh hệ thống NGAY LẬP TỨC trước khi gọi bất kỳ STT AI hay Memory nào.
+        transcript_lower = transcript.lower()
+        normalized_transcript = normalize_vn(transcript_lower)
+        trans_pho = normalized_transcript.replace("k", "c").replace("q", "c")
+
+        # Check sleep/exit commands first to avoid any delay
+        is_sleep = _match_trigger(["cut", "ngu di", "thoat", "tam biet", "bye", "chao"], normalized_transcript, trans_pho=trans_pho)
+        if is_sleep:
+             return IntentResponse(status="success", action=IntentAction.READ, message="Hẹn gặp lại sếp.", router_tier=RouterTier.TIER_1_HEURISTIC, data={"category": "SESSION_CTRL", "action": "HARDWARE_SLEEP", "confidence": 1.0}, cost_tokens=0.0)
+
         # Phase 76.3: Atomic Aggregation (Rule R82.25)
-        # Fetch profile, context, STT, and intent mapping in 1 RTT
         orchestrator_ctx = await xohi_memory.get_full_orchestrator_context(user_id)
         user_profile = orchestrator_ctx.get("profile", {})
         ctx = orchestrator_ctx.get("ctx", {})
@@ -69,30 +153,20 @@ class RouterOrchestrator:
                 transcript_lower = transcript_lower.replace(wrong, right)
         
         normalized_transcript = normalize_vn(transcript_lower)
-        
-        # 0.5.1: Heuristic High-Speed Match (0ms)
-        def _match_trigger(words_list, trans):
-            if not words_list: return False
-            # Phonetic equivalence check: "kút" vs "cút", "quá" vs "cá"
-            trans_pho = trans.replace("k", "c").replace("q", "c")
-            for w in words_list:
-                w_pho = w.replace("k", "c").replace("q", "c")
-                if w in trans or w_pho in trans_pho:
-                    return True
-                # For very short triggers (like "cut", "xohi"), be more lenient on the ratio
-                threshold = 0.8 if len(w) <= 4 else 0.9
-                if difflib.SequenceMatcher(None, trans_pho, w_pho).ratio() > threshold:
-                    return True
-            return False
 
-        is_wake = _match_trigger(wake_words + ["xohi"], normalized_transcript)
-        is_sleep = _match_trigger(sleep_words + ["cut", "ngu di", "thoat", "tam biet"], normalized_transcript)
+        # 0.5.1: Heuristic High-Speed Match (0ms)
+        # 76.3: Pre-calculate phonetic version once
+        trans_pho = normalized_transcript.replace("k", "c").replace("q", "c")
+
+        # 76.3: Use pre-normalized triggers from module constants
+        is_wake = _match_trigger(wake_words + NORM_WAKE_TRIGGERS, normalized_transcript, trans_pho=trans_pho)
+        is_sleep = _match_trigger(sleep_words + NORM_SLEEP_TRIGGERS, normalized_transcript, trans_pho=trans_pho)
 
         # 0.5.2: Semantic Fallback (Neural Trigger)
         if not is_wake and not is_sleep:
             # Check semantically if the intent is wake/sleep even if words don't match exactly
             sem_intent, sem_score = await self.semantic_router.classify(
-                transcript, 
+                transcript,
                 extra_intents={
                     "session_wake_user": wake_words,
                     "session_sleep_user": sleep_words
@@ -136,56 +210,42 @@ class RouterOrchestrator:
 
         # --- PHASE 1: INTERACTIVE STT LEARNING (MOLBOOK STYLE) ---
         if ctx.get("is_confirming_stt"):
-            # We are waiting for a YES/NO
-            yes_keywords = ["đúng", "vâng", "yes", "ừ", "ok", "ok đi", "chuẩn", "đươc", "rồi", "chính xác", "phải", "phai", "có"]
-            no_keywords = ["không", "nhầm", "sai", "no"]
-            
-            lower_trans = transcript.lower()
-            
-            # Use exact word boundaries for short words like "ok", "ừ", "có" to prevent false positives,
-            # but allow substring for longer ones.
-            is_yes = False
-            for kw in yes_keywords:
-                 if len(kw) <= 3:
-                     if kw not in STT_CONFIRM_RE_CACHE:
-                         STT_CONFIRM_RE_CACHE[kw] = re.compile(r'\b' + re.escape(kw) + r'\b', re.IGNORECASE)
-                     if STT_CONFIRM_RE_CACHE[kw].search(lower_trans):
-                         is_yes = True
-                         break
-                 else:
-                     if kw in lower_trans:
-                         is_yes = True
-                         break
-                         
-            is_no = any(kw in lower_trans for kw in no_keywords)
-            
+            # Phase 76.3: Use pre-normalized transcript for confirmation check
+            is_yes = any(kw in normalized_transcript for kw in NORM_YES_KEYWORDS)
+            is_no = any(kw in normalized_transcript for kw in NORM_NO_KEYWORDS)
+
             if is_yes and not is_no:
                 # User confirmed! Save to memory
                 suspected = ctx.get("pending_stt_correction", {})
                 if suspected:
                     user_dict.update(suspected)
                     ctx["stt_dictionary"] = user_dict
-                    
-                    # Persist to Redis (permanent) — survives container restarts
+
+                    # Persist to Redis (permanent)
                     for wrong, right in suspected.items():
                         await stt_corrector.smart_learn(user_id, wrong, right)
-                    
+
                     logger.info(f"[STT Learning] Memorized to Redis: {suspected}")
-                    
-                # Restore the cleaned transcript AND APPLY the learned correction (v56.2)
+
+                # Restore the cleaned transcript AND APPLY the learned correction
                 transcript = ctx.get("pending_cleaned_transcript", "").strip()
                 for wrong, right in suspected.items():
-                    pattern = re.compile(re.escape(wrong), re.IGNORECASE)
-                    transcript = pattern.sub(right, transcript)
-                    
+                    # Rule R82.25: Use cached regex for replacement
+                    cache_key = f"rep_{wrong}"
+                    if cache_key not in STT_CONFIRM_RE_CACHE:
+                        STT_CONFIRM_RE_CACHE[cache_key] = re.compile(re.escape(wrong), re.IGNORECASE)
+                    transcript = STT_CONFIRM_RE_CACHE[cache_key].sub(right, transcript)
+
                 logger.info(f"[STT Learning] Resuming execution with corrected transcript: '{transcript}'")
-                
-                # Clear state so we don't get stuck in a loop
+
+                # Clear state
                 ctx["is_confirming_stt"] = False
                 ctx["pending_stt_correction"] = {}
                 await xohi_memory.set_user_context(user_id, ctx)
+                # Re-normalize for the fall-through classification
+                normalized_transcript = normalize_vn(transcript)
                 
-            elif any(kw in lower_trans for kw in no_keywords):
+            if is_no:
                 ctx["is_confirming_stt"] = False
                 ctx["pending_stt_correction"] = {}
                 await xohi_memory.set_user_context(user_id, ctx)
@@ -207,7 +267,16 @@ class RouterOrchestrator:
             # we should immediately try T1 Semantic Router and Heuristics BEFORE T2 LLM.
             if not suspected:
                 # 2. Heuristic Filter (0-Token, <1ms)
-                heur_res = await self._heuristic_classify(cleaned_transcript.lower(), user_id, app_state, intent_map=intent_map)
+                # Phase 76.3: Reuse normalized transcript if no change to avoid redundant normalize_vn calls
+                target_norm = normalized_transcript if cleaned_transcript == transcript else normalize_vn(cleaned_transcript)
+
+                heur_res = await self._heuristic_classify(
+                    cleaned_transcript.lower(),
+                    user_id,
+                    app_state,
+                    intent_map=intent_map,
+                    norm_query=target_norm
+                )
                 if heur_res:
                     if heur_res.data is None:
                         heur_res.data = {}
@@ -319,9 +388,8 @@ class RouterOrchestrator:
         # ══════════════════════════════════════════════════════════════════════════
         if intent_type == "DATA_QUERY" or result.action == IntentAction.COUNT:
             # Check for explicit navigation intent in transcript
-            nav_keywords = ["mở", "xem", "vào", "biểu đồ", "show", "open", "display", "chart"]
-            has_nav_target = any(kw in transcript.lower() for kw in nav_keywords)
-            
+            has_nav_target = any(kw in transcript.lower() for kw in NAV_KEYWORDS)
+
             if not has_nav_target and (result.data.get("ui_action") or result.data.get("widget_id")):
                 logger.debug(f"[CORE][Filter] Stripping unsolicited UI action '{result.data.get('ui_action')}' from DATA_QUERY")
                 result.data["ui_action"] = ""
@@ -359,11 +427,10 @@ class RouterOrchestrator:
 
         if intent_type == "DEEP_ANALYSIS" or intent_type == "UNKNOWN" or class_action_str == "ANALYZE":
             logger.debug(f"[C.O.R.E][{m_tag}] Executing T3 Reasoning (intent_type={intent_type})")
-            
+
             # RAG: Inject vector search context for grounded reasoning
             rag_context = ""
             try:
-                from backend.services.ai_engine.core.vector_memory import VectorMemory
                 # Detect if query involves products or articles
                 lower_t = transcript.lower()
                 if any(kw in lower_t for kw in ["sản phẩm", "hàng", "tồn kho", "giá", "product"]):
@@ -389,7 +456,8 @@ class RouterOrchestrator:
             return await content_factory.handle_voice_request(
                 transcript,
                 campaign_repo=kwargs.get("campaign_repo"),
-                user_id=kwargs.get("user_id") # Rule R86: Propagate identity
+                user_id=kwargs.get("user_id"), # Rule R86: Propagate identity
+                intent_data=intent_data
             )
 
         if intent_type == "CONTENT_APPROVE" or class_action_str == "CONTENT_APPROVE":
@@ -440,22 +508,9 @@ class RouterOrchestrator:
                         pass
                 
                 if numeric_val is not None:
-                    timeframe_vi = {
-                        "today": "hôm nay",
-                        "this_month": "tháng này",
-                        "this_week": "tuần này",
-                        "yesterday": "hôm qua",
-                        "last_month": "tháng trước",
-                        "none": ""
-                    }.get(t2_response.data.get("timeframe"), "này")
-                    
-                    target_vi = {
-                        "revenue": "doanh số",
-                        "order": "số đơn hàng",
-                        "product": "số sản phẩm",
-                        "user": "số khách hàng"
-                    }.get(target, target)
-                    
+                    timeframe_vi = TIMEFRAME_VI_MAP.get(t2_response.data.get("timeframe"), "này")
+                    target_vi = TARGET_VI_MAP.get(target, target)
+
                     # Smart Vietnamese number formatting
                     if target == "revenue":
                         formatted_val = self._format_vn_currency(numeric_val)
@@ -482,15 +537,7 @@ class RouterOrchestrator:
         elif intent_type == "UI_NAV" and not t2_response.message:
             # Default friendly message for T2 navigation if empty
             target = t2_response.data.get("target", "none")
-            target_vi = {
-                "revenue":  "biểu đồ doanh thu",
-                "order":    "quản lý đơn hàng",
-                "product":  "quản lý sản phẩm",
-                "user":     "danh sách nhân viên",
-                "category": "quản lý danh mục",
-                "news":     "quản lý bài viết",
-                "settings": "cài đặt giọng nói"
-            }.get(target, "trang quản trị")
+            target_vi = NAV_MSG_MAP.get(target, "trang quản trị")
             t2_response.message = f"Dạ sếp, em mở {target_vi} cho sếp ngay đây ạ."
 
         # --- LOG MODALITY BRACKETING (XOHI[tag] for UI) ---
@@ -530,9 +577,16 @@ class RouterOrchestrator:
             return f"{int(val)} nghìn đồng"
         return f"{int(amount)} đồng"
 
-    async def _heuristic_classify(self, combined_lower: str, user_id: str, app_state: object, intent_map: Optional[dict] = None) -> Optional[IntentResponse]:
+    async def _heuristic_classify(
+        self,
+        combined_lower: str,
+        user_id: str,
+        app_state: object,
+        intent_map: Optional[dict] = None,
+        norm_query: Optional[str] = None
+    ) -> Optional[IntentResponse]:
         """V56.0: Delegated to heuristic_classifier.py (Rule 1.3: <300 LOC)."""
-        return await heuristic_classify(combined_lower, user_id, app_state, intent_map=intent_map)
+        return await heuristic_classify(combined_lower, user_id, app_state, intent_map=intent_map, norm_query=norm_query)
 
     def _error_response(self, msg: str) -> IntentResponse:
         return IntentResponse(

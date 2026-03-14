@@ -1,13 +1,21 @@
 import logging
 import os
 import uuid
+import re
+import asyncio
+from datetime import datetime, timezone
+from pydantic_ai import Agent
+
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
-from pydantic_ai import Agent
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge, AIConfigurationError
 from backend.services.xohi.creative_studio.models.schemas import TopicSeed, AgentResponse, AgentSignal, CategoryEnum
+from backend.services.event_bus import event_bus
 
 logger = logging.getLogger("api-gateway")
+
+# Pre-compiled Regex for Performance (V76.3)
+RE_CLEAN_PREFIX = re.compile(r'^(viết bài|tạo bài|làm bài|thiết kế|viết một bài về|viết bài về|tạo bài về|viết)\s+', re.IGNORECASE)
 
 VISION_PROMPT = """[ROLE] CHUYÊN GIA SEO CONTENT STRATEGY — Hệ thống XoHi Content Factory V62.1
 
@@ -56,27 +64,29 @@ class VisionInsight:
         )
 
     def _sanitize_topic(self, text: str) -> str:
-        import re
         # Strip common command prefixes
-        cleaned = re.sub(r'^(viết bài|tạo bài|làm bài|thiết kế|viết một bài về|viết bài về|tạo bài về|viết)\s+', '', text, flags=re.IGNORECASE)
+        cleaned = RE_CLEAN_PREFIX.sub('', text)
         return cleaned.strip().capitalize()
 
-    async def analyze_input(self, raw_input: str, campaign_id: str, user_id: str = "default") -> TopicSeed:
+    async def analyze_input(self, raw_input: str, campaign_id: str, user_id: str = "default", content_mode: str = "viral") -> TopicSeed:
         """
         Uses AI to extract structured keywords from input text.
         R85: Strict Structured Output via Pydantic.
         """
-        import asyncio
-        from datetime import datetime, timezone
-        from backend.services.event_bus import event_bus
-        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-
-        # R109: Use direct variables to avoid 'MissingGreenlet' lazy-load error 
+        # R109: Use direct variables to avoid 'MissingGreenlet' lazy-load error
         c_id = campaign_id
         u_id = user_id
 
         clean_topic = self._sanitize_topic(raw_input)
-        prompt = f"Chủ đề bài viết: {clean_topic}"
+
+        # Phase 77: Dynamic mode-based constraints
+        mode_instruction = ""
+        if content_mode == "deep_dive":
+            mode_instruction = "\n[CHẾ ĐỘ: PHÂN TÍCH SÂU] Bắt buộc word_count >= 1000, max_sections >= 6, style='Hàn lâm/Chuyên gia'."
+        else:
+            mode_instruction = "\n[CHẾ ĐỘ: VIRAL] Bắt buộc word_count ~ 500, max_sections ~ 3, style='Sắc sảo/Viral'."
+
+        prompt = f"Chủ đề bài viết: {clean_topic}{mode_instruction}"
 
         async def _emit_progress(msg: str):
             await event_bus.emit("CONTENT_PROGRESS", {

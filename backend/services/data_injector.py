@@ -1,11 +1,21 @@
 import logging
 import os
+import asyncio
 from zoneinfo import ZoneInfo
 from datetime import datetime, timedelta
 from typing import Union, Optional, Dict
+from sqlalchemy import select, func, text
+
 from backend.schemas.intent import IntentResponse
+from backend.database.models import Order, ProductBase, User
+from backend.database import current_tenant_id
 
 logger = logging.getLogger("api-gateway")
+
+# --- Performance Hardening Constants (R1.6) ---
+TIME_KEYWORDS = ["nay", "hôm nay", "ngày này", "chiều nay", "sáng nay", "tối nay"]
+APP_TZ = ZoneInfo(os.getenv("APP_TIMEZONE", "Asia/Ho_Chi_Minh"))
+DEFAULT_TENANT = os.getenv("DEFAULT_TENANT_ID", "default")
 
 class DataInjector:
     """
@@ -29,20 +39,19 @@ class DataInjector:
         ui_action = data_dict.get("ui_action", "")
 
         # Robust Timeframe Correction
-        time_keywords = ["nay", "hôm nay", "ngày này", "chiều nay", "sáng nay", "tối nay"]
-        if timeframe == "today" and not any(kw in user_query.lower() for kw in time_keywords):
+        if timeframe == "today" and not any(kw in user_query.lower() for kw in TIME_KEYWORDS):
             timeframe = "none"
 
         if target in ["order", "revenue", "product", "user"]:
             try:
                 # 1. Fetch scalar count (Fast Path)
                 count = await self._fetch_count(target, timeframe, status, **kwargs)
-                
+
                 intent.data["raw_count"] = count
                 intent.data["injected_count"] = count
                 intent.data["raw_timeframe"] = timeframe
                 intent.data["raw_target"] = target
-                
+
                 # 2. RESTORE: Fetch ALL revenue series ONLY if explicitly opening the chart
                 # This keeps voice counts fast but fills the chart with all tabs when needed.
                 if target == "revenue" and ui_action == "show_revenue_chart":
@@ -64,16 +73,12 @@ class DataInjector:
         Streamlined series fetcher. Parallel SQL grouping.
         Supports both Postgres (date_trunc) and SQLite (strftime).
         """
-        from sqlalchemy import select, func, text
-        from backend.database.models import Order
-        from backend.database import current_tenant_id
-        
         repo = repos.get("order_repo")
         if not repo: return {"daily": {"labels": [], "revenue": [], "orders": []}}
 
-        tenant_id = current_tenant_id.get() or os.getenv("DEFAULT_TENANT_ID", "default")
-        now = datetime.now(ZoneInfo(os.getenv("APP_TIMEZONE", "Asia/Ho_Chi_Minh")))
-        
+        tenant_id = current_tenant_id.get() or DEFAULT_TENANT
+        now = datetime.now(APP_TZ)
+
         async def fetch_grouped(trunc_unit: str, lookback_days: int, pg_label_fmt: str):
             res = {"labels": [], "revenue": [], "orders": []}
             try:
@@ -116,7 +121,7 @@ class DataInjector:
                         group_expr = text("(strftime('%Y', created_at) || '-Q' || ((CAST(strftime('%m', created_at) AS INTEGER) - 1) / 3 + 1))")
                     else: # 'day'
                         group_expr = func.strftime('%d/%m', Order.created_at)
-                    
+
                     stmt = (
                         select(
                             group_expr.label("period"),
@@ -140,7 +145,6 @@ class DataInjector:
                     logger.error(f"[Data Injector] SQLite grouping failed for {trunc_unit}: {sql_err}")
             return res
 
-        import asyncio
         daily, monthly, quarterly, yearly = await asyncio.gather(
             fetch_grouped('day', 30, '%d/%m'),
             fetch_grouped('month', 365, '%m/%y'),
@@ -148,17 +152,15 @@ class DataInjector:
             fetch_grouped('year', 365 * 5, '%Y')
         )
         return {
-            "daily": daily, 
+            "daily": daily,
             "monthly": monthly,
             "quarterly": quarterly,
             "yearly": yearly
         }
 
     async def _fetch_count(self, target: str, timeframe: str = "none", status: str = "none", **repos) -> Union[int, float, None]:
-        from sqlalchemy import select, func
-        from backend.database.models import Order, ProductBase, User
-        now = datetime.now(ZoneInfo(os.getenv("APP_TIMEZONE", "Asia/Ho_Chi_Minh")))
-        
+        now = datetime.now(APP_TZ)
+
         time_filter = None
         if timeframe == "today":     time_filter = now.replace(hour=0, minute=0, second=0, microsecond=0)
         elif timeframe == "this_week": time_filter = now - timedelta(days=7)
@@ -189,12 +191,12 @@ class DataInjector:
         if target == "revenue":
             repo = repos.get("order_repo")
             if not repo: return None
-            from backend.database import current_tenant_id
-            tenant_id = current_tenant_id.get() or os.getenv("DEFAULT_TENANT_ID", "default")
+            tenant_id = current_tenant_id.get() or DEFAULT_TENANT
             stmt = select(func.sum(Order.total_amount)).where(Order.tenant_id == tenant_id, Order.deleted_at.is_(None), Order.is_spam.is_(False))
             if status and status != "none": stmt = stmt.where(Order.status == status.upper())
             if time_filter: stmt = stmt.where(Order.created_at >= time_filter)
             return await repo.session.scalar(stmt) or 0
         return None
+
 
 data_injector = DataInjector()

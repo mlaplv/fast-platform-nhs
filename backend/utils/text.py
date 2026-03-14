@@ -1,6 +1,8 @@
 import re
 import unicodedata
 
+# Phase 76.3: Pre-compiled regex for zero-allocation normalization
+RE_CLEAN_VN = re.compile(r"[^a-z0-9\s]")
 
 def normalize_vn(text: str) -> str:
     """
@@ -16,6 +18,6 @@ def normalize_vn(text: str) -> str:
     text = unicodedata.normalize("NFD", text)
     text = "".join(c for c in text if unicodedata.category(c) != "Mn")
     text = text.lower()
-    text = re.sub(r"[^a-z0-9\s]", "", text)
+    text = RE_CLEAN_VN.sub("", text)
 
     return " ".join(text.split()).strip()

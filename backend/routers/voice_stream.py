@@ -24,13 +24,14 @@ MIN_AUDIO_BYTES = 1500
 MAX_AUDIO_BYTES = 20_000_000
 
 # Zero-Hallucination 2026: Blacklist for common Whisper phantoms in silence/noise
-# Expanded Phase 44: Catching Prompt Echoes
+# Phase 76.3: Removed common commands ("tạm biệt", "hẹn gặp lại", "dạ") from blacklist
+# to ensure they are NOT stripped when spoken intentionally.
 HALLUCINATION_BLACKLIST = [
     "cám ơn các bạn", "subscribe", "đăng ký kênh", "ghiền mì gõ",
-    "chào các bạn", "hẹn gặp lại", "phimmoichill", "website chính thức",
-    "liên hệ với chúng tôi", "tạm biệt", "video", "youtube", "mọi người",
+    "chào các bạn", "phimmoichill", "website chính thức",
+    "liên hệ với chúng tôi", "video", "youtube", "mọi người",
     "ủng hộ", "bình luận", "zalo", "facebook", "website", "chào mừng",
-    "tập trung vào ngữ cảnh", "cảm ơn", "cảm ơn bạn", "dạ"
+    "tập trung vào ngữ cảnh"
 ]
 
 SENTENCE_SPLIT_RE = re.compile(r'(?<=[.!?])\s+')

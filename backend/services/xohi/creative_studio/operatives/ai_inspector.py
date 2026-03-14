@@ -9,6 +9,11 @@ from backend.services.xohi.creative_studio.models.schemas import AiReadyReport, 
 
 logger = logging.getLogger("api-gateway")
 
+# Pre-compiled Regex for Performance (V76.3)
+RE_HTML_TAGS = re.compile(r'<[^>]+>')
+RE_IMAGE_PLACEHOLDERS = re.compile(r'\[IMAGE_\d+\]')
+RE_WHITESPACE = re.compile(r'\s+')
+
 # ══════════════════════════════════════════════════════════════
 # SCHEMAS — Generative Engine Optimization (GEO) 2026
 # ══════════════════════════════════════════════════════════════
@@ -115,10 +120,10 @@ class AiInspector:
         draft = campaign.draft_content or ""
         
         # Clean up HTML for token efficiency, but keep it similar enough for substring matching
-        plain_text = re.sub(r'<[^>]+>', ' ', draft)
+        plain_text = RE_HTML_TAGS.sub(' ', draft)
         # Phase 71.20: Strip [IMAGE_N] to match frontend editor content
-        plain_text = re.sub(r'\[IMAGE_\d+\]', '', plain_text)
-        plain_text = re.sub(r'\s+', ' ', plain_text).strip()
+        plain_text = RE_IMAGE_PLACEHOLDERS.sub('', plain_text)
+        plain_text = RE_WHITESPACE.sub(' ', plain_text).strip()
 
         # Build chunks if content is too large, otherwise grab first 5000 chars
         content_sample = plain_text[:5000]

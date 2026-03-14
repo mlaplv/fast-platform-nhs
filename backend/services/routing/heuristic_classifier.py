@@ -16,6 +16,9 @@ from backend.services.xohi_memory import xohi_memory
 
 logger = logging.getLogger("api-gateway")
 
+# --- Pre-compiled Regex for Performance (V76.3) ---
+RE_EMAIL = re.compile(r'[\w.-]+@[\w.-]+\.\w+')
+
 # --- Keyword Dictionaries (avoid hardcode — centralized here for easy tuning) ---
 TARGET_KEYWORDS = {
     "revenue": ["doanh thu", "doanh so", "bieu do", "tien", "doanh tu", "doanh thuu", "gianh thu", "danh thu", "dan thu"],
@@ -25,6 +28,11 @@ TARGET_KEYWORDS = {
     "category": ["danh muc", "nhom hang", "loai hang"],
     "news":    ["tin tuc", "bai viet", "viet bai", "sang tac", "content", "bai dang"],
     "settings": ["cai dat", "setting", "cau hinh", "voice", "giong noi", "am thanh"],
+}
+
+MODE_KEYWORDS = {
+    "viral": ["viral", "ngan", "nhanh", "tiktok", "facebook", "ngắn"],
+    "deep_dive": ["sau", "phan tich", "chi tiet", "dai", "deep dive", "sâu", "phân tích", "dài"]
 }
 
 TIMEFRAME_KEYWORDS = {
@@ -57,54 +65,92 @@ VI_VERB_MAP = {"create": "tạo", "edit": "sửa", "delete": "xóa"}
 VI_TARGET_MAP = {"user": "nhân viên", "product": "sản phẩm", "category": "danh mục", "order": "đơn hàng", "news": "bài viết"}
 
 
+# --- Phase 76.3: Pre-Normalized Keywords (Zero-Allocation) ---
+NORM_TARGET_KEYWORDS = {tgt: [normalize_vn(kw) for kw in kws] for tgt, kws in TARGET_KEYWORDS.items()}
+NORM_MODE_KEYWORDS = {mode: [normalize_vn(kw) for kw in kws] for mode, kws in MODE_KEYWORDS.items()}
+NORM_TIMEFRAME_KEYWORDS = {tf: [normalize_vn(kw) for kw in kws] for tf, kws in TIMEFRAME_KEYWORDS.items()}
+NORM_COUNT_KEYWORDS = [normalize_vn(kw) for kw in COUNT_KEYWORDS]
+NORM_QUESTION_KEYWORDS = [normalize_vn(kw) for kw in QUESTION_KEYWORDS]
+NORM_MUTATE_KEYWORDS = [normalize_vn(kw) for kw in MUTATE_KEYWORDS]
+
+# Cached merged target keywords (static + dynamic)
+_DYNAMIC_MERGE_CACHE = {} # { (user_id_or_system, mapping_hash): merged_dict }
+
 def _merge_lists(a, b):
-    # deduplicate list keeping order approximately
-    seen = set(a)
+    # deduplicate list using set for O(1) lookups during merge
     res = list(a)
+    seen = set(a)
     for x in b:
         if x not in seen:
-            seen.add(x)
             res.append(x)
+            seen.add(x)
     return res
 
 async def heuristic_classify(
     combined_lower: str,
     user_id: str,
     app_state: object,
-    intent_map: Optional[dict] = None
+    intent_map: Optional[dict] = None,
+    norm_query: Optional[str] = None
 ) -> Optional[IntentResponse]:
     """
     Zero-LLM Heuristic Fallback — classify known patterns by keyword.
     Only handles clear-cut queries. Returns None for ambiguous ones.
     """
-    norm_query = normalize_vn(combined_lower)
+    # Phase 76.3: Reuse pre-normalized query from orchestrator
+    if norm_query is None:
+        norm_query = normalize_vn(combined_lower)
 
     # Fetch dynamic intent mapping from local memory (Sub-1ms)
     dynamic_mapping = intent_map if intent_map is not None else await xohi_memory.get_system_intent_mapping()
-    merged_target_keywords = {**TARGET_KEYWORDS}
+
+    # 76.3: Optimization - Cached Dynamic Merge
+    # Create a stable key for the cache based on the mapping content
+    map_hash = hash(str(dynamic_mapping)) if dynamic_mapping else 0
+    cache_key = (user_id, map_hash)
+
     if dynamic_mapping:
-        for tgt, kws in dynamic_mapping.items():
-            if tgt in merged_target_keywords:
-                merged_target_keywords[tgt] = _merge_lists(merged_target_keywords[tgt], kws)
-            else:
-                merged_target_keywords[tgt] = kws
+        if cache_key in _DYNAMIC_MERGE_CACHE:
+            merged_target_keywords = _DYNAMIC_MERGE_CACHE[cache_key]
+        else:
+            # Normalize and merge only once per mapping change
+            merged_target_keywords = {**NORM_TARGET_KEYWORDS}
+            for tgt, kws in dynamic_mapping.items():
+                norm_kws = [normalize_vn(kw) for kw in kws]
+                if tgt in merged_target_keywords:
+                    merged_target_keywords[tgt] = _merge_lists(merged_target_keywords[tgt], norm_kws)
+                else:
+                    merged_target_keywords[tgt] = norm_kws
+
+            # Prune cache if too large
+            if len(_DYNAMIC_MERGE_CACHE) > 100:
+                _DYNAMIC_MERGE_CACHE.clear()
+            _DYNAMIC_MERGE_CACHE[cache_key] = merged_target_keywords
+    else:
+        merged_target_keywords = NORM_TARGET_KEYWORDS
 
     # --- Detect TARGET ---
     target = "none"
     for tgt, keywords in merged_target_keywords.items():
-        if any(kw in norm_query for kw in keywords):
-            target = tgt
+        # Using pre-normalized keywords and query
+        for kw in keywords:
+            if kw in norm_query:
+                target = tgt
+                break
+        if target != "none":
             break
-
 
     if target == "none":
         return None
 
     # --- Detect TIMEFRAME ---
     timeframe = "none"
-    for tf, keywords in TIMEFRAME_KEYWORDS.items():
-        if any(kw in norm_query for kw in keywords):
-            timeframe = tf
+    for tf, keywords in NORM_TIMEFRAME_KEYWORDS.items():
+        for kw in keywords:
+            if kw in norm_query:
+                timeframe = tf
+                break
+        if timeframe != "none":
             break
 
     # ═══ TIMEFRAME & TARGET INHERITANCE (XoHi Next-Gen) ═══
@@ -126,9 +172,9 @@ async def heuristic_classify(
     voice_cache[user_id] = user_profile
 
     # --- Detect INTENT TYPE ---
-    is_count = any(kw in norm_query for kw in COUNT_KEYWORDS)
-    is_question = any(kw in norm_query for kw in QUESTION_KEYWORDS)
-    is_mutate = any(kw in norm_query for kw in MUTATE_KEYWORDS)
+    is_count = any(kw in norm_query for kw in NORM_COUNT_KEYWORDS)
+    is_question = any(kw in norm_query for kw in NORM_QUESTION_KEYWORDS)
+    is_mutate = any(kw in norm_query for kw in NORM_MUTATE_KEYWORDS)
 
     # --- Entity Extraction ---
     extracted_entities: dict = {}
@@ -149,16 +195,24 @@ async def heuristic_classify(
                 extracted_entities["name"] = name_part.title()
                 break
 
-        email_match = re.search(r'[\w.-]+@[\w.-]+\.\w+', combined_lower)
+        email_match = RE_EMAIL.search(combined_lower)
         if email_match:
             extracted_entities["email"] = email_match.group(0)
 
     # --- Resolve intent type + action ---
+    # 76.3: Use pre-normalized navigation keywords
     is_nav_explicit = any(kw in norm_query for kw in ["bieu do", "mo", "xem", "vao", "show"])
-    
+
     # Rule R82.23: Content Factory Priority
-    # If it's a "create" verb on "news" target, it's likely a Content Factory request
-    is_content_factory = (target == "news" and (verb == "create" or "viet bai" in norm_query)) or any(kw in norm_query for kw in ["viet bai", "sáng tác", "sang tac", "content"])
+    # 76.3: Use pre-normalized keywords for content factory
+    is_content_factory = (target == "news" and (verb == "create" or "viet bai" in norm_query)) or any(kw in norm_query for kw in ["viet bai", "sang tac", "content"])
+
+    content_mode = "viral"
+    if is_content_factory:
+        for mode, keywords in NORM_MODE_KEYWORDS.items():
+            if any(kw in norm_query for kw in keywords):
+                content_mode = mode
+                break
 
     if is_content_factory:
         intent_type = "CONTENT_CREATE"
@@ -205,6 +259,7 @@ async def heuristic_classify(
         "target": target,
         "verb": verb,
         "timeframe": timeframe,
+        "content_mode": content_mode,
         "ui_action": widget_id,
         "entities": extracted_entities,
     }

@@ -1,6 +1,7 @@
 import os
 import logging
 import asyncio
+from sqlalchemy import select, text
 from typing import Optional, Dict, Union
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
@@ -61,7 +62,6 @@ class ContentOrchestrator:
         """R104: Self-Healing Resume logic. R1.5: Zero-Hydration — only select needed columns."""
         session_maker = alchemy_config.create_session_maker()
         async with session_maker() as session:
-            from sqlalchemy import select, text
             stmt = select(ContentCampaign.id, ContentCampaign.current_step).where(
                 ContentCampaign.status == "PROCESSING"
             )
@@ -72,8 +72,8 @@ class ContentOrchestrator:
 
     # --- Delegated API Surface ---
 
-    async def handle_voice_request(self, transcript: str, campaign_repo: ContentCampaignRepository, tenant_id: str = "default", user_id: Optional[str] = None) -> IntentResponse:
-        return await self.voice_handler.handle_request(transcript, campaign_repo, tenant_id, user_id)
+    async def handle_voice_request(self, transcript: str, campaign_repo: ContentCampaignRepository, tenant_id: str = "default", user_id: Optional[str] = None, intent_data: Optional[Dict] = None) -> IntentResponse:
+        return await self.voice_handler.handle_request(transcript, campaign_repo, tenant_id, user_id, intent_data=intent_data)
 
     async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None) -> Optional[ContentCampaign]:
         return await self.voice_handler.get_active_campaign(campaign_repo, user_id, tenant_id, query=query)

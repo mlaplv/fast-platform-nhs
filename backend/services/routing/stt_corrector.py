@@ -3,6 +3,7 @@ import json
 import logging
 import asyncio
 import unicodedata
+import numpy as np
 from typing import Dict, Optional, Tuple, List
 
 from rapidfuzz import fuzz
@@ -14,6 +15,8 @@ from pydantic import BaseModel, Field
 from backend.services.ai_engine.core.key_rotator import key_rotator
 from backend.utils.text import normalize_vn
 from backend.services.xohi_memory import xohi_memory
+from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
+from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
 logger = logging.getLogger("api-gateway")
 
@@ -37,12 +40,12 @@ class STTCorrectionOutput(BaseModel):
 # It MUST NOT answer the user's question. 
 # It ONLY corrects the vocabulary based on the context of an e-commerce admin system.
 STT_CORRECTOR_PROMPT = """[ROLE] STT PRE-PROCESSOR (Hệ thống E-commerce Admin)
-Nhiệm vụ của bạn là nhận một câu văn bản (transcript) được chuyển từ giọng nói (Speech-to-Text), 
-phát hiện và sửa lỗi chính tả/từ vựng do quá trình nhận diện giọng nói gây ra, 
+Nhiệm vụ của bạn là nhận một câu văn bản (transcript) được chuyển từ giọng nói (Speech-to-Text),
+phát hiện và sửa lỗi chính tả/từ vựng do quá trình nhận diện giọng nói gây ra,
 MÀ KHÔNG thay đổi ý nghĩa hay trả lời câu hỏi đó.
 
 [NGỮ CẢNH HỆ THỐNG]
-Người dùng là một "Sếp" (Quản trị viên) đang dùng giọng nói để ra lệnh cho hệ thống quản lý bán hàng (SmartShop). 
+Người dùng là một "Sếp" (Quản trị viên) đang dùng giọng nói để ra lệnh cho hệ thống quản lý bán hàng (SmartShop).
 Các khái niệm có trong hệ thống:
 - Doanh thu, doanh số, tiền, thu nhập
 - Đơn hàng, bill, hóa đơn
@@ -57,7 +60,7 @@ Các khái niệm có trong hệ thống:
    - "doanh tu" -> "doanh thu"
    - "đau hàng" -> "đơn hàng"
    - "sang phẩm" -> "sản phẩm"
-   
+
 2. CHỈ SỬA LỖI, KHÔNG TRẢ LỜI: Nếu input là "doanh số tháng này bao nhiêu", output CHỈ LÀ "doanh số tháng này bao nhiêu". Không được thêm câu trả lời.
 
 3. GIỮ NGUYÊN NẾU KHÔNG CÓ LỖI: Nếu câu nghe có vẻ đã đúng chuyên ngành, xuất lại y nguyên.
@@ -65,16 +68,33 @@ Các khái niệm có trong hệ thống:
 5. SỬ DỤNG TỪ ĐIỂN CỦA SẾP: Ưu tiên tuyệt đối các từ trong [USER_DICTIONARY_CONTEXT] nếu có.
 
 6. FLAG NGHI VẤN (QUAN TRỌNG): Nếu bạn sửa một từ/cụm từ mà bạn không chắc chắn 100%, hoặc nó KHÔNG CÓ TRONG [USER_DICTIONARY_CONTEXT], hãy điền cặp đó vào trường `suspected_correction`.
-   LƯU Ý: 
+   LƯU Ý:
    - Phải dùng CHÍNH XÁC từ xuất hiện trong INPUT cho phần từ sai (Ví dụ: Trả về {"dân số": "doanh số"} nếu input có chữ "dân số"). KHÔNG tự ý chế từ mới.
-   - Phải trả về ĐẦY ĐỦ CỤM TỪ CÓ NGHĨA (Ví dụ: "doanh số" thay vì chỉ "doanh"). 
+   - Phải trả về ĐẦY ĐỦ CỤM TỪ CÓ NGHĨA (Ví dụ: "doanh số" thay vì chỉ "doanh").
    Hệ thống sẽ dùng thông tin này để hỏi lại Sếp và tự học cho lần sau.
 
 7. TRẢ VỀ JSON: Kết quả bắt buộc dưới định dạng JSON theo schema đã chỉ định.
 """
 
-import numpy as np
-from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
+# --- Phase 76.3: Zero-Allocation Constants ---
+NAV_PATTERNS = {
+    "mo bieu do", "xem bieu do", "doanh so thang nay", "doanh thu hom nay",
+    "xem don hang", "danh sach san pham", "ok", "dung", "vang", "phai", "thoat",
+    "mo danh muc", "vao danh muc", "mo tin tuc", "vao tin tuc", "mo cai dat",
+    "chao", "xin chao", "tam biet", "bye", "hẹn gặp lại"
+}
+# Pre-normalize for fast lookup
+NORM_NAV_PATTERNS = {normalize_vn(p) for p in NAV_PATTERNS}
+
+SOUND_ALIKES = {
+    "dân số": "doanh số",
+    "nhân số": "doanh số",
+    "doanh tu": "doanh thu",
+    "đau hàng": "đơn hàng",
+    "sang phẩm": "sản phẩm",
+}
+# Pre-lowercase keys for fast lookup
+NORM_SOUND_ALIKES = {k.lower(): v for k, v in SOUND_ALIKES.items()}
 
 class NeuralLocalCorrector:
     """
@@ -84,6 +104,7 @@ class NeuralLocalCorrector:
     def __init__(self):
         self.encoder = None
         self._embedding_cache = {} # { "wrong_phrase": vector }
+        self._cache_access_count = 0
 
     async def _ensure_encoder(self):
         if self.encoder is None:
@@ -104,16 +125,18 @@ class NeuralLocalCorrector:
         await self._ensure_encoder()
         if self.encoder is None:
             return transcript, 0.0
-            
+
         loop = asyncio.get_event_loop()
-        
+
         # 1. Update/Prune embedding cache (Neural Aging)
-        # Periodically prune unused synapses (> 100 entries or random chance)
-        if len(self._embedding_cache) > 200:
-            # Simple LRU: Keep only active keys
+        self._cache_access_count += 1
+        if self._cache_access_count > 50 or len(self._embedding_cache) > 200:
+            self._cache_access_count = 0
+            # Keep only keys present in current user_dict to avoid leaks
             active_keys = set(user_dict.keys())
             self._embedding_cache = {k: v for k, v in self._embedding_cache.items() if k in active_keys}
 
+        # Zero-Allocation: Sort once if possible, but here keys change per user
         sorted_keys = sorted(user_dict.keys(), key=len, reverse=True)
         new_keys = [k for k in sorted_keys if k not in self._embedding_cache]
         if new_keys:
@@ -131,25 +154,37 @@ class NeuralLocalCorrector:
         applied_corrections = False
         hit_keys = set()
 
+        # Pre-normalize the transcript windows for fuzzy match
+        # To avoid re-normalizing same window, we can use a small local cache
+        norm_cache = {}
+
+        # Pre-normalize and cache user_dict keys for this request
+        user_keys_norm = {key: normalize_vn(key) for key in sorted_keys}
+
         # 2. Sliding window (up to 3 words)
         for n in range(min(3, len(words)), 0, -1):
             for i in range(len(words) - n + 1):
                 window = " ".join(words[i : i + n])
                 if not window.strip(): continue
-                
+
                 # --- PHONETIC SIEVE (2026 Optimization) ---
-                # Only embed if window "sounds like" at least one key
+                if window not in norm_cache:
+                    norm_cache[window] = normalize_vn(window)
+                norm_window = norm_cache[window]
+
                 potential_keys = []
                 for key in sorted_keys:
                     # Quick length filter
                     if abs(len(key.split()) - n) > 1: continue
+
+                    # 76.3: Use pre-calculated normalized key
+                    norm_key = user_keys_norm[key]
+
                     # Phonetic similarity (Levenshtein based)
-                    # For short words, we use a HIGHER threshold (75%) because 
-                    # generic embeddings can be noisy for 1-3 char strings.
-                    thresh = 75 if len(normalize_vn(window)) < 5 else 60
-                    if fuzz.ratio(normalize_vn(window), normalize_vn(key)) >= thresh:
-                        potential_keys.append(key)
-                
+                    thresh = 75 if len(norm_window) < 5 else 60
+                    if fuzz.ratio(norm_window, norm_key) >= thresh:
+                        potential_keys.append((key, norm_key))
+
                 if not potential_keys:
                     continue # Skip expensive embedding
 
@@ -157,30 +192,32 @@ class NeuralLocalCorrector:
                 try:
                     window_vec = (await loop.run_in_executor(None, lambda: list(self.encoder.embed([window]))))[0]
                 except Exception: continue
-                
-                for key in potential_keys:
+
+                for key, norm_key in potential_keys:
                     key_vec = self._embedding_cache[key]
                     score = self._cosine_similarity(window_vec, key_vec)
-                    fuzzy_score = fuzz.ratio(normalize_vn(window), normalize_vn(key))
-                    
-                    # V61.2: Stricter threshold for total confidence (0.85 sem or 90 fuzz)
+                    fuzzy_score = fuzz.ratio(norm_window, norm_key)
+
                     if score >= 0.85 or fuzzy_score >= 90:
                         replacement = user_dict[key]
                         if window in current_text:
                             current_text = current_text.replace(window, replacement)
                             applied_corrections = True
                             hit_keys.add(key)
-                        
+
                         composite_score = max(score, fuzzy_score / 100.0)
                         max_total_score = max(max_total_score, composite_score)
                         logger.debug(f"[Neural Local] HIT: '{window}' ~ '{key}' (sem={score:.2f}, fuzz={fuzzy_score}%)")
-        
+
         # 3. Frequency Tracking (Async heartbeat)
         if applied_corrections:
             for k in hit_keys:
                 asyncio.create_task(xohi_memory.increment_stt_usage(k))
-        
+
         return current_text, (max_total_score if applied_corrections else 0.0)
+
+# --- Phase 76.3: Stopwords Cache ---
+_STOPWORDS_CACHE = {"raw": [], "norm": set(), "last_update": 0}
 
 class STTCorrector:
     """
@@ -188,23 +225,32 @@ class STTCorrector:
     Cleans transcript using LLM to fix Vietnamese homophone/STT issues (e.g. "nhân số" -> "doanh số").
     """
     def __init__(self):
-        import json as _json
         # Kill GOOGLE_API_KEY immediately — LiteLLM prefers it over GEMINI_API_KEY
         os.environ.pop("GOOGLE_API_KEY", None)
         self.rotator = key_rotator
         self.neural_corrector = NeuralLocalCorrector()
-        
+
         self.agent = Agent(
             deps_type=STTCorrectorDeps,
             output_type=STTCorrectionOutput,
             system_prompt=STT_CORRECTOR_PROMPT
         )
-        
+
         @self.agent.system_prompt
         def inject_user_dict(ctx: RunContext[STTCorrectorDeps]) -> str:
             if ctx.deps.user_dictionary:
-                return f"\n[USER_DICTIONARY_CONTEXT]\n{_json.dumps(ctx.deps.user_dictionary, ensure_ascii=False)}"
+                return f"\n[USER_DICTIONARY_CONTEXT]\n{json.dumps(ctx.deps.user_dictionary, ensure_ascii=False)}"
             return "\n[USER_DICTIONARY_CONTEXT]\n{}"
+
+    async def _get_cached_stopwords(self) -> set:
+        """Fetch and normalize stopwords with 5-minute TTL cache."""
+        now = time.time()
+        if now - _STOPWORDS_CACHE["last_update"] > 300:
+            stopwords = await xohi_memory.get_system_stt_stopwords()
+            _STOPWORDS_CACHE["raw"] = stopwords
+            _STOPWORDS_CACHE["norm"] = {normalize_vn(sw) for sw in stopwords}
+            _STOPWORDS_CACHE["last_update"] = now
+        return _STOPWORDS_CACHE["norm"]
 
     async def _ensure_aging_task(self):
         """Lazy start for Neural Aging background task."""
@@ -227,7 +273,6 @@ class STTCorrector:
         Smart Learning (2026 Thinking):
         Consolidates mistakes if they are semantically identical to a known one.
         """
-        from backend.utils.text import normalize_vn
         norm_wrong = normalize_vn(wrong.strip())
         
         # 1. Look up existing overrides
@@ -267,27 +312,40 @@ class STTCorrector:
         # 0. Background tasks
         await self._ensure_aging_task()
 
-        # 0. NORMALIZE
-        transcript = unicodedata.normalize('NFC', transcript.strip())
+        # Phase 76.3: Assume transcript is already NFC normalized by Orchestrator
         if not transcript: return "", None
         
-        # 2026 SPEED OPTIMIZATION: If transcript is just 1-3 words and no specific error suspected, 
-        # assume it's a simple query/target and skip the heavy 8s LLM process.
+        # 2026 SPEED OPTIMIZATION: If transcript is extremely short (1-2 words),
+        # it's likely a command or greeting. Bypass heavy processing immediately.
         words_count = len(transcript.split())
-        if words_count <= 4 and words_count >= 1:
+        if words_count <= 2:
+             logger.debug(f"[STT Corrector] Ultra-Fast Bypass for short phrase: '{transcript}'")
+             return transcript, None
+
+        if words_count <= 4:
             # Check for very common patterns that don't need correction
-            if any(kw in transcript.lower() for kw in ["bài viết", "sản phẩm", "đơn hàng", "doanh thu"]):
+            if any(kw in transcript.lower() for kw in ["bài viết", "sản phẩm", "đơn hàng", "doanh thu", "biểu đồ", "mở", "xem"]):
                 logger.debug(f"[STT Corrector] Fast-Bypass for simple context: '{transcript}'")
                 return transcript, None
 
         # 0.5 STOPWORDS
-        stopwords = await xohi_memory.get_system_stt_stopwords()
-        if stopwords:
-            norm_stopwords = {normalize_vn(sw) for sw in stopwords}
+        norm_stopwords = await self._get_cached_stopwords()
+        if norm_stopwords:
             words = transcript.split()
-            filtered_words = [w for w in words if normalize_vn(w.lower()) not in norm_stopwords]
-            transcript = " ".join(filtered_words)
-            if not transcript: return "", None
+            # 76.3: Local cache to avoid redundant normalize_vn on duplicate words in same transcript
+            word_norm_map = {}
+            filtered_words = []
+            for w in words:
+                w_lower = w.lower()
+                if w_lower not in word_norm_map:
+                    word_norm_map[w_lower] = normalize_vn(w_lower)
+                if word_norm_map[w_lower] not in norm_stopwords:
+                    filtered_words.append(w)
+
+            # Zero-Allocation: Only join if words were actually removed
+            if len(filtered_words) < len(words):
+                transcript = " ".join(filtered_words)
+                if not transcript: return "", None
 
         # 1. NEURAL LOCAL CORRECTION (Sub-20ms)
         # 2026 Strategy: Use local embeddings to bypass cloud
@@ -300,33 +358,27 @@ class STTCorrector:
             return neural_cleaned, None
 
         # 2. PATTERN BYPASS (High-Speed Local Bypass)
-        NAV_PATTERNS = [
-            "mo bieu do", "xem bieu do", "doanh so thang nay", "doanh thu hom nay", 
-            "xem don hang", "danh sach san pham", "ok", "dung", "vang", "phai", "thoat",
-            "mo danh muc", "vao danh muc", "mo tin tuc", "vao tin tuc", "mo cai dat"
-        ]
         norm_query = normalize_vn(transcript)
-        # Bypass for explicit nav patterns (v56.1: removed length-based bypass to allow "Dân số" -> "Doanh số" learning)
-        if norm_query in NAV_PATTERNS:
+        # Bypass for explicit nav patterns
+        if norm_query in NORM_NAV_PATTERNS:
             return transcript, None
-            
+
         # 3. NEURAL SWITCH (Sound-alike Fallback - 2026 Strategy)
         # Low-latency check for common Vietnamese STT mistakes that sound like protected keywords.
-        SOUND_ALIKES = {
-            "dân số": "doanh số",
-            "nhân số": "doanh số",
-            "doanh tu": "doanh thu",
-            "đau hàng": "đơn hàng",
-            "sang phẩm": "sản phẩm",
-        }
-        for wrong, right in SOUND_ALIKES.items():
-            if wrong in transcript.lower():
-                logger.info(f"[STT Corrector] Neural Switch Triggered: '{wrong}' -> '{right}'")
-                # Return original transcript but flag as suspected to trigger the confirmation UI
-                return transcript, {wrong: right}
+        lower_transcript = transcript.lower()
+        new_transcript = transcript
+        applied_switch = False
+        for wrong, right in NORM_SOUND_ALIKES.items():
+            if wrong in lower_transcript:
+                logger.info(f"[STT Corrector] Neural Switch AUTO-FIX: '{wrong}' -> '{right}'")
+                # Phase 76.3: Auto-fix common errors to eliminate confirmation UI lag
+                new_transcript = new_transcript.replace(wrong, right)
+                applied_switch = True
+
+        if applied_switch:
+            return new_transcript, None
 
         # 4. TRINITY DISPATCHER (Cloud Fallback)
-        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
         deps = STTCorrectorDeps(user_dictionary=user_dictionary or {})
 
         try:

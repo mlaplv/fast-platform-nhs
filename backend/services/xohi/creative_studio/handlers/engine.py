@@ -2,6 +2,7 @@ import uuid
 import logging
 import asyncio
 import time
+import traceback
 from datetime import datetime, timezone
 from typing import Dict, Union, Optional
 from sqlalchemy import select, func
@@ -12,6 +13,7 @@ from backend.services.xohi.creative_studio.models.schemas import AgentResponse, 
 from backend.services.xohi.creative_studio.registry import registry
 from backend.services.event_bus import event_bus
 from backend.constants.agentic import STEP_ARTIFICIAL_LATENCY_SECONDS
+from backend.database.alchemy_config import alchemy_config
 
 logger = logging.getLogger("api-gateway")
 
@@ -22,7 +24,6 @@ class ExecutionEngine:
     async def trigger_step(self, campaign_id: str, force_step: Optional[int] = None):
         await asyncio.sleep(0.05)
         async with self.orchestrator.semaphore:
-            from backend.database.alchemy_config import alchemy_config
             session_maker = alchemy_config.create_session_maker()
             async with session_maker() as session:
                 repo = ContentCampaignRepository(session=session)
@@ -176,9 +177,8 @@ class ExecutionEngine:
 
             await event_bus.emit("CONTENT_STEP_COMPLETED", payload)
             logger.info(f"[Content Factory] Step {step} SUCCESS in {time.time() - start_time:.2f}s")
-            
+
         except Exception as e:
-            import traceback
             error_trace = traceback.format_exc()
             logger.error(f"[Content Factory] Step {step} FAILED for {campaign_id}:\n{error_trace}")
             await self._log_error(campaign, campaign_repo, "ERROR", str(e))

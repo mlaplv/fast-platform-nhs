@@ -1,9 +1,10 @@
 import os
 import logging
-from pydantic_ai import Agent, RunContext
 from dataclasses import dataclass
+from pydantic_ai import Agent, RunContext
 from typing import Tuple
 from backend.services.ai_engine.core.key_rotator import key_rotator
+from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
 logger = logging.getLogger("api-gateway")
 
@@ -30,6 +31,13 @@ Bạn là Xô Hi. Nhiệm vụ của bạn là đọc số liệu thô từ Data
 - OK: "Sếp ơi, em lọc ra được 5 đơn hàng đang chờ xử lý."
 """
 
+TARGET_VN_MAP = {
+    "order": "đơn hàng",
+    "revenue": "doanh thu",
+    "product": "sản phẩm",
+    "user": "khách hàng"
+}
+
 class Tier2Refiner:
     def __init__(self):
         self.rotator = key_rotator
@@ -45,8 +53,6 @@ class Tier2Refiner:
 
     async def refine(self, transcript: str, target: str, raw_data: str) -> Tuple[str, int]:
         deps = Tier2RefinerDeps(raw_data=raw_data, target=target, transcript=transcript)
-
-        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
         try:
             result = await trinity_bridge.run(
@@ -67,11 +73,6 @@ class Tier2Refiner:
             logger.error(f"[NLG Refiner] Trinity failure: {e}")
 
             # Hard fallback
-            target_vn = {
-                "order": "đơn hàng",
-                "revenue": "doanh thu",
-                "product": "sản phẩm",
-                "user": "khách hàng"
-            }.get(target, "dữ liệu")
+            target_vn = TARGET_VN_MAP.get(target, "dữ liệu")
 
             return f"Dạ sếp, hiện tại hệ thống ghi nhận có {raw_data} {target_vn}.", 0

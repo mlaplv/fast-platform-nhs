@@ -53,7 +53,8 @@ class VoiceHandler:
 
     async def handle_request(
         self, transcript: str, campaign_repo: ContentCampaignRepository,
-        tenant_id: str = "default", user_id: Optional[str] = None
+        tenant_id: str = "default", user_id: Optional[str] = None,
+        intent_data: Optional[Dict] = None
     ) -> IntentResponse:
         if user_id == "undefined" or not user_id:
             user_id = None
@@ -106,9 +107,15 @@ class VoiceHandler:
                             cost_tokens=0.0
                         )
 
+            # Phase 77: Inject content_mode into gold_metadata
+            gold_meta = {}
+            if intent_data and "content_mode" in intent_data:
+                gold_meta["content_mode"] = intent_data["content_mode"]
+                logger.info(f"[Phase 77] Content Mode detected: {gold_meta['content_mode']}")
+
             campaign = ContentCampaign(
                 id=str(uuid.uuid4()), user_id=user_id, source_input=transcript,
-                tenant_id=tenant_id, current_step=1, status="PROCESSING", gold_metadata={}
+                tenant_id=tenant_id, current_step=1, status="PROCESSING", gold_metadata=gold_meta
             )
             c_id = campaign.id
             u_id_str = str(campaign.user_id) if campaign.user_id else "default"
@@ -117,7 +124,12 @@ class VoiceHandler:
                 await campaign_repo.session.commit()
                 await campaign_repo.session.refresh(campaign)
 
-            seed: TopicSeed = await self.orchestrator.vision.analyze_input(transcript, c_id, u_id_str)
+            seed: TopicSeed = await self.orchestrator.vision.analyze_input(
+                transcript,
+                c_id,
+                u_id_str,
+                content_mode=gold_meta.get("content_mode", "viral")
+            )
             seed_data = seed.model_dump()
             campaign.topic_data = seed_data
             campaign.status = "WAITING_FOR_REVIEW"

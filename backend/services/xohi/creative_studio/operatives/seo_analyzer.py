@@ -11,6 +11,20 @@ from backend.utils.http_client import get_http_client
 
 logger = logging.getLogger("api-gateway")
 
+# Pre-compiled Regex for Performance (V76.3)
+RE_HTML_TAGS = re.compile(r'<[^>]+>')
+RE_IMAGE_PLACEHOLDERS = re.compile(r'\[IMAGE_\d+\]')
+RE_WHITESPACE = re.compile(r'\s+')
+RE_STYLE_SCRIPT = re.compile(r'<(script|style)[^>]*>[\s\S]*?</\1>|<[^>]+>', re.IGNORECASE)
+RE_PARA_SPLIT = re.compile(r'\n|\r|<p[^>]*>|<\/p>')
+RE_H1 = re.compile(r'<h1[^>]*>', re.IGNORECASE)
+RE_H2 = re.compile(r'<h2[^>]*>', re.IGNORECASE)
+RE_H3 = re.compile(r'<h3[^>]*>', re.IGNORECASE)
+RE_IMG = re.compile(r'<img[^>]*>', re.IGNORECASE)
+RE_CTA_CLASS = re.compile(r'class=["\']cta', re.IGNORECASE)
+RE_CTA_SECTION = re.compile(r'<section[^>]*cta', re.IGNORECASE)
+RE_SENTENCE_END = re.compile(r'[^.!?]+[.!?]')
+
 # ══════════════════════════════════════════════════════════════
 # SCHEMAS — 2026 SEO Signals with Inline Annotations
 # ══════════════════════════════════════════════════════════════
@@ -125,8 +139,8 @@ class SeoAnalyzer:
                 try:
                     p_resp = await client.get(url, timeout=5.0)
                     if p_resp.status_code == 200:
-                        body = re.sub(r'<(script|style)[^>]*>[\s\S]*?</\1>|<[^>]+>', ' ', p_resp.text, flags=re.IGNORECASE)
-                        return f"URL: {url}\nContent: {re.sub(r'\s+', ' ', body)[:3000]}"
+                        body = RE_STYLE_SCRIPT.sub(' ', p_resp.text)
+                        return f"URL: {url}\nContent: {RE_WHITESPACE.sub(' ', body)[:3000]}"
                 except: pass
                 return f"URL: {url}\nSnippet: {item.get('snippet', '')}"
             
@@ -149,19 +163,18 @@ class SeoAnalyzer:
         persona = gold.get("persona", "")
 
         # Extract readable text
-        plain_text = re.sub(r'<[^>]+>', ' ', draft)
+        plain_text = RE_HTML_TAGS.sub(' ', draft)
         # Phase 71.20: Strip [IMAGE_N] to match frontend editor content
-        plain_text = re.sub(r'\[IMAGE_\d+\]', '', plain_text)
-        plain_text = re.sub(r'\s+', ' ', plain_text).strip()
+        plain_text = RE_IMAGE_PLACEHOLDERS.sub('', plain_text)
+        plain_text = RE_WHITESPACE.sub(' ', plain_text).strip()
         word_count = len(plain_text.split())
 
         # Build technical stats (rule-based, fast)
-        h1_count = len(re.findall(r'<h1[^>]*>', draft, re.IGNORECASE))
-        h2_count = len(re.findall(r'<h2[^>]*>', draft, re.IGNORECASE))
-        h3_count = len(re.findall(r'<h3[^>]*>', draft, re.IGNORECASE))
-        img_count = len(re.findall(r'<img[^>]*>', draft, re.IGNORECASE))
-        has_cta = bool(re.search(r'class=["\']cta', draft, re.IGNORECASE) or
-                       re.search(r'<section[^>]*cta', draft, re.IGNORECASE))
+        h1_count = len(RE_H1.findall(draft))
+        h2_count = len(RE_H2.findall(draft))
+        h3_count = len(RE_H3.findall(draft))
+        img_count = len(RE_IMG.findall(draft))
+        has_cta = bool(RE_CTA_CLASS.search(draft) or RE_CTA_SECTION.search(draft))
 
         # Primary keyword frequency
         kw_count = len(re.findall(re.escape(primary.lower()), plain_text.lower())) if primary else 0
@@ -175,7 +188,7 @@ class SeoAnalyzer:
         competitor_content = await self._fetch_competitors(primary)
 
         # 2. Extract first 200 chars of each paragraph for the AI to reference
-        paragraphs = [p.strip() for p in re.split(r'\n|\r|<p[^>]*>|<\/p>', draft) if len(p.strip()) > 30]
+        paragraphs = [p.strip() for p in RE_PARA_SPLIT.split(draft) if len(p.strip()) > 30]
         paragraph_samples = "\n".join([f"[Para {i+1}]: {p[:200]}" for i, p in enumerate(paragraphs[:15])])
 
         prompt = f"""
@@ -289,7 +302,7 @@ NHIỆM VỤ: Hãy so sánh bài viết của tôi với nội dung đối thủ
 
         if not has_cta:
             # Try to find the last paragraph to annotate
-            last_para_match = re.findall(r'[^.!?]+[.!?]', plain_text[-500:])
+            last_para_match = RE_SENTENCE_END.findall(plain_text[-500:])
             last_sentence = last_para_match[-1].strip() if last_para_match else ""
             annotations.append(SeoAnnotation(
                 type="missing_cta", text=last_sentence[:120] if last_sentence else "",
@@ -300,7 +313,8 @@ NHIỆM VỤ: Hãy so sánh bài viết của tôi với nội dung đối thủ
         if kw_density > 3.0 and primary:
             # Find a sentence with keyword stuffing
             sentences = re.split(r'[.!?]', plain_text)
-            stuffed = next((s.strip() for s in sentences if s.lower().count(primary.lower()) >= 3), "")
+            kw_pattern = re.compile(re.escape(primary.lower()), re.IGNORECASE)
+            stuffed = next((s.strip() for s in sentences if len(kw_pattern.findall(s)) >= 3), "")
             annotations.append(SeoAnnotation(
                 type="keyword_stuffing",
                 text=stuffed[:120] if stuffed else "",

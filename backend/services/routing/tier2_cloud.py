@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+from dataclasses import dataclass
 from typing import Optional, Literal
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
@@ -9,6 +10,7 @@ from litellm import RateLimitError, AuthenticationError, ServiceUnavailableError
 
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from backend.services.ai_engine.core.key_rotator import key_rotator
+from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
 logger = logging.getLogger("api-gateway")
 
@@ -33,7 +35,15 @@ class Tier2Output(BaseModel):
 # R1.6: Cache schema at Global Scope — CẤM tạo lại mỗi request
 TIER2_SCHEMA = Tier2Output.model_json_schema()
 
-from dataclasses import dataclass
+INTENT_TO_ACTION_MAP = {
+    "UI_NAV": IntentAction.READ,
+    "DATA_QUERY": IntentAction.COUNT,
+    "DEEP_ANALYSIS": IntentAction.ANALYZE,
+    "CONTENT_CREATE": IntentAction.CONTENT_CREATE,
+    "CONTENT_APPROVE": IntentAction.CONTENT_APPROVE,
+    "CONTENT_REJECT": IntentAction.CONTENT_REJECT,
+    "UNKNOWN": IntentAction.READ
+}
 
 @dataclass
 class Tier2Deps:
@@ -110,7 +120,6 @@ class Tier2CloudRouter:
                     history.append(msg)
         
         # [TRINITY DISPATCHER] Waterfall logic decoupled
-        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
         deps = Tier2Deps(screen_context=screen_context, rotator=key_rotator)
 
         try:
@@ -122,16 +131,7 @@ class Tier2CloudRouter:
             )
             
             output: Tier2Output = result.output
-            action_map = {
-                "UI_NAV": IntentAction.READ, 
-                "DATA_QUERY": IntentAction.COUNT, 
-                "DEEP_ANALYSIS": IntentAction.ANALYZE, 
-                "CONTENT_CREATE": IntentAction.CONTENT_CREATE,
-                "CONTENT_APPROVE": IntentAction.CONTENT_APPROVE,
-                "CONTENT_REJECT": IntentAction.CONTENT_REJECT,
-                "UNKNOWN": IntentAction.READ
-            }
-            action = action_map.get(output.intent_type, IntentAction.READ)
+            action = INTENT_TO_ACTION_MAP.get(output.intent_type, IntentAction.READ)
 
             return IntentResponse(
                 status="success", 

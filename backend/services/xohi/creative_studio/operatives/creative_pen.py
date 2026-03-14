@@ -1,5 +1,6 @@
-from typing import List, Dict, Union, Optional
 import logging
+import re
+from typing import List, Dict, Union, Optional
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
@@ -11,11 +12,16 @@ logger = logging.getLogger("api-gateway")
 OUTLINE_PROMPT = """[ROLE] VIRAL CONTENT ARCHITECT — XoHi Creative Studio V65.0
 
 [CHIẾN THUẬT: VIRAL HOOK LOOP]
-Tập trung 90% hiệu quả vào Tiêu đề (Hook) và Ý chốt (Reward). 
+Tập trung 90% hiệu quả vào Tiêu đề (Hook) và Ý chốt (Reward).
+Sử dụng các đòn tâm lý:
+- LOSS AVERSION: "Đừng bỏ lỡ...", "Cảnh báo sai lầm..."
+- CURIOSITY GAP: "Sự thật ít người biết về...", "Tại sao {X} lại thất bại?"
+- SOCIAL PROOF: "Hàng ngàn người đã...", "Bí mật của các chuyên gia..."
 
 [NHIỆM VỤ]
 Thiết kế Dàn ý (Outline) chuẩn "Xương sườn" tối giản theo cấu trúc sau:
 1. **HOOK (H1 & Intro)**: Phải cực gắt, gây tranh cãi hoặc đưa giải pháp sốc để giữ chân 3s đầu.
+   Gợi ý từ khóa: "Sự thật", "Cảnh báo", "Bí mật", "Tại sao".
 2. **RETAIN (Thân bài)**: Chia nhỏ thành các gạch đầu dòng ngắn gọn, súc tích để người đọc không bị ngộp.
 3. **REWARD (CTA)**: Kết thúc bằng một giá trị thực tế hoặc lời kêu gọi đánh vào cảm xúc/tâm lý người đọc.
 
@@ -30,9 +36,11 @@ DRAFT_PROMPT = """[ROLE] VIRAL PR WRITER — XoHi Creative Studio V65.0 | Viral 
 
 [CHIẾN THUẬT: VIRAL HOOK LOOP]
 Người dùng hiện nay đọc Tiêu đề và Đoạn kết chiếm 90% sự quan tâm. Bạn phải dồn toàn lực vào 2 phần này.
+Văn phong phải "Sắc như dao", dùng từ ngữ mạnh, trực diện, không nói giảm nói tránh.
 
 [QUY TẮC VIẾT BÀI]
 1. **HOOK (Mở bài)**: <h1> phải là một cú đấm tâm lý. Ngay dưới <h1> phải là câu trả lời trực tiếp hoặc một lời khẳng định gây tò mò cực độ.
+   Ví dụ: "Bạn đang làm sai cách...", "Đây là lý do {X} không hiệu quả..."
 2. **RETAIN (Thân bài)**: Dựa trên dàn ý sườn bài, viết các đoạn văn cực kỳ cô đọng. Tuyệt đối không viết lan man (Fluff). Mỗi mục H2 chỉ nên có 1-2 đoạn văn ngắn.
 3. **REWARD (Kết bài)**: Đoạn <section class="cta"> phải là phần "Thưởng" cho người đọc. Một lời kêu gọi (CTA) mạnh mẽ, đánh đúng vào nỗi sợ, sự tò mò hoặc lợi ích thực tế của họ.
 
@@ -242,8 +250,7 @@ Bắt đầu viết ngay:
         V72.0: Surgical [IMAGE_N] replacement pass.
         Handles both standalone markers and markers already inside src/attributes.
         """
-        import re
-        
+
         # First pass: Handle cases where [IMAGE_N] is accidentally inside a src attribute
         # e.g. <img src="[IMAGE_1]" /> -> <img src="URL" />
         for i, url in enumerate(assets[:30], 1):

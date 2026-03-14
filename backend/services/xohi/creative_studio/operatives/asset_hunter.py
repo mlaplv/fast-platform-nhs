@@ -1,32 +1,35 @@
 import httpx
 import asyncio
 import logging
+import re
 from typing import List, Optional, Dict, Union
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse, quote, urlunparse
+from sqlalchemy.orm.attributes import flag_modified
+
 from backend.utils.http_client import get_http_client
 from backend.services.event_bus import event_bus
 from backend.constants.agentic import MAX_SEARCH_RETRY_PER_STEP, SEARCH_CIRCUIT_BREAKER_COOLDOWN_MINUTES
-
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from pydantic_ai import Agent
-from backend.services.xohi.creative_studio.models.schemas import VisualSearchPlan
+from backend.services.xohi.creative_studio.models.schemas import VisualSearchPlan, AgentResponse, AgentSignal
 
 logger = logging.getLogger("api-gateway")
 
 PLANNER_PROMPT = """[ROLE] VISUAL CONTENT DIRECTOR — XoHi Content Factory 2026
 
 [NHIỆM VỤ]
-Dựa trên tiêu đề, từ khóa và phong cách bài viết, hãy tạo duy nhất 01 câu lệnh tìm kiếm (ONE best search query) bằng TIẾNG ANH để tìm hình ảnh MIÊU TẢ CHÍNH XÁC CHỦ THỂ (Subject Accuracy).
+Dựa trên tiêu đề, từ khóa, phong cách và CHẾ ĐỘ NỘI DUNG, hãy tạo duy nhất 01 câu lệnh tìm kiếm (ONE best search query) bằng TIẾNG ANH để tìm hình ảnh MIÊU TẢ CHÍNH XÁC CHỦ THỂ (Subject Accuracy).
+
+[CHIẾN THUẬT THEO CHẾ ĐỘ]
+- VIRAL MODE: Tập trung vào cảm xúc, con người, hành động, màu sắc rực rỡ (Cinematic, Vibrant).
+- DEEP-DIVE MODE: Tập trung vào tính chuyên nghiệp, bối cảnh thực tế, trừu tượng hóa, sạch sẽ (Professional, Realistic, Clean).
 
 [QUY TẮC ƯU TIÊN - THIẾT QUÂN LUẬT]
-1. CHỦ THỂ LÀ SỐ 1 (Subject First): Query BẮT BUỘC phải chứa các từ khóa cốt lõi về thực thể (Giới tính, Độ tuổi, Vật thể, Ngữ cảnh). Ví dụ: Nếu bài về "Nam giới", query phải có 'men' hoặc 'male'.
+1. CHỦ THỂ LÀ SỐ 1 (Subject First): Query BẮT BUỘC phải chứa các từ khóa cốt lõi về thực thể (Giới tính, Độ tuổi, Vật thể, Ngữ cảnh).
 2. ANTI-TEXT POLICY: Tuyệt đối dùng từ khóa phủ định để tránh ảnh có chữ: `-text -word -typography -quote -infographic -youtube -video`.
-3. STYLE SECOND: Sau khi đảm bảo đúng chủ thể, mới áp dụng phong cách: "Cinematic", "Authentic lifestyle", "Professional photography", "Clean background".
+3. STYLE SECOND: Sau khi đảm bảo đúng chủ thể, mới áp dụng phong cách phù hợp với chế độ nội dung.
 4. ĐỊNH DẠNG: Trả về JSON VisualSearchPlan với 01 query tối ưu nhất.
-
-[VÍ DỤ]
-- Input: "Thời trang nam công sở", Keywords: "vest, lịch lãm" -> Query: "professional male fashion office wear men suit cinematic -text -word"
-- Input: "Mỹ phẩm dưỡng da nữ", Keywords: "spa, làm đẹp" -> Query: "woman facial skincare spa treatment authentic lifestyle -text -word"
 """
 
 class AssetHunter:
@@ -77,14 +80,16 @@ class AssetHunter:
         })
         
         # Step 2.1: AI Search Planning (Subject-First Logic)
+        content_mode = campaign.get_gold_val("content_mode", "viral")
         try:
             prompt = (
                 f"Title: {title}\n"
                 f"Primary Keyword: {primary}\n"
                 f"Secondary Keywords: {', '.join(secondary)}\n"
-                f"Persona: {persona}"
+                f"Persona: {persona}\n"
+                f"Content Mode: {content_mode.upper()}"
             )
-            result = await trinity_bridge.run(self.planner_agent, prompt)
+            result = await trinity_bridge.run(self.planner_agent, prompt, session_id=campaign.id)
             plan: VisualSearchPlan = result.data if hasattr(result, "data") else result.output
             queries: List[str] = plan.queries
             logger.info(f"[AssetHunter] AI Planner query: {queries[0] if queries else 'None'}")
@@ -96,23 +101,26 @@ class AssetHunter:
         all_urls = []
         # Professional CTO Fix: Using Standardized Golden Context Helpers
         config = campaign.get_gold_config()
-        target_count = config.get("max_assets", 10)
-        
+        target_count = int(config.get("max_assets", 10))
+
         # Step 2.2: Dual-Page Search for Buffer (Efficiency R88)
-        # We fetch up to 20 images (2 pages) to ensure enough valid buffer after filtering.
+        # We fetch up to candidate_limit images to ensure enough valid buffer after filtering.
         best_query = queries[0] if queries else (primary if primary else title)
-        
+
+        # V77: Expand buffer for Deep-Dive to ensure enough images for long content
+        candidate_limit = 30 if content_mode == "deep_dive" else 20
+
         await event_bus.emit("CONTENT_PROGRESS", {
             "campaign_id": campaign_id,
             "user_id": str(campaign.user_id),
             "step": 2,
-            "message": f"🔍 Đang truy quét ảnh diện rộng (20 candidates): {best_query}",
+            "message": f"🔍 Đang truy quét ảnh diện rộng ({candidate_limit} candidates): {best_query}",
             "status": "PROCESSING",
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
-        
-        # Fetch 20 images to provide enough buffer for filtration (YT thumbnails, dead links, hotlink protection)
-        raw_urls = await self.fetch_images(best_query, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=20)
+
+        # Fetch candidate images to provide enough buffer for filtration
+        raw_urls = await self.fetch_images(best_query, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=candidate_limit)
 
         # Step 2.3: Parallel Anti-YouTube, HTTPS-Only & Integrity Check (Rule R110-V76)
         client = await get_http_client()
@@ -126,7 +134,6 @@ class AssetHunter:
 
             async with sem:
                 try:
-                    from urllib.parse import urlparse, quote, urlunparse
                     p = urlparse(url)
                     sanitized_url = urlunparse(p._replace(path=quote(p.path), query=quote(p.query, safe='/=&?')))
 
@@ -180,7 +187,6 @@ class AssetHunter:
 
         campaign.assets_data = all_urls
         # Phase 74: Seed the Golden Thread with original remote URLs for reliable localized replacement in Step 6
-        from sqlalchemy.orm.attributes import flag_modified
         gold = campaign.gold_metadata or {}
         gold["original_remote_assets"] = list(all_urls)
         campaign.gold_metadata = gold

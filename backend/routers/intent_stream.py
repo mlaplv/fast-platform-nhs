@@ -91,6 +91,11 @@ class IntentStreamController(Controller):
                 # ── Yield STT Listening immediately ──
                 yield _sse("status", {"step": "stt", "msg": "listening"})
 
+                # Phase 76.3.2: Immediate Transcript Feedback
+                # Bắn ngược transcript về UI ngay lập tức để sếp thấy chữ hiện lên
+                if data.query:
+                    yield _sse("transcript", {"text": data.query})
+
                 # Phase 3 Kill-switch: Empty transcript (Noise rejection)
                 if not data.query or not data.query.strip():
                     logger.warning("[SSE] Empty transcript detected. Yielding SLEEP via SESSION_CTRL.")
