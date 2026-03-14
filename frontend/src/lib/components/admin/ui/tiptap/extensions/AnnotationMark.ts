@@ -116,6 +116,7 @@ const ANNOTATION_STYLES = `
     cursor: pointer;
     border-radius: 0;
     transition: background 0.2s ease, text-shadow 0.2s ease;
+    pointer-events: auto !important;
   }
   .xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="low" i] {
     color: #fef08a !important;

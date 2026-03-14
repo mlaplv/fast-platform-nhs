@@ -60,6 +60,16 @@
   function stripMarks(html: string): string {
     return html.replace(/<mark[^>]*>|<\/mark>/g, '');
   }
+
+  // Stable ID Hashing (djb2) to prevent tooltip flickering
+  function generateStableId(text: string, message: string): string {
+    let hash = 5381;
+    const str = text + message;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash * 33) ^ str.charCodeAt(i);
+    }
+    return (hash >>> 0).toString(36);
+  }
   
   const containerClass = $derived(`tiptap-shell flex flex-col w-full h-full ${
     editable 
@@ -166,28 +176,15 @@
         }
       }
 
-      // 4. Add new annotations
+      // 4. Add new annotations via Bitap-inspired robust matching
       for (const ann of annotations) {
-        if (!ann.text || ann.text.length < 3) continue;
-        
-        // Normalize search string: remove all punctuation/formatting
-        const searchStrNorm = ann.text.toLowerCase().split('').filter(isAlphaNum).join('');
-        if (searchStrNorm.length < 3) continue;
-        
-        let startSearchIdx = 0;
-        let normIdx = docStrNormalized.indexOf(searchStrNorm, startSearchIdx);
-        
-        while (normIdx !== -1) {
-          // Map back to docChars indices
-          const startDocCharIdx = docNormalMap[normIdx];
-          const endDocCharIdx = docNormalMap[normIdx + searchStrNorm.length - 1];
-          
-          if (startDocCharIdx !== undefined && endDocCharIdx !== undefined) {
-            const startPos = docChars[startDocCharIdx].pos;
-            const endPos = docChars[endDocCharIdx].pos + 1;
-            
-            tr.addMark(startPos, endPos, annotationMarkType.create({
-              id: `ann-${Math.random().toString(36).substring(2, 9)}`,
+        if (!ann.text || ann.text.length < 3) {
+          // Handle structural errors
+          if (docChars.length > 0) {
+            const firstPos = docChars[0].pos;
+            const stableId = generateStableId("-structural-", ann.message);
+            tr.addMark(firstPos, firstPos + 1, annotationMarkType.create({
+              id: `ann-${stableId}`,
               type: ann.type,
               message: ann.message,
               source: ann.source || '',
@@ -195,9 +192,61 @@
             }));
             hasChanges = true;
           }
+          continue;
+        }
+        
+        // Matcher Logic: Bitap-lite (Fuzzy search)
+        // We look for the pattern in docStrNormalized allowing small variances
+        const pattern = ann.text.toLowerCase().split('').filter(isAlphaNum).join('');
+        if (pattern.length < 3) continue;
+
+        const maxErrors = Math.max(1, Math.floor(pattern.length * 0.1)); // 10% tolerance
+        const stableId = generateStableId(ann.text, ann.message);
+
+        // Simple but robust sliding window bit-parallel like search
+        let bestMatchIdx = -1;
+        let bestDistance = maxErrors + 1;
+
+        // Optimization: try exact match first
+        const exactIdx = docStrNormalized.indexOf(pattern);
+        if (exactIdx !== -1) {
+            bestMatchIdx = exactIdx;
+            bestDistance = 0;
+        } else {
+            // Fuzzy search if exact fails
+            for (let i = 0; i <= docStrNormalized.length - pattern.length; i++) {
+                let distance = 0;
+                for (let j = 0; j < pattern.length; j++) {
+                    if (docStrNormalized[i+j] !== pattern[j]) {
+                        distance++;
+                        if (distance > maxErrors) break;
+                    }
+                }
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    bestMatchIdx = i;
+                    if (bestDistance === 0) break;
+                }
+            }
+        }
+
+        if (bestMatchIdx !== -1) {
+          const startDocCharIdx = docNormalMap[bestMatchIdx];
+          const endDocCharIdx = docNormalMap[bestMatchIdx + pattern.length - 1];
           
-          startSearchIdx = normIdx + 1;
-          normIdx = docStrNormalized.indexOf(searchStrNorm, startSearchIdx);
+          if (startDocCharIdx !== undefined && endDocCharIdx !== undefined) {
+            const startPos = docChars[startDocCharIdx].pos;
+            const endPos = docChars[endDocCharIdx].pos + 1;
+            
+            tr.addMark(startPos, endPos, annotationMarkType.create({
+              id: `ann-${stableId}`,
+              type: ann.type,
+              message: ann.message,
+              source: ann.source || '',
+              severity: ann.severity || 'medium',
+            }));
+            hasChanges = true;
+          }
         }
       }
       
