@@ -160,7 +160,7 @@ export interface CampaignMetrics {
 }
 
 export interface CampaignData {
-  campaign_id: string;
+  id: string;
   category: string;
   step: number;
   status: string;
@@ -182,7 +182,7 @@ export interface CampaignData {
 }
 
 export interface PulsePayload {
-  campaign_id: string;
+  id: string;
   step: number;
   message: string;
   status?: string;

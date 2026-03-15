@@ -8,6 +8,7 @@ from backend.database.models import Article, ArticleEmbedding
 from backend.utils.text import slugify
 from backend.services.event_bus import event_bus
 from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
+from backend.models.schemas import GenericResponse
 
 logger = logging.getLogger("api-gateway")
 
@@ -15,7 +16,7 @@ class ActionHandler:
     def __init__(self, orchestrator: "ContentOrchestrator"):
         self.orchestrator = orchestrator
 
-    async def approve_step(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
+    async def approve_step(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> GenericResponse:
         campaign = await campaign_repo.get(campaign_id)
         if not campaign:
             return {"status": "error", "message": "Campaign not found"}
@@ -23,7 +24,7 @@ class ActionHandler:
         step = campaign.current_step
         request_step = data.get("step")
         if request_step is not None and int(request_step) != step:
-            return {"status": "error", "message": f"Dạ sếp, bước {request_step} này đã qua hoặc chưa tới ạ.", "current_step": step}
+            return GenericResponse(status="error", message=f"Dạ sếp, bước {request_step} này đã qua hoặc chưa tới ạ.", data={"current_step": step})
 
         approved = data.get("approved", True)
         edited_data = data.get("edited_data")
@@ -61,7 +62,7 @@ class ActionHandler:
                 campaign.gold_metadata = campaign.topic_data  # Golden Thread sealed after Step 1 approval
 
             if campaign.status != "WAITING_FOR_REVIEW":
-                return {"status": "error", "message": "Bước này đang được xử lý hoặc đã duyệt rồi ạ."}
+                return GenericResponse(status="error", message="Bước này đang được xử lý hoặc đã duyệt rồi ạ.")
 
             if step == 6:
                 # Terminal Step: Publish to News + Cleanup
@@ -79,14 +80,13 @@ class ActionHandler:
                         "tenant_id": campaign.tenant_id
                     })
 
-                    return {
-                        "status": "success",
-                        "message": "🎉 Chúc mừng sếp! Bài viết đã được xuất bản vào mục 'Tin tức' và hệ thống đã được dọn dẹp sạch sẽ ạ.",
-                        "campaign_id": campaign_id,
-                        "next_step": 7
-                    }
+                    return GenericResponse(
+                        status="success",
+                        message="🎉 Chúc mừng sếp! Bài viết đã được xuất bản vào mục 'Tin tức' và hệ thống đã được dọn dẹp sạch sẽ ạ.",
+                        data={"campaign_id": campaign_id, "next_step": 7}
+                    )
                 else:
-                    return {"status": "error", "message": "Dạ sếp, có lỗi khi xuất bản bài viết. Sếp thử lại giúp em nhé."}
+                    return GenericResponse(status="error", message="Dạ sếp, có lỗi khi xuất bản bài viết. Sếp thử lại giúp em nhé.")
 
             campaign.current_step += 1
             campaign.status = "PROCESSING"
@@ -98,11 +98,11 @@ class ActionHandler:
             # Ensure we don't exceed max steps
             if target_step <= 6:
                 asyncio.create_task(self.orchestrator._trigger_next_step(campaign_id, force_step=target_step))
-            return {"status": "success", "message": f"Dạ sếp, em đang bắt đầu Bước {target_step} ạ.", "campaign_id": campaign_id, "next_step": target_step}
+            return GenericResponse(status="success", message=f"Dạ sếp, em đang bắt đầu Bước {target_step} ạ.", data={"campaign_id": campaign_id, "next_step": target_step})
         else:
             campaign.status = "REJECTED"
             await campaign_repo.update(campaign)
-            return {"status": "success", "message": "Đã ghi nhận sếp không duyệt bước này.", "campaign_id": campaign_id}
+            return GenericResponse(status="success", message="Đã ghi nhận sếp không duyệt bước này.", data={"campaign_id": campaign_id})
 
     async def _publish_and_cleanup(self, campaign, campaign_repo: ContentCampaignRepository) -> bool:
         """
@@ -175,7 +175,7 @@ class ActionHandler:
             logger.exception(f"[ActionHandler] Publication failed for campaign {campaign.id}: {e}")
             return False
 
-    async def retry_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
+    async def retry_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository) -> GenericResponse:
         campaign = await campaign_repo.get(campaign_id)
         if not campaign:
             return {"status": "error", "message": "Campaign not found"}
@@ -187,12 +187,12 @@ class ActionHandler:
             await campaign_repo.session.commit()
 
         asyncio.create_task(self.orchestrator._trigger_next_step(campaign_id, force_step=step_val))
-        return {"status": "success", "message": f"Em đang chạy lại bước {step_val} cho sếp đây!", "campaign_id": campaign_id}
+        return GenericResponse(status="success", message=f"Em đang chạy lại bước {step_val} cho sếp đây!", data={"campaign_id": campaign_id})
 
-    async def update_metadata(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
+    async def update_metadata(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> GenericResponse:
         campaign = await campaign_repo.get(campaign_id)
         if not campaign:
-            return {"status": "error", "message": "Campaign not found"}
+            return GenericResponse(status="error", message="Campaign not found")
 
         for field in ["assets", "keywords", "outline_data", "draft_content", "final_html"]:
             val = data.get(field)
@@ -214,4 +214,4 @@ class ActionHandler:
         await campaign_repo.update(campaign)
         if hasattr(campaign_repo, "session"):
             await campaign_repo.session.commit()
-        return {"status": "success", "message": "Neural data synchronized.", "campaign_id": campaign_id}
+        return GenericResponse(status="success", message="Neural data synchronized.", data={"campaign_id": campaign_id})

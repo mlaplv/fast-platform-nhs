@@ -8,8 +8,9 @@
   import CampaignFilters from "./CampaignFilters.svelte";
   import CampaignListItem from "./CampaignListItem.svelte";
   import BulkActionBar from "./BulkActionBar.svelte";
+  import type { CampaignData } from "$lib/state/types";
 
-  let allCampaigns: any[] = $state([]);
+  let allCampaigns: CampaignData[] = $state([]);
   let isLoading = $state(true);
   let deletingId = $state<string | null>(null);
 
@@ -74,7 +75,13 @@
     }
 
     try {
-      const raw = await apiClient.get<any>(`/api/v1/content/campaigns?limit=${limit}&offset=${offset}`);
+      const raw = await apiClient.get<{
+        items: CampaignData[];
+        total: number;
+        has_more: boolean;
+        limit: number;
+        offset: number;
+      }>(`/api/v1/content/campaigns?limit=${limit}&offset=${offset}`);
       const data = raw?.items || [];
       
       if (isAppend) {
@@ -111,7 +118,7 @@
 
     deletingId = id;
     try {
-      const res = await apiClient.delete<any>(`/api/v1/content/campaigns/${id}`);
+      const res = await apiClient.delete<{ status: string; message?: string }>(`/api/v1/content/campaigns/${id}`);
       
       if (res?.status === "error") {
         nanobot.showToast(`Lỗi: ${res.message || "Không thể thực hiện"}`, "error");
@@ -159,7 +166,7 @@
       for (const id of ids) {
         // Visual feedback per item if possible
         try {
-          const res = await apiClient.delete<any>(`/api/v1/content/campaigns/${id}`);
+          const res = await apiClient.delete<{ status: string; message?: string }>(`/api/v1/content/campaigns/${id}`);
           if (res.status !== "error") successCount++;
         } catch (e) {
           console.error(`[Bulk] Failed to delete ${id}:`, e);

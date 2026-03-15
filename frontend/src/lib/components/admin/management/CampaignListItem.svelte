@@ -11,6 +11,8 @@
   import Clock from "lucide-svelte/icons/clock";
   import Megaphone from "lucide-svelte/icons/megaphone";
   import Loader2 from "lucide-svelte/icons/loader-2";
+  import type { CampaignData } from "$lib/state/types";
+  import type { Component } from "svelte";
 
   let { 
     campaign, 
@@ -20,35 +22,35 @@
     isSelected = false,
     onToggleSelection
   } = $props<{
-    campaign: any;
-    onAction: (campaign: any) => void;
+    campaign: CampaignData;
+    onAction: (campaign: CampaignData) => void;
     onDelete: (id: string) => void;
     isDeleting: boolean;
     isSelected?: boolean;
     onToggleSelection?: (id: string) => void;
   }>();
 
-  const STEP_LABELS: Record<number, { label: string; icon: any }> = {
-    1: { label: "Phân tích từ khóa", icon: Sparkles },
-    2: { label: "Săn ảnh", icon: Image },
-    3: { label: "Lập dàn ý", icon: FileText },
-    4: { label: "Soạn bản thảo", icon: FileText },
-    5: { label: "Kiểm tra đạo văn", icon: ShieldCheck },
-    6: { label: "Hoàn thiện & Xuất bản", icon: CheckCircle }
+  const STEP_LABELS: Record<number, { label: string; icon: Component }> = {
+    1: { label: "Phân tích từ khóa", icon: Sparkles as unknown as Component },
+    2: { label: "Săn ảnh", icon: Image as unknown as Component },
+    3: { label: "Lập dàn ý", icon: FileText as unknown as Component },
+    4: { label: "Soạn bản thảo", icon: FileText as unknown as Component },
+    5: { label: "Kiểm tra đạo văn", icon: ShieldCheck as unknown as Component },
+    6: { label: "Hoàn thiện & Xuất bản", icon: CheckCircle as unknown as Component }
   };
 
-  const CAT_CONFIG: Record<string, { label: string; color: string; icon: any; border: string }> = {
+  const CAT_CONFIG: Record<string, { label: string; color: string; icon: Component; border: string }> = {
     CREATIVE_CONTENT: { 
       label: "CREATIVE", 
       color: "text-purple-400", 
       border: "border-purple-500/30",
-      icon: Sparkles
+      icon: Sparkles as unknown as Component
     },
     AD_MANAGEMENT: { 
       label: "AD_OPS", 
       color: "text-orange-400", 
       border: "border-orange-500/30",
-      icon: BarChart3
+      icon: BarChart3 as unknown as Component
     }
   };
 
@@ -71,9 +73,9 @@
   }
 
   const status = STATUS_CONFIG[campaign.status] || { label: campaign.status, color: "text-gray-400", border: "border-gray-500/20" };
-  const cat = CAT_CONFIG[campaign.category] || { label: "GENERAL", color: "text-gray-400", border: "border-gray-500/20", icon: Megaphone };
+  const cat = CAT_CONFIG[campaign.category] || { label: "GENERAL", color: "text-gray-400", border: "border-gray-500/20", icon: Megaphone as unknown as Component };
   const step = campaign.current_step || 1;
-  const stepInfo = STEP_LABELS[step] || { label: "Neutral Zone", icon: Sparkles };
+  const stepInfo = STEP_LABELS[step] || { label: "Neutral Zone", icon: Sparkles as unknown as Component };
 </script>
 
 <div

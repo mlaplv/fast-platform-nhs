@@ -14,6 +14,7 @@ from backend.services.xohi.creative_studio.registry import registry
 from backend.constants.agentic import ORCHESTRATOR_SEMAPHORE_LIMIT
 from backend.database.alchemy_config import alchemy_config
 from backend.schemas.intent import IntentResponse
+from backend.models.schemas import GenericResponse, AgentResponse
 
 # Modular Handlers
 from backend.services.xohi.creative_studio.handlers.voice import VoiceHandler
@@ -78,13 +79,13 @@ class ContentOrchestrator:
     async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None) -> Optional[ContentCampaign]:
         return await self.voice_handler.get_active_campaign(campaign_repo, user_id, tenant_id, query=query)
 
-    async def approve_step(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
+    async def approve_step(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> GenericResponse:
         return await self.action_handler.approve_step(campaign_id, data, campaign_repo)
 
-    async def retry_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
+    async def retry_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository) -> GenericResponse:
         return await self.action_handler.retry_step(campaign_id, campaign_repo)
 
-    async def update_metadata(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> Dict[str, object]:
+    async def update_metadata(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> GenericResponse:
         return await self.action_handler.update_metadata(campaign_id, data, campaign_repo)
 
     async def _trigger_next_step(self, campaign_id: str, force_step: int = None):

@@ -37,8 +37,29 @@ class ContentCampaign(BaseModel):
 
 class AgentResponse(BaseModel):
     signal: AgentSignal
-    data: object
+    data: Optional[Dict[str, object]] = None
     message: Optional[str] = None
+
+class CampaignListItem(BaseModel):
+    id: str
+    topic_data: Optional[Dict[str, object]] = None
+    status: str
+    current_step: int
+    created_at: datetime
+    user_id: Optional[str] = None
+    category: Optional[str] = None
+
+class CampaignListResponse(BaseModel):
+    items: List[CampaignListItem]
+    total: int
+    has_more: bool
+    limit: int
+    offset: int
+
+class GenericResponse(BaseModel):
+    status: str
+    message: str
+    data: Optional[Dict[str, object]] = None
 
 # Rule R106: Explicit model rebuild for complex type resolution
 ContentCampaign.model_rebuild()

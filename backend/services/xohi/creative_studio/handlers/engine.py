@@ -182,25 +182,28 @@ class ExecutionEngine:
 
             await campaign_repo.update(campaign)
 
-            payload = {
+            payload: Dict[str, object] = {
                 "campaign_id": campaign_id,
                 "step": step,
                 "status": campaign.status,
                 "data": {}
             }
+            payload_data = payload["data"]
+            if not isinstance(payload_data, dict): payload_data = {} # Defensive cast
             # Explicit field mapping to match frontend pulse.ts expectations
             # Frontend reads: topic_data/keywords, assets (NOT assets_data), outline, draft_content, gold_metadata
             if step == 1:
-                payload["data"]["topic_data"] = getattr(campaign, "topic_data", None)
-                payload["data"]["keywords"] = getattr(campaign, "topic_data", None)
+                td = getattr(campaign, "topic_data", None)
+                payload_data["topic_data"] = td
+                payload_data["keywords"] = td
             elif step == 2:
-                payload["data"]["assets"] = getattr(campaign, "assets_data", None) or []
+                payload_data["assets"] = getattr(campaign, "assets_data", None) or []
             elif step == 3:
-                payload["data"]["outline"] = getattr(campaign, "outline_data", None)
+                payload_data["outline"] = getattr(campaign, "outline_data", None)
             elif step == 4:
-                payload["data"]["draft_content"] = getattr(campaign, "draft_content", None)
+                payload_data["draft_content"] = getattr(campaign, "draft_content", None)
             elif step == 5:
-                payload["data"]["unique_score"] = getattr(campaign, "unique_score", None)
+                payload_data["unique_score"] = getattr(campaign, "unique_score", None)
             elif step == 6:
                 # IMPORTANT: Ensure deferred column is refreshed before payload construction
                 try:
@@ -208,11 +211,11 @@ class ExecutionEngine:
                 except Exception as refresh_err:
                     logger.warning(f"[Content Factory] Refresh failed for final_html: {refresh_err}")
 
-                payload["data"]["assets"] = getattr(campaign, "assets_data", None) or []
-                payload["data"]["final_html"] = getattr(campaign, "final_html", None)
+                payload_data["assets"] = getattr(campaign, "assets_data", None) or []
+                payload_data["final_html"] = getattr(campaign, "final_html", None)
 
             # Always include gold_metadata for avatar/config sync
-            payload["data"]["gold_metadata"] = getattr(campaign, "gold_metadata", None) or {}
+            payload_data["gold_metadata"] = getattr(campaign, "gold_metadata", None) or {}
 
             await event_bus.emit("CONTENT_STEP_COMPLETED", payload)
             logger.info(f"[Content Factory] Step {step} SUCCESS in {time.time() - start_time:.2f}s")
