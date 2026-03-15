@@ -2,8 +2,10 @@
   import CircleCheck from "lucide-svelte/icons/circle-check";
   import ShieldCheck from "lucide-svelte/icons/shield-check";
 
+  import type { Role } from "$lib/types";
+
   let { role, isSelected, allPermissionsCount, style, onSelect } = $props<{
-    role: { id: string; name: string; permissions: any[] };
+    role: Role;
     isSelected: boolean;
     allPermissionsCount: number;
     style: { gradient: string; badge: string; border: string };

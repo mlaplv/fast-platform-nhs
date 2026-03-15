@@ -14,24 +14,23 @@
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { portal } from "$lib/actions/portal";
-  import type { Order } from "$lib/types";
+  import type { OrderDetail } from "$lib/types";
   import { ORDER_STATUS_MAP } from "$lib/constants/order";
 
-  let { 
-    isOpen = $bindable(false), 
-    orderId = "", 
+  let {
+    isOpen = $bindable(false),
+    orderId = "",
     onClose,
     onReload
-  } = $props<{ 
-    isOpen: boolean; 
+  } = $props<{
+    isOpen: boolean;
     orderId: string;
     onClose: () => void;
     onReload?: () => void;
   }>();
 
-  let orderData = $state<any>(null);
+  let orderData = $state<OrderDetail | null>(null);
   let isLoading = $state(false);
-
 
   $effect(() => {
     if (isOpen && orderId) {
@@ -42,7 +41,7 @@
   async function loadOrderDetails() {
     isLoading = true;
     try {
-      orderData = await apiClient.get<any>(`/api/v1/orders/${orderId}`);
+      orderData = await apiClient.get<OrderDetail>(`/api/v1/orders/${orderId}`);
     } catch (err) {
       console.error("Failed to load order details", err);
     } finally {
@@ -67,7 +66,8 @@
         nanobot.addLog("Cập nhật trạng thái " + actionType, "Nanobot-System");
         await loadOrderDetails();
         onReload?.();
-      } catch (e: any) {
+      } catch (err: unknown) {
+        const e = err as Error;
         nanobot.showToast(e.message || "Lỗi cập nhật", "error");
         isLoading = false;
       }
@@ -84,7 +84,7 @@
       confirmLabel: "HUỶ ĐƠN",
       cancelLabel: "QUAY LẠI"
     });
-    
+
     if (reason !== null) {
       isLoading = true;
       try {
@@ -92,7 +92,8 @@
         nanobot.addLog("Đã huỷ đơn hàng " + orderId.split('-')[0], "Nanobot-System");
         await loadOrderDetails();
         onReload?.();
-      } catch (e: any) {
+      } catch (err: unknown) {
+        const e = err as Error;
         nanobot.showToast(e.message || "Lỗi huỷ đơn", "error");
         isLoading = false;
       }

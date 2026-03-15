@@ -1,6 +1,8 @@
 <script lang="ts">
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { fly } from "svelte/transition";
+  import type { Component } from "svelte";
+  import type { WidgetType } from "$lib/state/types";
   import ChevronLeft from "lucide-svelte/icons/chevron-left";
   import Terminal from "lucide-svelte/icons/terminal";
 
@@ -16,7 +18,7 @@
   import NotificationList from "../../widgets/NotificationList.svelte";
   import VoiceSettings from "../../management/VoiceSettings.svelte";
 
-  const WIDGET_REGISTRY: Record<string, any> = {
+  const WIDGET_REGISTRY: Partial<Record<WidgetType, Component<any>>> = {
     REVENUE_CHART: RevenueChart,
     USER_TABLE: UserTable,
     USER_MANAGEMENT: UserManagement,
@@ -25,11 +27,11 @@
     PRODUCT_MANAGEMENT: ProductManagement,
     ORDER_MANAGEMENT: OrderManagement,
     NEWS_MANAGEMENT: NewsManagement,
-    NOTIFICATION_LIST: NotificationList,
+    NOTIFICATION_LIST: NotificationList as any, // NotificationList might not match Component<any> exactly if it has specific props
     VOICE_SETTINGS: VoiceSettings,
   };
 
-  const WIDGET_LABEL: Record<string, string> = {
+  const WIDGET_LABEL: Partial<Record<WidgetType, string>> = {
     REVENUE_CHART: "Doanh thu",
     USER_MANAGEMENT: "Nhân viên",
     PERMISSION_MANAGEMENT: "Phân quyền",
@@ -42,11 +44,14 @@
 
   let ActiveWidget = $derived(
     nanobot.activeWidget !== "NONE"
-      ? WIDGET_REGISTRY[nanobot.activeWidget]
+      ? WIDGET_REGISTRY[nanobot.activeWidget as WidgetType]
       : null,
   );
   let WidgetData = $derived(nanobot.currentData || {});
-  let title = $derived(WIDGET_LABEL[nanobot.activeWidget] || nanobot.activeWidget.replace(/_/g, " "));
+  let title = $derived(
+    WIDGET_LABEL[nanobot.activeWidget as WidgetType] ||
+    nanobot.activeWidget.replace(/_/g, " ")
+  );
 
   function handleBack() {
     nanobot.closeUniversalModal();

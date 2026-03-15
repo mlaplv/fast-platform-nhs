@@ -1,5 +1,6 @@
 <script lang="ts">
   import { nanobot, type WidgetType } from "$lib/state/nanobot.svelte";
+  import type { Component } from "svelte";
   import Package from "lucide-svelte/icons/package";
   import Users from "lucide-svelte/icons/users";
   import Newspaper from "lucide-svelte/icons/newspaper";
@@ -23,7 +24,7 @@
 
   interface CategoryItem {
     id: string;
-    icon: any;
+    icon: Component<any>;
     label: string;
     sublabel?: string;
     color: string;

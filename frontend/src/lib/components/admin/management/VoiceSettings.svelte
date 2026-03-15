@@ -16,16 +16,43 @@
   import GeminiControl from "./voice/GeminiControl.svelte";
   import GeminiDiagnosticsModal from "./voice/GeminiDiagnosticsModal.svelte";
 
+  interface Capability {
+    id: string;
+    label: string;
+    active: boolean;
+    description?: string;
+  }
+
+  interface ChatSettings {
+    selective_persistence: boolean;
+    save_ai_responses: boolean;
+    auto_purge_days: number;
+    cache_limit: number;
+  }
+
+  interface VoiceSettingsResponse {
+    wake_words: string[];
+    sleep_words: string[];
+    greeting_template: string;
+    farewell_template: string;
+    capabilities: Capability[];
+    chat_settings: ChatSettings;
+    stt_anchors: string[];
+    mic_sensitivity: number;
+    status?: string;
+    data?: VoiceSettingsResponse;
+  }
+
   let wakeTriggers = $state<string[]>([]);
   let sleepTriggers = $state<string[]>([]);
   let greetingTemplate = $state("");
   let farewellTemplate = $state("");
-  let capabilities = $state<any[]>([]);
+  let capabilities = $state<Capability[]>([]);
   let sttOverrides = $state<Record<string, string>>({});
   let sttStopwords = $state<string[]>([]);
   let sttAnchors = $state<string[]>([]);
   let micSensitivity = $state(0.6);
-  let chatSettings = $state<Record<string, any>>({
+  let chatSettings = $state<ChatSettings>({
     selective_persistence: true,
     save_ai_responses: false,
     auto_purge_days: 30,
@@ -36,7 +63,7 @@
   let isLoading = $state(true);
   let isSaving = $state(false);
 
-  function startTraining(type: any) {
+  function startTraining(type: "wake" | "sleep") {
     nanobot.voice.clearVuiResponse();
     nanobot.setTraining(true, type);
     nanobot.setModality("voice");
@@ -48,12 +75,12 @@
   onMount(async () => {
     try {
       const [voice, over, stop] = await Promise.all([
-        apiClient.get<any>("/api/v1/settings/voice").catch(() => null),
+        apiClient.get<VoiceSettingsResponse>("/api/v1/settings/voice").catch(() => null),
         apiClient
-          .get<any>("/api/v1/settings/lexicon/overrides")
+          .get<{ overrides: Record<string, string> }>("/api/v1/settings/lexicon/overrides")
           .catch(() => null),
         apiClient
-          .get<any>("/api/v1/settings/lexicon/stopwords")
+          .get<{ stopwords: string[] }>("/api/v1/settings/lexicon/stopwords")
           .catch(() => null),
       ]);
 
@@ -81,9 +108,9 @@
     try {
       const capMap = capabilities.reduce(
         (acc, c) => ({ ...acc, [c.id]: c.active }),
-        {},
+        {} as Record<string, boolean>,
       );
-      const res = await apiClient.post<any>("/api/v1/settings/voice", {
+      const res = await apiClient.post<VoiceSettingsResponse>("/api/v1/settings/voice", {
         wake_words: wakeTriggers,
         sleep_words: sleepTriggers,
         greeting_template: greetingTemplate,
@@ -103,7 +130,7 @@
           d.greeting_template,
           d.farewell_template,
           d.is_campaign_mode,
-          d.chat_settings,
+          d.chat_settings as unknown as Record<string, unknown>,
           d.stt_anchors,
           d.mic_sensitivity
         );
@@ -117,7 +144,7 @@
           "success",
         );
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       nanobot.showToast("Failed to synchronize. See Neural Logs.", "error");
     } finally {
       isSaving = false;

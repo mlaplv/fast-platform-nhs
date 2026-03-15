@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Editor } from '@tiptap/core';
-  import type { ToolbarAction } from '$lib/types';
+  import type { ToolbarAction, EditorAnnotation } from '$lib/types';
   import BoldIcon from 'lucide-svelte/icons/bold';
   import ItalicIcon from 'lucide-svelte/icons/italic';
   import UnderlineIcon from 'lucide-svelte/icons/underline';
@@ -29,7 +29,7 @@
   }: {
     editor: Editor | null;
     toolbarActions?: ToolbarAction[];
-    annotations?: any[];
+    annotations?: EditorAnnotation[];
     onOpenImage: () => void;
     onOpenLink: () => void;
     onClearHighlights: () => void;

@@ -9,6 +9,8 @@
   import Square from "lucide-svelte/icons/square";
   import Layers from "lucide-svelte/icons/layers";
 
+  import type { Category } from "$lib/types";
+
   let {
     categories,
     selectedIds,
@@ -19,13 +21,13 @@
     onEdit,
     onDelete,
   } = $props<{
-    categories: any[];
+    categories: Category[];
     selectedIds: Set<string>;
     expandedIds: Set<string>;
     onToggleSelect: (id: string) => void;
     onToggleExpand: (id: string) => void;
     onAddSub: (id: string) => void;
-    onEdit: (cat: any, parentId?: string | null) => void;
+    onEdit: (cat: Category, parentId?: string | null) => void;
     onDelete: (id: string, parentId?: string | null) => void;
   }>();
 </script>

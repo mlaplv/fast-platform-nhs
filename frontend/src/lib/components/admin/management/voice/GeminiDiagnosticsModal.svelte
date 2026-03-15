@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { nanobot } from "$lib/state/nanobot.svelte";
+  import type { AIKeyStat, GenericAIResponse } from "$lib/state/types";
   import { fade, scale } from "svelte/transition";
   import X from "lucide-svelte/icons/x";
   import Activity from "lucide-svelte/icons/activity";
@@ -15,14 +16,14 @@
     onClose: () => void;
   }>();
 
-  let keyStats = $state<any[]>([]);
+  let keyStats = $state<AIKeyStat[]>([]);
   let isLoading = $state(false);
   let testingIndex = $state<number | null>(null);
 
   async function fetchStats() {
     isLoading = true;
     try {
-      const res = await apiClient.get<any[]>("/api/v1/admin/ai/keys");
+      const res = await apiClient.get<AIKeyStat[]>("/api/v1/admin/ai/keys");
       if (Array.isArray(res)) {
         keyStats = res;
       }
@@ -36,7 +37,7 @@
   async function testKey(index: number) {
     testingIndex = index;
     try {
-      const res = await apiClient.post<any>(`/api/v1/admin/ai/test/${index}`);
+      const res = await apiClient.post<GenericAIResponse>(`/api/v1/admin/ai/test/${index}`);
       if (res?.status === "success") {
         nanobot.showToast("Key health verified successfully.", "success");
       } else {
@@ -53,7 +54,7 @@
   async function resetAllKeys() {
     isLoading = true;
     try {
-      const res = await apiClient.post<any>("/api/v1/admin/ai/keys/reset");
+      const res = await apiClient.post<GenericAIResponse>("/api/v1/admin/ai/keys/reset");
       if (res?.status === "success") {
         nanobot.showToast(res.message || "Đã reset toàn bộ keys về ACTIVE.", "success");
         await fetchStats();

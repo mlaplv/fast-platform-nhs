@@ -138,7 +138,8 @@
       }
       
       nanobot.showToast(res?.message || "Đã tiêu hủy chiến dịch và toàn bộ logs liên quan.", "success");
-    } catch (e: any) {
+    } catch (err: unknown) {
+      const e = err as Error;
       console.error("[ContentFactory] Delete crash:", e);
       nanobot.showToast(e?.message || "Thao tác thất bại (Lỗi hệ thống)", "error");
     } finally {

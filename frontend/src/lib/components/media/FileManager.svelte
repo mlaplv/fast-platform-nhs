@@ -29,6 +29,26 @@
         return () => clearTimeout(timeout);
     });
 
+    // V22: Voice Mutation Injection - Media Management
+    $effect(() => {
+        const action = nanobot.commandAction;
+        if (action?.entity === "media" || action?.entity === "image") {
+            if (action.verb === "search" && action.args) {
+                if (nanobot.consumeCommand("search", "media")) {
+                    searchQuery = action.args;
+                }
+            } else if (action.verb === "select" && action.args) {
+                if (nanobot.consumeCommand("select", "media")) {
+                    const found = mediaStore.assets.find(a =>
+                        a.filename.toLowerCase().includes(action.args!.toLowerCase()) ||
+                        (a.alt_text && a.alt_text.toLowerCase().includes(action.args!.toLowerCase()))
+                    );
+                    if (found) selectedAssetId = found.id;
+                }
+            }
+        }
+    });
+
     // Local filtering can stay as a fallback for ultra-fast UI response while waiting for server
     const filteredAssets = $derived(
         mediaStore.assets.filter(asset => {
@@ -120,7 +140,7 @@
         mediaStore.toggleSelection(id);
     }
 
-    async function handleQuickEdit(action: string, params: any = null) {
+    async function handleQuickEdit(action: string, params: Record<string, unknown> | null = null) {
         if (!selectedAssetId) return;
         await mediaStore.quickEdit(selectedAssetId, action, params);
     }

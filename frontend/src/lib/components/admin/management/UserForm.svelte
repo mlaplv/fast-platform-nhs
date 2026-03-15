@@ -31,7 +31,7 @@
     error = null;
 
     try {
-      const payload: any = { name };
+      const payload: Record<string, unknown> = { name };
       if (!editingId) {
         payload.email = email;
         payload.password = "SmartShop@123"; // Reset-required default for AI nodes
@@ -47,8 +47,9 @@
         "Nanobot-Sec",
       );
       onSuccess(res);
-    } catch (err: any) {
-      error = err.message || "Failed to process identity operation.";
+    } catch (err: unknown) {
+      const e = err as Error;
+      error = e.message || "Failed to process identity operation.";
       nanobot.addLog(`Operation Error: ${error}`, "Nanobot-Sec");
     } finally {
       isLoading = false;

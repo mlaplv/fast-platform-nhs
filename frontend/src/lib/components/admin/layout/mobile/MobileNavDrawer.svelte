@@ -1,5 +1,6 @@
 <script lang="ts">
   import { nanobot } from "$lib/state/nanobot.svelte";
+  import type { WidgetType } from "$lib/state/types";
   import { fade, fly } from "svelte/transition";
   import X from "lucide-svelte/icons/x";
   import Package from "lucide-svelte/icons/package";
@@ -11,22 +12,22 @@
   import Home from "lucide-svelte/icons/home";
   import Megaphone from "lucide-svelte/icons/megaphone";
   
-  const menuItems = [
+  const menuItems: Array<{ id: WidgetType; label: string; icon: any; color: string }> = [
     { id: "NONE", label: "XoHi Home", icon: Home, color: "#00FFFF" },
     { id: "ORDER_MANAGEMENT", label: "Đơn hàng", icon: ShoppingCart, color: "#FFAA00" },
     { id: "PRODUCT_MANAGEMENT", label: "Sản phẩm", icon: Package, color: "#00FFFF" },
     { id: "NEWS_MANAGEMENT", label: "Tin tức", icon: Newspaper, color: "#FF33FF" },
-    { id: "CAMPAIGNS", label: "Campaigns", icon: Megaphone, color: "#39ff14" },
+    { id: "NONE", label: "Campaigns", icon: Megaphone, color: "#39ff14" }, // CAMPAIGNS not in WidgetType
     { id: "USER_MANAGEMENT", label: "Nhân viên", icon: Users, color: "#39FF14" },
     { id: "PERMISSION_MANAGEMENT", label: "Phân quyền", icon: Shield, color: "#39FF14" },
     { id: "VOICE_SETTINGS", label: "Cài đặt giọng nói", icon: Settings, color: "#gray-400" },
   ];
 
-  function handleSelect(id: string) {
+  function handleSelect(id: WidgetType) {
     if (id === "NONE") {
       nanobot.closeUniversalModal(); // Back to home
     } else {
-      nanobot.openWidget(id as any);
+      nanobot.openWidget(id);
     }
     nanobot.toggleMobileDrawer(); // Close drawer
   }

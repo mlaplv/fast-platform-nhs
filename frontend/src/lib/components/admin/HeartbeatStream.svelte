@@ -16,10 +16,14 @@
 
   const TRUNCATE_LIMIT = 120;
 
+  interface UserData {
+    id: string;
+    name: string;
+    email: string;
+  }
+
   // GOD-MODE: User Selection State
-  let availableUsers: { id: string; name: string; email: string }[] = $state(
-    [],
-  );
+  let availableUsers: UserData[] = $state([]);
   let isLoadingUsers = $state(false);
   let hasAttemptedFetchUsers = $state(false);
   let isSuperAdmin = $derived(permissionState.roles.includes("SUPER_ADMIN"));
@@ -48,9 +52,9 @@
     if (isLoadingUsers) return;
     isLoadingUsers = true;
     try {
-      const res = await apiClient.get<any>("/api/v1/users?limit=50");
-      const list = Array.isArray(res) ? res : res.data || [];
-      availableUsers = list.map((u: any) => ({
+      const res = await apiClient.get<UserData[] | { data: UserData[] }>("/api/v1/users?limit=50");
+      const list = Array.isArray(res) ? res : res?.data || [];
+      availableUsers = list.map((u: UserData) => ({
         id: u.id,
         name: u.name,
         email: u.email,

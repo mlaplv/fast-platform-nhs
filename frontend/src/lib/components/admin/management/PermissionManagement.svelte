@@ -27,7 +27,13 @@
     permissions: Permission[];
   }
 
-  const ROLE_STYLES: Record<string, any> = {
+  interface RoleStyle {
+    gradient: string;
+    badge: string;
+    border: string;
+  }
+
+  const ROLE_STYLES: Record<string, RoleStyle> = {
     CUSTOMER: {
       gradient: "from-blue-900/80 to-blue-800/40",
       badge: "bg-blue-600",
@@ -55,7 +61,12 @@
     },
   };
 
-  const PERMISSION_GROUPS: Record<string, any> = {
+  interface PermissionGroupDef {
+    label: string;
+    icon: string;
+  }
+
+  const PERMISSION_GROUPS: Record<string, PermissionGroupDef> = {
     sys: { label: "Hệ thống", icon: "⚙️" },
     user: { label: "Người dùng", icon: "👤" },
     product: { label: "Sản phẩm", icon: "📦" },
@@ -122,12 +133,39 @@
           a.code.localeCompare(b.code),
         );
         if (roles.length > 0) selectedRoleId = roles[0].id;
-      } catch (e: any) {
-        error = e.message;
+      } catch (e: unknown) {
+        const err = e as Error;
+        error = err.message;
       } finally {
         isLoading = false;
       }
     })();
+  });
+
+  // V22: Voice Mutation Injection - Permission Management
+  $effect(() => {
+    const action = nanobot.commandAction;
+
+    if (action?.entity === "permission" || action?.entity === "role") {
+      if (action.verb === "search" && action.args) {
+        if (nanobot.consumeCommand("search", action.entity)) {
+          searchTerm = action.args;
+        }
+      } else if (action.verb === "select" && action.args) {
+        if (nanobot.consumeCommand("select", action.entity)) {
+          const r = roles.find(
+            (role) =>
+              role.name.toLowerCase().includes(action.args!.toLowerCase()) ||
+              role.code.toLowerCase().includes(action.args!.toLowerCase()),
+          );
+          if (r) selectRole(r.id);
+        }
+      } else if (action.verb === "edit") {
+        if (nanobot.consumeCommand("edit", action.entity)) {
+          startEditing();
+        }
+      }
+    }
   });
 
   function selectRole(id: string) {

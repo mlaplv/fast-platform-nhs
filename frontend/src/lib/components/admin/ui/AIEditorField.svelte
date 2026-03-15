@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
+  import type { GhostCompletionResponse } from "$lib/state/types";
 
   let { value = $bindable("") } = $props();
 
@@ -52,7 +53,7 @@
             
             for (const line of lines) {
             try {
-              const data = JSON.parse(line.slice(6));
+              const data = JSON.parse(line.slice(6)) as GhostCompletionResponse;
               // Bắt phase 'done' hoặc parse token trực tiếp nếu AI_Worker trả stream
               if (data.status === "done" && data.message) {
                  // Gợi ý luôn là text dài, ta chỉ nối nếu message khớp ngữ cảnh,
@@ -67,8 +68,8 @@
           }
         }
       }
-    }
-  } catch (e: any) {
+    } catch (err: unknown) {
+      const e = err as Error;
       if (e.name !== "AbortError") console.error("Ghost Error:", e);
     } finally {
       abortController = null;

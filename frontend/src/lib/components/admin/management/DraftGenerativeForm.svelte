@@ -32,9 +32,9 @@
     // 1. Parallel loading: Fetch newest categories & Hydrate local draft
     const fetchCats = async () => {
       try {
-        const res = await apiClient.get<any>("/api/v1/categories");
+        const res = await apiClient.get<{ data: Array<{ name: string }> }>("/api/v1/categories");
         if (res.data && res.data.length > 0) {
-          dbCategories = res.data.map((c: any) => c.name);
+          dbCategories = res.data.map((c) => c.name);
         }
       } catch (e) {
         console.error("Categories fetch failed", e);
@@ -45,7 +45,7 @@
       if (editingId) {
         // Edit mode: fetch existing from API, ignore IDB draft
         try {
-          const res = await apiClient.get<any>(`/api/v1/articles/${editingId}`);
+          const res = await apiClient.get<{ data: Record<string, unknown> }>(`/api/v1/articles/${editingId}`);
           if (res.data) Object.assign(formData, res.data);
         } catch (e) {
           console.error("Failed to load article for edit", e);
@@ -98,8 +98,9 @@
         nanobot.showToast("Trích xuất và đăng bài hoàn tất", "success");
       }
       onSuccess();
-    } catch (e: any) {
-      nanobot.showToast("Lỗi đăng bài: " + (e.message || "Unknown error"), "error");
+    } catch (e: unknown) {
+      const err = e as Error;
+      nanobot.showToast("Lỗi đăng bài: " + (err.message || "Unknown error"), "error");
     } finally {
       isSubmitting = false;
     }

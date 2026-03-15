@@ -188,7 +188,7 @@
       <div class="flex items-center gap-2 sm:gap-1 px-1 sm:px-2 xl:border-l xl:border-white/10 xl:pl-4 overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
         {#each ["ALL", "ACTIVE", "LOCKED"] as status}
           <button
-            onclick={() => handleStatusChange(status as any)}
+            onclick={() => handleStatusChange(status as "ALL" | "ACTIVE" | "LOCKED")}
             class="px-4 py-2 rounded-lg text-[9px] font-mono font-bold uppercase tracking-widest transition-all flex-shrink-0 {statusFilter === status
               ? status === 'LOCKED'
                 ? 'bg-red-500/20 text-red-500 border border-red-500/30 ring-1 ring-red-500/30'

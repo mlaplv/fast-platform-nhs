@@ -5,19 +5,28 @@
   import CheckResultPanel from "./CheckResultPanel.svelte";
 
   import { apiClient } from "$lib/utils/apiClient";
-  import type { EditorAnnotation } from "$lib/types";
+  import type {
+    EditorAnnotation,
+    MediaAsset,
+    CampaignOutline,
+    CampaignSection,
+    CopyrightResult,
+    SEOResult,
+    AIInspectResult,
+    AnalysisAnnotation
+  } from "$lib/types";
 
-  let { 
+  let {
     campaign_id,
-    isEditing, 
-    editedDraft = $bindable(""), 
-    draft_content = $bindable(""), 
-    outline = {},
+    isEditing,
+    editedDraft = $bindable(""),
+    draft_content = $bindable(""),
+    outline = {} as CampaignOutline,
     assets = [] as (MediaAsset | string)[],
     isExpanded,
     editorRef = $bindable(null),
-    analysis_cache = {},
-    analysis_metrics = {},
+    analysis_cache = {} as Record<string, any>,
+    analysis_metrics = {} as Record<string, any>,
     copyrightScore = $bindable<number | null>(null),
     seoScore = $bindable<number | null>(null),
     aiScore = $bindable<number | null>(null)
@@ -29,7 +38,7 @@
     if (!base) {
       const sections = outline?.sections || [];
       if (sections.length > 0) {
-        base = sections.map((s: any) => {
+        base = sections.map((s: CampaignSection) => {
           const hText = (s.heading || "").replace(/^(H2|H3):/i, "").trim();
           const tag = (s.heading || "").toUpperCase().startsWith("H3") ? "h3" : "h2";
           return `<${tag}>${hText}</${tag}><p>${s.content || ""}</p>`;
@@ -55,11 +64,11 @@
   });
 
   // -- Analysis States --
-  let copyrightResult = $state<any>(null);
+  let copyrightResult = $state<CopyrightResult | null>(null);
   let isCopyrightLoading = $state(false);
-  let seoResult = $state<any>(null);
+  let seoResult = $state<SEOResult | null>(null);
   let isSeoLoading = $state(false);
-  let aiReadyResult = $state<any>(null);
+  let aiReadyResult = $state<AIInspectResult | null>(null);
   let isAiLoading = $state(false);
   let isBulkFixing = $state(false);
 
@@ -89,7 +98,7 @@
   // -- Annotations for editor: CHỈ hiển thị annotations của tab đang active --
   let editorAnnotations = $derived<EditorAnnotation[]>(
     activeTab === 'copyright'
-      ? (copyrightResult?.annotations || []).map((s: any) => ({
+      ? (copyrightResult?.annotations || []).map((s: AnalysisAnnotation) => ({
           text: s.text || '',
           type: s.type || 'copyright',
           message: s.reason || 'Cần kiểm tra bản quyền',
@@ -97,14 +106,14 @@
           severity: (s.severity || 'medium').toLowerCase()
         }))
       : activeTab === 'seo'
-        ? (seoResult?.seo_annotations || []).map((a: any) => ({
+        ? (seoResult?.seo_annotations || []).map((a: AnalysisAnnotation) => ({
             text: a.text || '',
             type: a.type || 'seo-info',
             message: a.message || '',
             severity: (a.severity || 'info').toLowerCase()
           }))
         : activeTab === 'ai'
-          ? (aiReadyResult?.ai_annotations || []).map((a: any) => ({
+          ? (aiReadyResult?.ai_annotations || []).map((a: AnalysisAnnotation) => ({
               text: a.text || '',
               type: a.type || 'geo-info',
               message: a.message || '',
@@ -131,7 +140,7 @@
     copyrightResult = null;
     try {
       await saveBeforeAnalysis();
-      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/copyright?force=${isForce}`);
+      const res = await apiClient.post<{ data: CopyrightResult }>(`/api/v1/content/campaigns/${campaign_id}/analyze/copyright?force=${isForce}`);
       if (res?.data) copyrightResult = res.data;
     } catch (e) {
       console.error("[DraftStep] Copyright check failed:", e);
@@ -148,7 +157,7 @@
     seoResult = null;
     try {
       await saveBeforeAnalysis();
-      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/seo?force=${isForce}`);
+      const res = await apiClient.post<{ data: SEOResult }>(`/api/v1/content/campaigns/${campaign_id}/analyze/seo?force=${isForce}`);
       if (res?.data) seoResult = res.data;
     } catch (e) {
       console.error("[DraftStep] SEO analysis failed:", e);
@@ -165,7 +174,7 @@
     aiReadyResult = null;
     try {
       await saveBeforeAnalysis();
-      const res = await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/ai-inspect?force=${isForce}`);
+      const res = await apiClient.post<{ data: AIInspectResult }>(`/api/v1/content/campaigns/${campaign_id}/analyze/ai-inspect?force=${isForce}`);
       if (res?.data) aiReadyResult = res.data;
     } catch (e) {
       console.error("[DraftStep] AI Inspect failed:", e);
@@ -185,17 +194,17 @@
   const runAutoFix = async (targetSnippet: string, annotationType: string, errorMessage: string): Promise<string | null> => {
     if (!campaign_id) return null;
     try {
-      const res = (await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/auto-fix`, {
+      const res = await apiClient.post<{ status: string; data: { new_text: string } }>(`/api/v1/content/campaigns/${campaign_id}/analyze/auto-fix`, {
         target_snippet: targetSnippet,
         annotation_type: annotationType,
         error_message: errorMessage,
-      })) as any;
+      });
       const payload = res?.status === 'success' ? res.data : null;
       if (payload?.new_text) {
         const new_text = payload.new_text;
         setTimeout(() => {
           const normTarget = targetSnippet.replace(/[\s\*\u200B\uFEFF]+/g, '').toLowerCase();
-          const updateMatches = (a: any) => {
+          const updateMatches = (a: AnalysisAnnotation) => {
             if (!a || typeof a.text !== 'string') return false;
             const normText = a.text.replace(/[\s\*\u200B\uFEFF]+/g, '').toLowerCase();
             const msgMatch = (a.message === errorMessage || a.reason === errorMessage);
@@ -203,17 +212,17 @@
             return (normText.includes(normTarget) || normTarget.includes(normText)) && msgMatch && typeMatch;
           };
           if (seoResult?.seo_annotations) {
-            seoResult.seo_annotations = seoResult.seo_annotations.map((a: any) =>
+            seoResult.seo_annotations = seoResult.seo_annotations.map((a: AnalysisAnnotation) =>
               updateMatches(a) ? { ...a, text: new_text, type: 'fixed' } : a
             );
           }
           if (aiReadyResult?.ai_annotations) {
-            aiReadyResult.ai_annotations = aiReadyResult.ai_annotations.map((a: any) =>
+            aiReadyResult.ai_annotations = aiReadyResult.ai_annotations.map((a: AnalysisAnnotation) =>
               updateMatches(a) ? { ...a, text: new_text, type: 'fixed' } : a
             );
           }
           if (copyrightResult?.annotations) {
-            copyrightResult.annotations = copyrightResult.annotations.map((s: any) => {
+            copyrightResult.annotations = copyrightResult.annotations.map((s: AnalysisAnnotation) => {
               const isMatch = updateMatches(s);
               return isMatch ? { ...s, text: new_text, type: 'fixed' } : s;
             });
@@ -233,7 +242,7 @@
     try {
       // Deduplicate and gather annotations to send
       let category = '';
-      let annotationsToSend = [];
+      let annotationsToSend: AnalysisAnnotation[] = [];
       if (activeTab === 'copyright') {
         category = 'copyright';
         annotationsToSend = copyrightResult?.annotations || [];
@@ -247,10 +256,40 @@
 
       if (annotationsToSend.length === 0) return;
 
-      const res = (await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/analyze/bulk-fix`, {
+      const res = await apiClient.post<{ status: string; data: { new_content: string } }>(`/api/v1/content/campaigns/${campaign_id}/analyze/bulk-fix`, {
         category: category,
         annotations: annotationsToSend
-      })) as any;
+      });
+
+      if (res?.status === 'success' && res.data?.new_content) {
+        // AI returned entirely new content
+        const newHtml = res.data.new_content;
+
+        // Let the editor reactivity naturally pick it up through editedDraft/draft_content binding
+        if (isEditing) {
+            editedDraft = newHtml;
+        } else {
+            draft_content = newHtml;
+        }
+
+        // Wait a small tick so Svelte can sync the draft content to the editor before we re-analyze
+        await new Promise(r => setTimeout(r, 300));
+
+        // Rerun the analysis with force=true to guarantee fresh scores and highlights!
+        if (activeTab === 'copyright') {
+          await runCopyrightCheck(true);
+        } else if (activeTab === 'seo') {
+          await runSeoAnalysis(true);
+        } else if (activeTab === 'ai') {
+          await runAiAnalysis(true);
+        }
+      }
+    } catch (e) {
+      console.error('[DraftStep] Bulk Fix failed:', e);
+    } finally {
+      isBulkFixing = false;
+    }
+  };
 
       if (res?.status === 'success' && res.data?.new_content) {
         // AI returned entirely new content

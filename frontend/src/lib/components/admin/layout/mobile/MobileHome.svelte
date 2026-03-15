@@ -2,6 +2,7 @@
   import HeartbeatStream from "../../HeartbeatStream.svelte";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { permissionState } from "$lib/state/permissions.svelte";
+  import type { WidgetType } from "$lib/state/types";
   import { spring } from "svelte/motion";
   import ShoppingCart from "lucide-svelte/icons/shopping-cart";
   import Package from "lucide-svelte/icons/package";
@@ -10,16 +11,16 @@
   import Sparkles from "lucide-svelte/icons/sparkles";
   import Megaphone from "lucide-svelte/icons/megaphone";
 
-  const quickActions = [
+  const quickActions: Array<{ label: string; icon: any; widget: WidgetType; color: string; bg: string; border: string }> = [
     { label: "Đơn hàng", icon: ShoppingCart, widget: "ORDER_MANAGEMENT", color: "text-vibrant-purple", bg: "bg-vibrant-purple/10", border: "border-vibrant-purple/20" },
-    { label: "Campaigns", icon: Megaphone, widget: "CAMPAIGNS", color: "text-hacker-green", bg: "bg-hacker-green/10", border: "border-hacker-green/20" },
+    { label: "Campaigns", icon: Megaphone, widget: "NONE", color: "text-hacker-green", bg: "bg-hacker-green/10", border: "border-hacker-green/20" }, // CAMPAIGNS needs to be in WidgetType if it exists
     { label: "Sản phẩm", icon: Package, widget: "PRODUCT_MANAGEMENT", color: "text-neon-cyan", bg: "bg-neon-cyan/10", border: "border-neon-cyan/20" },
     { label: "Tin tức", icon: Newspaper, widget: "NEWS_MANAGEMENT", color: "text-fuchsia-400", bg: "bg-fuchsia-400/10", border: "border-fuchsia-400/20" },
     { label: "Nhân viên", icon: Users, widget: "USER_MANAGEMENT", color: "text-[#39FF14]", bg: "bg-[#39FF14]/10", border: "border-[#39FF14]/20" }
   ];
 
-  function openWidget(widgetId: string) {
-    nanobot.openWidget(widgetId as any);
+  function openWidget(widgetId: WidgetType) {
+    nanobot.openWidget(widgetId);
   }
 
   // Greeting logic

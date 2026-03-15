@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
+  import type { Snippet, Component } from "svelte";
   import X from "lucide-svelte/icons/x";
   import Activity from "lucide-svelte/icons/activity";
   import Cpu from "lucide-svelte/icons/cpu";
@@ -15,8 +16,8 @@
     showFooter?: boolean;
     maxWidth?: string;
     height?: string;
-    children?: any;
-    headerIcon?: any;
+    children?: Snippet;
+    headerIcon?: string | Component<any>;
     zIndex?: string;
     backdropClass?: string;
   }

@@ -34,17 +34,23 @@ export interface Permission {
   description: string | null;
 }
 
-export interface Order {
+export interface OrderItem {
   id: string;
-  customerName: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+export interface OrderHistory {
   status: string;
-  total: number;
-  items: number;
-  isSpam: boolean;
-  spamScore?: number;
-  spamReason?: string;
-  fingerprint?: string;
-  createdAt: string;
+  timestamp: string;
+  actor: string;
+  note?: string;
+}
+
+export interface OrderDetail extends Order {
+  items: OrderItem[];
+  history: OrderHistory[];
 }
 
 export interface Article {

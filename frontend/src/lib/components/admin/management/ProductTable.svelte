@@ -4,6 +4,8 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import CheckSquare from "lucide-svelte/icons/check-square";
   import Square from "lucide-svelte/icons/square";
+  import { nanobot } from "$lib/state/nanobot.svelte";
+  import type { Product } from "$lib/types";
 
   let {
     products,
@@ -14,14 +16,42 @@
     onEdit,
     onDelete,
   } = $props<{
-    products: any[];
+    products: Product[];
     selectedIds: Set<string>;
     statusMap: Record<string, { label: string; color: string }>;
     formatCurrency: (n: number) => string;
     onToggleSelect: (id: string) => void;
-    onEdit: (p: any) => void;
+    onEdit: (p: Product) => void;
     onDelete: (id: string) => void;
   }>();
+
+  $effect(() => {
+    const action = nanobot.commandAction;
+    if (action?.entity === "product") {
+      if (action.verb === "edit" && action.args) {
+        const target = products.find(
+          (p) =>
+            p.id === action.args ||
+            p.name.toLowerCase().includes(action.args.toLowerCase()) ||
+            p.sku.toLowerCase() === action.args.toLowerCase(),
+        );
+        if (target && nanobot.consumeCommand("edit", "product")) {
+          onEdit(target);
+        }
+      }
+      if (action.verb === "delete" && action.args) {
+        const target = products.find(
+          (p) =>
+            p.id === action.args ||
+            p.name.toLowerCase().includes(action.args.toLowerCase()) ||
+            p.sku.toLowerCase() === action.args.toLowerCase(),
+        );
+        if (target && nanobot.consumeCommand("delete", "product")) {
+          onDelete(target.id);
+        }
+      }
+    }
+  });
 </script>
 
 <!-- Responsive Table Header (Hidden on Mobile) -->

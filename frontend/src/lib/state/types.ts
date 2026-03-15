@@ -133,6 +133,41 @@ export interface Toast {
   duration?: number;
 }
 
+export interface AnalysisAnnotation {
+  text: string;
+  type: string;
+  message?: string;
+  reason?: string;
+  source_url?: string;
+  severity?: string;
+}
+
+export interface CopyrightResult {
+  uniqueness_score: number;
+  annotations: AnalysisAnnotation[];
+}
+
+export interface SEOResult {
+  total_score: number;
+  grade: string;
+  seo_annotations: AnalysisAnnotation[];
+}
+
+export interface AIInspectResult {
+  geo_score: number;
+  ai_annotations: AnalysisAnnotation[];
+}
+
+export interface CampaignSection {
+  heading?: string;
+  content?: string;
+}
+
+export interface CampaignOutline {
+  sections?: CampaignSection[];
+  html?: string;
+}
+
 // ── Phase 8: Campaign & Content Types (@agrules) ──
 
 export interface MediaAsset {
@@ -168,9 +203,9 @@ export interface CampaignData {
   status: string;
   progress_msg?: string;
   keywords?: CampaignKeywords;
-  assets?: MediaAsset[];
+  assets?: (MediaAsset | string)[];
   reserve_assets?: string[];
-  outline?: { html?: string };
+  outline?: CampaignOutline;
   draft_content?: string;
   final_html?: string;
   unique_score?: number;
@@ -196,4 +231,40 @@ export interface PulseSignal {
   notification_id: string;
   message: string;
   severity: "CRITICAL" | "ACTION" | "PROGRESS" | "INFO";
+}
+
+// ── Phase 12: AI Management Types ──
+export interface AIModelConfig {
+  primary_model: string | null;
+  ai_models: string[];
+  discovered_models?: string[];
+}
+
+export interface AIKeyStat {
+  index: number;
+  key_preview: string;
+  health_score: number;
+  status: 'ACTIVE' | 'COOLDOWN' | 'DEAD';
+}
+
+export interface GenericAIResponse {
+  status: 'success' | 'error';
+  message?: string;
+  count?: number;
+  models?: string[];
+}
+
+// ── Phase 12: Auditor & Security Types ──
+export interface AuditorAnalysis {
+  risk_score: number;
+  impact_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  insights: string[];
+  recommendation: string;
+  audited_by?: string;
+}
+
+export interface GhostCompletionResponse {
+  status?: 'done' | 'processing';
+  message?: string;
+  token?: string;
 }

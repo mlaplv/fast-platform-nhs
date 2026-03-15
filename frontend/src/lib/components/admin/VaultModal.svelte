@@ -2,13 +2,14 @@
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { fade } from "svelte/transition";
   import { apiClient } from "$lib/utils/apiClient";
+  import type { AuditorAnalysis } from "$lib/state/types";
   import MissionControlShell from "./ui/MissionControlShell.svelte";
   import ShieldAlert from "lucide-svelte/icons/shield-alert";
   import Check from "lucide-svelte/icons/check";
   import X from "lucide-svelte/icons/x";
   import Search from "lucide-svelte/icons/search";
 
-  let analysis = $state<any>(null);
+  let analysis = $state<AuditorAnalysis | null>(null);
   let isAuditing = $state(false);
 
   $effect(() => {
@@ -23,7 +24,7 @@
   async function runAudit(draftId: string) {
     isAuditing = true;
     try {
-      analysis = await apiClient.get<any>(`/api/v1/auditor/${draftId}/analyze`);
+      analysis = await apiClient.get<AuditorAnalysis>(`/api/v1/auditor/${draftId}/analyze`);
     } catch (e) {
       console.error("Audit failed", e);
     } finally {

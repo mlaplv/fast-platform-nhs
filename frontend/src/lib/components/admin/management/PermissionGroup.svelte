@@ -2,16 +2,17 @@
     import ChevronRight from "lucide-svelte/icons/chevron-right";
     import Check from "lucide-svelte/icons/check";
     import Lock from "lucide-svelte/icons/lock";
+    import type { Permission } from "$lib/types";
 
     let { group, perms, getGroupIcon, getGroupLabel, roleHasPerm } = $props<{
         group: string;
-        perms: any[];
+        perms: Permission[];
         getGroupIcon: (g: string) => string;
         getGroupLabel: (g: string) => string;
         roleHasPerm: (code: string) => boolean;
     }>();
 
-    let activeCount = $derived(perms.filter((p: any) => roleHasPerm(p.code)).length);
+    let activeCount = $derived(perms.filter((p) => roleHasPerm(p.code)).length);
     let groupPercent = $derived(perms.length ? Math.round((activeCount / perms.length) * 100) : 0);
     let isExpanded = $state(true);
 

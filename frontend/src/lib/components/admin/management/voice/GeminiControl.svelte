@@ -2,6 +2,7 @@
   import { onMount, tick } from "svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { nanobot } from "$lib/state/nanobot.svelte";
+  import type { AIModelConfig, GenericAIResponse } from "$lib/state/types";
   import Cpu from "lucide-svelte/icons/cpu";
   import Activity from "lucide-svelte/icons/activity";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
@@ -36,7 +37,7 @@
   // Load Initial Config
   onMount(async () => {
     try {
-      const res = await apiClient.get<any>("/api/v1/admin/ai/models");
+      const res = await apiClient.get<AIModelConfig>("/api/v1/admin/ai/models");
       if (res) {
         // Construct the stack: Primary first, then waterfall
         const primary = res.primary_model;
@@ -74,7 +75,7 @@
     }
     isSyncing = true;
     try {
-      const res = await apiClient.post<any>("/api/v1/admin/ai/keys/bulk", { keys: bulkKeys });
+      const res = await apiClient.post<GenericAIResponse>("/api/v1/admin/ai/keys/bulk", { keys: bulkKeys });
       if (res?.status === "success") {
         nanobot.showToast(`Neural Link Established: ${res.count} keys synced.`, "success");
         bulkKeys = ""; 
@@ -91,7 +92,7 @@
   async function discoverModels() {
     isDiscovering = true;
     try {
-      const res = await apiClient.get<any>("/api/v1/admin/ai/models/discover");
+      const res = await apiClient.get<GenericAIResponse>("/api/v1/admin/ai/models/discover");
       if (res?.status === "success" && res.models?.length) {
         nanobot.setDiscoveredModels(res.models);
         nanobot.showToast(`Deep Scan: Found ${res.models.length} active models.`, "success");
@@ -113,8 +114,8 @@
     try {
       const primary = priorityStack[0];
       const waterfall = priorityStack.slice(1);
-      
-      const res = await apiClient.post<any>("/api/v1/admin/ai/models", {
+
+      const res = await apiClient.post<GenericAIResponse>("/api/v1/admin/ai/models", {
         primary_model: primary,
         ai_models: waterfall
       });

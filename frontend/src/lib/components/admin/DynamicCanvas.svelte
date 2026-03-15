@@ -1,5 +1,6 @@
 <script lang="ts">
   import { nanobot } from "$lib/state/nanobot.svelte";
+  import type { Component } from "svelte";
   import RevenueChart from "./widgets/RevenueChart.svelte";
   import ConfirmModal from "./widgets/ConfirmModal.svelte";
   import UserTable from "./widgets/UserTable.svelte";
@@ -11,7 +12,7 @@
   import NewsManagement from "./management/NewsManagement.svelte";
   import VoiceSettings from "./management/VoiceSettings.svelte";
 
-  const WIDGET_REGISTRY: Record<string, any> = {
+  const WIDGET_REGISTRY: Record<string, Component<any>> = {
     RevenueChart,
     REVENUE_CHART: RevenueChart,
     SHOW_REVENUE: RevenueChart,

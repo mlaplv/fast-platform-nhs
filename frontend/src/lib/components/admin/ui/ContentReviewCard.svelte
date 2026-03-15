@@ -4,38 +4,57 @@
   import { apiClient } from "$lib/utils/apiClient";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { vuiController } from "$lib/vui";
-  import type { CampaignKeywords, CampaignMetrics } from "$lib/state/types";
-  
-  // -- Sub-Components --
-  import Header from "./content-factory/Header.svelte";
-  import Timeline from "./content-factory/Timeline.svelte";
-  import IdeaStep from "./content-factory/IdeaStep.svelte";
-  import AssetStep from "./content-factory/AssetStep.svelte";
-  import OutlineStep from "./content-factory/OutlineStep.svelte";
-  import DraftStep from "./content-factory/DraftStep.svelte";
-  import ValidationPreviewStep from "./content-factory/ValidationPreviewStep.svelte";
-  import PublishStep from "./content-factory/PublishStep.svelte";
-  import ActionButtons from "./content-factory/ActionButtons.svelte";
-  import GateBlockModal from "./content-factory/GateBlockModal.svelte";
+  import type {
+    CampaignKeywords,
+    CampaignMetrics,
+    MediaAsset,
+    CampaignOutline,
+    CopyrightResult,
+    SEOResult,
+    AIInspectResult
+  } from "$lib/state/types";
 
-  let { 
+  interface Props {
+    campaign_id: string;
+    step: number;
+    status: string;
+    progress_msg?: string;
+    title?: string;
+    keywords: CampaignKeywords;
+    assets: (MediaAsset | string)[];
+    reserve_assets: string[];
+    outline: CampaignOutline;
+    draft_content: string;
+    finalHtml: string;
+    selectedAvatarUrl: string | null;
+    selectedAssetIndex: number;
+    creation_config: Record<string, unknown>;
+    analysis_cache: {
+      copyright?: { data: CopyrightResult };
+      seo?: { data: SEOResult };
+      ai_inspect?: { data: AIInspectResult };
+    };
+    analysis_metrics: CampaignMetrics;
+  }
+
+  let {
     campaign_id,
     step = $bindable(1),
-    status = $bindable(),
-    progress_msg = $bindable(),
-    title = $bindable(),
+    status = $bindable("IDLE"),
+    progress_msg = $bindable(""),
+    title = $bindable(""),
     keywords = $bindable({}),
     assets = $bindable([]),
     reserve_assets = $bindable([]),
     outline = $bindable({}),
     draft_content = $bindable(""),
     finalHtml = $bindable(""),
-    selectedAvatarUrl = $bindable(null), 
+    selectedAvatarUrl = $bindable(null),
     selectedAssetIndex = $bindable(0),
-    creation_config = $bindable(),
-    analysis_cache = $bindable(),
-    analysis_metrics = $bindable()
-  } = $props();
+    creation_config = $bindable({}),
+    analysis_cache = $bindable({}),
+    analysis_metrics = $bindable({})
+  }: Props = $props();
 
   // -- Local UI Orchestration --
   let viewingStep = $state(step || 1);
@@ -46,9 +65,9 @@
   let resultMsg = $state("");
   let customImageUrl = $state("");
   let editedKeywords = $state<CampaignKeywords>({});
-  let editedConfig = $state<Record<string, any>>({});
+  let editedConfig = $state<Record<string, unknown>>({});
   let editedDraft = $state("");
-  let editorRef = $state<HTMLDivElement | null>(null);
+  let editorRef = $state<any>(null); // Tiptap component ref
   let maxStepSeen = $state(step);
 
   // -- Gate Score State (synced from DraftStep via bind:) --

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
+  import type { MediaAsset } from "$lib/state/types";
   import ImageSlot from "./ImageSlot.svelte";
   import { dndzone } from "svelte-dnd-action";
   import { flip } from "svelte/animate";
@@ -7,11 +8,11 @@
 
   const flipDurationMs = 300;
 
-  function handleDndConsider(e: CustomEvent<{ items: any[] }>) {
+  function handleDndConsider(e: CustomEvent<{ items: MediaAsset[] }>) {
     xohiImageStore.reorderAssets(e.detail.items.map(i => String(i.id)));
   }
 
-  function handleDndFinalize(e: CustomEvent<{ items: any[] }>) {
+  function handleDndFinalize(e: CustomEvent<{ items: MediaAsset[] }>) {
     xohiImageStore.reorderAssets(e.detail.items.map(i => String(i.id)));
   }
 </script>

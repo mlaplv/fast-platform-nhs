@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ShieldCheck, BarChart2, Sparkles } from "lucide-svelte";
+  import type { CopyrightResult, SEOResult, AIInspectResult, AnalysisAnnotation } from "$lib/state/types";
 
   let {
     activeTab,
@@ -15,11 +16,11 @@
     onfix = null
   }: {
     activeTab: 'copyright' | 'seo' | 'ai' | null;
-    copyrightResult: any;
+    copyrightResult: CopyrightResult | null;
     isCopyrightLoading: boolean;
-    seoResult: any;
+    seoResult: SEOResult | null;
     isSeoLoading: boolean;
-    aiReadyResult: any;
+    aiReadyResult: AIInspectResult | null;
     isAiLoading: boolean;
     runCopyrightCheck: () => void;
     runSeoAnalysis: () => void;
@@ -80,22 +81,21 @@
             <div class="mt-2 flex flex-col gap-1.5">
               {#each copyrightResult.annotations as ann}
                 {@const isInternal = ann.type === 'internal-dedup'}
-                {@const annColor = ann.severity === 'high' ? 'red' : ann.severity === 'medium' ? 'orange' : 'yellow'}
                 {@const annHex = ann.severity === 'high' ? '#ef4444' : ann.severity === 'medium' ? '#f59e0b' : '#eab308'}
-                
+
                 <div class="p-2 rounded-lg border bg-white/[0.02] flex flex-col gap-1.5 transition-all hover:bg-white/[0.04]"
                      style="border-color: {annHex}20"
                 >
                   <div class="flex items-start justify-between gap-2">
                     <div class="flex items-center gap-1.5">
-                      <span class="text-[7px] font-black px-1 py-0.5 rounded uppercase" 
+                      <span class="text-[7px] font-black px-1 py-0.5 rounded uppercase"
                         style="background: {annHex}20; color: {annHex}">
-                        {isInternal ? '🔁 TRÙNG LẶP NỘI BỘ' : `🚨 BẢN QUYỀN ${ann.severity}`}
+                        {isInternal ? '🔁 TRÙNG LẶP NỘI BỘ' : `🚨 BẢN QUYỀN ${ann.severity?.toUpperCase()}`}
                       </span>
                     </div>
-                    
-                    <button 
-                      onclick={() => handleInternalFix(ann.text, ann.type || 'copyright', ann.reason)}
+
+                    <button
+                      onclick={() => handleInternalFix(ann.text, ann.type || 'copyright', ann.reason || 'Cần kiểm tra bản quyền')}
                       disabled={!!isFixing}
                       class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border border-white/10 hover:bg-white/10 text-[7px] font-black uppercase transition-all disabled:opacity-40"
                     >

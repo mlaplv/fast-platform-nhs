@@ -7,14 +7,42 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import CheckSquare from "lucide-svelte/icons/check-square";
   import Square from "lucide-svelte/icons/square";
+  import { nanobot } from "$lib/state/nanobot.svelte";
+  import type { Article } from "$lib/types";
 
   let { articles, selectedIds, onToggleSelect, onEdit, onDelete } = $props<{
-    articles: any[];
+    articles: Article[];
     selectedIds: Set<string>;
     onToggleSelect: (id: string) => void;
-    onEdit: (a: any) => void;
+    onEdit: (a: Article) => void;
     onDelete: (id: string) => void;
   }>();
+
+  $effect(() => {
+    const action = nanobot.commandAction;
+    if (action?.entity === "article" || action?.entity === "news") {
+      if (action.verb === "edit" && action.args) {
+        const target = articles.find(
+          (a) =>
+            a.id === action.args ||
+            a.title.toLowerCase().includes(action.args.toLowerCase()),
+        );
+        if (target && nanobot.consumeCommand("edit", action.entity)) {
+          onEdit(target);
+        }
+      }
+      if (action.verb === "delete" && action.args) {
+        const target = articles.find(
+          (a) =>
+            a.id === action.args ||
+            a.title.toLowerCase().includes(action.args.toLowerCase()),
+        );
+        if (target && nanobot.consumeCommand("delete", action.entity)) {
+          onDelete(target.id);
+        }
+      }
+    }
+  });
 </script>
 
 <div class="flex flex-col gap-3 sm:gap-0 sm:divide-y sm:divide-white/[0.03]">

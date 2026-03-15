@@ -1,8 +1,9 @@
 <script lang="ts">
     import Check from "lucide-svelte/icons/check";
+    import type { Permission } from "$lib/types";
 
     let { filteredPermissions, roleHasPerm, togglePermission, getGroupLabel, viewMode } = $props<{
-        filteredPermissions: any[];
+        filteredPermissions: Permission[];
         roleHasPerm: (code: string) => boolean;
         togglePermission: (code: string) => void;
         getGroupLabel: (prefix: string) => string;
