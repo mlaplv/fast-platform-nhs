@@ -24,8 +24,8 @@
 
   let {
     isEditing,
-    editedDraft = $bindable(""),
-    draft_content = $bindable(""),
+    editedDraft = $bindable(),
+    draft_content = $bindable(),
     outline = {} as RawOutline,
     assets = [] as (MediaAsset | string)[],
     isExpanded,

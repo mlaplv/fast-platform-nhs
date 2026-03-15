@@ -19,8 +19,8 @@
   let {
     campaign_id,
     isEditing,
-    editedDraft = $bindable(""),
-    draft_content = $bindable(""),
+    editedDraft = $bindable(),
+    draft_content = $bindable(),
     outline = {} as CampaignOutline,
     assets = [] as (MediaAsset | string)[],
     isExpanded,

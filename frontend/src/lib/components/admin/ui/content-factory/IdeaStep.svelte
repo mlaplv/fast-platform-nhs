@@ -7,12 +7,12 @@
   import { vuiController } from "$lib/vui";
 
   let { 
-    isEditing = $bindable(false), 
-    campaign_id, 
-    keywords = $bindable({}), 
-    editedKeywords = $bindable({}),
+    isEditing = $bindable(),
+    campaign_id,
+    keywords = $bindable(),
+    editedKeywords = $bindable(),
     creation_config = {},
-    editedConfig = $bindable({}),
+    editedConfig = $bindable(),
     handleSelectKeyword,
     handleUpdateMetadata,
     isLoading

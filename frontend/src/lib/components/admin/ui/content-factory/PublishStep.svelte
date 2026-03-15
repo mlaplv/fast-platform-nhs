@@ -6,10 +6,10 @@
 
   let {
     assets = [] as (MediaAsset | string)[],
-    selectedAvatarUrl = $bindable(null),
-    viewingStep = $bindable(6),
-    isEditing = $bindable(false),
-    keywords = $bindable<CampaignKeywords>({}),
+    selectedAvatarUrl = $bindable(),
+    viewingStep = $bindable(),
+    isEditing = $bindable(),
+    keywords = $bindable(),
     finalHtml = $bindable(),
     draft_content = $bindable(),
     campaign_id,

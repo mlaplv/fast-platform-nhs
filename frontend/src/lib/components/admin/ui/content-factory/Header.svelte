@@ -17,7 +17,7 @@
     status,
     progress_msg,
     campaign_id,
-    isEditing = $bindable(false),
+    isEditing = $bindable(),
     toggleExpand,
     isExpanded,
     creation_config = {}

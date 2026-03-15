@@ -16,9 +16,9 @@
   let {
     isProcessing,
     isExpanded,
-    assets = $bindable([] as (MediaAsset | string)[]),
-    reserve_assets = $bindable([] as string[]),
-    customImageUrl = $bindable(""),
+    assets = $bindable(),
+    reserve_assets = $bindable(),
+    customImageUrl = $bindable(),
     selectedAvatarUrl = $bindable(null),
     selectedAssetIndex = $bindable(0),
     handleImageError,

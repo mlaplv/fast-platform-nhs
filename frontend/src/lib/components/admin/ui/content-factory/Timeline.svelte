@@ -9,9 +9,9 @@
   import { vuiController } from "$lib/vui";
 
   let { 
-    step = 1, 
-    viewingStep = $bindable(1), 
-    isEditing = $bindable(false) 
+    step = 1,
+    viewingStep = $bindable(),
+    isEditing = $bindable()
   } = $props();
 </script>
 
