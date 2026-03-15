@@ -1,12 +1,30 @@
 import { COMMAND_WIDGET_MAP, WIDGET_VI_LABEL } from "../constants";
 import { persistMessage } from "../chat.svelte";
 import { nanobot } from "../nanobot.svelte";
+import type { WidgetType, ToastType, CommandAction } from "../types";
 
 export interface HandlerDeps {
-  state: any;
-  voice: any;
-  log: any;
-  ui: any;
+  state: {
+    activeWidget: WidgetType;
+    commandAction: CommandAction | null;
+    nanoBotStatus: string;
+    currentData: Record<string, unknown> | null;
+    isBusy: boolean;
+    lastSuggestedWidget?: WidgetType;
+  };
+  voice: {
+    status: string;
+    setVuiActive: (val: boolean) => void;
+    resetVui: () => void;
+    softReset: () => void;
+  };
+  log: {
+    addLog: (msg: string, source?: string, type?: string, tier?: number, data?: Record<string, unknown>) => void;
+  };
+  ui: {
+    setUniversalModalOpen: (val: boolean) => void;
+    showToast: (msg: string, type: ToastType) => void;
+  };
   resetVui: () => void;
   softReset: () => void;
 }

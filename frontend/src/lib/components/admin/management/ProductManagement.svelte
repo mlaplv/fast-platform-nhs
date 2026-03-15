@@ -105,16 +105,16 @@
 
   // V22: Voice Mutation Injection - Product Management
   $effect(() => {
-    const data = nanobot.currentData as any;
+    const data = nanobot.currentData as Record<string, unknown>;
     const action = nanobot.commandAction;
 
     if (data?.ui_action === "show_product_management" && data?.intent_type === "MUTATE" && !showForm) {
       editingId = null;
-      formName = data?.name || data?.title || "";
-      formSku = data?.sku || "";
+      formName = (data?.name as string) || (data?.title as string) || "";
+      formSku = (data?.sku as string) || "";
       formPrice = Number(data?.price) || 0;
       formStock = Number(data?.stock) || 0;
-      formCategory = data?.category || "";
+      formCategory = (data?.category as string) || "";
       formStatus = "draft";
       showForm = true;
       nanobot.clearCurrentData();
@@ -138,11 +138,11 @@
     }
   });
 
-  let searchTimer: any;
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
   function handleSearchInput(e: Event) {
     const val = (e.target as HTMLInputElement).value;
     searchInput = val;
-    clearTimeout(searchTimer);
+    if (searchTimer) clearTimeout(searchTimer);
     searchTimer = setTimeout(() => { searchTerm = val; currentPage = 1; }, 400);
   }
 

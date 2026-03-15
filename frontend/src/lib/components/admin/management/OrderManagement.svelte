@@ -139,7 +139,7 @@
         confirmLabel: "HUỶ ĐƠN",
         cancelLabel: "QUAY LẠI",
       });
-      if (reason !== null) {
+      if (reason !== null && typeof reason === "string") {
         try {
           await apiClient.patch(`/api/v1/orders/${orderId}/cancel`, { reason });
           nanobot.addLog(
@@ -147,8 +147,9 @@
             "Nanobot-System",
           );
           loadOrders();
-        } catch (e: any) {
-          nanobot.showToast(e.message || "Lỗi khi huỷ đơn", "error");
+        } catch (e: unknown) {
+          const err = e as Error;
+          nanobot.showToast(err.message || "Lỗi khi huỷ đơn", "error");
         }
       }
     } else if (actionType === "TOGGLE_SPAM") {
@@ -170,9 +171,10 @@
             "Nanobot-System",
           );
           loadOrders();
-        } catch (e: any) {
+        } catch (e: unknown) {
+          const err = e as Error;
           nanobot.showToast(
-            e.message || "Lỗi cập nhật trạng thái SPAM",
+            err.message || "Lỗi cập nhật trạng thái SPAM",
             "error",
           );
         }
@@ -193,8 +195,9 @@
           });
           nanobot.addLog("Cập nhật trạng thái " + actionType, "Nanobot-System");
           loadOrders();
-        } catch (e: any) {
-          nanobot.showToast(e.message || "Lỗi cập nhật trạng thái", "error");
+        } catch (e: unknown) {
+          const err = e as Error;
+          nanobot.showToast(err.message || "Lỗi cập nhật trạng thái", "error");
         }
       }
     }

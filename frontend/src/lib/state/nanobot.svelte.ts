@@ -139,7 +139,7 @@ export function createNanobotState() {
     get chatPagination() { return chat.pagination; },
     get commandAction() { return state.commandAction; },
 
-    processCommand: (command: string, source: "text" | "voice" = "text", intentData?: any) => intent.processCommand(command, source, intentData),
+    processCommand: (command: string, source: "text" | "voice" = "text", intentData?: Record<string, unknown>) => intent.processCommand(command, source, intentData),
     setVoiceResult: intent.setVoiceResult,
     resetVui,
     setThinking,
@@ -247,13 +247,13 @@ export function createNanobotState() {
     stopPolling: () => sync.stopSmartPolling(),
     get latestResumeableLog() { return resumeManager.latestResumeableLog; },
 
-    loadMoreMessages: () => chat.loadMoreMessages((logs: unknown[]) => {
-      log.upsertLogs(logs as any[]); // Casting here temporarily as we migrate other files
+    loadMoreMessages: () => chat.loadMoreMessages((logs: SystemLog[]) => {
+      log.upsertLogs(logs);
     }, "account", state.godModeUser || undefined),
     syncSessionFromDb: async () => {
       log.setActivityLogs([]);
-      await chat.hydrateHistory("account", (logs: unknown[]) => {
-        log.upsertLogs(logs as any[]);
+      await chat.hydrateHistory("account", (logs: SystemLog[]) => {
+        log.upsertLogs(logs);
       }, state.godModeUser || undefined);
       ui.showToast(state.godModeUser ? `Đồng bộ log [V69.0]: ${state.godModeUser}` : "Đã bộ dữ liệu V69.0 (Unified)", "success");
     },

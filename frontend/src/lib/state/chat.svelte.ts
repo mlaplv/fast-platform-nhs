@@ -5,9 +5,23 @@ import { safeRandomUUID } from "./utils";
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
-  content: { text: string; [key: string]: any };
+  content: { text: string; [key: string]: unknown };
   modality: string;
   timestamp: Date;
+}
+
+interface ChatApiMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: { text: string; [key: string]: unknown };
+  modality: string;
+  created_at: string;
+}
+
+interface ChatApiResponse {
+  messages: ChatApiMessage[];
+  next_cursor: string | null;
+  has_more: boolean;
 }
 
 /**
@@ -28,14 +42,14 @@ export function persistMessage(
       content,
       modality,
     })
-    .catch((e: any) => console.warn("[Persist] Save failed:", e?.message));
+    .catch((e: unknown) => console.warn("[Persist] Save failed:", (e as Error).message));
 }
 
 export function createChatState(
   addLogFn: (msg: string, src?: string) => void,
   showToastFn?: (msg: string, type: "success" | "error" | "info") => void,
 ) {
-  const cache = new Map<string, { data: any; timestamp: number }>();
+  const cache = new Map<string, { data: ChatApiResponse; timestamp: number }>();
   const CHAT_CACHE_TTL = 60_000; // 60 seconds
 
   const state = $state({
@@ -49,7 +63,7 @@ export function createChatState(
 
   // Internal helper to avoid code duplication and satisfy SWR
   function _processLogs(hydrated: ChatMessage[]): SystemLog[] {
-    const logsToAppend: any[] = [];
+    const logsToAppend: SystemLog[] = [];
     for (const m of hydrated) {
       if (m.role === "user") {
         logsToAppend.push({
@@ -60,18 +74,18 @@ export function createChatState(
           type: "info",
         });
       } else if (m.role === "assistant") {
-        const textContent = m.content.text || m.content.message || "";
+        const textContent = m.content.text || (m.content.message as string) || "";
         if (textContent && textContent !== "NONE" && textContent.trim().length > 0) {
           // Flatten nested data if present (Rule R86: Persistence Hardening)
-          const metadata = m.content.data ? { ...m.content, ...m.content.data } : m.content;
-          
+          const metadata = (m.content.data ? { ...m.content, ...(m.content.data as Record<string, unknown>) } : m.content) as Record<string, unknown>;
+
           logsToAppend.push({
             id: m.id + "_text",
             message: textContent,
             source: "XÔ-HỈ",
             timestamp: m.timestamp,
             type: "info",
-            routerTier: metadata.router_tier,
+            routerTier: metadata.router_tier as string | undefined,
             data: { ...metadata, role: "assistant" }, // Flat metadata structure for consistency
           });
         }
@@ -88,7 +102,7 @@ export function createChatState(
   ) {
     const targetSessionId = sessionId || "account";
     const cacheKey = userId ? `${targetSessionId}:${userId}` : targetSessionId;
-    
+
     if (forceRefresh) cache.delete(cacheKey);
 
     // ═══════════════════════════════════════════════════════
@@ -96,10 +110,10 @@ export function createChatState(
     // ═══════════════════════════════════════════════════════
     const cached = cache.get(cacheKey);
     const now = Date.now();
-    
+
     if (cached && (now - cached.timestamp < CHAT_CACHE_TTL)) {
        // Return cached data immediately to UI (Zero Latency)
-       state.history = cached.data.messages.map((m: any) => ({
+       state.history = cached.data.messages.map((m: ChatApiMessage) => ({
          id: m.id,
          role: m.role,
          content: m.content,
@@ -108,7 +122,7 @@ export function createChatState(
        }));
        state.pagination.cursor = cached.data.next_cursor;
        state.pagination.hasMore = cached.data.has_more;
-       
+
        if (appendLogsCallback) {
          // Process logs from cache
          const logs = _processLogs(state.history);
@@ -124,12 +138,12 @@ export function createChatState(
         ? `/api/v1/chat/sessions/${targetSessionId}/messages?limit=35&user_id_query=${userId}`
         : `/api/v1/chat/sessions/${targetSessionId}/messages?limit=35`;
 
-      const data = await apiClient.get<any>(url);
-      
+      const data = await apiClient.get<ChatApiResponse>(url);
+
       // Update Cache
       cache.set(cacheKey, { data, timestamp: now });
 
-      const hydrated = data.messages.map((m: any) => ({
+      const hydrated = data.messages.map((m: ChatApiMessage) => ({
         id: m.id,
         role: m.role,
         content: m.content,
@@ -145,8 +159,9 @@ export function createChatState(
         const logs = _processLogs(hydrated);
         appendLogsCallback(logs);
       }
-    } catch (e: any) {
-      if (e?.status === 429) {
+    } catch (e: unknown) {
+      const err = e as { status?: number };
+      if (err?.status === 429) {
         showToastFn?.("Truy cập quá nhanh, vui lòng thử lại sau giây lát.", "error");
       } else {
         showToastFn?.("Không thể tải lịch sử trò chuyện.", "error");
@@ -169,9 +184,9 @@ export function createChatState(
         ? `/api/v1/chat/sessions/${sessionId}/messages?cursor=${state.pagination.cursor}&limit=20&user_id_query=${userId}`
         : `/api/v1/chat/sessions/${sessionId}/messages?cursor=${state.pagination.cursor}&limit=20`;
 
-      const data = await apiClient.get<any>(url);
+      const data = await apiClient.get<ChatApiResponse>(url);
 
-      const olderMessages = data.messages.map((m: any) => ({
+      const olderMessages = data.messages.map((m: ChatApiMessage) => ({
         id: m.id,
         role: m.role,
         content: m.content,
@@ -187,8 +202,9 @@ export function createChatState(
         const logs = _processLogs(olderMessages);
         appendLogsCallback(logs);
       }
-    } catch (e: any) {
-      if (e?.status === 429) {
+    } catch (e: unknown) {
+      const err = e as { status?: number };
+      if (err?.status === 429) {
         showToastFn?.("Yêu cầu quá dồn dập, hãy thử lại sau.", "error");
       }
     } finally {
@@ -206,7 +222,7 @@ export function createChatState(
       state.pagination.hasMore = false;
       addLogFn("Chat history has been permanently cleared.", "System");
       return true;
-    } catch (e: any) {
+    } catch (e: unknown) {
       addLogFn("Failed to clear chat history.", "Err");
       return false;
     } finally {

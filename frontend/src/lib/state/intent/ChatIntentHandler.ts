@@ -8,7 +8,7 @@ import type { HandlerDeps } from "./FastActionHandler";
 export async function handleChatIntent(
   command: string,
   deps: HandlerDeps,
-  intentData?: any
+  intentData?: Record<string, unknown>
 ): Promise<boolean> {
   const { state, voice, resetVui } = deps;
   

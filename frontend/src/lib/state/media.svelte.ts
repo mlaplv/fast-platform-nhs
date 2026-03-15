@@ -129,13 +129,13 @@ class MediaStore {
                 params.trash = 'true';
             }
 
-            const response = await apiClient.get<{ status: string, data: any }>(endpoint, { params });
+            const response = await apiClient.get<{ status: string, data: { items: MediaAsset[], total: number } }>(endpoint, { params });
             if (response.status === 'success') {
                 this.assets = response.data.items;
                 this.total = response.data.total;
             }
-        } catch (error) {
-            console.error('[MediaStore] Failed to load assets:', error);
+        } catch (error: unknown) {
+            console.error('[MediaStore] Failed to load assets:', (error as Error).message);
         } finally {
             this.isLoading = false;
         }
@@ -150,12 +150,17 @@ class MediaStore {
 
     async loadStats() {
         try {
-            const response = await apiClient.get<{ status: string, data: any }>('/api/v1/media/stats');
+            const response = await apiClient.get<{ status: string, data: {
+                total_count: number;
+                total_size: number;
+                breakdown: Array<{ type: string; count: number; size: number }>;
+                storage_provider: string;
+            } }>('/api/v1/media/stats');
             if (response.status === 'success') {
                 this.stats = response.data;
             }
-        } catch (error) {
-            console.error('[MediaStore] Failed to load stats:', error);
+        } catch (error: unknown) {
+            console.error('[MediaStore] Failed to load stats:', (error as Error).message);
         }
     }
 
@@ -174,7 +179,7 @@ class MediaStore {
 
                 // If the event is MEDIA_ANALYZED (from event_bus)
                 if (data.type === 'MEDIA_ANALYZED' || (data.metadata && data.metadata.source === 'MediaAnalyst')) {
-                    this.handleMediaAnalyzed(data);
+                    this.handleMediaAnalyzed(data as Record<string, unknown>);
                 }
             } catch (e) {
                 // Probably a ping or non-JSON data
@@ -189,8 +194,8 @@ class MediaStore {
         };
     }
 
-    private handleMediaAnalyzed(payload: any) {
-        const assetId = payload.id || payload.asset_id;
+    private handleMediaAnalyzed(payload: Record<string, unknown>) {
+        const assetId = (payload.id || payload.asset_id) as string;
         if (!assetId) return;
 
         console.log(`[MediaStore] Asset analyzed real-time: ${assetId}`);
@@ -201,10 +206,10 @@ class MediaStore {
             // Trigger reactivity by replacing the object
             this.assets[index] = {
                 ...this.assets[index],
-                alt_text: payload.alt_text || this.assets[index].alt_text,
+                alt_text: (payload.alt_text as string) || this.assets[index].alt_text,
                 metadata: {
                     ...this.assets[index].metadata,
-                    ...(payload.media_metadata || payload.metadata || {})
+                    ...((payload.media_metadata as Record<string, unknown>) || (payload.metadata as Record<string, unknown>) || {})
                 }
             };
         }
@@ -222,24 +227,24 @@ class MediaStore {
 
         try {
             this.isLoading = true;
-            const response = await apiClient.post<{ status: string, data: any }>('/api/v1/media/fetch-remote', {
+            const response = await apiClient.post<{ status: string, data: MediaAsset }>('/api/v1/media/fetch-remote', {
                 url,
                 campaign_id: this.currentCampaignId
             });
 
             if (response.status === 'success' && response.data) {
                 // Thêm asset mới vào đầu danh sách để Sếp thấy ngay
-                const newAsset = {
+                const newAsset: MediaAsset = {
                     ...response.data,
                     // Giả định các fields mặc định, AI sẽ cập nhật sau qua SSE
                     created_at: new Date().toISOString(),
-                    metadata: {}
+                    metadata: response.data.metadata || {}
                 };
                 this.assets = [newAsset, ...this.assets];
                 this.total++;
             }
-        } catch (error) {
-            console.error('[MediaStore] Remote fetch failed:', error);
+        } catch (error: unknown) {
+            console.error('[MediaStore] Remote fetch failed:', (error as Error).message);
         } finally {
             this.isLoading = false;
         }
@@ -254,12 +259,12 @@ class MediaStore {
                 this.assets = this.assets.filter(a => a.id !== assetId);
                 this.total--;
             }
-        } catch (error) {
-            console.error('[MediaStore] Failed to delete asset:', error);
+        } catch (error: unknown) {
+            console.error('[MediaStore] Failed to delete asset:', (error as Error).message);
         }
     }
 
-    async updateMetadata(assetId: string, metadata: any) {
+    async updateMetadata(assetId: string, metadata: Record<string, unknown>) {
         try {
             const response = await apiClient.patch<{ status: string }>(`/api/v1/media/${assetId}`, metadata);
             if (response.status === 'success') {
@@ -272,20 +277,20 @@ class MediaStore {
                         // Ensure nested metadata is merged if provided
                         metadata: {
                             ...this.assets[index].metadata,
-                            ...(metadata.metadata || {})
+                            ...((metadata.metadata as Record<string, unknown>) || {})
                         }
-                    };
+                    } as MediaAsset;
                 }
             }
-        } catch (error) {
-            console.error('[MediaStore] Failed to update metadata:', error);
+        } catch (error: unknown) {
+            console.error('[MediaStore] Failed to update metadata:', (error as Error).message);
         }
     }
 
-    async quickEdit(assetId: string, action: string, params: any = null) {
+    async quickEdit(assetId: string, action: string, params: Record<string, unknown> | null = null) {
         try {
             this.isLoading = true;
-            const response = await apiClient.post<{ status: string, data: any }>(`/api/v1/media/${assetId}/edit`, { action, params });
+            const response = await apiClient.post<{ status: string, data: Partial<MediaAsset> }>(`/api/v1/media/${assetId}/edit`, { action, params });
             if (response.status === 'success' && response.data) {
                 // R105: Surgical state update
                 const index = this.assets.findIndex(a => a.id === assetId);
@@ -296,11 +301,11 @@ class MediaStore {
                         ...updatedAsset,
                         // Thêm timestamp để bypass browser cache của ảnh gốc/thumb
                         _updatedAt: Date.now()
-                    };
+                    } as MediaAsset;
                 }
             }
-        } catch (error) {
-            console.error('[MediaStore] Quick edit failed:', error);
+        } catch (error: unknown) {
+            console.error('[MediaStore] Quick edit failed:', (error as Error).message);
         } finally {
             this.isLoading = false;
         }

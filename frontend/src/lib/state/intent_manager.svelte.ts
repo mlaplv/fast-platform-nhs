@@ -2,15 +2,28 @@ import { ACTION_WIDGET_MAP } from "./constants";
 import { handleFastAction, type HandlerDeps } from "./intent/FastActionHandler";
 import { handleChatIntent } from "./intent/ChatIntentHandler";
 import { handleVoiceIntent } from "./intent/VoiceIntentHandler";
+import type { WidgetType, ToastType, CommandAction, Suggestion, ChatSettings } from "./types";
 
 interface IntentDeps {
-  state: any;
+  state: {
+    activeWidget: WidgetType;
+    commandAction: CommandAction | null;
+    nanoBotStatus: string;
+    currentData: Record<string, unknown> | null;
+    isBusy: boolean;
+    lastProcessedCommand: string;
+    lastProcessedTime: number;
+    lastSpokenText: string;
+    lastSpokenTime: number;
+    commandEpoch: number;
+    lastSuggestedWidget?: WidgetType;
+  };
   voice: {
     setVoiceResult: (
       transcript: string,
       responseText: string,
       uiAction: string,
-      data?: Record<string, any>,
+      data?: Record<string, unknown>,
       source?: "text" | "voice",
       routerTier?: number
     ) => void;
@@ -20,13 +33,19 @@ interface IntentDeps {
     softReset: () => void;
   };
   log: {
-    addLog: (msg: string, source?: string, type?: string, tier?: number, data?: Record<string, any>) => void;
+    addLog: (msg: string, source?: string, type?: string, tier?: number, data?: Record<string, unknown>) => void;
   };
   ui: {
     setUniversalModalOpen: (val: boolean) => void;
-    showToast: (msg: string, type: "success" | "error" | "warning" | "info") => void;
+    showToast: (msg: string, type: ToastType) => void;
   };
-  chat: any;
+  chat: {
+    history: unknown[];
+    pagination: unknown;
+    hydrateHistory: (sessionId: string, callback?: any, userId?: string, force?: boolean) => Promise<void>;
+    loadMoreMessages: (callback?: any, sessionId?: string, userId?: string) => Promise<void>;
+    clearHistory: (sessionId: string) => Promise<boolean>;
+  };
 }
 
 export function createIntentManager(
@@ -82,12 +101,12 @@ export function createIntentManager(
     if (uiAction || data?.ui_action) {
       const actualUiAction = (uiAction || data?.ui_action) as string;
       const targetWidget = ACTION_WIDGET_MAP[actualUiAction];
-      
+
       if (targetWidget) {
         state.currentData = { ...state.currentData, ...data };
         const intentType = (data?.intent_type as string) || "";
 
-        const requiresConfirmationForVoice = (d: any) => {
+        const requiresConfirmationForVoice = (d: Record<string, unknown>) => {
           return (
             source === "voice" &&
             (d?.action === "MUTATE" || d?.requires_confirmation === true || d?.intent_type === "MUTATE")
@@ -106,7 +125,7 @@ export function createIntentManager(
           state.activeWidget = targetWidget;
           ui.setUniversalModalOpen(true);
           log.addLog(actualUiAction.replace("show_", "").replace(/_/g, " "), "[ACTION]");
-          
+
           if (source === "voice" && isNavAction(actualUiAction, intentType)) {
             voice.setVuiActive(false);
           }
@@ -120,7 +139,7 @@ export function createIntentManager(
     }
   }
 
-  async function processCommand(command: string, source: "text" | "voice" = "text", intentData?: any) {
+  async function processCommand(command: string, source: "text" | "voice" = "text", intentData?: Record<string, unknown>) {
     const now = Date.now();
     let cmd = command.toLowerCase().trim();
     if (!cmd) {
@@ -177,14 +196,17 @@ export function createIntentManager(
         return;
       }
 
-    } catch (e: any) {
+    } catch (e: unknown) {
       state.nanoBotStatus = "ERROR";
-      log.addLog(`Command failed: ${e.message}`, "Nanobot-Core");
+      log.addLog(`Command failed: ${(e as Error).message}`, "Nanobot-Core");
       setTimeout(() => resetVui(), 4000);
     } finally {
       if (state.commandEpoch === myEpoch) state.isBusy = false;
     }
   }
+
+  return { setVoiceResult, processCommand };
+}
 
   return { setVoiceResult, processCommand };
 }
