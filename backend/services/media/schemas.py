@@ -54,17 +54,17 @@ class MediaDetailResponse(BaseModel):
     status: str = "success"
     data: MediaAssetResponse
 
-class MediaUpdateMetadata(TypedDict, total=False):
-    alt_text: str
-    is_public: bool
-    media_metadata: Dict[str, object]
+class MediaUpdateMetadata(BaseModel):
+    alt_text: Optional[str] = None
+    is_public: Optional[bool] = None
+    media_metadata: Optional[Dict[str, object]] = None
 
-class QuickEditParams(TypedDict, total=False):
-    x: int
-    y: int
-    w: int
-    h: int
-    preset: str  # 'square', 'banner', etc.
+class QuickEditParams(BaseModel):
+    x: Optional[int] = 0
+    y: Optional[int] = 0
+    w: Optional[int] = None
+    h: Optional[int] = None
+    preset: Optional[str] = "square"  # 'square', 'banner', etc.
 
 class QuickEditResponse(BaseModel):
     status: str = "success"
@@ -77,9 +77,25 @@ class BulkDownloadResponse(BaseModel):
     status: str = "success"
     data: BulkDownloadResponseData
 
+class QuickEditRequest(BaseModel):
+    action: str
+    params: Optional[QuickEditParams] = None
+
+class BulkDeleteRequest(BaseModel):
+    ids: List[str]
+    permanent: bool = False
+
+class BulkDownloadRequest(BaseModel):
+    ids: List[str]
+
+class FetchRemoteRequest(BaseModel):
+    url: str
+    campaign_id: Optional[str] = None
+
 class CommandAction(TypedDict):
     """Phase 12: Unified Command Dispatch Schema"""
     verb: str  # 'open', 'create', 'edit', 'delete', 'select'
     entity: str  # 'media', 'product', 'category', 'order'
     args: Optional[str]
     metadata: Dict[str, object]
+    consumed: Optional[bool]

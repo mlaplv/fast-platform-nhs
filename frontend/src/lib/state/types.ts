@@ -95,8 +95,10 @@ export type CommandEntity =
 
 export interface CommandAction {
   verb: CommandVerb;
-  entity: CommandEntity;
+  entity: CommandEntity | "media";
   args?: string;
+  metadata?: Record<string, unknown>;
+  consumed?: boolean;
 }
 
 export interface FormField {
