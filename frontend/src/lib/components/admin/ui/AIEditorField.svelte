@@ -65,7 +65,6 @@
                  ghostText += data.token;
               }
             } catch { /* ignore parse error */ }
-          }
         }
       }
     } catch (err: unknown) {
