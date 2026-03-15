@@ -6,12 +6,14 @@ import { VUI_CONFIG } from "./VuiConstants";
 import { nanobot } from "$lib/state/nanobot.svelte";
 import { VuiStreamManager } from "./VuiStreamManager";
 import { VuiVadEngine } from "./VuiVadEngine";
+import { VuiSpeechEngine } from "./VuiSpeechEngine";
 import { isDev } from "$lib/state/nanobot/env";
 
 /**
  * VuiOrchestrator 2026: The "Neural Conductor"
  * Orchestrates VAD Engine, Mic, WS Stream, Audio Engine, and Stream Manager.
  * Phase 15: Silero VAD Integration — Neural Voice Activity Detection.
+ * Phase 16: Hybrid STT Layer — Native Speech API for sub-100ms Preview.
  */
 class VuiOrchestrator {
   private mic = new MicrophoneEngine();
@@ -19,7 +21,8 @@ class VuiOrchestrator {
   private audio = new VuiAudioEngine(() => this.onTTSFinished());
   private streamManager: VuiStreamManager;
   private vadEngine = new VuiVadEngine();
-  
+  private speechEngine = new VuiSpeechEngine();
+
   private hasSpoken = false;
   private stopAfterSpeech = false;
   
@@ -114,11 +117,20 @@ class VuiOrchestrator {
         },
         // onFrameProcessed: Per-frame probability for UI feedback
         (probability) => {
-          // Can be used for advanced Orb/Mic UI animations
+          if (vuiState.phase === "listening") {
+            vuiState.setSpeechProb(probability);
+          }
         }
       );
 
-      // Step 4: Initial timeout — if no speech detected within 7s, clean exit
+      // Step 4: Hybrid STT Preview (Live Word-by-Word)
+      this.speechEngine.start((text) => {
+        if (vuiState.phase !== "listening") return;
+        // Native preview updates the UI immediately
+        vuiState.setLiveText(text);
+      });
+
+      // Step 5: Initial timeout — if no speech detected within 7s, clean exit
       this.setManagedTimer('initial', () => {
         if (vuiState.phase === "listening" && !this.hasSpoken) {
           this.interruptAll();
@@ -159,6 +171,7 @@ class VuiOrchestrator {
     this.streamManager.startSttGuard();
     this.mic.stop();
     this.vadEngine.pause();
+    this.speechEngine.stop();
     this.audio.playSystemSound('stop');
     vuiState.setVolume(0);
     vuiState.setStartingLock(false);
@@ -170,6 +183,7 @@ class VuiOrchestrator {
     this.audio.abort();
     this.mic.stop();
     this.vadEngine.stop();
+    this.speechEngine.stop();
     this.ws.disconnect();
     vuiState.reset();
     vuiState.setStartingLock(false);
@@ -195,6 +209,7 @@ class VuiOrchestrator {
 
     this.mic.stop();
     this.vadEngine.pause();
+    this.speechEngine.stop();
     vuiState.setSystemMessage("");
     vuiState.setIsWaitingForAction(false);
     vuiState.setPhase("executing");
@@ -266,6 +281,7 @@ class VuiOrchestrator {
   async speak(text: string): Promise<boolean> {
     this.mic.stop();
     this.vadEngine.pause();
+    this.speechEngine.stop();
     if (vuiState.phase === "listening") vuiState.setPhase("thinking");
     
     if (!text || !vuiState.isActive) return false;

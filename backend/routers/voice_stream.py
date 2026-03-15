@@ -63,9 +63,11 @@ async def stt_websocket(socket: WebSocket) -> None:
                         data = msg["bytes"]
                         audio_buffer.extend(data)
 
-                        # ZERO-DELAY LOGIC: Partial transcription every ~0.3s (C.T.O Sub-1s Extreme Optimization)
+                        # ZERO-DELAY LOGIC: Partial transcription every ~1.0s (Hybrid Optimization)
+                        # We now rely on Native STT for sub-100ms preview,
+                        # so we only need Neural Sync for accuracy correction.
                         now = asyncio.get_event_loop().time()
-                        if now - last_partial_time > 0.3 and len(audio_buffer) > (last_transcribed_size + 1000):
+                        if now - last_partial_time > 1.0 and len(audio_buffer) > (last_transcribed_size + 2000):
                             last_partial_time = now
                             last_transcribed_size = len(audio_buffer)
 

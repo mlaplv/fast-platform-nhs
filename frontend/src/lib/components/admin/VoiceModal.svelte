@@ -104,7 +104,7 @@
       <!-- VUI Content (Centered GPT-style) -->
       <div class="{nanobot.isExpanded ? 'absolute inset-0 block overflow-hidden' : 'absolute inset-0 flex justify-center items-center overflow-hidden p-4'}">
         <!-- Voice Caption Layer (GPT-style Background/Overlay) -->
-        <div class="absolute inset-0 left-0 w-full flex justify-center {nanobot.isExpanded ? 'z-[2000]' : 'z-[50]'} pointer-events-none">
+        <div class="absolute inset-0 left-0 w-full flex justify-center {nanobot.isExpanded ? 'z-[5]' : 'z-[50]'} pointer-events-none">
           <VoiceStatusCaption {phase} />
         </div>
 

@@ -52,8 +52,15 @@ export class VuiStreamManager {
     
     if (text.length > 0) {
       const currentLive = vuiState.liveText;
+      // Phase 16: Hybrid Priority
+      // If we get text from WS (Groq), it's likely more accurate.
+      // We only update if it's different OR if it's the final verdict.
       if (isFinal || text !== currentLive) {
-        vuiState.setLiveText(text);
+        // Optimization: If the new text is shorter than currentLive (and not final),
+        // it might be a partial Groq result catching up. We only overwrite if it's "significant".
+        if (isFinal || text.length >= currentLive.length || data?.tier === "NEURAL_SYNC") {
+          vuiState.setLiveText(text, isFinal);
+        }
       }
     } else if (!hasSpoken) {
       vuiState.setLiveText(""); 

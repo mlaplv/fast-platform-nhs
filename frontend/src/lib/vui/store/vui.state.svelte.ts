@@ -11,8 +11,10 @@ export const vuiState = $state({
   isActive: false,
   phase: "idle" as VuiPhase,
   volume: 0,
+  speechProb: 0,
   transcript: "",
   liveText: "",
+  isLiveTextStable: false,
   systemMessage: "",
   isStarting: false,
   errorMsg: "",
@@ -32,12 +34,19 @@ export const vuiState = $state({
         (val === "listening" || val === "idle" || val === "thinking")) {
       this.finalizeInteraction();
     }
-    this.phase = val; 
-    if (val === "listening" || val === "idle") this.errorMsg = "";
+    this.phase = val;
+    if (val === "listening" || val === "idle") {
+        this.errorMsg = "";
+        this.speechProb = 0;
+    }
   },
   setVolume(val: number) { this.volume = val; },
+  setSpeechProb(val: number) { this.speechProb = val; },
   setTranscript(val: string) { this.transcript = val; },
-  setLiveText(val: string) { this.liveText = val; },
+  setLiveText(val: string, stable = false) {
+    this.liveText = val;
+    this.isLiveTextStable = stable;
+  },
   setSystemMessage(val: string) { this.systemMessage = val; },
   setStartingLock(val: boolean) { this.isStarting = val; },
   setError(msg: string) {
