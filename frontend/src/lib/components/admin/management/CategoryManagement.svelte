@@ -60,9 +60,9 @@
     const data = nanobot.currentData as Record<string, unknown>;
     const action = nanobot.commandAction;
 
-    if (data?.ui_action === \"show_category_management\" && data?.intent_type === \"MUTATE\" && !showForm) {
+    if (data?.ui_action === "show_category_management" && data?.intent_type === "MUTATE" && !showForm) {
       editingId = null;
-      formName = (data?.name as string) || (data?.title as string) || \"\";
+      formName = (data?.name as string) || (data?.title as string) || "";
       formSlug = genSlug(formName);
       formParentId = (data?.parentId as string) || null;
       showForm = true;
@@ -70,17 +70,17 @@
       return;
     }
 
-    if (action?.entity === \"category\") {
-      if (action.verb === \"create\") {
-        if (nanobot.consumeCommand(\"create\", \"category\")) {
+    if (action?.entity === "category") {
+      if (action.verb === "create") {
+        if (nanobot.consumeCommand("create", "category")) {
           openCreate();
           if (action.args) {
             formName = action.args;
             formSlug = genSlug(action.args);
           }
         }
-      } else if (action.verb === \"search\" && action.args) {
-        if (nanobot.consumeCommand(\"search\", \"category\")) {
+      } else if (action.verb === "search" && action.args) {
+        if (nanobot.consumeCommand("search", "category")) {
           searchTerm = action.args;
         }
       }

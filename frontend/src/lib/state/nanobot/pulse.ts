@@ -103,29 +103,28 @@ export function createPulseManager(
                                    current.creation_config || {}
               } as unknown as Record<string, unknown>;
             }
-          }
 
-          const existingLogs = [...log.activityLogs];
-          const logIdx = existingLogs.findIndex(l =>
-            l.data?.campaign_id === contentPayload.campaign_id &&
-            String(l.data?.step ?? "") === String(contentPayload.step ?? "")
-          );
-          if (logIdx !== -1) {
-            const current = (existingLogs[logIdx].data || {}) as Record<string, unknown>;
-            const newData = contentPayload.data || {};
-            existingLogs[logIdx].data = {
-              ...current,
-              step: contentPayload.step,
-              status: "PROCESSING",
-              progress_msg: contentPayload.message,
-              keywords: newData.keywords || newData.topic_data || current.keywords,
-              assets: normalizeAssets(newData.assets || newData.assets_data || current.assets),
-              outline: newData.outline || newData.outline_data || current.outline,
-              draft_content: newData.draft_content || current.draft_content
-            };
-            log.setActivityLogs(existingLogs);
-          }
-          startSmartPolling();
+            const existingLogs = [...log.activityLogs];
+            const logIdx = existingLogs.findIndex(l =>
+              l.data?.campaign_id === contentPayload.campaign_id &&
+              String(l.data?.step ?? "") === String(contentPayload.step ?? "")
+            );
+            if (logIdx !== -1) {
+              const current = (existingLogs[logIdx].data || {}) as Record<string, unknown>;
+              const newData = contentPayload.data || {};
+              existingLogs[logIdx].data = {
+                ...current,
+                step: contentPayload.step,
+                status: "PROCESSING",
+                progress_msg: contentPayload.message,
+                keywords: newData.keywords || newData.topic_data || current.keywords,
+                assets: normalizeAssets(newData.assets || newData.assets_data || current.assets),
+                outline: newData.outline || newData.outline_data || current.outline,
+                draft_content: newData.draft_content || current.draft_content
+              };
+              log.setActivityLogs(existingLogs);
+            }
+            startSmartPolling();
         } else if (eventName === "BACKTRACK") {
           const backtrackPayload = payload as { campaign_id: string; step: number; reason: string };
           log.addLog(`🔄 AI: ${backtrackPayload.reason || 'Đang sửa lại nội dung...'}`, "XOHI", "warning", 2, {

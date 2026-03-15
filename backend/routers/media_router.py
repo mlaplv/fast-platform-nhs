@@ -167,7 +167,7 @@ class MediaController(Controller):
 
         return GenericResponse(status="success", message="Media metadata updated.")
 
-    @delete("/{asset_id:uuid}")
+    @delete("/{asset_id:uuid}", status_code=200)
     async def delete_media(
         self,
         asset_id: UUID,
