@@ -83,15 +83,22 @@ export type CommandVerb =
   | "edit"
   | "delete"
   | "search"
-  | "view";
+  | "view"
+  | "select"
+  | "save"
+  | "close";
 
 export type CommandEntity =
   | "category"
   | "product"
   | "order"
   | "news"
+  | "article"
   | "user"
-  | "permission";
+  | "identity"
+  | "permission"
+  | "role"
+  | "voice";
 
 export interface CommandAction {
   verb: CommandVerb;
