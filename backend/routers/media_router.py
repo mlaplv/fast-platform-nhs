@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Optional, Union
 from uuid import UUID
 from litestar import Controller, get, post, patch, delete, Request
 from litestar.response import Redirect
@@ -249,20 +249,20 @@ class MediaController(Controller):
         self,
         asset_id: UUID,
         request: Request,
-        media_repo: MediaRegistryRepository
+        media_repo: MediaRegistryRepository,
+        data: QuickEditRequest
     ) -> Union[QuickEditResponse, GenericResponse]:
         """Xử lý nhanh ảnh (Xoay/Lật/Crop/Watermark) - V10.0 Elite Engine."""
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
 
-        data = await request.json()
-        action = data.get("action")
-        params = data.get("params")
-
-        if not action:
-            return GenericResponse(status="error", message="No action provided")
-
-        asset = await media_service.quick_edit(media_repo, str(asset_id), action, params=params, owner_id=owner_id)
+        asset = await media_service.quick_edit(
+            media_repo,
+            str(asset_id),
+            data.action,
+            params=data.params.model_dump() if data.params else None,
+            owner_id=owner_id
+        )
 
         if asset:
             return QuickEditResponse(
@@ -287,18 +287,17 @@ class MediaController(Controller):
             return GenericResponse(status="error", message="Quick edit failed or unauthorized.")
 
     @post("/bulk-download")
-    async def bulk_download_media(self, request: Request, media_repo: MediaRegistryRepository) -> Union[BulkDownloadResponse, GenericResponse]:
+    async def bulk_download_media(
+        self,
+        request: Request,
+        media_repo: MediaRegistryRepository,
+        data: BulkDownloadRequest
+    ) -> Union[BulkDownloadResponse, GenericResponse]:
         """Tạo gói ZIP tải xuống hàng loạt (V76 Smart Download)."""
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
 
-        data = await request.json()
-        ids = data.get("ids", [])
-
-        if not ids:
-            return GenericResponse(status="error", message="No IDs provided")
-
-        zip_url = await media_service.create_bulk_zip(media_repo, ids, owner_id=owner_id)
+        zip_url = await media_service.create_bulk_zip(media_repo, data.ids, owner_id=owner_id)
 
         if zip_url:
             return BulkDownloadResponse(
@@ -309,21 +308,20 @@ class MediaController(Controller):
             return GenericResponse(status="error", message="Failed to generate ZIP or unauthorized.")
 
     @post("/fetch-remote")
-    async def fetch_remote_media(self, request: Request, media_repo: MediaRegistryRepository) -> Union[MediaDetailResponse, GenericResponse]:
+    async def fetch_remote_media(
+        self,
+        request: Request,
+        media_repo: MediaRegistryRepository,
+        data: FetchRemoteRequest
+    ) -> Union[MediaDetailResponse, GenericResponse]:
         """Tải ảnh từ URL bên ngoài vào hệ thống (V9.0)."""
-        data = await request.json()
-        url = data.get("url")
-        campaign_id = data.get("campaign_id")
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
 
-        if not url:
-            return GenericResponse(status="error", message="No URL provided")
-
         asset = await media_service.fetch_remote_asset(
             repo=media_repo,
-            url=url,
-            campaign_id=campaign_id,
+            url=data.url,
+            campaign_id=data.campaign_id,
             owner_id=owner_id
         )
 

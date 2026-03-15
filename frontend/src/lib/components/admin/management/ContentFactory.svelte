@@ -218,6 +218,22 @@
   function handleSearchInput(e: Event) {
     // Standard pattern works with binding
   }
+
+  // V22: Voice Mutation Injection - Content Factory Navigation
+  $effect(() => {
+    const action = nanobot.commandAction;
+    if (action?.entity === "campaign") {
+      if (action.verb === "search" && action.args) {
+        if (nanobot.consumeCommand("search", "campaign")) {
+          searchInput = action.args;
+        }
+      } else if (action.verb === "create") {
+        if (nanobot.consumeCommand("create", "campaign")) {
+          handleCreateCampaign();
+        }
+      }
+    }
+  });
 </script>
 
 <div class="w-full h-full flex flex-col bg-[#050505] overflow-hidden" in:fade={{ duration: 300 }}>

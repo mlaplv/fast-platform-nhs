@@ -1,14 +1,13 @@
 import logging
 import os
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Optional, Dict, Union, cast
 from sqlalchemy import select, func
 from backend.database.models import MediaRegistry
 from backend.database.repositories import MediaRegistryRepository
 from backend.services.storage.manager import storage
 from backend.services.media.schemas import (
-    MediaListResponse,
     MediaUpdateMetadata,
-    MediaStatsResponse,
+    MimeTypeBreakdown,
     QuickEditParams
 )
 
@@ -29,7 +28,7 @@ class MediaService:
         search_query: Optional[str] = None,
         include_deleted: bool = False,
         owner_id: Optional[str] = None
-    ) -> MediaListResponse:
+    ) -> Dict[str, object]:
         """Liệt kê và lọc ảnh với hiệu năng cao (Hỗ trợ AI Semantic Search)."""
         from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
         import numpy as np
@@ -73,28 +72,32 @@ class MediaService:
             encoder = get_shared_encoder()
             if not encoder or not all_assets:
                 # Fallback to basic keyword matching if AI not ready
-                q = f"%{search_query.lower()}%"
                 assets = [a for a in all_assets if search_query.lower() in a.filename.lower() or (a.alt_text and search_query.lower() in a.alt_text.lower())]
                 assets = assets[offset : offset + limit]
             else:
                 # 2. Encode query
-                query_vec = list(encoder.embed([search_query]))[0]
+                query_vec = cast(np.ndarray, list(encoder.embed([search_query]))[0])
 
                 # 3. Calculate scores
                 scored_assets = []
                 for asset in all_assets:
                     # Lấy vector đã lưu hoặc tạo mới nếu chưa có
-                    asset_vec = asset.media_metadata.get("embedding")
+                    asset_vec_data = asset.media_metadata.get("embedding")
 
-                    if not asset_vec:
+                    if not asset_vec_data:
                         # Tạo text đại diện: filename + alt + tags
                         meta = asset.media_metadata or {}
-                        text = f"{asset.filename} {asset.alt_text or ''} {' '.join(meta.get('ai_tags', []))} {meta.get('ai_description', '')}"
-                        asset_vec = list(encoder.embed([text]))[0].tolist()
+                        ai_tags = cast(List[str], meta.get('ai_tags', []))
+                        ai_desc = cast(str, meta.get('ai_description', ''))
+                        text = f"{asset.filename} {asset.alt_text or ''} {' '.join(ai_tags)} {ai_desc}"
+                        asset_vec = cast(np.ndarray, list(encoder.embed([text]))[0])
+                        asset_vec_list = asset_vec.tolist()
 
                         # Cập nhật ngược lại DB để lần sau nhanh hơn (Surgical Background Update)
-                        asset.media_metadata = {**asset.media_metadata, "embedding": asset_vec}
+                        asset.media_metadata = {**asset.media_metadata, "embedding": asset_vec_list}
                         repo.session.add(asset)
+                    else:
+                        asset_vec = np.array(asset_vec_data)
 
                     # Cosine Similarity
                     score = np.dot(query_vec, asset_vec) / (np.linalg.norm(query_vec) * np.linalg.norm(asset_vec))
@@ -115,6 +118,7 @@ class MediaService:
             "limit": limit,
             "offset": offset
         }
+
 
     async def update_metadata(
         self,
@@ -539,7 +543,7 @@ class MediaService:
         except Exception as e:
             logger.warning(f"[CDN] Invalidation failed: {e}")
 
-    async def get_stats(self, repo: MediaRegistryRepository, owner_id: Optional[str] = None) -> MediaStatsResponse:
+    async def get_stats(self, repo: MediaRegistryRepository, owner_id: Optional[str] = None) -> Dict[str, object]:
         """Thống kê kho tài nguyên (V9.0 Analytics)."""
         from sqlalchemy import func, or_
 
@@ -570,16 +574,16 @@ class MediaService:
         mime_stmt = mime_stmt.group_by(MediaRegistry.mime_type)
         mime_result = await repo.session.execute(mime_stmt)
 
-        breakdown: List[MimeTypeBreakdown] = [
-            {"type": r.mime_type.split("/")[-1].upper(), "count": r.count, "size": r.size}
+        breakdown: List[Dict[str, object]] = [
+            {"type": str(r.mime_type).split("/")[-1].upper(), "count": int(r.count), "size": int(r.size or 0)}
             for r in mime_result.all()
         ]
 
         return {
-            "total_count": row.count or 0,
+            "total_count": int(row.count or 0),
             "total_size": int(row.total_size or 0),
             "breakdown": breakdown,
-            "storage_provider": os.getenv("STORAGE_PROVIDER", "local")
+            "storage_provider": str(os.getenv("STORAGE_PROVIDER", "local"))
         }
 
     async def fetch_remote_asset(
@@ -590,7 +594,6 @@ class MediaService:
         owner_id: Optional[str] = None
     ) -> Optional[MediaRegistry]:
         """Tải ảnh từ URL và lưu vào hệ thống (V9.0 Remote Fetch)."""
-        import httpx
         import uuid
         import mimetypes
         from backend.utils.http_client import SharedHttpClient
@@ -616,7 +619,7 @@ class MediaService:
             # Lưu vào thư mục theo tháng để dễ quản lý
             from datetime import datetime
             folder = datetime.now().strftime("%Y/%m")
-            remote_path = f"uploads/{folder}/{asset_id}{ext}"
+            # remote_path = f"uploads/{folder}/{asset_id}{ext}" # Không dùng nữa vì convert sang webp
 
             # 3. Lưu file tạm, xử lý convert sang WEBP và upload
             temp_path = f"/tmp/{asset_id}{ext}"
@@ -626,15 +629,15 @@ class MediaService:
 
             # Lấy kích thước ảnh và convert sang WEBP (R103)
             from PIL import Image
-            def process_initial():
+            def process_initial() -> str:
                 with Image.open(temp_path) as img:
                     dims = f"{img.width}x{img.height}"
                     # Convert to RGB/RGBA if needed and save as WEBP
                     if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
-                        img = img.convert('RGBA')
+                        processed_img = img.convert('RGBA')
                     else:
-                        img = img.convert('RGB')
-                    img.save(webp_path, "WEBP", quality=90, optimize=True)
+                        processed_img = img.convert('RGB')
+                    processed_img.save(webp_path, "WEBP", quality=90, optimize=True)
                 return dims
 
             import asyncio
@@ -662,14 +665,13 @@ class MediaService:
                 dimensions=dims,
                 campaign_id=campaign_id,
                 owner_id=owner_id,
-                provider=os.getenv("STORAGE_PROVIDER", "local")
+                provider=str(os.getenv("STORAGE_PROVIDER", "local"))
             )
 
             await repo.add(asset)
             await repo.session.commit()
 
             # 5. Trigger AI Analysis (Async)
-            # Giả định có task phân tích ảnh sẵn có trong hệ thống
             from backend.services.event_bus import event_bus
             await event_bus.emit("MEDIA_UPLOADED", {
                 "id": asset_id,
@@ -685,7 +687,6 @@ class MediaService:
 
     async def cleanup_temp_files(self) -> Dict[str, int]:
         """Dọn dẹp file tạm (ZIP > 24h, Cache > 7 ngày) - R03 Discipline."""
-        import os
         import time
 
         stats = {"zip_deleted": 0, "cache_deleted": 0, "trash_purged": 0}
@@ -719,7 +720,6 @@ class MediaService:
         try:
             from backend.database import alchemy_config
             from datetime import datetime, timezone, timedelta
-            from sqlalchemy import select
 
             cutoff = datetime.now(timezone.utc) - timedelta(days=30)
 
@@ -747,5 +747,6 @@ class MediaService:
             logger.info(f"[MediaService] Cleanup complete: {stats}")
 
         return stats
+
 
 media_service = MediaService()

@@ -122,9 +122,19 @@
     }
 
     if (action?.entity === "product") {
-      if (action.verb === "create") { openCreate(); if (action.args) formName = action.args; }
-      else if (action.verb === "search" && action.args) { searchInput = action.args; searchTerm = action.args; currentPage = 1; }
-      nanobot.clearCommandAction();
+      if (action.verb === "create") {
+        if (nanobot.consumeCommand("create", "product")) {
+          openCreate();
+          if (action.args) formName = action.args;
+        }
+      }
+      else if (action.verb === "search" && action.args) {
+        if (nanobot.consumeCommand("search", "product")) {
+          searchInput = action.args;
+          searchTerm = action.args;
+          currentPage = 1;
+        }
+      }
     }
   });
 

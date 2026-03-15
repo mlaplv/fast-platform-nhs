@@ -1,4 +1,4 @@
-from typing import List, Dict, TypedDict, Optional, Union, Any
+from typing import List, Dict, TypedDict, Optional, Union
 from pydantic import BaseModel, Field
 
 class MediaMetadata(TypedDict, total=False):

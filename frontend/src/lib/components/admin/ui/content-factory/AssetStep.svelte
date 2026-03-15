@@ -43,6 +43,20 @@
 
   import ImageGrid from "$lib/components/xohi/ImageGrid.svelte";
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
+  import { nanobot } from "$lib/state/nanobot.svelte";
+
+  // V22: Voice Mutation Injection - Asset Management
+  $effect(() => {
+    const action = nanobot.commandAction;
+    if (action?.entity === "media" || action?.entity === "image") {
+      if (action.verb === "create" && action.args) {
+        if (nanobot.consumeCommand(action.verb, action.entity)) {
+          xohiImageStore.addImagesFromUrl(action.args);
+          vuiController.speak("Dạ, em đã thêm ảnh theo yêu cầu của Sếp rồi ạ.");
+        }
+      }
+    }
+  });
 
   // Phase 15.3: Đồng bộ hóa dữ liệu từ Campaign vào Store khi Step được load
   $effect(() => {
