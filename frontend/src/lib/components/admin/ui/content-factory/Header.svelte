@@ -12,7 +12,7 @@
     X
   } from "lucide-svelte";
 
-  let { 
+  let {
     viewingStep,
     status,
     progress_msg,

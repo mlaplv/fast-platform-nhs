@@ -4,25 +4,27 @@
   import type { MediaAsset } from "$lib/state/types";
 
   let {
-    draft_content = "",
-    assets = [] as (MediaAsset | string)[],
-    keywords = {},
-    copyrightScore = null,
-    seoScore = null,
-    aiScore = null,
-    analysis_cache = null,
-    isExpanded = false
+    draft_content,
+    assets,
+    keywords,
+    copyrightScore,
+    seoScore,
+    aiScore,
+    analysis_cache,
+    isExpanded
   } = $props();
 
   let previewMode = $state<'desktop' | 'mobile'>('desktop');
-  
+
   // Computed Data
-  let title = $derived(keywords?.primary_keyword ? `Bài viết chuẩn SEO về: ${keywords.primary_keyword}` : "Tiêu đề bài viết");
-  if (analysis_cache?.seo?.data?.signals) {
-       // Try to extract actual title from SEO checks if available or parse from HTML
+  let title = $derived.by(() => {
+    let base = keywords?.primary_keyword ? `Bài viết chuẩn SEO về: ${keywords.primary_keyword}` : "Tiêu đề bài viết";
+    if (analysis_cache?.seo?.data?.signals) {
        const h1Match = draft_content.match(/<h1[^>]*>(.*?)<\/h1>/i);
-       if (h1Match) title = h1Match[1].replace(/<[^>]+>/g, '').trim();
-  }
+       if (h1Match) base = h1Match[1].replace(/<[^>]+>/g, '').trim();
+    }
+    return base;
+  });
   
   let thumbnail = $derived.by(() => {
     if (assets.length === 0) return "https://via.placeholder.com/600x315?text=No+Image";

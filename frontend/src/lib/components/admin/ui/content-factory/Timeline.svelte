@@ -8,7 +8,7 @@
   } from "lucide-svelte";
   import { vuiController } from "$lib/vui";
 
-  let { 
+  let {
     step = 1,
     viewingStep = $bindable(),
     isEditing = $bindable()

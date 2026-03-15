@@ -5,7 +5,7 @@
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
 
   let {
-    assets = [] as (MediaAsset | string)[],
+    assets = [],
     selectedAvatarUrl = $bindable(),
     viewingStep = $bindable(),
     isEditing = $bindable(),
@@ -14,9 +14,9 @@
     draft_content = $bindable(),
     campaign_id,
     apiClient,
-    copyrightScore = null,
-    seoScore = null,
-    aiScore = null,
+    copyrightScore,
+    seoScore,
+    aiScore,
     analysis_cache = {}
   } = $props();
 

@@ -38,8 +38,8 @@
 
 <!-- Overlay backdrop -->
 <div
-  class="fixed inset-0 z-[999] flex items-center justify-center p-4"
-  style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);"
+  class="fixed inset-0 z-[200000] flex items-center justify-center p-4"
+  style="background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);"
   role="dialog"
   aria-modal="true"
   aria-label="Cảnh báo chưa đủ điều kiện duyệt"

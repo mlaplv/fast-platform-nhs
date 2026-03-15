@@ -2,7 +2,7 @@
   import { onDestroy } from "svelte";
   import type { GhostCompletionResponse } from "$lib/state/types";
 
-  let { value = $bindable("") } = $props();
+  let { value = $bindable() } = $props();
 
   let ghostText = $state("");
   let textareaEl: HTMLTextAreaElement;

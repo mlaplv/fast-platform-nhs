@@ -6,7 +6,7 @@
   } from "lucide-svelte";
   import { vuiController } from "$lib/vui";
 
-  let { 
+  let {
     isEditing = $bindable(),
     campaign_id,
     keywords = $bindable(),

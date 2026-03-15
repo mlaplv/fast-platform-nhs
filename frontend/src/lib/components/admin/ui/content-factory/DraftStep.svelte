@@ -24,12 +24,12 @@
     outline = {} as CampaignOutline,
     assets = [] as (MediaAsset | string)[],
     isExpanded,
-    editorRef = $bindable(null),
+    editorRef = $bindable(),
     analysis_cache = {} as Record<string, { data: CopyrightResult | SEOResult | AIInspectResult }>,
     analysis_metrics = {} as Record<string, unknown> & { last_analyzed?: string },
-    copyrightScore = $bindable<number | null>(null),
-    seoScore = $bindable<number | null>(null),
-    aiScore = $bindable<number | null>(null)
+    copyrightScore = $bindable(),
+    seoScore = $bindable(),
+    aiScore = $bindable()
   } = $props();
 
   // Rule R82.41: Smart Data Mapping
@@ -315,7 +315,7 @@
     }
   });
 
-  // Badge helpers
+  // Badge helpers - Elite Optimization (Phase 11)
   const copyrightBadge = $derived(
     _copyrightScore !== null ? `${_copyrightScore}%` : null
   );

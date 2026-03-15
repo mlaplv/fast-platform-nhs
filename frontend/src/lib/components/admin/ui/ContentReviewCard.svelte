@@ -413,7 +413,7 @@
 </script>
 
 <div 
-  class="content-review-card w-full {nanobot.isExpanded ? 'h-full bg-transparent' : 'h-full md:h-[85vh] bg-[#0c0a0f]/80 md:backdrop-blur-3xl md:border md:border-white/10'} flex flex-col p-4 md:p-6 transition-all duration-700 overflow-hidden md:shadow-[0_30px_100px_rgba(0,0,0,0.8)] rounded-none"
+  class="content-review-card w-full {nanobot.isExpanded ? 'h-full bg-transparent' : 'h-full md:h-[85vh] bg-[#0c0a0f]/80 md:backdrop-blur-3xl md:border md:border-white/10'} flex flex-col p-4 md:p-6 transition-all duration-700 overflow-hidden md:shadow-[0_30px_100px_rgba(0,0,0,0.8)] rounded-none z-[150000]"
   in:fade={{ duration: 600 }}
 >
   <Header 
@@ -481,8 +481,8 @@
     </div>
   {/if}
 
-  <ActionButtons 
-    {isLoading} {status} {viewingStep} {step} {isEditing} {isProcessing} {isPublishing}
+  <ActionButtons
+    {isLoading} {status} bind:viewingStep {step} bind:isEditing {isProcessing} {isPublishing}
     {handleRetry} {handleUpdateMetadata} {handlePublish} {handleApprove}
     {isCompact}
   />

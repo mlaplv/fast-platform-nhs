@@ -8,12 +8,12 @@
     Loader2
   } from "lucide-svelte";
 
-  let { 
+  let {
     isLoading,
     status,
-    viewingStep,
+    viewingStep = $bindable(),
     step,
-    isEditing,
+    isEditing = $bindable(),
     isProcessing,
     isPublishing,
     handleRetry,
