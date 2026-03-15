@@ -30,7 +30,7 @@
 >
   <!-- Thumbnail -->
   <img
-    src={asset.url}
+    src={asset.file_path}
     alt="Asset {index}"
     class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
     class:blur-sm={isCropping}

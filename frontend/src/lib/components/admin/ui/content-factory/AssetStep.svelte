@@ -118,7 +118,7 @@
       const primaryIdx = storeAssets.findIndex(a => a.is_primary);
       if (primaryIdx !== -1) {
         selectedAssetIndex = primaryIdx;
-        selectedAvatarUrl = storeAssets[primaryIdx].url;
+        selectedAvatarUrl = storeAssets[primaryIdx].file_path;
       } else if (storeAssets.length === 0) {
         selectedAssetIndex = 0;
         selectedAvatarUrl = null;

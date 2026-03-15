@@ -65,10 +65,12 @@ export function createXohiImageState() {
             // Optimistic UI: Add preview immediately
             const newAsset: MediaAsset = {
                 id: tempId,
-                url: blobUrl,
+                file_path: blobUrl,
                 is_primary: assets.length === 0 && index === 0,
                 order_index: assets.length,
-                media_metadata: { status: 'uploading', name: file.name }
+                media_metadata: { status: 'uploading', name: file.name },
+                is_primary_ui: assets.length === 0 && index === 0, // Fallback fields if needed
+                order_index_ui: assets.length
             };
             assets.push(newAsset);
 
@@ -89,7 +91,7 @@ export function createXohiImageState() {
                     assets[idx] = {
                         ...assets[idx],
                         id: serverAsset.id,
-                        url: serverAsset.url || (serverAsset as any).file_path, // Fallback for mapping
+                        file_path: serverAsset.file_path,
                         media_metadata: { ...serverAsset.media_metadata, status: 'ready' }
                     };
                     URL.revokeObjectURL(blobUrl);
@@ -139,7 +141,6 @@ export function createXohiImageState() {
             const serverAsset = response.data;
             const newAsset: MediaAsset = {
                 ...serverAsset,
-                url: serverAsset.url || (serverAsset as any).file_path,
                 is_primary: assets.length === 0,
                 order_index: assets.length
             };
@@ -168,7 +169,7 @@ export function createXohiImageState() {
                 const serverAsset = response.data;
                 assets[idx] = {
                     ...assets[idx],
-                    url: serverAsset.url || (serverAsset as any).file_path,
+                    file_path: serverAsset.file_path,
                     dimensions: serverAsset.dimensions,
                     media_metadata: serverAsset.media_metadata
                 };

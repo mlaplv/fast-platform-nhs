@@ -193,7 +193,8 @@ export interface MediaMetadata {
 
 export interface MediaAsset {
   id: string;
-  url: string;           // Maps to file_path
+  file_path: string;      // Backend field
+  url?: string;            // UI legacy (deprecated)
   filename?: string;
   file_size?: number;
   mime_type?: string;
