@@ -180,12 +180,11 @@ class AssetHunter:
             reserve_urls = all_urls[target_count:target_count + 20] # Take next 20 as reserve
             all_urls = all_urls[:target_count]
 
-        # Phase 15.3: Convert raw URLs to MediaAsset objects
         final_assets = []
         for i, url in enumerate(all_urls):
             final_assets.append({
                 "id": f"img_{i}_{campaign_id[:4]}",
-                "url": url,
+                "file_path": url,  # R105 Standard alignment
                 "is_primary": i == 0,
                 "order_index": i,
                 "metadata": {"source": "google_search"}

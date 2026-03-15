@@ -320,7 +320,7 @@
     _copyrightScore !== null ? `${_copyrightScore}%` : null
   );
   const seoBadge = $derived(
-    seoResult ? `${seoResult.grade}·${seoResult.total_score}` : null
+    seoResult ? `${seoResult.grade}.${seoResult.total_score}` : null
   );
   const aiBadge = $derived(
     _aiScore !== null ? `${_aiScore}%` : null

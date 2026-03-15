@@ -98,12 +98,17 @@
         if (typeof item === 'string') {
           return {
             id: `img_${i}_${Date.now()}`,
-            url: item,
+            file_path: item, // R105 Standard alignment
+            url: item,       // UI legacy compatibility
             is_primary: i === selectedAssetIndex,
             order_index: i
           };
         }
-        return item;
+        // CNS V73.9: Safety gate for missing IDs or field names
+        const obj = { ...item };
+        if (!obj.id) obj.id = `img_${i}_${Date.now()}`;
+        if (!obj.file_path && obj.url) obj.file_path = obj.url;
+        return obj as MediaAsset;
       });
       xohiImageStore.initAssets(formattedAssets);
     }
@@ -118,7 +123,7 @@
       const primaryIdx = storeAssets.findIndex(a => a.is_primary);
       if (primaryIdx !== -1) {
         selectedAssetIndex = primaryIdx;
-        selectedAvatarUrl = storeAssets[primaryIdx].file_path;
+        selectedAvatarUrl = storeAssets[primaryIdx].file_path || storeAssets[primaryIdx].url;
       } else if (storeAssets.length === 0) {
         selectedAssetIndex = 0;
         selectedAvatarUrl = null;

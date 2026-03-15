@@ -716,7 +716,7 @@ class MediaService:
 
         try:
             # 1. Tải file với timeout bảo vệ
-            client = SharedHttpClient.get_client()
+            client = await SharedHttpClient.get_client()
             response = await client.get(url, timeout=10.0, follow_redirects=True)
             response.raise_for_status()
 
@@ -772,6 +772,29 @@ class MediaService:
                     os.remove(p)
 
             # 4. Đăng ký vào Database
+            # R21: Verify campaign & owner FK existence before commit to avoid IntegrityError
+            valid_campaign_id = None
+            if campaign_id:
+                from backend.database.models import ContentCampaign
+                from sqlalchemy import select
+                stmt = select(ContentCampaign.id).where(ContentCampaign.id == campaign_id)
+                res = await repo.session.execute(stmt)
+                if res.scalar():
+                    valid_campaign_id = campaign_id
+                else:
+                    logger.warning(f"[MediaService] Orphaned fetch: Campaign {campaign_id} not found.")
+
+            valid_owner_id = None
+            if owner_id:
+                from backend.database.models import User
+                from sqlalchemy import select
+                stmt = select(User.id).where(User.id == owner_id)
+                res = await repo.session.execute(stmt)
+                if res.scalar():
+                    valid_owner_id = owner_id
+                else:
+                    logger.warning(f"[MediaService] Orphaned fetch: Owner {owner_id} not found.")
+
             asset = MediaRegistry(
                 id=asset_id,
                 filename=filename if filename.endswith(".webp") else filename + ".webp",
@@ -779,8 +802,8 @@ class MediaService:
                 file_size=actual_size,
                 mime_type="image/webp",
                 dimensions=dims,
-                campaign_id=campaign_id,
-                owner_id=owner_id,
+                campaign_id=valid_campaign_id,
+                owner_id=valid_owner_id,
                 provider=str(os.getenv("STORAGE_PROVIDER", "local"))
             )
 
@@ -792,13 +815,13 @@ class MediaService:
             await event_bus.emit("MEDIA_UPLOADED", {
                 "id": asset_id,
                 "file_path": final_url,
-                "campaign_id": campaign_id
+                "campaign_id": valid_campaign_id
             })
 
             return asset
 
         except Exception as e:
-            logger.error(f"[MediaService] Remote fetch failed: {e}")
+            logger.exception(f"[MediaService] Remote fetch failed: {e}")
             return None
 
     async def cleanup_temp_files(self) -> Dict[str, int]:

@@ -388,9 +388,9 @@
             {:else if viewMode === 'grid'}
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4" in:fade>
                     {#each filteredAssets as asset (asset.id)}
-                        <button
+                        <div
                             class="group relative aspect-square bg-zinc-100 dark:bg-zinc-800 rounded-xl overflow-hidden border-2 transition-all shadow-sm hover:shadow-md
-                            {selectedAssetId === asset.id ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-transparent hover:border-blue-500/50'}"
+                            {selectedAssetId === asset.id ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-transparent hover:border-blue-500/50'} cursor-pointer"
                             onclick={() => selectedAssetId = asset.id}
                         >
                             <!-- Multi-selection Checkbox -->
@@ -448,17 +448,20 @@
                             <div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent text-white text-[10px] truncate font-medium opacity-0 group-hover:opacity-100 transition-opacity">
                                 {asset.filename}
                             </div>
-                        </button>
+                        </div>
                     {/each}
                 </div>
             {:else}
                 <!-- List View (Same as before but with selection) -->
                 <div class="flex flex-col gap-2" in:fade>
                     {#each filteredAssets as asset (asset.id)}
-                        <button
-                            class="grid grid-cols-12 items-center px-4 py-3 bg-white dark:bg-zinc-800 border rounded-xl hover:shadow-sm transition-all group text-left
+                        <div
+                            role="button"
+                            tabindex="0"
+                            class="grid grid-cols-12 items-center px-4 py-3 bg-white dark:bg-zinc-800 border rounded-xl hover:shadow-sm transition-all group cursor-pointer text-left
                             {selectedAssetId === asset.id ? 'border-blue-500 bg-blue-50/30 dark:bg-blue-900/10' : ''}"
                             onclick={() => selectedAssetId = asset.id}
+                            onkeydown={(e) => e.key === 'Enter' && (selectedAssetId = asset.id)}
                         >
                             <div class="col-span-1 flex justify-center">
                                 <button
@@ -502,7 +505,7 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                                 </button>
                             </div>
-                        </button>
+                        </div>
                     {/each}
                 </div>
             {/if}

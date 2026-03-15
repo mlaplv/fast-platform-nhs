@@ -139,8 +139,13 @@ export function createXohiImageState() {
             );
 
             const serverAsset = response.data;
+            if (!serverAsset) {
+                console.error("Fetch remote failed:", response);
+                return;
+            }
             const newAsset: MediaAsset = {
                 ...serverAsset,
+                file_path: serverAsset.file_path || serverAsset.url, // CNS V73.9: Safety fallback
                 is_primary: assets.length === 0,
                 order_index: assets.length
             };
@@ -164,9 +169,13 @@ export function createXohiImageState() {
             );
 
             // Update local asset with new version (WebP path and dimensions might change)
+            const serverAsset = response.data;
+            if (!serverAsset) {
+                console.error("Smart crop returned no data");
+                return;
+            }
             const idx = assets.findIndex(a => a.id === assetId);
             if (idx !== -1) {
-                const serverAsset = response.data;
                 assets[idx] = {
                     ...assets[idx],
                     file_path: serverAsset.file_path,
@@ -185,7 +194,12 @@ export function createXohiImageState() {
         assets.forEach(a => {
             if (a.url.startsWith('blob:')) URL.revokeObjectURL(a.url);
         });
-        assets = [...initialAssets].sort((a, b) => a.order_index - b.order_index);
+        const formatted = initialAssets.map((a, i) => {
+            if (!a.id) a.id = `img_${i}_${Date.now()}`;
+            if (!a.file_path && a.url) a.file_path = a.url;
+            return a;
+        });
+        assets = [...formatted].sort((a, b) => a.order_index - b.order_index);
     }
 
     return {

@@ -126,7 +126,7 @@
     {#if copyrightScore !== null || seoScore !== null}
       <div class="hidden md:flex items-center gap-2 text-[8px] font-black uppercase">
         {#if copyrightScore !== null}
-          <span class="{copyrightScore >= 90 ? 'text-emerald-400' : 'text-yellow-400'}">©{copyrightScore}%</span>
+          <span class="{copyrightScore >= 90 ? 'text-emerald-400' : 'text-yellow-400'}">COPYRIGHT {copyrightScore}%</span>
         {/if}
         {#if seoScore !== null}
           <span class="text-blue-400">SEO {seoScore}</span>
@@ -227,7 +227,7 @@
       <div class="flex-1 flex flex-col items-center justify-center gap-2 p-4 bg-red-950/20">
         <span class="text-red-400 text-xs font-bold">⚠ Lỗi tải nội dung</span>
         <code class="text-[9px] text-red-300/50 text-center">
-          draft: {(draft_content || '').length}c · html: {(finalHtml || '').length}c · assets: {assets.length}
+          draft: {(draft_content || '').length}c | html: {(finalHtml || '').length}c | assets: {assets.length}
         </code>
       </div>
     {/if}
