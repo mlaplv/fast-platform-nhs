@@ -12,7 +12,7 @@ import logging
 import asyncio
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Union, TypedDict, Optional
+from typing import List, Dict, Union, TypedDict, Optional, Any, Callable, Coroutine
 # Phase 12: Rule R105 — CẤM dùng Any, dùng TypedDict cho cấu trúc tường minh.
 class AnomalyAlert(TypedDict):
     type: str
@@ -46,9 +46,9 @@ class AnomalyDetector:
         # Rule: AsyncSession is NOT concurrency-safe on the same instance.
         # We call them one-by-one to avoid race conditions and "never awaited" warnings.
         alerts: List[AnomalyAlert] = []
-        
+
         # Helper to run check safely
-        async def run_check(name, coro_func, *args):
+        async def run_check(name: str, coro_func: Callable[..., Coroutine[Any, Any, Optional[AnomalyAlert]]], *args: Any) -> None:
             try:
                 res = await coro_func(*args)
                 if res:

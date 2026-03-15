@@ -64,11 +64,11 @@
 
   $effect(() => { loadUsers(); });
 
-  let searchTimer: any;
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
   function handleSearchInput(e: Event) {
     const val = (e.target as HTMLInputElement).value;
     searchInput = val;
-    clearTimeout(searchTimer);
+    if (searchTimer) clearTimeout(searchTimer);
     searchTimer = setTimeout(() => { searchTerm = val; currentPage = 1; }, 400);
   }
 
@@ -116,16 +116,55 @@
   }
 
   $effect(() => {
-    const data = nanobot.currentData;
-    if (data?.ui_action === "show_user_management" && data?.intent_type === "MUTATE" && !editingUser && !isAddingUser) {
-      editingUser = { id: "", name: data.name || "", email: data.email || "", status: "ACTIVE", roles: [], permissions: [] } as any;
+    const data = nanobot.currentData as Record<string, any>;
+    const action = nanobot.commandAction;
+
+    if (
+      data?.ui_action === "show_user_management" &&
+      data?.intent_type === "MUTATE" &&
+      !editingUser &&
+      !isAddingUser
+    ) {
+      editingUser = {
+        id: "",
+        name: (data.name as string) || "",
+        email: (data.email as string) || "",
+        status: "ACTIVE",
+        roles: [],
+        permissions: [],
+      };
       isAddingUser = true;
       nanobot.clearCurrentData();
+      return;
+    }
+
+    if (action?.entity === "user" || action?.entity === "identity") {
+      if (action.verb === "create") {
+        if (nanobot.consumeCommand("create", action.entity)) {
+          startAddingUser();
+          if (action.args) {
+            editingUser = { ...editingUser!, name: action.args };
+          }
+        }
+      } else if (action.verb === "search" && action.args) {
+        if (nanobot.consumeCommand("search", action.entity)) {
+          searchInput = action.args;
+          searchTerm = action.args;
+          currentPage = 1;
+        }
+      }
     }
   });
 
   function startAddingUser() {
-    editingUser = { id: "", name: "", email: "", status: "ACTIVE", roles: [], permissions: [] } as any;
+    editingUser = {
+      id: "",
+      name: "",
+      email: "",
+      status: "ACTIVE",
+      roles: [],
+      permissions: [],
+    };
     isAddingUser = true;
   }
 </script>

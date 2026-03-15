@@ -70,31 +70,48 @@
 
   // V22: Voice Mutation Injection - News Management
   $effect(() => {
-    const data = nanobot.currentData as any;
+    const data = nanobot.currentData as Record<string, any>;
     const action = nanobot.commandAction;
 
-    if (data?.ui_action === "show_news_management" && data?.intent_type === "MUTATE" && !showDraftForm) {
+    if (
+      data?.ui_action === "show_news_management" &&
+      data?.intent_type === "MUTATE" &&
+      !showDraftForm
+    ) {
       editingId = null;
-      formTitle = data?.title || data?.name || data?.entities?.name || "";
-      formCategory = data?.category || CATEGORIES[0];
-      formExcerpt = data?.excerpt || "";
+      formTitle =
+        (data?.title as string) ||
+        (data?.name as string) ||
+        (data?.entities?.name as string) ||
+        "";
+      formCategory = (data?.category as string) || CATEGORIES[0];
+      formExcerpt = (data?.excerpt as string) || "";
       showDraftForm = true;
       nanobot.clearCurrentData();
       return;
     }
 
-    if (action?.entity === "news") {
-      if (action.verb === "create") { openCreate(); if (action.args) formTitle = action.args; }
-      else if (action.verb === "search" && action.args) { searchInput = action.args; searchTerm = action.args; currentPage = 1; }
-      nanobot.clearCommandAction();
+    if (action?.entity === "news" || action?.entity === "article") {
+      if (action.verb === "create") {
+        if (nanobot.consumeCommand("create", action.entity)) {
+          openCreate();
+          if (action.args) formTitle = action.args;
+        }
+      } else if (action.verb === "search" && action.args) {
+        if (nanobot.consumeCommand("search", action.entity)) {
+          searchInput = action.args;
+          searchTerm = action.args;
+          currentPage = 1;
+        }
+      }
     }
   });
 
-  let searchTimer: any;
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
   function handleSearchInput(e: Event) {
     const val = (e.target as HTMLInputElement).value;
     searchInput = val;
-    clearTimeout(searchTimer);
+    if (searchTimer) clearTimeout(searchTimer);
     searchTimer = setTimeout(() => { searchTerm = val; currentPage = 1; }, 400);
   }
 

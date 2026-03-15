@@ -81,45 +81,46 @@
     if (!action || action.entity !== "order") return;
 
     if ((action.verb === "search" || action.verb === "view") && action.args) {
-      const filterMap: Record<string, string> = {
-        cho: "pending",
-        "cho xu ly": "pending",
-        pending: "pending",
-        "dang giao": "shipped",
-        giao: "shipped",
-        shipped: "shipped",
-        "hoan thanh": "delivered",
-        delivered: "delivered",
-        "da giao": "delivered",
-        "da huy": "cancelled",
-        huy: "cancelled",
-        cancelled: "cancelled",
-        "dang xu ly": "processing",
-        processing: "processing",
-      };
-      const normalizedArg = action.args
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/đ/g, "d");
-      const matchedFilter = filterMap[normalizedArg];
-      if (matchedFilter) {
-        activeFilter = matchedFilter;
-        nanobot.addLog(
-          `[ACTION] Voice: Lọc đơn hàng "${action.args}"`,
-          "Nanobot-Voice",
-        );
-      } else {
-        searchInput = action.args;
-        searchTerm = action.args;
-        currentPage = 1;
-        nanobot.addLog(
-          `[ACTION] Voice: Tìm đơn hàng "${action.args}"`,
-          "Nanobot-Voice",
-        );
+      if (nanobot.consumeCommand(action.verb, "order")) {
+        const filterMap: Record<string, string> = {
+          cho: "pending",
+          "cho xu ly": "pending",
+          pending: "pending",
+          "dang giao": "shipped",
+          giao: "shipped",
+          shipped: "shipped",
+          "hoan thanh": "delivered",
+          delivered: "delivered",
+          "da giao": "delivered",
+          "da huy": "cancelled",
+          huy: "cancelled",
+          cancelled: "cancelled",
+          "dang xu ly": "processing",
+          processing: "processing",
+        };
+        const normalizedArg = action.args
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/đ/g, "d");
+        const matchedFilter = filterMap[normalizedArg];
+        if (matchedFilter) {
+          activeFilter = matchedFilter;
+          nanobot.addLog(
+            `[ACTION] Voice: Lọc đơn hàng "${action.args}"`,
+            "Nanobot-Voice",
+          );
+        } else {
+          searchInput = action.args;
+          searchTerm = action.args;
+          currentPage = 1;
+          nanobot.addLog(
+            `[ACTION] Voice: Tìm đơn hàng "${action.args}"`,
+            "Nanobot-Voice",
+          );
+        }
       }
     }
-    nanobot.clearCommandAction();
   });
 
   function openDrawer(id: string) {

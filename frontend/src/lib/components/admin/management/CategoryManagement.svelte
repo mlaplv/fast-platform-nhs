@@ -75,13 +75,18 @@
 
     if (action?.entity === "category") {
       if (action.verb === "create") {
-        openCreate();
-        if (action.args) {
-          formName = action.args;
-          formSlug = genSlug(action.args);
+        if (nanobot.consumeCommand("create", "category")) {
+          openCreate();
+          if (action.args) {
+            formName = action.args;
+            formSlug = genSlug(action.args);
+          }
         }
-      } else if (action.verb === "search" && action.args) searchTerm = action.args;
-      nanobot.clearCommandAction();
+      } else if (action.verb === "search" && action.args) {
+        if (nanobot.consumeCommand("search", "category")) {
+          searchTerm = action.args;
+        }
+      }
     }
   });
 
