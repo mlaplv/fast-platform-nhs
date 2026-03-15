@@ -24,13 +24,14 @@
     status = $bindable(),
     progress_msg = $bindable(),
     title = $bindable(),
-    keywords = $bindable(),
-    assets = $bindable(),
-    outline = $bindable(),
-    draft_content = $bindable(),
-    finalHtml = $bindable(),
-    selectedAvatarUrl = $bindable(), 
-    selectedAssetIndex = $bindable(),
+    keywords = $bindable({}),
+    assets = $bindable([]),
+    reserve_assets = $bindable([]),
+    outline = $bindable({}),
+    draft_content = $bindable(""),
+    finalHtml = $bindable(""),
+    selectedAvatarUrl = $bindable(null), 
+    selectedAssetIndex = $bindable(0),
     creation_config = $bindable(),
     analysis_cache = $bindable(),
     analysis_metrics = $bindable()
@@ -98,6 +99,7 @@
     if (progress_msg === undefined) progress_msg = "";
     if (keywords === undefined) keywords = {};
     if (assets === undefined) assets = [];
+    if (reserve_assets === undefined) reserve_assets = [];
     if (outline === undefined) outline = {};
     if (draft_content === undefined) draft_content = "";
     if (creation_config === undefined) creation_config = {};
@@ -320,7 +322,8 @@
       await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, {
         assets: assets, // Backend expects 'assets' NOT 'assets_data' in PATCH alias
         avatar: selectedAvatarUrl,
-        selected_index: newIndex ?? selectedAssetIndex
+        selected_index: newIndex ?? selectedAssetIndex,
+        gold_metadata: { reserve_assets } // R120: Persist reserve list
       });
     } catch (e) { console.error("Sync failed:", e); }
   }
@@ -408,7 +411,7 @@
       {:else if viewingStep === 2}
         <AssetStep 
           {isProcessing} isExpanded={nanobot.isExpanded} 
-          bind:assets bind:customImageUrl bind:selectedAvatarUrl bind:selectedAssetIndex 
+          bind:assets bind:reserve_assets bind:customImageUrl bind:selectedAvatarUrl bind:selectedAssetIndex 
           {handleImageError} {syncAssetChanges} {deleteAsset} {handleRetry} {handleMouseMove} 
         />
       {:else if viewingStep === 3}

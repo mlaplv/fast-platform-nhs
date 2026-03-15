@@ -54,6 +54,7 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
                   draft_content: newData.draft_content || current.draft_content,
                   selectedAvatarUrl: newData.gold_metadata?.avatar || (current as any).selectedAvatarUrl || null,
                   selectedAssetIndex: newData.gold_metadata?.selected_index ?? (current as any).selectedAssetIndex ?? 0,
+                  reserve_assets: normalizeAssets(newData.gold_metadata?.reserve_assets || (current as any).reserve_assets),
                   creation_config: newData.gold_metadata?.creation_config || newData.topic_data?.creation_config || newData.keywords?.creation_config || (current as any).creation_config || {}
               };
             }
@@ -127,6 +128,7 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
                     analysis_metrics: newData.gold_metadata?.analysis_metrics || current.analysis_metrics || {},
                     selectedAvatarUrl: newData.gold_metadata?.avatar || (current as any).selectedAvatarUrl || null,
                     selectedAssetIndex: newData.gold_metadata?.selected_index ?? (current as any).selectedAssetIndex ?? 0,
+                    reserve_assets: normalizeAssets(newData.gold_metadata?.reserve_assets || (current as any).reserve_assets),
                     creation_config: newData.gold_metadata?.creation_config || newData.topic_data?.creation_config || newData.keywords?.creation_config || (current as any).creation_config || {}
                 };
               }

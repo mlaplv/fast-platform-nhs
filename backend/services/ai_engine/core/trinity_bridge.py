@@ -1,6 +1,7 @@
 import logging
 import os
 import asyncio
+import httpx
 from typing import Optional, List, Dict
 from contextlib import asynccontextmanager
 from pydantic_ai import Agent
@@ -41,6 +42,11 @@ class TrinityBridge:
 
         # Initial load state
         self._initialized = False
+        self._discovered_cache = []
+
+        # Roles (V75)
+        self.ROLE_FAST = "fast"   # Flash/Lite models
+        self.ROLE_BRAIN = "brain" # Pro models
 
     async def initialize(self):
         """Explicit initialization for lifespan hooks (V76)."""
@@ -68,32 +74,106 @@ class TrinityBridge:
                     logger.info(f"[TrinityBridge] Models hot-reloaded. Primary: {self.db_primary_model}, Chain: {len(self.db_waterfall)}")
         except Exception as e:
             logger.warning(f"[TrinityBridge] Could not hot-reload models from DB: {e}")
+        
+        # V75: Autonomous Refresh
+        await self._discover_models()
 
+    async def _discover_models(self):
+        """Live Discovery: Query Google for actually available models."""
+        cached = await self.rotator.get_discovered_models()
+        if cached:
+            self._discovered_cache = cached
+            return
 
-    def _build_model_chain(self) -> list[str]:
+        # Try with a healthy key
+        key = ""
+        try:
+            key = await self.rotator.get_key()
+        except:
+            return
+
+        if not key: return
+
+        url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(url)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    all_raw_models = data.get("models", [])
+                    models = [m["name"].replace("models/", "") for m in all_raw_models 
+                             if "generateContent" in (m.get("supportedGenerationMethods") or [])]
+                    
+                    self._discovered_cache = models
+                    await self.rotator.save_discovered_models(models)
+                    logger.info(f"[TrinityBridge] Discovery Successful. Found {len(models)} usable models.")
+                else:
+                    logger.warning(f"[TrinityBridge] Discovery Failed ({resp.status_code}): {resp.text[:100]}")
+        except Exception as e:
+            logger.error(f"[TrinityBridge] Discovery Exception: {e}")
+            print(f"[DEBUG] Discovery Exception: {e}")
+
+    def _get_role_models(self, role: str) -> list[str]:
+        """Strategic Mapping: Find best available models for a role."""
+        if not self._discovered_cache:
+            return []
+        
+        if role == self.ROLE_FAST:
+            # Prefer Flash -> Flash-Lite -> Flash-8b
+            potential = ["flash-lite", "flash-8b", "flash"]
+        else:
+            # Prefer Pro -> Brain (future)
+            potential = ["pro", "brain"]
+
+        results = []
+        for p in potential:
+            for m in self._discovered_cache:
+                if p in m.lower():
+                    results.append(m)
+        
+        # Sort by 'latest' or 'version' if possible (crude string sort)
+        results.sort(reverse=True)
+        return results
+
+    async def _build_model_chain(self) -> list[str]:
         """Build priority model chain (shared between run and run_stream)."""
-        models = []
+        raw_models = []
         
         # 1. DB Priority (V75)
         if self.db_primary_model:
-            models.append(self.db_primary_model)
+            raw_models.append(self.db_primary_model)
         if self.db_waterfall:
             for m in self.db_waterfall:
-                if m not in models:
-                    models.append(m)
+                if m not in raw_models:
+                    raw_models.append(m)
 
         # 2. Waterfall ENV Priority
         if self.model_waterfall:
             for m in self.model_waterfall:
-                if m not in models:
-                    models.append(m)
+                if m not in raw_models:
+                    raw_models.append(m)
         
         # 3. Default ENV Fallbacks
-        if self.default_model_name not in models:
-            models.append(self.default_model_name)
-        if self.fallback_model_name and self.fallback_model_name not in models:
-            models.append(self.fallback_model_name)
-        return models
+        if self.default_model_name not in raw_models:
+            raw_models.append(self.default_model_name)
+        if self.fallback_model_name and self.fallback_model_name not in raw_models:
+            raw_models.append(self.fallback_model_name)
+
+        # 4. Autonomous Discovery Integration (V75)
+        brain_models = self._get_role_models(self.ROLE_BRAIN)
+        fast_models = self._get_role_models(self.ROLE_FAST)
+        
+        for m in (brain_models + fast_models):
+            if m not in raw_models:
+                raw_models.append(m)
+
+        # V75.1: Filter out Poisoned models
+        healthy_models = []
+        for m in raw_models:
+            if not await self.rotator.is_model_poisoned(m):
+                healthy_models.append(m)
+        
+        return healthy_models
 
     async def _get_sticky_model(self) -> str | None:
         """Get last successful model from Redis."""
@@ -168,7 +248,7 @@ class TrinityBridge:
         if requested_model:
             models_to_try.append(requested_model)
 
-        base_chain = self._build_model_chain()
+        base_chain = await self._build_model_chain()
         sticky_model = await self._get_sticky_model()
 
         if sticky_model and sticky_model not in models_to_try:
@@ -254,7 +334,8 @@ class TrinityBridge:
                         continue
 
                     if category == "model_not_found":
-                        logger.warning(f"[TrinityBridge] Model {model_name} không được hỗ trợ bởi Key hiện tại. Đang chuyển sang model dự phòng tiếp theo...")
+                        logger.warning(f"[TrinityBridge] Model {model_name} không được hỗ trợ hoặc đã bị xóa. Đang chuyển sang model khác...")
+                        await self.rotator.mark_model_poisoned(model_name, reason="404")
                         break
 
                     logger.error(f"[TrinityBridge] Unknown AI Error for {model_name}: {e}")
@@ -280,7 +361,7 @@ class TrinityBridge:
         if requested_model:
             models_to_try.append(requested_model)
 
-        base_chain = self._build_model_chain()
+        base_chain = await self._build_model_chain()
         sticky_model = await self._get_sticky_model()
 
         if sticky_model and sticky_model not in models_to_try:
@@ -369,7 +450,8 @@ class TrinityBridge:
                         continue
 
                     if category == "model_not_found":
-                        logger.warning(f"[TrinityBridge][Stream] Model {model_name} not found. Jumping to next model...")
+                        logger.warning(f"[TrinityBridge][Stream] Model {model_name} not found. Poisoning model and jumping...")
+                        await self.rotator.mark_model_poisoned(model_name, reason="404")
                         break
 
                     logger.error(f"[TrinityBridge][Stream] Unknown AI Error: {e}")

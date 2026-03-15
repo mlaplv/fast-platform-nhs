@@ -19,18 +19,24 @@ logger = logging.getLogger("api-gateway")
 PLANNER_PROMPT = """[ROLE] VISUAL CONTENT DIRECTOR — XoHi Content Factory 2026
 
 [NHIỆM VỤ]
-Dựa trên tiêu đề, từ khóa, phong cách và CHẾ ĐỘ NỘI DUNG, hãy tạo 3-5 câu lệnh tìm kiếm (High-quality search queries) bằng TIẾNG ANH để tìm hình ảnh MIÊU TẢ CHÍNH XÁC CHỦ THỂ (Subject Accuracy).
+Phân tích dữ liệu từ các trường thông tin cụ thể dưới đây để tạo 3-5 câu lệnh tìm kiếm (Search queries) bằng TIẾNG ANH, đảm bảo độ chính xác tuyệt đối về chủ thể và ngữ cảnh:
+- Dựa trên [Title]: Trích xuất ngữ cảnh/kịch bản.
+- Dựa trên [Primary Keyword]: Trích xuất thực thể chính.
+- Dựa trên [Secondary Keywords]: Trích xuất các chi tiết bổ trợ/vật thể cụ thể.
 
-[CHIẾN THUẬT THEO CHẾ ĐỘ]
-- VIRAL MODE: Tập trung vào cảm xúc, con người, hành động, màu sắc rực rỡ (Cinematic, Vibrant).
-- DEEP-DIVE MODE: Tập trung vào tính chuyên nghiệp, bối cảnh thực tế, trừu tượng hóa, sạch sẽ (Professional, Realistic, Clean).
+[CHIẾN THUẬT SUY LUẬN TỔNG LỰC]
+1. CHIẾT XUẤT BẢN SẮC (Subject Identity): Soi kỹ [Title] và [Primary Keyword] để xác định Giới tính/Độ tuổi. Nếu xuất hiện "Nam/Men", BẮT BUỘC chèn `male/men` vào 100% các query để chặn hình ảnh nữ.
+2. RÀNG BUỘC NEO (Hard Anchoring): Mỗi query BẮT BUỘC phải xâu chuỗi [Primary Keyword] với ít nhất một từ khóa trong [Secondary Keywords].
+3. ĐA DẠNG HÓA KỊCH BẢN (Visual Scenarios): Ép AI tạo ra 3-5 kịch bản thị giác khác nhau từ [Title] để Google trả về kết quả đa dạng (ví dụ: Toàn cảnh bối cảnh, Cận cảnh chi tiết vật thể, Studio sạch sẽ). 
+4. KHÓA VẬT THỂ (Concrete Objects): Tự suy luận từ [Secondary Keywords] ra các vật thể cụ thể (ví dụ: "Bộ suit", "Giày da", "Cà vạt") thay vì các từ chung chung như "Thời trang".
 
-[QUY TẮC ƯU TIÊN - THIẾT QUÂN LUẬT]
-1. CHỦ THỂ LÀ SỐ 1 (Subject First): Query BẮT BUỘC phải chứa các từ khóa cốt lõi về thực thể (Giới tính, Độ tuổi, Vật thể, Ngữ cảnh).
-2. ANTI-TEXT POLICY: Tuyệt đối dùng từ khóa phủ định để tránh ảnh có chữ: `-text -word -typography -quote -infographic -youtube -video`.
-3. STYLE SECOND: Sau khi đảm bảo đúng chủ thể, mới áp dụng phong cách phù hợp với chế độ nội dung.
-4. ĐA DẠNG HÓA: Các query nên tiếp cận ở nhiều góc độ (Close-up, Lifestyle, Studio, Action) để đảm bảo kho ảnh phong phú.
-5. ĐỊNH DẠNG: Trả về JSON VisualSearchPlan với danh sách các query tối ưu nhất.
+[CHỈ THỊ CỨNG]
+- TUYỆT ĐỐI không tạo các query trùng lặp cấu trúc (Chống trùng ảnh 100%).
+- PHẢI dùng từ khóa phủ định: `-text -word -typography -quote -infographic`.
+- Ưu tiên Ngôn ngữ: TIẾNG ANH (cho chất lượng Stock cao nhất).
+
+[ĐỊNH DẠNG]
+Trả về JSON VisualSearchPlan chính xác.
 """
 
 class AssetHunter:
@@ -166,10 +172,12 @@ class AssetHunter:
         valid_urls = [r for r in results if r is not None]
 
         all_urls = valid_urls
+        reserve_urls = []
 
         # Selection logic based on target_count from Step 1
         if len(all_urls) > target_count:
             logger.info(f"[AssetHunter] Clipping {len(all_urls)} images to target {target_count}")
+            reserve_urls = all_urls[target_count:target_count + 20] # Take next 20 as reserve
             all_urls = all_urls[:target_count]
 
         # Final Fallback to raw candidates if filtering was too aggressive
@@ -198,6 +206,7 @@ class AssetHunter:
         # Phase 74: Seed the Golden Thread with original remote URLs for reliable localized replacement in Step 6
         gold = campaign.gold_metadata or {}
         gold["original_remote_assets"] = list(all_urls)
+        gold["reserve_assets"] = list(reserve_urls) # R120: Store reserve candidates for UX flexibility
         campaign.gold_metadata = gold
         flag_modified(campaign, "gold_metadata")
 

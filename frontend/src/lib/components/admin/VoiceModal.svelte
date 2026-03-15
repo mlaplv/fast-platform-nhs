@@ -117,6 +117,7 @@
               campaign_id={nanobot.vuiResponse.data.campaign_id}
               bind:keywords={nanobot.vuiResponse.data.keywords}
               bind:assets={nanobot.vuiResponse.data.assets}
+              bind:reserve_assets={nanobot.vuiResponse.data.reserve_assets}
               bind:outline={nanobot.vuiResponse.data.outline}
               bind:draft_content={nanobot.vuiResponse.data.draft_content}
               bind:step={nanobot.vuiResponse.data.step}

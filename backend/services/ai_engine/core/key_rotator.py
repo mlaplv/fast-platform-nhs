@@ -23,6 +23,8 @@ class SmartKeyRotator:
     TPM_PREFIX = "ai:key:v70:tpm:"           # ZSET for sliding window token tracking
     BLACKLIST_PREFIX = "ai:key:v70:black:"   # Set/Key for dead keys (auth fail, etc)
     MODEL_DAILY_PREFIX = "ai:key:v70:daily:" # Key for (key, model) daily quota exhaustion
+    POISON_PREFIX = "ai:model:v75:poison:"   # Model-wide blacklist (404, deprecated)
+    DISCOVERED_MODELS_KEY = "ai:bridge:discovered:v75"
 
     # Cooldown settings
     BASE_COOLDOWN = 60
@@ -203,6 +205,47 @@ class SmartKeyRotator:
             return bool(await self.client.exists(redis_key))
         except Exception:
             return False
+
+    async def mark_model_poisoned(self, model_name: str, reason: str = "404"):
+        """Mark a model as poisoned (globally unhealthy/non-existent) for 24h."""
+        if not self._use_redis or not self.client: return
+        model_slug = model_name.replace("/", "_").replace("-", "_")[:40]
+        redis_key = f"{self.POISON_PREFIX}{model_slug}"
+        try:
+            await self.client.set(redis_key, reason, ex=self.MAX_COOLDOWN)
+            logger.warning(f"[KeyRotator] Model '{model_name}' POISONED. Blacklisted for 24h. Reason: {reason}")
+        except Exception:
+            pass
+
+    async def is_model_poisoned(self, model_name: str) -> bool:
+        """Check if a model is globally poisoned."""
+        if not self._use_redis or not self.client: return False
+        model_slug = model_name.replace("/", "_").replace("-", "_")[:40]
+        redis_key = f"{self.POISON_PREFIX}{model_slug}"
+        try:
+            return bool(await self.client.exists(redis_key))
+        except Exception:
+            return False
+
+    async def save_discovered_models(self, models: list[str]):
+        """Save the list of discovered models to Redis."""
+        if not self._use_redis or not self.client: return
+        try:
+            import json
+            await self.client.set(self.DISCOVERED_MODELS_KEY, json.dumps(models), ex=self.MAX_COOLDOWN)
+            logger.info(f"[KeyRotator] Saved {len(models)} discovered models to Redis.")
+        except Exception:
+            pass
+
+    async def get_discovered_models(self) -> list[str]:
+        """Get the cached list of discovered models."""
+        if not self._use_redis or not self.client: return []
+        try:
+            import json
+            val = await self.client.get(self.DISCOVERED_MODELS_KEY)
+            return json.loads(val) if val else []
+        except Exception:
+            return []
 
     async def set_success(self, key: str, session_id: Optional[str] = None):
         """Marks a key as successful, resets fail_count using Hash ID."""

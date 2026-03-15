@@ -159,6 +159,7 @@ export interface CampaignData {
   progress_msg?: string;
   keywords?: CampaignKeywords;
   assets?: string[];
+  reserve_assets?: string[];
   outline?: { html?: string };
   draft_content?: string;
   final_html?: string;
