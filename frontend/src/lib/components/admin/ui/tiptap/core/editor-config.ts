@@ -12,7 +12,7 @@ import Typography from '@tiptap/extension-typography';
 import { AnnotationMark } from '../extensions/AnnotationMark';
 
 export const getEditorExtensions = (placeholderText: string = 'Start writing...') => [
-  StarterKit.configure({ 
+  StarterKit.configure({
     typography: false,
     bold: true,
     italic: true,
@@ -21,7 +21,7 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
     history: true,
     link: false,
     underline: false
-  } as any),
+  }),
   Typography,
   Underline,
   Link.configure({

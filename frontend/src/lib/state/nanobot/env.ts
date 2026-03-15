@@ -1,7 +1,7 @@
 // Utility to safely access environment variables without triggering strict TS errors in some IDEs
 interface ImportMetaEnv {
     DEV: boolean;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 interface ImportMeta {

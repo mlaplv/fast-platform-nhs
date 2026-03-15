@@ -10,7 +10,7 @@ export class VuiSpeechEngine {
   constructor() {
     if (typeof window === 'undefined') return;
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition = (window as { SpeechRecognition?: typeof window.SpeechRecognition; webkitSpeechRecognition?: typeof window.SpeechRecognition }).SpeechRecognition || (window as { SpeechRecognition?: typeof window.SpeechRecognition; webkitSpeechRecognition?: typeof window.SpeechRecognition }).webkitSpeechRecognition;
     if (SpeechRecognition) {
       this.recognition = new SpeechRecognition() as SpeechRecognition;
       this.recognition.continuous = true;

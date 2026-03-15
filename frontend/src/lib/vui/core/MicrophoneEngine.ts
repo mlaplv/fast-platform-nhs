@@ -43,7 +43,7 @@ export class MicrophoneEngine {
     this.recorder.start(chunkDurationMs);
 
     // 2. Setup AudioContext Analyser for Volume Monitoring
-    const AC = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
+    const AC = (window.AudioContext || (window as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).webkitAudioContext) as typeof AudioContext;
     this.audioCtx = new AC();
 
     // Safari/Firefox Requirement: Explicitly resume after creation

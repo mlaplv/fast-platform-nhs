@@ -72,7 +72,7 @@ export function createLogState() {
     source: string = "Nanobot-Core",
     type: string = "info",
     routerTier?: number,
-    data?: Record<string, any>
+    data?: Record<string, unknown>
   ) {
     const newLog: SystemLog = {
       id: safeRandomUUID(),

@@ -1,3 +1,5 @@
+import type { JwtPayload } from "$lib/types";
+
 function decodeJwtPayload<T>(token: string): T {
   const base64Url = token.split(".")[1];
   const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -38,7 +40,7 @@ class PermissionState {
 
     if (token) {
       try {
-        const decoded = decodeJwtPayload<any>(token);
+        const decoded = decodeJwtPayload<JwtPayload>(token);
 
         // THIẾT QUÂN LUẬT: Kiểm tra hạn sử dụng JWT
         if (decoded.exp && decoded.exp * 1000 < Date.now()) {

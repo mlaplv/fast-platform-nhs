@@ -4,14 +4,14 @@ import { permissionState } from "./permissions.svelte";
 export type VoiceStatus = "IDLE" | "VOICE" | "THINKING" | "ERROR" | "SUCCESS";
 
 export function createVoiceState(
-  addLog: (msg: string, source?: string, type?: string, routerTier?: number, data?: Record<string, any>) => void,
+  addLog: (msg: string, source?: string, type?: string, routerTier?: number, data?: Record<string, unknown>) => void,
 ) {
   const state = $state({
     isVuiActive: false,
     vuiResponse: null as {
       text: string;
       type: "greeting" | "answer" | "action" | "error";
-      data?: Record<string, any>;
+      data?: Record<string, unknown>;
     } | null,
     vuiUserQuery: "",
     voiceTrigger: 0,

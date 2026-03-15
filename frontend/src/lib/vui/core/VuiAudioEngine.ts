@@ -262,7 +262,7 @@ export class VuiAudioEngine {
    */
   async unlock() {
     try {
-      const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const AC = (window as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).AudioContext || (window as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (AC) {
         if (!this.audioCtx) {
           this.audioCtx = new AC();

@@ -70,33 +70,33 @@ export function createPulseManager(
     eventSource.onmessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
-        const { event: eventName, payload }: { event: string; payload: any } = data;
+        const { event: eventName, payload }: { event: string; payload: unknown } = data;
 
         if (eventName === "CONTENT_PROGRESS") {
-          const contentPayload = payload as CampaignData & { message: string };
+          const contentPayload = payload as CampaignData & { message: string; data?: Record<string, unknown> };
           if (voice?.vuiResponse?.data?.campaign_id === contentPayload.campaign_id) {
             vuiState.setActive(true);
             vuiState.setPhase("executing");
             vuiState.setSystemMessage(contentPayload.message);
 
             if (voice.vuiResponse?.data) {
-              const current = voice.vuiResponse.data;
-              const newData = contentPayload.data || {};
+              const current = voice.vuiResponse.data as unknown as CampaignData;
+              const newData = (contentPayload.data || {}) as Record<string, unknown>;
 
               voice.vuiResponse.data = {
                   ...current,
                   progress_msg: contentPayload.message,
                   status: "PROCESSING",
                   step: contentPayload.step,
-                  keywords: newData.keywords || newData.topic_data || current.keywords,
+                  keywords: (newData.keywords || newData.topic_data || current.keywords) as any, // FIXME: properly type keywords
                   assets: normalizeAssets(newData.assets || newData.assets_data || current.assets),
-                  outline: newData.outline || newData.outline_data || current.outline,
-                  draft_content: newData.draft_content || current.draft_content,
-                  selectedAvatarUrl: newData.gold_metadata?.avatar || (current as any).selectedAvatarUrl || null,
-                  selectedAssetIndex: newData.gold_metadata?.selected_index ?? (current as any).selectedAssetIndex ?? 0,
-                  reserve_assets: normalizeAssets(newData.gold_metadata?.reserve_assets || (current as any).reserve_assets),
-                  creation_config: newData.gold_metadata?.creation_config || newData.topic_data?.creation_config || newData.keywords?.creation_config || (current as any).creation_config || {}
-              };
+                  outline: (newData.outline || newData.outline_data || current.outline) as any, // FIXME: properly type outline
+                  draft_content: (newData.draft_content || current.draft_content) as string,
+                  selectedAvatarUrl: (newData.gold_metadata as any)?.avatar || current.selectedAvatarUrl || null,
+                  selectedAssetIndex: (newData.gold_metadata as any)?.selected_index ?? current.selectedAssetIndex ?? 0,
+                  reserve_assets: normalizeAssets((newData.gold_metadata as any)?.reserve_assets || current.reserve_assets),
+                  creation_config: (newData.gold_metadata as any)?.creation_config || (newData.topic_data as any)?.creation_config || (newData.keywords as any)?.creation_config || current.creation_config || {}
+              } as unknown as Record<string, unknown>;
             }
           }
 

@@ -3,6 +3,7 @@
  * AI pre-fills what it extracts; user completes the rest in the form.
  */
 import type { FormField } from "$lib/state/types";
+import type { Category } from "$lib/types";
 import { apiClient } from "$lib/utils/apiClient";
 
 export type MutationVerb = "create" | "edit" | "delete" | "update_status";
@@ -256,9 +257,8 @@ export async function getMutationSchema(
   // Dynamically load categories for news article
   if (target === "news" && schema.fields) {
     try {
-      const res = await apiClient.get<any>("/api/v1/categories");
-      const categoryData = res.data || [];
-      const opts = categoryData.map((c: any) => ({
+      const categoryData = await apiClient.get<Category[]>("/api/v1/categories") || [];
+      const opts = categoryData.map((c: Category) => ({
         value: c.name,
         label: c.name,
       }));

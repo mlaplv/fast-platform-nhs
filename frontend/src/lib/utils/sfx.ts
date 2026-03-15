@@ -7,7 +7,7 @@ let _sfxCtx: AudioContext | null = null;
 
 function getSfxCtx(): AudioContext {
   if (!_sfxCtx || _sfxCtx.state === "closed") {
-    const Ctor = window.AudioContext || (window as any).webkitAudioContext;
+    const Ctor = window.AudioContext || (window as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     _sfxCtx = new Ctor();
   }
   // R85.2: Autoplay safety — only attempt resume if suspended, and silent catch

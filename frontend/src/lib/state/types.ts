@@ -205,6 +205,7 @@ export interface CampaignMetrics {
 
 export interface CampaignData {
   id: string;
+  campaign_id?: string; // Sometimes used interchangeably in SSE
   category: string;
   step: number;
   status: string;
@@ -222,7 +223,15 @@ export interface CampaignData {
   selectedAssetIndex?: number;
   creation_config?: Record<string, unknown>;
   isSilent?: boolean;
-  data?: Record<string, unknown>; 
+  data?: Record<string, unknown>;
+  gold_metadata?: {
+    avatar?: string;
+    selected_index?: number;
+    reserve_assets?: string[];
+    creation_config?: Record<string, unknown>;
+    analysis_cache?: Record<string, unknown>;
+    analysis_metrics?: Record<string, unknown>;
+  };
 }
 
 export interface PulsePayload {

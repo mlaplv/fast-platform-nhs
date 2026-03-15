@@ -30,7 +30,7 @@ export function createUiState() {
   ): Promise<boolean>;
   function showConfirm(
     options: Omit<ConfirmDialog, "onConfirm" | "onCancel">,
-  ): Promise<any> {
+  ): Promise<boolean | string | Record<string, string> | null> {
     return new Promise((resolve) => {
       state.confirmDialog = {
         ...options,

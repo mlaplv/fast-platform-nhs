@@ -1,5 +1,5 @@
 import { apiClient } from '$lib/utils/apiClient';
-import type { MediaAsset } from '$lib/types';
+import type { MediaAsset, MediaStats, MediaSseEvent, MediaMetadata } from '$lib/types';
 
 class MediaStore {
     // States using Runes
@@ -9,12 +9,7 @@ class MediaStore {
     currentCampaignId = $state<string | null>(null);
 
     // Analytics State (V9.0)
-    stats = $state<{
-        total_count: number;
-        total_size: number;
-        breakdown: Array<{ type: string; count: number; size: number }>;
-        storage_provider: string;
-    } | null>(null);
+    stats = $state<MediaStats | null>(null);
 
     // Selection State (V65.0 Bulk Ops)
     selectedIds = $state<Set<string>>(new Set());
@@ -173,48 +168,39 @@ class MediaStore {
         console.log(`[MediaStore] Subscribing to AI updates for campaign: ${campaignId}`);
         this.eventSource = new EventSource(`/api/v1/content/stream/${campaignId}`);
 
-        this.eventSource.onmessage = (event) => {
-            try {
-                // Handle both raw data and structured events
-                const data = JSON.parse(event.data);
+    this.eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data) as MediaSseEvent;
 
-                // If the event is MEDIA_ANALYZED (from event_bus)
-                if (data.type === 'MEDIA_ANALYZED' || (data.metadata && data.metadata.source === 'MediaAnalyst')) {
-                    this.handleMediaAnalyzed(data as Record<string, unknown>);
-                }
-            } catch (e) {
-                // Probably a ping or non-JSON data
-            }
-        };
-
-        this.eventSource.onerror = () => {
-            console.warn('[MediaStore] SSE connection lost. Reconnecting...');
-            this.eventSource?.close();
-            this.eventSource = null;
-            // Retry logic could be added here if needed
-        };
-    }
-
-    private handleMediaAnalyzed(payload: Record<string, unknown>) {
-        const assetId = (payload.id || payload.asset_id) as string;
-        if (!assetId) return;
-
-        console.log(`[MediaStore] Asset analyzed real-time: ${assetId}`);
-
-        // Update the asset in the list surgically
-        const index = this.assets.findIndex(a => a.id === assetId);
-        if (index !== -1) {
-            // Trigger reactivity by replacing the object
-            this.assets[index] = {
-                ...this.assets[index],
-                alt_text: (payload.alt_text as string) || this.assets[index].alt_text,
-                media_metadata: {
-                    ...this.assets[index].media_metadata,
-                    ...((payload.media_metadata as Record<string, unknown>) || (payload.metadata as Record<string, unknown>) || {})
-                }
-            };
+        if (data.type === 'MEDIA_ANALYZED' || (data.metadata && data.metadata.source === 'MediaAnalyst')) {
+          this.handleMediaAnalyzed(data);
         }
+      } catch (e) {
+        // Probably a ping or non-JSON data
+      }
+    };
+  }
+
+  private handleMediaAnalyzed(payload: MediaSseEvent) {
+    const assetId = payload.id || payload.asset_id;
+    if (!assetId) return;
+
+    console.log(`[MediaStore] Asset analyzed real-time: ${assetId}`);
+
+    const index = this.assets.findIndex((a) => a.id === assetId);
+    if (index !== -1) {
+      const metadata = (payload.media_metadata || payload.metadata || {}) as Record<string, unknown>;
+
+      this.assets[index] = {
+        ...this.assets[index],
+        alt_text: payload.alt_text || this.assets[index].alt_text,
+        media_metadata: {
+          ...this.assets[index].media_metadata,
+          ...metadata,
+        },
+      };
     }
+  }
 
     cleanup() {
         if (this.eventSource) {

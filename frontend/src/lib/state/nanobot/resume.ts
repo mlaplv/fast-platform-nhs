@@ -51,7 +51,7 @@ export function createResumeManager(
     if (isSilent) greetingActive = true;
 
     // Robust Extraction (Phase 4): Handle both LogEntry and raw Campaign object
-    const campaignId = (logOrCampaign as SystemLog)?.data?.campaign_id || (logOrCampaign as CampaignData)?.id || (logOrCampaign as any)?.campaign_id;
+    const campaignId = (logOrCampaign as SystemLog)?.data?.campaign_id || (logOrCampaign as CampaignData)?.id || (logOrCampaign as Record<string, unknown>)?.campaign_id as string;
     if (!campaignId) {
       console.warn("[Resume] Missing campaign_id in payload:", logOrCampaign);
       return;
@@ -59,7 +59,7 @@ export function createResumeManager(
 
     let campaignData: Record<string, unknown> = ((logOrCampaign as SystemLog)?.data || logOrCampaign) as Record<string, unknown>;
     try {
-      const campaign = await apiClient.get<Record<string, any>>(`/api/v1/content/campaigns/${campaignId}`);
+      const campaign = await apiClient.get<Record<string, unknown>>(`/api/v1/content/campaigns/${campaignId}`);
       if (campaign?.id) {
         campaignData = {
           category: "CONTENT_CREATE",
@@ -71,12 +71,12 @@ export function createResumeManager(
           outline: campaign.outline_data,
           draft_content: campaign.draft_content,
           final_html: campaign.final_html,
-          selectedAvatarUrl: campaign.gold_metadata?.avatar || null,
-          selectedAssetIndex: campaign.gold_metadata?.selected_index ?? 0,
-          reserve_assets: normalizeAssets(campaign.gold_metadata?.reserve_assets),
-          creation_config: campaign.gold_metadata?.creation_config || {},
-          analysis_cache: campaign.gold_metadata?.analysis_cache || {},
-          analysis_metrics: campaign.gold_metadata?.analysis_metrics || {}
+          selectedAvatarUrl: (campaign.gold_metadata as Record<string, unknown>)?.avatar || null,
+          selectedAssetIndex: (campaign.gold_metadata as Record<string, unknown>)?.selected_index ?? 0,
+          reserve_assets: normalizeAssets((campaign.gold_metadata as Record<string, unknown>)?.reserve_assets),
+          creation_config: (campaign.gold_metadata as Record<string, unknown>)?.creation_config || {},
+          analysis_cache: (campaign.gold_metadata as Record<string, unknown>)?.analysis_cache || {},
+          analysis_metrics: (campaign.gold_metadata as Record<string, unknown>)?.analysis_metrics || {}
         };
       }
     } catch (e) {
@@ -85,7 +85,7 @@ export function createResumeManager(
 
     voice.setVoiceResult(
       isSilent ? "Neural Link Restored" : "Khôi phục phiên làm việc",
-      (logOrCampaign as SystemLog).message || (logOrCampaign as any).text || "Đang tiếp tục bài viết cũ...",
+      (logOrCampaign as SystemLog).message || (logOrCampaign as Record<string, unknown>).text as string || "Đang tiếp tục bài viết cũ...",
       "CONTENT_CREATE",
       { ...campaignData, isSilent },
       isSilent ? "text" : "voice",
@@ -94,11 +94,11 @@ export function createResumeManager(
 
     if (isSilent && !state.isResumingManually) {
       greetingActive = true;
-      const title = (campaignData?.keywords as any)?.title || (campaignData?.topic_data as any)?.title || (campaignData as any).title || 'bản thảo cũ';
+      const title = (campaignData?.keywords as Record<string, unknown>)?.title || (campaignData?.topic_data as Record<string, unknown>)?.title || (campaignData as Record<string, unknown>).title || 'bản thảo cũ';
 
       const trySpeak = async () => {
          if (!greetingActive) return;
-         const currentUserName = (permissionState as any).userName || "Admin";
+         const currentUserName = (permissionState as Record<string, unknown>).userName as string || "Admin";
 
          // V71.5: Rich Voice Notification
          const step = parseInt(String(campaignData?.step || 1));
@@ -116,17 +116,17 @@ export function createResumeManager(
 
          // Scores extraction
          const scores: string[] = [];
-         const copyright = (campaignData?.analysis_cache as any)?.copyright?.data?.uniqueness_score ?? (campaignData as any).uniqueness_score;
+         const copyright = (campaignData?.analysis_cache as Record<string, unknown>)?.copyright ? ((((campaignData.analysis_cache as Record<string, unknown>).copyright as Record<string, unknown>).data as Record<string, unknown>)?.uniqueness_score) : (campaignData as Record<string, unknown>).uniqueness_score;
          if (copyright !== undefined && copyright !== null) {
             scores.push(`Bản quyền ${Math.round(Number(copyright) * 100)}%`);
          }
 
-         const seoScore = (campaignData?.analysis_cache as any)?.seo?.data?.total_score;
+         const seoScore = ((campaignData?.analysis_cache as Record<string, unknown>)?.seo as Record<string, unknown>) ? (((((campaignData.analysis_cache as Record<string, unknown>).seo as Record<string, unknown>).data as Record<string, unknown>))?.total_score) : undefined;
          if (seoScore !== undefined && seoScore !== null) {
             scores.push(`SEO ${seoScore} điểm`);
          }
 
-         const aiScore = (campaignData?.analysis_cache as any)?.ai_inspect?.data?.geo_score;
+         const aiScore = ((campaignData?.analysis_cache as Record<string, unknown>)?.ai_inspect as Record<string, unknown>) ? (((((campaignData.analysis_cache as Record<string, unknown>).ai_inspect as Record<string, unknown>).data as Record<string, unknown>))?.geo_score) : undefined;
          if (aiScore !== undefined && aiScore !== null) {
             scores.push(`AI score ${aiScore}%`);
          }

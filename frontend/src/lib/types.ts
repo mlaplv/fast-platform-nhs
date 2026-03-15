@@ -120,6 +120,37 @@ export interface MediaAsset {
   _updatedAt?: number; // Internal cache buster
 }
 
+export interface MediaStatsBreakdown {
+  type: string;
+  count: number;
+  size: number;
+}
+
+export interface MediaStats {
+  total_count: number;
+  total_size: number;
+  breakdown: MediaStatsBreakdown[];
+  storage_provider: string;
+}
+
+export interface MediaSseEvent {
+  type: string;
+  id?: string;
+  asset_id?: string;
+  alt_text?: string;
+  metadata?: Record<string, unknown>;
+  media_metadata?: Record<string, unknown>;
+}
+
+export interface JwtPayload {
+  sub: string;
+  name?: string;
+  roles?: string[];
+  perms?: string[];
+  exp?: number;
+  iat?: number;
+}
+
 export interface EditorAnnotation {
   text: string;         // Exact text to find and highlight in the editor
   type: string;         // 'copyright' | 'seo-error' | 'seo-warning' | 'seo-info' | specific type
