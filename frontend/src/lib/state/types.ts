@@ -182,7 +182,7 @@ export interface MediaAsset {
   url: string;
   is_primary: boolean;
   order_index: number;
-  metadata?: Record<string, unknown>;
+  media_metadata?: Record<string, unknown>;
 }
 
 export interface CampaignKeywords {

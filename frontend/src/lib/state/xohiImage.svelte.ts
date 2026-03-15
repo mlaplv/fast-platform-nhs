@@ -62,7 +62,7 @@ export function createXohiImageState() {
                 url,
                 is_primary: assets.length === 0 && index === 0, // Nếu chưa có ảnh thì cái đầu tiên là primary
                 order_index: assets.length,
-                metadata: { size: file.size, type: file.type, name: file.name }
+                media_metadata: { size: file.size, type: file.type, name: file.name }
             };
             assets.push(newAsset);
         });

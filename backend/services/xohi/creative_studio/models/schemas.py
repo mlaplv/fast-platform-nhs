@@ -89,7 +89,7 @@ class MediaAsset(BaseModel):
     url: str = Field(description="URL truy cập ảnh (Blob hoặc S3)")
     is_primary: bool = Field(default=False, description="Xác định đây là ảnh chính")
     order_index: int = Field(default=0, description="Thứ tự hiển thị (0 là đầu tiên)")
-    metadata: Dict[str, object] = Field(default_factory=dict, description="Thông tin bổ sung (size, type, v.v.)")
+    media_metadata: Dict[str, object] = Field(default_factory=dict, description="Thông tin bổ sung (size, type, v.v.)")
 
     model_config = ConfigDict(strict=False)
 

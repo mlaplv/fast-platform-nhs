@@ -93,6 +93,16 @@ export interface Product {
     createdAt: string;
 }
 
+export interface MediaMetadata {
+  embedding?: number[];
+  ai_tags?: string[];
+  ai_description?: string;
+  focal_point?: { x: number; y: number };
+  original_source?: string;
+  ai_sentiment?: string;
+  [key: string]: unknown;
+}
+
 export interface MediaAsset {
   id: string;
   filename: string;
@@ -106,7 +116,7 @@ export interface MediaAsset {
   campaign_id: string | null;
   owner_id: string | null;
   created_at: string;
-  media_metadata: Record<string, unknown>;
+  media_metadata: MediaMetadata;
   _updatedAt?: number; // Internal cache buster
 }
 

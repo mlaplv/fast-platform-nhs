@@ -2,12 +2,13 @@
  * Mutation Executor — maps (target, verb) → API call.
  * Called AFTER user confirms the smart form.
  */
-import { apiClient } from "$lib/utils/apiClient";
+import { apiClient, ApiError } from "$lib/utils/apiClient";
+import type { User, Product, Category, Article, Order } from "$lib/types";
 
 export interface MutationResult {
   success: boolean;
   message: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
 }
 
 const VI_TARGET: Record<string, string> = {
@@ -35,7 +36,7 @@ export async function executeMutation(
   const verbLabel = VI_VERB[verb] || verb;
 
   try {
-    let res: any;
+    let res: unknown;
 
     if (verb === "create") {
       res = await createEntity(target, formData);
@@ -58,8 +59,8 @@ export async function executeMutation(
       : `Đã ${verbLabel} ${label} thành công.`;
 
     return { success: true, message: successMsg, data: res };
-  } catch (e: any) {
-    const errMsg = e?.body?.detail || e?.message || "Lỗi không xác định.";
+  } catch (e: unknown) {
+    const errMsg = e instanceof ApiError ? e.message : (e as Error)?.message || "Lỗi không xác định.";
     return {
       success: false,
       message: `Không thể ${verbLabel} ${label}: ${errMsg}`,
@@ -72,7 +73,7 @@ export async function executeMutation(
 async function createEntity(
   target: string,
   data: Record<string, string>,
-): Promise<any> {
+): Promise<User | Product | Category | Article | { status: string }> {
   switch (target) {
     case "user": {
       // Register new user via auth endpoint
@@ -81,11 +82,11 @@ async function createEntity(
         email: data.email,
         password: data.password,
       };
-      const res = await apiClient.post<any>("/api/v1/auth/register", payload);
+      const res = await apiClient.post<User>("/api/v1/auth/register", payload);
       // After creation, assign role if not default
       if (data.role && data.role !== "staff" && res?.id) {
         await apiClient
-          .patch<any>(`/api/v1/users/${res.id}/roles`, {
+          .patch<{ status: string }>(`/api/v1/users/${res.id}/roles`, {
             roles: [data.role],
           })
           .catch(() => {
@@ -95,7 +96,7 @@ async function createEntity(
       return res;
     }
     case "product":
-      return apiClient.post<any>("/api/v1/products", {
+      return apiClient.post<Product>("/api/v1/products", {
         name: data.name,
         price: Number(data.price) || 0,
         stock: Number(data.stock) || 0,
@@ -104,11 +105,11 @@ async function createEntity(
         type: "RETAIL",
       });
     case "category":
-      return apiClient.post<any>("/api/v1/categories", {
+      return apiClient.post<Category>("/api/v1/categories", {
         name: data.name,
       });
     case "news":
-      return apiClient.post<any>("/api/v1/articles", {
+      return apiClient.post<Article>("/api/v1/articles", {
         title: data.title,
         category: data.category || "Tin tức",
         excerpt: data.excerpt || "",
@@ -125,9 +126,9 @@ async function createEntity(
 
 // ── DELETE ──
 
-async function deleteEntity(target: string, entityId: string): Promise<any> {
+async function deleteEntity(target: string, entityId: string): Promise<{ status: string }> {
   const endpoint = `/api/v1/${target === "news" ? "articles" : target + "s"}/${entityId}`;
-  return apiClient.delete<any>(endpoint);
+  return apiClient.delete<{ status: string }>(endpoint);
 }
 
 // ── EDIT ──
@@ -136,9 +137,9 @@ async function editEntity(
   target: string,
   entityId: string,
   data: Record<string, string>,
-): Promise<any> {
+): Promise<User | Product | Category | Article | Order> {
   const endpoint = `/api/v1/${target === "news" ? "articles" : target + "s"}/${entityId}`;
-  return apiClient.patch<any>(endpoint, data);
+  return apiClient.patch<User | Product | Category | Article | Order>(endpoint, data);
 }
 
 // ── UPDATE STATUS ──
@@ -147,9 +148,9 @@ async function updateStatus(
   target: string,
   entityId: string,
   data: Record<string, string>,
-): Promise<any> {
+): Promise<{ status: string }> {
   if (target === "order") {
-    return apiClient.patch<any>(`/api/v1/orders/${entityId}/status`, {
+    return apiClient.patch<{ status: string }>(`/api/v1/orders/${entityId}/status`, {
       status: data.status,
     });
   }

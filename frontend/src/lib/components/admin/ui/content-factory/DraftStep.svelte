@@ -25,8 +25,8 @@
     assets = [] as (MediaAsset | string)[],
     isExpanded,
     editorRef = $bindable(null),
-    analysis_cache = {} as Record<string, any>,
-    analysis_metrics = {} as Record<string, any>,
+    analysis_cache = {} as Record<string, { data: CopyrightResult | SEOResult | AIInspectResult }>,
+    analysis_metrics = {} as Record<string, unknown> & { last_analyzed?: string },
     copyrightScore = $bindable<number | null>(null),
     seoScore = $bindable<number | null>(null),
     aiScore = $bindable<number | null>(null)

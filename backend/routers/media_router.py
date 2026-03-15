@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict, Optional, Union, Any, cast
+from typing import List, Dict, Optional, Union, cast
 from uuid import UUID
 from litestar import Controller, get, post, patch, delete, Request
 from litestar.response import Redirect
