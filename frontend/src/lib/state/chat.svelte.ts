@@ -84,10 +84,13 @@ export function createChatState(
     sessionId: string,
     appendLogsCallback?: (logs: SystemLog[]) => void,
     userId?: string, // Added for God-Mode
+    forceRefresh = false,
   ) {
     const targetSessionId = sessionId || "account";
     const cacheKey = userId ? `${targetSessionId}:${userId}` : targetSessionId;
     
+    if (forceRefresh) cache.delete(cacheKey);
+
     // ═══════════════════════════════════════════════════════
     // SWR Strategy (Stale-While-Revalidate)
     // ═══════════════════════════════════════════════════════

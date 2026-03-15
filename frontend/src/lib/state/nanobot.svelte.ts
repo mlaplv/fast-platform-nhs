@@ -139,7 +139,7 @@ export function createNanobotState() {
     get chatPagination() { return chat.pagination; },
     get commandAction() { return state.commandAction; },
 
-    processCommand: intent.processCommand,
+    processCommand: (command: string, source: "text" | "voice" = "text", intentData?: any) => intent.processCommand(command, source, intentData),
     setVoiceResult: intent.setVoiceResult,
     resetVui,
     setThinking,
@@ -159,9 +159,10 @@ export function createNanobotState() {
     setUserEmail: (val: string) => { permissionState.user = val; },
     setUserName: (val: string) => { permissionState.userName = val; },
     setUserRole: (val: string) => { permissionState.roles = [val]; },
-    // Voice & UI
+    // Voice, UI & Chat
     get voice() { return voice; },
     get ui() { return ui; },
+    get chat() { return chat; },
     get isVuiActive() { return voice.isVuiActive; },
     get isSpeaking() { return voice.isProcessingSpeech; },
     get vuiResponse() { return voice.vuiResponse; },

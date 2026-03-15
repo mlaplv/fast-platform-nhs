@@ -269,7 +269,7 @@ class VuiOrchestrator {
     }
   }
 
-  async execTextCmd(query: string, source: "text" | "voice" = "text") {
+  async execTextCmd(query: string, source: "text" | "voice" = "text", intentData?: any) {
     if (!query) return;
     this.audio!.abort();
     this.ws!.disconnect();
@@ -283,7 +283,7 @@ class VuiOrchestrator {
     vuiState.setLiveText(query); // Ensure query is visible in VUI modal
     vuiState.setSystemMessage("");
 
-    await this.streamManager!.streamLLM(query, nanobot.currentData?.session_id || "", source);
+    await this.streamManager!.streamLLM(query, nanobot.currentData?.session_id || "", source, intentData);
   }
 
   async speak(text: string): Promise<boolean> {
@@ -309,9 +309,9 @@ class VuiOrchestrator {
     return this.audio!.checkAudioBlocked();
   }
 
-  async processGhost(cmd: string, source: "text" | "voice" = "text"): Promise<boolean> {
+  async processGhost(cmd: string, source: "text" | "voice" = "text", intentData?: any): Promise<boolean> {
     if (source === "voice" || source === "text") {
-       await this.execTextCmd(cmd, source);
+       await this.execTextCmd(cmd, source, intentData);
        return true; 
     }
     return false; 

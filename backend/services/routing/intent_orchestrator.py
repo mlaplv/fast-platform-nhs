@@ -280,7 +280,7 @@ class RouterOrchestrator:
                 # Re-normalize for the fall-through classification
                 normalized_transcript = normalize_vn(transcript)
                 
-            if is_no:
+            elif is_no:
                 ctx["is_confirming_stt"] = False
                 ctx["pending_stt_correction"] = {}
                 await xohi_memory.set_user_context(user_id, ctx)
@@ -481,6 +481,9 @@ class RouterOrchestrator:
             logger.debug(f"[C.O.R.E][{m_tag}] UNKNOWN intent → Routing to T3 for boundary-aware response")
             return result
 
+        if result and result.data is not None:
+            result.data["effective_transcript"] = transcript
+            logger.info(f"[C.O.R.E] Final: msg='{result.message[:50]}...' type={result.data.get('intent_type')} ui={result.data.get('ui_action')}")
         return result
 
     async def execute(

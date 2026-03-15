@@ -11,6 +11,10 @@ class CategoryEnum(str, Enum):
     TIN_TUC = "Tin tức"
     CHINH_SACH = "Chính sách"
 
+class CampaignCategory(str, Enum):
+    CREATIVE_CONTENT = "CREATIVE_CONTENT"
+    AD_MANAGEMENT = "AD_MANAGEMENT"
+
 class AgentResponse(BaseModel):
     signal: AgentSignal
     message: str

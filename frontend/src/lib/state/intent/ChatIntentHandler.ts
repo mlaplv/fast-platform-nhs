@@ -7,7 +7,8 @@ import type { HandlerDeps } from "./FastActionHandler";
  */
 export async function handleChatIntent(
   command: string,
-  deps: HandlerDeps
+  deps: HandlerDeps,
+  intentData?: any
 ): Promise<boolean> {
   const { state, voice, resetVui } = deps;
   
@@ -17,7 +18,7 @@ export async function handleChatIntent(
   const { vuiController } = await import("$lib/vui");
   
   // Explicitly trigger AI Ghost with "text" source for silent processing
-  const hasAiHandled = await vuiController.processGhost(command, "text");
+  const hasAiHandled = await vuiController.processGhost(command, "text", intentData);
   
   if (hasAiHandled) {
     state.nanoBotStatus = "SUCCESS";

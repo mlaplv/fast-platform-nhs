@@ -64,6 +64,7 @@ class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     reviewer_type: Mapped[str] = mapped_column(String, default="ADMIN_MANUAL")
     current_step: Mapped[int] = mapped_column(Integer, default=1)
     status: Mapped[str] = mapped_column(String, default="WAITING_FOR_REVIEW")
+    category: Mapped[str] = mapped_column(String, default="CREATIVE_CONTENT", index=True)
     
     # The Golden Thread
     gold_metadata: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)

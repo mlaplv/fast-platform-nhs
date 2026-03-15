@@ -225,10 +225,23 @@
       return;
     }
 
+    // NEW (Phase 4): Detect if there's a campaign "dở dang" (pending) in the logs
+    const hasActiveCampaign = nanobot.activityLogs.some(log => 
+      (log.data?.campaign_id) && 
+      (log.id === latestLogIdsPerCampaign().get(log.data.campaign_id))
+    );
+
+    let message = "Xác nhận xóa vĩnh viễn toàn bộ nhật ký chat và log hệ thống hiện tại? Hành động này không thể hoàn tác.";
+    let title = "Security Purge";
+    
+    if (hasActiveCampaign) {
+      title = "⚠️ CẢNH BÁO CHIẾN DỊCH";
+      message = "Sếp đang có chiến dịch bài viết chưa hoàn tất trong log. Nếu xóa lúc này, nút 'RESUME' nhanh trên màn hình sẽ biến mất! Sếp vẫn muốn xóa chứ?";
+    }
+
     const confirmed = await nanobot.showConfirm({
-      title: "Security Purge",
-      message:
-        "Xác nhận xóa vĩnh viễn toàn bộ nhật ký chat và log hệ thống hiện tại? Hành động này không thể hoàn tác.",
+      title,
+      message,
       confirmLabel: "EXECUTE_PURGE",
       cancelLabel: "ABORT_ACTION",
     });

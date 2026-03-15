@@ -208,11 +208,13 @@ class IntentStreamController(Controller):
                         result.message = full_message
                     else:
                         # Non-reasoning tasks (UI_NAV etc.) are usually fast enough
+                        # Phase 76.4: Recurrent Intent Propagation - use the corrected transcript if it exists
+                        effective_transcript = (result.data or {}).get("effective_transcript", data.query)
                         try:
                             result = await asyncio.wait_for(
                                 orchestrator.execute(
                                     classification=result,
-                                    transcript=data.query,
+                                    transcript=effective_transcript,
                                     context=context,
                                     screen_context=data.screen_context,
                                     user_repo=user_repo,

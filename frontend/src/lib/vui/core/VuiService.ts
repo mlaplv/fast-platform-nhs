@@ -23,12 +23,19 @@ export class VuiService {
     query: string,
     sessionId: string,
     modality: "voice" | "text" = "voice",
-    screenContext?: any
+    screenContext?: any,
+    intentData?: any
   ): AsyncGenerator<IntentStreamEvent> {
     const res = await fetch(VUI_CONFIG.ENDPOINTS.INTENT_STREAM, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, session_id: sessionId, modality, screen_context: screenContext })
+      body: JSON.stringify({ 
+        query, 
+        session_id: sessionId, 
+        modality, 
+        screen_context: screenContext,
+        intent_data: intentData
+      })
     });
 
     if (!res.body) throw new Error("Stream body missing");

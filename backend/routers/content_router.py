@@ -19,13 +19,22 @@ class ContentController(Controller):
     dependencies = {"campaign_repo": Provide(provide_campaign_repo)}
 
     @get("/campaigns")
-    async def list_campaigns(self, campaign_repo: ContentCampaignRepository) -> List[Dict[str, object]]:
-        """Lấy danh sách các chiến dịch (R76: Scalar Projection)."""
-        from sqlalchemy import select
-        # R106: Force ORM model to avoid collision with Pydantic schema
+    async def list_campaigns(
+        self, 
+        campaign_repo: ContentCampaignRepository,
+        limit: int = 20,
+        offset: int = 0
+    ) -> Dict[str, object]:
+        """Lấy danh sách các chiến dịch hỗ trợ phân trang (V72.10: Dynamic Paging)."""
+        from sqlalchemy import select, func
         from backend.database.models import ContentCampaign as CampaignModel
         
-        # R76: Select only necessary columns for the list view to avoid RAM-heavy hydration
+        # 1. Total Count for frontend progress bar / stats
+        count_stmt = select(func.count()).select_from(CampaignModel)
+        total_count = await campaign_repo.session.execute(count_stmt)
+        total = total_count.scalar_one()
+
+        # 2. Paged results
         stmt = select(
             CampaignModel.id,
             CampaignModel.topic_data,
@@ -33,10 +42,10 @@ class ContentController(Controller):
             CampaignModel.current_step,
             CampaignModel.created_at,
             CampaignModel.user_id
-        ).limit(100).order_by(CampaignModel.created_at.desc())
+        ).order_by(CampaignModel.created_at.desc()).limit(limit).offset(offset)
         
         result = await campaign_repo.session.execute(stmt)
-        return [
+        items = [
             {
                 "id": str(row.id),
                 "topic_data": row.topic_data,
@@ -47,6 +56,14 @@ class ContentController(Controller):
             }
             for row in result
         ]
+
+        return {
+            "items": items,
+            "total": total,
+            "has_more": (offset + limit) < total,
+            "limit": limit,
+            "offset": offset
+        }
 
     @get("/campaigns/{campaign_id:uuid}")
     async def get_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> CampaignSchema:
@@ -111,12 +128,37 @@ class ContentController(Controller):
 
     @delete("/campaigns/{campaign_id:uuid}", status_code=200)
     async def delete_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> Dict[str, str]:
-        """Xóa chiến dịch (Hard/Soft delete tùy Repo)."""
+        """Xóa chiến dịch và toàn bộ log chat liên quan (Hard Memory Purge)."""
         try:
-            await campaign_repo.delete(str(campaign_id))
-            return {"status": "success", "message": "Campaign deleted."}
-        except Exception:
-            return {"status": "error", "message": "Campaign not found."}
+            cid_str = str(campaign_id)
+            
+            # 1. Clean up associated ChatMessages (Resume Logs)
+            from sqlalchemy import delete as sa_delete, func, cast, String
+            from backend.database.models import ChatMessage
+            
+            # Robust JSON filtering (Phase 4): Works across SQLite and Postgres
+            # We look for campaign_id in the content JSON
+            stmt = sa_delete(ChatMessage).where(
+                cast(ChatMessage.content["campaign_id"], String).label("cid") == cid_str
+            )
+            await campaign_repo.session.execute(stmt)
+            
+            # 2. Delete the campaign itself
+            await campaign_repo.delete(cid_str)
+            
+            await campaign_repo.session.commit()
+            return {"status": "success", "message": "Campaign and associated neural logs purged."}
+        except Exception as e:
+            # R102: Log the exception details for Phase 4 debugging
+            logger.error(f"[ContentController] Purge failed for {campaign_id}: {str(e)}")
+            # Fallback to simple delete if cleanup fails (Rule: Service continuity over total purge)
+            try:
+                await campaign_repo.delete(str(campaign_id))
+                await campaign_repo.session.commit()
+                return {"status": "partial_success", "message": "Campaign deleted, but logs may persist."}
+            except Exception as e2:
+                logger.critical(f"[ContentController] Total delete failure: {e2}")
+                return {"status": "error", "message": str(e2)}
 
     @post("/campaigns/{campaign_id:uuid}/analyze/copyright")
     async def analyze_copyright(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> Dict[str, object]:

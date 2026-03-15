@@ -16,59 +16,70 @@
 
   let { open = $bindable(false) } = $props();
 
+  interface SubItem {
+    label: string;
+    widget: WidgetType;
+  }
+
   interface CategoryItem {
     id: string;
     icon: any;
     label: string;
-    color: string; // Tailwind CSS class for color
-    subItems: { label: string; widget: WidgetType }[];
+    sublabel?: string;
+    color: string;
+    widget?: WidgetType;
+    children?: SubItem[];
   }
 
   const categories: CategoryItem[] = [
     {
+      id: "orders",
+      label: "Đơn hàng",
+      sublabel: "Quản lý giao dịch",
+      icon: ShoppingCart,
+      color: "#FFB800", // Amber/Gold for orders
+      widget: "ORDER_MANAGEMENT",
+    },
+    {
       id: "product",
       label: "Sản phẩm",
+      sublabel: "Quản lý kho & Nhãn hàng",
       icon: Package,
-      color: "text-neon-cyan",
-      subItems: [
+      color: "#00F3FF", // neon-cyan
+      children: [
         { label: "Sản phẩm", widget: "PRODUCT_MANAGEMENT" },
-        { label: "Giao dịch", widget: "ORDER_MANAGEMENT" }
+        { label: "Danh mục", widget: "CATEGORY_MANAGEMENT" }
       ]
     },
     {
       id: "campaigns",
       label: "Campaigns",
+      sublabel: "Content Factory & Ads",
       icon: Megaphone,
-      color: "text-vibrant-purple",
-      subItems: [
+      color: "#FF33FF", // vibrant-purple
+      children: [
         { label: "Content Factory", widget: "CAMPAIGNS" }
       ]
     },
     {
       id: "users",
       label: "Người dùng",
-      widget: "USER_MANAGEMENT",
-      color: "#39FF14",
+      sublabel: "Phân quyền & Tài khoản",
+      icon: Users,
+      color: "#39FF14", // neon-green
       children: [
         { label: "Người dùng", widget: "USER_MANAGEMENT" },
         { label: "Phân quyền", widget: "PERMISSION_MANAGEMENT" },
-      ],
-      childIcons: [UserCog, Shield],
+      ]
     },
     {
+      id: "news",
       icon: Newspaper,
       label: "Tin tức",
       sublabel: "Bài viết & Blog",
       widget: "NEWS_MANAGEMENT",
       color: "#FF33FF",
-    },
-    {
-      icon: ShoppingCart,
-      label: "Đơn hàng",
-      sublabel: "Theo dõi & xử lý",
-      widget: "ORDER_MANAGEMENT",
-      color: "#FFAA00",
-    },
+    }
   ];
 
   let itemsRevealed = $state(0);
@@ -97,7 +108,7 @@
   function handleSelect(item: CategoryItem, index: number) {
     if (item.children && item.children.length > 0) {
       expandedIndex = expandedIndex === index ? -1 : index;
-    } else {
+    } else if (item.widget) {
       open = false;
       nanobot.openWidget(item.widget);
     }

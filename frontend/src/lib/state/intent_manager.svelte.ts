@@ -120,7 +120,7 @@ export function createIntentManager(
     }
   }
 
-  async function processCommand(command: string, source: "text" | "voice" = "text") {
+  async function processCommand(command: string, source: "text" | "voice" = "text", intentData?: any) {
     const now = Date.now();
     let cmd = command.toLowerCase().trim();
     if (!cmd) {
@@ -167,7 +167,7 @@ export function createIntentManager(
 
       // 2. LUỒNG CHAT AI (Bàn phím)
       if (source === "text") {
-        await handleChatIntent(cmd, deps);
+        await handleChatIntent(cmd, deps, intentData);
         return;
       }
 

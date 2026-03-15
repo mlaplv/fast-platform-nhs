@@ -1,10 +1,11 @@
 import uuid
 import logging
+import re
 from datetime import datetime, timezone
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Union, List
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
-from backend.services.xohi.creative_studio.models.schemas import TopicSeed
+from backend.services.xohi.creative_studio.models.schemas import TopicSeed, CampaignCategory
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from backend.services.event_bus import event_bus
 from backend.services.ai_engine.core.trinity_bridge import AIConfigurationError
@@ -16,28 +17,47 @@ class VoiceHandler:
     def __init__(self, orchestrator: "ContentOrchestrator"):
         self.orchestrator = orchestrator
 
-    async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None) -> Optional[ContentCampaign]:
+    async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None, campaign_id: Optional[str] = None) -> Optional[ContentCampaign]:
         if user_id == "undefined" or not user_id:
             user_id = None
 
-        # R104: Scan last 5 campaigns for potential resume (V76.2)
+        # 1. Explicit ID lookup (Highest Priority)
+        if campaign_id:
+            try:
+                c = await campaign_repo.get(campaign_id)
+                if c and c.status not in ["COMPLETED", "REJECTED"]:
+                    return c
+            except Exception: pass
+
+        # 2. Strict scan for unfinished campaigns (Global Management)
         results = await campaign_repo.list(
             LimitOffset(limit=5, offset=0),
             order_by=[("created_at", "desc")],
             deleted_at=None
         )
+        
+        # Filter for truly active (not dead) campaigns
+        active_campaigns = [c for c in results if c.status not in ["COMPLETED", "REJECTED"]]
+        if not active_campaigns:
+            return None
 
-        # If a query is provided, try to find a title/keyword match first
+        # 3. Query-based matching
         if query:
             q_norm = query.lower()
-            for c in results:
+            for c in active_campaigns:
                 title = c.topic_data.get("title", "").lower() if c.topic_data else ""
                 source = c.source_input.lower() if c.source_input else ""
-                # Strict match: Query must relate to the title or original input
-                if (title and (title in q_norm or q_norm in title)) or (source and (source in q_norm or q_norm in source)):
+                # R104: Tighter matching to avoid "Neural Link" hallucinations
+                if (title and title in q_norm) or (source and source in q_norm):
                     return c
-            # If query doesn't match any recent campaign, DO NOT resume a random one
-            return None
+        
+        # 4. Fallback: Return the most recent active one if it's very fresh (< 10 mins)
+        latest = active_campaigns[0]
+        now = datetime.now(timezone.utc)
+        created_at = latest.created_at.replace(tzinfo=timezone.utc) if latest.created_at.tzinfo is None else latest.created_at
+        if (now - created_at).total_seconds() < 600.0:
+             return latest
+
         return None
 
     def format_resume_greeting(self, campaign: ContentCampaign) -> str:
@@ -57,18 +77,30 @@ class VoiceHandler:
             user_id = None
 
         t_lower = transcript.lower()
-        resume_keywords = ["tiếp", "làm tiếp", "chạy tiếp", "duyệt đi", "tiếp tục"]
+        resume_keywords = ["tiếp", "làm tiếp", "chạy tiếp", "duyệt đi", "tiếp tục", "ok", "đúng", "vâng"]
+        force_new_keywords = ["mới", "bỏ qua", "hủy", "tạo bài khác", "viết bài khác"]
+        
         is_resume_request = any(kw in t_lower for kw in resume_keywords)
+        is_force_new = any(kw in t_lower for kw in force_new_keywords)
+
+        # Detect Category (Global Class Enum)
+        category = CampaignCategory.CREATIVE_CONTENT
+        if any(kw in t_lower for kw in ["quảng cáo", "ads", "marketing", "facebook ads", "google ads"]):
+            category = CampaignCategory.AD_MANAGEMENT
 
         try:
-            # V76.2: Smarter Resume Detection
-            stale = await self.get_active_campaign(campaign_repo, user_id, tenant_id, query=transcript if not is_resume_request else None)
+            # 1. Safety Gate: Detect Conflict
+            # Check for campaign_id in intent_data (e.g. from Dashboard)
+            target_id = intent_data.get("campaign_id") if intent_data else None
+            stale = await self.get_active_campaign(campaign_repo, user_id, tenant_id, query=transcript if not is_resume_request else None, campaign_id=target_id)
 
-            if stale:
-                # 1. Explicit Resume Request
-                if is_resume_request:
+            if stale and not is_force_new:
+                # Type sanity: check category if present
+                stale_cat = getattr(stale, "category", CampaignCategory.CREATIVE_CONTENT)
+                
+                # Rule R82: Explicit Resume (or "ok" confirmation)
+                if is_resume_request or target_id == stale.id:
                     if stale.status == "WAITING_FOR_REVIEW":
-                        # If user says "approve" or "tiếp" while waiting for review, proceed
                         return await self.orchestrator.approve_step(stale.id, {"approved": True}, campaign_repo)
                     else:
                         return IntentResponse(
@@ -80,54 +112,41 @@ class VoiceHandler:
                                 "intent_type": "CONTENT_CREATE",
                                 "ui_action": "show_content_factory",
                                 "campaign_id": stale.id,
-                                "step": stale.current_step
-                            },
-                            cost_tokens=0.0
-                        )
-
-                # 2. Idempotency Latch (Extended to 5 mins for V76.2)
-                now = datetime.now(timezone.utc)
-                stale_time = stale.created_at
-                if stale_time.tzinfo is None:
-                    stale_time = stale_time.replace(tzinfo=timezone.utc)
-
-                if (now - stale_time).total_seconds() < 300.0:
-                    # If user repeats a request for a very recent campaign, don't create a duplicate
-                    if stale.status == "WAITING_FOR_REVIEW":
-                        return IntentResponse(
-                            status="success", action=IntentAction.CONTENT_CREATE,
-                            message=f"Dạ sếp, bài viết '{stale.topic_data.get('title', 'này')}' em vừa phân tích xong. Mời sếp duyệt trên màn hình ạ!",
-                            router_tier=RouterTier.TIER_2_SEMANTIC,
-                            data={
-                                "category": "CONTENT_CREATE",
-                                "intent_type": "CONTENT_CREATE",
-                                "ui_action": "show_content_factory",
-                                "campaign_id": stale.id,
                                 "step": stale.current_step,
-                                "keywords": stale.topic_data
+                                "campaign_category": stale_cat
                             },
                             cost_tokens=0.0
                         )
 
-                    # 3. Proactive Reminder (V76.2)
-                    # If user asks for something NEW while a RECENT campaign is pending review
-                    if not is_resume_request and stale.status == "WAITING_FOR_REVIEW":
-                        title = stale.topic_data.get("title", "bài viết cũ")
-                        return IntentResponse(
-                            status="success", action=IntentAction.CONTENT_CREATE,
-                            message=f"Dạ sếp, em thấy bài '{title}' đang chờ sếp duyệt ở Bước {stale.current_step}. Sếp muốn em làm tiếp bài đó hay khởi tạo bài mới này ạ?",
-                            router_tier=RouterTier.TIER_2_SEMANTIC,
-                            data={
-                                "category": "CONTENT_CREATE",
-                                "intent_type": "CONTENT_CREATE",
-                                "ui_action": "show_content_factory",
-                                "campaign_id": stale.id,
-                                "step": stale.current_step,
-                                "pending_review": True,
-                                "new_request": transcript
-                            },
-                            cost_tokens=0.0
-                        )
+                # Conflict Detection: User asks for something NEW while a campaign is ACTIVE
+                # If they didn't explicitly say "tiếp", and the new request doesn't match the current one
+                if not is_resume_request:
+                    title = stale.topic_data.get("title", "bài viết cũ")
+                    return IntentResponse(
+                        status="success", action=IntentAction.CONTENT_CREATE,
+                        message=f"Dạ sếp, em thấy bài '{title}' ({stale_cat}) đang làm dở. Sếp muốn làm tiếp hay hủy bài đó để tạo bài mới này ạ?",
+                        router_tier=RouterTier.TIER_2_SEMANTIC,
+                        data={
+                            "category": "CONTENT_CREATE",
+                            "intent_type": "CONTENT_CREATE",
+                            "ui_action": "show_content_factory",
+                            "campaign_id": stale.id,
+                            "step": stale.current_step,
+                            "pending_review": True,
+                            "conflict_detected": True,
+                            "new_request": transcript,
+                            "campaign_category": stale_cat
+                        },
+                        cost_tokens=0.0
+                    )
+
+            # 2. Execution Phase: Create New Campaign
+            # If user said "hủy" or "mới", or there was no stale campaign
+            if is_force_new and stale:
+                logger.info(f"[SafetyGate] Overwriting stale campaign {stale.id} as per user request")
+                # Optional: mark as rejected instead of deleting?
+                stale.status = "REJECTED"
+                await campaign_repo.update(stale)
 
             # Phase 77: Inject content_mode into gold_metadata
             gold_meta = {}
@@ -137,7 +156,8 @@ class VoiceHandler:
 
             campaign = ContentCampaign(
                 id=str(uuid.uuid4()), user_id=user_id, source_input=transcript,
-                tenant_id=tenant_id, current_step=1, status="PROCESSING", gold_metadata=gold_meta
+                tenant_id=tenant_id, current_step=1, status="PROCESSING", 
+                gold_metadata=gold_meta, category=category.value
             )
             c_id = campaign.id
             u_id_str = str(campaign.user_id) if campaign.user_id else "default"
@@ -176,7 +196,8 @@ class VoiceHandler:
                     "campaign_id": c_id,
                     "status": "WAITING_FOR_REVIEW",
                     "keywords": seed_data,
-                    "step": 1
+                    "step": 1,
+                    "campaign_category": category.value
                 },
                 cost_tokens=0.0
             )

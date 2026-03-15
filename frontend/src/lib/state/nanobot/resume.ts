@@ -15,13 +15,18 @@ export function createResumeManager(state: any, voice: any, log: any, ui: any, s
     }
   };
 
-  const internalResumeCampaign = async (logEntry: any, isSilent = false) => {
+  const internalResumeCampaign = async (logOrCampaign: any, isSilent = false) => {
     cleanupGreeting();
     if (isSilent) greetingActive = true;
-    if (!logEntry?.data?.campaign_id) return;
-    const campaignId = logEntry.data.campaign_id;
     
-    let campaignData: any = logEntry.data; 
+    // Robust Extraction (Phase 4): Handle both LogEntry and raw Campaign object
+    const campaignId = logOrCampaign?.data?.campaign_id || logOrCampaign?.id;
+    if (!campaignId) {
+      console.warn("[Resume] Missing campaign_id in payload:", logOrCampaign);
+      return;
+    }
+    
+    let campaignData: any = logOrCampaign?.data || logOrCampaign; 
     try {
       const campaign = await apiClient.get<any>(`/api/v1/content/campaigns/${campaignId}`);
       if (campaign?.id) {
@@ -49,11 +54,11 @@ export function createResumeManager(state: any, voice: any, log: any, ui: any, s
     
     voice.setVoiceResult(
       isSilent ? "Neural Link Restored" : "Khôi phục phiên làm việc",
-      logEntry.text || logEntry.message || "Đang tiếp tục bài viết cũ...",
+      logOrCampaign.text || logOrCampaign.message || "Đang tiếp tục bài viết cũ...",
       "CONTENT_CREATE",
       { ...campaignData, isSilent }, 
       isSilent ? "text" : "voice", 
-      logEntry.routerTier || 2
+      logOrCampaign.routerTier || 2
     );
     
     if (isSilent && !state.isResumingManually) {

@@ -2,210 +2,350 @@
   import { onMount } from "svelte";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
-  import { fade, fly } from "svelte/transition";
+  import { fade } from "svelte/transition";
   import Megaphone from "lucide-svelte/icons/megaphone";
-  import PlusCircle from "lucide-svelte/icons/plus-circle";
-  import Loader2 from "lucide-svelte/icons/loader-2";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import RotateCcw from "lucide-svelte/icons/rotate-ccw";
   import CheckCircle from "lucide-svelte/icons/check-circle";
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import Image from "lucide-svelte/icons/image";
-  import FileText from "lucide-svelte/icons/file-text";
-  import ShieldCheck from "lucide-svelte/icons/shield-check";
+  import CampaignFilters from "./CampaignFilters.svelte";
+  import CampaignListItem from "./CampaignListItem.svelte";
+  import BulkActionBar from "./BulkActionBar.svelte";
 
-  let campaigns: any[] = $state([]);
+  let allCampaigns: any[] = $state([]);
   let isLoading = $state(true);
   let deletingId = $state<string | null>(null);
 
-  // Step labels for display
-  const STEP_LABELS: Record<number, { label: string; icon: any }> = {
-    1: { label: "Phân tích từ khóa", icon: Sparkles },
-    2: { label: "Săn ảnh", icon: Image },
-    3: { label: "Lập dàn ý", icon: FileText },
-    4: { label: "Soạn bản thảo", icon: FileText },
-    5: { label: "Kiểm tra đạo văn", icon: ShieldCheck },
-    6: { label: "Hoàn thiện & Xuất bản", icon: CheckCircle }
-  };
+  // Pagination Matrix (Phase 5)
+  let offset = $state(0);
+  let limit = 20;
+  let totalCount = $state(0);
+  let hasMore = $state(false);
+  let isLoadingMore = $state(false);
 
-  const STATUS_STYLE: Record<string, string> = {
-    PROCESSING: "text-amber-400 bg-amber-500/10 border-amber-500/30 animate-pulse",
-    WAITING_FOR_REVIEW: "text-blue-400 bg-blue-500/10 border-blue-500/30",
-    COMPLETED: "text-green-400 bg-green-500/10 border-green-500/30",
-    ERROR: "text-red-400 bg-red-500/10 border-red-500/30",
-    REJECTED: "text-gray-500 bg-gray-500/10 border-gray-500/20"
-  };
+  // States for Filtering
+  let searchInput = $state("");
+  let activeStatus = $state("all");
+  let activeCategory = $state("all");
+  let activeStep = $state<number | "all">("all");
 
-  const STATUS_LABEL: Record<string, string> = {
-    PROCESSING: "Đang xử lý",
-    WAITING_FOR_REVIEW: "Chờ duyệt",
-    COMPLETED: "Hoàn thành",
-    ERROR: "Lỗi",
-    REJECTED: "Đã huỷ"
-  };
+  // Selection Matrix (Phase 5)
+  let selectedIds = $state(new Set<string>());
+
+  function toggleSelection(id: string) {
+    if (selectedIds.has(id)) {
+      selectedIds.delete(id);
+    } else {
+      selectedIds.add(id);
+    }
+    selectedIds = new Set(selectedIds); // Trigger reactivity
+  }
+
+  function selectAll() {
+    const visible = filteredCampaigns();
+    if (selectedIds.size === visible.length && visible.length > 0) {
+      selectedIds = new Set();
+    } else {
+      selectedIds = new Set(visible.map(c => c.id));
+    }
+  }
+
+  // Derived filtered list
+  let filteredCampaigns = $derived(() => {
+    return allCampaigns.filter(c => {
+      const matchStatus = activeStatus === "all" || c.status === activeStatus;
+      const matchCategory = activeCategory === "all" || c.category === activeCategory;
+      const matchStep = activeStep === "all" || c.current_step === activeStep;
+      const matchSearch = !searchInput || 
+        (c.topic_data?.title?.toLowerCase() || "").includes(searchInput.toLowerCase()) ||
+        (c.source_input?.toLowerCase() || "").includes(searchInput.toLowerCase()) ||
+        c.id.includes(searchInput);
+      return matchStatus && matchCategory && matchStep && matchSearch;
+    });
+  });
 
   onMount(async () => {
     await loadCampaigns();
   });
 
-  async function loadCampaigns() {
-    isLoading = true;
+  async function loadCampaigns(isAppend = false) {
+    if (isAppend) {
+      isLoadingMore = true;
+    } else {
+      isLoading = true;
+      offset = 0;
+    }
+
     try {
-      const raw = await apiClient.get<any>("/api/v1/content/campaigns");
-      // API might return wrapped or direct array
-      campaigns = Array.isArray(raw) ? raw : raw?.data || raw?.items || [];
+      const raw = await apiClient.get<any>(`/api/v1/content/campaigns?limit=${limit}&offset=${offset}`);
+      const data = raw?.items || [];
+      
+      if (isAppend) {
+        allCampaigns = [...allCampaigns, ...data];
+      } else {
+        allCampaigns = data;
+      }
+
+      totalCount = raw?.total || allCampaigns.length;
+      hasMore = raw?.has_more || false;
+      
+      if (hasMore) {
+        offset += limit;
+      }
     } catch (e) {
       console.error("[ContentFactory] Failed to load campaigns:", e);
-      campaigns = [];
+      if (!isAppend) allCampaigns = [];
     } finally {
       isLoading = false;
+      isLoadingMore = false;
     }
   }
 
   async function deleteCampaign(id: string) {
+    if (deletingId) return; // Prevent concurrent single deletes during bulk or same
+    const confirmed = await nanobot.showConfirm({
+      title: "PURGE_ENACTMENT",
+      message: "Are you sure you want to permanently delete this campaign node and its historical traces?",
+      confirmLabel: "EXECUTE",
+      cancelLabel: "ABORT"
+    });
+
+    if (!confirmed) return;
+
     deletingId = id;
     try {
-      await apiClient.delete(`/api/v1/content/campaigns/${id}`);
-      campaigns = campaigns.filter(c => c.id !== id);
-      nanobot.showToast("Đã xóa chiến dịch thành công", "success");
-    } catch (e) {
-      nanobot.showToast("Không thể xóa chiến dịch", "error");
+      const res = await apiClient.delete<any>(`/api/v1/content/campaigns/${id}`);
+      
+      if (res?.status === "error") {
+        nanobot.showToast(`Lỗi: ${res.message || "Không thể thực hiện"}`, "error");
+        return;
+      }
+
+      allCampaigns = allCampaigns.filter(c => c.id !== id);
+      
+      // Trigger Log Re-sync (Phase 4): Robust re-sync that doesn't block UI
+      try {
+        const sessionId = "account"; // standard session for global factory logs
+        if (nanobot.chat) {
+          await nanobot.chat.hydrateHistory(sessionId, undefined, undefined, true);
+        }
+      } catch (e) {
+        console.warn("[ContentFactory] Refresh failed, but deletion OK:", e);
+      }
+      
+      nanobot.showToast(res?.message || "Đã tiêu hủy chiến dịch và toàn bộ logs liên quan.", "success");
+    } catch (e: any) {
+      console.error("[ContentFactory] Delete crash:", e);
+      nanobot.showToast(e?.message || "Thao tác thất bại (Lỗi hệ thống)", "error");
     } finally {
       deletingId = null;
     }
   }
 
-  function resumeCampaign(campaign: any) {
-    // Resume via VUI voice command — triggers orchestrator resume logic
-    nanobot.closeUniversalModal();
-    nanobot.processCommand(`tiếp tục chiến dịch ${campaign.topic_data?.title || ""}`, "text");
+  // Bulk Command Interface (Phase 5)
+  async function handleBulkDelete() {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    const confirmed = await nanobot.showConfirm({
+      title: "PROTOCOL_MASS_PURGE",
+      message: `You are about to permanently erase ${ids.length} campaign nodes. This action is irreversible. Proceed?`,
+      confirmLabel: "EXECUTE_BATCH",
+      cancelLabel: "ABORT"
+    });
+
+    if (!confirmed) return;
+
+    isLoading = true;
+    let successCount = 0;
+    try {
+      for (const id of ids) {
+        // Visual feedback per item if possible
+        try {
+          const res = await apiClient.delete<any>(`/api/v1/content/campaigns/${id}`);
+          if (res.status !== "error") successCount++;
+        } catch (e) {
+          console.error(`[Bulk] Failed to delete ${id}:`, e);
+        }
+      }
+
+      nanobot.showToast(`Batch operation complete: ${successCount}/${ids.length} entities purged.`, "success");
+      selectedIds = new Set();
+      await loadCampaigns(false); // Reset list
+      
+      // Global re-sync
+      if (nanobot.chat) {
+        await nanobot.chat.hydrateHistory("account", undefined, undefined, true);
+      }
+    } finally {
+      isLoading = false;
+    }
   }
 
-  function handleCreateCampaign() {
-    nanobot.processCommand("tạo tin tức", "text");
+  async function handleBulkArchive() {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    
+    nanobot.showToast(`Archiving ${ids.length} entities... (Stub)`, "info");
+    selectedIds = new Set();
+  }
+
+  function resumeCampaign(campaign: any) {
     nanobot.closeUniversalModal();
+    nanobot.resumeCampaign(campaign);
+  }
+
+  async function handleCreateCampaign() {
+    const topic = await nanobot.showConfirm({
+      title: "PROTOCOL_INITIALIZE",
+      message: "Please enter the topic or core intent for this new campaign node.",
+      confirmLabel: "EXECUTE_INIT",
+      cancelLabel: "ABORT",
+      isPrompt: true,
+      promptPlaceholder: "e.g. 'Viết bài về iPhone 17 Pro Max'..."
+    });
+
+    if (topic && topic.trim()) {
+      nanobot.processCommand(topic, "text");
+      nanobot.closeUniversalModal();
+    }
+  }
+
+  function handleSearchInput(e: Event) {
+    // Standard pattern works with binding
   }
 </script>
 
-<div class="w-full h-full flex flex-col pt-2 gap-4" in:fade={{ duration: 200 }}>
-  <!-- Header -->
-  <div class="flex items-center justify-between px-1">
-    <h3 class="text-[11px] font-black uppercase tracking-[0.2em] text-white/40">Chiến Dịch Nội Dung</h3>
-    <div class="flex items-center gap-2">
-      <button
-        onclick={loadCampaigns}
-        class="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/30 hover:text-white border border-white/5 transition-all"
-        title="Làm mới"
-      >
-        <RotateCcw size={12} class={isLoading ? "animate-spin" : ""} />
-      </button>
-      <button
-        onclick={handleCreateCampaign}
-        class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-bold rounded-lg border border-blue-500/30 transition-all"
-      >
-        <PlusCircle size={12} />
-        Tạo mới
-      </button>
-    </div>
+<div class="w-full h-full flex flex-col bg-[#050505] overflow-hidden" in:fade={{ duration: 300 }}>
+  <!-- Filters Nexus -->
+  <CampaignFilters 
+    bind:searchInput 
+    bind:activeStatus 
+    bind:activeCategory
+    bind:activeStep
+    {isLoading}
+    totalItems={totalCount}
+    onRefresh={() => loadCampaigns(false)}
+    onSearchInput={handleSearchInput}
+    onCreateNew={handleCreateCampaign}
+  />
+
+  <!-- Main Scroll View -->
+  <div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+    {#if isLoading && allCampaigns.length === 0}
+      <div class="h-full flex flex-col items-center justify-center gap-4">
+          <div class="w-12 h-12 border-2 border-neon-cyan/10 border-t-neon-cyan rounded-full animate-spin"></div>
+          <span class="text-[10px] font-mono text-neon-cyan/50 uppercase tracking-[0.4em]">SYNCHRONIZING_ARCHIVES...</span>
+      </div>
+    {:else if filteredCampaigns().length === 0}
+      <div class="h-full flex flex-col items-center justify-center gap-6 opacity-40">
+        <div class="w-20 h-20 rounded-full border border-white/5 bg-white/[0.02] flex items-center justify-center">
+           <Megaphone size={32} class="text-gray-600" />
+        </div>
+        <div class="text-center">
+           <p class="text-[11px] font-mono uppercase tracking-[0.3em] text-white/60 mb-2">ZERO_MATCH_FOUND</p>
+           <p class="text-[10px] font-mono text-gray-700 italic">No campaign entities found matching current filter profile.</p>
+        </div>
+        <button 
+           onclick={() => { searchInput = ""; activeStatus = "all"; activeCategory = "all"; }}
+           class="px-4 py-2 border border-white/10 rounded-lg text-[9px] font-mono font-bold uppercase tracking-widest hover:border-white/20 hover:text-white transition-all"
+        >
+           Reset Filters
+        </button>
+      </div>
+    {:else}
+      <!-- List Header / Select All Control -->
+      <div class="max-w-6xl mx-auto mb-2 px-5 flex items-center justify-between">
+         <div class="flex items-center gap-3">
+            <button 
+              onclick={selectAll}
+              class="flex items-center gap-2 group/all"
+            >
+               <div class="w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center
+                 {selectedIds.size === filteredCampaigns().length && filteredCampaigns().length > 0 ? 'bg-neon-cyan border-neon-cyan' : 'border-white/10 bg-white/[0.02] group-hover/all:border-white/20'}">
+                  {#if selectedIds.size === filteredCampaigns().length && filteredCampaigns().length > 0}
+                    <CheckCircle size={14} class="text-black" strokeWidth={3} />
+                  {:else if selectedIds.size > 0}
+                    <div class="w-2 h-0.5 bg-neon-cyan rounded-full"></div>
+                  {/if}
+               </div>
+               <span class="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest group-hover/all:text-gray-300 transition-colors">Select_All_Visible</span>
+            </button>
+         </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 max-w-6xl mx-auto">
+        {#each filteredCampaigns() as campaign, i (campaign.id)}
+          <CampaignListItem 
+             {campaign} 
+             onAction={resumeCampaign} 
+             onDelete={deleteCampaign}
+             isDeleting={deletingId === campaign.id}
+             isSelected={selectedIds.has(campaign.id)}
+             onToggleSelection={toggleSelection}
+          />
+        {/each}
+      </div>
+
+      {#if hasMore}
+        <div class="max-w-6xl mx-auto py-8 flex justify-center">
+          <button
+            onclick={() => loadCampaigns(true)}
+            disabled={isLoadingMore}
+            class="group relative px-8 py-3 bg-white/[0.02] hover:bg-neon-cyan/10 border border-white/10 hover:border-neon-cyan/30 rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+          >
+             {#if isLoadingMore}
+               <div class="flex items-center gap-3">
+                  <div class="w-4 h-4 border-2 border-neon-cyan/20 border-t-neon-cyan rounded-full animate-spin"></div>
+                  <span class="text-[10px] font-mono text-neon-cyan uppercase tracking-[0.2em]">FETCHING_RESOURCES...</span>
+               </div>
+             {:else}
+               <div class="flex flex-col items-center">
+                  <span class="text-[10px] font-mono font-black text-gray-400 group-hover:text-neon-cyan uppercase tracking-[0.3em] transition-colors">LOAD_MORE_RESOURCES</span>
+                  <div class="w-full h-[1px] bg-white/5 mt-1 relative overflow-hidden">
+                     <div class="absolute inset-0 bg-neon-cyan/50 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                  </div>
+               </div>
+             {/if}
+          </button>
+        </div>
+      {/if}
+    {/if}
   </div>
 
-  <!-- Content Area -->
-  {#if isLoading}
-    <div class="flex-1 flex flex-col items-center justify-center text-white/20 gap-3">
-      <Loader2 class="w-6 h-6 animate-spin" />
-      <p class="text-xs font-mono tracking-wider">Đang tải...</p>
-    </div>
-
-  {:else if campaigns.length === 0}
-    <!-- Empty State -->
-    <div
-      class="flex-1 flex flex-col items-center justify-center p-8 text-center border border-dashed border-white/10 rounded-2xl bg-black/20"
-      in:fade={{ duration: 300 }}
-    >
-      <div class="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-5 border border-blue-500/20">
-        <Megaphone class="w-7 h-7 text-blue-400" />
-      </div>
-      <h3 class="text-base font-bold text-white/80 mb-1">Chưa có Chiến dịch nào</h3>
-      <p class="text-white/30 text-xs max-w-xs mx-auto mb-6 leading-relaxed">
-        Tạo chiến dịch mới để AI Xohi bắt đầu lên ý tưởng, viết bài và phân phối nội dung.
-      </p>
-      <button
-        onclick={handleCreateCampaign}
-        class="group relative px-5 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-bold text-xs rounded-xl border border-blue-500/30 transition-all flex items-center gap-2"
-      >
-        <PlusCircle size={14} />
-        Tạo Chiến Dịch Đầu Tiên
-      </button>
-    </div>
-
-  {:else}
-    <!-- Campaign List -->
-    <div class="flex-1 flex flex-col gap-3 overflow-y-auto pr-1">
-      {#each campaigns as campaign, i (campaign.id)}
-        {@const step = campaign.current_step || 1}
-        {@const stepInfo = STEP_LABELS[step]}
-        {@const statusStyle = STATUS_STYLE[campaign.status] || "text-gray-400 bg-gray-500/10 border-gray-500/20"}
-        {@const statusLabel = STATUS_LABEL[campaign.status] || campaign.status}
-        {@const isAction = campaign.status === "WAITING_FOR_REVIEW" || campaign.status === "PROCESSING"}
-        <div
-          class="group relative p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-white/10 transition-all duration-300"
-          in:fly={{ y: 10, duration: 250, delay: i * 40 }}
-        >
-          <div class="flex items-start justify-between gap-3">
-            <!-- Left: info -->
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-bold text-white/90 truncate">
-                {campaign.topic_data?.title || campaign.source_input || "Chiến dịch không tên"}
-              </p>
-              <div class="flex items-center gap-2 mt-1.5 flex-wrap">
-                <!-- Step badge -->
-                <span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-semibold text-white/50">
-                  <svelte:component this={stepInfo?.icon} size={9} />
-                  Bước {step} — {stepInfo?.label || "Đang xử lý"}
-                </span>
-                <!-- Status badge -->
-                <span class="px-2 py-0.5 rounded-full border text-[10px] font-bold {statusStyle}">
-                  {statusLabel}
-                </span>
-              </div>
-            </div>
-
-            <!-- Right: actions -->
-            <div class="flex items-center gap-1 shrink-0">
-              {#if isAction}
-                <button
-                  onclick={() => resumeCampaign(campaign)}
-                  class="px-3 py-1.5 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 text-[11px] font-bold transition-all"
-                >
-                  Tiếp tục
-                </button>
-              {/if}
-              <button
-                onclick={() => deleteCampaign(campaign.id)}
-                disabled={deletingId === campaign.id}
-                class="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/15 text-white/20 hover:text-red-400 border border-white/5 hover:border-red-500/30 transition-all opacity-0 group-hover:opacity-100"
-                title="Xóa chiến dịch"
-              >
-                {#if deletingId === campaign.id}
-                  <Loader2 size={12} class="animate-spin" />
-                {:else}
-                  <Trash2 size={12} />
-                {/if}
-              </button>
-            </div>
-          </div>
-
-          <!-- Progress bar for PROCESSING -->
-          {#if campaign.status === "PROCESSING"}
-            <div class="mt-3 h-0.5 bg-white/5 rounded-full overflow-hidden">
-              <div
-                class="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full"
-                style="width: {Math.round((step / 6) * 100)}%; transition: width 1s ease"
-              ></div>
-            </div>
-          {/if}
+  <!-- Optional Stats Footer (Premium Feel) -->
+  <div class="h-10 shrink-0 border-t border-white/5 bg-black/40 backdrop-blur-md px-6 flex items-center justify-between">
+     <div class="flex items-center gap-4">
+        <div class="flex items-center gap-1.5">
+           <div class="w-1.5 h-1.5 rounded-full bg-green-500/60 shadow-[0_0_8px_rgba(34,197,94,0.4)]"></div>
+           <span class="text-[9px] font-mono text-gray-500 uppercase tracking-tighter">Nexus_Stable</span>
         </div>
-      {/each}
-    </div>
-  {/if}
+        <div class="w-[1px] h-3 bg-white/5"></div>
+        <span class="text-[9px] font-mono text-gray-600 uppercase tracking-tighter">Admin_Active: {nanobot.userEmail || "SYSTEM"}</span>
+     </div>
+     <div class="flex items-center gap-4">
+        <span class="text-[9px] font-mono text-gray-600">V69.1_TRINITY</span>
+     </div>
+  </div>
+
+  <BulkActionBar 
+    selectedCount={selectedIds.size} 
+    onClear={() => selectedIds = new Set()} 
+    onDeleteBulk={handleBulkDelete}
+    onArchiveBulk={handleBulkArchive}
+  />
 </div>
+
+<style>
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 255, 0.2);
+  }
+</style>

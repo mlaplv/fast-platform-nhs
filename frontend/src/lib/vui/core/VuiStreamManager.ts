@@ -112,7 +112,7 @@ export class VuiStreamManager {
     }
   }
 
-  public async streamLLM(query: string, session_id: string, source: "text" | "voice" = "voice") {
+  public async streamLLM(query: string, session_id: string, source: "text" | "voice" = "voice", intentData?: any) {
     vuiState.setPhase("thinking");
     // Leave the STT text as liveText so the user can read it.
     // vuiState.setLiveText(""); 
@@ -127,7 +127,7 @@ export class VuiStreamManager {
     const UPDATE_THRESHOLD_MS = 64; // ~15fps for text deltas to save CPU on 2GB RAM devices
 
     try {
-      const stream = vuiService.streamIntent(query, session_id, source, nanobot.screenContext);
+      const stream = vuiService.streamIntent(query, session_id, source, nanobot.screenContext, intentData);
 
       for await (const parsed of stream) {
         receivedAny = true;
