@@ -78,7 +78,7 @@
       nanobot?.setVuiActive(true);
     }
   }}
-  class="relative w-8 h-8 flex items-center justify-center group active:scale-90 transition-transform cursor-pointer"
+  class="relative w-8 h-8 flex items-center justify-center group active:scale-90 transition-transform cursor-pointer overflow-visible"
 >
   <!-- Outer Ring -->
   <div

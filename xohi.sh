@@ -199,6 +199,9 @@ function init_deploy() {
     echo -e "${CYAN}[6/6] Gieo mầm dữ liệu (Seeding Database)...${NC}"
     run_backend --env-file "${PWD}/.env" python3 backend/scripts/seed.py
     
+    echo -e "${YELLOW}Đang đồng bộ bộ nhớ (Restarting API)...${NC}"
+    docker compose restart api
+    
     echo -e "${GREEN}=== HỆ THỐNG ĐÃ SẴN SÀNG! ===${NC}"
     echo -e "${CYAN}Truy cập: https://admin.smartshop.test${NC}"
     read -p "Nhấn Enter để quay lại menu..."

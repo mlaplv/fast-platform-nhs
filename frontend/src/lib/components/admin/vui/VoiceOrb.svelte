@@ -96,7 +96,7 @@
   </svg>
 
   <!-- The Actual Orb -->
-  <svg viewBox="-100 -100 200 200" class="w-full h-full drop-shadow-2xl">
+  <svg viewBox="-150 -150 300 300" class="w-full h-full drop-shadow-2xl">
     <g filter="url(#metaball)">
       <!-- Core -->
       <circle

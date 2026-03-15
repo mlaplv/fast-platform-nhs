@@ -27,8 +27,8 @@ class TrinityBridge:
         self.rotator = key_rotator
         # V71.17: Neural Waterfall Support (2026 Edition)
         # Default hardcoded fallbacks if DB is empty
-        self.default_model_name = "gemini-2.0-flash"
-        self.fallback_model_name = "gemini-1.5-pro"
+        self.default_model_name = "gemini-2.5-flash"
+        self.fallback_model_name = "gemini-3.1-pro-preview"
 
         # Dynamic Model Pool (V75)
         self.db_primary_model = None

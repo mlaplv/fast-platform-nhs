@@ -17,7 +17,8 @@ from backend.database import async_session_maker
 from backend.database.models import (
     User, Role, Permission, Category, ProductBase, 
     Article, Order, VoiceProfile, Notification, 
-    Draft, AgentTelemetryLog, ChatMessage
+    Draft, AgentTelemetryLog, ChatMessage,
+    ContentCampaign, CampaignEvent
 )
 from backend.utils.security import GeminiSecurity
 
@@ -52,6 +53,8 @@ async def clear_data(session):
     await session.execute(delete(Draft).where(Draft.tenant_id == TENANT_ID))
     await session.execute(delete(ChatMessage).where(ChatMessage.tenant_id == TENANT_ID))
     await session.execute(delete(AgentTelemetryLog).where(AgentTelemetryLog.tenant_id == TENANT_ID))
+    await session.execute(delete(CampaignEvent).where(CampaignEvent.tenant_id == TENANT_ID))
+    await session.execute(delete(ContentCampaign).where(ContentCampaign.tenant_id == TENANT_ID))
     await session.execute(delete(ProductBase).where(ProductBase.tenant_id == TENANT_ID))
     await session.execute(delete(Category).where(Category.tenant_id == TENANT_ID))
     
@@ -59,6 +62,8 @@ async def clear_data(session):
     if user_ids:
         await session.execute(delete(Notification).where(Notification.user_id.in_(user_ids)))
         await session.execute(delete(Draft).where(Draft.reviewer_id.in_(user_ids)))
+        await session.execute(delete(CampaignEvent).where(CampaignEvent.tenant_id.in_(user_ids))) # Secondary catch
+        await session.execute(delete(ContentCampaign).where(ContentCampaign.user_id.in_(user_ids)))
         await session.execute(delete(ChatMessage).where(ChatMessage.user_id.in_(user_ids)))
         await session.execute(delete(Order).where(Order.user_id.in_(user_ids)))
         await session.execute(delete(VoiceProfile).where(VoiceProfile.user_id.in_(user_ids)))
@@ -165,23 +170,20 @@ async def seed_users(session, admin_role):
             "ANALYZE": True
         },
         gemini_keys_enc=GeminiSecurity.encrypt_keys(gemini_keys),
-        primary_model="gemini-2.0-flash",
+        primary_model="gemini-2.5-flash",
         ai_models=[
-            "gemini-2.0-flash-lite-preview-02-05", 
-            "gemini-1.5-pro", 
-            "gemini-1.5-flash",
-            "gemini-1.5-flash-8b",
-            "gemini-1.0-pro"
+            "gemini-3.1-flash-lite-preview", 
+            "gemini-3.1-pro-preview", 
+            "gemini-2.5-flash",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash"
         ],
         discovered_models=[
-            "gemini-2.0-flash", 
-            "gemini-2.0-flash-lite-preview-02-05", 
-            "gemini-1.5-pro", 
-            "gemini-1.5-pro-002",
-            "gemini-1.5-flash",
-            "gemini-1.5-flash-002",
-            "gemini-1.5-flash-8b",
-            "gemini-1.0-pro"
+            "gemini-2.5-flash", 
+            "gemini-3.1-flash-lite-preview", 
+            "gemini-3.1-pro-preview", 
+            "gemini-1.5-pro",
+            "gemini-1.5-flash"
         ]
     )
     session.add(voice_profile)
