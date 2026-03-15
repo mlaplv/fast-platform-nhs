@@ -45,9 +45,10 @@
       );
       orders = res.data;
       totalOrders = res.total;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error;
       nanobot.addLog(
-        `[SYS] Order load failed: ${error.message}`,
+        `[SYS] Order load failed: ${err.message}`,
         "Nanobot-System",
       );
       orders = [];
@@ -65,7 +66,7 @@
     if (activeFilter) currentPage = 1;
   });
 
-  let searchTimer: any;
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
   function handleSearchInput(e: Event) {
     const val = (e.target as HTMLInputElement).value;
     searchInput = val;

@@ -70,7 +70,7 @@
 
   // V22: Voice Mutation Injection - News Management
   $effect(() => {
-    const data = nanobot.currentData as Record<string, any>;
+    const data = nanobot.currentData;
     const action = nanobot.commandAction;
 
     if (
@@ -82,7 +82,7 @@
       formTitle =
         (data?.title as string) ||
         (data?.name as string) ||
-        (data?.entities?.name as string) ||
+        (data?.entities as Record<string, unknown>)?.name as string ||
         "";
       formCategory = (data?.category as string) || CATEGORIES[0];
       formExcerpt = (data?.excerpt as string) || "";

@@ -50,7 +50,9 @@
     (async () => {
       try {
         categories = await apiClient.get<Category[]>("/api/v1/categories");
-      } catch {
+      } catch (e: unknown) {
+        const err = e as Error;
+        console.error("[CategoryManagement] Load failed:", err);
         categories = [];
       } finally {
         isLoading = false;

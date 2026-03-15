@@ -100,8 +100,8 @@
       const updated = await apiClient.patch<User>(`/api/v1/users/${userId}`, { status: newStatus });
       const idx = users.findIndex((u) => u.id === userId);
       users[idx] = { ...users[idx], ...updated };
-    } catch (e: any) {
-      nanobot.addLog(`Status Update Error: ${e.message}`, "Nanobot-Sec");
+    } catch (e: unknown) {
+      nanobot.addLog(`Status Update Error: ${(e as Error).message}`, "Nanobot-Sec");
     }
   }
 
@@ -110,13 +110,13 @@
     try {
       await apiClient.patch(`/api/v1/users/${userId}/delete`, {});
       await loadUsers();
-    } catch (e: any) {
-      nanobot.addLog(`Deletion Error: ${e.message}`, "Nanobot-Sec");
+    } catch (e: unknown) {
+      nanobot.addLog(`Deletion Error: ${(e as Error).message}`, "Nanobot-Sec");
     }
   }
 
   $effect(() => {
-    const data = nanobot.currentData as Record<string, any>;
+    const data = nanobot.currentData;
     const action = nanobot.commandAction;
 
     if (

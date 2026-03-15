@@ -77,7 +77,7 @@
 
       const [pRes, cData] = await Promise.all([
         apiClient.get<{ data: Product[]; total: number }>(`/api/v1/products?${params.toString()}`),
-        categories.length ? Promise.resolve(null) : apiClient.get<any[]>("/api/v1/categories"),
+        categories.length ? Promise.resolve(null) : apiClient.get<Record<string, unknown>[]>("/api/v1/categories"),
       ]);
       products = pRes.data;
       totalProducts = pRes.total;
@@ -85,15 +85,16 @@
       if (cData) {
         const opts: CategoryOption[] = [];
         for (const c of cData) {
-          opts.push({ id: c.id, name: c.name });
-          (c.children || []).forEach((ch: any) => {
-            opts.push({ id: ch.id, name: `${c.name} / ${ch.name}` });
+          opts.push({ id: c.id as string, name: c.name as string });
+          (c.children as Record<string, unknown>[] || []).forEach((ch) => {
+            opts.push({ id: ch.id as string, name: `${c.name} / ${ch.name}` });
           });
         }
         categories = opts;
       }
-    } catch (err) {
-      nanobot.showToast("Lỗi tải sản phẩm", "error");
+    } catch (err: unknown) {
+      const error = err as Error;
+      nanobot.showToast(`Lỗi tải sản phẩm: ${error.message}`, "error");
       products = [];
       totalProducts = 0;
     } finally {

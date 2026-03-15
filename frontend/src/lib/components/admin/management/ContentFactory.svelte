@@ -189,14 +189,14 @@
   async function handleBulkArchive() {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    
+
     nanobot.showToast(`Archiving ${ids.length} entities... (Stub)`, "info");
     selectedIds = new Set();
   }
 
-  function resumeCampaign(campaign: any) {
+  function resumeCampaign(campaign: CampaignData) {
     nanobot.closeUniversalModal();
-    nanobot.resumeCampaign(campaign);
+    nanobot.resumeCampaign(campaign as unknown as Record<string, unknown>);
   }
 
   async function handleCreateCampaign() {

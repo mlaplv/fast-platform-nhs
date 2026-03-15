@@ -8,7 +8,9 @@ from backend.services.storage.manager import storage
 from backend.services.media.schemas import (
     MediaUpdateMetadata,
     MimeTypeBreakdown,
-    QuickEditParams
+    QuickEditParams,
+    MediaListResult,
+    MediaStatsResult
 )
 
 logger = logging.getLogger("media-service")
@@ -28,7 +30,7 @@ class MediaService:
         search_query: Optional[str] = None,
         include_deleted: bool = False,
         owner_id: Optional[str] = None
-    ) -> Dict[str, object]:
+    ) -> MediaListResult:
         """Liệt kê và lọc ảnh với hiệu năng cao (Hỗ trợ AI Semantic Search)."""
         from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
         import numpy as np
@@ -66,7 +68,7 @@ class MediaService:
             # AI Semantic Search Logic (R03 Evolution)
             # 1. Lấy toàn bộ assets của campaign/tenant để so khớp vector
             result = await repo.session.execute(stmt)
-            all_assets = result.scalars().all()
+            all_assets = list(result.scalars().all())
             total = len(all_assets)
 
             encoder = get_shared_encoder()
@@ -82,19 +84,19 @@ class MediaService:
                 scored_assets = []
                 for asset in all_assets:
                     # Lấy vector đã lưu hoặc tạo mới nếu chưa có
-                    asset_vec_data = asset.media_metadata.get("embedding")
+                    asset_meta = asset.media_metadata or {}
+                    asset_vec_data = asset_meta.get("embedding")
 
                     if not asset_vec_data:
                         # Tạo text đại diện: filename + alt + tags
-                        meta = asset.media_metadata or {}
-                        ai_tags = cast(List[str], meta.get('ai_tags', []))
-                        ai_desc = cast(str, meta.get('ai_description', ''))
+                        ai_tags = cast(List[str], asset_meta.get('ai_tags', []))
+                        ai_desc = cast(str, asset_meta.get('ai_description', ''))
                         text = f"{asset.filename} {asset.alt_text or ''} {' '.join(ai_tags)} {ai_desc}"
                         asset_vec = cast(np.ndarray, list(encoder.embed([text]))[0])
                         asset_vec_list = asset_vec.tolist()
 
                         # Cập nhật ngược lại DB để lần sau nhanh hơn (Surgical Background Update)
-                        asset.media_metadata = {**asset.media_metadata, "embedding": asset_vec_list}
+                        asset.media_metadata = {**asset_meta, "embedding": asset_vec_list}
                         repo.session.add(asset)
                     else:
                         asset_vec = np.array(asset_vec_data)
@@ -112,12 +114,12 @@ class MediaService:
                 # Commit embeddings nếu có cập nhật
                 await repo.session.commit()
 
-        return {
-            "items": list(assets),
-            "total": total,
-            "limit": limit,
-            "offset": offset
-        }
+        return MediaListResult(
+            items=list(assets),
+            total=total,
+            limit=limit,
+            offset=offset
+        )
 
 
     async def update_metadata(
@@ -137,15 +139,17 @@ class MediaService:
             logger.warning(f"[RBAC] Unauthorized metadata update attempt on {asset_id} by {owner_id}")
             return None
 
-        if "alt_text" in metadata:
-            asset.alt_text = metadata["alt_text"]
+        update_data = metadata.model_dump(exclude_unset=True)
 
-        if "is_public" in metadata:
-            asset.is_public = bool(metadata["is_public"])
+        if "alt_text" in update_data:
+            asset.alt_text = cast(Optional[str], update_data["alt_text"])
 
-        if "media_metadata" in metadata:
+        if "is_public" in update_data:
+            asset.is_public = bool(update_data["is_public"])
+
+        if "media_metadata" in update_data:
             current_meta = dict(asset.media_metadata or {})
-            current_meta.update(metadata["media_metadata"])
+            current_meta.update(cast(Dict[str, object], update_data["media_metadata"]))
             asset.media_metadata = current_meta
 
         await repo.update(asset)
@@ -543,7 +547,7 @@ class MediaService:
         except Exception as e:
             logger.warning(f"[CDN] Invalidation failed: {e}")
 
-    async def get_stats(self, repo: MediaRegistryRepository, owner_id: Optional[str] = None) -> Dict[str, object]:
+    async def get_stats(self, repo: MediaRegistryRepository, owner_id: Optional[str] = None) -> MediaStatsResult:
         """Thống kê kho tài nguyên (V9.0 Analytics)."""
         from sqlalchemy import func, or_
 
@@ -579,12 +583,12 @@ class MediaService:
             for r in mime_result.all()
         ]
 
-        return {
-            "total_count": int(row.count or 0),
-            "total_size": int(row.total_size or 0),
-            "breakdown": breakdown,
-            "storage_provider": str(os.getenv("STORAGE_PROVIDER", "local"))
-        }
+        return MediaStatsResult(
+            total_count=int(row.count or 0),
+            total_size=int(row.total_size or 0),
+            breakdown=breakdown,
+            storage_provider=str(os.getenv("STORAGE_PROVIDER", "local"))
+        )
 
     async def fetch_remote_asset(
         self,
