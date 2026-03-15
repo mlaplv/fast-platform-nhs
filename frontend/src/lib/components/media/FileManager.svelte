@@ -124,6 +124,54 @@
     }
 
     let showBulkSeo = $state(false);
+    let isAutoFilling = $state(false);
+
+    async function handleMagicWand() {
+        if (isAutoFilling) return;
+        isAutoFilling = true;
+        try {
+            const ids = Array.from(mediaStore.selectedIds);
+            await mediaStore.aiAutoFillAltText(ids);
+            vuiController.speak("Đã tự động điền Alt-text cho các ảnh được chọn.");
+        } finally {
+            isAutoFilling = false;
+        }
+    }
+
+    async function handleBulkSeoSave() {
+        const selectedAssets = mediaStore.assets.filter(a => mediaStore.selectedIds.has(a.id));
+        const updates = selectedAssets.map(a => ({
+            id: a.id,
+            metadata: { alt_text: a.alt_text }
+        }));
+
+        await mediaStore.bulkUpdateMetadata(updates);
+        vuiController.speak(`Đã tối ưu SEO cho ${updates.length} tài nguyên.`);
+        showBulkSeo = false;
+    }
+
+    function applyAIAltText(text: string) {
+        if (!selectedAssetId) return;
+        const index = mediaStore.assets.findIndex(a => a.id === selectedAssetId);
+        if (index !== -1) {
+            mediaStore.assets[index].alt_text = text;
+            mediaStore.updateMetadata(selectedAssetId, { alt_text: text });
+            vuiController.speak("Đã áp dụng gợi ý AI vào Alt-text.");
+        }
+    }
+
+    function addTagToAltText(tag: string) {
+        if (!selectedAssetId) return;
+        const index = mediaStore.assets.findIndex(a => a.id === selectedAssetId);
+        if (index !== -1) {
+            const currentAlt = mediaStore.assets[index].alt_text || "";
+            if (currentAlt.includes(tag)) return;
+            const newAlt = currentAlt ? `${currentAlt}, ${tag}` : tag;
+            mediaStore.assets[index].alt_text = newAlt;
+            mediaStore.updateMetadata(selectedAssetId, { alt_text: newAlt });
+            vuiController.speak(`Đã thêm tag ${tag} vào Alt-text.`);
+        }
+    }
 
     async function handleBulkDelete() {
         const msg = mediaStore.isTrashMode
@@ -578,7 +626,16 @@
                             </div>
 
                             {#if selectedAsset.media_metadata.ai_description}
-                                <p class="text-[11px] text-zinc-600 dark:text-zinc-400 italic mb-3">"{selectedAsset.media_metadata.ai_description}"</p>
+                                <div class="relative group/desc">
+                                    <p class="text-[11px] text-zinc-600 dark:text-zinc-400 italic mb-3 pr-8">"{selectedAsset.media_metadata.ai_description}"</p>
+                                    <button
+                                        onclick={() => applyAIAltText(selectedAsset!.media_metadata.ai_description as string)}
+                                        class="absolute top-0 right-0 p-1 bg-blue-500 text-white rounded opacity-0 group-hover/desc:opacity-100 transition-opacity hover:scale-110 active:scale-95"
+                                        title="Sử dụng làm Alt-text"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17l-5-5"/></svg>
+                                    </button>
+                                </div>
                             {:else}
                                 <div class="flex flex-col gap-2 mb-3">
                                     <div class="h-3 w-full bg-blue-500/10 rounded animate-pulse"></div>
@@ -590,7 +647,13 @@
                             {#if selectedAsset.media_metadata.ai_tags}
                                 <div class="flex flex-wrap gap-1">
                                     {#each selectedAsset.media_metadata.ai_tags as tag}
-                                        <span class="px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-[9px] font-medium">#{tag}</span>
+                                        <button
+                                            onclick={() => addTagToAltText(tag)}
+                                            class="px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-[9px] font-medium hover:bg-blue-500 hover:text-white transition-all active:scale-90"
+                                            title="Thêm tag này vào Alt-text"
+                                        >
+                                            #{tag}
+                                        </button>
                                     {/each}
                                 </div>
                             {/if}
@@ -785,9 +848,20 @@
                 transition:scale={{ start: 0.95, duration: 200 }}
             >
                 <div class="p-6 border-b flex justify-between items-center bg-zinc-50 dark:bg-zinc-800/50">
-                    <div>
-                        <h3 class="text-lg font-bold">Bulk SEO Editor</h3>
-                        <p class="text-xs text-zinc-500">Đang tối ưu {mediaStore.selectedIds.size} ảnh được chọn</p>
+                    <div class="flex items-center gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold">Bulk SEO Editor</h3>
+                            <p class="text-xs text-zinc-500">Đang tối ưu {mediaStore.selectedIds.size} ảnh được chọn</p>
+                        </div>
+                        <button
+                            onclick={handleMagicWand}
+                            disabled={isAutoFilling}
+                            class="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-blue-500/20 animate-pulse"
+                            title="Tự động điền Alt-text bằng AI Vision"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l-3-3Z"/><path d="m9.5 15.5 3 3"/></svg>
+                            {isAutoFilling ? 'ĐANG PHÂN TÍCH...' : 'MAGIC WAND (AI)'}
+                        </button>
                     </div>
                     <button
                         onclick={() => showBulkSeo = false}
@@ -821,7 +895,6 @@
                                             bind:value={asset.alt_text}
                                             class="w-full p-2 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-16 transition-all"
                                             placeholder="Gõ alt-text để ảnh lên top..."
-                                            onchange={() => mediaStore.updateMetadata(asset.id, { alt_text: asset.alt_text })}
                                         ></textarea>
                                     </div>
 
@@ -841,9 +914,15 @@
                 <div class="p-6 border-t bg-zinc-50 dark:bg-zinc-800/50 flex justify-end gap-3">
                     <button
                         onclick={() => showBulkSeo = false}
-                        class="px-6 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:scale-105 active:scale-95 transition-all"
+                        class="px-6 py-2 border border-zinc-200 dark:border-zinc-700 text-zinc-500 rounded-xl text-xs font-bold hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
                     >
-                        HOÀN TẤT
+                        HỦY
+                    </button>
+                    <button
+                        onclick={handleBulkSeoSave}
+                        class="px-6 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:scale-105 active:scale-95 shadow-lg shadow-blue-500/20 transition-all"
+                    >
+                        LƯU TẤT CẢ ({mediaStore.selectedIds.size})
                     </button>
                 </div>
             </div>

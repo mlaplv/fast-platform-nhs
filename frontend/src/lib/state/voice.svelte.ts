@@ -59,10 +59,23 @@ export function createVoiceState(
     routerTier?: number,
   ) {
     state.vuiUserQuery = transcript;
+
+    // Phase 82: CNS Sanitization — Đảm bảo data cho ContentReview không bao giờ chứa undefined
+    const cleanData = data || {};
+    if (cleanData.category === "CONTENT_CREATE" || cleanData.campaign_id) {
+      cleanData.step = cleanData.step ?? 1;
+      cleanData.status = cleanData.status ?? "IDLE";
+      cleanData.progress_msg = cleanData.progress_msg ?? "";
+      cleanData.keywords = cleanData.keywords ?? {};
+      cleanData.assets = cleanData.assets ?? [];
+      cleanData.outline = cleanData.outline ?? {};
+      cleanData.draft_content = cleanData.draft_content ?? "";
+    }
+
     state.vuiResponse = {
       text: responseText,
       type: uiAction ? "action" : "answer",
-      data: data || {}, // Phase 62: Clean data
+      data: cleanData,
     };
     state.routerTier = routerTier;
 

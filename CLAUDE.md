@@ -41,6 +41,7 @@
 ### 1. Lỗi Kỹ thuật (Technical Sins)
 - ❌ **Blocking Async:** Cấm dùng hàm đồng bộ (sync) trong luồng async gây treo event loop.
 - ❌ **Memory Leak:** Cấm quên `revokeObjectURL` hoặc không dọn dẹp `Event Listener` khi hủy component.
+- ❌ **Svelte 5 Binding Trap:** CẤM dùng giá trị mặc định (fallback) cho `$bindable` props (ví dụ: `prop = $bindable("")`). Nếu cha truyền `undefined`, ứng dụng sẽ crash (`props_invalid_value`). Bắt buộc khởi tạo giá trị an toàn tại Store hoặc `onMount`.
 - ❌ **Rune Abuse:** Cấm lạm dụng `$effect` trong Svelte 5 khi có thể dùng `$derived`.
 - ❌ **Silent Fail:** Cấm dùng `try-catch` rỗng mà không có log hoặc báo cáo cho Sếp.
 

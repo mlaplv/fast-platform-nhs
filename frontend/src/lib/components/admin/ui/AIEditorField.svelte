@@ -18,6 +18,13 @@
     }
   }
 
+  // Elite Sync: Ensure ghost layer matches textarea even when content changes without scroll
+  $effect(() => {
+    if (value || ghostText) {
+      syncScroll();
+    }
+  });
+
   async function fetchGhostSuggestion(currentText: string) {
     if (!currentText.trim() || currentText.length < 5) {
       ghostText = "";
@@ -52,19 +59,16 @@
             const lines = textChunk.split("\n").filter(l => l.startsWith("data: "));
             
             for (const line of lines) {
-            try {
-              const data = JSON.parse(line.slice(6)) as GhostCompletionResponse;
-              // Bắt phase 'done' hoặc parse token trực tiếp nếu AI_Worker trả stream
-              if (data.status === "done" && data.message) {
-                 // Gợi ý luôn là text dài, ta chỉ nối nếu message khớp ngữ cảnh,
-                 // do hệ thống intent chưa support pure streaming ghost, ta gán hờ message.
-                 // (Tuỳ hệ thống thực thụ sẽ gán data.token)
-                 // Tạm thời, giả lập text sinh ra nếu BE có trả.
-                 ghostText = data.message;
-              } else if (data.token) {
-                 ghostText += data.token;
-              }
-            } catch { /* ignore parse error */ }
+              try {
+                const data = JSON.parse(line.slice(6)) as GhostCompletionResponse;
+                if (data.status === "done" && data.message) {
+                  ghostText = data.message;
+                } else if (data.token) {
+                  ghostText += data.token;
+                }
+              } catch { /* ignore parse error */ }
+            }
+          }
         }
       }
     } catch (err: unknown) {
@@ -93,17 +97,29 @@
 
   function handleKeyDown(e: KeyboardEvent) {
     if (e.key === "Tab" && ghostText) {
-      e.preventDefault(); // Prevent standard tab behavior
-      value += ghostText;
+      e.preventDefault();
+
+      const start = textareaEl.selectionStart;
+      const end = textareaEl.selectionEnd;
+
+      // Insert at cursor position instead of appending to end
+      value = value.substring(0, start) + ghostText + value.substring(end);
+
+      const newCursorPos = start + ghostText.length;
       ghostText = "";
-      
+
+      // Restore focus and cursor position in next tick
+      setTimeout(() => {
+        textareaEl.focus();
+        textareaEl.setSelectionRange(newCursorPos, newCursorPos);
+      }, 0);
+
       if (abortController) {
         abortController.abort();
         abortController = null;
       }
       if (debounceTimeout) clearTimeout(debounceTimeout);
-      
-      // Auto follow-up suggestion after accepting
+
       debounceTimeout = setTimeout(() => fetchGhostSuggestion(value), 500);
     }
   }

@@ -23,6 +23,12 @@
 - [2026-03-15]: Tích hợp WebP Conversion vào toàn bộ luồng MediaService.
 - [2026-03-15]: Hoàn thiện UI Bulk SEO Editor và AI Smart Crop buttons.
 - [2026-03-15]: Đồng bộ Frontend State với định dạng WebP mới.
+- [2026-03-15]: Khắc phục lỗi Syntax Error trong `AIEditorField.svelte` (thiếu ngoặc nhọn).
+- [2026-03-15]: Nâng cấp `AIEditorField`: Chèn text tại vị trí con trỏ và tự động đồng bộ scroll bằng Svelte 5 `$effect`.
+- [2026-03-15]: Khắc phục triệt để lỗi `props_invalid_value` (Svelte 5) bằng cách gỡ bỏ fallback cho bindable props và sanitizing data tại Store.
+- [2026-03-15]: Điều chỉnh `z-index` cho `VoiceModal` để Review Card luôn nổi trên lớp VUI (`z-[150000]`).
+
+
 
 ---
 *Bằng chứng được thực thi và xác nhận bởi Antigravity.*

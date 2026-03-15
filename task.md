@@ -37,3 +37,5 @@ Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt th
 - [x] Logic: Auto-conversion sang WebP/AVIF tối ưu dung lượng (WebP 90). <!-- id: 23 -->
 - [x] UI: Giao diện Bulk SEO Editor (Cập nhật Alt-text hàng loạt). <!-- id: 24 -->
 - [x] UI: Hiển thị AI suggestions trong Detail Panel. <!-- id: 25 -->
+- [x] UI: Vá lỗi cú pháp và tối ưu Ghost Text completion cho AIEditorField. <!-- id: 26 -->
+

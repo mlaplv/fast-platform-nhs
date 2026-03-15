@@ -291,36 +291,6 @@
     }
   };
 
-      if (res?.status === 'success' && res.data?.new_content) {
-        // AI returned entirely new content
-        const newHtml = res.data.new_content;
-        
-        // Let the editor reactivity naturally pick it up through editedDraft/draft_content binding
-        if (isEditing) {
-            editedDraft = newHtml;
-        } else {
-            draft_content = newHtml;
-        }
-        
-        // Wait a small tick so Svelte can sync the draft content to the editor before we re-analyze
-        await new Promise(r => setTimeout(r, 300));
-
-        // Rerun the analysis with force=true to guarantee fresh scores and highlights!
-        if (activeTab === 'copyright') {
-          await runCopyrightCheck(true);
-        } else if (activeTab === 'seo') {
-          await runSeoAnalysis(true);
-        } else if (activeTab === 'ai') {
-          await runAiAnalysis(true);
-        }
-      }
-    } catch (e) {
-      console.error('[DraftStep] Bulk Fix failed:', e);
-    } finally {
-      isBulkFixing = false;
-    }
-  };
-
   // Expert Optimizer (V71.30): Analysis Hydration from DB Cache
   $effect(() => {
     untrack(() => {

@@ -51,6 +51,54 @@ class MediaStore {
         }
     }
 
+    async bulkUpdateMetadata(updates: Array<{ id: string, metadata: Record<string, unknown> }>) {
+        if (updates.length === 0) return;
+        try {
+            const response = await apiClient.patch<{ status: string }>('/api/v1/media/bulk-update', { updates });
+            if (response.status === 'success') {
+                updates.forEach(({ id, metadata }) => {
+                    const index = this.assets.findIndex(a => a.id === id);
+                    if (index !== -1) {
+                        this.assets[index] = {
+                            ...this.assets[index],
+                            ...metadata,
+                            media_metadata: {
+                                ...this.assets[index].media_metadata,
+                                ...((metadata.media_metadata as Record<string, unknown>) || (metadata.metadata as Record<string, unknown>) || {})
+                            }
+                        } as MediaAsset;
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('[MediaStore] Bulk update failed:', error);
+        }
+    }
+
+    async aiAutoFillAltText(ids: string[]) {
+        if (ids.length === 0) return;
+        try {
+            const response = await apiClient.post<{ status: string, data: Record<string, string> }>('/api/v1/media/ai-autofill-alt', { ids });
+            if (response.status === 'success' && response.data) {
+                // response.data is mapping of id -> generated alt text
+                const updates = Object.entries(response.data).map(([id, alt_text]) => ({
+                    id,
+                    metadata: { alt_text }
+                }));
+
+                // Update local state immediately for snappy UX
+                updates.forEach(({ id, metadata }) => {
+                    const index = this.assets.findIndex(a => a.id === id);
+                    if (index !== -1) {
+                        this.assets[index] = { ...this.assets[index], alt_text: metadata.alt_text as string };
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('[MediaStore] AI Auto-fill failed:', error);
+        }
+    }
+
     async restoreAsset(assetId: string) {
         try {
             const response = await apiClient.post<{ status: string }>(`/api/v1/media/${assetId}/restore`);

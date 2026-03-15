@@ -4,6 +4,17 @@
   import { apiClient } from "$lib/utils/apiClient";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { vuiController } from "$lib/vui";
+  import { xohiImageStore } from "$lib/state/xohiImage.svelte";
+  import Header from "./content-factory/Header.svelte";
+  import Timeline from "./content-factory/Timeline.svelte";
+  import IdeaStep from "./content-factory/IdeaStep.svelte";
+  import AssetStep from "./content-factory/AssetStep.svelte";
+  import OutlineStep from "./content-factory/OutlineStep.svelte";
+  import DraftStep from "./content-factory/DraftStep.svelte";
+  import ValidationPreviewStep from "./content-factory/ValidationPreviewStep.svelte";
+  import PublishStep from "./content-factory/PublishStep.svelte";
+  import ActionButtons from "./content-factory/ActionButtons.svelte";
+  import GateBlockModal from "./content-factory/GateBlockModal.svelte";
   import type {
     CampaignKeywords,
     CampaignMetrics,
@@ -39,21 +50,21 @@
 
   let {
     campaign_id,
-    step = $bindable(1),
-    status = $bindable("IDLE"),
-    progress_msg = $bindable(""),
-    title = $bindable(""),
-    keywords = $bindable({}),
-    assets = $bindable([]),
-    reserve_assets = $bindable([]),
-    outline = $bindable({}),
-    draft_content = $bindable(""),
-    finalHtml = $bindable(""),
-    selectedAvatarUrl = $bindable(null),
-    selectedAssetIndex = $bindable(0),
-    creation_config = $bindable({}),
-    analysis_cache = $bindable({}),
-    analysis_metrics = $bindable({})
+    step = $bindable(),
+    status = $bindable(),
+    progress_msg = $bindable(),
+    title = $bindable(),
+    keywords = $bindable(),
+    assets = $bindable(),
+    reserve_assets = $bindable(),
+    outline = $bindable(),
+    draft_content = $bindable(),
+    finalHtml = $bindable(),
+    selectedAvatarUrl = $bindable(),
+    selectedAssetIndex = $bindable(),
+    creation_config = $bindable(),
+    analysis_cache = $bindable(),
+    analysis_metrics = $bindable()
   }: Props = $props();
 
   // -- Local UI Orchestration --
