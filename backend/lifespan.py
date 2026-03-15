@@ -31,7 +31,8 @@ async def lifespan(app: Litestar):
 
     heartbeat_task = None
     purge_task = None
-    
+    media_cleanup_task = None
+
     try:
         # Pre-load Voice Profiles into Hot Cache (R76: Scalar Projection Optimization)
         async with alchemy_config.create_session_maker()() as session:
@@ -75,12 +76,14 @@ async def lifespan(app: Litestar):
         # Start Background Loops
         heartbeat_task = _aio.create_task(_heartbeat_loop())
         purge_task = _aio.create_task(_auto_purge_loop())
+        media_cleanup_task = _aio.create_task(_media_cleanup_loop())
         _aio.create_task(content_factory.resume_all())
 
         yield
     finally:
         if heartbeat_task: heartbeat_task.cancel()
         if purge_task: purge_task.cancel()
+        if media_cleanup_task: media_cleanup_task.cancel()
         await event_bus.stop()
         await SharedHttpClient.close()
         logger.info("[Trinity Core] Shutdown complete.")
@@ -113,3 +116,16 @@ async def _auto_purge_loop():
                 await session.commit()
         except Exception as e: logger.warning(f"[AutoPurge] Cycle failed: {e}")
         await _aio.sleep(interval)
+
+async def _media_cleanup_loop():
+    """V76: Media Cleanup Cycle - Chạy mỗi 12h."""
+    from backend.services.media.media_service import media_service
+    # Chờ 10p sau khi khởi động để tránh làm nặng hệ thống lúc boot
+    await _aio.sleep(600)
+    while True:
+        try:
+            await media_service.cleanup_temp_files()
+        except Exception as e:
+            logger.warning(f"[MediaCleanup] Cycle failed: {e}")
+        # 12 giờ = 43200 giây
+        await _aio.sleep(43200)

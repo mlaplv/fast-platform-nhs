@@ -74,6 +74,21 @@ export interface Product {
     createdAt: string;
 }
 
+export interface MediaAsset {
+  id: string;
+  filename: string;
+  file_path: string;
+  file_size: number;
+  mime_type: string;
+  dimensions: string | null;
+  blurhash: string | null;
+  alt_text: string | null;
+  is_public: boolean;
+  campaign_id: string | null;
+  createdAt: string;
+  metadata: Record<string, any>;
+}
+
 export interface EditorAnnotation {
   text: string;         // Exact text to find and highlight in the editor
   type: string;         // 'copyright' | 'seo-error' | 'seo-warning' | 'seo-info' | specific type

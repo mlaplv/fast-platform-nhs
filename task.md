@@ -1,20 +1,39 @@
-# Task: XoHi Studio Step 2 - Ultra-Lean Image Management (Phase 15.3)
+# Task: Giai đoạn 7 - Advanced Asset Optimization & Smart Download
 
-## Status
-- [ ] T15.3.1: Backend - Extend `MediaAsset` Schema & Reorder API <!-- id: 0 -->
-- [ ] T15.3.2: Frontend - Implement `xohiImage.svelte.ts` (Nanobot Store) <!-- id: 1 -->
-- [ ] T15.3.3: Frontend - Integrate `svelte-dnd-action` for Svelte 5 Runes <!-- id: 2 -->
-- [ ] T15.3.4: Frontend - Build `ImageGrid.svelte` & `ImageSlot.svelte` components <!-- id: 3 -->
-- [ ] T15.3.5: Integration - Real-time swap logic & Master-Slave sync <!-- id: 4 -->
-- [ ] T15.3.6: QA - RAM/Latency check (<200ms) & RevokeObjectURL cleanup <!-- id: 5 -->
+## 🎯 Mục tiêu
+Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt thông minh.
 
-**PROJECT STATUS: PHASE 15.3 IN PROGRESS**
+## 📝 Check-list
+- [x] Backend: Triển khai Dynamic Image Resizing API (Thumbnail Engine). <!-- id: 0 -->
+- [x] Backend: Triển khai API `/api/v1/media/bulk-download` (ZIP Generation). <!-- id: 1 -->
+- [x] Logic: Cập nhật `media.svelte.ts` hỗ trợ `bulkDownload`. <!-- id: 2 -->
+- [x] UI: Tích hợp Thumbnail preview vào Grid để tối ưu tốc độ load. <!-- id: 3 -->
+- [x] UI: Thêm nút "Tải xuống ZIP" vào Bulk Action Toolbar. <!-- id: 4 -->
+- [x] UI: Thêm tính năng "Quick Edit" (Xoay/Lật ảnh) trong Detail Panel. <!-- id: 5 -->
 
----
-*Phần cũ bên dưới để lưu trữ nếu cần*
-# Task: Implement Voice Orb & Neural Visualization (Phase 7.2)
-- [x] Create `VoiceOrb.svelte` with SVG Metaballs logic
-- [x] Integrate `VoiceOrb` into `VoiceStatusCaption.svelte`
-- [x] Update `VoiceModal.svelte` layout
-- [x] Verify responsiveness and phase transitions
-- [x] Final performance check (CPU/RAM)
+## 🛠️ Trạng thái: Completed Phase 8
+- AI Semantic Search (Vector Match) hoạt động cực nhạy với tiếng Việt.
+- Surgical Update + Cache-busting đảm bảo UX siêu tốc.
+- Cơ chế tự dọn dẹp (Cleanup Loop) bảo vệ tài nguyên server.
+- Giao diện AI Processing mượt mà, hiện đại.
+
+## 🎯 Giai đoạn 9: Cloud Ecosystem & CDN Integration
+- [x] Backend: Triển khai S3/Cloudflare R2 Provider (Hỗ trợ Multi-storage). <!-- id: 11 -->
+- [x] Backend: Tích hợp CDN Cache Invalidation khi edit ảnh trên Cloud. <!-- id: 12 -->
+- [x] Logic: Hỗ trợ "Remote Fetch" (Tải ảnh từ URL trực tiếp vào Library). <!-- id: 13 -->
+- [x] UI: Dashboard thống kê dung lượng và định dạng tài nguyên. <!-- id: 14 -->
+- [x] UI: Tích hợp FileManager vào CKEditor/Article Editor làm Plugin. <!-- id: 15 -->
+
+## 🎯 Giai đoạn 10: Elite Optimization & Safety (COMPLETED)
+- [x] UI: Image Crop & Transformation Presets (Square, Banner, Story). <!-- id: 16 -->
+- [x] Backend: Dynamic Watermarking Engine (Logo overlay + Text Fallback). <!-- id: 17 -->
+- [x] UI/UX: Trash Bin & Soft-delete Recovery logic. <!-- id: 18 -->
+- [x] Backend: RBAC for Media Assets (Private vs Public). <!-- id: 19 -->
+- [x] Backend: Auto-purge Trash Bin logic (30 days lifecycle). <!-- id: 20 -->
+
+## 🎯 Giai đoạn 11: AI-Driven Media Intelligence & Auto-SEO
+- [ ] Backend: Tích hợp Vision Model tự động sinh Alt-text và Tags. <!-- id: 21 -->
+- [ ] Backend: Thuật toán nhận diện Focal Point (Điểm tụ) để Smart Crop. <!-- id: 22 -->
+- [ ] Logic: Auto-conversion sang WebP/AVIF tối ưu dung lượng. <!-- id: 23 -->
+- [ ] UI: Giao diện Bulk SEO Editor (Cập nhật Alt-text hàng loạt). <!-- id: 24 -->
+- [ ] UI: Hiển thị AI suggestions trong Detail Panel. <!-- id: 25 -->

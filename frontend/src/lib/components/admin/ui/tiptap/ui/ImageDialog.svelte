@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { MediaAsset } from "$lib/state/types";
+  import MediaModal from "$lib/components/media/MediaModal.svelte";
 
   let {
     show = $bindable(false),
@@ -13,6 +14,7 @@
 
   let imageUrl = $state('');
   let fileInput = $state<HTMLInputElement | null>(null);
+  let showMediaLibrary = $state(false);
 
   function handleFileUpload(e: Event) {
     const file = (e.target as HTMLInputElement).files?.[0];
@@ -75,12 +77,30 @@
       {/if}
 
       <div class="flex flex-col gap-3 mb-4">
-        <button onclick={() => fileInput?.click()} class="w-full flex items-center justify-center gap-2 py-3 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all text-xs font-bold">
+        <button
+          onclick={() => showMediaLibrary = true}
+          class="w-full flex items-center justify-center gap-2 py-4 bg-blue-600 text-white hover:bg-blue-700 transition-all text-xs font-bold rounded-xl shadow-lg shadow-blue-500/20"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          MỞ THƯ VIỆN ẢNH AI (FILE MANAGER)
+        </button>
+
+        <button onclick={() => fileInput?.click()} class="w-full flex items-center justify-center gap-2 py-3 bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 transition-all text-xs font-bold rounded-xl">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Tải ảnh lên từ thiết bị
         </button>
         <input type="file" bind:this={fileInput} accept="image/*" class="hidden" onchange={handleFileUpload} />
       </div>
+
+      <MediaModal
+        bind:show={showMediaLibrary}
+        onSelect={(asset) => {
+          onSelect(asset.file_path);
+          showMediaLibrary = false;
+          show = false;
+        }}
+        onClose={() => showMediaLibrary = false}
+      />
 
       <input
         type="url"

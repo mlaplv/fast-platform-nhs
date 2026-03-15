@@ -49,6 +49,14 @@
             }
         });
 
+        // V65.0: SSE POISON PILL - Đóng stream ngay lập tức để bảo vệ RAM
+        eventSource.addEventListener('terminate', () => {
+            console.log(`[SSE] Poison pill received for ${id}. Disconnecting...`);
+            eventSource.close();
+            const i = openStreams.indexOf(eventSource);
+            if (i !== -1) openStreams.splice(i, 1);
+        });
+
         eventSource.onerror = (e) => {
             console.error(`SSE Error for ${id}:`, e);
             eventSource.close();

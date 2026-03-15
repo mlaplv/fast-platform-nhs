@@ -4,7 +4,7 @@ from backend.database.models import (
     User, VoiceProfile, Role, Permission, Category, Article, Order,
     ProductBase, ProductVariant, RentalContract, ProductEmbedding,
     ArticleEmbedding, Draft, AgentTelemetryLog, ChatMessage, Notification,
-    ContentCampaign
+    ContentCampaign, MediaRegistry
 )
 
 class UserRepository(SQLAlchemyAsyncRepository[User]):
@@ -58,6 +58,9 @@ class NotificationRepository(SQLAlchemyAsyncRepository[Notification]):
 class ContentCampaignRepository(SQLAlchemyAsyncRepository[ContentCampaign]):
     model_type = ContentCampaign
 
+class MediaRegistryRepository(SQLAlchemyAsyncRepository[MediaRegistry]):
+    model_type = MediaRegistry
+
 # ==========================================
 # REPOSITORY PROVIDERS (V55.0 DI PATTERN)
 # ==========================================
@@ -91,3 +94,6 @@ async def provide_telemetry_repo(db_session: AsyncSession) -> AgentTelemetryLogR
 
 async def provide_campaign_repo(db_session: AsyncSession) -> ContentCampaignRepository:
     return ContentCampaignRepository(session=db_session)
+
+async def provide_media_repo(db_session: AsyncSession) -> MediaRegistryRepository:
+    return MediaRegistryRepository(session=db_session)

@@ -74,6 +74,12 @@ class BulkFixRequest(BaseModel):
 class BulkFixResponse(BaseModel):
     new_content: str
 
+class MediaAnalysisResult(BaseModel):
+    alt_text: str = Field(description="Mô tả ảnh ngắn gọn, chuẩn SEO (không dùng từ 'hình ảnh', 'ảnh')")
+    tags: List[str] = Field(description="Danh sách 5-8 từ khóa mô tả đối tượng, bối cảnh, màu sắc trong ảnh")
+    description: str = Field(description="Mô tả chi tiết nội dung ảnh phục vụ AI accessibility")
+    sentiment: str = Field(description="Cảm xúc chủ đạo của ảnh (e.g. chuyên nghiệp, năng động, tĩnh lặng)")
+
 class MediaAsset(BaseModel):
     id: str = Field(default_factory=lambda: "img_" + safe_id(), description="ID duy nhất của ảnh")
     url: str = Field(description="URL truy cập ảnh (Blob hoặc S3)")

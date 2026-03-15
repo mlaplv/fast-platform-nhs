@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import StepModal from './StepModal.svelte';
+    import MediaModal from '$lib/components/media/MediaModal.svelte';
 
     let { campaign = $bindable() } = $props();
 
@@ -14,6 +15,7 @@
     ];
 
     let showModal = $state(false);
+    let showMediaModal = $state(false);
     let selectedStep = $state(1);
 
     function getStepStatus(stepId: number) {
@@ -64,6 +66,20 @@
             <div class="h-px w-8 bg-white/10 {campaign.current_step > step.id ? 'bg-green-500/30' : ''}"></div>
         {/if}
     {/each}
+
+    <!-- Nút Thư viện Media Đẳng cấp Quốc tế -->
+    <div class="h-10 w-px bg-white/10 mx-2"></div>
+    <button
+        class="flex flex-col items-center gap-2 group transition-all"
+        onclick={() => showMediaModal = true}
+    >
+        <div class="w-10 h-10 rounded-full flex items-center justify-center bg-blue-500/10 text-blue-400 border border-blue-500/20 group-hover:bg-blue-500/20 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+        </div>
+        <span class="text-[10px] uppercase tracking-wider font-bold text-blue-400/80 group-hover:text-blue-400">Library</span>
+    </button>
 </div>
 
 {#if showModal}
@@ -71,6 +87,14 @@
         bind:show={showModal} 
         {campaign} 
         stepId={selectedStep} 
+    />
+{/if}
+
+{#if showMediaModal}
+    <MediaModal
+        bind:show={showMediaModal}
+        campaignId={campaign.id}
+        onClose={() => showMediaModal = false}
     />
 {/if}
 

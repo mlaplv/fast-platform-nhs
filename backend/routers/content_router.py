@@ -17,12 +17,15 @@ from backend.models.schemas import (
     GenericResponse
 )
 from backend.services.xohi.creative_studio.models.schemas import AgentSignal
-from backend.database.repositories import ContentCampaignRepository, provide_campaign_repo
+from backend.database.repositories import ContentCampaignRepository, MediaRegistryRepository, provide_campaign_repo, provide_media_repo
 from litestar.di import Provide
 
 class ContentController(Controller):
     path = "/api/v1/content"
-    dependencies = {"campaign_repo": Provide(provide_campaign_repo)}
+    dependencies = {
+        "campaign_repo": Provide(provide_campaign_repo),
+        "media_repo": Provide(provide_media_repo)
+    }
 
     @get("/campaigns")
     async def list_campaigns(
@@ -104,7 +107,7 @@ class ContentController(Controller):
         return await content_factory.retry_step(str(campaign_id), campaign_repo)
 
     @post("/campaigns/{campaign_id:uuid}/publish")
-    async def publish_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> GenericResponse:
+    async def publish_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, media_repo: MediaRegistryRepository) -> GenericResponse:
         """Xuất bản và địa phương hóa toàn bộ tài nguyên."""
         from backend.database.models import ContentCampaign as CampaignModel
         campaign: Optional[CampaignModel] = await campaign_repo.get(str(campaign_id))
@@ -113,12 +116,13 @@ class ContentController(Controller):
 
         from backend.services.xohi.creative_studio.formatters.media_compressor import MediaCompressor
         compressor = MediaCompressor()
-        await compressor.execute(str(campaign_id), campaign_repo)
+        # Pass media_repo to enable registry tracking
+        await compressor.execute(str(campaign_id), campaign_repo, media_repo=media_repo)
 
         campaign.status = "COMPLETED"
         await campaign_repo.update(campaign)
         await campaign_repo.session.commit()
-        return GenericResponse(status="success", message="Campaign published and localized.")
+        return GenericResponse(status="success", message="Campaign published and registered.")
 
     @put("/campaigns/{campaign_id:uuid}/metadata")
     async def update_metadata(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> GenericResponse:
@@ -133,38 +137,64 @@ class ContentController(Controller):
         return await content_factory.update_metadata(str(campaign_id), data, campaign_repo)
 
     @delete("/campaigns/{campaign_id:uuid}", status_code=200)
-    async def delete_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> GenericResponse:
-        """Xóa chiến dịch và toàn bộ log chat liên quan (Hard Memory Purge)."""
+    async def delete_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, media_repo: MediaRegistryRepository) -> GenericResponse:
+        """Xóa chiến dịch, toàn bộ file vật lý và log liên quan (Full Surgical Purge)."""
         try:
+            import os
             cid_str = str(campaign_id)
-            
-            # 1. Clean up associated ChatMessages (Resume Logs)
-            from sqlalchemy import delete as sa_delete, func, cast, String
+
+            # 1. PHYSICAL FILE PURGE (Dựa trên Registry - Đẳng cấp quốc tế)
+            from sqlalchemy import select
+            from backend.database.models import MediaRegistry
+
+            media_stmt = select(MediaRegistry).where(MediaRegistry.campaign_id == cid_str)
+            media_result = await media_repo.session.execute(media_stmt)
+            assets = media_result.scalars().all()
+
+            files_purged = 0
+            for asset in assets:
+                # Chuyển path từ /v65_assets/... thành path vật lý
+                # Giả định upload_dir là frontend/static/v65_assets
+                # Chúng ta lấy từ cấu hình MediaCompressor mặc định
+                rel_path = asset.file_path.lstrip("/")
+                full_path = os.path.join("frontend/static", rel_path)
+
+                if os.path.exists(full_path):
+                    os.remove(full_path)
+                    files_purged += 1
+
+                await media_repo.delete(asset.id)
+
+            # 2. Clean up associated ChatMessages (Neural Logs)
+            from sqlalchemy import delete as sa_delete, cast, String
             from backend.database.models import ChatMessage
-            
-            # Robust JSON filtering (Phase 4): Works across SQLite and Postgres
-            # We look for campaign_id in the content JSON
+
             stmt = sa_delete(ChatMessage).where(
                 cast(ChatMessage.content["campaign_id"], String).label("cid") == cid_str
             )
             await campaign_repo.session.execute(stmt)
-            
-            # 2. Delete the campaign itself
+
+            # 3. Delete the campaign itself
             await campaign_repo.delete(cid_str)
-            
+
+            # 4. SSE POISON PILL (V65.0 Cleanup)
+            from backend.services.event_bus import event_bus
+            event_bus.publish("CAMPAIGN_PURGED", {
+                "campaign_id": cid_str,
+                "type": "TERMINATE",
+                "action": "PURGE"
+            })
+
             await campaign_repo.session.commit()
-            return GenericResponse(status="success", message="Campaign and associated neural logs purged.")
+
+            logger.info(f"[Purge] Campaign {cid_str} wiped. Files removed: {files_purged}")
+            return GenericResponse(
+                status="success",
+                message=f"Campaign wiped. {files_purged} assets and neural logs purged."
+            )
         except Exception as e:
-            # R102: Log the exception details for Phase 4 debugging
             logger.error(f"[ContentController] Purge failed for {campaign_id}: {str(e)}")
-            # Fallback to simple delete if cleanup fails (Rule: Service continuity over total purge)
-            try:
-                await campaign_repo.delete(str(campaign_id))
-                await campaign_repo.session.commit()
-                return GenericResponse(status="partial_success", message="Campaign deleted, but logs may persist.")
-            except Exception as e2:
-                logger.critical(f"[ContentController] Total delete failure: {e2}")
-                return GenericResponse(status="error", message=str(e2))
+            return GenericResponse(status="error", message=str(e))
 
     @post("/campaigns/{campaign_id:uuid}/analyze/copyright")
     async def analyze_copyright(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> GenericResponse:

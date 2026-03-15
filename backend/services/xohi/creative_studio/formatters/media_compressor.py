@@ -10,9 +10,12 @@ from typing import List, Dict, Optional, Union
 from datetime import datetime, timezone
 from sqlalchemy.orm.attributes import flag_modified
 
-from backend.database.models import ContentCampaign
-from backend.database.repositories import ContentCampaignRepository
+import uuid
+from backend.database.models import ContentCampaign, MediaRegistry
+from backend.database.repositories import ContentCampaignRepository, MediaRegistryRepository
 from backend.services.xohi.creative_studio.models.schemas import AgentResponse, AgentSignal
+
+from backend.services.xohi.creative_studio.operatives.media_analyst import MediaAnalyst
 
 logger = logging.getLogger("api-gateway")
 
@@ -27,8 +30,9 @@ class MediaCompressor:
         os.makedirs(self.upload_dir, exist_ok=True)
         # R106: Semaphore-based concurrency to protect 2GB RAM limits.
         self.semaphore: asyncio.Semaphore = asyncio.Semaphore(3)
+        self.analyst = MediaAnalyst()
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
+    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, media_repo: Optional[MediaRegistryRepository] = None, **kwargs: object) -> AgentResponse:
         """Entry point for standard agentic flow."""
         campaign: Optional[ContentCampaign] = await repo.get(campaign_id)
         if not campaign:
@@ -36,7 +40,7 @@ class MediaCompressor:
 
         # Step 1: Localize standard assets (images from Step 2)
         original_assets: List[str] = campaign.get_gold_val("original_remote_assets", list(campaign.assets_data or []))
-        local_assets: List[str] = await self.localize_assets(campaign)
+        local_assets: List[str] = await self.localize_assets(campaign, media_repo)
 
         # Step 2: Localize Avatar (Gold Metadata)
         gold: Dict[str, object] = dict(campaign.gold_metadata or {})
@@ -44,7 +48,7 @@ class MediaCompressor:
 
         if remote_avatar and remote_avatar.startswith("http"):
             async with httpx.AsyncClient(follow_redirects=True) as client:
-                local_avatar = await self._download_and_save(client, remote_avatar, str(campaign.id), "avatar")
+                local_avatar = await self._download_and_save(client, remote_avatar, str(campaign.id), "avatar", media_repo)
                 if local_avatar:
                     gold["avatar"] = local_avatar
                     campaign.gold_metadata = gold
@@ -54,7 +58,7 @@ class MediaCompressor:
         final_html: str = self.wrap_html(campaign.draft_content or "", local_assets, original_assets)
 
         # Step 4: Final Surgical Scan for manual/rogue external links
-        final_html = await self._localize_remaining_html_images(final_html, str(campaign.id))
+        final_html = await self._localize_remaining_html_images(final_html, str(campaign.id), media_repo)
 
         campaign.final_html = final_html
         campaign.assets_data = local_assets
@@ -70,7 +74,7 @@ class MediaCompressor:
             data={"assets": local_assets, "final_html": final_html}
         )
 
-    async def localize_assets(self, campaign: ContentCampaign) -> List[str]:
+    async def localize_assets(self, campaign: ContentCampaign, media_repo: Optional[MediaRegistryRepository] = None) -> List[str]:
         """Downloads and processes all assets defined in assets_data."""
         local_paths: List[str] = []
         async with httpx.AsyncClient(follow_redirects=True) as client:
@@ -85,12 +89,12 @@ class MediaCompressor:
                     continue
 
                 async with self.semaphore:
-                    local_path = await self._download_and_save(client, url, str(campaign.id), i)
+                    local_path = await self._download_and_save(client, url, str(campaign.id), i, media_repo)
                     local_paths.append(local_path if local_path else "/v65_assets/placeholder.webp")
 
         return local_paths
 
-    async def _download_and_save(self, client: httpx.AsyncClient, url: str, campaign_id: str, suffix: Union[int, str]) -> Optional[str]:
+    async def _download_and_save(self, client: httpx.AsyncClient, url: str, campaign_id: str, suffix: Union[int, str], media_repo: Optional[MediaRegistryRepository] = None) -> Optional[str]:
         """Robust download and WebP conversion flow."""
         if not url.startswith("http"):
             return url
@@ -102,35 +106,64 @@ class MediaCompressor:
             buffer = BytesIO(response.content)
             try:
                 # Offload blocking Pillow logic to thread pool
-                await asyncio.to_thread(self._save_webp, buffer, campaign_id, suffix)
-                return f"/v65_assets/{campaign_id}_{suffix}.webp"
+                dims = await asyncio.to_thread(self._save_webp, buffer, campaign_id, suffix)
+                local_path = f"/v65_assets/{campaign_id}_{suffix}.webp"
+
+                # --- AI PROFESSIONAL REGISTRY INTEGRATION (V65.0) ---
+                if media_repo:
+                    full_path = os.path.join(self.upload_dir, f"{campaign_id}_{suffix}.webp")
+                    file_size = os.path.getsize(full_path)
+
+                    registry_entry = MediaRegistry(
+                        id=str(uuid.uuid4()),
+                        filename=f"{campaign_id}_{suffix}.webp",
+                        file_path=local_path,
+                        file_size=file_size,
+                        mime_type="image/webp",
+                        dimensions=dims,
+                        campaign_id=campaign_id,
+                        media_metadata={
+                            "original_url": url,
+                            "localized_at": datetime.now(timezone.utc).isoformat(),
+                            "source": "MediaCompressor"
+                        }
+                    )
+                    await media_repo.add(registry_entry)
+
+                    # --- AI AUTO-TAGGING & VISUAL INTELLIGENCE (Giai đoạn 5) ---
+                    # Chạy phân tích background để không block quá trình localization chính
+                    asyncio.create_task(self.analyst.process_registry_entry(registry_entry.id))
+
+                return local_path
             finally:
                 buffer.close()
         except Exception as e:
             logger.error(f"[MediaCompressor] Localization failure for {url}: {str(e)}")
             return None
 
-    def _save_webp(self, buffer: BytesIO, campaign_id: str, suffix: Union[int, str]) -> None:
+    def _save_webp(self, buffer: BytesIO, campaign_id: str, suffix: Union[int, str]) -> str:
         """Internal worker for image processing (Resampling + WebP)."""
         filename: str = f"{campaign_id}_{suffix}.webp"
         filepath: str = os.path.join(self.upload_dir, filename)
-        
+
         with Image.open(buffer) as img:
             # R105: Downscale for performance (max 1920px)
             if max(img.size) > 1920:
                 img.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
-            
+
+            width, height = img.size
             # Save as optimized WebP
             img.save(filepath, "WEBP", quality=85)
+            return f"{width}x{height}"
 
-    async def _localize_remaining_html_images(self, html: str, campaign_id: str) -> str:
+    async def _localize_remaining_html_images(self, html: str, campaign_id: str, media_repo: Optional[MediaRegistryRepository] = None) -> str:
         """Surgical scan to catch any escaped external links in HTML tags."""
         if not html: return ""
-        
+
         # Hardened Regex for all quote types
         img_pattern = re.compile(r'<img[^>]+src\s*=\s*["\']?(https?://[^"\' >]+)["\']?', re.IGNORECASE)
         urls: List[str] = list(set(img_pattern.findall(html)))
-        
+
         if not urls: return html
 
         final_html: str = html
@@ -138,12 +171,12 @@ class MediaCompressor:
             for i, url in enumerate(urls):
                 if url.startswith("/") or url.startswith("static"):
                     continue
-                
+
                 async with self.semaphore:
-                    local_path = await self._download_and_save(client, url, campaign_id, f"ext_{i}")
+                    local_path = await self._download_and_save(client, url, campaign_id, f"ext_{i}", media_repo)
                     if local_path:
                         final_html = final_html.replace(url, local_path)
-        
+
         return final_html
 
     def wrap_html(self, content: str, local_assets: List[str], original_assets: Optional[List[str]] = None) -> str:
