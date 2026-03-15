@@ -1,10 +1,12 @@
 import type { MediaAsset } from "./types";
 import { safeRandomUUID } from "./utils";
+import { apiClient } from "$lib/utils/apiClient";
 
 export function createXohiImageState() {
     // 1. State: Danh sách toàn bộ ảnh
     let assets = $state<MediaAsset[]>([]);
     let isUploading = $state(false);
+    let campaignId = $state<string | null>(null);
 
     // 2. Derived: Tự động tách biệt Ảnh chính và Ảnh phụ
     const primaryAsset = $derived(assets.find(a => a.is_primary));
@@ -52,20 +54,56 @@ export function createXohiImageState() {
         });
     }
 
-    // 5. Action: Thêm ảnh mới (Optimistic Preview)
-    function addImages(files: FileList) {
+    // 5. Action: Thêm ảnh mới (Direct Server Upload V65.0)
+    async function addImages(files: FileList) {
         isUploading = true;
-        Array.from(files).forEach((file, index) => {
-            const url = URL.createObjectURL(file);
+
+        const uploadPromises = Array.from(files).map(async (file, index) => {
+            const tempId = `tmp_${safeRandomUUID()}`;
+            const blobUrl = URL.createObjectURL(file);
+
+            // Optimistic UI: Add preview immediately
             const newAsset: MediaAsset = {
-                id: `tmp_${safeRandomUUID()}`,
-                url,
-                is_primary: assets.length === 0 && index === 0, // Nếu chưa có ảnh thì cái đầu tiên là primary
+                id: tempId,
+                url: blobUrl,
+                is_primary: assets.length === 0 && index === 0,
                 order_index: assets.length,
-                media_metadata: { size: file.size, type: file.type, name: file.name }
+                media_metadata: { status: 'uploading', name: file.name }
             };
             assets.push(newAsset);
+
+            try {
+                const formData = new FormData();
+                formData.append('data', file);
+                if (campaignId) formData.append('campaign_id', campaignId);
+
+                const response = await apiClient.upload<{ data: MediaAsset }>(
+                    '/api/v1/media',
+                    formData
+                );
+
+                // Replace temp asset with real one
+                const idx = assets.findIndex(a => a.id === tempId);
+                if (idx !== -1) {
+                    const serverAsset = response.data;
+                    assets[idx] = {
+                        ...assets[idx],
+                        id: serverAsset.id,
+                        url: serverAsset.url || (serverAsset as any).file_path, // Fallback for mapping
+                        media_metadata: { ...serverAsset.media_metadata, status: 'ready' }
+                    };
+                    URL.revokeObjectURL(blobUrl);
+                }
+            } catch (error) {
+                console.error("Upload failed for", file.name, error);
+                const idx = assets.findIndex(a => a.id === tempId);
+                if (idx !== -1) {
+                    assets[idx].media_metadata = { status: 'error', error: String(error) };
+                }
+            }
         });
+
+        await Promise.all(uploadPromises);
         isUploading = false;
     }
 
@@ -74,6 +112,12 @@ export function createXohiImageState() {
         if (asset && asset.url.startsWith('blob:')) {
             URL.revokeObjectURL(asset.url); // R03: Dọn dẹp bộ nhớ
         }
+
+        // Permanent delete from server if it's not a temp blob
+        if (asset && !asset.id.startsWith('tmp_')) {
+            apiClient.delete(`/api/v1/media/${id}`).catch(e => console.error("Failed to delete asset from server", e));
+        }
+
         const wasPrimary = asset?.is_primary;
         assets = assets.filter(a => a.id !== id);
 
@@ -85,17 +129,57 @@ export function createXohiImageState() {
         recalculateOrder();
     }
 
-    function addImagesFromUrl(url: string) {
-        const newAsset: MediaAsset = {
-            id: `img_${safeRandomUUID()}`,
-            url,
-            is_primary: assets.length === 0,
-            order_index: assets.length
-        };
-        assets.push(newAsset);
+    async function addImagesFromUrl(url: string) {
+        try {
+            const response = await apiClient.post<{ data: MediaAsset }>(
+                '/api/v1/media/fetch-remote',
+                { url, campaign_id: campaignId }
+            );
+
+            const serverAsset = response.data;
+            const newAsset: MediaAsset = {
+                ...serverAsset,
+                url: serverAsset.url || (serverAsset as any).file_path,
+                is_primary: assets.length === 0,
+                order_index: assets.length
+            };
+            assets.push(newAsset);
+        } catch (error) {
+            console.error("Failed to fetch remote image", error);
+        }
     }
 
-    function initAssets(initialAssets: MediaAsset[]) {
+    async function smartCrop(assetId: string, preset: 'square' | 'banner' | 'story' | 'feed') {
+        const asset = assets.find(a => a.id === assetId);
+        if (!asset) return;
+
+        try {
+            const response = await apiClient.post<{ data: MediaAsset }>(
+                `/api/v1/media/${assetId}/edit`,
+                {
+                    action: 'smart_crop',
+                    params: { preset }
+                }
+            );
+
+            // Update local asset with new version (WebP path and dimensions might change)
+            const idx = assets.findIndex(a => a.id === assetId);
+            if (idx !== -1) {
+                const serverAsset = response.data;
+                assets[idx] = {
+                    ...assets[idx],
+                    url: serverAsset.url || (serverAsset as any).file_path,
+                    dimensions: serverAsset.dimensions,
+                    media_metadata: serverAsset.media_metadata
+                };
+            }
+        } catch (error) {
+            console.error("Smart crop failed", error);
+        }
+    }
+
+    function initAssets(initialAssets: MediaAsset[], id?: string) {
+        if (id) campaignId = id;
         // Dọn dẹp Blob cũ nếu có trước khi nạp mới
         assets.forEach(a => {
             if (a.url.startsWith('blob:')) URL.revokeObjectURL(a.url);
@@ -108,12 +192,15 @@ export function createXohiImageState() {
         get primaryAsset() { return primaryAsset; },
         get secondaryAssets() { return secondaryAssets; },
         get isUploading() { return isUploading; },
+        get campaignId() { return campaignId; },
+        setCampaignId: (id: string) => { campaignId = id; },
         swapPrimary,
         reorderAssets,
         addImages,
         addImagesFromUrl,
         initAssets,
-        removeAsset
+        removeAsset,
+        smartCrop
     };
 }
 

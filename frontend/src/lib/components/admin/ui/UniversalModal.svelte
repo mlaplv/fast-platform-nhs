@@ -16,7 +16,10 @@
   import VoiceSettings from "../management/VoiceSettings.svelte";
   import ContentFactory from "../management/ContentFactory.svelte";
 
-  const WIDGET_REGISTRY: Record<string, any> = {
+  import type { Component } from "svelte";
+  import type { WidgetType } from "$lib/state/types";
+
+  const WIDGET_REGISTRY: Record<string, Component<any>> = {
     RevenueChart,
     REVENUE_CHART: RevenueChart,
     UserTable,

@@ -1,6 +1,7 @@
 import logging
 import uuid
 import json
+import asyncio
 from typing import Dict, Union, Optional
 from sqlalchemy import text
 from backend.services.event_bus import event_bus

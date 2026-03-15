@@ -12,11 +12,11 @@ class BodyLimitMiddleware:
     Prevents memory exhaustion attacks (OOM).
     """
 
-    def __init__(self, app: ASGIApp, max_size: int = 1048576) -> None:
+    def __init__(self, app: ASGIApp, max_size: int = 10485760) -> None:
         """
         Args:
             app: The ASGI application
-            max_size: Maximum payload size in bytes (default 1MB)
+            max_size: Maximum payload size in bytes (default 10MB)
         """
         self.app = app
         self.max_size = max_size

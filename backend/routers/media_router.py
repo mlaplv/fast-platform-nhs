@@ -2,6 +2,9 @@ import logging
 from typing import List, Dict, Optional, Union, cast
 from uuid import UUID
 from litestar import Controller, get, post, patch, delete, Request
+from litestar.datastructures import UploadFile
+from litestar.enums import RequestEncodingType
+from litestar.params import Body
 from litestar.response import Redirect
 from litestar.di import Provide
 
@@ -48,8 +51,8 @@ class MediaController(Controller):
         FileManager: Liệt kê tài nguyên tập trung.
         Hỗ trợ lọc theo campaign_id, Tìm kiếm ngữ nghĩa AI (V76) và Thùng rác (V10).
         """
-        user = cast(Dict[str, object], request.state.get("user", {}))
-        owner_id = cast(Optional[str], user.get("sub") or user.get("id"))
+        user = request.state.get("user", {})
+        owner_id = user.get("sub") or user.get("id")
 
         result = await media_service.list_assets(
             repo=media_repo,
@@ -61,25 +64,8 @@ class MediaController(Controller):
             owner_id=owner_id
         )
 
-        from backend.database.models import MediaRegistry
-        items: List[MediaAssetResponse] = []
-        for item_obj in result.items:
-            item = cast(MediaRegistry, item_obj)
-            items.append(MediaAssetResponse(
-                id=str(item.id),
-                filename=item.filename,
-                file_path=item.file_path,
-                file_size=item.file_size,
-                mime_type=item.mime_type,
-                dimensions=item.dimensions,
-                blurhash=item.blurhash,
-                alt_text=item.alt_text,
-                is_public=item.is_public,
-                campaign_id=str(item.campaign_id) if item.campaign_id else None,
-                owner_id=str(item.owner_id) if item.owner_id else None,
-                created_at=item.created_at.isoformat(),
-                media_metadata=dict(item.media_metadata or {})
-            ))
+        # R105: Use strict mapping from ORM to Schema
+        items = [MediaAssetResponse.from_orm_model(item) for item in result.items]
 
         return MediaListResponse(
             status="success",
@@ -91,11 +77,42 @@ class MediaController(Controller):
             )
         )
 
+    @post("/", media_type=RequestEncodingType.MULTI_PART)
+    async def upload_media(
+        self,
+        request: Request,
+        media_repo: MediaRegistryRepository,
+        data: UploadFile = Body(media_type=RequestEncodingType.MULTI_PART),
+        campaign_id: Optional[str] = None
+    ) -> MediaDetailResponse:
+        """Upload file trực tiếp (V65.0 Upload Path)."""
+        user = request.state.get("user", {})
+        owner_id = user.get("sub") or user.get("id")
+
+        content = await data.read()
+        asset = await media_service.upload_asset(
+            repo=media_repo,
+            file_content=content,
+            filename=data.filename,
+            content_type=data.content_type,
+            campaign_id=campaign_id,
+            owner_id=owner_id
+        )
+
+        if not asset:
+             from backend.exceptions import ClientException
+             raise ClientException(status_code=400, detail="Failed to upload asset")
+
+        return MediaDetailResponse(
+            status="success",
+            data=MediaAssetResponse.from_orm_model(asset)
+        )
+
     @get("/stats")
     async def get_media_stats(self, request: Request, media_repo: MediaRegistryRepository) -> MediaStatsResponse:
         """Lấy số liệu thống kê kho tài nguyên (V9.0 Analytics)."""
-        user = cast(Dict[str, object], request.state.get("user", {}))
-        owner_id = cast(Optional[str], user.get("sub") or user.get("id"))
+        user = request.state.get("user", {})
+        owner_id = user.get("sub") or user.get("id")
         stats = await media_service.get_stats(media_repo, owner_id=owner_id)
 
         return MediaStatsResponse(
@@ -116,28 +133,14 @@ class MediaController(Controller):
             return GenericResponse(status="error", message="Asset not found")
 
         # RBAC Check (V10.0 Elite)
-        user = cast(Dict[str, object], request.state.get("user", {}))
-        owner_id = cast(Optional[str], user.get("sub") or user.get("id"))
+        user = request.state.get("user", {})
+        owner_id = user.get("sub") or user.get("id")
         if not asset.is_public and asset.owner_id and asset.owner_id != owner_id:
             return GenericResponse(status="error", message="Access denied")
 
         return MediaDetailResponse(
             status="success",
-            data=MediaAssetResponse(
-                id=str(asset.id),
-                filename=asset.filename,
-                file_path=asset.file_path,
-                file_size=asset.file_size,
-                mime_type=asset.mime_type,
-                dimensions=asset.dimensions,
-                blurhash=asset.blurhash,
-                alt_text=asset.alt_text,
-                is_public=asset.is_public,
-                campaign_id=str(asset.campaign_id) if asset.campaign_id else None,
-                owner_id=str(asset.owner_id) if asset.owner_id else None,
-                created_at=asset.created_at.isoformat(),
-                media_metadata=dict(asset.media_metadata or {})
-            )
+            data=MediaAssetResponse.from_orm_model(asset)
         )
 
     @patch("/{asset_id:uuid}")
@@ -149,8 +152,8 @@ class MediaController(Controller):
         data: MediaUpdateMetadata
     ) -> GenericResponse:
         """Cập nhật Metadata (Alt text, Tags) - Đẳng cấp SEO."""
-        user = cast(Dict[str, object], request.state.get("user", {}))
-        owner_id = cast(Optional[str], user.get("sub") or user.get("id"))
+        user = request.state.get("user", {})
+        owner_id = user.get("sub") or user.get("id")
 
         updated = await media_service.update_metadata(
             media_repo,
@@ -177,8 +180,8 @@ class MediaController(Controller):
         Mặc định là Soft-delete (V10.0 Trash Bin).
         Nếu permanent=True sẽ xóa vĩnh viễn.
         """
-        user = cast(Dict[str, object], request.state.get("user", {}))
-        owner_id = cast(Optional[str], user.get("sub") or user.get("id"))
+        user = request.state.get("user", {})
+        owner_id = user.get("sub") or user.get("id")
 
         success = await media_service.delete_asset(media_repo, str(asset_id), permanent=permanent, owner_id=owner_id)
 
@@ -191,8 +194,8 @@ class MediaController(Controller):
     @post("/{asset_id:uuid}/restore")
     async def restore_media(self, asset_id: UUID, request: Request, media_repo: MediaRegistryRepository) -> GenericResponse:
         """Khôi phục tài nguyên từ Thùng rác (V10.0)."""
-        user = cast(Dict[str, object], request.state.get("user", {}))
-        owner_id = cast(Optional[str], user.get("sub") or user.get("id"))
+        user = request.state.get("user", {})
+        owner_id = user.get("sub") or user.get("id")
 
         success = await media_service.restore_asset(media_repo, str(asset_id), owner_id=owner_id)
         if success:
@@ -208,8 +211,8 @@ class MediaController(Controller):
         data: BulkDeleteRequest
     ) -> GenericResponse:
         """Xóa hàng loạt tài nguyên (Hỗ trợ Soft-delete V10.0)."""
-        user = cast(Dict[str, object], request.state.get("user", {}))
-        owner_id = cast(Optional[str], user.get("sub") or user.get("id"))
+        user = request.state.get("user", {})
+        owner_id = user.get("sub") or user.get("id")
 
         success = await media_service.bulk_delete(
             media_repo,
@@ -239,8 +242,8 @@ class MediaController(Controller):
             return Redirect(path="/v65_assets/placeholder.webp")
 
         # RBAC Check (V10.0 Elite)
-        user = cast(Dict[str, object], request.state.get("user", {}))
-        owner_id = cast(Optional[str], user.get("sub") or user.get("id"))
+        user = request.state.get("user", {})
+        owner_id = user.get("sub") or user.get("id")
         if not asset.is_public and asset.owner_id and asset.owner_id != owner_id:
             # Nếu không có quyền xem, trả về placeholder mờ ảo
             return Redirect(path="/v65_assets/placeholder.webp")
@@ -257,8 +260,8 @@ class MediaController(Controller):
         data: QuickEditRequest
     ) -> Union[QuickEditResponse, GenericResponse]:
         """Xử lý nhanh ảnh (Xoay/Lật/Crop/Watermark) - V10.0 Elite Engine."""
-        user = cast(Dict[str, object], request.state.get("user", {}))
-        owner_id = cast(Optional[str], user.get("sub") or user.get("id"))
+        user = request.state.get("user", {})
+        owner_id = user.get("sub") or user.get("id")
 
         asset = await media_service.quick_edit(
             media_repo,
@@ -271,21 +274,7 @@ class MediaController(Controller):
         if asset:
             return QuickEditResponse(
                 status="success",
-                data=MediaAssetResponse(
-                    id=str(asset.id),
-                    filename=asset.filename,
-                    file_path=asset.file_path,
-                    file_size=asset.file_size,
-                    mime_type=asset.mime_type,
-                    dimensions=asset.dimensions,
-                    blurhash=asset.blurhash,
-                    alt_text=asset.alt_text,
-                    is_public=asset.is_public,
-                    campaign_id=str(asset.campaign_id) if asset.campaign_id else None,
-                    owner_id=str(asset.owner_id) if asset.owner_id else None,
-                    created_at=asset.created_at.isoformat(),
-                    media_metadata=dict(asset.media_metadata or {})
-                )
+                data=MediaAssetResponse.from_orm_model(asset)
             )
         else:
             return GenericResponse(status="error", message="Quick edit failed or unauthorized.")
@@ -298,8 +287,8 @@ class MediaController(Controller):
         data: BulkDownloadRequest
     ) -> Union[BulkDownloadResponse, GenericResponse]:
         """Tạo gói ZIP tải xuống hàng loạt (V76 Smart Download)."""
-        user = cast(Dict[str, object], request.state.get("user", {}))
-        owner_id = cast(Optional[str], user.get("sub") or user.get("id"))
+        user = request.state.get("user", {})
+        owner_id = user.get("sub") or user.get("id")
 
         zip_url = await media_service.create_bulk_zip(media_repo, data.ids, owner_id=owner_id)
 
@@ -319,8 +308,8 @@ class MediaController(Controller):
         data: FetchRemoteRequest
     ) -> Union[MediaDetailResponse, GenericResponse]:
         """Tải ảnh từ URL bên ngoài vào hệ thống (V9.0)."""
-        user = cast(Dict[str, object], request.state.get("user", {}))
-        owner_id = cast(Optional[str], user.get("sub") or user.get("id"))
+        user = request.state.get("user", {})
+        owner_id = user.get("sub") or user.get("id")
 
         asset = await media_service.fetch_remote_asset(
             repo=media_repo,
@@ -332,21 +321,7 @@ class MediaController(Controller):
         if asset:
             return MediaDetailResponse(
                 status="success",
-                data=MediaAssetResponse(
-                    id=str(asset.id),
-                    filename=asset.filename,
-                    file_path=asset.file_path,
-                    file_size=asset.file_size,
-                    mime_type=asset.mime_type,
-                    dimensions=asset.dimensions,
-                    blurhash=asset.blurhash,
-                    alt_text=asset.alt_text,
-                    is_public=asset.is_public,
-                    campaign_id=str(asset.campaign_id) if asset.campaign_id else None,
-                    owner_id=str(asset.owner_id) if asset.owner_id else None,
-                    created_at=asset.created_at.isoformat(),
-                    media_metadata=dict(asset.media_metadata or {})
-                )
+                data=MediaAssetResponse.from_orm_model(asset)
             )
         else:
             return GenericResponse(status="error", message="Failed to fetch remote asset.")

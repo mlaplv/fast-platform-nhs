@@ -178,12 +178,36 @@ export interface CampaignOutline {
 
 // ── Phase 8: Campaign & Content Types (@agrules) ──
 
+export interface MediaMetadata {
+  embedding?: number[];
+  ai_tags?: string[];
+  ai_description?: string;
+  focal_point?: { x: number; y: number };
+  original_source?: string;
+  sentiment?: string;
+  analyzed_at?: string;
+  status?: 'uploading' | 'ready' | 'error';
+  error?: string;
+  name?: string;
+}
+
 export interface MediaAsset {
   id: string;
-  url: string;
+  url: string;           // Maps to file_path
+  filename?: string;
+  file_size?: number;
+  mime_type?: string;
+  dimensions?: string;
+  blurhash?: string;
+  alt_text?: string;
+  is_public?: boolean;
+  campaign_id?: string;
+  owner_id?: string;
+  created_at?: string;
+  media_metadata?: MediaMetadata;
+  // UI-specific fields (Managed by Campaign/Store)
   is_primary: boolean;
   order_index: number;
-  media_metadata?: Record<string, unknown>;
 }
 
 export interface CampaignKeywords {

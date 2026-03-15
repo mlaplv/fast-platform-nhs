@@ -153,7 +153,7 @@ class MediaCompressor:
 
             width, height = img.size
             # Save as optimized WebP
-            img.save(filepath, "WEBP", quality=85)
+            img.save(filepath, "WEBP", quality=90)
             return f"{width}x{height}"
 
     async def _localize_remaining_html_images(self, html: str, campaign_id: str, media_repo: Optional[MediaRegistryRepository] = None) -> str:

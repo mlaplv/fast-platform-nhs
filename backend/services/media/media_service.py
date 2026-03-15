@@ -33,6 +33,7 @@ class MediaService:
     ) -> MediaListResult:
         """Liệt kê và lọc ảnh với hiệu năng cao (Hỗ trợ AI Semantic Search)."""
         from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
+        from backend.services.media.schemas import MediaMetadata
         import numpy as np
         from sqlalchemy import or_
 
@@ -84,19 +85,26 @@ class MediaService:
                 scored_assets = []
                 for asset in all_assets:
                     # Lấy vector đã lưu hoặc tạo mới nếu chưa có
-                    asset_meta = asset.media_metadata or {}
-                    asset_vec_data = asset_meta.get("embedding")
+                    asset_meta_dict = asset.media_metadata or {}
+                    # R105: Validating metadata structure
+                    try:
+                        asset_meta = MediaMetadata.model_validate(asset_meta_dict)
+                    except Exception:
+                        asset_meta = MediaMetadata()
+
+                    asset_vec_data = asset_meta.embedding
 
                     if not asset_vec_data:
                         # Tạo text đại diện: filename + alt + tags
-                        ai_tags = cast(List[str], asset_meta.get('ai_tags', []))
-                        ai_desc = cast(str, asset_meta.get('ai_description', ''))
+                        ai_tags = asset_meta.ai_tags
+                        ai_desc = asset_meta.ai_description or ""
                         text = f"{asset.filename} {asset.alt_text or ''} {' '.join(ai_tags)} {ai_desc}"
                         asset_vec = cast(np.ndarray, list(encoder.embed([text]))[0])
                         asset_vec_list = asset_vec.tolist()
 
                         # Cập nhật ngược lại DB để lần sau nhanh hơn (Surgical Background Update)
-                        asset.media_metadata = {**asset_meta, "embedding": asset_vec_list}
+                        asset_meta.embedding = asset_vec_list
+                        asset.media_metadata = asset_meta.model_dump()
                         repo.session.add(asset)
                     else:
                         asset_vec = np.array(asset_vec_data)
@@ -130,6 +138,7 @@ class MediaService:
         owner_id: Optional[str] = None
     ) -> Optional[MediaRegistry]:
         """Cập nhật metadata (alt_text, AI tags...) cho ảnh."""
+        from backend.services.media.schemas import MediaMetadata
         asset = await repo.get(asset_id)
         if not asset:
             return None
@@ -139,18 +148,24 @@ class MediaService:
             logger.warning(f"[RBAC] Unauthorized metadata update attempt on {asset_id} by {owner_id}")
             return None
 
-        update_data = metadata.model_dump(exclude_unset=True)
+        if metadata.alt_text is not None:
+            asset.alt_text = metadata.alt_text
 
-        if "alt_text" in update_data:
-            asset.alt_text = cast(Optional[str], update_data["alt_text"])
+        if metadata.is_public is not None:
+            asset.is_public = metadata.is_public
 
-        if "is_public" in update_data:
-            asset.is_public = bool(update_data["is_public"])
+        if metadata.media_metadata is not None:
+            # R105: Merge Pydantic models
+            current_meta_dict = asset.media_metadata or {}
+            try:
+                current_meta = MediaMetadata.model_validate(current_meta_dict)
+            except Exception:
+                current_meta = MediaMetadata()
 
-        if "media_metadata" in update_data:
-            current_meta = dict(asset.media_metadata or {})
-            current_meta.update(cast(Dict[str, object], update_data["media_metadata"]))
-            asset.media_metadata = current_meta
+            # Update fields from the provided metadata
+            update_dict = metadata.media_metadata.model_dump(exclude_unset=True)
+            new_meta_dict = {**current_meta.model_dump(), **update_dict}
+            asset.media_metadata = new_meta_dict
 
         await repo.update(asset)
         await repo.session.commit()
@@ -411,9 +426,13 @@ class MediaService:
                         target_ratio = AspectRatio[preset_name].value if preset_name in AspectRatio.__members__ else AspectRatio.SQUARE.value
 
                         # Lấy focal point từ metadata, mặc định là tâm (0.5, 0.5)
-                        meta = asset.media_metadata or {}
-                        focal = meta.get('focal_point', {'x': 0.5, 'y': 0.5})
-                        f_x, f_y = focal.get('x', 0.5), focal.get('y', 0.5)
+                        meta_dict = asset.media_metadata or {}
+                        try:
+                            from backend.services.media.schemas import MediaMetadata
+                            meta = MediaMetadata.model_validate(meta_dict)
+                            f_x, f_y = meta.focal_point.x, meta.focal_point.y
+                        except Exception:
+                            f_x, f_y = 0.5, 0.5
 
                         box = calculate_smart_crop(img.width, img.height, f_x, f_y, target_ratio)
                         img = img.crop(box)
@@ -596,6 +615,92 @@ class MediaService:
             breakdown=breakdown,
             storage_provider=str(os.getenv("STORAGE_PROVIDER", "local"))
         )
+
+    async def upload_asset(
+        self,
+        repo: MediaRegistryRepository,
+        file_content: bytes,
+        filename: str,
+        content_type: str,
+        campaign_id: Optional[str] = None,
+        owner_id: Optional[str] = None
+    ) -> Optional[MediaRegistry]:
+        """Xử lý upload file trực tiếp, convert sang WEBP và lưu hệ thống (V65.0 Upload)."""
+        import uuid
+        import os
+        from PIL import Image
+        from io import BytesIO
+        from datetime import datetime
+
+        try:
+            asset_id = str(uuid.uuid4())
+            folder = datetime.now().strftime("%Y/%m")
+
+            # 1. Xử lý ảnh (Convert sang WEBP và lấy dimensions)
+            def process_image() -> tuple[bytes, str]:
+                with Image.open(BytesIO(file_content)) as img:
+                    dims = f"{img.width}x{img.height}"
+                    buffer = BytesIO()
+                    # R105: Downscale for performance (max 1920px) - Consistent with MediaCompressor
+                    if max(img.size) > 1920:
+                        img.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
+                        dims = f"{img.width}x{img.height}"
+
+                    if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+                        processed_img = img.convert('RGBA')
+                    else:
+                        processed_img = img.convert('RGB')
+
+                    processed_img.save(buffer, "WEBP", quality=90, optimize=True)
+                    return buffer.getvalue(), dims
+
+            import asyncio
+            webp_content, dims = await asyncio.to_thread(process_image)
+
+            # 2. Upload lên Storage
+            final_filename = os.path.splitext(filename)[0] + ".webp"
+            remote_path = f"uploads/{folder}/{asset_id}.webp"
+
+            # Ghi file tạm để upload qua storage manager (nếu nó yêu cầu path)
+            temp_path = f"/tmp/{asset_id}.webp"
+            with open(temp_path, "wb") as f:
+                f.write(webp_content)
+
+            try:
+                final_url = await storage.upload(temp_path, remote_path)
+            finally:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+
+            # 3. Đăng ký vào Database
+            asset = MediaRegistry(
+                id=asset_id,
+                filename=final_filename,
+                file_path=final_url,
+                file_size=len(webp_content),
+                mime_type="image/webp",
+                dimensions=dims,
+                campaign_id=campaign_id,
+                owner_id=owner_id,
+                provider=str(os.getenv("STORAGE_PROVIDER", "local"))
+            )
+
+            await repo.add(asset)
+            await repo.session.commit()
+
+            # 4. Trigger AI Analysis (Async)
+            from backend.services.event_bus import event_bus
+            await event_bus.emit("MEDIA_UPLOADED", {
+                "id": asset_id,
+                "file_path": final_url,
+                "campaign_id": campaign_id
+            })
+
+            return asset
+
+        except Exception as e:
+            logger.error(f"[MediaService] Direct upload failed: {e}")
+            return None
 
     async def fetch_remote_asset(
         self,

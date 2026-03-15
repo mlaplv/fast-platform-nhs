@@ -48,11 +48,44 @@
   // V22: Voice Mutation Injection - Asset Management
   $effect(() => {
     const action = nanobot.commandAction;
-    if (action?.entity === "media" || action?.entity === "image") {
+    if (!action || action.consumed) return;
+
+    if (action.entity === "media" || action.entity === "image") {
+      // 1. Giao thức Thêm ảnh (Create)
       if (action.verb === "create" && action.args) {
         if (nanobot.consumeCommand(action.verb, action.entity)) {
           xohiImageStore.addImagesFromUrl(action.args);
           vuiController.speak("Dạ, em đã thêm ảnh theo yêu cầu của Sếp rồi ạ.");
+        }
+      }
+
+      // 2. Giao thức Cắt ảnh AI (Edit/Smart Crop)
+      // Args format: "index preset" e.g. "1 square"
+      if (action.verb === "edit" && action.args) {
+        if (nanobot.consumeCommand(action.verb, action.entity)) {
+          const parts = action.args.split(" ");
+          const index = parseInt(parts[0]) - 1; // User says 1, we use 0
+          const preset = (parts[1] || "square") as any;
+
+          const targetAsset = xohiImageStore.assets[index];
+          if (targetAsset) {
+            vuiController.speak(`Dạ, em đang cắt ảnh số ${index + 1} theo khung ${preset} cho Sếp đây ạ.`);
+            xohiImageStore.smartCrop(targetAsset.id, preset);
+          } else {
+            vuiController.speak("Dạ Sếp ơi, em không tìm thấy ảnh đó để cắt ạ.");
+          }
+        }
+      }
+
+      // 3. Giao thức Xóa ảnh (Delete)
+      if (action.verb === "delete" && action.args) {
+        if (nanobot.consumeCommand(action.verb, action.entity)) {
+          const index = parseInt(action.args) - 1;
+          const targetAsset = xohiImageStore.assets[index];
+          if (targetAsset) {
+            xohiImageStore.removeAsset(targetAsset.id);
+            vuiController.speak(`Dạ, em đã xóa ảnh số ${index + 1} rồi ạ.`);
+          }
         }
       }
     }
