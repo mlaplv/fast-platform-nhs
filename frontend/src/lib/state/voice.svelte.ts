@@ -54,7 +54,7 @@ export function createVoiceState(
     transcript: string,
     responseText: string,
     uiAction: string,
-    data?: Record<string, any>,
+    data?: Record<string, unknown>,
     source: "text" | "voice" = "text",
     routerTier?: number,
   ) {

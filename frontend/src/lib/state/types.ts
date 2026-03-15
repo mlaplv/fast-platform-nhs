@@ -98,7 +98,8 @@ export type CommandEntity =
   | "identity"
   | "permission"
   | "role"
-  | "voice";
+  | "voice"
+  | "campaign";
 
 export interface CommandAction {
   verb: CommandVerb;

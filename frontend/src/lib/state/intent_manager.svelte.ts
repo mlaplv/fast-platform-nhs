@@ -40,8 +40,8 @@ interface IntentDeps {
     showToast: (msg: string, type: ToastType) => void;
   };
   chat: {
-    history: unknown[];
-    pagination: unknown;
+    history: import("./chat.svelte").ChatMessage[];
+    pagination: { cursor: string | null; hasMore: boolean; isLoading: boolean };
     hydrateHistory: (sessionId: string, callback?: (logs: import("./types").SystemLog[]) => void, userId?: string, force?: boolean) => Promise<void>;
     loadMoreMessages: (callback?: (logs: import("./types").SystemLog[]) => void, sessionId?: string, userId?: string) => Promise<void>;
     clearHistory: (sessionId: string) => Promise<boolean>;
@@ -204,9 +204,6 @@ export function createIntentManager(
       if (state.commandEpoch === myEpoch) state.isBusy = false;
     }
   }
-
-  return { setVoiceResult, processCommand };
-}
 
   return { setVoiceResult, processCommand };
 }

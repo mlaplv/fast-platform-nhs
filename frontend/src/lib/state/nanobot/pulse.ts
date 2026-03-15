@@ -79,23 +79,28 @@ export function createPulseManager(
             vuiState.setPhase("executing");
             vuiState.setSystemMessage(contentPayload.message);
 
-            if (voice.vuiResponse?.data) {
               const current = voice.vuiResponse.data as unknown as CampaignData;
               const newData = (contentPayload.data || {}) as Record<string, unknown>;
+              const goldMeta = (newData.gold_metadata || {}) as Record<string, unknown>;
+              const topicData = (newData.topic_data || {}) as Record<string, unknown>;
+              const keywordsData = (newData.keywords || {}) as Record<string, unknown>;
 
               voice.vuiResponse.data = {
                   ...current,
                   progress_msg: contentPayload.message,
                   status: "PROCESSING",
                   step: contentPayload.step,
-                  keywords: (newData.keywords || newData.topic_data || current.keywords) as any, // FIXME: properly type keywords
+                  keywords: (newData.keywords || newData.topic_data || current.keywords) as CampaignData["keywords"],
                   assets: normalizeAssets(newData.assets || newData.assets_data || current.assets),
-                  outline: (newData.outline || newData.outline_data || current.outline) as any, // FIXME: properly type outline
+                  outline: (newData.outline || newData.outline_data || current.outline) as CampaignData["outline"],
                   draft_content: (newData.draft_content || current.draft_content) as string,
-                  selectedAvatarUrl: (newData.gold_metadata as any)?.avatar || current.selectedAvatarUrl || null,
-                  selectedAssetIndex: (newData.gold_metadata as any)?.selected_index ?? current.selectedAssetIndex ?? 0,
-                  reserve_assets: normalizeAssets((newData.gold_metadata as any)?.reserve_assets || current.reserve_assets),
-                  creation_config: (newData.gold_metadata as any)?.creation_config || (newData.topic_data as any)?.creation_config || (newData.keywords as any)?.creation_config || current.creation_config || {}
+                  selectedAvatarUrl: (goldMeta.avatar as string) || current.selectedAvatarUrl || null,
+                  selectedAssetIndex: (goldMeta.selected_index as number) ?? current.selectedAssetIndex ?? 0,
+                  reserve_assets: normalizeAssets((goldMeta.reserve_assets as string[]) || current.reserve_assets),
+                  creation_config: (goldMeta.creation_config as Record<string, unknown>) ||
+                                   (topicData.creation_config as Record<string, unknown>) ||
+                                   (keywordsData.creation_config as Record<string, unknown>) ||
+                                   current.creation_config || {}
               } as unknown as Record<string, unknown>;
             }
           }
@@ -166,11 +171,11 @@ export function createPulseManager(
                     unique_score: newData.unique_score || current.unique_score,
                     analysis_cache: newData.gold_metadata?.analysis_cache || current.analysis_cache || {},
                     analysis_metrics: newData.gold_metadata?.analysis_metrics || current.analysis_metrics || {},
-                    selectedAvatarUrl: newData.gold_metadata?.avatar || (current as any).selectedAvatarUrl || null,
-                    selectedAssetIndex: newData.gold_metadata?.selected_index ?? (current as any).selectedAssetIndex ?? 0,
-                    reserve_assets: normalizeAssets(newData.gold_metadata?.reserve_assets || (current as any).reserve_assets),
-                    creation_config: newData.gold_metadata?.creation_config || newData.topic_data?.creation_config || newData.keywords?.creation_config || (current as any).creation_config || {}
-                };
+                    selectedAvatarUrl: (newData.gold_metadata?.avatar as string) || (current as CampaignData).selectedAvatarUrl || null,
+                    selectedAssetIndex: (newData.gold_metadata?.selected_index as number) ?? (current as CampaignData).selectedAssetIndex ?? 0,
+                    reserve_assets: normalizeAssets((newData.gold_metadata?.reserve_assets as string[]) || (current as CampaignData).reserve_assets),
+                    creation_config: (newData.gold_metadata?.creation_config as Record<string, unknown>) || (newData.topic_data?.creation_config as Record<string, unknown>) || (newData.keywords?.creation_config as Record<string, unknown>) || (current as CampaignData).creation_config || {}
+                } as unknown as Record<string, unknown>;
               }
           }
 

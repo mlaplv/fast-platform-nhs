@@ -260,7 +260,13 @@ export function createNanobotState() {
     clearChatLogs: async () => { if (await chat.clearHistory("account")) { log.setActivityLogs([]); ui.showToast("Dữ liệu đã được quét sạch", "success"); } },
 
     // Layout Context
-    get screenContext() { return { current_route: typeof window !== "undefined" ? window.location.pathname : "/", active_widget: state.activeWidget, active_data: state.currentData }; },
+    get screenContext() {
+      return {
+        current_route: typeof window !== "undefined" ? window.location.pathname : "/",
+        active_widget: state.activeWidget,
+        active_data: state.currentData
+      } as import("./types").ScreenContext & { active_data: Record<string, unknown> | null };
+    },
     get heartbeatCollapsed() { return ui.heartbeatCollapsed; },
     toggleHeartbeat: () => {
       if (typeof window === "undefined") return;
