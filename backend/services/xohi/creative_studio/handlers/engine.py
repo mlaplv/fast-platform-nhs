@@ -72,6 +72,7 @@ class ExecutionEngine:
             # Phase 76.5: Neural Streaming Waterfall (Step 4 Special Handling)
             if step == 4 and hasattr(operative, "stream_draft"):
                 campaign = await campaign_repo.get(campaign_id)
+                campaign.draft_content = "" # Clear stale content to prevent UI showing old article
                 full_content = ""
                 async for chunk in operative.stream_draft(campaign):
                     if chunk["type"] == "chunk":
@@ -155,7 +156,13 @@ class ExecutionEngine:
                 if step == 1:
                     campaign.topic_data = response.data
                     campaign.gold_metadata = response.data # First seal
-                elif step == 2: campaign.assets_data = response.data.get("assets", response.data) if isinstance(response.data, dict) else response.data
+                elif step == 2:
+                    # Phase 15.3: Chuẩn hóa dữ liệu assets (hỗ trợ kéo thả)
+                    raw_assets = response.data.get("assets", response.data) if isinstance(response.data, dict) else response.data
+                    if isinstance(raw_assets, list):
+                        campaign.assets_data = raw_assets
+                    else:
+                        campaign.assets_data = raw_assets
                 elif step == 3: campaign.outline_data = response.data.get("outline", response.data) if isinstance(response.data, dict) else response.data
                 elif step == 4: campaign.draft_content = response.data.get("content", campaign.draft_content)
                 elif step == 5:

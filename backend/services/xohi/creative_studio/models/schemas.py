@@ -69,3 +69,27 @@ class BulkFixRequest(BaseModel):
 
 class BulkFixResponse(BaseModel):
     new_content: str
+
+class MediaAsset(BaseModel):
+    id: str = Field(default_factory=lambda: "img_" + safe_id(), description="ID duy nhất của ảnh")
+    url: str = Field(description="URL truy cập ảnh (Blob hoặc S3)")
+    is_primary: bool = Field(default=False, description="Xác định đây là ảnh chính")
+    order_index: int = Field(default=0, description="Thứ tự hiển thị (0 là đầu tiên)")
+    metadata: Dict[str, object] = Field(default_factory=dict, description="Thông tin bổ sung (size, type, v.v.)")
+
+    model_config = ConfigDict(strict=False)
+
+class MediaReorderRequest(BaseModel):
+    asset_ids: List[str] = Field(description="Danh sách ID ảnh theo thứ tự mới")
+    primary_id: Optional[str] = Field(default=None, description="ID của ảnh được chọn làm ảnh chính mới")
+
+class CreativeCampaignState(BaseModel):
+    campaign_id: str
+    step: int = Field(default=2)
+    assets: List[MediaAsset] = Field(default_factory=list)
+
+    model_config = ConfigDict(strict=False)
+
+def safe_id() -> str:
+    import uuid
+    return uuid.uuid4().hex[:8]

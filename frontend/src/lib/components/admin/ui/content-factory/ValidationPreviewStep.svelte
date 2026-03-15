@@ -1,9 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
 
+  import type { MediaAsset } from "$lib/state/types";
+
   let {
     draft_content = "",
-    assets = [],
+    assets = [] as (MediaAsset | string)[],
     keywords = {},
     copyrightScore = null,
     seoScore = null,
@@ -22,7 +24,12 @@
        if (h1Match) title = h1Match[1].replace(/<[^>]+>/g, '').trim();
   }
   
-  let thumbnail = $derived(assets.length > 0 ? assets[0] : "https://via.placeholder.com/600x315?text=No+Image");
+  let thumbnail = $derived.by(() => {
+    if (assets.length === 0) return "https://via.placeholder.com/600x315?text=No+Image";
+    const primary = assets.find(a => typeof a === 'object' && a.is_primary);
+    const first = primary || assets[0];
+    return typeof first === 'string' ? first : first.url;
+  });
   let description = $derived(draft_content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 160) + "...");
 
 </script>

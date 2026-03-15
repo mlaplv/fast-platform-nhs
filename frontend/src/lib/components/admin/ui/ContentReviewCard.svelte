@@ -318,10 +318,14 @@
 
   async function syncAssetChanges(newIndex?: number) {
     try {
+      // Phase 15.3: Sử dụng dữ liệu từ Store nếu đang ở Step 2
+      const currentAssets = viewingStep === 2 ? xohiImageStore.assets : assets;
+      const currentAvatar = viewingStep === 2 ? xohiImageStore.primaryAsset?.url : selectedAvatarUrl;
+
       // Rule R109: REST Alignment — Use keys expected by ActionHandler.update_metadata
       await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, {
-        assets: assets, // Backend expects 'assets' NOT 'assets_data' in PATCH alias
-        avatar: selectedAvatarUrl,
+        assets: currentAssets, // Backend expects 'assets' NOT 'assets_data' in PATCH alias
+        avatar: currentAvatar || selectedAvatarUrl,
         selected_index: newIndex ?? selectedAssetIndex,
         gold_metadata: { reserve_assets } // R120: Persist reserve list
       });
@@ -329,18 +333,18 @@
   }
 
   function handleImageError(url: string) {
-    assets = assets.filter(a => a !== url);
-    if (selectedAvatarUrl === url) selectedAvatarUrl = assets[0] || null;
+    // Phase 15.3: Xóa ảnh lỗi thông qua Store để kích hoạt hiệu ứng phản ứng
+    const asset = xohiImageStore.assets.find(a => a.url === url);
+    if (asset) {
+      xohiImageStore.removeAsset(asset.id);
+      vuiController.speak("Đã tự động loại bỏ ảnh không tải được.");
+    } else {
+      assets = assets.filter(a => typeof a === 'string' ? a !== url : a.url !== url);
+    }
   }
 
-  function deleteAsset(idx: number, e: MouseEvent) {
-    e.stopPropagation();
-    const removed = assets[idx];
-    assets = assets.filter((_, i) => i !== idx);
-    if (selectedAvatarUrl === removed) selectedAvatarUrl = assets[0] || null;
-    vuiController.speak("Đã xóa ảnh.");
-    syncAssetChanges();
-  }
+  // deleteAsset legacy has been replaced by xohiImageStore.removeAsset in sub-components
+
 
   function handleMouseMove(e: MouseEvent) {
     const el = e.currentTarget as HTMLElement;
@@ -409,10 +413,10 @@
         {isLoading} 
       />
       {:else if viewingStep === 2}
-        <AssetStep 
-          {isProcessing} isExpanded={nanobot.isExpanded} 
-          bind:assets bind:reserve_assets bind:customImageUrl bind:selectedAvatarUrl bind:selectedAssetIndex 
-          {handleImageError} {syncAssetChanges} {deleteAsset} {handleRetry} {handleMouseMove} 
+        <AssetStep
+          {isProcessing} isExpanded={nanobot.isExpanded}
+          bind:assets bind:reserve_assets bind:customImageUrl bind:selectedAvatarUrl bind:selectedAssetIndex
+          {handleImageError} {syncAssetChanges} {handleRetry} {handleMouseMove}
         />
       {:else if viewingStep === 3}
         <OutlineStep 

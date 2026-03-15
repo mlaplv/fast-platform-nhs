@@ -1,11 +1,13 @@
 <script lang="ts">
-  let { 
-    show = $bindable(false), 
-    assets = [],
+  import type { MediaAsset } from "$lib/state/types";
+
+  let {
+    show = $bindable(false),
+    assets = [] as (MediaAsset | string)[],
     onSelect
   }: {
     show: boolean;
-    assets: string[];
+    assets: (MediaAsset | string)[];
     onSelect: (url: string) => void;
   } = $props();
 

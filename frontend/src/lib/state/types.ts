@@ -133,6 +133,14 @@ export interface Toast {
 
 // ── Phase 8: Campaign & Content Types (@agrules) ──
 
+export interface MediaAsset {
+  id: string;
+  url: string;
+  is_primary: boolean;
+  order_index: number;
+  metadata?: Record<string, unknown>;
+}
+
 export interface CampaignKeywords {
   title?: string;
   primary_keyword?: string;
@@ -158,7 +166,7 @@ export interface CampaignData {
   status: string;
   progress_msg?: string;
   keywords?: CampaignKeywords;
-  assets?: string[];
+  assets?: MediaAsset[];
   reserve_assets?: string[];
   outline?: { html?: string };
   draft_content?: string;

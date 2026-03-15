@@ -180,52 +180,40 @@ class AssetHunter:
             reserve_urls = all_urls[target_count:target_count + 20] # Take next 20 as reserve
             all_urls = all_urls[:target_count]
 
-        # Final Fallback to raw candidates if filtering was too aggressive
-        if len(all_urls) < (target_count // 2) and raw_candidates:
-            logger.warning(f"[AssetHunter] Filtering too aggressive, adding raw candidates to reach quota.")
-            for url in raw_candidates:
-                if url not in all_urls:
-                    all_urls.append(url)
-                    if len(all_urls) >= target_count: break
-
-        # Step 2.3: Graceful Raw Fallback (Rule R103)
-        if not all_urls:
-            fallback_query = primary if primary else title
-            logger.warning(f"[AssetHunter] All AI queries failed. Triggering CRITICAL FALLBACK: {fallback_query}")
-            await event_bus.emit("CONTENT_PROGRESS", {
-                "campaign_id": campaign_id,
-                "user_id": str(campaign.user_id),
-                "step": 2,
-                "message": f"⚠️ Truy quét nâng cao thất bại. Chuyển sang chế độ tìm kiếm thô: {fallback_query}",
-                "status": "PROCESSING",
-                "timestamp": datetime.now(timezone.utc).isoformat()
+        # Phase 15.3: Convert raw URLs to MediaAsset objects
+        final_assets = []
+        for i, url in enumerate(all_urls):
+            final_assets.append({
+                "id": f"img_{i}_{campaign_id[:4]}",
+                "url": url,
+                "is_primary": i == 0,
+                "order_index": i,
+                "metadata": {"source": "google_search"}
             })
-            all_urls = await self.fetch_images(fallback_query, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=target_count)
 
-        campaign.assets_data = all_urls
-        # Phase 74: Seed the Golden Thread with original remote URLs for reliable localized replacement in Step 6
+        campaign.assets_data = final_assets
+        # Phase 74: Seed the Golden Thread with original remote URLs
         gold = campaign.gold_metadata or {}
         gold["original_remote_assets"] = list(all_urls)
-        gold["reserve_assets"] = list(reserve_urls) # R120: Store reserve candidates for UX flexibility
+        gold["reserve_assets"] = list(reserve_urls) # R120: Store reserve candidates
         campaign.gold_metadata = gold
         flag_modified(campaign, "gold_metadata")
 
         await repo.update(campaign)
-        
+
         await event_bus.emit("CONTENT_PROGRESS", {
             "campaign_id": campaign_id,
             "user_id": str(campaign.user_id),
             "step": 2,
-            "message": f"✅ Đã tìm thấy {len(all_urls)} ảnh {'chuẩn AI' if queries else 'thô'}. Sẵn sàng duyệt!",
+            "message": f"✅ Đã tìm thấy {len(final_assets)} ảnh {'chuẩn AI' if queries else 'thô'}. Sẵn sàng duyệt!",
             "status": "PROCESSING",
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
-        
-        from backend.services.xohi.creative_studio.models.schemas import AgentResponse, AgentSignal
+
         return AgentResponse(
             signal=AgentSignal.PROCEED_NEXT,
-            message=f"Tìm thấy {len(all_urls)} ảnh.",
-            data={"assets": all_urls}
+            message=f"Tìm thấy {len(final_assets)} ảnh.",
+            data={"assets": final_assets}
         )
 
     async def fetch_images(self, query: str, campaign_id: str = None, user_id: str = None, num_results: int = 20) -> List[str]:

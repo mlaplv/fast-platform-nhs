@@ -10,44 +10,38 @@ from backend.utils.noise_cleaner import noise_cleaner
 
 logger = logging.getLogger("api-gateway")
 
-OUTLINE_PROMPT = """[ROLE] CHIEF EDITOR — Journalism Excellence V76.5
-[CHIẾN THUẬT: THÁP NGƯỢC (INVERTED PYRAMID)]
-1. **SAPÔ (LEAD)**: Tóm tắt 1 câu đắt giá nhất, phản ánh mục tiêu cốt lõi của bài viết.
-2. **CẤU TRÚC PHÂN CẤP**:
-   - H2 phải là các câu khẳng định giá trị hoặc đặt vấn đề trực diện.
-   - Nội dung (Content) chỉ liệt kê 3-5 Ý CHỐN (Key Points) hoặc số liệu, không viết mô tả rườm rà.
-3. **NGÔN NGỮ CHUYÊN GIA**: Tuyệt đối không dùng từ giật gân rẻ tiền. Văn phong khoa học, tin cậy.
-
-[NHIỆM VỤ]
-Thiết kế Dàn ý (Outline) chuẩn quy trình tòa soạn:
-1. **SAPÔ**: Viết vào mục đầu tiên của dàn ý.
-2. **BODY**: Chia thành các mục H2/H3 hợp lý theo luồng logic.
-3. **ASSETS**: Chỉ định [IMAGE_X] tại các đoạn cần minh họa dữ liệu.
+OUTLINE_PROMPT = """[ROLE] CHIEF EDITOR — Content Precision V77.0
+[YÊU CẦU CỐT LÕI - PHẢI TUÂN THỦ]
+1. TRẬN TÂM: Bám sát Tiêu đề, Từ khóa chính và Từ khóa phụ từ Bước 1.
+2. CẤU TRÚC MỖI ĐOẠN (SECTION):
+   - 1 Câu Sapô chủ chốt dẫn dắt nội dung.
+   - 1 Gạch đầu dòng duy nhất chứa ý chính của đoạn.
+3. TỔNG SỐ ĐOẠN: Đúng số lượng `max_sections` được yêu cầu.
+4. TUYỆT ĐỐI: Không thêm bất kỳ hình ảnh nào ([IMAGE_X]), không viết thành bài báo hoàn chỉnh.
 
 [YÊU CẦU ĐỊNH DẠNG JSON]
-Bắt đầu bằng mảng `sections`, mỗi object PHẢI có:
-- "heading": Tiêu đề mục (Ví dụ: "H2: Phân tích thực trạng X", "Sapô: ...")
-- "content": Danh sách các Key Points (gạch đầu dòng) và [IMAGE_X].
+Trả về mảng `sections`, mỗi object:
+- "heading": Tiêu đề mục (H2: ...)
+- "content": [1 Câu Sapô] + [1 Gạch đầu dòng ý chính]
 
-Chỉ trả về JSON, KHÔNG giải thích thêm."""
+Chỉ trả về JSON, KHÔNG giải thích thêm.
+"""
 
-DRAFT_PROMPT = """[ROLE] SENIOR INVESTIGATIVE JOURNALIST — XoHi Press V76.5
-[CHIẾN THUẬT: MỞ RỘNG & TINH LỌC (EXPANSION & REFINEMENT)]
-1. **DẪN NHẬP (LEAD)**: Viết Sapô lôi cuốn, tóm lược vấn đề cốt lõi ngay 2 câu đầu.
-2. **TRIỂN KHAI PHÂN TÍCH**:
-   - Mỗi mục H2 phải là một luận điểm vững chắc.
-   - Sử dụng các cụm từ nối chuyên nghiệp: "Đáng chú ý...", "Trên thực tế...", "Tuy nhiên, nhìn từ góc độ...".
-3. **TRÌNH BÀY BÁO CHÍ**: Dùng thẻ HTML chuẩn (h1, h2, p, figure, section). Không dùng từ ngữ sáo rỗng.
+DRAFT_PROMPT = """[ROLE] CHIEF CONTENT ENGINEER — XoHi Press V77.0
+[TIÊU CHUẨN KỸ THUẬT NỘI DUNG (PCE)]
+1. **MẬT ĐỘ TỪ KHÓA (SEMANTIC DENSITY)**: Đan xen Từ khóa chính/phụ một cách tự nhiên nhưng bền bỉ (Mật độ 1.5-2%).
+2. **TÍNH NHẤT QUÁN CẤU TRÚC (STRUCTURAL FIDELITY)**: Tuyệt đối tuân thủ Dàn ý từ Bước 3. Mỗi gạch đầu dòng phải được triển khai thành các đoạn văn có chiều sâu, giàu thông tin.
+3. **NHỊP ĐIỆU ĐỘNG (DYNAMIC PACING)**: Điều chỉnh độ dài đoạn văn theo Chế độ nội dung (Viral: ngắn gọn, dồn dập; Deep-dive: phân tích đa chiều).
 
-[NHIỆM VỤ]
-Viết bài báo hoàn chỉnh dựa trên Dàn ý đã duyệt. 
-- **FACT-CHECK**: Đảm bảo thông tin chính xác, logic.
-- **ASSET INTEGRATION**: Chèn [IMAGE_X] vào các vị trí hỗ trợ trực quan cho thông tin.
+[THUẬT TOÁN CHÈN ẢNH (NCAM)]
+- Phân tích "Giá trị bối cảnh" của từng phần.
+- Chèn mã [IMAGE_X] vào vị trí có giá trị minh họa cao nhất. Không chèn bừa bãi.
+- Đảm bảo hình ảnh bổ trợ trực tiếp cho luận điểm đang trình bày.
 
 [YÊU CẦU HTML]
-- Trả về mã HTML thuần. 
-- KHÔNG có phần giải thích, KHÔNG dùng Markdown code fences (```html).
-- Toàn bộ bài phải nằm trong luồng logic của Golden Thread."""
+- Trả về mã HTML thuần (h1, h2, p, figure, section). 
+- KHÔNG giải thích, KHÔNG dùng Markdown code fences.
+"""
 
 
 
@@ -76,18 +70,13 @@ class CreativePen:
         step = kwargs.get("step")
         if step == 3:
             outline = await self.generate_outline(campaign)
-
-            # Phase 76.7: Defense against raw AgentRunResult leakage
-            if hasattr(outline, "model_dump"):
+            
+            if isinstance(outline, ArticleOutline):
                 campaign.outline_data = outline.model_dump()
             elif isinstance(outline, dict):
                 campaign.outline_data = outline
-            elif hasattr(outline, "data"):
-                # Recursive unwrapping if trinity_bridge returned the wrapper
-                data = outline.data
-                campaign.outline_data = data.model_dump() if hasattr(data, "model_dump") else data
             else:
-                logger.error(f"[Content Factory] Outline data is un-dumpable: {type(outline)}")
+                logger.error(f"[Content Factory] Outline generation failed or returned invalid type: {type(outline)}")
                 campaign.outline_data = {"error": "Invalid outline format"}
 
             return AgentResponse(
@@ -125,7 +114,8 @@ class CreativePen:
         
         instruction = f"""
         Hãy sinh Dàn Ý (ArticleOutline) với đúng {max_sections} mục chính. Trả về đúng schema JSON. 
-        Mục đầu tiên PHẢI là "Sapô" tóm tắt toàn bài.
+        Mỗi mục trong `content` chỉ gồm DUY NHẤT: 01 câu Sapô chủ chốt và 01 gạch đầu dòng ý chính.
+        Tuyệt đối KHÔNG chèn bất kỳ thẻ hình ảnh nào.
         """
         
         # Phase 76.5: Context De-noising before AI injection
@@ -138,9 +128,7 @@ class CreativePen:
         - Từ khóa CHỦ CHỐT: {primary_clean}
         - Từ khóa bổ trợ: {secondary}
         - Phong cách (Persona): {persona}
-        - Số lượng ảnh: {num_assets} ảnh.
         - GIỚI HẠN: {max_sections} mục H2.
-        
         Cần một dàn ý BÁO CHÍ chuẩn mực, tập trung vào giá trị thông tin.
         """
         
@@ -148,21 +136,26 @@ class CreativePen:
             logger.info(f"[Content Factory] CreativePen generating outline for {campaign.id} using {self.model_name}")
             result = await trinity_bridge.run(self.outline_agent, f"{instruction}\n{prompt}", session_id=campaign.id, model=self.model_name)
 
-            # Phase 76.9: Universal Unwrapper (Extreme Robustness)
+            if result is None:
+                logger.error(f"[Content Factory] trinity_bridge.run returned None for campaign {campaign.id}")
+                return None
+
+            # Phase 76.9: Robust Unwrapper
             raw_data = None
             if hasattr(result, "data"):
                 raw_data = result.data
-            elif hasattr(result, "result") and hasattr(result.result, "data"):
-                # Recursive unwrapping if trinity_bridge returned another wrapper
-                inner = result.result
-                raw_data = inner.data if hasattr(inner, "data") else inner
+            elif hasattr(result, "output"):
+                raw_data = result.output
             else:
                 raw_data = result
 
+            if raw_data is None:
+                logger.error(f"[Content Factory] raw_data is None after unwrapping result of type {type(result)}")
+                return None
+
             # Extra check: if raw_data is still an AgentRunResult (leakage protection)
             if type(raw_data).__name__ == "AgentRunResult":
-                if hasattr(raw_data, "data"):
-                    raw_data = raw_data.data
+                raw_data = getattr(raw_data, "data", raw_data)
 
             # Validation and Conversion
             if isinstance(raw_data, ArticleOutline):
@@ -175,16 +168,15 @@ class CreativePen:
 
             # Final Fallback for raw objects
             if hasattr(raw_data, "model_dump"):
-                return raw_data.model_dump()
+                return raw_data
+            
+            if hasattr(raw_data, "__dict__"):
+                return raw_data
 
             logger.warning(f"[Content Factory] Unexpected outline format: {type(raw_data)}. Returning as-is.")
             return raw_data
-
-            # Fallback for different pydantic-ai versions
-            logger.warning(f"[Content Factory] AgentRunResult missing .data, attempting fallback. Result type: {type(result)}")
-            return result
         except Exception as e:
-            logger.error(f"[Content Factory] CreativePen Outline Gen Error: {e}")
+            logger.error(f"[Content Factory] CreativePen Outline Gen Error: {e}", exc_info=True)
             raise
 
     async def write_draft(self, campaign: ContentCampaign) -> str:
@@ -225,9 +217,7 @@ class CreativePen:
             full_raw_content = ""
 
             async with trinity_bridge.run_stream(self.draft_agent, prompt, session_id=campaign.id, model=self.model_name) as stream:
-                async for chunk in stream:
-                    # pydantic-ai stream yields chunks
-                    text = chunk.delta
+                async for text in stream.stream_text(delta=True):
                     if text:
                         full_raw_content += text
                         yield {"type": "chunk", "text": text}

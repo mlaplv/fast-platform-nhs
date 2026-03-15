@@ -1,10 +1,11 @@
 <script lang="ts">
   import { Edit2, Sparkles } from "lucide-svelte";
   import TiptapEditor from "../tiptap/TiptapEditor.svelte";
-  import type { CampaignKeywords } from "$lib/state/types";
+  import type { CampaignKeywords, MediaAsset } from "$lib/state/types";
+  import { xohiImageStore } from "$lib/state/xohiImage.svelte";
 
   let {
-    assets = [],
+    assets = [] as (MediaAsset | string)[],
     selectedAvatarUrl = $bindable(null),
     viewingStep = $bindable(6),
     isEditing = $bindable(false),
@@ -22,24 +23,36 @@
   let editingField = $state<string | null>(null);
   let showAvatarPicker = $state(false);
 
+  // Phase 15.3: Sync local assets to store if needed
+  $effect(() => {
+    if (assets.length > 0 && xohiImageStore.assets.length === 0) {
+      xohiImageStore.initAssets(assets.map((a, i) =>
+        typeof a === 'string' ? { id: `img_${i}`, url: a, is_primary: i === 0, order_index: i } : a
+      ));
+    }
+  });
+
   // finalHtml: đã qua MediaCompressor (ảnh local) → ưu tiên trước
   // draft_content: bản raw từ AI → fallback
   let displayContent = $derived.by(() => {
     let base = finalHtml || draft_content || "";
     if (!base) return "";
 
+    const currentAssets = xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets;
+
     // Thay thế [IMAGE_n] placeholder
     if (base.includes("[IMAGE_")) {
-      assets.forEach((url, i) => {
+      currentAssets.forEach((asset, i) => {
+        const url = typeof asset === 'string' ? asset : asset.url;
         const local = fixUrl(url);
         base = base.split(`[IMAGE_${i + 1}]`).join(`<img src="${local}" alt="image ${i+1}" />`);
       });
     }
 
     // Thay link ảnh ngoài bằng assets local theo thứ tự
-    if (base.includes("<img") && assets.length > 0) {
+    if (base.includes("<img") && currentAssets.length > 0) {
       let idx = 0;
-      const locals = assets.map(fixUrl);
+      const locals = currentAssets.map(a => fixUrl(typeof a === 'string' ? a : a.url));
       base = base.replace(/<img([^>]+)src=["'](https?:\/\/[^"']+)["']([^>]*)>/gi, (full, pre, src, post) => {
         return idx < locals.length ? `<img${pre}src="${locals[idx++]}"${post}>` : full;
       });
@@ -56,7 +69,12 @@
   }
 
   $effect(() => {
-    if (!selectedAvatarUrl && assets.length > 0) selectedAvatarUrl = assets[0];
+    if (!selectedAvatarUrl && xohiImageStore.primaryAsset) {
+      selectedAvatarUrl = xohiImageStore.primaryAsset.url;
+    } else if (!selectedAvatarUrl && assets.length > 0) {
+      const first = assets[0];
+      selectedAvatarUrl = typeof first === 'string' ? first : first.url;
+    }
   });
 
   async function saveField() {
@@ -73,12 +91,21 @@
     if (e.key === 'Escape') editingField = null;
   }
 
-  async function selectAvatar(url: string) {
+  async function selectAvatar(asset: MediaAsset | string) {
+    const assetId = typeof asset === 'string' ? null : asset.id;
+    const url = typeof asset === 'string' ? asset : asset.url;
+
     selectedAvatarUrl = url;
+    if (assetId) {
+      xohiImageStore.swapPrimary(assetId);
+    }
+
     showAvatarPicker = false;
     try {
+      // Phase 15.3: Đồng bộ toàn bộ state ảnh mới khi đổi avatar
       await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, {
-        gold_metadata: { ...keywords, avatar: url }
+        assets: xohiImageStore.assets,
+        avatar: url
       });
     } catch (e) {}
   }
@@ -94,7 +121,7 @@
 
   <!-- ===== HEADER: Title + Avatar (cố định, không co giãn) ===== -->
   <div class="shrink-0 flex items-center gap-3 p-3 border-b border-white/5 bg-black/20">
-    
+
     <!-- Scores mini -->
     {#if copyrightScore !== null || seoScore !== null}
       <div class="hidden md:flex items-center gap-2 text-[8px] font-black uppercase">
@@ -129,9 +156,10 @@
       {#if showAvatarPicker}
         <div class="absolute top-full left-0 mt-1 z-50 w-56 bg-neutral-900 border border-white/10 p-2 shadow-2xl">
           <div class="grid grid-cols-4 gap-1 max-h-32 overflow-y-auto">
-            {#each assets as url}
+            {#each (xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets) as asset}
+              {@const url = typeof asset === 'string' ? asset : asset.url}
               <button class="aspect-square overflow-hidden border {selectedAvatarUrl === url ? 'border-green-500' : 'border-transparent'}"
-                onclick={() => selectAvatar(url)}>
+                onclick={() => selectAvatar(asset)}>
                 <img src={fixUrl(url)} alt="" class="w-full h-full object-cover" />
               </button>
             {/each}

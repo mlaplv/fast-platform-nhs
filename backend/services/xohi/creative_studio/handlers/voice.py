@@ -74,7 +74,15 @@ class VoiceHandler:
                         return IntentResponse(
                             status="success", action=IntentAction.CONTENT_CREATE,
                             message=self.format_resume_greeting(stale),
-                            router_tier=RouterTier.TIER_2_SEMANTIC, data={"campaign_id": stale.id, "step": stale.current_step}, cost_tokens=0.0
+                            router_tier=RouterTier.TIER_2_SEMANTIC,
+                            data={
+                                "category": "CONTENT_CREATE",
+                                "intent_type": "CONTENT_CREATE",
+                                "ui_action": "show_content_factory",
+                                "campaign_id": stale.id,
+                                "step": stale.current_step
+                            },
+                            cost_tokens=0.0
                         )
 
                 # 2. Idempotency Latch (Extended to 5 mins for V76.2)
@@ -89,7 +97,16 @@ class VoiceHandler:
                         return IntentResponse(
                             status="success", action=IntentAction.CONTENT_CREATE,
                             message=f"Dạ sếp, bài viết '{stale.topic_data.get('title', 'này')}' em vừa phân tích xong. Mời sếp duyệt trên màn hình ạ!",
-                            router_tier=RouterTier.TIER_2_SEMANTIC, data={"campaign_id": stale.id, "step": stale.current_step, "keywords": stale.topic_data}, cost_tokens=0.0
+                            router_tier=RouterTier.TIER_2_SEMANTIC,
+                            data={
+                                "category": "CONTENT_CREATE",
+                                "intent_type": "CONTENT_CREATE",
+                                "ui_action": "show_content_factory",
+                                "campaign_id": stale.id,
+                                "step": stale.current_step,
+                                "keywords": stale.topic_data
+                            },
+                            cost_tokens=0.0
                         )
 
                     # 3. Proactive Reminder (V76.2)
@@ -100,7 +117,15 @@ class VoiceHandler:
                             status="success", action=IntentAction.CONTENT_CREATE,
                             message=f"Dạ sếp, em thấy bài '{title}' đang chờ sếp duyệt ở Bước {stale.current_step}. Sếp muốn em làm tiếp bài đó hay khởi tạo bài mới này ạ?",
                             router_tier=RouterTier.TIER_2_SEMANTIC,
-                            data={"campaign_id": stale.id, "step": stale.current_step, "pending_review": True, "new_request": transcript},
+                            data={
+                                "category": "CONTENT_CREATE",
+                                "intent_type": "CONTENT_CREATE",
+                                "ui_action": "show_content_factory",
+                                "campaign_id": stale.id,
+                                "step": stale.current_step,
+                                "pending_review": True,
+                                "new_request": transcript
+                            },
                             cost_tokens=0.0
                         )
 
@@ -143,7 +168,16 @@ class VoiceHandler:
                 status="success", action=IntentAction.CONTENT_CREATE,
                 message=f"Dạ sếp, em đã phân tích xong từ khóa cho chủ đề '{seed_data.get('title', 'mới')}'. Mời sếp duyệt trên màn hình ạ!",
                 router_tier=RouterTier.TIER_2_SEMANTIC,
-                data={"category": "CONTENT_CREATE", "action": "STEP1_REVIEW", "campaign_id": c_id, "status": "WAITING_FOR_REVIEW", "keywords": seed_data, "step": 1},
+                data={
+                    "category": "CONTENT_CREATE",
+                    "intent_type": "CONTENT_CREATE",
+                    "ui_action": "show_content_factory",
+                    "action": "STEP1_REVIEW",
+                    "campaign_id": c_id,
+                    "status": "WAITING_FOR_REVIEW",
+                    "keywords": seed_data,
+                    "step": 1
+                },
                 cost_tokens=0.0
             )
 

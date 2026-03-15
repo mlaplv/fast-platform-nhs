@@ -79,8 +79,10 @@ export function createIntentManager(
       }
     }
 
-    if (uiAction) {
-      const targetWidget = ACTION_WIDGET_MAP[uiAction];
+    if (uiAction || data?.ui_action) {
+      const actualUiAction = (uiAction || data?.ui_action) as string;
+      const targetWidget = ACTION_WIDGET_MAP[actualUiAction];
+      
       if (targetWidget) {
         state.currentData = { ...state.currentData, ...data };
         const intentType = (data?.intent_type as string) || "";
@@ -93,16 +95,19 @@ export function createIntentManager(
         };
 
         if (
-          isNavAction(uiAction, intentType) ||
-          uiAction.includes("edit") ||
+          isNavAction(actualUiAction, intentType) ||
+          actualUiAction.includes("edit") ||
+          actualUiAction.includes("content_factory") ||
+          actualUiAction.includes("campaigns") ||
+          intentType === "CONTENT_CREATE" ||
           data?.restricted === false ||
           requiresConfirmationForVoice(data)
         ) {
           state.activeWidget = targetWidget;
           ui.setUniversalModalOpen(true);
-          log.addLog(uiAction.replace("show_", "").replace(/_/g, " "), "[ACTION]");
+          log.addLog(actualUiAction.replace("show_", "").replace(/_/g, " "), "[ACTION]");
           
-          if (source === "voice" && isNavAction(uiAction, intentType)) {
+          if (source === "voice" && isNavAction(actualUiAction, intentType)) {
             voice.setVuiActive(false);
           }
         } else {

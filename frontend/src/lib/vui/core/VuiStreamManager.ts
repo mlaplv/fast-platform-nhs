@@ -201,8 +201,11 @@ export class VuiStreamManager {
       nanobot.setVoiceResult(query, finalMsg, this.lastActionType, dataPkg, source, lastData?.router_tier);
 
       if (source === "text") {
-        vuiState.setPhase("idle");
-        vuiState.setLiveText("");
+        // Phase 82: Graceful transition - give modal time to mount/animate
+        setTimeout(() => {
+          vuiState.setPhase("idle");
+          vuiState.setLiveText("");
+        }, 300);
         return;
       }
 

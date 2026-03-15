@@ -32,6 +32,7 @@ INTENT_TO_ACTION = {
         "intent_type": "CONTENT_CREATE",
         "target": "news",
         "action": "CONTENT_CREATE",
+        "ui_action": "show_content_factory",
         "message": "Dạ sếp, em bắt đầu lên ý tưởng bài viết ngay đây."
     },
     "ui_navigation": {

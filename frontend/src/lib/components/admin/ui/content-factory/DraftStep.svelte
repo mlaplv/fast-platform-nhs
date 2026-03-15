@@ -13,7 +13,7 @@
     editedDraft = $bindable(""), 
     draft_content = $bindable(""), 
     outline = {},
-    assets,
+    assets = [] as (MediaAsset | string)[],
     isExpanded,
     editorRef = $bindable(null),
     analysis_cache = {},
@@ -38,12 +38,13 @@
     }
     if (base && base.includes("[IMAGE_")) {
       const assetList = Array.isArray(assets) ? assets : [];
-      assetList.forEach((url, i) => {
+      assetList.forEach((asset, i) => {
+        const url = typeof asset === 'string' ? asset : asset.url;
         const placeholder = `[IMAGE_${i + 1}]`;
         // Surgical replacement: Handle markers inside src first
         const srcPattern = new RegExp(`(src|href)=["']\\s*${placeholder.replace('[', '\\[').replace(']', '\\]')}\\s*["']`, 'g');
         base = base.replace(srcPattern, `$1="${url}"`);
-        
+
         // Then handle standalone markers (even if wrapped in figure by AI)
         const figurePattern = new RegExp(`(<figure[^>]*>\\s*)?${placeholder.replace('[', '\\[').replace(']', '\\]')}(\\s*<\\/figure>)?`, 'g');
         base = base.replace(figurePattern, `<figure class="content-image"><img src="${url}" alt="content image" loading="lazy" /></figure>`);

@@ -10,13 +10,14 @@
   import LinkDialog from './ui/LinkDialog.svelte';
   import StatusBar from './ui/StatusBar.svelte';
   import AnnotationTooltip from './ui/AnnotationTooltip.svelte';
+  import type { MediaAsset } from '$lib/state/types';
 
   let {
     content = "",
     onChange = () => {},
     editable = true,
     placeholder = "Start writing...",
-    assets = [] as string[],
+    assets = [] as (MediaAsset | string)[],
     fullScreen = false,
     toolbarActions = [] as ToolbarAction[],
     annotations = [] as EditorAnnotation[],
@@ -27,7 +28,7 @@
     onChange?: (val: string) => void;
     editable?: boolean;
     placeholder?: string;
-    assets?: string[];
+    assets?: (MediaAsset | string)[];
     fullScreen?: boolean;
     toolbarActions?: ToolbarAction[];
     annotations?: EditorAnnotation[];
