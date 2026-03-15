@@ -1,6 +1,5 @@
 import logging
 from typing import List, Dict, Optional, Union, cast
-from uuid import UUID
 from litestar import Controller, get, post, patch, delete, Request
 from litestar.datastructures import UploadFile
 from litestar.enums import RequestEncodingType
@@ -125,9 +124,10 @@ class MediaController(Controller):
             )
         )
 
-    @get("/{asset_id:uuid}")
-    async def get_media_detail(self, asset_id: UUID, request: Request, media_repo: MediaRegistryRepository) -> Union[MediaDetailResponse, GenericResponse]:
+    @get("/{asset_id:str}")
+    async def get_media_detail(self, asset_id: str, request: Request, media_repo: MediaRegistryRepository) -> Union[MediaDetailResponse, GenericResponse]:
         """Lấy thông tin chi tiết một tài nguyên."""
+        logger.info(f"[MediaRouter] GET detail for asset: {asset_id}")
         asset = await media_repo.get(str(asset_id))
         if not asset:
             return GenericResponse(status="error", message="Asset not found")
@@ -143,10 +143,10 @@ class MediaController(Controller):
             data=MediaAssetResponse.from_orm_model(asset)
         )
 
-    @patch("/{asset_id:uuid}")
+    @patch("/{asset_id:str}")
     async def update_media(
         self,
-        asset_id: UUID,
+        asset_id: str,
         request: Request,
         media_repo: MediaRegistryRepository,
         data: MediaUpdateMetadata
@@ -167,10 +167,10 @@ class MediaController(Controller):
 
         return GenericResponse(status="success", message="Media metadata updated.")
 
-    @delete("/{asset_id:uuid}", status_code=200)
+    @delete("/{asset_id:str}", status_code=200)
     async def delete_media(
         self,
-        asset_id: UUID,
+        asset_id: str,
         request: Request,
         media_repo: MediaRegistryRepository,
         permanent: bool = False
@@ -191,8 +191,8 @@ class MediaController(Controller):
         else:
             return GenericResponse(status="error", message="Asset not found or unauthorized")
 
-    @post("/{asset_id:uuid}/restore")
-    async def restore_media(self, asset_id: UUID, request: Request, media_repo: MediaRegistryRepository) -> GenericResponse:
+    @post("/{asset_id:str}/restore")
+    async def restore_media(self, asset_id: str, request: Request, media_repo: MediaRegistryRepository) -> GenericResponse:
         """Khôi phục tài nguyên từ Thùng rác (V10.0)."""
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
@@ -227,10 +227,10 @@ class MediaController(Controller):
         else:
             return GenericResponse(status="error", message="Bulk delete failed or unauthorized.")
 
-    @get("/{asset_id:uuid}/thumb")
+    @get("/{asset_id:str}/thumb")
     async def get_media_thumbnail(
         self,
-        asset_id: UUID,
+        asset_id: str,
         request: Request,
         media_repo: MediaRegistryRepository,
         w: int = 300,
@@ -251,15 +251,16 @@ class MediaController(Controller):
         thumb_path = await media_service.get_thumbnail(asset.file_path, width=w, quality=q)
         return Redirect(path=thumb_path or "/v65_assets/placeholder.webp")
 
-    @post("/{asset_id:uuid}/edit")
+    @post("/{asset_id:str}/edit")
     async def quick_edit_media(
         self,
-        asset_id: UUID,
+        asset_id: str,
         request: Request,
         media_repo: MediaRegistryRepository,
         data: QuickEditRequest
     ) -> Union[QuickEditResponse, GenericResponse]:
         """Xử lý nhanh ảnh (Xoay/Lật/Crop/Watermark) - V10.0 Elite Engine."""
+        logger.info(f"[MediaRouter] Quick edit request for asset: {asset_id}, action: {data.action}")
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
 
@@ -268,7 +269,8 @@ class MediaController(Controller):
             str(asset_id),
             data.action,
             params=data.params,
-            owner_id=owner_id
+            owner_id=owner_id,
+            source_url=data.source_url
         )
 
         if asset:

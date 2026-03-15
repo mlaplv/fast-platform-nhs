@@ -68,6 +68,7 @@
           <span class="text-[10px] font-mono text-white/20 italic">BUFFER_SIZE: {xohiImageStore.secondaryAssets.length}</span>
         </div>
 
+        <!-- CNS V74: Persistent container for dndzone to prevent 'parentElement' crashes -->
         <section
           class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 outline-none min-h-[150px] p-4 bg-white/[0.02] rounded-3xl border border-white/5 shadow-inner"
           use:dndzone={{
@@ -84,11 +85,17 @@
               <ImageSlot {asset} index={i + 1} />
             </div>
           {/each}
+
+          {#if xohiImageStore.secondaryAssets.length === 0}
+            <div class="col-span-full flex items-center justify-center py-10 opacity-20 pointer-events-none">
+               <p class="text-[10px] font-black uppercase tracking-widest">No Secondary Assets</p>
+            </div>
+          {/if}
         </section>
       </div>
     </div>
   {:else}
-    <!-- Empty State Cyberpunk -->
+    <!-- Empty State Cyberpunk (Persistent structure) -->
     <div class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-white/5 rounded-[3rem] bg-white/[0.01] transition-all hover:bg-white/[0.02] group">
       <div class="w-20 h-20 bg-blue-500/5 rounded-full flex items-center justify-center mb-6 border border-blue-500/10 group-hover:scale-110 transition-transform duration-500">
         <Upload size={32} class="text-blue-500/20 group-hover:text-blue-400/50 transition-colors" />

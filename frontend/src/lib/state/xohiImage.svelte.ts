@@ -1,5 +1,5 @@
 import type { MediaAsset } from "./types";
-import { safeRandomUUID } from "./utils";
+import { safeRandomUUID, extractIdFromUrl } from "./utils";
 import { apiClient } from "$lib/utils/apiClient";
 
 export function createXohiImageState() {
@@ -111,8 +111,9 @@ export function createXohiImageState() {
 
     function removeAsset(id: string) {
         const asset = assets.find(a => a.id === id);
-        if (asset && asset.url.startsWith('blob:')) {
-            URL.revokeObjectURL(asset.url); // R03: Dọn dẹp bộ nhớ
+        const path = asset?.file_path || asset?.url;
+        if (path && path.startsWith('blob:')) {
+            URL.revokeObjectURL(path); // R03: Dọn dẹp bộ nhớ
         }
 
         // Permanent delete from server if it's not a temp blob
@@ -164,7 +165,8 @@ export function createXohiImageState() {
                 `/api/v1/media/${assetId}/edit`,
                 {
                     action: 'smart_crop',
-                    params: { preset }
+                    params: { preset },
+                    source_url: asset.file_path || asset.url
                 }
             );
 
@@ -190,16 +192,44 @@ export function createXohiImageState() {
 
     function initAssets(initialAssets: MediaAsset[], id?: string) {
         if (id) campaignId = id;
-        // Dọn dẹp Blob cũ nếu có trước khi nạp mới
-        assets.forEach(a => {
-            if (a.url.startsWith('blob:')) URL.revokeObjectURL(a.url);
-        });
+        
+        // CNS V74: Standardize IDs and ensure path safety
         const formatted = initialAssets.map((a, i) => {
-            if (!a.id) a.id = `img_${i}_${Date.now()}`;
-            if (!a.file_path && a.url) a.file_path = a.url;
-            return a;
+            const obj = { ...a };
+            const url = obj.file_path || obj.url || '';
+            const recoveredId = extractIdFromUrl(url);
+
+            // CNS V75: Priority to real DB ID from URL if current ID is client-side or missing
+            if (!obj.id || obj.id.startsWith('img_') || obj.id.startsWith('stable_')) {
+                if (recoveredId) {
+                    obj.id = recoveredId;
+                } else if (!obj.id) {
+                    // Fallback to stable hash if absolutely no ID available
+                    const seed = url || `seed_${i}`;
+                    let hash = 0;
+                    for (let j = 0; j < seed.length; j++) {
+                        hash = ((hash << 5) - hash) + seed.charCodeAt(j);
+                        hash |= 0;
+                    }
+                    obj.id = `stable_${Math.abs(hash).toString(36)}_${i}`;
+                }
+            }
+            if (!obj.file_path && obj.url) obj.file_path = obj.url;
+            return obj;
         });
-        assets = [...formatted].sort((a, b) => a.order_index - b.order_index);
+
+        // CNS V74: Shallow comparison before replacement to avoid reactivity storms
+        if (JSON.stringify(formatted) !== JSON.stringify(assets)) {
+            // Revoke blobs for removed assets
+            const newPaths = new Set(formatted.map(a => a.file_path));
+            assets.forEach(a => {
+                const p = a.file_path || a.url;
+                if (p?.startsWith('blob:') && !newPaths.has(p)) {
+                    URL.revokeObjectURL(p);
+                }
+            });
+            assets = [...formatted].sort((a, b) => a.order_index - b.order_index);
+        }
     }
 
     return {

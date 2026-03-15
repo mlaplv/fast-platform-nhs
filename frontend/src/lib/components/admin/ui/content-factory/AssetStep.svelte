@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount, untrack } from "svelte";
   import {
     Image as ImageIcon,
     Link as LinkIcon,
@@ -44,6 +45,7 @@
   import ImageGrid from "$lib/components/xohi/ImageGrid.svelte";
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
   import { nanobot } from "$lib/state/nanobot.svelte";
+  import { extractIdFromUrl } from "$lib/state/utils";
 
   // V22: Voice Mutation Injection - Asset Management
   $effect(() => {
@@ -91,22 +93,42 @@
     }
   });
 
+  // CNS V74: Stable ID Generator to prevent dnd-action from crashing
+  function generateStableId(url: string, index: number) {
+    if (!url) return `temp_${index}`;
+    // Simple hash of URL to keep it stable across re-renders
+    let hash = 0;
+    for (let i = 0; i < url.length; i++) {
+        const char = url.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return `stable_${Math.abs(hash).toString(36)}_${index}`;
+  }
+
   // Phase 15.3: Đồng bộ hóa dữ liệu từ Campaign vào Store khi Step được load
   $effect(() => {
-    if (assets.length > 0 && xohiImageStore.assets.length === 0) {
+    if (assets.length > 0 && untrack(() => xohiImageStore.assets.length) === 0) {
       const formattedAssets = assets.map((item, i) => {
+        const url = typeof item === 'string' ? item : (item.file_path || item.url || '');
+        const recoveredId = extractIdFromUrl(url);
+
         if (typeof item === 'string') {
           return {
-            id: `img_${i}_${Date.now()}`,
+            id: recoveredId || generateStableId(item, i),
             file_path: item, // R105 Standard alignment
             url: item,       // UI legacy compatibility
             is_primary: i === selectedAssetIndex,
             order_index: i
-          };
+          } as MediaAsset;
         }
         // CNS V73.9: Safety gate for missing IDs or field names
         const obj = { ...item };
-        if (!obj.id) obj.id = `img_${i}_${Date.now()}`;
+        // CNS V75: Priority to real DB ID from URL
+        if (!obj.id || obj.id.startsWith('img_') || obj.id.startsWith('stable_')) {
+          if (recoveredId) obj.id = recoveredId;
+        }
+        if (!obj.id) obj.id = generateStableId(obj.file_path || obj.url || '', i);
         if (!obj.file_path && obj.url) obj.file_path = obj.url;
         return obj as MediaAsset;
       });
@@ -117,8 +139,10 @@
   // Phase 15.3: Đồng bộ ngược lại khi Store thay đổi (Optimistic Sync)
   $effect(() => {
     const storeAssets = xohiImageStore.assets;
-    // Phase 15.3: Luôn đồng bộ kể cả khi mảng rỗng để đảm bảo DB cập nhật đúng
-    if (JSON.stringify(storeAssets) !== JSON.stringify(assets)) {
+    // CNS V74: Shallow comparison with untrack to prevent infinite loops
+    const currentAssets = untrack(() => assets);
+    
+    if (JSON.stringify(storeAssets) !== JSON.stringify(currentAssets)) {
       assets = storeAssets;
       const primaryIdx = storeAssets.findIndex(a => a.is_primary);
       if (primaryIdx !== -1) {
@@ -128,7 +152,7 @@
         selectedAssetIndex = 0;
         selectedAvatarUrl = null;
       }
-      syncAssetChanges();
+      untrack(() => syncAssetChanges());
     }
   });
 </script>

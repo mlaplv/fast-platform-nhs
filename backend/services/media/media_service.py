@@ -139,7 +139,7 @@ class MediaService:
     ) -> Optional[MediaRegistry]:
         """Cập nhật metadata (alt_text, AI tags...) cho ảnh."""
         from backend.services.media.schemas import MediaMetadata
-        asset = await repo.get(asset_id)
+        asset = await repo.get_one_or_none(id=asset_id)
         if not asset:
             return None
 
@@ -178,7 +178,7 @@ class MediaService:
         Nếu permanent=True sẽ xóa vĩnh viễn file vật lý và DB.
         """
         try:
-            asset = await repo.get(asset_id)
+            asset = await repo.get_one_or_none(id=asset_id)
             if not asset:
                 return False
 
@@ -206,7 +206,7 @@ class MediaService:
     async def restore_asset(self, repo: MediaRegistryRepository, asset_id: str, owner_id: Optional[str] = None) -> bool:
         """Khôi phục tài nguyên từ Thùng rác (V10.0)."""
         try:
-            asset = await repo.get(asset_id)
+            asset = await repo.get_one_or_none(id=asset_id)
             if not asset:
                 return False
 
@@ -362,7 +362,15 @@ class MediaService:
             logger.error(f"[MediaService] ZIP generation failed: {e}")
             return None
 
-    async def quick_edit(self, repo: MediaRegistryRepository, asset_id: str, action: str, params: Optional[QuickEditParams] = None, owner_id: Optional[str] = None) -> Optional[MediaRegistry]:
+    async def quick_edit(
+        self, 
+        repo: MediaRegistryRepository, 
+        asset_id: str, 
+        action: str, 
+        params: Optional[QuickEditParams] = None, 
+        owner_id: Optional[str] = None,
+        source_url: Optional[str] = None
+    ) -> Optional[MediaRegistry]:
         """Thực hiện xử lý nhanh (Xoay/Lật/Crop/Watermark) - V10.0 Elite."""
         import os
         from PIL import Image, ImageEnhance
@@ -370,9 +378,17 @@ class MediaService:
         from backend.services.media.utils import calculate_smart_crop
         from backend.services.media.constants import AspectRatio, DEFAULT_QUALITY
 
-        asset = await repo.get(asset_id)
+        asset = await repo.get_one_or_none(id=asset_id)
         if not asset:
-            return None
+            # V75: If not found, try to register on the fly if source_url is provided
+            if source_url:
+                logger.info(f"[QuickEdit] Asset {asset_id} not found, registering from source_url: {source_url}")
+                asset = await self.fetch_remote_asset(repo, source_url, owner_id=owner_id)
+                if not asset:
+                    logger.error(f"[QuickEdit] Failed to register asset on the fly from {source_url}")
+                    return None
+            else:
+                return None
 
         # RBAC Check (V10.0 Elite)
         if owner_id and asset.owner_id and asset.owner_id != owner_id:
@@ -386,7 +402,7 @@ class MediaService:
             # 1. Chuẩn bị file để xử lý
             if is_remote:
                 from backend.utils.http_client import SharedHttpClient
-                client = SharedHttpClient.get_client()
+                client = await SharedHttpClient.get_client()
                 resp = await client.get(asset.file_path, timeout=20.0)
                 resp.raise_for_status()
                 with open(temp_path, "wb") as f:
@@ -715,14 +731,41 @@ class MediaService:
         from backend.utils.http_client import SharedHttpClient
 
         try:
-            # 1. Tải file với timeout bảo vệ
-            client = await SharedHttpClient.get_client()
-            response = await client.get(url, timeout=10.0, follow_redirects=True)
-            response.raise_for_status()
+            # V75: Support local paths in fetch_remote_asset for 'on-the-fly' registration
+            if not url.startswith("http"):
+                rel_path = url.lstrip("/")
+                # Try common static locations
+                local_path = None
+                for base in ["frontend/static", "."]:
+                    p = os.path.join(base, rel_path)
+                    if os.path.exists(p) and os.path.isfile(p):
+                        local_path = p
+                        break
+                
+                if local_path:
+                    logger.info(f"[MediaService] Registering local ghost asset: {local_path}")
+                    with open(local_path, "rb") as f:
+                        content = f.read()
+                    
+                    class MockResponse:
+                        def __init__(self, content, ctHit):
+                            self.content = content
+                            self.headers = {"Content-Type": ctHit}
+                        def raise_for_status(self): pass
+                    
+                    response = MockResponse(content, mimetypes.guess_type(local_path)[0] or "image/jpeg")
+                else:
+                    logger.error(f"[MediaService] Local file not found for registration: {url}")
+                    return None
+            else:
+                # 1. Tải file với timeout bảo vệ
+                client = await SharedHttpClient.get_client()
+                response = await client.get(url, timeout=10.0, follow_redirects=True)
+                response.raise_for_status()
 
             content_type = response.headers.get("Content-Type", "")
-            if not content_type.startswith("image/"):
-                logger.error(f"[MediaService] URL is not an image: {content_type}")
+            if not content_type or not content_type.startswith("image/"):
+                logger.error(f"[MediaService] Source is not an image: {content_type}")
                 return None
 
             # 2. Tạo định danh và đường dẫn

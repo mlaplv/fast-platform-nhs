@@ -1,5 +1,5 @@
 from typing import List, Dict, TypedDict, Optional, Union
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 class FocalPoint(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -15,6 +15,13 @@ class MediaMetadata(BaseModel):
     original_source: Optional[str] = None
     sentiment: Optional[str] = None
     analyzed_at: Optional[str] = None
+
+    @field_validator('focal_point', mode='before')
+    @classmethod
+    def validate_focal_point(cls, v):
+        if v is None:
+            return FocalPoint()
+        return v
 
 class MediaAssetResponse(BaseModel):
     """R105 Strict Typing for Media Asset"""
@@ -112,6 +119,7 @@ class BulkDownloadResponse(BaseModel):
 class QuickEditRequest(BaseModel):
     action: str
     params: Optional[QuickEditParams] = None
+    source_url: Optional[str] = None # V75: Support on-the-fly registration
 
 class BulkDeleteRequest(BaseModel):
     ids: List[str]
