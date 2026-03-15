@@ -156,7 +156,7 @@ export function createXohiImageState() {
         }
     }
 
-    async function smartCrop(assetId: string, preset: 'square' | 'banner' | 'story' | 'feed') {
+    async function smartCrop(assetId: string, preset: 'square' | 'banner' | 'story' | 'feed', mode: 'ai' | 'normal' = 'ai') {
         const asset = assets.find(a => a.id === assetId);
         if (!asset) return;
 
@@ -164,7 +164,7 @@ export function createXohiImageState() {
             const response = await apiClient.post<{ data: MediaAsset }>(
                 `/api/v1/media/${assetId}/edit`,
                 {
-                    action: 'smart_crop',
+                    action: mode === 'ai' ? 'smart_crop' : 'crop',
                     params: { preset },
                     source_url: asset.file_path || asset.url
                 }

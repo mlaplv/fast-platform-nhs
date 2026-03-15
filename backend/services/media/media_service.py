@@ -430,12 +430,19 @@ class MediaService:
                     elif action == "flip_v":
                         img = img.transpose(Image.FLIP_TOP_BOTTOM)
                     elif action == "crop" and params:
-                        # params: {x, y, w, h}
-                        p_dict = params.model_dump()
-                        x, y, w, h = p_dict.get('x', 0), p_dict.get('y', 0), p_dict.get('w', img.width), p_dict.get('h', img.height)
-                        if w is None: w = img.width
-                        if h is None: h = img.height
-                        img = img.crop((x, y, x + w, y + h))
+                        # CNS V76: Support both Direct Crop (x,y,w,h) and Center Crop (preset)
+                        if params.preset:
+                            preset_name = params.preset.upper()
+                            target_ratio = AspectRatio[preset_name].value if preset_name in AspectRatio.__members__ else AspectRatio.SQUARE.value
+                            # Center Crop uses (0.5, 0.5) as focal point
+                            box = calculate_smart_crop(img.width, img.height, 0.5, 0.5, target_ratio)
+                            img = img.crop(box)
+                        else:
+                            p_dict = params.model_dump()
+                            x, y, w, h = p_dict.get('x', 0), p_dict.get('y', 0), p_dict.get('w', img.width), p_dict.get('h', img.height)
+                            if w is None: w = img.width
+                            if h is None: h = img.height
+                            img = img.crop((x, y, x + w, y + h))
                     elif action == "smart_crop" and params:
                         # Smart Crop dựa trên Focal Point và Preset Ratio
                         preset_name = (params.preset or 'square').upper()

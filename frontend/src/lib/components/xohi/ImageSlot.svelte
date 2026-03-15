@@ -11,10 +11,13 @@
 
   const isPrimary = $derived(asset.is_primary);
 
-  async function handleSmartCrop(preset: 'square' | 'banner' | 'story' | 'feed') {
+  let pendingPreset = $state<'square' | 'banner' | 'story' | 'feed' | null>(null);
+
+  async function handleSmartCrop(preset: 'square' | 'banner' | 'story' | 'feed', mode: 'ai' | 'normal') {
     isCropping = true;
     showCropPresets = false;
-    await xohiImageStore.smartCrop(asset.id, preset);
+    pendingPreset = null;
+    await xohiImageStore.smartCrop(asset.id, preset, mode);
     isCropping = false;
   }
 </script>
@@ -33,17 +36,66 @@
     src={asset.file_path}
     alt="Asset {index}"
     class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-    class:blur-sm={isCropping}
+    class:blur-sm={isCropping || pendingPreset}
   />
 
   {#if isCropping}
     <div class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm" transition:fade>
-      <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <div class="flex flex-col items-center gap-3">
+        <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <span class="text-[9px] font-black text-blue-400 uppercase tracking-widest animate-pulse">Processing...</span>
+      </div>
+    </div>
+  {/if}
+
+  <!-- CNS V76: Selection Confirmation Modal -->
+  {#if pendingPreset}
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center z-50" transition:fade>
+        <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center mb-3">
+            <Crop size={20} class="text-amber-500" />
+        </div>
+        <h4 class="text-[11px] font-black text-white uppercase tracking-widest mb-1">Xác nhận chế độ cắt</h4>
+        <p class="text-[9px] text-white/40 mb-4 leading-relaxed">Chọn phương thức tối ưu cho preset <span class="text-white font-bold">{pendingPreset.toUpperCase()}</span></p>
+        
+        <div class="grid grid-cols-1 w-full gap-2">
+            <button 
+                class="bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+                onclick={() => handleSmartCrop(pendingPreset!, 'ai')}
+            >
+                <Sparkles size={12} />
+                Smart AI (Tốn Token)
+            </button>
+            <button 
+                class="bg-white/10 hover:bg-white/20 text-white/80 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95"
+                onclick={() => handleSmartCrop(pendingPreset!, 'normal')}
+            >
+                Normal Crop (Miễn phí)
+            </button>
+            <button 
+                class="mt-2 text-[9px] text-white/20 hover:text-white/40 font-bold uppercase tracking-widest"
+                onclick={() => pendingPreset = null}
+            >
+                Quay lại
+            </button>
+        </div>
     </div>
   {/if}
 
   <!-- Gradient Overlay for contrast -->
   <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
+
+  <!-- CNS V76: Logic Badge Display -->
+  <div class="absolute top-3 right-3 flex flex-col items-end gap-1">
+      {#if asset.media_metadata?.ai_analyzed || asset.media_metadata?.focal_point}
+        <div class="bg-blue-500/20 backdrop-blur-md border border-blue-500/30 px-2 py-0.5 rounded-full text-[7px] font-black text-blue-400 uppercase tracking-tighter">
+            AI Optimized
+        </div>
+      {:else if asset.dimensions && !isCropping}
+        <div class="bg-white/5 backdrop-blur-md border border-white/10 px-2 py-0.5 rounded-full text-[7px] font-black text-white/40 uppercase tracking-tighter">
+            Standard Crop
+        </div>
+      {/if}
+  </div>
 
   <!-- Badge Ảnh Chính (Master Indicator) -->
   {#if isPrimary}
@@ -77,7 +129,7 @@
         <button
           class="w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-amber-500 rounded-2xl text-white backdrop-blur-xl border border-white/10 transition-all hover:scale-110"
           onclick={() => showCropPresets = true}
-          title="Smart Crop (AI)"
+          title="Crop & Optimize"
         >
           <Crop size={18} />
         </button>
@@ -94,7 +146,7 @@
       <div class="flex items-center justify-center gap-2 p-2 bg-black/60 rounded-3xl backdrop-blur-2xl border border-white/10 shadow-2xl" transition:scale>
         <button
           class="w-9 h-9 flex flex-col items-center justify-center hover:bg-blue-500 rounded-xl text-white transition-all group/p"
-          onclick={() => handleSmartCrop('square')}
+          onclick={() => pendingPreset = 'square'}
           title="1:1 Square"
         >
           <Square size={14} />
@@ -102,7 +154,7 @@
         </button>
         <button
           class="w-9 h-9 flex flex-col items-center justify-center hover:bg-blue-500 rounded-xl text-white transition-all group/p"
-          onclick={() => handleSmartCrop('banner')}
+          onclick={() => pendingPreset = 'banner'}
           title="16:9 Banner"
         >
           <Layout size={14} />
@@ -110,7 +162,7 @@
         </button>
         <button
           class="w-9 h-9 flex flex-col items-center justify-center hover:bg-blue-500 rounded-xl text-white transition-all group/p"
-          onclick={() => handleSmartCrop('story')}
+          onclick={() => pendingPreset = 'story'}
           title="9:16 Story"
         >
           <Smartphone size={14} />
@@ -118,7 +170,7 @@
         </button>
         <button
           class="w-9 h-9 flex flex-col items-center justify-center hover:bg-blue-500 rounded-xl text-white transition-all group/p"
-          onclick={() => handleSmartCrop('feed')}
+          onclick={() => pendingPreset = 'feed'}
           title="4:5 Feed"
         >
           <Tablet size={14} />

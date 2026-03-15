@@ -6,14 +6,31 @@
   import { flip } from "svelte/animate";
   import { Upload, LayoutGrid, Sparkles } from "lucide-svelte";
 
+  import { untrack } from "svelte";
+
   const flipDurationMs = 300;
 
+  // CNS V75: Local state for DND to prevent 'parentElement' crashes caused by rapid reactivity
+  let items = $state([...xohiImageStore.secondaryAssets]);
+
+  // CNS V75.1: Sync store to local items with untrack to prevent reactive loops
+  $effect(() => {
+    const storeAssets = xohiImageStore.secondaryAssets;
+    untrack(() => {
+        if (JSON.stringify(items) !== JSON.stringify(storeAssets)) {
+            items = [...storeAssets];
+        }
+    });
+  });
+
   function handleDndConsider(e: CustomEvent<{ items: MediaAsset[] }>) {
-    xohiImageStore.reorderAssets(e.detail.items.map(i => String(i.id)));
+    items = e.detail.items;
   }
 
   function handleDndFinalize(e: CustomEvent<{ items: MediaAsset[] }>) {
-    xohiImageStore.reorderAssets(e.detail.items.map(i => String(i.id)));
+    items = e.detail.items;
+    // CNS V75.2: Only sync to global store at the very end of the gesture
+    xohiImageStore.reorderAssets(items.map(i => String(i.id)));
   }
 </script>
 
@@ -72,7 +89,7 @@
         <section
           class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 outline-none min-h-[150px] p-4 bg-white/[0.02] rounded-3xl border border-white/5 shadow-inner"
           use:dndzone={{
-            items: xohiImageStore.secondaryAssets,
+            items: items,
             flipDurationMs,
             dropTargetStyle: { outline: 'none' },
             type: 'secondary'
@@ -80,13 +97,13 @@
           onconsider={handleDndConsider}
           onfinalize={handleDndFinalize}
         >
-          {#each xohiImageStore.secondaryAssets as asset, i (asset.id)}
+          {#each items as asset, i (asset.id)}
             <div animate:flip={{ duration: flipDurationMs }}>
               <ImageSlot {asset} index={i + 1} />
             </div>
           {/each}
 
-          {#if xohiImageStore.secondaryAssets.length === 0}
+          {#if items.length === 0}
             <div class="col-span-full flex items-center justify-center py-10 opacity-20 pointer-events-none">
                <p class="text-[10px] font-black uppercase tracking-widest">No Secondary Assets</p>
             </div>

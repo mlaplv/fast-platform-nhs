@@ -69,10 +69,11 @@ class MediaAnalyst:
             logger.error(f"[MediaAnalyst] Vision analysis failed: {e}")
             # Fallback (Graceful Degradation R103)
             return MediaAnalysisResult(
-                alt_text="Hình ảnh minh họa cho nội dung bài viết.",
+                alt_text="Hình ảnh xohi: Tự động tối ưu.",
                 tags=["minh họa", "content", "xohi"],
-                description="Không thể phân tích chi tiết do lỗi kỹ thuật AI.",
-                sentiment="Trung tính"
+                description="Hệ thống đang rơi vào trạng thái Blind Crop (AI Fallback).",
+                sentiment="Trung tính",
+                focal_point={"x": 0.5, "y": 0.5}
             )
 
     async def process_registry_entry(self, entry_id: str):
