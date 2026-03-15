@@ -27,11 +27,12 @@ class VuiOrchestrator {
   private stopAfterSpeech = false;
   
   // Phase 42: Neural Lifecycle Control (Premium Timer Management)
-  private activeTimers = new Map<string, any>();
+  private activeTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   private clearTimer(key: string) {
-    if (this.activeTimers.has(key)) {
-      clearTimeout(this.activeTimers.get(key));
+    const timer = this.activeTimers.get(key);
+    if (timer) {
+      clearTimeout(timer);
       this.activeTimers.delete(key);
     }
   }
@@ -152,9 +153,10 @@ class VuiOrchestrator {
            this.stopRecording();
         }
       }, VUI_CONFIG.VAD.MAX_RECORDING_DURATION_MS);
-    } catch (e: any) {
-      console.error("[VuiOrchestrator] MIC_START_FAIL:", e);
-      vuiState.setError(e.message || "Lỗi truy cập Microphone");
+    } catch (e: unknown) {
+      const err = e as Error;
+      console.error("[VuiOrchestrator] MIC_START_FAIL:", err);
+      vuiState.setError(err.message || "Lỗi truy cập Microphone");
       this.interruptAll();
     } finally {
       vuiState.setStartingLock(false);
@@ -174,7 +176,7 @@ class VuiOrchestrator {
     vuiState.setPhase("thinking");
     this.clearTimer('initial');
     this.clearTimer('max_duration');
-    
+
     this.ws!.sendStopSignal();
     this.streamManager!.startSttGuard();
     this.mic!.stop();
@@ -202,22 +204,25 @@ class VuiOrchestrator {
   /**
    * Surgical Interruption: Stop current reading/text but keep VUI modal active.
    */
-  private phaseResetTimer: any = null;
+  private phaseResetTimer: ReturnType<typeof setTimeout> | null = null;
 
   resetToIdle() {
-    if (this.phaseResetTimer) clearTimeout(this.phaseResetTimer);
+    if (this.phaseResetTimer) {
+       clearTimeout(this.phaseResetTimer);
+       this.phaseResetTimer = null;
+    }
     vuiState.setPhase("idle");
     vuiState.setLiveText("");
     vuiState.setSystemMessage("");
   }
 
   interruptSpeech() {
-    this.audio.abort();
+    this.audio!.abort();
     this.clearAllTimers();
 
-    this.mic.stop();
-    this.vadEngine.pause();
-    this.speechEngine.stop();
+    this.mic!.stop();
+    this.vadEngine!.pause();
+    this.speechEngine!.stop();
     vuiState.setSystemMessage("");
     vuiState.setIsWaitingForAction(false);
     vuiState.setPhase("executing");
@@ -269,7 +274,7 @@ class VuiOrchestrator {
     }
   }
 
-  async execTextCmd(query: string, source: "text" | "voice" = "text", intentData?: any) {
+  async execTextCmd(query: string, source: "text" | "voice" = "text", intentData?: Record<string, unknown>) {
     if (!query) return;
     this.audio!.abort();
     this.ws!.disconnect();
@@ -277,7 +282,7 @@ class VuiOrchestrator {
     // Unified VUI: Always active for both voice and text sources
     vuiState.setActive(true);
     nanobot.setVuiActive(true);
-    
+
     vuiState.setPhase("thinking");
     vuiState.setTranscript(query);
     vuiState.setLiveText(query); // Ensure query is visible in VUI modal
@@ -291,13 +296,13 @@ class VuiOrchestrator {
     this.vadEngine!.pause();
     this.speechEngine!.stop();
     if (vuiState.phase === "listening") vuiState.setPhase("thinking");
-    
+
     if (!text || !vuiState.isActive) return false;
     if (vuiState.phase !== "executing") {
         vuiState.setPhase("speaking");
     }
     vuiState.setSystemMessage(text);
-    
+
     return await this.audio!.speak(text);
   }
 
@@ -309,12 +314,12 @@ class VuiOrchestrator {
     return this.audio!.checkAudioBlocked();
   }
 
-  async processGhost(cmd: string, source: "text" | "voice" = "text", intentData?: any): Promise<boolean> {
+  async processGhost(cmd: string, source: "text" | "voice" = "text", intentData?: Record<string, unknown>): Promise<boolean> {
     if (source === "voice" || source === "text") {
        await this.execTextCmd(cmd, source, intentData);
-       return true; 
+       return true;
     }
-    return false; 
+    return false;
   }
 
   async unlockAudio() {
@@ -322,4 +327,4 @@ class VuiOrchestrator {
   }
 }
 
-export const vuiController = (typeof window !== 'undefined') ? new VuiOrchestrator() : {} as any;
+export const vuiController = (typeof window !== 'undefined') ? new VuiOrchestrator() : {} as unknown as VuiOrchestrator;

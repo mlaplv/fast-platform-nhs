@@ -42,8 +42,8 @@ interface IntentDeps {
   chat: {
     history: unknown[];
     pagination: unknown;
-    hydrateHistory: (sessionId: string, callback?: any, userId?: string, force?: boolean) => Promise<void>;
-    loadMoreMessages: (callback?: any, sessionId?: string, userId?: string) => Promise<void>;
+    hydrateHistory: (sessionId: string, callback?: (logs: import("./types").SystemLog[]) => void, userId?: string, force?: boolean) => Promise<void>;
+    loadMoreMessages: (callback?: (logs: import("./types").SystemLog[]) => void, sessionId?: string, userId?: string) => Promise<void>;
     clearHistory: (sessionId: string) => Promise<boolean>;
   };
 }

@@ -43,15 +43,15 @@ export class MicrophoneEngine {
     this.recorder.start(chunkDurationMs);
 
     // 2. Setup AudioContext Analyser for Volume Monitoring
-    const AC = window.AudioContext || (window as any).webkitAudioContext;
+    const AC = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
     this.audioCtx = new AC();
-    
+
     // Safari/Firefox Requirement: Explicitly resume after creation
     if (this.audioCtx.state === 'suspended') {
       await this.audioCtx.resume();
     }
-    
-    
+
+
     this.analyser = this.audioCtx.createAnalyser();
     const source = this.audioCtx.createMediaStreamSource(this.stream);
     source.connect(this.analyser);
@@ -59,7 +59,7 @@ export class MicrophoneEngine {
 
     const updateVolume = () => {
       if (!this.analyser || !this.dataArr) return;
-      this.analyser.getByteTimeDomainData(this.dataArr as any);
+      this.analyser.getByteTimeDomainData(this.dataArr);
       
       // 2026 Refactor: Switch from Frequency to Time domain for accurate Peak amplitude
       let maxAbs = 0;

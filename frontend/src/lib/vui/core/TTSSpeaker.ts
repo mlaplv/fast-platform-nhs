@@ -6,12 +6,13 @@ export class TTSSpeaker {
   private sentenceBuffer = "";
   private speechQueue: string[] = [];
   private prefetchedBlobs = new Map<string, Blob>();
+  private blobUrls = new WeakMap<Blob, string>();
   private isProcessingQueue = false;
   private hasFirstSpeechStarted = false;
   private lastSentencesSpoken = new Set<string>();
   private abortController: AbortController | null = null;
   private wasAborted = false;
-  
+
   private checkIsActive: () => boolean;
   private fetchAudio: (text: string, signal: AbortSignal) => Promise<Blob>;
   private playAudio: (blob: Blob) => Promise<boolean>;
@@ -33,8 +34,8 @@ export class TTSSpeaker {
     this.sentenceBuffer = "";
     this.speechQueue = [];
     // Revoke all prefetched blobs before clearing
-    this.prefetchedBlobs.forEach((blob, text) => {
-        const url = (blob as any)._objectUrl;
+    this.prefetchedBlobs.forEach((blob) => {
+        const url = this.blobUrls.get(blob);
         if (url) URL.revokeObjectURL(url);
     });
     this.prefetchedBlobs.clear();
@@ -58,8 +59,8 @@ export class TTSSpeaker {
     this.abortController = null;
     this.speechQueue = [];
     // Revoke all prefetched blobs before clearing
-    this.prefetchedBlobs.forEach((blob, text) => {
-        const url = (blob as any)._objectUrl;
+    this.prefetchedBlobs.forEach((blob) => {
+        const url = this.blobUrls.get(blob);
         if (url) URL.revokeObjectURL(url);
     });
     this.prefetchedBlobs.clear();
@@ -92,7 +93,7 @@ export class TTSSpeaker {
     while (true) {
       const parts = this.sentenceBuffer.split(/([.?!]|\n)/);
       if (parts.length <= 2) break;
-      
+
       const sentence = parts[0] + parts[1];
       this.enqueue(sentence.trim());
       this.sentenceBuffer = parts.slice(2).join("");
@@ -111,10 +112,10 @@ export class TTSSpeaker {
     if (this.lastSentencesSpoken.has(text)) return;
     this.lastSentencesSpoken.add(text);
     this.speechQueue.push(text);
-    
+
     // Trigger prefetch for the newly added item
     this.prefetch(text);
-    
+
     if (!this.isProcessingQueue) this.processQueue();
   }
 
@@ -125,7 +126,7 @@ export class TTSSpeaker {
       const blob = await this.fetchAudio(text, signal);
       // Attach URL for later revocation
       const url = URL.createObjectURL(blob);
-      (blob as any)._objectUrl = url;
+      this.blobUrls.set(blob, url);
       this.prefetchedBlobs.set(text, blob);
     } catch (e) {
       console.warn("[TTSSpeaker] Prefetch failed", text, e);
@@ -138,7 +139,7 @@ export class TTSSpeaker {
       if (this.checkIsActive() && !this.wasAborted) this.onFinishedCallback();
       return;
     }
-    
+
     this.isProcessingQueue = true;
     const sentence = this.speechQueue.shift();
     if (sentence) {
@@ -161,7 +162,7 @@ export class TTSSpeaker {
 
         // 3. Play
         if (blob) {
-          const url = (blob as any)._objectUrl || URL.createObjectURL(blob);
+          const url = this.blobUrls.get(blob) || URL.createObjectURL(blob);
           await this.playAudio(blob);
           URL.revokeObjectURL(url);
         }

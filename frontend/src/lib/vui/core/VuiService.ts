@@ -6,14 +6,19 @@ import { VUI_CONFIG } from "./VuiConstants";
  * Decoupled from Orchestrator for architectural purity.
  */
 export interface IntentStreamEvent {
-  phase: "classify" | "guard" | "execute" | "text_delta" | "done" | "error";
+  phase: "classify" | "guard" | "execute" | "text_delta" | "done" | "error" | "transcript";
   text?: string;
   message?: string;
   status?: string;
   session_id?: string;
-  [key: string]: any;
+  router_tier?: string;
+  category?: string;
+  type?: string;
+  action?: string;
+  ui_action?: string;
+  data?: Record<string, unknown>;
+  [key: string]: unknown;
 }
-
 
 export class VuiService {
   /**
@@ -23,8 +28,8 @@ export class VuiService {
     query: string,
     sessionId: string,
     modality: "voice" | "text" = "voice",
-    screenContext?: any,
-    intentData?: any
+    screenContext?: Record<string, unknown>,
+    intentData?: Record<string, unknown>
   ): AsyncGenerator<IntentStreamEvent> {
     const res = await fetch(VUI_CONFIG.ENDPOINTS.INTENT_STREAM, {
       method: "POST",

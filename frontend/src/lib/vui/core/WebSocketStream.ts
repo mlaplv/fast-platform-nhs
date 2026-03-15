@@ -16,7 +16,7 @@ export class WebSocketStream {
    * Mở cầu WebSocket /ws/stt
    */
   connect(
-    onMessage: (data: any) => void,
+    onMessage: (data: Record<string, unknown>) => void,
     onOpen?: () => void,
     onClose?: () => void,
     onError?: (err: Event) => void

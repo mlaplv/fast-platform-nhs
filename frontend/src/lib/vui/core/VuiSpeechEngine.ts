@@ -4,15 +4,15 @@
  * This acts as a "Fast Preview" before Groq Whisper delivers the "Final Truth".
  */
 export class VuiSpeechEngine {
-  private recognition: any = null;
+  private recognition: SpeechRecognition | null = null;
   private isRunning = false;
 
   constructor() {
     if (typeof window === 'undefined') return;
-    
+
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
-      this.recognition = new SpeechRecognition();
+      this.recognition = new SpeechRecognition() as SpeechRecognition;
       this.recognition.continuous = true;
       this.recognition.interimResults = true;
       this.recognition.lang = 'vi-VN';
@@ -28,7 +28,7 @@ export class VuiSpeechEngine {
   start(onResult: (text: string, isFinal: boolean) => void) {
     if (!this.recognition || this.isRunning) return;
 
-    this.recognition.onresult = (event: any) => {
+    this.recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interimTranscript = '';
       let finalTranscript = '';
 
@@ -47,7 +47,7 @@ export class VuiSpeechEngine {
       }
     };
 
-    this.recognition.onerror = (event: any) => {
+    this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.debug("[VuiSpeechEngine] Recognition error:", event.error);
       if (event.error === 'no-speech') return;
       this.stop();

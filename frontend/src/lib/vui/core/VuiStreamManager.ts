@@ -112,14 +112,14 @@ export class VuiStreamManager {
     }
   }
 
-  public async streamLLM(query: string, session_id: string, source: "text" | "voice" = "voice", intentData?: any) {
+  public async streamLLM(query: string, session_id: string, source: "text" | "voice" = "voice", intentData?: Record<string, unknown>) {
     vuiState.setPhase("thinking");
     // Leave the STT text as liveText so the user can read it.
-    // vuiState.setLiveText(""); 
+    // vuiState.setLiveText("");
     vuiState.setSystemMessage(""); // Clear previous AI text
     this.lastActionType = "";
     let txtResult = "";
-    let lastData = null;
+    let lastData: IntentStreamEvent | null = null;
     let receivedAny = false;
 
     // Phase 76.3.4: Throttled State Updates (Sub-100ms batching)
@@ -127,7 +127,7 @@ export class VuiStreamManager {
     const UPDATE_THRESHOLD_MS = 64; // ~15fps for text deltas to save CPU on 2GB RAM devices
 
     try {
-      const stream = vuiService.streamIntent(query, session_id, source, nanobot.screenContext, intentData);
+      const stream = vuiService.streamIntent(query, session_id, source, nanobot.screenContext as Record<string, unknown>, intentData);
 
       for await (const parsed of stream) {
         receivedAny = true;

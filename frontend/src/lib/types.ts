@@ -86,7 +86,7 @@ export interface MediaAsset {
   is_public: boolean;
   campaign_id: string | null;
   createdAt: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface EditorAnnotation {
