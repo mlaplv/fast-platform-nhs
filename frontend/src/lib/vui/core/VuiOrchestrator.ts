@@ -16,12 +16,12 @@ import { isDev } from "$lib/state/nanobot/env";
  * Phase 16: Hybrid STT Layer — Native Speech API for sub-100ms Preview.
  */
 class VuiOrchestrator {
-  private mic = new MicrophoneEngine();
-  private ws = new WebSocketStream(VUI_CONFIG.ENDPOINTS.STT_WS);
-  private audio = new VuiAudioEngine(() => this.onTTSFinished());
-  private streamManager: VuiStreamManager;
-  private vadEngine = new VuiVadEngine();
-  private speechEngine = new VuiSpeechEngine();
+  private mic: MicrophoneEngine | null = null;
+  private ws: WebSocketStream | null = null;
+  private audio: VuiAudioEngine | null = null;
+  private streamManager: VuiStreamManager | null = null;
+  private vadEngine: VuiVadEngine | null = null;
+  private speechEngine: VuiSpeechEngine | null = null;
 
   private hasSpoken = false;
   private stopAfterSpeech = false;
@@ -50,6 +50,14 @@ class VuiOrchestrator {
   }
 
   constructor() {
+    if (typeof window === 'undefined') return;
+
+    this.mic = new MicrophoneEngine();
+    this.ws = new WebSocketStream(VUI_CONFIG.ENDPOINTS.STT_WS);
+    this.audio = new VuiAudioEngine(() => this.onTTSFinished());
+    this.vadEngine = new VuiVadEngine();
+    this.speechEngine = new VuiSpeechEngine();
+
     this.streamManager = new VuiStreamManager(this.audio, {
       interruptAll: () => this.interruptAll(),
       stopRecording: () => this.stopRecording(),
@@ -70,7 +78,7 @@ class VuiOrchestrator {
     this.audio.reset();
     
     this.hasSpoken = false;
-    this.streamManager.setLastAction("");
+    this.streamManager!.setLastAction("");
     
     vuiState.setTranscript("");
     vuiState.setLiveText("");
@@ -80,18 +88,18 @@ class VuiOrchestrator {
 
     try {
       // V71.4: Multi-Browser Warmup. Proactively ensure context is unlocked.
-      await this.audio.unlock();
-      this.audio.playSystemSound('start');
+      await this.audio!.unlock();
+      this.audio!.playSystemSound('start');
       
       // Step 1: Connect WebSocket for STT streaming
-      await this.ws.connect((data) => this.streamManager.handleWsMessage(data));
+      await this.ws!.connect((data) => this.streamManager!.handleWsMessage(data));
       
       // Step 2: Start MicrophoneEngine for sending WebM chunks to WS
-      if (this.mic.isActive()) this.mic.stop();
-      this.mic.start(VUI_CONFIG.MIC.CHUNK_DURATION_MS,
+      if (this.mic!.isActive()) this.mic!.stop();
+      this.mic!.start(VUI_CONFIG.MIC.CHUNK_DURATION_MS,
         (blob) => {
           if (vuiState.phase !== "listening") return;
-          this.ws.sendBinary(blob);
+          this.ws!.sendBinary(blob);
         },
         (vol) => {
           // Volume is now ONLY used for UI animation, NOT for VAD
@@ -100,7 +108,7 @@ class VuiOrchestrator {
       );
       
       // Step 3: Start Silero VAD Engine (Neural Voice Detection)
-      await this.vadEngine.start(
+      await this.vadEngine!.start(
         // onSpeechStart: Neural network confirmed human voice
         () => {
           if (vuiState.phase !== "listening") return;
@@ -124,7 +132,7 @@ class VuiOrchestrator {
       );
 
       // Step 4: Hybrid STT Preview (Live Word-by-Word)
-      this.speechEngine.start((text) => {
+      this.speechEngine!.start((text) => {
         if (vuiState.phase !== "listening") return;
         // Native preview updates the UI immediately
         vuiState.setLiveText(text);
@@ -167,28 +175,28 @@ class VuiOrchestrator {
     this.clearTimer('initial');
     this.clearTimer('max_duration');
     
-    this.ws.sendStopSignal();
-    this.streamManager.startSttGuard();
-    this.mic.stop();
-    this.vadEngine.pause();
-    this.speechEngine.stop();
-    this.audio.playSystemSound('stop');
+    this.ws!.sendStopSignal();
+    this.streamManager!.startSttGuard();
+    this.mic!.stop();
+    this.vadEngine!.pause();
+    this.speechEngine!.stop();
+    this.audio!.playSystemSound('stop');
     vuiState.setVolume(0);
     vuiState.setStartingLock(false);
   }
 
   interruptAll() {
     this.clearAllTimers();
-    this.streamManager.clearSttGuard();
-    this.audio.abort();
-    this.mic.stop();
-    this.vadEngine.stop();
-    this.speechEngine.stop();
-    this.ws.disconnect();
+    this.streamManager!.clearSttGuard();
+    this.audio!.abort();
+    this.mic!.stop();
+    this.vadEngine!.stop();
+    this.speechEngine!.stop();
+    this.ws!.disconnect();
     vuiState.reset();
     vuiState.setStartingLock(false);
     nanobot.setVuiActive(false);
-    this.streamManager.setLastAction("");
+    this.streamManager!.setLastAction("");
   }
 
   /**
@@ -214,7 +222,7 @@ class VuiOrchestrator {
     vuiState.setIsWaitingForAction(false);
     vuiState.setPhase("executing");
     vuiState.setLiveText("Hệ thống đang chuyển pha...");
-    this.streamManager.setLastAction("");
+    this.streamManager!.setLastAction("");
 
     this.setManagedTimer('phase_reset', () => {
       if (vuiState.phase === "executing") {
@@ -227,8 +235,8 @@ class VuiOrchestrator {
 
   private onTTSFinished() {
     if (vuiState.isWaitingForAction) {
-      this.mic.stop();
-      this.vadEngine.pause();
+      this.mic!.stop();
+      this.vadEngine!.pause();
       vuiState.setPhase("idle");
       vuiState.setLiveText("Sẵn sàng thưa sếp...");
       return;
@@ -246,7 +254,7 @@ class VuiOrchestrator {
     }
 
     if (VUI_CONFIG.UX.CONTINUOUS_CONVERSATION && vuiState.isActive) {
-      const delay = this.streamManager.getLastAction() ? VUI_CONFIG.UX.POST_ACTION_DELAY_MS : VUI_CONFIG.UX.POST_SPEECH_DELAY_MS;
+      const delay = this.streamManager!.getLastAction() ? VUI_CONFIG.UX.POST_ACTION_DELAY_MS : VUI_CONFIG.UX.POST_SPEECH_DELAY_MS;
       this.setManagedTimer('resumption', () => {
         if (vuiState.isActive && nanobot.isVuiActive) {
           vuiState.setSystemMessage("");
@@ -263,8 +271,8 @@ class VuiOrchestrator {
 
   async execTextCmd(query: string, source: "text" | "voice" = "text") {
     if (!query) return;
-    this.audio.abort();
-    this.ws.disconnect();
+    this.audio!.abort();
+    this.ws!.disconnect();
 
     // Unified VUI: Always active for both voice and text sources
     vuiState.setActive(true);
@@ -275,13 +283,13 @@ class VuiOrchestrator {
     vuiState.setLiveText(query); // Ensure query is visible in VUI modal
     vuiState.setSystemMessage("");
 
-    await this.streamManager.streamLLM(query, nanobot.currentData?.session_id || "", source);
+    await this.streamManager!.streamLLM(query, nanobot.currentData?.session_id || "", source);
   }
 
   async speak(text: string): Promise<boolean> {
-    this.mic.stop();
-    this.vadEngine.pause();
-    this.speechEngine.stop();
+    this.mic!.stop();
+    this.vadEngine!.pause();
+    this.speechEngine!.stop();
     if (vuiState.phase === "listening") vuiState.setPhase("thinking");
     
     if (!text || !vuiState.isActive) return false;
@@ -290,15 +298,15 @@ class VuiOrchestrator {
     }
     vuiState.setSystemMessage(text);
     
-    return await this.audio.speak(text);
+    return await this.audio!.speak(text);
   }
 
   playNotificationPing() {
-    this.audio.playNotificationPing();
+    this.audio!.playNotificationPing();
   }
 
   checkAudioBlocked(): boolean {
-    return this.audio.checkAudioBlocked();
+    return this.audio!.checkAudioBlocked();
   }
 
   async processGhost(cmd: string, source: "text" | "voice" = "text"): Promise<boolean> {
@@ -310,8 +318,8 @@ class VuiOrchestrator {
   }
 
   async unlockAudio() {
-    await this.audio.unlock();
+    await this.audio!.unlock();
   }
 }
 
-export const vuiController = new VuiOrchestrator();
+export const vuiController = (typeof window !== 'undefined') ? new VuiOrchestrator() : {} as any;

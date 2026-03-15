@@ -18,8 +18,8 @@ export class MicrophoneEngine {
   ): Promise<void> {
     this.stop(); // Safe guard (Idempotency)
 
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error("Microphone API is not supported in this browser.");
+    if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Microphone API is not supported in this environment.");
     }
 
     this.stream = await navigator.mediaDevices.getUserMedia({
