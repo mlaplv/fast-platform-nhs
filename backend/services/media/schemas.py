@@ -93,7 +93,7 @@ class FetchRemoteRequest(BaseModel):
     campaign_id: Optional[str] = None
 
 class MediaListResult(BaseModel):
-    items: List[Any] # List[MediaRegistry] - Registry instances (Elite R105: Any cast required at router)
+    items: List[object] # List[MediaRegistry] - Registry instances
     total: int
     limit: int
     offset: int
@@ -101,7 +101,7 @@ class MediaListResult(BaseModel):
 class MediaStatsResult(BaseModel):
     total_count: int
     total_size: int
-    breakdown: List[Dict[str, Any]]
+    breakdown: List[MimeTypeBreakdown]
     storage_provider: str
 
 class CommandAction(TypedDict):

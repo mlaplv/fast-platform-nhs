@@ -131,6 +131,7 @@ class MediaStore {
 
             const response = await apiClient.get<{ status: string, data: { items: MediaAsset[], total: number } }>(endpoint, { params });
             if (response.status === 'success') {
+                // Ensure field mapping consistency for R105
                 this.assets = response.data.items;
                 this.total = response.data.total;
             }
@@ -207,8 +208,8 @@ class MediaStore {
             this.assets[index] = {
                 ...this.assets[index],
                 alt_text: (payload.alt_text as string) || this.assets[index].alt_text,
-                metadata: {
-                    ...this.assets[index].metadata,
+                media_metadata: {
+                    ...this.assets[index].media_metadata,
                     ...((payload.media_metadata as Record<string, unknown>) || (payload.metadata as Record<string, unknown>) || {})
                 }
             };
@@ -237,8 +238,8 @@ class MediaStore {
                 const newAsset: MediaAsset = {
                     ...response.data,
                     // Giả định các fields mặc định, AI sẽ cập nhật sau qua SSE
-                    created_at: new Date().toISOString(),
-                    metadata: response.data.metadata || {}
+                    created_at: response.data.created_at || new Date().toISOString(),
+                    media_metadata: response.data.media_metadata || {}
                 };
                 this.assets = [newAsset, ...this.assets];
                 this.total++;
@@ -275,9 +276,9 @@ class MediaStore {
                         ...this.assets[index],
                         ...metadata,
                         // Ensure nested metadata is merged if provided
-                        metadata: {
-                            ...this.assets[index].metadata,
-                            ...((metadata.metadata as Record<string, unknown>) || {})
+                        media_metadata: {
+                            ...this.assets[index].media_metadata,
+                            ...((metadata.media_metadata as Record<string, unknown>) || (metadata.metadata as Record<string, unknown>) || {})
                         }
                     } as MediaAsset;
                 }

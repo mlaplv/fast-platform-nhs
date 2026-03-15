@@ -104,8 +104,10 @@ export interface MediaAsset {
   alt_text: string | null;
   is_public: boolean;
   campaign_id: string | null;
-  createdAt: string;
-  metadata: Record<string, unknown>;
+  owner_id: string | null;
+  created_at: string;
+  media_metadata: Record<string, unknown>;
+  _updatedAt?: number; // Internal cache buster
 }
 
 export interface EditorAnnotation {

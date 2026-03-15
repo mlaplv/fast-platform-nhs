@@ -578,8 +578,12 @@ class MediaService:
         mime_stmt = mime_stmt.group_by(MediaRegistry.mime_type)
         mime_result = await repo.session.execute(mime_stmt)
 
-        breakdown: List[Dict[str, object]] = [
-            {"type": str(r.mime_type).split("/")[-1].upper(), "count": int(r.count), "size": int(r.size or 0)}
+        breakdown: List[MimeTypeBreakdown] = [
+            MimeTypeBreakdown(
+                type=str(r.mime_type).split("/")[-1].upper(),
+                count=int(r.count),
+                size=int(r.size or 0)
+            )
             for r in mime_result.all()
         ]
 

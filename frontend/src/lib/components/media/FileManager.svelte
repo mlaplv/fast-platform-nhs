@@ -60,9 +60,9 @@
                              (asset.alt_text && asset.alt_text.toLowerCase().includes(query));
 
             // Tìm sâu vào AI Metadata (Tags & Sentiment)
-            const aiTags = asset.metadata?.ai_tags || [];
+            const aiTags = (asset.media_metadata as any)?.ai_tags || [];
             const tagMatch = aiTags.some((tag: string) => tag.toLowerCase().includes(query));
-            const vibeMatch = asset.metadata?.ai_sentiment?.toLowerCase().includes(query);
+            const vibeMatch = (asset.media_metadata as any)?.ai_sentiment?.toLowerCase().includes(query);
 
             return basicMatch || tagMatch || vibeMatch;
         })
@@ -76,7 +76,7 @@
     const suggestiveTags = $derived.by(() => {
         const tagMap = new Map<string, number>();
         mediaStore.assets.forEach(asset => {
-            (asset.metadata?.ai_tags || []).forEach((tag: string) => {
+            ((asset.media_metadata as any)?.ai_tags || []).forEach((tag: string) => {
                 tagMap.set(tag, (tagMap.get(tag) || 0) + 1);
             });
         });
@@ -373,7 +373,7 @@
                             {/if}
 
                             <!-- AI Processing Overlay (V76) -->
-                            {#if !asset.metadata?.ai_description}
+                            {#if !(asset.media_metadata as any)?.ai_description}
                                 <div class="absolute inset-0 bg-blue-500/10 backdrop-blur-[1px] flex items-center justify-center">
                                     <div class="relative w-full h-full">
                                         <!-- Scanning line effect -->
@@ -475,7 +475,7 @@
                     <div class="aspect-video bg-zinc-200 dark:bg-zinc-800 rounded-xl overflow-hidden border shadow-inner relative group/preview">
                         <img src="{selectedAsset.file_path}?t={selectedAsset._updatedAt || ''}" alt="" class="w-full h-full object-contain" />
 
-                        {#if !selectedAsset.metadata?.ai_description}
+                        {#if !(selectedAsset.media_metadata as any)?.ai_description}
                             <div class="absolute inset-0 bg-blue-500/5 flex items-center justify-center">
                                 <div class="absolute top-0 left-0 w-full h-1 bg-blue-500/40 animate-scan-loop"></div>
                             </div>
@@ -527,7 +527,7 @@
                     <div class="flex flex-col gap-2">
                         <div class="flex items-center justify-between">
                             <span class="text-[10px] font-bold text-zinc-500 uppercase">AI Smart Crop (V11.0)</span>
-                            {#if selectedAsset.metadata?.focal_point}
+                            {#if (selectedAsset.media_metadata as any)?.focal_point}
                                 <span class="text-[8px] px-1 bg-green-500/10 text-green-600 rounded">Focal Point Ready</span>
                             {:else}
                                 <span class="text-[8px] px-1 bg-zinc-500/10 text-zinc-500 rounded">Center fallback</span>
@@ -577,8 +577,8 @@
                                 <h5 class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">Visual Intelligence</h5>
                             </div>
 
-                            {#if selectedAsset.metadata?.ai_description}
-                                <p class="text-[11px] text-zinc-600 dark:text-zinc-400 italic mb-3">"{selectedAsset.metadata.ai_description}"</p>
+                            {#if (selectedAsset.media_metadata as any)?.ai_description}
+                                <p class="text-[11px] text-zinc-600 dark:text-zinc-400 italic mb-3">"{(selectedAsset.media_metadata as any).ai_description}"</p>
                             {:else}
                                 <div class="flex flex-col gap-2 mb-3">
                                     <div class="h-3 w-full bg-blue-500/10 rounded animate-pulse"></div>
@@ -587,18 +587,18 @@
                                 </div>
                             {/if}
 
-                            {#if selectedAsset.metadata?.ai_tags}
+                            {#if (selectedAsset.media_metadata as any)?.ai_tags}
                                 <div class="flex flex-wrap gap-1">
-                                    {#each selectedAsset.metadata.ai_tags as tag}
+                                    {#each (selectedAsset.media_metadata as any).ai_tags as tag}
                                         <span class="px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-[9px] font-medium">#{tag}</span>
                                     {/each}
                                 </div>
                             {/if}
 
-                            {#if selectedAsset.metadata?.ai_sentiment}
+                            {#if (selectedAsset.media_metadata as any)?.ai_sentiment}
                                 <div class="mt-3 flex items-center gap-2">
                                     <span class="text-[10px] text-zinc-400 uppercase font-bold">Vibe:</span>
-                                    <span class="text-[10px] font-bold text-zinc-700 dark:text-zinc-200">{selectedAsset.metadata.ai_sentiment}</span>
+                                    <span class="text-[10px] font-bold text-zinc-700 dark:text-zinc-200">{(selectedAsset.media_metadata as any).ai_sentiment}</span>
                                 </div>
                             {/if}
                         </div>
@@ -629,30 +629,30 @@
                             </div>
 
                             <!-- AI Intelligence (V11.0) -->
-                            {#if selectedAsset.metadata?.ai_tags || selectedAsset.metadata?.ai_description}
+                            {#if (selectedAsset.media_metadata as any)?.ai_tags || (selectedAsset.media_metadata as any)?.ai_description}
                                 <div class="p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-100/50 dark:border-blue-500/10">
                                     <div class="flex items-center gap-2 mb-2">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-blue-500"><path d="M12 2v8"/><path d="m4.93 4.93 4.24 4.24"/><path d="M2 12h8"/><path d="m4.93 19.07 4.24-4.24"/><path d="M12 22v-8"/><path d="m19.07 19.07-4.24-4.24"/><path d="M22 12h-8"/><path d="m19.07 4.93-4.24 4.24"/></svg>
                                         <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">AI Gợi ý</span>
                                     </div>
 
-                                    {#if selectedAsset.metadata?.ai_tags}
+                                    {#if (selectedAsset.media_metadata as any)?.ai_tags}
                                         <div class="flex flex-wrap gap-1 mb-2">
-                                            {#each selectedAsset.metadata.ai_tags as tag}
+                                            {#each (selectedAsset.media_metadata as any).ai_tags as tag}
                                                 <span class="px-1.5 py-0.5 bg-white dark:bg-zinc-800 text-[9px] text-zinc-600 dark:text-zinc-400 rounded border border-zinc-200 dark:border-zinc-700">#{tag}</span>
                                             {/each}
                                         </div>
                                     {/if}
 
-                                    {#if selectedAsset.metadata?.ai_sentiment}
+                                    {#if (selectedAsset.media_metadata as any)?.ai_sentiment}
                                         <div class="text-[9px] text-zinc-500">
-                                            Vibe: <span class="text-blue-600 dark:text-blue-400 font-bold">{selectedAsset.metadata.ai_sentiment}</span>
+                                            Vibe: <span class="text-blue-600 dark:text-blue-400 font-bold">{(selectedAsset.media_metadata as any).ai_sentiment}</span>
                                         </div>
                                     {/if}
 
-                                    {#if selectedAsset.metadata?.focal_point}
+                                    {#if (selectedAsset.media_metadata as any)?.focal_point}
                                         <div class="text-[9px] text-zinc-500 mt-1">
-                                            Focal Point: <span class="font-mono">({selectedAsset.metadata.focal_point.x.toFixed(2)}, {selectedAsset.metadata.focal_point.y.toFixed(2)})</span>
+                                            Focal Point: <span class="font-mono">({(selectedAsset.media_metadata as any).focal_point.x.toFixed(2)}, {(selectedAsset.media_metadata as any).focal_point.y.toFixed(2)})</span>
                                         </div>
                                     {/if}
                                 </div>
@@ -811,7 +811,7 @@
                                     <div class="flex justify-between items-start">
                                         <span class="text-xs font-bold truncate max-w-[200px]">{asset.filename}</span>
                                         <span class="text-[9px] px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full font-bold uppercase tracking-wider">
-                                            {asset.metadata?.ai_sentiment || 'Standard'}
+                                            {(asset.media_metadata as any)?.ai_sentiment || 'Standard'}
                                         </span>
                                     </div>
 
@@ -825,9 +825,9 @@
                                         ></textarea>
                                     </div>
 
-                                    {#if asset.metadata?.ai_tags}
+                                    {#if (asset.media_metadata as any)?.ai_tags}
                                         <div class="flex flex-wrap gap-1">
-                                            {#each asset.metadata.ai_tags.slice(0, 5) as tag}
+                                            {#each (asset.media_metadata as any).ai_tags.slice(0, 5) as tag}
                                                 <span class="px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 text-[9px] text-zinc-500 dark:text-zinc-400 rounded">#{tag}</span>
                                             {/each}
                                         </div>
