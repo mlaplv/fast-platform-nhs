@@ -293,7 +293,7 @@ class MediaStore {
                     const updatedAsset = response.data;
                     this.assets[index] = {
                         ...this.assets[index],
-                        dimensions: updatedAsset.dimensions,
+                        ...updatedAsset,
                         // Thêm timestamp để bypass browser cache của ảnh gốc/thumb
                         _updatedAt: Date.now()
                     };

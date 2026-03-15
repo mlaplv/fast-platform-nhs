@@ -32,8 +32,8 @@ Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt th
 - [x] Backend: Auto-purge Trash Bin logic (30 days lifecycle). <!-- id: 20 -->
 
 ## 🎯 Giai đoạn 11: AI-Driven Media Intelligence & Auto-SEO
-- [ ] Backend: Tích hợp Vision Model tự động sinh Alt-text và Tags. <!-- id: 21 -->
-- [ ] Backend: Thuật toán nhận diện Focal Point (Điểm tụ) để Smart Crop. <!-- id: 22 -->
-- [ ] Logic: Auto-conversion sang WebP/AVIF tối ưu dung lượng. <!-- id: 23 -->
-- [ ] UI: Giao diện Bulk SEO Editor (Cập nhật Alt-text hàng loạt). <!-- id: 24 -->
-- [ ] UI: Hiển thị AI suggestions trong Detail Panel. <!-- id: 25 -->
+- [x] Backend: Tích hợp Vision Model tự động sinh Alt-text và Tags. <!-- id: 21 -->
+- [x] Backend: Thuật toán nhận diện Focal Point (Điểm tụ) để Smart Crop. <!-- id: 22 -->
+- [x] Logic: Auto-conversion sang WebP/AVIF tối ưu dung lượng (WebP 90). <!-- id: 23 -->
+- [x] UI: Giao diện Bulk SEO Editor (Cập nhật Alt-text hàng loạt). <!-- id: 24 -->
+- [x] UI: Hiển thị AI suggestions trong Detail Panel. <!-- id: 25 -->

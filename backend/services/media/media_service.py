@@ -1,10 +1,16 @@
 import logging
 import os
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from sqlalchemy import select, func
 from backend.database.models import MediaRegistry
 from backend.database.repositories import MediaRegistryRepository
 from backend.services.storage.manager import storage
+from backend.services.media.schemas import (
+    MediaListResponse,
+    MediaUpdateMetadata,
+    MediaStatsResponse,
+    QuickEditParams
+)
 
 logger = logging.getLogger("media-service")
 
@@ -23,7 +29,7 @@ class MediaService:
         search_query: Optional[str] = None,
         include_deleted: bool = False,
         owner_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> MediaListResponse:
         """Liệt kê và lọc ảnh với hiệu năng cao (Hỗ trợ AI Semantic Search)."""
         from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
         import numpy as np
@@ -104,7 +110,7 @@ class MediaService:
                 await repo.session.commit()
 
         return {
-            "items": assets,
+            "items": list(assets),
             "total": total,
             "limit": limit,
             "offset": offset
@@ -114,7 +120,7 @@ class MediaService:
         self,
         repo: MediaRegistryRepository,
         asset_id: str,
-        metadata: Dict[str, Any],
+        metadata: MediaUpdateMetadata,
         owner_id: Optional[str] = None
     ) -> Optional[MediaRegistry]:
         """Cập nhật metadata (alt_text, AI tags...) cho ảnh."""
@@ -333,11 +339,13 @@ class MediaService:
             logger.error(f"[MediaService] ZIP generation failed: {e}")
             return None
 
-    async def quick_edit(self, repo: MediaRegistryRepository, asset_id: str, action: str, params: Optional[Dict[str, Any]] = None, owner_id: Optional[str] = None) -> Optional[MediaRegistry]:
+    async def quick_edit(self, repo: MediaRegistryRepository, asset_id: str, action: str, params: Optional[QuickEditParams] = None, owner_id: Optional[str] = None) -> Optional[MediaRegistry]:
         """Thực hiện xử lý nhanh (Xoay/Lật/Crop/Watermark) - V10.0 Elite."""
         import os
         from PIL import Image, ImageEnhance
         import uuid
+        from backend.services.media.utils import calculate_smart_crop
+        from backend.services.media.constants import AspectRatio, DEFAULT_QUALITY
 
         asset = await repo.get(asset_id)
         if not asset:
@@ -386,6 +394,18 @@ class MediaService:
                         # params: {x, y, w, h}
                         x, y, w, h = params.get('x', 0), params.get('y', 0), params.get('w', img.width), params.get('h', img.height)
                         img = img.crop((x, y, x + w, y + h))
+                    elif action == "smart_crop" and params:
+                        # Smart Crop dựa trên Focal Point và Preset Ratio
+                        preset_name = params.get('preset', 'square').upper()
+                        target_ratio = AspectRatio[preset_name].value if preset_name in AspectRatio.__members__ else AspectRatio.SQUARE.value
+
+                        # Lấy focal point từ metadata, mặc định là tâm (0.5, 0.5)
+                        meta = asset.media_metadata or {}
+                        focal = meta.get('focal_point', {'x': 0.5, 'y': 0.5})
+                        f_x, f_y = focal.get('x', 0.5), focal.get('y', 0.5)
+
+                        box = calculate_smart_crop(img.width, img.height, f_x, f_y, target_ratio)
+                        img = img.crop(box)
                     elif action == "watermark":
                         # Dynamic Watermarking (V10.0)
                         # Ưu tiên logo PNG, nếu không có sẽ fallback sang Text (Elite R03)
@@ -432,21 +452,53 @@ class MediaService:
                     if not (is_remote or source_path.endswith((".webp", ".png"))):
                         img = img.convert('RGB')
 
-                    img.save(save_path, "WEBP" if is_remote or source_path.endswith(".webp") else img.format, quality=90)
+                    img.save(save_path, "WEBP", quality=DEFAULT_QUALITY, optimize=True)
                     return f"{img.width}x{img.height}"
 
             import asyncio
             new_dims = await asyncio.to_thread(process)
 
-            # 3. Upload lại nếu là ảnh Cloud
+            # 3. Xác định đường dẫn mới và định dạng (Chuyển đổi sang WebP triệt để)
+            old_file_path = asset.file_path
+            new_file_path = old_file_path
+            new_filename = asset.filename
+
+            if not old_file_path.endswith(".webp"):
+                new_file_path = os.path.splitext(old_file_path)[0] + ".webp"
+                new_filename = os.path.splitext(asset.filename)[0] + ".webp"
+
+            # 4. Upload / Rename file vật lý
             if is_remote:
-                # Trích xuất remote path từ URL cũ
-                # Giả định URL có dạng: https://.../uploads/2026/03/id.webp
-                remote_path = "/".join(asset.file_path.split("/")[-4:])
+                # Upload lên đường dẫn mới (hoặc cũ nếu không đổi extension)
+                remote_path = "/".join(new_file_path.split("/")[-4:])
                 await storage.upload(temp_path, remote_path)
 
-            # 4. Cập nhật DB
+                # Nếu đổi extension, xóa file cũ trên Cloud
+                if new_file_path != old_file_path:
+                    try:
+                        old_remote_path = "/".join(old_file_path.split("/")[-4:])
+                        await storage.delete(old_remote_path)
+                    except: pass
+            else:
+                # Xử lý local
+                if new_file_path != old_file_path:
+                    rel_old = old_file_path.lstrip("/")
+                    rel_new = new_file_path.lstrip("/")
+                    full_old = os.path.join("frontend/static", rel_old)
+                    full_new = os.path.join("frontend/static", rel_new)
+
+                    if os.path.exists(full_old):
+                        if os.path.exists(full_new) and full_old != full_new:
+                            os.remove(full_new)
+                        os.rename(full_old, full_new)
+
+            # 5. Cập nhật DB
             asset.dimensions = new_dims
+            asset.file_path = new_file_path
+            asset.filename = new_filename
+            asset.mime_type = "image/webp"
+            asset.file_size = os.path.getsize(temp_path) if is_remote else os.path.getsize(os.path.join("frontend/static", new_file_path.lstrip("/")))
+
             await repo.update(asset)
             await repo.session.commit()
 
@@ -487,7 +539,7 @@ class MediaService:
         except Exception as e:
             logger.warning(f"[CDN] Invalidation failed: {e}")
 
-    async def get_stats(self, repo: MediaRegistryRepository, owner_id: Optional[str] = None) -> Dict[str, Any]:
+    async def get_stats(self, repo: MediaRegistryRepository, owner_id: Optional[str] = None) -> MediaStatsResponse:
         """Thống kê kho tài nguyên (V9.0 Analytics)."""
         from sqlalchemy import func, or_
 
@@ -518,7 +570,7 @@ class MediaService:
         mime_stmt = mime_stmt.group_by(MediaRegistry.mime_type)
         mime_result = await repo.session.execute(mime_stmt)
 
-        breakdown = [
+        breakdown: List[MimeTypeBreakdown] = [
             {"type": r.mime_type.split("/")[-1].upper(), "count": r.count, "size": r.size}
             for r in mime_result.all()
         ]
@@ -566,29 +618,47 @@ class MediaService:
             folder = datetime.now().strftime("%Y/%m")
             remote_path = f"uploads/{folder}/{asset_id}{ext}"
 
-            # 3. Lưu file tạm và upload qua Storage Provider
+            # 3. Lưu file tạm, xử lý convert sang WEBP và upload
             temp_path = f"/tmp/{asset_id}{ext}"
+            webp_path = f"/tmp/{asset_id}.webp"
             with open(temp_path, "wb") as f:
                 f.write(response.content)
 
-            # Lấy kích thước ảnh ngay tại đây (R01 Scout)
+            # Lấy kích thước ảnh và convert sang WEBP (R103)
             from PIL import Image
-            with Image.open(temp_path) as img:
-                dims = f"{img.width}x{img.height}"
+            def process_initial():
+                with Image.open(temp_path) as img:
+                    dims = f"{img.width}x{img.height}"
+                    # Convert to RGB/RGBA if needed and save as WEBP
+                    if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+                        img = img.convert('RGBA')
+                    else:
+                        img = img.convert('RGB')
+                    img.save(webp_path, "WEBP", quality=90, optimize=True)
+                return dims
 
-            final_url = await storage.upload(temp_path, remote_path)
+            import asyncio
+            dims = await asyncio.to_thread(process_initial)
 
-            # Xóa file tạm ngay (R00 Discipline)
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
+            # Cập nhật đường dẫn remote sang .webp
+            remote_path = f"uploads/{folder}/{asset_id}.webp"
+            final_url = await storage.upload(webp_path, remote_path)
+
+            # Lấy dung lượng file thật sau khi nén (R01 Scout)
+            actual_size = os.path.getsize(webp_path)
+
+            # Xóa files tạm ngay (R00 Discipline)
+            for p in [temp_path, webp_path]:
+                if os.path.exists(p):
+                    os.remove(p)
 
             # 4. Đăng ký vào Database
             asset = MediaRegistry(
                 id=asset_id,
-                filename=filename,
+                filename=filename if filename.endswith(".webp") else filename + ".webp",
                 file_path=final_url,
-                file_size=len(response.content),
-                mime_type=content_type,
+                file_size=actual_size,
+                mime_type="image/webp",
                 dimensions=dims,
                 campaign_id=campaign_id,
                 owner_id=owner_id,

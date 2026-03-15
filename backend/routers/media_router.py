@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from uuid import UUID
 from litestar import Controller, get, post, patch, delete, Request
 from litestar.response import Redirect
@@ -7,6 +7,12 @@ from litestar.di import Provide
 
 from backend.database.repositories import MediaRegistryRepository, provide_media_repo
 from backend.services.media.media_service import media_service
+from backend.services.media.schemas import (
+    MediaListResponse,
+    MediaStatsResponse,
+    MediaUpdateMetadata,
+    QuickEditParams
+)
 from backend.models.schemas import GenericResponse
 
 logger = logging.getLogger("media-api")

@@ -174,6 +174,18 @@ class XoHiResponder:
         msg = payload.get("message", "")
         logger.debug(f"[XoHiResponder] Progress (ephemeral): campaign={campaign_id} step={step} msg={msg[:60]}")
 
+    async def handle_media_uploaded(self, payload: Dict[str, object]):
+        """Callback for MEDIA_UPLOADED event. Triggers AI analysis."""
+        asset_id = payload.get("id")
+        if not asset_id:
+            return
+
+        from backend.services.xohi.creative_studio.operatives.media_analyst import MediaAnalyst
+        analyst = MediaAnalyst()
+        # Chạy phân tích trong background (Non-blocking)
+        asyncio.create_task(analyst.process_registry_entry(asset_id))
+        logger.info(f"[XoHiResponder] Triggered AI Analysis for asset: {asset_id}")
+
 # Initialize and subscribe
 xohi_responder = XoHiResponder()
 
@@ -183,4 +195,5 @@ def setup_subscriptions():
     event_bus.subscribe("ORDER_CANCELLED", xohi_responder.handle_order_cancelled)
     event_bus.subscribe("CONTENT_STEP_COMPLETED", xohi_responder.handle_content_step_completed)
     event_bus.subscribe("CONTENT_PROGRESS", xohi_responder.handle_content_progress)
+    event_bus.subscribe("MEDIA_UPLOADED", xohi_responder.handle_media_uploaded)
     logger.info("[XoHiResponder] Subscriptions initialized.")

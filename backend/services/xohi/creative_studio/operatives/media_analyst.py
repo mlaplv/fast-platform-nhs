@@ -22,7 +22,8 @@ Phân tích hình ảnh được cung cấp và trích xuất dữ liệu chuẩ
 2. tags: Trích xuất 5-8 từ khóa (tiếng Việt) về đối tượng, chất liệu, ánh sáng, bối cảnh.
 3. description: Mô tả chi tiết cho người khiếm thị hoặc AI hiểu sâu.
 4. sentiment: Xác định vibe của ảnh (Chuyên nghiệp, Sang trọng, Tối giản, Năng động...).
-5. Trả về đúng JSON schema.
+5. focal_point: Xác định toạ độ {x, y} của vật thể/vùng quan trọng nhất (như khuôn mặt, sản phẩm). Giá trị từ 0.0 đến 1.0.
+6. Trả về đúng JSON schema.
 """
 
 class MediaAnalyst:
@@ -113,6 +114,7 @@ class MediaAnalyst:
                     "ai_tags": analysis.tags,
                     "ai_description": analysis.description,
                     "ai_sentiment": analysis.sentiment,
+                    "focal_point": analysis.focal_point,
                     "analyzed_at": datetime.now(timezone.utc).isoformat()
                 })
                 entry.media_metadata = meta

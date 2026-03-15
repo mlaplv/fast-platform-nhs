@@ -79,6 +79,10 @@ class MediaAnalysisResult(BaseModel):
     tags: List[str] = Field(description="Danh sách 5-8 từ khóa mô tả đối tượng, bối cảnh, màu sắc trong ảnh")
     description: str = Field(description="Mô tả chi tiết nội dung ảnh phục vụ AI accessibility")
     sentiment: str = Field(description="Cảm xúc chủ đạo của ảnh (e.g. chuyên nghiệp, năng động, tĩnh lặng)")
+    focal_point: Optional[Dict[str, float]] = Field(
+        default=None,
+        description="Toạ độ điểm quan quan trọng nhất {x, y} tỷ lệ từ 0-1 để Smart Crop"
+    )
 
 class MediaAsset(BaseModel):
     id: str = Field(default_factory=lambda: "img_" + safe_id(), description="ID duy nhất của ảnh")

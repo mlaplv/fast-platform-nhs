@@ -103,6 +103,8 @@
         if (selectedAssetId === id) selectedAssetId = null;
     }
 
+    let showBulkSeo = $state(false);
+
     async function handleBulkDelete() {
         const msg = mediaStore.isTrashMode
             ? `Sếp có chắc chắn muốn xóa VĨNH VIỄN ${mediaStore.selectedIds.size} ảnh đã chọn?`
@@ -123,29 +125,9 @@
         await mediaStore.quickEdit(selectedAssetId, action, params);
     }
 
-    function applyCropPreset(ratio: number) {
-        if (!selectedAsset || !selectedAsset.dimensions) return;
-        const [width, height] = selectedAsset.dimensions.split('x').map(Number);
-        if (isNaN(width) || isNaN(height)) return;
-
-        let w, h, x, y;
-        const currentRatio = width / height;
-
-        if (currentRatio > ratio) {
-            // Ảnh ngang hơn target -> cắt bớt chiều rộng
-            h = height;
-            w = height * ratio;
-            x = (width - w) / 2;
-            y = 0;
-        } else {
-            // Ảnh dọc hơn target -> cắt bớt chiều cao
-            w = width;
-            h = width / ratio;
-            x = 0;
-            y = (height - h) / 2;
-        }
-
-        handleQuickEdit('crop', { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) });
+    async function applySmartCrop(preset: 'square' | 'banner' | 'story' | 'feed') {
+        if (!selectedAssetId) return;
+        await handleQuickEdit('smart_crop', { preset });
     }
 </script>
 
@@ -523,28 +505,46 @@
 
                     <!-- Crop Presets -->
                     <div class="flex flex-col gap-2">
-                        <span class="text-[10px] font-bold text-zinc-500 uppercase">Cắt ảnh nhanh (Crop)</span>
-                        <div class="grid grid-cols-3 gap-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-zinc-500 uppercase">AI Smart Crop (V11.0)</span>
+                            {#if selectedAsset.metadata?.focal_point}
+                                <span class="text-[8px] px-1 bg-green-500/10 text-green-600 rounded">Focal Point Ready</span>
+                            {:else}
+                                <span class="text-[8px] px-1 bg-zinc-500/10 text-zinc-500 rounded">Center fallback</span>
+                            {/if}
+                        </div>
+                        <div class="grid grid-cols-4 gap-2">
                             <button
-                                onclick={() => applyCropPreset(1)}
-                                class="flex flex-col items-center gap-1 p-2 bg-white dark:bg-zinc-800 border rounded-lg hover:border-blue-500 transition-all"
+                                onclick={() => applySmartCrop('square')}
+                                class="flex flex-col items-center gap-1 p-2 bg-white dark:bg-zinc-800 border rounded-lg hover:border-blue-500 transition-all group/btn"
+                                title="Cắt hình vuông (1:1)"
                             >
-                                <div class="w-6 h-6 border-2 border-zinc-400 rounded-sm"></div>
-                                <span class="text-[9px] font-bold">1:1 Square</span>
+                                <div class="w-6 h-6 border-2 border-zinc-400 group-hover/btn:border-blue-500 rounded-sm"></div>
+                                <span class="text-[9px] font-bold">Square</span>
                             </button>
                             <button
-                                onclick={() => applyCropPreset(16/9)}
-                                class="flex flex-col items-center gap-1 p-2 bg-white dark:bg-zinc-800 border rounded-lg hover:border-blue-500 transition-all"
+                                onclick={() => applySmartCrop('banner')}
+                                class="flex flex-col items-center gap-1 p-2 bg-white dark:bg-zinc-800 border rounded-lg hover:border-blue-500 transition-all group/btn"
+                                title="Cắt ngang (16:9)"
                             >
-                                <div class="w-8 h-4.5 border-2 border-zinc-400 rounded-sm"></div>
-                                <span class="text-[9px] font-bold">16:9 Banner</span>
+                                <div class="w-8 h-4.5 border-2 border-zinc-400 group-hover/btn:border-blue-500 rounded-sm"></div>
+                                <span class="text-[9px] font-bold">Banner</span>
                             </button>
                             <button
-                                onclick={() => applyCropPreset(9/16)}
-                                class="flex flex-col items-center gap-1 p-2 bg-white dark:bg-zinc-800 border rounded-lg hover:border-blue-500 transition-all"
+                                onclick={() => applySmartCrop('story')}
+                                class="flex flex-col items-center gap-1 p-2 bg-white dark:bg-zinc-800 border rounded-lg hover:border-blue-500 transition-all group/btn"
+                                title="Cắt dọc (9:16)"
                             >
-                                <div class="w-4.5 h-8 border-2 border-zinc-400 rounded-sm"></div>
-                                <span class="text-[9px] font-bold">9:16 Story</span>
+                                <div class="w-4.5 h-8 border-2 border-zinc-400 group-hover/btn:border-blue-500 rounded-sm"></div>
+                                <span class="text-[9px] font-bold">Story</span>
+                            </button>
+                            <button
+                                onclick={() => applySmartCrop('feed')}
+                                class="flex flex-col items-center gap-1 p-2 bg-white dark:bg-zinc-800 border rounded-lg hover:border-blue-500 transition-all group/btn"
+                                title="Cắt dọc Feed (4:5)"
+                            >
+                                <div class="w-5 h-6.5 border-2 border-zinc-400 group-hover/btn:border-blue-500 rounded-sm"></div>
+                                <span class="text-[9px] font-bold">Feed</span>
                             </button>
                         </div>
                     </div>
@@ -603,9 +603,40 @@
                                 <textarea
                                     bind:value={selectedAsset.alt_text}
                                     class="w-full p-2 text-xs bg-white dark:bg-zinc-800 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-20"
+                                    placeholder="AI đang phân tích..."
                                     onchange={() => mediaStore.updateMetadata(selectedAsset!.id, { alt_text: selectedAsset!.alt_text })}
                                 ></textarea>
                             </div>
+
+                            <!-- AI Intelligence (V11.0) -->
+                            {#if selectedAsset.metadata?.ai_tags || selectedAsset.metadata?.ai_description}
+                                <div class="p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-100/50 dark:border-blue-500/10">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-blue-500"><path d="M12 2v8"/><path d="m4.93 4.93 4.24 4.24"/><path d="M2 12h8"/><path d="m4.93 19.07 4.24-4.24"/><path d="M12 22v-8"/><path d="m19.07 19.07-4.24-4.24"/><path d="M22 12h-8"/><path d="m19.07 4.93-4.24 4.24"/></svg>
+                                        <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">AI Gợi ý</span>
+                                    </div>
+
+                                    {#if selectedAsset.metadata?.ai_tags}
+                                        <div class="flex flex-wrap gap-1 mb-2">
+                                            {#each selectedAsset.metadata.ai_tags as tag}
+                                                <span class="px-1.5 py-0.5 bg-white dark:bg-zinc-800 text-[9px] text-zinc-600 dark:text-zinc-400 rounded border border-zinc-200 dark:border-zinc-700">#{tag}</span>
+                                            {/each}
+                                        </div>
+                                    {/if}
+
+                                    {#if selectedAsset.metadata?.ai_sentiment}
+                                        <div class="text-[9px] text-zinc-500">
+                                            Vibe: <span class="text-blue-600 dark:text-blue-400 font-bold">{selectedAsset.metadata.ai_sentiment}</span>
+                                        </div>
+                                    {/if}
+
+                                    {#if selectedAsset.metadata?.focal_point}
+                                        <div class="text-[9px] text-zinc-500 mt-1">
+                                            Focal Point: <span class="font-mono">({selectedAsset.metadata.focal_point.x.toFixed(2)}, {selectedAsset.metadata.focal_point.y.toFixed(2)})</span>
+                                        </div>
+                                    {/if}
+                                </div>
+                            {/if}
                         </div>
 
                         <!-- Technical Specs -->
@@ -706,11 +737,95 @@
                 </button>
 
                 <button
+                    onclick={() => showBulkSeo = true}
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                    TỐI ƯU SEO
+                </button>
+
+                <button
                     onclick={() => mediaStore.clearSelection()}
                     class="px-4 py-2 hover:bg-white/10 dark:hover:bg-black/10 rounded-lg text-xs font-bold transition-all"
                 >
                     HỦY BỎ
                 </button>
+            </div>
+        </div>
+    {/if}
+
+    <!-- Bulk SEO Editor Modal (V11.0 Elite) -->
+    {#if showBulkSeo}
+        <div
+            class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+            transition:fade={{ duration: 200 }}
+        >
+            <div
+                class="bg-white dark:bg-zinc-900 w-full max-w-4xl max-h-[80vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/10"
+                transition:scale={{ start: 0.95, duration: 200 }}
+            >
+                <div class="p-6 border-b flex justify-between items-center bg-zinc-50 dark:bg-zinc-800/50">
+                    <div>
+                        <h3 class="text-lg font-bold">Bulk SEO Editor</h3>
+                        <p class="text-xs text-zinc-500">Đang tối ưu {mediaStore.selectedIds.size} ảnh được chọn</p>
+                    </div>
+                    <button
+                        onclick={() => showBulkSeo = false}
+                        class="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full transition-colors"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                    <div class="space-y-6">
+                        {#each mediaStore.assets.filter(a => mediaStore.selectedIds.has(a.id)) as asset}
+                            <div class="flex gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-700/50 group">
+                                <div class="w-32 h-32 rounded-lg overflow-hidden bg-zinc-200 dark:bg-zinc-800 flex-shrink-0 relative">
+                                    <img src={asset.file_path} alt="" class="w-full h-full object-cover" />
+                                    <div class="absolute bottom-1 right-1 px-1 bg-black/50 text-[8px] text-white rounded font-mono uppercase">
+                                        {asset.dimensions}
+                                    </div>
+                                </div>
+                                <div class="flex-1 flex flex-col gap-3">
+                                    <div class="flex justify-between items-start">
+                                        <span class="text-xs font-bold truncate max-w-[200px]">{asset.filename}</span>
+                                        <span class="text-[9px] px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full font-bold uppercase tracking-wider">
+                                            {asset.metadata?.ai_sentiment || 'Standard'}
+                                        </span>
+                                    </div>
+
+                                    <div>
+                                        <label class="text-[9px] font-bold text-zinc-400 uppercase mb-1 block">Alt Text (SEO)</label>
+                                        <textarea
+                                            bind:value={asset.alt_text}
+                                            class="w-full p-2 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-16 transition-all"
+                                            placeholder="Gõ alt-text để ảnh lên top..."
+                                            onchange={() => mediaStore.updateMetadata(asset.id, { alt_text: asset.alt_text })}
+                                        ></textarea>
+                                    </div>
+
+                                    {#if asset.metadata?.ai_tags}
+                                        <div class="flex flex-wrap gap-1">
+                                            {#each asset.metadata.ai_tags.slice(0, 5) as tag}
+                                                <span class="px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 text-[9px] text-zinc-500 dark:text-zinc-400 rounded">#{tag}</span>
+                                            {/each}
+                                        </div>
+                                    {/if}
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                </div>
+
+                <div class="p-6 border-t bg-zinc-50 dark:bg-zinc-800/50 flex justify-end gap-3">
+                    <button
+                        onclick={() => showBulkSeo = false}
+                        class="px-6 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:scale-105 active:scale-95 transition-all"
+                    >
+                        HOÀN TẤT
+                    </button>
+                </div>
             </div>
         </div>
     {/if}
