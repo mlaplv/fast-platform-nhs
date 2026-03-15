@@ -10,22 +10,12 @@
   import CircleCheck from "lucide-svelte/icons/circle-check";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
+  import type { Permission, Role, BaseWidgetProps } from "$lib/types";
   import RoleCard from "./RoleCard.svelte";
   import PermissionGroup from "./PermissionGroup.svelte";
   import PermissionEditGrid from "./PermissionEditGrid.svelte";
 
-  interface Permission {
-    id: string;
-    name: string;
-    code: string;
-    description?: string;
-  }
-  interface Role {
-    id: string;
-    code: string;
-    name: string;
-    permissions: Permission[];
-  }
+  let { data = {} } = $props<BaseWidgetProps>();
 
   interface RoleStyle {
     gradient: string;

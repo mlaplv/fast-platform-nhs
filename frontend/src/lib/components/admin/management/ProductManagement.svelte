@@ -7,6 +7,7 @@
   import ChevronUp from "lucide-svelte/icons/chevron-up";
   import ChevronDown from "lucide-svelte/icons/chevron-down";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import type { Product, BaseWidgetProps } from "$lib/types";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import ProductStats from "./ProductStats.svelte";
@@ -14,16 +15,7 @@
   import ProductTable from "./ProductTable.svelte";
   import OrderPagination from "./OrderPagination.svelte";
 
-  interface Product {
-    id: string;
-    name: string;
-    sku: string;
-    price: number;
-    stock: number;
-    category: string;
-    categoryId: string | null;
-    status: "active" | "draft" | "archived";
-  }
+  let { data = {} } = $props<BaseWidgetProps>();
 
   interface CategoryOption {
     id: string;

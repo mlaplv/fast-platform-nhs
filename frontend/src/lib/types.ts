@@ -48,6 +48,19 @@ export interface OrderHistory {
   note?: string;
 }
 
+export interface Order {
+  id: string;
+  customerName: string;
+  total: number;
+  status: string;
+  items: number;
+  isSpam: boolean;
+  spamScore?: number;
+  fingerprint?: string;
+  spamReason?: string;
+  createdAt: string;
+}
+
 export interface OrderDetail extends Order {
   items: OrderItem[];
   history: OrderHistory[];
@@ -109,5 +122,9 @@ export interface ToolbarAction {
   disabled?: boolean;       // Gate lock — nút bị khoá
   lockedMsg?: string;       // Tooltip hiển thị khi bị khoá
   onclick: () => void | Promise<void>;
+}
+
+export interface BaseWidgetProps {
+  data?: Record<string, unknown>;
 }
 

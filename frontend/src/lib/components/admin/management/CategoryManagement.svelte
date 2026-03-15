@@ -9,16 +9,11 @@
   import Square from "lucide-svelte/icons/square";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
+  import type { Category, BaseWidgetProps } from "$lib/types";
   import CategoryForm from "./CategoryForm.svelte";
   import CategoryTree from "./CategoryTree.svelte";
 
-  interface Category {
-    id: string;
-    name: string;
-    slug: string;
-    productCount: number;
-    children: Category[];
-  }
+  let { data = {} } = $props<BaseWidgetProps>();
 
   let categories = $state<Category[]>([]),
     isLoading = $state(true),

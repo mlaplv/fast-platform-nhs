@@ -6,6 +6,7 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import Send from "lucide-svelte/icons/send";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import type { Article, BaseWidgetProps } from "$lib/types";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
 
@@ -13,16 +14,8 @@
   import OrderPagination from "./OrderPagination.svelte";
   import DraftGenerativeForm from "./DraftGenerativeForm.svelte";
 
-  interface Article {
-    id: string;
-    title: string;
-    status: "published" | "draft";
-    views: number;
-    author: string;
-    createdAt: string;
-    category: string;
-    excerpt?: string;
-  }
+  let { data = {} } = $props<BaseWidgetProps>();
+
   const CATEGORIES = ["Tin tức", "Chính sách"] as const;
 
   // --- STATE (Server-Side Pagination) ---

@@ -5,7 +5,7 @@
   import Package from "lucide-svelte/icons/package";
   import TrendingUp from "lucide-svelte/icons/trending-up";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import type { Order } from "$lib/types";
+  import type { Order, BaseWidgetProps } from "$lib/types";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import OrderDetailDrawer from "./OrderDetailDrawer.svelte";
@@ -14,6 +14,8 @@
   import { ORDER_STATUS_MAP } from "$lib/constants/order";
 
   import OrderFilters from "./OrderFilters.svelte";
+
+  let { data = {} } = $props<BaseWidgetProps>();
 
   let orders = $state<Order[]>([]);
   let totalOrders = $state(0);

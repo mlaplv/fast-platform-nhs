@@ -3,6 +3,7 @@
   import { apiClient } from "$lib/utils/apiClient";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { vuiController } from "$lib/vui";
+  import type { BaseWidgetProps } from "$lib/types";
 
   import Save from "lucide-svelte/icons/save";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
@@ -15,6 +16,8 @@
   import SecurityFooter from "./voice/SecurityFooter.svelte";
   import GeminiControl from "./voice/GeminiControl.svelte";
   import GeminiDiagnosticsModal from "./voice/GeminiDiagnosticsModal.svelte";
+
+  let { data = {} } = $props<BaseWidgetProps>();
 
   interface Capability {
     id: string;

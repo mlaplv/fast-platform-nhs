@@ -3,6 +3,7 @@
   import { fly } from "svelte/transition";
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
+  import type { BaseWidgetProps } from "$lib/types";
   import ChevronLeft from "lucide-svelte/icons/chevron-left";
   import Terminal from "lucide-svelte/icons/terminal";
 
@@ -18,17 +19,17 @@
   import NotificationList from "../../widgets/NotificationList.svelte";
   import VoiceSettings from "../../management/VoiceSettings.svelte";
 
-  const WIDGET_REGISTRY: Partial<Record<WidgetType, Component<any>>> = {
-    REVENUE_CHART: RevenueChart,
-    USER_TABLE: UserTable,
-    USER_MANAGEMENT: UserManagement,
-    PERMISSION_MANAGEMENT: PermissionManagement,
-    CATEGORY_MANAGEMENT: CategoryManagement,
-    PRODUCT_MANAGEMENT: ProductManagement,
-    ORDER_MANAGEMENT: OrderManagement,
-    NEWS_MANAGEMENT: NewsManagement,
-    NOTIFICATION_LIST: NotificationList as any, // NotificationList might not match Component<any> exactly if it has specific props
-    VOICE_SETTINGS: VoiceSettings,
+  const WIDGET_REGISTRY: Partial<Record<WidgetType, Component<BaseWidgetProps>>> = {
+    REVENUE_CHART: RevenueChart as Component<BaseWidgetProps>,
+    USER_TABLE: UserTable as Component<BaseWidgetProps>,
+    USER_MANAGEMENT: UserManagement as Component<BaseWidgetProps>,
+    PERMISSION_MANAGEMENT: PermissionManagement as Component<BaseWidgetProps>,
+    CATEGORY_MANAGEMENT: CategoryManagement as Component<BaseWidgetProps>,
+    PRODUCT_MANAGEMENT: ProductManagement as Component<BaseWidgetProps>,
+    ORDER_MANAGEMENT: OrderManagement as Component<BaseWidgetProps>,
+    NEWS_MANAGEMENT: NewsManagement as Component<BaseWidgetProps>,
+    NOTIFICATION_LIST: NotificationList as Component<BaseWidgetProps>,
+    VOICE_SETTINGS: VoiceSettings as Component<BaseWidgetProps>,
   };
 
   const WIDGET_LABEL: Partial<Record<WidgetType, string>> = {

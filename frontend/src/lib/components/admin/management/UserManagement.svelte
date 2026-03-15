@@ -14,12 +14,14 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import { nanobot } from "$lib/state/nanobot.svelte";
-  import type { User, Role, Permission } from "$lib/types";
+  import type { User, Role, BaseWidgetProps } from "$lib/types";
   import { apiClient, ApiError } from "$lib/utils/apiClient";
   import OrderPagination from "./OrderPagination.svelte";
   import UserForm from "./UserForm.svelte";
 
   import UserRow from "./UserRow.svelte";
+
+  let { data = {} } = $props<BaseWidgetProps>();
 
   let users = $state<User[]>([]);
   let totalUsers = $state(0);

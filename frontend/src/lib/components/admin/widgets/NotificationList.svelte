@@ -5,6 +5,9 @@
   import LucideActivity from "lucide-svelte/icons/activity";
   import ShieldCheck from "lucide-svelte/icons/shield-check";
   import Info from "lucide-svelte/icons/info";
+  import type { BaseWidgetProps } from "$lib/types";
+
+  let { data = {} } = $props<BaseWidgetProps>();
 
   function getIcon(type: string) {
     switch (type) {
