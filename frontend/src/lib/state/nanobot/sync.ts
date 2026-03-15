@@ -1,9 +1,46 @@
 import { apiClient } from "$lib/utils/apiClient";
 import { untrack } from "svelte";
 import { permissionState } from "../permissions.svelte";
-import type { CampaignData, SystemLog } from "../types";
+import type { CampaignData, SystemLog, ToastType } from "../types";
 
-export function createSyncManager(state: any, log: any, chat: any, notification: any, ui: any, resumeManager: any, pulseManager: any) {
+interface SyncDeps {
+  state: {
+    godModeUser?: string;
+  };
+  log: {
+    activityLogs: SystemLog[];
+    upsertLogs: (logs: SystemLog[]) => void;
+  };
+  chat: {
+    hydrateHistory: (
+      sessionId: string,
+      callback: (logs: SystemLog[]) => void,
+      userId?: string
+    ) => Promise<void>;
+  };
+  notification: {
+    fetchNotifications: () => Promise<void>;
+  };
+  ui: {
+    showToast: (msg: string, type: ToastType) => void;
+  };
+  resumeManager: {
+    internalResumeCampaign: (log: SystemLog, isSilent: boolean) => Promise<void>;
+  };
+  pulseManager: {
+    isConnected: boolean;
+  };
+}
+
+export function createSyncManager(
+  state: SyncDeps["state"],
+  log: SyncDeps["log"],
+  chat: SyncDeps["chat"],
+  notification: SyncDeps["notification"],
+  ui: SyncDeps["ui"],
+  resumeManager: SyncDeps["resumeManager"],
+  pulseManager: SyncDeps["pulseManager"]
+) {
   let pollingInterval: ReturnType<typeof setInterval> | undefined;
 
   const stopSmartPolling = () => {
@@ -16,13 +53,17 @@ export function createSyncManager(state: any, log: any, chat: any, notification:
   const startSmartPolling = () => {
     if (pollingInterval) return;
     pollingInterval = setInterval(async () => {
-      const hasActiveCampaign = log.activityLogs.some((l: SystemLog) => 
-        l.data?.category === "CONTENT_CREATE" && (l.data?.status === "PROCESSING" || (l.data?.step || 0) < 6)
+      const hasActiveCampaign = log.activityLogs.some((l: SystemLog) =>
+        l.data?.category === "CONTENT_CREATE" && (l.data?.status === "PROCESSING" || (Number(l.data?.step || 0)) < 6)
       );
       if (!hasActiveCampaign) { stopSmartPolling(); return; }
 
+      // V12: Avoid polling if pulse is active unless forced
       const interval = pulseManager.isConnected ? 30000 : 5000;
-      if (pollingInterval && (pollingInterval as any)._idleTimeout !== interval) {
+
+      // Node.js vs Browser interval check workaround
+      const currentInterval = (pollingInterval as unknown as { _idleTimeout?: number })._idleTimeout;
+      if (currentInterval !== undefined && currentInterval !== interval) {
         stopSmartPolling();
         startSmartPolling();
         return;
@@ -41,18 +82,18 @@ export function createSyncManager(state: any, log: any, chat: any, notification:
     chat.hydrateHistory("account", (logs: SystemLog[]) => {
       log.upsertLogs(logs);
       const uniqueLogs = log.activityLogs;
-      const pending = [...uniqueLogs].reverse().find((l: SystemLog) => 
-        l.data?.campaign_id && 
-        l.data?.status !== "COMPLETED" && 
+      const pending = [...uniqueLogs].reverse().find((l: SystemLog) =>
+        l.data?.campaign_id &&
+        l.data?.status !== "COMPLETED" &&
         (l.data?.status === "WAITING_FOR_REVIEW" || l.data?.status === "PROCESSING" || (parseInt(String(l.data?.step || 0)) < 6))
       );
-      
+
       if (pending) {
         setTimeout(() => resumeManager.internalResumeCampaign(pending, true), 1200);
       } else {
         setTimeout(() => {
           import("$lib/vui").then(({ vuiController, vuiState }) => {
-            const userName = (permissionState as any)?.userName || "Bạn";
+            const userName = (permissionState as { userName?: string })?.userName || "Bạn";
             vuiState.setActive(true);
             vuiState.setPhase("idle");
             vuiController.playNotificationPing();

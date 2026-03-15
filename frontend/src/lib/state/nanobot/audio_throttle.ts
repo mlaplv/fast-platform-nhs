@@ -1,7 +1,14 @@
 import { SIGNAL_THROTTLE_MS } from "./utils";
 import { permissionState } from "../permissions.svelte";
 
-export function createAudioThrottle(state: any) {
+interface AudioThrottleDeps {
+  state: {
+    signalQueue: string[];
+    audioUnlocked: boolean;
+  };
+}
+
+export function createAudioThrottle(state: AudioThrottleDeps["state"]) {
   let lastSpeakTime = 0;
   let signalThrottleTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -23,13 +30,14 @@ export function createAudioThrottle(state: any) {
     // Determine what to speak
     const queue = [...state.signalQueue];
     state.signalQueue = [];
-    
+
     let toSpeak = "";
     if (queue.length === 1) {
       toSpeak = queue[0];
     } else {
       // Rule R81.68: Auto-Summarization
-      toSpeak = `Hệ thống có ${queue.length} cập nhật mới cho ${permissionState.userName || 'Admin'}.`;
+      const userName = (permissionState as { userName?: string }).userName || 'Admin';
+      toSpeak = `Hệ thống có ${queue.length} cập nhật mới cho ${userName}.`;
     }
 
     if (toSpeak) {

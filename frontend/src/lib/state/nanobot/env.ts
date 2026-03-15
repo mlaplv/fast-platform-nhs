@@ -1,7 +1,16 @@
 // Utility to safely access environment variables without triggering strict TS errors in some IDEs
-export const isDev = () => {
+interface ImportMetaEnv {
+    DEV: boolean;
+    [key: string]: any;
+}
+
+interface ImportMeta {
+    env: ImportMetaEnv;
+}
+
+export const isDev = (): boolean => {
     try {
-        return (import.meta as any).env?.DEV || false;
+        return (import.meta as unknown as ImportMeta).env?.DEV || false;
     } catch (e) {
         return false;
     }

@@ -147,7 +147,7 @@ export function createNanobotState() {
     setGodModeUser: (val: string | null) => { state.godModeUser = val; },
     clearCurrentData: () => { state.currentData = null; },
     clearCommandAction: () => { state.commandAction = null; },
-    consumeCommand: (verb: string, entity: string) => {
+    consumeCommand: (verb: CommandVerb, entity: CommandEntity | "media") => {
       if (state.commandAction && state.commandAction.verb === verb && state.commandAction.entity === entity) {
         state.commandAction = { ...state.commandAction, consumed: true };
         // Tự động xóa sau 500ms để tránh UI nhấp nháy hoặc xử lý lại khi component re-render

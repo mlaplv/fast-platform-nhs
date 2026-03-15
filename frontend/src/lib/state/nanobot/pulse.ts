@@ -1,6 +1,6 @@
 import { normalizeAssets } from "./utils";
 import { isDev } from "./env";
-import type { CampaignData, PulseSignal } from "../types";
+import type { CampaignData, PulseSignal, SystemLog, IntentResponse, ToastType } from "../types";
 
 // CNS V70: Voice Discipline — maps server severity to frontend action
 const VOICE_DISCIPLINE = {
@@ -12,7 +12,47 @@ const VOICE_DISCIPLINE = {
 
 type VoiceDiscipline = typeof VOICE_DISCIPLINE[keyof typeof VOICE_DISCIPLINE];
 
-export function createPulseManager(state: any, voice: any, log: any, ui: any, vuiState: any, notification: any, startSmartPolling: () => void) {
+interface PulseDeps {
+  state: Record<string, unknown>;
+  voice: {
+    vuiResponse: IntentResponse | null;
+    setVoiceResult: (
+      transcript: string,
+      responseText: string,
+      uiAction: string,
+      data?: Record<string, unknown>,
+      source?: "text" | "voice",
+      routerTier?: number
+    ) => void;
+  };
+  log: {
+    activityLogs: SystemLog[];
+    setActivityLogs: (logs: SystemLog[]) => void;
+    addLog: (msg: string, source?: string, type?: string, tier?: number, data?: Record<string, unknown>) => void;
+  };
+  ui: {
+    showToast: (msg: string, type: ToastType, duration?: number) => void;
+  };
+  vuiState: {
+    setActive: (val: boolean) => void;
+    setPhase: (phase: string) => void;
+    setSystemMessage: (msg: string) => void;
+    setIsWaitingForAction: (val: boolean) => void;
+  };
+  notification: {
+    addPendingSignal?: (signal: { id: string; message: string; severity: string; isRead: boolean }) => void;
+  };
+}
+
+export function createPulseManager(
+  state: PulseDeps["state"],
+  voice: PulseDeps["voice"],
+  log: PulseDeps["log"],
+  ui: PulseDeps["ui"],
+  vuiState: PulseDeps["vuiState"],
+  notification: PulseDeps["notification"],
+  startSmartPolling: () => void
+) {
   let eventSource: EventSource | null = null;
   let pulseRetryTimeout: ReturnType<typeof setTimeout> | null = null;
   let idleDisconnectTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -38,11 +78,11 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
             vuiState.setActive(true);
             vuiState.setPhase("executing");
             vuiState.setSystemMessage(contentPayload.message);
-            
+
             if (voice.vuiResponse?.data) {
               const current = voice.vuiResponse.data;
               const newData = contentPayload.data || {};
-              
+
               voice.vuiResponse.data = {
                   ...current,
                   progress_msg: contentPayload.message,
@@ -61,16 +101,16 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
           }
 
           const existingLogs = [...log.activityLogs];
-          const logIdx = existingLogs.findIndex(l => 
-            l.data?.campaign_id === contentPayload.campaign_id && 
+          const logIdx = existingLogs.findIndex(l =>
+            l.data?.campaign_id === contentPayload.campaign_id &&
             String(l.data?.step ?? "") === String(contentPayload.step ?? "")
           );
           if (logIdx !== -1) {
-            const current = (existingLogs[logIdx].data || {}) as any;
+            const current = (existingLogs[logIdx].data || {}) as Record<string, unknown>;
             const newData = contentPayload.data || {};
-            existingLogs[logIdx].data = { 
-              ...current, 
-              step: contentPayload.step, 
+            existingLogs[logIdx].data = {
+              ...current,
+              step: contentPayload.step,
               status: "PROCESSING",
               progress_msg: contentPayload.message,
               keywords: newData.keywords || newData.topic_data || current.keywords,
@@ -102,9 +142,9 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
           const completedPayload = payload as CampaignData & { message: string };
           if (voice?.vuiResponse?.data?.campaign_id === completedPayload.campaign_id) {
               vuiState.setActive(true);
-              vuiState.setPhase("idle"); 
+              vuiState.setPhase("idle");
               vuiState.setIsWaitingForAction(true);
-              
+
               if (!voice.vuiResponse) {
                 voice.setVoiceResult("Neural Update", "Cập nhật từ hệ thống...", "CONTENT_CREATE", { campaign_id: completedPayload.campaign_id }, "text");
               }
@@ -112,7 +152,7 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
               if (voice.vuiResponse?.data) {
                 const current = voice.vuiResponse.data;
                 const newData = completedPayload.data || {};
-                
+
                 voice.vuiResponse.data = {
                     ...current,
                     status: completedPayload.status,
@@ -155,8 +195,8 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
           const { message, severity, notification_id } = signalPayload;
           const discipline: VoiceDiscipline = VOICE_DISCIPLINE[severity as keyof typeof VOICE_DISCIPLINE] ?? "silent";
 
-          if (typeof (notification as any).addPendingSignal === "function") {
-            (notification as any).addPendingSignal({ id: notification_id, message, severity, isRead: false });
+          if (typeof notification.addPendingSignal === "function") {
+            notification.addPendingSignal({ id: notification_id, message, severity, isRead: false });
           }
 
           if (discipline === "interrupt") ui.showToast(message, "error", 7000);
@@ -192,11 +232,9 @@ export function createPulseManager(state: any, voice: any, log: any, ui: any, vu
         eventSource.close();
         eventSource = null;
 
-        const isUnloading = typeof window !== "undefined" && (window.performance?.navigation?.type === 1 || !window.navigator.onLine);
-        
         const delay = Math.min(30000, 5000 * Math.pow(1.5, retryCount));
         retryCount++;
-        
+
         pulseRetryTimeout = setTimeout(connectPulse, delay);
       }
     };
