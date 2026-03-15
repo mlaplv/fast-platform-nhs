@@ -68,7 +68,39 @@ class ExecutionEngine:
 
             # Phase 73: Retrieve operative from registry for steps 1-4 and 6
             operative = registry.get_operative(step)
-            response_task = asyncio.create_task(operative.execute(campaign_id, campaign_repo, step=step))
+
+            # Phase 76.5: Neural Streaming Waterfall (Step 4 Special Handling)
+            if step == 4 and hasattr(operative, "stream_draft"):
+                campaign = await campaign_repo.get(campaign_id)
+                full_content = ""
+                async for chunk in operative.stream_draft(campaign):
+                    if chunk["type"] == "chunk":
+                        text = chunk["text"]
+                        full_content += text
+                        # Emit chunk to event bus for real-time UI updates
+                        await event_bus.emit("CONTENT_CHUNK", {
+                            "campaign_id": campaign_id,
+                            "text": text,
+                            "step": 4
+                        })
+                    elif chunk["type"] == "final":
+                        # Step 4 logic completion
+                        campaign.draft_content = chunk["content"]
+                        response = AgentResponse(
+                            signal=AgentSignal.PROCEED_NEXT,
+                            message="Draft content generated — Viral 2026 Edition.",
+                            data={"content": chunk["content"]}
+                        )
+                        break
+                    elif chunk["type"] == "error":
+                        await self._log_error(campaign, campaign_repo, "ERROR", chunk["message"])
+                        return
+
+                # Mock a finished task for the existing logic below
+                response_task = asyncio.Future()
+                response_task.set_result(response)
+            else:
+                response_task = asyncio.create_task(operative.execute(campaign_id, campaign_repo, step=step))
 
             # Phase 76: Zero-Latency Heartbeat (V76)
             # Replaces busy-wait sleep(10) with instant completion detection

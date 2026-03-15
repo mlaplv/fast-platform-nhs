@@ -71,22 +71,64 @@ async def run_xohi_mission():
             (6, "LOCALIZE MEDIA & XUẤT BẢN")
         ]
 
+        # Lưu lại title mục tiêu từ Campaign trước khi bị cleanup ở Step 6
+        target_title = None
+
         for num, msg in steps:
             success = await execute_and_wait(num, msg)
             if not success: break
 
+            # Sau bước 1 hoặc bất kỳ bước nào có topic_data, lấy title để verify sau này
+            if not target_title and campaign.topic_data:
+                target_title = campaign.topic_data.get("title")
+
+        # --- BƯỚC CHỐT: DUYỆT BƯỚC 6 ĐỂ XUẤT BẢN ---
+        if success:
+            print(f"\n--- [BƯỚC 7: DUYỆT XUẤT BẢN CUỐI CÙNG] ---")
+            await content_factory.approve_step(campaign_id, {"approved": True, "step": 6}, repo)
+
+            # Chờ một chút để hệ thống thực hiện publish & cleanup
+            for i in range(10):
+                await session.refresh(campaign)
+                if campaign.status == "COMPLETED":
+                    print("✅ CHIẾN DỊCH ĐÃ HOÀN TẤT VÀ XUẤT BẢN.")
+                    break
+                await asyncio.sleep(1)
+
         print(f"\n--- [KIỂM TRA THÀNH PHẨM] ---")
-        # Truy vấn bài viết vừa tạo
-        stmt = select(Article).where(Article.campaign_id == campaign_id) if hasattr(Article, 'campaign_id') else select(Article).order_by(Article.created_at.desc()).limit(1)
+        # Truy vấn bài viết vừa tạo dựa trên title và user_id (để tránh lấy nhầm bài cũ)
+        if target_title:
+            print(f"🔍 Đang tìm bài viết có tiêu đề: {target_title}")
+            stmt = select(Article).where(Article.title == target_title).order_by(Article.created_at.desc())
+        else:
+            print("⚠️ Không xác định được title, fallback lấy bài mới nhất...")
+            stmt = select(Article).order_by(Article.created_at.desc())
+
         res = await session.execute(stmt)
-        article = res.scalar_one_or_none()
+        article = res.scalars().first()
 
         if article:
             print(f"✅ TIÊU ĐỀ: {article.title}")
             print(f"🔗 SLUG: {article.slug}")
-            has_local = "/v65_assets/" in article.content
-            print(f"🖼️ MEDIA: {'✅ ĐÃ LOCALIZED (v65_assets)' if has_local else '⚠️ VẪN DÙNG LINK NGOÀI'}")
+
+            # Kiểm tra Media Localization kỹ hơn
+            import re
+            img_urls = re.findall(r'src=["\'](.*?)["\']', article.content)
+            external_imgs = [url for url in img_urls if url.startswith("http")]
+            local_imgs = [url for url in img_urls if "/v65_assets/" in url]
+
+            print(f"🖼️ MEDIA REPORT:")
+            print(f"   - Tổng số ảnh: {len(img_urls)}")
+            print(f"   - Đã nội địa hóa: {len(local_imgs)}")
+            if external_imgs:
+                print(f"   - ⚠️ CÒN LINK NGOÀI ({len(external_imgs)}):")
+                for url in external_imgs[:3]: print(f"     -> {url}")
+            else:
+                print(f"   - ✅ 100% Localized (Chuẩn R115)")
+
             print(f"📊 NỘI DUNG: {len(article.content)} ký tự.")
+            if len(article.content) < 500:
+                print(f"⚠️ CẢNH BÁO: Nội dung quá ngắn ({len(article.content)} ký tự).")
         else:
             print("❌ Không tìm thấy bài viết trong Database.")
 

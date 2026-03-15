@@ -1,0 +1,16 @@
+{
+  "static_keywords": {
+    "advertising": ["mua ngay", "giá rẻ nhất", "ưu đãi khủng", "click tại đây", "nhận khuyến mãi"],
+    "domain_spam": [".xyz", ".top", ".bet", "link-sv388", "12bet", "vwin"],
+    "footers": ["Bản quyền thuộc về", "All rights Reserved", "Chính sách bảo mật", "Điều khoản sử dụng"]
+  },
+  "fuzzy_patterns": {
+    "sensitive": ["lừa đảo", "cờ bạc", "vi phạm pháp luật"],
+    "marketing_variations": ["quảng cáo", "khuyến mãi", "săn sale"]
+  },
+  "semantic_categories": [
+    "JUNK_CODE",
+    "MARKETING_FLUFF",
+    "POLICY_BOILERPLATE"
+  ]
+}

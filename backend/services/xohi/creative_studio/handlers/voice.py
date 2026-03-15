@@ -32,15 +32,12 @@ class VoiceHandler:
             q_norm = query.lower()
             for c in results:
                 title = c.topic_data.get("title", "").lower() if c.topic_data else ""
-                if title and title in q_norm or q_norm in title:
+                source = c.source_input.lower() if c.source_input else ""
+                # Strict match: Query must relate to the title or original input
+                if (title and (title in q_norm or q_norm in title)) or (source and (source in q_norm or q_norm in source)):
                     return c
-
-        for c in results:
-            if c.status in ["PROCESSING", "WAITING_FOR_REVIEW", "WAITING_FOR_NEXT_STEP"] and c.tenant_id == tenant_id:
-                if user_id and c.user_id == user_id:
-                    return c
-                elif not user_id:
-                    return c
+            # If query doesn't match any recent campaign, DO NOT resume a random one
+            return None
         return None
 
     def format_resume_greeting(self, campaign: ContentCampaign) -> str:

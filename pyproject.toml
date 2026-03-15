@@ -30,6 +30,8 @@ dependencies = [
     "cryptography>=46.0.5",
     "fastembed>=0.5.1",
     "tqdm>=4.67.1",
+    "flashtext>=2.7",
+    "rapidfuzz>=3.10.1",
 ]
 
 [build-system]
