@@ -12,8 +12,6 @@
   import Mic from "lucide-svelte/icons/mic";
   import Plus from "lucide-svelte/icons/plus";
   import Trash2 from "lucide-svelte/icons/trash-2";
-  import VoiceOrb from "./VoiceOrb.svelte";
-
   let { phase } = $props();
   const theme = VUI_CONFIG.UX.THEME;
 
@@ -101,20 +99,7 @@
 {/snippet}
 
 <div class="relative w-full h-full overflow-hidden pointer-events-none">
-  <!-- Neural Visualization Layer (Fixed Center) -->
-  {#if phase !== "idle"}
-    <div
-      class="absolute inset-0 flex items-center justify-center pointer-events-none z-[0]"
-      transition:fade={{ duration: 500 }}
-    >
-       <div class="transition-all duration-700 {vuiState.history.length > 0 ? 'opacity-10 scale-50 -translate-y-32' : 'opacity-100 scale-100'}">
-          <VoiceOrb />
-       </div>
-    </div>
-  {/if}
-
-  <!-- Main Content Layer (Scrollable) -->
-  <div
+  <!-- Main Content Layer (Scrollable) -->  <div
     bind:this={scrollContainer}
     class="relative w-full h-full overflow-y-auto scroll-smooth pointer-events-auto p-8 md:p-12 mb-20 transition-all duration-500 {nanobot.vuiResponse?.data?.campaign_id ? 'opacity-10 blur-md pointer-events-none' : ''}"
     style="--history-spacing: {theme.HISTORY_SPACING}"
