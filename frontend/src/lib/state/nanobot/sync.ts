@@ -15,7 +15,8 @@ interface SyncDeps {
     hydrateHistory: (
       sessionId: string,
       callback: (logs: SystemLog[]) => void,
-      userId?: string
+      userId?: string,
+      sinceId?: string
     ) => Promise<void>;
   };
   notification: {
@@ -69,9 +70,12 @@ export function createSyncManager(
         return;
       }
 
+      const lastLog = log.activityLogs[log.activityLogs.length - 1];
+      const sinceId = lastLog?.id?.split("_")[0]; // Remove _text suffix if present
+
       await chat.hydrateHistory("account", (logs: SystemLog[]) => {
         log.upsertLogs(logs);
-      }, state.godModeUser || undefined);
+      }, state.godModeUser || undefined, sinceId);
     }, pulseManager.isConnected ? 30000 : 5000);
   };
 

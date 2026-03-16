@@ -63,6 +63,14 @@ export function createPulseManager(
 
     eventSource = new EventSource("/api/v1/pulse/stream");
 
+    if (typeof window !== "undefined") {
+      window.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && !eventSource) {
+          connectPulse();
+        }
+      });
+    }
+
     eventSource.onopen = () => {
       retryCount = 0;
     };
@@ -253,15 +261,8 @@ export function createPulseManager(
   };
 
   const handleBusyState = (isBusy: boolean) => {
-    if (isBusy) {
-      if (idleDisconnectTimeout) clearTimeout(idleDisconnectTimeout);
-      connectPulse();
-    } else {
-      if (idleDisconnectTimeout) clearTimeout(idleDisconnectTimeout);
-      idleDisconnectTimeout = setTimeout(() => {
-        disconnectPulse();
-      }, 15000);
-    }
+    // R82.35: Never disconnect in background if browser is active (Zalo Standard)
+    connectPulse();
   };
 
   return {

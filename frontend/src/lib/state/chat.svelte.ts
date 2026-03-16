@@ -98,6 +98,7 @@ export function createChatState(
     sessionId: string,
     appendLogsCallback?: (logs: SystemLog[]) => void,
     userId?: string, // Added for God-Mode
+    sinceId?: string, // R82.35: Delta Polling support
     forceRefresh = false,
   ) {
     const targetSessionId = sessionId || "account";
@@ -111,7 +112,8 @@ export function createChatState(
     const cached = cache.get(cacheKey);
     const now = Date.now();
 
-    if (cached && (now - cached.timestamp < CHAT_CACHE_TTL)) {
+    // Delta polling bypasses standard cache TTL because it's additive
+    if (!sinceId && cached && (now - cached.timestamp < CHAT_CACHE_TTL)) {
        // Return cached data immediately to UI (Zero Latency)
        state.history = cached.data.messages.map((m: ChatApiMessage) => ({
          id: m.id,
@@ -134,9 +136,13 @@ export function createChatState(
     if (state.pagination.isLoading) return;
     state.pagination.isLoading = true;
     try {
-      const url = userId
+      let url = userId
         ? `/api/v1/chat/sessions/${targetSessionId}/messages?limit=35&user_id_query=${userId}`
         : `/api/v1/chat/sessions/${targetSessionId}/messages?limit=35`;
+      
+      if (sinceId) {
+        url += (url.includes("?") ? "&" : "?") + `since_id=${sinceId}`;
+      }
 
       const data = await apiClient.get<ChatApiResponse>(url);
 
@@ -151,9 +157,17 @@ export function createChatState(
         timestamp: new Date(m.created_at),
       }));
 
-      state.history = hydrated;
-      state.pagination.cursor = data.next_cursor;
-      state.pagination.hasMore = data.has_more;
+      state.history = sinceId ? [...state.history, ...hydrated] : hydrated;
+      state.pagination.cursor = sinceId ? state.pagination.cursor : data.next_cursor;
+      state.pagination.hasMore = sinceId ? state.pagination.hasMore : data.has_more;
+
+      // Update Cache with merged data if it's a delta sync
+      if (sinceId && cached) {
+        cached.data.messages = [...cached.data.messages, ...data.messages];
+        cached.timestamp = now;
+      } else {
+        cache.set(cacheKey, { data, timestamp: now });
+      }
 
       if (appendLogsCallback) {
         const logs = _processLogs(hydrated);

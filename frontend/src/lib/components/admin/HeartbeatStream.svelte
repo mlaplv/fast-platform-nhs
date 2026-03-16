@@ -256,6 +256,17 @@
       nanobot.showToast("THAO TÁC ĐÃ ĐƯỢC HỦY BỎ AN TOÀN", "info", 3000);
     }
   }
+
+  let isManualRefreshing = $state(false);
+
+  async function handleManualSync() {
+    isManualRefreshing = true;
+    try {
+      await nanobot.syncSessionFromDb();
+    } finally {
+      isManualRefreshing = false;
+    }
+  }
 </script>
 
 <div
@@ -313,16 +324,15 @@
         <!-- Right Group: Action Controls -->
         <div class="flex items-center gap-0.5">
           <button
-            onclick={() => nanobot.syncSessionFromDb()}
+            onclick={handleManualSync}
             class="p-1.5 rounded-md hover:bg-white/5 transition-all group/sync active:scale-95"
             title="Đồng bộ Heartbeat"
-            disabled={nanobot.chatPagination.isLoading}
+            disabled={nanobot.chatPagination.isLoading || isManualRefreshing}
           >
             <RefreshCw
               size={14}
               strokeWidth={2.5}
-              class="text-neon-cyan/40 group-hover/sync:text-neon-cyan transition-colors {nanobot
-                .chatPagination.isLoading
+              class="text-neon-cyan/40 group-hover/sync:text-neon-cyan transition-colors {isManualRefreshing
                 ? 'animate-spin opacity-100'
                 : ''}"
             />

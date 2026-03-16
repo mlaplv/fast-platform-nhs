@@ -117,7 +117,8 @@ class ChatController(Controller):
         request: Request,
         cursor: Optional[str] = None,
         limit: int = 20,
-        user_id_query: Optional[str] = None  # New: Target user for God-Mode
+        user_id_query: Optional[str] = None,  # New: Target user for God-Mode
+        since_id: Optional[str] = None        # R82.35: Delta Polling support
     ) -> ChatHistoryResponse:
         """
         Retrieves messages for a session or user using Hybrid Redis/DB strategy.
@@ -177,15 +178,27 @@ class ChatController(Controller):
         else:
             stmt = stmt.where(ChatMessage.session_id == session_id)
 
-        # Cursor Pagination
+        # Cursor Pagination (Older messages)
         if cursor:
             cursor_stmt = select(ChatMessage.created_at).where(ChatMessage.id == cursor)
             cursor_res = await db_session.execute(cursor_stmt)
             cursor_time = cursor_res.scalar()
             if cursor_time:
                 stmt = stmt.where(ChatMessage.created_at < cursor_time)
-
-        stmt = stmt.order_by(ChatMessage.created_at.desc()).limit(limit + 1)
+        
+        # Delta Polling (Newer messages)
+        if since_id:
+            since_stmt = select(ChatMessage.created_at).where(ChatMessage.id == since_id)
+            since_res = await db_session.execute(since_stmt)
+            since_time = since_res.scalar()
+            if since_time:
+                stmt = stmt.where(ChatMessage.created_at > since_time)
+                # When delta polling, we want newest messages first to fill the gap
+                stmt = stmt.order_by(ChatMessage.created_at.asc())
+            else:
+                stmt = stmt.order_by(ChatMessage.created_at.desc())
+        else:
+            stmt = stmt.order_by(ChatMessage.created_at.desc())
         
         res = await db_session.execute(stmt)
         # Results are tuples of columns
@@ -208,8 +221,12 @@ class ChatController(Controller):
                 updated_at=r.created_at
             ))
             
-        next_cursor = str(messages[-1].id) if messages else None
-        messages.reverse() 
+        next_cursor = str(messages[-1].id) if messages and not since_id else None
+        
+        # If we were delta polling (ASC), we already have the correct order for appending to the top
+        # if not, we reverse to maintain chronological order for the frontend
+        if not since_id:
+            messages.reverse() 
 
         return ChatHistoryResponse(
             session_id=session_id,
