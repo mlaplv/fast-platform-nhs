@@ -9,7 +9,7 @@ import Color from '@tiptap/extension-color';
 import FontFamily from '@tiptap/extension-font-family';
 import CharacterCount from '@tiptap/extension-character-count';
 import Typography from '@tiptap/extension-typography';
-import { AnnotationMark } from '../extensions/AnnotationMark';
+import { AnnotationExtension } from './AnnotationPlugin';
 
 export const getEditorExtensions = (placeholderText: string = 'Start writing...') => [
   StarterKit.configure({
@@ -41,7 +41,7 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
     placeholder: placeholderText,
     emptyEditorClass: 'is-editor-empty',
   }),
-  AnnotationMark,
+  AnnotationExtension,
 ];
 
 export const editorProps = {

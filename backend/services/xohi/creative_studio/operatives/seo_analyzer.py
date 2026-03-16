@@ -2,19 +2,20 @@ import os
 import asyncio
 import logging
 import re
-from typing import List, Tuple, Dict, Union, Optional
+from typing import List, Tuple, Dict, Union, Optional, cast
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.http_client import get_http_client
+from backend.utils.http_client import get_http_client
+from backend.utils.noise_cleaner import noise_cleaner, RE_WHITESPACE, RE_HTML_TAGS
 
 logger = logging.getLogger("api-gateway")
 
-# Pre-compiled Regex for Performance (V76.3)
-RE_HTML_TAGS = re.compile(r'<[^>]+>')
-RE_IMAGE_PLACEHOLDERS = re.compile(r'\[IMAGE_\d+\]')
-RE_WHITESPACE = re.compile(r'\s+')
+# Phase 76.3: Specialized SEO Analysis Helpers
+# R2026: Re-importing local needs to ensure Pyre sees them in this scope
+from pydantic import Field
 RE_STYLE_SCRIPT = re.compile(r'<(script|style)[^>]*>[\s\S]*?</\1>|<[^>]+>', re.IGNORECASE)
 RE_PARA_SPLIT = re.compile(r'\n|\r|<p[^>]*>|<\/p>')
 RE_H1 = re.compile(r'<h1[^>]*>', re.IGNORECASE)
@@ -149,24 +150,37 @@ class SeoAnalyzer:
             logger.error(f"SEO Search failed: {e}")
             return ["(Lỗi kết nối Google Search API)"]
 
+    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
+        campaign = await repo.get(campaign_id)
+        if not campaign:
+            return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
+
+        # Phase 76.4: Proactive Physical Sanitization (Elite V2.2)
+        original_draft = campaign.draft_content or ""
+        cleaned_draft = await noise_cleaner.clean(original_draft, mode="aggressive", strip_html=False)
+        if cleaned_draft != original_draft:
+            campaign.draft_content = cleaned_draft
+            await repo.update(campaign)
+            logger.info(f"[SeoAnalyzer] Proactive sanitization applied to campaign {campaign_id}")
+
+        result = await self.analyze(campaign)
+        return AgentResponse(signal=AgentSignal.OK, data=result)
+
     async def analyze(self, campaign: ContentCampaign) -> SeoReport:
         """
-        Performs full AI-powered SEO analysis on draft content.
+        Analyzes draft content for SEO quality vs competitors.
         """
-        draft = campaign.draft_content or ""
-        gold = campaign.gold_metadata or {}
-        outline = campaign.outline_data or {}
+        draft: str = campaign.draft_content or ""
+        gold: Dict[str, Union[str, List[str], Dict[str, object]]] = campaign.gold_metadata or {}
+        outline: Dict[str, List[Dict[str, str]]] = campaign.outline_data or {}
 
-        primary = gold.get("primary_keyword", "")
-        secondary = gold.get("secondary_keywords", [])
-        title = gold.get("title", "")
-        persona = gold.get("persona", "")
+        primary: str = str(gold.get("primary_keyword", ""))
+        secondary: List[str] = list(gold.get("secondary_keywords", []) or [])
+        title: str = str(gold.get("title", ""))
+        persona: str = str(gold.get("persona", ""))
 
-        # Extract readable text
-        plain_text = RE_HTML_TAGS.sub(' ', draft)
-        # Phase 71.20: Strip [IMAGE_N] to match frontend editor content
-        plain_text = RE_IMAGE_PLACEHOLDERS.sub('', plain_text)
-        plain_text = RE_WHITESPACE.sub(' ', plain_text).strip()
+        # Phase 76.3: Unified Logic-First Sanitization
+        plain_text = await noise_cleaner.clean(draft, mode="aggressive", strip_html=True)
         word_count = len(plain_text.split())
 
         # Build technical stats (rule-based, fast)
@@ -181,8 +195,8 @@ class SeoAnalyzer:
         kw_density = round((kw_count / word_count) * 100, 2) if word_count > 0 else 0
 
         # Build outline summary
-        sections = outline.get("sections", [])
-        outline_summary = "\n".join([f"- {s.get('heading', '')}" for s in sections[:8]])
+        sections = cast(List[Dict[str, str]], outline.get("sections", []))
+        outline_summary = "\n".join([f"- {str(s.get('heading', ''))}" for s in sections[:8]])
 
         # 1. Fetch competitors for information gain analysis
         competitor_content = await self._fetch_competitors(primary)
@@ -200,7 +214,7 @@ class SeoAnalyzer:
 
 [THÔNG TIN BỔ SUNG]
 Tiêu đề: {title}
-Từ khóa PHỤ: {', '.join(secondary[:10])}
+Từ khóa PHỤ: {', '.join(cast(List[str], secondary[:10]))}
 Persona: {persona}
 
 [DÀN Ý ĐÃ CHỌN]

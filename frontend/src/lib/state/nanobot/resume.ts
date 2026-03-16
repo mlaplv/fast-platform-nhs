@@ -118,7 +118,7 @@ export function createResumeManager(
          const scores: string[] = [];
          const copyright = (campaignData?.analysis_cache as Record<string, unknown>)?.copyright ? ((((campaignData.analysis_cache as Record<string, unknown>).copyright as Record<string, unknown>).data as Record<string, unknown>)?.uniqueness_score) : (campaignData as Record<string, unknown>).uniqueness_score;
          if (copyright !== undefined && copyright !== null) {
-            scores.push(`Bản quyền ${Math.round(Number(copyright) * 100)}%`);
+            scores.push(`COPYRIGHT ${Math.round(Number(copyright) * 100)}%`);
          }
 
          const seoScore = ((campaignData?.analysis_cache as Record<string, unknown>)?.seo as Record<string, unknown>) ? (((((campaignData.analysis_cache as Record<string, unknown>).seo as Record<string, unknown>).data as Record<string, unknown>))?.total_score) : undefined;

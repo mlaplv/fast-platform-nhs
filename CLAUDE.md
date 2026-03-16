@@ -45,8 +45,10 @@
 - ❌ **Rune Abuse:** Cấm lạm dụng `$effect` trong Svelte 5 khi có thể dùng `$derived`.
 - ❌ **Silent Fail:** Cấm dùng `try-catch` rỗng mà không có log hoặc báo cáo cho Sếp.
 
-### 2. Lỗi "Làm biếng" (Laziness Sins)
-- ❌ **Placeholder Addiction:** Cấm viết `// TODO`, `// implementation here`. Code xuất ra phải chạy được ngay.
-- ❌ **Skip Verification:** Cấm báo cáo "Xong" khi chưa thực sự chạy lệnh test hoặc check log terminal.
-- ❌ **Assumptive Coding:** Cấm sửa code dựa trên suy đoán mà không đọc kỹ nội dung file thực tế.
-- ❌ **Incomplete Work:** Cấm bỏ qua các trường hợp biên (edge cases) chỉ để xong việc nhanh.
+### 2. Lỗi Kiến Trúc & Bảo Tồn (Architecture & Preservation Sins)
+- ❌ **Cấm đổi kiến trúc:** Giữ nguyên cấu trúc thư mục, file. Muốn đổi PHẢI hỏi.
+- ❌ **Cấm sửa tính năng cũ:** Không xóa/sửa logic đang chạy. Chỉ fix và thêm.
+- ❌ **Cấm dùng tech cũ:** Luôn dùng syntax mới nhất, không hạ cấp thư viện.
+- ❌ **KISS (Đơn giản):** Code trực diện, dễ hiểu. Cấm bày vẽ phức tạp (Over-engineering).
+- ❌ **YAGNI (Vừa đủ):** Chỉ làm đúng yêu cầu. Không thêm code thừa, không "lo xa" tính năng tương lai.
+- ❌ **Xác nhận:** Luôn hỏi trước khi xóa code cũ hoặc refactor lớn.

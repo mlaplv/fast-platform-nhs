@@ -5,22 +5,21 @@ import re
 import copy
 import hashlib
 from datetime import datetime, timezone
-from typing import List, Tuple, Dict, Union, Optional
+from typing import List, Dict, Optional, Any, Union, cast
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from sqlalchemy.orm.attributes import flag_modified
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
-from backend.services.xohi.creative_studio.models.schemas import AgentResponse, AgentSignal
+from backend.services.xohi.creative_studio.models.schemas import AgentResponse, AgentSignal, BulkFixRequest, BulkFixResponse
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.http_client import get_http_client
+from backend.utils.noise_cleaner import noise_cleaner, RE_WHITESPACE
 
 logger = logging.getLogger("api-gateway")
 
-# Pre-compiled Regex for Performance (V76.3)
-RE_HTML_TAGS = re.compile(r'<[^>]+>')
-RE_IMAGE_PLACEHOLDERS = re.compile(r'\[IMAGE_\d+\]')
-RE_WHITESPACE = re.compile(r'\s+')
+# Phase 76.3: Specialized Plagiarism Analysis Helpers
+import unicodedata  # top-level — reused by bulk_fix & _detect_internal_duplicates
 RE_SENTENCE_SPLIT = re.compile(r'(?<=[.!?。])\s+')
 RE_NORMALIZE = re.compile(r'[^\w\sàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]')
 
@@ -47,7 +46,7 @@ class PlagiarismResult(BaseModel):
 # SYSTEM PROMPT — Semantic Similarity Judge (2026)
 # ══════════════════════════════════════════════════════════════
 
-PLAGIARISM_PROMPT = """[ROLE] SENIOR PLAGIARISM AUDITOR — XoHi Content Studio 2026
+PLAGIARISM_PROMPT = """[ROLE] SENIOR PLAGIARISM AUDITOR — XoHi Content Studio MOD
 Nhiệm vụ: Chấm điểm TRUNG THỰC, KHÁCH QUAN và CÔNG BẰNG.
 
 [NHIỆM VỤ]
@@ -62,6 +61,7 @@ So sánh bài viết với các nguồn cạnh tranh Google để xác định t
 2. PHẢI TRỪ ĐIỂM (STRICTNESS):
    - Sao chép cấu trúc dàn ý (Flow bài viết) của đối thủ.
    - Xào nấu ý tưởng (Paraphrasing) nhưng không thêm giá trị mới.
+   - THIẾU THÔNG TIN MỚI (Information Gain): Nếu bài viết không cung cấp thêm bất kỳ thực thể, số liệu hoặc góc nhìn nào khác biệt so với 5 nguồn đối thủ được cung cấp -> TRỪ ĐIỂM NẶNG.
    - Dùng chung ví dụ cụ thể, số liệu cụ thể độc quyền của nguồn mà không có phân tích riêng.
    - Trùng lặp cụm từ dài (≥ 10 chữ liên tiếp).
 
@@ -124,17 +124,18 @@ class PlagiarismCop:
         if not plain_text or len(plain_text) < 50:
             return []
 
-        # Split into sentences (Vietnamese + English punctuation)
-        sentences = RE_SENTENCE_SPLIT.split(plain_text)
-        # Filter out very short "sentences" (less than 15 chars are likely fragments)
-        sentences = [s.strip() for s in sentences if len(s.strip()) >= 15]
+        # Split into sentences while keeping track of original text positions
+        # Use regex that splits while stripping the trailing whitespace from segments
+        raw_segments = [s.strip() for s in re.split(r'(?<=[.!?。])[\s\n]+', plain_text) if s.strip()]
+        
+        # Phase 76.5: Precise Original Mapping
+        # We need the snippets to exist EXACTLY in the final cleaned draft for the UI
+        sentences = raw_segments
 
-        if len(sentences) < 2:
-            return []
-
-        # Normalize for comparison (lowercase, collapse whitespace, strip punctuation)
+        # Normalize for comparison (lowercase, NFC, collapse whitespace, strip punctuation)
+        import unicodedata
         def normalize(text: str) -> str:
-            text = text.lower().strip()
+            text = unicodedata.normalize('NFC', text.lower().strip())
             text = RE_NORMALIZE.sub('', text)
             text = RE_WHITESPACE.sub(' ', text)
             return text
@@ -149,16 +150,15 @@ class PlagiarismCop:
             if len(norm) < 10:
                 continue
 
-            if norm in seen and norm not in reported_norms:
-                # Found a duplicate!
-                reported_norms.add(norm)
+            if norm in seen:
+                # Found a duplicate! Report it EVERY time it appears
                 duplicates.append(CopyrightAnnotation(
-                    text=sentence[:200],  # Max 200 chars as per prompt schema
-                    reason=f"Câu này xuất hiện ít nhất 2 lần trong bài viết (lần đầu ở vị trí {seen[norm] + 1}, lặp lại ở vị trí {idx + 1}). Trùng lặp nội bộ làm giảm chất lượng nội dung.",
-                    source_url="(nội bộ — trùng lặp trong cùng bài viết)",
-                    severity="medium"
+                    text=sentence[:200],
+                    reason=f"Phát hiện nội dung này lặp lại trong bài viết (lần đầu ở vị trí câu {seen[norm] + 1}). Cần diễn đạt lại để tránh nhàm chán.",
+                    source_url="(nội bộ — trùng lặp trong bài)",
+                    severity="high" # Increase severity for internal spam
                 ))
-            elif norm not in seen:
+            else:
                 seen[norm] = idx
 
         # Phase 2: N-gram overlap detection for near-duplicates (≥10 word phrases)
@@ -176,21 +176,20 @@ class PlagiarismCop:
 
         # Find n-grams that appear in multiple distinct sentences
         flagged_sentence_indices: set[int] = set()
+        # Phase 2: N-gram overlap detection (redundant now with Phase 1 fix, but keeping for fuzzy-ish safety)
         for ngram, indices in word_sequences.items():
-            unique_indices = list(set(indices))
+            unique_indices = sorted(list(set(indices)))
             if len(unique_indices) >= 2:
-                for si in unique_indices:
+                # Flag everything except the very first occurrence
+                for si in unique_indices[1:]:
                     if si not in flagged_sentence_indices:
-                        norm_s = normalize(sentences[si])
-                        if norm_s not in reported_norms:
-                            flagged_sentence_indices.add(si)
-                            reported_norms.add(norm_s)
-                            duplicates.append(CopyrightAnnotation(
-                                text=sentences[si][:200],
-                                reason=f"Cụm ≥10 từ liên tiếp trong câu này trùng lặp với câu khác trong bài. Cần viết lại để đảm bảo nội dung không bị lặp.",
-                                source_url="(nội bộ — trùng cụm từ dài)",
-                                severity="low" if len(unique_indices) == 2 else "high"
-                            ))
+                        flagged_sentence_indices.add(si)
+                        duplicates.append(CopyrightAnnotation(
+                            text=sentences[si][:200],
+                            reason=f"Đoạn này (≥10 từ) trùng lặp với một phần khác trong bài. Đừng xào nấu nội dung của chính mình!",
+                            source_url="(nội bộ — trùng cụm từ dài)",
+                            severity="medium"
+                        ))
 
         if duplicates:
             logger.info(f"[PlagiarismCop] Internal Dedup: Found {len(duplicates)} duplicate/near-duplicate segments.")
@@ -209,11 +208,71 @@ class PlagiarismCop:
     # PIPELINE ENTRY POINT
     # ──────────────────────────────────────────────────────────
 
+    async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
+        """
+        Phase 76.9: Near-duplicate removal via Jaccard word similarity.
+        Keeps the FIRST occurrence. Considers paragraphs with ≥82% word overlap as duplicates.
+        Correctly handles trailing noise like '…1111', '1111…..' etc.
+        """
+        draft = campaign.draft_content or ""
+
+        # Phase 76.3: Clean draft artifacts before surgery
+        draft = await noise_cleaner.clean(draft, mode="aggressive", strip_html=False)
+
+        # Split by paragraph (logical unit) not sentence
+        paragraphs = [p.strip() for p in re.split(r'\n\n+', draft) if p.strip()]
+
+        RE_DIGIT = re.compile(r'\d+')
+
+        def tokenize(text: str) -> set[str]:
+            """Extract meaningful word tokens: strip digits + punctuation, lowercase, NFC."""
+            text = unicodedata.normalize('NFC', text.lower())
+            text = RE_DIGIT.sub('', text)           # strip noise numbers like 1111
+            text = RE_NORMALIZE.sub(' ', text)      # strip punctuation
+            text = RE_WHITESPACE.sub(' ', text)
+            return {w for w in text.split() if len(w) >= 2}
+
+        def jaccard(a: set[str], b: set[str]) -> float:
+            if not a and not b:
+                return 1.0
+            if not a or not b:
+                return 0.0
+            intersect = len(a & b)
+            return intersect / (len(a) + len(b) - intersect)
+
+        THRESHOLD = 0.82  # ≥82% word overlap → near-duplicate
+        kept: list[tuple[str, set[str]]] = []  # (original_text, token_set)
+
+        for para in paragraphs:
+            if len(para) < 15:
+                kept.append((para, set()))
+                continue
+
+            tokens = tokenize(para)
+            is_dup = any(jaccard(tokens, k_tok) >= THRESHOLD for _, k_tok in kept if k_tok)
+
+            if not is_dup:
+                kept.append((para, tokens))
+            else:
+                logger.info(f"[PlagiarismCop] bulk_fix removed near-dup: {para[:60]}...")
+
+        new_content = "\n\n".join(p for p, _ in kept)
+        return BulkFixResponse(new_content=new_content)
+
     async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0) — called by orchestrator Step 5."""
         campaign = await repo.get(campaign_id)
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
+
+        # Phase 76.4: Proactive Physical Sanitization (Elite V2.2)
+        # We clean the draft in DB so Editor and Analysis are in sync
+        original_draft = campaign.draft_content or ""
+        cleaned_draft = await noise_cleaner.clean(original_draft, mode="aggressive", strip_html=False)
+        if cleaned_draft != original_draft:
+            campaign.draft_content = cleaned_draft
+            await repo.update(campaign)
+            logger.info(f"[PlagiarismCop] Proactive sanitization applied to campaign {campaign_id}")
 
         result = await self.analyze(campaign)
 
@@ -233,11 +292,11 @@ class PlagiarismCop:
         }
         metrics["unique_score"] = result.uniqueness_score
         metrics["copyright_risk"] = result.risk_level
-        metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
-
-        gold["analysis_cache"] = cache
-        gold["analysis_metrics"] = metrics
-        campaign.gold_metadata = gold
+        # ARCHIVING & METRICS (V71.30)
+        new_gold = cast(Dict[str, Any], copy.deepcopy(campaign.gold_metadata or {}))
+        new_gold["analysis_cache"] = cache
+        new_gold["analysis_metrics"] = metrics
+        campaign.gold_metadata = new_gold
         campaign.unique_score = result.uniqueness_score
         flag_modified(campaign, "gold_metadata")
 
@@ -290,22 +349,56 @@ class PlagiarismCop:
                 verdict="Không đủ dữ liệu để kiểm tra."
             )
 
-        # 1. Extract readable text from HTML
-        plain_text = RE_HTML_TAGS.sub(' ', draft)
-        # Phase 71.20: Strip [IMAGE_N] to match frontend editor content
-        plain_text = RE_IMAGE_PLACEHOLDERS.sub('', plain_text)
-        plain_text = RE_WHITESPACE.sub(' ', plain_text).strip()
-        # Limit to 3000 chars for analysis efficiency
-        snippet = plain_text[:3000]
+        # Phase 76.3: Unified Logic-First Sanitization
+        plain_text = await noise_cleaner.clean(draft, mode="aggressive", strip_html=True)
+
+        # ✅ Phase 76.8: PRE-SANITIZE before AI — dedup paragraphs at para level
+        # Keep 1st occurrence, remove subsequent identical paragraphs
+        # This ensures AI sees clean, non-redundant content
+        seen_paras: set[str] = set()
+        deduped_paras: list[str] = []
+        internal_annotations: list[CopyrightAnnotation] = []
+        for para in re.split(r'\n\n+', plain_text):
+            para = para.strip()
+            if not para:
+                continue
+            norm = RE_NORMALIZE.sub('', RE_WHITESPACE.sub(' ', unicodedata.normalize('NFC', para.lower())))
+            if len(norm) < 10:
+                deduped_paras.append(para)
+                continue
+            if norm not in seen_paras:
+                seen_paras.add(norm)
+                deduped_paras.append(para)
+            else:
+                # Flag as internal-dedup annotation but DO NOT include in AI snippet
+                internal_annotations.append(
+                    CopyrightAnnotation(
+                        text=para[:200],  # truncate for safety
+                        reason="Đoạn văn bị lặp lại trong bài — đã loại khỏi nội dung gửi AI",
+                        source_url="internal",
+                        severity="high",
+                        type="internal-dedup"
+                    )
+                )
+                logger.info(f"[PlagiarismCop] Pre-dedup removed duplicate para: {para[:60]}...")
+
+        deduped_text = "\n\n".join(deduped_paras)
+        # Limit to 3000 chars for AI efficiency
+        snippet = deduped_text[:3000]
+
+        # Also detect sub-sentence level duplicates from the full cleaned text
+        sentence_annotations = self._detect_internal_duplicates(plain_text)
+        # Merge: avoid double-reporting same texts
+        existing_texts = {a.text[:100] for a in internal_annotations}
+        for ann in sentence_annotations:
+            if ann.text[:100] not in existing_texts:
+                internal_annotations.append(ann)
 
         # 2. Fetch top 5 competitor snippets from Google
         competitor_snippets = await self._fetch_competitor_snippets(primary_keyword)
 
         # 3. AI semantic analysis with per-sentence annotations
         try:
-            # V76.0: Run Internal Dedup concurrently (Zero cost)
-            internal_annotations = self._detect_internal_duplicates(plain_text)
-
             prompt = f"""
 [BÀI VIẾT CẦN KIỂM TRA — đoạn đầu 3000 ký tự]
 {snippet}
@@ -338,18 +431,24 @@ NHIỆM VỤ: Phân tích và trả về JSON đúng schema yêu cầu.
                 raw.annotations = validated_annotations
                 if raw.uniqueness_score < 0.8:
                     raw.risk_level = "HIGH" if raw.uniqueness_score < 0.6 else "MEDIUM"
+                
+                # Rule R82.25: Strict internal dedup penalty
+                # If score is still high but has many dedups, force it down
+                if len(internal_annotations) >= 3:
+                    raw.uniqueness_score = min(raw.uniqueness_score, 0.65)
+                    raw.risk_level = "HIGH"
 
             return raw
 
         except Exception as e:
             logger.error(f"[PlagiarismCop] AI analysis failed: {e}")
-            # Fallback: return safe default if AI fails
+            # Fallback: return safe result with internal_annotations already computed above
             return PlagiarismResult(
                 uniqueness_score=0.88, risk_level="LOW",
                 flagged_sentences=[],
-                annotations=[],
-                similar_sources=[s.get("url", "") for s in competitor_snippets[:3]] if competitor_snippets and isinstance(competitor_snippets[0], dict) else [],
-                verdict="Phân tích tự động gặp lỗi — dữ liệu ước tính an toàn."
+                annotations=internal_annotations,  # Return dedup annotations even if AI fails
+                similar_sources=[],
+                verdict="Phân tích AI gặp lỗi — chỉ trả về kết quả lọc nội bộ."
             )
 
     async def _fetch_competitor_snippets(self, keyword: str) -> List[str]:

@@ -72,7 +72,7 @@
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="text-[9px] font-black uppercase" style="color:{riskColor}">
-              🔍 Bản quyền — {copyrightResult.risk_level === 'LOW' ? 'Rủi ro thấp ✅' : copyrightResult.risk_level === 'MEDIUM' ? 'Cần cải thiện ⚠️' : 'Rủi ro cao 🚨'}
+              🔍 COPYRIGHT — {copyrightResult.risk_level === 'LOW' ? 'Rủi ro thấp ✅' : copyrightResult.risk_level === 'MEDIUM' ? 'Cần cải thiện ⚠️' : 'Rủi ro cao 🚨'}
             </span>
             <button onclick={() => runCopyrightCheck()} class="text-[8px] text-white/20 hover:text-orange-400 transition-colors" title="Chạy lại">↻</button>
           </div>
@@ -90,12 +90,12 @@
                     <div class="flex items-center gap-1.5">
                       <span class="text-[7px] font-black px-1 py-0.5 rounded uppercase"
                         style="background: {annHex}20; color: {annHex}">
-                        {isInternal ? '🔁 TRÙNG LẶP NỘI BỘ' : `🚨 BẢN QUYỀN ${ann.severity?.toUpperCase()}`}
+                        {isInternal ? '🔁 TRÙNG LẶP NỘI BỘ' : `🚨 COPYRIGHT ${ann.severity?.toUpperCase()}`}
                       </span>
                     </div>
 
                     <button
-                      onclick={() => handleInternalFix(ann.text, ann.type || 'copyright', ann.reason || 'Cần kiểm tra bản quyền')}
+                      onclick={() => handleInternalFix(ann.text, ann.type || 'copyright', ann.reason || 'Cần kiểm tra COPYRIGHT')}
                       disabled={!!isFixing}
                       class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border border-white/10 hover:bg-white/10 text-[7px] font-black uppercase transition-all disabled:opacity-40"
                     >
@@ -129,7 +129,7 @@
       </div>
     {:else}
       <div class="px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30">
-        Nhấn <span class="text-orange-400/70 font-bold">Bản Quyền</span> để phân tích đạo văn.
+        Nhấn <span class="text-orange-400/70 font-bold">COPYRIGHT</span> để phân tích đạo văn.
       </div>
     {/if}
   {/if}
@@ -181,7 +181,7 @@
     {/if}
   {/if}
 
-  <!-- AI 2026 Panel -->
+  <!-- AI MOD Panel -->
   {#if activeTab === 'ai'}
     {#if isAiLoading}
       <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-500/5 border border-purple-500/10 text-[9px] text-purple-400/70 animate-pulse">
@@ -217,7 +217,7 @@
       </div>
     {:else}
       <div class="px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30">
-        Nhấn <span class="text-purple-400/70 font-bold">AI 2026</span> để kiểm tra mức độ thân thiện với AI Crawler.
+        Nhấn <span class="text-purple-400/70 font-bold">AI MOD</span> để kiểm tra mức độ thân thiện với AI Crawler.
       </div>
     {/if}
   {/if}

@@ -236,28 +236,35 @@ class ContentController(Controller):
         if force:
             logger.info(f"Copyright force refresh for campaign {campaign_id}")
 
-        result = await cop.analyze(campaign)
-        result_data = result.model_dump()
-        
-        # Archiving & Metrics
-        cache["copyright"] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
-        metrics = gold.get("analysis_metrics", {})
-        metrics["unique_score"] = result.uniqueness_score
-        metrics["copyright_risk"] = result.risk_level
-        metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
-        
-        # ARCHIVING & METRICS (V71.30)
-        new_gold = copy.deepcopy(campaign.gold_metadata or {})
-        new_gold["analysis_cache"] = cache
-        new_gold["analysis_metrics"] = metrics
-        campaign.gold_metadata = new_gold
-        campaign.unique_score = result.uniqueness_score
-        flag_modified(campaign, "gold_metadata")
-        
-        await campaign_repo.update(campaign)
-        await campaign_repo.session.commit()
-        
-        return {"status": "success", "data": result_data}
+        try:
+            logger.info(f"[Copyright] Starting analysis for campaign {campaign_id}")
+            result = await cop.analyze(campaign)
+            logger.info(f"[Copyright] Analysis complete for campaign {campaign_id}")
+            result_data = result.model_dump()
+            
+            # Archiving & Metrics
+            cache["copyright"] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
+            metrics = gold.get("analysis_metrics", {})
+            metrics["unique_score"] = result.uniqueness_score
+            metrics["copyright_risk"] = result.risk_level
+            metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
+            
+            # ARCHIVING & METRICS (V71.30)
+            new_gold = copy.deepcopy(campaign.gold_metadata or {})
+            new_gold["analysis_cache"] = cache
+            new_gold["analysis_metrics"] = metrics
+            campaign.gold_metadata = new_gold
+            campaign.unique_score = result.uniqueness_score
+            flag_modified(campaign, "gold_metadata")
+            
+            await campaign_repo.update(campaign)
+            await campaign_repo.session.commit()
+            
+            logger.info(f"[Copyright] Returning success with data keys: {list(result_data.keys())}")
+            return GenericResponse(status="success", data=result_data)
+        except Exception as e:
+            logger.error(f"[ContentController] Copyright analysis failed: {str(e)}", exc_info=True)
+            return GenericResponse(status="error", message=str(e))
 
     @post("/campaigns/{campaign_id:uuid}/analyze/seo")
     async def analyze_seo(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> GenericResponse:
@@ -284,26 +291,32 @@ class ContentController(Controller):
         if force:
             logger.info(f"SEO force refresh for campaign {campaign_id}")
 
-        result = await analyzer.analyze(campaign)
-        result_data = result.model_dump()
-        
-        # Archiving & Metrics
-        cache["seo"] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
-        metrics = gold.get("analysis_metrics", {})
-        metrics["seo_score"] = result.total_score
-        metrics["seo_grade"] = result.grade
-        metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
-        
-        # ARCHIVING & METRICS (V71.30)
-        new_gold = copy.deepcopy(campaign.gold_metadata or {})
-        new_gold["analysis_cache"] = cache
-        new_gold["analysis_metrics"] = metrics
-        campaign.gold_metadata = new_gold
-        flag_modified(campaign, "gold_metadata")
-        await campaign_repo.update(campaign)
-        await campaign_repo.session.commit()
-        
-        return {"status": "success", "data": result_data}
+        try:
+            logger.info(f"[SEO] Starting analysis for campaign {campaign_id}")
+            result = await analyzer.analyze(campaign)
+            logger.info(f"[SEO] Analysis complete for campaign {campaign_id}")
+            result_data = result.model_dump()
+            
+            # Archiving & Metrics
+            cache["seo"] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
+            metrics = gold.get("analysis_metrics", {})
+            metrics["seo_score"] = result.total_score
+            metrics["seo_grade"] = result.grade
+            metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
+            
+            # ARCHIVING & METRICS (V71.30)
+            new_gold = copy.deepcopy(campaign.gold_metadata or {})
+            new_gold["analysis_cache"] = cache
+            new_gold["analysis_metrics"] = metrics
+            campaign.gold_metadata = new_gold
+            flag_modified(campaign, "gold_metadata")
+            await campaign_repo.update(campaign)
+            await campaign_repo.session.commit()
+            
+            return GenericResponse(status="success", data=result_data)
+        except Exception as e:
+            logger.error(f"[ContentController] SEO analysis failed: {str(e)}")
+            return GenericResponse(status="error", message=str(e))
 
     @post("/campaigns/{campaign_id:uuid}/analyze/ai-inspect")
     async def analyze_ai_readiness(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> GenericResponse:
@@ -389,20 +402,36 @@ class ContentController(Controller):
         On-Demand Bulk Surgical Rewrite: Fixes ALL identified errors for a category.
         """
         try:
-            from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
             from backend.services.xohi.creative_studio.models.schemas import BulkFixRequest
+            from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
+            from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
+
             campaign = await campaign_repo.get(str(campaign_id))
             if not campaign:
-                    return GenericResponse(status="error", message="Campaign not found")
+                return GenericResponse(status="error", message="Campaign not found")
             if not campaign.draft_content:
                 return GenericResponse(status="error", message="Chưa có nội dung để biên tập.")
             
-            inspector = AiInspector()
             data = await request.json()
             fix_req = BulkFixRequest(**data)
             
-            result = await inspector.bulk_fix(campaign, fix_req)
+            # Phase 76.6: Dynamic Operative Routing (Elite V2.2)
+            # copyright → PlagiarismCop (logic-first dedup, zero AI cost)
+            # seo / ai  → AiInspector (requires LLM rewriting)
+            operative = PlagiarismCop() if fix_req.category == "copyright" else AiInspector()
+            
+            result = await operative.bulk_fix(campaign, fix_req)
+            
+            # ✅ Phase 76.7: Persist cleaned content back to DB so force re-check reads fresh data
+            if result.new_content and result.new_content != campaign.draft_content:
+                campaign.draft_content = result.new_content
+                flag_modified(campaign, "draft_content")
+                await campaign_repo.update(campaign)
+                await campaign_repo.session.commit()
+                logger.info(f"[BulkFix] Persisted new_content ({len(result.new_content)} chars) for campaign {campaign_id}")
+            
             return GenericResponse(status="success", data=result.model_dump())
         except Exception as e:
             logger.error(f"Bulk-Fix error: {e}")
             return GenericResponse(status="error", message=str(e))
+

@@ -119,7 +119,7 @@
       ? (copyrightResult?.annotations || []).map((s: AnalysisAnnotation) => ({
           text: s.text || '',
           type: s.type || 'copyright',
-          message: s.reason || 'Cần kiểm tra bản quyền',
+          message: s.reason || 'Cần kiểm tra COPYRIGHT',
           source: s.source_url || '',
           severity: (s.severity || 'medium').toLowerCase()
         }))
@@ -151,6 +151,18 @@
     }
   };
 
+  onMount(() => {
+    // Phase 102: Restoration Logic — if metrics exist but result is empty, restore local result
+    if (analysis_cache) {
+       if (analysis_cache.copyright?.data) {
+          copyrightResult = analysis_cache.copyright.data as CopyrightResult;
+          activeTab = 'copyright'; // Auto-activate if we have results
+       }
+       if (analysis_cache.seo?.data) seoResult = analysis_cache.seo.data as SEOResult;
+       if (analysis_cache.ai?.data) aiReadyResult = analysis_cache.ai.data as AIInspectResult;
+    }
+  });
+ 
   const runCopyrightCheck = async (force: boolean = false) => {
     if (!campaign_id || isCopyrightLoading) return;
     const isForce = force === true;
@@ -161,13 +173,13 @@
       const res = await apiClient.post<{ data: CopyrightResult }>(`/api/v1/content/campaigns/${campaign_id}/analyze/copyright?force=${isForce}`);
       if (res?.data) copyrightResult = res.data;
     } catch (e) {
-      console.error("[DraftStep] Copyright check failed:", e);
+      console.error("[DraftStep] COPYRIGHT check failed:", e);
     } finally {
       isCopyrightLoading = false;
       activeTab = 'copyright';
     }
   };
-
+ 
   const runSeoAnalysis = async (force: boolean = false) => {
     if (!campaign_id || isSeoLoading || seoLocked) return;
     const isForce = force === true;
@@ -295,10 +307,13 @@
 
         // Rerun the analysis with force=true to guarantee fresh scores and highlights!
         if (activeTab === 'copyright') {
+          copyrightResult = null; // Phase 112: Clear old UI state before fresh audit
           await runCopyrightCheck(true);
         } else if (activeTab === 'seo') {
+          seoResult = null;
           await runSeoAnalysis(true);
         } else if (activeTab === 'ai') {
+          aiReadyResult = null;
           await runAiAnalysis(true);
         }
       }
@@ -379,7 +394,7 @@
       fullScreen={isExpanded}
       toolbarActions={[
         {
-          label: isCopyrightLoading ? '...' : '🔍 Bản Quyền',
+          label: isCopyrightLoading ? '...' : '🔍 COPYRIGHT',
           loading: isCopyrightLoading,
           onclick: () => runCopyrightCheck()
         },
@@ -388,16 +403,16 @@
           loading: isSeoLoading,
           disabled: seoLocked,
           lockedMsg: seoLocked
-            ? `🔒 SEO bị khoá — Cần Bản Quyền ≥ 90 trước (hiện: ${_copyrightScore !== null ? _copyrightScore + '%' : 'chưa check'})`
+            ? `🔒 SEO bị khoá — Cần COPYRIGHT ≥ 90 trước (hiện: ${_copyrightScore !== null ? _copyrightScore + '%' : 'chưa check'})`
             : undefined,
           onclick: () => runSeoAnalysis()
         },
         {
-          label: isAiLoading ? '...' : '✨ AI 2026',
+          label: isAiLoading ? '...' : '✨ AI MOD',
           loading: isAiLoading,
           disabled: aiLocked,
           lockedMsg: aiLocked
-            ? `🔒 AI 2026 bị khoá — Cần SEO ≥ 70 trước (hiện: ${_seoScore !== null ? _seoScore + '/100' : 'chưa check'})`
+            ? `🔒 AI MOD bị khoá — Cần SEO ≥ 70 trước (hiện: ${_seoScore !== null ? _seoScore + '/100' : 'chưa check'})`
             : undefined,
           onclick: () => runAiAnalysis()
         },
@@ -418,7 +433,7 @@
     <!-- 3 Tab Buttons -->
     <div class="flex items-center gap-2">
 
-      <!-- BẢN QUYỀN -->
+      <!-- COPYRIGHT -->
       <button
         onclick={() => {
           if (activeTab !== 'copyright' && !copyrightResult && !isCopyrightLoading) {
@@ -440,7 +455,7 @@
         {:else}
           <ShieldCheck size={12} />
         {/if}
-        <span class="text-[10px] uppercase font-bold tracking-wider">Bản Quyền</span>
+        <span class="text-[10px] uppercase font-bold tracking-wider">COPYRIGHT</span>
         {#if copyrightBadge}
           {@const badgeColor = (_copyrightScore ?? 0) >= 90 ? 'bg-emerald-500/20 text-emerald-400' : (_copyrightScore ?? 0) >= 70 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}
           <span class="text-[8px] font-black px-1.5 py-0.5 rounded-full {badgeColor}">{copyrightBadge}</span>
@@ -481,12 +496,12 @@
         <!-- Tooltip khi locked -->
         {#if seoLocked}
           <div class="absolute bottom-full left-0 mb-1.5 px-2 py-1 bg-black/90 border border-white/10 text-[8px] text-orange-400 whitespace-nowrap opacity-0 group-hover/seo:opacity-100 transition-opacity pointer-events-none z-10">
-            ⚠️ Cần Bản Quyền ≥ 90 trước ({_copyrightScore !== null ? `hiện: ${_copyrightScore}%` : 'chưa kiểm tra'})
+            ⚠️ Cần COPYRIGHT ≥ 90 trước ({_copyrightScore !== null ? `hiện: ${_copyrightScore}%` : 'chưa kiểm tra'})
           </div>
         {/if}
       </div>
 
-      <!-- AI 2026 -->
+      <!-- AI MOD -->
       <div class="relative group/ai">
         <button
           onclick={() => {
@@ -510,7 +525,7 @@
           {:else}
             <Sparkles size={12} />
           {/if}
-          <span class="text-[10px] uppercase font-bold tracking-wider">AI 2026</span>
+          <span class="text-[10px] uppercase font-bold tracking-wider">AI MOD</span>
           {#if aiLocked}
             <span class="text-[8px] opacity-50">🔒</span>
           {:else if aiBadge}

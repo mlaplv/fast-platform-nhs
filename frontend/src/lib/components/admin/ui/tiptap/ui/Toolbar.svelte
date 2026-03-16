@@ -18,6 +18,7 @@
   import BlockquoteIcon from 'lucide-svelte/icons/quote';
   import CodeIcon from 'lucide-svelte/icons/code';
   import MinusIcon from 'lucide-svelte/icons/minus';
+  import SparklesIcon from 'lucide-svelte/icons/sparkles';
 
   let { 
     editor, 
@@ -25,7 +26,8 @@
     annotations = [],
     onOpenImage,
     onOpenLink,
-    onClearHighlights
+    onClearHighlights,
+    onClean = null,
   }: {
     editor: Editor | null;
     toolbarActions?: ToolbarAction[];
@@ -33,6 +35,7 @@
     onOpenImage: () => void;
     onOpenLink: () => void;
     onClearHighlights: () => void;
+    onClean?: (() => void) | null;
   } = $props();
 
   const FONTS = ['Inter', 'Roboto', 'Georgia', 'Times New Roman', 'Courier New', 'Arial'];
@@ -153,9 +156,22 @@
     {/each}
   {/if}
 
-  <!-- Clear Highlights -->
+  <!-- Clean + Clear Highlights (right-aligned actions) -->
+  <div class="tb-divider ml-auto"></div>
+  
+  {#if onClean}
+    <button
+      id="toolbar-btn-clean"
+      onclick={onClean}
+      class="flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide border transition-all bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/20 text-orange-400 hover:text-orange-300 active:scale-95"
+      title="Làm sạch: xóa trùng lặp, markdown thừa, ký tự rác"
+    >
+      <SparklesIcon size={10} />
+      Clean
+    </button>
+  {/if}
+
   {#if annotations && annotations.length > 0}
-    <div class="tb-divider ml-auto"></div>
     <button
       onclick={onClearHighlights}
       class="flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide border transition-all bg-white/5 hover:bg-white/10 border-white/10 text-white/40 hover:text-white active:scale-95"

@@ -19,7 +19,7 @@ class ActionHandler:
     async def approve_step(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> GenericResponse:
         campaign = await campaign_repo.get(campaign_id)
         if not campaign:
-            return {"status": "error", "message": "Campaign not found"}
+            return GenericResponse(status="error", message="Campaign not found")
 
         step = campaign.current_step
         request_step = data.get("step")
@@ -178,7 +178,7 @@ class ActionHandler:
     async def retry_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository) -> GenericResponse:
         campaign = await campaign_repo.get(campaign_id)
         if not campaign:
-            return {"status": "error", "message": "Campaign not found"}
+            return GenericResponse(status="error", message="Campaign not found")
 
         campaign.status = "PROCESSING"
         await campaign_repo.update(campaign)

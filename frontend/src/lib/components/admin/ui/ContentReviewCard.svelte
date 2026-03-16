@@ -243,7 +243,7 @@
       const blockers: typeof gateBlockers = [];
       if (copyrightScore === null || copyrightScore < 90) {
         blockers.push({
-          label: '🔍 Bản Quyền',
+          label: '🔍 COPYRIGHT',
           current: copyrightScore !== null ? `${copyrightScore}%` : 'Chưa kiểm tra',
           required: '≥ 90%',
           tab: 'copyright'

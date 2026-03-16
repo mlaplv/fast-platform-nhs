@@ -58,8 +58,10 @@ class CampaignListResponse(BaseModel):
 
 class GenericResponse(BaseModel):
     status: str
-    message: str
+    message: Optional[str] = None
     data: Optional[Dict[str, object]] = None
 
 # Rule R106: Explicit model rebuild for complex type resolution
 ContentCampaign.model_rebuild()
+AgentResponse.model_rebuild()
+GenericResponse.model_rebuild()

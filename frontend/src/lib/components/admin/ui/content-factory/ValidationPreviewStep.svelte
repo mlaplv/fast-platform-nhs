@@ -106,7 +106,7 @@
       <div class="grid grid-cols-3 gap-3">
         <div class="bg-black/50 border border-emerald-500/30 p-4 flex flex-col items-center justify-center text-center gap-1 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
            <span class="text-2xl">✨</span>
-           <span class="text-[10px] text-emerald-400/80 font-bold uppercase tracking-wider">Bản Quyền</span>
+           <span class="text-[10px] text-emerald-400/80 font-bold uppercase tracking-wider">COPYRIGHT</span>
            <span class="text-xl font-black text-emerald-400">{copyrightScore ?? '--'}%</span>
         </div>
         <div class="bg-black/50 border border-blue-500/30 p-4 flex flex-col items-center justify-center text-center gap-1 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
@@ -116,7 +116,7 @@
         </div>
         <div class="bg-black/50 border border-fuchsia-500/30 p-4 flex flex-col items-center justify-center text-center gap-1 shadow-[0_0_15px_rgba(217,70,239,0.1)]">
            <span class="text-2xl">🤖</span>
-           <span class="text-[10px] text-fuchsia-400/80 font-bold uppercase tracking-wider">AI 2026</span>
+           <span class="text-[10px] text-fuchsia-400/80 font-bold uppercase tracking-wider">AI MOD</span>
            <span class="text-xl font-black text-fuchsia-400">{aiScore ?? '--'}%</span>
         </div>
       </div>

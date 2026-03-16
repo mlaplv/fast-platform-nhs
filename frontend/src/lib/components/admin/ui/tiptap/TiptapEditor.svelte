@@ -2,7 +2,7 @@
   import { onMount, onDestroy, untrack } from 'svelte';
   import { Editor } from '@tiptap/core';
   import { getEditorExtensions, editorProps } from './core/editor-config';
-  import { injectAnnotationStyles } from './extensions/AnnotationMark';
+  import { AnnotationPluginKey } from './core/AnnotationPlugin';
   import type { EditorAnnotation, ToolbarAction } from '$lib/types';
 
   import Toolbar from './ui/Toolbar.svelte';
@@ -52,11 +52,104 @@
   let tooltipSnippet = $state('');
   let tooltipType = $state('');
   let tooltipId = $state('');
+  let tooltipFrom = $state(0);
+  let tooltipTo = $state(0);
   let tooltipX = $state(0);
   let tooltipY = $state(0);
   let isFixing = $state(false);
   let lastTooltipAnchorId = $state('');
   let isInternalUpdating = false;
+  let cleanStatus = $state<'idle' | 'cleaning' | 'done'>('idle');
+
+  // ✦ Cerberus 2026: Frontend Clean — Jaccard near-duplicate dedup (Phase 76.9)
+  function handleClean() {
+    console.log('[Clean] ▶ handleClean fired');
+    if (!editor || editor.isDestroyed) {
+      console.warn('[Clean] Editor not ready');
+      return;
+    }
+    cleanStatus = 'cleaning';
+
+    const html = editor.getHTML();
+    console.log('[Clean] HTML length:', html.length);
+
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    const allBlocks = div.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote');
+    console.log('[Clean] Total blocks:', allBlocks.length);
+
+    // Extract meaningful word tokens: lowercase, NFC, strip digits + punctuation
+    function tokenize(text: string): Set<string> {
+      const normalized = text.toLowerCase().normalize('NFC');
+      const words = normalized
+        .replace(/\d+/g, '')                        // strip numbers (noise like 1111)
+        .replace(/[^\w\s\u00C0-\u024F\u1E00-\u1EFF]/g, ' ')  // strip punctuation/emoji
+        .split(/\s+/)
+        .filter(w => w.length >= 2);                // skip very short tokens
+      return new Set(words);
+    }
+
+    // Jaccard similarity between two word sets
+    function jaccard(a: Set<string>, b: Set<string>): number {
+      if (a.size === 0 && b.size === 0) return 1;
+      if (a.size === 0 || b.size === 0) return 0;
+      let intersect = 0;
+      a.forEach(w => { if (b.has(w)) intersect++; });
+      const union = a.size + b.size - intersect;
+      return intersect / union;
+    }
+
+    const THRESHOLD = 0.82; // ≥82% word overlap → near-duplicate
+    const kept: Array<{ el: Element; tokens: Set<string>; text: string }> = [];
+    let removed = 0;
+    const resultDiv = document.createElement('div');
+
+    allBlocks.forEach((el, idx) => {
+      const t = el.textContent?.trim() ?? '';
+      if (!t || t.length < 15) {
+        // Too short to meaningfully dedup
+        resultDiv.appendChild(el.cloneNode(true));
+        console.log(`[Clean] #${idx}: SHORT — keep`);
+        return;
+      }
+      const tokens = tokenize(t);
+
+      // Check against all previously kept blocks
+      const isDup = kept.some(k => {
+        const sim = jaccard(tokens, k.tokens);
+        if (sim >= THRESHOLD) {
+          console.log(`[Clean] #${idx}: 🗑 NEAR-DUP (jaccard=${sim.toFixed(2)}) vs "${k.text.slice(0, 40)}…"`);
+          return true;
+        }
+        return false;
+      });
+
+      if (!isDup) {
+        kept.push({ el, tokens, text: t });
+        resultDiv.appendChild(el.cloneNode(true));
+        console.log(`[Clean] #${idx}: ✅ KEEP — "${t.slice(0, 60)}"`);
+      } else {
+        removed++;
+      }
+    });
+
+    console.log(`[Clean] Done — kept: ${kept.length}, removed: ${removed}`);
+
+    if (removed > 0) {
+      isInternalUpdating = true;
+      editor.commands.setContent(resultDiv.innerHTML, false);
+      const cleaned = stripMarks(editor.getHTML());
+      onChange(cleaned);
+      updateMetrics();
+      isInternalUpdating = false;
+      console.log('[Clean] ✅ Editor updated');
+    } else {
+      console.log('[Clean] No near-duplicates found');
+    }
+
+    cleanStatus = 'done';
+    setTimeout(() => cleanStatus = 'idle', 2000);
+  }
 
   function stripMarks(html: string): string {
     return html.replace(/<mark[^>]*>|<\/mark>/g, '');
@@ -86,7 +179,6 @@
   }
 
   onMount(() => {
-    injectAnnotationStyles();
     editor = new Editor({
       element,
       content,
@@ -99,205 +191,95 @@
         onChange(stripMarks(html));
         updateMetrics();
       },
-      onFocus: () => isFocused = true,
-      onBlur: () => isFocused = false,
     });
     updateMetrics();
+
+    // Cerberus 2026: Attach visual-overlay events
+    element.addEventListener('annotation-hover', handleAnnotationHover);
+    element.addEventListener('annotation-leave', handleAnnotationLeave);
   });
 
   onDestroy(() => {
     if (editor) editor.destroy();
+    if (element) {
+      element.removeEventListener('annotation-hover', handleAnnotationHover);
+      element.removeEventListener('annotation-leave', handleAnnotationLeave);
+    }
   });
 
-  // Reactive Syncs
   $effect(() => {
     if (editor && !editor.isDestroyed) editor.setEditable(editable);
   });
 
   $effect(() => {
-    if (!editor || editor.isDestroyed || isInternalUpdating) return;
+    if (!editor || editor.isDestroyed) return;
     
+    // Defensive content stabilization
     const normalizedContent = content || "<p></p>";
     const currentHTML = editor.getHTML();
     
-    // Phase 82: Enhanced Damping Comparison
-    // Normalize both strings to ignore trailing whitespace/newlines from AI stream
     const cleanNew = stripMarks(normalizedContent).trim().replace(/\n/g, '');
     const cleanCurrent = stripMarks(currentHTML).trim().replace(/\n/g, '');
 
     if (cleanNew !== cleanCurrent) {
       isInternalUpdating = true;
-      
-      // Preserve selection for continuity
       const { from, to } = editor.state.selection;
       editor.commands.setContent(normalizedContent, false);
-      
       if (isFocused) {
-        try {
-          editor.commands.setTextSelection({ from, to });
-        } catch (e) {}
+        try { editor.commands.setTextSelection({ from, to }); } catch (e) {}
       }
-      
       updateMetrics();
       isInternalUpdating = false;
     }
   });
 
+  // Cerberus 2026: Sustainable Highlighting Sync
   $effect(() => {
     if (!editor || editor.isDestroyed) return;
     
-    // Proactive lock to avoid onUpdate loops during clearing/adding marks
-    isInternalUpdating = true;
+    // Track annotations as dependency
+    const _annotationsTrigger = annotations;
     
-    try {
-      const { doc, tr } = editor.state;
-      let hasChanges = false;
-
-      // 1. Clear all existing annotations in this transaction
-      const annotationMarkType = editor.schema.marks.annotation;
-      doc.descendants((node, pos) => {
-        if (node.isText && node.marks.some(m => m.type === annotationMarkType)) {
-          tr.removeMark(pos, pos + node.nodeSize, annotationMarkType);
-          hasChanges = true;
-        }
-      });
-
-      if (!annotations?.length) {
-        if (hasChanges) editor.view.dispatch(tr);
-        return;
-      }
-
-      // 2. Build doc mapping
-      const docChars: { char: string; pos: number }[] = [];
-      doc.descendants((node, pos) => {
-        if (node.isText && node.text) {
-          for (let i = 0; i < node.text.length; i++) {
-            const c = node.text[i];
-            // Collect all characters except whitespace/invisibles
-            if (!/[\s\u00A0\u200B\uFEFF]/.test(c)) {
-              docChars.push({ char: c.toLowerCase(), pos: pos + i });
-            }
-          }
-        }
-      });
-
-      // 3. Create a normalized version (ONLY alphanumeric) for extra robustness
-      // and keep a mapping to the indices in docChars.
-      const isAlphaNum = (c: string) => /[a-z0-9\u00C0-\u1EF9]/i.test(c); // Basic Vietnamese + Latin AlphaNum
-      const docNormalMap: number[] = [];
-      let docStrNormalized = '';
-      for (let i = 0; i < docChars.length; i++) {
-        if (isAlphaNum(docChars[i].char)) {
-          docStrNormalized += docChars[i].char;
-          docNormalMap.push(i);
-        }
-      }
-
-      // 4. Add new annotations via Bitap-inspired robust matching
-      for (const ann of annotations) {
-        if (!ann.text || ann.text.length < 3) {
-          // Handle structural errors
-          if (docChars.length > 0) {
-            const firstPos = docChars[0].pos;
-            const stableId = generateStableId("-structural-", ann.message);
-            tr.addMark(firstPos, firstPos + 1, annotationMarkType.create({
-              id: `ann-${stableId}`,
-              type: ann.type,
-              message: ann.message,
-              source: ann.source || '',
-              severity: ann.severity || 'medium',
-            }));
-            hasChanges = true;
-          }
-          continue;
-        }
-        
-        // Matcher Logic: Bitap-lite (Fuzzy search)
-        // We look for the pattern in docStrNormalized allowing small variances
-        const pattern = ann.text.toLowerCase().split('').filter(isAlphaNum).join('');
-        if (pattern.length < 3) continue;
-
-        const maxErrors = Math.max(1, Math.floor(pattern.length * 0.1)); // 10% tolerance
-        const stableId = generateStableId(ann.text, ann.message);
-
-        // Simple but robust sliding window bit-parallel like search
-        let bestMatchIdx = -1;
-        let bestDistance = maxErrors + 1;
-
-        // Optimization: try exact match first
-        const exactIdx = docStrNormalized.indexOf(pattern);
-        if (exactIdx !== -1) {
-            bestMatchIdx = exactIdx;
-            bestDistance = 0;
-        } else {
-            // Fuzzy search if exact fails
-            for (let i = 0; i <= docStrNormalized.length - pattern.length; i++) {
-                let distance = 0;
-                for (let j = 0; j < pattern.length; j++) {
-                    if (docStrNormalized[i+j] !== pattern[j]) {
-                        distance++;
-                        if (distance > maxErrors) break;
-                    }
-                }
-                if (distance < bestDistance) {
-                    bestDistance = distance;
-                    bestMatchIdx = i;
-                    if (bestDistance === 0) break;
-                }
-            }
-        }
-
-        if (bestMatchIdx !== -1) {
-          const startDocCharIdx = docNormalMap[bestMatchIdx];
-          const endDocCharIdx = docNormalMap[bestMatchIdx + pattern.length - 1];
-          
-          if (startDocCharIdx !== undefined && endDocCharIdx !== undefined) {
-            const startPos = docChars[startDocCharIdx].pos;
-            const endPos = docChars[endDocCharIdx].pos + 1;
-            
-            tr.addMark(startPos, endPos, annotationMarkType.create({
-              id: `ann-${stableId}`,
-              type: ann.type,
-              message: ann.message,
-              source: ann.source || '',
-              severity: ann.severity || 'medium',
-            }));
-            hasChanges = true;
-          }
-        }
-      }
-      
-      if (hasChanges) {
-        editor.view.dispatch(tr);
-      }
-    } finally {
-      setTimeout(() => { isInternalUpdating = false; }, 50);
-    }
+    // Dispatch to the plugin instead of mutating the doc with marks
+    editor.view.dispatch(
+      editor.state.tr.setMeta(AnnotationPluginKey, {
+        type: 'SET_ANNOTATIONS',
+        annotations: _annotationsTrigger || []
+      })
+    );
   });
 
-  function handleMouseMove(e: MouseEvent) {
+  function handleAnnotationHover(e: any) {
     if (isFixing) return;
-    const target = e.target as HTMLElement;
-    const annEl = target.closest('.xohi-annotation') as HTMLElement | null;
+    const data = e.detail;
+    if (!data.id) return;
 
-    if (annEl) {
-      const id = annEl.getAttribute('data-annotation-id') || '';
-      if (!tooltipVisible || id !== lastTooltipAnchorId) {
-        tooltipText = annEl.getAttribute('data-annotation-message') || '';
-        tooltipType = annEl.getAttribute('data-annotation-type') || '';
-        tooltipId = id;
-        tooltipSnippet = annEl.textContent || '';
-        lastTooltipAnchorId = id;
-        tooltipX = e.clientX;
-        tooltipY = e.clientY - 8;
-        tooltipVisible = true;
-      }
-    } else {
-        if (!target.closest('.tiptap-tooltip')) {
-            tooltipVisible = false;
-            lastTooltipAnchorId = '';
-        }
+    tooltipX = data.x;
+    tooltipY = data.y - 12;
+    tooltipText = data.message;
+    tooltipType = data.type;
+    tooltipId = data.id;
+    tooltipSnippet = data.text;
+    tooltipFrom = data.from;
+    tooltipTo = data.to;
+    tooltipVisible = true;
+  }
+
+  function handleAnnotationLeave() {
+    if (!isFixing) {
+      tooltipVisible = false;
     }
+  }
+
+
+  // Rule R82.48: Viewport Reliability — Use a portal to bypass stacking context issues
+  function portal(node: HTMLElement) {
+    document.body.appendChild(node);
+    return {
+      destroy() {
+        if (node.parentNode) node.parentNode.removeChild(node);
+      }
+    };
   }
 
   async function handleFix() {
@@ -306,18 +288,10 @@
     try {
       const newText = await onfix(tooltipSnippet, tooltipType, tooltipText);
       if (newText && editor) {
-        let tr = editor.state.tr;
-        let found = false;
-        editor.state.doc.descendants((node, pos) => {
-          if (node.isText) {
-            const mark = node.marks.find(m => m.type.name === 'annotation' && m.attrs.id === tooltipId);
-            if (mark) {
-              tr = tr.insertText(newText, pos, pos + node.nodeSize);
-              found = true;
-            }
-          }
-        });
-        if (found) editor.view.dispatch(tr);
+        // Use the precise positions from the decoration hover
+        const { state, view } = editor;
+        const tr = state.tr.insertText(newText, tooltipFrom, tooltipTo);
+        view.dispatch(tr);
         tooltipType = 'fixed';
       }
     } finally {
@@ -340,12 +314,12 @@
       onOpenImage={() => showImageDialog = true}
       onOpenLink={() => { currentLinkUrl = editor?.getAttributes('link').href || ''; showLinkDialog = true; }}
       onClearHighlights={() => editor?.commands.clearAllAnnotations()}
+      onClean={handleClean}
     />
   {/if}
 
   <div 
     class="flex-1 overflow-y-auto document-scroll {fullScreen ? 'bg-[#0a0d14]' : 'bg-[#0d1117] p-6'}"
-    onmousemove={handleMouseMove}
     onmouseleave={() => { if (!isFixing) tooltipVisible = false; }}
   >
     <div class="
@@ -363,7 +337,9 @@
 
 <ImageDialog bind:show={showImageDialog} {assets} onSelect={(url) => editor?.chain().focus().setImage({ src: url }).run()} />
 <LinkDialog bind:show={showLinkDialog} currentUrl={currentLinkUrl} onApply={(url) => url ? editor?.chain().focus().setLink({ href: url }).run() : editor?.chain().focus().unsetLink().run()} />
-<AnnotationTooltip bind:visible={tooltipVisible} x={tooltipX} y={tooltipY} type={tooltipType} text={tooltipText} {isFixing} onFix={handleFix} />
+  <div use:portal>
+    <AnnotationTooltip bind:visible={tooltipVisible} x={tooltipX} y={tooltipY} type={tooltipType} text={tooltipText} {isFixing} onFix={handleFix} />
+  </div>
 
 <style>
   @reference "tailwindcss";

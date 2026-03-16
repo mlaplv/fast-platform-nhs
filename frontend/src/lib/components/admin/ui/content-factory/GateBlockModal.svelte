@@ -21,7 +21,7 @@
     copyright: [
       'Xem đoạn được tô màu đỏ trong bài (annotations)',
       'Viết lại hoặc dùng nút ✦ Auto-Fix để sửa đoạn vi phạm',
-      'Nhấn ↻ Chạy lại Check Bản Quyền để cập nhật điểm'
+      'Nhấn ↻ Chạy lại Check COPYRIGHT để cập nhật điểm'
     ],
     seo: [
       'Mở tab SEO → xem chi tiết signal nào bị điểm thấp',
@@ -29,9 +29,9 @@
       'Nhấn ↻ Chạy lại SEO để cập nhật điểm'
     ],
     ai: [
-      'Mở tab AI 2026 → xem gợi ý GEO Readiness',
+      'Mở tab AI MOD → xem gợi ý GEO Readiness',
       'Thêm định nghĩa chuyên ngành, trích dẫn, cấu trúc rõ ràng',
-      'Nhấn ↻ Chạy lại AI 2026 để cập nhật điểm'
+      'Nhấn ↻ Chạy lại AI MOD để cập nhật điểm'
     ]
   };
 </script>

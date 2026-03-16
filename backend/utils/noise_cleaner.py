@@ -10,6 +10,23 @@ from pydantic_ai import Agent
 
 logger = logging.getLogger("api-gateway")
 
+# Phase 76.3: Advanced Deterministic Artifact Stripper (HFS)
+# Exported for use in sibling operatives (V76.3)
+RE_HTML_TAGS = re.compile(r'<[^>]+>')
+RE_IMAGE_PLACEHOLDERS = re.compile(r'\[IMAGE_\d+\]')
+RE_WHITESPACE = re.compile(r'\s+')
+
+RE_MARKDOWN_CLEAN = [
+    (re.compile(r'\*\*'), ''),           # Bold **
+    (re.compile(r'__'), ''),             # Bold __
+    (re.compile(r'#{1,6}\s+'), ''),     # Headings
+    (re.compile(r'!\[.*?\]\(.*?\)\s*'), ''), # Images
+    (re.compile(r'\[.*?\]\(.*?\)\s*'), ''),   # Links
+    (re.compile(r'`{1,3}.*?`{1,3}', re.DOTALL), ''), # Inline code / fences
+    (re.compile(r'^\s*[-*+]\s+', re.MULTILINE), ''), # List bullets
+    (re.compile(r'^\s*\d+\.\s+', re.MULTILINE), ''), # Numbered lists
+]
+
 class NoiseCleaner:
     """
     R23: Hybrid Noise Shield Engine V2026.
@@ -52,20 +69,31 @@ class NoiseCleaner:
         except Exception as e:
             logger.error(f"[Noise Shield] Failed to load dictionary: {e}")
 
-    async def clean(self, text: str, mode: str = "aggressive") -> str:
+    async def clean(self, text: str, mode: str = "aggressive", strip_markdown: bool = True, strip_html: bool = False) -> str:
         """
-        Executes the 3-layer cleaning pipeline.
+        Executes the 4-layer cleaning pipeline.
         
         Layers:
-        1. Flashtext (O(n) Direct Match)
-        2. RapidFuzz (Similarity check for keyword variations)
-        3. Semantic Proxy (AI evaluation for linguistic junk)
+        0. HTML/Artifact Stripping (Deterministic)
+        1. Markdown Stripping (HFS)
+        2. Static Keywords (Flashtext)
+        3. Fuzzy Keywords (RapidFuzz)
+        4. Semantic Audit (AI)
         """
         if not text:
             return ""
 
-        # --- LAYER 1: DIRECT MATCH (FLASHTEXT) ---
-        cleaned_text = self.keyword_processor.replace_keywords(text)
+        # --- LAYER 0: HTML & PLACEHOLDERS ---
+        if strip_html:
+            text = RE_HTML_TAGS.sub(' ', text)
+            text = RE_IMAGE_PLACEHOLDERS.sub('', text)
+
+        # --- LAYER 1: DETERMINISTIC MARKDOWN (HFS) ---
+        if strip_markdown:
+            for pattern, subst in RE_MARKDOWN_CLEAN:
+                text = pattern.sub(subst, text)
+        
+        cleaned_text = text
         
         # --- LAYER 2: FUZZY CLEANING ---
         # Split into tokens for fuzzy checking (limited to identified risky areas)
@@ -101,9 +129,11 @@ class NoiseCleaner:
                 # For now, we just log it and return the best-effort clean text.
                 logger.warning("[Noise Shield] Semantic Audit flagged the content as JUNK.")
         
-        # Final Regex pass for multiple whitespaces (V76.3)
-        cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()
-        return cleaned_text
+        # Final pass: Collapse horizontal whitespace but preserve structure (V76.4)
+        import unicodedata
+        cleaned_text = re.sub(r'[ \t]+', ' ', cleaned_text)
+        cleaned_text = re.sub(r'\n\s*\n', '\n\n', cleaned_text) # Normalize paragraph breaks
+        return unicodedata.normalize('NFC', cleaned_text.strip())
 
     async def _semantic_audit(self, sample: str) -> bool:
         """Asks AI if the content is predominantly junk."""
