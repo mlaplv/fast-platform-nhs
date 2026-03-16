@@ -25,7 +25,7 @@ STT_CONFIRM_RE_CACHE: Dict[str, re.Pattern] = {}
 # --- Global Keywords & Mappings (R1.6: Zero-Hydration Constants) ---
 YES_KEYWORDS = ["đúng", "vâng", "yes", "ừ", "ok", "ok đi", "chuẩn", "đươc", "rồi", "chính xác", "phải", "phai", "có"]
 NO_KEYWORDS = ["không", "nhầm", "sai", "no"]
-NAV_KEYWORDS = ["mở", "xem", "vào", "biểu đồ", "show", "open", "display", "chart"]
+NAV_KEYWORDS = ["mở", "xem", "vào", "biểu đồ", "show", "open", "display", "chart", "bi do", "bí đồ"]
 
 # Phase 76.3: Pre-normalized versions for O(1) or fast O(N) lookup
 NORM_YES_KEYWORDS = {normalize_vn(kw) for kw in YES_KEYWORDS}

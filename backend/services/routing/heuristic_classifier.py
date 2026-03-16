@@ -27,7 +27,7 @@ RE_LEARN_VN_3 = re.compile(r"dạy lệnh ['\"]?(.+?)['\"]? là (.+)", re.IGNORE
 
 # --- Keyword Dictionaries (avoid hardcode — centralized here for easy tuning) ---
 TARGET_KEYWORDS = {
-    "revenue": ["doanh thu", "doanh so", "bieu do", "tien", "doanh tu", "doanh thuu", "gianh thu", "danh thu", "dan thu"],
+    "revenue": ["doanh thu", "doanh so", "bieu do", "tien", "doanh tu", "doanh thuu", "gianh thu", "danh thu", "dan thu", "bi do", "bi do"],
     "order":   ["don hang", "hoa don", "bill", "dau hang", "don han", "ton hang", "don hanh", "don hangg"],
     "product": ["san pham", "ton kho", "kho hang", "sang pham", "sam pham", "san phan", "san bam"],
     "user":    ["nguoi dung", "khach", "nhan vien", "tai khoan", "khach hang", "khach han", "cat hang"],

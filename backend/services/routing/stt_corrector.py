@@ -101,6 +101,8 @@ SOUND_ALIKES = {
     "học lần": "học lệnh",
     "học lẹ": "học lệnh",
     "chương dịch": "chiến dịch",
+    "bí đồ": "biểu đồ",
+    "bi đồ": "biểu đồ",
 }
 # Pre-normalize keys for robust matching
 NORM_SOUND_ALIKES = {normalize_vn(k): v for k, v in SOUND_ALIKES.items()}
