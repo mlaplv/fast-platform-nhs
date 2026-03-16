@@ -15,6 +15,7 @@
   import PublishStep from "./content-factory/PublishStep.svelte";
   import ActionButtons from "./content-factory/ActionButtons.svelte";
   import GateBlockModal from "./content-factory/GateBlockModal.svelte";
+  import TiptapEditor from "../tiptap/TiptapEditor.svelte";
   import type {
     CampaignKeywords,
     CampaignMetrics,
@@ -78,7 +79,7 @@
   let editedKeywords = $state<CampaignKeywords>({});
   let editedConfig = $state<Record<string, unknown>>({});
   let editedDraft = $state("");
-  let editorRef = $state<any>(null); // Tiptap component ref
+  let editorRef = $state<TiptapEditor | null>(null); // Tiptap component ref
   let maxStepSeen = $state(step);
 
   // -- Gate Score State (synced from DraftStep via bind:) --

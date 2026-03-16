@@ -209,7 +209,7 @@ export function createPulseManager(
           // CNS V76.8: Real-time Neural Streaming Support
           const chunkPayload = payload as { campaign_id: string; text: string; step: number };
           if (voice?.vuiResponse?.data?.campaign_id === chunkPayload.campaign_id) {
-             const currentData = voice.vuiResponse.data as Record<string, any>;
+             const currentData = voice.vuiResponse.data as CampaignData;
              const existingContent = (currentData.draft_content || "");
              
              // Append chunk to the draft_content to trigger UI reactivity in DraftStep
