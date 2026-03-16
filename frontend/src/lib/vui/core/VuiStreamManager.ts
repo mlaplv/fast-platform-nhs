@@ -113,6 +113,7 @@ export class VuiStreamManager {
   }
 
   public async streamLLM(query: string, session_id: string, source: "text" | "voice" = "voice", intentData?: Record<string, unknown>) {
+    vuiState.setIsWaitingForAction(false); // Reset "waiting" state on new interaction
     vuiState.setPhase("thinking");
     // Leave the STT text as liveText so the user can read it.
     // vuiState.setLiveText("");

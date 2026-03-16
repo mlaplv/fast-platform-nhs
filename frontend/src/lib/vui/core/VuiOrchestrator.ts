@@ -244,7 +244,7 @@ class VuiOrchestrator {
       this.vadEngine!.pause();
       vuiState.setPhase("idle");
       vuiState.setLiveText("Sẵn sàng thưa sếp...");
-      return;
+      // C.T.O Fix: Don't return early. Allow CONTINUOUS_CONVERSATION to re-open the mic.
     }
 
     if (vuiState.phase === "executing" || vuiState.phase === "speaking") {
