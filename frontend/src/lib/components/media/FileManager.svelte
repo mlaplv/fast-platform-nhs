@@ -1,8 +1,10 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import { mediaStore } from '$lib/state/media.svelte';
+    import { nanobot } from '$lib/state/nanobot.svelte';
+    import { vuiController, vuiState } from '$lib/vui';
     import { fade, slide } from 'svelte/transition';
-    import type { MediaAsset } from '$lib/types';
+    import type { MediaAsset } from '$lib/state/types';
 
     interface Props {
         campaignId?: string;
@@ -196,6 +198,13 @@
     async function applySmartCrop(preset: 'square' | 'banner' | 'story' | 'feed') {
         if (!selectedAssetId) return;
         await handleQuickEdit('smart_crop', { preset });
+    }
+
+    function copyToClipboard(text: string) {
+        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(text);
+            nanobot.showToast("Đã copy đường dẫn vào bộ nhớ tạm", "success");
+        }
     }
 </script>
 

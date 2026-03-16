@@ -63,13 +63,10 @@ class MediaController(Controller):
             owner_id=owner_id
         )
 
-        # R105: Use strict mapping from ORM to Schema
-        items = [MediaAssetResponse.from_orm_model(item) for item in result.items]
-
         return MediaListResponse(
             status="success",
             data=MediaListResponseData(
-                items=items,
+                items=result.items,
                 total=result.total,
                 limit=result.limit,
                 offset=result.offset

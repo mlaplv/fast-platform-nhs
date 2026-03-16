@@ -62,7 +62,7 @@
     if (base && base.includes("[IMAGE_")) {
       const assetList = Array.isArray(assets) ? assets : [];
       assetList.forEach((asset, i) => {
-        const url = typeof asset === 'string' ? asset : asset.url;
+        const url = typeof asset === 'string' ? asset : (asset.file_path || asset.url || '');
         const placeholder = `[IMAGE_${i + 1}]`;
         // Handle markers inside src first
         const srcPattern = new RegExp(`(src|href)=["']\\s*${placeholder.replace('[', '\\[').replace(']', '\\]')}\\s*["']`, 'g');
