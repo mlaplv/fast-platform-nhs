@@ -23,10 +23,10 @@
 </script>
 
 <div
-  class="relative group aspect-square rounded-2xl overflow-hidden border transition-all duration-500 shadow-2xl
+  class="relative group aspect-square rounded-none overflow-hidden transition-all duration-500 shadow-2xl
          {isPrimary
-            ? 'border-blue-500/50 shadow-[0_0_30px_rgba(59,130,246,0.2)] scale-[1.02] z-10'
-            : 'border-white/5 hover:border-white/20 bg-white/[0.02]'}"
+            ? 'shadow-[0_0_30px_rgba(59,130,246,0.2)] scale-[1.02] z-10'
+            : 'bg-white/[0.02]'}"
   class:opacity-50={isDndShadow}
   class:pointer-events-none={isCropping}
   in:scale={{ duration: 400, start: 0.95 }}
@@ -36,7 +36,7 @@
     src={asset.file_path}
     alt="Asset {index}"
     class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-    class:blur-sm={isCropping || pendingPreset}
+    class:blur-sm={isCropping}
   />
 
   {#if isCropping}
@@ -55,7 +55,7 @@
       transition:fade={{ duration: 300 }}
     >
         <!-- Deep Glass Background with Animated Glow -->
-        <div class="absolute inset-0 bg-black/70 backdrop-blur-[12px]"></div>
+        <!-- CNS V77: Removed Deep Glass Overlay per Sếp's request to keep image visible -->
         <div class="absolute -inset-[100%] bg-gradient-to-tr from-blue-500/10 via-transparent to-indigo-500/10 animate-[pulse_8s_infinite]"></div>
         
         <!-- Adaptive Floating Glass Card (Ultra-Minimalist) -->

@@ -72,7 +72,7 @@
           <span class="text-[9px] font-black text-blue-400 uppercase tracking-[0.2em]">Neural Main Slot</span>
           <Sparkles size={12} class="text-blue-500/40" />
         </div>
-        <div class="p-1 rounded-[2rem] bg-gradient-to-b from-blue-500/20 to-transparent border border-white/5 shadow-2xl">
+        <div class="p-1 rounded-none bg-gradient-to-b from-blue-500/20 to-transparent shadow-2xl">
           <ImageSlot asset={xohiImageStore.primaryAsset} index={0} />
         </div>
         <p class="text-[10px] text-white/20 font-medium italic px-2">Ảnh này sẽ được dùng làm thumbnail và ảnh đại diện chính của bài viết.</p>
@@ -87,7 +87,7 @@
 
         <!-- CNS V74: Persistent container for dndzone to prevent 'parentElement' crashes -->
         <section
-          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 outline-none min-h-[150px] p-4 bg-white/[0.02] rounded-3xl border border-white/5 shadow-inner"
+          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 outline-none min-h-[150px] p-4 bg-white/[0.02] rounded-none shadow-inner"
           use:dndzone={{
             items: items,
             flipDurationMs,
