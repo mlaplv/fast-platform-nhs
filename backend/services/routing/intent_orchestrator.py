@@ -338,6 +338,23 @@ class RouterOrchestrator:
                 # Fall through to normal classification
         else:
             # 0. AI STT Correction
+            
+            # --- PHASE 0.9: RAW HEURISTIC GUARD (V77.6) ---
+            # Check for high-priority learning commands on RAW transcript before AI "cleans" it.
+            # This prevents AI from thinking "hoc lenh" is noise and stripping it.
+            raw_heur = await self._heuristic_classify(
+                transcript.lower(), 
+                user_id, 
+                ctx={**ctx, "profile": user_profile}, 
+                intent_map=intent_map, 
+                norm_query=normalized_transcript
+            )
+            if raw_heur and raw_heur.data.get("intent_type") == "LEARN_COMMAND":
+                logger.info(f"[Raw Heuristic Guard] HIT: LEARN_COMMAND")
+                t_heur = int((time.monotonic() - t0) * 1000)
+                raw_heur.data["cleaned_transcript"] = transcript
+                return raw_heur
+
             # --- SEMANTIC BYPASS (LOCAL-FIRST) ---
             cleaned_transcript, suspected = await stt_corrector.correct(transcript, user_dict, norm_query=normalized_transcript)
             t_stt = int((time.monotonic() - t0) * 1000)

@@ -345,6 +345,13 @@ class STTCorrector:
             if any(kw in transcript.lower() for kw in ["bài viết", "sản phẩm", "đơn hàng", "doanh thu", "biểu đồ", "mở", "xem"]):
                 logger.debug(f"[STT Corrector] Fast-Bypass for simple context: '{transcript}'")
                 return transcript, None
+        
+        # --- PHASE 77.6: LEARNING BYPASS ---
+        # If it looks like a learning command, DO NOT let the AI "clean" it.
+        # This prevents Trinity from stripping "hoc lenh" thinking it's noise.
+        if any(kw in transcript.lower() for kw in ["học lệnh", "dạy lệnh", "hoc lenh", "day lenh"]):
+            logger.info(f"[STT Corrector] Learning Bypass activated for: '{transcript}'")
+            return transcript, None
 
         # 0.5 STOPWORDS
         norm_stopwords = await self._get_cached_stopwords()
