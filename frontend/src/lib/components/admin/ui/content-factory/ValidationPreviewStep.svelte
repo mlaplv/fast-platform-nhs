@@ -14,6 +14,18 @@
     isExpanded
   } = $props();
 
+  function fixUrl(url: string | null): string {
+    if (!url) return "";
+    let p = url;
+    if (p.startsWith("http")) return p;
+    if (p.startsWith("static/")) p = "/" + p;
+    if (p.startsWith("uploads/")) p = "/" + p;
+    if (!p.startsWith("/")) p = "/uploads/" + p;
+    
+    if (p.startsWith("/static/uploads/")) p = p.replace("/static/uploads/", "/uploads/");
+    return p;
+  }
+
   let previewMode = $state<'desktop' | 'mobile'>('desktop');
 
   // Computed Data
@@ -30,7 +42,8 @@
     if (assets.length === 0) return "https://via.placeholder.com/600x315?text=No+Image";
     const primary = assets.find(a => typeof a === 'object' && a.is_primary);
     const first = primary || assets[0];
-    return typeof first === 'string' ? first : first.url;
+    const url = typeof first === 'string' ? first : first.url;
+    return fixUrl(url);
   });
   let description = $derived(draft_content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 160) + "...");
 

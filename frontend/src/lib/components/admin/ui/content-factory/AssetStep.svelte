@@ -31,7 +31,7 @@
     isProcessing: boolean;
     isExpanded: boolean;
     assets: (MediaAsset | string)[];
-    reserve_assets: string[];
+    reserve_assets: (MediaAsset | string)[];
     customImageUrl: string;
     selectedAvatarUrl: string | null;
     selectedAssetIndex: number;
@@ -67,7 +67,7 @@
         if (nanobot.consumeCommand(action.verb, action.entity)) {
           const parts = action.args.split(" ");
           const index = parseInt(parts[0]) - 1; // User says 1, we use 0
-          const preset = (parts[1] || "square") as any;
+          const preset = (parts[1] || "square") as "square" | "landscape" | "portrait";
 
           const targetAsset = xohiImageStore.assets[index];
           if (targetAsset) {

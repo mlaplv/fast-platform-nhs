@@ -15,7 +15,7 @@
   import PublishStep from "./content-factory/PublishStep.svelte";
   import ActionButtons from "./content-factory/ActionButtons.svelte";
   import GateBlockModal from "./content-factory/GateBlockModal.svelte";
-  import TiptapEditor from "../tiptap/TiptapEditor.svelte";
+  import TiptapEditor from "./tiptap/TiptapEditor.svelte";
   import type {
     CampaignKeywords,
     CampaignMetrics,
@@ -73,12 +73,21 @@
   let isEditing = $state(false);
   let isProcessing = $derived(status === "PROCESSING");
   let isLoading = $state(false);
+  
+  // Rule R82.43: Global Spinner Sync — Ensure buttons re-enable when AI finishing
+  $effect(() => {
+    if (status !== "PROCESSING") {
+      untrack(() => { isLoading = false; });
+    }
+  });
+
   let isPublishing = $state(false);
   let resultMsg = $state("");
   let customImageUrl = $state("");
   let editedKeywords = $state<CampaignKeywords>({});
   let editedConfig = $state<Record<string, unknown>>({});
   let editedDraft = $state("");
+  let editedOutline = $state(""); // CNS V85: Separate buffer for Step 3 to prevent draft pollution
   let editorRef = $state<TiptapEditor | null>(null); // Tiptap component ref
   let maxStepSeen = $state(step);
 
@@ -87,10 +96,11 @@
   let seoScore = $state<number | null>(null);
   let aiScore = $state<number | null>(null);
 
-  // Phase 73: Initialize scores from metrics if DraftStep is skipped
+  // Phase 73: Initialize scores from metrics & cache (Single Source of Truth)
   $effect(() => {
-    if (analysis_metrics && copyrightScore === null) {
-      if (analysis_metrics.unique_score !== undefined) {
+    // 1. Data Source: analysis_metrics (Gold DB)
+    if (analysis_metrics) {
+      if (copyrightScore === null && analysis_metrics.unique_score !== undefined) {
         copyrightScore = Math.round(analysis_metrics.unique_score * 100);
       }
       if (seoScore === null && analysis_metrics.seo_score !== undefined) {
@@ -98,6 +108,19 @@
       }
       if (aiScore === null && analysis_metrics.ai_ready_score !== undefined) {
         aiScore = analysis_metrics.ai_ready_score;
+      }
+    }
+
+    // 2. Data Source: analysis_cache (In-memory/Recent)
+    if (analysis_cache) {
+      if (copyrightScore === null && analysis_cache.copyright?.data?.uniqueness_score !== undefined) {
+        copyrightScore = Math.round(analysis_cache.copyright.data.uniqueness_score * 100);
+      }
+      if (seoScore === null && analysis_cache.seo?.data?.total_score !== undefined) {
+        seoScore = analysis_cache.seo.data.total_score;
+      }
+      if (aiScore === null && analysis_cache.ai_inspect?.data?.geo_score !== undefined) {
+        aiScore = analysis_cache.ai_inspect.data.geo_score;
       }
     }
   });
@@ -151,13 +174,10 @@
     if (typeof editedConfig !== 'object') editedConfig = {};
     editedKeywords = JSON.parse(JSON.stringify(keywords || {}));
     
-    // CNS V73.5: Multi-source content restoration
-    // Prioritize draft_content, then metrics content, then outline.html
-    const fallbackFromMetrics = analysis_metrics?.draft_content;
-    const fallbackFromOutline = outline?.html;
-    
-    draft_content = draft_content || fallbackFromMetrics || fallbackFromOutline || "";
-    editedDraft = draft_content;
+    // CNS V73.5: Minimal state restoration — Don't pollute draft_content with outline
+    // The child components (OutlineStep, DraftStep) handle display-only fallbacks
+    editedDraft = draft_content || "";
+    editedOutline = outline?.html || "";
     
     // Ensure finalHtml is not empty if we are in step 6
     if (viewingStep >= 6 && !finalHtml) {
@@ -171,20 +191,26 @@
 
   // Rule R82.42: Reactive Prep — Ensure editedDraft is ready for next steps
   $effect(() => {
-    // CNS V73.8: More aggressive sync for real-time streaming (Step 4 & 6)
+    // CNS V73.8: Expert Streaming Sync
+    // When generating (status === "PROCESSING") or viewing (isEditing === false), 
+    // we must sync the external draft_content (SSE/Pulse) to our local buffer.
     const source = draft_content || finalHtml || "";
     
-    // During Step 4 generation (status === "PROCESSING"), we must mirror source directly to editedDraft
-    // to allow the Tiptap editor to show the stream.
-    // If not editing, we always prefer the latest source from backend pulse.
-    if (!isEditing && source && (source !== editedDraft || !editedDraft)) {
-      untrack(() => {
-        editedDraft = source;
-      });
+    // Expert Optimizer: Always prioritize source if it's non-empty and has changed
+    // This fixed the "white screen" when streaming starts.
+    if (source && (isProcessing || !isEditing)) {
+      if (source !== editedDraft) {
+        untrack(() => {
+          editedDraft = source;
+          // Ensure draft_content itself is never empty if we have source
+          if (!draft_content) draft_content = source;
+        });
+      }
     }
     
-    // R102: Content integrity safeguard
-    if (source && !draft_content) {
+    // R102: Content integrity safeguard — Ensure draft_content is synchronized with source if missing
+    // But ONLY if source is actually a draft, not a fallback
+    if (!draft_content && source) {
       untrack(() => { draft_content = source; });
     }
   });
@@ -244,7 +270,7 @@
       const payload = isEditing ? { 
         edited_data: viewingStep === 1 
           ? { ...editedKeywords, creation_config: editedConfig } 
-          : { html: editedDraft } 
+          : { html: viewingStep === 3 ? editedOutline : editedDraft } 
       } : {};
       await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/approve`, payload);
       
@@ -254,7 +280,7 @@
         keywords = { ...editedKeywords, creation_config: { ...editedConfig } };
         creation_config = { ...editedConfig };
       } else if (viewingStep === 3) {
-        outline = { html: editedDraft };
+        outline = { ...outline, html: editedOutline };
       } else if (viewingStep === 4) {
         draft_content = editedDraft;
       }
@@ -305,7 +331,7 @@
     try {
       const payload = viewingStep === 1 
         ? { keywords: { ...editedKeywords, creation_config: editedConfig } } 
-        : (viewingStep === 3 ? { outline_data: { html: editedDraft } } : { draft_content: editedDraft });
+        : (viewingStep === 3 ? { outline_data: { html: editedOutline } } : { draft_content: editedDraft });
         
       await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, payload);
       
@@ -314,12 +340,13 @@
         keywords = { ...editedKeywords, creation_config: { ...editedConfig } };
         creation_config = { ...editedConfig };
       } else if (viewingStep === 3) {
-        outline = { html: editedDraft };
+        outline = { ...outline, html: editedOutline };
       } else if (viewingStep === 4) {
         draft_content = editedDraft;
       }
       isEditing = false;
       editedDraft = ""; // R82.47: Clear edit buffer after successful save
+      editedOutline = "";
       
       const stepNames: Record<number, string> = {
         1: "ý tưởng và từ khóa",
@@ -455,12 +482,12 @@
         />
       {:else if viewingStep === 3}
         <OutlineStep 
-          {isEditing} bind:editedDraft bind:draft_content {outline} {assets} 
+          {isEditing} bind:editedOutline={editedOutline} {outline} {assets} 
           isExpanded={nanobot.isExpanded} editorAnnotations={[]} {step}
         />
       {:else if viewingStep === 4}
         <DraftStep 
-          {campaign_id} {isEditing} bind:editedDraft bind:draft_content 
+          {campaign_id} {isEditing} bind:editedDraft {draft_content} 
           {assets} isExpanded={nanobot.isExpanded} bind:editorRef {outline}
           {analysis_cache} {analysis_metrics}
           bind:copyrightScore bind:seoScore bind:aiScore

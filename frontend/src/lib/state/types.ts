@@ -239,7 +239,7 @@ export interface CampaignData {
   progress_msg?: string;
   keywords?: CampaignKeywords;
   assets?: (MediaAsset | string)[];
-  reserve_assets?: string[];
+  reserve_assets?: (MediaAsset | string)[];
   outline?: CampaignOutline;
   draft_content?: string;
   final_html?: string;
@@ -249,12 +249,16 @@ export interface CampaignData {
   selectedAvatarUrl?: string | null;
   selectedAssetIndex?: number;
   creation_config?: Record<string, unknown>;
+  // SSE Aliases (Rule R122: Map legacy server keys to UI)
+  topic_data?: CampaignKeywords;
+  assets_data?: (MediaAsset | string)[];
+  outline_data?: CampaignOutline;
   isSilent?: boolean;
   data?: Record<string, unknown>;
   gold_metadata?: {
     avatar?: string;
     selected_index?: number;
-    reserve_assets?: string[];
+    reserve_assets?: (MediaAsset | string)[];
     creation_config?: Record<string, unknown>;
     analysis_cache?: Record<string, unknown>;
     analysis_metrics?: Record<string, unknown>;

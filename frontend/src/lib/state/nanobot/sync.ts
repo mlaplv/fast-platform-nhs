@@ -31,6 +31,7 @@ interface SyncDeps {
   };
   pulseManager: {
     isConnected: boolean;
+    shouldSkipSync: (campaign_id: string) => boolean;
   };
 }
 
@@ -56,13 +57,20 @@ export function createSyncManager(
   const startSmartPolling = () => {
     if (pollingInterval) return;
     pollingInterval = setInterval(async () => {
-      const hasActiveCampaign = log.activityLogs.some((l: SystemLog) =>
+      const activeCampaign = log.activityLogs.find((l: SystemLog) =>
         l.data?.category === "CONTENT_CREATE" && l.data?.status === "PROCESSING"
       );
-      if (!hasActiveCampaign) { stopSmartPolling(); return; }
+      const activeCampaignId = activeCampaign?.data?.campaign_id;
+
+      if (!activeCampaignId) { stopSmartPolling(); return; }
 
       // V12: Avoid polling if pulse is active unless forced
       const interval = pulseManager.isConnected ? 30000 : 5000;
+
+      // Sync Guard (V82): Skip DB Sync if SSE just updated this campaign
+      if (pulseManager.shouldSkipSync(activeCampaignId)) {
+        return;
+      }
 
       // Node.js vs Browser interval check workaround
       const currentInterval = (pollingInterval as unknown as { _idleTimeout?: number })._idleTimeout;

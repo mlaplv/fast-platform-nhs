@@ -115,13 +115,29 @@
   });
 
   $effect(() => {
-    if (!editor || editor.isDestroyed) return;
+    if (!editor || editor.isDestroyed || isInternalUpdating) return;
+    
     const normalizedContent = content || "<p></p>";
     const currentHTML = editor.getHTML();
     
-    if (stripMarks(normalizedContent) !== stripMarks(currentHTML)) {
+    // Phase 82: Enhanced Damping Comparison
+    // Normalize both strings to ignore trailing whitespace/newlines from AI stream
+    const cleanNew = stripMarks(normalizedContent).trim().replace(/\n/g, '');
+    const cleanCurrent = stripMarks(currentHTML).trim().replace(/\n/g, '');
+
+    if (cleanNew !== cleanCurrent) {
       isInternalUpdating = true;
-      editor.commands.setContent(content, false);
+      
+      // Preserve selection for continuity
+      const { from, to } = editor.state.selection;
+      editor.commands.setContent(normalizedContent, false);
+      
+      if (isFocused) {
+        try {
+          editor.commands.setTextSelection({ from, to });
+        } catch (e) {}
+      }
+      
       updateMetrics();
       isInternalUpdating = false;
     }

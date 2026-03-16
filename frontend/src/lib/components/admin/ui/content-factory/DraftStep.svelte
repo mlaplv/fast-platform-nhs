@@ -32,31 +32,49 @@
     aiScore = $bindable()
   } = $props();
 
+  function fixUrl(url: string | null): string {
+    if (!url) return "";
+    let p = url;
+    if (p.startsWith("http")) return p;
+    if (p.startsWith("static/")) p = "/" + p;
+    if (p.startsWith("uploads/")) p = "/" + p;
+    if (!p.startsWith("/")) p = "/uploads/" + p;
+    
+    if (p.startsWith("/static/uploads/")) p = p.replace("/static/uploads/", "/uploads/");
+    return p;
+  }
+
   // Rule R82.41: Smart Data Mapping
   let displayContent = $derived.by(() => {
     let base = isEditing ? (editedDraft || draft_content) : draft_content;
     if (!base) {
-      const sections = outline?.sections || [];
-      if (sections.length > 0) {
-        base = sections.map((s: CampaignSection) => {
-          const hText = (s.heading || "").replace(/^(H2|H3):/i, "").trim();
-          const tag = (s.heading || "").toUpperCase().startsWith("H3") ? "h3" : "h2";
-          return `<${tag}>${hText}</${tag}><p>${s.content || ""}</p>`;
-        }).join("\n");
+      if (typeof outline === 'string') {
+        base = outline;
+      } else {
+        const sections = outline?.sections || [];
+        if (sections.length > 0) {
+          base = sections.map((s: CampaignSection) => {
+            const hText = (s.heading || "").replace(/^(H2|H3):/i, "").trim();
+            const tag = (s.heading || "").toUpperCase().startsWith("H3") ? "h3" : "h2";
+            return `<${tag}>${hText}</${tag}><p>${s.content || ""}</p>`;
+          }).join("\n");
+        }
       }
     }
     if (base && base.includes("[IMAGE_")) {
       const assetList = Array.isArray(assets) ? assets : [];
       assetList.forEach((asset, i) => {
-        const url = typeof asset === 'string' ? asset : asset.url;
+        // Fallback-first mapping: priority to file_path if available
+        const url = typeof asset === 'string' ? asset : (asset.file_path || asset.url);
+        const local = fixUrl(url);
         const placeholder = `[IMAGE_${i + 1}]`;
         // Surgical replacement: Handle markers inside src first
         const srcPattern = new RegExp(`(src|href)=["']\\s*${placeholder.replace('[', '\\[').replace(']', '\\]')}\\s*["']`, 'g');
-        base = base.replace(srcPattern, `$1="${url}"`);
+        base = base.replace(srcPattern, `$1="${local}"`);
 
         // Then handle standalone markers (even if wrapped in figure by AI)
         const figurePattern = new RegExp(`(<figure[^>]*>\\s*)?${placeholder.replace('[', '\\[').replace(']', '\\]')}(\\s*<\\/figure>)?`, 'g');
-        base = base.replace(figurePattern, `<figure class="content-image"><img src="${url}" alt="content image" loading="lazy" /></figure>`);
+        base = base.replace(figurePattern, `<figure class="content-image"><img src="${local}" alt="content image" loading="lazy" /></figure>`);
       });
       base = base.replace(/\[IMAGE_\d+\]/g, "");
     }
@@ -86,10 +104,10 @@
     aiReadyResult ? aiReadyResult.geo_score : null
   );
 
-  // -- Sync scores to parent (bindable) --
-  $effect(() => { copyrightScore = _copyrightScore; });
-  $effect(() => { seoScore = _seoScore; });
-  $effect(() => { aiScore = _aiScore; });
+  // -- Sync local analysis results to parent scores (bindable) --
+  $effect(() => { if (_copyrightScore !== null) copyrightScore = _copyrightScore; });
+  $effect(() => { if (_seoScore !== null) seoScore = _seoScore; });
+  $effect(() => { if (_aiScore !== null) aiScore = _aiScore; });
 
   // -- Gate Conditions --
   let seoLocked = $derived(_copyrightScore === null || _copyrightScore < 90);
@@ -291,21 +309,15 @@
     }
   };
 
-  // Expert Optimizer (V71.30): Analysis Hydration from DB Cache
+  // Expert Optimizer (V71.30): Hydrate detailed results from cache if not already loaded
   $effect(() => {
-    untrack(() => {
-      if (analysis_cache) {
-        if (analysis_cache.copyright && !copyrightResult) {
-          copyrightResult = analysis_cache.copyright.data;
-        }
-        if (analysis_cache.seo && !seoResult) {
-          seoResult = analysis_cache.seo.data;
-        }
-        if (analysis_cache.ai_inspect && !aiReadyResult) {
-          aiReadyResult = analysis_cache.ai_inspect.data;
-        }
-      }
-    });
+    if (analysis_cache) {
+      untrack(() => {
+        if (analysis_cache.copyright && !copyrightResult) copyrightResult = analysis_cache.copyright.data;
+        if (analysis_cache.seo && !seoResult) seoResult = analysis_cache.seo.data;
+        if (analysis_cache.ai_inspect && !aiReadyResult) aiReadyResult = analysis_cache.ai_inspect.data;
+      });
+    }
   });
 
   $effect(() => {
@@ -358,8 +370,9 @@
       content={displayContent}
       assets={assets}
       onChange={(val) => {
-        if (isEditing) editedDraft = val;
-        else draft_content = val;
+        if (isEditing && val !== editedDraft) {
+          editedDraft = val;
+        }
       }}
       editable={isEditing}
       placeholder="AI đang chấp bút bản thảo..."
