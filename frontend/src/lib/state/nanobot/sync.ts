@@ -54,7 +54,7 @@ export function createSyncManager(
     if (pollingInterval) return;
     pollingInterval = setInterval(async () => {
       const hasActiveCampaign = log.activityLogs.some((l: SystemLog) =>
-        l.data?.category === "CONTENT_CREATE" && (l.data?.status === "PROCESSING" || (Number(l.data?.step || 0)) < 6)
+        l.data?.category === "CONTENT_CREATE" && l.data?.status === "PROCESSING"
       );
       if (!hasActiveCampaign) { stopSmartPolling(); return; }
 
