@@ -280,10 +280,9 @@
                     </div>
                 {/if}
             </div>
-        </div>
 
-        <div class="flex items-center gap-2">
-            <div class="flex bg-zinc-200 dark:bg-zinc-700 p-1 rounded-lg">
+            <!-- View Mode Switch -->
+            <div class="flex bg-zinc-200 dark:bg-zinc-700 p-1 rounded-lg ml-2">
                 <button
                     onclick={() => viewMode = 'grid'}
                     class="p-1.5 rounded-md transition-all {viewMode === 'grid' ? 'bg-white dark:bg-zinc-600 shadow-sm' : 'text-zinc-500'}"
@@ -297,30 +296,38 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                 </button>
             </div>
-            <button
-                onclick={() => {
-                    showStats = !showStats;
-                    if (showStats) mediaStore.loadStats();
-                }}
-                class="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors {showStats ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}"
-                title="Thống kê kho"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-            </button>
-            <button
-                onclick={() => mediaStore.toggleTrashMode()}
-                class="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors {mediaStore.isTrashMode ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : ''}"
-                title="Thùng rác"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-            </button>
-            <button
-                onclick={() => mediaStore.loadAssets(campaignId, true)}
-                class="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors"
-                title="Làm mới"
-            >
-                <svg class={mediaStore.isLoading ? 'animate-spin' : ''} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
-            </button>
+
+            <!-- Global Actions -->
+            <div class="flex items-center gap-1 ml-2">
+                <button
+                    onclick={() => {
+                        showStats = !showStats;
+                        if (showStats) mediaStore.loadStats();
+                    }}
+                    class="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors {showStats ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}"
+                    title="Thống kê kho"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                </button>
+                <button
+                    onclick={() => mediaStore.toggleTrashMode()}
+                    class="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors {mediaStore.isTrashMode ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : ''}"
+                    title="Thùng rác"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                </button>
+                <button
+                    onclick={() => mediaStore.loadAssets(campaignId, true)}
+                    class="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                    title="Làm mới"
+                >
+                    <svg class="{mediaStore.isLoading ? 'animate-spin' : ''}" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 pr-12">
+            <!-- Space reserved for modal close button when in MediaModal (standalone) -->
         </div>
     </div>
 
