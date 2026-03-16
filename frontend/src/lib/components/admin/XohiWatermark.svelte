@@ -3,14 +3,14 @@
   import { vuiState } from "$lib/vui";
   import { scale, fade } from "svelte/transition";
 
-  // Design Tokens - Sync with XohiNanoSprite but optimized for watermark
+  // Design Tokens - LUXURY DARK EDITION 2026
   const colors = {
-    THINKING: "rgba(0, 255, 255, 0.15)", // Cyan
-    SPEAKING: "rgba(16, 185, 129, 0.15)", // Green
-    LISTENING: "rgba(59, 130, 246, 0.15)", // Blue
-    ERROR: "rgba(239, 68, 68, 0.12)",      // Red
-    SUCCESS: "rgba(234, 179, 8, 0.12)",    // Yellow
-    IDLE: "rgba(0, 255, 255, 0.04)"        // Default Cyan (ultra-subtle)
+    THINKING: "rgba(0, 255, 255, 0.4)", // Intense Cyan
+    SPEAKING: "rgba(16, 185, 129, 0.4)", // Emerald Green
+    LISTENING: "rgba(59, 130, 246, 0.4)", // Electric Blue
+    ERROR: "rgba(239, 68, 68, 0.3)",      // Blood Red
+    SUCCESS: "rgba(234, 179, 8, 0.3)",    // Gold
+    IDLE: "rgba(255, 255, 255, 0.05)"     // Ghost White (ultra-subtle)
   };
 
   let phase = $derived(vuiState.phase);
@@ -30,88 +30,140 @@
   );
 
   // Premium Animation Scaling
-  let dynamicScale = $derived(1 + (phase === 'speaking' ? volume * 0.4 : phase === 'listening' ? volume * 0.1 : 0));
-  let rotationSpeed = $derived(phase === 'thinking' ? '2s' : '20s');
+  let dynamicScale = $derived(1 + (phase === 'speaking' ? volume * 0.3 : phase === 'listening' ? volume * 0.05 : 0));
+  let rotationSpeed = $derived(phase === 'thinking' ? '3s' : '25s');
 
 </script>
 
-<!-- Ambient Xohi Brand Watermark — Enhanced 2026 Edition -->
+<!-- Ambient Xohi Brand Watermark — VANTABLACK ELITE 2026 -->
 <div
-  class="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden"
+  class="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden bg-[#000000]/85"
 >
   <div 
     class="relative flex items-center justify-center transition-all duration-1000"
-    style="transform: scale({dynamicScale}); filter: drop-shadow(0 0 15px {activeColor.replace('0.15', '0.05').replace('0.12', '0.04')})"
+    style="transform: scale({dynamicScale}); filter: drop-shadow(0 0 30px {activeColor.replace('0.4', '0.1').replace('0.3', '0.08')})"
   >
     <svg
-      width="320"
-      height="320"
+      width="350"
+      height="350"
       viewBox="0 0 280 280"
       fill="none"
       class="transition-all duration-700"
     >
-      <!-- Outer Diamond Ring -->
-      <rect
-        x="55"
-        y="55"
-        width="170"
-        height="170"
-        rx="24"
-        transform-origin="140 140"
-        transform="rotate(45)"
-        stroke={activeColor}
-        stroke-width="2"
-        fill="none"
-        class="transition-all duration-700"
-        style="animation: spin {rotationSpeed} linear infinite"
-      />
+      <defs>
+        <!-- Thinking Scan-line Effect -->
+        <linearGradient id="scan-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="transparent" />
+          <stop offset="50%" stop-color={activeColor} stop-opacity="0.8" />
+          <stop offset="100%" stop-color="transparent" />
+        </linearGradient>
 
-      <!-- Inner Diamond Ring -->
-      <rect
-        x="80"
-        y="80"
-        width="120"
-        height="120"
-        rx="16"
-        transform-origin="140 140"
-        transform="rotate(45)"
-        stroke={activeColor}
-        stroke-width="1.2"
-        fill="none"
-        opacity="0.6"
-        class="transition-all duration-1000"
-        style="animation: spin-reverse {rotationSpeed} linear infinite"
-      />
+        <clipPath id="hamster-clip">
+          <circle cx="140" cy="140" r="32" />
+        </clipPath>
 
-      <!-- Central Square Core -->
+        <!-- Reactive Filter -->
+        <filter id="hamster-reactive-filter">
+          {#if phase === 'thinking' || status === 'THINKING'}
+            <feColorMatrix type="saturate" values="0.2" />
+            <feComponentTransfer>
+               <feFuncR type="linear" slope="1.2" />
+            </feComponentTransfer>
+          {:else if phase === 'speaking'}
+            <feComponentTransfer>
+               <feFuncR type="linear" slope={1 + volume} />
+               <feFuncG type="linear" slope={1 + volume} />
+               <feFuncB type="linear" slope={1 + volume} />
+            </feComponentTransfer>
+          {/if}
+        </filter>
+      </defs>
+
+      <!-- Outer Diamond Ring (Clockwise) -->
       <rect
-        x="115"
-        y="115"
-        width="50"
-        height="50"
-        rx="8"
+        x="50"
+        y="50"
+        width="180"
+        height="180"
+        rx="28"
         stroke={activeColor}
         stroke-width="1.5"
-        fill={activeColor}
-        fill-opacity="0.15"
-        class="transition-all duration-500"
-      >
+        stroke-opacity="0.3"
+        fill="none"
+        class="transition-all duration-700 logo-ring-outer"
+        style="animation: spin {rotationSpeed} cubic-bezier(0.4, 0, 0.2, 1) infinite"
+      />
+
+      <!-- Inner Diamond Ring (Counter-Clockwise) -->
+      <rect
+        x="75"
+        y="75"
+        width="130"
+        height="130"
+        rx="20"
+        stroke={activeColor}
+        stroke-width="1"
+        stroke-opacity="0.2"
+        fill="none"
+        class="transition-all duration-1000 logo-ring-inner"
+        style="animation: spin-reverse {rotationSpeed} cubic-bezier(0.4, 0, 0.2, 1) infinite"
+      />
+
+      <!-- Central Hamster Core (Reactive Edition) -->
+      <g class="logo-core" transform-origin="140 140">
+        <!-- Depth Ring -->
+        <circle 
+          cx="140" cy="140" r="38" 
+          fill="black" 
+          fill-opacity="0.6"
+        />
+        
+        <!-- Glow backing -->
+        <circle 
+          cx="140" cy="140" r="35" 
+          fill={activeColor} 
+          fill-opacity="0.15"
+          class="transition-all duration-500"
+        />
+
+        <image
+          xlink:href="/hamster-core.png"
+          x="105"
+          y="105"
+          width="70"
+          height="70"
+          clip-path="url(#hamster-clip)"
+          class="transition-all duration-500"
+          style="filter: url(#hamster-reactive-filter) drop-shadow(0 0 15px {activeColor})"
+        />
+
         {#if phase === 'thinking' || status === 'THINKING'}
-          <animate
-            attributeName="fill-opacity"
-            values="0.15;0.6;0.15"
-            dur="1.5s"
-            repeatCount="indefinite"
-          />
-        {:else}
-          <animate
-            attributeName="fill-opacity"
-            values="0.1;0.2;0.1"
-            dur="4s"
-            repeatCount="indefinite"
-          />
+          <rect
+            x="108" y="108" width="64" height="2"
+            fill="url(#scan-gradient)"
+            clip-path="url(#hamster-clip)"
+          >
+            <animateTransform
+              attributeName="transform"
+              type="translate"
+              from="0 0"
+              to="0 64"
+              dur="2s"
+              repeatCount="indefinite"
+            />
+          </rect>
         {/if}
-      </rect>
+        
+        <!-- Luxury Border -->
+        <circle 
+          cx="140" cy="140" r="32" 
+          stroke={activeColor} 
+          stroke-width="2" 
+          fill="none" 
+          opacity="0.6"
+          class="transition-all duration-500"
+        />
+      </g>
 
       <!-- Accent Dots (Visual Nodes) -->
       <g class="transition-opacity duration-1000" opacity={phase !== 'idle' ? '0.8' : '0.4'}>
@@ -141,13 +193,30 @@
 </div>
 
 <style>
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+  /* C.O.R.E Motion Matrix: Optimized for Emotional Flow */
+  .logo-ring-outer, .logo-ring-inner {
+    transform-origin: 140px 140px;
+    will-change: transform;
   }
+
+  .logo-core {
+    transform-origin: 140px 140px;
+    animation: breathe 8s ease-in-out infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(45deg); }
+    to { transform: rotate(405deg); }
+  }
+
   @keyframes spin-reverse {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(-360deg); }
+    from { transform: rotate(45deg); }
+    to { transform: rotate(-315deg); }
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.08); filter: brightness(1.3); }
   }
 
   /* Centering Fix: Ensure we use modern flex centering and reset any legacy offsets */

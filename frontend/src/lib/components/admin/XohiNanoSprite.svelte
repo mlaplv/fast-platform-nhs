@@ -2,49 +2,49 @@
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { scale } from "svelte/transition";
 
-  // Design Tokens mapping
+  // Luxury Design Tokens 2026
   const statusConfig = {
     THINKING: {
-      border: "border-neon-cyan",
-      bg: "bg-neon-cyan/15",
-      glow: "shadow-glow-cyan",
+      border: "border-neon-cyan/60",
+      bg: "bg-neon-cyan/5",
+      glow: "shadow-[0_0_15px_rgba(0,255,255,0.4)]",
       text: "text-neon-cyan",
       point: "bg-neon-cyan",
     },
     PROCESSING: {
-      border: "border-hacker-green",
-      bg: "bg-hacker-green/15",
-      glow: "shadow-glow-green",
+      border: "border-hacker-green/60",
+      bg: "bg-hacker-green/5",
+      glow: "shadow-[0_0_15px_rgba(16,185,129,0.4)]",
       text: "text-hacker-green",
       point: "bg-hacker-green",
     },
     ERROR: {
-      border: "border-alert-red",
-      bg: "bg-alert-red/15",
-      glow: "shadow-glow-red",
+      border: "border-alert-red/60",
+      bg: "bg-alert-red/5",
+      glow: "shadow-[0_0_15px_rgba(239,68,68,0.4)]",
       text: "text-alert-red",
       point: "bg-alert-red",
     },
     VOICE: {
-      border: "border-neon-magenta",
-      bg: "bg-neon-magenta/15",
-      glow: "shadow-glow-magenta",
+      border: "border-neon-magenta/60",
+      bg: "bg-neon-magenta/5",
+      glow: "shadow-[0_0_15px_rgba(236,72,153,0.4)]",
       text: "text-neon-magenta",
       point: "bg-neon-magenta",
     },
     SUCCESS: {
-      border: "border-neon-yellow",
-      bg: "bg-neon-yellow/15",
-      glow: "shadow-glow-yellow",
+      border: "border-neon-yellow/60",
+      bg: "bg-neon-yellow/5",
+      glow: "shadow-[0_0_15px_rgba(234,179,8,0.4)]",
       text: "text-neon-yellow",
       point: "bg-neon-yellow",
     },
     IDLE: {
-      border: "border-idle-gray",
-      bg: "bg-idle-gray/15",
+      border: "border-white/10",
+      bg: "bg-white/5",
       glow: "",
-      text: "text-idle-gray",
-      point: "bg-idle-gray",
+      text: "text-gray-500",
+      point: "bg-gray-500",
     },
   };
 
@@ -78,37 +78,27 @@
       nanobot?.setVuiActive(true);
     }
   }}
-  class="relative w-8 h-8 flex items-center justify-center group active:scale-90 transition-transform cursor-pointer overflow-visible"
+  class="relative w-8 h-8 flex items-center justify-center group active:scale-90 transition-transform cursor-pointer overflow-visible bg-[#050505] rounded-xl border border-white/5 shadow-2xl"
 >
-  <!-- Outer Ring -->
+  <!-- Outer Diamond Ring -->
   <div
-    class="absolute inset-0 border-2 rounded-lg transition-all duration-500 transform rotate-45 {borderClass} {isGlow
+    class="absolute inset-0 border rounded-lg transition-all duration-700 transform rotate-45 {borderClass} {isGlow
       ? 'opacity-80 ' + glowClass
-      : 'opacity-30'}"
+      : 'opacity-20'}"
   ></div>
 
-  <!-- Inner Rotating Core -->
+  <!-- Inner Rotating Core (Hamster Edition) -->
   <div
-    class="w-4 h-4 border transition-all duration-500 animate-[spin_4s_linear_infinite] {borderClass} {bgClass} {localStatus === 'THINKING' ? 'animate-pulse' : ''}"
-  ></div>
+    class="w-6 h-6 rounded-full overflow-hidden border-2 transition-all duration-500 animate-[spin_6s_linear_infinite] {borderClass} {bgClass} {localStatus === 'THINKING' ? 'animate-pulse scale-110' : ''} {isGlow ? 'shadow-inner' : 'grayscale opacity-50'}"
+  >
+    <img src="/hamster-core.png" alt="Hamster" class="w-full h-full object-cover" />
+  </div>
 
-  <!-- Micro Glow Points -->
-  <div
-    class="absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full transition-all duration-500 {pointClass} {isGlow
-      ? 'opacity-100 animate-ping'
-      : 'opacity-0'}"
-  ></div>
-  <div
-    class="absolute -bottom-1 -left-1 w-1 h-1 rounded-full transition-all duration-500 {pointClass} {isGlow
-      ? 'opacity-50 animate-pulse'
-      : 'opacity-0'}"
-  ></div>
-
-  <!-- Status Label (Hidden by default, shows on admin context) -->
+  <!-- Status Label (Admin Context) -->
   {#if localStatus !== "IDLE"}
     <div
       in:scale={{ duration: 200 }}
-      class="absolute -top-6 left-1/2 -translate-x-1/2 text-[8px] font-mono tracking-tighter uppercase whitespace-nowrap {textClass}"
+      class="absolute -top-7 left-1/2 -translate-x-1/2 text-[7px] font-black tracking-widest uppercase whitespace-nowrap px-2 py-0.5 rounded-full bg-black/80 border border-white/10 {textClass} shadow-glow-sm"
     >
       {localStatus}
     </div>
@@ -118,10 +108,10 @@
 <style>
   @keyframes spin {
     from {
-      transform: rotate(0deg);
+      transform: rotate(45deg);
     }
     to {
-      transform: rotate(360deg);
+      transform: rotate(405deg);
     }
   }
 </style>

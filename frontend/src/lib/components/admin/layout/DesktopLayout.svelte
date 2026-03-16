@@ -20,31 +20,31 @@
 </script>
 
 <div
-  class="flex h-screen overflow-hidden bg-[#050505] text-gray-100 font-sans selection:bg-[#00FFFF]/30 relative"
+  class="flex h-screen overflow-hidden bg-[#000000] text-gray-100 font-sans selection:bg-[#00FFFF]/30 relative"
 >
-  <!-- Liquid & Water Drop Background Layer (Restored for V30.0) -->
+  <!-- Liquid & Water Drop Background Layer (Vantablack 70% Darker) -->
   <div
     class="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-black"
   >
-    <!-- Base Liquid Blobs -->
+    <!-- Base Liquid Blobs (70% Opacity Reduction) -->
     <div
-      class="absolute top-[-10%] left-[-10%] w-[80%] h-[80%] bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,255,0.04),transparent_60%)] animate-[liquid_25s_ease-in-out_infinite]"
+      class="absolute top-[-10%] left-[-10%] w-[80%] h-[80%] bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,255,0.012),transparent_60%)] animate-[liquid_25s_ease-in-out_infinite]"
     ></div>
     <div
-      class="absolute bottom-[-10%] right-[-10%] w-[90%] h-[90%] bg-[radial-gradient(circle_at_50%_50%,rgba(57,255,20,0.02),transparent_50%)] animate-[liquid_30s_ease-in-out_infinite_reverse]"
+      class="absolute bottom-[-10%] right-[-10%] w-[90%] h-[90%] bg-[radial-gradient(circle_at_50%_50%,rgba(57,255,20,0.006),transparent_50%)] animate-[liquid_30s_ease-in-out_infinite_reverse]"
     ></div>
 
-    <!-- Floating "Water Drops" (Specularity/Reflections) -->
+    <!-- Floating "Water Drops" -->
     <div
-      class="absolute top-[20%] left-[30%] w-[30%] h-[30%] bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.01),transparent_40%)] animate-[drop_15s_ease-in-out_infinite]"
+      class="absolute top-[20%] left-[30%] w-[30%] h-[30%] bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.003),transparent_40%)] animate-[drop_15s_ease-in-out_infinite]"
     ></div>
     <div
-      class="absolute bottom-[30%] right-[20%] w-[25%] h-[25%] bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,255,0.02),transparent_45%)] animate-[drop_20s_ease-in-out_infinite_reverse]"
+      class="absolute bottom-[30%] right-[20%] w-[25%] h-[25%] bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,255,0.006),transparent_45%)] animate-[drop_20s_ease-in-out_infinite_reverse]"
     ></div>
 
     <!-- Center Glow -->
     <div
-      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(0,0,0,0)_30%,rgba(0,255,255,0.01)_100%)]"
+      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(0,0,0,0)_30%,rgba(0,255,255,0.005)_100%)]"
     ></div>
   </div>
 
@@ -52,7 +52,7 @@
   <main class="flex-1 relative flex flex-col min-w-0">
     <!-- Header/Status Bar -->
     <header
-      class="h-12 border-b border-[#1a1a1a] flex items-center justify-between px-5 bg-[#080808] z-30"
+      class="h-12 border-b border-white/5 flex items-center justify-between px-5 bg-[#020202] z-30"
       class:hidden={nanobot.isVuiActive && !nanobot.isTraining}
     >
       <div class="flex items-center gap-3">
@@ -147,7 +147,7 @@
 
   <!-- Right Sidebar: Heartbeat -->
   <aside
-    class="relative h-full z-[100] shadow-[-20px_0_30px_rgba(0,0,0,0.5)] border-l border-[#1a1a1a] bg-[#080808] transition-all duration-300 ease-in-out group/sidebar overflow-visible"
+    class="relative h-full z-[100] shadow-[-20px_0_30px_rgba(0,0,0,0.5)] border-l border-white/5 bg-[#010101] transition-all duration-300 ease-in-out group/sidebar overflow-visible"
     class:heartbeat-manual-collapse={nanobot.heartbeatCollapsed === true}
     class:heartbeat-manual-expand={nanobot.heartbeatCollapsed === false}
     id="heartbeat-sidebar"

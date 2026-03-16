@@ -1,6 +1,7 @@
 import logging, os, asyncio, json, time, unicodedata, re
 from rapidfuzz import fuzz
-from typing import List, Dict, Optional, Tuple, Union, Any
+from typing import List, Dict, Optional, Tuple, Union, Any, TypedDict
+
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from .tier2_cloud import Tier2CloudRouter
 from .tier3_cloud import Tier3CloudRouter
@@ -102,6 +103,21 @@ def _match_trigger(words_list: List[str], trans_norm: str, trans_pho: Optional[s
             return True
     return False
 
+class AppState(TypedDict, total=False):
+    is_confirming_stt: bool
+    pending_stt_correction: Dict[str, str]
+    pending_cleaned_transcript: str
+    pending_raw_transcript: str
+    last_target: Optional[str]
+    last_timeframe: Optional[str]
+    last_semantic_results: Optional[str]
+    stt_dictionary: Dict[str, str]
+
+class ContextItem(TypedDict):
+    role: str
+    content: str
+
+
 class RouterOrchestrator:
     """
     C.O.R.E ARCHITECTURE — Central Orchestrated Routing Engine
@@ -130,9 +146,10 @@ class RouterOrchestrator:
         self,
         transcript: str,
         user_id: str,
-        app_state: Any,
-        context: Optional[List[Dict[str, Any]]] = None,
+        app_state: AppState,
+        context: Optional[List[ContextItem]] = None,
         screen_context: Optional[Dict[str, Any]] = None,
+
         modality: str = "text"
     ) -> IntentResponse:
         """Phase 1: Intent Resolution (T1 -> T2 Dispatch)"""

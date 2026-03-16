@@ -66,7 +66,7 @@
     }
 </script>
 
-<div class="dashboard p-8 min-h-screen bg-[#0a0a0c] text-white">
+<div class="dashboard p-8 min-h-screen bg-[#010101] text-white">
     <header class="mb-10 flex justify-between items-end">
         <div>
             <h1 class="text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent">
@@ -81,8 +81,14 @@
     </header>
 
     {#if loading}
-        <div class="flex items-center justify-center h-64">
-            <div class="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+        <div class="relative w-20 h-20 flex items-center justify-center">
+            <div class="absolute inset-0 border-4 border-blue-500/10 border-t-blue-500 rounded-full animate-spin"></div>
+            <img 
+              src="/hamster-core.png" 
+              alt="Hamster" 
+              class="w-12 h-12 object-contain animate-pulse"
+              style="filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.5))"
+            />
         </div>
     {:else}
         <div class="grid gap-6">

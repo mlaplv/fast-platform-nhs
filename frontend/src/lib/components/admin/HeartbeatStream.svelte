@@ -283,7 +283,7 @@
             <div
               class="w-5 h-5 flex items-center justify-center rounded-sm bg-neon-cyan/5"
             >
-              <Sparkles size={12} class="text-neon-cyan/40" />
+                <img src="/hamster-core.png" alt="X" class="w-10 h-10 object-contain opacity-60 group-hover:opacity-100 transition-opacity" />
             </div>
             <span
               class="text-[9px] font-black tracking-tighter text-white/30 uppercase"

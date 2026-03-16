@@ -134,7 +134,12 @@
           class="relative w-28 h-28 bg-black border-2 border-cyan-500/40 rounded-full flex items-center justify-center overflow-hidden"
         >
           <div class="w-20 h-20 bg-cyan-500/10 rounded-full animate-ping"></div>
-          <Sparkles size={48} class="text-cyan-400 absolute" />
+          <img 
+            src="/hamster-core.png" 
+            alt="Hamster Core" 
+            class="w-20 h-20 object-contain animate-[pulse_3s_ease-in-out_infinite]"
+            style="filter: drop-shadow(0 0 15px rgba(34,211,238,0.8))"
+          />
         </div>
       </div>
 

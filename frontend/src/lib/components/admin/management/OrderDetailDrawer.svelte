@@ -18,7 +18,7 @@
   import { ORDER_STATUS_MAP } from "$lib/constants/order";
 
   let {
-    isOpen = $bindable(false),
+    isOpen = $bindable(),
     orderId = "",
     onClose,
     onReload

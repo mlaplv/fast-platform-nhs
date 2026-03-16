@@ -1,7 +1,8 @@
 import json
 import logging
 import time
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TypedDict
+
 from backend.services.xohi_memory import xohi_memory
 
 logger = logging.getLogger("api-gateway")
@@ -15,8 +16,14 @@ class IntentSynapseService:
     Stores pending intents during clarification turns to be 're-activated' by confirmations.
     """
 
+    class IntentPayload(TypedDict):
+        query: str
+        classification: Dict[str, Any]  # IntentResponse data dictionary
+        timestamp: float
+
     @staticmethod
-    async def store_pending_intent(user_id: str, classification_data: Dict[str, Any], query: str):
+    async def store_pending_intent(user_id: str, classification_data: Dict[str, Any], query: str) -> None:
+
         """
         Stores a 'floating' intent that awaits confirmation.
         """
@@ -36,7 +43,8 @@ class IntentSynapseService:
             logger.error(f"[IntentSynapse] Failed to store synapse: {e}")
 
     @staticmethod
-    async def retrieve_and_clear(user_id: str) -> Optional[Dict[str, Any]]:
+    async def retrieve_and_clear(user_id: str) -> Optional[IntentPayload]:
+
         """
         Retrieves the pending intent and clears it (Atomic Consumption).
         """

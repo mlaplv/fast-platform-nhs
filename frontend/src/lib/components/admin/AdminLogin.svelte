@@ -116,8 +116,13 @@
 </script>
 
 <div
-  class="min-h-screen bg-[#020202] flex items-center justify-center p-6 font-sans relative overflow-hidden text-white"
+  class="min-h-screen bg-[#010101] flex items-center justify-center p-6 font-sans relative overflow-hidden text-white"
 >
+  <style>
+    :global(body) {
+      background-color: #010101;
+    }
+  </style>
   <!-- Cyberpunk grid background -->
   <div
     class="absolute inset-0 z-0 opacity-20 pointer-events-none bg-[linear-gradient(#1a1a1a_1px,transparent_1px),linear-gradient(90deg,#1a1a1a_1px,transparent_1px)] bg-[size:40px_40px]"
@@ -152,10 +157,14 @@
                 class="w-full h-[1px] bg-cyan-400/50 absolute top-0 animate-[scan_3s_linear_infinite]"
               ></div>
             </div>
-            <LucideShieldCheck
-              size={40}
-              class="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]"
-            />
+            <div class="absolute inset-0 flex items-center justify-center p-3">
+               <img 
+                 src="/hamster-core.png" 
+                 alt="Hamster Core" 
+                 class="w-full h-full object-contain animate-[pulse_4s_ease-in-out_infinite]"
+                 style="filter: drop-shadow(0 0 10px rgba(34,211,238,0.6))"
+               />
+            </div>
           </div>
         </div>
         <h1

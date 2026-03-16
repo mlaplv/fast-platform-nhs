@@ -152,7 +152,8 @@
   }
 
   .animate-spin-slow {
-    animation: spin-slow 4s linear infinite;
+    animation: spin-slow 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     transform-origin: center;
   }
+
 </style>

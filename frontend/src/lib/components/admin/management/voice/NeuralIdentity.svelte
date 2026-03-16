@@ -2,8 +2,8 @@
   import { Fingerprint } from "lucide-svelte";
 
   let { 
-    greetingTemplate = $bindable(""), 
-    farewellTemplate = $bindable("") 
+    greetingTemplate = $bindable(), 
+    farewellTemplate = $bindable() 
   } = $props<{
     greetingTemplate: string;
     farewellTemplate: string;

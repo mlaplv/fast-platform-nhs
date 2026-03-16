@@ -15,7 +15,7 @@
   import Shield from "lucide-svelte/icons/shield";
   import { fade, fly } from "svelte/transition";
 
-  let { open = $bindable(false) } = $props();
+  let { open = $bindable() } = $props();
 
   interface SubItem {
     label: string;

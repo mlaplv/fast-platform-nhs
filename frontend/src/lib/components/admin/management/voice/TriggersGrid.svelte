@@ -7,8 +7,8 @@
   import { nanobot } from "$lib/state/nanobot.svelte";
 
   let {
-    wakeTriggers = $bindable([]),
-    sleepTriggers = $bindable([]),
+    wakeTriggers = $bindable(),
+    sleepTriggers = $bindable(),
     onStartTraining,
   } = $props<{
     wakeTriggers: string[];

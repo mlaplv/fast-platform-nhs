@@ -80,8 +80,8 @@
       style:transform-origin="left top"
     >
       <div class="flex items-center gap-2 mb-2">
-        <div class="w-8 h-8 rounded-full border border-neon-cyan/10 flex items-center justify-center bg-white/5 shrink-0">
-          <Sparkles size={16} class="text-neon-cyan/60" />
+        <div class="w-10 h-10 rounded-full border border-neon-cyan/20 flex items-center justify-center bg-white/5 shrink-0 overflow-hidden shadow-glow-sm">
+          <img src="/hamster-core.png" alt="X" class="w-full h-full object-cover" />
         </div>
       </div>
       <div>
