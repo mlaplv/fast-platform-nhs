@@ -40,7 +40,9 @@ DRAFT_PROMPT = """[ROLE] CHIEF CONTENT ENGINEER — XoHi Press V77.0
 
 [YÊU CẦU HTML]
 - Trả về mã HTML thuần (h1, h2, p, figure, section). 
+- **ĐỘ SÂU NỘI DUNG**: Mỗi mục H2 phải có ít nhất 2 đoạn văn (<p>) phân tích chuyên sâu.
 - KHÔNG giải thích, KHÔNG dùng Markdown code fences.
+- KHÔNG trả về JSON.
 """
 
 
@@ -85,12 +87,13 @@ class CreativePen:
                 data=campaign.outline_data
             )
         elif step == 4:
+            logger.info(f"[CreativePen] Phase 76: Drafting full content for {campaign_id}")
             content = await self.write_draft(campaign)
             campaign.draft_content = content
             return AgentResponse(
                 signal=AgentSignal.PROCEED_NEXT,
                 message="Draft content generated — Viral 2026 Edition.",
-                data={"content": content}  # BUG-03 fix: engine.py reads response.data.get("content", ...)
+                data={"content": content}
             )
         
         return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message=f"Invalid step {step} for CreativePen")

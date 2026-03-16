@@ -46,26 +46,6 @@ class ExecutionEngine:
             messages = {1: "✍️ Đang phân tích chủ đề...", 2: "🔍 Đang tìm ảnh...", 3: "📝 Lập dàn ý...", 4: "🖋️ AI đang viết...", 5: "🛡️ Đang kiểm tra đạo văn...", 6: "📦 Đang hoàn thiện..."}
             await self._emit_progress(campaign_id, step, messages.get(step, "Đang xử lý..."), user_id=campaign.user_id)
 
-            # Phase 76: Step 5 is a Certification/Preview Layer. No AI executes here.
-            if step == 5:
-                await self._emit_progress(campaign_id, step, "Đang khởi tạo Bảng Điều Khiển Chứng Nhận...", user_id=campaign.user_id)
-                await asyncio.sleep(1.0) # Artificial latency for UI flair
-                campaign.status = "WAITING_FOR_REVIEW"
-                await campaign_repo.update(campaign)
-                # Prepare payload exactly like a completed step
-                payload = {
-                    "campaign_id": campaign_id,
-                    "step": step,
-                    "status": campaign.status,
-                    "data": {
-                        "gold_metadata": getattr(campaign, "gold_metadata", None) or {},
-                        "draft_content": getattr(campaign, "draft_content", None)
-                    }
-                }
-                await event_bus.emit("CONTENT_STEP_COMPLETED", payload)
-                logger.info(f"[Content Factory] Step 5 Certification Dashboard Ready in {time.time() - start_time:.2f}s")
-                return
-
             # Phase 73: Retrieve operative from registry for steps 1-4 and 6
             operative = registry.get_operative(step)
 
