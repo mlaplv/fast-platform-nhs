@@ -143,6 +143,12 @@ class ContentController(Controller):
             import os
             cid_str = str(campaign_id)
 
+            # 0. Get campaign first to know the owner (Rule R102)
+            campaign = await campaign_repo.get(cid_str)
+            if not campaign:
+                return GenericResponse(status="error", message="Campaign not found")
+            user_id = str(campaign.user_id) if campaign.user_id else None
+
             # 1. PHYSICAL FILE PURGE (Dựa trên Registry - Đẳng cấp quốc tế)
             from sqlalchemy import select
             from backend.database.models import MediaRegistry
@@ -154,8 +160,6 @@ class ContentController(Controller):
             files_purged = 0
             for asset in assets:
                 # Chuyển path từ /v65_assets/... thành path vật lý
-                # Giả định upload_dir là frontend/static/v65_assets
-                # Chúng ta lấy từ cấu hình MediaCompressor mặc định
                 rel_path = asset.file_path.lstrip("/")
                 full_path = os.path.join("frontend/static", rel_path)
 
@@ -166,18 +170,28 @@ class ContentController(Controller):
                 await media_repo.delete(asset.id)
 
             # 2. Clean up associated ChatMessages (Neural Logs)
-            from sqlalchemy import delete as sa_delete, cast, String
+            from sqlalchemy import delete as sa_delete
             from backend.database.models import ChatMessage
 
+            # CNS V82 Fix: Use ->> (as_string) to avoid JSON quote mismatch in string comparison
             stmt = sa_delete(ChatMessage).where(
-                cast(ChatMessage.content["campaign_id"], String).label("cid") == cid_str
+                ChatMessage.content["campaign_id"].as_string() == cid_str
             )
             await campaign_repo.session.execute(stmt)
 
-            # 3. Delete the campaign itself
+            # 3. Cache Eviction (V76.5 Recovery)
+            if user_id:
+                from backend.services.xohi_memory import xohi_memory
+                # Evict the specific chat cache to prevent ghost messages after re-sync
+                cache_key = f"xohi:chat:{user_id}"
+                if xohi_memory._use_redis:
+                    await xohi_memory.client.delete(cache_key)
+                    logger.info(f"[Purge] Evicted Redis cache for user {user_id}: {cache_key}")
+
+            # 4. Delete the campaign itself
             await campaign_repo.delete(cid_str)
 
-            # 4. SSE POISON PILL (V65.0 Cleanup)
+            # 5. SSE POISON PILL (V65.0 Cleanup)
             from backend.services.event_bus import event_bus
             await event_bus.emit("CAMPAIGN_PURGED", {
                 "campaign_id": cid_str,

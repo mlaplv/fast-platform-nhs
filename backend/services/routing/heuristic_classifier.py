@@ -303,9 +303,16 @@ async def heuristic_classify(
     # 76.3: Use pre-normalized navigation keywords
     is_nav_explicit = any(kw in norm_query for kw in NORM_NAV_EXPLICIT)
 
-    # Rule R82.23: Content Factory Priority
+    # Rule R82.23: Content Factory Priority (Phase 77.2 Tightening)
     # 76.3: Use pre-normalized keywords for content factory
+    # V77.6: Data Query targets (revenue, order, etc.) MUST NOT trigger CONTENT_CREATE 
+    # unless explicit factory keywords are present.
     is_content_factory = (target == "news" and verb == "create") or any(kw in norm_query for kw in NORM_CONTENT_FACTORY)
+    
+    # Safety Override: If it looks like a data query (revenue), drop content factory flag
+    if is_content_factory and target in ["revenue", "order", "product", "user"] and not any(kw in norm_query for kw in NORM_CONTENT_FACTORY):
+        logger.debug(f"[Heuristic] Safety Reject: Mixed DATA_QUERY/CONTENT target {target} - defaulting to DATA_QUERY")
+        is_content_factory = False
 
     content_mode = "viral"
     if is_content_factory:

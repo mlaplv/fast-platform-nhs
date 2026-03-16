@@ -1,5 +1,5 @@
 import { vuiState } from "../store/vui.state.svelte";
-import { vuiService } from "./VuiService";
+import { vuiService, type IntentStreamEvent } from "./VuiService";
 import { nanobot } from "$lib/state/nanobot.svelte";
 import { VUI_CONFIG } from "./VuiConstants";
 import type { VuiAudioEngine } from "./VuiAudioEngine";
@@ -149,13 +149,20 @@ export class VuiStreamManager {
 
           // Throttle UI updates for systemMessage
           const now = Date.now();
-          if (now - lastUpdateAt > UPDATE_THRESHOLD_MS) {
+          if (now - lastUpdateAt > 32) { // V87.0 Upgrade: 64ms -> 32ms for better LLM-TTS sync
             vuiState.setSystemMessage(txtResult);
             lastUpdateAt = now;
           }
         } else if (parsed.phase === "done") {
           lastData = parsed;
           if (parsed.ui_action) this.lastActionType = parsed.ui_action;
+          if (parsed.behavior) {
+            vuiState.behavior = parsed.behavior;
+            vuiState.requiresListening = parsed.behavior === 'listen';
+          }
+          if (parsed.requires_confirmation !== undefined) {
+            vuiState.requiresConfirmation = parsed.requires_confirmation;
+          }
 
           // Phase 76.3: Hardware Signal Listener (Aligned with Orchestrator)
           const isSleep = (parsed.category === "SESSION_CTRL" && (parsed.type === "SLEEP" || parsed.action === "HARDWARE_SLEEP"));

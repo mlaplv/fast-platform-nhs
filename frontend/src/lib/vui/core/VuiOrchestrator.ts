@@ -69,14 +69,17 @@ class VuiOrchestrator {
   }
 
   async startRecording(autoBypassAudio = true) {
-    if (vuiState.isStarting || vuiState.phase === 'thinking') return;
+    if (vuiState.isStarting) return;
+    if (vuiState.phase === 'thinking' || vuiState.phase === 'error') {
+       vuiState.setPhase('idle');
+    }
     
     vuiState.setStartingLock(true);
     vuiState.setActive(true);
     nanobot.setVuiActive(true);
     
-    if (autoBypassAudio) this.audio.abort();
-    this.audio.reset();
+    if (autoBypassAudio) this.audio?.abort();
+    this.audio?.reset();
     
     this.hasSpoken = false;
     this.streamManager!.setLastAction("");
@@ -240,14 +243,13 @@ class VuiOrchestrator {
 
   private onTTSFinished() {
     if (vuiState.isWaitingForAction) {
-      this.mic!.stop();
-      this.vadEngine!.pause();
+      this.mic?.stop();
+      this.vadEngine?.pause();
       vuiState.setPhase("idle");
       vuiState.setLiveText("Sẵn sàng thưa sếp...");
-      // C.T.O Fix: Don't return early. Allow CONTINUOUS_CONVERSATION to re-open the mic.
     }
 
-    if (vuiState.phase === "executing" || vuiState.phase === "speaking") {
+    if (vuiState.phase !== "idle") {
       vuiState.setPhase("idle");
       vuiState.setActiveTier("");
     }
@@ -258,19 +260,23 @@ class VuiOrchestrator {
       return;
     }
 
-    if (VUI_CONFIG.UX.CONTINUOUS_CONVERSATION && vuiState.isActive) {
-      const delay = this.streamManager!.getLastAction() ? VUI_CONFIG.UX.POST_ACTION_DELAY_MS : VUI_CONFIG.UX.POST_SPEECH_DELAY_MS;
+    if (vuiState.requiresListening && vuiState.isActive) {
+      console.info("[VUI] AI requested listening. Re-opening mic.");
+      const delay = VUI_CONFIG.UX.POST_SPEECH_DELAY_MS;
       this.setManagedTimer('resumption', () => {
         if (vuiState.isActive && nanobot.isVuiActive) {
-          vuiState.setSystemMessage("");
           vuiState.setLiveText("");
           this.startRecording(false);
-        } else {
-          this.interruptAll();
+          vuiState.requiresListening = false;
+          vuiState.behavior = 'sleep';
         }
       }, delay);
-    } else {
-      this.setManagedTimer('interrupt', () => this.interruptAll(), 1000);
+    } else if (vuiState.isActive) {
+      console.info("[VUI] AI requested sleep or no behavior defined. Standing by.");
+      this.setManagedTimer('interrupt_check', () => {
+         // Auto-cleanup if idle too long and not listening
+         // this.interruptAll(); // Optional: user might want it kept open
+      }, 5000);
     }
   }
 
@@ -303,7 +309,9 @@ class VuiOrchestrator {
     }
     vuiState.setSystemMessage(text);
 
-    return await this.audio!.speak(text);
+    const result = await this.audio!.speak(text);
+    this.onTTSFinished(); // V87.5 Fix: Re-open mic after manual/error speech
+    return result;
   }
 
   playNotificationPing() {

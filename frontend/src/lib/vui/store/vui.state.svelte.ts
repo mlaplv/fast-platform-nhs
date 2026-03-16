@@ -7,8 +7,13 @@ export interface VuiInteraction {
   duration: number;
 }
 
+export const requiresListening = $state(false);
+
 export const vuiState = $state({
   isActive: false,
+  requiresListening: false,
+  behavior: 'sleep' as 'listen' | 'sleep',
+  audioLevels: new Array(20).fill(0),
   phase: "idle" as VuiPhase,
   volume: 0,
   speechProb: 0,
@@ -81,8 +86,11 @@ export const vuiState = $state({
 
         // Clear buffers
         this.transcript = "";
-        this.systemMessage = "";
         this.liveText = "";
+        // C.T.O Fix: Keep the question visible if we are waiting for user response
+        if (!this.isWaitingForAction) {
+          this.systemMessage = "";
+        }
     }
   },
 

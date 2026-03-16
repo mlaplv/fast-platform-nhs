@@ -1,6 +1,6 @@
 import logging, os, asyncio, json, time, unicodedata, re
 from rapidfuzz import fuzz
-from typing import List, Dict, Optional, Tuple, Union
+from typing import List, Dict, Optional, Tuple, Union, Any
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from .tier2_cloud import Tier2CloudRouter
 from .tier3_cloud import Tier3CloudRouter
@@ -15,11 +15,12 @@ from backend.services.xohi.creative_studio.orchestrator import content_factory
 from backend.database.alchemy_config import alchemy_config
 from backend.database.repositories import ContentCampaignRepository
 from backend.services.ai_engine.core.vector_memory import VectorMemory
+from .intent_synapse import intent_synapse
 
 logger = logging.getLogger("api-gateway")
 
 # Pre-compiled regex for STT confirmed word boundaries
-STT_CONFIRM_RE_CACHE = {}
+STT_CONFIRM_RE_CACHE: Dict[str, re.Pattern] = {}
 
 # --- Global Keywords & Mappings (R1.6: Zero-Hydration Constants) ---
 YES_KEYWORDS = ["đúng", "vâng", "yes", "ừ", "ok", "ok đi", "chuẩn", "đươc", "rồi", "chính xác", "phải", "phai", "có"]
@@ -80,7 +81,7 @@ def _get_phonetic(word: str) -> str:
         TRIGGER_PHO_CACHE[word] = word.replace("k", "c").replace("q", "c")
     return TRIGGER_PHO_CACHE[word]
 
-def _match_trigger(words_list, trans_norm, trans_pho=None):
+def _match_trigger(words_list: List[str], trans_norm: str, trans_pho: Optional[str] = None) -> bool:
     if not words_list: return False
 
     # 76.3: Use pre-calculated phonetic transcript if provided
@@ -129,9 +130,9 @@ class RouterOrchestrator:
         self,
         transcript: str,
         user_id: str,
-        app_state: object,
-        context: Optional[List[Dict[str, object]]] = None,
-        screen_context: Optional[Dict[str, object]] = None,
+        app_state: Any,
+        context: Optional[List[Dict[str, Any]]] = None,
+        screen_context: Optional[Dict[str, Any]] = None,
         modality: str = "text"
     ) -> IntentResponse:
         """Phase 1: Intent Resolution (T1 -> T2 Dispatch)"""
@@ -149,11 +150,11 @@ class RouterOrchestrator:
         # Check persistent context from xohi_memory
 
         # Phase 76.3: Atomic Aggregation (Rule R82.25)
-        orchestrator_ctx = await xohi_memory.get_full_orchestrator_context(user_id)
-        user_profile = orchestrator_ctx.get("profile", {})
-        ctx = orchestrator_ctx.get("ctx", {})
-        user_dict = orchestrator_ctx.get("stt", {})
-        intent_map = orchestrator_ctx.get("intent_map", {})
+        orchestrator_ctx: Dict[str, Any] = await xohi_memory.get_full_orchestrator_context(user_id)
+        user_profile: Dict[str, Any] = orchestrator_ctx.get("profile", {})
+        ctx: Dict[str, Any] = orchestrator_ctx.get("ctx", {})
+        user_dict: Dict[str, str] = orchestrator_ctx.get("stt", {})
+        intent_map: Dict[str, List[str]] = orchestrator_ctx.get("intent_map", {})
 
         # --- PHASE 0.5: NEURAL WAKE TRIGGERS (CTO V1.9) ---
         DEFAULT_GREETING = user_profile.get("greeting_template", "Dạ, em nghe đây sếp.")
@@ -282,48 +283,52 @@ class RouterOrchestrator:
             is_no = any(kw in normalized_transcript for kw in NORM_NO_KEYWORDS)
 
             if is_yes and not is_no:
-                # User confirmed! Save to memory
-                suspected = ctx.get("pending_stt_correction", {})
-                if suspected:
-                    user_dict.update(suspected)
-                    ctx["stt_dictionary"] = user_dict
+                # ════════════════════════════════════════════════════════════════════
+                # VIRAL 2026: RECURRENT INTENT PROPAGATION (RIP)
+                # ════════════════════════════════════════════════════════════════════
+                synapse = await intent_synapse.retrieve_and_clear(user_id)
+                if synapse:
+                    logger.info(f"[Neural Synapse] RESTORING sequence with stored intent data: '{synapse['query']}'")
+                    # VIRAL 2026: Direct Return of stored classification to bypass re-correction loops
+                    stored_data = synapse.get("classification")
+                    if stored_data:
+                        # Convert back to IntentResponse
+                        action_str = stored_data.get("action", "READ")
+                        action = IntentAction(action_str) if isinstance(action_str, str) else action_str
+                        
+                        # Clear confirmation state
+                        ctx["is_confirming_stt"] = False
+                        ctx["pending_stt_correction"] = {}
+                        await xohi_memory.set_user_context(user_id, ctx)
+                        
+                        return IntentResponse(
+                            status="success",
+                            action=action,
+                            message=stored_data.get("message", ""),
+                            router_tier=RouterTier.TIER_1_HEURISTIC,
+                            cost_tokens=0.0,
+                            data=stored_data
+                        )
+                else:
+                    # User confirmed! Save to memory
+                    suspected = ctx.get("pending_stt_correction", {})
+                    if suspected:
+                        user_dict.update(suspected)
+                        ctx["stt_dictionary"] = user_dict
 
-                    # Persist to Redis (permanent)
-                    for wrong, right in suspected.items():
-                        await stt_corrector.smart_learn(user_id, wrong, right)
-
-                    # Phase 77: Dynamic Intent Learning (Reinforcement)
-                    # If user confirmed the correction, we should also teach the semantic router
-                    # that the original transcript (even if noisy) mapped to this context.
-                    # We'll re-classify the CLEANED transcript to see what the intent was,
-                    # then tell the router to associate the ORIGINAL transcript with that intent.
-                    try:
-                        sem_intent, sem_score = await self.semantic_router.classify(transcript)
-                        if sem_score > 0.7:
-                             raw_transcript = ctx.get("pending_raw_transcript", "") # Need to ensure this is saved
-                             if raw_transcript:
-                                 await self.semantic_router.learn_intent(sem_intent, raw_transcript)
-                    except Exception: pass
-
-                    logger.info(f"[STT Learning] Memorized to Redis: {suspected}")
-
-                # Restore the cleaned transcript AND APPLY the learned correction
-                transcript = ctx.get("pending_cleaned_transcript", "").strip()
-                for wrong, right in suspected.items():
-                    # Rule R82.25: Use cached regex for replacement
-                    cache_key = f"rep_{wrong}"
-                    if cache_key not in STT_CONFIRM_RE_CACHE:
-                        STT_CONFIRM_RE_CACHE[cache_key] = re.compile(re.escape(wrong), re.IGNORECASE)
-                    transcript = STT_CONFIRM_RE_CACHE[cache_key].sub(right, transcript)
-
-                logger.info(f"[STT Learning] Resuming execution with corrected transcript: '{transcript}'")
+                        # Persist to Redis (permanent)
+                        for wrong, right in suspected.items():
+                            await stt_corrector.smart_learn(user_id, wrong, right)
+                    
+                    # Restore the cleaned transcript
+                    transcript = ctx.get("pending_cleaned_transcript", "").strip()
+                    logger.info(f"[STT Learning] Resuming execution with corrected transcript: '{transcript}'")
+                    normalized_transcript = normalize_vn(transcript)
 
                 # Clear state
                 ctx["is_confirming_stt"] = False
                 ctx["pending_stt_correction"] = {}
                 await xohi_memory.set_user_context(user_id, ctx)
-                # Re-normalize for the fall-through classification
-                normalized_transcript = normalize_vn(transcript)
                 
             elif is_no:
                 ctx["is_confirming_stt"] = False
@@ -406,6 +411,29 @@ class RouterOrchestrator:
                 right_word = suspected[wrong_word]
                 
                 msg = f"Dạ, có phải ý sếp là '{right_word}' không ạ?"
+                
+                # VIRAL 2026: Calculate Neural Shadow Intent (What the user actually meant)
+                # Apply correction for the VIRTUAL intent calculation
+                virtual_transcript = cleaned_transcript
+                for w, r in suspected.items():
+                    virtual_transcript = re.sub(re.escape(w), r, virtual_transcript, flags=re.IGNORECASE)
+                
+                # Classify the shadow intent BEFORE storing in synapse
+                shadow_res = await self._heuristic_classify(
+                    virtual_transcript.lower(),
+                    user_id,
+                    ctx={**ctx, "profile": user_profile},
+                    intent_map=intent_map,
+                    norm_query=normalize_vn(virtual_transcript)
+                )
+                
+                pending_data: Dict[str, Any] = shadow_res.data if shadow_res else {"intent_type": "UNKNOWN"}
+                # Add source tag for logging
+                pending_data["source_tag"] = "shadow"
+                
+                # Store the ACTUAL intent data in synapse (Recurrent Intent Propagation)
+                await intent_synapse.store_pending_intent(user_id, pending_data, virtual_transcript)
+
                 return IntentResponse(
                     status="success",
                     action=IntentAction.READ,

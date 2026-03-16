@@ -17,7 +17,7 @@ export const VUI_CONFIG = {
     MIN_SPEECH_MS: 250,          // Thời gian nói tối thiểu (ms) để xác nhận "đang nói"
     REDEMPTION_MS: 600,          // Thời gian im lặng (ms) trước khi kết luận "ngừng nói"
     PRE_SPEECH_PAD_MS: 100,      // Thời gian đệm (ms) phía trước giọng nói
-    INITIAL_TIMEOUT_MS: 7000,    // C.T.O Fix: Chờ 7s nếu chưa có giọng nói
+    INITIAL_TIMEOUT_MS: 5000,    // V87.0 Tuning: Chờ 5s thăng hoa (Sếp gợi ý 3-5s)
     STT_GUARD_TIMEOUT_MS: 15000, // Safety: Timeout nếu STT không trả kết quả
     MAX_RECORDING_DURATION_MS: 30000, // Nâng lên 30s vì VAD đã lọc sạch tiếng ồn
   },
@@ -39,7 +39,7 @@ export const VUI_CONFIG = {
   },
   UX: {
     CONTINUOUS_CONVERSATION: true,
-    POST_SPEECH_DELAY_MS: 100, // C.T.O Fix: Đập bỏ độ trễ ngắt quãng TTS
+    POST_SPEECH_DELAY_MS: 1000, // V87.0: Nghỉ 1s cho sếp "thở" trước khi nghe tiếp
     POST_ACTION_DELAY_MS: 100, // C.T.O Fix: Chuyển trang/Thực thi lệnh tức thời 
     ACTION_WAIT_TIMEOUT_MS: 1000, 
     POLITE_FALLBACK: "Dạ vâng Sếp, em đã sẵn sàng thưa Sếp.",

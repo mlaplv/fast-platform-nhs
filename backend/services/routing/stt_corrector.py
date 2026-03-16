@@ -6,7 +6,7 @@ import unicodedata
 import time
 import re
 import numpy as np
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, Optional, Tuple, List, Set, TypedDict, Any
 
 from rapidfuzz import fuzz
 from litellm.exceptions import ServiceUnavailableError, RateLimitError, Timeout as LiteLLMTimeout, AuthenticationError, NotFoundError
@@ -106,7 +106,7 @@ SOUND_ALIKES = {
 NORM_SOUND_ALIKES = {normalize_vn(k): v for k, v in SOUND_ALIKES.items()}
 
 # Global normalization cache to avoid redundant calls to normalize_vn (V76.3)
-_GLOBAL_NORM_CACHE = {} # { "word/phrase": "normalized" }
+_GLOBAL_NORM_CACHE: Dict[str, str] = {} # { "word/phrase": "normalized" }
 def _get_norm(text: str) -> str:
     if text not in _GLOBAL_NORM_CACHE:
         if len(_GLOBAL_NORM_CACHE) > 1000: _GLOBAL_NORM_CACHE.clear()
@@ -122,16 +122,16 @@ class NeuralLocalCorrector:
         self.encoder = None
         self._embedding_cache = {} # { "wrong_phrase": vector }
         self._norm_key_cache = {} # { "raw_key": "norm_key" }
-        self._cache_access_count = 0
-        self._sorted_keys_cache = ([], 0) # (keys, hash_of_dict)
+        self._cache_access_count: int = 0
+        self._sorted_keys_cache: Tuple[List[str], int] = ([], 0) # (keys, hash_of_dict)
 
-    async def _ensure_encoder(self):
+    async def _ensure_encoder(self) -> None:
         if self.encoder is None:
             loop = asyncio.get_event_loop()
             self.encoder = await loop.run_in_executor(None, get_shared_encoder)
 
-    def _cosine_similarity(self, a, b):
-        return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+    def _cosine_similarity(self, a: np.ndarray, b: np.ndarray) -> float:
+        return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
     async def correct(self, transcript: str, user_dict: Dict[str, str]) -> Tuple[str, float]:
         """
@@ -160,15 +160,17 @@ class NeuralLocalCorrector:
 
         # 76.3: Avoid redundant sorting
         if self._sorted_keys_cache[1] == dict_hash:
-            sorted_keys = self._sorted_keys_cache[0]
+            sorted_keys: List[str] = list(self._sorted_keys_cache[0])
         else:
             sorted_keys = sorted(user_dict.keys(), key=len, reverse=True)
             self._sorted_keys_cache = (sorted_keys, dict_hash)
 
-        new_keys = [k for k in sorted_keys if k not in self._embedding_cache]
+        new_keys: List[str] = [k for k in sorted_keys if k not in self._embedding_cache]
         if new_keys:
             try:
-                embeddings = await loop.run_in_executor(None, lambda: list(self.encoder.embed(new_keys)))
+                def _get_embeddings() -> List[Any]:
+                    return list(self.encoder.embed(new_keys)) if self.encoder else []
+                embeddings = await loop.run_in_executor(None, _get_embeddings)
                 for k, v in zip(new_keys, embeddings):
                     self._embedding_cache[k] = v
             except Exception as e:
@@ -217,9 +219,10 @@ class NeuralLocalCorrector:
                     fuzzy_score = fuzz.ratio(norm_window, norm_key)
 
                     if score >= 0.85 or fuzzy_score >= 90:
-                        replacement = user_dict[key]
-                        if window in current_text:
-                            current_text = current_text.replace(window, replacement)
+                        replacement: str = user_dict[key]
+                        current_text_str: str = str(current_text)
+                        if window in current_text_str:
+                            current_text = current_text_str.replace(window, replacement)
                             applied_corrections = True
                             hit_keys.add(key)
 
@@ -235,7 +238,12 @@ class NeuralLocalCorrector:
         return current_text, (max_total_score if applied_corrections else 0.0)
 
 # --- Phase 76.3: Stopwords Cache ---
-_STOPWORDS_CACHE = {"raw": [], "norm": set(), "last_update": 0}
+class StopwordsCache(TypedDict):
+    raw: List[str]
+    norm: Set[str]
+    last_update: float
+
+_STOPWORDS_CACHE: StopwordsCache = {"raw": [], "norm": set(), "last_update": 0.0}
 
 class STTCorrector:
     """
@@ -260,7 +268,7 @@ class STTCorrector:
                 return f"\n[USER_DICTIONARY_CONTEXT]\n{json.dumps(ctx.deps.user_dictionary, ensure_ascii=False)}"
             return "\n[USER_DICTIONARY_CONTEXT]\n{}"
 
-    async def _get_cached_stopwords(self) -> set:
+    async def _get_cached_stopwords(self) -> Set[str]:
         """Fetch and normalize stopwords with 5-minute TTL cache."""
         now = time.time()
         if now - _STOPWORDS_CACHE["last_update"] > 300:
@@ -270,11 +278,11 @@ class STTCorrector:
             _STOPWORDS_CACHE["last_update"] = now
         return _STOPWORDS_CACHE["norm"]
 
-    async def _ensure_aging_task(self):
+    async def _ensure_aging_task(self) -> None:
         """Lazy start for Neural Aging background task."""
         if not hasattr(self, "_aging_task") or self._aging_task is None or self._aging_task.done():
             try:
-                self._aging_task = asyncio.create_task(self._neural_aging_loop())
+                self._aging_task: asyncio.Task[None] = asyncio.create_task(self._neural_aging_loop())
             except RuntimeError:
                 pass # Still no loop (unit tests?)
 
@@ -389,27 +397,28 @@ class STTCorrector:
         # 3. NEURAL SWITCH (Sound-alike Fallback - 2026 Strategy)
         # Low-latency check for common Vietnamese STT mistakes that sound like protected keywords.
         lower_transcript = transcript.lower()
-        new_transcript = transcript
+        # new_transcript = transcript # No longer needed as we don't auto-apply
         norm_query = norm_query or normalize_vn(lower_transcript)
         applied_switch = False
+        suspected = {}
         
         # Check both original and normalized (V77.2 Fix)
+        norm_query_str: str = str(norm_query)
         for wrong, right in SOUND_ALIKES.items():
             norm_wrong = normalize_vn(wrong)
-            # Use regex for case-insensitive replacement (Rule R82.25 aware)
+            # Use regex for case-insensitive replacement
             pattern = re.compile(re.escape(wrong), re.IGNORECASE)
             
-            if pattern.search(new_transcript):
-                logger.info(f"[STT Corrector] Semantic Match: '{wrong}' -> '{right}'")
-                new_transcript = pattern.sub(right, new_transcript)
+            if pattern.search(lower_transcript):
+                logger.info(f"[STT Corrector] Semantic Suspect: '{wrong}' -> '{right}'")
+                suspected[wrong.lower()] = right
                 applied_switch = True
-            elif norm_wrong in norm_query:
-                logger.info(f"[STT Corrector] Phonetic Match: '{norm_wrong}' -> '{right}'")
+            elif norm_wrong in norm_query_str:
                 # Fallback handled via direct match for now to maintain Zen Path speeds
                 pass
 
         if applied_switch:
-            return new_transcript, None
+            return transcript, suspected
 
         # 4. TRINITY DISPATCHER (Cloud Fallback)
         deps = STTCorrectorDeps(user_dictionary=user_dictionary or {})

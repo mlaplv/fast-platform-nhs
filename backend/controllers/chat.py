@@ -255,12 +255,12 @@ class ChatController(Controller):
         user = await user_repo.get_one_or_none(email=user_email)
         user_id = str(user.id) if user else None
         
-        # CNS V70: Security audit signal — CRITICAL severity creates audit trail + SSE alert
+        # CNS V70: Security audit signal — CRITICAL        # Signal Dispatch (Audit Trail - Rule R00/R1.13)
         await signal_center.dispatch(
             user_id=str(user_id) if user_id else "system",
             signal=SignalSchema(
-                message=f"DATA DESTRUCTION: Logs purged for session '{session_id}' by {user_email}",
-                severity=SignalSeverity.CRITICAL,
+                message=f"SUCCESS: Chat history cleaned for session '{session_id}' by {user_email}",
+                severity=SignalSeverity.INFO,
                 signal_type="SECURITY"
             ),
             db_session=db_session

@@ -239,7 +239,8 @@ class IntentStreamController(Controller):
                     "action": result.action.value if hasattr(result.action, "value") else str(result.action),
                     "router_tier": tier_str,
                     "cost_tokens": result.cost_tokens,
-                    "requires_confirmation": getattr(result, "requires_confirmation", False),
+                    "requires_confirmation": getattr(result, "requires_confirmation", False) or result.data.get("requires_confirmation", False),
+                    "behavior": "listen" if (getattr(result, "requires_confirmation", False) or result.data.get("action") == "STT_CONFIRM") else "sleep"
                 })
 
                 # ── Background: Telemetry + Chat save ──

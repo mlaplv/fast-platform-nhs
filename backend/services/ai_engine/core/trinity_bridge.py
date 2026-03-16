@@ -434,7 +434,7 @@ class TrinityBridge:
                         if stream_started:
                             # CRITICAL: If stream already yielded, we CANNOT rotate.
                             # Re-raise to let caller handle it.
-                            logger.error(f"[TrinityBridge][Stream] Error during stream consumption: {inner_e}")
+                            logger.error(f"[TrinityBridge][Stream] Error during stream consumption ({model_name}): {inner_e}")
                             raise inner_e
                         # Otherwise, fall through to rotation logic
                         raise inner_e

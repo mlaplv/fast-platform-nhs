@@ -147,13 +147,16 @@ class Tier3CloudRouter:
             ) as result:
                 # [V81.2] Use stream_structured for agents with output_type
                 last_len = 0
-                async for structured in result.stream_structured(debounce_by=None):
+                async for structured, _ in result.stream_structured(debounce_by=None):
                     msg = structured.message or ""
                     if len(msg) > last_len:
                         chunk = msg[last_len:]
                         yield chunk
                         last_len = len(msg)
                     
+        except (asyncio.CancelledError, GeneratorExit):
+            # Normal exit/cancellation — do not yield
+            raise
         except Exception as e:
             logger.error(f"[T3 Stream] Critical failure: {e}")
             yield "Dạ, hệ thống đang gặp lỗi xử lý dòng dữ liệu ạ."

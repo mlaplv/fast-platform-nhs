@@ -80,8 +80,8 @@ export class TTSSpeaker {
         this.hasFirstSpeechStarted = true;
         this.sentenceBuffer = fastParts.slice(2).join("");
         return;
-      } else if (this.sentenceBuffer.trim().split(/\s+/).length >= 3) {
-        // Neural Zero-Cold-Start: Trigger first segment by word count if no punctuation found yet (Tuned V85.0: 5->3)
+      } else if (this.sentenceBuffer.trim().split(/\s+/).length >= 2) {
+        // Neural Zero-Cold-Start: Trigger first segment by word count if no punctuation found yet (Tuned V87.0: 3->2 for ultra-low latency)
         this.enqueue(this.sentenceBuffer.trim());
         this.hasFirstSpeechStarted = true;
         this.sentenceBuffer = "";
