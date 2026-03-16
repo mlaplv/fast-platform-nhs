@@ -135,8 +135,11 @@ class TrinityBridge:
         results.sort(reverse=True)
         return results
 
-    async def _build_model_chain(self) -> list[str]:
-        """Build priority model chain (shared between run and run_stream)."""
+    async def _build_model_chain(self, role: Optional[str] = None) -> list[str]:
+        """
+        Build priority model chain (shared between run and run_stream).
+        CNS V76: Role-Based Prioritization added.
+        """
         raw_models = []
         
         # 1. DB Priority (V75)
@@ -166,6 +169,30 @@ class TrinityBridge:
         for m in (brain_models + fast_models):
             if m not in raw_models:
                 raw_models.append(m)
+
+        # CNS V76: Role-Based Intelligence Injector
+        # We reorganize the list based on keywords if a role is provided
+        if role:
+            prioritized = []
+            others = []
+            
+            if role == self.ROLE_FAST:
+                # Mechanically fast/cheap keywords (prioritize lite)
+                keywords = ["lite", "8b", "flash"]
+            elif role == self.ROLE_BRAIN:
+                # Creative high-IQ keywords
+                keywords = ["pro", "ultra", "brain", "creative"]
+            else:
+                keywords = []
+
+            for m in raw_models:
+                if any(k in m.lower() for k in keywords):
+                    prioritized.append(m)
+                else:
+                    others.append(m)
+            
+            # Reassemble with role-specific models at the top
+            raw_models = prioritized + others
 
         # V75.1: Filter out Poisoned models
         healthy_models = []
@@ -243,12 +270,13 @@ class TrinityBridge:
         """
         requested_model = kwargs.pop("model", None)
         session_id = kwargs.pop("session_id", None)
+        role = kwargs.pop("role", None)
 
         models_to_try = []
         if requested_model:
             models_to_try.append(requested_model)
 
-        base_chain = await self._build_model_chain()
+        base_chain = await self._build_model_chain(role=role)
         sticky_model = await self._get_sticky_model()
 
         if sticky_model and sticky_model not in models_to_try:
@@ -356,12 +384,13 @@ class TrinityBridge:
         """
         requested_model = kwargs.pop("model", None)
         session_id = kwargs.pop("session_id", None)
+        role = kwargs.pop("role", None)
 
         models_to_try = []
         if requested_model:
             models_to_try.append(requested_model)
 
-        base_chain = await self._build_model_chain()
+        base_chain = await self._build_model_chain(role=role)
         sticky_model = await self._get_sticky_model()
 
         if sticky_model and sticky_model not in models_to_try:

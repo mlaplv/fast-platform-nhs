@@ -63,7 +63,12 @@ class MediaAnalyst:
 
         try:
             # R101: Using trinity_bridge for managed AI calls
-            result = await trinity_bridge.run(self.agent, prompt)
+            # CNS V76: Enforce ROLE_FAST for vision tasks to optimize costs
+            result = await trinity_bridge.run(
+                self.agent, 
+                prompt, 
+                role=trinity_bridge.ROLE_FAST
+            )
             return result.data
         except Exception as e:
             logger.error(f"[MediaAnalyst] Vision analysis failed: {e}")
