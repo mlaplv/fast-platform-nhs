@@ -20,7 +20,7 @@ import { createPulseManager } from "./nanobot/pulse";
 import { createSyncManager } from "./nanobot/sync";
 
 export * from "./types";
-import type { WidgetType, Suggestion, CommandAction, ToastType, ChatSettings } from "./types";
+import type { WidgetType, Suggestion, CommandAction, ToastType, ChatSettings, CommandVerb, CommandEntity, SystemLog, CampaignData } from "./types";
 
 export function createNanobotState() {
   const log = createLogState();
@@ -39,7 +39,7 @@ export function createNanobotState() {
     modality: "text" as "text" | "voice",
     currentData: null as Record<string, unknown> | null,
     isBusy: false,
-    godModeUser: null as string | null,
+    godModeUser: undefined as string | undefined,
     wakeWords: ["xohi"] as string[],
     sleepWords: ["tạm biệt"] as string[],
     isCampaignMode: false,
@@ -68,6 +68,14 @@ export function createNanobotState() {
     isResumingManually: false,
     lastMessageHash: "" as string,
     discoveredModels: ["gemini-2.0-flash", "gemini-2.0-flash-lite-preview-02-05", "gemini-1.5-pro", "gemini-1.5-flash"] as string[],
+    dynamicIntentMap: {} as Record<string, string>,
+    // IntentManager Tracking
+    lastProcessedCommand: "",
+    lastProcessedTime: 0,
+    lastSpokenText: "",
+    lastSpokenTime: 0,
+    commandEpoch: 0,
+    lastSuggestedWidget: undefined as WidgetType | undefined,
   });
 
   const audioThrottle = createAudioThrottle(state);
@@ -90,10 +98,12 @@ export function createNanobotState() {
     } else { clearTimeout(thinkingWatchdog); }
   };
 
+  const setDynamicIntentMap = (val: Record<string, string>) => { state.dynamicIntentMap = val; };
+  
   const intent = createIntentManager(state, voice, log, ui, chat, resetVui, softReset, setThinking);
   const resumeManager = createResumeManager(state, voice, log, ui, () => sync.startSmartPolling());
   const pulseManager = createPulseManager(state, voice, log, ui, vuiState, notification, () => sync.startSmartPolling());
-  const sync = createSyncManager(state, log, chat, notification, ui, resumeManager, pulseManager);
+  const sync = createSyncManager(state, log, chat, notification, ui, setDynamicIntentMap, resumeManager, pulseManager);
 
   // Lifecycle
   if (typeof window !== "undefined") {
@@ -138,13 +148,14 @@ export function createNanobotState() {
     get agenticSuggestions() { return state.agenticSuggestions; },
     get chatPagination() { return chat.pagination; },
     get commandAction() { return state.commandAction; },
+    get dynamicIntentMap() { return state.dynamicIntentMap; },
 
     processCommand: (command: string, source: "text" | "voice" = "text", intentData?: Record<string, unknown>) => intent.processCommand(command, source, intentData),
     setVoiceResult: intent.setVoiceResult,
     resetVui,
     setThinking,
     setModality: (val: "text" | "voice") => { state.modality = val; },
-    setGodModeUser: (val: string | null) => { state.godModeUser = val; },
+    setGodModeUser: (val: string | undefined) => { state.godModeUser = val; },
     clearCurrentData: () => { state.currentData = null; },
     clearCommandAction: () => { state.commandAction = null; },
     consumeCommand: (verb: CommandVerb, entity: CommandEntity | "media") => {
@@ -255,7 +266,7 @@ export function createNanobotState() {
       await chat.hydrateHistory("account", (logs: SystemLog[]) => {
         log.upsertLogs(logs);
       }, state.godModeUser || undefined);
-      ui.showToast(state.godModeUser ? `Đồng bộ log [V69.0]: ${state.godModeUser}` : "Đã bộ dữ liệu V69.0 (Unified)", "success");
+      ui.showToast(state.godModeUser ? `Đồng bộ log [V69.0]: ${state.godModeUser}` : "Đã đồng bộ dữ liệu V69.0 (Unified)", "success");
     },
     clearChatLogs: async () => { if (await chat.clearHistory("account")) { log.setActivityLogs([]); ui.showToast("Dữ liệu đã được quét sạch", "success"); } },
 
@@ -306,7 +317,8 @@ export function createNanobotState() {
     },
     get discoveredModels() { return state.discoveredModels; },
     setDiscoveredModels: (val: string[]) => { state.discoveredModels = val; },
-    resumeCampaign: (logEntry: Record<string, unknown>) => resumeManager.internalResumeCampaign(logEntry)
+    setDynamicIntentMap: (val: Record<string, string>) => { state.dynamicIntentMap = val; },
+    resumeCampaign: (logEntry: SystemLog | CampaignData) => resumeManager.internalResumeCampaign(logEntry, false)
   };
 }
 

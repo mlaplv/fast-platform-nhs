@@ -42,10 +42,12 @@ export async function handleFastAction(
   const { state, voice, log, ui, resetVui, softReset } = deps;
   const cmd = command.toLowerCase().trim();
 
-  // 1. Strict Mapping Lookup
+  // 1. Unified Mapping Lookup (Tier 1 - Dynamic Zen Path)
+  const combinedMap = { ...COMMAND_WIDGET_MAP, ...nanobot.dynamicIntentMap } as Record<string, string>;
+  
   const matchedWidget =
-    COMMAND_WIDGET_MAP[cmd] ||
-    Object.entries(COMMAND_WIDGET_MAP).find(([k]) => {
+    combinedMap[cmd] ||
+    Object.entries(combinedMap).find(([k]) => {
       const isExplicitOpen =
         cmd.includes("mở") ||
         cmd.includes("xem") ||
@@ -58,7 +60,7 @@ export async function handleFastAction(
       // Fuzzy match for joined words (e.g. voicesetting -> voice settings)
       const kNoSpace = k.replace(/\s/g, "");
       return cmd === k || cmd.includes(k) || cmd.includes(kNoSpace);
-    })?.[1];
+    })?.[1] as WidgetType | undefined;
 
   if (matchedWidget) {
     const viLabel = WIDGET_VI_LABEL[matchedWidget] || matchedWidget.replace(/_/g, " ");

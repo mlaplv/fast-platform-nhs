@@ -4,6 +4,7 @@ import logging
 import asyncio
 import unicodedata
 import time
+import re
 import numpy as np
 from typing import Dict, Optional, Tuple, List
 
@@ -93,6 +94,13 @@ SOUND_ALIKES = {
     "doanh tu": "doanh thu",
     "đau hàng": "đơn hàng",
     "sang phẩm": "sản phẩm",
+    "số hi": "xohi",
+    "xố hỉ": "xohi",
+    "số huy": "xohi",
+    "so huy": "xohi",
+    "học lần": "học lệnh",
+    "học lẹ": "học lệnh",
+    "chương dịch": "chiến dịch",
 }
 # Pre-normalize keys for robust matching
 NORM_SOUND_ALIKES = {normalize_vn(k): v for k, v in SOUND_ALIKES.items()}
@@ -375,13 +383,23 @@ class STTCorrector:
         # Low-latency check for common Vietnamese STT mistakes that sound like protected keywords.
         lower_transcript = transcript.lower()
         new_transcript = transcript
+        norm_query = norm_query or normalize_vn(lower_transcript)
         applied_switch = False
-        for wrong, right in NORM_SOUND_ALIKES.items():
-            if wrong in lower_transcript:
-                logger.info(f"[STT Corrector] Neural Switch AUTO-FIX: '{wrong}' -> '{right}'")
-                # Phase 76.3: Auto-fix common errors to eliminate confirmation UI lag
-                new_transcript = new_transcript.replace(wrong, right)
+        
+        # Check both original and normalized (V77.2 Fix)
+        for wrong, right in SOUND_ALIKES.items():
+            norm_wrong = normalize_vn(wrong)
+            # Use regex for case-insensitive replacement (Rule R82.25 aware)
+            pattern = re.compile(re.escape(wrong), re.IGNORECASE)
+            
+            if pattern.search(new_transcript):
+                logger.info(f"[STT Corrector] Semantic Match: '{wrong}' -> '{right}'")
+                new_transcript = pattern.sub(right, new_transcript)
                 applied_switch = True
+            elif norm_wrong in norm_query:
+                logger.info(f"[STT Corrector] Phonetic Match: '{norm_wrong}' -> '{right}'")
+                # Fallback handled via direct match for now to maintain Zen Path speeds
+                pass
 
         if applied_switch:
             return new_transcript, None

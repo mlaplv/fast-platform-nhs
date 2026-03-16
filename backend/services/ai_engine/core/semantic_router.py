@@ -54,6 +54,12 @@ INTENT_TO_ACTION = {
         "action": "WAKE_ROUTINE",
         "category": "SESSION_CTRL",
         "message": "Dạ, em nghe đây sếp."
+    },
+    "learn_command": {
+        "intent_type": "LEARN_COMMAND",
+        "target": "none",
+        "action": "MUTATE",
+        "message": ""
     }
 }
 
@@ -84,6 +90,11 @@ SEMANTIC_ANCHORS = {
     ],
     "session_wake": [
         "xohi ơi", "dậy đi", "alo xohi", "nghe này", "bắt đầu làm việc"
+    ],
+    "learn_command": [
+        "học lệnh 'vào camp' là mở chiến dịch", "dạy em khi nói X thì mở Y",
+        "nhớ nhé sếp bảo Z là mở K", "học lệnh mới", "dạy XoHi học lệnh",
+        "nhớ nhé sếp bảo 'về nhà' là mở trang chủ", "học 'biến' là 'tạm biệt'"
     ]
 }
 

@@ -25,6 +25,7 @@ interface SyncDeps {
   ui: {
     showToast: (msg: string, type: ToastType) => void;
   };
+  setDynamicIntentMap: (val: Record<string, string>) => void;
   resumeManager: {
     internalResumeCampaign: (log: SystemLog, isSilent: boolean) => Promise<void>;
   };
@@ -39,6 +40,7 @@ export function createSyncManager(
   chat: SyncDeps["chat"],
   notification: SyncDeps["notification"],
   ui: SyncDeps["ui"],
+  setDynamicIntentMap: SyncDeps["setDynamicIntentMap"],
   resumeManager: SyncDeps["resumeManager"],
   pulseManager: SyncDeps["pulseManager"]
 ) {
@@ -79,9 +81,21 @@ export function createSyncManager(
     }, pulseManager.isConnected ? 30000 : 5000);
   };
 
+  const fetchDynamicIntents = async () => {
+    try {
+      const mapping = await apiClient.get<Record<string, string>>("/api/v1/intent/map");
+      if (mapping) {
+        setDynamicIntentMap(mapping);
+      }
+    } catch (e) {
+      console.error("[Sync] Failed to fetch dynamic intent map:", e);
+    }
+  };
+
   const initHydration = () => {
     if (typeof window === "undefined") return;
 
+    fetchDynamicIntents();
     notification.fetchNotifications();
     chat.hydrateHistory("account", (logs: SystemLog[]) => {
       log.upsertLogs(logs);

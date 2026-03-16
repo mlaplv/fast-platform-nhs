@@ -16,10 +16,10 @@ logger = logging.getLogger("api-gateway")
 
 class Tier2Output(BaseModel):
     """Structured output for Tier 2 Dispatcher extraction."""
-    intent_type: Literal["UI_NAV", "DATA_QUERY", "DEEP_ANALYSIS", "CONTENT_CREATE", "CONTENT_APPROVE", "CONTENT_REJECT", "UNKNOWN"] = Field(
+    intent_type: Literal["UI_NAV", "DATA_QUERY", "DEEP_ANALYSIS", "CONTENT_CREATE", "CONTENT_APPROVE", "CONTENT_REJECT", "LEARN_COMMAND", "UNKNOWN"] = Field(
         description="Type of user intent classification"
     )
-    target: Literal["order", "revenue", "product", "user", "category", "news", "none"] = Field(
+    target: Literal["order", "revenue", "product", "user", "category", "news", "campaign", "none"] = Field(
         description="The primary entity being targeted"
     )
     timeframe: Literal["today", "this_week", "this_month", "none"] = Field(
@@ -31,6 +31,8 @@ class Tier2Output(BaseModel):
     status: Literal["pending", "processing", "completed", "none"] = Field(
         description="Entity status filtering"
     )
+    learn_keyword: Optional[str] = Field(None, description="Từ khóa sếp muốn dạy")
+    learn_target: Optional[str] = Field(None, description="Tính năng hoặc Widget sếp muốn gán cho từ khóa")
 
 # R1.6: Cache schema at Global Scope — CẤM tạo lại mỗi request
 TIER2_SCHEMA = Tier2Output.model_json_schema()
@@ -42,6 +44,7 @@ INTENT_TO_ACTION_MAP = {
     "CONTENT_CREATE": IntentAction.CONTENT_CREATE,
     "CONTENT_APPROVE": IntentAction.CONTENT_APPROVE,
     "CONTENT_REJECT": IntentAction.CONTENT_REJECT,
+    "LEARN_COMMAND": IntentAction.MUTATE,
     "UNKNOWN": IntentAction.READ
 }
 
@@ -65,6 +68,9 @@ Phân tích yêu cầu của sếp, đọc [SCREEN_CONTEXT] để hiểu ngữ c
 - CONTENT_CREATE: Lệnh YÊU CẦU VIẾT BÀI, sáng tạo nội dung, quảng cáo, bài SEO, tin tức, bài viết mới (ví dụ: "viết bài về cà phê", "tạo nội dung quảng cáo", "viết bài PR sản phẩm"). Chuyển cho Content Factory V62.1.
 - CONTENT_APPROVE: Lệnh DUYÊT, đồng ý, xác nhận bài viết hoặc từ khóa đang chờ (ví dụ: "duyệt", "ok", "đồng ý", "chạy tiếp đi", "tốt rồi").
 - CONTENT_REJECT: Lệnh TỪ CHỐI, yêu cầu sửa lại, làm lại nội dung (ví dụ: "không duyệt", "sửa lại cho sếp", "làm lại đi", "chưa ổn", "tạo lại").
+- LEARN_COMMAND: Lệnh DẠY XOHI LỆNH MỚI. Sử dụng khi sếp yêu cầu gán phím tắt hoặc dạy lệnh nhanh (ví dụ: "học lệnh 'vào camp' là mở chiến dịch", "nhớ nhé, khi sếp bảo 'hàng' thì mở sản phẩm").
+    - Trích xuất `learn_keyword`: Cụm từ lệnh (ví dụ: "vào camp").
+    - Trích xuất `learn_target`: Mục tiêu lệnh (ví dụ: "quản lý chiến dịch").
 - UNKNOWN: Những câu hỏi hoàn toàn không liên quan đến hệ thống quản lý, kinh doanh, hoặc nằm ngoài khả năng. QUAN TRỌNG: NẾU SẾP HỎI "DÂN SỐ", "THỜI TIẾT", "LỊCH SỬ" -> BẮT BUỘC TRẢ VỀ UNKNOWN (Tuyệt đối không nhầm "dân số" thành "user" hay "khách hàng").
 
 [ENTITY MAPPING - TARGET]
@@ -146,6 +152,8 @@ class Tier2CloudRouter:
                     "timeframe": output.timeframe, 
                     "widget_id": output.widget_id, 
                     "status": output.status,
+                    "learn_keyword": output.learn_keyword,
+                    "learn_target": output.learn_target,
                     **({"category": "SESSION_CTRL", "action": "HARDWARE_SLEEP"} if output.intent_type == "UI_NAV" else {})
                 }
             )

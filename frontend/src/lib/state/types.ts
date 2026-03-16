@@ -28,7 +28,8 @@ export type WidgetType =
   | "PRODUCT_MANAGEMENT"
   | "ORDER_MANAGEMENT"
   | "NEWS_MANAGEMENT"
-  | "VOICE_SETTINGS";
+  | "VOICE_SETTINGS"
+  | "CAMPAIGNS";
 
 export type NanoBotState =
   | "IDLE"

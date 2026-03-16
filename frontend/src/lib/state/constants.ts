@@ -27,6 +27,10 @@ export const COMMAND_WIDGET_MAP: Record<string, WidgetType> = {
   "campaigns": "CAMPAIGNS",
   "content factory": "CAMPAIGNS",
   "mở campaigns": "CAMPAIGNS",
+  "mở chiến dịch": "CAMPAIGNS",
+  "chiến dịch": "CAMPAIGNS",
+  "quản lý chiến dịch": "CAMPAIGNS",
+  "open campaign": "CAMPAIGNS",
 };
 
 export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {

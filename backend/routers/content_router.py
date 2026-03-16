@@ -179,7 +179,7 @@ class ContentController(Controller):
 
             # 4. SSE POISON PILL (V65.0 Cleanup)
             from backend.services.event_bus import event_bus
-            event_bus.publish("CAMPAIGN_PURGED", {
+            await event_bus.emit("CAMPAIGN_PURGED", {
                 "campaign_id": cid_str,
                 "type": "TERMINATE",
                 "action": "PURGE"

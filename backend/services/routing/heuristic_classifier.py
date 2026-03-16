@@ -18,6 +18,12 @@ logger = logging.getLogger("api-gateway")
 
 # --- Pre-compiled Regex for Performance (V76.3) ---
 RE_EMAIL = re.compile(r'[\w.-]+@[\w.-]+\.\w+')
+RE_LEARN_1 = re.compile(r"hoc lenh ['\"]?(.+?)['\"]? la (.+)", re.IGNORECASE)
+RE_LEARN_2 = re.compile(r"hoc ['\"]?(.+?)['\"]? la (.+)", re.IGNORECASE)
+RE_LEARN_3 = re.compile(r"day lenh ['\"]?(.+?)['\"]? la (.+)", re.IGNORECASE)
+RE_LEARN_VN_1 = re.compile(r"học lệnh ['\"]?(.+?)['\"]? là (.+)", re.IGNORECASE)
+RE_LEARN_VN_2 = re.compile(r"học ['\"]?(.+?)['\"]? là (.+)", re.IGNORECASE)
+RE_LEARN_VN_3 = re.compile(r"dạy lệnh ['\"]?(.+?)['\"]? là (.+)", re.IGNORECASE)
 
 # --- Keyword Dictionaries (avoid hardcode — centralized here for easy tuning) ---
 TARGET_KEYWORDS = {
@@ -28,6 +34,7 @@ TARGET_KEYWORDS = {
     "category": ["danh muc", "nhom hang", "loai hang"],
     "news":    ["tin tuc", "bai viet", "viet bai", "sang tac", "content", "bai dang"],
     "settings": ["cai dat", "setting", "cau hinh", "voice", "giong noi", "am thanh"],
+    "campaign": ["campaign", "chien dich", "chien dichh", "chien dichx", "camp", "canh pain", "cam pain"],
 }
 
 MODE_KEYWORDS = {
@@ -42,6 +49,7 @@ TIMEFRAME_KEYWORDS = {
 }
 
 COUNT_KEYWORDS = ["bao nhieu", "may", "tong so", "tong", "thong ke", "chi tiet", "nao", "duoc khong", "het bao nhieu"]
+LEARN_KEYWORDS = ["hoc lenh", "day lenh", "nho la", "hoc la", "hoc lan"]
 QUESTION_KEYWORDS = ["co khong", "chua", "roi"]
 MUTATE_KEYWORDS = ["them", "tao", "xoa", "sua", "update", "create", "delete"]
 
@@ -59,10 +67,11 @@ TARGET_TO_WIDGET = {
     "category": "show_category_management",
     "news":     "show_news_management",
     "settings": "show_voice_settings",
+    "campaign": "show_campaigns",
 }
 
 VI_VERB_MAP = {"create": "tạo", "edit": "sửa", "delete": "xóa"}
-VI_TARGET_MAP = {"user": "nhân viên", "product": "sản phẩm", "category": "danh mục", "order": "đơn hàng", "news": "bài viết"}
+VI_TARGET_MAP = {"user": "nhân viên", "product": "sản phẩm", "category": "danh mục", "order": "đơn hàng", "news": "bài viết", "campaign": "chiến dịch"}
 
 
 # --- Phase 76.3: Pre-Normalized Keywords (Zero-Allocation) ---
@@ -71,6 +80,7 @@ NORM_MODE_KEYWORDS = {mode: [normalize_vn(kw) for kw in kws] for mode, kws in MO
 NORM_TIMEFRAME_KEYWORDS = {tf: [normalize_vn(kw) for kw in kws] for tf, kws in TIMEFRAME_KEYWORDS.items()}
 NORM_COUNT_KEYWORDS = [normalize_vn(kw) for kw in COUNT_KEYWORDS]
 NORM_QUESTION_KEYWORDS = [normalize_vn(kw) for kw in QUESTION_KEYWORDS]
+NORM_LEARN_KEYWORDS = [normalize_vn(kw) for kw in LEARN_KEYWORDS]
 NORM_MUTATE_KEYWORDS = [normalize_vn(kw) for kw in MUTATE_KEYWORDS]
 
 # Navigation & Content Factory Pre-normalized (Zero-Allocation)
@@ -111,6 +121,85 @@ async def heuristic_classify(
     # Fetch dynamic intent mapping from local memory (Sub-1ms)
     dynamic_mapping = intent_map if intent_map is not None else await xohi_memory.get_system_intent_mapping()
 
+    # --- Phase 77.2: Learn Command Heuristic (Priority) ---
+    if any(kw in norm_query for kw in NORM_LEARN_KEYWORDS):
+        logger.info(f"[Heuristic] Learn Command detected: '{norm_query}'")
+        
+        learn_kw = ""
+        learn_tgt = ""
+        
+        # Try Regex Extraction (V77.3)
+        # Check normalized first for reliability, but extract from combined_lower if possible for clarity
+        for reg in [RE_LEARN_VN_1, RE_LEARN_VN_2, RE_LEARN_VN_3]:
+            match = reg.search(combined_lower)
+            if match:
+                learn_kw = match.group(1).strip().strip("'\"")
+                learn_tgt = match.group(2).strip().strip("'\"")
+                break
+        
+        if not learn_kw: # Fallback to normalized regex
+            for reg in [RE_LEARN_1, RE_LEARN_2, RE_LEARN_3]:
+                match = reg.search(norm_query)
+                if match:
+                    learn_kw = match.group(1).strip()
+                    learn_tgt = match.group(2).strip()
+                    break
+
+        return IntentResponse(
+            status="success",
+            action=IntentAction.MUTATE,
+            message="",
+            router_tier=RouterTier.TIER_1_HEURISTIC,
+            data={
+                "intent_type": "LEARN_COMMAND",
+                "target": "none",
+                "learn_keyword": learn_kw,
+                "learn_target": learn_tgt
+            }
+        )
+
+    # --- Phase 77: Direct Command Mapping (Dynamic Zen Path) ---
+    if dynamic_mapping:
+        for cmd, widget in dynamic_mapping.items():
+            if isinstance(widget, str) and (widget.startswith("show_") or widget.isupper()): # Support both show_ and WidgetType (CAMPAIGNS)
+                norm_cmd = normalize_vn(cmd)
+                if norm_cmd in norm_query:
+                    logger.info(f"[Heuristic] Direct Command Match: '{cmd}' -> {widget}")
+                    
+                    # Phase 77.1: Intelligent Action Mapping
+                    intent_type = "UI_NAV"
+                    ui_action = ""
+                    category = "SESSION_CTRL" if widget in ["HARDWARE_SLEEP", "WAKE_ROUTINE"] else "UI_NAV"
+                    action_val = widget if widget in ["HARDWARE_SLEEP", "WAKE_ROUTINE"] else ""
+                    response_msg = f"Dạ sếp, em mở {cmd} cho sếp ngay đây ạ."
+
+                    if widget == "HARDWARE_SLEEP":
+                        intent_type = "SESSION_CTRL"
+                        response_msg = "Hẹn gặp lại sếp."
+                    elif widget == "WAKE_ROUTINE":
+                        intent_type = "SESSION_CTRL"
+                        # Proactive greeting from Profile
+                        profile = context.get("profile", {}) if context else {}
+                        response_msg = profile.get("greeting_template", "Dạ, em nghe đây sếp.")
+                    elif widget == "CAMPAIGNS":
+                        ui_action = "show_campaigns"
+                    else:
+                        ui_action = widget if widget.startswith("show_") else f"show_{widget.lower()}"
+                    
+                    return IntentResponse(
+                        status="success",
+                        action=IntentAction.READ,
+                        message=response_msg,
+                        router_tier=RouterTier.TIER_1_HEURISTIC,
+                        data={
+                            "intent_type": intent_type,
+                            "target": "dynamic",
+                            "ui_action": ui_action,
+                            "category": category,
+                            "action": action_val
+                        }
+                    )
+
     # 76.3: Optimization - Cached Dynamic Merge
     # Create a stable key for the cache based on the mapping content
     map_hash = hash(str(dynamic_mapping)) if dynamic_mapping else 0
@@ -123,6 +212,9 @@ async def heuristic_classify(
             # Normalize and merge only once per mapping change
             merged_target_keywords = {**NORM_TARGET_KEYWORDS}
             for tgt, kws in dynamic_mapping.items():
+                # V77: Skip direct string mappings in the merge loop
+                if not isinstance(kws, list): continue
+                
                 norm_kws = [normalize_vn(kw) for kw in kws]
                 if tgt in merged_target_keywords:
                     merged_target_keywords[tgt] = _merge_lists(merged_target_keywords[tgt], norm_kws)
@@ -255,6 +347,7 @@ async def heuristic_classify(
             "category": "Dạ sếp, em mở quản lý danh mục cho sếp ngay đây ạ.",
             "news":     "Dạ sếp, em mở quản lý bài viết cho sếp ngay đây ạ.",
             "settings": "Dạ sếp, em mở cài đặt giọng nói cho sếp ngay đây ạ.",
+            "campaign": "Dạ sếp, em mở Content Factory cho sếp ngay đây ạ.",
         }
         response_msg = nav_msg_map.get(target, "")
     else:

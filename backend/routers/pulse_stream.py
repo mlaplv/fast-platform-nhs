@@ -45,6 +45,9 @@ class PulseStreamController(Controller):
                     except asyncio.TimeoutError:
                         # Send keep-alive
                         yield b": ping\n\n"
+            except asyncio.CancelledError:
+                # Handle client disconnection gracefully without logging as an error
+                logger.info("[PulseStream] Client connection cancelled (normal disconnection).")
             except Exception as e:
                 logger.error(f"[PulseStream] Connection error: {e}")
             finally:

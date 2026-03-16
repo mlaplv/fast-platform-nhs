@@ -24,6 +24,7 @@ interface PulseDeps {
       source?: "text" | "voice",
       routerTier?: number
     ) => void;
+    clearVuiResponse: () => void;
   };
   log: {
     activityLogs: SystemLog[];
@@ -93,23 +94,25 @@ export function createPulseManager(
               const topicData = (newData.topic_data || {}) as Record<string, unknown>;
               const keywordsData = (newData.keywords || {}) as Record<string, unknown>;
 
-              voice.vuiResponse.data = {
-                  ...current,
-                  progress_msg: contentPayload.message,
-                  status: "PROCESSING",
-                  step: contentPayload.step,
-                  keywords: (newData.keywords || newData.topic_data || current.keywords) as CampaignData["keywords"],
-                  assets: normalizeAssets(newData.assets || newData.assets_data || current.assets),
-                  outline: (newData.outline || newData.outline_data || current.outline) as CampaignData["outline"],
-                  draft_content: (newData.draft_content || current.draft_content) as string,
-                  selectedAvatarUrl: (goldMeta.avatar as string) || current.selectedAvatarUrl || null,
-                  selectedAssetIndex: (goldMeta.selected_index as number) ?? current.selectedAssetIndex ?? 0,
-                  reserve_assets: normalizeAssets((goldMeta.reserve_assets as string[]) || current.reserve_assets),
-                  creation_config: (goldMeta.creation_config as Record<string, unknown>) ||
-                                   (topicData.creation_config as Record<string, unknown>) ||
-                                   (keywordsData.creation_config as Record<string, unknown>) ||
-                                   current.creation_config || {}
-              } as unknown as Record<string, unknown>;
+              if (voice.vuiResponse) {
+                voice.vuiResponse.data = {
+                    ...current,
+                    progress_msg: contentPayload.message,
+                    status: "PROCESSING",
+                    step: contentPayload.step,
+                    keywords: (newData.keywords || newData.topic_data || current.keywords) as CampaignData["keywords"],
+                    assets: normalizeAssets(newData.assets || newData.assets_data || current.assets),
+                    outline: (newData.outline || newData.outline_data || current.outline) as CampaignData["outline"],
+                    draft_content: (newData.draft_content || current.draft_content) as string,
+                    selectedAvatarUrl: (goldMeta.avatar as string) || current.selectedAvatarUrl || null,
+                    selectedAssetIndex: (goldMeta.selected_index as number) ?? current.selectedAssetIndex ?? 0,
+                    reserve_assets: normalizeAssets((goldMeta.reserve_assets as string[]) || current.reserve_assets),
+                    creation_config: (goldMeta.creation_config as Record<string, unknown>) ||
+                                     (topicData.creation_config as Record<string, unknown>) ||
+                                     (keywordsData.creation_config as Record<string, unknown>) ||
+                                     current.creation_config || {}
+                } as unknown as Record<string, unknown>;
+              }
             }
 
             const existingLogs = [...log.activityLogs];
@@ -202,6 +205,21 @@ export function createPulseManager(
             });
           }
           startSmartPolling();
+        } else if (eventName === "CONTENT_CHUNK") {
+          // CNS V76.8: Real-time Neural Streaming Support
+          const chunkPayload = payload as { campaign_id: string; text: string; step: number };
+          if (voice?.vuiResponse?.data?.campaign_id === chunkPayload.campaign_id) {
+             const currentData = voice.vuiResponse.data as Record<string, any>;
+             const existingContent = (currentData.draft_content || "");
+             
+             // Append chunk to the draft_content to trigger UI reactivity in DraftStep
+             voice.vuiResponse.data = {
+               ...currentData,
+               draft_content: existingContent + chunkPayload.text,
+               step: chunkPayload.step || currentData.step,
+               status: "PROCESSING"
+             };
+          }
         } else if (eventName === "SYSTEM_SIGNAL") {
           const signalPayload = payload as PulseSignal;
           const { message, severity, notification_id } = signalPayload;
@@ -233,6 +251,25 @@ export function createPulseManager(
               vuiController.playNotificationPing();
             }).catch(() => {});
           }
+        } else if (eventName === "CAMPAIGN_PURGED") {
+          const purgePayload = payload as { campaign_id: string; type?: string; action?: string };
+          const cid = purgePayload.campaign_id;
+          
+          // 1. Surgical Log Removal
+          const logs = [...log.activityLogs];
+          const filtered = logs.filter(l => l.data?.campaign_id !== cid);
+          if (filtered.length !== logs.length) {
+            log.setActivityLogs(filtered);
+          }
+
+          // 2. VUI State Neutralization
+          if (voice.vuiResponse?.data?.campaign_id === cid) {
+            voice.clearVuiResponse();
+            vuiState.setActive(false);
+            vuiState.setPhase("idle");
+          }
+
+          ui.showToast("Chiến dịch đã được quét sạch khỏi hệ thống.", "success");
         }
       } catch (err) {
         // Fallback error handling if structure is broken

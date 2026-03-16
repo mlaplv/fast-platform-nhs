@@ -31,8 +31,8 @@ NORM_YES_KEYWORDS = {normalize_vn(kw) for kw in YES_KEYWORDS}
 NORM_NO_KEYWORDS = {normalize_vn(kw) for kw in NO_KEYWORDS}
 NORM_NAV_KEYWORDS = {normalize_vn(kw) for kw in NAV_KEYWORDS}
 
-WAKE_TRIGGERS = ["xohi"]
-SLEEP_TRIGGERS = ["cut", "ngu di", "thoat", "tam biet", "bye", "chao"]
+WAKE_TRIGGERS = ["xohi", "so hi", "xo hi", "số hi", "xố hỉ", "số hỉ", "so huy", "số huy", "chao", "xin chao"]
+SLEEP_TRIGGERS = ["cut", "ngu di", "thoat", "tam biet", "bye"]
 NORM_WAKE_TRIGGERS = [normalize_vn(kw) for kw in WAKE_TRIGGERS]
 NORM_SLEEP_TRIGGERS = [normalize_vn(kw) for kw in SLEEP_TRIGGERS]
 
@@ -146,10 +146,7 @@ class RouterOrchestrator:
         normalized_transcript = normalize_vn(transcript_lower)
         trans_pho = normalized_transcript.replace("k", "c").replace("q", "c")
 
-        # Check sleep/exit commands first to avoid any delay
-        is_sleep = _match_trigger(NORM_SLEEP_TRIGGERS, normalized_transcript, trans_pho=trans_pho)
-        if is_sleep:
-             return IntentResponse(status="success", action=IntentAction.READ, message="Hẹn gặp lại sếp.", router_tier=RouterTier.TIER_1_HEURISTIC, data={"category": "SESSION_CTRL", "action": "HARDWARE_SLEEP", "confidence": 1.0}, cost_tokens=0.0)
+        # Check persistent context from xohi_memory
 
         # Phase 76.3: Atomic Aggregation (Rule R82.25)
         orchestrator_ctx = await xohi_memory.get_full_orchestrator_context(user_id)
@@ -200,35 +197,83 @@ class RouterOrchestrator:
                 logger.debug(f"[T1.5 Neural Wake] MATCHED via semantics: {sem_intent} (score={sem_score:.2f})")
 
         if is_wake:
-            # 0.5.3: Proactive Resume Check (Rule R81)
-            # If sếp just wakes XoHi, check if there's an active campaign to report
-            try:
-                async with async_session_maker() as session:
-                    repo = ContentCampaignRepository(session=session)
-                    active = await content_factory.get_active_campaign(repo)
-                    if active:
-                        resume_msg = content_factory.format_resume_greeting(active)
-                        logger.info(f"[Proactive Resume] Found active campaign {active.id}, hijacking greeting.")
-                        return IntentResponse(
-                            status="success", action=IntentAction.READ,
-                            message=resume_msg,
-                            router_tier=RouterTier.TIER_1_HEURISTIC,
-                            data={
-                                "category": "CONTENT_CREATE",
-                                "action": "RESUME_ROUTINE",
-                                "campaign_id": active.id,
-                                "step": active.current_step,
-                                "status": active.status
-                            },
-                            cost_tokens=0.0
-                        )
-            except Exception as e:
-                logger.warning(f"[Proactive Resume] Check failed: {e}")
+            # Phase 77.4: Check for continuation (Significant Content Policy)
+            # If the user said "XoHi, do X", we strip "XoHi" and continue to Tier 1.1
+            remaining_transcript = transcript
+            matched_any = False
+            
+            # Recursive stripping of wake words (Case: "Chào XoHi, ...")
+            while True:
+                stripped_in_loop = False
+                rem_lower = remaining_transcript.lower()
+                rem_norm = normalize_vn(rem_lower)
+                
+                for w in (wake_words + WAKE_TRIGGERS):
+                    w_norm = normalize_vn(w.lower())
+                    if rem_norm.startswith(w_norm):
+                        # Find the actual length in the raw string to slice correctly
+                        # Use a simple space-based word count or just find the end of the first word
+                        # But wake words can be multi-word (e.g. "xin chao")
+                        # A safer way: since we know it starts with w_norm, we find how many chars of 
+                        # remaining_transcript map to that w_norm.
+                        # For now, a practical heuristic: split by space and check words
+                        w_words = w.split()
+                        raw_split = remaining_transcript.split(None, len(w_words))
+                        if len(raw_split) >= len(w_words):
+                            # Ensure the first N words actually match the wake word semantically
+                            # (already guaranteed by startswith check on norm)
+                            remaining_transcript = raw_split[-1] if len(raw_split) > len(w_words) else ""
+                            remaining_transcript = remaining_transcript.strip(", ").strip()
+                            stripped_in_loop = True
+                            matched_any = True
+                            break
+                if not stripped_in_loop:
+                    break
 
-            return IntentResponse(status="success", action=IntentAction.READ, message=DEFAULT_GREETING, router_tier=RouterTier.TIER_1_HEURISTIC, data={"category": "SESSION_CTRL", "action": "WAKE_ROUTINE", "confidence": 1.0}, cost_tokens=0.0)
+            if matched_any and remaining_transcript:
+                logger.debug(f"[T1 Wake] Continuation detected. Stripping wake(s) and proceeding: '{remaining_transcript}'")
+                transcript = remaining_transcript
+                # Reset normalization for the cleaned transcript
+                transcript_lower = transcript.lower()
+                normalized_transcript = normalize_vn(transcript_lower)
+                # Proceed to Tier 1.1 below
+            elif matched_any and not remaining_transcript:
+                # Standalone wake - proceed to proactive resume logic exactly once
+                pass 
+            
+            if not remaining_transcript:
+                # 0.5.3: Proactive Resume Check (Rule R81)
+                # If sếp just wakes XoHi, check if there's an active campaign to report
+                try:
+                    async with async_session_maker() as session:
+                        repo = ContentCampaignRepository(session=session)
+                        active = await content_factory.get_active_campaign(repo)
+                        if active:
+                            resume_msg = content_factory.format_resume_greeting(active)
+                            logger.info(f"[Proactive Resume] Found active campaign {active.id}, hijacking greeting.")
+                            return IntentResponse(
+                                status="success", action=IntentAction.READ,
+                                message=resume_msg,
+                                router_tier=RouterTier.TIER_1_HEURISTIC,
+                                data={
+                                    "category": "CONTENT_CREATE",
+                                    "action": "RESUME_ROUTINE",
+                                    "campaign_id": active.id,
+                                    "step": active.current_step,
+                                    "status": active.status
+                                },
+                                cost_tokens=0.0
+                            )
+                except Exception as e:
+                    logger.warning(f"[Proactive Resume] Check failed: {e}")
+
+                return IntentResponse(status="success", action=IntentAction.READ, message=DEFAULT_GREETING, router_tier=RouterTier.TIER_1_HEURISTIC, data={"category": "SESSION_CTRL", "action": "WAKE_ROUTINE", "confidence": 1.0}, cost_tokens=0.0)
         
+        is_sleep = _match_trigger(NORM_SLEEP_TRIGGERS, normalized_transcript, trans_pho=trans_pho)
         if is_sleep:
-            return IntentResponse(status="success", action=IntentAction.READ, message="Hẹn gặp lại sếp.", router_tier=RouterTier.TIER_1_HEURISTIC, data={"category": "SESSION_CTRL", "action": "HARDWARE_SLEEP", "confidence": 1.0}, cost_tokens=0.0)
+            # Stricter standalone check for sleep
+            if len(transcript.split()) <= 2:
+                return IntentResponse(status="success", action=IntentAction.READ, message="Hẹn gặp lại sếp.", router_tier=RouterTier.TIER_1_HEURISTIC, data={"category": "SESSION_CTRL", "action": "HARDWARE_SLEEP", "confidence": 1.0}, cost_tokens=0.0)
 
         # --- PHASE 1: INTERACTIVE STT LEARNING (MOLBOOK STYLE) ---
         if ctx.get("is_confirming_stt"):
@@ -305,7 +350,7 @@ class RouterOrchestrator:
                 heur_res = await self._heuristic_classify(
                     cleaned_transcript.lower(),
                     user_id,
-                    ctx=ctx, # Pass Redis context
+                    ctx={**ctx, "profile": user_profile}, # Pass context with profile
                     intent_map=intent_map,
                     norm_query=normalized_transcript
                 )
@@ -357,6 +402,16 @@ class RouterOrchestrator:
             transcript = cleaned_transcript        
         
         combined_lower = transcript.lower()
+        # 1.1 TIER 1.1: Heuristic Fallback (Zen Path, 0-Token, <1ms)
+        # Classify straightforward patterns / learned commands BEFORE fuzzy semantics
+        result = await self._heuristic_classify(combined_lower, user_id, ctx={**ctx, "profile": user_profile}, intent_map=intent_map, norm_query=normalized_transcript)
+        if result:
+            logger.info(f"[Heuristic Priority] HIT: {result.data.get('intent_type')}")
+            # Update last context
+            ctx["last_target"] = result.data.get("target")
+            ctx["last_timeframe"] = result.data.get("timeframe")
+            await xohi_memory.set_user_context(user_id, ctx)
+            return result
 
         # 1.5 TIER 1.5: Embedding Semantic Classify (~50ms, 0-Token)
         try:
@@ -419,13 +474,6 @@ class RouterOrchestrator:
             result = await self.t2_router.extract(transcript, context=context, screen_context=screen_context)
         except Exception as e:
             logger.error(f"[T2] Dispatch Failure: {e}")
-
-        # 3. T2 FAILED → HEURISTIC FALLBACK (0-Token, <1ms)
-        #    Classify straightforward queries by keyword WITHOUT LLM
-        if not result:
-            result = await self._heuristic_classify(combined_lower, user_id, ctx=ctx, intent_map=intent_map)
-            if result:
-                logger.debug(f"[Heuristic Fallback] Classified: {result.data}")
 
         # Update persistent context for VUI Continuity (Phase 76.4)
         if result and result.status == "success":
@@ -507,6 +555,49 @@ class RouterOrchestrator:
         class_action_str = classification.action.value if hasattr(classification.action, "value") else str(classification.action)
         modality = kwargs.get("modality", "text")
         m_tag = "v" if modality == "voice" else "c"
+
+        if intent_type == "LEARN_COMMAND":
+            logger.info(f"[C.O.R.E][{m_tag}] Learning new command: '{intent_data.get('learn_keyword')}' -> '{intent_data.get('learn_target')}'")
+            # Phase 77.1: Normalize keyword to ensure Zen Path hit
+            learn_kw = normalize_vn(intent_data.get("learn_keyword", "").lower())
+            learn_tgt = intent_data.get("learn_target")
+            
+            if learn_kw and learn_tgt:
+                # Target to Widget Map (Phase 77.1: Dynamic & Session Resolution)
+                target_map = {
+                    "chiến dịch": "show_campaigns", "campaign": "show_campaigns", "camp": "show_campaigns",
+                    "chương dịch": "show_campaigns", "cam": "show_campaigns",
+                    "đơn hàng": "show_order_management", "order": "show_order_management",
+                    "sản phẩm": "show_product_management", "product": "show_product_management",
+                    "nhân viên": "show_user_management", "user": "show_user_management", "khách hàng": "show_user_management",
+                    "danh mục": "show_category_management", "category": "show_category_management",
+                    "doanh thu": "show_revenue_chart", "revenue": "show_revenue_chart", "tiền": "show_revenue_chart",
+                    "tin tức": "show_news_management", "news": "show_news_management", "bài viết": "show_news_management",
+                    "cài đặt": "show_voice_settings", "settings": "show_voice_settings",
+                    # Phase 77.1: Session & Identity Aliases
+                    "tạm biệt": "HARDWARE_SLEEP", "đi ngủ": "HARDWARE_SLEEP", "ngủ": "HARDWARE_SLEEP", "cút": "HARDWARE_SLEEP",
+                    "lời chào": "WAKE_ROUTINE", "chào": "WAKE_ROUTINE", "mày là ai": "WAKE_ROUTINE", "identity": "WAKE_ROUTINE"
+                }
+                
+                resolved_widget = target_map.get(learn_tgt.lower(), learn_tgt)
+                
+                # Persist to Redis
+                current_map = await xohi_memory.get_system_intent_mapping()
+                is_update = learn_kw in current_map
+                current_map[learn_kw] = resolved_widget
+                await xohi_memory.set_system_intent_mapping(current_map)
+                
+                verb = "cập nhật" if is_update else "ghi nhớ"
+                msg = f"Dạ sếp, em đã {verb} lệnh mới. Từ nay mỗi khi sếp bảo '{learn_kw}' thì em sẽ mở '{learn_tgt}' ngay ở Tier 1 (Zen Path) ạ!"
+                return IntentResponse(
+                    status="success",
+                    action=IntentAction.READ,
+                    message=msg,
+                    router_tier=RouterTier.TIER_1_HEURISTIC,
+                    cost_tokens=classification.cost_tokens,
+                    data={"intent_type": "LEARN_SUCCESS", "keyword": learn_kw, "widget": resolved_widget, "is_update": is_update}
+                )
+            return self._error_response("Dạ sếp, em chưa nghe rõ sếp muốn dạy gì ạ.")
 
         if intent_type == "DEEP_ANALYSIS" or intent_type == "UNKNOWN" or class_action_str == "ANALYZE":
             logger.debug(f"[C.O.R.E][{m_tag}] Executing T3 Reasoning (intent_type={intent_type})")

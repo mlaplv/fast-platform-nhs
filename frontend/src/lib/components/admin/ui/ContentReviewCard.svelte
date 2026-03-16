@@ -170,17 +170,21 @@
 
   // Rule R82.42: Reactive Prep — Ensure editedDraft is ready for next steps
   $effect(() => {
-    // CNS V73.8: More aggressive sync if local editedDraft is empty
-    // CNS V73.8: More aggressive sync if local editedDraft is empty
+    // CNS V73.8: More aggressive sync for real-time streaming (Step 4 & 6)
     const source = draft_content || finalHtml || "";
+    
+    // During Step 4 generation (status === "PROCESSING"), we must mirror source directly to editedDraft
+    // to allow the Tiptap editor to show the stream.
+    // If not editing, we always prefer the latest source from backend pulse.
     if (!isEditing && source && (source !== editedDraft || !editedDraft)) {
-      editedDraft = source;
+      untrack(() => {
+        editedDraft = source;
+      });
     }
     
-    // R102: Mirroring to prevent vanishing editor content in Step 6
-    if (source) {
-      if (!draft_content) draft_content = source;
-      if (!finalHtml) finalHtml = source;
+    // R102: Content integrity safeguard
+    if (source && !draft_content) {
+      untrack(() => { draft_content = source; });
     }
   });
 
