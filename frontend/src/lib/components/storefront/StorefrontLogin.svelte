@@ -69,6 +69,7 @@
         sessionStorage.setItem("user_token", access_token);
       }
 
+      sessionStorage.setItem("xohi_just_logged_in", "true");
       window.location.href = "/";
     } catch (e: unknown) {
       const err = e as Error;

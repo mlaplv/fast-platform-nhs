@@ -94,6 +94,7 @@
       }
       
       // V70.2: Use soft navigation to preserve Audio Context and SSE connections
+      sessionStorage.setItem("xohi_just_logged_in", "true");
       await goto("/");
       nanobot.forceHydration();
     } catch (e: unknown) {

@@ -99,25 +99,31 @@ export function createSyncManager(
     notification.fetchNotifications();
     chat.hydrateHistory("account", (logs: SystemLog[]) => {
       log.upsertLogs(logs);
-      const uniqueLogs = log.activityLogs;
-      const pending = [...uniqueLogs].reverse().find((l: SystemLog) =>
-        l.data?.campaign_id &&
-        l.data?.status !== "COMPLETED" &&
-        (l.data?.status === "WAITING_FOR_REVIEW" || l.data?.status === "PROCESSING" || (parseInt(String(l.data?.step || 0)) < 6))
-      );
+      
+      const justLoggedIn = sessionStorage.getItem("xohi_just_logged_in") === "true";
+      sessionStorage.removeItem("xohi_just_logged_in");
 
-      if (pending) {
-        setTimeout(() => resumeManager.internalResumeCampaign(pending, true), 1200);
-      } else {
-        setTimeout(() => {
-          import("$lib/vui").then(({ vuiController, vuiState }) => {
-            const userName = (permissionState as { userName?: string })?.userName || "Bạn";
-            vuiState.setActive(true);
-            vuiState.setPhase("idle");
-            vuiController.playNotificationPing();
-            setTimeout(() => vuiController.speak(`Chào mừng ${userName} trở lại. Hệ thống đã sẵn sàng.`), 800);
-          }).catch(() => {});
-        }, 1500);
+      if (justLoggedIn) {
+        const uniqueLogs = log.activityLogs;
+        const pending = [...uniqueLogs].reverse().find((l: SystemLog) =>
+          l.data?.campaign_id &&
+          l.data?.status !== "COMPLETED" &&
+          (l.data?.status === "WAITING_FOR_REVIEW" || l.data?.status === "PROCESSING" || (parseInt(String(l.data?.step || 0)) < 6))
+        );
+
+        if (pending) {
+          setTimeout(() => resumeManager.internalResumeCampaign(pending, true), 1200);
+        } else {
+          setTimeout(() => {
+            import("$lib/vui").then(({ vuiController, vuiState }) => {
+              const userName = (permissionState as { userName?: string })?.userName || "Bạn";
+              vuiState.setActive(true);
+              vuiState.setPhase("idle");
+              vuiController.playNotificationPing();
+              setTimeout(() => vuiController.speak(`Chào mừng ${userName} trở lại. Hệ thống đã sẵn sàng.`), 800);
+            }).catch(() => {});
+          }, 1500);
+        }
       }
 
       if (logs.some((l: SystemLog) => l.data?.status === "PROCESSING")) startSmartPolling();
