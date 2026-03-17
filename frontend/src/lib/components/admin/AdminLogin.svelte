@@ -16,6 +16,7 @@
   import { fallbackSha256 } from "$lib/utils/cryptoFallback";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { goto } from "$app/navigation";
+  import XohiLogo from "$lib/components/admin/XohiLogo.svelte";
 
   let email = $state("");
   let password = $state("");
@@ -145,27 +146,8 @@
     >
       <!-- BRANDING HEADER -->
       <div class="text-center mb-10">
-        <div class="relative inline-block group">
-          <div
-            class="absolute inset-0 bg-cyan-400 blur-xl opacity-20 group-hover:opacity-40 transition-opacity"
-          ></div>
-          <div
-            class="relative inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-black/40 backdrop-blur-md border border-cyan-500/30 shadow-2xl transition-transform hover:scale-110 duration-500 overflow-hidden"
-          >
-            <div class="absolute inset-0 flex items-center justify-center">
-              <div
-                class="w-full h-[1px] bg-cyan-400/50 absolute top-0 animate-[scan_3s_linear_infinite]"
-              ></div>
-            </div>
-            <div class="absolute inset-0 flex items-center justify-center p-3 rounded-full overflow-hidden">
-               <img 
-                 src="/hamster-icon.png" 
-                 alt="Hamster Core" 
-                 class="w-full h-full object-contain rounded-full animate-[pulse_4s_ease-in-out_infinite]"
-                 style="filter: drop-shadow(0 0 10px rgba(34,211,238,0.6)); clip-path: circle(50%)"
-               />
-            </div>
-          </div>
+        <div class="relative inline-block mb-4">
+          <XohiLogo size="xl" interactive={true} />
         </div>
         <h1
           class="text-4xl font-black mt-6 tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-500"

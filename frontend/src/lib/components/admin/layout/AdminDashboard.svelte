@@ -64,15 +64,7 @@
     class="fixed inset-0 bg-[#050505] flex items-center justify-center z-[100]"
   >
     <div class="flex flex-col items-center gap-4">
-      <div class="relative w-16 h-16 flex items-center justify-center">
-        <div class="absolute inset-0 border-2 border-[#00FFFF]/10 border-t-[#00FFFF] rounded-full animate-spin"></div>
-        <img 
-          src="/hamster-icon.png" 
-          alt="Xohi" 
-          class="w-10 h-10 object-contain animate-pulse rounded-full"
-          style="filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.4)); clip-path: circle(50%)"
-        />
-      </div>
+      <XohiLogo size="lg" status="THINKING" />
       <span
         class="text-[10px] font-mono text-[#00FFFF]/40 uppercase tracking-[0.5em] animate-pulse"
         >Initializing Hamster OS...</span
