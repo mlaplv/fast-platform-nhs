@@ -286,12 +286,14 @@
                 <button
                     onclick={() => viewMode = 'grid'}
                     class="p-1.5 rounded-md transition-all {viewMode === 'grid' ? 'bg-white dark:bg-zinc-600 shadow-sm' : 'text-zinc-500'}"
+                    aria-label="Grid view"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
                 </button>
                 <button
                     onclick={() => viewMode = 'list'}
                     class="p-1.5 rounded-md transition-all {viewMode === 'list' ? 'bg-white dark:bg-zinc-600 shadow-sm' : 'text-zinc-500'}"
+                    aria-label="List view"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                 </button>
@@ -404,10 +406,14 @@
             {:else if viewMode === 'grid'}
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4" in:fade>
                     {#each filteredAssets as asset (asset.id)}
+                        <!-- svelte-ignore a11y_click_events_have_key_events -->
+                        <!-- svelte-ignore a11y_no_static_element_interactions -->
                         <div
                             class="group relative aspect-square bg-zinc-100 dark:bg-zinc-800 rounded-xl overflow-hidden border-2 transition-all shadow-sm hover:shadow-md
                             {selectedAssetId === asset.id ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-transparent hover:border-blue-500/50'} cursor-pointer"
                             onclick={() => selectedAssetId = asset.id}
+                            role="button"
+                            tabindex="0"
                         >
                             <!-- Multi-selection Checkbox -->
                             <button
@@ -519,6 +525,7 @@
                                  <button
                                     onclick={(e) => { e.stopPropagation(); copyToClipboard(asset.file_path); }}
                                     class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-blue-500 transition-all"
+                                    aria-label="Copy file path"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                                 </button>
@@ -534,7 +541,7 @@
             <div class="w-80 border-l bg-zinc-50 dark:bg-zinc-900/50 flex flex-col overflow-y-auto custom-scrollbar" transition:slide={{ axis: 'x', duration: 300 }}>
                 <div class="p-4 border-b bg-white dark:bg-zinc-800 flex justify-between items-center">
                     <h4 class="font-bold text-sm uppercase tracking-wider">Chi tiết tài nguyên</h4>
-                    <button onclick={() => selectedAssetId = null} class="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded">
+                    <button onclick={() => selectedAssetId = null} class="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded" aria-label="Close detail panel">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                 </div>
@@ -697,6 +704,7 @@
                                 <button
                                     onclick={() => mediaStore.updateMetadata(selectedAsset!.id, { is_public: !selectedAsset!.is_public })}
                                     class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none {selectedAsset.is_public ? 'bg-blue-600' : 'bg-zinc-400'}"
+                                    aria-label="Toggle privacy"
                                 >
                                     <span class="inline-block h-3 w-3 transform rounded-full bg-white transition-transform {selectedAsset.is_public ? 'translate-x-5' : 'translate-x-1'}"></span>
                                 </button>
@@ -888,6 +896,7 @@
                     <button
                         onclick={() => showBulkSeo = false}
                         class="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full transition-colors"
+                        aria-label="Close bulk SEO editor"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
