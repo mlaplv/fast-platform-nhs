@@ -127,7 +127,7 @@
         />
 
         <image
-          xlink:href="/hamster-core.png"
+          xlink:href="/hamster-icon.png"
           x="105"
           y="105"
           width="70"

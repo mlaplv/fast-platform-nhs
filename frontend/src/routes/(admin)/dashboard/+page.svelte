@@ -84,7 +84,7 @@
         <div class="relative w-20 h-20 flex items-center justify-center">
             <div class="absolute inset-0 border-4 border-blue-500/10 border-t-blue-500 rounded-full animate-spin"></div>
             <img 
-              src="/hamster-core.png" 
+              src="/hamster-icon.png" 
               alt="Hamster" 
               class="w-12 h-12 object-contain animate-pulse rounded-full"
               style="filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.5)); clip-path: circle(50%)"

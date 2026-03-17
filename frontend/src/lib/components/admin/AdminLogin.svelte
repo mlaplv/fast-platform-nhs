@@ -159,7 +159,7 @@
             </div>
             <div class="absolute inset-0 flex items-center justify-center p-3 rounded-full overflow-hidden">
                <img 
-                 src="/hamster-core.png" 
+                 src="/hamster-icon.png" 
                  alt="Hamster Core" 
                  class="w-full h-full object-contain rounded-full animate-[pulse_4s_ease-in-out_infinite]"
                  style="filter: drop-shadow(0 0 10px rgba(34,211,238,0.6)); clip-path: circle(50%)"
