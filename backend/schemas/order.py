@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validator
-from typing import Optional, List, Any
+from typing import Optional, List, Union, Dict
 from datetime import datetime
 
 
@@ -13,7 +13,7 @@ class OrderItem(BaseModel):
 
 class OrderCreateRequest(BaseModel):
     model_config = ConfigDict(strict=True)
-    items: List[dict] # Simplified for now as items can be complex JSON
+    items: List[Dict[str, Union[str, int, float, bool, None]]] # Simplified for now as items can be complex JSON
     total_amount: float = Field(..., ge=0)
     customer_name: str = Field(..., min_length=1, max_length=200)
     customer_email: str = Field(..., min_length=3, max_length=200)
@@ -38,14 +38,14 @@ class OrderResponse(BaseModel):
     customerName: str = Field("Storefront Customer", alias="customer_name")
     status: str
     total: float = Field(..., alias="total_amount")
-    items: Any # Can be list of items or count depending on context
+    items: Union[List[OrderItem], int] # Can be list of items or count depending on context
     createdAt: datetime = Field(alias="created_at")
     cancellationReason: Optional[str] = Field(None, alias="cancellation_reason")
     isSpam: bool = Field(False, alias="is_spam")
     spamScore: float = Field(0.0, alias="spam_score")
     spamReason: Optional[str] = Field(None, alias="spam_reason")
     fingerprint: Optional[str] = None
-    history: List[dict] = Field(default_factory=list)
+    history: List[Dict[str, Union[str, int, float, bool, None]]] = Field(default_factory=list)
 
     @field_validator("id", mode="before")
     @classmethod

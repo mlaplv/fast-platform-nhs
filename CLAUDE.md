@@ -33,7 +33,11 @@
 
 ## 🏗️ I. ĐỊA BÀN & HIỆU NĂNG (ULTRA-LEAN ARCHITECTURE)
 
-- **Backend Logic:** `/backend/services/` (C.O.R.E Engine).
+- **Backend Architecture (Onion/Hexagonal chuẩn Elite V2.2):**
+  - 🌐 `backend/api/` (API V1, Controllers, Schemas dùng chung). Tuyệt đối KHÔNG đặt schemas ngoài root.
+  - ⚙️ `backend/core/` (Security, Constants, Utils). Tuyệt đối KHÔNG đặt thư mục utils ngoài root.
+  - 💾 `backend/database/` (SQLAlchemy Models, Repositories, Migrations).
+  - 🧠 `backend/services/` (C.O.R.E Engine - Nơi chứa logic nghiệp vụ, Routing, AI).
 - **Frontend State:** `/frontend/src/lib/state/` (Nanobot Store).
 - **Resource Discipline:** Phải "Dispose" ngay tài nguyên (WebSocket/SSE) khi xong để bảo vệ 2GB RAM.
 - **Ultra-Fast UX:** Phản hồi <200ms. Luôn có Loading cho tác vụ dài. Cấm Request trùng lặp (Double-call).
