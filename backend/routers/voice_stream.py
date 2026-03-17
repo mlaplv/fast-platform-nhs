@@ -11,10 +11,19 @@ import re
 import logging
 import asyncio
 import unicodedata
+import time
+import uuid
+import hashlib
 from litestar import WebSocket, websocket
 from backend.services.xohi_memory import xohi_memory
+from backend.database.alchemy_config import alchemy_config
+from backend.database.repositories import AgentTelemetryLogRepository
+from backend.database.models.system import AgentTelemetryLog
 
 logger = logging.getLogger("api-gateway")
+
+# Database session maker for background telemetry logs
+async_session_maker = alchemy_config.create_session_maker()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 WHISPER_MODEL = "groq/whisper-large-v3-turbo"
@@ -42,7 +51,10 @@ DOT_HALLUCINATION_RE = re.compile(r'^\.+$')
 async def stt_websocket(socket: WebSocket) -> None:
     """WebSocket endpoint: receive audio chunks, transcribe via Groq Whisper."""
     await socket.accept()
-    logger.info("[STT] Client connected")
+    
+    # Try to extract session_id from query params or generate a new one
+    session_id = socket.query_params.get("session_id", str(uuid.uuid4()))
+    logger.info(f"[STT] Client connected (session={session_id[:8]})")
 
     audio_buffer = bytearray()
     is_active = True
@@ -92,8 +104,23 @@ async def stt_websocket(socket: WebSocket) -> None:
                                         logger.info("[STT] Calling Groq Whisper via litellm...")
                                         user_info = getattr(socket.state, "user", None) or socket.scope.get("user")
                                         user_id = user_info.get("id") if isinstance(user_info, dict) else getattr(user_info, "id", None) if user_info else None
+                                        
+                                        t0 = time.monotonic()
                                         transcript = await _transcribe(bytes(audio_buffer), user_id)
-                                        logger.info(f"[STT] Final transcript received: '{transcript}'")
+                                        duration_ms = int((time.monotonic() - t0) * 1000)
+                                        
+                                        logger.info(f"[STT] Final transcript received in {duration_ms}ms: '{transcript}'")
+                                        
+                                        # Expert Monitoring: Save Telemetry
+                                        task = asyncio.create_task(_background_save_telemetry(
+                                            session_id=session_id,
+                                            agent_name="Groq-Whisper-STT",
+                                            duration_ms=duration_ms,
+                                            intent_hash=hashlib.sha256(transcript.encode()).hexdigest()[:16] if transcript else "empty"
+                                        ))
+                                        background_tasks.add(task)
+                                        task.add_done_callback(background_tasks.discard)
+
                                         await socket.send_json({
                                             "event": "final", 
                                             "text": transcript,
@@ -275,3 +302,31 @@ async def _transcribe(audio_data: bytes, user_id: str = None) -> str:
     except Exception as e:
         logger.error(f"[STT] Groq transcription failed: {e}")
         return ""
+
+
+async def _background_save_telemetry(
+    session_id: str,
+    agent_name: str,
+    duration_ms: int,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    cost_token: float = 0.0,
+    intent_hash: str = "stt_op"
+) -> None:
+    """Save performance metrics to database in background."""
+    try:
+        async with async_session_maker() as session:
+            repo = AgentTelemetryLogRepository(session=session)
+            await repo.add(AgentTelemetryLog(
+                id=str(uuid.uuid4()),
+                session_id=session_id,
+                agent_name=agent_name,
+                intent_hash=intent_hash,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                cost_token=cost_token,
+                duration_ms=duration_ms
+            ))
+            await session.commit()
+    except Exception as e:
+        logger.error(f"[STT Telemetry Error] {e}")

@@ -157,12 +157,12 @@
                 class="w-full h-[1px] bg-cyan-400/50 absolute top-0 animate-[scan_3s_linear_infinite]"
               ></div>
             </div>
-            <div class="absolute inset-0 flex items-center justify-center p-3">
+            <div class="absolute inset-0 flex items-center justify-center p-3 rounded-full overflow-hidden">
                <img 
                  src="/hamster-core.png" 
                  alt="Hamster Core" 
-                 class="w-full h-full object-contain animate-[pulse_4s_ease-in-out_infinite]"
-                 style="filter: drop-shadow(0 0 10px rgba(34,211,238,0.6))"
+                 class="w-full h-full object-contain rounded-full animate-[pulse_4s_ease-in-out_infinite]"
+                 style="filter: drop-shadow(0 0 10px rgba(34,211,238,0.6)); clip-path: circle(50%)"
                />
             </div>
           </div>

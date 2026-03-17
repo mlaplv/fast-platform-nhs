@@ -86,8 +86,8 @@
             <img 
               src="/hamster-core.png" 
               alt="Hamster" 
-              class="w-12 h-12 object-contain animate-pulse"
-              style="filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.5))"
+              class="w-12 h-12 object-contain animate-pulse rounded-full"
+              style="filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.5)); clip-path: circle(50%)"
             />
         </div>
     {:else}

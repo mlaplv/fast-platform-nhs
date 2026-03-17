@@ -6,10 +6,14 @@ export class WebSocketStream {
     this.endpointPath = endpointPath;
   }
 
-  private getEndpoint(): string {
+  private getEndpoint(queryParams?: Record<string, string>): string {
     if (typeof window === 'undefined') return this.endpointPath;
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    return `${protocol}//${window.location.host}${this.endpointPath}`;
+    const url = new URL(`${protocol}//${window.location.host}${this.endpointPath}`);
+    if (queryParams) {
+      Object.entries(queryParams).forEach(([key, val]) => url.searchParams.set(key, val));
+    }
+    return url.toString();
   }
 
   /**
@@ -19,7 +23,8 @@ export class WebSocketStream {
     onMessage: (data: Record<string, unknown>) => void,
     onOpen?: () => void,
     onClose?: () => void,
-    onError?: (err: Event) => void
+    onError?: (err: Event) => void,
+    queryParams?: Record<string, string>
   ): Promise<void> {
     this.disconnect(); // Đảm bảo đóng kết nối cũ
     
@@ -29,7 +34,7 @@ export class WebSocketStream {
           resolve();
           return;
         }
-        this.ws = new WebSocket(this.getEndpoint());
+        this.ws = new WebSocket(this.getEndpoint(queryParams));
 
         this.ws.onopen = () => {
           onOpen?.();

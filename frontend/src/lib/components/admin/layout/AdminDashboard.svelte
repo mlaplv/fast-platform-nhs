@@ -69,8 +69,8 @@
         <img 
           src="/hamster-core.png" 
           alt="Xohi" 
-          class="w-10 h-10 object-contain animate-pulse"
-          style="filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.4))"
+          class="w-10 h-10 object-contain animate-pulse rounded-full"
+          style="filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.4)); clip-path: circle(50%)"
         />
       </div>
       <span

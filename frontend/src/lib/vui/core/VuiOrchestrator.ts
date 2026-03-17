@@ -96,7 +96,12 @@ class VuiOrchestrator {
       this.audio!.playSystemSound('start');
       
       // Step 1: Connect WebSocket for STT streaming
-      await this.ws!.connect((data) => this.streamManager!.handleWsMessage(data));
+      const sessionId = nanobot.currentData?.session_id || "";
+      await this.ws!.connect(
+        (data) => this.streamManager!.handleWsMessage(data),
+        undefined, undefined, undefined,
+        { session_id: sessionId }
+      );
       
       // Step 2: Start MicrophoneEngine for sending WebM chunks to WS
       if (this.mic!.isActive()) this.mic!.stop();

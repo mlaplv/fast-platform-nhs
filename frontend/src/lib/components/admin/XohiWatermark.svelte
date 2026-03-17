@@ -133,8 +133,8 @@
           width="70"
           height="70"
           clip-path="url(#hamster-clip)"
-          class="transition-all duration-500"
-          style="filter: url(#hamster-reactive-filter) drop-shadow(0 0 15px {activeColor})"
+          class="transition-all duration-500 rounded-full"
+          style="filter: url(#hamster-reactive-filter) drop-shadow(0 0 15px {activeColor}); clip-path: circle(50%)"
         />
 
         {#if phase === 'thinking' || status === 'THINKING'}

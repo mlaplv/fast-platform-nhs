@@ -85,7 +85,7 @@
   <div
     class="w-6 h-6 rounded-full overflow-hidden border-2 transition-all duration-500 animate-[spin_6s_linear_infinite] {borderClass} {bgClass} {localStatus === 'THINKING' ? 'animate-pulse scale-110' : ''} {isGlow ? 'shadow-inner' : 'grayscale opacity-50'}"
   >
-    <img src="/hamster-core.png" alt="Hamster" class="w-full h-full object-cover" />
+    <img src="/hamster-core.png" alt="Hamster" class="w-full h-full object-cover rounded-full" style="clip-path: circle(50%)" />
   </div>
 
   <!-- Status Label (Admin Context) -->
