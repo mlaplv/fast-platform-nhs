@@ -209,7 +209,8 @@ class TrinityBridge:
         try:
             val = await self.rotator.client.get(self.success_model_key)
             return val if val else None
-        except Exception:
+        except Exception as e:
+            logger.debug(f"[TrinityBridge] Failed to get sticky model: {e}")
             return None
 
     async def _save_sticky_model(self, model_name: str):
@@ -217,8 +218,8 @@ class TrinityBridge:
         if self.rotator._use_redis:
             try:
                 await self.rotator.client.set(self.success_model_key, model_name)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"[TrinityBridge] Failed to save sticky model: {e}")
 
     def _create_model(self, model_name: str, api_key: str) -> GoogleModel:
         """Create a GoogleModel with the API key passed directly (no env race)."""

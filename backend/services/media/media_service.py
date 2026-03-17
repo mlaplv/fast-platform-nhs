@@ -2,8 +2,8 @@ import logging
 import os
 from typing import List, Optional, Dict, Union, cast
 from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models import MediaRegistry
-from backend.database.repositories import MediaRegistryRepository
 from backend.services.storage.manager import storage
 from backend.services.media.schemas import (
     MediaUpdateMetadata,
@@ -24,7 +24,7 @@ class MediaService:
 
     async def list_assets(
         self,
-        repo: MediaRegistryRepository,
+        session: AsyncSession,
         campaign_id: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
@@ -60,17 +60,17 @@ class MediaService:
         # Nếu không có search_query, dùng SQL query chuẩn cho nhanh
         if not search_query:
             count_stmt = select(func.count()).select_from(stmt.subquery())
-            total_count = await repo.session.execute(count_stmt)
+            total_count = await session.execute(count_stmt)
             total = total_count.scalar_one()
 
             stmt = stmt.order_by(MediaRegistry.created_at.desc()).limit(limit).offset(offset)
-            result = await repo.session.execute(stmt)
+            result = await session.execute(stmt)
             orm_assets = result.scalars().all()
             assets = [MediaAssetResponse.from_orm_model(a) for a in orm_assets]
         else:
             # AI Semantic Search Logic (R03 Evolution)
             # 1. Lấy toàn bộ assets của campaign/tenant để so khớp vector
-            result = await repo.session.execute(stmt)
+            result = await session.execute(stmt)
             all_assets = list(result.scalars().all())
             total = len(all_assets)
 
@@ -107,7 +107,7 @@ class MediaService:
                         # Cập nhật ngược lại DB để lần sau nhanh hơn (Surgical Background Update)
                         asset_meta.embedding = asset_vec_list
                         asset.media_metadata = asset_meta.model_dump()
-                        repo.session.add(asset)
+                        session.add(asset)
                     else:
                         asset_vec = np.array(asset_vec_data)
 
@@ -124,7 +124,7 @@ class MediaService:
                 assets = [MediaAssetResponse.from_orm_model(a) for a in assets]
 
                 # Commit embeddings nếu có cập nhật
-                await repo.session.commit()
+                await session.commit()
 
         return MediaListResult(
             items=list(assets),
@@ -136,14 +136,14 @@ class MediaService:
 
     async def update_metadata(
         self,
-        repo: MediaRegistryRepository,
+        session: AsyncSession,
         asset_id: str,
         metadata: MediaUpdateMetadata,
         owner_id: Optional[str] = None
     ) -> Optional[MediaRegistry]:
         """Cập nhật metadata (alt_text, AI tags...) cho ảnh."""
         from backend.services.media.schemas import MediaMetadata
-        asset = await repo.get_one_or_none(id=asset_id)
+        asset = await session.get(MediaRegistry, asset_id)
         if not asset:
             return None
 
@@ -171,18 +171,17 @@ class MediaService:
             new_meta_dict = {**current_meta.model_dump(), **update_dict}
             asset.media_metadata = new_meta_dict
 
-        await repo.update(asset)
-        await repo.session.commit()
+        await session.commit()
         return asset
 
-    async def delete_asset(self, repo: MediaRegistryRepository, asset_id: str, permanent: bool = False, owner_id: Optional[str] = None) -> bool:
+    async def delete_asset(self, session: AsyncSession, asset_id: str, permanent: bool = False, owner_id: Optional[str] = None) -> bool:
         """
         Xóa tài nguyên.
         Mặc định là Soft-delete (V10.0 Trash Bin).
         Nếu permanent=True sẽ xóa vĩnh viễn file vật lý và DB.
         """
         try:
-            asset = await repo.get_one_or_none(id=asset_id)
+            asset = await session.get(MediaRegistry, asset_id)
             if not asset:
                 return False
 
@@ -194,23 +193,22 @@ class MediaService:
             if permanent:
                 # Xóa file vật lý qua Storage Provider (Local/S3/R2)
                 await storage.delete(asset.file_path)
-                await repo.delete(asset_id)
+                await session.delete(asset)
             else:
                 # Soft-delete
                 from datetime import datetime, timezone
                 asset.deleted_at = datetime.now(timezone.utc)
-                await repo.update(asset)
 
-            await repo.session.commit()
+            await session.commit()
             return True
         except Exception as e:
             logger.error(f"[MediaService] Failed to delete asset {asset_id}: {e}")
             return False
 
-    async def restore_asset(self, repo: MediaRegistryRepository, asset_id: str, owner_id: Optional[str] = None) -> bool:
+    async def restore_asset(self, session: AsyncSession, asset_id: str, owner_id: Optional[str] = None) -> bool:
         """Khôi phục tài nguyên từ Thùng rác (V10.0)."""
         try:
-            asset = await repo.get_one_or_none(id=asset_id)
+            asset = await session.get(MediaRegistry, asset_id)
             if not asset:
                 return False
 
@@ -220,14 +218,13 @@ class MediaService:
                 return False
 
             asset.deleted_at = None
-            await repo.update(asset)
-            await repo.session.commit()
+            await session.commit()
             return True
         except Exception as e:
             logger.error(f"[MediaService] Failed to restore asset {asset_id}: {e}")
             return False
 
-    async def bulk_delete(self, repo: MediaRegistryRepository, ids: List[str], permanent: bool = False, owner_id: Optional[str] = None) -> bool:
+    async def bulk_delete(self, session: AsyncSession, ids: List[str], permanent: bool = False, owner_id: Optional[str] = None) -> bool:
         """Xóa hàng loạt tài nguyên (Hỗ trợ Soft-delete V10.0)."""
         try:
             from sqlalchemy import and_
@@ -237,7 +234,7 @@ class MediaService:
             if owner_id:
                 stmt = stmt.where(MediaRegistry.owner_id == owner_id)
 
-            result = await repo.session.execute(stmt)
+            result = await session.execute(stmt)
             assets = result.scalars().all()
 
             from datetime import datetime, timezone
@@ -246,12 +243,11 @@ class MediaService:
             for asset in assets:
                 if permanent:
                     await storage.delete(asset.file_path)
-                    await repo.delete(str(asset.id))
+                    await session.delete(asset)
                 else:
                     asset.deleted_at = now
-                    await repo.update(asset)
 
-            await repo.session.commit()
+            await session.commit()
             return True
         except Exception as e:
             logger.error(f"[MediaService] Bulk delete failed: {e}")
@@ -320,7 +316,7 @@ class MediaService:
             logger.error(f"[MediaService] Thumbnail generation failed: {e}")
             return asset_path
 
-    async def create_bulk_zip(self, repo: MediaRegistryRepository, ids: List[str], owner_id: Optional[str] = None) -> Optional[str]:
+    async def create_bulk_zip(self, session: AsyncSession, ids: List[str], owner_id: Optional[str] = None) -> Optional[str]:
         """Tạo file ZIP hàng loạt tài nguyên - Phục vụ tải xuống thông minh."""
         import os
         import zipfile
@@ -337,7 +333,7 @@ class MediaService:
             else:
                 stmt = stmt.where(MediaRegistry.is_public == True)
 
-            result = await repo.session.execute(stmt)
+            result = await session.execute(stmt)
             assets = result.scalars().all()
 
             if not assets:
@@ -367,11 +363,11 @@ class MediaService:
             return None
 
     async def quick_edit(
-        self, 
-        repo: MediaRegistryRepository, 
-        asset_id: str, 
-        action: str, 
-        params: Optional[QuickEditParams] = None, 
+        self,
+        session: AsyncSession,
+        asset_id: str,
+        action: str,
+        params: Optional[QuickEditParams] = None,
         owner_id: Optional[str] = None,
         source_url: Optional[str] = None
     ) -> Optional[MediaRegistry]:
@@ -382,12 +378,12 @@ class MediaService:
         from backend.services.media.utils import calculate_smart_crop
         from backend.services.media.constants import AspectRatio, DEFAULT_QUALITY
 
-        asset = await repo.get_one_or_none(id=asset_id)
+        asset = await session.get(MediaRegistry, asset_id)
         if not asset:
             # V75: If not found, try to register on the fly if source_url is provided
             if source_url:
                 logger.info(f"[QuickEdit] Asset {asset_id} not found, registering from source_url: {source_url}")
-                asset = await self.fetch_remote_asset(repo, source_url, owner_id=owner_id)
+                asset = await self.fetch_remote_asset(session, source_url, owner_id=owner_id)
                 if not asset:
                     logger.error(f"[QuickEdit] Failed to register asset on the fly from {source_url}")
                     return None
@@ -535,7 +531,8 @@ class MediaService:
                     try:
                         old_remote_path = "/".join(old_file_path.split("/")[-4:])
                         await storage.delete(old_remote_path)
-                    except: pass
+                    except Exception as e:
+                        logger.debug(f"[MediaService] Failed to delete old remote asset {old_remote_path}: {e}")
             else:
                 # Xử lý local
                 if new_file_path != old_file_path:
@@ -556,8 +553,7 @@ class MediaService:
             asset.mime_type = "image/webp"
             asset.file_size = os.path.getsize(temp_path) if is_remote else os.path.getsize(os.path.join("frontend/static", new_file_path.lstrip("/")))
 
-            await repo.update(asset)
-            await repo.session.commit()
+            await session.commit()
 
             # 5. Xóa cache thumbnail cục bộ
             cache_dir = os.path.join("frontend/static/v65_assets/cache")
@@ -566,7 +562,8 @@ class MediaService:
                 for f in os.listdir(cache_dir):
                     if filename in f:
                         try: os.remove(os.path.join(cache_dir, f))
-                        except: pass
+                        except Exception as e:
+                            logger.debug(f"[MediaService] Failed to remove cache file {f}: {e}")
 
             # 6. CDN Invalidation (Optional: Cloudflare)
             if is_remote and os.getenv("CF_API_TOKEN") and os.getenv("CF_ZONE_ID"):
@@ -596,7 +593,7 @@ class MediaService:
         except Exception as e:
             logger.warning(f"[CDN] Invalidation failed: {e}")
 
-    async def get_stats(self, repo: MediaRegistryRepository, owner_id: Optional[str] = None) -> MediaStatsResult:
+    async def get_stats(self, session: AsyncSession, owner_id: Optional[str] = None) -> MediaStatsResult:
         """Thống kê kho tài nguyên (V9.0 Analytics)."""
         from sqlalchemy import func, or_
 
@@ -610,7 +607,7 @@ class MediaService:
         else:
             stmt = stmt.where(MediaRegistry.is_public == True)
 
-        result = await repo.session.execute(stmt)
+        result = await session.execute(stmt)
         row = result.one()
 
         # 2. Phân loại theo MIME type
@@ -625,7 +622,7 @@ class MediaService:
             mime_stmt = mime_stmt.where(MediaRegistry.is_public == True)
 
         mime_stmt = mime_stmt.group_by(MediaRegistry.mime_type)
-        mime_result = await repo.session.execute(mime_stmt)
+        mime_result = await session.execute(mime_stmt)
 
         breakdown: List[MimeTypeBreakdown] = [
             MimeTypeBreakdown(
@@ -645,7 +642,7 @@ class MediaService:
 
     async def upload_asset(
         self,
-        repo: MediaRegistryRepository,
+        session: AsyncSession,
         file_content: bytes,
         filename: str,
         content_type: str,
@@ -712,8 +709,8 @@ class MediaService:
                 provider=str(os.getenv("STORAGE_PROVIDER", "local"))
             )
 
-            await repo.add(asset)
-            await repo.session.commit()
+            session.add(asset)
+            await session.commit()
 
             # 4. Trigger AI Analysis (Async)
             from backend.services.event_bus import event_bus
@@ -731,7 +728,7 @@ class MediaService:
 
     async def fetch_remote_asset(
         self,
-        repo: MediaRegistryRepository,
+        session: AsyncSession,
         url: str,
         campaign_id: Optional[str] = None,
         owner_id: Optional[str] = None
@@ -752,18 +749,18 @@ class MediaService:
                     if os.path.exists(p) and os.path.isfile(p):
                         local_path = p
                         break
-                
+
                 if local_path:
                     logger.info(f"[MediaService] Registering local ghost asset: {local_path}")
                     with open(local_path, "rb") as f:
                         content = f.read()
-                    
+
                     class MockResponse:
                         def __init__(self, content, ctHit):
                             self.content = content
                             self.headers = {"Content-Type": ctHit}
                         def raise_for_status(self): pass
-                    
+
                     response = MockResponse(content, mimetypes.guess_type(local_path)[0] or "image/jpeg")
                 else:
                     logger.error(f"[MediaService] Local file not found for registration: {url}")
@@ -832,7 +829,7 @@ class MediaService:
                 from backend.database.models import ContentCampaign
                 from sqlalchemy import select
                 stmt = select(ContentCampaign.id).where(ContentCampaign.id == campaign_id)
-                res = await repo.session.execute(stmt)
+                res = await session.execute(stmt)
                 if res.scalar():
                     valid_campaign_id = campaign_id
                 else:
@@ -843,7 +840,7 @@ class MediaService:
                 from backend.database.models import User
                 from sqlalchemy import select
                 stmt = select(User.id).where(User.id == owner_id)
-                res = await repo.session.execute(stmt)
+                res = await session.execute(stmt)
                 if res.scalar():
                     valid_owner_id = owner_id
                 else:
@@ -861,8 +858,8 @@ class MediaService:
                 provider=str(os.getenv("STORAGE_PROVIDER", "local"))
             )
 
-            await repo.add(asset)
-            await repo.session.commit()
+            session.add(asset)
+            await session.commit()
 
             # 5. Trigger AI Analysis (Async)
             from backend.services.event_bus import event_bus

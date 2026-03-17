@@ -8,7 +8,7 @@ from litestar.middleware.rate_limit import RateLimitConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete as sqlalchemy_delete, func
 
-from backend.database.repositories import UserRepository
+from backend.services.user_service import user_service
 from backend.database.models import User, ChatMessage
 from backend.schemas.chat import ChatHistoryResponse, ChatMessageSchema, CreateChatMessageRequest
 from backend.schemas.signal import SignalSchema, SignalSeverity
@@ -31,78 +31,21 @@ class ChatController(Controller):
         middleware=[chat_sync_limit.middleware]
     )
     async def save_message(self, db_session: AsyncSession, session_id: str, request: Request, data: CreateChatMessageRequest) -> dict:
-        """Save a chat message to DB with Selective Persistence and Redis Caching."""
+        """Save a chat message via ChatService (Elite V2.2)."""
         user_state = getattr(request.state, "user", {})
         user_id = user_state.get("id")
 
-        if data.role not in ("user", "assistant"):
-            raise HTTPException(status_code=400, detail="Invalid role. Must be 'user' or 'assistant'.")
+        from backend.services.chat_service import chat_service
+        msg_id = await chat_service.save_message(
+            session=db_session,
+            session_id=session_id,
+            role=data.role,
+            content=data.content,
+            user_id=user_id,
+            modality=data.modality or "text"
+        )
 
-        msg_id = str(uuid.uuid4())
-        created_at = datetime.now(timezone.utc)
-        
-        # ═══ R30/R74: LOAD SETTINGS FIRST ═══
-        from backend.services.xohi_memory import xohi_memory
-        profile = await xohi_memory.get_voice_profile(user_id) if user_id else None
-        chat_settings = profile.get("chat_settings", {}) if profile else {}
-
-        # ═══ REDIS CACHE: Redis-Last-10 ═══
-        msg_dict = {
-            "id": msg_id,
-            "session_id": session_id,
-            "user_id": user_id,
-            "role": data.role,
-            "content": data.content,
-            "modality": data.modality or "text",
-            "created_at": created_at.isoformat()
-        }
-        if user_id:
-            cache_limit = chat_settings.get("cache_limit", 10)
-            await xohi_memory.add_chat_to_cache(user_id, msg_dict, limit=cache_limit)
-
-        # ═══ R30/R74: SELECTIVE PERSISTENCE ═══
-        # Default policy: User messages & Voice are persistent. AI is ephemeral.
-        
-        # Policy rules:
-        # 1. If selective_persistence is ON (default): Only 'user' or 'voice' persists.
-        # 2. If save_ai_responses is OFF (default): 'assistant' role never persists to DB.
-        
-        is_user = data.role == "user"
-        is_voice = data.modality == "voice"
-        is_assistant = data.role == "assistant"
-        
-        selective = chat_settings.get("selective_persistence", True)
-        save_ai = chat_settings.get("save_ai_responses", False)
-        
-        should_persist = False
-        if selective:
-            # Command-centric: Save if user-initiated or voice-recorded
-            if is_user or is_voice:
-                should_persist = True
-        else:
-            # Full logs: Save everything UNLESS it's an AI response and save_ai is False
-            should_persist = True
-            if is_assistant and not save_ai:
-                should_persist = False
-        
-        if should_persist:
-            try:
-                msg = ChatMessage(
-                    id=msg_id,
-                    session_id=session_id,
-                    user_id=user_id,
-                    role=data.role,
-                    content=data.content,
-                    modality=data.modality or "text",
-                    created_at=created_at
-                )
-                db_session.add(msg)
-                return {"status": "success", "id": msg_id, "persisted": True}
-            except Exception as e:
-                logger.error(f"[ChatMessage] POST save failed: {e}")
-                raise HTTPException(status_code=500, detail="Failed to persist critical message.")
-        
-        return {"status": "success", "id": msg_id, "persisted": False}
+        return {"status": "success", "id": msg_id}
 
 
     @get(
@@ -251,10 +194,9 @@ class ChatController(Controller):
         if "SUPER_ADMIN" not in user_roles:
             raise HTTPException(status_code=403, detail="[SECURITY] Unauthorized: Only SUPER_ADMIN can purge system logs.")
 
-        user_repo = UserRepository(session=db_session)
-        user = await user_repo.get_one_or_none(email=user_email)
+        user = await user_service.get_user_by_email(db_session, user_email)
         user_id = str(user.id) if user else None
-        
+
         # CNS V70: Security audit signal — CRITICAL        # Signal Dispatch (Audit Trail - Rule R00/R1.13)
         await signal_center.dispatch(
             user_id=str(user_id) if user_id else "system",

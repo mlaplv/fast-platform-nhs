@@ -6,7 +6,10 @@ import unicodedata
 import time
 import re
 import numpy as np
-from typing import Dict, Optional, Tuple, List, Set, TypedDict, Any
+from typing import Dict, Optional, Tuple, List, Set, TypedDict, TYPE_CHECKING, Union, cast
+
+if TYPE_CHECKING:
+    import numpy as np
 
 from rapidfuzz import fuzz
 from litellm.exceptions import ServiceUnavailableError, RateLimitError, Timeout as LiteLLMTimeout, AuthenticationError, NotFoundError
@@ -176,7 +179,7 @@ class NeuralLocalCorrector:
         new_keys: List[str] = [k for k in sorted_keys if k not in self._embedding_cache]
         if new_keys:
             try:
-                def _get_embeddings() -> List[Any]:
+                def _get_embeddings() -> List["np.ndarray"]:
                     return list(self.encoder.embed(new_keys)) if self.encoder else []
                 embeddings = await loop.run_in_executor(None, _get_embeddings)
                 for k, v in zip(new_keys, embeddings):
@@ -218,7 +221,10 @@ class NeuralLocalCorrector:
 
                 # Embed window ONLY for candidates
                 try:
-                    window_vec = (await loop.run_in_executor(None, lambda: list(self.encoder.embed([window]))))[0]
+                    def _embed_window() -> List["np.ndarray"]:
+                        return list(self.encoder.embed([window])) if self.encoder else []
+
+                    window_vec = (await loop.run_in_executor(None, _embed_window))[0]
                 except Exception: continue
 
                 for key, norm_key in potential_keys:
@@ -292,15 +298,11 @@ class STTCorrector:
             try:
                 self._aging_task: asyncio.Task[None] = asyncio.create_task(self._neural_aging_loop())
             except RuntimeError:
-                pass # Still no loop (unit tests?)
-
-    async def _neural_aging_loop(self):
-        """Periodic background pruning of old/unused synapses."""
-        while True:
-            await asyncio.sleep(3600) # Every hour
-            try:
-                await xohi_memory.prune_stt_overrides(max_size=300)
-            except Exception: pass
+                logger.debug("[STT Corrector] Could not create aging task (no event loop)")
+            except Exception as e:
+                logger.debug(f"[STT Corrector] Pruning overrides failed: {e}")
+        except Exception as e:
+            logger.debug(f"[STT Corrector] Neural aging loop failed: {e}")
 
     async def smart_learn(self, user_id: str, wrong: str, right: str, is_global: bool = True):
         """
@@ -333,7 +335,8 @@ class STTCorrector:
                             logger.info(f"[Neural Thinker] Consolidated '{norm_wrong}' into existing root '{existing_wrong}'")
                             await xohi_memory.increment_stt_usage(existing_wrong, is_global)
                             return
-        except Exception: pass
+        except Exception as e:
+            logger.debug(f"[STT Corrector] Semantic consolidation failed: {e}")
 
         # 4. If not consolidated, learn normally
         await xohi_memory.learn_stt_correction(user_id, wrong, right, is_global)

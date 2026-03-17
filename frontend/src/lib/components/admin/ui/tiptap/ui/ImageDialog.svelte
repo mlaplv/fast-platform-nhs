@@ -3,7 +3,7 @@
   import MediaModal from "$lib/components/media/MediaModal.svelte";
 
   let {
-    show = $bindable(false),
+    show = $bindable(),
     assets = [] as (MediaAsset | string)[],
     onSelect
   }: {

@@ -8,7 +8,7 @@ Returns None for ambiguous queries → falls through to T2 Dispatcher.
 """
 import re
 import logging
-from typing import Optional
+from typing import Optional, Dict, List, cast
 
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from backend.utils.text import normalize_vn
@@ -103,8 +103,8 @@ def _merge_lists(a, b):
 async def heuristic_classify(
     combined_lower: str,
     user_id: str,
-    context: Optional[dict] = None,
-    intent_map: Optional[dict] = None,
+    context: Optional[Dict[str, object]] = None,
+    intent_map: Optional[Dict[str, object]] = None,
     norm_query: Optional[str] = None
 ) -> Optional[IntentResponse]:
     """
@@ -112,14 +112,14 @@ async def heuristic_classify(
     Only handles clear-cut queries. Returns None for ambiguous ones.
     """
     # Phase 76.4: Use persistent context from xohi_memory
-    ctx = context if context is not None else {}
+    ctx = cast(Dict[str, object], context) if context is not None else {}
 
     # Phase 76.3: Reuse pre-normalized query from orchestrator
     if norm_query is None:
         norm_query = normalize_vn(combined_lower)
 
     # Fetch dynamic intent mapping from local memory (Sub-1ms)
-    dynamic_mapping = intent_map if intent_map is not None else await xohi_memory.get_system_intent_mapping()
+    dynamic_mapping = cast(Dict[str, object], intent_map) if intent_map is not None else await xohi_memory.get_system_intent_mapping()
 
     # --- Phase 77.2: Learn Command Heuristic (Priority) ---
     if any(kw in norm_query for kw in NORM_LEARN_KEYWORDS):
@@ -277,7 +277,7 @@ async def heuristic_classify(
     is_mutate = any(kw in norm_query for kw in NORM_MUTATE_KEYWORDS)
 
     # --- Entity Extraction ---
-    extracted_entities: dict = {}
+    extracted_entities: Dict[str, object] = {}
     verb = "create"
 
     if is_mutate:
@@ -361,8 +361,8 @@ async def heuristic_classify(
         response_msg = ""
 
     logger.debug(f"[Heuristic] Result: {intent_type} target={target} verb={verb} widget={widget_id} timeframe={timeframe}")
-    
-    res_data = {
+
+    res_data: Dict[str, object] = {
         "intent_type": intent_type,
         "target": target,
         "verb": verb,

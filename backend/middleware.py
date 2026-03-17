@@ -64,9 +64,10 @@ class AuthMiddleware(AbstractMiddleware):
                 if jwt_tenant:
                     current_tenant_id.set(jwt_tenant)
                 
-            except Exception:
+            except Exception as e:
+                logger.debug(f"[AuthMiddleware] Token decode failed: {e}")
                 pass
-        
+
         async def send_wrapper(message: "Send") -> None:
             """Helper to inject security headers into the start message (R51)."""
             if message["type"] == "http.response.start":

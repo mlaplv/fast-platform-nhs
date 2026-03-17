@@ -14,7 +14,13 @@
   const tabs = ["Ngày", "Tháng", "Quý", "Năm"];
 
   // Data mapping
-  let seriesMap: Record<string, any> = $derived({
+  interface SeriesData {
+    labels: string[];
+    revenue: number[];
+    orders: number[];
+  }
+
+  let seriesMap: Record<string, SeriesData | undefined> = $derived({
     Ngày: data?.series_data?.daily,
     Tháng: data?.series_data?.monthly,
     Quý: data?.series_data?.quarterly,

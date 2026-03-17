@@ -19,7 +19,7 @@
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
 
-  const WIDGET_REGISTRY: Record<string, Component<any>> = {
+  const WIDGET_REGISTRY: Record<string, Component<{ data: any }>> = {
     RevenueChart,
     REVENUE_CHART: RevenueChart,
     UserTable,

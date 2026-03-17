@@ -3,7 +3,12 @@
     import { fade, scale } from 'svelte/transition';
 
     let { show = $bindable(), campaign, stepId } = $props();
-    
+
+    // R82: Safe initialization for bindable prop
+    onMount(() => {
+        if (show === undefined) show = false;
+    });
+
     let loading = $state(false);
     let editedData = $state('');
 

@@ -5,6 +5,7 @@ import re
 from typing import List, Optional, Dict, Union
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse, quote, urlunparse
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
 from backend.utils.http_client import get_http_client
@@ -68,9 +69,9 @@ class AssetHunter:
         self.current_index = (self.current_index + 1) % len(self.key_pairs)
         logger.info(f"[AssetHunter] Rotating key to index {self.current_index}")
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
+    async def execute(self, campaign_id: str, session: AsyncSession, **kwargs: object) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0)."""
-        campaign: Optional[ContentCampaign] = await repo.get(campaign_id)
+        campaign: Optional[ContentCampaign] = await session.get(ContentCampaign, campaign_id)
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found.", data={})
 
@@ -201,8 +202,6 @@ class AssetHunter:
             gold["reserve_assets"] = list(reserve_urls) # R120: Store reserve candidates
             campaign.gold_metadata = gold
             flag_modified(campaign, "gold_metadata")
-
-            await repo.update(campaign)
 
             await event_bus.emit("CONTENT_PROGRESS", {
                 "campaign_id": campaign_id,

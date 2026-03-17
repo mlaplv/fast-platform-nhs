@@ -3,12 +3,12 @@ import logging
 import uuid
 import numpy as np
 from typing import Dict, Union, Optional
-from backend.database.repositories import ContentCampaignRepository, ArticleRepository, ArticleEmbeddingRepository
-from backend.database.models import Article, ArticleEmbedding
-from backend.utils.text import slugify
+from sqlalchemy.ext.asyncio import AsyncSession
+from backend.database.models import Article, ContentCampaign
+from backend.services.content_service import content_service
 from backend.services.event_bus import event_bus
-from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
 from backend.models.schemas import GenericResponse
+from backend.schemas.article import CreateArticleRequest
 
 logger = logging.getLogger("api-gateway")
 
@@ -16,8 +16,8 @@ class ActionHandler:
     def __init__(self, orchestrator: "ContentOrchestrator"):
         self.orchestrator = orchestrator
 
-    async def approve_step(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> GenericResponse:
-        campaign = await campaign_repo.get(campaign_id)
+    async def approve_step(self, campaign_id: str, data: Dict[str, object], session: AsyncSession) -> GenericResponse:
+        campaign = await session.get(ContentCampaign, campaign_id)
         if not campaign:
             return GenericResponse(status="error", message="Campaign not found")
 
@@ -66,10 +66,9 @@ class ActionHandler:
 
             if step == 6:
                 # Terminal Step: Publish to News + Cleanup
-                success = await self._publish_and_cleanup(campaign, campaign_repo)
+                success = await self._publish_and_cleanup(campaign, session)
                 if success:
-                    if hasattr(campaign_repo, "session"):
-                        await campaign_repo.session.commit()
+                    await session.commit()
 
                     # Notify Responder to announce success
                     await event_bus.emit("CONTENT_STEP_COMPLETED", {
@@ -90,10 +89,9 @@ class ActionHandler:
 
             campaign.current_step += 1
             campaign.status = "PROCESSING"
-            await campaign_repo.update(campaign)
+
             target_step = campaign.current_step
-            if hasattr(campaign_repo, "session"):
-                await campaign_repo.session.commit()
+            await session.commit()
 
             # Ensure we don't exceed max steps
             if target_step <= 6:
@@ -101,25 +99,22 @@ class ActionHandler:
             return GenericResponse(status="success", message=f"Dạ sếp, em đang bắt đầu Bước {target_step} ạ.", data={"campaign_id": campaign_id, "next_step": target_step})
         else:
             campaign.status = "REJECTED"
-            await campaign_repo.update(campaign)
+            await session.commit()
             return GenericResponse(status="success", message="Đã ghi nhận sếp không duyệt bước này.", data={"campaign_id": campaign_id})
 
-    async def _publish_and_cleanup(self, campaign, campaign_repo: ContentCampaignRepository) -> bool:
+    async def _publish_and_cleanup(self, campaign: ContentCampaign, session: AsyncSession) -> bool:
         """
         Phase 76.3: Publication to News (Articles) + Hard Memory Cleanup.
         Moves final content to the public table and strips heavy JSON from campaign to save 2GB RAM.
         """
         try:
             # 1. Ensure final_html is loaded (it is a deferred column)
-            if hasattr(campaign_repo, "session"):
-                from sqlalchemy import inspect
-                ins = inspect(campaign)
-                if "final_html" in ins.unloaded:
-                    await campaign_repo.session.refresh(campaign, ["final_html"])
+            from sqlalchemy import inspect
+            ins = inspect(campaign)
+            if "final_html" in ins.unloaded:
+                await session.refresh(campaign, ["final_html"])
 
-            # 2. Create Article (Tin tức)
-            article_repo = ArticleRepository(session=campaign_repo.session)
-
+            # 2. Create Article via ContentService (Elite V2.2)
             title = campaign.get_gold_val("topic") or campaign.get_gold_val("title", "Bài viết sáng tạo mới")
             content = campaign.final_html or campaign.draft_content
 
@@ -127,37 +122,17 @@ class ActionHandler:
                 logger.warning(f"[ActionHandler] No content found for campaign {campaign.id}")
                 return False
 
-            new_article = Article(
-                id=str(uuid.uuid4()),
+            article_req = CreateArticleRequest(
                 title=title,
-                slug=f"{slugify(title)}-{str(uuid.uuid4())[:8]}",
                 content=content,
-                author_id=campaign.user_id,
+                authorId=campaign.user_id,
                 status="PUBLISHED",
-                tenant_id=campaign.tenant_id,
                 category="Tin tức"
             )
-            await article_repo.add(new_article)
 
-            # 2.5. Generate and save Embedding (Phase 77: Deep Memory)
-            try:
-                encoder = get_shared_encoder()
-                if encoder:
-                    loop = asyncio.get_event_loop()
-                    # We embed the title for semantic retrieval
-                    vector = (await loop.run_in_executor(None, lambda: list(encoder.embed([title]))))[0]
-                    vector_np = np.array(vector, dtype=np.float32)
-
-                    emb_repo = ArticleEmbeddingRepository(session=campaign_repo.session)
-                    new_emb = ArticleEmbedding(
-                        id=str(uuid.uuid4()),
-                        article_id=new_article.id,
-                        embedding=vector_np.tobytes().hex()
-                    )
-                    await emb_repo.add(new_emb)
-                    logger.info(f"[ActionHandler] Generated embedding for article {new_article.id}")
-            except Exception as emb_err:
-                logger.error(f"[ActionHandler] Embedding generation failed: {emb_err}")
+            # ContentService handles slug generation and embedding
+            new_article = await content_service.create_article(session, article_req)
+            logger.info(f"[ActionHandler] Published campaign {campaign.id} to Article {new_article.id} via ContentService")
 
             # 3. Hard Cleanup (Rule R82.25: Zero-Allocation & Memory Safety)
             campaign.status = "COMPLETED"
@@ -168,29 +143,26 @@ class ActionHandler:
             campaign.draft_content = ""
             campaign.final_html = ""
 
-            await campaign_repo.update(campaign)
             logger.info(f"[ActionHandler] Published campaign {campaign.id} to Article {new_article.id} and cleaned up.")
             return True
         except Exception as e:
             logger.exception(f"[ActionHandler] Publication failed for campaign {campaign.id}: {e}")
             return False
 
-    async def retry_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository) -> GenericResponse:
-        campaign = await campaign_repo.get(campaign_id)
+    async def retry_step(self, campaign_id: str, session: AsyncSession) -> GenericResponse:
+        campaign = await session.get(ContentCampaign, campaign_id)
         if not campaign:
             return GenericResponse(status="error", message="Campaign not found")
 
         campaign.status = "PROCESSING"
-        await campaign_repo.update(campaign)
-        if hasattr(campaign_repo, "session"):
-            step_val = campaign.current_step
-            await campaign_repo.session.commit()
+        step_val = campaign.current_step
+        await session.commit()
 
         asyncio.create_task(self.orchestrator._trigger_next_step(campaign_id, force_step=step_val))
         return GenericResponse(status="success", message=f"Em đang chạy lại bước {step_val} cho sếp đây!", data={"campaign_id": campaign_id})
 
-    async def update_metadata(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> GenericResponse:
-        campaign = await campaign_repo.get(campaign_id)
+    async def update_metadata(self, campaign_id: str, data: Dict[str, object], session: AsyncSession) -> GenericResponse:
+        campaign = await session.get(ContentCampaign, campaign_id)
         if not campaign:
             return GenericResponse(status="error", message="Campaign not found")
 
@@ -211,7 +183,6 @@ class ActionHandler:
             if selected_index is not None: gold["selected_index"] = selected_index
             campaign.gold_metadata = gold
 
-        await campaign_repo.update(campaign)
-        if hasattr(campaign_repo, "session"):
-            await campaign_repo.session.commit()
+        await session.commit()
         return GenericResponse(status="success", message="Neural data synchronized.", data={"campaign_id": campaign_id})
+

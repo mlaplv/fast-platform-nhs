@@ -5,12 +5,12 @@ import re
 import copy
 import hashlib
 from datetime import datetime, timezone
-from typing import List, Dict, Optional, Any, Union, cast
+from typing import List, Dict, Optional, Union, cast
+from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from sqlalchemy.orm.attributes import flag_modified
 from backend.database.models import ContentCampaign
-from backend.database.repositories import ContentCampaignRepository
 from backend.services.xohi.creative_studio.models.schemas import AgentResponse, AgentSignal, BulkFixRequest, BulkFixResponse
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.http_client import get_http_client
@@ -207,7 +207,7 @@ class PlagiarismCop:
     # PIPELINE ENTRY POINT
     # ──────────────────────────────────────────────────────────
 
-    async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
+    async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest, session: AsyncSession) -> BulkFixResponse:
         """
         Phase 76.9: Near-duplicate removal via Jaccard word similarity.
         Keeps the FIRST occurrence. Considers paragraphs with ≥82% word overlap as duplicates.
@@ -261,9 +261,9 @@ class PlagiarismCop:
         new_content = "\n\n".join(p for p, _ in kept)
         return BulkFixResponse(new_content=new_content)
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
+    async def execute(self, campaign_id: str, session: AsyncSession, **kwargs: object) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0) — called by orchestrator Step 5."""
-        campaign = await repo.get(campaign_id)
+        campaign = await session.get(ContentCampaign, campaign_id)
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
 
@@ -275,7 +275,6 @@ class PlagiarismCop:
             cleaned_draft = await noise_cleaner.clean(original_draft, mode="aggressive", strip_html=False)
             if cleaned_draft != original_draft:
                 campaign.draft_content = cleaned_draft
-                await repo.update(campaign)
                 logger.info(f"[PlagiarismCop] Proactive sanitization applied to campaign {campaign_id}")
 
             result = await self.analyze(campaign)
@@ -297,14 +296,12 @@ class PlagiarismCop:
         metrics["unique_score"] = result.uniqueness_score
         metrics["copyright_risk"] = result.risk_level
         # ARCHIVING & METRICS (V71.30)
-        new_gold = cast(Dict[str, Any], copy.deepcopy(campaign.gold_metadata or {}))
+        new_gold = cast(Dict[str, object], copy.deepcopy(campaign.gold_metadata or {}))
         new_gold["analysis_cache"] = cache
         new_gold["analysis_metrics"] = metrics
         campaign.gold_metadata = new_gold
         campaign.unique_score = result.uniqueness_score
         flag_modified(campaign, "gold_metadata")
-
-        await repo.update(campaign)
 
         if result.risk_level == "HIGH":
             return AgentResponse(
@@ -505,7 +502,8 @@ NHIỆM VỤ: Phân tích và trả về JSON đúng schema yêu cầu.
                         body = re.sub(r'\s+', ' ', body).strip()
                         if body and len(body) > len(snippet):
                             return f"URL: {url}\nTitle: {title}\nContent (3000 chars): {body[:3000]}"
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"[PlagiarismCop] Crawl failed for {url}: {e}")
                     pass  # Fallback to snippet only
                 return base
 

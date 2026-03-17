@@ -1,6 +1,6 @@
 import logging, os, asyncio, json, time, unicodedata, re
 from rapidfuzz import fuzz
-from typing import List, Dict, Optional, Tuple, Union, Any, TypedDict
+from typing import List, Dict, Optional, Tuple, Union, TypedDict, TYPE_CHECKING, cast
 
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from .tier2_cloud import Tier2CloudRouter
@@ -14,11 +14,12 @@ from backend.utils.text import normalize_vn, sanitize_id
 from .heuristic_classifier import heuristic_classify
 from backend.services.xohi.creative_studio.orchestrator import content_factory
 from backend.database.alchemy_config import alchemy_config
-from backend.database.repositories import ContentCampaignRepository
+
+if TYPE_CHECKING:
+    from backend.database.models import ContentCampaign
+
 from backend.services.ai_engine.core.vector_memory import VectorMemory
 from .intent_synapse import intent_synapse
-
-logger = logging.getLogger("api-gateway")
 
 # Pre-compiled regex for STT confirmed word boundaries
 STT_CONFIRM_RE_CACHE: Dict[str, re.Pattern] = {}
@@ -148,7 +149,7 @@ class RouterOrchestrator:
         user_id: str,
         app_state: AppState,
         context: Optional[List[ContextItem]] = None,
-        screen_context: Optional[Dict[str, Any]] = None,
+        screen_context: Optional[Dict[str, object]] = None,
 
         modality: str = "text"
     ) -> IntentResponse:
@@ -168,11 +169,11 @@ class RouterOrchestrator:
         # Check persistent context from xohi_memory
 
         # Phase 76.3: Atomic Aggregation (Rule R82.25)
-        orchestrator_ctx: Dict[str, Any] = await xohi_memory.get_full_orchestrator_context(user_id)
-        user_profile: Dict[str, Any] = orchestrator_ctx.get("profile", {})
-        ctx: Dict[str, Any] = orchestrator_ctx.get("ctx", {})
-        user_dict: Dict[str, str] = orchestrator_ctx.get("stt", {})
-        intent_map: Dict[str, List[str]] = orchestrator_ctx.get("intent_map", {})
+        orchestrator_ctx: Dict[str, object] = await xohi_memory.get_full_orchestrator_context(user_id)
+        user_profile: Dict[str, object] = cast(Dict[str, object], orchestrator_ctx.get("profile", {}))
+        ctx: Dict[str, object] = cast(Dict[str, object], orchestrator_ctx.get("ctx", {}))
+        user_dict: Dict[str, str] = cast(Dict[str, str], orchestrator_ctx.get("stt", {}))
+        intent_map: Dict[str, List[str]] = cast(Dict[str, List[str]], orchestrator_ctx.get("intent_map", {}))
 
         # --- PHASE 0.5: NEURAL WAKE TRIGGERS (CTO V1.9) ---
         DEFAULT_GREETING = user_profile.get("greeting_template", "Dạ, em nghe đây sếp.")
@@ -264,9 +265,9 @@ class RouterOrchestrator:
                 # 0.5.3: Proactive Resume Check (Rule R81)
                 # If sếp just wakes XoHi, check if there's an active campaign to report
                 try:
+                    from backend.database.models import ContentCampaign
                     async with async_session_maker() as session:
-                        repo = ContentCampaignRepository(session=session)
-                        active = await content_factory.get_active_campaign(repo, user_id=user_id)
+                        active = await content_factory.get_active_campaign(session, user_id=user_id)
                         if active:
                             resume_msg = content_factory.format_resume_greeting(active)
                             logger.info(f"[Proactive Resume] Found active campaign {active.id}, hijacking greeting.")
@@ -445,7 +446,7 @@ class RouterOrchestrator:
                     norm_query=normalize_vn(virtual_transcript)
                 )
                 
-                pending_data: Dict[str, Any] = shadow_res.data if shadow_res else {"intent_type": "UNKNOWN"}
+                pending_data: Dict[str, object] = shadow_res.data if shadow_res else {"intent_type": "UNKNOWN"}
                 # Add source tag for logging
                 pending_data["source_tag"] = "shadow"
                 
@@ -467,6 +468,7 @@ class RouterOrchestrator:
         combined_lower = transcript.lower()
         # 1.1 TIER 1.1: Heuristic Fallback (Zen Path, 0-Token, <1ms)
         # Classify straightforward patterns / learned commands BEFORE fuzzy semantics
+        # Phase 76.4: Pass session maker for content factory checks if needed
         result = await self._heuristic_classify(combined_lower, user_id, ctx={**ctx, "profile": user_profile}, intent_map=intent_map, norm_query=normalized_transcript)
         if result:
             logger.info(f"[Heuristic Priority] HIT: {result.data.get('intent_type')}")
@@ -601,22 +603,23 @@ class RouterOrchestrator:
         self,
         classification: IntentResponse,
         transcript: str,
+        db_session: AsyncSession,
         context: Optional[List[Dict[str, object]]] = None,
         screen_context: Optional[Dict[str, object]] = None,
-        **kwargs
+        user_id: Optional[str] = None,
+        modality: str = "text"
     ) -> IntentResponse:
         """Phase 2: Action Execution (Phase 3 of Trinity Loop)"""
         start_time = time.monotonic()
         intent_data = classification.data or {}
-        
+
         # VERY IMPORTANT: Use the cleaned transcript from classification payload to prevent STT hallucinations down the pipeline
         transcript = intent_data.get("cleaned_transcript", transcript)
-        
+
         intent_type = intent_data.get("intent_type", "UNKNOWN")
 
         # 1. RÚT ACTION AN TOÀN CHỐNG CRASH
         class_action_str = classification.action.value if hasattr(classification.action, "value") else str(classification.action)
-        modality = kwargs.get("modality", "text")
         m_tag = "v" if modality == "voice" else "c"
 
         if intent_type == "LEARN_COMMAND":
@@ -624,7 +627,7 @@ class RouterOrchestrator:
             # Phase 77.1: Normalize keyword to ensure Zen Path hit
             learn_kw = normalize_vn(intent_data.get("learn_keyword", "").lower())
             learn_tgt = intent_data.get("learn_target")
-            
+
             if learn_kw and learn_tgt:
                 # Target to Widget Map (Phase 77.1: Dynamic & Session Resolution)
                 target_map = {
@@ -641,15 +644,15 @@ class RouterOrchestrator:
                     "tạm biệt": "HARDWARE_SLEEP", "đi ngủ": "HARDWARE_SLEEP", "ngủ": "HARDWARE_SLEEP", "cút": "HARDWARE_SLEEP",
                     "lời chào": "WAKE_ROUTINE", "chào": "WAKE_ROUTINE", "mày là ai": "WAKE_ROUTINE", "identity": "WAKE_ROUTINE"
                 }
-                
+
                 resolved_widget = target_map.get(learn_tgt.lower(), learn_tgt)
-                
+
                 # Persist to Redis
                 current_map = await xohi_memory.get_system_intent_mapping()
                 is_update = learn_kw in current_map
                 current_map[learn_kw] = resolved_widget
                 await xohi_memory.set_system_intent_mapping(current_map)
-                
+
                 verb = "cập nhật" if is_update else "ghi nhớ"
                 msg = f"Dạ sếp, em đã {verb} lệnh mới. Từ nay mỗi khi sếp bảo '{learn_kw}' thì em sẽ mở '{learn_tgt}' ngay ở Tier 1 (Zen Path) ạ!"
                 return IntentResponse(
@@ -680,28 +683,27 @@ class RouterOrchestrator:
         # V62.1: CONTENT_CREATE → Content Factory Pipeline
         # ══════════════════════════════════════════
         if intent_type == "CONTENT_CREATE" or class_action_str == "CONTENT_CREATE":
-            logger.info(f"[C.O.R.E][{m_tag}] Delegating to Content Factory V62.1. kwargs keys: {list(kwargs.keys())}")
+            logger.info(f"[C.O.R.E][{m_tag}] Delegating to Content Factory V62.1.")
+            # R106: Explicit session propagation (Elite V2.2)
             return await content_factory.handle_voice_request(
                 transcript,
-                campaign_repo=kwargs.get("campaign_repo"),
-                user_id=kwargs.get("user_id"), # Rule R86: Propagate identity
+                session=db_session,
+                user_id=user_id, # Rule R86: Propagate identity
                 intent_data=intent_data
             )
 
         if intent_type == "CONTENT_APPROVE" or class_action_str == "CONTENT_APPROVE":
             logger.info(f"[C.O.R.E][{m_tag}] Approving Content Campaign...")
-            campaign_repo = kwargs.get("campaign_repo")
-            latest = await content_factory.get_active_campaign(campaign_repo, user_id=kwargs.get("user_id"))
+            latest = await content_factory.get_active_campaign(db_session, user_id=user_id)
             if latest:
-                return await content_factory.approve_step(latest.id, {"approved": True, "step": latest.current_step}, campaign_repo)
+                return await content_factory.approve_step(latest.id, {"approved": True, "step": latest.current_step}, db_session)
             return self._error_response("Dạ sếp muốn duyệt gì ạ? Hiện tại em chưa thấy có yêu cầu nào đang chờ duyệt.")
 
         if intent_type == "CONTENT_REJECT" or class_action_str == "CONTENT_REJECT":
             logger.info(f"[C.O.R.E][{m_tag}] Retrying/Rejecting Content Campaign...")
-            campaign_repo = kwargs.get("campaign_repo")
-            latest = await content_factory.get_active_campaign(campaign_repo, user_id=kwargs.get("user_id"))
+            latest = await content_factory.get_active_campaign(db_session, user_id=user_id)
             if latest:
-                return await content_factory.retry_step(latest.id, campaign_repo)
+                return await content_factory.retry_step(latest.id, db_session)
             return self._error_response("Dạ sếp muốn tạo lại gì ạ? Hiện tại em chưa thấy có bài viết nào đang dở.")
 
         # ══════════════════════════════════════════
@@ -709,8 +711,14 @@ class RouterOrchestrator:
         # DEFAULT: UI_NAV / DATA_QUERY → Xử lý Hybrid Loop
         # ══════════════════════════════════════════
         logger.debug(f"[T2] {intent_type} → Passing to Data Injector")
-        
-        t2_response = await data_injector.inject(classification, transcript, **kwargs)
+
+        t2_response = await data_injector.inject(
+            classification,
+            transcript,
+            db_session=db_session,
+            user_id=user_id,
+            modality=modality
+        )
 
         # 2. KIỂM TRA ACTION AN TOÀN CỦA T2
         t2_action_str = t2_response.action.value if hasattr(t2_response.action, "value") else str(t2_response.action)
@@ -770,13 +778,11 @@ class RouterOrchestrator:
 
         # --- LOG MODALITY BRACKETING (XOHI[tag] for UI) ---
         # We modify the router_tier string to include the modality prefix
-        if hasattr(t2_response, "router_tier"):
-            raw_tier = t2_response.router_tier.value if hasattr(t2_response.router_tier, "value") else str(t2_response.router_tier)
-            # Format: 'v][t1' -> passed as data to prevent schema breakdown
-            if t2_response.data is None:
-                t2_response.data = {}
-            t2_response.data["source_tag"] = m_tag
-            t2_response.data["router_tier_label"] = f"t{raw_tier}"
+        if result and result.data is not None:
+            # Rule R1.5: Secure type propagation
+            res_data = cast(Dict[str, object], result.data)
+            res_data["source_tag"] = m_tag
+            res_data["router_tier_label"] = f"t{raw_tier}"
                 
         logger.debug(f"[Trinity Loop] Final Msg: {t2_response.message} (Cost: {t2_response.cost_tokens} tokens)")
 

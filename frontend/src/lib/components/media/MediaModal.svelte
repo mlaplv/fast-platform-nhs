@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount, type Snippet } from 'svelte';
     import { fade, scale } from 'svelte/transition';
     import FileManager from './FileManager.svelte';
     import type { MediaAsset } from '$lib/types';
@@ -11,6 +12,11 @@
     }
 
     let { show = $bindable(), campaignId, onClose, onSelect } = $props<Props>();
+
+    // R82: Safe initialization for bindable prop
+    onMount(() => {
+        if (show === undefined) show = false;
+    });
 
     function handleKeydown(e: KeyboardEvent) {
         if (e.key === 'Escape') onClose();

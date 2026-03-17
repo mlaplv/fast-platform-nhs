@@ -13,8 +13,10 @@ from backend.schemas.voice import (
     VoiceSettingsPayload, VoiceSettingsResponse, CapabilityMetadata, 
     CampaignModePayload, LexiconOverridePayload, LexiconStopwordPayload
 )
+from sqlalchemy.ext.asyncio import AsyncSession
+from backend.services.user_service import user_service
+from backend.services.voice_service import voice_service
 from backend.database.models import User, VoiceProfile
-from backend.database.repositories import UserRepository, VoiceProfileRepository, provide_user_repo, provide_voice_repo
 from backend.constants.voice import DEFAULT_GREETING, DEFAULT_FAREWELL
 from backend.utils.text import normalize_vn
 from backend.services.capability_registry import capability_registry
@@ -31,29 +33,19 @@ class SettingsController(Controller):
     """
     path = "/api/v1/settings"
     guards = [PermissionGuard("system:all")]
-    dependencies = {
-        "user_repo": Provide(provide_user_repo),
-        "voice_repo": Provide(provide_voice_repo),
-    }
-
-    async def _get_user_with_profile(self, user_repo: UserRepository, email: str) -> Optional[User]:
-        """Core helper to fetch user with voice profile (N+1 Optimized)"""
-        stmt = select(User).where(User.email == email).options(selectinload(User.voice_profile))
-        result = await user_repo.session.execute(stmt)
-        return result.scalar_one_or_none()
 
     @get("/voice")
-    async def get_voice_settings(self, user_repo: UserRepository, request: Request) -> VoiceSettingsResponse:
+    async def get_voice_settings(self, db_session: AsyncSession, request: Request) -> VoiceSettingsResponse:
         """Fetch current voice and cognitive settings (Dynamic Matrix)"""
         user_info = getattr(request.state, "user", None)
         if not user_info or "sub" not in user_info:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        user = await self._get_user_with_profile(user_repo, user_info["sub"])
-        
+        user = await user_service.get_user_with_profile(db_session, user_info["sub"])
+
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         profile = user.voice_profile
         stored_caps = {}
         if profile and profile.capabilities:
@@ -72,12 +64,12 @@ class SettingsController(Controller):
         sleep = profile.sleep_words if profile else ["ngu di"]
         greeting = profile.greeting_template if profile else "Dạ"
         farewell = profile.farewell_template if profile else "Tạm biệt"
-        
+
         # [XOHI] Campaign Mode is global in Redis, not in DB Profile
         from backend.services.xohi_memory import xohi_memory
         val = await xohi_memory.client.get("system:campaign_mode")
         is_campaign = val == "1"
-        
+
         # Consistent fallbacks for chat_settings
         default_chat = {
             "selective_persistence": True,
@@ -99,20 +91,20 @@ class SettingsController(Controller):
 
     @post("/voice")
     async def update_voice_settings(
-        self, user_repo: UserRepository, voice_repo: VoiceProfileRepository, request: Request, data: VoiceSettingsPayload
+        self, db_session: AsyncSession, request: Request, data: VoiceSettingsPayload
     ) -> dict:
         """
-        [MẶT TRẬN 4] - Dynamic Per-User Setup using repositories
+        [MẶT TRẬN 4] - Dynamic Per-User Setup using services
         """
         user_info = getattr(request.state, "user", None)
         if not user_info or "sub" not in user_info:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        user = await self._get_user_with_profile(user_repo, user_info["sub"])
-        
+        user = await user_service.get_user_with_profile(db_session, user_info["sub"])
+
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         user_id = str(user.id)
 
         # Helper to dedup based on normalized text
@@ -131,30 +123,20 @@ class SettingsController(Controller):
         clean_wake = smart_dedup(data.wake_words)
         clean_sleep = smart_dedup(data.sleep_words)
 
-        # Upsert logic via repository
-        profile = user.voice_profile
-        if not profile:
-            profile = VoiceProfile(
-                id=str(uuid.uuid4()),
-                user_id=user_id,
-                wake_words=clean_wake,
-                sleep_words=clean_sleep,
-                greeting_template=data.greeting_template,
-                farewell_template=data.farewell_template,
-                capabilities=data.capabilities,
-                chat_settings=data.chat_settings
-            )
-            await voice_repo.add(profile)
-        else:
-            profile.wake_words = clean_wake
-            profile.sleep_words = clean_sleep
-            profile.greeting_template = data.greeting_template
-            profile.farewell_template = data.farewell_template
-            profile.capabilities = data.capabilities
-            if data.chat_settings is not None:
-                profile.chat_settings = data.chat_settings
-
+        # Upsert logic via service
         profile_data = {
+            "wake_words": clean_wake,
+            "sleep_words": clean_sleep,
+            "greeting_template": data.greeting_template,
+            "farewell_template": data.farewell_template,
+            "capabilities": data.capabilities,
+            "chat_settings": data.chat_settings
+        }
+
+        profile = await voice_service.update_profile(db_session, user_id, profile_data)
+
+        # Redis Sync Data
+        redis_data = {
             "wake_words":        [w.lower() for w in clean_wake],
             "sleep_words":       [w.lower() for w in clean_sleep],
             "greeting_template": data.greeting_template,
@@ -163,18 +145,16 @@ class SettingsController(Controller):
             "chat_settings":     profile.chat_settings,
         }
 
-        await voice_repo.session.commit()
-
         # HOT RELOAD TO REDIS
         from backend.services.xohi_memory import xohi_memory
-        
+
         # Unified: Update global campaign mode if provided
         if data.is_campaign_mode is not None:
             val = "1" if data.is_campaign_mode else "0"
             await xohi_memory.client.set("system:campaign_mode", val)
             logger.info(f"[Settings] Unified commit: Campaign Mode set to {data.is_campaign_mode}")
 
-        await xohi_memory.cache_voice_profile(user_id, profile_data)
+        await xohi_memory.cache_voice_profile(user_id, redis_data)
 
         # Re-fetch campaign mode to ensure sync
         val = await xohi_memory.client.get("system:campaign_mode")

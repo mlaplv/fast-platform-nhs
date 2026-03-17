@@ -12,7 +12,9 @@
   import Home from "lucide-svelte/icons/home";
   import Megaphone from "lucide-svelte/icons/megaphone";
   
-  const menuItems: Array<{ id: WidgetType; label: string; icon: any; color: string }> = [
+  import type { Component } from "svelte";
+
+  const menuItems: Array<{ id: WidgetType; label: string; icon: Component; color: string }> = [
     { id: "NONE", label: "XoHi Home", icon: Home, color: "#00FFFF" },
     { id: "ORDER_MANAGEMENT", label: "Đơn hàng", icon: ShoppingCart, color: "#FFAA00" },
     { id: "PRODUCT_MANAGEMENT", label: "Sản phẩm", icon: Package, color: "#00FFFF" },

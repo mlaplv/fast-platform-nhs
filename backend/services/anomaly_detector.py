@@ -12,7 +12,7 @@ import logging
 import asyncio
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Union, TypedDict, Optional, Any, Callable, Coroutine
+from typing import List, Dict, Union, TypedDict, Optional, Callable, Coroutine, cast
 # Phase 12: Rule R105 — CẤM dùng Any, dùng TypedDict cho cấu trúc tường minh.
 class AnomalyAlert(TypedDict):
     type: str
@@ -48,7 +48,7 @@ class AnomalyDetector:
         alerts: List[AnomalyAlert] = []
 
         # Helper to run check safely
-        async def run_check(name: str, coro_func: Callable[..., Coroutine[Any, Any, Optional[AnomalyAlert]]], *args: Any) -> None:
+        async def run_check(name: str, coro_func: Callable[..., Coroutine[object, object, Optional[AnomalyAlert]]], *args: object) -> None:
             try:
                 res = await coro_func(*args)
                 if res:

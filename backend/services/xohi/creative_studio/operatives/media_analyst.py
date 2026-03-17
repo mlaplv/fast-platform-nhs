@@ -8,7 +8,6 @@ from pydantic_ai.models.google import GoogleModel
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.xohi.creative_studio.models.schemas import MediaAnalysisResult
 from backend.database.models import MediaRegistry
-from backend.database.repositories import MediaRegistryRepository
 from backend.services.event_bus import event_bus
 
 logger = logging.getLogger("api-gateway")
@@ -80,12 +79,10 @@ class MediaAnalyst:
         import os
         import gc
         from backend.database.alchemy_config import alchemy_config
-        from backend.database.repositories import MediaRegistryRepository
 
         session_maker = alchemy_config.create_session_maker()
         async with session_maker() as session:
-            media_repo = MediaRegistryRepository(session=session)
-            entry = await media_repo.get(entry_id)
+            entry = await session.get(MediaRegistry, entry_id)
 
             if not entry:
                 logger.error(f"[MediaAnalyst] Asset {entry_id} not found in DB.")
@@ -123,7 +120,6 @@ class MediaAnalyst:
                     })
                     entry.media_metadata = meta
 
-                    await media_repo.update(entry)
                     await session.commit()
 
                     # --- REAL-TIME NOTIFICATION (V65.0) ---

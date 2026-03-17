@@ -3,10 +3,18 @@ import logging
 import time
 import re
 import unicodedata
-from typing import Optional, Dict, Tuple
-import redis.asyncio as _redis
+from typing import Optional, Dict, Tuple, List, TypedDict
 
-logger = logging.getLogger("api-gateway")
+class OrderItem(TypedDict):
+    id: str
+    quantity: int
+    price: float
+
+class OrderSpamData(TypedDict):
+    phone: str
+    address: str
+    total: float
+    items: List[OrderItem]
 
 class AntiSpamService:
     """
@@ -58,11 +66,11 @@ class AntiSpamService:
         return addr
 
     async def check_order_spam(
-        self, 
-        ip: str, 
-        user_agent: str, 
-        tenant_id: str, 
-        order_data: dict,
+        self,
+        ip: str,
+        user_agent: str,
+        tenant_id: str,
+        order_data: OrderSpamData,
         is_campaign_mode: bool = False
     ) -> Tuple[bool, str, float, str]:
         """

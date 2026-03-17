@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import Database from "lucide-svelte/icons/database";
   import Trash2 from "lucide-svelte/icons/trash-2";
@@ -6,6 +7,11 @@
   import ShieldCheck from "lucide-svelte/icons/shield-check";
 
   let { chatSettings = $bindable() } = $props();
+
+  // R82: Safe initialization for bindable prop
+  onMount(() => {
+    if (chatSettings === undefined) chatSettings = {};
+  });
 
   const options = [
     {

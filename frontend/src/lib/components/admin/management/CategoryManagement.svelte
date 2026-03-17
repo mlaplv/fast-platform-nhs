@@ -160,7 +160,11 @@
   async function del(id: string, p: string | null = null) {
     try {
       await apiClient.delete(`/api/v1/categories/${id}`);
-    } catch {}
+    } catch (e) {
+      console.error("[CategoryManagement] Delete failed:", e);
+      nanobot.showToast("Xóa danh mục thất bại", "error");
+      return;
+    }
     if (p) {
       const par = categories.find((c) => c.id === p);
       if (par) par.children = par.children.filter((c) => c.id !== id);

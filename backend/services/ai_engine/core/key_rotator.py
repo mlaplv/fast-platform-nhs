@@ -214,7 +214,8 @@ class SmartKeyRotator:
         try:
             await self.client.set(redis_key, reason, ex=self.MAX_COOLDOWN)
             logger.warning(f"[KeyRotator] Model '{model_name}' POISONED. Blacklisted for 24h. Reason: {reason}")
-        except Exception:
+        except Exception as e:
+            logger.debug(f"[KeyRotator] Failed to mark model poisoned: {e}")
             pass
 
     async def is_model_poisoned(self, model_name: str) -> bool:
@@ -234,7 +235,8 @@ class SmartKeyRotator:
             import json
             await self.client.set(self.DISCOVERED_MODELS_KEY, json.dumps(models), ex=self.MAX_COOLDOWN)
             logger.info(f"[KeyRotator] Saved {len(models)} discovered models to Redis.")
-        except Exception:
+        except Exception as e:
+            logger.debug(f"[KeyRotator] Failed to save discovered models: {e}")
             pass
 
     async def get_discovered_models(self) -> list[str]:
@@ -256,7 +258,8 @@ class SmartKeyRotator:
                 "fail_count": 0,
                 "health_score": 100
             })
-        except Exception:
+        except Exception as e:
+            logger.debug(f"[KeyRotator] Failed to set success: {e}")
             pass
 
     async def mark_unhealthy(self, key: str, reason: str = "rate_limit", session_id: Optional[str] = None):

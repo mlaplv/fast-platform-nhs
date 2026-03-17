@@ -3,14 +3,14 @@ import logging
 import re
 from datetime import datetime, timezone
 from typing import Optional, Dict, Union, List
+from sqlalchemy import select, desc
+from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models import ContentCampaign
-from backend.database.repositories import ContentCampaignRepository
 from backend.services.xohi.creative_studio.models.schemas import TopicSeed, CampaignCategory
 from backend.utils.text import sanitize_id, normalize_vn
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from backend.services.event_bus import event_bus
 from backend.services.ai_engine.core.trinity_bridge import AIConfigurationError
-from litestar.repository.filters import LimitOffset
 
 logger = logging.getLogger("api-gateway")
 
@@ -18,7 +18,7 @@ class VoiceHandler:
     def __init__(self, orchestrator: "ContentOrchestrator"):
         self.orchestrator = orchestrator
 
-    async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None, campaign_id: Optional[str] = None) -> Optional[ContentCampaign]:
+    async def get_active_campaign(self, session: AsyncSession, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None, campaign_id: Optional[str] = None) -> Optional[ContentCampaign]:
         # R105: Standardize user_id logic
         user_id = sanitize_id(user_id)
         campaign_id = sanitize_id(campaign_id)
@@ -26,22 +26,23 @@ class VoiceHandler:
         # 1. Explicit ID lookup (Highest Priority)
         if campaign_id:
             try:
-                c = await campaign_repo.get(campaign_id)
-                if c and c.status not in ["COMPLETED", "REJECTED"]:
+                c = await session.get(ContentCampaign, campaign_id)
+                if c and c.status not in ["COMPLETED", "REJECTED"] and c.deleted_at is None:
                     return c
-            except Exception: pass
+            except Exception as e:
+                logger.debug(f"[VoiceHandler] Campaign lookup failed: {e}")
 
         # 2. Strict scan for unfinished campaigns (Scoped to User)
-        filters = {"deleted_at": None}
-        if user_id:
-            filters["user_id"] = user_id
+        stmt = select(ContentCampaign).where(
+            ContentCampaign.deleted_at == None
+        ).order_by(desc(ContentCampaign.created_at)).limit(5)
 
-        results = await campaign_repo.list(
-            LimitOffset(limit=5, offset=0),
-            order_by=[("created_at", "desc")],
-            **filters
-        )
-        
+        if user_id:
+            stmt = stmt.where(ContentCampaign.user_id == user_id)
+
+        result = await session.execute(stmt)
+        results = result.scalars().all()
+
         # Filter for truly active (not dead) campaigns
         active_campaigns = [c for c in results if c.status not in ["COMPLETED", "REJECTED"]]
         if not active_campaigns:
@@ -56,7 +57,7 @@ class VoiceHandler:
                 # R104: Tighter matching to avoid "Neural Link" hallucinations
                 if (title and title in q_norm) or (source and source in q_norm):
                     return c
-        
+
         # 4. Fallback: Return the most recent active one if it's very fresh (< 10 mins)
         latest = active_campaigns[0]
         now = datetime.now(timezone.utc)
@@ -75,7 +76,7 @@ class VoiceHandler:
             return f"Dạ sếp, em đã sẵn sàng ở Bước {step} cho bài viết '{title}'. Mời sếp xem qua và duyệt để em chạy tiếp ạ!"
 
     async def handle_request(
-        self, transcript: str, campaign_repo: ContentCampaignRepository,
+        self, transcript: str, session: AsyncSession,
         tenant_id: str = "default", user_id: Optional[str] = None,
         intent_data: Optional[Dict] = None
     ) -> IntentResponse:
@@ -99,16 +100,16 @@ class VoiceHandler:
             # 1. Safety Gate: Detect Conflict
             # Check for campaign_id in intent_data (e.g. from Dashboard)
             target_id = sanitize_id(intent_data.get("campaign_id")) if intent_data else None
-            stale = await self.get_active_campaign(campaign_repo, user_id, tenant_id, query=transcript if not is_resume_request else None, campaign_id=target_id)
+            stale = await self.get_active_campaign(session, user_id, tenant_id, query=transcript if not is_resume_request else None, campaign_id=target_id)
 
             if stale and not is_force_new:
                 # Type sanity: check category if present
                 stale_cat = getattr(stale, "category", CampaignCategory.CREATIVE_CONTENT)
-                
+
                 # Rule R82: Explicit Resume (or "ok" confirmation)
                 if is_resume_request or target_id == stale.id:
                     if stale.status == "WAITING_FOR_REVIEW":
-                        return await self.orchestrator.approve_step(stale.id, {"approved": True}, campaign_repo)
+                        return await self.orchestrator.approve_step(stale.id, {"approved": True}, session)
                     else:
                         return IntentResponse(
                             status="success", action=IntentAction.CONTENT_CREATE,
@@ -153,7 +154,6 @@ class VoiceHandler:
                 logger.info(f"[SafetyGate] Overwriting stale campaign {stale.id} as per user request")
                 # Optional: mark as rejected instead of deleting?
                 stale.status = "REJECTED"
-                await campaign_repo.update(stale)
 
             # Phase 77: Inject content_mode into gold_metadata
             gold_meta = {}
@@ -163,15 +163,14 @@ class VoiceHandler:
 
             campaign = ContentCampaign(
                 id=str(uuid.uuid4()), user_id=user_id, source_input=transcript,
-                tenant_id=tenant_id, current_step=1, status="PROCESSING", 
+                tenant_id=tenant_id, current_step=1, status="PROCESSING",
                 gold_metadata=gold_meta, category=category.value
             )
             c_id = campaign.id
             u_id_str = str(campaign.user_id) if campaign.user_id else "default"
-            await campaign_repo.add(campaign)
-            if hasattr(campaign_repo, "session"):
-                await campaign_repo.session.commit()
-                await campaign_repo.session.refresh(campaign)
+            session.add(campaign)
+            await session.commit()
+            await session.refresh(campaign)
 
             seed: TopicSeed = await self.orchestrator.vision.analyze_input(
                 transcript,
@@ -182,9 +181,8 @@ class VoiceHandler:
             seed_data = seed.model_dump()
             campaign.topic_data = seed_data
             campaign.status = "WAITING_FOR_REVIEW"
-            await campaign_repo.update(campaign)
-            if hasattr(campaign_repo, "session"):
-                await campaign_repo.session.commit()
+
+            await session.commit()
 
             await event_bus.emit("CONTENT_STEP_COMPLETED", {
                 "campaign_id": c_id, "step": 1, "status": "WAITING_FOR_REVIEW",
@@ -219,8 +217,7 @@ class VoiceHandler:
             )
         except Exception as e:
             logger.exception(f"[VoiceHandler] Execution failed: {e}")
-            if campaign_repo and hasattr(campaign_repo, "session"):
-                await campaign_repo.session.rollback()
+            await session.rollback()
             return IntentResponse(
                 status="success", action=IntentAction.CONTENT_CREATE,
                 message=f"Dạ sếp, có lỗi hệ thống: {str(e)}. Sếp thử lại sau nhé!",
@@ -228,3 +225,4 @@ class VoiceHandler:
                 data={"category": "CONTENT_CREATE", "source_input": transcript},
                 cost_tokens=0.0
             )
+

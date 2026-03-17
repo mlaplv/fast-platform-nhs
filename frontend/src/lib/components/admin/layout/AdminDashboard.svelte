@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { type Component } from "svelte";
+  import { type Component, type Snippet } from "svelte";
   import ToastNotification from "$lib/components/admin/ui/ToastNotification.svelte";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { vuiController } from "$lib/vui";
 
   let { children, userEmail, isMobile } = $props<{
-    children?: import("svelte").Snippet;
+    children?: Snippet;
     userEmail?: string;
     isMobile?: boolean;
   }>();
@@ -13,7 +13,7 @@
   let mounted = $state(false);
 
   // Dynamic Components
-  let LayoutComponent = $state<Component<any>>();
+  let LayoutComponent = $state<Component<{ children?: Snippet }>>();
 
   $effect(() => {
     (async () => {

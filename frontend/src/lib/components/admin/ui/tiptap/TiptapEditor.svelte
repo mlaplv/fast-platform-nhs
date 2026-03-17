@@ -40,7 +40,11 @@
   } = $props();
 
   let internalFullScreen = $state(fullScreen);
-  $effect(() => { internalFullScreen = fullScreen; });
+  $effect(() => {
+    untrack(() => {
+      internalFullScreen = fullScreen;
+    });
+  });
 
   const toggleFullScreen = () => {
     if (onToggleFullScreen) {
@@ -278,7 +282,11 @@
       const { from, to } = editor.state.selection;
       editor.commands.setContent(normalizedContent, false);
       if (isFocused) {
-        try { editor.commands.setTextSelection({ from, to }); } catch (e) {}
+        try {
+          editor.commands.setTextSelection({ from, to });
+        } catch (e) {
+          console.warn('[Tiptap] Selection restore failed:', e);
+        }
       }
       updateMetrics();
       isInternalUpdating = false;
@@ -301,9 +309,9 @@
     );
   });
 
-  function handleAnnotationHover(e: any) {
+  function handleAnnotationHover(e: Event) {
     if (isFixing) return;
-    const data = e.detail;
+    const data = (e as CustomEvent).detail;
     if (!data.id) return;
 
     tooltipX = data.x;

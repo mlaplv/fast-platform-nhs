@@ -2,14 +2,14 @@
   import Sparkles from 'lucide-svelte/icons/sparkles';
   import Check from 'lucide-svelte/icons/check';
 
-  let { 
-    visible = $bindable(false), 
-    x, 
-    y, 
-    type, 
-    text, 
+  let {
+    visible = $bindable(),
+    x,
+    y,
+    type,
+    text,
     isFixing,
-    onFix 
+    onFix
   }: {
     visible: boolean;
     x: number;

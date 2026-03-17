@@ -1,12 +1,13 @@
 import re
 import logging
-from typing import List, Dict, Union, Optional, Any, cast
+from typing import List, Dict, Union, Optional, cast
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.noise_cleaner import noise_cleaner
-from backend.services.xohi.creative_studio.models.schemas import AiReadyReport, AutoFixResponse, BulkFixResponse, BulkFixRequest
+from sqlalchemy.ext.asyncio import AsyncSession
+from backend.services.xohi.creative_studio.models.schemas import AiReadyReport, AutoFixResponse, BulkFixResponse, BulkFixRequest, AgentResponse, AgentSignal
 
 logger = logging.getLogger("api-gateway")
 
@@ -113,7 +114,16 @@ class AiInspector:
             retries=2
         )
 
-    async def analyze(self, campaign: ContentCampaign) -> AiReadyReport:
+    async def execute(self, campaign_id: str, session: AsyncSession, **kwargs: object) -> AgentResponse:
+        """Standard entry point for DI Registry (V61.0)."""
+        campaign = await session.get(ContentCampaign, campaign_id)
+        if not campaign:
+            return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
+
+        result = await self.analyze(campaign, session)
+        return AgentResponse(signal=AgentSignal.OK, data=result)
+
+    async def analyze(self, campaign: ContentCampaign, session: AsyncSession) -> AiReadyReport:
         """
         Performs full GEO analysis on draft content using Trinity Bridge.
         """
@@ -151,7 +161,7 @@ class AiInspector:
                 ]
             )
 
-    async def auto_fix(self, campaign: ContentCampaign, req: AutoFixRequest) -> AutoFixResponse:
+    async def auto_fix(self, campaign: ContentCampaign, req: AutoFixRequest, session: AsyncSession) -> AutoFixResponse:
         """
         Contextual Local Rewrite: Rewrites ONLY the targeted snippet to fix the identified analysis error.
         """
@@ -193,7 +203,7 @@ Hãy viết lại đoạn văn trên để khắc phục lỗi.
                 new_text=req.target_snippet # Return original on failure
             )
 
-    async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
+    async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest, session: AsyncSession) -> BulkFixResponse:
         """
         Phase 46.1: Bulk correction via Master Surgeon.
         V76.3: Integrates Logic-First HFS Sanitization and Structural Mutation.
@@ -203,7 +213,7 @@ Hãy viết lại đoạn văn trên để khắc phục lỗi.
         draft = await noise_cleaner.clean(draft, mode="aggressive", strip_html=True)
         
         # Limit to 15 annotations to avoid context overflow
-        valid_annotations = cast(List[Dict[str, Any]], [a for a in req.annotations if a.get("text") or a.get("type")])
+        valid_annotations = cast(List[Dict[str, object]], [a for a in req.annotations if a.get("text") or a.get("type")])
         if len(valid_annotations) > 15:
             valid_annotations = valid_annotations[:15]
 

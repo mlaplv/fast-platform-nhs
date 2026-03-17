@@ -3,6 +3,7 @@ import asyncio
 import logging
 import re
 from typing import List, Tuple, Dict, Union, Optional, cast
+from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
@@ -144,7 +145,8 @@ class SeoAnalyzer:
                     if p_resp.status_code == 200:
                         body = RE_STYLE_SCRIPT.sub(' ', p_resp.text)
                         return f"URL: {url}\nContent: {RE_WHITESPACE.sub(' ', body)[:3000]}"
-                except: pass
+                except Exception as e:
+                    logger.debug(f"[SeoAnalyzer] Competitor crawl failed for {url}: {e}")
                 return f"URL: {url}\nSnippet: {item.get('snippet', '')}"
             
             return await asyncio.gather(*[_crawl(i) for i in items[:5]])
@@ -152,8 +154,8 @@ class SeoAnalyzer:
             logger.error(f"SEO Search failed: {e}")
             return ["(Lỗi kết nối Google Search API)"]
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
-        campaign = await repo.get(campaign_id)
+    async def execute(self, campaign_id: str, session: AsyncSession, **kwargs: object) -> AgentResponse:
+        campaign = await session.get(ContentCampaign, campaign_id)
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
 
@@ -164,13 +166,12 @@ class SeoAnalyzer:
             cleaned_draft = await noise_cleaner.clean(original_draft, mode="aggressive", strip_html=False)
             if cleaned_draft != original_draft:
                 campaign.draft_content = cleaned_draft
-                await repo.update(campaign)
                 logger.info(f"[SeoAnalyzer] Proactive sanitization applied to campaign {campaign_id}")
 
-            result = await self.analyze(campaign)
+            result = await self.analyze(campaign, session)
             return AgentResponse(signal=AgentSignal.OK, data=result)
 
-    async def analyze(self, campaign: ContentCampaign) -> SeoReport:
+    async def analyze(self, campaign: ContentCampaign, session: AsyncSession) -> SeoReport:
         """
         Analyzes draft content for SEO quality vs competitors.
         """

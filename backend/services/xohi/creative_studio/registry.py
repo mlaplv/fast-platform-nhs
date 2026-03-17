@@ -1,13 +1,13 @@
 import logging
 from typing import Dict, Union, Type, Protocol, runtime_checkable, Awaitable, Callable, Optional
-from backend.database.repositories import ContentCampaignRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger("xohi.registry")
 
 @runtime_checkable
 class Operative(Protocol):
     """R107: Protocol for Content Factory Operatives."""
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> "AgentResponse":
+    async def execute(self, campaign_id: str, session: AsyncSession, **kwargs: object) -> "AgentResponse":
         ...
 
 class OperativeRegistry:

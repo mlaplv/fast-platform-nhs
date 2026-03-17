@@ -1,5 +1,6 @@
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
+import { Node } from '@tiptap/pm/model';
 import { Extension } from '@tiptap/core';
 import type { EditorAnnotation } from '$lib/types';
 
@@ -117,7 +118,7 @@ export const AnnotationExtension = Extension.create({
 /**
  * Creates DecorationSet by scanning the document for all annotation occurrences.
  */
-function createDecorations(doc: any, annotations: EditorAnnotation[]): DecorationSet {
+function createDecorations(doc: Node, annotations: EditorAnnotation[]): DecorationSet {
   const decorations: Decoration[] = [];
   if (!annotations.length) return DecorationSet.empty;
 
@@ -129,7 +130,7 @@ function createDecorations(doc: any, annotations: EditorAnnotation[]): Decoratio
   let fullText = '';
   const posMap: number[] = [];
 
-  doc.descendants((node: any, pos: number) => {
+  doc.descendants((node: Node, pos: number) => {
     if (node.isText && node.text) {
       const text = node.text;
       for (let i = 0; i < text.length; i++) {

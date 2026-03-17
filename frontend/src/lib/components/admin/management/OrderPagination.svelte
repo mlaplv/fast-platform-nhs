@@ -2,17 +2,22 @@
   import ChevronLeft from "lucide-svelte/icons/chevron-left";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
 
-  let { 
-    currentPage = $bindable(1), 
-    totalPages, 
-    pageSize, 
-    totalItems 
+  let {
+    currentPage = $bindable(),
+    totalPages,
+    pageSize,
+    totalItems
   } = $props<{
     currentPage: number;
     totalPages: number;
     pageSize: number;
     totalItems: number;
   }>();
+
+  // R82: Safe initialization for bindable prop
+  onMount(() => {
+    if (currentPage === undefined) currentPage = 1;
+  });
 </script>
 
 {#if totalPages > 1}

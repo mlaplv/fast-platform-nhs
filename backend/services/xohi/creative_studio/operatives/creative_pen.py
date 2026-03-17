@@ -3,9 +3,9 @@ import re
 import asyncio
 import gc
 from typing import List, Dict, Union, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
-from backend.database.repositories import ContentCampaignRepository
 from backend.services.xohi.creative_studio.models.schemas import ArticleOutline, AgentResponse, AgentSignal
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.noise_cleaner import noise_cleaner
@@ -68,9 +68,9 @@ class CreativePen:
         )
         self.draft_agent = Agent(system_prompt=DRAFT_PROMPT)
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
+    async def execute(self, campaign_id: str, session: AsyncSession, **kwargs: object) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0)."""
-        campaign = await repo.get(campaign_id)
+        campaign = await session.get(ContentCampaign, campaign_id)
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
 

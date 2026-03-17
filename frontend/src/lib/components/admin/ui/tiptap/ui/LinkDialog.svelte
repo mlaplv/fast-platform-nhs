@@ -1,6 +1,6 @@
 <script lang="ts">
-  let { 
-    show = $bindable(false), 
+  let {
+    show = $bindable(),
     currentUrl = '',
     onApply
   }: {

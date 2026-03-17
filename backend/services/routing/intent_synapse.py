@@ -1,7 +1,7 @@
 import json
 import logging
 import time
-from typing import Optional, Dict, Any, TypedDict
+from typing import Optional, Dict, TypedDict, cast
 
 from backend.services.xohi_memory import xohi_memory
 
@@ -10,19 +10,19 @@ logger = logging.getLogger("api-gateway")
 # Synapse TTL: 90 seconds (short-term memory for confirmations)
 SYNAPSE_TTL = 90
 
+class IntentPayload(TypedDict):
+    query: str
+    classification: Dict[str, object]  # IntentResponse data dictionary
+    timestamp: float
+
 class IntentSynapseService:
     """
     Neural Synapse Service — Handles Recurrent Intent Propagation (RIP).
     Stores pending intents during clarification turns to be 're-activated' by confirmations.
     """
 
-    class IntentPayload(TypedDict):
-        query: str
-        classification: Dict[str, Any]  # IntentResponse data dictionary
-        timestamp: float
-
     @staticmethod
-    async def store_pending_intent(user_id: str, classification_data: Dict[str, Any], query: str) -> None:
+    async def store_pending_intent(user_id: str, classification_data: Dict[str, object], query: str) -> None:
 
         """
         Stores a 'floating' intent that awaits confirmation.
@@ -54,10 +54,11 @@ class IntentSynapseService:
                 data = await xohi_memory.client.get(key)
                 if data:
                     await xohi_memory.client.delete(key)
-                    return json.loads(data)
+                    return cast(IntentPayload, json.loads(data))
             else:
                 data = xohi_memory._fallback_cache.pop(f"synapse:{user_id}", None)
-                return data
+                if data:
+                    return cast(IntentPayload, data)
         except Exception as e:
             logger.error(f"[IntentSynapse] Retrieval failed: {e}")
         return None

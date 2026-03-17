@@ -1,6 +1,6 @@
 <script lang="ts">
   import { nanobot, type WidgetType } from "$lib/state/nanobot.svelte";
-  import type { Component } from "svelte";
+  import { onMount, type Component } from "svelte";
   import Package from "lucide-svelte/icons/package";
   import Users from "lucide-svelte/icons/users";
   import Newspaper from "lucide-svelte/icons/newspaper";
@@ -17,6 +17,11 @@
 
   let { open = $bindable() } = $props();
 
+  // R82: Safe initialization for bindable prop
+  onMount(() => {
+    if (open === undefined) open = false;
+  });
+
   interface SubItem {
     label: string;
     widget: WidgetType;
@@ -24,7 +29,7 @@
 
   interface CategoryItem {
     id: string;
-    icon: Component<any>;
+    icon: Component;
     label: string;
     sublabel?: string;
     color: string;

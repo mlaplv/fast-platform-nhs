@@ -6,8 +6,8 @@ import asyncio
 from datetime import datetime, timezone
 from pydantic_ai import Agent
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models import ContentCampaign
-from backend.database.repositories import ContentCampaignRepository
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge, AIConfigurationError
 from backend.services.xohi.creative_studio.models.schemas import TopicSeed, AgentResponse, AgentSignal, CategoryEnum
 from backend.services.event_bus import event_bus
@@ -47,9 +47,9 @@ class VisionInsight:
             retries=3
         )
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
+    async def execute(self, campaign_id: str, session: AsyncSession, **kwargs: object) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0)."""
-        campaign = await repo.get(campaign_id)
+        campaign = await session.get(ContentCampaign, campaign_id)
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
         
