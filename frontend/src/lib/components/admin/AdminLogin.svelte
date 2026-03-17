@@ -150,7 +150,7 @@
             class="absolute inset-0 bg-cyan-400 blur-xl opacity-20 group-hover:opacity-40 transition-opacity"
           ></div>
           <div
-            class="relative inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-black border border-cyan-500/30 shadow-2xl transition-transform hover:scale-110 duration-500 overflow-hidden"
+            class="relative inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-black/40 backdrop-blur-md border border-cyan-500/30 shadow-2xl transition-transform hover:scale-110 duration-500 overflow-hidden"
           >
             <div class="absolute inset-0 flex items-center justify-center">
               <div

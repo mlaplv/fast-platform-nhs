@@ -98,7 +98,7 @@
                         <div>
                             <div class="flex items-center gap-3">
                                 <h3 class="text-lg font-bold text-gray-200">{campaigns[i].topic_data?.title || 'Đang phân tích chủ đề...'}</h3>
-                                <span class="px-2 py-1 rounded-md bg-white/5 text-[9px] font-mono text-gray-500">ID: {campaigns[i].id.slice(0,8)}</span>
+                                <span class="px-2 py-1 rounded-md bg-black/40 border border-white/5 text-[9px] font-mono text-gray-500">ID: {campaigns[i].id.slice(0,8)}</span>
                             </div>
                             <p class="text-sm text-gray-500 mt-1 line-clamp-1 italic">"{campaigns[i].source_input}"</p>
                         </div>

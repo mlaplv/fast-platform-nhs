@@ -281,7 +281,7 @@
           <!-- Logo Restored (Static) -->
           <div class="flex items-center gap-1.5 px-0.5 mr-1">
             <div
-              class="w-5 h-5 flex items-center justify-center rounded-sm bg-neon-cyan/5"
+              class="w-5 h-5 flex items-center justify-center rounded-sm bg-transparent"
             >
                 <img src="/hamster-core.png" alt="X" class="w-10 h-10 object-contain opacity-60 group-hover:opacity-100 transition-opacity" />
             </div>

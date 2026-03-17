@@ -41,7 +41,7 @@
     },
     IDLE: {
       border: "border-white/10",
-      bg: "bg-white/5",
+      bg: "bg-transparent",
       glow: "",
       text: "text-gray-500",
       point: "bg-gray-500",
