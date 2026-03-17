@@ -1,6 +1,6 @@
 import logging
 from typing import List, Dict, Union, Optional
-from fastembed import TextEmbedding
+from backend.services.ai_engine.core.encoder_singleton import get_encoder
 from backend.database import async_session_maker
 
 logger = logging.getLogger("api-gateway")
@@ -11,8 +11,8 @@ class ProductVectorService:
     Enforces strict pgvector typing via SQLAlchemy/Raw SQL.
     """
     def __init__(self):
-        # Mắt Thần Tầng 1: Sử dụng chung model Multilingual với Tier 1 Router
-        self.embedding_model = TextEmbedding(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+        # Elite V2.2: Shared encoder to save 400MB RAM
+        self.embedding_model = get_encoder()
 
     async def search_semantic(self, query: str, tenant_id: str = "default", limit: int = 5) -> List[Dict[str, object]]:
         try:

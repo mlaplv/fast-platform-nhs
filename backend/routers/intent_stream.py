@@ -7,13 +7,7 @@ from litestar import Controller, post, Request
 from litestar.di import Provide
 from litestar.response import Stream
 
-<<<<<<< Updated upstream:backend/routers/intent_stream.py
-from backend.schemas.intent import IntentRequest, IntentResponse, IntentAction, RouterTier
-from backend.services.routing.intent_orchestrator import orchestrator
-from backend.services.ai_engine.core.semantic_shield import SemanticShield
-=======
-from backend.api.v1.schemas.intent import IntentRequest
->>>>>>> Stashed changes:backend/api/v1/controllers/intent_stream.py
+from backend.schemas.intent import IntentRequest
 from backend.database.repositories import (
     UserRepository, ChatMessageRepository, VoiceProfileRepository,
     AgentTelemetryLogRepository, OrderRepository, ProductBaseRepository,
@@ -22,14 +16,7 @@ from backend.database.repositories import (
     provide_telemetry_repo, provide_order_repo, provide_product_repo,
     provide_campaign_repo
 )
-<<<<<<< Updated upstream:backend/routers/intent_stream.py
-from backend.database.models import ChatMessage, AgentTelemetryLog
-from backend.database.alchemy_config import alchemy_config
-from backend.constants.action_vi import ACTION_VI
-from backend.utils.data_stripper import DataStripper
-=======
-from .intent.core import IntentStreamCore
->>>>>>> Stashed changes:backend/api/v1/controllers/intent_stream.py
+from .intent_core import IntentStreamCore
 
 logger = logging.getLogger("api-gateway")
 

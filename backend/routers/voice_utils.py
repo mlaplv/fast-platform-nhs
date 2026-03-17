@@ -1,18 +1,42 @@
-# backend/api/v1/controllers/voice/engine.py
+# backend/routers/voice_utils.py
 import io
+import os
+import re
 import logging
 import asyncio
+import uuid
 import unicodedata
+from typing import Dict, Optional, List, cast
 from litestar import WebSocket
 from backend.services.xohi_memory import xohi_memory
-from .constants import (
-    WHISPER_MODEL, GROQ_API_KEY, HALLUCINATION_BLACKLIST,
-    SENTENCE_SPLIT_RE, DOT_HALLUCINATION_RE
-)
+from backend.database.alchemy_config import alchemy_config
+from backend.database.repositories import AgentTelemetryLogRepository
+from backend.database.models import AgentTelemetryLog
 
 logger = logging.getLogger("api-gateway")
+async_session_maker = alchemy_config.create_session_maker()
 
-async def send_partial(socket: WebSocket, audio_data: bytes, lock: asyncio.Lock, user_id: str = None) -> None:
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+WHISPER_MODEL = "groq/whisper-large-v3-turbo"
+
+# Minimum audio size to avoid sending silence/noise (bytes)
+MIN_AUDIO_BYTES = 1500
+# Maximum buffer before force-transcribe (25MB Groq limit)
+MAX_AUDIO_BYTES = 20_000_000
+
+# Zero-Hallucination 2026: Blacklist for common Whisper phantoms in silence/noise
+HALLUCINATION_BLACKLIST = [
+    "cám ơn các bạn", "subscribe", "đăng ký kênh", "ghiền mì gõ",
+    "chào các bạn", "phimmoichill", "website chính thức",
+    "liên hệ với chúng tôi", "video", "youtube", "mọi người",
+    "ủng hộ", "bình luận", "zalo", "facebook", "website", "chào mừng",
+    "tập trung vào ngữ cảnh"
+]
+
+SENTENCE_SPLIT_RE = re.compile(r'(?<=[.!?])\s+')
+DOT_HALLUCINATION_RE = re.compile(r'^\.+$')
+
+async def send_partial(socket: WebSocket, audio_data: bytes, lock: asyncio.Lock, user_id: Optional[str] = None) -> None:
     """Auxiliary task to send interim transcription results."""
     if lock.locked():
         return
@@ -24,7 +48,7 @@ async def send_partial(socket: WebSocket, audio_data: bytes, lock: asyncio.Lock,
         except Exception as e:
             logger.debug(f"[STT] Partial transcription skipped: {e}")
 
-async def transcribe(audio_data: bytes, user_id: str = None) -> str:
+async def transcribe(audio_data: bytes, user_id: Optional[str] = None) -> str:
     """Send audio to Groq Whisper via litellm and return transcript."""
     try:
         import litellm
@@ -46,7 +70,7 @@ async def transcribe(audio_data: bytes, user_id: str = None) -> str:
                 mic_sensitivity = profile.get("mic_sensitivity", 0.6)
 
         system_mapping = await xohi_memory.get_system_intent_mapping()
-        system_intents = list(system_mapping.keys())[:10] if system_mapping else []
+        system_intents = list(cast(Dict, system_mapping).keys())[:10] if system_mapping else []
         final_anchors = " ".join(stt_anchors + system_intents)
         prompt_text = final_anchors[:500]
 
@@ -118,3 +142,30 @@ async def transcribe(audio_data: bytes, user_id: str = None) -> str:
     except Exception as e:
         logger.error(f"[STT] Groq transcription failed: {e}")
         return ""
+
+async def background_save_telemetry(
+    session_id: str,
+    agent_name: str,
+    duration_ms: int,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    cost_token: float = 0.0,
+    intent_hash: str = "stt_op"
+) -> None:
+    """Save performance metrics to database in background."""
+    try:
+        async with async_session_maker() as session:
+            repo = AgentTelemetryLogRepository(session=session)
+            await repo.add(AgentTelemetryLog(
+                id=str(uuid.uuid4()),
+                session_id=session_id,
+                agent_name=agent_name,
+                intent_hash=intent_hash,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                cost_token=cost_token,
+                duration_ms=duration_ms
+            ))
+            await session.commit()
+    except Exception as e:
+        logger.error(f"[STT Telemetry Error] {e}")

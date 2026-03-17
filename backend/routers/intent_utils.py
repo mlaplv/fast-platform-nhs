@@ -1,16 +1,15 @@
-# backend/api/v1/controllers/intent/utils.py
+# backend/routers/intent_utils.py
 import json
 import logging
 import asyncio
 import uuid
-import hashlib
 from typing import Dict, Optional
 from uuid import UUID
 
 from backend.database.repositories import ChatMessageRepository, AgentTelemetryLogRepository
 from backend.database.models import ChatMessage, AgentTelemetryLog
 from backend.database.alchemy_config import alchemy_config
-from backend.core.utils.data_stripper import DataStripper
+from backend.utils.data_stripper import DataStripper
 
 logger = logging.getLogger("api-gateway")
 async_session_maker = alchemy_config.create_session_maker()

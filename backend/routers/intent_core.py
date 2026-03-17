@@ -1,4 +1,4 @@
-# backend/api/v1/controllers/intent/core.py
+# backend/routers/intent_core.py
 import json
 import time
 import hashlib
@@ -11,7 +11,7 @@ from litestar import Request
 from litestar.response import Stream
 from litestar.repository.filters import LimitOffset
 
-from backend.api.v1.schemas.intent import IntentRequest
+from backend.schemas.intent import IntentRequest, IntentResponse, IntentAction, RouterTier
 from backend.services.routing.intent_orchestrator import orchestrator
 from backend.services.ai_engine.core.semantic_shield import SemanticShield
 from backend.database.repositories import (
@@ -19,10 +19,10 @@ from backend.database.repositories import (
     AgentTelemetryLogRepository, OrderRepository, ProductBaseRepository,
     ContentCampaignRepository
 )
-from backend.core.constants.action_vi import ACTION_VI
-from backend.core.utils.data_stripper import DataStripper
+from backend.constants.action_vi import ACTION_VI
+from backend.utils.data_stripper import DataStripper
 
-from .utils import sse, background_save_logs, background_tasks
+from .intent_utils import sse, background_save_logs, background_tasks
 
 logger = logging.getLogger("api-gateway")
 
@@ -95,7 +95,7 @@ class IntentStreamCore:
                     if not user_id and "sub" in user_info:
                         user = await user_repo.get_one_or_none(email=cast(str, user_info["sub"]))
                         if user:
-                            user_id = user.id
+                            user_id = str(user.id)
 
                 # ── Context ──
                 recent_msgs = await chat_repo.list(
@@ -153,7 +153,7 @@ class IntentStreamCore:
                     action_val = result.action.value if hasattr(result.action, "value") else str(result.action)
                     if intent_type in ["DEEP_ANALYSIS", "UNKNOWN"] or action_val == "ANALYZE":
                         full_message = ""
-                        async for chunk in orchestrator.executor.t3_router.stream_reason(
+                        async for chunk in orchestrator.t3_router.stream_reason(
                             data.query, context, screen_context=data.screen_context
                         ):
                             full_message += chunk

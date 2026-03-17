@@ -1,13 +1,14 @@
-# backend/api/v1/controllers/voice/core.py
+# backend/routers/voice_core.py
 import logging
 import asyncio
 import time
 import uuid
 import hashlib
 from litestar import WebSocket, websocket
-from .constants import MIN_AUDIO_BYTES, MAX_AUDIO_BYTES
-from .engine import send_partial, transcribe
-from .telemetry import background_save_telemetry
+from .voice_utils import (
+    MIN_AUDIO_BYTES, MAX_AUDIO_BYTES,
+    send_partial, transcribe, background_save_telemetry
+)
 
 logger = logging.getLogger("api-gateway")
 
@@ -23,7 +24,7 @@ async def stt_websocket(socket: WebSocket) -> None:
     is_active = True
     transcription_lock = asyncio.Lock()
     background_tasks = set()
-    last_partial_time = asyncio.get_event_loop().time()
+    last_partial_time = float(asyncio.get_event_loop().time())
     last_transcribed_size = 0
 
     try:
@@ -36,7 +37,7 @@ async def stt_websocket(socket: WebSocket) -> None:
                         data = msg["bytes"]
                         audio_buffer.extend(data)
 
-                        now = asyncio.get_event_loop().time()
+                        now = float(asyncio.get_event_loop().time())
                         if now - last_partial_time > 1.0 and len(audio_buffer) > (last_transcribed_size + 2000):
                             last_partial_time = now
                             last_transcribed_size = len(audio_buffer)
