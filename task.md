@@ -28,7 +28,13 @@ Nắn toàn bộ Backend về trục kiến trúc tinh gọn: Controller (Giao t
 - [x] Đồng bộ hóa `walkthrough.md` và đóng gói commit. <!-- id: 215 -->
 - [x] Refactor MediaService & Global Zero-Hydration Sweep (Rule 1.5). <!-- id: 216 -->
 
-## ✅ TRẠNG THÁI: HOÀN TẤT (ELITE V2.2)
+### GIAI ĐOẠN 5: KIỂM TOÁN TỔNG THỂ & DỌN RÁC (AUDIT PHASE)
+- [x] Vẽ bản đồ kiến trúc hoàn công Elite V2.2. <!-- id: 217 -->
+- [x] Trinh sát và lập danh sách file "mìn" (Orphan Files). <!-- id: 218 -->
+- [ ] Chờ duyệt và thực hiện lệnh "Thanh tẩy" (Purge). <!-- id: 219 -->
+- [ ] Di chuyển nốt các Schema từ `models/schemas.py` sang `schemas/`. <!-- id: 220 -->
+
+## ✅ TRẠNG THÁI: KIỂM TOÁN (ELITE V2.2)
 - [x] Toàn bộ Backend đã chuyển sang mô hình Service-Centric.
 - [x] Đã xóa bỏ Repository Layer (Rule KISS/YAGNI).
 - [x] Đạt 100% Type Safety (R105).

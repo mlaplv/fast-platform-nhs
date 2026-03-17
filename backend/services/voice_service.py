@@ -235,9 +235,19 @@ class VoiceService:
             await key_rotator.mark_unhealthy(key, reason=str(e))
             return {"status": "error", "message": str(e)}
 
+    def _merge_capabilities(self, stored_caps: Dict[str, bool]) -> List[Dict[str, object]]:
+        """Helper to merge registry metadata with user's active state."""
+        from backend.services.capability_registry import capability_registry
+        capabilities = []
+        for cap in capability_registry.get_spectrum():
+            capabilities.append({
+                **cap,
+                "active": stored_caps.get(cap["id"], True)
+            })
+        return capabilities
+
     async def get_voice_settings(self, session: AsyncSession, user_id: str) -> Dict[str, object]:
         """Fetch current voice and cognitive settings for a user via text-SQL (Zero-Hydration)."""
-        from backend.services.capability_registry import capability_registry
         from backend.services.xohi_memory import xohi_memory
         import json
 
@@ -279,12 +289,7 @@ class VoiceService:
             })
 
         # Merge Registry Metadata with User's Active State
-        capabilities = []
-        for cap in capability_registry.get_spectrum():
-            capabilities.append({
-                **cap,
-                "active": stored_caps.get(cap["id"], True)
-            })
+        capabilities = self._merge_capabilities(stored_caps)
 
         # Global Campaign Mode from Redis
         val = await xohi_memory.client.get("system:campaign_mode")
@@ -452,7 +457,8 @@ class VoiceService:
             "sleep_words": sleep_words,
             "greeting_template": profile["greeting_template"],
             "farewell_template": profile["farewell_template"],
-            "capabilities": profile["capabilities"],
+            "capabilities": self._merge_capabilities(profile["capabilities"]),
+            "chat_settings": profile["chat_settings"],
             "is_campaign_mode": current_campaign
         }
 

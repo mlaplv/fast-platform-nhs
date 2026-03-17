@@ -27,7 +27,7 @@ from backend.services.media.schemas import (
     FetchRemoteRequest,
     MimeTypeBreakdown
 )
-from backend.models.schemas import GenericResponse
+from backend.schemas.campaign import GenericResponse
 
 logger = logging.getLogger("media-api")
 

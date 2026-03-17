@@ -116,7 +116,7 @@
 - **RAM Optimization**: Việc loại bỏ "Identity Map" của ORM giúp duy trì mức sử dụng RAM ổn định <2GB ngay cả khi xử lý lượng lớn bản ghi.
 
 ### 2. Service-Specific Improvements
-- **VoiceService**: Khắc phục lỗi truy cập thuộc tính (AttributeError) sau khi chuyển sang Dict-only result.
+- **VoiceService**: Khắc phục lỗi truy cập thuộc tính (AttributeError) sau khi chuyển sang Dict-only result. Đồng bộ hóa cấu trúc Response giữa `get` và `update` (bao gồm `chat_settings` và `capabilities` metadata) để đảm bảo Svelte 5 state không bị desync.
 - **CategoryService**: Tối ưu hóa việc xây dựng cây danh mục (Category Tree) với cơ chế Batch Count cho sản phẩm (N+1 Kill).
 - **ProductService**: Đồng bộ hóa cơ chế Upsert Embedding sử dụng Raw SQL cho pgvector.
 
@@ -137,9 +137,31 @@
 - **Service Layer**: Đã tách biệt hoàn toàn logic nghiệp vụ và truy vấn dữ liệu thô, trả về Dictionary thuần túy cho Controller.
 
 ---
-*Bằng chứng được xác thực bởi Antigravity (Advanced Agentic AI).*
----
 
+# Walkthrough - Final Audit: Elite V2.2 Post-Migration Cleanup
+
+**Ngày thực hiện:** 2026-03-17
+**Trạng thái:** IN_PROGRESS (Waiting for Purge Approval) ⏳
+
+### 1. Bản đồ Hoàn công Elite V2.2
+- **Kiến trúc:** Đã chuẩn hóa 100% sang mô hình `Controller -> Service`.
+- **Data Flow:** Logic nghiệp vụ nằm hoàn toàn trong `services/`, giao tiếp qua `schemas/`, không còn phụ thuộc vào ORM Models tại tầng ngoài.
+- **Zero-Hydration:** Đạt chuẩn R1.5 trên toàn hệ thống backend.
+
+### 2. Danh sách "Mìn" & Tàn dư (Audit Findings)
+- **`backend/backend/`**: Thư mục rác lồng nhau (scaffold error). Xác nhận 0 dependency.
+- **`backend/core/database.py`**: Tàn dư cấu hình DB cũ. Đã được thay thế bởi `backend/database/alchemy_config.py`.
+- **`backend/models/schemas.py`**: Trạm schema cũ. Cần di trú sang `backend/schemas/campaign.py` trước khi xóa.
+- **`backend/database.db`**: File SQLite local không còn giá trị sử dụng.
+- **`backend/result_attrs.txt` & `backend/version_info.txt`**: File rác phát sinh trong quá trình vận hành.
+
+### 3. Verification Report (Scout Report R01)
+- **Dependency Scan**: Đã chạy `grep` toàn bộ codebase, xác nhận các file trong danh sách thanh lý không còn được import (trừ `models/schemas.py` đang chờ di trú).
+- **Safety Check**: Hệ thống vẫn hoạt động bình thường với cấu trúc mới.
+
+---
+*Báo cáo được lập bởi Antigravity. Đang đợi lệnh Duyệt xóa.*
+---
 # Walkthrough - Phase 10: Elite Optimization & Safety
 (Đã hoàn thành)
 ...

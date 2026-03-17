@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.services.content_service import content_service
 from backend.services.campaign_service import campaign_service
 from backend.services.event_bus import event_bus
-from backend.models.schemas import GenericResponse
+from backend.schemas.campaign import GenericResponse
 from backend.schemas.article import CreateArticleRequest
 
 logger = logging.getLogger("api-gateway")

@@ -8,7 +8,7 @@ from uuid import UUID
 logger = logging.getLogger("api-gateway")
 from litestar import Controller, get, post, put, patch, delete, Request
 from backend.services.xohi.creative_studio.orchestrator import content_factory
-from backend.models.schemas import (
+from backend.schemas.campaign import (
     ContentCampaign as CampaignSchema,
     CampaignStep,
     AgentResponse,
