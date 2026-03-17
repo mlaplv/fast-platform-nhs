@@ -61,7 +61,7 @@
   });
 </script>
 
-<div class="flex-1 flex flex-col relative w-full h-full overflow-hidden bg-[#020202]">
+<div class="flex-1 flex flex-col relative w-full h-full overflow-hidden bg-[#010101]">
   <!-- Absolute Adaptive Header (Phase 13.3: Minimalist Premium) -->
   <div 
     class="absolute top-0 left-0 right-0 z-30 px-6 pt-14 pb-8 transition-all duration-500 ease-out pointer-events-none"

@@ -61,7 +61,7 @@
 {:else}
   <!-- Essential Base Loading (Vantablack Minimal) -->
   <div
-    class="fixed inset-0 bg-[#050505] flex items-center justify-center z-[100]"
+    class="fixed inset-0 bg-[#010101] flex items-center justify-center z-[100]"
   >
     <div class="flex flex-col items-center gap-4">
       <div class="relative w-16 h-16 flex items-center justify-center">

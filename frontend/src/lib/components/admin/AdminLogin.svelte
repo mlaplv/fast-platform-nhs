@@ -441,7 +441,7 @@
   }
 
   :global(body) {
-    background-color: #020202;
+    background-color: #010101;
   }
 
   input:-webkit-autofill,
