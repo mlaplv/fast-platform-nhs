@@ -15,6 +15,7 @@ from backend.services.xohi.creative_studio.models.schemas import AgentResponse, 
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.http_client import get_http_client
 from backend.utils.noise_cleaner import noise_cleaner, RE_WHITESPACE
+from backend.utils.text import normalize_vn
 
 logger = logging.getLogger("api-gateway")
 
@@ -99,6 +100,8 @@ class PlagiarismCop:
     def __init__(self, threshold: float = 0.75):
         self.threshold = threshold
         self.search_keys = []
+        # CNS V76: Global-like semaphore for Plagiarism tasks to protect VPS RAM
+        self.plagiarism_semaphore = asyncio.Semaphore(1)
         # Load Google Search keys from env (same as AssetHunter)
         for i in ["", "_1", "_2"]:
             k = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}")
@@ -132,13 +135,9 @@ class PlagiarismCop:
         # We need the snippets to exist EXACTLY in the final cleaned draft for the UI
         sentences = raw_segments
 
-        # Normalize for comparison (lowercase, NFC, collapse whitespace, strip punctuation)
-        import unicodedata
+        # Phase 76.3: Standardized Normalization (Elite V2.2)
         def normalize(text: str) -> str:
-            text = unicodedata.normalize('NFC', text.lower().strip())
-            text = RE_NORMALIZE.sub('', text)
-            text = RE_WHITESPACE.sub(' ', text)
-            return text
+            return normalize_vn(text)
 
         # Track seen sentences → first occurrence index
         seen: dict[str, int] = {}
@@ -220,17 +219,20 @@ class PlagiarismCop:
         draft = await noise_cleaner.clean(draft, mode="aggressive", strip_html=False)
 
         # Split by paragraph (logical unit) not sentence
-        paragraphs = [p.strip() for p in re.split(r'\n\n+', draft) if p.strip()]
+        raw_paragraphs = [p.strip() for p in re.split(r'\n\n+', draft) if p.strip()]
+
+        # Memory Shield: Limit to 500 paragraphs to prevent OOM in 2GB VPS
+        paragraphs = raw_paragraphs[:500]
+        if len(raw_paragraphs) > 500:
+            logger.warning(f"[PlagiarismCop] bulk_fix: Document too large ({len(raw_paragraphs)} paras). Limited to 500.")
 
         RE_DIGIT = re.compile(r'\d+')
 
         def tokenize(text: str) -> set[str]:
-            """Extract meaningful word tokens: strip digits + punctuation, lowercase, NFC."""
-            text = unicodedata.normalize('NFC', text.lower())
-            text = RE_DIGIT.sub('', text)           # strip noise numbers like 1111
-            text = RE_NORMALIZE.sub(' ', text)      # strip punctuation
-            text = RE_WHITESPACE.sub(' ', text)
-            return {w for w in text.split() if len(w) >= 2}
+            """Phase 76.3: Extract meaningful word tokens using standardized normalization."""
+            norm = normalize_vn(text)
+            norm = RE_DIGIT.sub('', norm) # strip digits like 1111
+            return {w for w in norm.split() if len(w) >= 2}
 
         def jaccard(a: set[str], b: set[str]) -> float:
             if not a and not b:
@@ -265,16 +267,18 @@ class PlagiarismCop:
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
 
-        # Phase 76.4: Proactive Physical Sanitization (Elite V2.2)
-        # We clean the draft in DB so Editor and Analysis are in sync
-        original_draft = campaign.draft_content or ""
-        cleaned_draft = await noise_cleaner.clean(original_draft, mode="aggressive", strip_html=False)
-        if cleaned_draft != original_draft:
-            campaign.draft_content = cleaned_draft
-            await repo.update(campaign)
-            logger.info(f"[PlagiarismCop] Proactive sanitization applied to campaign {campaign_id}")
+        # CNS V76: Enforce serial processing for heavy plagiarism analysis
+        async with self.plagiarism_semaphore:
+            # Phase 76.4: Proactive Physical Sanitization (Elite V2.2)
+            # We clean the draft in DB so Editor and Analysis are in sync
+            original_draft = campaign.draft_content or ""
+            cleaned_draft = await noise_cleaner.clean(original_draft, mode="aggressive", strip_html=False)
+            if cleaned_draft != original_draft:
+                campaign.draft_content = cleaned_draft
+                await repo.update(campaign)
+                logger.info(f"[PlagiarismCop] Proactive sanitization applied to campaign {campaign_id}")
 
-        result = await self.analyze(campaign)
+            result = await self.analyze(campaign)
 
         # Phase 73: Sync with gold_metadata analysis_cache for UI hydration parity
         gold = copy.deepcopy(campaign.gold_metadata or {})
@@ -358,11 +362,11 @@ class PlagiarismCop:
         seen_paras: set[str] = set()
         deduped_paras: list[str] = []
         internal_annotations: list[CopyrightAnnotation] = []
-        for para in re.split(r'\n\n+', plain_text):
-            para = para.strip()
-            if not para:
-                continue
-            norm = RE_NORMALIZE.sub('', RE_WHITESPACE.sub(' ', unicodedata.normalize('NFC', para.lower())))
+
+        raw_paras = [p.strip() for p in re.split(r'\n\n+', plain_text) if p.strip()]
+        # Memory Shield: Limit processing to first 200 paragraphs for AI analysis
+        for para in raw_paras[:200]:
+            norm = normalize_vn(para)
             if len(norm) < 10:
                 deduped_paras.append(para)
                 continue

@@ -1,6 +1,7 @@
 import os
 import re
 import httpx
+import gc
 import asyncio
 import logging
 import hashlib
@@ -29,7 +30,8 @@ class MediaCompressor:
         self.upload_dir: str = upload_dir
         os.makedirs(self.upload_dir, exist_ok=True)
         # R106: Semaphore-based concurrency to protect 2GB RAM limits.
-        self.semaphore: asyncio.Semaphore = asyncio.Semaphore(3)
+        # Phase 76: Enforce serial processing for heavy media tasks
+        self.semaphore: asyncio.Semaphore = asyncio.Semaphore(1)
         self.analyst = MediaAnalyst()
 
     async def execute(self, campaign_id: str, repo: ContentCampaignRepository, media_repo: Optional[MediaRegistryRepository] = None, **kwargs: object) -> AgentResponse:
@@ -137,6 +139,9 @@ class MediaCompressor:
                 return local_path
             finally:
                 buffer.close()
+                # Memory discipline: Force GC after heavy buffer/image processing
+                del buffer
+                gc.collect()
         except Exception as e:
             logger.error(f"[MediaCompressor] Localization failure for {url}: {str(e)}")
             return None

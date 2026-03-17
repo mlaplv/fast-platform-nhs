@@ -80,17 +80,20 @@ export function createPulseManager(
   // Phase 82: Sync Guard — Prevent DB sync from overwriting fresh SSE data
   let liveCampaigns = new Map<string, number>(); // campaign_id -> last_sse_completed_timestamp
 
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "visible" && !eventSource) {
+      connectPulse();
+    }
+  };
+
   const connectPulse = () => {
     if (typeof window === "undefined" || eventSource) return;
 
     eventSource = new EventSource("/api/v1/pulse/stream");
 
     if (typeof window !== "undefined") {
-      window.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible" && !eventSource) {
-          connectPulse();
-        }
-      });
+      window.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.addEventListener("visibilitychange", handleVisibilityChange);
     }
 
     eventSource.onopen = () => {

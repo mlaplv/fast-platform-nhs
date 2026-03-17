@@ -48,14 +48,8 @@
     },
   };
 
-  // God Mode: Shadow state to avoid race conditions during hydration
-  let localStatus = $state("IDLE");
-  
-  $effect(() => {
-    if (nanobot?.nanoBotStatus) {
-      localStatus = nanobot.nanoBotStatus;
-    }
-  });
+  // God Mode: Use derived status directly from nanobot store to prevent frame delay (CNS V76)
+  let localStatus = $derived(nanobot?.nanoBotStatus || "IDLE");
 
   let currentConfig = $derived(
     statusConfig[localStatus as keyof typeof statusConfig] || statusConfig.IDLE

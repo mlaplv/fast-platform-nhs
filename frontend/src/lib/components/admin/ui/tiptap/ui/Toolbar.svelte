@@ -19,15 +19,19 @@
   import CodeIcon from 'lucide-svelte/icons/code';
   import MinusIcon from 'lucide-svelte/icons/minus';
   import SparklesIcon from 'lucide-svelte/icons/sparkles';
+  import MaximizeIcon from 'lucide-svelte/icons/maximize';
+  import MinimizeIcon from 'lucide-svelte/icons/minimize';
 
-  let { 
-    editor, 
-    toolbarActions = [], 
+  let {
+    editor,
+    toolbarActions = [],
     annotations = [],
     onOpenImage,
     onOpenLink,
     onClearHighlights,
     onClean = null,
+    fullScreen = false,
+    onToggleFullScreen = null,
   }: {
     editor: Editor | null;
     toolbarActions?: ToolbarAction[];
@@ -36,6 +40,8 @@
     onOpenLink: () => void;
     onClearHighlights: () => void;
     onClean?: (() => void) | null;
+    fullScreen?: boolean;
+    onToggleFullScreen?: (() => void) | null;
   } = $props();
 
   const FONTS = ['Inter', 'Roboto', 'Georgia', 'Times New Roman', 'Courier New', 'Arial'];
@@ -156,30 +162,48 @@
     {/each}
   {/if}
 
-  <!-- Clean + Clear Highlights (right-aligned actions) -->
-  <div class="tb-divider ml-auto"></div>
-  
-  {#if onClean}
-    <button
-      id="toolbar-btn-clean"
-      onclick={onClean}
-      class="flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide border transition-all bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/20 text-orange-400 hover:text-orange-300 active:scale-95"
-      title="Làm sạch: xóa trùng lặp, markdown thừa, ký tự rác"
-    >
-      <SparklesIcon size={10} />
-      Clean
-    </button>
-  {/if}
+  <!-- Annotations & View Modes (Right Aligned) -->
+  {#if (annotations && annotations.length > 0) || onToggleFullScreen || onClean}
+    <div class="tb-divider ml-auto"></div>
 
-  {#if annotations && annotations.length > 0}
-    <button
-      onclick={onClearHighlights}
-      class="flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide border transition-all bg-white/5 hover:bg-white/10 border-white/10 text-white/40 hover:text-white active:scale-95"
-      title="Xóa tất cả highlights"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-      Xóa Highlight
-    </button>
+    {#if annotations && annotations.length > 0}
+      <button
+        onclick={onClearHighlights}
+        class="flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide border transition-all bg-white/5 hover:bg-white/10 border-white/10 text-white/40 hover:text-white active:scale-95"
+        title="Xóa tất cả highlights"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        Highlight
+      </button>
+    {/if}
+
+    {#if onToggleFullScreen}
+      <button
+        onclick={onToggleFullScreen}
+        class="flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide border transition-all bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white active:scale-95"
+        title={fullScreen ? "Thu nhỏ (Esc)" : "Toàn màn hình"}
+      >
+        {#if fullScreen}
+          <MinimizeIcon size={10} />
+          Exit
+        {:else}
+          <MaximizeIcon size={10} />
+          Full
+        {/if}
+      </button>
+    {/if}
+
+    {#if onClean}
+      <button
+        id="toolbar-btn-clean"
+        onclick={onClean}
+        class="flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide border transition-all bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/20 text-orange-400 hover:text-orange-300 active:scale-95"
+        title="Làm sạch: xóa trùng lặp, markdown thừa, ký tự rác"
+      >
+        <SparklesIcon size={10} />
+        Clean
+      </button>
+    {/if}
   {/if}
 </div>
 

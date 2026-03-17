@@ -13,6 +13,7 @@ import { permissionState } from "./permissions.svelte";
 import { normalizeVn } from "$lib/utils/text";
 
 import { normalizeAssets, SIGNAL_THROTTLE_MS, THINKING_TIMEOUT_MS } from "./nanobot/utils";
+import { sanitizeId } from "./utils";
 import { createAudioThrottle } from "./nanobot/audio_throttle";
 import { createResumeManager } from "./nanobot/resume";
 import { createPulseManager } from "./nanobot/pulse";
@@ -155,7 +156,7 @@ export function createNanobotState() {
     resetVui,
     setThinking,
     setModality: (val: "text" | "voice") => { state.modality = val; },
-    setGodModeUser: (val: string | undefined) => { state.godModeUser = val; },
+    setGodModeUser: (val: string | undefined) => { state.godModeUser = sanitizeId(val) || undefined; },
     clearCurrentData: () => { state.currentData = null; },
     clearCommandAction: () => { state.commandAction = null; },
     consumeCommand: (verb: CommandVerb, entity: CommandEntity | "media") => {

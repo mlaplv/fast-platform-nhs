@@ -10,7 +10,7 @@ from .stt_corrector import stt_corrector
 from backend.services.data_injector import data_injector
 from backend.services.ai_engine.core.semantic_router import SemanticRouter, INTENT_TO_ACTION
 from backend.services.xohi_memory import xohi_memory
-from backend.utils.text import normalize_vn
+from backend.utils.text import normalize_vn, sanitize_id
 from .heuristic_classifier import heuristic_classify
 from backend.services.xohi.creative_studio.orchestrator import content_factory
 from backend.database.alchemy_config import alchemy_config
@@ -154,6 +154,7 @@ class RouterOrchestrator:
     ) -> IntentResponse:
         """Phase 1: Intent Resolution (T1 -> T2 Dispatch)"""
         t0 = time.monotonic()
+        user_id = sanitize_id(user_id) or "default"
         m_tag = "v" if modality == "voice" else "c"
         transcript = unicodedata.normalize('NFC', transcript.strip())
         logger.info(f"--- [C.O.R.E][{m_tag}] Raw Transcript: '{transcript}' ---")
@@ -265,7 +266,7 @@ class RouterOrchestrator:
                 try:
                     async with async_session_maker() as session:
                         repo = ContentCampaignRepository(session=session)
-                        active = await content_factory.get_active_campaign(repo)
+                        active = await content_factory.get_active_campaign(repo, user_id=user_id)
                         if active:
                             resume_msg = content_factory.format_resume_greeting(active)
                             logger.info(f"[Proactive Resume] Found active campaign {active.id}, hijacking greeting.")

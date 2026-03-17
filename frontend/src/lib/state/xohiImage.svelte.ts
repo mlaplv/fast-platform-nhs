@@ -1,5 +1,5 @@
 import type { MediaAsset } from "./types";
-import { safeRandomUUID, extractIdFromUrl } from "./utils";
+import { safeRandomUUID, extractIdFromUrl, sanitizeId } from "./utils";
 import { apiClient } from "$lib/utils/apiClient";
 
 export function createXohiImageState() {
@@ -77,7 +77,8 @@ export function createXohiImageState() {
             try {
                 const formData = new FormData();
                 formData.append('data', file);
-                if (campaignId) formData.append('campaign_id', campaignId);
+                const cleanCid = sanitizeId(campaignId);
+                if (cleanCid) formData.append('campaign_id', cleanCid);
 
                 const response = await apiClient.upload<{ data: MediaAsset }>(
                     '/api/v1/media',
@@ -134,9 +135,10 @@ export function createXohiImageState() {
 
     async function addImagesFromUrl(url: string) {
         try {
+            const cleanCid = sanitizeId(campaignId);
             const response = await apiClient.post<{ data: MediaAsset }>(
                 '/api/v1/media/fetch-remote',
-                { url, campaign_id: campaignId }
+                { url, campaign_id: cleanCid }
             );
 
             const serverAsset = response.data;
@@ -191,8 +193,8 @@ export function createXohiImageState() {
     }
 
     function initAssets(initialAssets: MediaAsset[], id?: string) {
-        if (id) campaignId = id;
-        
+        if (id) campaignId = sanitizeId(id);
+
         // CNS V74: Standardize IDs and ensure path safety
         const formatted = initialAssets.map((a, i) => {
             const obj = { ...a };
@@ -218,8 +220,11 @@ export function createXohiImageState() {
             return obj;
         });
 
-        // CNS V74: Shallow comparison before replacement to avoid reactivity storms
-        if (JSON.stringify(formatted) !== JSON.stringify(assets)) {
+        // CNS V76: Efficient shallow comparison before replacement to avoid reactivity storms
+        const isDifferent = formatted.length !== assets.length ||
+                           formatted.some((a, i) => a.id !== assets[i]?.id || a.file_path !== assets[i]?.file_path);
+
+        if (isDifferent) {
             // Revoke blobs for removed assets
             const newPaths = new Set(formatted.map(a => a.file_path));
             assets.forEach(a => {

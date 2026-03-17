@@ -6,6 +6,7 @@ from typing import Optional, Dict, Union, List
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
 from backend.services.xohi.creative_studio.models.schemas import TopicSeed, CampaignCategory
+from backend.utils.text import sanitize_id, normalize_vn
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from backend.services.event_bus import event_bus
 from backend.services.ai_engine.core.trinity_bridge import AIConfigurationError
@@ -18,8 +19,9 @@ class VoiceHandler:
         self.orchestrator = orchestrator
 
     async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None, campaign_id: Optional[str] = None) -> Optional[ContentCampaign]:
-        if user_id == "undefined" or not user_id:
-            user_id = None
+        # R105: Standardize user_id logic
+        user_id = sanitize_id(user_id)
+        campaign_id = sanitize_id(campaign_id)
 
         # 1. Explicit ID lookup (Highest Priority)
         if campaign_id:
@@ -29,11 +31,15 @@ class VoiceHandler:
                     return c
             except Exception: pass
 
-        # 2. Strict scan for unfinished campaigns (Global Management)
+        # 2. Strict scan for unfinished campaigns (Scoped to User)
+        filters = {"deleted_at": None}
+        if user_id:
+            filters["user_id"] = user_id
+
         results = await campaign_repo.list(
             LimitOffset(limit=5, offset=0),
             order_by=[("created_at", "desc")],
-            deleted_at=None
+            **filters
         )
         
         # Filter for truly active (not dead) campaigns
@@ -43,10 +49,10 @@ class VoiceHandler:
 
         # 3. Query-based matching
         if query:
-            q_norm = query.lower()
+            q_norm = normalize_vn(query)
             for c in active_campaigns:
-                title = c.topic_data.get("title", "").lower() if c.topic_data else ""
-                source = c.source_input.lower() if c.source_input else ""
+                title = normalize_vn(c.topic_data.get("title", "")) if c.topic_data else ""
+                source = normalize_vn(c.source_input) if c.source_input else ""
                 # R104: Tighter matching to avoid "Neural Link" hallucinations
                 if (title and title in q_norm) or (source and source in q_norm):
                     return c
@@ -73,25 +79,26 @@ class VoiceHandler:
         tenant_id: str = "default", user_id: Optional[str] = None,
         intent_data: Optional[Dict] = None
     ) -> IntentResponse:
-        if user_id == "undefined" or not user_id:
-            user_id = None
+        # R105: Standardize user_id logic
+        user_id = sanitize_id(user_id)
 
-        t_lower = transcript.lower()
-        resume_keywords = ["tiếp", "làm tiếp", "chạy tiếp", "duyệt đi", "tiếp tục", "ok", "đúng", "vâng"]
-        force_new_keywords = ["mới", "bỏ qua", "hủy", "tạo bài khác", "viết bài khác"]
-        
-        is_resume_request = any(kw in t_lower for kw in resume_keywords)
-        is_force_new = any(kw in t_lower for kw in force_new_keywords)
+        t_norm = normalize_vn(transcript)
+        # Standardized keywords (no accents, lowercase)
+        resume_keywords = ["tiep", "lam tiep", "chay tiep", "duyet di", "tiep tuc", "ok", "dung", "vang"]
+        force_new_keywords = ["moi", "bo qua", "huy", "tao bai khac", "viet bai khac"]
+
+        is_resume_request = any(kw in t_norm for kw in resume_keywords)
+        is_force_new = any(kw in t_norm for kw in force_new_keywords)
 
         # Detect Category (Global Class Enum)
         category = CampaignCategory.CREATIVE_CONTENT
-        if any(kw in t_lower for kw in ["quảng cáo", "ads", "marketing", "facebook ads", "google ads"]):
+        if any(kw in t_norm for kw in ["quang cao", "ads", "marketing", "facebook ads", "google ads"]):
             category = CampaignCategory.AD_MANAGEMENT
 
         try:
             # 1. Safety Gate: Detect Conflict
             # Check for campaign_id in intent_data (e.g. from Dashboard)
-            target_id = intent_data.get("campaign_id") if intent_data else None
+            target_id = sanitize_id(intent_data.get("campaign_id")) if intent_data else None
             stale = await self.get_active_campaign(campaign_repo, user_id, tenant_id, query=transcript if not is_resume_request else None, campaign_id=target_id)
 
             if stale and not is_force_new:

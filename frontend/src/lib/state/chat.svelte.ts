@@ -1,6 +1,6 @@
 import { apiClient } from "$lib/utils/apiClient";
 import type { SystemLog } from "./types";
-import { safeRandomUUID } from "./utils";
+import { safeRandomUUID, sanitizeId } from "./utils";
 
 export interface ChatMessage {
   id: string;
@@ -102,7 +102,8 @@ export function createChatState(
     forceRefresh = false,
   ) {
     const targetSessionId = sessionId || "account";
-    const cacheKey = userId ? `${targetSessionId}:${userId}` : targetSessionId;
+    const cleanUserId = sanitizeId(userId);
+    const cacheKey = cleanUserId ? `${targetSessionId}:${cleanUserId}` : targetSessionId;
 
     if (forceRefresh) cache.delete(cacheKey);
 
@@ -136,10 +137,10 @@ export function createChatState(
     if (state.pagination.isLoading) return;
     state.pagination.isLoading = true;
     try {
-      let url = userId
-        ? `/api/v1/chat/sessions/${targetSessionId}/messages?limit=35&user_id_query=${userId}`
+      let url = cleanUserId
+        ? `/api/v1/chat/sessions/${targetSessionId}/messages?limit=35&user_id_query=${cleanUserId}`
         : `/api/v1/chat/sessions/${targetSessionId}/messages?limit=35`;
-      
+
       if (sinceId) {
         url += (url.includes("?") ? "&" : "?") + `since_id=${sinceId}`;
       }
@@ -193,9 +194,10 @@ export function createChatState(
     if (!state.pagination.hasMore || state.pagination.isLoading) return;
 
     state.pagination.isLoading = true;
+    const cleanUserId = sanitizeId(userId);
     try {
-      const url = userId
-        ? `/api/v1/chat/sessions/${sessionId}/messages?cursor=${state.pagination.cursor}&limit=20&user_id_query=${userId}`
+      const url = cleanUserId
+        ? `/api/v1/chat/sessions/${sessionId}/messages?cursor=${state.pagination.cursor}&limit=20&user_id_query=${cleanUserId}`
         : `/api/v1/chat/sessions/${sessionId}/messages?cursor=${state.pagination.cursor}&limit=20`;
 
       const data = await apiClient.get<ChatApiResponse>(url);

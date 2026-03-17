@@ -17,7 +17,11 @@
   $effect(() => {
     const storeAssets = xohiImageStore.secondaryAssets;
     untrack(() => {
-        if (JSON.stringify(items) !== JSON.stringify(storeAssets)) {
+        // CNS V76: Use shallow length & id check instead of heavy JSON.stringify
+        const isDifferent = items.length !== storeAssets.length ||
+                           items.some((item, i) => item.id !== storeAssets[i]?.id);
+
+        if (isDifferent) {
             items = [...storeAssets];
         }
     });

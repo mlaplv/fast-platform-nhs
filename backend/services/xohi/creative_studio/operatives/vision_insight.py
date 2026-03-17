@@ -39,6 +39,8 @@ class VisionInsight:
     Uses PydanticAI Agent with Structured Output (TopicSeed).
     """
     def __init__(self):
+        # CNS V76: Global-like semaphore for Insight tasks to protect VPS RAM
+        self.insight_semaphore = asyncio.Semaphore(2)
         self.agent = Agent(
             output_type=TopicSeed,
             system_prompt=VISION_PROMPT,
@@ -100,27 +102,29 @@ class VisionInsight:
 
         try:
             await _emit_progress("🧠 Đang kích hoạt lõi phân tích SEO Content...")
-            
-            # R101/R106: Using trinity_bridge for managed AI calls
-            ai_task = asyncio.create_task(trinity_bridge.run(self.agent, prompt))
-            
-            progress_msgs = [
-                "🔍 Đang phân tích Search Intent cốt lõi...",
-                "📊 Đang truy xuất tập dữ liệu Keyword Volume...",
-                "✍️ Đang xây dựng cấu trúc Persona chiến lược...",
-                "⚙️ Đang đóng gói dữ liệu Golden Thread..."
-            ]
-            
-            for msg in progress_msgs:
-                if ai_task.done():
-                    break
-                # Triggers next progress message every 1.5 seconds if AI is still working
-                await asyncio.sleep(1.5)
-                if not ai_task.done():
-                    await _emit_progress(msg)
-                    
-            result = await ai_task
-            
+
+            # CNS V76: Enforce concurrency limit for insight tasks
+            async with self.insight_semaphore:
+                # R101/R106: Using trinity_bridge for managed AI calls
+                ai_task = asyncio.create_task(trinity_bridge.run(self.agent, prompt))
+
+                progress_msgs = [
+                    "🔍 Đang phân tích Search Intent cốt lõi...",
+                    "📊 Đang truy xuất tập dữ liệu Keyword Volume...",
+                    "✍️ Đang xây dựng cấu trúc Persona chiến lược...",
+                    "⚙️ Đang đóng gói dữ liệu Golden Thread..."
+                ]
+
+                for msg in progress_msgs:
+                    if ai_task.done():
+                        break
+                    # Triggers next progress message every 1.5 seconds if AI is still working
+                    await asyncio.sleep(1.5)
+                    if not ai_task.done():
+                        await _emit_progress(msg)
+
+                result = await ai_task
+
             await _emit_progress("✅ Phân tích chủ đề hoàn tất. Dữ liệu SEO đã sẵn sàng!")
             
             # result.data is the TopicSeed instance when using PydanticAI

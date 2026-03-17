@@ -1,5 +1,6 @@
 import { apiClient } from '$lib/utils/apiClient';
 import type { MediaAsset, MediaStats, MediaSseEvent, MediaMetadata } from '$lib/types';
+import { sanitizeId } from './utils';
 
 class MediaStore {
     // States using Runes
@@ -144,12 +145,13 @@ class MediaStore {
     async loadAssets(campaignId?: string, force = false, query?: string) {
         if (this.isLoading && !force) return;
 
+        const cleanCid = sanitizeId(campaignId);
         this.isLoading = true;
-        this.currentCampaignId = campaignId || null;
+        this.currentCampaignId = cleanCid;
 
         // Auto-subscribe to updates if campaignId is provided
-        if (campaignId) {
-            this.subscribeToUpdates(campaignId);
+        if (cleanCid) {
+            this.subscribeToUpdates(cleanCid);
         }
 
         try {
@@ -160,8 +162,8 @@ class MediaStore {
                 offset: this.offset.toString()
             };
 
-            if (campaignId) {
-                params.campaign_id = campaignId;
+            if (cleanCid) {
+                params.campaign_id = cleanCid;
             }
 
             if (query) {
@@ -261,10 +263,11 @@ class MediaStore {
         if (!url) return;
 
         try {
+            const cleanCid = sanitizeId(this.currentCampaignId);
             this.isLoading = true;
             const response = await apiClient.post<{ status: string, data: MediaAsset }>('/api/v1/media/fetch-remote', {
                 url,
-                campaign_id: this.currentCampaignId
+                campaign_id: cleanCid
             });
 
             if (response.status === 'success' && response.data) {

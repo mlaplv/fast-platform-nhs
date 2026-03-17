@@ -1,5 +1,7 @@
 import logging
 import re
+import asyncio
+import gc
 from typing import List, Dict, Union, Optional
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
@@ -55,6 +57,9 @@ class CreativePen:
     def __init__(self, model_name: str = "gemini-2.0-flash"):
         self.model_name = model_name
 
+        # CNS V76: Global-like semaphore for Pen tasks to protect VPS RAM
+        self.pen_semaphore = asyncio.Semaphore(1)
+
         # Phase 42: Professional Agent Caching (Memory Discipline)
         self.outline_agent = Agent(
             output_type=ArticleOutline,
@@ -68,35 +73,36 @@ class CreativePen:
         campaign = await repo.get(campaign_id)
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
-        
-        step = kwargs.get("step")
-        if step == 3:
-            outline = await self.generate_outline(campaign)
-            
-            if isinstance(outline, ArticleOutline):
-                campaign.outline_data = outline.model_dump()
-            elif isinstance(outline, dict):
-                campaign.outline_data = outline
-            else:
-                logger.error(f"[Content Factory] Outline generation failed or returned invalid type: {type(outline)}")
-                campaign.outline_data = {"error": "Invalid outline format"}
 
-            return AgentResponse(
-                signal=AgentSignal.PROCEED_NEXT,
-                message="Outline generated based on Golden Thread.",
-                data=campaign.outline_data
-            )
-        elif step == 4:
-            logger.info(f"[CreativePen] Phase 76: Drafting full content for {campaign_id}")
-            content = await self.write_draft(campaign)
-            campaign.draft_content = content
-            return AgentResponse(
-                signal=AgentSignal.PROCEED_NEXT,
-                message="Draft content generated — Viral 2026 Edition.",
-                data={"content": content}
-            )
-        
-        return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message=f"Invalid step {step} for CreativePen")
+        async with self.pen_semaphore:
+            step = kwargs.get("step")
+            if step == 3:
+                outline = await self.generate_outline(campaign)
+
+                if isinstance(outline, ArticleOutline):
+                    campaign.outline_data = outline.model_dump()
+                elif isinstance(outline, dict):
+                    campaign.outline_data = outline
+                else:
+                    logger.error(f"[Content Factory] Outline generation failed or returned invalid type: {type(outline)}")
+                    campaign.outline_data = {"error": "Invalid outline format"}
+
+                return AgentResponse(
+                    signal=AgentSignal.PROCEED_NEXT,
+                    message="Outline generated based on Golden Thread.",
+                    data=campaign.outline_data
+                )
+            elif step == 4:
+                logger.info(f"[CreativePen] Phase 76: Drafting full content for {campaign_id}")
+                content = await self.write_draft(campaign)
+                campaign.draft_content = content
+                return AgentResponse(
+                    signal=AgentSignal.PROCEED_NEXT,
+                    message="Draft content generated — Viral 2026 Edition.",
+                    data={"content": content}
+                )
+
+            return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message=f"Invalid step {step} for CreativePen")
 
     async def generate_outline(self, campaign: ContentCampaign) -> ArticleOutline:
         """
@@ -275,7 +281,14 @@ class CreativePen:
 
         # Phase 71: Strict Word Count Enforcement (90% - 120% Range)
         config = campaign.get_gold_config()
-        target_words = int(config.get("word_count", 500))
+        # R105 & Memory Shield: Clamp word count to prevent OOM/hallucinations on 2GB VPS
+        raw_target = config.get("word_count", 500)
+        try:
+            target_words = int(raw_target)
+        except (ValueError, TypeError):
+            target_words = 500
+
+        target_words = min(max(target_words, 100), 2500)
         min_words = int(target_words * 0.9)
         max_words = int(target_words * 1.2)
 
@@ -326,6 +339,7 @@ Bắt đầu viết ngay:
 
     async def _process_draft_content(self, content: str, assets: List[str], primary: str, campaign_id: str) -> str:
         """Helper to sanitize and clean content (Shared)."""
+        import gc
         # Sanitize: remove markdown code fences if AI wraps them
         if content.startswith("```"):
             content = content.split("```", 2)[-1] if "```" in content[3:] else content[3:]
@@ -338,6 +352,10 @@ Bắt đầu viết ngay:
         content = await noise_cleaner.clean(content, mode="aggressive")
 
         logger.info(f"[Content Factory] Draft processed: {len(content)} chars for {campaign_id}")
+
+        # Memory discipline: Force GC after large string manipulations
+        gc.collect()
+
         return content
 
     def _replace_image_placeholders(self, content: str, assets: List[str], alt_text: str = "") -> str:

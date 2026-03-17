@@ -31,3 +31,20 @@ def slugify(text: str) -> str:
 
     text = normalize_vn(text)
     return text.replace(" ", "-")
+
+def sanitize_id(id_val: Optional[str]) -> Optional[str]:
+    """
+    R105: Standardize ID logic - strips legacy 'undefined' or 'null' strings
+    and empty whitespace to prevent DB leakage.
+    """
+    if id_val is None:
+        return None
+
+    if not isinstance(id_val, str):
+        return str(id_val)
+
+    s = id_val.strip()
+    if not s or s.lower() in ("undefined", "null", "none"):
+        return None
+
+    return s

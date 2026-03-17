@@ -2,6 +2,7 @@ import { apiClient } from "$lib/utils/apiClient";
 import { untrack } from "svelte";
 import { permissionState } from "../permissions.svelte";
 import type { CampaignData, SystemLog, ToastType } from "../types";
+import { sanitizeId } from "../utils";
 
 interface SyncDeps {
   state: {
@@ -85,7 +86,7 @@ export function createSyncManager(
 
       await chat.hydrateHistory("account", (logs: SystemLog[]) => {
         log.upsertLogs(logs);
-      }, state.godModeUser || undefined, sinceId);
+      }, sanitizeId(state.godModeUser) || undefined, sinceId);
     }, pulseManager.isConnected ? 30000 : 5000);
   };
 
@@ -135,7 +136,7 @@ export function createSyncManager(
       }
 
       if (logs.some((l: SystemLog) => l.data?.status === "PROCESSING")) startSmartPolling();
-    }, state.godModeUser || undefined);
+    }, sanitizeId(state.godModeUser) || undefined);
   };
 
   return {

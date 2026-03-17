@@ -103,6 +103,12 @@ SOUND_ALIKES = {
     "chương dịch": "chiến dịch",
     "bí đồ": "biểu đồ",
     "bi đồ": "biểu đồ",
+    "dan so": "doanh số",
+    "doanh so": "doanh số",
+    "hang hoa": "hàng hóa",
+    "don hang": "đơn hàng",
+    "san pham": "sản phẩm",
+    "doanh tu": "doanh thu",
 }
 # Pre-normalize keys for robust matching
 NORM_SOUND_ALIKES = {normalize_vn(k): v for k, v in SOUND_ALIKES.items()}
@@ -416,8 +422,11 @@ class STTCorrector:
                 suspected[wrong.lower()] = right
                 applied_switch = True
             elif norm_wrong in norm_query_str:
-                # Fallback handled via direct match for now to maintain Zen Path speeds
-                pass
+                logger.info(f"[STT Corrector] Semantic Suspect (Unaccented): '{norm_wrong}' -> '{right}'")
+                # Find the actual word in lower_transcript to avoid replacing with normalized version
+                # This is a bit tricky, but we can flag it to be corrected by the LLM or subsequent tiers
+                suspected[wrong.lower()] = right
+                applied_switch = True
 
         if applied_switch:
             return transcript, suspected

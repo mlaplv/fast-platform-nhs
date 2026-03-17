@@ -3,6 +3,8 @@ import { normalizeAssets } from "./utils";
 import { permissionState } from "../permissions.svelte";
 import { isDev } from "./env";
 import type { SystemLog, CampaignData } from "../types";
+import { sanitizeId } from "../utils";
+import { nanobot } from "../nanobot.svelte";
 
 interface ResumeDeps {
   state: {
@@ -59,7 +61,11 @@ export function createResumeManager(
 
     let campaignData: Record<string, unknown> = ((logOrCampaign as SystemLog)?.data || logOrCampaign) as Record<string, unknown>;
     try {
-      const campaign = await apiClient.get<Record<string, unknown>>(`/api/v1/content/campaigns/${campaignId}`);
+      const cleanUserId = sanitizeId(nanobot.godModeUser);
+      const url = cleanUserId
+        ? `/api/v1/content/campaigns/${campaignId}?user_id_query=${cleanUserId}`
+        : `/api/v1/content/campaigns/${campaignId}`;
+      const campaign = await apiClient.get<Record<string, unknown>>(url);
       if (campaign?.id) {
         campaignData = {
           category: "CONTENT_CREATE",

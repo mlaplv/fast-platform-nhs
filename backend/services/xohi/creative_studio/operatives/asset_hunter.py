@@ -49,7 +49,10 @@ class AssetHunter:
         self.current_index: int = 0
         self.failure_count: int = 0
         self.cooldown_until: Optional[datetime] = None
-        
+
+        # CNS V76: Global-like semaphore for Hunting tasks to protect VPS RAM
+        self.hunt_semaphore = asyncio.Semaphore(2)
+
         # Phase 42: Agent Caching
         self.planner_agent: Agent = Agent(
             output_type=VisualSearchPlan, 
@@ -70,150 +73,151 @@ class AssetHunter:
         campaign: Optional[ContentCampaign] = await repo.get(campaign_id)
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found.", data={})
-        
-        # R108: Pull Comprehensive Context for Intelligence
-        title: str = campaign.get_gold_val("title", campaign.source_input)
-        primary: str = campaign.get_gold_val("primary_keyword", "")
-        secondary: List[str] = campaign.get_gold_val("secondary_keywords", [])
-        persona: str = campaign.get_gold_val("persona", "Professional")
-        
-        await event_bus.emit("CONTENT_PROGRESS", {
-            "campaign_id": campaign_id,
-            "user_id": str(campaign.user_id),
-            "step": 2,
-            "message": "🧠 Đang phân tích thực thể và lập kế hoạch săn ảnh...",
-            "status": "PROCESSING",
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
-        
-        # Step 2.1: AI Search Planning (Subject-First Logic)
-        content_mode = campaign.get_gold_val("content_mode", "viral")
-        try:
-            prompt = (
-                f"Title: {title}\n"
-                f"Primary Keyword: {primary}\n"
-                f"Secondary Keywords: {', '.join(secondary)}\n"
-                f"Persona: {persona}\n"
-                f"Content Mode: {content_mode.upper()}"
-            )
-            result = await trinity_bridge.run(self.planner_agent, prompt, session_id=campaign.id)
-            plan: VisualSearchPlan = result.data if hasattr(result, "data") else result.output
-            queries: List[str] = plan.queries
-            logger.info(f"[AssetHunter] AI Planner queries: {queries}")
-        except Exception as e:
-            logger.error(f"[AssetHunter] AI planning failed, fallback to keywords: {e}")
-            queries = [primary if primary else title]
 
-        # Step 2.2: Multi-Query Search & Deduplication
-        all_urls = []
-        config = campaign.get_gold_config()
-        target_count = int(config.get("max_assets", 10))
-
-        # Rule R88.6: Multi-Query Expansion for High Recall
-        raw_candidates = []
-        seen_urls = set()
-        candidate_goal = target_count * 3 # Expanded buffer for filtering
-
-        for i, q in enumerate(queries[:3]): # Try up to 3 best queries
-            if len(raw_candidates) >= candidate_goal:
-                break
+        async with self.hunt_semaphore:
+            # R108: Pull Comprehensive Context for Intelligence
+            title: str = campaign.get_gold_val("title", campaign.source_input)
+            primary: str = campaign.get_gold_val("primary_keyword", "")
+            secondary: List[str] = campaign.get_gold_val("secondary_keywords", [])
+            persona: str = campaign.get_gold_val("persona", "Professional")
 
             await event_bus.emit("CONTENT_PROGRESS", {
                 "campaign_id": campaign_id,
                 "user_id": str(campaign.user_id),
                 "step": 2,
-                "message": f"🔍 Truy quét ảnh với truy vấn #{i+1}: {q}",
+                "message": "🧠 Đang phân tích thực thể và lập kế hoạch săn ảnh...",
                 "status": "PROCESSING",
                 "timestamp": datetime.now(timezone.utc).isoformat()
             })
 
-            page_results = await self.fetch_images(q, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=10)
-            for url in page_results:
-                if url not in seen_urls:
-                    seen_urls.add(url)
-                    raw_candidates.append(url)
+            # Step 2.1: AI Search Planning (Subject-First Logic)
+            content_mode = campaign.get_gold_val("content_mode", "viral")
+            try:
+                prompt = (
+                    f"Title: {title}\n"
+                    f"Primary Keyword: {primary}\n"
+                    f"Secondary Keywords: {', '.join(secondary)}\n"
+                    f"Persona: {persona}\n"
+                    f"Content Mode: {content_mode.upper()}"
+                )
+                result = await trinity_bridge.run(self.planner_agent, prompt, session_id=campaign.id)
+                plan: VisualSearchPlan = result.data if hasattr(result, "data") else result.output
+                queries: List[str] = plan.queries
+                logger.info(f"[AssetHunter] AI Planner queries: {queries}")
+            except Exception as e:
+                logger.error(f"[AssetHunter] AI planning failed, fallback to keywords: {e}")
+                queries = [primary if primary else title]
 
-        # Step 2.3: Parallel Anti-YouTube, HTTPS-Only & Integrity Check (Rule R110-V76)
-        client = await get_http_client()
-        sem = asyncio.Semaphore(8) # Limit concurrency to protect VPS 2GB RAM
+            # Step 2.2: Multi-Query Search & Deduplication
+            all_urls = []
+            config = campaign.get_gold_config()
+            target_count = int(config.get("max_assets", 10))
 
-        async def _check_url(url: str) -> Optional[str]:
-            if not url.startswith("https://"): return None
+            # Rule R88.6: Multi-Query Expansion for High Recall
+            raw_candidates = []
+            seen_urls = set()
+            candidate_goal = target_count * 3 # Expanded buffer for filtering
 
-            skip_domains = ["ytimg.com", "img.youtube.com", "vimeo.com", "fbsbx.com", "fbcdn.net", "licdn.com"]
-            if any(domain in url.lower() for domain in skip_domains): return None
+            for i, q in enumerate(queries[:3]): # Try up to 3 best queries
+                if len(raw_candidates) >= candidate_goal:
+                    break
 
-            async with sem:
-                try:
-                    p = urlparse(url)
-                    sanitized_url = urlunparse(p._replace(path=quote(p.path), query=quote(p.query, safe='/=&?')))
+                await event_bus.emit("CONTENT_PROGRESS", {
+                    "campaign_id": campaign_id,
+                    "user_id": str(campaign.user_id),
+                    "step": 2,
+                    "message": f"🔍 Truy quét ảnh với truy vấn #{i+1}: {q}",
+                    "status": "PROCESSING",
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                })
 
-                    headers = {
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                        "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-                        "Referer": "https://www.google.com/"
-                    }
+                page_results = await self.fetch_images(q, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=10)
+                for url in page_results:
+                    if url not in seen_urls:
+                        seen_urls.add(url)
+                        raw_candidates.append(url)
 
-                    # Try HEAD first
-                    resp = await client.head(sanitized_url, timeout=4.0, follow_redirects=True, headers=headers)
-                    if resp.status_code == 200: return url
+            # Step 2.3: Parallel Anti-YouTube, HTTPS-Only & Integrity Check (Rule R110-V76)
+            client = await get_http_client()
+            sem = asyncio.Semaphore(8) # Limit concurrency to protect VPS 2GB RAM
 
-                    # Fallback to GET for stubborn CDNs but only first few bytes
-                    if resp.status_code in [403, 404, 405]:
-                        async with client.stream("GET", sanitized_url, timeout=4.0, follow_redirects=True, headers=headers) as stream_resp:
-                            if stream_resp.status_code == 200: return url
-                except Exception as e:
-                    logger.debug(f"[AssetHunter] Parallel check failed for {url}: {e}")
-            return None
+            async def _check_url(url: str) -> Optional[str]:
+                if not url.startswith("https://"): return None
 
-        # Execute parallel pinging
-        tasks = [_check_url(url) for url in raw_candidates]
-        results = await asyncio.gather(*tasks)
-        valid_urls = [r for r in results if r is not None]
+                skip_domains = ["ytimg.com", "img.youtube.com", "vimeo.com", "fbsbx.com", "fbcdn.net", "licdn.com"]
+                if any(domain in url.lower() for domain in skip_domains): return None
 
-        all_urls = valid_urls
-        reserve_urls = []
+                async with sem:
+                    try:
+                        p = urlparse(url)
+                        sanitized_url = urlunparse(p._replace(path=quote(p.path), query=quote(p.query, safe='/=&?')))
 
-        # Selection logic based on target_count from Step 1
-        if len(all_urls) > target_count:
-            logger.info(f"[AssetHunter] Clipping {len(all_urls)} images to target {target_count}")
-            reserve_urls = all_urls[target_count:target_count + 20] # Take next 20 as reserve
-            all_urls = all_urls[:target_count]
+                        headers = {
+                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+                            "Referer": "https://www.google.com/"
+                        }
 
-        final_assets = []
-        for i, url in enumerate(all_urls):
-            final_assets.append({
-                "id": f"img_{i}_{campaign_id[:4]}",
-                "file_path": url,  # R105 Standard alignment
-                "is_primary": i == 0,
-                "order_index": i,
-                "metadata": {"source": "google_search"}
+                        # Try HEAD first
+                        resp = await client.head(sanitized_url, timeout=4.0, follow_redirects=True, headers=headers)
+                        if resp.status_code == 200: return url
+
+                        # Fallback to GET for stubborn CDNs but only first few bytes
+                        if resp.status_code in [403, 404, 405]:
+                            async with client.stream("GET", sanitized_url, timeout=4.0, follow_redirects=True, headers=headers) as stream_resp:
+                                if stream_resp.status_code == 200: return url
+                    except Exception as e:
+                        logger.debug(f"[AssetHunter] Parallel check failed for {url}: {e}")
+                return None
+
+            # Execute parallel pinging
+            tasks = [_check_url(url) for url in raw_candidates]
+            results = await asyncio.gather(*tasks)
+            valid_urls = [r for r in results if r is not None]
+
+            all_urls = valid_urls
+            reserve_urls = []
+
+            # Selection logic based on target_count from Step 1
+            if len(all_urls) > target_count:
+                logger.info(f"[AssetHunter] Clipping {len(all_urls)} images to target {target_count}")
+                reserve_urls = all_urls[target_count:target_count + 20] # Take next 20 as reserve
+                all_urls = all_urls[:target_count]
+
+            final_assets = []
+            for i, url in enumerate(all_urls):
+                final_assets.append({
+                    "id": f"img_{i}_{campaign_id[:4]}",
+                    "file_path": url,  # R105 Standard alignment
+                    "is_primary": i == 0,
+                    "order_index": i,
+                    "metadata": {"source": "google_search"}
+                })
+
+            campaign.assets_data = final_assets
+            # Phase 74: Seed the Golden Thread with original remote URLs
+            gold = campaign.gold_metadata or {}
+            gold["original_remote_assets"] = list(all_urls)
+            gold["reserve_assets"] = list(reserve_urls) # R120: Store reserve candidates
+            campaign.gold_metadata = gold
+            flag_modified(campaign, "gold_metadata")
+
+            await repo.update(campaign)
+
+            await event_bus.emit("CONTENT_PROGRESS", {
+                "campaign_id": campaign_id,
+                "user_id": str(campaign.user_id),
+                "step": 2,
+                "message": f"✅ Đã tìm thấy {len(final_assets)} ảnh {'chuẩn AI' if queries else 'thô'}. Sẵn sàng duyệt!",
+                "status": "PROCESSING",
+                "timestamp": datetime.now(timezone.utc).isoformat()
             })
 
-        campaign.assets_data = final_assets
-        # Phase 74: Seed the Golden Thread with original remote URLs
-        gold = campaign.gold_metadata or {}
-        gold["original_remote_assets"] = list(all_urls)
-        gold["reserve_assets"] = list(reserve_urls) # R120: Store reserve candidates
-        campaign.gold_metadata = gold
-        flag_modified(campaign, "gold_metadata")
-
-        await repo.update(campaign)
-
-        await event_bus.emit("CONTENT_PROGRESS", {
-            "campaign_id": campaign_id,
-            "user_id": str(campaign.user_id),
-            "step": 2,
-            "message": f"✅ Đã tìm thấy {len(final_assets)} ảnh {'chuẩn AI' if queries else 'thô'}. Sẵn sàng duyệt!",
-            "status": "PROCESSING",
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
-
-        return AgentResponse(
-            signal=AgentSignal.PROCEED_NEXT,
-            message=f"Tìm thấy {len(final_assets)} ảnh.",
-            data={"assets": final_assets}
-        )
+            return AgentResponse(
+                signal=AgentSignal.PROCEED_NEXT,
+                message=f"Tìm thấy {len(final_assets)} ảnh.",
+                data={"assets": final_assets}
+            )
 
     async def fetch_images(self, query: str, campaign_id: str = None, user_id: str = None, num_results: int = 20) -> List[str]:
         """

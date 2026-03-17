@@ -104,6 +104,8 @@ class SeoAnalyzer:
     """
 
     def __init__(self):
+        # CNS V76: Global-like semaphore for SEO tasks to protect VPS RAM
+        self.seo_semaphore = asyncio.Semaphore(1)
         # Load Google Search keys for competitor fetch
         self.search_keys = []
         for i in ["", "_1", "_2"]:
@@ -155,16 +157,18 @@ class SeoAnalyzer:
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
 
-        # Phase 76.4: Proactive Physical Sanitization (Elite V2.2)
-        original_draft = campaign.draft_content or ""
-        cleaned_draft = await noise_cleaner.clean(original_draft, mode="aggressive", strip_html=False)
-        if cleaned_draft != original_draft:
-            campaign.draft_content = cleaned_draft
-            await repo.update(campaign)
-            logger.info(f"[SeoAnalyzer] Proactive sanitization applied to campaign {campaign_id}")
+        # CNS V76: Enforce serial processing for heavy SEO analysis
+        async with self.seo_semaphore:
+            # Phase 76.4: Proactive Physical Sanitization (Elite V2.2)
+            original_draft = campaign.draft_content or ""
+            cleaned_draft = await noise_cleaner.clean(original_draft, mode="aggressive", strip_html=False)
+            if cleaned_draft != original_draft:
+                campaign.draft_content = cleaned_draft
+                await repo.update(campaign)
+                logger.info(f"[SeoAnalyzer] Proactive sanitization applied to campaign {campaign_id}")
 
-        result = await self.analyze(campaign)
-        return AgentResponse(signal=AgentSignal.OK, data=result)
+            result = await self.analyze(campaign)
+            return AgentResponse(signal=AgentSignal.OK, data=result)
 
     async def analyze(self, campaign: ContentCampaign) -> SeoReport:
         """

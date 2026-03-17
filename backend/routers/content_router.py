@@ -411,17 +411,17 @@ class ContentController(Controller):
                 return GenericResponse(status="error", message="Campaign not found")
             if not campaign.draft_content:
                 return GenericResponse(status="error", message="Chưa có nội dung để biên tập.")
-            
+
             data = await request.json()
             fix_req = BulkFixRequest(**data)
-            
+
             # Phase 76.6: Dynamic Operative Routing (Elite V2.2)
             # copyright → PlagiarismCop (logic-first dedup, zero AI cost)
             # seo / ai  → AiInspector (requires LLM rewriting)
             operative = PlagiarismCop() if fix_req.category == "copyright" else AiInspector()
-            
+
             result = await operative.bulk_fix(campaign, fix_req)
-            
+
             # ✅ Phase 76.7: Persist cleaned content back to DB so force re-check reads fresh data
             if result.new_content and result.new_content != campaign.draft_content:
                 campaign.draft_content = result.new_content
@@ -429,9 +429,30 @@ class ContentController(Controller):
                 await campaign_repo.update(campaign)
                 await campaign_repo.session.commit()
                 logger.info(f"[BulkFix] Persisted new_content ({len(result.new_content)} chars) for campaign {campaign_id}")
-            
+
             return GenericResponse(status="success", data=result.model_dump())
         except Exception as e:
             logger.error(f"Bulk-Fix error: {e}")
+            return GenericResponse(status="error", message=str(e))
+
+    @post("/clean")
+    async def clean_content(self, request: Request) -> GenericResponse:
+        """
+        Phase 76.9: Viral 2026 Semantic Polishing.
+        Làm sạch chuyên sâu: xóa link rác, code thừa, và tối ưu nhịp điệu bài viết.
+        """
+        try:
+            from backend.utils.noise_cleaner import noise_cleaner
+            data = await request.json()
+            content = data.get("content", "")
+            if not content:
+                return GenericResponse(status="error", message="Không có nội dung để làm sạch")
+
+            # Layer 1: Deterministic & Fuzzy Clean (Viral 2026 - Zero AI Cost)
+            cleaned = await noise_cleaner.clean(content, mode="aggressive")
+
+            return GenericResponse(status="success", data={"content": cleaned})
+        except Exception as e:
+            logger.error(f"[ContentController] Viral Clean Error: {e}")
             return GenericResponse(status="error", message=str(e))
 

@@ -39,3 +39,13 @@ export function extractIdFromUrl(url: string | null): string | null {
 
   return null;
 }
+
+/**
+ * R105: Sanitizes user/tenant IDs to prevent "undefined" string leakage.
+ */
+export function sanitizeId(id: string | null | undefined): string | null {
+  if (!id) return null;
+  const s = String(id).trim();
+  if (s.toLowerCase() === "undefined" || !s) return null;
+  return s;
+}
