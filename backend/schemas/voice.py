@@ -1,9 +1,10 @@
 from typing import Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from backend.constants.voice import DEFAULT_GREETING, DEFAULT_FAREWELL
 
 class VoiceResponse(BaseModel):
     """Response from voice processing pipeline"""
+    model_config = ConfigDict(strict=True)
     audio_url: str = Field(default="", description="URL to generated TTS audio file")
     text: str = Field(description="Clean text response (VoiceSanitizer output)")
     transcript: str = Field(description="Original STT transcript from audio")
@@ -11,6 +12,7 @@ class VoiceResponse(BaseModel):
     data: Dict[str, object] = Field(default_factory=dict, description="Payload for UI widget")
 
 class CapabilityMetadata(BaseModel):
+    model_config = ConfigDict(from_attributes=True, strict=True)
     id: str
     name: str
     desc: str
@@ -19,6 +21,7 @@ class CapabilityMetadata(BaseModel):
     icon: str = "Brain"
 
 class VoiceSettingsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, strict=True)
     wake_words: List[str]
     sleep_words: List[str]
     greeting_template: str = Field(default=DEFAULT_GREETING)
@@ -29,7 +32,20 @@ class VoiceSettingsResponse(BaseModel):
     stt_anchors: List[str] = Field(default_factory=list)
     mic_sensitivity: float = Field(default=0.6)
 
+class CampaignModeResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+    is_campaign_mode: bool
+
+class LexiconOverridesResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+    overrides: Dict[str, str]
+
+class LexiconStopwordsResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+    stopwords: List[str]
+
 class VoiceSettingsPayload(BaseModel):
+    model_config = ConfigDict(strict=True)
     """Payload for updating user voice settings"""
     wake_words: List[str] = Field(default_factory=list, description="List of wake words")
     sleep_words: List[str] = Field(default_factory=list, description="List of sleep words")
@@ -42,12 +58,15 @@ class VoiceSettingsPayload(BaseModel):
     mic_sensitivity: Optional[float] = Field(default=None, description="Sensitivity threshold for mic noise rejection")
 
 class CampaignModePayload(BaseModel):
+    model_config = ConfigDict(strict=True)
     """Payload for global campaign mode toggle"""
     is_campaign_mode: bool = Field(description="Enable Ad Campaign Fortress Mode")
 
 class LexiconOverridePayload(BaseModel):
+    model_config = ConfigDict(strict=True)
     wrong_word: str = Field(description="The misspelled or misheard word")
     right_word: str = Field(description="The correct target word")
 
 class LexiconStopwordPayload(BaseModel):
+    model_config = ConfigDict(strict=True)
     word: str = Field(description="The filler word to strip out")

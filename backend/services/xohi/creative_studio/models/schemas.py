@@ -16,12 +16,13 @@ class CampaignCategory(str, Enum):
     AD_MANAGEMENT = "AD_MANAGEMENT"
 
 class AgentResponse(BaseModel):
+    model_config = ConfigDict(strict=False)  # R105 exception: data wraps arbitrary dict
     signal: AgentSignal
     message: str
     data: Optional[Dict[str, object]] = None
-    # NOTE: strict=True intentionally omitted — data wraps arbitrary dict by design (R105 exception)
 
 class TopicSeed(BaseModel):
+    model_config = ConfigDict(strict=False)  # R105: Guarded validation (lenient for LLM stability)
     title: str = Field(description="Tiêu đề bài viết thu hút, chuẩn viral")
     primary_keyword: str = Field(description="Từ khóa chính quan trọng nhất")
     secondary_keywords: List[str] = Field(description="Danh sách 3-5 từ khóa phụ bổ trợ")
@@ -38,43 +39,48 @@ class TopicSeed(BaseModel):
         description="Cấu hình luồng sáng tạo mặc định"
     )
 
-    model_config = ConfigDict(strict=False)  # R105: Guarded validation (lenient for LLM stability)
-
 class OutlineSection(BaseModel):
+    model_config = ConfigDict(strict=True)
     heading: str = Field(description="Tiêu đề mục (bắt đầu bằng H2: hoặc H3:)")
     content: str = Field(description="Mô tả nội dung chi tiết và vị trí [IMAGE_X]")
 
 class ArticleOutline(BaseModel):
+    model_config = ConfigDict(strict=False)  # R105: Guarded validation (lenient for LLM stability)
     sections: List[OutlineSection] = Field(description="Danh sách các H2, H3 và mô tả nội dung kèm vị trí chèn ảnh [IMAGE_X]")
 
-    model_config = ConfigDict(strict=False)  # R105: Guarded validation (lenient for LLM stability)
-
 class VisualSearchPlan(BaseModel):
+    model_config = ConfigDict(strict=True)
     queries: List[str] = Field(description="List of 3-5 high-quality Google Image search queries (English preferred for professional stock quality)")
 
 class AiAnnotation(BaseModel):
+    model_config = ConfigDict(strict=True)
     type: str      # "geo_stats" | "geo_quotes" | "geo_fluff" | "geo_snippet"
     text: str      # Exact substring from the article to highlight
     message: str   # Vietnamese tip shown in tooltip
     severity: str  # "high" | "warning" | "info"
 
 class AiReadyReport(BaseModel):
+    model_config = ConfigDict(strict=True)
     geo_score: int
     summary: str
     ai_annotations: List[AiAnnotation] = Field(default_factory=list)
 
 class AutoFixResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
     old_text: str
     new_text: str
 
 class BulkFixRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
     category: str      # "copyright" | "seo" | "ai"
     annotations: List[Dict[str, object]]
 
 class BulkFixResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
     new_content: str
 
 class MediaAnalysisResult(BaseModel):
+    model_config = ConfigDict(strict=True)
     alt_text: str = Field(description="Mô tả ảnh ngắn gọn, chuẩn SEO (không dùng từ 'hình ảnh', 'ảnh')")
     tags: List[str] = Field(description="Danh sách 5-8 từ khóa mô tả đối tượng, bối cảnh, màu sắc trong ảnh")
     description: str = Field(description="Mô tả chi tiết nội dung ảnh phục vụ AI accessibility")
@@ -85,24 +91,23 @@ class MediaAnalysisResult(BaseModel):
     )
 
 class MediaAsset(BaseModel):
+    model_config = ConfigDict(strict=False)
     id: str = Field(default_factory=lambda: "img_" + safe_id(), description="ID duy nhất của ảnh")
     url: str = Field(description="URL truy cập ảnh (Blob hoặc S3)")
     is_primary: bool = Field(default=False, description="Xác định đây là ảnh chính")
     order_index: int = Field(default=0, description="Thứ tự hiển thị (0 là đầu tiên)")
     media_metadata: Dict[str, object] = Field(default_factory=dict, description="Thông tin bổ sung (size, type, v.v.)")
 
-    model_config = ConfigDict(strict=False)
-
 class MediaReorderRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
     asset_ids: List[str] = Field(description="Danh sách ID ảnh theo thứ tự mới")
     primary_id: Optional[str] = Field(default=None, description="ID của ảnh được chọn làm ảnh chính mới")
 
 class CreativeCampaignState(BaseModel):
+    model_config = ConfigDict(strict=False)
     campaign_id: str
     step: int = Field(default=2)
     assets: List[MediaAsset] = Field(default_factory=list)
-
-    model_config = ConfigDict(strict=False)
 
 def safe_id() -> str:
     import uuid

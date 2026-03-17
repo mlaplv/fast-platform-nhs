@@ -4,7 +4,7 @@ import logging
 import os
 from dataclasses import dataclass
 from typing import Optional, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from pydantic_ai import Agent, RunContext
 from litellm import RateLimitError, AuthenticationError, ServiceUnavailableError, Timeout as LiteLLMTimeout
 
@@ -16,6 +16,7 @@ logger = logging.getLogger("api-gateway")
 
 class Tier2Output(BaseModel):
     """Structured output for Tier 2 Dispatcher extraction."""
+    model_config = ConfigDict(strict=True)
     intent_type: Literal["UI_NAV", "DATA_QUERY", "DEEP_ANALYSIS", "CONTENT_CREATE", "CONTENT_APPROVE", "CONTENT_REJECT", "LEARN_COMMAND", "UNKNOWN"] = Field(
         description="Type of user intent classification"
     )

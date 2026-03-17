@@ -101,7 +101,7 @@ class MediaController(Controller):
 
         return MediaDetailResponse(
             status="success",
-            data=MediaAssetResponse.from_orm_model(asset)
+            data=MediaAssetResponse.model_validate(asset)
         )
 
     @get("/stats")
@@ -137,7 +137,7 @@ class MediaController(Controller):
 
         return MediaDetailResponse(
             status="success",
-            data=MediaAssetResponse.from_orm_model(asset)
+            data=MediaAssetResponse.model_validate(asset)
         )
 
     @patch("/{asset_id:str}")
@@ -273,7 +273,7 @@ class MediaController(Controller):
         if asset:
             return QuickEditResponse(
                 status="success",
-                data=MediaAssetResponse.from_orm_model(asset)
+                data=MediaAssetResponse.model_validate(asset)
             )
         else:
             return GenericResponse(status="error", message="Quick edit failed or unauthorized.")
@@ -320,7 +320,7 @@ class MediaController(Controller):
         if asset:
             return MediaDetailResponse(
                 status="success",
-                data=MediaAssetResponse.from_orm_model(asset)
+                data=MediaAssetResponse.model_validate(asset)
             )
         else:
             return GenericResponse(status="error", message="Failed to fetch remote asset.")

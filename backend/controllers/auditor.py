@@ -1,19 +1,16 @@
 from litestar import Controller, get
-from backend.services.ai_engine.core.auditor import AuditorAgent
 from backend.guards import PermissionGuard
+from backend.schemas.auditor import AuditorAnalysisResponse
+from backend.services.auditor_service import auditor_service
 
 class AuditorController(Controller):
     path = "/api/v1/auditor"
     guards = [PermissionGuard("sys:admin")]
-    
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.auditor = AuditorAgent()
 
     @get("/{draft_id:str}/analyze")
-    async def analyze_draft(self, draft_id: str) -> dict:
+    async def analyze_draft(self, draft_id: str) -> AuditorAnalysisResponse:
         """
         Trigger Auditor Agent to analyze a specific draft (Phase 3).
         Trả về các chỉ số rủi ro và dự báo tác động.
         """
-        return await self.auditor.analyze_draft(draft_id)
+        return await auditor_service.analyze_draft(draft_id)

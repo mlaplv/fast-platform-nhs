@@ -3,7 +3,7 @@ import asyncio
 import logging
 import re
 from typing import List, Tuple, Dict, Union, Optional, cast
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
@@ -31,18 +31,21 @@ RE_SENTENCE_END = re.compile(r'[^.!?]+[.!?]')
 # ══════════════════════════════════════════════════════════════
 
 class SeoSignal(BaseModel):
+    model_config = ConfigDict(strict=True)
     label: str
     score: int           # 0-100
     verdict: str         # Short explanation in Vietnamese
     suggestions: List[str]
 
 class SeoAnnotation(BaseModel):
+    model_config = ConfigDict(strict=True)
     type: str      # "missing_h1" | "missing_h2" | "keyword_missing" | "weak_intro" | "thin_section" | "ai_stiff" | "missing_cta" | "keyword_stuffing"
     text: str      # Exact text fragment from the article to highlight (substring), can be "" for structural issues
     message: str   # Vietnamese tip shown in tooltip
     severity: str  # "info" | "warning" | "error"
 
 class SeoReport(BaseModel):
+    model_config = ConfigDict(strict=True)
     total_score: int     # 0-100 weighted average
     grade: str           # "A" | "B" | "C" | "D" | "F"
     signals: List[SeoSignal]

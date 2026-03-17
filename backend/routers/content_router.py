@@ -54,16 +54,19 @@ class ContentController(Controller):
         ).order_by(CampaignModel.created_at.desc()).limit(limit).offset(offset)
         
         result = await campaign_repo.session.execute(stmt)
+        rows = result.all()
+
+        from backend.models.schemas import CampaignListItem
         items = [
-            {
-                "id": str(row.id),
-                "topic_data": row.topic_data,
-                "status": row.status,
-                "current_step": row.current_step,
-                "created_at": row.created_at.isoformat(),
-                "user_id": str(row.user_id) if row.user_id else None
-            }
-            for row in result
+            CampaignListItem(
+                id=str(row.id),
+                topic_data=row.topic_data,
+                status=row.status,
+                current_step=row.current_step,
+                created_at=row.created_at,
+                user_id=str(row.user_id) if row.user_id else None
+            )
+            for row in rows
         ]
 
         return CampaignListResponse(

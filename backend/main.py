@@ -4,7 +4,6 @@ import warnings
 from dotenv import load_dotenv
 
 # Suppress library warnings
-warnings.filterwarnings("ignore", message=".*Pydantic V1 functionality isn't compatible.*")
 warnings.filterwarnings("ignore", message=".*now uses mean pooling instead of CLS embedding.*")
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic_ai")
 
@@ -28,7 +27,6 @@ from backend.routers.pulse_stream import PulseStreamController
 from backend.controllers.health import HealthController
 from backend.routers.mcp.router import MCPController
 from backend.controllers.auth import AuthController
-from backend.controllers.auth_extended import AuthExtendedController
 from backend.controllers.notifications import NotificationController
 from backend.controllers.auditor import AuditorController
 from backend.controllers.user import UserController
@@ -82,7 +80,7 @@ rate_limit_config = RateLimitConfig(
 app = Litestar(
     route_handlers=[
         IntentController, IntentStreamController, PulseStreamController,
-        HealthController, MCPController, AuthController, AuthExtendedController,
+        HealthController, MCPController, AuthController,
         NotificationController, AuditorController, UserController,
         CategoryController, ProductController, ArticleController, OrderController,
         ChatController, SettingsController, AIController, ContentController, MediaController, ContentStreamController, stt_websocket, TTSController, IntentMapController,

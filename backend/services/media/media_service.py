@@ -66,7 +66,7 @@ class MediaService:
             stmt = stmt.order_by(MediaRegistry.created_at.desc()).limit(limit).offset(offset)
             result = await repo.session.execute(stmt)
             orm_assets = result.scalars().all()
-            assets = [MediaAssetResponse.from_orm_model(a) for a in orm_assets]
+            assets = [MediaAssetResponse.model_validate(a) for a in orm_assets]
         else:
             # AI Semantic Search Logic (R03 Evolution)
             # 1. Lấy toàn bộ assets của campaign/tenant để so khớp vector
@@ -121,7 +121,7 @@ class MediaService:
                 relevant_assets = [a for score, a in scored_assets if score > 0.3]
                 assets = relevant_assets[offset : offset + limit]
                 
-                assets = [MediaAssetResponse.from_orm_model(a) for a in assets]
+                assets = [MediaAssetResponse.model_validate(a) for a in assets]
 
                 # Commit embeddings nếu có cập nhật
                 await repo.session.commit()

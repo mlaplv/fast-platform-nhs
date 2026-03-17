@@ -13,7 +13,7 @@ from litellm.exceptions import ServiceUnavailableError, RateLimitError, Timeout 
 
 from pydantic_ai import Agent, RunContext
 from dataclasses import dataclass, field
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from backend.services.ai_engine.core.key_rotator import key_rotator
 from backend.utils.text import normalize_vn
 from backend.services.xohi_memory import xohi_memory
@@ -28,10 +28,12 @@ class STTCorrectorDeps:
     user_dictionary: Dict[str, str] = field(default_factory=dict)
 
 class STTCorrectionItem(BaseModel):
+    model_config = ConfigDict(strict=True)
     wrong_word: str = Field(description="The misspelled or misheard word exactly as it appeared in the input transcript.")
     right_word: str = Field(description="The correct target word.")
 
 class STTCorrectionOutput(BaseModel):
+    model_config = ConfigDict(strict=True)
     cleaned_text: str = Field(description="The corrected transcript. If no correction is needed, return the original.")
     suspected_correction: Optional[List[STTCorrectionItem]] = Field(
         default=None, 

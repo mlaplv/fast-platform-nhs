@@ -1,6 +1,7 @@
 # HIẾN PHÁP FAST-PLATFORM (ELITE V2.2)
 
-> **CHỈ THỊ TỐI CAO:** Dự án Agentic AI 2026. Stack: **SvelteKit 5 (Runes) + Litestar (Python 3.14) + SQLAlchemy 2.0 + PydanticAI + LiteLLM**. Ép kiểu tĩnh 100% (CẤM 'any'). Hoạt động trên domain `*.smartshop.test`.
+> **CHỈ THỊ TỐI CAO:** Dự án Agentic AI 2026. Stack: **SvelteKit 5 (Runes) + Litestar (Python 3.14) + SQLAlchemy 2.0 + PydanticAI + LiteLLM**. Ép kiểu tĩnh 100% (CẤM 'any'), cấm R105. Hoạt động trên domain `*.smartshop.test`.
+>> ** CẤM LÀM TIẾP KHI SỬA MÀ HỆ THỐNG BỊ LỖI, LOG LỖI CÒN THÌ PHẢI TIẾN HÀNH CHO HẾT, BÁO CÁO & XIN PHÉP LÀM TIẾP.**
 
 ---
 
@@ -11,6 +12,7 @@
 - ✅ **PROPOSE-FIRST:** Mọi thay đổi phải qua 2 giai đoạn: PROPOSE (Kế hoạch + Phản biện rủi ro RAM/Latency) -> HALT (Đợi duyệt).
 - ✅ **QUY TRÌNH QUẢN TRỊ:** Bắt buộc duy trì `task.md` (check-list) và `walkthrough.md` (bằng chứng) cho mọi task.
 - ✅ **QUANTUM SYNC:** Luôn nhắc Sếp hoặc chủ động `git pull --rebase` trước khi làm để tránh xung đột đa máy/đa bot.
+- ✅ **FILE SIZE:** mỗi file không quá 300 dòng.
 
 ## 🔍 R01 – TRINH SÁT (SCOUT PROTOCOL)
 

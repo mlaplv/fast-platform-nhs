@@ -4,7 +4,7 @@ import logging
 import json
 from dataclasses import dataclass
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from pydantic_ai import Agent, RunContext
 from litellm import RateLimitError, AuthenticationError, ServiceUnavailableError, Timeout as LiteLLMTimeout
 
@@ -16,6 +16,7 @@ logger = logging.getLogger("api-gateway")
 
 class Tier3Output(BaseModel):
     """Structured output for Tier 3 Deep Reasoning."""
+    model_config = ConfigDict(strict=True)
     message: str = Field(description="The sharp and concise response from XoHi")
     requires_confirmation: bool = Field(default=False, description="Safety gate for database mutations")
     action: IntentAction = Field(default=IntentAction.ANALYZE, description="The primary action type")

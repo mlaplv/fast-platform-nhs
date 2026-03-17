@@ -10,6 +10,7 @@ class AgentSignal(str, Enum):
     FAIL_GRACEFULLY = "FAIL_GRACEFULLY"
 
 class CampaignStep(BaseModel):
+    model_config = ConfigDict(from_attributes=True, strict=True)
     step_number: int
     name: str
     status: str = "PENDING"
@@ -18,11 +19,11 @@ class CampaignStep(BaseModel):
     retry_count: int = 0
 
 class ContentCampaign(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, strict=True)
 
     id: str
     user_id: Optional[str] = None
-    source_input: Optional[str] = "" 
+    source_input: Optional[str] = ""
     reviewer_type: str = "ADMIN_MANUAL"
     current_step: int = 1
     status: str = "WAITING_FOR_REVIEW"
@@ -36,11 +37,13 @@ class ContentCampaign(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
 
 class AgentResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
     signal: AgentSignal
     data: Optional[Dict[str, object]] = None
     message: Optional[str] = None
 
 class CampaignListItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True, strict=True)
     id: str
     topic_data: Optional[Dict[str, object]] = None
     status: str
@@ -50,6 +53,7 @@ class CampaignListItem(BaseModel):
     category: Optional[str] = None
 
 class CampaignListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, strict=True)
     items: List[CampaignListItem]
     total: int
     has_more: bool
@@ -57,6 +61,7 @@ class CampaignListResponse(BaseModel):
     offset: int
 
 class GenericResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
     status: str
     message: Optional[str] = None
     data: Optional[Dict[str, object]] = None

@@ -31,11 +31,20 @@ Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt th
 - [x] Backend: RBAC for Media Assets (Private vs Public). <!-- id: 19 -->
 - [x] Backend: Auto-purge Trash Bin logic (30 days lifecycle). <!-- id: 20 -->
 
-## 🎯 Giai đoạn 11: AI-Driven Media Intelligence & Auto-SEO
-- [x] Backend: Tích hợp Vision Model tự động sinh Alt-text và Tags. <!-- id: 21 -->
-- [x] Backend: Thuật toán nhận diện Focal Point (Điểm tụ) để Smart Crop. <!-- id: 22 -->
-- [x] Logic: Auto-conversion sang WebP/AVIF tối ưu dung lượng (WebP 90). <!-- id: 23 -->
-- [x] UI: Giao diện Bulk SEO Editor (Cập nhật Alt-text hàng loạt). <!-- id: 24 -->
-- [x] UI: Hiển thị AI suggestions trong Detail Panel. <!-- id: 25 -->
-- [x] UI: Vá lỗi cú pháp và tối ưu Ghost Text completion cho AIEditorField. <!-- id: 26 -->
+## 🎯 Giai đoạn 13: Elite V2.2 Zero-Hydration & Service-Centric (COMPLETED)
+- [x] Backend: Refactor `ArticleController` to use Scalar Projection (Rule 1.5). <!-- id: 31 -->
+- [x] Backend: Standardize `ProductController` mutation responses to `SuccessResponse`. <!-- id: 32 -->
+- [x] Backend: Refactor `SettingsController` for Zero-Hydration & Pydantic V2. <!-- id: 33 -->
+- [x] Backend: Refactor `AIController` for Pydantic V2 strictness. <!-- id: 34 -->
+- [x] Backend: Refactor `CategoryController` for Zero-Hydration & SuccessResponse. <!-- id: 36 -->
+- [x] Backend: Refactor `OrderController` & `UserController` for Zero-Hydration & Pydantic V2. <!-- id: 37 -->
+- [x] Backend: Consolidate Auth (Social/OTP) into unified Service/Controller. <!-- id: 38 -->
+- [x] Frontend: Fix Notification filter crash (API format sync). <!-- id: 39 -->
+- [x] Documentation: Update `walkthrough.md` with new architectural standards. <!-- id: 35 -->
+- [x] Cleanup: Remove all `auth_extended` remnants and stale dependencies. <!-- id: 40 -->
+- [x] Final Audit: Verify 100% Service-Centric compliance for all controllers. <!-- id: 41 -->
 
+## 🎯 Giai đoạn 14: Next-Gen Monitoring & Auto-Scale (PENDING)
+- [ ] Backend: Real-time Prometheus/Grafana metrics for AI Key usage.
+- [ ] Backend: Automated DB Health Check & Auto-repair loop.
+- [ ] UI: Developer Console for real-time SQL & Event tracing.

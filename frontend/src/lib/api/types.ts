@@ -13,8 +13,63 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** ProcessIntent */
-        post: operations["ApiV1IntentProcessIntent"];
+        /**
+         * ProcessIntent
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -30,23 +85,181 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** StreamIntent */
-        post: operations["ApiV1IntentStreamStreamIntent"];
+        /**
+         * StreamIntent
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Stream Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": Record<string, never>;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/health": {
+    "/api/v1/pulse/stream": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** HealthCheck */
-        get: operations["HealthHealthCheck"];
+        /**
+         * StreamPulse
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Stream Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": Record<string, never>;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/health/anomalies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetSystemAnomalies
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * HealthCheck
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
         put?: never;
         post?: never;
         delete?: never;
@@ -64,8 +277,63 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** CallTool */
-        post: operations["ApiV1McpCallCallTool"];
+        /**
+         * CallTool
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": Record<string, never>;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -79,8 +347,31 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** ListTools */
-        get: operations["ApiV1McpToolsListTools"];
+        /**
+         * ListTools
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": Record<string, never>[];
+                    };
+                };
+            };
+        };
         put?: never;
         post?: never;
         delete?: never;
@@ -98,8 +389,63 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Login */
-        post: operations["ApiV1AuthLoginLogin"];
+        /**
+         * Login
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -115,15 +461,70 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Register */
-        post: operations["ApiV1AuthRegisterRegister"];
+        /**
+         * Register
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/extended/otp/request": {
+    "/api/v1/auth/otp/request": {
         parameters: {
             query?: never;
             header?: never;
@@ -132,15 +533,70 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** RequestOtp */
-        post: operations["ApiV1AuthExtendedOtpRequestRequestOtp"];
+        /**
+         * RequestOtp
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/extended/social/{provider}": {
+    "/api/v1/auth/social/{provider}": {
         parameters: {
             query?: never;
             header?: never;
@@ -149,15 +605,70 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** SocialLogin */
-        post: operations["ApiV1AuthExtendedSocialProviderSocialLogin"];
+        /**
+         * SocialLogin
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/extended/otp/verify": {
+    "/api/v1/auth/otp/verify": {
         parameters: {
             query?: never;
             header?: never;
@@ -166,8 +677,63 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** VerifyOtp */
-        post: operations["ApiV1AuthExtendedOtpVerifyVerifyOtp"];
+        /**
+         * VerifyOtp
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -181,8 +747,31 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** GetNotifications */
-        get: operations["ApiV1NotificationsGetNotifications"];
+        /**
+         * GetNotifications
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
         put?: never;
         post?: never;
         delete?: never;
@@ -204,8 +793,63 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** MarkAsRead */
-        patch: operations["ApiV1NotificationsNotificationIdReadMarkAsRead"];
+        /**
+         * MarkAsRead
+         * @description null
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/api/v1/auditor/{draft_id}/analyze": {
@@ -215,8 +859,63 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** AnalyzeDraft */
-        get: operations["ApiV1AuditorDraftIdAnalyzeAnalyzeDraft"];
+        /**
+         * AnalyzeDraft
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
         post?: never;
         delete?: never;
@@ -238,8 +937,63 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** DeleteUser */
-        patch: operations["ApiV1UsersUserIdDeleteDeleteUser"];
+        /**
+         * DeleteUser
+         * @description null
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/api/v1/users/permissions": {
@@ -249,8 +1003,63 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** ListPermissions */
-        get: operations["ApiV1UsersPermissionsListPermissions"];
+        /**
+         * ListPermissions
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown[];
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
         post?: never;
         delete?: never;
@@ -266,8 +1075,63 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** ListRoles */
-        get: operations["ApiV1UsersRolesListRoles"];
+        /**
+         * ListRoles
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown[];
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
         post?: never;
         delete?: never;
@@ -283,8 +1147,63 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** ListUsers */
-        get: operations["ApiV1UsersListUsers"];
+        /**
+         * ListUsers
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
         post?: never;
         delete?: never;
@@ -306,8 +1225,63 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** UpdateRolePermissions */
-        patch: operations["ApiV1UsersRoleIdPermissionsUpdateRolePermissions"];
+        /**
+         * UpdateRolePermissions
+         * @description null
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/api/v1/users/{user_id}": {
@@ -323,8 +1297,63 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** UpdateUser */
-        patch: operations["ApiV1UsersUserIdUpdateUser"];
+        /**
+         * UpdateUser
+         * @description null
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/api/v1/users/{user_id}/roles": {
@@ -340,8 +1369,63 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** UpdateUserRoles */
-        patch: operations["ApiV1UsersUserIdRolesUpdateUserRoles"];
+        /**
+         * UpdateUserRoles
+         * @description null
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/api/v1/categories/bulk-delete": {
@@ -353,8 +1437,63 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** BulkDelete */
-        post: operations["ApiV1CategoriesBulkDeleteBulkDelete"];
+        /**
+         * BulkDelete
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -368,11 +1507,121 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** ListCategories */
-        get: operations["ApiV1CategoriesListCategories"];
+        /**
+         * ListCategories
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
-        /** CreateCategory */
-        post: operations["ApiV1CategoriesCreateCategory"];
+        /**
+         * CreateCategory
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -389,12 +1638,122 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** DeleteCategory */
-        delete: operations["ApiV1CategoriesCategoryIdDeleteCategory"];
+        /**
+         * DeleteCategory
+         * @description null
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
-        /** UpdateCategory */
-        patch: operations["ApiV1CategoriesCategoryIdUpdateCategory"];
+        /**
+         * UpdateCategory
+         * @description null
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/api/v1/products/bulk-activate": {
@@ -406,8 +1765,63 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** BulkActivate */
-        post: operations["ApiV1ProductsBulkActivateBulkActivate"];
+        /**
+         * BulkActivate
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -423,8 +1837,63 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** BulkDelete */
-        post: operations["ApiV1ProductsBulkDeleteBulkDelete"];
+        /**
+         * BulkDelete
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -438,11 +1907,121 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** ListProducts */
-        get: operations["ApiV1ProductsListProducts"];
+        /**
+         * ListProducts
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
-        /** CreateProduct */
-        post: operations["ApiV1ProductsCreateProduct"];
+        /**
+         * CreateProduct
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -456,15 +2035,181 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * GetProduct
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
         post?: never;
-        /** DeleteProduct */
-        delete: operations["ApiV1ProductsProductIdDeleteProduct"];
+        /**
+         * DeleteProduct
+         * @description null
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
-        /** UpdateProduct */
-        patch: operations["ApiV1ProductsProductIdUpdateProduct"];
+        /**
+         * UpdateProduct
+         * @description null
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/api/v1/articles/bulk-delete": {
@@ -476,8 +2221,63 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** BulkDelete */
-        post: operations["ApiV1ArticlesBulkDeleteBulkDelete"];
+        /**
+         * BulkDelete
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -493,8 +2293,63 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** BulkPublish */
-        post: operations["ApiV1ArticlesBulkPublishBulkPublish"];
+        /**
+         * BulkPublish
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -508,11 +2363,121 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** ListArticles */
-        get: operations["ApiV1ArticlesListArticles"];
+        /**
+         * ListArticles
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
-        /** CreateArticle */
-        post: operations["ApiV1ArticlesCreateArticle"];
+        /**
+         * CreateArticle
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -526,15 +2491,181 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * GetArticle
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
         post?: never;
-        /** DeleteArticle */
-        delete: operations["ApiV1ArticlesArticleIdDeleteArticle"];
+        /**
+         * DeleteArticle
+         * @description null
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
-        /** UpdateArticle */
-        patch: operations["ApiV1ArticlesArticleIdUpdateArticle"];
+        /**
+         * UpdateArticle
+         * @description null
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/api/v1/orders/{order_id}/cancel": {
@@ -550,8 +2681,63 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** CancelOrder */
-        patch: operations["ApiV1OrdersOrderIdCancelCancelOrder"];
+        /**
+         * CancelOrder
+         * @description null
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/api/v1/orders": {
@@ -561,11 +2747,121 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** ListOrders */
-        get: operations["ApiV1OrdersListOrders"];
+        /**
+         * ListOrders
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
-        /** CreateOrder */
-        post: operations["ApiV1OrdersCreateOrder"];
+        /**
+         * CreateOrder
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -579,8 +2875,63 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** GetOrder */
-        get: operations["ApiV1OrdersOrderIdGetOrder"];
+        /**
+         * GetOrder
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
         post?: never;
         delete?: never;
@@ -602,8 +2953,63 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** ToggleOrderSpam */
-        patch: operations["ApiV1OrdersOrderIdSpamToggleOrderSpam"];
+        /**
+         * ToggleOrderSpam
+         * @description null
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/api/v1/orders/{order_id}/status": {
@@ -619,8 +3025,63 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** UpdateOrderStatus */
-        patch: operations["ApiV1OrdersOrderIdStatusUpdateOrderStatus"];
+        /**
+         * UpdateOrderStatus
+         * @description null
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/api/v1/chat/sessions/{session_id}/messages": {
@@ -630,13 +3091,514 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Fetch raw chat logs with Cursor Pagination (Zalo Standard) */
-        get: operations["ApiV1ChatSessionsSessionIdMessagesGetChatHistory"];
+        /**
+         * Fetch raw chat logs with Cursor Pagination (Zalo Standard)
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
-        /** Persist a single chat message from frontend */
-        post: operations["ApiV1ChatSessionsSessionIdMessagesSaveMessage"];
-        /** Permanently CLEAR all chat logs for a session */
-        delete: operations["ApiV1ChatSessionsSessionIdMessagesDeleteChatHistory"];
+        /**
+         * Persist a single chat message from frontend
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        /**
+         * Permanently CLEAR all chat logs for a session
+         * @description null
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/lexicon/overrides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetLexiconOverrides
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * AddLexiconOverride
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/lexicon/stopwords": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetLexiconStopwords
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * AddLexiconStopword
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/lexicon/overrides/{wrong_word}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DeleteLexiconOverride
+         * @description null
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/lexicon/stopwords/{word}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * DeleteLexiconStopword
+         * @description null
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -649,11 +3611,89 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** GetCampaignMode */
-        get: operations["ApiV1SettingsCampaignModeGetCampaignMode"];
+        /**
+         * GetCampaignMode
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
         put?: never;
-        /** ToggleCampaignMode */
-        post: operations["ApiV1SettingsCampaignModeToggleCampaignMode"];
+        /**
+         * ToggleCampaignMode
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -667,11 +3707,2251 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** GetVoiceSettings */
-        get: operations["ApiV1SettingsVoiceGetVoiceSettings"];
+        /**
+         * GetVoiceSettings
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
         put?: never;
-        /** UpdateVoiceSettings */
-        post: operations["ApiV1SettingsVoiceUpdateVoiceSettings"];
+        /**
+         * UpdateVoiceSettings
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ai/models/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * DiscoverModels
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ai/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetAiModels
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * UpdateAiModels
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ai/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetAllKeyStats
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown[];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ai/keys/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * ResetAllKeys
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ai/keys/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * SyncBulkKeys
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/ai/test/{index}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * TestKey
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/campaigns/{campaign_id}/analyze/ai-inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * AnalyzeAiReadiness
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/campaigns/{campaign_id}/analyze/auto-fix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * AnalyzeAutoFix
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/campaigns/{campaign_id}/analyze/bulk-fix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * AnalyzeBulkFix
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/campaigns/{campaign_id}/analyze/copyright": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * AnalyzeCopyright
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/campaigns/{campaign_id}/analyze/seo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * AnalyzeSeo
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/campaigns/{campaign_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * ApproveStep
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/clean": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * CleanContent
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/campaigns/{campaign_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetCampaign
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * DeleteCampaign
+         * @description null
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * PatchCampaign
+         * @description null
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/content/campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * ListCampaigns
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/campaigns/{campaign_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * PublishCampaign
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/campaigns/{campaign_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * RetryStep
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/campaigns/{campaign_id}/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * UpdateMetadata
+         * @description null
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/bulk-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * BulkDeleteMedia
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/bulk-download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * BulkDownloadMedia
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": Record<string, never>;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/{asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetMediaDetail
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": Record<string, never>;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * DeleteMedia
+         * @description null
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * UpdateMedia
+         * @description null
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/media/fetch-remote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * FetchRemoteMedia
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": Record<string, never>;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetMediaStats
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/{asset_id}/thumb": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetMediaThumbnail
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Redirect Response */
+                200: {
+                    headers: {
+                        /**
+                         * @description target path for the redirect
+                         * @example null
+                         */
+                        location?: string;
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * ListMedia
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * UploadMedia
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "multipart/form-data": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/{asset_id}/edit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * QuickEditMedia
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": Record<string, never>;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/{asset_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * RestoreMedia
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/stream/{campaign_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * StreamCampaign
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Stream Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": Record<string, never>;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -685,10 +5965,161 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** GetTtsStream */
-        get: operations["ApiV1TtsStreamGetTtsStream"];
+        /**
+         * GetTtsStream
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Stream Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": Record<string, never>;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/intent/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GetIntentMap
+         * @description null
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request fulfilled, document follows */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": Record<string, never>;
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * UpdateIntentMap
+         * @description null
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document created, URL follows */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": Record<string, never>;
+                    };
+                };
+                /** @description Bad request syntax or unsupported method */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example null */
+                        "application/json": {
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            status_code: number;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            detail: string;
+                            /**
+                             * @description null
+                             * @default null
+                             * @example null
+                             * @constant
+                             */
+                            extra: null | Record<string, never> | unknown[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -699,219 +6130,3095 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** BulkIdsRequest */
-        BulkIdsRequest: {
+        /**
+         * AIModelStatusResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        AIModelStatusResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            primary_model: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            ai_models: string[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            discovered_models: string[];
+        };
+        /**
+         * AnomalyItem
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        AnomalyItem: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            id: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            type: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            message: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            time: string;
+        };
+        /**
+         * AnomalyResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        AnomalyResponse: {
+            /**
+             * @description null
+             * @default success
+             * @example null
+             * @constant
+             */
+            status: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            count: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            anomalies: unknown[];
+        };
+        /**
+         * ArticleListResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        ArticleListResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            data: unknown[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            total: number;
+        };
+        /**
+         * ArticleResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        ArticleResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            id: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            title: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            slug: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            excerpt: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            content: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            seoTitle: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            seoDescription: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            status: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            category: string;
+            /**
+             * @description null
+             * @default 0
+             * @example null
+             * @constant
+             */
+            views: number;
+            /**
+             * @description null
+             * @default System
+             * @example null
+             * @constant
+             */
+            author: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            authorId: Record<string, never>;
+            /**
+             * Format: date-time
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            createdAt: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            display_status: string;
+            /**
+             * @description Estimate reading time in minutes (200 words per minute).
+             * @default null
+             * @example null
+             * @constant
+             */
+            reading_time: number;
+        };
+        /**
+         * AuditorAnalysisResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        AuditorAnalysisResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            draft_id: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            overall_risk_score: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            risk_metrics: unknown[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            impact_forecasts: unknown[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            recommendation: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            timestamp: string;
+        };
+        /**
+         * BulkActionResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        BulkActionResponse: {
+            /**
+             * @description null
+             * @default true
+             * @example null
+             * @constant
+             */
+            ok: boolean;
+            /**
+             * @description null
+             * @default 0
+             * @example null
+             * @constant
+             */
+            count: number;
+        };
+        /**
+         * BulkDeleteRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        BulkDeleteRequest: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            ids: string[];
+            /**
+             * @description null
+             * @default false
+             * @example null
+             * @constant
+             */
+            permanent: boolean;
+        };
+        /**
+         * BulkDownloadRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        BulkDownloadRequest: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             ids: string[];
         };
-        /** CampaignModePayload */
+        /**
+         * BulkDownloadResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        BulkDownloadResponse: {
+            /**
+             * @description null
+             * @default success
+             * @example null
+             * @constant
+             */
+            status: string;
+            /** @description null */
+            data: unknown;
+        };
+        /**
+         * BulkDownloadResponseData
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        BulkDownloadResponseData: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            zip_url: string;
+        };
+        /**
+         * BulkIdsRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        BulkIdsRequest: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            ids: string[];
+        };
+        /**
+         * BulkKeyInput
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        BulkKeyInput: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            keys: string;
+        };
+        /**
+         * CampaignListItem
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        CampaignListItem: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            id: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            topic_data: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            status: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            current_step: number;
+            /**
+             * Format: date-time
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            created_at: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            user_id: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            category: Record<string, never>;
+        };
+        /**
+         * CampaignListResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        CampaignListResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            items: unknown[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            total: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            has_more: boolean;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            limit: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            offset: number;
+        };
+        /**
+         * CampaignModePayload
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         CampaignModePayload: {
-            /** @description Enable Ad Campaign Fortress Mode */
+            /**
+             * @description Enable Ad Campaign Fortress Mode
+             * @default null
+             * @example null
+             * @constant
+             */
             is_campaign_mode: boolean;
         };
-        /** CancelOrderRequest */
+        /**
+         * CampaignModeResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        CampaignModeResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            is_campaign_mode: boolean;
+        };
+        /**
+         * CancelOrderRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         CancelOrderRequest: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             reason: string;
         };
-        /** CapabilityMetadata */
+        /**
+         * CapabilityMetadata
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         CapabilityMetadata: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             id: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             name: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             desc: string;
-            /** @default false */
+            /**
+             * @description null
+             * @default false
+             * @example null
+             * @constant
+             */
             active: boolean;
-            /** @default text-gray-400 */
+            /**
+             * @description null
+             * @default text-gray-400
+             * @example null
+             * @constant
+             */
             color: string;
-            /** @default Brain */
+            /**
+             * @description null
+             * @default Brain
+             * @example null
+             * @constant
+             */
             icon: string;
         };
-        /** ChatHistoryResponse */
+        /**
+         * CategoryListResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        CategoryListResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            data: unknown[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            total: number;
+        };
+        /**
+         * CategoryResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        CategoryResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            id: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            name: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            slug: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            parentId: Record<string, never>;
+            /**
+             * @description null
+             * @default 0
+             * @example null
+             * @constant
+             */
+            productCount: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            children: unknown[];
+            /**
+             * Format: date-time
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            createdAt: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            has_children: boolean;
+        };
+        /**
+         * ChatHistoryResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         ChatHistoryResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             session_id: string;
-            messages: components["schemas"]["ChatMessageSchema"][];
-            next_cursor?: string | null;
-            /** @default false */
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            messages: unknown[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            next_cursor: Record<string, never>;
+            /**
+             * @description null
+             * @default false
+             * @example null
+             * @constant
+             */
             has_more: boolean;
         };
-        /** ChatMessageSchema */
+        /**
+         * ChatMessageSchema
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         ChatMessageSchema: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             id: string;
-            session_id: string;
-            user_id?: string | null;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            sessionId: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            userId: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             role: string;
-            content: {
-                [key: string]: string | number | boolean | null;
-            };
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            content: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             modality: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            updatedAt: string;
+        };
+        /**
+         * ContentCampaign
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        ContentCampaign: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            id: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            user_id: Record<string, never>;
+            /**
+             * @description null
+             * @default
+             * @example null
+             * @constant
+             */
+            source_input: Record<string, never>;
+            /**
+             * @description null
+             * @default ADMIN_MANUAL
+             * @example null
+             * @constant
+             */
+            reviewer_type: string;
+            /**
+             * @description null
+             * @default 1
+             * @example null
+             * @constant
+             */
+            current_step: number;
+            /**
+             * @description null
+             * @default WAITING_FOR_REVIEW
+             * @example null
+             * @constant
+             */
+            status: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            gold_metadata: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            topic_data: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            assets_data: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            outline_data: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            draft_content: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            final_html: Record<string, never>;
+            /**
+             * @description null
+             * @default 0
+             * @example null
+             * @constant
+             */
+            search_count: number;
+            /**
+             * Format: date-time
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             created_at: string;
-            /** Format: date-time */
-            updated_at: string;
         };
-        /** CreateArticleRequest */
+        /**
+         * CreateArticleRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         CreateArticleRequest: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             title: string;
-            slug?: string | null;
-            excerpt?: string | null;
-            content?: string | null;
-            seo_title?: string | null;
-            seo_description?: string | null;
-            /** @default DRAFT */
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            slug: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            excerpt: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            content: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            seo_title: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            seo_description: Record<string, never>;
+            /**
+             * @description null
+             * @default DRAFT
+             * @example null
+             * @constant
+             */
             status: string;
-            /** @default Tin tức */
+            /**
+             * @description null
+             * @default Tin tức
+             * @example null
+             * @constant
+             */
             category: string;
-            authorId?: string | null;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            authorId: Record<string, never>;
         };
-        /** CreateCategoryRequest */
+        /**
+         * CreateCategoryRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         CreateCategoryRequest: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             name: string;
-            slug?: string | null;
-            parentId?: string | null;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            slug: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            parentId: Record<string, never>;
         };
-        /** CreateChatMessageRequest */
+        /**
+         * CreateChatMessageRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         CreateChatMessageRequest: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             role: string;
-            content: {
-                [key: string]: string | number | boolean | null;
-            };
-            /** @default text */
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            content: Record<string, never>;
+            /**
+             * @description null
+             * @default text
+             * @example null
+             * @constant
+             */
             modality: string;
         };
-        /** CreateProductRequest */
+        /**
+         * CreateProductRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         CreateProductRequest: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             name: string;
-            sku?: string | null;
-            /** @default 0 */
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            sku: Record<string, never>;
+            /**
+             * @description null
+             * @default 0
+             * @example null
+             * @constant
+             */
             price: number;
-            /** @default 0 */
+            /**
+             * @description null
+             * @default 0
+             * @example null
+             * @constant
+             */
             stock: number;
-            /** @default DRAFT */
+            /**
+             * @description null
+             * @default DRAFT
+             * @example null
+             * @constant
+             */
             status: string;
-            description?: string | null;
-            categoryId?: string | null;
-            /** @default RETAIL */
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            description: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            categoryId: Record<string, never>;
+            /**
+             * @description null
+             * @default RETAIL
+             * @example null
+             * @constant
+             */
             type: string;
         };
         /**
+         * FetchRemoteRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        FetchRemoteRequest: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            url: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            campaign_id: Record<string, never>;
+        };
+        /**
+         * FocalPoint
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        FocalPoint: {
+            /**
+             * @description null
+             * @default 0.5
+             * @example null
+             * @constant
+             */
+            x: number;
+            /**
+             * @description null
+             * @default 0.5
+             * @example null
+             * @constant
+             */
+            y: number;
+        };
+        /**
+         * GenericResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        GenericResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            status: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            message: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            data: Record<string, never>;
+        };
+        /**
+         * HealthStatusResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        HealthStatusResponse: {
+            /**
+             * @description null
+             * @default Fast-Platform Gateway
+             * @example null
+             * @constant
+             */
+            system: string;
+            /**
+             * @description null
+             * @default online
+             * @example null
+             * @constant
+             */
+            status: string;
+        };
+        /**
+         * ImpactForecast
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        ImpactForecast: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            category: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            impact_level: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            description: string;
+        };
+        /**
          * IntentAction
+         * @description null
+         * @default READ
+         * @example null
+         * @constant
          * @enum {string}
          */
-        IntentAction: "COUNT" | "READ" | "MUTATE" | "ANALYZE";
-        /** IntentRequest */
+        IntentAction: string;
+        /**
+         * IntentRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         IntentRequest: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             query: string;
-            action_type?: components["schemas"]["IntentAction"] | null;
-            target?: string | null;
-            session_id?: string | null;
-            /** @default text */
-            modality: string | null;
-            screen_context?: {
-                [key: string]: unknown;
-            } | null;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            user_id: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            session_id: Record<string, never>;
+            /**
+             * @description null
+             * @default voice
+             * @example null
+             * @constant
+             */
+            modality: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            context: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            screen_context: Record<string, never>;
         };
-        /** IntentResponse */
+        /**
+         * IntentResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         IntentResponse: {
+            /**
+             * @description null
+             * @default success
+             * @example null
+             * @constant
+             */
             status: string;
-            action: components["schemas"]["IntentAction"];
-            data?: {
-                [key: string]: unknown;
-            } | null;
+            /**
+             * @description null
+             * @default
+             * @example null
+             * @constant
+             */
             message: string;
-            router_tier?: number | null;
-            /** @default 0 */
+            /** @description null */
+            action?: unknown;
+            /** @description null */
+            router_tier?: unknown;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            data: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            semantic_results: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            vui_context: Record<string, never>;
+            /**
+             * @description null
+             * @default 0
+             * @example null
+             * @constant
+             */
             cost_tokens: number;
-            /** @default false */
-            requires_confirmation: boolean;
         };
-        /** LoginRequest */
-        LoginRequest: {
-            identifier: string;
-            password: string;
-        };
-        /** OrderCreateRequest */
-        OrderCreateRequest: {
-            items: {
-                [key: string]: string | number;
-            }[];
-            total_amount: number;
-            customer_name: string;
-            customer_email: string;
-            customer_phone?: string | null;
-            customer_address?: string | null;
-        };
-        /** OrderStatusUpdate */
-        OrderStatusUpdate: {
+        /**
+         * KeyStats
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        KeyStats: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            index: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            key_preview: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            fail_count: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            health_score: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            last_used: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             status: string;
         };
-        /** RegisterRequest */
-        RegisterRequest: {
-            name: string;
-            email: string;
+        /**
+         * LexiconOverridePayload
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        LexiconOverridePayload: {
+            /**
+             * @description The misspelled or misheard word
+             * @default null
+             * @example null
+             * @constant
+             */
+            wrong_word: string;
+            /**
+             * @description The correct target word
+             * @default null
+             * @example null
+             * @constant
+             */
+            right_word: string;
+        };
+        /**
+         * LexiconOverridesResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        LexiconOverridesResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            overrides: Record<string, never>;
+        };
+        /**
+         * LexiconStopwordPayload
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        LexiconStopwordPayload: {
+            /**
+             * @description The filler word to strip out
+             * @default null
+             * @example null
+             * @constant
+             */
+            word: string;
+        };
+        /**
+         * LexiconStopwordsResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        LexiconStopwordsResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            stopwords: string[];
+        };
+        /**
+         * LoginRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        LoginRequest: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            identifier: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             password: string;
         };
-        /** TokenResponse */
-        TokenResponse: {
+        /**
+         * MediaAssetResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        MediaAssetResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            id: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            filename: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            file_path: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            file_size: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            mime_type: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            dimensions: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            blurhash: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            alt_text: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            is_public: boolean;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            campaign_id: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            owner_id: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            created_at: Record<string, never>;
+            /** @description null */
+            media_metadata?: unknown;
+        };
+        /**
+         * MediaDetailResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        MediaDetailResponse: {
+            /**
+             * @description null
+             * @default success
+             * @example null
+             * @constant
+             */
+            status: string;
+            /** @description null */
+            data: unknown;
+        };
+        /**
+         * MediaListResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        MediaListResponse: {
+            /**
+             * @description null
+             * @default success
+             * @example null
+             * @constant
+             */
+            status: string;
+            /** @description null */
+            data: unknown;
+        };
+        /**
+         * MediaListResponseData
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        MediaListResponseData: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            items: unknown[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            total: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            limit: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            offset: number;
+        };
+        /**
+         * MediaMetadata
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        MediaMetadata: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            embedding: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            ai_tags: string[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            ai_description: Record<string, never>;
+            /** @description null */
+            focal_point?: unknown;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            original_source: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            sentiment: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            analyzed_at: Record<string, never>;
+        };
+        /**
+         * MediaStatsResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        MediaStatsResponse: {
+            /**
+             * @description null
+             * @default success
+             * @example null
+             * @constant
+             */
+            status: string;
+            /** @description null */
+            data: unknown;
+        };
+        /**
+         * MediaStatsResponseData
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        MediaStatsResponseData: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            total_count: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            total_size: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            breakdown: unknown[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            storage_provider: string;
+        };
+        /**
+         * MediaUpdateMetadata
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        MediaUpdateMetadata: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            alt_text: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            is_public: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            media_metadata: Record<string, never>;
+        };
+        /**
+         * MimeTypeBreakdown
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        MimeTypeBreakdown: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            type: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            count: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            size: number;
+        };
+        /**
+         * ModelConfig
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        ModelConfig: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            primary_model: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            ai_models: string[];
+        };
+        /**
+         * ModelDiscoveryResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        ModelDiscoveryResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            status: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            models: string[];
+        };
+        /**
+         * NotificationListResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        NotificationListResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            data: unknown[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            total: number;
+        };
+        /**
+         * NotificationResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        NotificationResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            id: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            userId: Record<string, never>;
+            /**
+             * @description null
+             * @default INFO
+             * @example null
+             * @constant
+             */
+            type: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            message: string;
+            /**
+             * @description null
+             * @default false
+             * @example null
+             * @constant
+             */
+            isRead: boolean;
+            /**
+             * Format: date-time
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            createdAt: string;
+        };
+        /**
+         * OTPRequestResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        OTPRequestResponse: {
+            /**
+             * @description null
+             * @default success
+             * @example null
+             * @constant
+             */
+            status: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            message: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            otp_token: string;
+        };
+        /**
+         * OTPVerifyResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        OTPVerifyResponse: {
+            /**
+             * @description null
+             * @default success
+             * @example null
+             * @constant
+             */
+            status: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             access_token: string;
-            /** @default Bearer */
-            token_type: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             role: string;
-            name?: string | null;
-            email?: string | null;
         };
-        /** ToolCallRequest */
-        ToolCallRequest: {
+        /**
+         * OrderCreateRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        OrderCreateRequest: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            items: Record<string, never>[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            total_amount: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            customer_name: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            customer_email: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            customer_phone: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            customer_address: Record<string, never>;
+        };
+        /**
+         * OrderListResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        OrderListResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            data: unknown[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            total: number;
+        };
+        /**
+         * OrderResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        OrderResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            id: string;
+            /**
+             * @description null
+             * @default Storefront Customer
+             * @example null
+             * @constant
+             */
+            customerName: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            status: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            total: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            items: Record<string, never>;
+            /**
+             * Format: date-time
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            createdAt: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            cancellationReason: Record<string, never>;
+            /**
+             * @description null
+             * @default false
+             * @example null
+             * @constant
+             */
+            isSpam: boolean;
+            /**
+             * @description null
+             * @default 0
+             * @example null
+             * @constant
+             */
+            spamScore: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            spamReason: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            fingerprint: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            history: Record<string, never>[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            display_status: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            items_count: number;
+        };
+        /**
+         * OrderStatusUpdate
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        OrderStatusUpdate: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            status: string;
+        };
+        /**
+         * PermissionResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        PermissionResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            id: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            code: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             name: string;
-            arguments: {
-                [key: string]: unknown;
-            };
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            description: Record<string, never>;
         };
-        /** UpdateArticleRequest */
+        /**
+         * ProductListResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        ProductListResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            data: unknown[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            total: number;
+        };
+        /**
+         * ProductResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        ProductResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            id: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            name: string;
+            /**
+             * @description null
+             * @default
+             * @example null
+             * @constant
+             */
+            sku: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            price: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            stock: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            status: string;
+            /**
+             * @description null
+             * @default
+             * @example null
+             * @constant
+             */
+            category: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            categoryId: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            description: Record<string, never>;
+            /**
+             * @description null
+             * @default RETAIL
+             * @example null
+             * @constant
+             */
+            type: string;
+            /**
+             * Format: date-time
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            createdAt: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            is_in_stock: boolean;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            display_status: string;
+        };
+        /**
+         * QuickEditParams
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        QuickEditParams: {
+            /**
+             * @description null
+             * @default 0
+             * @example null
+             * @constant
+             */
+            x: Record<string, never>;
+            /**
+             * @description null
+             * @default 0
+             * @example null
+             * @constant
+             */
+            y: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            w: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            h: Record<string, never>;
+            /**
+             * @description null
+             * @default square
+             * @example null
+             * @constant
+             */
+            preset: Record<string, never>;
+        };
+        /**
+         * QuickEditRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        QuickEditRequest: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            action: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            params: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            source_url: Record<string, never>;
+        };
+        /**
+         * QuickEditResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        QuickEditResponse: {
+            /**
+             * @description null
+             * @default success
+             * @example null
+             * @constant
+             */
+            status: string;
+            /** @description null */
+            data: unknown;
+        };
+        /**
+         * RegisterRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        RegisterRequest: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            email: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            name: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            password: string;
+        };
+        /**
+         * RiskMetric
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        RiskMetric: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            label: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            score: number;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            reason: string;
+        };
+        /**
+         * RoleResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        RoleResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            id: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            name: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            code: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            description: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            permissions: unknown[];
+        };
+        /**
+         * RouterTier
+         * @description null
+         * @default 2
+         * @example null
+         * @constant
+         * @enum {string}
+         */
+        RouterTier: string;
+        /**
+         * SocialLoginResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        SocialLoginResponse: {
+            /**
+             * @description null
+             * @default success
+             * @example null
+             * @constant
+             */
+            status: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            message: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            instructions: string;
+        };
+        /**
+         * SuccessResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        SuccessResponse: {
+            /**
+             * @description null
+             * @default true
+             * @example null
+             * @constant
+             */
+            ok: boolean;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            message: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            id: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            data: Record<string, never>;
+        };
+        /**
+         * TokenResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        TokenResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            access_token: string;
+            /**
+             * @description null
+             * @default Bearer
+             * @example null
+             * @constant
+             */
+            token_type: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            role: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            name: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            email: Record<string, never>;
+        };
+        /**
+         * ToolCallRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        ToolCallRequest: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            name: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            arguments: Record<string, never>;
+        };
+        /**
+         * UpdateArticleRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         UpdateArticleRequest: {
-            title?: string | null;
-            slug?: string | null;
-            excerpt?: string | null;
-            content?: string | null;
-            seo_title?: string | null;
-            seo_description?: string | null;
-            status?: string | null;
-            category?: string | null;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            title: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            slug: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            excerpt: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            content: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            seo_title: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            seo_description: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            status: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            category: Record<string, never>;
         };
-        /** UpdateCategoryRequest */
+        /**
+         * UpdateCategoryRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         UpdateCategoryRequest: {
-            name?: string | null;
-            slug?: string | null;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            name: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            slug: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            parentId: Record<string, never>;
         };
-        /** UpdateProductRequest */
+        /**
+         * UpdateProductRequest
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         UpdateProductRequest: {
-            name?: string | null;
-            sku?: string | null;
-            price?: number | null;
-            stock?: number | null;
-            status?: string | null;
-            description?: string | null;
-            categoryId?: string | null;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            name: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            sku: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            price: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            stock: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            status: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            description: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            categoryId: Record<string, never>;
         };
-        /** VoiceSettingsPayload */
+        /**
+         * UserListResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        UserListResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            data: unknown[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            total: number;
+        };
+        /**
+         * UserResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
+        UserResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            id: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            email: string;
+            /**
+             * @description null
+             * @default Unknown
+             * @example null
+             * @constant
+             */
+            name: string;
+            /**
+             * @description null
+             * @default ACTIVE
+             * @example null
+             * @constant
+             */
+            status: string;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            roles: unknown[];
+            /**
+             * Format: date-time
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            createdAt: string;
+        };
+        /**
+         * VoiceSettingsPayload
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         VoiceSettingsPayload: {
-            /** @description List of wake words */
+            /**
+             * @description List of wake words
+             * @default null
+             * @example null
+             * @constant
+             */
             wake_words: string[];
-            /** @description List of sleep words */
+            /**
+             * @description List of sleep words
+             * @default null
+             * @example null
+             * @constant
+             */
             sleep_words: string[];
-            /** @description Mapped AI capabilities (READ, MUTATE, ANALYZE) */
-            capabilities?: {
-                [key: string]: boolean;
-            };
+            /**
+             * @description Mapped AI capabilities (READ, MUTATE, ANALYZE)
+             * @default null
+             * @example null
+             * @constant
+             */
+            capabilities: Record<string, never>;
             /**
              * @description Optional greeting template
-             * @default Dạ, em nghe đây sếp {name}.
+             * @default Dạ, em nghe đây.
+             * @example null
+             * @constant
              */
             greeting_template: string;
+            /**
+             * @description Optional farewell template
+             * @default Hẹn gặp lại.
+             * @example null
+             * @constant
+             */
+            farewell_template: string;
+            /**
+             * @description Global Campaign Mode toggle
+             * @default null
+             * @example null
+             * @constant
+             */
+            is_campaign_mode: Record<string, never>;
+            /**
+             * @description Advanced chat persistence settings
+             * @default null
+             * @example null
+             * @constant
+             */
+            chat_settings: Record<string, never>;
+            /**
+             * @description Keywords to anchor STT context
+             * @default null
+             * @example null
+             * @constant
+             */
+            stt_anchors: Record<string, never>;
+            /**
+             * @description Sensitivity threshold for mic noise rejection
+             * @default null
+             * @example null
+             * @constant
+             */
+            mic_sensitivity: Record<string, never>;
         };
-        /** VoiceSettingsResponse */
+        /**
+         * VoiceSettingsResponse
+         * @description null
+         * @default null
+         * @example null
+         * @constant
+         */
         VoiceSettingsResponse: {
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             wake_words: string[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
             sleep_words: string[];
+            /**
+             * @description null
+             * @default Dạ, em nghe đây.
+             * @example null
+             * @constant
+             */
             greeting_template: string;
-            capabilities: components["schemas"]["CapabilityMetadata"][];
+            /**
+             * @description null
+             * @default Hẹn gặp lại.
+             * @example null
+             * @constant
+             */
+            farewell_template: string;
+            /**
+             * @description null
+             * @default false
+             * @example null
+             * @constant
+             */
+            is_campaign_mode: boolean;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            capabilities: unknown[];
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            chat_settings: Record<string, never>;
+            /**
+             * @description null
+             * @default null
+             * @example null
+             * @constant
+             */
+            stt_anchors: string[];
+            /**
+             * @description null
+             * @default 0.6
+             * @example null
+             * @constant
+             */
+            mic_sensitivity: number;
         };
     };
     responses: never;
@@ -921,1967 +9228,4 @@ export interface components {
     pathItems: never;
 }
 export type $defs = Record<string, never>;
-export interface operations {
-    ApiV1IntentProcessIntent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["IntentRequest"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["IntentResponse"];
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1IntentStreamStreamIntent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["IntentRequest"];
-            };
-        };
-        responses: {
-            /** @description Stream Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    HealthHealthCheck: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-        };
-    };
-    ApiV1McpCallCallTool: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ToolCallRequest"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1McpToolsListTools: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown[];
-                };
-            };
-        };
-    };
-    ApiV1AuthLoginLogin: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginRequest"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TokenResponse"];
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1AuthRegisterRegister: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RegisterRequest"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1AuthExtendedOtpRequestRequestOtp: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1AuthExtendedSocialProviderSocialLogin: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                provider: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1AuthExtendedOtpVerifyVerifyOtp: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1NotificationsGetNotifications: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    }[];
-                };
-            };
-        };
-    };
-    ApiV1NotificationsNotificationIdReadMarkAsRead: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                notification_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1AuditorDraftIdAnalyzeAnalyzeDraft: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                draft_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1UsersUserIdDeleteDeleteUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                user_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1UsersPermissionsListPermissions: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    }[];
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1UsersRolesListRoles: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    }[];
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1UsersListUsers: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-                status?: string | null;
-                search?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1UsersRoleIdPermissionsUpdateRolePermissions: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                role_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": string[];
-            };
-        };
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1UsersUserIdUpdateUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                user_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
-            };
-        };
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1UsersUserIdRolesUpdateUserRoles: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                user_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": string[];
-            };
-        };
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1CategoriesBulkDeleteBulkDelete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BulkIdsRequest"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1CategoriesListCategories: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    }[];
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1CategoriesCreateCategory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateCategoryRequest"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1CategoriesCategoryIdDeleteCategory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                category_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1CategoriesCategoryIdUpdateCategory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                category_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateCategoryRequest"];
-            };
-        };
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1ProductsBulkActivateBulkActivate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BulkIdsRequest"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1ProductsBulkDeleteBulkDelete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BulkIdsRequest"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1ProductsListProducts: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-                status?: string | null;
-                search?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1ProductsCreateProduct: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateProductRequest"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1ProductsProductIdDeleteProduct: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                product_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1ProductsProductIdUpdateProduct: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                product_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateProductRequest"];
-            };
-        };
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1ArticlesBulkDeleteBulkDelete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BulkIdsRequest"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1ArticlesBulkPublishBulkPublish: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BulkIdsRequest"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1ArticlesListArticles: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-                status?: string | null;
-                search?: string | null;
-                category?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1ArticlesCreateArticle: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateArticleRequest"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1ArticlesArticleIdDeleteArticle: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                article_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1ArticlesArticleIdUpdateArticle: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                article_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateArticleRequest"];
-            };
-        };
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1OrdersOrderIdCancelCancelOrder: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                order_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CancelOrderRequest"];
-            };
-        };
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1OrdersListOrders: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-                status?: string | null;
-                search?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1OrdersCreateOrder: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OrderCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1OrdersOrderIdGetOrder: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                order_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1OrdersOrderIdSpamToggleOrderSpam: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                order_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1OrdersOrderIdStatusUpdateOrderStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                order_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OrderStatusUpdate"];
-            };
-        };
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1ChatSessionsSessionIdMessagesGetChatHistory: {
-        parameters: {
-            query?: {
-                cursor?: string | null;
-                limit?: number;
-                user_id_query?: string | null;
-            };
-            header?: never;
-            path: {
-                session_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChatHistoryResponse"];
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1ChatSessionsSessionIdMessagesSaveMessage: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                session_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateChatMessageRequest"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1ChatSessionsSessionIdMessagesDeleteChatHistory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                session_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1SettingsCampaignModeGetCampaignMode: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-        };
-    };
-    ApiV1SettingsCampaignModeToggleCampaignMode: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CampaignModePayload"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1SettingsVoiceGetVoiceSettings: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Request fulfilled, document follows */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VoiceSettingsResponse"];
-                };
-            };
-        };
-    };
-    ApiV1SettingsVoiceUpdateVoiceSettings: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VoiceSettingsPayload"];
-            };
-        };
-        responses: {
-            /** @description Document created, URL follows */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-    ApiV1TtsStreamGetTtsStream: {
-        parameters: {
-            query: {
-                text: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Stream Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Bad request syntax or unsupported method */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        status_code: number;
-                        detail: string;
-                        extra?: null | {
-                            [key: string]: unknown;
-                        } | unknown[];
-                    };
-                };
-            };
-        };
-    };
-}
+export type operations = Record<string, never>;

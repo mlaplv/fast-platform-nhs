@@ -5,7 +5,7 @@ Follows R105: Strict Schema Isolation.
 """
 from enum import Enum
 from typing import List, Optional, Dict, Union
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class SignalSeverity(str, Enum):
@@ -24,7 +24,7 @@ class SignalSeverity(str, Enum):
 
 class SignalSchema(BaseModel):
     """Unified signal contract for all system notifications."""
-    model_config = {"strict": True}
+    model_config = ConfigDict(strict=True)
 
     message: str
     severity: SignalSeverity

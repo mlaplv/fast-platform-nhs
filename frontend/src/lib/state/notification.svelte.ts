@@ -11,9 +11,10 @@ export function createNotificationState() {
     if (state.isLoading) return;
     state.isLoading = true;
     try {
-      state.notifications = await apiClient.get<Notification[]>(
+      const res = await apiClient.get<{ data: Notification[] }>(
         "/api/v1/notifications",
       );
+      state.notifications = res.data || [];
     } catch {
       state.notifications = [];
     } finally {

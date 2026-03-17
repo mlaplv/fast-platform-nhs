@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import Dict, Optional, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class IntentAction(str, Enum):
     READ = "READ"
@@ -19,6 +19,7 @@ class RouterTier(str, Enum):
     TIER_3_REASONING = "3"
 
 class IntentRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
     query: str
     user_id: Optional[str] = None
     session_id: Optional[str] = None
@@ -39,5 +40,4 @@ class IntentResponse(BaseModel):
 
     cost_tokens: float = Field(default=0.0)
 
-    class Config:
-        strict = True
+    model_config = ConfigDict(strict=True)

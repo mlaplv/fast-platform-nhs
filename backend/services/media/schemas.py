@@ -2,12 +2,12 @@ from typing import List, Dict, TypedDict, Optional, Union
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 class FocalPoint(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, strict=True)
     x: float = Field(0.5, ge=0.0, le=1.0)
     y: float = Field(0.5, ge=0.0, le=1.0)
 
 class MediaMetadata(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, strict=True)
     embedding: Optional[List[float]] = None
     ai_tags: List[str] = Field(default_factory=list)
     ai_description: Optional[str] = None
@@ -25,7 +25,7 @@ class MediaMetadata(BaseModel):
 
 class MediaAssetResponse(BaseModel):
     """R105 Strict Typing for Media Asset"""
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, strict=True)
     id: str
     filename: str
     file_path: str
@@ -37,68 +37,67 @@ class MediaAssetResponse(BaseModel):
     is_public: bool
     campaign_id: Optional[str] = None
     owner_id: Optional[str] = None
-    created_at: Union[str, float, None] = None # Will be handled by validator if needed, or let Litestar serialize
+    created_at: Optional[str] = None
     media_metadata: MediaMetadata = Field(default_factory=MediaMetadata)
 
+    @field_validator("id", "campaign_id", "owner_id", mode="before")
     @classmethod
-    def from_orm_model(cls, obj: object) -> "MediaAssetResponse":
-        """Custom mapper to handle complex fields like datetime and JSON dicts."""
-        from datetime import datetime
+    def stringify_ids(cls, v):
+        if v is None:
+            return None
+        return str(v)
 
-        # We handle the attribute access manually if not using from_attributes=True fully
-        # or use it to simplify the common cases.
-        data = {
-            "id": str(getattr(obj, "id")),
-            "filename": getattr(obj, "filename"),
-            "file_path": getattr(obj, "file_path"),
-            "file_size": getattr(obj, "file_size"),
-            "mime_type": getattr(obj, "mime_type"),
-            "dimensions": getattr(obj, "dimensions"),
-            "blurhash": getattr(obj, "blurhash"),
-            "alt_text": getattr(obj, "alt_text"),
-            "is_public": getattr(obj, "is_public"),
-            "campaign_id": str(getattr(obj, "campaign_id")) if getattr(obj, "campaign_id") else None,
-            "owner_id": str(getattr(obj, "owner_id")) if getattr(obj, "owner_id") else None,
-            "created_at": getattr(obj, "created_at").isoformat() if isinstance(getattr(obj, "created_at"), datetime) else str(getattr(obj, "created_at")),
-            "media_metadata": MediaMetadata.model_validate(getattr(obj, "media_metadata") or {})
-        }
-        return cls.model_validate(data)
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def validate_created_at(cls, v):
+        from datetime import datetime
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return str(v) if v else None
 
 class MediaListResponseData(BaseModel):
+    model_config = ConfigDict(strict=True)
     items: List[MediaAssetResponse]
     total: int
     limit: int
     offset: int
 
 class MediaListResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
     status: str = "success"
     data: MediaListResponseData
 
 class MimeTypeBreakdown(BaseModel):
+    model_config = ConfigDict(strict=True)
     type: str
     count: int
     size: int
 
 class MediaStatsResponseData(BaseModel):
+    model_config = ConfigDict(strict=True)
     total_count: int
     total_size: int
     breakdown: List[MimeTypeBreakdown]
     storage_provider: str
 
 class MediaStatsResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
     status: str = "success"
     data: MediaStatsResponseData
 
 class MediaDetailResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
     status: str = "success"
     data: MediaAssetResponse
 
 class MediaUpdateMetadata(BaseModel):
+    model_config = ConfigDict(strict=True)
     alt_text: Optional[str] = None
     is_public: Optional[bool] = None
     media_metadata: Optional[MediaMetadata] = None
 
 class QuickEditParams(BaseModel):
+    model_config = ConfigDict(strict=True)
     x: Optional[int] = 0
     y: Optional[int] = 0
     w: Optional[int] = None
@@ -106,39 +105,48 @@ class QuickEditParams(BaseModel):
     preset: Optional[str] = "square"  # 'square', 'banner', etc.
 
 class QuickEditResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
     status: str = "success"
     data: MediaAssetResponse
 
 class BulkDownloadResponseData(BaseModel):
+    model_config = ConfigDict(strict=True)
     zip_url: str
 
 class BulkDownloadResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
     status: str = "success"
     data: BulkDownloadResponseData
 
 class QuickEditRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
     action: str
     params: Optional[QuickEditParams] = None
     source_url: Optional[str] = None # V75: Support on-the-fly registration
 
 class BulkDeleteRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
     ids: List[str]
     permanent: bool = False
 
 class BulkDownloadRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
     ids: List[str]
 
 class FetchRemoteRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
     url: str
     campaign_id: Optional[str] = None
 
 class MediaListResult(BaseModel):
+    model_config = ConfigDict(strict=True)
     items: List[MediaAssetResponse]
     total: int
     limit: int
     offset: int
 
 class MediaStatsResult(BaseModel):
+    model_config = ConfigDict(strict=True)
     total_count: int
     total_size: int
     breakdown: List[MimeTypeBreakdown]

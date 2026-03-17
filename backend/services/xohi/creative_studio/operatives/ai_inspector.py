@@ -1,7 +1,7 @@
 import re
 import logging
 from typing import List, Dict, Union, Optional, Any, cast
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
@@ -17,6 +17,7 @@ logger = logging.getLogger("api-gateway")
 # ══════════════════════════════════════════════════════════════
 
 class AiAnnotation(BaseModel):
+    model_config = ConfigDict(strict=True)
     type: str      # "geo_stats" | "geo_quotes" | "geo_fluff" | "geo_snippet"
     text: str      # Exact substring from the article to highlight
     message: str   # Vietnamese tip shown in tooltip
@@ -68,6 +69,7 @@ CALIBRATION:
 - < 50: Quá nhiều văn hoa, thiếu dữ liệu thực tế."""
 
 class AutoFixRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
     target_snippet: str
     annotation_type: str
     error_message: str

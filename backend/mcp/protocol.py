@@ -1,8 +1,9 @@
 import inspect
 from typing import Callable, Dict, List
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class MCPTool(BaseModel):
+    model_config = ConfigDict(strict=True)
     name: str
     description: str
     parameters: Dict[str, object]

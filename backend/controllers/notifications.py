@@ -1,12 +1,14 @@
+from __future__ import annotations
 from typing import List, Dict, Union, Optional
 import logging
 from litestar import Controller, get, patch, Request
 from litestar.exceptions import NotAuthorizedException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_, update
+from sqlalchemy import select, or_, update, func
 
-from backend.database.models import Notification, User
-from backend.database.repositories import UserRepository
+from backend.services.notification_service import notification_service
+from backend.schemas.notification import NotificationResponse, NotificationListResponse
+from backend.schemas.common import SuccessResponse
 
 logger = logging.getLogger("api-gateway")
 
@@ -14,53 +16,15 @@ class NotificationController(Controller):
     path = "/api/v1/notifications"
 
     @get("/")
-    async def get_notifications(self, db_session: AsyncSession, request: Request) -> List[Dict[str, object]]:
+    async def get_notifications(self, db_session: "AsyncSession", request: Request) -> NotificationListResponse:
         """Lấy danh sách thông báo của user hiện tại"""
         user_state = getattr(request.state, "user", {})
         user_email = user_state.get("sub")
-        
-        # Build query conditions
-        conditions = []
-        
-        if not user_email:
-            stmt = select(
-                Notification.id, Notification.user_id, Notification.type, 
-                Notification.message, Notification.is_read, Notification.created_at
-            ).where(Notification.user_id == None).order_by(Notification.created_at.desc()).limit(20)
-        else:
-            user_repo = UserRepository(session=db_session)
-            user = await user_repo.get_one_or_none(email=user_email)
-            if not user:
-                raise NotAuthorizedException("User context not found")
-            
-            stmt = select(
-                Notification.id, Notification.user_id, Notification.type, 
-                Notification.message, Notification.is_read, Notification.created_at
-            ).where(
-                or_(
-                    Notification.user_id == str(user.id),
-                    Notification.user_id == None
-                )
-            ).order_by(Notification.created_at.desc()).limit(20)
-
-        res = await db_session.execute(stmt)
-        # Result contains rows (tuples), not objects
-        return [
-            {
-                "id": str(row.id),
-                "userId": str(row.user_id) if row.user_id else None,
-                "type": row.type,
-                "message": row.message,
-                "isRead": row.is_read,
-                "createdAt": row.created_at.isoformat() if row.created_at else "",
-            }
-            for row in res
-        ]
+        return await notification_service.get_notifications(db_session, user_email)
 
     @patch("/{notification_id:str}/read")
-    async def mark_as_read(self, db_session: AsyncSession, notification_id: str) -> Dict[str, object]:
+    async def mark_as_read(self, db_session: "AsyncSession", notification_id: str) -> SuccessResponse:
         """Đánh dấu thông báo đã đọc"""
-        stmt = update(Notification).where(Notification.id == notification_id).values(is_read=True)
-        await db_session.execute(stmt)
+        res = await notification_service.mark_as_read(db_session, notification_id)
         await db_session.commit()
-        return {"status": "success"}
+        return res

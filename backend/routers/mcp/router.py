@@ -1,10 +1,12 @@
+from __future__ import annotations
 from litestar import Controller, get, post
 from backend.mcp.protocol import mcp_registry
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Dict, Union, Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 class ToolCallRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
     name: str
     arguments: Dict[str, object]
 
@@ -17,7 +19,7 @@ class MCPController(Controller):
         return mcp_registry.tool_metadata
 
     @post("/call")
-    async def call_tool(self, db_session: AsyncSession, data: ToolCallRequest) -> Dict[str, object]:
+    async def call_tool(self, db_session: "AsyncSession", data: ToolCallRequest) -> Dict[str, object]:
         """Thực thi một công cụ cụ thể dựa trên yêu cầu từ AI"""
         if data.name not in mcp_registry.tools:
             return {"status": "error", "message": f"Tool '{data.name}' not found."}

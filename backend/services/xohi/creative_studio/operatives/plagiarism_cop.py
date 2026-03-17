@@ -6,7 +6,7 @@ import copy
 import hashlib
 from datetime import datetime, timezone
 from typing import List, Dict, Optional, Any, Union, cast
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from pydantic_ai import Agent
 from sqlalchemy.orm.attributes import flag_modified
 from backend.database.models import ContentCampaign
@@ -29,6 +29,7 @@ RE_NORMALIZE = re.compile(r'[^\w\sàáảãạăắằẳẵặâấầẩẫậ
 # ══════════════════════════════════════════════════════════════
 
 class CopyrightAnnotation(BaseModel):
+    model_config = ConfigDict(strict=True)
     text: str           # Exact text fragment from the article (for inline highlight)
     reason: str         # Why this is risky (Vietnamese)
     source_url: str     # Competitor URL that this resembles
@@ -36,6 +37,7 @@ class CopyrightAnnotation(BaseModel):
     type: Optional[str] = "external"  # "external" | "internal-dedup"
 
 class PlagiarismResult(BaseModel):
+    model_config = ConfigDict(strict=True)
     uniqueness_score: float  # 0.0 (full copy) → 1.0 (100% unique)
     risk_level: str          # "LOW" | "MEDIUM" | "HIGH"
     flagged_sentences: List[str]
