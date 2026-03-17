@@ -199,7 +199,7 @@
                   <span
                     class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-cyan-400 transition-colors z-20"
                   >
-                    <LucideMail size={20} />
+                    <Mail size={20} />
                   </span>
                   <input
                     id="email"
@@ -225,7 +225,7 @@
                   <span
                     class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-cyan-400 transition-colors z-20"
                   >
-                    <LucideLock size={20} />
+                    <Lock size={20} />
                   </span>
                   <input
                     id="password"
@@ -241,9 +241,9 @@
                     class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-cyan-400 transition-colors z-20"
                   >
                     {#if showPassword}
-                      <LucideEyeOff size={18} />
+                      <EyeOff size={18} />
                     {:else}
-                      <LucideEye size={18} />
+                      <Eye size={18} />
                     {/if}
                   </button>
                 </div>
@@ -299,7 +299,7 @@
                   ></div>
                 {:else}
                   <span>Establish Connect</span>
-                  <LucideArrowRight
+                  <ArrowRight
                     size={18}
                     class="group-hover:translate-x-1 transition-transform"
                   />
@@ -318,7 +318,7 @@
                   <span
                     class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-cyan-400 transition-colors z-20"
                   >
-                    <LucidePhone size={20} />
+                    <Phone size={20} />
                   </span>
                   <input
                     id="phone"
@@ -340,7 +340,7 @@
               <button
                 class="w-full h-14 bg-white/5 border border-white/5 rounded-2xl flex items-center px-6 gap-4 hover:bg-white/10 transition-all group"
               >
-                <LucideChrome size={20} class="text-red-500" />
+                <Chrome size={20} class="text-red-500" />
                 <span
                   class="text-[10px] font-bold tracking-widest uppercase flex-1 text-center"
                   >Continue with Google</span
@@ -349,7 +349,7 @@
               <button
                 class="w-full h-14 bg-white/5 border border-white/5 rounded-2xl flex items-center px-6 gap-4 hover:bg-white/10 transition-all group"
               >
-                <LucideFacebook size={20} class="text-blue-500" />
+                <Facebook size={20} class="text-blue-500" />
                 <span
                   class="text-[10px] font-bold tracking-widest uppercase flex-1 text-center"
                   >Link Facebook ID</span
@@ -358,7 +358,7 @@
               <button
                 class="w-full h-14 bg-white/5 border border-white/5 rounded-2xl flex items-center px-6 gap-4 hover:bg-white/10 transition-all group"
               >
-                <LucideMessageCircle size={20} class="text-blue-400" />
+                <MessageCircle size={20} class="text-blue-400" />
                 <span
                   class="text-[10px] font-bold tracking-widest uppercase flex-1 text-center"
                   >Authenticate via Zalo</span
@@ -384,7 +384,7 @@
               <div
                 class="absolute inset-0 border border-cyan-400/20 rounded-full group-hover:border-cyan-400/50 transition-colors"
               ></div>
-              <LucideFingerprint
+              <Fingerprint
                 size={32}
                 class="text-gray-600 group-hover:text-cyan-400 transition-colors"
               />
