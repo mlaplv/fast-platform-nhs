@@ -275,6 +275,3 @@ class VoiceService:
 
 # Singleton
 voice_service = VoiceService()
-
-# Singleton
-voice_service = VoiceService()

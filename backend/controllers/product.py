@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 import uuid
 import logging
-import uuid
 from litestar import Controller, get, post, patch, delete
 from typing import List, Dict, Union, Optional
 from sqlalchemy import text, update, select

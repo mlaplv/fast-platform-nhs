@@ -3,6 +3,7 @@ from litestar import Controller, get, post, patch, delete
 from litestar.di import Provide
 from typing import List, Dict, Union, Optional
 from sqlalchemy import text, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.database.models import Category
