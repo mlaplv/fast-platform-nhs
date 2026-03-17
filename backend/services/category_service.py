@@ -73,7 +73,7 @@ class CategoryService:
             })
         return result
 
-    async def create_category(self, session: AsyncSession, data: CreateCategoryRequest) -> Category:
+    async def create_category(self, session: AsyncSession, data: CreateCategoryRequest) -> Dict[str, object]:
         """Create a new category."""
         category = Category(
             name=data.name,
@@ -81,10 +81,17 @@ class CategoryService:
             parent_id=data.parentId,
         )
         session.add(category)
+        await session.flush()
+        res = {
+            "id": str(category.id),
+            "name": category.name,
+            "slug": category.slug,
+            "parentId": str(category.parent_id) if category.parent_id else None
+        }
         await session.commit()
-        return category
+        return res
 
-    async def update_category(self, session: AsyncSession, category_id: str, data: UpdateCategoryRequest) -> Category:
+    async def update_category(self, session: AsyncSession, category_id: str, data: UpdateCategoryRequest) -> Dict[str, object]:
         """Update a category."""
         category = await session.get(Category, category_id)
         if not category:
@@ -96,7 +103,12 @@ class CategoryService:
         if data.parentId is not None: category.parent_id = data.parentId
 
         await session.commit()
-        return category
+        return {
+            "id": str(category.id),
+            "name": category.name,
+            "slug": category.slug,
+            "parentId": str(category.parent_id) if category.parent_id else None
+        }
 
     async def delete_categories(self, session: AsyncSession, ids: List[str]) -> int:
         """Soft delete categories."""

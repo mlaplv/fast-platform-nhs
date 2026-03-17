@@ -35,47 +35,15 @@ class AIController(Controller):
     tags = ["AI Management"]
 
     @get("/keys")
-    async def get_all_key_stats(self) -> List[KeyStats]:
+    async def get_all_key_stats(self) -> List[Dict[str, object]]:
         """Returns real-time metrics for all Gemini keys."""
-        all_keys = key_rotator.keys
-        stats = []
-        now = time.time()
-
-        for idx, key in enumerate(all_keys):
-            kid = key_rotator._get_key_id(key)
-            meta = await key_rotator.client.hgetall(f"{key_rotator.METADATA_PREFIX}{kid}")
-            is_blacklisted = await key_rotator.client.exists(f"{key_rotator.BLACKLIST_PREFIX}{kid}")
-
-            fail_count = int(meta.get("fail_count", 0))
-            last_used = float(meta.get("last_used", 0))
-
-            status = "ACTIVE"
-            if is_blacklisted:
-                status = "DEAD"
-            elif fail_count > 0:
-                cooldown = min(key_rotator.BASE_COOLDOWN * (2 ** (fail_count - 1)), key_rotator.MAX_COOLDOWN)
-                if now - last_used < cooldown:
-                    status = "COOLDOWN"
-
-            stats.append(KeyStats(
-                index=idx,
-                key_preview=f"{key[:8]}...{key[-4:]}",
-                fail_count=fail_count,
-                health_score=int(meta.get("health_score", 100)),
-                status=status,
-                last_used=last_used
-            ))
-        return stats
+        return await voice_service.get_key_stats()
 
     @post("/keys/reset")
     async def reset_all_keys(self) -> Dict[str, object]:
         """Reset ALL key health states via key_rotator."""
-        if not key_rotator._use_redis or not key_rotator.client:
-            return {"status": "error", "message": "Redis unavailable"}
-
         try:
-            cleared = await key_rotator.reset_health()
-            return {"status": "success", "cleared": cleared, "message": "Đã reset hệ thống Key và nạp lại từ DB."}
+            return await voice_service.reset_health()
         except Exception as e:
             logger.exception(f"[AIController] Reset failed: {e}")
             return {"status": "error", "message": str(e)}
@@ -123,13 +91,7 @@ class AIController(Controller):
         if not user_info:
              raise NotAuthorizedException("User session required")
 
-        profile = await voice_service.get_or_create_profile(db_session, user_info["id"])
-
-        return {
-            "primary_model": profile.primary_model or trinity_bridge.default_model_name,
-            "ai_models": profile.ai_models or trinity_bridge.model_waterfall,
-            "discovered_models": profile.discovered_models or []
-        }
+        return await voice_service.get_model_config(db_session, user_info["id"])
 
     @post("/models")
     async def update_ai_models(self, request: Request, db_session: AsyncSession, data: ModelConfig) -> Dict[str, str]:
@@ -150,22 +112,4 @@ class AIController(Controller):
     @post("/test/{index:int}")
     async def test_key(self, index: int) -> Dict[str, str]:
         """Manually trigger a health check for a specific key."""
-        if index < 0 or index >= len(key_rotator.keys):
-            return {"status": "error", "message": "Invalid index"}
-
-        key = key_rotator.keys[index]
-        import httpx
-        try:
-            async with httpx.AsyncClient() as client:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
-                resp = await client.post(url, json={"contents": [{"parts":[{"text": "ping"}]}]})
-
-                if resp.status_code == 200:
-                    await key_rotator.set_success(key)
-                    return {"status": "success", "message": "Key is healthy"}
-                else:
-                    await key_rotator.mark_unhealthy(key, reason=f"HTTP_{resp.status_code}")
-                    return {"status": "error", "message": f"Ping failed with status {resp.status_code}"}
-        except Exception as e:
-            await key_rotator.mark_unhealthy(key, reason=str(e))
-            return {"status": "error", "message": str(e)}
+        return await voice_service.test_key(index)

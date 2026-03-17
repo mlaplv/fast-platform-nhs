@@ -17,16 +17,10 @@ class NotificationController(Controller):
     async def get_notifications(self, db_session: AsyncSession, request: Request) -> List[Dict[str, object]]:
         """Lấy danh sách thông báo qua NotificationService"""
         user_state = getattr(request.state, "user", {})
-        user_email = user_state.get("sub")
+        user_id = user_state.get("id")
 
-        user_id: Optional[str] = None
-        if user_email:
-            # Resolve user_id from email (Elite V2.2: Simple logic kept in Controller if it's just ID resolution)
-            stmt = select(User.id).where(User.email == user_email)
-            res = await db_session.execute(stmt)
-            user_id = res.scalar_one_or_none()
-            if not user_id:
-                raise NotAuthorizedException("User context not found")
+        if not user_id:
+            raise NotAuthorizedException("User context not found")
 
         return await notification_service.get_notifications(
             session=db_session,

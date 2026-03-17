@@ -35,59 +35,13 @@ class SettingsController(Controller):
     guards = [PermissionGuard("system:all")]
 
     @get("/voice")
-    async def get_voice_settings(self, db_session: AsyncSession, request: Request) -> VoiceSettingsResponse:
+    async def get_voice_settings(self, db_session: AsyncSession, request: Request) -> Dict[str, object]:
         """Fetch current voice and cognitive settings (Dynamic Matrix)"""
         user_info = getattr(request.state, "user", None)
-        if not user_info or "sub" not in user_info:
+        if not user_info or "id" not in user_info:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        user = await user_service.get_user_with_profile(db_session, user_info["sub"])
-
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        profile = user.voice_profile
-        stored_caps = {}
-        if profile and profile.capabilities:
-            stored_caps = profile.capabilities if isinstance(profile.capabilities, dict) else json.loads(profile.capabilities)
-
-        # Merge Registry Metadata with User's Active State
-        capabilities = []
-        for cap in capability_registry.get_spectrum():
-            # Override 'active' from database, keep metadata from registry
-            capabilities.append(CapabilityMetadata(
-                **cap,
-                active=stored_caps.get(cap["id"], True)
-            ))
-
-        wake = profile.wake_words if profile else ["xohi"]
-        sleep = profile.sleep_words if profile else ["ngu di"]
-        greeting = profile.greeting_template if profile else "Dạ"
-        farewell = profile.farewell_template if profile else "Tạm biệt"
-
-        # [XOHI] Campaign Mode is global in Redis, not in DB Profile
-        from backend.services.xohi_memory import xohi_memory
-        val = await xohi_memory.client.get("system:campaign_mode")
-        is_campaign = val == "1"
-
-        # Consistent fallbacks for chat_settings
-        default_chat = {
-            "selective_persistence": True,
-            "save_ai_responses": False,
-            "auto_purge_days": 30,
-            "cache_limit": 10
-        }
-        chat_settings = profile.chat_settings if profile and profile.chat_settings else default_chat
-
-        return VoiceSettingsResponse(
-            wake_words=wake,
-            sleep_words=sleep,
-            greeting_template=greeting,
-            farewell_template=farewell,
-            is_campaign_mode=is_campaign,
-            capabilities=capabilities,
-            chat_settings=chat_settings
-        )
+        return await voice_service.get_voice_settings(db_session, user_info["id"])
 
     @post("/voice")
     async def update_voice_settings(
@@ -97,80 +51,21 @@ class SettingsController(Controller):
         [MẶT TRẬN 4] - Dynamic Per-User Setup using services
         """
         user_info = getattr(request.state, "user", None)
-        if not user_info or "sub" not in user_info:
+        if not user_info or "id" not in user_info:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        user = await user_service.get_user_with_profile(db_session, user_info["sub"])
+        user_id = user_info["id"]
 
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        user_id = str(user.id)
-
-        # Helper to dedup based on normalized text
-        def smart_dedup(words: List[str]) -> List[str]:
-            seen = set()
-            res = []
-            for w in words:
-                w_strip = w.strip()
-                if not w_strip: continue
-                w_norm = w_strip.lower()
-                if w_norm not in seen:
-                    seen.add(w_norm)
-                    res.append(w_strip)
-            return res
-
-        clean_wake = smart_dedup(data.wake_words)
-        clean_sleep = smart_dedup(data.sleep_words)
-
-        # Upsert logic via service
-        profile_data = {
-            "wake_words": clean_wake,
-            "sleep_words": clean_sleep,
-            "greeting_template": data.greeting_template,
-            "farewell_template": data.farewell_template,
-            "capabilities": data.capabilities,
-            "chat_settings": data.chat_settings
-        }
-
-        profile = await voice_service.update_profile(db_session, user_id, profile_data)
-
-        # Redis Sync Data
-        redis_data = {
-            "wake_words":        [w.lower() for w in clean_wake],
-            "sleep_words":       [w.lower() for w in clean_sleep],
-            "greeting_template": data.greeting_template,
-            "farewell_template": data.farewell_template,
-            "capabilities":      data.capabilities,
-            "chat_settings":     profile.chat_settings,
-        }
-
-        # HOT RELOAD TO REDIS
-        from backend.services.xohi_memory import xohi_memory
-
-        # Unified: Update global campaign mode if provided
-        if data.is_campaign_mode is not None:
-            val = "1" if data.is_campaign_mode else "0"
-            await xohi_memory.client.set("system:campaign_mode", val)
-            logger.info(f"[Settings] Unified commit: Campaign Mode set to {data.is_campaign_mode}")
-
-        await xohi_memory.cache_voice_profile(user_id, redis_data)
-
-        # Re-fetch campaign mode to ensure sync
-        val = await xohi_memory.client.get("system:campaign_mode")
-        current_campaign = val == "1"
+        result = await voice_service.update_voice_settings(
+            db_session,
+            user_id,
+            data.model_dump()
+        )
 
         return {
             "status": "success",
             "message": "Đã cập nhật bộ nhận diện giọng nói cho sếp.",
-            "data": {
-                "wake_words": clean_wake,
-                "sleep_words": clean_sleep,
-                "greeting_template": data.greeting_template,
-                "farewell_template": data.farewell_template,
-                "capabilities": data.capabilities,
-                "is_campaign_mode": current_campaign
-            }
+            "data": result
         }
 
     @get("/campaign-mode", dependencies={})

@@ -13,7 +13,7 @@ import asyncio
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Union, TypedDict, Optional, Callable, Coroutine, cast
-# Phase 12: Rule R105 — CẤM dùng Any, dùng TypedDict cho cấu trúc tường minh.
+# Phase 12: Rule R105 — CẤM dùng Any, dùng TypedDict hoặc Dict[str, object] cho cấu trúc tường minh.
 class AnomalyAlert(TypedDict):
     type: str
     severity: str

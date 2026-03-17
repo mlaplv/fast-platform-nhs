@@ -28,20 +28,12 @@ class CategoryController(Controller):
     @post("/", guards=[PermissionGuard("category:write")])
     async def create_category(self, db_session: AsyncSession, data: CreateCategoryRequest) -> Dict[str, object]:
         """Create a new category via CategoryService."""
-        created = await category_service.create_category(db_session, data)
-
-        return {
-            "id": str(created.id), "name": created.name, "slug": created.slug,
-            "parentId": str(created.parent_id) if created.parent_id else None,
-            "productCount": 0,
-            "children": [], "createdAt": created.created_at.isoformat() if created.created_at else "",
-        }
+        return await category_service.create_category(db_session, data)
 
     @patch("/{category_id:str}", guards=[PermissionGuard("category:write")])
     async def update_category(self, db_session: AsyncSession, category_id: str, data: UpdateCategoryRequest) -> Dict[str, object]:
         """Update a category via CategoryService."""
-        category = await category_service.update_category(db_session, category_id, data)
-        return {"id": str(category.id), "name": category.name, "slug": category.slug}
+        return await category_service.update_category(db_session, category_id, data)
 
     @delete("/{category_id:str}", status_code=200, guards=[PermissionGuard("category:write")])
     async def delete_category(self, db_session: AsyncSession, category_id: str) -> dict:

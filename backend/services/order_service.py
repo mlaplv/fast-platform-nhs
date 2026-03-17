@@ -72,12 +72,45 @@ class OrderService:
 
         return {"data": data, "total": total}
 
-    async def get_order(self, session: AsyncSession, order_id: str) -> Order:
-        """Get a single order with user details."""
-        stmt = select(Order).where(Order.id == order_id).options(selectinload(Order.user))
+    async def get_order(self, session: AsyncSession, order_id: str) -> Dict[str, object]:
+        """Get a single order with user details via Scalar Projection (R76)."""
+        stmt = (
+            select(
+                Order.id, Order.status, Order.total_amount, Order.items, Order.created_at,
+                Order.cancellation_reason, Order.is_spam, Order.spam_score, Order.spam_reason,
+                Order.fingerprint, Order.history,
+                User.name.label("customer_name")
+            )
+            .outerjoin(User, Order.user_id == User.id)
+            .where(Order.id == order_id)
+        )
         result = await session.execute(stmt)
-        order = result.scalar_one_or_none()
+        row = result.first()
 
+        if not row:
+            from litestar.exceptions import NotFoundException
+            raise NotFoundException(f"Order {order_id} not found")
+
+        return {
+            "id": str(row.id),
+            "customerName": row.customer_name or "Unknown",
+            "status": row.status.lower() if row.status else "pending",
+            "total": float(row.total_amount) if row.total_amount else 0.0,
+            "items": row.items,
+            "createdAt": row.created_at.isoformat() if row.created_at else "",
+            "cancellationReason": row.cancellation_reason,
+            "isSpam": row.is_spam,
+            "spamScore": row.spam_score,
+            "spamReason": row.spam_reason,
+            "fingerprint": row.fingerprint,
+            "history": row.history or []
+        }
+
+    async def _get_order_model(self, session: AsyncSession, order_id: str) -> Order:
+        """Internal helper to get the ORM model for updates."""
+        stmt = select(Order).where(Order.id == order_id)
+        res = await session.execute(stmt)
+        order = res.scalar_one_or_none()
         if not order:
             from litestar.exceptions import NotFoundException
             raise NotFoundException(f"Order {order_id} not found")
@@ -89,7 +122,7 @@ class OrderService:
         data: Dict[str, object],
         ip: str = "unknown",
         ua: str = "unknown"
-    ) -> Order:
+    ) -> Dict[str, object]:
         """Create order and emit creation event for Anti-Spam processing."""
         new_id = str(uuid.uuid4())
         order = Order(
@@ -119,7 +152,7 @@ class OrderService:
             "total_amount": data.get("total_amount"),
         })
 
-        return order
+        return {"id": new_id, "status": "pending", "success": True}
 
     async def update_status(
         self,
@@ -127,9 +160,9 @@ class OrderService:
         order_id: str,
         new_status: str,
         actor: str = "System"
-    ) -> Order:
+    ) -> Dict[str, object]:
         """Handle state machine transitions and history."""
-        order = await self.get_order(session, order_id)
+        order = await self._get_order_model(session, order_id)
         current_status = order.status.upper()
         new_status = new_status.upper()
 
@@ -168,7 +201,7 @@ class OrderService:
             "tenant_id": user_id
         })
 
-        return order
+        return {"success": True, "new_status": new_status.lower()}
 
     async def cancel_order(
         self,
@@ -176,9 +209,9 @@ class OrderService:
         order_id: str,
         reason: str,
         actor: str = "System"
-    ) -> Order:
+    ) -> Dict[str, object]:
         """Cancel order with reason."""
-        order = await self.get_order(session, order_id)
+        order = await self._get_order_model(session, order_id)
         if order.status.upper() not in ["PENDING", "PAID"]:
             from litestar.exceptions import ValidationException
             raise ValidationException("Only PENDING or PAID orders can be cancelled")
@@ -204,11 +237,11 @@ class OrderService:
             "tenant_id": user_id
         })
 
-        return order
+        return {"success": True, "new_status": "cancelled"}
 
-    async def toggle_spam(self, session: AsyncSession, order_id: str, actor: str = "System") -> Order:
+    async def toggle_spam(self, session: AsyncSession, order_id: str, actor: str = "System") -> Dict[str, object]:
         """Manual spam toggle override."""
-        order = await self.get_order(session, order_id)
+        order = await self._get_order_model(session, order_id)
         new_state = not order.is_spam
         order.is_spam = new_state
 
@@ -229,7 +262,12 @@ class OrderService:
         order.history = history
 
         await session.commit()
-        return order
+        return {
+            "success": True,
+            "isSpam": order.is_spam,
+            "spamScore": order.spam_score,
+            "spamReason": order.spam_reason
+        }
 
 # Global Instance
 order_service = OrderService()

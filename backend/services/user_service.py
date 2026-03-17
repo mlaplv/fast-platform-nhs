@@ -164,9 +164,9 @@ class UserService:
             for p in perms
         ]
 
-    async def update_user_roles(self, session: AsyncSession, user_id: str, role_codes: List[str]) -> User:
-        """Update roles for a user by role codes."""
-        role_stmt = select(Role).where(Role.code.in_(role_codes))
+    async def update_user_roles(self, session: AsyncSession, user_id: str, role_codes: List[str]) -> Dict[str, object]:
+        """Update roles for a user by role codes and return mapped result."""
+        role_stmt = select(Role).where(Role.code.in_(role_codes)).options(selectinload(Role.permissions))
         role_res = await session.execute(role_stmt)
         roles = role_res.scalars().all()
 
@@ -180,10 +180,25 @@ class UserService:
 
         user.roles = list(roles)
         await session.commit()
-        return user
 
-    async def update_user(self, session: AsyncSession, user_id: str, data: Dict[str, object]) -> User:
-        """Update basic user info."""
+        return {
+            "id": str(user.id), "email": user.email, "name": user.name,
+            "status": getattr(user, "status", "ACTIVE"),
+            "createdAt": user.created_at.isoformat() if hasattr(user, 'created_at') and user.created_at else "",
+            "roles": [
+                {
+                    "id": str(r.id), "name": r.name, "code": r.code,
+                    "permissions": [
+                        {"id": str(p.id), "code": p.code, "name": p.name}
+                        for p in getattr(r, "permissions", [])
+                    ]
+                }
+                for r in getattr(user, "roles", [])
+            ],
+        }
+
+    async def update_user(self, session: AsyncSession, user_id: str, data: Dict[str, object]) -> Dict[str, object]:
+        """Update basic user info and return mapped result."""
         user = await session.get(User, user_id)
         if not user:
              from litestar.exceptions import NotFoundException
@@ -193,10 +208,13 @@ class UserService:
         if "status" in data: user.status = cast(str, data["status"])
 
         await session.commit()
-        return user
+        return {
+            "id": str(user.id), "email": user.email, "name": user.name,
+            "status": getattr(user, "status", "ACTIVE"),
+        }
 
-    async def delete_user(self, session: AsyncSession, user_id: str) -> User:
-        """Soft delete (lock) a user."""
+    async def delete_user(self, session: AsyncSession, user_id: str) -> Dict[str, object]:
+        """Soft delete (lock) a user and return mapped result."""
         user = await session.get(User, user_id)
         if not user:
              from litestar.exceptions import NotFoundException
@@ -206,7 +224,11 @@ class UserService:
         user.status = "LOCKED"
 
         await session.commit()
-        return user
+        return {
+            "id": str(user.id), "email": user.email, "name": user.name,
+            "status": getattr(user, "status", "LOCKED"),
+            "deleted": True
+        }
 
     async def get_user_by_email(self, session: AsyncSession, email: str) -> Optional[User]:
         """Fetch a single user by email."""
@@ -220,8 +242,8 @@ class UserService:
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def update_role_permissions(self, session: AsyncSession, role_id: str, permission_ids: List[str]) -> Role:
-        """Update permissions for a role."""
+    async def update_role_permissions(self, session: AsyncSession, role_id: str, permission_ids: List[str]) -> Dict[str, object]:
+        """Update permissions for a role and return mapped result."""
         stmt = select(Role).where(
             or_(Role.id == role_id, Role.code == role_id)
         ).options(selectinload(Role.permissions))
@@ -251,9 +273,29 @@ class UserService:
         role.permissions = list(permissions)
         await session.commit()
 
-        # Refresh to ensure we have current perms if needed elsewhere,
-        # but SQLAlchemy ORM will have them in role.permissions
-        return role
+        # Scalar projection for UI mapping
+        all_perms_stmt = select(Permission).order_by(Permission.code.asc())
+        all_perms_res = await session.execute(all_perms_stmt)
+        global_perms = all_perms_res.scalars().all()
+        perm_to_idx = {p.code: i+1 for i, p in enumerate(global_perms)}
+
+        return {
+            "ok": True,
+            "id": str(role.id),
+            "name": role.name,
+            "code": role.code,
+            "description": role.description,
+            "tenant_id": getattr(role, "tenant_id", "smartshop"),
+            "permissions": [
+                {
+                    "id": perm_to_idx.get(p.code, 0),
+                    "code": p.code,
+                    "name": p.name,
+                    "description": p.description
+                }
+                for p in sorted(getattr(role, "permissions", []), key=lambda x: x.code)
+            ]
+        }
 
 # Global Instance
 user_service = UserService()

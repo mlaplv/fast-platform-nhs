@@ -73,7 +73,7 @@ class ProductService:
         ]
         return {"data": data, "total": total}
 
-    async def create_product(self, session: AsyncSession, data: CreateProductRequest) -> ProductBase:
+    async def create_product(self, session: AsyncSession, data: CreateProductRequest) -> Dict[str, object]:
         """Create a new product and generate its embedding."""
         new_id = str(uuid.uuid4())
         product = ProductBase(
@@ -93,11 +93,19 @@ class ProductService:
         await self._upsert_embedding(session, new_id, data.name, data.description)
 
         await session.commit()
-        return product
+        return {
+            "id": new_id,
+            "name": data.name,
+            "sku": data.sku,
+            "price": data.price,
+            "stock": data.stock,
+            "status": data.status.lower(),
+            "message": "Product created successfully"
+        }
 
-    async def update_product(self, session: AsyncSession, product_id: str, data: UpdateProductRequest) -> ProductBase:
+    async def update_product(self, session: AsyncSession, product_id: str, data: UpdateProductRequest) -> Dict[str, object]:
         """Update a product and refresh its embedding if necessary."""
-        stmt = select(ProductBase).where(ProductBase.id == product_id).options(selectinload(ProductBase.category))
+        stmt = select(ProductBase).where(ProductBase.id == product_id)
         result = await session.execute(stmt)
         product = result.scalar_one_or_none()
 
@@ -118,7 +126,12 @@ class ProductService:
             await self._upsert_embedding(session, product_id, product.name, product.description)
 
         await session.commit()
-        return product
+        return {
+            "id": product_id,
+            "name": product.name,
+            "status": product.status.lower(),
+            "message": "Product updated successfully"
+        }
 
     async def delete_products(self, session: AsyncSession, ids: List[str]) -> int:
         """Soft delete multiple products."""

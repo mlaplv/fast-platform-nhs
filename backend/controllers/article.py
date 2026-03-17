@@ -43,48 +43,17 @@ class ArticleController(Controller):
     @get("/{article_id:str}", guards=[PermissionGuard("content:read")])
     async def get_article(self, db_session: AsyncSession, article_id: str) -> Dict[str, object]:
         """Get a single article via ContentService."""
-        article = await content_service.get_article(db_session, article_id)
-        return {
-            "id": str(article.id),
-            "title": article.title,
-            "slug": article.slug,
-            "excerpt": article.excerpt,
-            "content": article.content,
-            "seo_title": article.seo_title,
-            "seo_description": article.seo_description,
-            "status": article.status.lower() if article.status else "draft",
-            "category": article.category,
-            "views": article.views,
-        }
+        return await content_service.get_article(db_session, article_id)
 
     @post("/", guards=[PermissionGuard("content:write")])
     async def create_article(self, db_session: AsyncSession, data: CreateArticleRequest) -> Dict[str, object]:
         """Create a new article via ContentService."""
-        article = await content_service.create_article(db_session, data)
-
-        return {
-            "id": str(article.id),
-            "title": article.title,
-            "slug": article.slug,
-            "excerpt": article.excerpt,
-            "status": article.status.lower(),
-            "category": article.category,
-            "views": article.views,
-            "author": "Admin",
-            "createdAt": article.created_at.strftime("%Y-%m-%d") if article.created_at else "",
-        }
+        return await content_service.create_article(db_session, data)
 
     @patch("/{article_id:str}", guards=[PermissionGuard("content:write")])
     async def update_article(self, db_session: AsyncSession, article_id: str, data: UpdateArticleRequest) -> Dict[str, object]:
         """Update an article via ContentService."""
-        article = await content_service.update_article(db_session, article_id, data)
-
-        return {
-            "id": str(article.id),
-            "title": article.title,
-            "status": article.status.lower(),
-            "category": article.category,
-        }
+        return await content_service.update_article(db_session, article_id, data)
 
     @delete("/{article_id:str}", status_code=200, guards=[PermissionGuard("content:write")])
     async def delete_article(self, db_session: AsyncSession, article_id: str) -> dict:

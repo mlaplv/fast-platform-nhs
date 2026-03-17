@@ -38,36 +38,12 @@ class ProductController(Controller):
     @post("/", guards=[PermissionGuard("product:write")])
     async def create_product(self, db_session: AsyncSession, data: CreateProductRequest) -> Dict[str, object]:
         """Create a new product using service."""
-        product = await product_service.create_product(db_session, data)
-
-        return {
-            "id": str(product.id),
-            "name": product.name,
-            "sku": product.sku or "",
-            "price": product.price,
-            "stock": product.stock,
-            "status": product.status.lower(),
-            "category": "",
-            "categoryId": str(product.category_id) if product.category_id else None,
-            "description": product.description,
-            "type": product.type,
-            "createdAt": product.created_at.isoformat() if product.created_at else "",
-        }
+        return await product_service.create_product(db_session, data)
 
     @patch("/{product_id:str}", guards=[PermissionGuard("product:write")])
     async def update_product(self, db_session: AsyncSession, product_id: str, data: UpdateProductRequest) -> Dict[str, object]:
         """Update a product via service."""
-        product = await product_service.update_product(db_session, product_id, data)
-
-        return {
-            "id": str(product.id),
-            "name": product.name,
-            "sku": product.sku or "",
-            "price": product.price,
-            "stock": product.stock,
-            "status": product.status.lower(),
-            "category": product.category.name if product.category else "",
-        }
+        return await product_service.update_product(db_session, product_id, data)
 
     @delete("/{product_id:str}", status_code=200, guards=[PermissionGuard("product:write")])
     async def delete_product(self, db_session: AsyncSession, product_id: str) -> dict:

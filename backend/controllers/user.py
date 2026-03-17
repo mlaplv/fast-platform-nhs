@@ -41,70 +41,19 @@ class UserController(Controller):
     @patch("/{user_id:str}/roles")
     async def update_user_roles(self, db_session: AsyncSession, user_id: str, data: List[str]) -> Dict[str, object]:
         """Update roles for a specific user via UserService."""
-        user = await user_service.update_user_roles(db_session, user_id, data)
-
-        return {
-            "id": str(user.id), "email": user.email, "name": user.name,
-            "status": getattr(user, "status", "ACTIVE"),
-            "createdAt": user.created_at.isoformat() if hasattr(user, 'created_at') and user.created_at else "",
-            "roles": [
-                {
-                    "id": str(r.id), "name": r.name, "code": r.code,
-                    "permissions": [
-                        {"id": str(p.id), "code": p.code, "name": p.name}
-                        for p in getattr(r, "permissions", [])
-                    ]
-                }
-                for r in getattr(user, "roles", [])
-            ],
-        }
+        return await user_service.update_user_roles(db_session, user_id, data)
 
     @patch("/{user_id:str}")
     async def update_user(self, db_session: AsyncSession, user_id: str, data: Dict[str, object]) -> Dict[str, object]:
         """Update a user's status or name via UserService."""
-        user = await user_service.update_user(db_session, user_id, data)
-        return {
-            "id": str(user.id), "email": user.email, "name": user.name,
-            "status": getattr(user, "status", "ACTIVE"),
-        }
+        return await user_service.update_user(db_session, user_id, data)
 
     @patch("/{user_id:str}/delete")
     async def delete_user(self, db_session: AsyncSession, user_id: str) -> Dict[str, object]:
         """Soft delete a user via UserService."""
-        user = await user_service.delete_user(db_session, user_id)
-        return {
-            "id": str(user.id), "email": user.email, "name": user.name,
-            "status": getattr(user, "status", "LOCKED"),
-            "deleted": True
-        }
+        return await user_service.delete_user(db_session, user_id)
 
     @patch("/{role_id:str}/permissions")
     async def update_role_permissions(self, db_session: AsyncSession, role_id: str, data: List[str]) -> Dict[str, object]:
         """Update permissions for a specific role via UserService."""
-        role = await user_service.update_role_permissions(db_session, role_id, data)
-
-        # Sort permissions and map IDs for UI
-        from sqlalchemy import select
-        from backend.database.models import Permission
-        all_perms_stmt = select(Permission).order_by(Permission.code.asc())
-        all_perms_res = await db_session.execute(all_perms_stmt)
-        all_perms = all_perms_res.scalars().all()
-        perm_to_idx = {p.code: i+1 for i, p in enumerate(all_perms)}
-
-        return {
-            "ok": True,
-            "id": str(role.id),
-            "name": role.name,
-            "code": role.code,
-            "description": role.description,
-            "tenant_id": getattr(role, "tenant_id", "smartshop"),
-            "permissions": [
-                {
-                    "id": perm_to_idx.get(p.code, 0),
-                    "code": p.code,
-                    "name": p.name,
-                    "description": p.description
-                }
-                for p in sorted(getattr(role, "permissions", []), key=lambda x: x.code)
-            ]
-        }
+        return await user_service.update_role_permissions(db_session, role_id, data)

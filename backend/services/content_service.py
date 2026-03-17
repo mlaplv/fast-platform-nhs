@@ -113,22 +113,35 @@ class ContentService:
         ]
         return {"data": data, "total": total}
 
-    async def get_article(self, session: AsyncSession, article_id: str) -> Article:
+    async def get_article(self, session: AsyncSession, article_id: str) -> Dict[str, object]:
         """Fetch a single article. Raises error if not found."""
         stmt = select(Article).where(Article.id == article_id, Article.deleted_at == None)
         result = await session.execute(stmt)
-        article = result.scalar_one_or_none()
-        if not article:
+        a = result.scalar_one_or_none()
+        if not a:
             from litestar.exceptions import NotFoundException
             raise NotFoundException(f"Article {article_id} not found")
-        return article
+        return {
+            "id": str(a.id),
+            "title": a.title,
+            "slug": a.slug,
+            "excerpt": a.excerpt,
+            "content": a.content,
+            "status": a.status.lower() if a.status else "draft",
+            "category": a.category,
+            "seo_title": a.seo_title,
+            "seo_description": a.seo_description,
+            "author_id": str(a.author_id) if a.author_id else None,
+            "createdAt": a.created_at.isoformat() if a.created_at else "",
+        }
 
-    async def create_article(self, session: AsyncSession, data: CreateArticleRequest) -> Article:
+    async def create_article(self, session: AsyncSession, data: CreateArticleRequest) -> Dict[str, object]:
         """Create article and trigger embedding generation."""
         slug = data.slug or self._generate_slug(data.title)
+        new_id = str(uuid.uuid4())
 
         article = Article(
-            id=str(uuid.uuid4()),
+            id=new_id,
             title=data.title,
             slug=slug,
             excerpt=data.excerpt,
@@ -141,18 +154,25 @@ class ContentService:
         )
         session.add(article)
 
-        # Flush to get ID if needed, though we generate it
-        await session.flush()
-
         # Upsert Embedding (Async)
-        await self._upsert_embedding(session, article.id, data.title, data.content)
+        await self._upsert_embedding(session, new_id, data.title, data.content)
 
         await session.commit()
-        return article
+        return {
+            "id": new_id,
+            "title": data.title,
+            "slug": slug,
+            "status": data.status.lower()
+        }
 
-    async def update_article(self, session: AsyncSession, article_id: str, data: UpdateArticleRequest) -> Article:
+    async def update_article(self, session: AsyncSession, article_id: str, data: UpdateArticleRequest) -> Dict[str, object]:
         """Update article fields and refresh embedding if content changed."""
-        article = await self.get_article(session, article_id)
+        stmt = select(Article).where(Article.id == article_id, Article.deleted_at == None)
+        result = await session.execute(stmt)
+        article = result.scalar_one_or_none()
+        if not article:
+            from litestar.exceptions import NotFoundException
+            raise NotFoundException(f"Article {article_id} not found")
 
         fields_changed = False
         update_data = data.model_dump(exclude_unset=True)
@@ -169,7 +189,11 @@ class ContentService:
             await self._upsert_embedding(session, article_id, article.title, article.content)
 
         await session.commit()
-        return article
+        return {
+            "id": article_id,
+            "title": article.title,
+            "status": article.status.lower()
+        }
 
     async def delete_articles(self, session: AsyncSession, ids: List[str]) -> int:
         """Soft delete articles."""
