@@ -110,16 +110,16 @@
   $effect(() => {
     if (assets.length > 0 && untrack(() => xohiImageStore.assets.length) === 0) {
       const formattedAssets = assets.map((item, i) => {
-        const url = typeof item === 'string' ? item : (item.file_path || item.url || '');
+        const url = typeof item === 'string' ? item : (item.filePath || item.url || '');
         const recoveredId = extractIdFromUrl(url);
 
         if (typeof item === 'string') {
           return {
             id: recoveredId || generateStableId(item, i),
-            file_path: item, // R105 Standard alignment
+            filePath: item,
             url: item,       // UI legacy compatibility
-            is_primary: i === selectedAssetIndex,
-            order_index: i
+            isPrimary: i === selectedAssetIndex,
+            orderIndex: i
           } as MediaAsset;
         }
         // CNS V73.9: Safety gate for missing IDs or field names
@@ -128,8 +128,8 @@
         if (!obj.id || obj.id.startsWith('img_') || obj.id.startsWith('stable_')) {
           if (recoveredId) obj.id = recoveredId;
         }
-        if (!obj.id) obj.id = generateStableId(obj.file_path || obj.url || '', i);
-        if (!obj.file_path && obj.url) obj.file_path = obj.url;
+        if (!obj.id) obj.id = generateStableId(obj.filePath || obj.url || '', i);
+        if (!obj.filePath && obj.url) obj.filePath = obj.url;
         return obj as MediaAsset;
       });
       xohiImageStore.initAssets(formattedAssets);
@@ -144,10 +144,10 @@
     
     if (JSON.stringify(storeAssets) !== JSON.stringify(currentAssets)) {
       assets = storeAssets;
-      const primaryIdx = storeAssets.findIndex(a => a.is_primary);
+      const primaryIdx = storeAssets.findIndex(a => a.isPrimary);
       if (primaryIdx !== -1) {
         selectedAssetIndex = primaryIdx;
-        selectedAvatarUrl = storeAssets[primaryIdx].file_path || storeAssets[primaryIdx].url;
+        selectedAvatarUrl = storeAssets[primaryIdx].filePath || storeAssets[primaryIdx].url;
       } else if (storeAssets.length === 0) {
         selectedAssetIndex = 0;
         selectedAvatarUrl = null;

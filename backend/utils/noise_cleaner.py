@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import List, Dict, Optional
 from flashtext import KeywordProcessor
 from rapidfuzz import fuzz
-from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+from backend.services.ai_engine.trinity_bridge import trinity_bridge
+from backend.schemas.noise import NoiseDictionary
 from pydantic_ai import Agent
 
 logger = logging.getLogger("api-gateway")
@@ -75,7 +76,7 @@ Làm sạch và tối ưu bài viết HTML/Text sau đây để đạt chuẩn "
 """,
         )
 
-        # R105: Semaphore to protect 2GB VPS RAM from concurrent LLM cleaning
+        # Semaphore to protect 2GB VPS RAM from concurrent LLM cleaning
         self._semaphore = asyncio.Semaphore(1)
 
         self._load_dictionary()
@@ -84,20 +85,21 @@ Làm sạch và tối ưu bài viết HTML/Text sau đây để đạt chuẩn "
         """Loads static and fuzzy rules from JSON."""
         try:
             with open(self.dictionary_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                
+                raw_data = json.load(f)
+                data = NoiseDictionary.model_validate(raw_data)
+
             # Layer 1: Flashtext Initialization
-            static = data.get("static_keywords", {})
+            static = data.static_keywords
             for category, keywords in static.items():
                 for kw in keywords:
                     # Replace keywords with empty string (Noise reduction)
                     self.keyword_processor.add_keyword(kw, "")
-            
+
             # Layer 2: Fuzzy Patterns
-            self.fuzzy_patterns = data.get("fuzzy_patterns", {})
-            
+            self.fuzzy_patterns = data.fuzzy_patterns
+
             # Layer 3: Semantic Metadata
-            self.semantic_categories = data.get("semantic_categories", [])
+            self.semantic_categories = data.semantic_categories
             
             logger.info(f"[Noise Shield] Dictionary loaded from {self.dictionary_path}")
         except Exception as e:

@@ -6,9 +6,9 @@ from litestar.exceptions import NotAuthorizedException
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
-from backend.services.ai_engine.core.key_rotator import key_rotator
+from backend.services.ai_engine.key_rotator import key_rotator
 from backend.services.voice_service import voice_service
-from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+from backend.services.ai_engine.trinity_bridge import trinity_bridge
 
 logger = logging.getLogger("api-gateway")
 

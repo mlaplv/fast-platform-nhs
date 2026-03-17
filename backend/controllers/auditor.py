@@ -1,6 +1,6 @@
 from litestar import Controller, get
-from backend.services.ai_engine.core.auditor import AuditorAgent
-from backend.guards import PermissionGuard
+from backend.services.ai_engine.auditor import AuditorService
+from backend.middleware import PermissionGuard
 
 class AuditorController(Controller):
     path = "/api/v1/auditor"
@@ -8,7 +8,7 @@ class AuditorController(Controller):
     
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.auditor = AuditorAgent()
+        self.auditor = AuditorService()
 
     @get("/{draft_id:str}/analyze")
     async def analyze_draft(self, draft_id: str) -> dict:

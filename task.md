@@ -31,13 +31,14 @@ Nắn toàn bộ Backend về trục kiến trúc tinh gọn: Controller (Giao t
 ### GIAI ĐOẠN 5: KIỂM TOÁN TỔNG THỂ & DỌN RÁC (AUDIT PHASE)
 - [x] Vẽ bản đồ kiến trúc hoàn công Elite V2.2. <!-- id: 217 -->
 - [x] Trinh sát và lập danh sách file "mìn" (Orphan Files). <!-- id: 218 -->
-- [ ] Chờ duyệt và thực hiện lệnh "Thanh tẩy" (Purge). <!-- id: 219 -->
-- [ ] Di chuyển nốt các Schema từ `models/schemas.py` sang `schemas/`. <!-- id: 220 -->
+- [x] Chờ duyệt và thực hiện lệnh "Thanh tẩy" (Purge). <!-- id: 219 -->
+- [x] Di chuyển nốt các Schema từ `models/` nội bộ sang `schemas/`. <!-- id: 220 -->
+- [x] Xóa bỏ hoàn toàn trạm Schema nội bộ tại Creative Studio. <!-- id: 221 -->
 
-## ✅ TRẠNG THÁI: KIỂM TOÁN (ELITE V2.2)
+## ✅ TRẠNG THÁI: HOÀN TẤT TINH KHIẾT (ELITE V2.2)
 - [x] Toàn bộ Backend đã chuyển sang mô hình Service-Centric.
 - [x] Đã xóa bỏ Repository Layer (Rule KISS/YAGNI).
-- [x] Đạt 100% Type Safety (R105).
+- [x] Đạt 100% Type Safety.
 - [x] Zero-Hydration cho các luồng dữ liệu cao tần (R1.5).
 - [x] Đã gỡ bỏ toàn bộ ORM Model imports khỏi Service layer.
 - [x] Creative Studio & AI Engine đã được nắn dòng Zero-Hydration.

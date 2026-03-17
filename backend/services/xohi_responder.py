@@ -6,7 +6,6 @@ from typing import Dict, Union, Optional, List, TypedDict, cast
 from sqlalchemy import text
 from backend.services.event_bus import event_bus
 from backend.database import alchemy_config
-# R105: Top-level imports for high-frequency responders
 from backend.services.anti_spam import anti_spam_service as anti_spam, OrderSpamData
 from backend.services.xohi_memory import xohi_memory
 
@@ -212,7 +211,7 @@ class XoHiResponder:
         if not asset_id:
             return
 
-        from backend.services.xohi.creative_studio.operatives.media_analyst import MediaAnalyst
+        from backend.services.creative_studio.media_analyst import MediaAnalyst
         analyst = MediaAnalyst()
         # Chạy phân tích trong background (Non-blocking)
         asyncio.create_task(analyst.process_registry_entry(asset_id))

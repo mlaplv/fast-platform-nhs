@@ -64,8 +64,8 @@
     if (base && base.includes("[IMAGE_")) {
       const assetList = Array.isArray(assets) ? assets : [];
       assetList.forEach((asset, i) => {
-        // Fallback-first mapping: priority to file_path if available
-        const url = typeof asset === 'string' ? asset : (asset.file_path || asset.url);
+        // Fallback-first mapping: priority to filePath if available
+        const url = typeof asset === 'string' ? asset : (asset.filePath || asset.url);
         const local = fixUrl(url);
         const placeholder = `[IMAGE_${i + 1}]`;
         // Surgical replacement: Handle markers inside src first

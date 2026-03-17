@@ -173,7 +173,7 @@ class ProductService:
     async def _upsert_embedding(self, session: AsyncSession, product_id: str, name: str, description: Optional[str]) -> None:
         """Helper to generate and store pgvector embedding."""
         try:
-            from backend.services.ai_engine.core.vector_memory import get_encoder
+            from backend.services.ai_engine.vector_memory import get_encoder
             encoder = get_encoder()
             if not encoder:
                 return

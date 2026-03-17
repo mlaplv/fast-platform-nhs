@@ -181,12 +181,12 @@ export interface CampaignOutline {
 
 export interface MediaMetadata {
   embedding?: number[];
-  ai_tags?: string[];
-  ai_description?: string;
-  focal_point?: { x: number; y: number };
-  original_source?: string;
+  aiTags?: string[];
+  aiDescription?: string;
+  focalPoint?: { x: number; y: number };
+  originalSource?: string;
   sentiment?: string;
-  analyzed_at?: string;
+  analyzedAt?: string;
   status?: 'uploading' | 'ready' | 'error';
   error?: string;
   name?: string;
@@ -194,22 +194,22 @@ export interface MediaMetadata {
 
 export interface MediaAsset {
   id: string;
-  file_path: string;      // Backend field
+  filePath: string;      // Backend field
   url?: string;            // UI legacy (deprecated)
   filename?: string;
-  file_size?: number;
-  mime_type?: string;
+  fileSize?: number;
+  mimeType?: string;
   dimensions?: string;
   blurhash?: string;
-  alt_text?: string;
-  is_public?: boolean;
-  campaign_id?: string;
-  owner_id?: string;
-  created_at?: string;
-  media_metadata?: MediaMetadata;
+  altText?: string;
+  isPublic?: boolean;
+  campaignId?: string;
+  ownerId?: string;
+  createdAt?: string;
+  mediaMetadata?: MediaMetadata;
   // UI-specific fields (Managed by Campaign/Store)
-  is_primary: boolean;
-  order_index: number;
+  isPrimary: boolean;
+  orderIndex: number;
 }
 
 export interface CampaignKeywords {

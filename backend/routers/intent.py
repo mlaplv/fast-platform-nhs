@@ -2,8 +2,8 @@ from litestar import Controller, post, Request
 from litestar.di import Provide
 from litestar.repository.filters import LimitOffset
 from backend.schemas.intent import IntentRequest, IntentResponse, IntentAction, RouterTier
-from backend.services.routing.intent_orchestrator import orchestrator
-from backend.services.ai_engine.core.semantic_shield import SemanticShield
+from backend.services.intent_orchestrator import orchestrator
+from backend.services.ai_engine.semantic_shield import SemanticShield
 import json, time, hashlib, uuid, asyncio, logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.services.user_service import user_service

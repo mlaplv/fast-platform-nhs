@@ -41,7 +41,7 @@ export function extractIdFromUrl(url: string | null): string | null {
 }
 
 /**
- * R105: Sanitizes user/tenant IDs to prevent "undefined" string leakage.
+ * Elite V2.2: Sanitizes user/tenant IDs to prevent "undefined" string leakage.
  */
 export function sanitizeId(id: string | null | undefined): string | null {
   if (!id) return null;

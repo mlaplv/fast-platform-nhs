@@ -95,28 +95,28 @@ export interface Product {
 
 export interface MediaMetadata {
   embedding?: number[];
-  ai_tags?: string[];
-  ai_description?: string;
-  focal_point?: { x: number; y: number };
-  original_source?: string;
-  ai_sentiment?: string;
+  aiTags?: string[];
+  aiDescription?: string;
+  focalPoint?: { x: number; y: number };
+  originalSource?: string;
+  aiSentiment?: string;
   [key: string]: unknown;
 }
 
 export interface MediaAsset {
   id: string;
   filename: string;
-  file_path: string;
-  file_size: number;
-  mime_type: string;
+  filePath: string;
+  fileSize: number;
+  mimeType: string;
   dimensions: string | null;
   blurhash: string | null;
-  alt_text: string | null;
-  is_public: boolean;
-  campaign_id: string | null;
-  owner_id: string | null;
-  created_at: string;
-  media_metadata: MediaMetadata;
+  altText: string | null;
+  isPublic: boolean;
+  campaignId: string | null;
+  ownerId: string | null;
+  createdAt: string;
+  mediaMetadata: MediaMetadata;
   _updatedAt?: number; // Internal cache buster
 }
 
@@ -127,19 +127,19 @@ export interface MediaStatsBreakdown {
 }
 
 export interface MediaStats {
-  total_count: number;
-  total_size: number;
+  totalCount: number;
+  totalSize: number;
   breakdown: MediaStatsBreakdown[];
-  storage_provider: string;
+  storageProvider: string;
 }
 
 export interface MediaSseEvent {
   type: string;
   id?: string;
-  asset_id?: string;
-  alt_text?: string;
+  assetId?: string;
+  altText?: string;
   metadata?: Record<string, unknown>;
-  media_metadata?: Record<string, unknown>;
+  mediaMetadata?: Record<string, unknown>;
 }
 
 export interface JwtPayload {

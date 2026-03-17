@@ -2,7 +2,7 @@ import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import List, Dict, Optional, Union, Any
+from typing import List, Dict, Optional, Union
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +18,7 @@ class CampaignService:
     Uses Zero-Hydration (Raw SQL) to keep RAM < 2GB.
     """
 
-    async def get_campaign(self, session: AsyncSession, campaign_id: str) -> Optional[Dict[str, Any]]:
+    async def get_campaign(self, session: AsyncSession, campaign_id: str) -> Optional[Dict[str, object]]:
         """Fetch a single campaign via Scalar Projection."""
         sql = text("""
             SELECT id, user_id, source_input, reviewer_type, current_step, status,
@@ -61,7 +61,7 @@ class CampaignService:
         tenant_id: str = "default",
         query: Optional[str] = None,
         campaign_id: Optional[str] = None
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[Dict[str, object]]:
         """Surgical lookup for active campaigns without ORM hydration."""
         user_id = sanitize_id(user_id)
         campaign_id = sanitize_id(campaign_id)
@@ -137,9 +137,9 @@ class CampaignService:
         user_id: Optional[str],
         source_input: str,
         tenant_id: str,
-        gold_metadata: Dict[str, Any],
+        gold_metadata: Dict[str, object],
         category: str
-    ) -> Dict[str, Any]:
+    ) -> Dict[str, object]:
         """Atomic INSERT via Raw SQL."""
         new_id = str(uuid.uuid4())
         sql = text("""
@@ -172,7 +172,7 @@ class CampaignService:
             "tenant_id": r[6]
         }
 
-    async def update_campaign(self, session: AsyncSession, campaign_id: str, update_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def update_campaign(self, session: AsyncSession, campaign_id: str, update_data: Dict[str, object]) -> Optional[Dict[str, object]]:
         """Surgical UPDATE via Raw SQL."""
         if not update_data:
             return await self.get_campaign(session, campaign_id)
@@ -213,7 +213,7 @@ class CampaignService:
         }
 
     @staticmethod
-    def get_gold_config(campaign: Dict[str, Any]) -> dict:
+    def get_gold_config(campaign: Dict[str, object]) -> dict:
         """Returns the creation configuration from gold_metadata or topic_data safely (Zero-Hydration)."""
         gold = campaign.get("gold_metadata") or {}
         config = gold.get("creation_config")
@@ -224,7 +224,7 @@ class CampaignService:
         return topic.get("creation_config") or {}
 
     @staticmethod
-    def get_gold_val(campaign: Dict[str, Any], key: str, fallback: Any = None) -> Any:
+    def get_gold_val(campaign: Dict[str, object], key: str, fallback: object = None) -> object:
         """Surgically extracts a value from gold_metadata or falls back to topic_data (Zero-Hydration)."""
         gold = campaign.get("gold_metadata") or {}
         if key in gold:
@@ -238,7 +238,7 @@ class CampaignService:
         session: AsyncSession,
         campaign_id: str,
         event_type: str,
-        payload: Dict[str, Any],
+        payload: Dict[str, object],
         tenant_id: str
     ) -> str:
         """Atomic INSERT for CampaignEvent."""

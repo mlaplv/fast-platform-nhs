@@ -231,8 +231,8 @@ async def search_products_semantic(db_session: AsyncSession, query: str, limit: 
 )
 async def search_articles_semantic(db_session: AsyncSession, query: str, limit: int = 5):
     try:
-        from backend.services.article_vector_service import article_vector_service
-        results = await article_vector_service.search_semantic(query=query, limit=limit)
+        from backend.services.content_service import content_service
+        results = await content_service.search_semantic(session=db_session, query=query, limit=limit)
         return {"status": "success", "query": query, "results": results}
     except Exception as e:
         return {"status": "error", "message": f"Lỗi tìm kiếm bài viết semantic: {str(e)}"}

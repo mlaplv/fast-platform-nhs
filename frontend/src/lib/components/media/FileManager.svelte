@@ -43,7 +43,7 @@
                 if (nanobot.consumeCommand("select", "media")) {
                     const found = mediaStore.assets.find(a =>
                         a.filename.toLowerCase().includes(action.args!.toLowerCase()) ||
-                        (a.alt_text && a.alt_text.toLowerCase().includes(action.args!.toLowerCase()))
+                        (a.altText && a.altText.toLowerCase().includes(action.args!.toLowerCase()))
                     );
                     if (found) selectedAssetId = found.id;
                 }
@@ -59,12 +59,12 @@
 
             // Tìm theo tên file hoặc Alt text
             const basicMatch = asset.filename.toLowerCase().includes(query) ||
-                             (asset.alt_text && asset.alt_text.toLowerCase().includes(query));
+                             (asset.altText && asset.altText.toLowerCase().includes(query));
 
             // Tìm sâu vào AI Metadata (Tags & Sentiment)
-            const aiTags = asset.media_metadata.ai_tags || [];
+            const aiTags = asset.mediaMetadata.aiTags || [];
             const tagMatch = aiTags.some((tag: string) => tag.toLowerCase().includes(query));
-            const vibeMatch = asset.media_metadata.ai_sentiment?.toLowerCase().includes(query);
+            const vibeMatch = asset.mediaMetadata.ai_sentiment?.toLowerCase().includes(query);
 
             return basicMatch || tagMatch || vibeMatch;
         })
@@ -78,7 +78,7 @@
     const suggestiveTags = $derived.by(() => {
         const tagMap = new Map<string, number>();
         mediaStore.assets.forEach(asset => {
-            (asset.media_metadata.ai_tags || []).forEach((tag: string) => {
+            (asset.mediaMetadata.aiTags || []).forEach((tag: string) => {
                 tagMap.set(tag, (tagMap.get(tag) || 0) + 1);
             });
         });
@@ -144,7 +144,7 @@
         const selectedAssets = mediaStore.assets.filter(a => mediaStore.selectedIds.has(a.id));
         const updates = selectedAssets.map(a => ({
             id: a.id,
-            metadata: { alt_text: a.alt_text }
+            metadata: { altText: a.altText }
         }));
 
         await mediaStore.bulkUpdateMetadata(updates);
@@ -156,8 +156,8 @@
         if (!selectedAssetId) return;
         const index = mediaStore.assets.findIndex(a => a.id === selectedAssetId);
         if (index !== -1) {
-            mediaStore.assets[index].alt_text = text;
-            mediaStore.updateMetadata(selectedAssetId, { alt_text: text });
+            mediaStore.assets[index].altText = text;
+            mediaStore.updateMetadata(selectedAssetId, { altText: text });
             vuiController.speak("Đã áp dụng gợi ý AI vào Alt-text.");
         }
     }
@@ -166,11 +166,11 @@
         if (!selectedAssetId) return;
         const index = mediaStore.assets.findIndex(a => a.id === selectedAssetId);
         if (index !== -1) {
-            const currentAlt = mediaStore.assets[index].alt_text || "";
+            const currentAlt = mediaStore.assets[index].altText || "";
             if (currentAlt.includes(tag)) return;
             const newAlt = currentAlt ? `${currentAlt}, ${tag}` : tag;
-            mediaStore.assets[index].alt_text = newAlt;
-            mediaStore.updateMetadata(selectedAssetId, { alt_text: newAlt });
+            mediaStore.assets[index].altText = newAlt;
+            mediaStore.updateMetadata(selectedAssetId, { altText: newAlt });
             vuiController.speak(`Đã thêm tag ${tag} vào Alt-text.`);
         }
     }
@@ -336,17 +336,17 @@
         <div class="px-4 py-4 border-b bg-blue-50/30 dark:bg-blue-900/10 grid grid-cols-2 md:grid-cols-4 gap-4" transition:slide>
             <div class="flex flex-col gap-1">
                 <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Dung lượng tổng</span>
-                <span class="text-lg font-bold text-blue-600 dark:text-blue-400 font-mono">{formatSize(mediaStore.stats.total_size)}</span>
+                <span class="text-lg font-bold text-blue-600 dark:text-blue-400 font-mono">{formatSize(mediaStore.stats.totalSize)}</span>
             </div>
             <div class="flex flex-col gap-1">
                 <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Số lượng file</span>
-                <span class="text-lg font-bold text-zinc-800 dark:text-zinc-200 font-mono">{mediaStore.stats.total_count}</span>
+                <span class="text-lg font-bold text-zinc-800 dark:text-zinc-200 font-mono">{mediaStore.stats.totalCount}</span>
             </div>
             <div class="flex flex-col gap-1">
                 <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Lưu trữ tại</span>
                 <div class="flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full {mediaStore.stats.storage_provider === 'local' ? 'bg-orange-500' : 'bg-green-500'}"></span>
-                    <span class="text-xs font-bold uppercase">{mediaStore.stats.storage_provider}</span>
+                    <span class="w-2 h-2 rounded-full {mediaStore.stats.storageProvider === 'local' ? 'bg-orange-500' : 'bg-green-500'}"></span>
+                    <span class="text-xs font-bold uppercase">{mediaStore.stats.storageProvider}</span>
                 </div>
             </div>
             <div class="flex flex-col gap-1">
@@ -355,7 +355,7 @@
                     {#each mediaStore.stats.breakdown.slice(0, 3) as item}
                         <div class="flex items-baseline gap-1" title="{item.count} files">
                             <span class="text-[10px] font-bold text-zinc-600 dark:text-zinc-400">{item.type}:</span>
-                            <span class="text-[10px] font-mono text-zinc-500">{Math.round((item.size / mediaStore.stats.total_size) * 100)}%</span>
+                            <span class="text-[10px] font-mono text-zinc-500">{Math.round((item.size / mediaStore.stats.totalSize) * 100)}%</span>
                         </div>
                     {/each}
                 </div>
@@ -424,7 +424,7 @@
 
                             <img
                                 src="/api/v1/media/{asset.id}/thumb?w=400&t={asset._updatedAt || ''}"
-                                alt={asset.alt_text || asset.filename}
+                                alt={asset.altText || asset.filename}
                                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                 loading="lazy"
                             />
@@ -437,7 +437,7 @@
                             {/if}
 
                             <!-- AI Processing Overlay (V76) -->
-                            {#if !asset.media_metadata.ai_description}
+                            {#if !asset.mediaMetadata.aiDescription}
                                 <div class="absolute inset-0 bg-blue-500/10 backdrop-blur-[1px] flex items-center justify-center">
                                     <div class="relative w-full h-full">
                                         <!-- Scanning line effect -->
@@ -453,7 +453,7 @@
                             <!-- Overlay Quick Actions -->
                             <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
-                                    onclick={(e) => { e.stopPropagation(); copyToClipboard(asset.file_path); }}
+                                    onclick={(e) => { e.stopPropagation(); copyToClipboard(asset.filePath); }}
                                     class="p-1.5 bg-white/80 dark:bg-zinc-900/80 text-zinc-700 dark:text-zinc-200 rounded-lg backdrop-blur-md shadow-sm"
                                     title="Copy link"
                                 >
@@ -494,7 +494,7 @@
                             </div>
                             <div class="col-span-5 flex items-center gap-3">
                                 <div class="w-12 h-12 rounded-lg overflow-hidden bg-zinc-100 flex-shrink-0 relative">
-                                    <img src="{asset.file_path}?t={asset._updatedAt || ''}" alt="" class="w-full h-full object-cover" />
+                                    <img src="{asset.filePath}?t={asset._updatedAt || ''}" alt="" class="w-full h-full object-cover" />
                                     {#if !asset.is_public}
                                         <div class="absolute inset-0 bg-black/40 flex items-center justify-center text-yellow-500">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -508,14 +508,14 @@
                                             <span class="px-1.5 py-0.5 bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 rounded text-[8px] font-bold uppercase">Private</span>
                                         {/if}
                                     </div>
-                                    <p class="text-xs text-zinc-400 truncate">{asset.file_path}</p>
+                                    <p class="text-xs text-zinc-400 truncate">{asset.filePath}</p>
                                 </div>
                             </div>
                             <div class="col-span-2 text-center text-sm text-zinc-500">{asset.dimensions || 'N/A'}</div>
-                            <div class="col-span-2 text-center text-sm text-zinc-500">{formatSize(asset.file_size)}</div>
+                            <div class="col-span-2 text-center text-sm text-zinc-500">{formatSize(asset.fileSize)}</div>
                             <div class="col-span-2 flex justify-end gap-2">
                                  <button
-                                    onclick={(e) => { e.stopPropagation(); copyToClipboard(asset.file_path); }}
+                                    onclick={(e) => { e.stopPropagation(); copyToClipboard(asset.filePath); }}
                                     class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-blue-500 transition-all"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
@@ -540,9 +540,9 @@
                 <div class="p-4 flex flex-col gap-6">
                     <!-- Preview -->
                     <div class="aspect-video bg-zinc-200 dark:bg-zinc-800 rounded-xl overflow-hidden border shadow-inner relative group/preview">
-                        <img src="{selectedAsset.file_path}?t={selectedAsset._updatedAt || ''}" alt="" class="w-full h-full object-contain" />
+                        <img src="{selectedAsset.filePath}?t={selectedAsset._updatedAt || ''}" alt="" class="w-full h-full object-contain" />
 
-                        {#if !selectedAsset.media_metadata.ai_description}
+                        {#if !selectedAsset.mediaMetadata.aiDescription}
                             <div class="absolute inset-0 bg-blue-500/5 flex items-center justify-center">
                                 <div class="absolute top-0 left-0 w-full h-1 bg-blue-500/40 animate-scan-loop"></div>
                             </div>
@@ -594,7 +594,7 @@
                     <div class="flex flex-col gap-2">
                         <div class="flex items-center justify-between">
                             <span class="text-[10px] font-bold text-zinc-500 uppercase">AI Smart Crop (V11.0)</span>
-                            {#if selectedAsset.media_metadata.focal_point}
+                            {#if selectedAsset.mediaMetadata.focalPoint}
                                 <span class="text-[8px] px-1 bg-green-500/10 text-green-600 rounded">Focal Point Ready</span>
                             {:else}
                                 <span class="text-[8px] px-1 bg-zinc-500/10 text-zinc-500 rounded">Center fallback</span>
@@ -644,11 +644,11 @@
                                 <h5 class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">Visual Intelligence</h5>
                             </div>
 
-                            {#if selectedAsset.media_metadata.ai_description}
+                            {#if selectedAsset.mediaMetadata.aiDescription}
                                 <div class="relative group/desc">
-                                    <p class="text-[11px] text-zinc-600 dark:text-zinc-400 italic mb-3 pr-8">"{selectedAsset.media_metadata.ai_description}"</p>
+                                    <p class="text-[11px] text-zinc-600 dark:text-zinc-400 italic mb-3 pr-8">"{selectedAsset.mediaMetadata.aiDescription}"</p>
                                     <button
-                                        onclick={() => applyAIAltText(selectedAsset!.media_metadata.ai_description as string)}
+                                        onclick={() => applyAIAltText(selectedAsset!.mediaMetadata.aiDescription as string)}
                                         class="absolute top-0 right-0 p-1 bg-blue-500 text-white rounded opacity-0 group-hover/desc:opacity-100 transition-opacity hover:scale-110 active:scale-95"
                                         title="Sử dụng làm Alt-text"
                                     >
@@ -663,9 +663,9 @@
                                 </div>
                             {/if}
 
-                            {#if selectedAsset.media_metadata.ai_tags}
+                            {#if selectedAsset.mediaMetadata.aiTags}
                                 <div class="flex flex-wrap gap-1">
-                                    {#each selectedAsset.media_metadata.ai_tags as tag}
+                                    {#each selectedAsset.mediaMetadata.aiTags as tag}
                                         <button
                                             onclick={() => addTagToAltText(tag)}
                                             class="px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-[9px] font-medium hover:bg-blue-500 hover:text-white transition-all active:scale-90"
@@ -677,10 +677,10 @@
                                 </div>
                             {/if}
 
-                            {#if selectedAsset.media_metadata.ai_sentiment}
+                            {#if selectedAsset.mediaMetadata.ai_sentiment}
                                 <div class="mt-3 flex items-center gap-2">
                                     <span class="text-[10px] text-zinc-400 uppercase font-bold">Vibe:</span>
-                                    <span class="text-[10px] font-bold text-zinc-700 dark:text-zinc-200">{selectedAsset.media_metadata.ai_sentiment}</span>
+                                    <span class="text-[10px] font-bold text-zinc-700 dark:text-zinc-200">{selectedAsset.mediaMetadata.ai_sentiment}</span>
                                 </div>
                             {/if}
                         </div>
@@ -703,38 +703,38 @@
                             <div>
                                 <label class="text-[10px] font-bold text-zinc-500 uppercase mb-1 block">Alt Text (Chuẩn SEO)</label>
                                 <textarea
-                                    bind:value={selectedAsset.alt_text}
+                                    bind:value={selectedAsset.altText}
                                     class="w-full p-2 text-xs bg-white dark:bg-zinc-800 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-20"
                                     placeholder="AI đang phân tích..."
-                                    onchange={() => mediaStore.updateMetadata(selectedAsset!.id, { alt_text: selectedAsset!.alt_text })}
+                                    onchange={() => mediaStore.updateMetadata(selectedAsset!.id, { altText: selectedAsset!.altText })}
                                 ></textarea>
                             </div>
 
                             <!-- AI Intelligence (V11.0) -->
-                            {#if selectedAsset.media_metadata.ai_tags || selectedAsset.media_metadata.ai_description}
+                            {#if selectedAsset.mediaMetadata.aiTags || selectedAsset.mediaMetadata.aiDescription}
                                 <div class="p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-100/50 dark:border-blue-500/10">
                                     <div class="flex items-center gap-2 mb-2">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-blue-500"><path d="M12 2v8"/><path d="m4.93 4.93 4.24 4.24"/><path d="M2 12h8"/><path d="m4.93 19.07 4.24-4.24"/><path d="M12 22v-8"/><path d="m19.07 19.07-4.24-4.24"/><path d="M22 12h-8"/><path d="m19.07 4.93-4.24 4.24"/></svg>
                                         <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">AI Gợi ý</span>
                                     </div>
 
-                                    {#if selectedAsset.media_metadata.ai_tags}
+                                    {#if selectedAsset.mediaMetadata.aiTags}
                                         <div class="flex flex-wrap gap-1 mb-2">
-                                            {#each selectedAsset.media_metadata.ai_tags as tag}
+                                            {#each selectedAsset.mediaMetadata.aiTags as tag}
                                                 <span class="px-1.5 py-0.5 bg-white dark:bg-zinc-800 text-[9px] text-zinc-600 dark:text-zinc-400 rounded border border-zinc-200 dark:border-zinc-700">#{tag}</span>
                                             {/each}
                                         </div>
                                     {/if}
 
-                                    {#if selectedAsset.media_metadata.ai_sentiment}
+                                    {#if selectedAsset.mediaMetadata.ai_sentiment}
                                         <div class="text-[9px] text-zinc-500">
-                                            Vibe: <span class="text-blue-600 dark:text-blue-400 font-bold">{selectedAsset.media_metadata.ai_sentiment}</span>
+                                            Vibe: <span class="text-blue-600 dark:text-blue-400 font-bold">{selectedAsset.mediaMetadata.ai_sentiment}</span>
                                         </div>
                                     {/if}
 
-                                    {#if selectedAsset.media_metadata.focal_point}
+                                    {#if selectedAsset.mediaMetadata.focalPoint}
                                         <div class="text-[9px] text-zinc-500 mt-1">
-                                            Focal Point: <span class="font-mono">({selectedAsset.media_metadata.focal_point.x.toFixed(2)}, {selectedAsset.media_metadata.focal_point.y.toFixed(2)})</span>
+                                            Focal Point: <span class="font-mono">({selectedAsset.mediaMetadata.focalPoint.x.toFixed(2)}, {selectedAsset.mediaMetadata.focalPoint.y.toFixed(2)})</span>
                                         </div>
                                     {/if}
                                 </div>
@@ -749,11 +749,11 @@
                             </div>
                             <div>
                                 <span class="text-[9px] text-zinc-400 uppercase block">Dung lượng</span>
-                                <span class="text-xs font-mono">{formatSize(selectedAsset.file_size)}</span>
+                                <span class="text-xs font-mono">{formatSize(selectedAsset.fileSize)}</span>
                             </div>
                             <div class="col-span-2">
                                 <span class="text-[9px] text-zinc-400 uppercase block">Định dạng</span>
-                                <span class="text-xs font-mono uppercase">{selectedAsset.mime_type}</span>
+                                <span class="text-xs font-mono uppercase">{selectedAsset.mimeType}</span>
                             </div>
                         </div>
                     </div>
@@ -895,7 +895,7 @@
                         {#each mediaStore.assets.filter(a => mediaStore.selectedIds.has(a.id)) as asset}
                             <div class="flex gap-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-700/50 group">
                                 <div class="w-32 h-32 rounded-lg overflow-hidden bg-zinc-200 dark:bg-zinc-800 flex-shrink-0 relative">
-                                    <img src={asset.file_path} alt="" class="w-full h-full object-cover" />
+                                    <img src={asset.filePath} alt="" class="w-full h-full object-cover" />
                                     <div class="absolute bottom-1 right-1 px-1 bg-black/50 text-[8px] text-white rounded font-mono uppercase">
                                         {asset.dimensions}
                                     </div>
@@ -904,22 +904,22 @@
                                     <div class="flex justify-between items-start">
                                         <span class="text-xs font-bold truncate max-w-[200px]">{asset.filename}</span>
                                         <span class="text-[9px] px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full font-bold uppercase tracking-wider">
-                                            {asset.media_metadata.ai_sentiment || 'Standard'}
+                                            {asset.mediaMetadata.ai_sentiment || 'Standard'}
                                         </span>
                                     </div>
 
                                     <div>
                                         <label class="text-[9px] font-bold text-zinc-400 uppercase mb-1 block">Alt Text (SEO)</label>
                                         <textarea
-                                            bind:value={asset.alt_text}
+                                            bind:value={asset.altText}
                                             class="w-full p-2 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-16 transition-all"
                                             placeholder="Gõ alt-text để ảnh lên top..."
                                         ></textarea>
                                     </div>
 
-                                    {#if asset.media_metadata.ai_tags}
+                                    {#if asset.mediaMetadata.aiTags}
                                         <div class="flex flex-wrap gap-1">
-                                            {#each asset.media_metadata.ai_tags.slice(0, 5) as tag}
+                                            {#each asset.mediaMetadata.aiTags.slice(0, 5) as tag}
                                                 <span class="px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 text-[9px] text-zinc-500 dark:text-zinc-400 rounded">#{tag}</span>
                                             {/each}
                                         </div>

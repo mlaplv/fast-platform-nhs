@@ -273,7 +273,7 @@ while true; do
             ;;
         5)
             check_deps
-            run_backend --env-file "${PWD}/.env" python3 -c "from backend.services.xohi.creative_studio.orchestrator import content_factory; import asyncio; asyncio.run(content_factory.resume_all())"
+            run_backend --env-file "${PWD}/.env" python3 -c "from backend.services.creative_studio.orchestrator import content_factory; import asyncio; asyncio.run(content_factory.resume_all())"
             read -p "Nhấn Enter để tiếp tục..."
             ;;
         6)

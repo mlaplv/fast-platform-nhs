@@ -18,8 +18,8 @@ from litestar import Controller, post, Request
 from litestar.response import Stream
 
 from backend.schemas.intent import IntentRequest, IntentResponse, IntentAction, RouterTier
-from backend.services.routing.intent_orchestrator import orchestrator
-from backend.services.ai_engine.core.semantic_shield import SemanticShield
+from backend.services.intent_orchestrator import orchestrator
+from backend.services.ai_engine.semantic_shield import SemanticShield
 from backend.services.user_service import user_service
 from backend.services.chat_service import chat_service
 from backend.services.telemetry_service import telemetry_service

@@ -8,8 +8,8 @@ from litestar.response import Redirect
 from litestar.di import Provide
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.services.media.media_service import media_service
-from backend.services.media.schemas import (
+from backend.services.media_service import media_service
+from backend.schemas.media import (
     MediaListResponse,
     MediaStatsResponse,
     MediaUpdateMetadata,

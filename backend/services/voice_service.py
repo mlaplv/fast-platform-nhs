@@ -11,9 +11,10 @@ from sqlalchemy import select, or_, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import litellm
+import edge_tts
 from backend.services.xohi_memory import xohi_memory
-from backend.services.routing.stt_corrector import stt_corrector
-from backend.services.ai_engine.core.key_rotator import key_rotator
+from backend.services.stt_corrector import stt_corrector
+from backend.services.ai_engine.key_rotator import key_rotator
 from backend.utils.security import GeminiSecurity
 
 if TYPE_CHECKING:
@@ -172,7 +173,7 @@ class VoiceService:
 
         await session.commit()
 
-        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+        from backend.services.ai_engine.trinity_bridge import trinity_bridge
         trinity_bridge.db_primary_model = primary_model
         trinity_bridge.db_waterfall = waterfall
         logger.info(f"[VoiceService] TrinityBridge hot-reloaded for user {user_id}")
@@ -359,7 +360,7 @@ class VoiceService:
 
     async def get_model_config(self, session: AsyncSession, user_id: str) -> Dict[str, object]:
         """Fetch current AI model configuration with defaults via text-SQL."""
-        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+        from backend.services.ai_engine.trinity_bridge import trinity_bridge
         import json
 
         sql = text("SELECT primary_model, ai_models, discovered_models FROM voice_profiles WHERE user_id = :uid")
@@ -559,6 +560,22 @@ class VoiceService:
                 logger.warning(f"[VoiceService] Hallucination stripped: '{p}'")
 
         return " ".join(clean_parts)
+
+    async def stream_tts(self, text: str):
+        """
+        Module 1: THE LUNGS (BACKEND EDGE-TTS STREAMING)
+        Generates audio chunks via edge-tts and yields them immediately.
+        Hợp nhất từ tts_engine (Elite V2.2).
+        """
+        communicate = edge_tts.Communicate(text, "vi-VN-HoaiMyNeural")
+        try:
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    yield chunk["data"]
+        except GeneratorExit:
+            logger.info("[TTS] Client disconnected — stream aborted gracefully")
+        finally:
+            logger.debug("[TTS] Stream cleanup complete")
 
 # Singleton
 voice_service = VoiceService()

@@ -123,7 +123,7 @@
             
             <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar pb-4">
                 {#each assets.filter(a => a) as asset}
-                  {@const assetUrl = typeof asset === 'string' ? asset : (asset.file_path || asset.url || asset.link || '')}
+                  {@const assetUrl = typeof asset === 'string' ? asset : (asset.filePath || asset.url || asset.link || '')}
                   {@const fullUrl = assetUrl && (assetUrl.startsWith('http') || assetUrl.startsWith('data:')) ? assetUrl : (assetUrl.startsWith('/') ? assetUrl : '/storage/' + assetUrl)}
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -159,7 +159,7 @@
   <MediaModal
     bind:show={showMediaLibrary}
     onSelect={(asset) => {
-      onSelect(asset.file_path);
+      onSelect(asset.filePath);
       showMediaLibrary = false;
       show = false;
     }}

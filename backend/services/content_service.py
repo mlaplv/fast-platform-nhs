@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import current_tenant_id
 from backend.services.xohi_memory import xohi_memory
-from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
+from backend.services.ai_engine.encoder_singleton import get_shared_encoder
 from backend.utils.sql import escape_like
 from backend.schemas.article import CreateArticleRequest, UpdateArticleRequest
 
@@ -254,6 +254,58 @@ class ContentService:
         result = await session.execute(sql, {"ids": ids})
         await session.commit()
         return result.rowcount
+
+    async def search_semantic(self, session: AsyncSession, query: str, tenant_id: str = "default", limit: int = 5) -> List[Dict[str, object]]:
+        """
+        RAG Nano-Core: Semantic Search Service cho Articles.
+        Hợp nhất từ ArticleVectorService (Elite V2.2).
+        """
+        try:
+            from backend.services.ai_engine.encoder_singleton import get_shared_encoder
+            encoder = get_shared_encoder()
+            if not encoder:
+                return []
+
+            # 1. Embed query
+            loop = asyncio.get_running_loop()
+            def _embed():
+                return list(encoder.embed([query]))
+
+            vectors = await loop.run_in_executor(None, _embed)
+            if not vectors:
+                return []
+
+            embedding_array = vectors[0]
+            vector_str = f"[{','.join(map(str, embedding_array))}]"
+
+            # 2. Cú pháp SQL thuần sử dụng (<=>) cho pgvector
+            raw_query = """
+                SELECT a.id, a.title, a.slug, a.category, e.embedding <=> :v::vector AS cosine_distance
+                FROM "articles" a
+                JOIN "article_embeddings" e ON a.id = e.article_id
+                WHERE a.deleted_at IS NULL
+                  AND a.tenant_id = :tid
+                  AND e.tenant_id = :tid
+                ORDER BY cosine_distance ASC
+                LIMIT :lim;
+            """
+
+            res = await session.execute(text(raw_query), {"tid": tenant_id, "v": vector_str, "lim": limit})
+            results = res.mappings().all()
+
+            return [
+                {
+                    "id": str(r["id"]),
+                    "title": r["title"],
+                    "slug": r["slug"],
+                    "category": r["category"],
+                    "match_score": round(1.0 - float(r["cosine_distance"]), 3)
+                }
+                for r in results
+            ]
+        except Exception as e:
+            logger.error(f"[VECTOR-SEARCH] Article Semantic Search Failed: {e}")
+            return []
 
     async def _upsert_embedding(self, session: AsyncSession, article_id: str, title: str, content: Optional[str]) -> None:
         """Surgical pgvector embedding update."""

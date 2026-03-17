@@ -7,7 +7,7 @@ from uuid import UUID
 
 logger = logging.getLogger("api-gateway")
 from litestar import Controller, get, post, put, patch, delete, Request
-from backend.services.xohi.creative_studio.orchestrator import content_factory
+from backend.services.creative_studio.orchestrator import content_factory
 from backend.schemas.campaign import (
     ContentCampaign as CampaignSchema,
     CampaignStep,
@@ -17,7 +17,7 @@ from backend.schemas.campaign import (
 )
 from backend.services.campaign_service import campaign_service
 from backend.services.content_service import content_service
-from backend.services.xohi.creative_studio.models.schemas import AgentSignal
+from backend.schemas.campaign import AgentSignal
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from litestar.di import Provide
@@ -40,7 +40,7 @@ class ContentController(Controller):
 
         # 2. Paged results (Zero-Hydration)
         sql = text("""
-            SELECT id, topic_data, status, current_step, created_at, user_id
+            SELECT id, topic_data, status, current_step, created_at, user_id, category
             FROM content_campaigns
             WHERE deleted_at IS NULL
             ORDER BY created_at DESC
@@ -54,8 +54,9 @@ class ContentController(Controller):
                 "topic_data": row[1] or {},
                 "status": row[2],
                 "current_step": row[3],
-                "created_at": row[4].isoformat() if row[4] else "",
-                "user_id": str(row[5]) if row[5] else None
+                "created_at": row[4],
+                "user_id": str(row[5]) if row[5] else None,
+                "category": row[6]
             }
             for row in result
         ]
@@ -96,7 +97,7 @@ class ContentController(Controller):
         if not campaign:
             return GenericResponse(status="error", message="Campaign not found")
 
-        from backend.services.xohi.creative_studio.formatters.media_compressor import MediaCompressor
+        from backend.services.creative_studio.media_compressor import MediaCompressor
         compressor = MediaCompressor()
 
         # 1. Localize assets and update registry (Internal Logic uses raw SQL)
@@ -200,7 +201,7 @@ class ContentController(Controller):
         """
         On-demand: ĐẠO VĂN & BẢN QUYỀN (Zero-Hydration).
         """
-        from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
+        from backend.services.creative_studio.plagiarism_cop import PlagiarismCop
         campaign = await campaign_service.get_campaign(db_session, str(campaign_id))
         if not campaign:
             return GenericResponse(status="error", message="Campaign not found")
@@ -251,7 +252,7 @@ class ContentController(Controller):
         """
         On-demand: PHÂN TÍCH SEO (Zero-Hydration).
         """
-        from backend.services.xohi.creative_studio.operatives.seo_analyzer import SeoAnalyzer
+        from backend.services.creative_studio.seo_analyzer import SeoAnalyzer
         campaign = await campaign_service.get_campaign(db_session, str(campaign_id))
         if not campaign:
             return GenericResponse(status="error", message="Campaign not found")
@@ -299,7 +300,7 @@ class ContentController(Controller):
         """
         On-demand: AI READINESS INSPECTOR (Zero-Hydration).
         """
-        from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
+        from backend.services.creative_studio.ai_inspector import AiInspector
         campaign = await campaign_service.get_campaign(db_session, str(campaign_id))
         if not campaign:
             return GenericResponse(status="error", message="Campaign not found")
@@ -346,7 +347,7 @@ class ContentController(Controller):
         On-Demand Surgical Auto-Fix (Zero-Hydration)
         """
         try:
-            from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector, AutoFixRequest
+            from backend.services.creative_studio.ai_inspector import AiInspector, AutoFixRequest
             campaign = await campaign_service.get_campaign(db_session, str(campaign_id))
             if not campaign:
                 return GenericResponse(status="error", message="Campaign not found")
@@ -370,9 +371,9 @@ class ContentController(Controller):
         On-Demand Bulk Surgical Rewrite (Zero-Hydration).
         """
         try:
-            from backend.services.xohi.creative_studio.models.schemas import BulkFixRequest
-            from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
-            from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
+            from backend.schemas.campaign import BulkFixRequest
+            from backend.services.creative_studio.ai_inspector import AiInspector
+            from backend.services.creative_studio.plagiarism_cop import PlagiarismCop
 
             campaign = await campaign_service.get_campaign(db_session, str(campaign_id))
             if not campaign:
