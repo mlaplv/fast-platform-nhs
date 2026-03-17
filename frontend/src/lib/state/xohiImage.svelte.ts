@@ -9,16 +9,16 @@ export function createXohiImageState() {
     let campaignId = $state<string | null>(null);
 
     // 2. Derived: Tự động tách biệt Ảnh chính và Ảnh phụ
-    const primaryAsset = $derived(assets.find(a => a.isPrimary));
+    const primaryAsset = $derived(assets.find(a => a.is_primary));
     const secondaryAssets = $derived(
         assets
-            .filter(a => !a.isPrimary)
-            .sort((a, b) => a.orderIndex - b.orderIndex)
+            .filter(a => !a.is_primary)
+            .sort((a, b) => a.order_index - b.order_index)
     );
 
     // 3. Actions: Logic hoán đổi "Master-Slave Swap"
     function swapPrimary(assetId: string) {
-        const oldPrimary = assets.find(a => a.isPrimary);
+        const oldPrimary = assets.find(a => a.is_primary);
         const newPrimary = assets.find(a => a.id === assetId);
 
         if (!newPrimary) return;
@@ -26,15 +26,15 @@ export function createXohiImageState() {
         // Reset toàn bộ primary về false
         assets.forEach(a => {
             if (a.id === assetId) {
-                a.isPrimary = true;
-                a.orderIndex = -1; // Luôn đứng đầu
-            } else if (a.isPrimary) {
-                a.isPrimary = false;
-                a.orderIndex = oldPrimary ? oldPrimary.orderIndex : 0;
+                a.is_primary = true;
+                a.order_index = -1; // Luôn đứng đầu
+            } else if (a.is_primary) {
+                a.is_primary = false;
+                a.order_index = oldPrimary ? oldPrimary.order_index : 0;
             }
         });
 
-        // Sắp xếp lại orderIndex để đảm bảo tính liên tục
+        // Sắp xếp lại order_index để đảm bảo tính liên tục
         recalculateOrder();
     }
 
@@ -43,14 +43,14 @@ export function createXohiImageState() {
         assets.forEach(a => {
             const newIndex = orderedIds.indexOf(a.id);
             if (newIndex !== -1) {
-                a.orderIndex = newIndex;
+                a.order_index = newIndex;
             }
         });
     }
 
     function recalculateOrder() {
         secondaryAssets.forEach((a, index) => {
-            a.orderIndex = index;
+            a.order_index = index;
         });
     }
 
@@ -65,10 +65,12 @@ export function createXohiImageState() {
             // Optimistic UI: Add preview immediately
             const newAsset: MediaAsset = {
                 id: tempId,
-                filePath: blobUrl,
-                isPrimary: assets.length === 0 && index === 0,
-                orderIndex: assets.length,
-                mediaMetadata: { status: 'uploading', name: file.name }
+                file_path: blobUrl,
+                is_primary: assets.length === 0 && index === 0,
+                order_index: assets.length,
+                media_metadata: { status: 'uploading', name: file.name },
+                is_primary_ui: assets.length === 0 && index === 0, // Fallback fields if needed
+                order_index_ui: assets.length
             };
             assets.push(newAsset);
 
@@ -76,7 +78,7 @@ export function createXohiImageState() {
                 const formData = new FormData();
                 formData.append('data', file);
                 const cleanCid = sanitizeId(campaignId);
-                if (cleanCid) formData.append('campaignId', cleanCid);
+                if (cleanCid) formData.append('campaign_id', cleanCid);
 
                 const response = await apiClient.upload<{ data: MediaAsset }>(
                     '/api/v1/media',
@@ -90,8 +92,8 @@ export function createXohiImageState() {
                     assets[idx] = {
                         ...assets[idx],
                         id: serverAsset.id,
-                        filePath: serverAsset.filePath,
-                        mediaMetadata: { ...serverAsset.mediaMetadata, status: 'ready' }
+                        file_path: serverAsset.file_path,
+                        media_metadata: { ...serverAsset.media_metadata, status: 'ready' }
                     };
                     URL.revokeObjectURL(blobUrl);
                 }
@@ -99,7 +101,7 @@ export function createXohiImageState() {
                 console.error("Upload failed for", file.name, error);
                 const idx = assets.findIndex(a => a.id === tempId);
                 if (idx !== -1) {
-                    assets[idx].mediaMetadata = { status: 'error', error: String(error) };
+                    assets[idx].media_metadata = { status: 'error', error: String(error) };
                 }
             }
         });
@@ -110,7 +112,7 @@ export function createXohiImageState() {
 
     function removeAsset(id: string) {
         const asset = assets.find(a => a.id === id);
-        const path = asset?.filePath || asset?.url;
+        const path = asset?.file_path || asset?.url;
         if (path && path.startsWith('blob:')) {
             URL.revokeObjectURL(path); // R03: Dọn dẹp bộ nhớ
         }
@@ -120,13 +122,13 @@ export function createXohiImageState() {
             apiClient.delete(`/api/v1/media/${id}`).catch(e => console.error("Failed to delete asset from server", e));
         }
 
-        const wasPrimary = asset?.isPrimary;
+        const wasPrimary = asset?.is_primary;
         assets = assets.filter(a => a.id !== id);
 
         // Phase 15.3: Auto-promote next asset if primary was deleted
         if (wasPrimary && assets.length > 0) {
-            assets[0].isPrimary = true;
-            assets[0].orderIndex = -1;
+            assets[0].is_primary = true;
+            assets[0].order_index = -1;
         }
         recalculateOrder();
     }
@@ -136,7 +138,7 @@ export function createXohiImageState() {
             const cleanCid = sanitizeId(campaignId);
             const response = await apiClient.post<{ data: MediaAsset }>(
                 '/api/v1/media/fetch-remote',
-                { url, campaignId: cleanCid }
+                { url, campaign_id: cleanCid }
             );
 
             const serverAsset = response.data;
@@ -146,10 +148,10 @@ export function createXohiImageState() {
             }
             const newAsset: MediaAsset = {
                 ...serverAsset,
-                filePath: serverAsset.filePath || serverAsset.url, // CNS V73.9: Safety fallback
-                isPrimary: assets.length === 0,
-                orderIndex: assets.length
-            } as MediaAsset;
+                file_path: serverAsset.file_path || serverAsset.url, // CNS V73.9: Safety fallback
+                is_primary: assets.length === 0,
+                order_index: assets.length
+            };
             assets.push(newAsset);
         } catch (error) {
             console.error("Failed to fetch remote image", error);
@@ -166,7 +168,7 @@ export function createXohiImageState() {
                 {
                     action: mode === 'ai' ? 'smart_crop' : 'crop',
                     params: { preset },
-                    sourceUrl: asset.filePath || asset.url
+                    source_url: asset.file_path || asset.url
                 }
             );
 
@@ -180,9 +182,9 @@ export function createXohiImageState() {
             if (idx !== -1) {
                 assets[idx] = {
                     ...assets[idx],
-                    filePath: serverAsset.filePath,
+                    file_path: serverAsset.file_path,
                     dimensions: serverAsset.dimensions,
-                    mediaMetadata: serverAsset.mediaMetadata
+                    media_metadata: serverAsset.media_metadata
                 };
             }
         } catch (error) {
@@ -196,7 +198,7 @@ export function createXohiImageState() {
         // CNS V74: Standardize IDs and ensure path safety
         const formatted = initialAssets.map((a, i) => {
             const obj = { ...a };
-            const url = obj.filePath || obj.url || '';
+            const url = obj.file_path || obj.url || '';
             const recoveredId = extractIdFromUrl(url);
 
             // CNS V75: Priority to real DB ID from URL if current ID is client-side or missing
@@ -214,24 +216,24 @@ export function createXohiImageState() {
                     obj.id = `stable_${Math.abs(hash).toString(36)}_${i}`;
                 }
             }
-            if (!obj.filePath && obj.url) obj.filePath = obj.url;
+            if (!obj.file_path && obj.url) obj.file_path = obj.url;
             return obj;
         });
 
         // CNS V76: Efficient shallow comparison before replacement to avoid reactivity storms
         const isDifferent = formatted.length !== assets.length ||
-                           formatted.some((a, i) => a.id !== assets[i]?.id || a.filePath !== assets[i]?.filePath);
+                           formatted.some((a, i) => a.id !== assets[i]?.id || a.file_path !== assets[i]?.file_path);
 
         if (isDifferent) {
             // Revoke blobs for removed assets
-            const newPaths = new Set(formatted.map(a => a.filePath));
+            const newPaths = new Set(formatted.map(a => a.file_path));
             assets.forEach(a => {
-                const p = a.filePath || a.url;
+                const p = a.file_path || a.url;
                 if (p?.startsWith('blob:') && !newPaths.has(p)) {
                     URL.revokeObjectURL(p);
                 }
             });
-            assets = [...formatted].sort((a, b) => a.orderIndex - b.orderIndex);
+            assets = [...formatted].sort((a, b) => a.order_index - b.order_index);
         }
     }
 

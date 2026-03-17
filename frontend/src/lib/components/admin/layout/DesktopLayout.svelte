@@ -52,7 +52,7 @@
   <main class="flex-1 relative flex flex-col min-w-0">
     <!-- Header/Status Bar -->
     <header
-      class="h-12 border-b border-white/5 flex items-center justify-between px-5 bg-[#010101] z-30"
+      class="h-12 border-b border-white/5 flex items-center justify-between px-5 bg-[#020202] z-30"
       class:hidden={nanobot.isVuiActive && !nanobot.isTraining}
     >
       <div class="flex items-center gap-3">

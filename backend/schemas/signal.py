@@ -1,6 +1,7 @@
 """
 CNS Signal Schema (V70.0)
 Single Source of Truth for system-wide signal definition.
+Follows R105: Strict Schema Isolation.
 """
 from enum import Enum
 from typing import List, Optional, Dict, Union

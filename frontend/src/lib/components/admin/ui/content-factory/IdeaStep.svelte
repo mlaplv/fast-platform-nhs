@@ -44,7 +44,7 @@
       </div>
     </div>
     <div class="group/input">
-      <label class="text-[10px] text-white/40 uppercase font-bold mb-1.5 ml-1 block">Từ khóa phụ</label>
+      <label for="secondary-{campaign_id}" class="text-[10px] text-white/40 uppercase font-bold mb-1.5 ml-1 block">Từ khóa phụ</label>
       <div class="flex flex-wrap gap-2 p-3 bg-black/20 border border-white/10 rounded-xl min-h-[44px]">
         {#each (editedKeywords?.secondary_keywords || []) as kw, kwIdx}
           <span class="flex items-center gap-1 px-2 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-white/70">
@@ -62,6 +62,7 @@
           </span>
         {/each}
         <input
+          id="secondary-{campaign_id}"
           placeholder="Thêm từ khóa + Enter"
           class="flex-1 min-w-[120px] bg-transparent text-xs text-white/60 placeholder-white/20 outline-none"
           onkeydown={(e) => {
@@ -119,8 +120,9 @@
 
       <div class="grid grid-cols-2 gap-4">
         <div class="group/input">
-          <label class="text-[10px] text-white/40 uppercase font-bold mb-1.5 ml-1 block">Phong cách (Style)</label>
+          <label for="style-{campaign_id}" class="text-[10px] text-white/40 uppercase font-bold mb-1.5 ml-1 block">Phong cách (Style)</label>
           <select 
+            id="style-{campaign_id}"
             bind:value={editedConfig.style}
             class="w-full bg-black/10 border border-white/5 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-blue-500/50 transition-all"
           >
@@ -132,8 +134,9 @@
         </div>
 
         <div class="group/input">
-          <label class="text-[10px] text-white/40 uppercase font-bold mb-1.5 ml-1 block">Hình ảnh (Tối đa)</label>
+          <label for="assets-{campaign_id}" class="text-[10px] text-white/40 uppercase font-bold mb-1.5 ml-1 block">Hình ảnh (Tối đa)</label>
           <select 
+            id="assets-{campaign_id}"
             bind:value={editedConfig.max_assets}
             class="w-full bg-black/10 border border-white/5 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
           >
@@ -147,8 +150,9 @@
         </div>
 
         <div class="group/input">
-          <label class="text-[10px] text-white/40 uppercase font-bold mb-1.5 ml-1 block">Độ dài (Số từ)</label>
+          <label for="words-{campaign_id}" class="text-[10px] text-white/40 uppercase font-bold mb-1.5 ml-1 block">Độ dài (Số từ)</label>
           <select 
+            id="words-{campaign_id}"
             bind:value={editedConfig.word_count}
             class="w-full bg-black/10 border border-white/5 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
           >
@@ -160,8 +164,9 @@
         </div>
 
         <div class="group/input">
-          <label class="text-[10px] text-white/40 uppercase font-bold mb-1.5 ml-1 block">Mật độ đoạn (H2/H3)</label>
+          <label for="sections-{campaign_id}" class="text-[10px] text-white/40 uppercase font-bold mb-1.5 ml-1 block">Mật độ đoạn (H2/H3)</label>
           <select 
+            id="sections-{campaign_id}"
             bind:value={editedConfig.max_sections}
             class="w-full bg-black/10 border border-white/5 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
           >

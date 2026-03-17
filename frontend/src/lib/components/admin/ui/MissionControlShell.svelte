@@ -17,7 +17,7 @@
     maxWidth?: string;
     height?: string;
     children?: Snippet;
-    headerIcon?: string | Component<{ size?: number; class?: string }>;
+    headerIcon?: string | Component;
     zIndex?: string;
     backdropClass?: string;
   }

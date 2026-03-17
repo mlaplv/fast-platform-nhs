@@ -1,13 +1,8 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy } from "svelte";
   import type { GhostCompletionResponse } from "$lib/state/types";
 
   let { value = $bindable() } = $props();
-
-  // R82: Safe initialization for bindable prop
-  onMount(() => {
-    if (value === undefined) value = "";
-  });
 
   let ghostText = $state("");
   let textareaEl: HTMLTextAreaElement;
@@ -71,7 +66,9 @@
                 } else if (data.token) {
                   ghostText += data.token;
                 }
-              } catch { /* ignore parse error */ }
+              } catch (e) { 
+                console.warn("[AIEditorField] Parse error:", e);
+              }
             }
           }
         }

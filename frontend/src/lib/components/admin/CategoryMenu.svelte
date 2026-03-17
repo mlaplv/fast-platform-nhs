@@ -1,6 +1,6 @@
 <script lang="ts">
   import { nanobot, type WidgetType } from "$lib/state/nanobot.svelte";
-  import { onMount, type Component } from "svelte";
+  import type { Component } from "svelte";
   import Package from "lucide-svelte/icons/package";
   import Users from "lucide-svelte/icons/users";
   import Newspaper from "lucide-svelte/icons/newspaper";
@@ -16,11 +16,6 @@
   import { fade, fly } from "svelte/transition";
 
   let { open = $bindable() } = $props();
-
-  // R82: Safe initialization for bindable prop
-  onMount(() => {
-    if (open === undefined) open = false;
-  });
 
   interface SubItem {
     label: string;

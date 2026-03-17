@@ -1,44 +1,41 @@
-# QUY HOẠCH KIẾN TRÚC ELITE V2.2 (CONTROLLER -> SERVICE)
+# Task: Giai đoạn 7 - Advanced Asset Optimization & Smart Download
 
-## 🎯 MỤC TIÊU
-Nắn toàn bộ Backend về trục kiến trúc tinh gọn: Controller (Giao tiếp) -> Service (Logic & DB). Loại bỏ mọi lớp trung gian (Repository) vi phạm luật KISS/YAGNI.
+## 🎯 Mục tiêu
+Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt thông minh.
 
-## 📝 LỘ TRÌNH THỰC THI (CHECK-LIST)
+## 📝 Check-list
+- [x] Backend: Triển khai Dynamic Image Resizing API (Thumbnail Engine). <!-- id: 0 -->
+- [x] Backend: Triển khai API `/api/v1/media/bulk-download` (ZIP Generation). <!-- id: 1 -->
+- [x] Logic: Cập nhật `media.svelte.ts` hỗ trợ `bulkDownload`. <!-- id: 2 -->
+- [x] UI: Tích hợp Thumbnail preview vào Grid để tối ưu tốc độ load. <!-- id: 3 -->
+- [x] UI: Thêm nút "Tải xuống ZIP" vào Bulk Action Toolbar. <!-- id: 4 -->
+- [x] UI: Thêm tính năng "Quick Edit" (Xoay/Lật ảnh) trong Detail Panel. <!-- id: 5 -->
 
-### GIAI ĐOẠN 1: QUY HOẠCH CONTENT ENGINE (ARTICLE/NEWS)
-- [x] Khởi tạo `backend/services/content_service.py` chứa logic Article CRUD + Embedding + Slug. <!-- id: 200 -->
-- [x] Refactor `ArticleController`: Loại bỏ dependency `ArticleRepository`, gọi thẳng `ContentService`. <!-- id: 201 -->
-- [x] Thanh lý `backend/database/repositories/article_repository.py`. <!-- id: 202 -->
+## 🛠️ Trạng thái: Completed Phase 8
+- AI Semantic Search (Vector Match) hoạt động cực nhạy với tiếng Việt.
+- Surgical Update + Cache-busting đảm bảo UX siêu tốc.
+- Cơ chế tự dọn dẹp (Cleanup Loop) bảo vệ tài nguyên server.
+- Giao diện AI Processing mượt mà, hiện đại.
 
-### GIAI ĐOẠN 2: CHUẨN HÓA VOICE & STT PIPELINE
-- [x] Khởi tạo `backend/services/voice_service.py`: Gộp logic từ `voice_stream.py` và `STTCorrector`. <!-- id: 203 -->
-- [x] Refactor `stt_websocket`: Chỉ giữ lại logic nhận/gửi message, xử lý audio đẩy xuống `VoiceService`. <!-- id: 204 -->
+## 🎯 Giai đoạn 9: Cloud Ecosystem & CDN Integration
+- [x] Backend: Triển khai S3/Cloudflare R2 Provider (Hỗ trợ Multi-storage). <!-- id: 11 -->
+- [x] Backend: Tích hợp CDN Cache Invalidation khi edit ảnh trên Cloud. <!-- id: 12 -->
+- [x] Logic: Hỗ trợ "Remote Fetch" (Tải ảnh từ URL trực tiếp vào Library). <!-- id: 13 -->
+- [x] UI: Dashboard thống kê dung lượng và định dạng tài nguyên. <!-- id: 14 -->
+- [x] UI: Tích hợp FileManager vào CKEditor/Article Editor làm Plugin. <!-- id: 15 -->
 
-### GIAI ĐOẠN 3: NẮN DÒNG USER & ORDER (TRỤC XƯƠNG SỐNG)
-- [x] Hoàn thiện `backend/services/user_service.py`: Gộp logic User, Role, Permission. <!-- id: 207 -->
-- [x] Refactor `UserController`: Gọi thẳng `UserService`, xóa bỏ dependencies Repository. <!-- id: 208 -->
-- [x] Khởi tạo `backend/services/order_service.py`: Chứa logic Order + Anti-Spam Trigger. <!-- id: 209 -->
-- [x] Refactor `OrderController`: Chuyển logic State Machine và Event Emit vào `OrderService`. <!-- id: 210 -->
+## 🎯 Giai đoạn 10: Elite Optimization & Safety (COMPLETED)
+- [x] UI: Image Crop & Transformation Presets (Square, Banner, Story). <!-- id: 16 -->
+- [x] Backend: Dynamic Watermarking Engine (Logo overlay + Text Fallback). <!-- id: 17 -->
+- [x] UI/UX: Trash Bin & Soft-delete Recovery logic. <!-- id: 18 -->
+- [x] Backend: RBAC for Media Assets (Private vs Public). <!-- id: 19 -->
+- [x] Backend: Auto-purge Trash Bin logic (30 days lifecycle). <!-- id: 20 -->
 
-### GIAI ĐOẠN 4: THANH LÝ & ĐÓNG GÓI (FINAL CLEANUP)
-- [x] Khởi tạo `backend/services/notification_service.py`. <!-- id: 211 -->
-- [x] Refactor `NotificationController` & `AIController`. <!-- id: 212 -->
-- [x] **XÓA BỎ VĨNH VIỄN** `backend/database/repositories.py` và các provider liên quan. <!-- id: 213 -->
-- [x] Kiểm tra ép kiểu tĩnh 100% (No `Any`) và hiệu năng (RAM < 2GB). <!-- id: 214 -->
-- [x] Đồng bộ hóa `walkthrough.md` và đóng gói commit. <!-- id: 215 -->
-- [x] Refactor MediaService & Global Zero-Hydration Sweep (Rule 1.5). <!-- id: 216 -->
+## 🎯 Giai đoạn 11: AI-Driven Media Intelligence & Auto-SEO
+- [x] Backend: Tích hợp Vision Model tự động sinh Alt-text và Tags. <!-- id: 21 -->
+- [x] Backend: Thuật toán nhận diện Focal Point (Điểm tụ) để Smart Crop. <!-- id: 22 -->
+- [x] Logic: Auto-conversion sang WebP/AVIF tối ưu dung lượng (WebP 90). <!-- id: 23 -->
+- [x] UI: Giao diện Bulk SEO Editor (Cập nhật Alt-text hàng loạt). <!-- id: 24 -->
+- [x] UI: Hiển thị AI suggestions trong Detail Panel. <!-- id: 25 -->
+- [x] UI: Vá lỗi cú pháp và tối ưu Ghost Text completion cho AIEditorField. <!-- id: 26 -->
 
-### GIAI ĐOẠN 5: KIỂM TOÁN TỔNG THỂ & DỌN RÁC (AUDIT PHASE)
-- [x] Vẽ bản đồ kiến trúc hoàn công Elite V2.2. <!-- id: 217 -->
-- [x] Trinh sát và lập danh sách file "mìn" (Orphan Files). <!-- id: 218 -->
-- [x] Chờ duyệt và thực hiện lệnh "Thanh tẩy" (Purge). <!-- id: 219 -->
-- [x] Di chuyển nốt các Schema từ `models/` nội bộ sang `schemas/`. <!-- id: 220 -->
-- [x] Xóa bỏ hoàn toàn trạm Schema nội bộ tại Creative Studio. <!-- id: 221 -->
-
-## ✅ TRẠNG THÁI: HOÀN TẤT TINH KHIẾT (ELITE V2.2)
-- [x] Toàn bộ Backend đã chuyển sang mô hình Service-Centric.
-- [x] Đã xóa bỏ Repository Layer (Rule KISS/YAGNI).
-- [x] Đạt 100% Type Safety.
-- [x] Zero-Hydration cho các luồng dữ liệu cao tần (R1.5).
-- [x] Đã gỡ bỏ toàn bộ ORM Model imports khỏi Service layer.
-- [x] Creative Studio & AI Engine đã được nắn dòng Zero-Hydration.

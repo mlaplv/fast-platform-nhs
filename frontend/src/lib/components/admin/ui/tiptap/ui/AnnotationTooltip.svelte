@@ -1,15 +1,18 @@
+```
 <script lang="ts">
   import Sparkles from 'lucide-svelte/icons/sparkles';
   import Check from 'lucide-svelte/icons/check';
 
-  let {
-    visible = $bindable(),
-    x,
-    y,
-    type,
-    text,
+  import { onMount } from "svelte";
+
+  let { 
+    visible = $bindable(), 
+    x, 
+    y, 
+    type, 
+    text, 
     isFixing,
-    onFix
+    onFix 
   }: {
     visible: boolean;
     x: number;
@@ -19,6 +22,10 @@
     isFixing: boolean;
     onFix: () => void;
   } = $props();
+
+  onMount(() => {
+    if (visible === undefined) visible = false;
+  });
 
   let tooltipEl = $state<HTMLElement | null>(null);
 

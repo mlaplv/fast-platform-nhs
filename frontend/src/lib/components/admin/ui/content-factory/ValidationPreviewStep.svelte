@@ -40,7 +40,7 @@
   
   let thumbnail = $derived.by(() => {
     if (assets.length === 0) return "https://via.placeholder.com/600x315?text=No+Image";
-    const primary = assets.find(a => typeof a === 'object' && a.isPrimary);
+    const primary = assets.find(a => typeof a === 'object' && a.is_primary);
     const first = primary || assets[0];
     const url = typeof first === 'string' ? first : first.url;
     return fixUrl(url);

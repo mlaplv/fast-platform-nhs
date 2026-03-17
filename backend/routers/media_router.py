@@ -7,9 +7,9 @@ from litestar.params import Body
 from litestar.response import Redirect
 from litestar.di import Provide
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from backend.services.media_service import media_service
-from backend.schemas.media import (
+from backend.database.repositories import MediaRegistryRepository, provide_media_repo
+from backend.services.media.media_service import media_service
+from backend.services.media.schemas import (
     MediaListResponse,
     MediaStatsResponse,
     MediaUpdateMetadata,
@@ -27,18 +27,19 @@ from backend.schemas.media import (
     FetchRemoteRequest,
     MimeTypeBreakdown
 )
-from backend.schemas.campaign import GenericResponse
+from backend.models.schemas import GenericResponse
 
 logger = logging.getLogger("media-api")
 
 class MediaController(Controller):
     path = "/api/v1/media"
+    dependencies = {"media_repo": Provide(provide_media_repo)}
 
     @get("/")
     async def list_media(
         self,
         request: Request,
-        db_session: AsyncSession,
+        media_repo: MediaRegistryRepository,
         campaign_id: Optional[str] = None,
         q: Optional[str] = None,
         limit: int = 50,
@@ -53,7 +54,7 @@ class MediaController(Controller):
         owner_id = user.get("sub") or user.get("id")
 
         result = await media_service.list_assets(
-            session=db_session,
+            repo=media_repo,
             campaign_id=campaign_id,
             search_query=q,
             limit=limit,
@@ -76,7 +77,7 @@ class MediaController(Controller):
     async def upload_media(
         self,
         request: Request,
-        db_session: AsyncSession,
+        media_repo: MediaRegistryRepository,
         data: UploadFile = Body(media_type=RequestEncodingType.MULTI_PART),
         campaign_id: Optional[str] = None
     ) -> MediaDetailResponse:
@@ -86,7 +87,7 @@ class MediaController(Controller):
 
         content = await data.read()
         asset = await media_service.upload_asset(
-            session=db_session,
+            repo=media_repo,
             file_content=content,
             filename=data.filename,
             content_type=data.content_type,
@@ -100,15 +101,15 @@ class MediaController(Controller):
 
         return MediaDetailResponse(
             status="success",
-            data=MediaAssetResponse.from_record(asset)
+            data=MediaAssetResponse.from_orm_model(asset)
         )
 
     @get("/stats")
-    async def get_media_stats(self, request: Request, db_session: AsyncSession) -> MediaStatsResponse:
+    async def get_media_stats(self, request: Request, media_repo: MediaRegistryRepository) -> MediaStatsResponse:
         """Lấy số liệu thống kê kho tài nguyên (V9.0 Analytics)."""
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
-        stats = await media_service.get_stats(db_session, owner_id=owner_id)
+        stats = await media_service.get_stats(media_repo, owner_id=owner_id)
 
         return MediaStatsResponse(
             status="success",
@@ -121,20 +122,22 @@ class MediaController(Controller):
         )
 
     @get("/{asset_id:str}")
-    async def get_media_detail(self, asset_id: str, request: Request, db_session: AsyncSession) -> Union[MediaDetailResponse, GenericResponse]:
-        """Lấy thông tin chi tiết một tài nguyên (Zero-Hydration)."""
+    async def get_media_detail(self, asset_id: str, request: Request, media_repo: MediaRegistryRepository) -> Union[MediaDetailResponse, GenericResponse]:
+        """Lấy thông tin chi tiết một tài nguyên."""
         logger.info(f"[MediaRouter] GET detail for asset: {asset_id}")
+        asset = await media_repo.get(str(asset_id))
+        if not asset:
+            return GenericResponse(status="error", message="Asset not found")
 
+        # RBAC Check (V10.0 Elite)
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
-
-        asset = await media_service.get_asset(db_session, str(asset_id), owner_id=owner_id)
-        if not asset:
-            return GenericResponse(status="error", message="Asset not found or access denied")
+        if not asset.is_public and asset.owner_id and asset.owner_id != owner_id:
+            return GenericResponse(status="error", message="Access denied")
 
         return MediaDetailResponse(
             status="success",
-            data=asset
+            data=MediaAssetResponse.from_orm_model(asset)
         )
 
     @patch("/{asset_id:str}")
@@ -142,7 +145,7 @@ class MediaController(Controller):
         self,
         asset_id: str,
         request: Request,
-        db_session: AsyncSession,
+        media_repo: MediaRegistryRepository,
         data: MediaUpdateMetadata
     ) -> GenericResponse:
         """Cập nhật Metadata (Alt text, Tags) - Đẳng cấp SEO."""
@@ -150,7 +153,7 @@ class MediaController(Controller):
         owner_id = user.get("sub") or user.get("id")
 
         updated = await media_service.update_metadata(
-            db_session,
+            media_repo,
             str(asset_id),
             data,
             owner_id=owner_id
@@ -166,7 +169,7 @@ class MediaController(Controller):
         self,
         asset_id: str,
         request: Request,
-        db_session: AsyncSession,
+        media_repo: MediaRegistryRepository,
         permanent: bool = False
     ) -> GenericResponse:
         """
@@ -177,7 +180,7 @@ class MediaController(Controller):
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
 
-        success = await media_service.delete_asset(db_session, str(asset_id), permanent=permanent, owner_id=owner_id)
+        success = await media_service.delete_asset(media_repo, str(asset_id), permanent=permanent, owner_id=owner_id)
 
         if success:
             msg = "Asset moved to trash." if not permanent else "Asset permanently purged."
@@ -186,12 +189,12 @@ class MediaController(Controller):
             return GenericResponse(status="error", message="Asset not found or unauthorized")
 
     @post("/{asset_id:str}/restore")
-    async def restore_media(self, asset_id: str, request: Request, db_session: AsyncSession) -> GenericResponse:
+    async def restore_media(self, asset_id: str, request: Request, media_repo: MediaRegistryRepository) -> GenericResponse:
         """Khôi phục tài nguyên từ Thùng rác (V10.0)."""
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
 
-        success = await media_service.restore_asset(db_session, str(asset_id), owner_id=owner_id)
+        success = await media_service.restore_asset(media_repo, str(asset_id), owner_id=owner_id)
         if success:
             return GenericResponse(status="success", message="Asset restored successfully.")
         else:
@@ -201,7 +204,7 @@ class MediaController(Controller):
     async def bulk_delete_media(
         self,
         request: Request,
-        db_session: AsyncSession,
+        media_repo: MediaRegistryRepository,
         data: BulkDeleteRequest
     ) -> GenericResponse:
         """Xóa hàng loạt tài nguyên (Hỗ trợ Soft-delete V10.0)."""
@@ -209,7 +212,7 @@ class MediaController(Controller):
         owner_id = user.get("sub") or user.get("id")
 
         success = await media_service.bulk_delete(
-            db_session,
+            media_repo,
             data.ids,
             permanent=data.permanent,
             owner_id=owner_id
@@ -226,16 +229,20 @@ class MediaController(Controller):
         self,
         asset_id: str,
         request: Request,
-        db_session: AsyncSession,
+        media_repo: MediaRegistryRepository,
         w: int = 300,
         q: int = 75
     ) -> Redirect:
-        """Lấy đường dẫn Thumbnail cho ảnh (Zero-Hydration)."""
+        """Lấy đường dẫn Thumbnail cho ảnh (V76 Dynamic Engine)."""
+        asset = await media_repo.get(str(asset_id))
+        if not asset:
+            return Redirect(path="/v65_assets/placeholder.webp")
+
+        # RBAC Check (V10.0 Elite)
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
-
-        asset = await media_service.get_asset(db_session, str(asset_id), owner_id=owner_id)
-        if not asset:
+        if not asset.is_public and asset.owner_id and asset.owner_id != owner_id:
+            # Nếu không có quyền xem, trả về placeholder mờ ảo
             return Redirect(path="/v65_assets/placeholder.webp")
 
         thumb_path = await media_service.get_thumbnail(asset.file_path, width=w, quality=q)
@@ -246,16 +253,16 @@ class MediaController(Controller):
         self,
         asset_id: str,
         request: Request,
-        db_session: AsyncSession,
+        media_repo: MediaRegistryRepository,
         data: QuickEditRequest
     ) -> Union[QuickEditResponse, GenericResponse]:
-        """Xử lý nhanh ảnh (Xoay/Lật/Crop/Watermark) - Zero-Hydration."""
+        """Xử lý nhanh ảnh (Xoay/Lật/Crop/Watermark) - V10.0 Elite Engine."""
         logger.info(f"[MediaRouter] Quick edit request for asset: {asset_id}, action: {data.action}")
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
 
         asset = await media_service.quick_edit(
-            db_session,
+            media_repo,
             str(asset_id),
             data.action,
             params=data.params,
@@ -266,7 +273,7 @@ class MediaController(Controller):
         if asset:
             return QuickEditResponse(
                 status="success",
-                data=MediaAssetResponse.from_record(asset)
+                data=MediaAssetResponse.from_orm_model(asset)
             )
         else:
             return GenericResponse(status="error", message="Quick edit failed or unauthorized.")
@@ -275,14 +282,14 @@ class MediaController(Controller):
     async def bulk_download_media(
         self,
         request: Request,
-        db_session: AsyncSession,
+        media_repo: MediaRegistryRepository,
         data: BulkDownloadRequest
     ) -> Union[BulkDownloadResponse, GenericResponse]:
         """Tạo gói ZIP tải xuống hàng loạt (V76 Smart Download)."""
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
 
-        zip_url = await media_service.create_bulk_zip(db_session, data.ids, owner_id=owner_id)
+        zip_url = await media_service.create_bulk_zip(media_repo, data.ids, owner_id=owner_id)
 
         if zip_url:
             return BulkDownloadResponse(
@@ -296,7 +303,7 @@ class MediaController(Controller):
     async def fetch_remote_media(
         self,
         request: Request,
-        db_session: AsyncSession,
+        media_repo: MediaRegistryRepository,
         data: FetchRemoteRequest
     ) -> Union[MediaDetailResponse, GenericResponse]:
         """Tải ảnh từ URL bên ngoài vào hệ thống (V9.0)."""
@@ -304,7 +311,7 @@ class MediaController(Controller):
         owner_id = user.get("sub") or user.get("id")
 
         asset = await media_service.fetch_remote_asset(
-            session=db_session,
+            repo=media_repo,
             url=data.url,
             campaign_id=data.campaign_id,
             owner_id=owner_id
@@ -313,7 +320,7 @@ class MediaController(Controller):
         if asset:
             return MediaDetailResponse(
                 status="success",
-                data=MediaAssetResponse.from_record(asset)
+                data=MediaAssetResponse.from_orm_model(asset)
             )
         else:
             return GenericResponse(status="error", message="Failed to fetch remote asset.")

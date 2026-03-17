@@ -64,8 +64,8 @@
     if (base && base.includes("[IMAGE_")) {
       const assetList = Array.isArray(assets) ? assets : [];
       assetList.forEach((asset, i) => {
-        // Fallback-first mapping: priority to filePath if available
-        const url = typeof asset === 'string' ? asset : (asset.filePath || asset.url);
+        // Fallback-first mapping: priority to file_path if available
+        const url = typeof asset === 'string' ? asset : (asset.file_path || asset.url);
         const local = fixUrl(url);
         const placeholder = `[IMAGE_${i + 1}]`;
         // Surgical replacement: Handle markers inside src first
@@ -152,6 +152,13 @@
   };
 
   onMount(() => {
+    // Rule R03: Bindable Safety
+    if (editedDraft === undefined) editedDraft = "";
+    if (draft_content === undefined) draft_content = "";
+    if (copyrightScore === undefined) copyrightScore = 0;
+    if (seoScore === undefined) seoScore = 0;
+    if (aiScore === undefined) aiScore = 0;
+
     // Phase 102: Restoration Logic — if metrics exist but result is empty, restore local result
     if (analysis_cache) {
        if (analysis_cache.copyright?.data) {

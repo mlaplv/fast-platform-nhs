@@ -1,8 +1,10 @@
 import { Plugin, PluginKey } from '@tiptap/pm/state';
+import type { EditorState, Transaction } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { Node } from '@tiptap/pm/model';
+import type { EditorView } from '@tiptap/pm/view';
 import { Extension } from '@tiptap/core';
 import type { EditorAnnotation } from '$lib/types';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 
 export const AnnotationPluginKey = new PluginKey('xohi-annotation-plugin');
 
@@ -16,22 +18,22 @@ export interface AnnotationPluginState {
  * Uses Decorations instead of Marks to ensure document integrity and support overlapping highlights.
  */
 export const AnnotationPlugin = () => {
-  return new Plugin({
+  return new Plugin<AnnotationPluginState>({
     key: AnnotationPluginKey,
     state: {
-      init(_, { doc }) {
+      init(_: unknown, { doc }: { doc: ProseMirrorNode }): AnnotationPluginState {
         return {
           annotations: [],
           decorations: DecorationSet.empty,
         };
       },
-      apply(tr, value, oldState, newState) {
+      apply(tr: Transaction, value: AnnotationPluginState, oldState: EditorState, newState: EditorState): AnnotationPluginState {
         // Handle metadata updates for annotations
         const meta = tr.getMeta(AnnotationPluginKey);
         if (meta && meta.type === 'SET_ANNOTATIONS') {
           return {
             annotations: meta.annotations,
-            decorations: createDecorations(newState.doc, meta.annotations),
+            decorations: createDecorations(newState.doc as ProseMirrorNode, meta.annotations),
           };
         }
 
@@ -43,11 +45,11 @@ export const AnnotationPlugin = () => {
       },
     },
     props: {
-      decorations(state) {
-        return this.getState(state)?.decorations;
+      decorations(state: EditorState) {
+        return AnnotationPluginKey.getState(state)?.decorations;
       },
       handleDOMEvents: {
-        mousemove(view, event) {
+        mousemove(view: EditorView, event: MouseEvent) {
           // Rule R82.47: Tooltip Capture — Centralized event handling
           const target = event.target as Node;
           const targetEl = target.nodeType === 3 ? (target.parentElement as HTMLElement) : (target as HTMLElement);
@@ -95,7 +97,7 @@ export const AnnotationPlugin = () => {
           }
           return false;
         },
-        mouseleave(view) {
+        mouseleave(view: EditorView) {
           view.dom.dispatchEvent(new CustomEvent('annotation-leave', { bubbles: true, composed: true }));
           return false;
         }
@@ -118,7 +120,7 @@ export const AnnotationExtension = Extension.create({
 /**
  * Creates DecorationSet by scanning the document for all annotation occurrences.
  */
-function createDecorations(doc: Node, annotations: EditorAnnotation[]): DecorationSet {
+function createDecorations(doc: ProseMirrorNode, annotations: EditorAnnotation[]): DecorationSet {
   const decorations: Decoration[] = [];
   if (!annotations.length) return DecorationSet.empty;
 
@@ -130,7 +132,7 @@ function createDecorations(doc: Node, annotations: EditorAnnotation[]): Decorati
   let fullText = '';
   const posMap: number[] = [];
 
-  doc.descendants((node: Node, pos: number) => {
+  doc.descendants((node: ProseMirrorNode, pos: number) => {
     if (node.isText && node.text) {
       const text = node.text;
       for (let i = 0; i < text.length; i++) {

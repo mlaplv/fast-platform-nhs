@@ -1,6 +1,8 @@
 <script lang="ts">
-  let {
-    show = $bindable(),
+  import { onMount } from "svelte";
+
+  let { 
+    show = $bindable(), 
     currentUrl = '',
     onApply
   }: {
@@ -8,6 +10,10 @@
     currentUrl: string;
     onApply: (url: string) => void;
   } = $props();
+
+  onMount(() => {
+    if (show === undefined) show = false;
+  });
 
   let linkUrl = $state('');
   

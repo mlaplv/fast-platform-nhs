@@ -55,7 +55,9 @@ export function playSciFiBeep(): void {
     osc2.start(now);
     osc1.stop(now + 0.16);
     osc2.stop(now + 0.16);
-  } catch {}
+  } catch (e) {
+    console.warn("[SFX] playSciFiBeep failed:", e);
+  }
 }
 
 /**
@@ -74,7 +76,9 @@ export function playTick(): void {
     osc.connect(gain).connect(ctx.destination);
     osc.start(now);
     osc.stop(now + 0.06);
-  } catch {}
+  } catch (e) {
+    console.warn("[SFX] playTick failed:", e);
+  }
 }
 
 /**
@@ -109,5 +113,7 @@ export function playSiriDing(): void {
     o2.connect(g2).connect(ctx.destination);
     o2.start(now + 0.1);
     o2.stop(now + 0.23);
-  } catch {}
+  } catch (e) {
+    console.warn("[SFX] playSiriDing failed:", e);
+  }
 }

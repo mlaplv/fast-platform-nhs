@@ -9,7 +9,7 @@
   let showCropPresets = $state(false);
   let isCropping = $state(false);
 
-  const isPrimary = $derived(asset.isPrimary);
+  const isPrimary = $derived(asset.is_primary);
 
   let pendingPreset = $state<'square' | 'banner' | 'story' | 'feed' | null>(null);
 
@@ -33,7 +33,7 @@
 >
   <!-- Thumbnail -->
   <img
-    src={asset.filePath}
+    src={asset.file_path}
     alt="Asset {index}"
     class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
     class:blur-sm={isCropping}
@@ -97,8 +97,8 @@
 
   <!-- CNS V76: Logic Badge Display (Enhanced) -->
   <div class="absolute top-4 right-4 flex flex-col items-end gap-1.5 z-20">
-      {#if asset.mediaMetadata?.aiAnalyzed || asset.mediaMetadata?.focalPoint}
-        <div
+      {#if asset.media_metadata?.ai_analyzed || asset.media_metadata?.focal_point}
+        <div 
             class="bg-indigo-500/20 backdrop-blur-xl border border-indigo-500/40 px-3 py-1 rounded-full flex items-center gap-1.5"
             transition:scale
         >

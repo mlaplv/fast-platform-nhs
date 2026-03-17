@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { type Component, type Snippet } from "svelte";
+  import { type Component } from "svelte";
   import ToastNotification from "$lib/components/admin/ui/ToastNotification.svelte";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { vuiController } from "$lib/vui";
 
   let { children, userEmail, isMobile } = $props<{
-    children?: Snippet;
+    children?: import("svelte").Snippet;
     userEmail?: string;
     isMobile?: boolean;
   }>();
@@ -13,7 +13,7 @@
   let mounted = $state(false);
 
   // Dynamic Components
-  let LayoutComponent = $state<Component<{ children?: Snippet }>>();
+  let LayoutComponent = $state<Component>();
 
   $effect(() => {
     (async () => {
@@ -61,7 +61,7 @@
 {:else}
   <!-- Essential Base Loading (Vantablack Minimal) -->
   <div
-    class="fixed inset-0 bg-[#010101] flex items-center justify-center z-[100]"
+    class="fixed inset-0 bg-[#050505] flex items-center justify-center z-[100]"
   >
     <div class="flex flex-col items-center gap-4">
       <div class="relative w-16 h-16 flex items-center justify-center">

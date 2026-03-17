@@ -2,6 +2,8 @@
   import type { MediaAsset } from "$lib/state/types";
   import MediaModal from "$lib/components/media/MediaModal.svelte";
 
+  import { onMount } from "svelte";
+
   let {
     show = $bindable(),
     assets = [] as (MediaAsset | string)[],
@@ -11,6 +13,10 @@
     assets: (MediaAsset | string)[];
     onSelect: (url: string) => void;
   } = $props();
+
+  onMount(() => {
+    if (show === undefined) show = false;
+  });
 
   let imageUrl = $state('');
   let fileInput = $state<HTMLInputElement | null>(null);
@@ -59,7 +65,11 @@
             <h3 class="text-xl font-black text-white tracking-tighter uppercase italic">Media Intelligence</h3>
             <p class="text-[10px] text-zinc-500 font-mono tracking-[0.2em] uppercase">Visual Assets Command Center</p>
         </div>
-        <button onclick={() => show = false} class="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all active:scale-95">
+        <button 
+          onclick={() => show = false} 
+          class="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all active:scale-95"
+          aria-label="Close dialog"
+        >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
       </div>
@@ -123,7 +133,7 @@
             
             <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar pb-4">
                 {#each assets.filter(a => a) as asset}
-                  {@const assetUrl = typeof asset === 'string' ? asset : (asset.filePath || asset.url || asset.link || '')}
+                  {@const assetUrl = typeof asset === 'string' ? asset : (asset.file_path || asset.url || asset.link || '')}
                   {@const fullUrl = assetUrl && (assetUrl.startsWith('http') || assetUrl.startsWith('data:')) ? assetUrl : (assetUrl.startsWith('/') ? assetUrl : '/storage/' + assetUrl)}
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -159,7 +169,7 @@
   <MediaModal
     bind:show={showMediaLibrary}
     onSelect={(asset) => {
-      onSelect(asset.filePath);
+      onSelect(asset.file_path);
       showMediaLibrary = false;
       show = false;
     }}

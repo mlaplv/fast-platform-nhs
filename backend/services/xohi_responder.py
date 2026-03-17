@@ -2,32 +2,15 @@ import logging
 import uuid
 import json
 import asyncio
-from typing import Dict, Union, Optional, List, TypedDict, cast
+from typing import Dict, Union, Optional
 from sqlalchemy import text
 from backend.services.event_bus import event_bus
 from backend.database import alchemy_config
-from backend.services.anti_spam import anti_spam_service as anti_spam, OrderSpamData
+# R105: Top-level imports for high-frequency responders
+from backend.services.anti_spam import anti_spam_service as anti_spam
 from backend.services.xohi_memory import xohi_memory
 
 logger = logging.getLogger("api-gateway")
-
-class OrderCreatedPayload(TypedDict):
-    id: str
-    ip: str
-    user_agent: str
-    tenant_id: str
-    total_amount: float
-    phone: str
-    address: str
-    customer: str
-    items: List[Dict[str, object]] # Optimized for Ultra-Lean V2.2
-
-class ContentStepPayload(TypedDict):
-    campaign_id: str
-    user_id: str
-    step: int
-    status: str
-    tenant_id: Optional[str]
 
 class XoHiResponder:
     """
@@ -37,35 +20,24 @@ class XoHiResponder:
     def __init__(self):
         self.session_maker = alchemy_config.create_session_maker()
 
-    async def handle_order_created(self, payload_raw: Dict[str, object]):
+    async def handle_order_created(self, payload: Dict[str, object]):
         """Callback for ORDER_CREATED event. Marks spam and notifies admins."""
-        payload = cast(OrderCreatedPayload, payload_raw)
-        order_id = str(payload.get("id", ""))
-        ip = str(payload.get("ip", "unknown"))
-        ua = str(payload.get("user_agent", "unknown"))
-        tenant_id = str(payload.get("tenant_id", "default"))
-        total_amount = float(payload.get("total_amount", 0.0))
-        phone = str(payload.get("phone", "unspecified"))
-        address = str(payload.get("address", ""))
+        order_id = payload.get("id")
+        ip = payload.get("ip", "unknown")
+        ua = payload.get("user_agent", "unknown")
+        tenant_id = payload.get("tenant_id")
+        total_amount = payload.get("total_amount", 0.0)
+        phone = payload.get("phone", "unspecified")
+        address = payload.get("address", "")
 
         # 1. Anti-Spam Check (Proactive Defense)
         # Read Campaign Mode from Redis
-        if xohi_memory.client is None:
-            is_campaign_mode = False
-        else:
-            campaign_flag = await xohi_memory.client.get("system:campaign_mode")
-            is_campaign_mode = (campaign_flag == b"1")
-
-        spam_data: OrderSpamData = {
-            "phone": phone,
-            "address": address,
-            "total": total_amount,
-            "items": cast(List[Dict[str, object]], payload.get("items", []))
-        }
+        campaign_flag = await xohi_memory.client.get("system:campaign_mode")
+        is_campaign_mode = (campaign_flag == b"1")
 
         is_spam, reason, score, fingerprint = await anti_spam.check_order_spam(
             ip, ua, tenant_id,
-            spam_data,
+            {"total": total_amount, "phone": phone, "address": address, "items": payload.get("items", [])},
             is_campaign_mode=is_campaign_mode
         )
 
@@ -123,12 +95,11 @@ class XoHiResponder:
                 await session.rollback()
                 logger.error(f"[XoHiResponder] Atomic Order Processing failed: {e}")
 
-    async def handle_order_cancelled(self, payload_raw: Dict[str, object]):
+    async def handle_order_cancelled(self, payload: Dict[str, object]):
         """Callback for ORDER_CANCELLED event."""
-        payload = cast(Dict[str, object], payload_raw)
-        order_id = str(payload.get("id", ""))
-        reason = str(payload.get("reason", "Không rõ lý do"))
-        tenant_id = str(payload.get("tenant_id", "default"))
+        order_id = payload.get("id")
+        reason = payload.get("reason", "Không rõ lý do")
+        tenant_id = payload.get("tenant_id")
         msg = f"Khách đã HỦY đơn {order_id[:8]}. Lý do: {reason}"
 
         async with self.session_maker() as session:
@@ -142,14 +113,13 @@ class XoHiResponder:
             await session.commit()
         logger.info(f"[XoHiResponder] Handled ORDER_CANCELLED: {order_id}")
 
-    async def handle_content_step_completed(self, payload_raw: Dict[str, object]):
+    async def handle_content_step_completed(self, payload: Dict[str, object]):
         """Callback for CONTENT_STEP_COMPLETED event."""
-        payload = cast(ContentStepPayload, payload_raw)
-        campaign_id = str(payload.get("campaign_id", ""))
-        user_id = str(payload.get("user_id", ""))
-        step = int(payload.get("step", 0))
-        status = str(payload.get("status", ""))
-        tenant_id = str(payload.get("tenant_id") or "default")
+        campaign_id = payload.get("campaign_id")
+        user_id = payload.get("user_id")
+        step = payload.get("step")
+        status = payload.get("status")
+        tenant_id = payload.get("tenant_id", "default")
 
         msg = f"[Content] Hoàn thành Bước {step}. Đang chờ sếp duyệt."
         if status == "COMPLETED" and step == 6:
@@ -211,7 +181,7 @@ class XoHiResponder:
         if not asset_id:
             return
 
-        from backend.services.creative_studio.media_analyst import MediaAnalyst
+        from backend.services.xohi.creative_studio.operatives.media_analyst import MediaAnalyst
         analyst = MediaAnalyst()
         # Chạy phân tích trong background (Non-blocking)
         asyncio.create_task(analyst.process_registry_entry(asset_id))

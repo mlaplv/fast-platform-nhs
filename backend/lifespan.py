@@ -8,14 +8,14 @@ from litestar import Litestar
 
 from backend.database import alchemy_config
 from backend.database.models import VoiceProfile, ChatMessage
-from backend.services.ai_engine.key_rotator import key_rotator
+from backend.services.ai_engine.core.key_rotator import key_rotator
 from backend.services.xohi_memory import xohi_memory
 from backend.utils.security import GeminiSecurity
 from backend.utils.text import normalize_vn
 from backend.services.event_bus import event_bus
 from backend.services.xohi_responder import setup_subscriptions
-from backend.services.creative_studio.orchestrator import content_factory
-from backend.services.ai_engine.trinity_bridge import trinity_bridge
+from backend.services.xohi.creative_studio.orchestrator import content_factory
+from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.http_client import SharedHttpClient
 
 logger = logging.getLogger("api-gateway")
@@ -65,21 +65,23 @@ async def lifespan(app: Litestar):
 
         # Zero-Cold-Start Warmups
         try:
-            from backend.services.ai_engine.encoder_singleton import warmup_encoder
+            from backend.services.ai_engine.core.encoder_singleton import warmup_encoder
             await _aio.wait_for(warmup_encoder(), timeout=30)
-            from backend.services.ai_engine.semantic_router import SemanticRouter
+            from backend.services.ai_engine.core.semantic_router import SemanticRouter
             await _aio.wait_for(SemanticRouter().warmup(), timeout=30)
             logger.info("[Trinity Core] AI warmup complete.")
         except Exception as e:
             logger.critical(f"[Trinity Core] Warmup failed: {e}")
 
         # Start Background Loops
+        heartbeat_task = _aio.create_task(_heartbeat_loop())
         purge_task = _aio.create_task(_auto_purge_loop())
         media_cleanup_task = _aio.create_task(_media_cleanup_loop())
         _aio.create_task(content_factory.resume_all())
 
         yield
     finally:
+        if heartbeat_task: heartbeat_task.cancel()
         if purge_task: purge_task.cancel()
         if media_cleanup_task: media_cleanup_task.cancel()
         await event_bus.stop()
@@ -117,7 +119,7 @@ async def _auto_purge_loop():
 
 async def _media_cleanup_loop():
     """V76: Media Cleanup Cycle - Chạy mỗi 12h."""
-    from backend.services.media_service import media_service
+    from backend.services.media.media_service import media_service
     # Chờ 10p sau khi khởi động để tránh làm nặng hệ thống lúc boot
     await _aio.sleep(600)
     while True:

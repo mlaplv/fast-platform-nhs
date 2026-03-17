@@ -15,16 +15,22 @@ import logging
 from typing import AsyncGenerator, Optional, Dict, Union, List
 
 from litestar import Controller, post, Request
+from litestar.di import Provide
 from litestar.response import Stream
+from litestar.repository.filters import LimitOffset
 
 from backend.schemas.intent import IntentRequest, IntentResponse, IntentAction, RouterTier
-from backend.services.intent_orchestrator import orchestrator
-from backend.services.ai_engine.semantic_shield import SemanticShield
-from backend.services.user_service import user_service
-from backend.services.chat_service import chat_service
-from backend.services.telemetry_service import telemetry_service
-from backend.services.xohi_memory import xohi_memory
-from sqlalchemy.ext.asyncio import AsyncSession
+from backend.services.routing.intent_orchestrator import orchestrator
+from backend.services.ai_engine.core.semantic_shield import SemanticShield
+from backend.database.repositories import (
+    UserRepository, ChatMessageRepository, VoiceProfileRepository,
+    AgentTelemetryLogRepository, OrderRepository, ProductBaseRepository,
+    ContentCampaignRepository,
+    provide_user_repo, provide_chat_repo, provide_voice_repo,
+    provide_telemetry_repo, provide_order_repo, provide_product_repo,
+    provide_campaign_repo
+)
+from backend.database.models import ChatMessage, AgentTelemetryLog
 from backend.database.alchemy_config import alchemy_config
 from backend.constants.action_vi import ACTION_VI
 from backend.utils.data_stripper import DataStripper
@@ -35,14 +41,27 @@ logger = logging.getLogger("api-gateway")
 async_session_maker = alchemy_config.create_session_maker()
 
 
+
 def _sse(phase: str, data: Dict[str, object]) -> bytes:
     """Format a Server-Sent Event line."""
     return f"data: {json.dumps({'phase': phase, **data}, ensure_ascii=False)}\n\n".encode("utf-8")
 
 
+# Global background task tracker for memory safety (V76)
+background_tasks = set()
+
 class IntentStreamController(Controller):
     """SSE streaming version of IntentController — phased real-time response."""
     path = "/api/v1/intent"
+    dependencies = {
+        "user_repo": Provide(provide_user_repo),
+        "chat_repo": Provide(provide_chat_repo),
+        "profile_repo": Provide(provide_voice_repo),
+        "telemetry_repo": Provide(provide_telemetry_repo),
+        "order_repo": Provide(provide_order_repo),
+        "product_repo": Provide(provide_product_repo),
+        "campaign_repo": Provide(provide_campaign_repo),
+    }
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -53,25 +72,33 @@ class IntentStreamController(Controller):
         self,
         request: Request,
         data: IntentRequest,
-        db_session: AsyncSession,
+        user_repo: UserRepository,
+        chat_repo: ChatMessageRepository,
+        profile_repo: VoiceProfileRepository,
+        telemetry_repo: AgentTelemetryLogRepository,
+        order_repo: OrderRepository,
+        product_repo: ProductBaseRepository,
+        campaign_repo: ContentCampaignRepository,
     ) -> Stream:
         """Stream intent processing phases via SSE."""
 
         async def generate() -> AsyncGenerator[bytes, None]:
             start_time = time.monotonic()
             session_id = data.session_id or str(uuid.uuid4())
-            user_id = None
+            user_id = None # Initialize for log safety
 
             try:
                 # ── Yield STT Listening immediately ──
                 yield _sse("status", {"step": "stt", "msg": "listening"})
 
                 # Phase 76.3.2: Immediate Transcript Feedback
+                # Bắn ngược transcript về UI ngay lập tức để sếp thấy chữ hiện lên
                 if data.query:
                     yield _sse("transcript", {"text": data.query})
 
-                # Phase 3 Kill-switch: Empty transcript
+                # Phase 3 Kill-switch: Empty transcript (Noise rejection)
                 if not data.query or not data.query.strip():
+                    logger.warning("[SSE] Empty transcript detected. Yielding SLEEP via SESSION_CTRL.")
                     yield _sse("done", {
                         "category": "SESSION_CTRL",
                         "type": "SLEEP",
@@ -79,26 +106,56 @@ class IntentStreamController(Controller):
                         "message": "",
                         "ui_action": ""
                     })
+
+                    # Log noise rejected in background
+                    task = asyncio.create_task(_background_save_logs(
+                        session_id=session_id, user_id=None,
+                        telemetry_data={
+                            "id": str(uuid.uuid4()),
+                            "session_id": session_id,
+                            "agent_name": "NoiseFilter",
+                            "intent_hash": "empty",
+                            "input_tokens": 0, "output_tokens": 0, "cost_token": 0.0, "duration_ms": 1
+                        },
+                        is_noise=True
+                    ))
+                    background_tasks.add(task)
+                    task.add_done_callback(background_tasks.discard)
                     return
 
-                # ── Jailbreak scan ──
+                # ── Jailbreak scan (STT corrections removed — Groq Whisper handles accuracy) ──
                 if not self.shield.scan(data.query):
                     yield _sse("error", {"message": "Lõi nhận thức gián đoạn..."})
                     return
 
                 # ── Resolve user ──
                 user_info = getattr(request.state, "user", None)
+                user_id = None
                 if user_info:
+                    # R01.1 Scout Optimization: Use JWT Payload instead of slow DB Query
                     user_id = user_info.get("id")
                     if not user_id and "sub" in user_info:
-                        user = await user_service.get_user_by_email(db_session, user_info["sub"])
+                        user = await user_repo.get_one_or_none(email=user_info["sub"])
                         if user:
-                            user_id = str(user["id"])
+                            user_id = user.id
 
-                # ── Lịch sử hội thoại (Elite V2.2 Service-based) ──
-                context = await chat_service.get_recent_messages(db_session, session_id, limit=10)
+                # ── Context ──
+                recent_msgs = await chat_repo.list(
+                    LimitOffset(limit=10, offset=0),
+                    session_id=session_id,
+                    order_by=[("created_at", "desc")],
+                    deleted_at=None
+                )
+                context: List[Dict[str, str]] = [
+                    {"role": m.role, "content": m.content["text"]}
+                    for m in reversed(list(recent_msgs))
+                    if isinstance(m.content, dict) and "text" in m.content
+                ]
 
                 # ── Phase 1: Classify ──
+                # Phase 76.3: Do not yield 'thinking' immediately to avoid flicker on T1 hits.
+                # The orchestrator will return T1 results in <50ms.
+
                 result = await orchestrator.classify(
                     transcript=data.query,
                     user_id=user_id,
@@ -109,6 +166,7 @@ class IntentStreamController(Controller):
 
                 tier_str = str(result.router_tier.value if hasattr(result.router_tier, "value") else result.router_tier)
 
+                # Only show 'thinking' if it wasn't a T1 hit, to provide feedback for slower T2/T3 routes
                 if tier_str != "1":
                     yield _sse("classify", {"status": "thinking"})
 
@@ -118,11 +176,11 @@ class IntentStreamController(Controller):
                     "action": result.action.value if hasattr(result.action, "value") else str(result.action),
                 })
 
-                # ── Phase 2: Skill Guard (XOHI Zero-Hydration) ──
+                # ── Phase 2: Skill Guard ──
                 if user_id and result.status != "error":
-                    profile = await xohi_memory.get_voice_profile(user_id)
-                    if profile and profile.get("capabilities"):
-                        caps = profile["capabilities"] if isinstance(profile["capabilities"], dict) else json.loads(profile["capabilities"])
+                    profile = await profile_repo.get_one_or_none(user_id=user_id)
+                    if profile and profile.capabilities:
+                        caps = profile.capabilities if isinstance(profile.capabilities, dict) else json.loads(profile.capabilities)
                         action = result.action.value if hasattr(result.action, "value") else result.action
                         check = "READ" if action == "COUNT" else action
                         if not caps.get(check, True):
@@ -133,11 +191,11 @@ class IntentStreamController(Controller):
                 # ── Phase 3: Execute — Streaming for Voice Truth 2026 ──
                 result_category = (result.data or {}).get("category")
                 intent_type = (result.data or {}).get("intent_type")
-
+                
                 if result.status != "error" and (result_category != "SESSION_CTRL" or intent_type == "UI_NAV"):
                     yield _sse("execute", {"status": "working"})
-
-                    if intent_type in ["DEEP_ANALYSIS", "UNKNOWN"] or result.action == IntentAction.ANALYZE:
+                    
+                    if intent_type in ["DEEP_ANALYSIS", "UNKNOWN"] or result.action.value == "ANALYZE":
                         # ZERO-LATENCY: Stream text chunks for T3
                         full_message = ""
                         async for chunk in orchestrator.t3_router.stream_reason(
@@ -145,8 +203,12 @@ class IntentStreamController(Controller):
                         ):
                             full_message += chunk
                             yield _sse("text_delta", {"text": chunk})
+                        
+                        # Once done, update the result message for the 'done' phase and saving
                         result.message = full_message
                     else:
+                        # Non-reasoning tasks (UI_NAV etc.) are usually fast enough
+                        # Phase 76.4: Recurrent Intent Propagation - use the corrected transcript if it exists
                         effective_transcript = (result.data or {}).get("effective_transcript", data.query)
                         try:
                             result = await asyncio.wait_for(
@@ -155,11 +217,14 @@ class IntentStreamController(Controller):
                                     transcript=effective_transcript,
                                     context=context,
                                     screen_context=data.screen_context,
-                                    db_session=db_session,
+                                    user_repo=user_repo,
+                                    order_repo=order_repo,
+                                    product_repo=product_repo,
+                                    campaign_repo=campaign_repo,
                                     modality=data.modality,
                                     user_id=user_id
                                 ),
-                                timeout=45.0
+                                timeout=45.0  # Increased to 45s to tolerate TrinityBridge 429 backoff & key rotation
                             )
                         except asyncio.TimeoutError:
                             yield _sse("error", {"message": "Giao thức kết nối đang bận, Sếp thử lại sau nhé."})
@@ -178,16 +243,32 @@ class IntentStreamController(Controller):
                     "behavior": "listen" if (getattr(result, "requires_confirmation", False) or result.data.get("action") == "STT_CONFIRM") else "sleep"
                 })
 
-                # ── Background: Ghost Auditing ──
-                asyncio.create_task(_ghost_audit(
-                    session_id=session_id,
-                    user_id=user_id,
-                    query=data.query,
-                    result=result,
-                    tier_str=tier_str,
-                    start_time=start_time,
-                    modality=data.modality
+                # ── Background: Telemetry + Chat save ──
+                ui_action = (result.data or {}).get("ui_action")
+
+                # Format extra data with Phase 4 Truncate
+                data_extra = dict(result.data or {})
+                if "error_trace" in data_extra:
+                    data_extra["error_trace"] = DataStripper.truncate_payload(str(data_extra["error_trace"]))
+
+                task = asyncio.create_task(_background_save_logs(
+                    session_id=session_id, user_id=user_id,
+                    data_query=data.query, modality=data.modality,
+                    result_message=result.message, result_ui_action=ui_action,
+                    tier_str=tier_str, data_extra=data_extra,
+                    telemetry_data={
+                        "id": str(uuid.uuid4()),
+                        "session_id": session_id,
+                        "agent_name": f"TrinityCore-Tier_{tier_str}",
+                        "intent_hash": hashlib.sha256(data.query.lower().strip().encode()).hexdigest()[:16],
+                        "input_tokens": getattr(result, "input_tokens", 0),
+                        "output_tokens": getattr(result, "output_tokens", 0),
+                        "cost_token": float(result.cost_tokens),
+                        "duration_ms": int((time.monotonic() - start_time) * 1000)
+                    }
                 ))
+                background_tasks.add(task)
+                task.add_done_callback(background_tasks.discard)
 
             except Exception as e:
                 logger.exception(f"[SSE Gateway Error] {e}")
@@ -196,43 +277,54 @@ class IntentStreamController(Controller):
         return Stream(generate(), media_type="text/event-stream")
 
 
-async def _ghost_audit(
+async def _background_save_logs(
     session_id: str,
-    user_id: Optional[str],
-    query: str,
-    result: IntentResponse,
-    tier_str: str,
-    start_time: float,
-    modality: str = "text"
+    user_id: Optional[UUID] = None,
+    data_query: str = "",
+    modality: str = "text",
+    result_message: str = "",
+    result_ui_action: str = "",
+    tier_str: str = "",
+    data_extra: Optional[Dict[str, object]] = None,
+    telemetry_data: Optional[Dict[str, object]] = None,
+    is_noise: bool = False
 ) -> None:
-    """Non-blocking persistence using Services (Elite V2.2)"""
     try:
         async with async_session_maker() as session:
-            # 1. Telemetry
-            await telemetry_service.log_telemetry(
-                session,
-                session_id,
-                f"TrinityCore-Tier_{tier_str}",
-                hashlib.sha256(query.lower().strip().encode()).hexdigest()[:16],
-                getattr(result, "input_tokens", 0),
-                getattr(result, "output_tokens", 0),
-                float(result.cost_tokens),
-                int((time.monotonic() - start_time) * 1000)
-            )
-
-            # 2. Chat Persistence
-            # User message
-            await chat_service.save_message(session, session_id, "user", query, user_id=user_id, modality=modality)
-
-            # Assistant message
-            action_val = result.action.value if hasattr(result.action, "value") else result.action
-            if action_val != "CONTENT_CREATE":
-                ui_action = (result.data or {}).get("ui_action")
-                payload_extra = {"ui_action": ui_action, "router_tier": tier_str, **(result.data or {})}
-                await chat_service.save_message(
-                    session, session_id, "assistant", result.message,
-                    user_id=user_id, modality=modality, data_extra=payload_extra
-                )
+            telemetry_repo = AgentTelemetryLogRepository(session=session)
+            chat_repo = ChatMessageRepository(session=session)
+            
+            if telemetry_data:
+                await telemetry_repo.add(AgentTelemetryLog(**telemetry_data))
+            
+            if not is_noise:
+                await _save(chat_repo, session_id, "user", data_query, None, modality, user_id=user_id)
+                await _save(chat_repo, session_id, "assistant", result_message, result_ui_action, modality, tier_str, user_id=user_id, data_extra=data_extra)
+            
+            await session.commit()
     except Exception as e:
-        logger.error(f"[Ghost Audit Error] {e}")
+        logger.error(f"[SSE Background Log Error] {e}")
 
+
+async def _save(chat_repo: ChatMessageRepository, session_id: str, role: str, content: str, ui_action: Optional[str], modality: str, router_tier: Optional[str] = None, user_id: Optional[UUID] = None, data_extra: Optional[Dict[str, object]] = None) -> None:
+    payload = {"text": content}
+    if ui_action:   payload["ui_action"] = ui_action
+    if router_tier: payload["router_tier"] = router_tier
+    if data_extra:
+        if data_extra.get("category") == "CONTENT_CREATE":
+            # Slim log: only audit-trail fields. Heavy data (keywords/assets/outline)
+            # lives in content_campaigns table and is fetched on-demand via API.
+            for key in ("category", "campaign_id", "step", "status", "action"):
+                if data_extra.get(key) is not None:
+                    payload[key] = data_extra[key]
+        else:
+            payload.update(data_extra)
+
+    await chat_repo.add(ChatMessage(
+        id=str(uuid.uuid4()),
+        session_id=session_id,
+        user_id=user_id,
+        role=role,
+        content=payload,
+        modality=modality or "text",
+    ))

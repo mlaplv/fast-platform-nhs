@@ -12,9 +12,14 @@
   import Home from "lucide-svelte/icons/home";
   import Megaphone from "lucide-svelte/icons/megaphone";
   
-  import type { Component } from "svelte";
+  interface MenuItem {
+    id: WidgetType;
+    label: string;
+    icon: Component;
+    color: string;
+  }
 
-  const menuItems: Array<{ id: WidgetType; label: string; icon: Component; color: string }> = [
+  const menuItems: MenuItem[] = [
     { id: "NONE", label: "XoHi Home", icon: Home, color: "#00FFFF" },
     { id: "ORDER_MANAGEMENT", label: "Đơn hàng", icon: ShoppingCart, color: "#FFAA00" },
     { id: "PRODUCT_MANAGEMENT", label: "Sản phẩm", icon: Package, color: "#00FFFF" },

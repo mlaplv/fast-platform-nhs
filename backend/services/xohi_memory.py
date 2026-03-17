@@ -14,9 +14,12 @@ import os
 import json
 import time
 import logging
-from typing import Optional, Dict, List, Union, cast
+from typing import Optional, Dict, List, Any
 
-import redis.asyncio as redis
+try:
+    import redis.asyncio as redis
+except ImportError:
+    from redis import asyncio as redis
 
 logger = logging.getLogger("api-gateway")
 
@@ -36,7 +39,7 @@ class XoHiMemory:
 
     def __init__(self):
         redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
-        self._fallback_cache: Dict[str, object] = {}
+        self._fallback_cache: Dict[str, Any] = {}
         try:
             self.client = redis.from_url(redis_url, decode_responses=True)
             self._use_redis = True
@@ -51,25 +54,23 @@ class XoHiMemory:
     # CONTEXT: last_target, last_timeframe, STT state
     # ═══════════════════════════════════════════════════════
 
-    async def get_user_context(self, user_id: str) -> Dict[str, object]:
+    async def get_user_context(self, user_id: str) -> dict:
         """Get user's conversation context (last_target, last_timeframe, etc.)."""
         key = f"xohi:ctx:{user_id}"
         try:
-            if self.client:
-                data = await self.client.get(key)
-                if data:
-                    return cast(Dict[str, object], json.loads(data))
+            data = await self.client.get(key)
+            if data:
+                return json.loads(data)
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis get failed: {e}")
 
-        return cast(Dict[str, object], self._fallback_cache.get(f"ctx:{user_id}", {}))
+        return self._fallback_cache.get(f"ctx:{user_id}", {})
 
-    async def set_user_context(self, user_id: str, context: Dict[str, object]) -> None:
+    async def set_user_context(self, user_id: str, context: dict):
         """Persist user's conversation context."""
         key = f"xohi:ctx:{user_id}"
         try:
-            if self.client:
-                await self.client.set(key, json.dumps(context, ensure_ascii=False), ex=CTX_TTL)
+            await self.client.set(key, json.dumps(context, ensure_ascii=False), ex=CTX_TTL)
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis set failed: {e}")
 
@@ -106,11 +107,11 @@ class XoHiMemory:
             # Update metadata (Neural Synapse)
             meta_raw = await self.client.hget(meta_key, norm_wrong)
             meta = json.loads(meta_raw) if meta_raw else {"count": 0, "created_at": time.time()}
-            meta["count"] += 1
-            meta["last_used"] = time.time()
-            await self.client.hset(meta_key, norm_wrong, json.dumps(meta))
-            
-            logger.info(f"[XoHiMemory] Learned {'GLOBAL' if is_global else 'USER'}: '{norm_wrong}' → '{right}' (uses={meta['count']})")
+            if isinstance(meta, dict):
+                meta["count"] = meta.get("count", 0) + 1
+                meta["last_used"] = time.time()
+                await self.client.hset(meta_key, norm_wrong, json.dumps(meta))
+                logger.info(f"[XoHiMemory] Learned {'GLOBAL' if is_global else 'USER'}: '{norm_wrong}' → '{right}' (uses={meta['count']})")
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis hash set failed: {e}")
 
@@ -130,7 +131,7 @@ class XoHiMemory:
                 meta["last_used"] = time.time()
                 await self.client.hset(meta_key, wrong_word, json.dumps(meta))
         except Exception as e:
-            logger.debug(f"[XoHiMemory] increment_stt_usage failed: {e}")
+            logger.debug(f"[XohiMemory] Context set failed: {e}")
 
     async def get_stt_metadata(self, is_global: bool = True) -> Dict[str, dict]:
         """Fetch all metadata for pruning analysis."""
@@ -141,7 +142,7 @@ class XoHiMemory:
             if data:
                 return {k: json.loads(v) for k, v in data.items()}
         except Exception as e:
-            logger.debug(f"[XoHiMemory] get_stt_metadata failed: {e}")
+            logger.debug(f"[XohiMemory] Context set failed: {e}")
         return {}
 
     async def prune_stt_overrides(self, max_size: int = 500, is_global: bool = True):
@@ -163,7 +164,12 @@ class XoHiMemory:
                 key=lambda x: (x[1].get("count", 1), x[1].get("last_used", 0))
             )
             
-            to_remove = [k for k, v in items[:len(metadata) - max_size]]
+            num_to_remove = len(metadata) - max_size
+            to_remove = []
+            for i in range(num_to_remove):
+                if i < len(items):
+                    to_remove.append(items[i][0])
+            
             if to_remove:
                 await self.client.hdel(key, *to_remove)
                 await self.client.hdel(meta_key, *to_remove)
@@ -180,25 +186,23 @@ class XoHiMemory:
     # VOICE PROFILE: wake_words, sleep_words, capabilities
     # ═══════════════════════════════════════════════════════
 
-    async def get_voice_profile(self, user_id: str) -> Optional[Dict[str, object]]:
+    async def get_voice_profile(self, user_id: str) -> Optional[dict]:
         """Get cached voice profile for a user."""
         key = f"xohi:profile:{user_id}"
         try:
-            if self.client:
-                data = await self.client.get(key)
-                if data:
-                    return cast(Dict[str, object], json.loads(data))
+            data = await self.client.get(key)
+            if data:
+                return json.loads(data)
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis profile get failed: {e}")
 
-        return cast(Optional[Dict[str, object]], self._fallback_cache.get(f"profile:{user_id}"))
+        return self._fallback_cache.get(f"profile:{user_id}")
 
-    async def cache_voice_profile(self, user_id: str, profile: Dict[str, object]) -> None:
+    async def cache_voice_profile(self, user_id: str, profile: dict):
         """Cache a voice profile from DB into Redis."""
         key = f"xohi:profile:{user_id}"
         try:
-            if self.client:
-                await self.client.set(key, json.dumps(profile, ensure_ascii=False), ex=PROFILE_TTL)
+            await self.client.set(key, json.dumps(profile, ensure_ascii=False), ex=PROFILE_TTL)
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis profile set failed: {e}")
 
@@ -211,88 +215,83 @@ class XoHiMemory:
     async def get_system_stt_overrides(self) -> Dict[str, str]:
         key = "system:stt_overrides"
         try:
-            if self.client:
-                data = await self.client.hgetall(key)
-                if data:
-                    return dict(data)
+            data = await self.client.hgetall(key)
+            if data:
+                return dict(data)
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis get system:stt_overrides failed: {e}")
-        return cast(Dict[str, str], self._fallback_cache.get(key, {}))
+        return self._fallback_cache.get(key, {})
 
-    async def set_system_stt_overrides(self, mapping: Dict[str, str]) -> None:
+    async def set_system_stt_overrides(self, mapping: dict):
         key = "system:stt_overrides"
         try:
-            if self.client and mapping:
+            if mapping:
                 await self.client.hset(key, mapping=mapping)
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis set system:stt_overrides failed: {e}")
         self._fallback_cache[key] = mapping
 
-    async def delete_system_stt_override(self, wrong_word: str) -> None:
+    async def delete_system_stt_override(self, wrong_word: str):
         key = "system:stt_overrides"
         try:
-            if self.client:
-                await self.client.hdel(key, wrong_word)
+            await self.client.hdel(key, wrong_word)
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis hdel system:stt_overrides failed: {e}")
-        cache = cast(Dict[str, str], self._fallback_cache.get(key, {}))
-        cache.pop(wrong_word, None)
+        self._fallback_cache.get(key, {}).pop(wrong_word, None)
 
-    async def get_system_stt_stopwords(self) -> List[str]:
+    async def get_system_stt_stopwords(self) -> list:
         key = "system:stt_stopwords"
         try:
-            if self.client:
-                data = await self.client.smembers(key)
-                if data:
-                    return list(data)
+            data = await self.client.smembers(key)
+            if data:
+                return list(data)
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis smembers system:stt_stopwords failed: {e}")
-        return cast(List[str], self._fallback_cache.get(key, []))
+        return self._fallback_cache.get(key, [])
 
-    async def add_system_stt_stopword(self, word: str) -> None:
+    async def add_system_stt_stopword(self, word: str):
         key = "system:stt_stopwords"
         try:
-            if self.client:
-                await self.client.sadd(key, word)
+            await self.client.sadd(key, word)
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis sadd system:stt_stopwords failed: {e}")
-
-        fallback = self._fallback_cache.get(key)
-        if not fallback:
+        
+        if key not in self._fallback_cache:
             self._fallback_cache[key] = set()
-        elif isinstance(fallback, list):
-            self._fallback_cache[key] = set(fallback)
+        
+        target = self._fallback_cache[key]
+        if isinstance(target, list):
+            target = set(target)
+            self._fallback_cache[key] = target
+        
+        if isinstance(target, set):
+            target.add(word)
 
-        cast(set[str], self._fallback_cache[key]).add(word)
-
-    async def delete_system_stt_stopword(self, word: str) -> None:
+    async def delete_system_stt_stopword(self, word: str):
         key = "system:stt_stopwords"
         try:
-            if self.client:
-                await self.client.srem(key, word)
+            await self.client.srem(key, word)
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis srem system:stt_stopwords failed: {e}")
+            
+        target = self._fallback_cache.get(key)
+        if isinstance(target, set):
+            target.discard(word)
 
-        fallback = self._fallback_cache.get(key)
-        if isinstance(fallback, set):
-            fallback.discard(word)
-
-    async def get_system_intent_mapping(self) -> Dict[str, object]:
+    async def get_system_intent_mapping(self) -> dict:
         key = "system:intent_mapping"
         try:
-            if self.client:
-                data = await self.client.get(key)
-                if data:
-                    return cast(Dict[str, object], json.loads(data))
+            data = await self.client.get(key)
+            if data:
+                return json.loads(data)
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis get system:intent_mapping failed: {e}")
-        return cast(Dict[str, object], self._fallback_cache.get(key, {}))
+        return self._fallback_cache.get(key, {})
 
-    async def set_system_intent_mapping(self, mapping: Dict[str, object]) -> None:
+    async def set_system_intent_mapping(self, mapping: dict):
         key = "system:intent_mapping"
         try:
-            if self.client:
-                await self.client.set(key, json.dumps(mapping, ensure_ascii=False))
+            await self.client.set(key, json.dumps(mapping, ensure_ascii=False))
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis set system:intent_mapping failed: {e}")
         self._fallback_cache[key] = mapping
@@ -305,7 +304,7 @@ class XoHiMemory:
         """Fetch all pre-calculated intent centroids from Redis."""
         key = "system:semantic_centroids"
         try:
-            if self._use_redis and self.client:
+            if self._use_redis:
                 return await self.client.hgetall(key)
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis get semantic_centroids failed: {e}")
@@ -315,7 +314,7 @@ class XoHiMemory:
         """Update a specific intent centroid in Redis."""
         key = "system:semantic_centroids"
         try:
-            if self._use_redis and self.client:
+            if self._use_redis:
                 await self.client.hset(key, intent, vector_bytes)
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis set semantic_centroid failed: {e}")
@@ -324,18 +323,18 @@ class XoHiMemory:
     # ATOMIC AGGREGATION: High-Load Performance (V76.3)
     # ═══════════════════════════════════════════════════════
 
-    async def get_full_orchestrator_context(self, user_id: str) -> Dict[str, object]:
+    async def get_full_orchestrator_context(self, user_id: str) -> dict:
         """
         Atomic Context Fetch — Fetches profile, ctx, and STT dict in 1-2 RTTs.
         Optimized for 1M+ requests scaling (Rule R82.25).
         """
-        if not self._use_redis or not self.client:
+        if not self._use_redis:
             return {
-                "profile": cast(Dict[str, object], self._fallback_cache.get(f"profile:{user_id}", {})),
-                "ctx": cast(Dict[str, object], self._fallback_cache.get(f"ctx:{user_id}", {})),
-                "stt": cast(Dict[str, str], self._fallback_cache.get(f"stt:{user_id}", {})),
-                "sys_stt": cast(Dict[str, str], self._fallback_cache.get("system:stt_overrides", {})),
-                "intent_map": cast(Dict[str, object], self._fallback_cache.get("system:intent_mapping", {}))
+                "profile": self._fallback_cache.get(f"profile:{user_id}", {}),
+                "ctx": self._fallback_cache.get(f"ctx:{user_id}", {}),
+                "stt": self._fallback_cache.get(f"stt:{user_id}", {}),
+                "sys_stt": self._fallback_cache.get("system:stt_overrides", {}),
+                "intent_map": self._fallback_cache.get("system:intent_mapping", {})
             }
 
         keys = [
@@ -355,16 +354,16 @@ class XoHiMemory:
                 pipe.get(keys[3])
                 results = await pipe.execute()
 
-            profile = cast(Dict[str, object], json.loads(results[0])) if results[0] else {}
-            ctx = cast(Dict[str, object], json.loads(results[1])) if results[1] else {}
+            profile = json.loads(results[0]) if results[0] else {}
+            ctx = json.loads(results[1]) if results[1] else {}
             sys_stt = dict(results[2]) if results[2] else {}
             user_stt = dict(results[3]) if results[3] else {}
-            intent_map = cast(Dict[str, object], json.loads(results[4])) if results[4] else {}
+            intent_map = json.loads(results[4]) if results[4] else {}
 
             return {
                 "profile": profile,
                 "ctx": ctx,
-                "stt": {**sys_stt, **user_stt, **cast(Dict[str, str], ctx.get("stt_dictionary", {}))},
+                "stt": {**sys_stt, **user_stt, **ctx.get("stt_dictionary", {})},
                 "intent_map": intent_map
             }
         except Exception as e:
@@ -375,27 +374,27 @@ class XoHiMemory:
     # CHAT CACHE: Redis-Last-10 (V56.0)
     # ═══════════════════════════════════════════════════════
 
-    async def get_recent_chat(self, user_id: str) -> List[Dict[str, object]]:
+    async def get_recent_chat(self, user_id: str) -> List[dict]:
         """Get the last 10 chat messages for a user from Redis."""
         key = f"xohi:chat:{user_id}"
         try:
-            if self._use_redis and self.client:
+            if self._use_redis:
                 data = await self.client.lrange(key, 0, 9)
                 if data:
                     # Redis list preserves order (LPUSH makes [9, 8, ... 0])
-                    # We want chronological [0...9] if we return the list as is,
+                    # We want chronological [0...9] if we return the list as is, 
                     # but typically FE wants the newest at the bottom or top.
                     # Controllers will handle sorting to match DB standard (DESC).
-                    return [cast(Dict[str, object], json.loads(m)) for m in data]
+                    return [json.loads(m) for m in data]
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis chat get failed: {e}")
         return []
 
-    async def add_chat_to_cache(self, user_id: str, message: Dict[str, object], limit: int = 10):
+    async def add_chat_to_cache(self, user_id: str, message: dict, limit: int = 10):
         """Push a message to user's Redis chat list and trim to specified limit."""
         key = f"xohi:chat:{user_id}"
         try:
-            if self._use_redis and self.client:
+            if self._use_redis:
                 await self.client.lpush(key, json.dumps(message, ensure_ascii=False))
                 # Trim to limit - 1 (e.g. limit 10 -> index 0-9)
                 await self.client.ltrim(key, 0, max(0, limit - 1))

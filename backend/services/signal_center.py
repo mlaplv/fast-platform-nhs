@@ -44,21 +44,18 @@ class SignalCenter:
         """
         notif_id = str(uuid.uuid4())
 
-        # Phase 1: DB Persistence (Zero-Hydration Scalar Insert)
+        # Phase 1: DB Persistence (Always - all severities are audited)
         try:
-            from sqlalchemy import text
-            await db_session.execute(
-                text("""
-                    INSERT INTO notifications (id, user_id, type, message, is_read, created_at, updated_at)
-                    VALUES (:id, :uid, :type, :msg, false, NOW(), NOW())
-                """),
-                {
-                    "id": notif_id,
-                    "uid": user_id,
-                    "type": signal.signal_type,
-                    "msg": signal.message
-                }
+            from backend.database.models import Notification
+            notif = Notification(
+                id=notif_id,
+                user_id=user_id,
+                type=signal.signal_type,
+                message=signal.message,
+                is_read=False,
             )
+            db_session.add(notif)
+            # V70.3 Explicit Commit to bypass Autocommit uncertainties
             await db_session.commit()
         except Exception as e:
             logger.error(f"[SignalCenter] DB persist failed for user {user_id}: {e}")

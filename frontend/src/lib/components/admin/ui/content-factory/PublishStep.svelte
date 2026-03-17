@@ -27,7 +27,7 @@
   $effect(() => {
     if (assets.length > 0 && xohiImageStore.assets.length === 0) {
       xohiImageStore.initAssets(assets.map((a, i) =>
-        typeof a === 'string' ? { id: `img_${i}`, filePath: a, url: a, isPrimary: i === 0, orderIndex: i } : a
+        typeof a === 'string' ? { id: `img_${i}`, url: a, is_primary: i === 0, order_index: i } : a
       ));
     }
   });

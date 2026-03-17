@@ -3,24 +3,10 @@ import jwt
 from litestar.middleware import AbstractMiddleware
 from litestar.datastructures import State
 from litestar.types import ASGIApp, Receive, Scope, Send
-from litestar.exceptions import NotAuthorizedException, PermissionDeniedException
+from litestar.exceptions import NotAuthorizedException
 
-SECRET_KEY = os.environ["ENCRYPTION_SALT"]
+SECRET_KEY = os.environ["ENCRYPTION_SALT"]  # MUST be set — crash on start if missing (CTO Audit V2 C2)
 ALGORITHM = "HS256"
-
-class PermissionGuard:
-    def __init__(self, *required_permissions: str):
-        self.required_permissions = set(required_permissions)
-
-    def __call__(self, connection, _) -> None:
-        user = connection.scope.get("state", {}).get("user")
-        if not user:
-            raise NotAuthorizedException()
-
-        # Rule R86: Strict Permission Check
-        user_perms = set(user.get("permissions", []))
-        if not self.required_permissions.issubset(user_perms):
-            raise PermissionDeniedException(detail="Sếp chưa được cấp quyền thực hiện tác vụ này ạ.")
 
 class AuthMiddleware(AbstractMiddleware):
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -78,10 +64,9 @@ class AuthMiddleware(AbstractMiddleware):
                 if jwt_tenant:
                     current_tenant_id.set(jwt_tenant)
                 
-            except Exception as e:
-                logger.debug(f"[AuthMiddleware] Token decode failed: {e}")
+            except Exception:
                 pass
-
+        
         async def send_wrapper(message: "Send") -> None:
             """Helper to inject security headers into the start message (R51)."""
             if message["type"] == "http.response.start":

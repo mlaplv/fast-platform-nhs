@@ -1,21 +1,20 @@
 <script lang="ts">
-  import { Brain } from "lucide-svelte";
   import { onMount } from "svelte";
+  import Brain from "lucide-svelte/icons/brain";
 
   interface Capability {
     id: string;
+    active: boolean;
     name: string;
     desc: string;
-    active: boolean;
   }
 
-  let {
-    capabilities = $bindable()
+  let { 
+    capabilities = $bindable() 
   } = $props<{
     capabilities: Capability[];
   }>();
 
-  // R82: Safe initialization for bindable prop
   onMount(() => {
     if (capabilities === undefined) capabilities = [];
   });

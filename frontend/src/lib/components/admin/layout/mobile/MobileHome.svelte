@@ -11,9 +11,16 @@
   import Sparkles from "lucide-svelte/icons/sparkles";
   import Megaphone from "lucide-svelte/icons/megaphone";
 
-  import type { Component } from "svelte";
+  interface QuickAction {
+    label: string;
+    icon: Component;
+    widget: WidgetType;
+    color: string;
+    bg: string;
+    border: string;
+  }
 
-  const quickActions: Array<{ label: string; icon: Component; widget: WidgetType; color: string; bg: string; border: string }> = [
+  const quickActions: QuickAction[] = [
     { label: "Đơn hàng", icon: ShoppingCart, widget: "ORDER_MANAGEMENT", color: "text-vibrant-purple", bg: "bg-vibrant-purple/10", border: "border-vibrant-purple/20" },
     { label: "Campaigns", icon: Megaphone, widget: "NONE", color: "text-hacker-green", bg: "bg-hacker-green/10", border: "border-hacker-green/20" }, // CAMPAIGNS needs to be in WidgetType if it exists
     { label: "Sản phẩm", icon: Package, widget: "PRODUCT_MANAGEMENT", color: "text-neon-cyan", bg: "bg-neon-cyan/10", border: "border-neon-cyan/20" },
@@ -63,7 +70,7 @@
   });
 </script>
 
-<div class="flex-1 flex flex-col relative w-full h-full overflow-hidden bg-[#010101]">
+<div class="flex-1 flex flex-col relative w-full h-full overflow-hidden bg-[#020202]">
   <!-- Absolute Adaptive Header (Phase 13.3: Minimalist Premium) -->
   <div 
     class="absolute top-0 left-0 right-0 z-30 px-6 pt-14 pb-8 transition-all duration-500 ease-out pointer-events-none"

@@ -34,7 +34,7 @@ def slugify(text: str) -> str:
 
 def sanitize_id(id_val: Optional[str]) -> Optional[str]:
     """
-    Elite V2.2: Standardize ID logic - strips legacy 'undefined' or 'null' strings
+    R105: Standardize ID logic - strips legacy 'undefined' or 'null' strings
     and empty whitespace to prevent DB leakage.
     """
     if id_val is None:

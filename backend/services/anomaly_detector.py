@@ -12,9 +12,8 @@ import logging
 import asyncio
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Union, TypedDict, Optional, Callable, Coroutine, cast
-
-# CẤM dùng Any, dùng TypedDict hoặc Dict[str, object] cho cấu trúc tường minh.
+from typing import List, Dict, Union, TypedDict, Optional, Any, Callable, Coroutine
+# Phase 12: Rule R105 — CẤM dùng Any, dùng TypedDict cho cấu trúc tường minh.
 class AnomalyAlert(TypedDict):
     type: str
     severity: str
@@ -49,7 +48,7 @@ class AnomalyDetector:
         alerts: List[AnomalyAlert] = []
 
         # Helper to run check safely
-        async def run_check(name: str, coro_func: Callable[..., Coroutine[None, None, Optional[AnomalyAlert]]], *args: object) -> None:
+        async def run_check(name: str, coro_func: Callable[..., Coroutine[Any, Any, Optional[AnomalyAlert]]], *args: Any) -> None:
             try:
                 res = await coro_func(*args)
                 if res:
@@ -76,9 +75,9 @@ class AnomalyDetector:
         # AgentTelemetryLog has duration_ms and tenant_id
         avg_latency = await session.scalar(
             text("""
-                SELECT AVG(duration_ms)
-                FROM agent_telemetry_logs
-                WHERE tenant_id = :tid
+                SELECT AVG(duration_ms) 
+                FROM agent_telemetry_logs 
+                WHERE tenant_id = :tid 
                 AND created_at > NOW() - interval '30 minutes'
             """),
             {"tid": tenant_id}
@@ -102,7 +101,7 @@ class AnomalyDetector:
             checkedin = pool.checkedin()
             checkedout = pool.checkedout()
             size = pool.size()
-
+            
             # If checked out is near size
             if size > 0 and checkedout > size * 0.8:
                 return {
@@ -226,7 +225,7 @@ class AnomalyDetector:
         for alert in alerts:
             # DEBT-4 fix: platform-agnostic interval logic
             since = datetime.now(timezone.utc) - timedelta(hours=1)
-
+                
             existing = await session.scalar(
                 text("""
                     SELECT COUNT(*) FROM notifications

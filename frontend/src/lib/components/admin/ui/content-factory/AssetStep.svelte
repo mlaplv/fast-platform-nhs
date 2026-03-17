@@ -106,20 +106,29 @@
     return `stable_${Math.abs(hash).toString(36)}_${index}`;
   }
 
+  onMount(() => {
+    // Rule R03: Bindable Safety
+    if (assets === undefined) assets = [];
+    if (reserve_assets === undefined) reserve_assets = [];
+    if (customImageUrl === undefined) customImageUrl = "";
+    if (selectedAvatarUrl === undefined) selectedAvatarUrl = null;
+    if (selectedAssetIndex === undefined) selectedAssetIndex = 0;
+  });
+
   // Phase 15.3: Đồng bộ hóa dữ liệu từ Campaign vào Store khi Step được load
   $effect(() => {
     if (assets.length > 0 && untrack(() => xohiImageStore.assets.length) === 0) {
       const formattedAssets = assets.map((item, i) => {
-        const url = typeof item === 'string' ? item : (item.filePath || item.url || '');
+        const url = typeof item === 'string' ? item : (item.file_path || item.url || '');
         const recoveredId = extractIdFromUrl(url);
 
         if (typeof item === 'string') {
           return {
             id: recoveredId || generateStableId(item, i),
-            filePath: item,
+            file_path: item, // R105 Standard alignment
             url: item,       // UI legacy compatibility
-            isPrimary: i === selectedAssetIndex,
-            orderIndex: i
+            is_primary: i === selectedAssetIndex,
+            order_index: i
           } as MediaAsset;
         }
         // CNS V73.9: Safety gate for missing IDs or field names
@@ -128,8 +137,8 @@
         if (!obj.id || obj.id.startsWith('img_') || obj.id.startsWith('stable_')) {
           if (recoveredId) obj.id = recoveredId;
         }
-        if (!obj.id) obj.id = generateStableId(obj.filePath || obj.url || '', i);
-        if (!obj.filePath && obj.url) obj.filePath = obj.url;
+        if (!obj.id) obj.id = generateStableId(obj.file_path || obj.url || '', i);
+        if (!obj.file_path && obj.url) obj.file_path = obj.url;
         return obj as MediaAsset;
       });
       xohiImageStore.initAssets(formattedAssets);
@@ -144,10 +153,10 @@
     
     if (JSON.stringify(storeAssets) !== JSON.stringify(currentAssets)) {
       assets = storeAssets;
-      const primaryIdx = storeAssets.findIndex(a => a.isPrimary);
+      const primaryIdx = storeAssets.findIndex(a => a.is_primary);
       if (primaryIdx !== -1) {
         selectedAssetIndex = primaryIdx;
-        selectedAvatarUrl = storeAssets[primaryIdx].filePath || storeAssets[primaryIdx].url;
+        selectedAvatarUrl = storeAssets[primaryIdx].file_path || storeAssets[primaryIdx].url;
       } else if (storeAssets.length === 0) {
         selectedAssetIndex = 0;
         selectedAvatarUrl = null;

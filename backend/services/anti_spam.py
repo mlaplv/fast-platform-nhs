@@ -3,25 +3,17 @@ import logging
 import time
 import re
 import unicodedata
-from typing import Optional, Dict, Tuple, List, TypedDict
+from typing import Optional, Dict, Tuple
+import redis.asyncio as _redis
 
-class OrderItem(TypedDict):
-    id: str
-    quantity: int
-    price: float
-
-class OrderSpamData(TypedDict):
-    phone: str
-    address: str
-    total: float
-    items: List[OrderItem]
+logger = logging.getLogger("api-gateway")
 
 class AntiSpamService:
     """
     R23: Real-time Anti-Spam Shield (V56.6 - FORTRESS MODE).
     Optimized for High-Volume Ad Campaigns with Atomic Lua Scripts & Smart Weighting.
     """
-    def __init__(self, redis_client: Optional[object] = None):
+    def __init__(self, redis_client: Optional[_redis.Redis] = None):
         self.redis = redis_client
         # Fortress Mode Thresholds
         self.PRO_THRESHOLD_SCORE = 90.0
@@ -66,11 +58,11 @@ class AntiSpamService:
         return addr
 
     async def check_order_spam(
-        self,
-        ip: str,
-        user_agent: str,
-        tenant_id: str,
-        order_data: OrderSpamData,
+        self, 
+        ip: str, 
+        user_agent: str, 
+        tenant_id: str, 
+        order_data: dict,
         is_campaign_mode: bool = False
     ) -> Tuple[bool, str, float, str]:
         """
@@ -189,6 +181,6 @@ class AntiSpamService:
 
         return is_spam, final_reason, min(score, 100.0), fingerprint
 
-# Singleton Instance
+# apps/api-gateway/src/services/anti_spam.py
 from backend.services.xohi_memory import xohi_memory
 anti_spam_service = AntiSpamService(redis_client=xohi_memory.client)

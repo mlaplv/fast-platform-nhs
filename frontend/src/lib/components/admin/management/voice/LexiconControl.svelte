@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import Sparkles from "lucide-svelte/icons/sparkles";
   import Filter from "lucide-svelte/icons/filter";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
@@ -9,17 +8,27 @@
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { normalizeVn } from "$lib/utils/text";
 
+  import { onMount } from "svelte";
+
+  interface Capability {
+    id: string;
+    active: boolean;
+    name: string;
+    desc: string;
+  }
+
   let {
     sttOverrides = $bindable(),
     sttStopwords = $bindable(),
     onStartTraining,
+    capabilities = $bindable(),
   } = $props<{
     sttOverrides: Record<string, string>;
     sttStopwords: string[];
     onStartTraining: (type: "lexicon_wrong" | "lexicon_stop") => void;
+    capabilities: Capability[];
   }>();
 
-  // R82: Safe initialization for bindable props
   onMount(() => {
     if (sttOverrides === undefined) sttOverrides = {};
     if (sttStopwords === undefined) sttStopwords = [];

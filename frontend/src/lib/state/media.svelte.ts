@@ -63,9 +63,9 @@ class MediaStore {
                         this.assets[index] = {
                             ...this.assets[index],
                             ...metadata,
-                            mediaMetadata: {
-                                ...this.assets[index].mediaMetadata,
-                                ...((metadata.mediaMetadata as Record<string, unknown>) || (metadata.metadata as Record<string, unknown>) || {})
+                            media_metadata: {
+                                ...this.assets[index].media_metadata,
+                                ...((metadata.media_metadata as Record<string, unknown>) || (metadata.metadata as Record<string, unknown>) || {})
                             }
                         } as MediaAsset;
                     }
@@ -82,16 +82,16 @@ class MediaStore {
             const response = await apiClient.post<{ status: string, data: Record<string, string> }>('/api/v1/media/ai-autofill-alt', { ids });
             if (response.status === 'success' && response.data) {
                 // response.data is mapping of id -> generated alt text
-                const updates = Object.entries(response.data).map(([id, altText]) => ({
+                const updates = Object.entries(response.data).map(([id, alt_text]) => ({
                     id,
-                    metadata: { altText }
+                    metadata: { alt_text }
                 }));
 
                 // Update local state immediately for snappy UX
                 updates.forEach(({ id, metadata }) => {
                     const index = this.assets.findIndex(a => a.id === id);
                     if (index !== -1) {
-                        this.assets[index] = { ...this.assets[index], altText: metadata.altText as string };
+                        this.assets[index] = { ...this.assets[index], alt_text: metadata.alt_text as string };
                     }
                 });
             }
@@ -163,7 +163,7 @@ class MediaStore {
             };
 
             if (cleanCid) {
-                params.campaignId = cleanCid;
+                params.campaign_id = cleanCid;
             }
 
             if (query) {
@@ -176,7 +176,7 @@ class MediaStore {
 
             const response = await apiClient.get<{ status: string, data: { items: MediaAsset[], total: number } }>(endpoint, { params });
             if (response.status === 'success') {
-                // Elite V2.2: Data is already in camelCase from Backend AliasGenerator
+                // Ensure field mapping consistency for R105
                 this.assets = response.data.items;
                 this.total = response.data.total;
             }
@@ -232,20 +232,20 @@ class MediaStore {
   }
 
   private handleMediaAnalyzed(payload: MediaSseEvent) {
-    const assetId = payload.id || payload.assetId;
+    const assetId = payload.id || payload.asset_id;
     if (!assetId) return;
 
     console.log(`[MediaStore] Asset analyzed real-time: ${assetId}`);
 
     const index = this.assets.findIndex((a) => a.id === assetId);
     if (index !== -1) {
-      const metadata = (payload.mediaMetadata || payload.metadata || {}) as Record<string, unknown>;
+      const metadata = (payload.media_metadata || payload.metadata || {}) as Record<string, unknown>;
 
       this.assets[index] = {
         ...this.assets[index],
-        altText: payload.altText || this.assets[index].altText,
-        mediaMetadata: {
-          ...this.assets[index].mediaMetadata,
+        alt_text: payload.alt_text || this.assets[index].alt_text,
+        media_metadata: {
+          ...this.assets[index].media_metadata,
           ...metadata,
         },
       };
@@ -267,7 +267,7 @@ class MediaStore {
             this.isLoading = true;
             const response = await apiClient.post<{ status: string, data: MediaAsset }>('/api/v1/media/fetch-remote', {
                 url,
-                campaignId: cleanCid
+                campaign_id: cleanCid
             });
 
             if (response.status === 'success' && response.data) {
@@ -275,8 +275,8 @@ class MediaStore {
                 const newAsset: MediaAsset = {
                     ...response.data,
                     // Giả định các fields mặc định, AI sẽ cập nhật sau qua SSE
-                    createdAt: response.data.createdAt || new Date().toISOString(),
-                    mediaMetadata: response.data.mediaMetadata || {}
+                    created_at: response.data.created_at || new Date().toISOString(),
+                    media_metadata: response.data.media_metadata || {}
                 };
                 this.assets = [newAsset, ...this.assets];
                 this.total++;
@@ -306,16 +306,16 @@ class MediaStore {
         try {
             const response = await apiClient.patch<{ status: string }>(`/api/v1/media/${assetId}`, metadata);
             if (response.status === 'success') {
-                // Elite V2.2: Surgical state update for ultra-fast UX (<200ms)
+                // R105: Surgical state update for ultra-fast UX (<200ms)
                 const index = this.assets.findIndex(a => a.id === assetId);
                 if (index !== -1) {
                     this.assets[index] = {
                         ...this.assets[index],
                         ...metadata,
                         // Ensure nested metadata is merged if provided
-                        mediaMetadata: {
-                            ...this.assets[index].mediaMetadata,
-                            ...((metadata.mediaMetadata as Record<string, unknown>) || (metadata.metadata as Record<string, unknown>) || {})
+                        media_metadata: {
+                            ...this.assets[index].media_metadata,
+                            ...((metadata.media_metadata as Record<string, unknown>) || (metadata.metadata as Record<string, unknown>) || {})
                         }
                     } as MediaAsset;
                 }
@@ -330,7 +330,7 @@ class MediaStore {
             this.isLoading = true;
             const response = await apiClient.post<{ status: string, data: Partial<MediaAsset> }>(`/api/v1/media/${assetId}/edit`, { action, params });
             if (response.status === 'success' && response.data) {
-                // Elite V2.2: Surgical state update
+                // R105: Surgical state update
                 const index = this.assets.findIndex(a => a.id === assetId);
                 if (index !== -1) {
                     const updatedAsset = response.data;

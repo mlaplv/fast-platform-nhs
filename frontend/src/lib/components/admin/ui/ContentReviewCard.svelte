@@ -382,7 +382,7 @@
     try {
       // Phase 15.3: Sử dụng dữ liệu từ Store nếu đang ở Step 2
       const currentAssets = viewingStep === 2 ? xohiImageStore.assets : assets;
-      const currentAvatar = viewingStep === 2 ? (xohiImageStore.primaryAsset?.filePath || xohiImageStore.primaryAsset?.url) : selectedAvatarUrl;
+      const currentAvatar = viewingStep === 2 ? (xohiImageStore.primaryAsset?.file_path || xohiImageStore.primaryAsset?.url) : selectedAvatarUrl;
 
       // Rule R109: REST Alignment — Use keys expected by ActionHandler.update_metadata
       await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, {
@@ -396,7 +396,7 @@
 
   function handleImageError(url: string) {
     // Phase 15.3: Xóa ảnh lỗi thông qua Store để kích hoạt hiệu ứng phản ứng
-    const asset = xohiImageStore.assets.find(a => a.filePath === url || a.url === url);
+    const asset = xohiImageStore.assets.find(a => a.file_path === url || a.url === url);
     if (asset) {
       xohiImageStore.removeAsset(asset.id);
       vuiController.speak("Đã tự động loại bỏ ảnh không tải được.");
