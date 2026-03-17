@@ -2,6 +2,9 @@
     # Local/Internal TLS for .test domains
     tls internal
 
+    # R90: Compression boost for HTTP/2
+    encode zstd gzip
+
     handle /api/v1/*/stream* {
         reverse_proxy api:8000 {
             flush_interval -1
