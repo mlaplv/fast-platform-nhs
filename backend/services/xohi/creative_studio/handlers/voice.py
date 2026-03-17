@@ -3,9 +3,8 @@ import logging
 import re
 from datetime import datetime, timezone
 from typing import Optional, Dict, Union, List
-from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.database.models import ContentCampaign
+from backend.services.campaign_service import campaign_service
 from backend.services.xohi.creative_studio.models.schemas import TopicSeed, CampaignCategory
 from backend.utils.text import sanitize_id, normalize_vn
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
@@ -18,59 +17,15 @@ class VoiceHandler:
     def __init__(self, orchestrator: "ContentOrchestrator"):
         self.orchestrator = orchestrator
 
-    async def get_active_campaign(self, session: AsyncSession, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None, campaign_id: Optional[str] = None) -> Optional[ContentCampaign]:
-        # R105: Standardize user_id logic
-        user_id = sanitize_id(user_id)
-        campaign_id = sanitize_id(campaign_id)
+    async def get_active_campaign(self, session: AsyncSession, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None, campaign_id: Optional[str] = None) -> Optional[Dict]:
+        """Elite V2.2: Zero-Hydration lookup via CampaignService."""
+        return await campaign_service.get_active_campaign(session, user_id, tenant_id, query, campaign_id)
 
-        # 1. Explicit ID lookup (Highest Priority)
-        if campaign_id:
-            try:
-                c = await session.get(ContentCampaign, campaign_id)
-                if c and c.status not in ["COMPLETED", "REJECTED"] and c.deleted_at is None:
-                    return c
-            except Exception as e:
-                logger.debug(f"[VoiceHandler] Campaign lookup failed: {e}")
-
-        # 2. Strict scan for unfinished campaigns (Scoped to User)
-        stmt = select(ContentCampaign).where(
-            ContentCampaign.deleted_at == None
-        ).order_by(desc(ContentCampaign.created_at)).limit(5)
-
-        if user_id:
-            stmt = stmt.where(ContentCampaign.user_id == user_id)
-
-        result = await session.execute(stmt)
-        results = result.scalars().all()
-
-        # Filter for truly active (not dead) campaigns
-        active_campaigns = [c for c in results if c.status not in ["COMPLETED", "REJECTED"]]
-        if not active_campaigns:
-            return None
-
-        # 3. Query-based matching
-        if query:
-            q_norm = normalize_vn(query)
-            for c in active_campaigns:
-                title = normalize_vn(c.topic_data.get("title", "")) if c.topic_data else ""
-                source = normalize_vn(c.source_input) if c.source_input else ""
-                # R104: Tighter matching to avoid "Neural Link" hallucinations
-                if (title and title in q_norm) or (source and source in q_norm):
-                    return c
-
-        # 4. Fallback: Return the most recent active one if it's very fresh (< 10 mins)
-        latest = active_campaigns[0]
-        now = datetime.now(timezone.utc)
-        created_at = latest.created_at.replace(tzinfo=timezone.utc) if latest.created_at.tzinfo is None else latest.created_at
-        if (now - created_at).total_seconds() < 600.0:
-             return latest
-
-        return None
-
-    def format_resume_greeting(self, campaign: ContentCampaign) -> str:
-        step = campaign.current_step
-        title = campaign.topic_data.get("title", "bài viết mới") if campaign.topic_data else "bài viết mới"
-        if campaign.status == "PROCESSING":
+    def format_resume_greeting(self, campaign: Dict) -> str:
+        step = campaign["current_step"]
+        topic_data = campaign.get("topic_data") or {}
+        title = topic_data.get("title", "bài viết mới")
+        if campaign["status"] == "PROCESSING":
             return f"Dạ sếp, em đang tiếp tục thực hiện Bước {step} cho bài viết '{title}' ạ. Sếp đợi em một chút nhé!"
         else:
             return f"Dạ sếp, em đã sẵn sàng ở Bước {step} cho bài viết '{title}'. Mời sếp xem qua và duyệt để em chạy tiếp ạ!"
@@ -104,12 +59,12 @@ class VoiceHandler:
 
             if stale and not is_force_new:
                 # Type sanity: check category if present
-                stale_cat = getattr(stale, "category", CampaignCategory.CREATIVE_CONTENT)
+                stale_cat = stale.get("category", CampaignCategory.CREATIVE_CONTENT)
 
                 # Rule R82: Explicit Resume (or "ok" confirmation)
-                if is_resume_request or target_id == stale.id:
-                    if stale.status == "WAITING_FOR_REVIEW":
-                        return await self.orchestrator.approve_step(stale.id, {"approved": True}, session)
+                if is_resume_request or target_id == stale["id"]:
+                    if stale["status"] == "WAITING_FOR_REVIEW":
+                        return await self.orchestrator.approve_step(stale["id"], {"approved": True}, session)
                     else:
                         return IntentResponse(
                             status="success", action=IntentAction.CONTENT_CREATE,
@@ -119,8 +74,8 @@ class VoiceHandler:
                                 "category": "CONTENT_CREATE",
                                 "intent_type": "CONTENT_CREATE",
                                 "ui_action": "show_content_factory",
-                                "campaign_id": stale.id,
-                                "step": stale.current_step,
+                                "campaign_id": stale["id"],
+                                "step": stale["current_step"],
                                 "campaign_category": stale_cat
                             },
                             cost_tokens=0.0
@@ -129,7 +84,7 @@ class VoiceHandler:
                 # Conflict Detection: User asks for something NEW while a campaign is ACTIVE
                 # If they didn't explicitly say "tiếp", and the new request doesn't match the current one
                 if not is_resume_request:
-                    title = stale.topic_data.get("title", "bài viết cũ")
+                    title = stale.get("topic_data", {}).get("title", "bài viết cũ")
                     return IntentResponse(
                         status="success", action=IntentAction.CONTENT_CREATE,
                         message=f"Dạ sếp, em thấy bài '{title}' ({stale_cat}) đang làm dở. Sếp muốn làm tiếp hay hủy bài đó để tạo bài mới này ạ?",
@@ -138,8 +93,8 @@ class VoiceHandler:
                             "category": "CONTENT_CREATE",
                             "intent_type": "CONTENT_CREATE",
                             "ui_action": "show_content_factory",
-                            "campaign_id": stale.id,
-                            "step": stale.current_step,
+                            "campaign_id": stale["id"],
+                            "step": stale["current_step"],
                             "pending_review": True,
                             "conflict_detected": True,
                             "new_request": transcript,
@@ -151,9 +106,8 @@ class VoiceHandler:
             # 2. Execution Phase: Create New Campaign
             # If user said "hủy" or "mới", or there was no stale campaign
             if is_force_new and stale:
-                logger.info(f"[SafetyGate] Overwriting stale campaign {stale.id} as per user request")
-                # Optional: mark as rejected instead of deleting?
-                stale.status = "REJECTED"
+                logger.info(f"[SafetyGate] Overwriting stale campaign {stale['id']} as per user request")
+                await campaign_service.update_campaign(session, stale["id"], {"status": "REJECTED"})
 
             # Phase 77: Inject content_mode into gold_metadata
             gold_meta = {}
@@ -161,16 +115,17 @@ class VoiceHandler:
                 gold_meta["content_mode"] = intent_data["content_mode"]
                 logger.info(f"[Phase 77] Content Mode detected: {gold_meta['content_mode']}")
 
-            campaign = ContentCampaign(
-                id=str(uuid.uuid4()), user_id=user_id, source_input=transcript,
-                tenant_id=tenant_id, current_step=1, status="PROCESSING",
-                gold_metadata=gold_meta, category=category.value
+            campaign = await campaign_service.create_campaign(
+                session=session,
+                user_id=user_id,
+                source_input=transcript,
+                tenant_id=tenant_id,
+                gold_metadata=gold_meta,
+                category=category.value
             )
-            c_id = campaign.id
-            u_id_str = str(campaign.user_id) if campaign.user_id else "default"
-            session.add(campaign)
+            c_id = campaign["id"]
+            u_id_str = str(campaign["user_id"]) if campaign["user_id"] else "default"
             await session.commit()
-            await session.refresh(campaign)
 
             seed: TopicSeed = await self.orchestrator.vision.analyze_input(
                 transcript,
@@ -179,8 +134,11 @@ class VoiceHandler:
                 content_mode=gold_meta.get("content_mode", "viral")
             )
             seed_data = seed.model_dump()
-            campaign.topic_data = seed_data
-            campaign.status = "WAITING_FOR_REVIEW"
+
+            await campaign_service.update_campaign(session, c_id, {
+                "topic_data": seed_data,
+                "status": "WAITING_FOR_REVIEW"
+            })
 
             await session.commit()
 

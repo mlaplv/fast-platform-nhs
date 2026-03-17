@@ -1,11 +1,9 @@
 import logging
 from datetime import datetime, timezone
 from typing import List, Dict, Optional, Union, Tuple, cast
-from sqlalchemy import select, func, and_, or_
+from sqlalchemy import select, func, and_, or_, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from backend.database.models import User, Role, Permission
 from backend.utils.sql import escape_like
 
 logger = logging.getLogger("api-gateway")
@@ -15,6 +13,7 @@ class UserService:
     ULTRA-LEAN USER SERVICE (ELITE V2.2)
     ------------------------------------
     Handles User, Role, and Permission management.
+    Zero-Hydration (Rule 1.5): Raw SQL & Scalar Projection for <2GB RAM.
     """
 
     async def list_users(
@@ -25,66 +24,68 @@ class UserService:
         status: Optional[str] = None,
         search: Optional[str] = None,
     ) -> Dict[str, object]:
-        """List users with total count and nested role/permission mapping."""
-        conditions = []
-        if status and status != "ALL":
-            conditions.append(User.status == status)
-        if search:
-            safe = escape_like(search)
-            conditions.append(or_(
-                User.email.ilike(f"%{safe}%"),
-                User.name.ilike(f"%{safe}%"),
-                User.username.ilike(f"%{safe}%"),
-            ))
+        """List users with total count and nested role/permission mapping via text-SQL (Zero-Hydration)."""
+        conditions = ["u.deleted_at IS NULL"]
+        params = {"limit": limit, "offset": offset}
 
-        where_clause = and_(*conditions) if conditions else True
+        if status and status != "ALL":
+            conditions.append("u.status = :status")
+            params["status"] = status
+        if search:
+            conditions.append("(u.email ILIKE :search OR u.name ILIKE :search OR u.username ILIKE :search)")
+            params["search"] = f"%{escape_like(search)}%"
+
+        where_clause = " AND ".join(conditions)
 
         # 1. COUNT (Zero-Hydration)
-        count_stmt = select(func.count(User.id)).where(where_clause)
-        total = await session.scalar(count_stmt) or 0
+        count_sql = text(f"SELECT COUNT(*) FROM users u WHERE {where_clause}")
+        total = await session.scalar(count_sql, params) or 0
 
-        # 2. Scalar Projection Fetch with manual nesting
-        stmt = (
-            select(
-                User.id, User.email, User.name, User.status, User.created_at,
-                Role.id.label("role_id"), Role.name.label("role_name"), Role.code.label("role_code"),
-                Permission.id.label("perm_id"), Permission.code.label("perm_code"), Permission.name.label("perm_name")
-            )
-            .outerjoin(User.roles)
-            .outerjoin(Role.permissions)
-            .where(where_clause)
-            .limit(limit).offset(offset)
-        )
+        # 2. Scalar Projection Fetch
+        sql = text(f"""
+            SELECT
+                u.id, u.email, u.name, u.status, u.created_at,
+                r.id as role_id, r.name as role_name, r.code as role_code,
+                p.id as perm_id, p.code as perm_code, p.name as perm_name
+            FROM users u
+            LEFT JOIN user_roles ur ON u.id = ur.user_id
+            LEFT JOIN roles r ON ur.role_id = r.id
+            LEFT JOIN role_permissions rp ON r.id = rp.role_id
+            LEFT JOIN permissions p ON rp.permission_id = p.id
+            WHERE {where_clause}
+            ORDER BY u.created_at DESC
+            LIMIT :limit OFFSET :offset
+        """)
 
-        result = await session.execute(stmt)
+        result = await session.execute(sql, params)
 
         users_map: Dict[str, Dict[str, object]] = {}
         for row in result:
-            u_id = str(row.id)
+            u_id = str(row[0])
             if u_id not in users_map:
                 users_map[u_id] = {
                     "id": u_id,
-                    "email": row.email,
-                    "name": row.name or "Unknown",
-                    "status": row.status or "ACTIVE",
-                    "createdAt": row.created_at.isoformat() if row.created_at else "",
+                    "email": row[1],
+                    "name": row[2] or "Unknown",
+                    "status": row[3] or "ACTIVE",
+                    "createdAt": row[4].isoformat() if row[4] else "",
                     "roles": {}
                 }
 
-            if row.role_id:
-                r_id = str(row.role_id)
+            if row[5]: # role_id
+                r_id = str(row[5])
                 roles_dict = cast(Dict[str, Dict[str, object]], users_map[u_id]["roles"])
                 if r_id not in roles_dict:
                     roles_dict[r_id] = {
-                        "id": r_id, "name": row.role_name, "code": row.role_code,
+                        "id": r_id, "name": row[6], "code": row[7],
                         "permissions": {}
                     }
 
-                if row.perm_id:
-                    p_id = str(row.perm_id)
+                if row[8]: # perm_id
+                    p_id = str(row[8])
                     perms_dict = cast(Dict[str, Dict[str, object]], roles_dict[r_id]["permissions"])
                     perms_dict[p_id] = {
-                        "id": p_id, "code": row.perm_code, "name": row.perm_name
+                        "id": p_id, "code": row[9], "name": row[10]
                     }
 
         data = []
@@ -106,37 +107,46 @@ class UserService:
         limit: int = 100,
         offset: int = 0
     ) -> List[Dict[str, object]]:
-        """List roles with mapped permission indices for UI."""
+        """List roles with mapped permission indices for UI via text-SQL."""
         # Get all perms for numeric ID mapping
-        perm_stmt = select(Permission).order_by(Permission.code.asc())
-        perm_res = await session.execute(perm_stmt)
-        all_perms = perm_res.scalars().all()
-        perm_to_idx = {p.code: i+1 for i, p in enumerate(all_perms)}
+        perm_sql = text("SELECT code FROM permissions WHERE deleted_at IS NULL ORDER BY code ASC")
+        perm_res = await session.execute(perm_sql)
+        all_perm_codes = [r[0] for r in perm_res]
+        perm_to_idx = {code: i+1 for i, code in enumerate(all_perm_codes)}
 
-        stmt = select(Role).limit(limit).offset(offset).options(
-            selectinload(Role.permissions)
-        ).order_by(Role.created_at.asc())
+        sql = text("""
+            SELECT r.id, r.name, r.code, r.description, r.tenant_id,
+                   p.id as perm_id, p.code as perm_code, p.name as perm_name, p.description as perm_desc
+            FROM roles r
+            LEFT JOIN role_permissions rp ON r.id = rp.role_id
+            LEFT JOIN permissions p ON rp.permission_id = p.id
+            WHERE r.deleted_at IS NULL
+            ORDER BY r.created_at ASC
+            LIMIT :limit OFFSET :offset
+        """)
 
-        result = await session.execute(stmt)
-        roles = result.scalars().all()
+        res = await session.execute(sql, {"limit": limit, "offset": offset})
 
-        return [
-            {
-                "id": str(r.id), "name": r.name, "code": r.code,
-                "description": r.description,
-                "tenant_id": getattr(r, "tenant_id", "smartshop"),
-                "permissions": [
-                    {
-                        "id": perm_to_idx.get(p.code, 0),
-                        "code": p.code,
-                        "name": p.name,
-                        "description": p.description
-                    }
-                    for p in sorted(getattr(r, "permissions", []), key=lambda x: x.code)
-                ],
-            }
-            for r in roles
-        ]
+        roles_map: Dict[str, Dict[str, object]] = {}
+        for r in res:
+            rid = str(r[0])
+            if rid not in roles_map:
+                roles_map[rid] = {
+                    "id": rid, "name": r[1], "code": r[2],
+                    "description": r[3],
+                    "tenant_id": r[4] or "smartshop",
+                    "permissions": []
+                }
+
+            if r[5]: # perm_id
+                roles_map[rid]["permissions"].append({
+                    "id": perm_to_idx.get(r[6], 0),
+                    "code": r[6],
+                    "name": r[7],
+                    "description": r[8]
+                })
+
+        return list(roles_map.values())
 
     async def list_permissions(
         self,
@@ -144,156 +154,268 @@ class UserService:
         limit: int = 200,
         offset: int = 0
     ) -> List[Dict[str, object]]:
-        """List all system permissions."""
-        stmt = select(Permission).order_by(Permission.code.asc()).limit(limit).offset(offset)
-        result = await session.execute(stmt)
-        perms = result.scalars().all()
+        """List all system permissions via text-SQL."""
+        sql = text("SELECT code, name, description FROM permissions WHERE deleted_at IS NULL ORDER BY code ASC")
+        res = await session.execute(sql)
+        all_perms = res.all()
 
-        global_stmt = select(Permission).order_by(Permission.code.asc())
-        global_res = await session.execute(global_stmt)
-        global_perms = global_res.scalars().all()
-        perm_to_idx = {p.code: i+1 for i, p in enumerate(global_perms)}
+        perm_to_idx = {r[0]: i+1 for i, r in enumerate(all_perms)}
+
+        # Paginate in memory since we already fetched all for index mapping (usually small set)
+        paginated = all_perms[offset : offset + limit]
 
         return [
             {
-                "id": perm_to_idx.get(p.code, 0),
-                "code": p.code,
-                "name": p.name,
-                "description": p.description
+                "id": perm_to_idx.get(p[0], 0),
+                "code": p[0],
+                "name": p[1],
+                "description": p[2]
             }
-            for p in perms
+            for p in paginated
         ]
 
     async def update_user_roles(self, session: AsyncSession, user_id: str, role_codes: List[str]) -> Dict[str, object]:
-        """Update roles for a user by role codes and return mapped result."""
-        role_stmt = select(Role).where(Role.code.in_(role_codes)).options(selectinload(Role.permissions))
-        role_res = await session.execute(role_stmt)
-        roles = role_res.scalars().all()
+        """Update roles for a user via direct SQL (Zero-Hydration)."""
+        # 1. Clear existing roles
+        await session.execute(
+            text("DELETE FROM user_roles WHERE user_id = :uid"),
+            {"uid": user_id}
+        )
 
-        stmt = select(User).where(User.id == user_id).options(selectinload(User.roles).selectinload(Role.permissions))
-        result = await session.execute(stmt)
-        user = result.scalar_one_or_none()
+        # 2. Add new roles
+        if role_codes:
+            role_ids_sql = text("SELECT id FROM roles WHERE code = ANY(:codes)")
+            res = await session.execute(role_ids_sql, {"codes": role_codes})
+            role_ids = [str(r[0]) for r in res]
 
-        if not user:
+            if role_ids:
+                insert_sql = text("INSERT INTO user_roles (user_id, role_id) VALUES (:uid, :rid)")
+                for rid in role_ids:
+                    await session.execute(insert_sql, {"uid": user_id, "rid": rid})
+
+        await session.commit()
+
+        # 3. Fetch full state via list_users logic (Zero-Hydration)
+        params = {"uid": user_id}
+        sql = text("""
+            SELECT
+                u.id, u.email, u.name, u.status, u.created_at,
+                r.id as role_id, r.name as role_name, r.code as role_code,
+                p.id as perm_id, p.code as perm_code, p.name as perm_name
+            FROM users u
+            LEFT JOIN user_roles ur ON u.id = ur.user_id
+            LEFT JOIN roles r ON ur.role_id = r.id
+            LEFT JOIN role_permissions rp ON r.id = rp.role_id
+            LEFT JOIN permissions p ON rp.permission_id = p.id
+            WHERE u.id = :uid
+        """)
+
+        result = await session.execute(sql, params)
+        rows = result.all()
+        if not rows:
             from litestar.exceptions import NotFoundException
             raise NotFoundException(f"User {user_id} not found")
 
-        user.roles = list(roles)
-        await session.commit()
-
-        return {
-            "id": str(user.id), "email": user.email, "name": user.name,
-            "status": getattr(user, "status", "ACTIVE"),
-            "createdAt": user.created_at.isoformat() if hasattr(user, 'created_at') and user.created_at else "",
-            "roles": [
-                {
-                    "id": str(r.id), "name": r.name, "code": r.code,
-                    "permissions": [
-                        {"id": str(p.id), "code": p.code, "name": p.name}
-                        for p in getattr(r, "permissions", [])
-                    ]
-                }
-                for r in getattr(user, "roles", [])
-            ],
+        # Reuse mapping logic (simplified for single user)
+        u = {
+            "id": str(rows[0][0]),
+            "email": rows[0][1],
+            "name": rows[0][2] or "Unknown",
+            "status": rows[0][3] or "ACTIVE",
+            "createdAt": rows[0][4].isoformat() if rows[0][4] else "",
+            "roles": {}
         }
 
-    async def update_user(self, session: AsyncSession, user_id: str, data: Dict[str, object]) -> Dict[str, object]:
-        """Update basic user info and return mapped result."""
-        user = await session.get(User, user_id)
-        if not user:
-             from litestar.exceptions import NotFoundException
-             raise NotFoundException(f"User {user_id} not found")
+        for row in rows:
+            if row[5]: # role_id
+                rid = str(row[5])
+                roles_dict = cast(Dict[str, Dict[str, object]], u["roles"])
+                if rid not in roles_dict:
+                    roles_dict[rid] = {
+                        "id": rid, "name": row[6], "code": row[7],
+                        "permissions": {}
+                    }
+                if row[8]: # perm_id
+                    pid = str(row[8])
+                    perms_dict = cast(Dict[str, Dict[str, object]], roles_dict[rid]["permissions"])
+                    perms_dict[pid] = {"id": pid, "code": row[9], "name": row[10]}
 
-        if "name" in data: user.name = cast(str, data["name"])
-        if "status" in data: user.status = cast(str, data["status"])
+        final_roles = []
+        for r in u["roles"].values():
+            r["permissions"] = list(r["permissions"].values())
+            final_roles.append(r)
+        u["roles"] = final_roles
+
+        return u
+
+    async def update_user(self, session: AsyncSession, user_id: str, data: Dict[str, object]) -> Dict[str, object]:
+        """Update basic user info via direct SQL and return mapped result (Zero-Hydration)."""
+        set_clauses = []
+        params = {"id": user_id}
+
+        if "name" in data:
+            set_clauses.append("name = :name")
+            params["name"] = data["name"]
+        if "status" in data:
+            set_clauses.append("status = :status")
+            params["status"] = data["status"]
+
+        if not set_clauses:
+            # Just fetch current
+            sql = text("SELECT id, email, name, status FROM users WHERE id = :id")
+            res = await session.execute(sql, {"id": user_id})
+            r = res.first()
+            if not r:
+                from litestar.exceptions import NotFoundException
+                raise NotFoundException(f"User {user_id} not found")
+            return {"id": str(r[0]), "email": r[1], "name": r[2], "status": r[3]}
+
+        set_clauses.append("updated_at = NOW()")
+        sql = text(f"UPDATE users SET {', '.join(set_clauses)} WHERE id = :id RETURNING id, email, name, status")
+        result = await session.execute(sql, params)
+        r = result.first()
+
+        if not r:
+            from litestar.exceptions import NotFoundException
+            raise NotFoundException(f"User {user_id} not found")
 
         await session.commit()
         return {
-            "id": str(user.id), "email": user.email, "name": user.name,
-            "status": getattr(user, "status", "ACTIVE"),
+            "id": str(r[0]), "email": r[1], "name": r[2],
+            "status": r[3] or "ACTIVE",
         }
 
     async def delete_user(self, session: AsyncSession, user_id: str) -> Dict[str, object]:
-        """Soft delete (lock) a user and return mapped result."""
-        user = await session.get(User, user_id)
-        if not user:
+        """Soft delete (lock) a user via direct SQL (Zero-Hydration)."""
+        sql = text("""
+            UPDATE users
+            SET deleted_at = NOW(), status = 'LOCKED', updated_at = NOW()
+            WHERE id = :id
+            RETURNING id, email, name, status
+        """)
+        result = await session.execute(sql, {"id": user_id})
+        r = result.first()
+
+        if not r:
              from litestar.exceptions import NotFoundException
              raise NotFoundException(f"User {user_id} not found")
 
-        user.deleted_at = datetime.now(timezone.utc)
-        user.status = "LOCKED"
-
         await session.commit()
         return {
-            "id": str(user.id), "email": user.email, "name": user.name,
-            "status": getattr(user, "status", "LOCKED"),
+            "id": str(r[0]), "email": r[1], "name": r[2],
+            "status": r[3] or "LOCKED",
             "deleted": True
         }
 
-    async def get_user_by_email(self, session: AsyncSession, email: str) -> Optional[User]:
-        """Fetch a single user by email."""
-        stmt = select(User).where(User.email == email)
-        result = await session.execute(stmt)
-        return result.scalar_one_or_none()
+    async def get_user_by_email(self, session: AsyncSession, email: str) -> Optional[Dict[str, object]]:
+        """Fetch a single user by email via Scalar Projection (Zero-Hydration)."""
+        sql = text("SELECT id, email, username, name, status, tenant_id FROM users WHERE email = :email AND deleted_at IS NULL")
+        res = await session.execute(sql, {"email": email})
+        r = res.first()
+        if not r:
+            return None
+        return {
+            "id": str(r[0]),
+            "email": r[1],
+            "username": r[2],
+            "name": r[3],
+            "status": r[4],
+            "tenant_id": r[5]
+        }
 
-    async def get_user_with_profile(self, session: AsyncSession, email: str) -> Optional[User]:
-        """Fetch user with voice profile (N+1 Optimized)"""
-        stmt = select(User).where(User.email == email).options(selectinload(User.voice_profile))
-        result = await session.execute(stmt)
-        return result.scalar_one_or_none()
+    async def get_user_with_profile(self, session: AsyncSession, email: str) -> Optional[Dict[str, object]]:
+        """Fetch user with voice profile via Scalar Projection (Zero-Hydration)."""
+        sql = text("""
+            SELECT u.id, u.email, u.name, u.status,
+                   vp.id as profile_id, vp.provider, vp.voice_id, vp.settings
+            FROM users u
+            LEFT JOIN voice_profiles vp ON u.id = vp.user_id
+            WHERE u.email = :email AND u.deleted_at IS NULL
+        """)
+        res = await session.execute(sql, {"email": email})
+        r = res.first()
+        if not r:
+            return None
+
+        return {
+            "id": str(r[0]),
+            "email": r[1],
+            "name": r[2],
+            "status": r[3],
+            "voice_profile": {
+                "id": str(r[4]) if r[4] else None,
+                "provider": r[5],
+                "voice_id": r[6],
+                "settings": r[7] or {}
+            } if r[4] else None
+        }
 
     async def update_role_permissions(self, session: AsyncSession, role_id: str, permission_ids: List[str]) -> Dict[str, object]:
-        """Update permissions for a role and return mapped result."""
-        stmt = select(Role).where(
-            or_(Role.id == role_id, Role.code == role_id)
-        ).options(selectinload(Role.permissions))
-
-        result = await session.execute(stmt)
-        role = result.scalar_one_or_none()
-
-        if not role:
+        """Update permissions for a role via direct SQL (Zero-Hydration)."""
+        # Resolve role identity
+        role_res = await session.execute(
+            text("SELECT id, name, code, description, tenant_id FROM roles WHERE id = :id OR code = :id"),
+            {"id": role_id}
+        )
+        r_row = role_res.first()
+        if not r_row:
             from litestar.exceptions import NotFoundException
             raise NotFoundException(f"Role {role_id} not found")
 
-        mapped_data = list(permission_ids)
-        if all(d.isdigit() for d in permission_ids):
-            all_perms_stmt = select(Permission).order_by(Permission.code.asc())
-            all_perms_res = await session.execute(all_perms_stmt)
-            all_perms = all_perms_res.scalars().all()
+        rid = str(r_row[0])
 
-            numeric_mapping = {str(i+1): p.code for i, p in enumerate(all_perms)}
-            mapped_data = [numeric_mapping.get(d, d) for d in permission_ids]
+        # 1. Clear existing
+        await session.execute(text("DELETE FROM role_permissions WHERE role_id = :rid"), {"rid": rid})
 
-        perm_stmt = select(Permission).where(
-            or_(Permission.code.in_(mapped_data), Permission.id.in_(mapped_data))
-        )
-        perm_result = await session.execute(perm_stmt)
-        permissions = perm_result.scalars().all()
+        # 2. Resolve permissions
+        if permission_ids:
+            # Handle numeric IDs if provided
+            if all(d.isdigit() for d in permission_ids):
+                all_perms_stmt = text("SELECT id, code FROM permissions ORDER BY code ASC")
+                all_perms_res = await session.execute(all_perms_stmt)
+                all_perms = all_perms_res.all()
+                numeric_mapping = {str(i+1): p[1] for i, p in enumerate(all_perms)}
+                resolved_ids = [numeric_mapping.get(d, d) for d in permission_ids]
+            else:
+                resolved_ids = permission_ids
 
-        role.permissions = list(permissions)
+            perm_res = await session.execute(
+                text("SELECT id FROM permissions WHERE id = ANY(:ids) OR code = ANY(:ids)"),
+                {"ids": resolved_ids}
+            )
+            p_ids = [str(p[0]) for p in perm_res]
+
+            if p_ids:
+                insert_sql = text("INSERT INTO role_permissions (role_id, permission_id) VALUES (:rid, :pid)")
+                for pid in p_ids:
+                    await session.execute(insert_sql, {"rid": rid, "pid": pid})
+
         await session.commit()
 
-        # Scalar projection for UI mapping
-        all_perms_stmt = select(Permission).order_by(Permission.code.asc())
-        all_perms_res = await session.execute(all_perms_stmt)
-        global_perms = all_perms_res.scalars().all()
-        perm_to_idx = {p.code: i+1 for i, p in enumerate(global_perms)}
+        # 3. Return updated state via scalar projection
+        perm_sql = text("SELECT code FROM permissions WHERE deleted_at IS NULL ORDER BY code ASC")
+        perm_res = await session.execute(perm_sql)
+        perm_to_idx = {row[0]: i+1 for i, row in enumerate(perm_res)}
+
+        sql = text("""
+            SELECT p.id, p.code, p.name, p.description
+            FROM permissions p
+            JOIN role_permissions rp ON p.id = rp.permission_id
+            WHERE rp.role_id = :rid
+            ORDER BY p.code ASC
+        """)
+        res = await session.execute(sql, {"rid": rid})
 
         return {
             "ok": True,
-            "id": str(role.id),
-            "name": role.name,
-            "code": role.code,
-            "description": role.description,
-            "tenant_id": getattr(role, "tenant_id", "smartshop"),
+            "id": rid, "name": r_row[1], "code": r_row[2], "description": r_row[3],
+            "tenant_id": r_row[4] or "smartshop",
             "permissions": [
                 {
-                    "id": perm_to_idx.get(p.code, 0),
-                    "code": p.code,
-                    "name": p.name,
-                    "description": p.description
+                    "id": perm_to_idx.get(p[1], 0),
+                    "code": p[1], "name": p[2], "description": p[3]
                 }
-                for p in sorted(getattr(role, "permissions", []), key=lambda x: x.code)
+                for p in res
             ]
         }
 

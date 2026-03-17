@@ -90,22 +90,22 @@ class SmartKeyRotator:
     async def _recover_from_db(self) -> list[str]:
         """Recovers Gemini keys from the primary VoiceProfile in the database."""
         from backend.database.alchemy_config import alchemy_config
-        from backend.database.models import VoiceProfile
         from backend.utils.security import GeminiSecurity
-        from sqlalchemy import select
+        from sqlalchemy import text
 
         session_maker = alchemy_config.create_session_maker()
         async with session_maker() as session:
             # We take the first active profile or iterate all
-            stmt = select(VoiceProfile).where(VoiceProfile.gemini_keys_enc != None)
+            stmt = text("SELECT gemini_keys_enc FROM voice_profiles WHERE gemini_keys_enc IS NOT NULL")
             result = await session.execute(stmt)
-            profiles = result.scalars().all()
-            
+            rows = result.all()
+
             recovered = []
-            for p in profiles:
-                keys = GeminiSecurity.decrypt_keys(p.gemini_keys_enc)
-                recovered.extend(keys)
-            
+            for r in rows:
+                if r[0]:
+                    keys = GeminiSecurity.decrypt_keys(r[0])
+                    recovered.extend(keys)
+
             return list(set(recovered)) # Unique
 
     def _get_key_id(self, key: str) -> str:

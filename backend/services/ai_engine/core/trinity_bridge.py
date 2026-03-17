@@ -57,20 +57,26 @@ class TrinityBridge:
     async def reload_models(self):
         """Standardized Model Loading: Fetches waterfall from DB (V75)."""
         from backend.database.alchemy_config import alchemy_config
-        from backend.database.models import VoiceProfile
-        from sqlalchemy import select
+        from sqlalchemy import text
+        import json
 
         session_maker = alchemy_config.create_session_maker()
         try:
             async with session_maker() as session:
                 # We take the first profile's config (Shared settings)
-                stmt = select(VoiceProfile).limit(1)
+                stmt = text("SELECT primary_model, ai_models FROM voice_profiles LIMIT 1")
                 result = await session.execute(stmt)
-                profile = result.scalar_one_or_none()
-                
-                if profile:
-                    self.db_primary_model = profile.primary_model
-                    self.db_waterfall = profile.ai_models or []
+                row = result.first()
+
+                if row:
+                    self.db_primary_model = row[0]
+                    # ai_models is likely a JSON field in Postgres or a JSON string
+                    raw_waterfall = row[1]
+                    if isinstance(raw_waterfall, str):
+                        self.db_waterfall = json.loads(raw_waterfall)
+                    else:
+                        self.db_waterfall = raw_waterfall or []
+
                     logger.info(f"[TrinityBridge] Models hot-reloaded. Primary: {self.db_primary_model}, Chain: {len(self.db_waterfall)}")
         except Exception as e:
             logger.warning(f"[TrinityBridge] Could not hot-reload models from DB: {e}")

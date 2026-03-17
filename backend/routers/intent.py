@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.services.user_service import user_service
 from backend.services.chat_service import chat_service
 from backend.services.telemetry_service import telemetry_service
-from backend.database.models import User, ChatMessage, AgentTelemetryLog
 
 logger = logging.getLogger("api-gateway")
 
@@ -65,9 +64,9 @@ class IntentController(Controller):
                 # Rule R86: Prefer direct ID from JWT for performance and consistency
                 user_id = user_info.get("id")
                 if not user_id and "sub" in user_info:
-                    user = await user_service.get_user_by_email(db_session, user_info["sub"])
-                    if user:
-                        user_id = str(user.id)
+                    user_data = await user_service.get_user_by_email(db_session, user_info["sub"])
+                    if user_data:
+                        user_id = user_data["id"]
 
             # ── Lịch sử hội thoại (10 tin) ──
             context = await chat_service.get_recent_messages(db_session, session_id, limit=10)

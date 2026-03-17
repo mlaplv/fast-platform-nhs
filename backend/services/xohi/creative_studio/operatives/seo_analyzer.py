@@ -6,7 +6,7 @@ from typing import List, Tuple, Dict, Union, Optional, cast
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from pydantic_ai import Agent
-from backend.database.models import ContentCampaign
+from backend.services.campaign_service import campaign_service
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.http_client import get_http_client
 from backend.utils.http_client import get_http_client
@@ -155,34 +155,36 @@ class SeoAnalyzer:
             return ["(Lỗi kết nối Google Search API)"]
 
     async def execute(self, campaign_id: str, session: AsyncSession, **kwargs: object) -> AgentResponse:
-        campaign = await session.get(ContentCampaign, campaign_id)
+        campaign = await campaign_service.get_campaign(session, campaign_id)
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
 
         # CNS V76: Enforce serial processing for heavy SEO analysis
         async with self.seo_semaphore:
             # Phase 76.4: Proactive Physical Sanitization (Elite V2.2)
-            original_draft = campaign.draft_content or ""
+            original_draft = campaign.get("draft_content") or ""
             cleaned_draft = await noise_cleaner.clean(original_draft, mode="aggressive", strip_html=False)
             if cleaned_draft != original_draft:
-                campaign.draft_content = cleaned_draft
+                await campaign_service.update_campaign(session, campaign_id, {"draft_content": cleaned_draft})
+                campaign["draft_content"] = cleaned_draft
                 logger.info(f"[SeoAnalyzer] Proactive sanitization applied to campaign {campaign_id}")
 
             result = await self.analyze(campaign, session)
             return AgentResponse(signal=AgentSignal.OK, data=result)
 
-    async def analyze(self, campaign: ContentCampaign, session: AsyncSession) -> SeoReport:
+    async def analyze(self, campaign: Dict[str, Any], session: AsyncSession) -> SeoReport:
         """
         Analyzes draft content for SEO quality vs competitors.
         """
-        draft: str = campaign.draft_content or ""
-        gold: Dict[str, Union[str, List[str], Dict[str, object]]] = campaign.gold_metadata or {}
-        outline: Dict[str, List[Dict[str, str]]] = campaign.outline_data or {}
+        draft: str = campaign.get("draft_content") or ""
 
-        primary: str = str(gold.get("primary_keyword", ""))
-        secondary: List[str] = list(gold.get("secondary_keywords", []) or [])
-        title: str = str(gold.get("title", ""))
-        persona: str = str(gold.get("persona", ""))
+        # Phase 77: Using Standard Golden Thread Helpers
+        primary: str = campaign_service.get_gold_val(campaign, "primary_keyword", "")
+        secondary: List[str] = campaign_service.get_gold_val(campaign, "secondary_keywords", [])
+        title: str = campaign_service.get_gold_val(campaign, "title", "")
+        persona: str = campaign_service.get_gold_val(campaign, "persona", "")
+
+        outline: Dict[str, Any] = campaign.get("outline_data") or {}
 
         # Phase 76.3: Unified Logic-First Sanitization
         plain_text = await noise_cleaner.clean(draft, mode="aggressive", strip_html=True)

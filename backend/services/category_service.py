@@ -1,11 +1,8 @@
-import logging
-from datetime import datetime, timezone
-from typing import List, Dict, Optional, Union, Sequence
+import uuid
+from typing import List, Dict, Optional, Union, Sequence, cast
 from sqlalchemy import select, update, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from backend.database.models import Category
 from backend.schemas.category import CreateCategoryRequest, UpdateCategoryRequest
 
 logger = logging.getLogger("api-gateway")
@@ -15,6 +12,7 @@ class CategoryService:
     ULTRA-LEAN CATEGORY SERVICE (ELITE V2.2)
     ----------------------------------------
     Handles all category-related logic and product count aggregation.
+    Zero-Hydration (Rule 1.5): Raw SQL & Scalar Projection for <2GB RAM.
     """
 
     async def list_categories(
@@ -23,99 +21,128 @@ class CategoryService:
         limit: int = 100,
         offset: int = 0
     ) -> List[Dict[str, object]]:
-        """List root categories with children + product counts. N+1 KILLED via raw SQL batch."""
+        """List root categories with children via Scalar Projection (Zero-Hydration)."""
 
-        stmt = select(Category).where(
-            Category.parent_id == None,
-            Category.deleted_at == None
-        ).options(selectinload(Category.children)).order_by(Category.created_at.asc()).limit(limit).offset(offset)
-
+        # Fetch all active categories in one go for efficient tree building
+        stmt = text("""
+            SELECT id, name, slug, parent_id, created_at
+            FROM categories
+            WHERE deleted_at IS NULL
+            ORDER BY created_at ASC
+        """)
         res = await session.execute(stmt)
-        categories = res.scalars().all()
+        rows = res.all()
 
-        # N+1 KILL: Single raw SQL to get ALL product counts grouped by categoryId
-        all_cat_ids: List[str] = []
-        for cat in categories:
-            all_cat_ids.append(str(cat.id))
-            for child in (getattr(cat, "children", []) or []):
-                if child.deleted_at is None:
-                    all_cat_ids.append(str(child.id))
+        # Build ID mapping and find product counts
+        cat_map: Dict[str, Dict[str, object]] = {}
+        all_ids: List[str] = []
 
-        count_map: Dict[str, int] = {}
-        if all_cat_ids:
-            query = text(
-                'SELECT category_id, COUNT(*)::int as cnt FROM product_bases '
-                'WHERE category_id = ANY(:ids) AND deleted_at IS NULL '
-                'GROUP BY category_id'
-            )
-            rows = await session.execute(query, {"ids": all_cat_ids})
-            count_map = {str(r[0]): r[1] for r in rows.all()}
+        for r in rows:
+            uid = str(r[0])
+            all_ids.append(uid)
+            cat_map[uid] = {
+                "id": uid,
+                "name": r[1],
+                "slug": r[2],
+                "parentId": str(r[3]) if r[3] else None,
+                "productCount": 0,
+                "children": [],
+                "createdAt": r[4].isoformat() if r[4] else ""
+            }
 
-        result = []
-        for cat in categories:
-            children_data = [
-                {
-                    "id": str(child.id), "name": child.name, "slug": child.slug,
-                    "parentId": str(child.parent_id) if child.parent_id else None,
-                    "productCount": count_map.get(str(child.id), 0),
-                    "children": [],
-                    "createdAt": child.created_at.isoformat() if child.created_at else "",
-                }
-                for child in (getattr(cat, "children", []) or [])
-                if child.deleted_at is None
-            ]
-            result.append({
-                "id": str(cat.id), "name": cat.name, "slug": cat.slug,
-                "parentId": str(cat.parent_id) if cat.parent_id else None,
-                "productCount": count_map.get(str(cat.id), 0),
-                "children": children_data,
-                "createdAt": cat.created_at.isoformat() if cat.created_at else "",
-            })
-        return result
+        # N+1 KILL: Batch product counts
+        if all_ids:
+            count_query = text("""
+                SELECT category_id, COUNT(*)::int
+                FROM product_bases
+                WHERE category_id = ANY(:ids) AND deleted_at IS NULL
+                GROUP BY category_id
+            """)
+            counts = await session.execute(count_query, {"ids": all_ids})
+            for c_row in counts:
+                cid = str(c_row[0])
+                if cid in cat_map:
+                    cat_map[cid]["productCount"] = c_row[1]
+
+        # Assemble tree
+        root_categories = []
+        for cat in cat_map.values():
+            p_id = cast(Optional[str], cat["parentId"])
+            if p_id is None:
+                root_categories.append(cat)
+            elif p_id in cat_map:
+                cast(List, cat_map[p_id]["children"]).append(cat)
+
+        return root_categories[offset : offset + limit]
 
     async def create_category(self, session: AsyncSession, data: CreateCategoryRequest) -> Dict[str, object]:
-        """Create a new category."""
-        category = Category(
-            name=data.name,
-            slug=data.slug or data.name.lower().replace(" ", "-"),
-            parent_id=data.parentId,
+        """Create a new category via Scalar Insert (Zero-Hydration)."""
+        new_id = str(uuid.uuid4())
+        slug = data.slug or data.name.lower().replace(" ", "-")
+
+        await session.execute(
+            text("""
+                INSERT INTO categories (id, name, slug, parent_id, tenant_id, created_at, updated_at)
+                VALUES (:id, :name, :slug, :parent, 'default', NOW(), NOW())
+            """),
+            {
+                "id": new_id,
+                "name": data.name,
+                "slug": slug,
+                "parent": data.parentId
+            }
         )
-        session.add(category)
-        await session.flush()
-        res = {
-            "id": str(category.id),
-            "name": category.name,
-            "slug": category.slug,
-            "parentId": str(category.parent_id) if category.parent_id else None
-        }
         await session.commit()
-        return res
+
+        return {
+            "id": new_id,
+            "name": data.name,
+            "slug": slug,
+            "parentId": data.parentId
+        }
 
     async def update_category(self, session: AsyncSession, category_id: str, data: UpdateCategoryRequest) -> Dict[str, object]:
-        """Update a category."""
-        category = await session.get(Category, category_id)
-        if not category:
+        """Update a category via direct SQL (Zero-Hydration)."""
+        # Check existence
+        sql_check = text("SELECT name, slug, parent_id FROM categories WHERE id = :id AND deleted_at IS NULL")
+        res = await session.execute(sql_check, {"id": category_id})
+        current = res.first()
+        if not current:
             from litestar.exceptions import NotFoundException
             raise NotFoundException(f"Category {category_id} not found")
 
-        if data.name is not None: category.name = data.name
-        if data.slug is not None: category.slug = data.slug
-        if data.parentId is not None: category.parent_id = data.parentId
+        update_data = data.model_dump(exclude_unset=True)
+        if not update_data:
+            return {"id": category_id, "message": "No changes"}
 
+        set_clauses = []
+        params = {"id": category_id}
+        for key, value in update_data.items():
+            db_col = key
+            if key == "parentId": db_col = "parent_id"
+            set_clauses.append(f"{db_col} = :{key}")
+            params[key] = value
+
+        set_clauses.append("updated_at = NOW()")
+        sql = text(f"UPDATE categories SET {', '.join(set_clauses)} WHERE id = :id")
+        await session.execute(sql, params)
         await session.commit()
+
+        # Fetch updated state
+        res_info = await session.execute(text("SELECT name, slug, parent_id FROM categories WHERE id = :id"), {"id": category_id})
+        r = res_info.first()
+
         return {
-            "id": str(category.id),
-            "name": category.name,
-            "slug": category.slug,
-            "parentId": str(category.parent_id) if category.parent_id else None
+            "id": category_id,
+            "name": r[0] if r else "",
+            "slug": r[1] if r else "",
+            "parentId": str(r[2]) if r and r[2] else None
         }
 
     async def delete_categories(self, session: AsyncSession, ids: List[str]) -> int:
-        """Soft delete categories."""
-        stmt = update(Category).where(Category.id.in_(ids)).values(
-            deleted_at=datetime.now(timezone.utc)
-        )
-        result = await session.execute(stmt)
+        """Soft delete categories via Raw SQL."""
+        stmt = text("UPDATE categories SET deleted_at = NOW() WHERE id = ANY(:ids)")
+        result = await session.execute(stmt, {"ids": ids})
         await session.commit()
         return result.rowcount
 

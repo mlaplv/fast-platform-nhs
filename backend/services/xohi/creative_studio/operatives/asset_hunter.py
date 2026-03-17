@@ -6,8 +6,7 @@ from typing import List, Optional, Dict, Union
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse, quote, urlunparse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm.attributes import flag_modified
-
+from backend.services.campaign_service import campaign_service
 from backend.utils.http_client import get_http_client
 from backend.services.event_bus import event_bus
 from backend.constants.agentic import MAX_SEARCH_RETRY_PER_STEP, SEARCH_CIRCUIT_BREAKER_COOLDOWN_MINUTES
@@ -71,20 +70,20 @@ class AssetHunter:
 
     async def execute(self, campaign_id: str, session: AsyncSession, **kwargs: object) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0)."""
-        campaign: Optional[ContentCampaign] = await session.get(ContentCampaign, campaign_id)
+        campaign = await campaign_service.get_campaign(session, campaign_id)
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found.", data={})
 
         async with self.hunt_semaphore:
             # R108: Pull Comprehensive Context for Intelligence
-            title: str = campaign.get_gold_val("title", campaign.source_input)
-            primary: str = campaign.get_gold_val("primary_keyword", "")
-            secondary: List[str] = campaign.get_gold_val("secondary_keywords", [])
-            persona: str = campaign.get_gold_val("persona", "Professional")
+            title: str = campaign_service.get_gold_val(campaign, "title", campaign["source_input"])
+            primary: str = campaign_service.get_gold_val(campaign, "primary_keyword", "")
+            secondary: List[str] = campaign_service.get_gold_val(campaign, "secondary_keywords", [])
+            persona: str = campaign_service.get_gold_val(campaign, "persona", "Professional")
 
             await event_bus.emit("CONTENT_PROGRESS", {
                 "campaign_id": campaign_id,
-                "user_id": str(campaign.user_id),
+                "user_id": str(campaign["user_id"]),
                 "step": 2,
                 "message": "🧠 Đang phân tích thực thể và lập kế hoạch săn ảnh...",
                 "status": "PROCESSING",
@@ -92,7 +91,7 @@ class AssetHunter:
             })
 
             # Step 2.1: AI Search Planning (Subject-First Logic)
-            content_mode = campaign.get_gold_val("content_mode", "viral")
+            content_mode = campaign_service.get_gold_val(campaign, "content_mode", "viral")
             try:
                 prompt = (
                     f"Title: {title}\n"
@@ -101,7 +100,7 @@ class AssetHunter:
                     f"Persona: {persona}\n"
                     f"Content Mode: {content_mode.upper()}"
                 )
-                result = await trinity_bridge.run(self.planner_agent, prompt, session_id=campaign.id)
+                result = await trinity_bridge.run(self.planner_agent, prompt, session_id=campaign["id"])
                 plan: VisualSearchPlan = result.data if hasattr(result, "data") else result.output
                 queries: List[str] = plan.queries
                 logger.info(f"[AssetHunter] AI Planner queries: {queries}")
@@ -111,7 +110,7 @@ class AssetHunter:
 
             # Step 2.2: Multi-Query Search & Deduplication
             all_urls = []
-            config = campaign.get_gold_config()
+            config = campaign_service.get_gold_config(campaign)
             target_count = int(config.get("max_assets", 10))
 
             # Rule R88.6: Multi-Query Expansion for High Recall
@@ -125,14 +124,14 @@ class AssetHunter:
 
                 await event_bus.emit("CONTENT_PROGRESS", {
                     "campaign_id": campaign_id,
-                    "user_id": str(campaign.user_id),
+                    "user_id": str(campaign["user_id"]),
                     "step": 2,
                     "message": f"🔍 Truy quét ảnh với truy vấn #{i+1}: {q}",
                     "status": "PROCESSING",
                     "timestamp": datetime.now(timezone.utc).isoformat()
                 })
 
-                page_results = await self.fetch_images(q, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=10)
+                page_results = await self.fetch_images(q, campaign_id=campaign_id, user_id=str(campaign["user_id"]), num_results=10)
                 for url in page_results:
                     if url not in seen_urls:
                         seen_urls.add(url)
@@ -195,17 +194,20 @@ class AssetHunter:
                     "metadata": {"source": "google_search"}
                 })
 
-            campaign.assets_data = final_assets
             # Phase 74: Seed the Golden Thread with original remote URLs
-            gold = campaign.gold_metadata or {}
+            gold = dict(campaign.get("gold_metadata") or {})
             gold["original_remote_assets"] = list(all_urls)
             gold["reserve_assets"] = list(reserve_urls) # R120: Store reserve candidates
-            campaign.gold_metadata = gold
-            flag_modified(campaign, "gold_metadata")
+
+            # Surgical Update (Rule R1.5)
+            await campaign_service.update_campaign(session, campaign_id, {
+                "assets_data": final_assets,
+                "gold_metadata": gold
+            })
 
             await event_bus.emit("CONTENT_PROGRESS", {
                 "campaign_id": campaign_id,
-                "user_id": str(campaign.user_id),
+                "user_id": str(campaign["user_id"]),
                 "step": 2,
                 "message": f"✅ Đã tìm thấy {len(final_assets)} ảnh {'chuẩn AI' if queries else 'thô'}. Sẵn sàng duyệt!",
                 "status": "PROCESSING",

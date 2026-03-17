@@ -5,9 +5,7 @@ from litestar import Controller, get, post, patch, delete
 from typing import List, Dict, Union, Optional
 from sqlalchemy import text, update, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from backend.database.models import ProductBase
 from backend.services.product_service import product_service
 from backend.guards import PermissionGuard
 from backend.schemas.product import CreateProductRequest, UpdateProductRequest

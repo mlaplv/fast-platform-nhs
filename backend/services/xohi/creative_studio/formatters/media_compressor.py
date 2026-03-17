@@ -7,13 +7,14 @@ import logging
 import hashlib
 from PIL import Image
 from io import BytesIO
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional, Union, Any
 from datetime import datetime, timezone
-from sqlalchemy.orm.attributes import flag_modified
 
 import uuid
+import json
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.database.models import ContentCampaign, MediaRegistry
+from backend.services.campaign_service import campaign_service
 from backend.services.xohi.creative_studio.models.schemas import AgentResponse, AgentSignal
 
 from backend.services.xohi.creative_studio.operatives.media_analyst import MediaAnalyst
@@ -35,38 +36,38 @@ class MediaCompressor:
         self.analyst = MediaAnalyst()
 
     async def execute(self, campaign_id: str, session: AsyncSession, **kwargs: object) -> AgentResponse:
-        """Entry point for standard agentic flow."""
-        campaign: Optional[ContentCampaign] = await session.get(ContentCampaign, campaign_id)
+        """Entry point for standard agentic flow (Elite V2.2 Zero-Hydration)."""
+        campaign = await campaign_service.get_campaign(session, campaign_id)
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found.", data={})
 
         # Step 1: Localize standard assets (images from Step 2)
-        original_assets: List[str] = campaign.get_gold_val("original_remote_assets", list(campaign.assets_data or []))
+        original_assets: List[str] = campaign_service.get_gold_val(campaign, "original_remote_assets", list(campaign.get("assets_data") or []))
         local_assets: List[str] = await self.localize_assets(campaign, session)
 
         # Step 2: Localize Avatar (Gold Metadata)
-        gold: Dict[str, object] = dict(campaign.gold_metadata or {})
-        remote_avatar: Optional[str] = gold.get("avatar") # type: ignore
+        gold: Dict[str, Any] = dict(campaign.get("gold_metadata") or {})
+        remote_avatar: Optional[str] = gold.get("avatar")
 
-        if remote_avatar and remote_avatar.startswith("http"):
+        if remote_avatar and isinstance(remote_avatar, str) and remote_avatar.startswith("http"):
             async with httpx.AsyncClient(follow_redirects=True) as client:
-                local_avatar = await self._download_and_save(client, remote_avatar, str(campaign.id), "avatar", session)
+                local_avatar = await self._download_and_save(client, remote_avatar, str(campaign["id"]), "avatar", session)
                 if local_avatar:
                     gold["avatar"] = local_avatar
-                    campaign.gold_metadata = gold
-                    flag_modified(campaign, "gold_metadata")
+                    # Rule R1.5: Surgical Update for metadata
+                    await campaign_service.update_campaign(session, campaign_id, {"gold_metadata": gold})
 
         # Step 3: Wrap Draft Content and apply asset replacement
-        final_html: str = self.wrap_html(campaign.draft_content or "", local_assets, original_assets)
+        final_html: str = self.wrap_html(campaign.get("draft_content") or "", local_assets, original_assets)
 
         # Step 4: Final Surgical Scan for manual/rogue external links
-        final_html = await self._localize_remaining_html_images(final_html, str(campaign.id), session)
+        final_html = await self._localize_remaining_html_images(final_html, str(campaign["id"]), session)
 
-        campaign.final_html = final_html
-        campaign.assets_data = local_assets
-
-        # Synchronize persistence
-        await session.commit()
+        # Final persistence via CampaignService
+        await campaign_service.update_campaign(session, campaign_id, {
+            "final_html": final_html,
+            "assets_data": local_assets
+        })
 
         return AgentResponse(
             signal=AgentSignal.PROCEED_NEXT,
@@ -74,11 +75,16 @@ class MediaCompressor:
             data={"assets": local_assets, "final_html": final_html}
         )
 
-    async def localize_assets(self, campaign: ContentCampaign, session: Optional[AsyncSession] = None) -> List[str]:
+    async def localize_assets(self, campaign: Dict[str, Any], session: Optional[AsyncSession] = None) -> List[str]:
         """Downloads and processes all assets defined in assets_data."""
         local_paths: List[str] = []
+        assets_data = campaign.get("assets_data") or []
         async with httpx.AsyncClient(follow_redirects=True) as client:
-            for i, url in enumerate(campaign.assets_data or []):
+            for i, url in enumerate(assets_data):
+                # Handle cases where url might be a dict (old format support)
+                if isinstance(url, dict):
+                    url = url.get("file_path", "")
+
                 # Phase 73: Fast Path for already localized assets
                 if url.startswith("/") or url.startswith("static"):
                     # Normalize paths (Remove /static prefix if present)
@@ -89,7 +95,7 @@ class MediaCompressor:
                     continue
 
                 async with self.semaphore:
-                    local_path = await self._download_and_save(client, url, str(campaign.id), i, session)
+                    local_path = await self._download_and_save(client, url, str(campaign["id"]), i, session)
                     local_paths.append(local_path if local_path else "/v65_assets/placeholder.webp")
 
         return local_paths
@@ -113,27 +119,37 @@ class MediaCompressor:
                 if session:
                     full_path = os.path.join(self.upload_dir, f"{campaign_id}_{suffix}.webp")
                     file_size = os.path.getsize(full_path)
+                    new_asset_id = str(uuid.uuid4())
 
-                    registry_entry = MediaRegistry(
-                        id=str(uuid.uuid4()),
-                        filename=f"{campaign_id}_{suffix}.webp",
-                        file_path=local_path,
-                        file_size=file_size,
-                        mime_type="image/webp",
-                        dimensions=dims,
-                        campaign_id=campaign_id,
-                        media_metadata={
+                    # Rule R1.5: Surgical INSERT via Raw SQL (Zero-Hydration)
+                    sql = text("""
+                        INSERT INTO media_registry (
+                            id, filename, file_path, file_size, mime_type, dimensions,
+                            campaign_id, media_metadata, created_at, updated_at
+                        ) VALUES (
+                            :id, :filename, :file_path, :file_size, :mime_type, :dimensions,
+                            :campaign_id, :media_metadata, NOW(), NOW()
+                        )
+                    """)
+
+                    await session.execute(sql, {
+                        "id": new_asset_id,
+                        "filename": f"{campaign_id}_{suffix}.webp",
+                        "file_path": local_path,
+                        "file_size": file_size,
+                        "mime_type": "image/webp",
+                        "dimensions": dims,
+                        "campaign_id": campaign_id,
+                        "media_metadata": json.dumps({
                             "original_url": url,
                             "localized_at": datetime.now(timezone.utc).isoformat(),
                             "source": "MediaCompressor"
-                        }
-                    )
-                    session.add(registry_entry)
-                    await session.flush() # Ensure ID is available for background task
+                        })
+                    })
 
                     # --- AI AUTO-TAGGING & VISUAL INTELLIGENCE (Giai đoạn 5) ---
                     # Chạy phân tích background để không block quá trình localization chính
-                    asyncio.create_task(self.analyst.process_registry_entry(registry_entry.id))
+                    asyncio.create_task(self.analyst.process_registry_entry(new_asset_id))
 
                 return local_path
             finally:

@@ -5,9 +5,7 @@ from datetime import datetime, timezone
 from typing import List, Dict, Optional, Union, Tuple
 from sqlalchemy import select, update, text, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from backend.database.models import ProductBase, Category
 from backend.schemas.product import CreateProductRequest, UpdateProductRequest
 from backend.utils.sql import escape_like
 
@@ -18,6 +16,7 @@ class ProductService:
     ULTRA-LEAN PRODUCT SERVICE (ELITE V2.2)
     ---------------------------------------
     Handles all product-related logic, including pgvector embeddings.
+    Zero-Hydration (Rule 1.5): Raw SQL & Scalar Projection for <2GB RAM.
     """
 
     async def list_products(
@@ -28,66 +27,75 @@ class ProductService:
         status: Optional[str] = None,
         search: Optional[str] = None,
     ) -> Dict[str, object]:
-        """List products with total count and category projection."""
-        conditions = [ProductBase.deleted_at == None]
+        """List products with total count and category projection via Scalar Projection (Zero-Hydration)."""
+        conditions = ["p.deleted_at IS NULL"]
+        params = {"limit": limit, "offset": offset}
+
         if status and status != "all":
-            conditions.append(ProductBase.status == status.upper())
+            conditions.append("p.status = :status")
+            params["status"] = status.upper()
         if search:
-            safe = escape_like(search)
-            conditions.append(or_(
-                func.unaccent(ProductBase.name).ilike(f"%{func.unaccent(safe)}%"),
-                ProductBase.sku.ilike(f"%{safe}%"),
-            ))
+            conditions.append("(p.name ILIKE :search OR p.sku ILIKE :search)")
+            params["search"] = f"%{escape_like(search)}%"
+
+        where_clause = " AND ".join(conditions)
 
         # 1. COUNT (Zero-Hydration)
-        count_stmt = select(func.count(ProductBase.id)).where(and_(*conditions))
-        total = await session.scalar(count_stmt) or 0
+        count_sql = text(f"SELECT COUNT(*) FROM product_bases p WHERE {where_clause}")
+        total = await session.scalar(count_sql, params) or 0
 
         # 2. Scalar Projection Fetch
-        stmt = select(
-            ProductBase.id, ProductBase.name, ProductBase.sku,
-            ProductBase.price, ProductBase.stock, ProductBase.status,
-            ProductBase.category_id, ProductBase.description, ProductBase.type,
-            ProductBase.created_at,
-            Category.name.label("category_name")
-        ).outerjoin(Category, ProductBase.category_id == Category.id).where(
-            and_(*conditions)
-        ).limit(limit).offset(offset).order_by(ProductBase.created_at.desc())
+        sql = text(f"""
+            SELECT p.id, p.name, p.sku, p.price, p.stock, p.status, p.category_id, p.description, p.type, p.created_at, c.name as category_name
+            FROM product_bases p
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE {where_clause}
+            ORDER BY p.created_at DESC
+            LIMIT :limit OFFSET :offset
+        """)
 
-        result = await session.execute(stmt)
+        result = await session.execute(sql, params)
+        rows = result.all()
+
         data = [
             {
-                "id": str(row.id),
-                "name": row.name,
-                "sku": row.sku or "",
-                "price": row.price,
-                "stock": row.stock,
-                "status": row.status.lower() if row.status else "draft",
-                "category": row.category_name or "",
-                "categoryId": str(row.category_id) if row.category_id else None,
-                "description": row.description,
-                "type": row.type,
-                "createdAt": row.created_at.isoformat() if row.created_at else "",
+                "id": str(r[0]),
+                "name": r[1],
+                "sku": r[2] or "",
+                "price": float(r[3]) if r[3] else 0.0,
+                "stock": r[4],
+                "status": r[5].lower() if r[5] else "draft",
+                "category": r[10] or "",
+                "categoryId": str(r[6]) if r[6] else None,
+                "description": r[7],
+                "type": r[8],
+                "createdAt": r[9].isoformat() if r[9] else "",
             }
-            for row in result
+            for r in rows
         ]
         return {"data": data, "total": total}
 
     async def create_product(self, session: AsyncSession, data: CreateProductRequest) -> Dict[str, object]:
-        """Create a new product and generate its embedding."""
+        """Create a new product via Scalar Insert (Zero-Hydration) and generate its embedding."""
         new_id = str(uuid.uuid4())
-        product = ProductBase(
-            id=new_id,
-            name=data.name,
-            sku=data.sku,
-            price=data.price,
-            stock=data.stock,
-            status=data.status.upper(),
-            description=data.description,
-            category_id=data.categoryId,
-            type=data.type,
+
+        await session.execute(
+            text("""
+                INSERT INTO product_bases (id, name, sku, price, stock, status, description, category_id, type, created_at, updated_at, tenant_id)
+                VALUES (:id, :name, :sku, :price, :stock, :status, :desc, :cat_id, :type, NOW(), NOW(), 'default')
+            """),
+            {
+                "id": new_id,
+                "name": data.name,
+                "sku": data.sku,
+                "price": data.price,
+                "stock": data.stock,
+                "status": data.status.upper(),
+                "desc": data.description,
+                "cat_id": data.categoryId,
+                "type": data.type
+            }
         )
-        session.add(product)
 
         # RAG: Generate embedding
         await self._upsert_embedding(session, new_id, data.name, data.description)
@@ -104,48 +112,61 @@ class ProductService:
         }
 
     async def update_product(self, session: AsyncSession, product_id: str, data: UpdateProductRequest) -> Dict[str, object]:
-        """Update a product and refresh its embedding if necessary."""
-        stmt = select(ProductBase).where(ProductBase.id == product_id)
-        result = await session.execute(stmt)
-        product = result.scalar_one_or_none()
-
-        if not product:
+        """Update a product via direct SQL and refresh its embedding if necessary."""
+        # Check existence first via scalar
+        exists = await session.scalar(text("SELECT 1 FROM product_bases WHERE id = :id"), {"id": product_id})
+        if not exists:
             from litestar.exceptions import NotFoundException
             raise NotFoundException(f"Product {product_id} not found")
 
-        if data.name is not None: product.name = data.name
-        if data.sku is not None: product.sku = data.sku
-        if data.price is not None: product.price = data.price
-        if data.stock is not None: product.stock = data.stock
-        if data.status is not None: product.status = data.status.upper()
-        if data.description is not None: product.description = data.description
-        if data.categoryId is not None: product.category_id = data.categoryId
+        update_data = data.model_dump(exclude_unset=True)
+        if not update_data:
+            return {"id": product_id, "message": "No changes requested"}
 
-        # RAG: Update embedding
-        if data.name is not None or data.description is not None:
-            await self._upsert_embedding(session, product_id, product.name, product.description)
+        set_clauses = []
+        params = {"id": product_id}
+        for key, value in update_data.items():
+            db_key = key
+            if key == "categoryId": db_key = "category_id"
+
+            set_clauses.append(f"{db_key} = :{key}")
+            if key == "status":
+                params[key] = value.upper()
+            else:
+                params[key] = value
+
+        set_clauses.append("updated_at = NOW()")
+        sql = text(f"UPDATE product_bases SET {', '.join(set_clauses)} WHERE id = :id")
+        await session.execute(sql, params)
+
+        # RAG: Update embedding if relevant fields changed
+        if "name" in update_data or "description" in update_data:
+            # Fetch current values for embedding
+            current = await session.execute(
+                text("SELECT name, description FROM product_bases WHERE id = :id"),
+                {"id": product_id}
+            )
+            r = current.first()
+            if r:
+                await self._upsert_embedding(session, product_id, r[0], r[1])
 
         await session.commit()
         return {
             "id": product_id,
-            "name": product.name,
-            "status": product.status.lower(),
             "message": "Product updated successfully"
         }
 
     async def delete_products(self, session: AsyncSession, ids: List[str]) -> int:
-        """Soft delete multiple products."""
-        stmt = update(ProductBase).where(ProductBase.id.in_(ids)).values(
-            deleted_at=datetime.now(timezone.utc)
-        )
-        result = await session.execute(stmt)
+        """Soft delete multiple products via Raw SQL (Rule 1.5)."""
+        sql = text("UPDATE product_bases SET deleted_at = NOW() WHERE id = ANY(:ids)")
+        result = await session.execute(sql, {"ids": ids})
         await session.commit()
         return result.rowcount
 
     async def bulk_activate(self, session: AsyncSession, ids: List[str]) -> int:
-        """Activate multiple products."""
-        stmt = update(ProductBase).where(ProductBase.id.in_(ids)).values(status="ACTIVE")
-        result = await session.execute(stmt)
+        """Activate multiple products via Raw SQL."""
+        sql = text("UPDATE product_bases SET status = 'ACTIVE', updated_at = NOW() WHERE id = ANY(:ids)")
+        result = await session.execute(sql, {"ids": ids})
         await session.commit()
         return result.rowcount
 

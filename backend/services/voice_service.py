@@ -7,12 +7,10 @@ import unicodedata
 import uuid
 import httpx
 from typing import Optional, List, Dict, Tuple, TYPE_CHECKING, cast, TypedDict
-from sqlalchemy import select, or_
+from sqlalchemy import select, or_, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 import litellm
-from backend.database.models import VoiceProfile
 from backend.services.xohi_memory import xohi_memory
 from backend.services.routing.stt_corrector import stt_corrector
 from backend.services.ai_engine.core.key_rotator import key_rotator
@@ -57,6 +55,7 @@ class VoiceService:
     ULTRA-LEAN VOICE SERVICE (ELITE V2.2)
     ------------------------------------
     Centralizes STT, Transcription, AI Profile and Model Management.
+    Zero-Hydration (Rule 1.5): Raw SQL & Scalar Projection for <2GB RAM.
     """
 
     async def transcribe_and_correct(
@@ -89,34 +88,42 @@ class VoiceService:
         corrected_text, suspected = await stt_corrector.correct(filtered_text, user_dictionary=user_dict)
         return corrected_text, suspected
 
-    async def _get_profile_model(self, session: AsyncSession, user_id: str) -> VoiceProfile:
-        """Internal helper to fetch or initialize a VoiceProfile ORM model."""
-        stmt = select(VoiceProfile).where(VoiceProfile.user_id == user_id)
-        result = await session.execute(stmt)
-        profile = result.scalar_one_or_none()
+    async def _get_or_create_profile(self, session: AsyncSession, user_id: str) -> str:
+        """Internal helper to ensure profile exists and return its ID (Zero-Hydration)."""
+        sql = text("SELECT id FROM voice_profiles WHERE user_id = :uid")
+        pid = await session.scalar(sql, {"uid": user_id})
 
-        if not profile:
-            profile = VoiceProfile(id=str(uuid.uuid4()), user_id=user_id)
-            session.add(profile)
-            await session.flush() # Ensure ID is generated
-
-        return profile
+        if not pid:
+            pid = str(uuid.uuid4())
+            await session.execute(
+                text("""
+                    INSERT INTO voice_profiles (id, user_id, created_at, updated_at)
+                    VALUES (:id, :uid, NOW(), NOW())
+                """),
+                {"id": pid, "uid": user_id}
+            )
+            # No commit here, let the caller decide
+        return str(pid)
 
     async def update_gemini_keys(self, session: AsyncSession, user_id: str, keys: List[str]) -> int:
-        """Encrypt and save a new pool of Gemini keys."""
+        """Encrypt and save a new pool of Gemini keys via direct SQL."""
         if not keys:
             return 0
 
         encrypted_blob = GeminiSecurity.encrypt_keys(keys)
-        profile = await self._get_profile_model(session, user_id)
-        profile.gemini_keys_enc = encrypted_blob
+        await self._get_or_create_profile(session, user_id)
+
+        await session.execute(
+            text("UPDATE voice_profiles SET gemini_keys_enc = :enc, updated_at = NOW() WHERE user_id = :uid"),
+            {"enc": encrypted_blob, "uid": user_id}
+        )
 
         await session.commit()
         await key_rotator.load_keys()
         return len(keys)
 
     async def discover_models(self, session: AsyncSession, user_id: str) -> List[str]:
-        """Fetch available Gemini models and persist to profile."""
+        """Fetch available Gemini models and persist to profile via direct SQL."""
         key = await key_rotator.get_key()
         models: List[str] = []
 
@@ -134,8 +141,12 @@ class VoiceService:
                     models.sort()
 
         if models:
-            profile = await self._get_profile_model(session, user_id)
-            profile.discovered_models = models
+            await self._get_or_create_profile(session, user_id)
+            import json
+            await session.execute(
+                text("UPDATE voice_profiles SET discovered_models = :models, updated_at = NOW() WHERE user_id = :uid"),
+                {"models": json.dumps(models), "uid": user_id}
+            )
             await session.commit()
 
         return models
@@ -147,10 +158,17 @@ class VoiceService:
         primary_model: Optional[str],
         waterfall: List[str]
     ) -> None:
-        """Update AI model configuration and hot-reload TrinityBridge."""
-        profile = await self._get_profile_model(session, user_id)
-        profile.primary_model = primary_model
-        profile.ai_models = waterfall
+        """Update AI model configuration via direct SQL and hot-reload TrinityBridge."""
+        await self._get_or_create_profile(session, user_id)
+        import json
+        await session.execute(
+            text("""
+                UPDATE voice_profiles
+                SET primary_model = :pm, ai_models = :waterfall, updated_at = NOW()
+                WHERE user_id = :uid
+            """),
+            {"pm": primary_model, "waterfall": json.dumps(waterfall), "uid": user_id}
+        )
 
         await session.commit()
 
@@ -218,16 +236,47 @@ class VoiceService:
             return {"status": "error", "message": str(e)}
 
     async def get_voice_settings(self, session: AsyncSession, user_id: str) -> Dict[str, object]:
-        """Fetch current voice and cognitive settings for a user."""
+        """Fetch current voice and cognitive settings for a user via text-SQL (Zero-Hydration)."""
         from backend.services.capability_registry import capability_registry
         from backend.services.xohi_memory import xohi_memory
         import json
 
-        profile = await self._get_profile_model(session, user_id)
+        sql = text("""
+            SELECT wake_words, sleep_words, greeting_template, farewell_template, capabilities, chat_settings
+            FROM voice_profiles
+            WHERE user_id = :uid
+        """)
+        res = await session.execute(sql, {"uid": user_id})
+        r = res.first()
 
-        stored_caps = {}
-        if profile.capabilities:
-            stored_caps = profile.capabilities if isinstance(profile.capabilities, dict) else json.loads(str(profile.capabilities))
+        def _parse_json(val, default):
+            if not val: return default
+            if isinstance(val, (list, dict)): return val
+            try: return json.loads(val)
+            except: return default
+
+        if not r:
+            wake_words, sleep_words = ["xohi"], ["ngu di"]
+            greeting, farewell = "Dạ", "Tạm biệt"
+            stored_caps = {}
+            chat_settings = {
+                "selective_persistence": True,
+                "save_ai_responses": False,
+                "auto_purge_days": 30,
+                "cache_limit": 10
+            }
+        else:
+            wake_words = _parse_json(r[0], ["xohi"])
+            sleep_words = _parse_json(r[1], ["ngu di"])
+            greeting = r[2] or "Dạ"
+            farewell = r[3] or "Tạm biệt"
+            stored_caps = _parse_json(r[4], {})
+            chat_settings = _parse_json(r[5], {
+                "selective_persistence": True,
+                "save_ai_responses": False,
+                "auto_purge_days": 30,
+                "cache_limit": 10
+            })
 
         # Merge Registry Metadata with User's Active State
         capabilities = []
@@ -242,50 +291,93 @@ class VoiceService:
         is_campaign = val == "1"
 
         return {
-            "wake_words": profile.wake_words or ["xohi"],
-            "sleep_words": profile.sleep_words or ["ngu di"],
-            "greeting_template": profile.greeting_template or "Dạ",
-            "farewell_template": profile.farewell_template or "Tạm biệt",
+            "wake_words": wake_words,
+            "sleep_words": sleep_words,
+            "greeting_template": greeting,
+            "farewell_template": farewell,
             "is_campaign_mode": is_campaign,
             "capabilities": capabilities,
-            "chat_settings": profile.chat_settings or {
-                "selective_persistence": True,
-                "save_ai_responses": False,
-                "auto_purge_days": 30,
-                "cache_limit": 10
-            }
+            "chat_settings": chat_settings
         }
 
     async def update_profile(self, session: AsyncSession, user_id: str, data: Dict[str, object]) -> Dict[str, object]:
-        """Update or create a voice profile with bulk fields."""
-        profile = await self._get_profile_model(session, user_id)
+        """Update or create a voice profile via direct SQL (Zero-Hydration)."""
+        await self._get_or_create_profile(session, user_id)
 
-        if "wake_words" in data: profile.wake_words = cast(List[str], data["wake_words"])
-        if "sleep_words" in data: profile.sleep_words = cast(List[str], data["sleep_words"])
-        if "greeting_template" in data: profile.greeting_template = cast(str, data["greeting_template"])
-        if "farewell_template" in data: profile.farewell_template = cast(str, data["farewell_template"])
-        if "capabilities" in data: profile.capabilities = data["capabilities"]
-        if "chat_settings" in data: profile.chat_settings = data["chat_settings"]
-        if "primary_model" in data: profile.primary_model = cast(Optional[str], data["primary_model"])
-        if "ai_models" in data: profile.ai_models = cast(List[str], data["ai_models"])
+        import json
+        set_clauses = []
+        params = {"uid": user_id}
+
+        mapping = {
+            "wake_words": "wake_words",
+            "sleep_words": "sleep_words",
+            "greeting_template": "greeting_template",
+            "farewell_template": "farewell_template",
+            "capabilities": "capabilities",
+            "chat_settings": "chat_settings",
+            "primary_model": "primary_model",
+            "ai_models": "ai_models"
+        }
+
+        for key, db_col in mapping.items():
+            if key in data:
+                set_clauses.append(f"{db_col} = :{key}")
+                val = data[key]
+                params[key] = json.dumps(val) if isinstance(val, (list, dict)) else val
+
+        if not set_clauses:
+            return {"user_id": user_id, "message": "No changes"}
+
+        set_clauses.append("updated_at = NOW()")
+        sql = text(f"UPDATE voice_profiles SET {', '.join(set_clauses)} WHERE user_id = :uid RETURNING id, wake_words, primary_model, greeting_template, farewell_template, capabilities, chat_settings")
+        res = await session.execute(sql, params)
+        r = res.first()
 
         await session.commit()
+
+        def _parse(v):
+            if isinstance(v, str):
+                try: return json.loads(v)
+                except: return v
+            return v
+
         return {
-            "id": profile.id,
-            "user_id": profile.user_id,
-            "wake_words": profile.wake_words,
-            "primary_model": profile.primary_model
+            "id": str(r[0]) if r else None,
+            "user_id": user_id,
+            "wake_words": _parse(r[1]) if r else [],
+            "primary_model": r[2] if r else None,
+            "greeting_template": r[3] if r else "Dạ",
+            "farewell_template": r[4] if r else "Tạm biệt",
+            "capabilities": _parse(r[5]) if r else {},
+            "chat_settings": _parse(r[6]) if r else {}
         }
 
     async def get_model_config(self, session: AsyncSession, user_id: str) -> Dict[str, object]:
-        """Fetch current AI model configuration with defaults."""
+        """Fetch current AI model configuration with defaults via text-SQL."""
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-        profile = await self._get_profile_model(session, user_id)
+        import json
+
+        sql = text("SELECT primary_model, ai_models, discovered_models FROM voice_profiles WHERE user_id = :uid")
+        res = await session.execute(sql, {"uid": user_id})
+        r = res.first()
+
+        if not r:
+            return {
+                "primary_model": trinity_bridge.default_model_name,
+                "ai_models": trinity_bridge.model_waterfall,
+                "discovered_models": []
+            }
+
+        def _parse(v, default):
+            if not v: return default
+            if isinstance(v, (list, dict)): return v
+            try: return json.loads(v)
+            except: return default
 
         return {
-            "primary_model": profile.primary_model or trinity_bridge.default_model_name,
-            "ai_models": profile.ai_models or trinity_bridge.model_waterfall,
-            "discovered_models": profile.discovered_models or []
+            "primary_model": r[0] or trinity_bridge.default_model_name,
+            "ai_models": _parse(r[1], trinity_bridge.model_waterfall),
+            "discovered_models": _parse(r[2], [])
         }
 
     async def reset_health(self) -> Dict[str, object]:
@@ -337,10 +429,10 @@ class VoiceService:
         redis_data = {
             "wake_words":        [w.lower() for w in wake_words],
             "sleep_words":       [w.lower() for w in sleep_words],
-            "greeting_template": profile.greeting_template,
-            "farewell_template": profile.farewell_template,
-            "capabilities":      profile.capabilities,
-            "chat_settings":     profile.chat_settings,
+            "greeting_template": profile["greeting_template"],
+            "farewell_template": profile["farewell_template"],
+            "capabilities":      profile["capabilities"],
+            "chat_settings":     profile["chat_settings"],
         }
 
         # Global Campaign Mode
@@ -358,9 +450,9 @@ class VoiceService:
         return {
             "wake_words": wake_words,
             "sleep_words": sleep_words,
-            "greeting_template": profile.greeting_template,
-            "farewell_template": profile.farewell_template,
-            "capabilities": profile.capabilities,
+            "greeting_template": profile["greeting_template"],
+            "farewell_template": profile["farewell_template"],
+            "capabilities": profile["capabilities"],
             "is_campaign_mode": current_campaign
         }
 

@@ -15,9 +15,6 @@ from .heuristic_classifier import heuristic_classify
 from backend.services.xohi.creative_studio.orchestrator import content_factory
 from backend.database.alchemy_config import alchemy_config
 
-if TYPE_CHECKING:
-    from backend.database.models import ContentCampaign
-
 from backend.services.ai_engine.core.vector_memory import VectorMemory
 from .intent_synapse import intent_synapse
 
@@ -265,10 +262,15 @@ class RouterOrchestrator:
                 # 0.5.3: Proactive Resume Check (Rule R81)
                 # If sếp just wakes XoHi, check if there's an active campaign to report
                 try:
-                    from backend.database.models import ContentCampaign
                     async with async_session_maker() as session:
-                        active = await content_factory.get_active_campaign(session, user_id=user_id)
-                        if active:
+                        active_res = await session.execute(
+                            text("SELECT id, current_step, status FROM content_campaigns WHERE user_id = :uid AND status IN ('IN_PROGRESS', 'PENDING_REVIEW') LIMIT 1"),
+                            {"uid": user_id}
+                        )
+                        active_row = active_res.first()
+                        if active_row:
+                            from types import SimpleNamespace
+                            active = SimpleNamespace(id=str(active_row[0]), current_step=active_row[1], status=active_row[2])
                             resume_msg = content_factory.format_resume_greeting(active)
                             logger.info(f"[Proactive Resume] Found active campaign {active.id}, hijacking greeting.")
                             return IntentResponse(

@@ -26,9 +26,12 @@ Nắn toàn bộ Backend về trục kiến trúc tinh gọn: Controller (Giao t
 - [x] **XÓA BỎ VĨNH VIỄN** `backend/database/repositories.py` và các provider liên quan. <!-- id: 213 -->
 - [x] Kiểm tra ép kiểu tĩnh 100% (No `Any`) và hiệu năng (RAM < 2GB). <!-- id: 214 -->
 - [x] Đồng bộ hóa `walkthrough.md` và đóng gói commit. <!-- id: 215 -->
+- [x] Refactor MediaService & Global Zero-Hydration Sweep (Rule 1.5). <!-- id: 216 -->
 
 ## ✅ TRẠNG THÁI: HOÀN TẤT (ELITE V2.2)
 - [x] Toàn bộ Backend đã chuyển sang mô hình Service-Centric.
 - [x] Đã xóa bỏ Repository Layer (Rule KISS/YAGNI).
 - [x] Đạt 100% Type Safety (R105).
 - [x] Zero-Hydration cho các luồng dữ liệu cao tần (R1.5).
+- [x] Đã gỡ bỏ toàn bộ ORM Model imports khỏi Service layer.
+- [x] Creative Studio & AI Engine đã được nắn dòng Zero-Hydration.

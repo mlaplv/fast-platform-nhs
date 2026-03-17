@@ -1,8 +1,7 @@
 import logging
 from typing import List, Dict, Optional, Union
-from sqlalchemy import select, or_, update
+from sqlalchemy import select, or_, update, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.database.models import Notification
 
 logger = logging.getLogger("api-gateway")
 
@@ -11,6 +10,7 @@ class NotificationService:
     ULTRA-LEAN NOTIFICATION SERVICE (ELITE V2.2)
     -------------------------------------------
     Handles system and user-specific notifications.
+    Zero-Hydration (Rule 1.5): Raw SQL & Scalar Projection for <2GB RAM.
     """
 
     async def get_notifications(
@@ -19,37 +19,35 @@ class NotificationService:
         user_id: Optional[str] = None,
         limit: int = 20
     ) -> List[Dict[str, object]]:
-        """Fetch notifications for a specific user or global system notifications."""
+        """Fetch notifications via Scalar Projection (Zero-Hydration)."""
 
-        # Build query: notifications for user OR global (user_id IS NULL)
-        stmt = select(
-            Notification.id, Notification.user_id, Notification.type,
-            Notification.message, Notification.is_read, Notification.created_at
-        ).where(
-            or_(
-                Notification.user_id == user_id,
-                Notification.user_id == None
-            )
-        ).order_by(Notification.created_at.desc()).limit(limit)
+        stmt = text("""
+            SELECT id, user_id, type, message, is_read, created_at
+            FROM notifications
+            WHERE user_id = :uid OR user_id IS NULL
+            ORDER BY created_at DESC
+            LIMIT :limit
+        """)
 
-        res = await session.execute(stmt)
+        res = await session.execute(stmt, {"uid": user_id, "limit": limit})
+        rows = res.all()
 
         return [
             {
-                "id": str(row.id),
-                "userId": str(row.user_id) if row.user_id else None,
-                "type": row.type,
-                "message": row.message,
-                "isRead": row.is_read,
-                "createdAt": row.created_at.isoformat() if row.created_at else "",
+                "id": str(row[0]),
+                "userId": str(row[1]) if row[1] else None,
+                "type": row[2],
+                "message": row[3],
+                "isRead": row[4],
+                "createdAt": row[5].isoformat() if row[5] else "",
             }
-            for row in res
+            for row in rows
         ]
 
     async def mark_as_read(self, session: AsyncSession, notification_id: str) -> bool:
-        """Mark a notification as read."""
-        stmt = update(Notification).where(Notification.id == notification_id).values(is_read=True)
-        await session.execute(stmt)
+        """Mark a notification as read via direct SQL."""
+        stmt = text("UPDATE notifications SET is_read = true, updated_at = NOW() WHERE id = :id")
+        await session.execute(stmt, {"id": notification_id})
         await session.commit()
         return True
 

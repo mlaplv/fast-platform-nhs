@@ -4,9 +4,7 @@ from litestar.di import Provide
 from typing import List, Dict, Union, Optional
 from sqlalchemy import text, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from backend.database.models import Category
 from backend.services.category_service import category_service
 from backend.guards import PermissionGuard
 from backend.schemas.category import CreateCategoryRequest, UpdateCategoryRequest

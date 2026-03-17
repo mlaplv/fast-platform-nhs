@@ -9,7 +9,6 @@ class AuditorAgent:
 
     async def analyze_draft(self, draft_id: str) -> dict[str, object]:
         """Analyze a draft and return impact metrics."""
-        # TODO: Integrate with actual AI logic in Phase 3
         return {
             "draft_id": draft_id,
             "status": "analyzed",

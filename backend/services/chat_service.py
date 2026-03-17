@@ -5,7 +5,6 @@ from typing import Optional, Dict, List, Union, Tuple, cast
 from sqlalchemy import select, delete as sqlalchemy_delete, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.database.models import ChatMessage, User
 from backend.services.xohi_memory import xohi_memory
 from backend.schemas.chat import ChatHistoryResponse, ChatMessageSchema
 from backend.schemas.signal import SignalSchema, SignalSeverity
@@ -82,17 +81,23 @@ class ChatService:
 
         if should_persist:
             try:
-                msg = ChatMessage(
-                    id=msg_id,
-                    session_id=session_id,
-                    user_id=user_id,
-                    role=role,
-                    content=payload,
-                    modality=modality or "text",
-                    created_at=created_at
+                # Rule R1.5: Zero-Hydration Scalar Insert
+                await session.execute(
+                    text("""
+                        INSERT INTO chat_messages (id, session_id, user_id, role, content, modality, created_at, updated_at, tenant_id)
+                        VALUES (:id, :sid, :uid, :role, :content, :mod, :now, :now, :tid)
+                    """),
+                    {
+                        "id": msg_id,
+                        "sid": session_id,
+                        "uid": user_id,
+                        "role": role,
+                        "content": payload,
+                        "mod": modality or "text",
+                        "now": created_at,
+                        "tid": profile.get("tenant_id", "default") if profile else "default"
+                    }
                 )
-                session.add(msg)
-                # Note: We rely on caller for commit in multi-op flows, but here it's usually standalone
                 return msg_id
             except Exception as e:
                 logger.error(f"[ChatService] Failed to persist message: {e}")
@@ -112,7 +117,7 @@ class ChatService:
     ) -> ChatHistoryResponse:
         """
         Retrieves messages for a session or user using Hybrid Redis/DB strategy.
-        Enforces ownership and God-Mode logic.
+        Enforces ownership and God-Mode logic via Raw SQL (Rule 1.5).
         """
         user_roles = user_roles or []
         is_super_admin = "SUPER_ADMIN" in user_roles
@@ -139,68 +144,77 @@ class ChatService:
                     messages=[ChatMessageSchema(**m) for m in reversed(cached)]
                 )
 
-        # ═══ OWNERSHIP ENFORCEMENT ═══
+        # ═══ OWNERSHIP ENFORCEMENT (Zero-Hydration) ═══
         if not is_super_admin and session_id != "account" and target_user_id:
-            stmt = select(ChatMessage.user_id).where(ChatMessage.session_id == session_id).limit(1)
-            res = await session.execute(stmt)
-            owner_id = res.scalar()
+            owner_sql = text("SELECT user_id FROM chat_messages WHERE session_id = :sid LIMIT 1")
+            res_owner = await session.execute(owner_sql, {"sid": session_id})
+            owner_id = res_owner.scalar()
             if owner_id and str(owner_id) != target_user_id:
                 from litestar.exceptions import HTTPException
                 raise HTTPException(status_code=403, detail="[SECURITY] Access Denied: Identity mismatch.")
 
         # ═══ DB QUERY: SCALAR PROJECTION (Zero-Hydration) ═══
-        cols = [
-            ChatMessage.id, ChatMessage.session_id, ChatMessage.user_id,
-            ChatMessage.role, ChatMessage.content, ChatMessage.modality,
-            ChatMessage.created_at
-        ]
-        stmt = select(*cols).where(ChatMessage.deleted_at == None)
+        conditions = ["deleted_at IS NULL"]
+        params = {"limit": limit + 1} # Fetch one extra to determine has_more
 
         if session_id == "account" and target_user_id:
-            stmt = stmt.where(ChatMessage.user_id == target_user_id)
+            conditions.append("user_id = :uid")
+            params["uid"] = target_user_id
         else:
-            stmt = stmt.where(ChatMessage.session_id == session_id)
+            conditions.append("session_id = :sid")
+            params["sid"] = session_id
 
-        # Cursor Pagination
+        # Cursor Pagination (Zero-Hydration)
         if cursor:
-            cursor_stmt = select(ChatMessage.created_at).where(ChatMessage.id == cursor)
-            cursor_res = await session.execute(cursor_stmt)
-            cursor_time = cursor_res.scalar()
+            time_sql = text("SELECT created_at FROM chat_messages WHERE id = :cid")
+            time_res = await session.execute(time_sql, {"cid": cursor})
+            cursor_time = time_res.scalar()
             if cursor_time:
-                stmt = stmt.where(ChatMessage.created_at < cursor_time)
+                conditions.append("created_at < :ctime")
+                params["ctime"] = cursor_time
 
         # Delta Polling
         if since_id:
-            since_stmt = select(ChatMessage.created_at).where(ChatMessage.id == since_id)
-            since_res = await session.execute(since_stmt)
+            since_time_sql = text("SELECT created_at FROM chat_messages WHERE id = :sid_id")
+            since_res = await session.execute(since_time_sql, {"sid_id": since_id})
             since_time = since_res.scalar()
             if since_time:
-                stmt = stmt.where(ChatMessage.created_at > since_time)
-                stmt = stmt.order_by(ChatMessage.created_at.asc())
+                conditions.append("created_at > :stime")
+                params["stime"] = since_time
+                order_by = "created_at ASC"
             else:
-                stmt = stmt.order_by(ChatMessage.created_at.desc())
+                order_by = "created_at DESC"
         else:
-            stmt = stmt.order_by(ChatMessage.created_at.desc())
+            order_by = "created_at DESC"
 
-        res = await session.execute(stmt)
+        sql = text(f"""
+            SELECT id, session_id, user_id, role, content, modality, created_at
+            FROM chat_messages
+            WHERE {" AND ".join(conditions)}
+            ORDER BY {order_by}
+            LIMIT :limit
+        """)
+
+        res = await session.execute(sql, params)
         rows = res.all()
 
         has_more = len(rows) > limit
         if has_more:
             rows = rows[:limit]
 
-        messages = []
-        for r in rows:
-            messages.append(ChatMessageSchema(
-                id=str(r.id),
-                session_id=r.session_id,
-                user_id=str(r.user_id) if r.user_id else None,
-                role=r.role,
-                content=r.content,
-                modality=r.modality,
-                created_at=r.created_at,
-                updated_at=r.created_at
-            ))
+        messages = [
+            ChatMessageSchema(
+                id=str(r[0]),
+                session_id=r[1],
+                user_id=str(r[2]) if r[2] else None,
+                role=r[3],
+                content=r[4],
+                modality=r[5],
+                created_at=r[6],
+                updated_at=r[6]
+            )
+            for r in rows
+        ]
 
         next_cursor = str(messages[-1].id) if messages and not since_id else None
         if not since_id:
@@ -220,14 +234,15 @@ class ChatService:
         user_email: str,
         user_roles: List[str]
     ) -> Dict[str, str]:
-        """Hard deletes all messages for a session or account with audit trail."""
+        """Hard deletes all messages for a session or account with audit trail via Raw SQL."""
         if "SUPER_ADMIN" not in user_roles:
             from litestar.exceptions import HTTPException
             raise HTTPException(status_code=403, detail="[SECURITY] Unauthorized: Only SUPER_ADMIN can purge system logs.")
 
-        from backend.services.user_service import user_service
-        user = await user_service.get_user_by_email(session, user_email)
-        user_id = str(user.id) if user else "system"
+        # Zero-Hydration lookup
+        user_sql = text("SELECT id FROM users WHERE email = :email LIMIT 1")
+        res_user = await session.execute(user_sql, {"email": user_email})
+        user_id = str(res_user.scalar()) if res_user.first() else "system"
 
         # Signal Dispatch (Audit Trail)
         await signal_center.dispatch(
@@ -241,11 +256,13 @@ class ChatService:
         )
 
         if session_id == "account" and user_id != "system":
-            stmt = sqlalchemy_delete(ChatMessage).where(ChatMessage.user_id == user_id)
+            purge_sql = text("DELETE FROM chat_messages WHERE user_id = :uid")
+            await session.execute(purge_sql, {"uid": user_id})
         else:
-            stmt = sqlalchemy_delete(ChatMessage).where(ChatMessage.session_id == session_id)
+            purge_sql = text("DELETE FROM chat_messages WHERE session_id = :sid")
+            await session.execute(purge_sql, {"sid": session_id})
 
-        await session.execute(stmt)
+        await session.commit()
         return {"status": "success", "message": f"All logs for {session_id} have been purged."}
 
     async def get_recent_messages(
@@ -257,23 +274,19 @@ class ChatService:
         """
         Fetch recent messages for context using Scalar Projection (Zero-Hydration).
         """
-        stmt = (
-            select(
-                ChatMessage.role,
-                ChatMessage.content
-            )
-            .where(
-                ChatMessage.session_id == session_id,
-                ChatMessage.deleted_at == None
-            )
-            .order_by(ChatMessage.created_at.desc())
-            .limit(limit)
-        )
+        sql = text("""
+            SELECT role, content
+            FROM chat_messages
+            WHERE session_id = :sid AND deleted_at IS NULL
+            ORDER BY created_at DESC
+            LIMIT :limit
+        """)
 
-        result = await session.execute(stmt)
-        return [{"role": row.role, "content": row.content.get("text") if isinstance(row.content, dict) else row.content}
-                for row in reversed(result.all())]
-
-chat_service = ChatService()
+        result = await session.execute(sql, {"sid": session_id, "limit": limit})
+        rows = result.all()
+        return [
+            {"role": r[0], "content": r[1].get("text") if isinstance(r[1], dict) else r[1]}
+            for r in reversed(rows)
+        ]
 
 chat_service = ChatService()

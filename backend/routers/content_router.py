@@ -4,21 +4,22 @@ import copy
 from datetime import datetime, timezone
 from typing import List, Dict, Union, Optional
 from uuid import UUID
-from sqlalchemy.orm.attributes import flag_modified
 
 logger = logging.getLogger("api-gateway")
 from litestar import Controller, get, post, put, patch, delete, Request
 from backend.services.xohi.creative_studio.orchestrator import content_factory
 from backend.models.schemas import (
-    ContentCampaign as CampaignSchema, 
-    CampaignStep, 
+    ContentCampaign as CampaignSchema,
+    CampaignStep,
     AgentResponse,
     CampaignListResponse,
     GenericResponse
 )
+from backend.services.campaign_service import campaign_service
+from backend.services.content_service import content_service
 from backend.services.xohi.creative_studio.models.schemas import AgentSignal
-from backend.database.models import ContentCampaign, MediaRegistry, ChatMessage
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 from litestar.di import Provide
 
 class ContentController(Controller):
@@ -31,33 +32,30 @@ class ContentController(Controller):
         limit: int = 20,
         offset: int = 0
     ) -> CampaignListResponse:
-        """Lấy danh sách các chiến dịch hỗ trợ phân trang (V72.10: Dynamic Paging)."""
-        from sqlalchemy import select, func
+        """Lấy danh sách các chiến dịch hỗ trợ phân trang (Elite V2.2 Zero-Hydration)."""
+        from sqlalchemy import text
 
-        # 1. Total Count for frontend progress bar / stats
-        count_stmt = select(func.count()).select_from(ContentCampaign)
-        total_count = await db_session.execute(count_stmt)
-        total = total_count.scalar_one()
+        # 1. Total Count (Surgical)
+        total = await db_session.scalar(text("SELECT COUNT(*) FROM content_campaigns WHERE deleted_at IS NULL")) or 0
 
-        # 2. Paged results
-        stmt = select(
-            ContentCampaign.id,
-            ContentCampaign.topic_data,
-            ContentCampaign.status,
-            ContentCampaign.current_step,
-            ContentCampaign.created_at,
-            ContentCampaign.user_id
-        ).order_by(ContentCampaign.created_at.desc()).limit(limit).offset(offset)
+        # 2. Paged results (Zero-Hydration)
+        sql = text("""
+            SELECT id, topic_data, status, current_step, created_at, user_id
+            FROM content_campaigns
+            WHERE deleted_at IS NULL
+            ORDER BY created_at DESC
+            LIMIT :limit OFFSET :offset
+        """)
+        result = await db_session.execute(sql, {"limit": limit, "offset": offset})
 
-        result = await db_session.execute(stmt)
         items = [
             {
-                "id": str(row.id),
-                "topic_data": row.topic_data,
-                "status": row.status,
-                "current_step": row.current_step,
-                "created_at": row.created_at.isoformat(),
-                "user_id": str(row.user_id) if row.user_id else None
+                "id": str(row[0]),
+                "topic_data": row[1] or {},
+                "status": row[2],
+                "current_step": row[3],
+                "created_at": row[4].isoformat() if row[4] else "",
+                "user_id": str(row[5]) if row[5] else None
             }
             for row in result
         ]
@@ -72,22 +70,13 @@ class ContentController(Controller):
 
     @get("/campaigns/{campaign_id:uuid}")
     async def get_campaign(self, campaign_id: UUID, db_session: AsyncSession) -> CampaignSchema:
-        """Lấy thông tin chi tiết một chiến dịch (Undefer support)."""
-        from sqlalchemy.orm import undefer
-        from sqlalchemy import select
-        try:
-            # R102: Explicitly undefer final_html for detail view
-            stmt = select(ContentCampaign).where(ContentCampaign.id == str(campaign_id)).options(undefer(ContentCampaign.final_html))
-            result = await db_session.execute(stmt)
-            campaign = result.scalar_one_or_none()
+        """Lấy thông tin chi tiết một chiến dịch (Zero-Hydration)."""
+        campaign = await campaign_service.get_campaign(db_session, str(campaign_id))
+        if not campaign:
+            from litestar.exceptions import NotFoundException
+            raise NotFoundException(f"Campaign {campaign_id} not found")
 
-            if not campaign:
-                from litestar.exceptions import NotFoundException
-                raise NotFoundException(f"Campaign {campaign_id} not found")
-            return CampaignSchema.model_validate(campaign)
-        except Exception as e:
-            logger.error(f"[ContentController] Error fetching campaign {campaign_id}: {str(e)}")
-            raise e
+        return CampaignSchema.model_validate(campaign)
 
     @post("/campaigns/{campaign_id:uuid}/approve")
     async def approve_step(self, campaign_id: UUID, request: Request, db_session: AsyncSession) -> GenericResponse:
@@ -102,17 +91,20 @@ class ContentController(Controller):
 
     @post("/campaigns/{campaign_id:uuid}/publish")
     async def publish_campaign(self, campaign_id: UUID, db_session: AsyncSession) -> GenericResponse:
-        """Xuất bản và địa phương hóa toàn bộ tài nguyên."""
-        campaign: Optional[ContentCampaign] = await db_session.get(ContentCampaign, str(campaign_id))
+        """Xuất bản và địa phương hóa toàn bộ tài nguyên (Zero-Hydration)."""
+        campaign = await campaign_service.get_campaign(db_session, str(campaign_id))
         if not campaign:
             return GenericResponse(status="error", message="Campaign not found")
 
         from backend.services.xohi.creative_studio.formatters.media_compressor import MediaCompressor
         compressor = MediaCompressor()
-        # Pass db_session to enable registry tracking
+
+        # 1. Localize assets and update registry (Internal Logic uses raw SQL)
         await compressor.execute(str(campaign_id), db_session)
 
-        campaign.status = "COMPLETED"
+        # 2. Final Status Update (Surgical)
+        await campaign_service.update_campaign(db_session, str(campaign_id), {"status": "COMPLETED"})
+
         await db_session.commit()
         return GenericResponse(status="success", message="Campaign published and registered.")
 
@@ -130,58 +122,63 @@ class ContentController(Controller):
 
     @delete("/campaigns/{campaign_id:uuid}", status_code=200)
     async def delete_campaign(self, campaign_id: UUID, db_session: AsyncSession) -> GenericResponse:
-        """Xóa chiến dịch, toàn bộ file vật lý và log liên quan (Full Surgical Purge)."""
+        """Xóa chiến dịch, toàn bộ file vật lý và log liên quan (Full Surgical Purge - Elite V2.2)."""
         try:
             import os
             cid_str = str(campaign_id)
 
-            # 0. Get campaign first to know the owner (Rule R102)
-            campaign = await db_session.get(ContentCampaign, cid_str)
+            # 0. Get essential info (Zero-Hydration)
+            campaign = await campaign_service.get_campaign(db_session, cid_str)
             if not campaign:
                 return GenericResponse(status="error", message="Campaign not found")
-            user_id = str(campaign.user_id) if campaign.user_id else None
+            user_id = campaign.get("user_id")
 
-            # 1. PHYSICAL FILE PURGE (Dựa trên Registry - Đẳng cấp quốc tế)
-            from sqlalchemy import select, delete as sa_delete
-
-            media_stmt = select(MediaRegistry).where(MediaRegistry.campaign_id == cid_str)
-            media_result = await db_session.execute(media_stmt)
-            assets = media_result.scalars().all()
+            # 1. PHYSICAL FILE PURGE (Raw SQL Projection)
+            media_sql = text("SELECT file_path FROM media_registry WHERE campaign_id = :cid")
+            media_result = await db_session.execute(media_sql, {"cid": cid_str})
+            assets = media_result.all()
 
             files_purged = 0
-            for asset in assets:
+            for row in assets:
+                file_path = row[0]
                 # Chuyển path từ /v65_assets/... thành path vật lý
-                rel_path = asset.file_path.lstrip("/")
+                rel_path = file_path.lstrip("/")
                 full_path = os.path.join("frontend/static", rel_path)
 
                 if os.path.exists(full_path):
-                    os.remove(full_path)
-                    files_purged += 1
+                    try:
+                        os.remove(full_path)
+                        files_purged += 1
+                    except Exception as fe:
+                        logger.warning(f"[Purge] Failed to remove physical file {full_path}: {fe}")
 
-                await db_session.delete(asset)
+            # 2. SURGICAL DB PURGE (Atomic SQL)
+            # 2.1 Media Registry
+            await db_session.execute(text("DELETE FROM media_registry WHERE campaign_id = :cid"), {"cid": cid_str})
 
-            # 2. Clean up associated ChatMessages (Neural Logs)
-            # CNS V82 Fix: Use ->> (as_string) to avoid JSON quote mismatch in string comparison
-            stmt = sa_delete(ChatMessage).where(
-                ChatMessage.content["campaign_id"].as_string() == cid_str
+            # 2.2 Chat Messages (Neural Logs)
+            await db_session.execute(
+                text("DELETE FROM chat_messages WHERE (content->>'campaign_id') = :cid"),
+                {"cid": cid_str}
             )
-            await db_session.execute(stmt)
+
+            # 2.3 Campaign Events
+            await db_session.execute(text("DELETE FROM campaign_events WHERE campaign_id = :cid"), {"cid": cid_str})
 
             # 3. Cache Eviction (V76.5 Recovery)
             if user_id:
                 from backend.services.xohi_memory import xohi_memory
-                # Evict the specific chat cache to prevent ghost messages after re-sync
                 cache_key = f"xohi:chat:{user_id}"
-                if xohi_memory._use_redis:
+                if getattr(xohi_memory, "_use_redis", False):
                     await xohi_memory.client.delete(cache_key)
                     logger.info(f"[Purge] Evicted Redis cache for user {user_id}: {cache_key}")
 
             # 4. Delete the campaign itself
-            await db_session.delete(campaign)
+            await db_session.execute(text("DELETE FROM content_campaigns WHERE id = :cid"), {"cid": cid_str})
 
             # 5. SSE POISON PILL (V65.0 Cleanup)
             from backend.services.event_bus import event_bus
-            await event_bus.emit("CAMPAIGN_PURGED", {
+            event_bus.emit("CAMPAIGN_PURGED", {
                 "campaign_id": cid_str,
                 "type": "TERMINATE",
                 "action": "PURGE"
@@ -201,53 +198,49 @@ class ContentController(Controller):
     @post("/campaigns/{campaign_id:uuid}/analyze/copyright")
     async def analyze_copyright(self, campaign_id: UUID, db_session: AsyncSession, force: bool = False) -> GenericResponse:
         """
-        On-demand: ĐẠO VĂN & BẢN QUYỀN — 2026 Edition.
-        Dùng Google Search + Gemini AI để kiểm tra ngữ nghĩa (không phải so ký tự).
+        On-demand: ĐẠO VĂN & BẢN QUYỀN (Zero-Hydration).
         """
         from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
-        campaign = await db_session.get(ContentCampaign, str(campaign_id))
+        campaign = await campaign_service.get_campaign(db_session, str(campaign_id))
         if not campaign:
             return GenericResponse(status="error", message="Campaign not found")
-        if not campaign.draft_content:
+
+        draft_text = campaign.get("draft_content") or ""
+        if not draft_text:
             return GenericResponse(status="error", message="Chưa có nội dung để kiểm tra.")
+
         cop = PlagiarismCop()
 
         # Expert Optimizer (V71.30): Content Fingerprinting
-        draft_text = campaign.draft_content or ""
         content_hash = hashlib.sha256(draft_text.encode('utf-8')).hexdigest()
-        gold = campaign.gold_metadata or {}
+        gold = dict(campaign.get("gold_metadata") or {})
         cache = gold.get("analysis_cache", {})
 
         if not force and cache.get("copyright", {}).get("hash") == content_hash:
             return GenericResponse(status="success", data=cache["copyright"]["data"])
 
-        if force:
-            logger.info(f"Copyright force refresh for campaign {campaign_id}")
-
         try:
-            logger.info(f"[Copyright] Starting analysis for campaign {campaign_id}")
             result = await cop.analyze(campaign, db_session)
-            logger.info(f"[Copyright] Analysis complete for campaign {campaign_id}")
             result_data = result.model_dump()
 
             # Archiving & Metrics
             cache["copyright"] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
             metrics = gold.get("analysis_metrics", {})
-            metrics["unique_score"] = result.uniqueness_score
-            metrics["copyright_risk"] = result.risk_level
-            metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
+            metrics.update({
+                "unique_score": result.uniqueness_score,
+                "copyright_risk": result.risk_level,
+                "last_analyzed": datetime.now(timezone.utc).isoformat()
+            })
 
-            # ARCHIVING & METRICS (V71.30)
-            new_gold = copy.deepcopy(campaign.gold_metadata or {})
-            new_gold["analysis_cache"] = cache
-            new_gold["analysis_metrics"] = metrics
-            campaign.gold_metadata = new_gold
-            campaign.unique_score = result.uniqueness_score
-            flag_modified(campaign, "gold_metadata")
+            # SURGICAL UPDATE (R1.5)
+            await campaign_service.update_campaign(db_session, str(campaign_id), {
+                "gold_metadata": {**gold, "analysis_cache": cache, "analysis_metrics": metrics},
+                "unique_score": result.uniqueness_score
+            })
 
             await db_session.commit()
 
-            logger.info(f"[Copyright] Returning success with data keys: {list(result_data.keys())}")
+            logger.info(f"[Copyright] Returning success for campaign {campaign_id}")
             return GenericResponse(status="success", data=result_data)
         except Exception as e:
             logger.error(f"[ContentController] Copyright analysis failed: {str(e)}", exc_info=True)
@@ -256,49 +249,46 @@ class ContentController(Controller):
     @post("/campaigns/{campaign_id:uuid}/analyze/seo")
     async def analyze_seo(self, campaign_id: UUID, db_session: AsyncSession, force: bool = False) -> GenericResponse:
         """
-        On-demand: PHÂN TÍCH SEO 2026 — E-E-A-T, Entity Coverage, AI-Naturalness, Featured Snippet.
+        On-demand: PHÂN TÍCH SEO (Zero-Hydration).
         """
         from backend.services.xohi.creative_studio.operatives.seo_analyzer import SeoAnalyzer
-        campaign = await db_session.get(ContentCampaign, str(campaign_id))
+        campaign = await campaign_service.get_campaign(db_session, str(campaign_id))
         if not campaign:
             return GenericResponse(status="error", message="Campaign not found")
-        if not campaign.draft_content:
+
+        draft_text = campaign.get("draft_content") or ""
+        if not draft_text:
             return GenericResponse(status="error", message="Chưa có nội dung để phân tích.")
+
         analyzer = SeoAnalyzer()
 
         # Expert Optimizer (V71.30): Content Fingerprinting
-        draft_text = campaign.draft_content or ""
         content_hash = hashlib.sha256(draft_text.encode('utf-8')).hexdigest()
-        gold = campaign.gold_metadata or {}
+        gold = dict(campaign.get("gold_metadata") or {})
         cache = gold.get("analysis_cache", {})
 
         if not force and cache.get("seo", {}).get("hash") == content_hash:
             return GenericResponse(status="success", data=cache["seo"]["data"])
 
-        if force:
-            logger.info(f"SEO force refresh for campaign {campaign_id}")
-
         try:
-            logger.info(f"[SEO] Starting analysis for campaign {campaign_id}")
             result = await analyzer.analyze(campaign, db_session)
-            logger.info(f"[SEO] Analysis complete for campaign {campaign_id}")
             result_data = result.model_dump()
 
             # Archiving & Metrics
             cache["seo"] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
             metrics = gold.get("analysis_metrics", {})
-            metrics["seo_score"] = result.total_score
-            metrics["seo_grade"] = result.grade
-            metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
+            metrics.update({
+                "seo_score": result.total_score,
+                "seo_grade": result.grade,
+                "last_analyzed": datetime.now(timezone.utc).isoformat()
+            })
 
-            # ARCHIVING & METRICS (V71.30)
-            new_gold = copy.deepcopy(campaign.gold_metadata or {})
-            new_gold["analysis_cache"] = cache
-            new_gold["analysis_metrics"] = metrics
-            campaign.gold_metadata = new_gold
-            flag_modified(campaign, "gold_metadata")
+            # SURGICAL UPDATE (R1.5)
+            await campaign_service.update_campaign(db_session, str(campaign_id), {
+                "gold_metadata": {**gold, "analysis_cache": cache, "analysis_metrics": metrics}
+            })
+
             await db_session.commit()
-
             return GenericResponse(status="success", data=result_data)
         except Exception as e:
             logger.error(f"[ContentController] SEO analysis failed: {str(e)}")
@@ -307,33 +297,25 @@ class ContentController(Controller):
     @post("/campaigns/{campaign_id:uuid}/analyze/ai-inspect")
     async def analyze_ai_readiness(self, campaign_id: UUID, db_session: AsyncSession, force: bool = False) -> GenericResponse:
         """
-        On-demand: AI READINESS INSPECTOR — GEO 2026.
-        Dùng LLM chấm điểm bài viết theo 4 tiêu chí cốt lõi (Princeton Study):
-        1. Dữ liệu Thống kê & Tính Cụ thể
-        2. Citations & Expert Quotes
-        3. Fluency & No Fluff
-        4. Quotable Snippet Structure
+        On-demand: AI READINESS INSPECTOR (Zero-Hydration).
         """
         from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
-        campaign = await db_session.get(ContentCampaign, str(campaign_id))
+        campaign = await campaign_service.get_campaign(db_session, str(campaign_id))
         if not campaign:
             return GenericResponse(status="error", message="Campaign not found")
-        if not campaign.draft_content:
+
+        draft_text = campaign.get("draft_content") or ""
+        if not draft_text:
             return GenericResponse(status="error", message="Chưa có nội dung để phân tích AI Readiness.")
 
         inspector = AiInspector()
         # Expert Optimizer (V71.30): Content Fingerprinting
-        draft_text = campaign.draft_content or ""
         content_hash = hashlib.sha256(draft_text.encode('utf-8')).hexdigest()
-        gold = campaign.gold_metadata or {}
+        gold = dict(campaign.get("gold_metadata") or {})
         cache = gold.get("analysis_cache", {})
 
         if not force and cache.get("ai_inspect", {}).get("hash") == content_hash:
-            logger.info(f"AI Inspect cache hit for campaign {campaign_id}")
             return GenericResponse(status="success", data=cache["ai_inspect"]["data"])
-
-        if force:
-            logger.info(f"AI Inspect force refresh for campaign {campaign_id}")
 
         try:
             result = await inspector.analyze(campaign, db_session)
@@ -342,33 +324,34 @@ class ContentController(Controller):
             # Archiving & Metrics
             cache["ai_inspect"] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
             metrics = gold.get("analysis_metrics", {})
-            metrics["ai_ready_score"] = result.geo_score
-            metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
+            metrics.update({
+                "ai_ready_score": result.geo_score,
+                "last_analyzed": datetime.now(timezone.utc).isoformat()
+            })
 
-            # ARCHIVING & METRICS (V71.30)
-            new_gold = copy.deepcopy(campaign.gold_metadata or {})
-            new_gold["analysis_cache"] = cache
-            new_gold["analysis_metrics"] = metrics
-            campaign.gold_metadata = new_gold
-            flag_modified(campaign, "gold_metadata")
+            # SURGICAL UPDATE (R1.5)
+            await campaign_service.update_campaign(db_session, str(campaign_id), {
+                "gold_metadata": {**gold, "analysis_cache": cache, "analysis_metrics": metrics}
+            })
+
             await db_session.commit()
-            logger.info(f"[EXPERT] COMMIT SUCCESS for campaign {campaign_id}")
-
             return GenericResponse(status="success", data=result_data)
         except Exception as e:
             logger.error(f"AI Inspector error: {e}")
             return GenericResponse(status="error", message=str(e))
+
     @post("/campaigns/{campaign_id:uuid}/analyze/auto-fix")
     async def analyze_auto_fix(self, campaign_id: UUID, request: Request, db_session: AsyncSession) -> GenericResponse:
         """
-        On-Demand Surgical Auto-Fix (Contextual Local Rewrite)
+        On-Demand Surgical Auto-Fix (Zero-Hydration)
         """
         try:
             from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector, AutoFixRequest
-            campaign = await db_session.get(ContentCampaign, str(campaign_id))
+            campaign = await campaign_service.get_campaign(db_session, str(campaign_id))
             if not campaign:
-                    return GenericResponse(status="error", message="Campaign not found")
-            if not campaign.draft_content:
+                return GenericResponse(status="error", message="Campaign not found")
+
+            if not campaign.get("draft_content"):
                 return GenericResponse(status="error", message="Chưa có nội dung để biên tập.")
 
             inspector = AiInspector()
@@ -384,35 +367,32 @@ class ContentController(Controller):
     @post("/campaigns/{campaign_id:uuid}/analyze/bulk-fix")
     async def analyze_bulk_fix(self, campaign_id: UUID, request: Request, db_session: AsyncSession) -> GenericResponse:
         """
-        On-Demand Bulk Surgical Rewrite: Fixes ALL identified errors for a category.
+        On-Demand Bulk Surgical Rewrite (Zero-Hydration).
         """
         try:
             from backend.services.xohi.creative_studio.models.schemas import BulkFixRequest
             from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
             from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
 
-            campaign = await db_session.get(ContentCampaign, str(campaign_id))
+            campaign = await campaign_service.get_campaign(db_session, str(campaign_id))
             if not campaign:
                 return GenericResponse(status="error", message="Campaign not found")
-            if not campaign.draft_content:
+
+            draft_content = campaign.get("draft_content") or ""
+            if not draft_content:
                 return GenericResponse(status="error", message="Chưa có nội dung để biên tập.")
 
             data = await request.json()
             fix_req = BulkFixRequest(**data)
 
-            # Phase 76.6: Dynamic Operative Routing (Elite V2.2)
-            # copyright → PlagiarismCop (logic-first dedup, zero AI cost)
-            # seo / ai  → AiInspector (requires LLM rewriting)
             operative = PlagiarismCop() if fix_req.category == "copyright" else AiInspector()
-
             result = await operative.bulk_fix(campaign, fix_req, db_session)
 
-            # ✅ Phase 76.7: Persist cleaned content back to DB so force re-check reads fresh data
-            if result.new_content and result.new_content != campaign.draft_content:
-                campaign.draft_content = result.new_content
-                flag_modified(campaign, "draft_content")
+            # ✅ Surgical Update if content changed
+            if result.new_content and result.new_content != draft_content:
+                await campaign_service.update_campaign(db_session, str(campaign_id), {"draft_content": result.new_content})
                 await db_session.commit()
-                logger.info(f"[BulkFix] Persisted new_content ({len(result.new_content)} chars) for campaign {campaign_id}")
+                logger.info(f"[BulkFix] Persisted new_content for campaign {campaign_id}")
 
             return GenericResponse(status="success", data=result.model_dump())
         except Exception as e:

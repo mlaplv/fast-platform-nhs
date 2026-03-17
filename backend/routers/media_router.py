@@ -8,7 +8,6 @@ from litestar.response import Redirect
 from litestar.di import Provide
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.database.models import MediaRegistry
 from backend.services.media.media_service import media_service
 from backend.services.media.schemas import (
     MediaListResponse,
@@ -101,7 +100,7 @@ class MediaController(Controller):
 
         return MediaDetailResponse(
             status="success",
-            data=MediaAssetResponse.from_orm_model(asset)
+            data=MediaAssetResponse.from_record(asset)
         )
 
     @get("/stats")
@@ -123,21 +122,19 @@ class MediaController(Controller):
 
     @get("/{asset_id:str}")
     async def get_media_detail(self, asset_id: str, request: Request, db_session: AsyncSession) -> Union[MediaDetailResponse, GenericResponse]:
-        """Lấy thông tin chi tiết một tài nguyên."""
+        """Lấy thông tin chi tiết một tài nguyên (Zero-Hydration)."""
         logger.info(f"[MediaRouter] GET detail for asset: {asset_id}")
-        asset = await db_session.get(MediaRegistry, str(asset_id))
-        if not asset:
-            return GenericResponse(status="error", message="Asset not found")
 
-        # RBAC Check (V10.0 Elite)
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
-        if not asset.is_public and asset.owner_id and asset.owner_id != owner_id:
-            return GenericResponse(status="error", message="Access denied")
+
+        asset = await media_service.get_asset(db_session, str(asset_id), owner_id=owner_id)
+        if not asset:
+            return GenericResponse(status="error", message="Asset not found or access denied")
 
         return MediaDetailResponse(
             status="success",
-            data=MediaAssetResponse.from_orm_model(asset)
+            data=asset
         )
 
     @patch("/{asset_id:str}")
@@ -233,16 +230,12 @@ class MediaController(Controller):
         w: int = 300,
         q: int = 75
     ) -> Redirect:
-        """Lấy đường dẫn Thumbnail cho ảnh (V76 Dynamic Engine)."""
-        asset = await db_session.get(MediaRegistry, str(asset_id))
-        if not asset:
-            return Redirect(path="/v65_assets/placeholder.webp")
-
-        # RBAC Check (V10.0 Elite)
+        """Lấy đường dẫn Thumbnail cho ảnh (Zero-Hydration)."""
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
-        if not asset.is_public and asset.owner_id and asset.owner_id != owner_id:
-            # Nếu không có quyền xem, trả về placeholder mờ ảo
+
+        asset = await media_service.get_asset(db_session, str(asset_id), owner_id=owner_id)
+        if not asset:
             return Redirect(path="/v65_assets/placeholder.webp")
 
         thumb_path = await media_service.get_thumbnail(asset.file_path, width=w, quality=q)
@@ -256,7 +249,7 @@ class MediaController(Controller):
         db_session: AsyncSession,
         data: QuickEditRequest
     ) -> Union[QuickEditResponse, GenericResponse]:
-        """Xử lý nhanh ảnh (Xoay/Lật/Crop/Watermark) - V10.0 Elite Engine."""
+        """Xử lý nhanh ảnh (Xoay/Lật/Crop/Watermark) - Zero-Hydration."""
         logger.info(f"[MediaRouter] Quick edit request for asset: {asset_id}, action: {data.action}")
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
@@ -273,7 +266,7 @@ class MediaController(Controller):
         if asset:
             return QuickEditResponse(
                 status="success",
-                data=MediaAssetResponse.from_orm_model(asset)
+                data=MediaAssetResponse.from_record(asset)
             )
         else:
             return GenericResponse(status="error", message="Quick edit failed or unauthorized.")
@@ -320,7 +313,7 @@ class MediaController(Controller):
         if asset:
             return MediaDetailResponse(
                 status="success",
-                data=MediaAssetResponse.from_orm_model(asset)
+                data=MediaAssetResponse.from_record(asset)
             )
         else:
             return GenericResponse(status="error", message="Failed to fetch remote asset.")

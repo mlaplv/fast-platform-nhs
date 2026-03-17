@@ -8,9 +8,7 @@ from litestar.di import Provide
 from typing import List, Dict, Union, Optional
 from sqlalchemy import text, update, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from backend.database.models.content import Article
 from backend.services.content_service import content_service
 from backend.guards import PermissionGuard
 from backend.schemas.article import CreateArticleRequest, UpdateArticleRequest, BulkIdsRequest

@@ -41,28 +41,54 @@ class MediaAssetResponse(BaseModel):
     media_metadata: MediaMetadata = Field(default_factory=MediaMetadata)
 
     @classmethod
-    def from_orm_model(cls, obj: object) -> "MediaAssetResponse":
-        """Custom mapper to handle complex fields like datetime and JSON dicts."""
+    def from_record(cls, obj: Union[object, Dict[str, Any]]) -> "MediaAssetResponse":
+        """
+        R1.5: Mapping linh hoạt từ DB Record (Dict) hoặc ORM Model (Legacy).
+        """
         from datetime import datetime
 
-        # We handle the attribute access manually if not using from_attributes=True fully
-        # or use it to simplify the common cases.
+        def get_val(o, key, default=None):
+            if isinstance(o, dict):
+                return o.get(key, default)
+            return getattr(o, key, default)
+
+        created_at = get_val(obj, "created_at")
+        if isinstance(created_at, datetime):
+            created_at_str = created_at.isoformat()
+        else:
+            created_at_str = str(created_at) if created_at else None
+
+        meta_raw = get_val(obj, "media_metadata", {})
+        if isinstance(meta_raw, str):
+            import json
+            try:
+                meta_dict = json.loads(meta_raw)
+            except:
+                meta_dict = {}
+        else:
+            meta_dict = meta_raw or {}
+
         data = {
-            "id": str(getattr(obj, "id")),
-            "filename": getattr(obj, "filename"),
-            "file_path": getattr(obj, "file_path"),
-            "file_size": getattr(obj, "file_size"),
-            "mime_type": getattr(obj, "mime_type"),
-            "dimensions": getattr(obj, "dimensions"),
-            "blurhash": getattr(obj, "blurhash"),
-            "alt_text": getattr(obj, "alt_text"),
-            "is_public": getattr(obj, "is_public"),
-            "campaign_id": str(getattr(obj, "campaign_id")) if getattr(obj, "campaign_id") else None,
-            "owner_id": str(getattr(obj, "owner_id")) if getattr(obj, "owner_id") else None,
-            "created_at": getattr(obj, "created_at").isoformat() if isinstance(getattr(obj, "created_at"), datetime) else str(getattr(obj, "created_at")),
-            "media_metadata": MediaMetadata.model_validate(getattr(obj, "media_metadata") or {})
+            "id": str(get_val(obj, "id")),
+            "filename": get_val(obj, "filename"),
+            "file_path": get_val(obj, "file_path"),
+            "file_size": get_val(obj, "file_size"),
+            "mime_type": get_val(obj, "mime_type"),
+            "dimensions": get_val(obj, "dimensions"),
+            "blurhash": get_val(obj, "blurhash"),
+            "alt_text": get_val(obj, "alt_text"),
+            "is_public": bool(get_val(obj, "is_public")),
+            "campaign_id": str(get_val(obj, "campaign_id")) if get_val(obj, "campaign_id") else None,
+            "owner_id": str(get_val(obj, "owner_id")) if get_val(obj, "owner_id") else None,
+            "created_at": created_at_str,
+            "media_metadata": MediaMetadata.model_validate(meta_dict)
         }
         return cls.model_validate(data)
+
+    @classmethod
+    def from_orm_model(cls, obj: object) -> "MediaAssetResponse":
+        """Legacy Alias."""
+        return cls.from_record(obj)
 
 class MediaListResponseData(BaseModel):
     items: List[MediaAssetResponse]

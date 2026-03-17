@@ -1,13 +1,13 @@
+import json
 import logging
 import base64
 import asyncio
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 from datetime import datetime, timezone
+from sqlalchemy import text
 from pydantic_ai import Agent
-from pydantic_ai.models.google import GoogleModel
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.xohi.creative_studio.models.schemas import MediaAnalysisResult
-from backend.database.models import MediaRegistry
 from backend.services.event_bus import event_bus
 
 logger = logging.getLogger("api-gateway")
@@ -82,14 +82,23 @@ class MediaAnalyst:
 
         session_maker = alchemy_config.create_session_maker()
         async with session_maker() as session:
-            entry = await session.get(MediaRegistry, entry_id)
+            # 1. Fetch essential data (Zero-Hydration)
+            stmt = text("SELECT id, file_path, mime_type, media_metadata, campaign_id FROM media_registry WHERE id = :id")
+            res = await session.execute(stmt, {"id": entry_id})
+            row = res.fetchone()
 
-            if not entry:
+            if not row:
                 logger.error(f"[MediaAnalyst] Asset {entry_id} not found in DB.")
                 return
 
-            # Giả sử entry.file_path là đường dẫn URL /v65_assets/...
-            rel_path = entry.file_path.lstrip("/")
+            asset_id = str(row[0])
+            file_path = str(row[1])
+            mime_type = str(row[2])
+            current_meta = row[3] or {}
+            campaign_id = row[4]
+
+            # Giả sử file_path là đường dẫn URL /v65_assets/...
+            rel_path = file_path.lstrip("/")
             full_path = os.path.join("frontend/static", rel_path)
 
             if not os.path.exists(full_path):
@@ -102,15 +111,14 @@ class MediaAnalyst:
                     # Offload file reading to avoid event loop blocking
                     image_bytes = await asyncio.to_thread(self._read_file, full_path)
 
-                    analysis = await self.analyze_image(image_bytes, entry.mime_type)
+                    analysis = await self.analyze_image(image_bytes, mime_type)
 
                     # Memory discipline: release bytes immediately
                     del image_bytes
                     gc.collect() # Force GC for large buffers
 
-                    # Cập nhật metadata
-                    entry.alt_text = analysis.alt_text
-                    meta = dict(entry.media_metadata or {})
+                    # Prepare metadata
+                    meta = dict(current_meta)
                     meta.update({
                         "ai_tags": analysis.tags,
                         "ai_description": analysis.description,
@@ -118,19 +126,27 @@ class MediaAnalyst:
                         "focal_point": analysis.focal_point,
                         "analyzed_at": datetime.now(timezone.utc).isoformat()
                     })
-                    entry.media_metadata = meta
 
+                    # 2. Update DB (Zero-Hydration)
+                    await session.execute(
+                        text("UPDATE media_registry SET alt_text = :alt, media_metadata = :meta, updated_at = NOW() WHERE id = :id"),
+                        {
+                            "alt": analysis.alt_text,
+                            "meta": json.dumps(meta),
+                            "id": asset_id
+                        }
+                    )
                     await session.commit()
 
                     # --- REAL-TIME NOTIFICATION (V65.0) ---
                     # Emit event to InternalBus so SSE can pick it up
                     event_bus.emit("MEDIA_ANALYZED", {
                         "type": "MEDIA_ANALYZED",
-                        "id": entry.id,
-                        "campaign_id": entry.campaign_id,
-                        "file_path": entry.file_path,
-                        "alt_text": entry.alt_text,
-                        "media_metadata": entry.media_metadata
+                        "id": asset_id,
+                        "campaign_id": campaign_id,
+                        "file_path": file_path,
+                        "alt_text": analysis.alt_text,
+                        "media_metadata": meta
                     })
 
                     logger.info(f"[MediaAnalyst] Successfully analyzed asset: {entry_id}")

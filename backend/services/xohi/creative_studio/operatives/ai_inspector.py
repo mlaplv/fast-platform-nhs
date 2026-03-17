@@ -1,9 +1,9 @@
 import re
 import logging
-from typing import List, Dict, Union, Optional, cast
+from typing import List, Dict, Union, Optional, cast, Any
 from pydantic import BaseModel
 from pydantic_ai import Agent
-from backend.database.models import ContentCampaign
+from backend.services.campaign_service import campaign_service
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.noise_cleaner import noise_cleaner
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -116,19 +116,19 @@ class AiInspector:
 
     async def execute(self, campaign_id: str, session: AsyncSession, **kwargs: object) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0)."""
-        campaign = await session.get(ContentCampaign, campaign_id)
+        campaign = await campaign_service.get_campaign(session, campaign_id)
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
 
         result = await self.analyze(campaign, session)
         return AgentResponse(signal=AgentSignal.OK, data=result)
 
-    async def analyze(self, campaign: ContentCampaign, session: AsyncSession) -> AiReadyReport:
+    async def analyze(self, campaign: Dict[str, Any], session: AsyncSession) -> AiReadyReport:
         """
         Performs full GEO analysis on draft content using Trinity Bridge.
         """
-        draft = campaign.draft_content or ""
-        
+        draft = campaign.get("draft_content") or ""
+
         # Phase 76.3: Unified Logic-First Sanitization
         plain_text = await noise_cleaner.clean(draft, mode="light", strip_html=True)
 
@@ -147,12 +147,12 @@ class AiInspector:
             has_stats = any(c.isdigit() for c in plain_text)
             has_quotes = "theo" in plain_text.lower() or "trích dẫn" in plain_text.lower()
             word_count = len(plain_text.split())
-            
+
             base_score = 60
             if has_stats: base_score += 10
             if has_quotes: base_score += 10
             if word_count > 800: base_score += 10
-            
+
             return AiReadyReport(
                 geo_score=min(100, base_score),
                 summary=f"Phân tích AI tạm thời gián đoạn. Điểm GEO ước tính dựa trên cấu trúc: {base_score}/100.",
@@ -161,12 +161,12 @@ class AiInspector:
                 ]
             )
 
-    async def auto_fix(self, campaign: ContentCampaign, req: AutoFixRequest, session: AsyncSession) -> AutoFixResponse:
+    async def auto_fix(self, campaign: Dict[str, Any], req: AutoFixRequest, session: AsyncSession) -> AutoFixResponse:
         """
         Contextual Local Rewrite: Rewrites ONLY the targeted snippet to fix the identified analysis error.
         """
-        draft = campaign.draft_content or ""
-        
+        draft = campaign.get("draft_content") or ""
+
         prompt = f"""
 {SURGEON_PROMPT}
 
@@ -187,14 +187,14 @@ Hãy viết lại đoạn văn trên để khắc phục lỗi.
                 prompt=prompt
             )
             raw_data = response.data if hasattr(response, 'data') else response.output
-            
+
             # Phase 76.3: Physical noise stripping for the Editor
             if isinstance(raw_data, str):
                 return AutoFixResponse(old_text=req.target_snippet, new_text=await noise_cleaner.clean(raw_data, mode="aggressive", strip_html=False))
-            
+
             if hasattr(raw_data, "new_text"):
                 raw_data.new_text = await noise_cleaner.clean(raw_data.new_text, mode="aggressive", strip_html=False)
-            
+
             return raw_data
         except Exception as e:
             logger.error(f"[AiInspector] Auto-fix failed: {e}")
@@ -203,15 +203,15 @@ Hãy viết lại đoạn văn trên để khắc phục lỗi.
                 new_text=req.target_snippet # Return original on failure
             )
 
-    async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest, session: AsyncSession) -> BulkFixResponse:
+    async def bulk_fix(self, campaign: Dict[str, Any], req: BulkFixRequest, session: AsyncSession) -> BulkFixResponse:
         """
         Phase 46.1: Bulk correction via Master Surgeon.
         V76.3: Integrates Logic-First HFS Sanitization and Structural Mutation.
         """
-        draft = campaign.draft_content or ""
+        draft = campaign.get("draft_content") or ""
         # Phase 76.3: Clean draft artifacts before surgeon audit
         draft = await noise_cleaner.clean(draft, mode="aggressive", strip_html=True)
-        
+
         # Limit to 15 annotations to avoid context overflow
         valid_annotations = cast(List[Dict[str, object]], [a for a in req.annotations if a.get("text") or a.get("type")])
         if len(valid_annotations) > 15:
@@ -251,10 +251,10 @@ Trả về toàn bộ nội dung bài viết mới trong trường `new_content`
             if isinstance(raw_data, str):
                 # Phase 76.3: Physical noise stripping for the Editor
                 return BulkFixResponse(new_content=await noise_cleaner.clean(raw_data, mode="aggressive", strip_html=False))
-            
+
             if hasattr(raw_data, "new_content"):
                 raw_data.new_content = await noise_cleaner.clean(raw_data.new_content, mode="aggressive", strip_html=False)
-                
+
             return raw_data
         except Exception as e:
             logger.error(f"[AiInspector] Bulk-fix failed: {e}")

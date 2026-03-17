@@ -16,7 +16,6 @@ from backend.schemas.voice import (
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.services.user_service import user_service
 from backend.services.voice_service import voice_service
-from backend.database.models import User, VoiceProfile
 from backend.constants.voice import DEFAULT_GREETING, DEFAULT_FAREWELL
 from backend.utils.text import normalize_vn
 from backend.services.capability_registry import capability_registry

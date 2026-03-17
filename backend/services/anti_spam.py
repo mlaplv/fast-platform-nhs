@@ -21,7 +21,7 @@ class AntiSpamService:
     R23: Real-time Anti-Spam Shield (V56.6 - FORTRESS MODE).
     Optimized for High-Volume Ad Campaigns with Atomic Lua Scripts & Smart Weighting.
     """
-    def __init__(self, redis_client: Optional[_redis.Redis] = None):
+    def __init__(self, redis_client: Optional[object] = None):
         self.redis = redis_client
         # Fortress Mode Thresholds
         self.PRO_THRESHOLD_SCORE = 90.0
@@ -189,6 +189,6 @@ class AntiSpamService:
 
         return is_spam, final_reason, min(score, 100.0), fingerprint
 
-# apps/api-gateway/src/services/anti_spam.py
+# Singleton Instance
 from backend.services.xohi_memory import xohi_memory
 anti_spam_service = AntiSpamService(redis_client=xohi_memory.client)

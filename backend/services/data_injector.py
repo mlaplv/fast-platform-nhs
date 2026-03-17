@@ -4,10 +4,9 @@ import asyncio
 from zoneinfo import ZoneInfo
 from datetime import datetime, timedelta
 from typing import Union, Optional, Dict
-from sqlalchemy import select, func, text
+from sqlalchemy import text, func
 
 from backend.schemas.intent import IntentResponse
-from backend.database.models import Order, ProductBase, User
 from backend.database import current_tenant_id
 
 logger = logging.getLogger("api-gateway")
@@ -78,66 +77,67 @@ class DataInjector:
 
         async def fetch_grouped(trunc_unit: str, lookback_days: int, pg_label_fmt: str):
             res = {"labels": [], "revenue": [], "orders": []}
+            start_date = now - timedelta(days=lookback_days)
             try:
                 # 1. Postgres Attempt (date_trunc)
-                stmt = (
-                    select(
-                        func.date_trunc(trunc_unit, Order.created_at).label("period"),
-                        func.sum(Order.total_amount).label("rev"),
-                        func.count(Order.id).label("cnt")
-                    )
-                    .where(
-                        Order.tenant_id == tenant_id,
-                        Order.created_at >= (now - timedelta(days=lookback_days)),
-                        Order.deleted_at.is_(None),
-                        Order.is_spam.is_(False)
-                    )
-                    .group_by(text("1")).order_by(text("1"))
-                )
-                rows = await session.execute(stmt)
+                sql = text(f"""
+                    SELECT
+                        date_trunc('{trunc_unit}', created_at) as period,
+                        SUM(total_amount) as rev,
+                        COUNT(id) as cnt
+                    FROM orders
+                    WHERE tenant_id = :tid
+                      AND created_at >= :start
+                      AND deleted_at IS NULL
+                      AND is_spam IS FALSE
+                    GROUP BY 1
+                    ORDER BY 1
+                """)
+                rows = await session.execute(sql, {"tid": tenant_id, "start": start_date})
                 for r in rows:
+                    period = r[0]
+                    rev = float(r[1] or 0)
+                    cnt = int(r[2] or 0)
                     if trunc_unit == 'quarter':
-                        label = f"Q{(r.period.month-1)//3+1}/{r.period.strftime('%y')}"
+                        label = f"Q{(period.month-1)//3+1}/{period.strftime('%y')}"
                     elif trunc_unit == 'year':
-                        label = r.period.strftime('%Y')
+                        label = period.strftime('%Y')
                     else:
-                        label = r.period.strftime(pg_label_fmt)
+                        label = period.strftime(pg_label_fmt)
                     res["labels"].append(label)
-                    res["revenue"].append(float(r.rev or 0))
-                    res["orders"].append(int(r.cnt or 0))
+                    res["revenue"].append(rev)
+                    res["orders"].append(cnt)
             except Exception as pg_err:
                 logger.debug(f"[Data Injector] Postgres grouping failed for {trunc_unit}, trying SQLite: {pg_err}")
                 # 2. SQLite Fallback (strftime)
                 try:
                     if trunc_unit == 'year':
-                        group_expr = func.strftime('%Y', Order.created_at)
+                        group_expr = "strftime('%Y', created_at)"
                     elif trunc_unit == 'month':
-                        group_expr = func.strftime('%m/%y', Order.created_at)
+                        group_expr = "strftime('%m/%y', created_at)"
                     elif trunc_unit == 'quarter':
-                        # SQLite quarter logic: Q + ((month-1)/3 + 1)
-                        group_expr = text("(strftime('%Y', created_at) || '-Q' || ((CAST(strftime('%m', created_at) AS INTEGER) - 1) / 3 + 1))")
+                        group_expr = "(strftime('%Y', created_at) || '-Q' || ((CAST(strftime('%m', created_at) AS INTEGER) - 1) / 3 + 1))"
                     else: # 'day'
-                        group_expr = func.strftime('%d/%m', Order.created_at)
+                        group_expr = "strftime('%d/%m', created_at)"
 
-                    stmt = (
-                        select(
-                            group_expr.label("period"),
-                            func.sum(Order.total_amount).label("rev"),
-                            func.count(Order.id).label("cnt")
-                        )
-                        .where(
-                            Order.tenant_id == tenant_id,
-                            Order.created_at >= (now - timedelta(days=lookback_days)),
-                            Order.deleted_at.is_(None),
-                            Order.is_spam.is_(False)
-                        )
-                        .group_by(text("period")).order_by(text("period"))
-                    )
-                    rows = await session.execute(stmt)
+                    sql = text(f"""
+                        SELECT
+                            {group_expr} as period,
+                            SUM(total_amount) as rev,
+                            COUNT(id) as cnt
+                        FROM orders
+                        WHERE tenant_id = :tid
+                          AND created_at >= :start
+                          AND deleted_at IS NULL
+                          AND is_spam IS FALSE
+                        GROUP BY period
+                        ORDER BY period
+                    """)
+                    rows = await session.execute(sql, {"tid": tenant_id, "start": start_date})
                     for r in rows:
-                        res["labels"].append(str(r.period))
-                        res["revenue"].append(float(r.rev or 0))
-                        res["orders"].append(int(r.cnt or 0))
+                        res["labels"].append(str(r[0]))
+                        res["revenue"].append(float(r[1] or 0))
+                        res["orders"].append(int(r[2] or 0))
                 except Exception as sql_err:
                     logger.error(f"[Data Injector] SQLite grouping failed for {trunc_unit}: {sql_err}")
             return res
@@ -163,28 +163,43 @@ class DataInjector:
         elif timeframe == "this_week": time_filter = now - timedelta(days=7)
         elif timeframe == "this_month": time_filter = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
+        params = {}
+        if time_filter:
+            params["t_filter"] = time_filter
+
         if target == "order":
-            stmt = select(func.count(Order.id)).where(Order.deleted_at.is_(None), Order.is_spam.is_(False))
-            if time_filter: stmt = stmt.where(Order.created_at >= time_filter)
-            if status and status != "none": stmt = stmt.where(Order.status == status.upper())
-            return await session.scalar(stmt) or 0
+            where_clauses = ["deleted_at IS NULL", "is_spam IS FALSE"]
+            if time_filter: where_clauses.append("created_at >= :t_filter")
+            if status and status != "none":
+                where_clauses.append("status = :status")
+                params["status"] = status.upper()
+
+            sql = text(f"SELECT COUNT(*) FROM orders WHERE {' AND '.join(where_clauses)}")
+            return await session.scalar(sql, params) or 0
 
         if target == "product":
-            stmt = select(func.count(ProductBase.id)).where(ProductBase.deleted_at.is_(None))
-            if time_filter: stmt = stmt.where(ProductBase.created_at >= time_filter)
-            return await session.scalar(stmt) or 0
+            where_clauses = ["deleted_at IS NULL"]
+            if time_filter: where_clauses.append("created_at >= :t_filter")
+            sql = text(f"SELECT COUNT(*) FROM product_bases WHERE {' AND '.join(where_clauses)}")
+            return await session.scalar(sql, params) or 0
 
         if target == "user":
-            stmt = select(func.count(User.id)).where(User.deleted_at.is_(None))
-            if time_filter: stmt = stmt.where(User.created_at >= time_filter)
-            return await session.scalar(stmt) or 0
+            where_clauses = ["deleted_at IS NULL"]
+            if time_filter: where_clauses.append("created_at >= :t_filter")
+            sql = text(f"SELECT COUNT(*) FROM users WHERE {' AND '.join(where_clauses)}")
+            return await session.scalar(sql, params) or 0
 
         if target == "revenue":
             tenant_id = current_tenant_id.get() or DEFAULT_TENANT
-            stmt = select(func.sum(Order.total_amount)).where(Order.tenant_id == tenant_id, Order.deleted_at.is_(None), Order.is_spam.is_(False))
-            if status and status != "none": stmt = stmt.where(Order.status == status.upper())
-            if time_filter: stmt = stmt.where(Order.created_at >= time_filter)
-            return await session.scalar(stmt) or 0
+            params["tid"] = tenant_id
+            where_clauses = ["tenant_id = :tid", "deleted_at IS NULL", "is_spam IS FALSE"]
+            if status and status != "none":
+                where_clauses.append("status = :status")
+                params["status"] = status.upper()
+            if time_filter: where_clauses.append("created_at >= :t_filter")
+
+            sql = text(f"SELECT SUM(total_amount) FROM orders WHERE {' AND '.join(where_clauses)}")
+            return await session.scalar(sql, params) or 0
         return None
 
 

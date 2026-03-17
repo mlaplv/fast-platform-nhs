@@ -5,7 +5,6 @@ from litestar.exceptions import NotAuthorizedException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from backend.database.models import User
 from backend.services.notification_service import notification_service
 
 logger = logging.getLogger("api-gateway")

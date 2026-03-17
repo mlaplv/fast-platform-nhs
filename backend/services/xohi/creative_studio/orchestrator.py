@@ -3,8 +3,8 @@ import logging
 import asyncio
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional, Dict, Union
-from backend.database.models import ContentCampaign
+from typing import Optional, Dict, Union, Any, List
+from backend.services.campaign_service import campaign_service
 from backend.services.xohi.creative_studio.operatives.vision_insight import VisionInsight
 from backend.services.xohi.creative_studio.operatives.asset_hunter import AssetHunter
 from backend.services.xohi.creative_studio.operatives.creative_pen import CreativePen
@@ -63,20 +63,18 @@ class ContentOrchestrator:
         """R104: Self-Healing Resume logic. R1.5: Zero-Hydration — only select needed columns."""
         session_maker = alchemy_config.create_session_maker()
         async with session_maker() as session:
-            stmt = select(ContentCampaign.id, ContentCampaign.current_step).where(
-                ContentCampaign.status == "PROCESSING"
-            )
-            result = await session.execute(stmt)
+            sql = text("SELECT id, current_step FROM content_campaigns WHERE status = 'PROCESSING' AND deleted_at IS NULL")
+            result = await session.execute(sql)
             rows = result.all()
             for row in rows:
-                asyncio.create_task(self.engine.trigger_step(row.id, force_step=row.current_step))
+                asyncio.create_task(self.engine.trigger_step(str(row[0]), force_step=int(row[1])))
 
     # --- Delegated API Surface ---
 
     async def handle_voice_request(self, transcript: str, session: AsyncSession, tenant_id: str = "default", user_id: Optional[str] = None, intent_data: Optional[Dict] = None) -> IntentResponse:
         return await self.voice_handler.handle_request(transcript, session, tenant_id, user_id, intent_data=intent_data)
 
-    async def get_active_campaign(self, session: AsyncSession, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None) -> Optional[ContentCampaign]:
+    async def get_active_campaign(self, session: AsyncSession, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None) -> Optional[Dict]:
         return await self.voice_handler.get_active_campaign(session, user_id, tenant_id, query=query)
 
     async def approve_step(self, campaign_id: str, data: Dict[str, object], session: AsyncSession) -> GenericResponse:

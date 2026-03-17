@@ -2,10 +2,9 @@ import numpy as np
 import logging
 import asyncio
 from typing import List, Optional
-from sqlalchemy import select
+from sqlalchemy import text
 from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
 from backend.database.alchemy_config import alchemy_config
-from backend.database.models import ProductBase, ProductEmbedding, Article, ArticleEmbedding
 
 logger = logging.getLogger("api-gateway")
 
@@ -43,23 +42,26 @@ class VectorMemory:
         try:
             results_text = []
             if context_type == "product":
-                # Fetch all product embeddings
-                stmt = select(ProductBase.name, ProductBase.price, ProductBase.stock, ProductEmbedding.embedding).join(
-                    ProductEmbedding, ProductBase.id == ProductEmbedding.product_base_id
-                )
-                result = await session.execute(stmt)
+                # Fetch all product embeddings via raw SQL join
+                sql = text("""
+                    SELECT p.name, p.price, p.stock, pe.embedding
+                    FROM product_bases p
+                    JOIN product_embeddings pe ON p.id = pe.product_base_id
+                    WHERE p.deleted_at IS NULL
+                """)
+                result = await session.execute(sql)
                 rows = result.all()
                 if not rows: return ""
 
                 # Phase 77.3: Vectorized Matrix Search
                 embs = []
                 metadata = []
-                for name, price, stock, emb_str in rows:
+                for name, price, stock, emb_data in rows:
                     try:
-                        if isinstance(emb_str, str):
-                            vec = np.frombuffer(bytes.fromhex(emb_str), dtype=np.float32)
+                        if isinstance(emb_data, str):
+                            vec = np.frombuffer(bytes.fromhex(emb_data), dtype=np.float32)
                         else:
-                            vec = np.frombuffer(emb_str, dtype=np.float32)
+                            vec = np.frombuffer(emb_data, dtype=np.float32)
 
                         if vec.shape[0] == query_vec.shape[0]:
                             embs.append(vec)
@@ -83,21 +85,24 @@ class VectorMemory:
                 results_text = [metadata[i] for i in top_indices if scores[i] > 0.1]
 
             elif context_type == "article":
-                stmt = select(Article.title, Article.category, ArticleEmbedding.embedding).join(
-                    ArticleEmbedding, Article.id == ArticleEmbedding.article_id
-                )
-                result = await session.execute(stmt)
+                sql = text("""
+                    SELECT a.title, a.category, ae.embedding
+                    FROM articles a
+                    JOIN article_embeddings ae ON a.id = ae.article_id
+                    WHERE a.deleted_at IS NULL
+                """)
+                result = await session.execute(sql)
                 rows = result.all()
                 if not rows: return ""
 
                 embs = []
                 metadata = []
-                for title, cat, emb_str in rows:
+                for title, cat, emb_data in rows:
                     try:
-                        if isinstance(emb_str, str):
-                            vec = np.frombuffer(bytes.fromhex(emb_str), dtype=np.float32)
+                        if isinstance(emb_data, str):
+                            vec = np.frombuffer(bytes.fromhex(emb_data), dtype=np.float32)
                         else:
-                            vec = np.frombuffer(emb_str, dtype=np.float32)
+                            vec = np.frombuffer(emb_data, dtype=np.float32)
 
                         if vec.shape[0] == query_vec.shape[0]:
                             embs.append(vec)

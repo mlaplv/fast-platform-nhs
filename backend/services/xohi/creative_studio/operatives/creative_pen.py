@@ -2,10 +2,10 @@ import logging
 import re
 import asyncio
 import gc
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Union, Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic_ai import Agent
-from backend.database.models import ContentCampaign
+from backend.services.campaign_service import campaign_service
 from backend.services.xohi.creative_studio.models.schemas import ArticleOutline, AgentResponse, AgentSignal
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.noise_cleaner import noise_cleaner
@@ -70,7 +70,7 @@ class CreativePen:
 
     async def execute(self, campaign_id: str, session: AsyncSession, **kwargs: object) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0)."""
-        campaign = await session.get(ContentCampaign, campaign_id)
+        campaign = await campaign_service.get_campaign(session, campaign_id)
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
 
@@ -79,23 +79,23 @@ class CreativePen:
             if step == 3:
                 outline = await self.generate_outline(campaign)
 
+                outline_data = {}
                 if isinstance(outline, ArticleOutline):
-                    campaign.outline_data = outline.model_dump()
+                    outline_data = outline.model_dump()
                 elif isinstance(outline, dict):
-                    campaign.outline_data = outline
+                    outline_data = outline
                 else:
                     logger.error(f"[Content Factory] Outline generation failed or returned invalid type: {type(outline)}")
-                    campaign.outline_data = {"error": "Invalid outline format"}
+                    outline_data = {"error": "Invalid outline format"}
 
                 return AgentResponse(
                     signal=AgentSignal.PROCEED_NEXT,
                     message="Outline generated based on Golden Thread.",
-                    data=campaign.outline_data
+                    data=outline_data
                 )
             elif step == 4:
                 logger.info(f"[CreativePen] Phase 76: Drafting full content for {campaign_id}")
                 content = await self.write_draft(campaign)
-                campaign.draft_content = content
                 return AgentResponse(
                     signal=AgentSignal.PROCEED_NEXT,
                     message="Draft content generated — Viral 2026 Edition.",
@@ -104,33 +104,33 @@ class CreativePen:
 
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message=f"Invalid step {step} for CreativePen")
 
-    async def generate_outline(self, campaign: ContentCampaign) -> ArticleOutline:
+    async def generate_outline(self, campaign: Dict[str, Any]) -> ArticleOutline:
         """
         Step 3: Generate a technical outline based on Golden Thread.
         Now using Standardized Golden Context Helpers.
         """
-        primary = campaign.get_gold_val("primary_keyword", "N/A")
-        secondary = ", ".join(campaign.get_gold_val("secondary_keywords", []))
-        title = campaign.get_gold_val("title", "Bài viết mới")
-        persona = campaign.get_gold_val("persona", "Chuyên gia")
-        
-        assets = campaign.assets_data or []
+        primary = campaign_service.get_gold_val(campaign, "primary_keyword", "N/A")
+        secondary = ", ".join(campaign_service.get_gold_val(campaign, "secondary_keywords", []))
+        title = campaign_service.get_gold_val(campaign, "title", "Bài viết mới")
+        persona = campaign_service.get_gold_val(campaign, "persona", "Chuyên gia")
+
+        assets = campaign.get("assets_data") or []
         num_assets = len(assets)
-        
+
         # Phase 71: Strict Section Control
-        config = campaign.get_gold_config()
+        config = campaign_service.get_gold_config(campaign)
         max_sections = config.get("max_sections", 3)
-        
+
         instruction = f"""
-        Hãy sinh Dàn Ý (ArticleOutline) với đúng {max_sections} mục chính. Trả về đúng schema JSON. 
+        Hãy sinh Dàn Ý (ArticleOutline) với đúng {max_sections} mục chính. Trả về đúng schema JSON.
         Mỗi mục trong `content` chỉ gồm DUY NHẤT: 01 câu Sapô chủ chốt và 01 gạch đầu dòng ý chính.
         Tuyệt đối KHÔNG chèn bất kỳ thẻ hình ảnh nào.
         """
-        
+
         # Phase 76.5: Context De-noising before AI injection
         title_clean = await noise_cleaner.clean(title, mode="standard")
         primary_clean = await noise_cleaner.clean(primary, mode="standard")
-        
+
         prompt = f"""
         [THÔNG TIN GOLDEN THREAD - ĐÃ KHỬ NHIỄU]
         - Tiêu đề tiêu điểm: {title_clean}
@@ -140,13 +140,13 @@ class CreativePen:
         - GIỚI HẠN: {max_sections} mục H2.
         Cần một dàn ý BÁO CHÍ chuẩn mực, tập trung vào giá trị thông tin.
         """
-        
+
         try:
-            logger.info(f"[Content Factory] CreativePen generating outline for {campaign.id} using {self.model_name}")
-            result = await trinity_bridge.run(self.outline_agent, f"{instruction}\n{prompt}", session_id=campaign.id, model=self.model_name)
+            logger.info(f"[Content Factory] CreativePen generating outline for {campaign['id']} using {self.model_name}")
+            result = await trinity_bridge.run(self.outline_agent, f"{instruction}\n{prompt}", session_id=campaign['id'], model=self.model_name)
 
             if result is None:
-                logger.error(f"[Content Factory] trinity_bridge.run returned None for campaign {campaign.id}")
+                logger.error(f"[Content Factory] trinity_bridge.run returned None for campaign {campaign['id']}")
                 return None
 
             # Phase 76.9: Robust Unwrapper
@@ -178,7 +178,7 @@ class CreativePen:
             # Final Fallback for raw objects
             if hasattr(raw_data, "model_dump"):
                 return raw_data
-            
+
             if hasattr(raw_data, "__dict__"):
                 return raw_data
 
@@ -188,7 +188,7 @@ class CreativePen:
             logger.error(f"[Content Factory] CreativePen Outline Gen Error: {e}", exc_info=True)
             raise
 
-    async def write_draft(self, campaign: ContentCampaign) -> str:
+    async def write_draft(self, campaign: Dict[str, Any]) -> str:
         """
         Step 4: Generate REAL full-length viral content using AI.
         V71.0: Full Golden Thread injection + Outline + Guaranteed Asset Placement.
@@ -196,8 +196,8 @@ class CreativePen:
         prompt, assets, primary = await self._build_draft_prompt(campaign)
 
         try:
-            logger.info(f"[Content Factory] CreativePen Draft Writing Phase 76.5 for {campaign.id}")
-            result = await trinity_bridge.run(self.draft_agent, prompt, session_id=campaign.id, model=self.model_name)
+            logger.info(f"[Content Factory] CreativePen Draft Writing Phase 76.5 for {campaign['id']}")
+            result = await trinity_bridge.run(self.draft_agent, prompt, session_id=campaign['id'], model=self.model_name)
 
             # Phase 76.9: Universal Text Unwrapper
             content = ""
@@ -208,13 +208,13 @@ class CreativePen:
             else:
                 content = str(result)
 
-            return await self._process_draft_content(content, assets, primary, campaign.id)
+            return await self._process_draft_content(content, assets, primary, campaign['id'])
 
         except Exception as e:
             logger.error(f"[Content Factory] CreativePen Draft Gen Error: {e}")
             raise  # Re-raise instead of returning fallback content
 
-    async def stream_draft(self, campaign: ContentCampaign):
+    async def stream_draft(self, campaign: Dict[str, Any]):
         """
         V76.5: Neural Streaming Version of draft generation.
         Yields text chunks and eventually the final processed HTML.
@@ -222,17 +222,17 @@ class CreativePen:
         prompt, assets, primary = await self._build_draft_prompt(campaign)
 
         try:
-            logger.info(f"[Content Factory] CreativePen Neural Streaming Draft for {campaign.id}")
+            logger.info(f"[Content Factory] CreativePen Neural Streaming Draft for {campaign['id']}")
             full_raw_content = ""
 
-            async with trinity_bridge.run_stream(self.draft_agent, prompt, session_id=campaign.id, model=self.model_name) as stream:
+            async with trinity_bridge.run_stream(self.draft_agent, prompt, session_id=campaign['id'], model=self.model_name) as stream:
                 async for text in stream.stream_text(delta=True):
                     if text:
                         full_raw_content += text
                         yield {"type": "chunk", "text": text}
 
             # Final processing (Sanitize, Replace Images, Noise Cleaning)
-            final_content = await self._process_draft_content(full_raw_content, assets, primary, campaign.id)
+            final_content = await self._process_draft_content(full_raw_content, assets, primary, campaign['id'])
             yield {"type": "final", "content": final_content}
 
         except Exception as e:
@@ -240,16 +240,16 @@ class CreativePen:
             yield {"type": "error", "message": str(e)}
             raise
 
-    async def _build_draft_prompt(self, campaign: ContentCampaign):
+    async def _build_draft_prompt(self, campaign: Dict[str, Any]):
         """Helper to build prompt (Shared between sync and stream)."""
-        outline_data = campaign.outline_data or {}
-        assets = campaign.assets_data or []
+        outline_data = campaign.get("outline_data") or {}
+        assets = campaign.get("assets_data") or []
 
         # --- BUILD FULL CONTEXT VIA GOLD HELPERS ---
-        primary = campaign.get_gold_val("primary_keyword", "chủ đề chính")
-        secondary_list = campaign.get_gold_val("secondary_keywords", [])
-        title = campaign.get_gold_val("title", primary)
-        persona = campaign.get_gold_val("persona", "Chuyên gia")
+        primary = campaign_service.get_gold_val(campaign, "primary_keyword", "chủ đề chính")
+        secondary_list = campaign_service.get_gold_val(campaign, "secondary_keywords", [])
+        title = campaign_service.get_gold_val(campaign, "title", primary)
+        persona = campaign_service.get_gold_val(campaign, "persona", "Chuyên gia")
 
         # V71.0: Improved Outline Parsing (Handle both sections and html)
         sections = []
@@ -276,11 +276,11 @@ class CreativePen:
         asset_context = "\n".join(asset_lines) if asset_lines else "  (Không có ảnh)"
 
         # Avatar context
-        avatar_url = campaign.get_gold_val("avatar", assets[0] if assets else None)
+        avatar_url = campaign_service.get_gold_val(campaign, "avatar", assets[0] if assets else None)
         avatar_context = f"  Ảnh đại diện (thumbnail): {avatar_url}" if avatar_url else "  (Chưa có ảnh đại diện)"
 
         # Phase 71: Strict Word Count Enforcement (90% - 120% Range)
-        config = campaign.get_gold_config()
+        config = campaign_service.get_gold_config(campaign)
         # R105 & Memory Shield: Clamp word count to prevent OOM/hallucinations on 2GB VPS
         raw_target = config.get("word_count", 500)
         try:

@@ -5,12 +5,11 @@ import re
 import copy
 import hashlib
 from datetime import datetime, timezone
-from typing import List, Dict, Optional, Union, cast
+from typing import List, Dict, Optional, Union, cast, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from pydantic_ai import Agent
-from sqlalchemy.orm.attributes import flag_modified
-from backend.database.models import ContentCampaign
+from backend.services.campaign_service import campaign_service
 from backend.services.xohi.creative_studio.models.schemas import AgentResponse, AgentSignal, BulkFixRequest, BulkFixResponse
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.http_client import get_http_client
@@ -207,13 +206,13 @@ class PlagiarismCop:
     # PIPELINE ENTRY POINT
     # ──────────────────────────────────────────────────────────
 
-    async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest, session: AsyncSession) -> BulkFixResponse:
+    async def bulk_fix(self, campaign: Dict[str, Any], req: BulkFixRequest, session: AsyncSession) -> BulkFixResponse:
         """
         Phase 76.9: Near-duplicate removal via Jaccard word similarity.
         Keeps the FIRST occurrence. Considers paragraphs with ≥82% word overlap as duplicates.
         Correctly handles trailing noise like '…1111', '1111…..' etc.
         """
-        draft = campaign.draft_content or ""
+        draft = campaign.get("draft_content") or ""
 
         # Phase 76.3: Clean draft artifacts before surgery
         draft = await noise_cleaner.clean(draft, mode="aggressive", strip_html=False)
@@ -263,7 +262,7 @@ class PlagiarismCop:
 
     async def execute(self, campaign_id: str, session: AsyncSession, **kwargs: object) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0) — called by orchestrator Step 5."""
-        campaign = await session.get(ContentCampaign, campaign_id)
+        campaign = await campaign_service.get_campaign(session, campaign_id)
         if not campaign:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
 
@@ -271,20 +270,21 @@ class PlagiarismCop:
         async with self.plagiarism_semaphore:
             # Phase 76.4: Proactive Physical Sanitization (Elite V2.2)
             # We clean the draft in DB so Editor and Analysis are in sync
-            original_draft = campaign.draft_content or ""
+            original_draft = campaign.get("draft_content") or ""
             cleaned_draft = await noise_cleaner.clean(original_draft, mode="aggressive", strip_html=False)
             if cleaned_draft != original_draft:
-                campaign.draft_content = cleaned_draft
+                await campaign_service.update_campaign(session, campaign_id, {"draft_content": cleaned_draft})
+                campaign["draft_content"] = cleaned_draft
                 logger.info(f"[PlagiarismCop] Proactive sanitization applied to campaign {campaign_id}")
 
             result = await self.analyze(campaign)
 
         # Phase 73: Sync with gold_metadata analysis_cache for UI hydration parity
-        gold = copy.deepcopy(campaign.gold_metadata or {})
+        gold = copy.deepcopy(campaign.get("gold_metadata") or {})
         cache = gold.get("analysis_cache", {})
         metrics = gold.get("analysis_metrics", {})
 
-        draft_text = campaign.draft_content or ""
+        draft_text = campaign.get("draft_content") or ""
         content_hash = hashlib.sha256(draft_text.encode('utf-8')).hexdigest()
         result_data = result.model_dump()
 
@@ -295,13 +295,16 @@ class PlagiarismCop:
         }
         metrics["unique_score"] = result.uniqueness_score
         metrics["copyright_risk"] = result.risk_level
+
         # ARCHIVING & METRICS (V71.30)
-        new_gold = cast(Dict[str, object], copy.deepcopy(campaign.gold_metadata or {}))
-        new_gold["analysis_cache"] = cache
-        new_gold["analysis_metrics"] = metrics
-        campaign.gold_metadata = new_gold
-        campaign.unique_score = result.uniqueness_score
-        flag_modified(campaign, "gold_metadata")
+        gold["analysis_cache"] = cache
+        gold["analysis_metrics"] = metrics
+
+        # Surgical Update (Rule R1.5)
+        await campaign_service.update_campaign(session, campaign_id, {
+            "gold_metadata": gold,
+            "unique_score": result.uniqueness_score
+        })
 
         if result.risk_level == "HIGH":
             return AgentResponse(
@@ -332,15 +335,15 @@ class PlagiarismCop:
     # ON-DEMAND ANALYSIS (called from /analyze endpoint)
     # ──────────────────────────────────────────────────────────
 
-    async def analyze(self, campaign: ContentCampaign) -> PlagiarismResult:
+    async def analyze(self, campaign: Dict[str, Any]) -> PlagiarismResult:
         """
         Full semantic copyright analysis.
         1. Extract plain text from draft HTML
         2. Search Google for top competitors on primary keyword
         3. Ask Gemini AI to compare semantically, return per-sentence annotations
         """
-        draft = campaign.draft_content or ""
-        gold = campaign.gold_metadata or {}
+        draft = campaign.get("draft_content") or ""
+        gold = campaign.get("gold_metadata") or {}
         primary_keyword = gold.get("primary_keyword", "")
 
         if not draft or not primary_keyword:

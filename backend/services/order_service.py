@@ -1,12 +1,11 @@
+import json
 import logging
 import uuid
 from datetime import datetime, timezone
 from typing import List, Dict, Optional, Union, cast
-from sqlalchemy import select, func, or_, and_, update
+from sqlalchemy import text, select, func, or_, and_, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from backend.database.models import Order, User
 from backend.services.event_bus import event_bus
 from backend.utils.sql import escape_like
 
@@ -17,6 +16,7 @@ class OrderService:
     ULTRA-LEAN ORDER SERVICE (ELITE V2.2)
     -------------------------------------
     Handles Order CRUD, State Machine transitions, and Anti-Spam triggers.
+    Zero-Hydration (Rule 1.5) enforced.
     """
 
     async def list_orders(
@@ -28,93 +28,88 @@ class OrderService:
         search: Optional[str] = None,
     ) -> Dict[str, object]:
         """List orders with total count and customer projection (R76)."""
-        conditions = [Order.deleted_at == None]
+        conditions = ["o.deleted_at IS NULL"]
+        params = {"limit": limit, "offset": offset}
 
         if status and status != "all":
-            conditions.append(Order.status == status.upper())
+            conditions.append("o.status = :status")
+            params["status"] = status.upper()
 
         if search:
             safe = escape_like(search)
-            conditions.append(or_(
-                Order.id.ilike(f"%{safe}%"),
-                Order.user.has(func.unaccent(User.name).ilike(f"%{func.unaccent(safe)}%"))
-            ))
+            conditions.append("(o.id ILIKE :search OR u.name ILIKE :search)")
+            params["search"] = f"%{safe}%"
+
+        where_clause = " AND ".join(conditions)
 
         # 1. COUNT (Zero-Hydration)
-        count_stmt = select(func.count(Order.id)).where(and_(*conditions))
-        total = await session.scalar(count_stmt) or 0
+        count_sql = text(f"SELECT COUNT(*) FROM orders o LEFT JOIN users u ON o.user_id = u.id WHERE {where_clause}")
+        total = await session.scalar(count_sql, params) or 0
 
         # 2. Scalar Projection Fetch
-        stmt = select(
-            Order.id, Order.status, Order.total_amount, Order.items, Order.created_at,
-            Order.is_spam, Order.spam_score, Order.spam_reason, Order.fingerprint,
-            User.name.label("customer_name")
-        ).outerjoin(User, Order.user_id == User.id).where(
-            and_(*conditions)
-        ).limit(limit).offset(offset).order_by(Order.created_at.desc())
+        sql = text(f"""
+            SELECT o.id, o.status, o.total_amount, o.items, o.created_at,
+                   o.is_spam, o.spam_score, o.spam_reason, o.fingerprint,
+                   u.name as customer_name
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            WHERE {where_clause}
+            ORDER BY o.created_at DESC
+            LIMIT :limit OFFSET :offset
+        """)
 
-        result = await session.execute(stmt)
+        result = await session.execute(sql, params)
+        rows = result.all()
+
         data = [
             {
-                "id": str(row.id),
-                "customerName": row.customer_name or "Storefront Customer",
-                "status": row.status.lower() if row.status else "pending",
-                "total": float(row.total_amount) if row.total_amount else 0.0,
-                "items": len(row.items) if isinstance(row.items, list) else 0,
-                "createdAt": row.created_at.isoformat() if row.created_at else "",
-                "isSpam": row.is_spam,
-                "spamScore": row.spam_score,
-                "spamReason": row.spam_reason,
-                "fingerprint": row.fingerprint
+                "id": str(r[0]),
+                "status": r[1].lower() if r[1] else "pending",
+                "total": float(r[2]) if r[2] else 0.0,
+                "items": len(r[3]) if isinstance(r[3], list) else 0,
+                "createdAt": r[4].isoformat() if r[4] else "",
+                "isSpam": r[5],
+                "spamScore": r[6],
+                "spamReason": r[7],
+                "fingerprint": r[8],
+                "customerName": r[9] or "Storefront Customer",
             }
-            for row in result
+            for r in rows
         ]
 
         return {"data": data, "total": total}
 
     async def get_order(self, session: AsyncSession, order_id: str) -> Dict[str, object]:
         """Get a single order with user details via Scalar Projection (R76)."""
-        stmt = (
-            select(
-                Order.id, Order.status, Order.total_amount, Order.items, Order.created_at,
-                Order.cancellation_reason, Order.is_spam, Order.spam_score, Order.spam_reason,
-                Order.fingerprint, Order.history,
-                User.name.label("customer_name")
-            )
-            .outerjoin(User, Order.user_id == User.id)
-            .where(Order.id == order_id)
-        )
-        result = await session.execute(stmt)
-        row = result.first()
+        sql = text("""
+            SELECT o.id, o.status, o.total_amount, o.items, o.created_at,
+                   o.cancellation_reason, o.is_spam, o.spam_score, o.spam_reason,
+                   o.fingerprint, o.history, u.name as customer_name
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            WHERE o.id = :id AND o.deleted_at IS NULL
+        """)
+        result = await session.execute(sql, {"id": order_id})
+        r = result.first()
 
-        if not row:
+        if not r:
             from litestar.exceptions import NotFoundException
             raise NotFoundException(f"Order {order_id} not found")
 
         return {
-            "id": str(row.id),
-            "customerName": row.customer_name or "Unknown",
-            "status": row.status.lower() if row.status else "pending",
-            "total": float(row.total_amount) if row.total_amount else 0.0,
-            "items": row.items,
-            "createdAt": row.created_at.isoformat() if row.created_at else "",
-            "cancellationReason": row.cancellation_reason,
-            "isSpam": row.is_spam,
-            "spamScore": row.spam_score,
-            "spamReason": row.spam_reason,
-            "fingerprint": row.fingerprint,
-            "history": row.history or []
+            "id": str(r[0]),
+            "status": r[1].lower() if r[1] else "pending",
+            "total": float(r[2]) if r[2] else 0.0,
+            "items": r[3],
+            "createdAt": r[4].isoformat() if r[4] else "",
+            "cancellationReason": r[5],
+            "isSpam": r[6],
+            "spamScore": r[7],
+            "spamReason": r[8],
+            "fingerprint": r[9],
+            "history": r[10] or [],
+            "customerName": r[11] or "Unknown",
         }
-
-    async def _get_order_model(self, session: AsyncSession, order_id: str) -> Order:
-        """Internal helper to get the ORM model for updates."""
-        stmt = select(Order).where(Order.id == order_id)
-        res = await session.execute(stmt)
-        order = res.scalar_one_or_none()
-        if not order:
-            from litestar.exceptions import NotFoundException
-            raise NotFoundException(f"Order {order_id} not found")
-        return order
 
     async def create_order(
         self,
@@ -123,22 +118,30 @@ class OrderService:
         ip: str = "unknown",
         ua: str = "unknown"
     ) -> Dict[str, object]:
-        """Create order and emit creation event for Anti-Spam processing."""
+        """Create order via Scalar Insert (Zero-Hydration) and emit event."""
         new_id = str(uuid.uuid4())
-        order = Order(
-            id=new_id,
-            items=cast(List, data.get("items", [])),
-            total_amount=cast(float, data.get("total_amount", 0.0)),
-            status="PENDING",
-            history=[{
-                "status": "PENDING",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "actor": "Storefront",
-                "note": "Order created via checkout"
-            }]
-        )
+        now = datetime.now(timezone.utc)
+        history = [{
+            "status": "PENDING",
+            "timestamp": now.isoformat(),
+            "actor": "Storefront",
+            "note": "Order created via checkout"
+        }]
 
-        session.add(order)
+        # Rule R1.5: Zero-Hydration Scalar Insert
+        await session.execute(
+            text("""
+                INSERT INTO orders (id, items, total_amount, status, history, created_at, updated_at, tenant_id)
+                VALUES (:id, :items, :total, 'PENDING', :history, :now, :now, 'default')
+            """),
+            {
+                "id": new_id,
+                "items": json.dumps(data.get("items", [])),
+                "total": data.get("total_amount", 0.0),
+                "history": json.dumps(history),
+                "now": now
+            }
+        )
         await session.commit()
 
         # Emit event for XoHiResponder/AntiSpam
@@ -161,9 +164,18 @@ class OrderService:
         new_status: str,
         actor: str = "System"
     ) -> Dict[str, object]:
-        """Handle state machine transitions and history."""
-        order = await self._get_order_model(session, order_id)
-        current_status = order.status.upper()
+        """Handle state machine transitions and history via Raw SQL (Rule 1.5)."""
+        # 1. Fetch current state
+        sql = text("SELECT status, history, user_id FROM orders WHERE id = :id AND deleted_at IS NULL")
+        res = await session.execute(sql, {"id": order_id})
+        current = res.first()
+        if not current:
+            from litestar.exceptions import NotFoundException
+            raise NotFoundException(f"Order {order_id} not found")
+
+        current_status = current[0].upper()
+        history = list(current[1] or [])
+        user_id = current[2]
         new_status = new_status.upper()
 
         # State Machine R60
@@ -181,18 +193,22 @@ class OrderService:
             from litestar.exceptions import ValidationException
             raise ValidationException(f"Invalid transition from {current_status} to {new_status}")
 
-        order.status = new_status
-
-        history = list(order.history or [])
         history.append({
             "status": new_status,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "actor": actor,
             "note": "Status updated via admin"
         })
-        order.history = history
 
-        user_id = order.user_id
+        # 2. Atomic Update
+        await session.execute(
+            text("UPDATE orders SET status = :status, history = :history, updated_at = NOW() WHERE id = :id"),
+            {
+                "status": new_status,
+                "history": json.dumps(history),
+                "id": order_id
+            }
+        )
         await session.commit()
 
         await event_bus.emit("ORDER_UPDATED", {
@@ -210,25 +226,41 @@ class OrderService:
         reason: str,
         actor: str = "System"
     ) -> Dict[str, object]:
-        """Cancel order with reason."""
-        order = await self._get_order_model(session, order_id)
-        if order.status.upper() not in ["PENDING", "PAID"]:
+        """Cancel order with reason via Raw SQL."""
+        sql = text("SELECT status, history, user_id FROM orders WHERE id = :id AND deleted_at IS NULL")
+        res = await session.execute(sql, {"id": order_id})
+        current = res.first()
+        if not current:
+            from litestar.exceptions import NotFoundException
+            raise NotFoundException(f"Order {order_id} not found")
+
+        current_status = current[0].upper()
+        history = list(current[1] or [])
+        user_id = current[2]
+
+        if current_status not in ["PENDING", "PAID"]:
             from litestar.exceptions import ValidationException
             raise ValidationException("Only PENDING or PAID orders can be cancelled")
 
-        order.status = "CANCELLED"
-        order.cancellation_reason = reason
-
-        history = list(order.history or [])
         history.append({
             "status": "CANCELLED",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "actor": actor,
             "note": f"Reason: {reason}"
         })
-        order.history = history
 
-        user_id = order.user_id
+        await session.execute(
+            text("""
+                UPDATE orders
+                SET status = 'CANCELLED', cancellation_reason = :reason, history = :history, updated_at = NOW()
+                WHERE id = :id
+            """),
+            {
+                "reason": reason,
+                "history": json.dumps(history),
+                "id": order_id
+            }
+        )
         await session.commit()
 
         await event_bus.emit("ORDER_CANCELLED", {
@@ -240,33 +272,50 @@ class OrderService:
         return {"success": True, "new_status": "cancelled"}
 
     async def toggle_spam(self, session: AsyncSession, order_id: str, actor: str = "System") -> Dict[str, object]:
-        """Manual spam toggle override."""
-        order = await self._get_order_model(session, order_id)
-        new_state = not order.is_spam
-        order.is_spam = new_state
+        """Manual spam toggle override via Raw SQL."""
+        sql = text("SELECT is_spam, status, history FROM orders WHERE id = :id AND deleted_at IS NULL")
+        res = await session.execute(sql, {"id": order_id})
+        current = res.first()
+        if not current:
+            from litestar.exceptions import NotFoundException
+            raise NotFoundException(f"Order {order_id} not found")
 
-        if not new_state:
-            order.spam_score = 0.0
-            order.spam_reason = "Manual Whitelist (Admin)"
-        else:
-            order.spam_score = 100.0
-            order.spam_reason = "Manual Blacklist (Admin)"
+        is_spam = current[0]
+        status = current[1]
+        history = list(current[2] or [])
 
-        history = list(order.history or [])
+        new_state = not is_spam
+        spam_score = 100.0 if new_state else 0.0
+        spam_reason = "Manual Blacklist (Admin)" if new_state else "Manual Whitelist (Admin)"
+
         history.append({
-            "status": order.status,
+            "status": status,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "actor": actor,
             "note": f"Manual Spam Override: {'SPAM_MARKED' if new_state else 'SPAM_REMOVED'}"
         })
-        order.history = history
 
+        await session.execute(
+            text("""
+                UPDATE orders
+                SET is_spam = :is_spam, spam_score = :score, spam_reason = :reason, history = :history, updated_at = NOW()
+                WHERE id = :id
+            """),
+            {
+                "is_spam": new_state,
+                "score": spam_score,
+                "reason": spam_reason,
+                "history": json.dumps(history),
+                "id": order_id
+            }
+        )
         await session.commit()
+
         return {
             "success": True,
-            "isSpam": order.is_spam,
-            "spamScore": order.spam_score,
-            "spamReason": order.spam_reason
+            "isSpam": new_state,
+            "spamScore": spam_score,
+            "spamReason": spam_reason
         }
 
 # Global Instance

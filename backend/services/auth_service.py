@@ -5,12 +5,10 @@ import uuid
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple, cast
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotAuthorizedException, ClientException
 
-from backend.database.models import User, Role
 from backend.schemas.auth import LoginRequest, TokenResponse, RegisterRequest
 from backend.schemas.signal import SignalSchema, SignalSeverity
 from backend.services.signal_center import signal_center
@@ -30,28 +28,30 @@ class AuthService:
     """
 
     async def register(self, session: AsyncSession, data: RegisterRequest) -> Dict[str, str]:
-        """Register a new user with secure hashing and signal dispatch."""
+        """Register a new user with secure hashing and Scalar Insert (Zero-Hydration)."""
         # Check if email exists
-        stmt = select(User.id).where(User.email == data.email)
-        res = await session.execute(stmt)
-        if res.scalar_one_or_none():
+        stmt = text("SELECT id FROM users WHERE email = :email LIMIT 1")
+        res = await session.execute(stmt, {"email": data.email})
+        if res.scalar():
             raise ClientException(status_code=400, detail="Email này đã được sử dụng")
 
         user_id = str(uuid.uuid4())
         hashed = bcrypt.hashpw(data.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-        new_user = User(
-            id=user_id,
-            username=data.email, # default username to email
-            email=data.email,
-            name=data.name,
-            password=hashed,
-            status="ACTIVE",
-            tenant_id="default"
+        # Rule R1.5: Zero-Hydration Insert
+        await session.execute(
+            text("""
+                INSERT INTO users (id, username, email, name, password, status, tenant_id, created_at, updated_at)
+                VALUES (:id, :username, :email, :name, :pwd, 'ACTIVE', 'default', NOW(), NOW())
+            """),
+            {
+                "id": user_id,
+                "username": data.email,
+                "email": data.email,
+                "name": data.name,
+                "pwd": hashed
+            }
         )
-        session.add(new_user)
-        # Flush to get the user inserted before adding notification
-        await session.flush()
 
         # CNS V70: Unified signal dispatch
         await signal_center.dispatch(
@@ -67,45 +67,66 @@ class AuthService:
         return {"id": user_id, "message": "Tạo tài khoản thành công"}
 
     async def login(self, session: AsyncSession, data: LoginRequest) -> TokenResponse:
-        """Authenticate user and generate access token."""
-        # Load user with roles and permissions eagerly (R36)
-        stmt = (
-            select(User)
-            .options(selectinload(User.roles).selectinload(Role.permissions))
-            .where((User.email == data.identifier) | (User.username == data.identifier))
-        )
-        res = await session.execute(stmt)
-        user = res.scalar_one_or_none()
+        """Authenticate user and generate access token via text-SQL (Zero-Hydration)."""
+        # Load user info and RBAC via Scalar Projection
+        sql = text("""
+            SELECT
+                u.id, u.email, u.password, u.name, u.tenant_id, u.status,
+                r.code as role_code,
+                p.code as perm_code
+            FROM users u
+            LEFT JOIN user_roles ur ON u.id = ur.user_id
+            LEFT JOIN roles r ON ur.role_id = r.id
+            LEFT JOIN role_permissions rp ON r.id = rp.role_id
+            LEFT JOIN permissions p ON rp.permission_id = p.id
+            WHERE (u.email = :idnt OR u.username = :idnt) AND u.deleted_at IS NULL
+        """)
+
+        res = await session.execute(sql, {"idnt": data.identifier})
+        rows = res.all()
 
         # DUMMY_HASH: timing attack mitigation
         dummy_hash = b"$2b$12$KIXH0V9S1P0n3r2G4.T.Z.Vqy8x9v.2h9D3bY/rE5FmQ6oA7L7f/e"
 
-        is_user_valid = user is not None and user.password is not None
+        if not rows:
+            # Hash dummy to prevent timing leaks
+            bcrypt.checkpw(data.password.encode('utf-8'), dummy_hash)
+            raise NotAuthorizedException("Invalid email or password")
 
-        hash_to_check = user.password.encode('utf-8') if is_user_valid else dummy_hash
+        # Basic User Info (first row)
+        u_id = str(rows[0][0])
+        u_email = rows[0][1]
+        u_pwd = rows[0][2]
+        u_name = rows[0][3]
+        u_tenant = rows[0][4] or "default"
+        u_status = rows[0][5]
+
+        if u_status == "LOCKED":
+            raise NotAuthorizedException("Tài khoản đã bị khóa")
 
         is_valid = bcrypt.checkpw(
             data.password.encode('utf-8'),
-            hash_to_check
+            u_pwd.encode('utf-8') if u_pwd else dummy_hash
         )
 
-        if not is_user_valid or not is_valid:
+        if not is_valid:
             raise NotAuthorizedException("Invalid email or password")
 
-        # Roles and Permissions
-        roles = [r.code for r in getattr(user, "roles", [])]
-        permissions = []
-        if hasattr(user, "roles"):
-            for r in user.roles:
-                if hasattr(r, "permissions"):
-                    permissions.extend([p.code for p in r.permissions])
-        permissions = list(set(permissions))
+        # Collect Roles and Permissions from rows
+        roles = set()
+        perms = set()
+        for row in rows:
+            if row[6]: roles.add(row[6]) # role_code
+            if row[7]: perms.add(row[7]) # perm_code
+
+        roles_list = list(roles)
+        perms_list = list(perms)
 
         # CNS V70.4: Login signal
         await signal_center.dispatch(
-            user_id=str(user.id),
+            user_id=u_id,
             signal=SignalSchema(
-                message=f"Đăng nhập thành công: {user.email}",
+                message=f"Đăng nhập thành công: {u_email}",
                 severity=SignalSeverity.INFO,
                 signal_type="SECURITY"
             ),
@@ -116,21 +137,21 @@ class AuthService:
         expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "120"))
         access_token = self.create_access_token(
             data={
-                "id": str(user.id),
-                "sub": user.email,
-                "roles": roles,
-                "perms": permissions,
-                "tenant_id": getattr(user, 'tenant_id', 'default'),
-                "name": user.name
+                "id": u_id,
+                "sub": u_email,
+                "roles": roles_list,
+                "perms": perms_list,
+                "tenant_id": u_tenant,
+                "name": u_name
             },
             expires_delta=timedelta(minutes=expire_minutes)
         )
 
         return TokenResponse(
             access_token=access_token,
-            role=roles[0] if roles else "CUSTOMER",
-            name=user.name,
-            email=user.email
+            role=roles_list[0] if roles_list else "CUSTOMER",
+            name=u_name,
+            email=u_email
         )
 
     def create_access_token(self, data: Dict[str, object], expires_delta: timedelta) -> str:

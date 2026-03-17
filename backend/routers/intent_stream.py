@@ -24,7 +24,6 @@ from backend.services.user_service import user_service
 from backend.services.chat_service import chat_service
 from backend.services.telemetry_service import telemetry_service
 from backend.services.xohi_memory import xohi_memory
-from backend.database.models import ChatMessage, AgentTelemetryLog
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.alchemy_config import alchemy_config
 from backend.constants.action_vi import ACTION_VI
@@ -94,7 +93,7 @@ class IntentStreamController(Controller):
                     if not user_id and "sub" in user_info:
                         user = await user_service.get_user_by_email(db_session, user_info["sub"])
                         if user:
-                            user_id = str(user.id)
+                            user_id = str(user["id"])
 
                 # ── Lịch sử hội thoại (Elite V2.2 Service-based) ──
                 context = await chat_service.get_recent_messages(db_session, session_id, limit=10)
