@@ -65,6 +65,10 @@
   "pnpm": {
     "overrides": {
       "@tiptap/*": "3.20.2"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "protobufjs"
+    ]
   }
 }
