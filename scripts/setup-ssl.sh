@@ -53,10 +53,15 @@ if [ "$OS_TYPE" == "Linux" ]; then
     sudo update-ca-certificates
     echo -e "${GREEN}[OK] Hệ thống Linux đã tin tưởng chứng chỉ.${NC}"
 elif [ "$OS_TYPE" == "Darwin" ]; then
-    echo -e "${YELLOW}Đang thiết lập tin cậy trên macOS (Sếp vui lòng xác thực khi hiển thị Popup bảo mật)...${NC}"
-    # Thêm vào System Keychain và đặt chế độ Always Trust
+    echo -e "${YELLOW}Đang kiểm tra chứng chỉ cũ trên macOS...${NC}"
+    # Dọn dẹp chứng chỉ cũ mang tên "Caddy Local Authority" để tránh xung đột hash/serial
+    if security find-certificate -c "Caddy Local Authority" /Library/Keychains/System.keychain > /dev/null 2>&1; then
+        echo -e "${CYAN}[INFO] Phát hiện chứng chỉ cũ. Đang dọn dẹp (Sếp vui lòng xác thực)...${NC}"
+        sudo security delete-certificate -c "Caddy Local Authority" /Library/Keychains/System.keychain || true
+    fi
+    echo -e "${YELLOW}Đang thiết lập tin cậy chứng chỉ mới (Sếp vui lòng xác thực Popup)...${NC}"
     sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$CERT_PATH"
-    echo -e "${GREEN}[OK] macOS đã tin tưởng chứng chỉ trong System Keychain.${NC}"
+    echo -e "${GREEN}[OK] macOS đã cập nhật chứng chỉ tin cậy mới.${NC}"
 else
     echo -e "${YELLOW}[WARNING] Hệ điều hành $OS_TYPE chưa hỗ trợ tự động. Hãy thêm chứng chỉ thủ công.${NC}"
 fi

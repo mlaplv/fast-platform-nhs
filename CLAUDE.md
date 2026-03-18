@@ -60,6 +60,8 @@
 - ❌ **KISS (Đơn giản):** Code trực diện, dễ hiểu. Cấm bày vẽ phức tạp (Over-engineering).
 - ❌ **YAGNI (Vừa đủ):** Chỉ làm đúng yêu cầu. Không thêm code thừa, không "lo xa" tính năng tương lai.
 - ❌ **Xác nhận:** Luôn hỏi trước khi xóa code cũ hoặc refactor lớn.
+- ✅ **PYDANTIC V2 ONLY:** CẤM dùng Pydantic V1 hoặc `pydantic.v1`. Mọi schema phải dùng Pydantic V2 (`model_config`, `field_validator`).
+  - *Lưu ý (Python 3.14):* Tạm thời suppress `UserWarning` về "Pydantic V1 compatibility bridge" trong `docker-compose.yml` và `backend/__init__.py` do giới hạn của thư viện Litestar hiện tại. Sẽ gỡ bỏ khi thư viện cập nhật bản fix triệt để.
 
 ## 💎 IV. QUY TẮC Z-INDEX TẬP TRUNG (ELITE V2.2)
 
