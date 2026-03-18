@@ -89,8 +89,8 @@
 {#if nanobot.isVuiActive && !nanobot.isTraining}
   <div
     use:portal
-    class="absolute inset-0 flex flex-col pointer-events-none"
-    style="z-index: {Z_INDEX.OVERLAY};"
+    class="absolute inset-0 flex flex-col pointer-events-none transition-all duration-300"
+    style="z-index: {Z_INDEX.OVERLAY}; padding-right: var(--layout-sidebar-width, 0px);"
     transition:fade={{ duration: 300 }}
   >
     <!-- Main Container (Purely Transparent Overlay) -->

@@ -226,9 +226,12 @@ function run_tests() {
 }
 
 function view_logs() {
-    echo -e "${CYAN}[LOGS] Đang xem log LỖI Backend (api) trong 5 phút qua...${NC}"
+    echo -e "${CYAN}[LOGS] Đang kiểm tra tín hiệu Backend (api)...${NC}"
     echo -e "${YELLOW}Nhấn Ctrl+C để quay lại menu.${NC}"
-    docker compose logs -f api --tail 100 --since 5m --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION"
+    # Hiện 10 dòng cuối bất kể loại log để Sếp biết hệ thống vẫn chạy
+    docker compose logs --tail 10 api
+    echo -e "${YELLOW}--- Đang theo dõi lỗi mới (ERROR/CRITICAL/WARNING) ---${NC}"
+    docker compose logs -f api --tail 100 --since 5m --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION|WARNING"
 }
 
 while true; do

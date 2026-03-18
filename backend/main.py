@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 # Suppress library warnings
 warnings.filterwarnings("ignore", message=".*now uses mean pooling instead of CLS embedding.*")
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic_ai")
+# R61: Silence Pydantic V1 legacy warnings on Python 3.14+ (System is fully V2)
+warnings.filterwarnings("ignore", message=".*Core Pydantic V1 functionality isn't compatible with Python 3.14.*")
 
 from litestar import Litestar
 from litestar.config.cors import CORSConfig

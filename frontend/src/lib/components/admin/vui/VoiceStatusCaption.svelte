@@ -198,17 +198,18 @@
       <div bind:this={sentinel} class="h-1 w-full pointer-events-none opacity-0"></div>
     </div>
 
-    <!-- Empty State Hero -->
-    {#if phase === "listening" && !vuiState.liveText && !vuiState.history.length}
-      <div class="absolute bottom-[50px] left-0 right-0 flex justify-center pointer-events-none z-[1200]" transition:fade={{ duration: 300 }}>
-         <div class="w-full max-w-4xl px-4 sm:px-6 flex justify-center">
-            <h2 class="text-[28px] md:text-[34px] font-medium text-white tracking-tight text-center glass-text">
-               {VUI_CONFIG.UX.PHASE_LABELS.listening}
-            </h2>
-         </div>
-      </div>
-    {/if}
   </div>
+  
+  <!-- Empty State Hero (Elite 2026: Positioned relative to viewport, right above chat bar) -->
+  {#if phase === "listening" && !vuiState.liveText && !vuiState.history.length}
+    <div class="absolute bottom-[105px] left-0 right-0 flex justify-center pointer-events-none z-[1200]" transition:fade={{ duration: 300 }}>
+       <div class="w-full max-w-4xl px-4 sm:px-6 flex justify-center">
+          <h2 class="text-[28px] md:text-[34px] font-medium text-white tracking-tight text-center glass-text">
+             {VUI_CONFIG.UX.PHASE_LABELS.listening}
+          </h2>
+       </div>
+    </div>
+  {/if}
 </div>
 
 <style>

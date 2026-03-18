@@ -11,22 +11,21 @@ class AlchemyConfig:
     Centralizes engine and session maker creation to prevent duplicate engines and import errors.
     """
     def __init__(self):
+        self._engine = None
+        self._session_maker = None
         self.db_url = os.getenv("DATABASE_URL")
         if self.db_url and self.db_url.startswith("postgresql://"):
             self.db_url = self.db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
         
         self._url = self.db_url or "sqlite+aiosqlite:///:memory:"
         
-        # Plugin Config for Litestar
+        # Plugin Config for Litestar - R1.5: Pass the shared engine instance
         from advanced_alchemy.extensions.litestar import SQLAlchemyAsyncConfig, AsyncSessionConfig
         self.litestar_config = SQLAlchemyAsyncConfig(
-            connection_string=self._url,
+            engine_instance=self.get_engine(),
             create_all=False,
             session_config=AsyncSessionConfig(expire_on_commit=False)
         )
-        
-        self._engine = None
-        self._session_maker = None
 
     def get_engine(self):
         if self._engine is None:
@@ -36,10 +35,13 @@ class AlchemyConfig:
             }
             # Rule: Only add pooling for Postgres (SQLite uses StaticPool)
             if self._url.startswith("postgresql"):
-                engine_kwargs["pool_size"] = 10
-                engine_kwargs["max_overflow"] = 10
+                # R1.5 Improved pooling for High-Concurrency Agent Flows
+                engine_kwargs["pool_size"] = 20        # Increase from 10
+                engine_kwargs["max_overflow"] = 20     # Increase from 10
+                engine_kwargs["pool_timeout"] = 60      # Default is 30
                 engine_kwargs["pool_pre_ping"] = True
                 engine_kwargs["pool_recycle"] = 300
+                logger.info(f"[Database] Initializing engine with shared pool (size: 20, overflow: 20)")
                 
             self._engine = create_async_engine(self._url, **engine_kwargs)
         return self._engine

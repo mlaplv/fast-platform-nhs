@@ -83,6 +83,25 @@
   const zIndexStyle = Object.entries(Z_INDEX)
     .map(([key, value]) => `--z-${key.toLowerCase()}: ${value};`)
     .join(" ");
+
+  // Sidebar reactive width calculation (V Elite 2026)
+  let isXl = $state(false);
+  $effect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(min-width: 1280px)");
+    isXl = mql.matches;
+    const handler = (e: MediaQueryListEvent) => (isXl = e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  });
+
+  let sidebarWidth = $derived(nanobot.heartbeatCollapsed ? 0 : (isXl ? 350 : 300));
+
+  $effect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--layout-sidebar-width", `${sidebarWidth}px`);
+    }
+  });
 </script>
 
 <svelte:head>
