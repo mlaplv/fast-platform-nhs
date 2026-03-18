@@ -114,6 +114,16 @@ class ExecutionEngine:
 
                     await self._emit_progress(campaign_id, step, msg, user_id=campaign.user_id)
 
+                    # CNS V82.10: Reactive Cancellation Support
+                    # Re-fetch campaign to check for user-triggered REJECTED (Hard Kill)
+                    async with alchemy_config.create_session_maker()() as check_session:
+                        check_repo = ContentCampaignRepository(session=check_session)
+                        check_campaign = await check_repo.get(campaign_id)
+                        if check_campaign and check_campaign.status == "REJECTED":
+                            logger.warning(f"[Content Factory] Task {campaign_id} CANCELLED via Hard Kill. Aborting.")
+                            response_task.cancel()
+                            return
+
             response = await response_task
             if not isinstance(response, AgentResponse):
                 response = AgentResponse(signal=AgentSignal.PROCEED_NEXT, message="Legacy success", data={"raw": response})

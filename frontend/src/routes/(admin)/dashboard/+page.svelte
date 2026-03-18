@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import ReviewGates from '$lib/components/admin/management/ReviewGates.svelte';
+    import XohiLogo from '$lib/components/admin/XohiLogo.svelte';
     import { fade } from 'svelte/transition';
 
     let campaigns = $state([]);
@@ -81,14 +82,8 @@
     </header>
 
     {#if loading}
-        <div class="relative w-20 h-20 flex items-center justify-center">
-            <div class="absolute inset-0 border-4 border-blue-500/10 border-t-blue-500 rounded-full animate-spin"></div>
-            <img 
-              src="/hamster-icon.png" 
-              alt="Hamster" 
-              class="w-12 h-12 object-contain animate-pulse rounded-full"
-              style="filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.5)); clip-path: circle(50%)"
-            />
+        <div class="flex items-center justify-center py-20">
+            <XohiLogo variant="simple" size={80} />
         </div>
     {:else}
         <div class="grid gap-6">

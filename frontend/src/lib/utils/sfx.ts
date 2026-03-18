@@ -113,7 +113,34 @@ export function playSiriDing(): void {
     o2.connect(g2).connect(ctx.destination);
     o2.start(now + 0.1);
     o2.stop(now + 0.23);
-  } catch (e) {
+    } catch (e) {
     console.warn("[SFX] playSiriDing failed:", e);
+  }
+}
+
+/**
+ * Tactical "Purge" glitch — triple-descending square-wave burst.
+ */
+export function playTacticalPurge(): void {
+  try {
+    const ctx = getSfxCtx();
+    const now = ctx.currentTime;
+
+    [0, 0.08, 0.16].forEach((delay, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(800 - (i * 200), now + delay);
+      
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, now + delay);
+      gain.gain.linearRampToValueAtTime(0.1, now + delay + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.07);
+      
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now + delay);
+      osc.stop(now + delay + 0.08);
+    });
+  } catch (e) {
+    console.warn("[SFX] playTacticalPurge failed:", e);
   }
 }

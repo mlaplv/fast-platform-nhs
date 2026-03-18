@@ -72,10 +72,10 @@
     });
   }
 
-  const status = STATUS_CONFIG[campaign.status] || { label: campaign.status, color: "text-gray-400", border: "border-gray-500/20" };
-  const cat = CAT_CONFIG[campaign.category] || { label: "GENERAL", color: "text-gray-400", border: "border-gray-500/20", icon: Megaphone as unknown as Component };
-  const step = campaign.current_step || 1;
-  const stepInfo = STEP_LABELS[step] || { label: "Neutral Zone", icon: Sparkles as unknown as Component };
+  const status = $derived(STATUS_CONFIG[campaign.status] || { label: campaign.status, color: "text-gray-400", border: "border-gray-500/20" });
+  const cat = $derived(CAT_CONFIG[campaign.category] || { label: "GENERAL", color: "text-gray-400", border: "border-gray-500/20", icon: Megaphone as unknown as Component });
+  const step = $derived(campaign.current_step || 1);
+  const stepInfo = $derived(STEP_LABELS[step] || { label: "Neutral Zone", icon: Sparkles as unknown as Component });
 </script>
 
 <div

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { nanobot } from "$lib/state/nanobot.svelte";
+  import XohiLogo from "./XohiLogo.svelte";
   import { scale } from "svelte/transition";
 
   // Luxury Design Tokens 2026
@@ -85,7 +86,7 @@
   <div
     class="w-6 h-6 rounded-full overflow-hidden border-2 transition-all duration-500 animate-[spin_6s_linear_infinite] {borderClass} {bgClass} {localStatus === 'THINKING' ? 'animate-pulse scale-110' : ''} {isGlow ? 'shadow-inner' : 'grayscale opacity-50'}"
   >
-    <img src="/hamster-icon.png" alt="Hamster" class="w-full h-full object-cover rounded-full" style="clip-path: circle(50%)" />
+    <XohiLogo variant="simple" size={24} />
   </div>
 
   <!-- Status Label (Admin Context) -->

@@ -9,7 +9,7 @@
   --color-neon-yellow: #ffff00;
   --color-idle-gray: #333333;
 
-  /* Raw RGB for alpha channel support */
+  /* Raw RGB for dynamic opacity (R00 Elite) */
   --color-neon-cyan-raw: 0, 255, 255;
   --color-alert-red-raw: 255, 51, 51;
 

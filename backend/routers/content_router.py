@@ -109,6 +109,29 @@ class ContentController(Controller):
         """Chạy lại bước sáng tạo hiện tại."""
         return await content_factory.retry_step(str(campaign_id), campaign_repo)
 
+    @post("/campaigns/{campaign_id:uuid}/cancel")
+    async def cancel_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> GenericResponse:
+        """Ngắt khẩn cấp (Hard Kill): Dừng xử lý và đánh dấu REJECTED."""
+        from backend.database.models import ContentCampaign as CampaignModel
+        campaign = await campaign_repo.get(str(campaign_id))
+        if not campaign:
+            return GenericResponse(status="error", message="Campaign not found")
+            
+        campaign.status = "REJECTED"
+        await campaign_repo.update(campaign)
+        
+        # Emit Poison Pill to SSE
+        from backend.services.event_bus import event_bus
+        await event_bus.emit("CAMPAIGN_PURGED", {
+            "campaign_id": str(campaign_id),
+            "type": "TERMINATE",
+            "action": "CANCEL"
+        })
+        
+        await campaign_repo.session.commit()
+        logger.info(f"[HardKill] Campaign {campaign_id} cancelled by user.")
+        return GenericResponse(status="success", message="Hệ thống đã ngắt và hủy tiến trình theo lệnh sếp.")
+
     @post("/campaigns/{campaign_id:uuid}/publish")
     async def publish_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, media_repo: MediaRegistryRepository) -> GenericResponse:
         """Xuất bản và địa phương hóa toàn bộ tài nguyên."""

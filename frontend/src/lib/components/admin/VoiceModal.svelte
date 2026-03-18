@@ -8,6 +8,9 @@
   import X from "lucide-svelte/icons/x";
   import { onMount } from "svelte";
 
+  let holdProgress = $state(0);
+  let isHardKillReady = $state(false);
+
   onMount(() => {
     // Rule R81.2: Stealth Wake on Mount — Check if there's an active campaign to resume
     // We send 'xohi' which is a wake word, but we handle it as a resume check on backend
@@ -87,8 +90,8 @@
           const start = Date.now();
           const timer = setInterval(() => {
             const elapsed = Date.now() - start;
-            if (typeof holdProgress !== 'undefined') holdProgress = Math.min(elapsed / 600, 1);
-            if (typeof isHardKillReady !== 'undefined' && holdProgress >= 1) {
+            holdProgress = Math.min(elapsed / 600, 1);
+            if (holdProgress >= 1) {
               isHardKillReady = true;
               clearInterval(timer);
             }
@@ -102,8 +105,8 @@
             } else {
               nanobot.softClose();
             }
-            if (typeof holdProgress !== 'undefined') holdProgress = 0;
-            if (typeof isHardKillReady !== 'undefined') isHardKillReady = false;
+            holdProgress = 0;
+            isHardKillReady = false;
             window.removeEventListener('mouseup', endHold);
           };
           window.addEventListener('mouseup', endHold);

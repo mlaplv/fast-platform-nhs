@@ -201,7 +201,7 @@
   <!-- Key Syncing -->
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <label class="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Cognitive Pool (Keys)</label>
+      <label for="bulk-keys" class="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Cognitive Pool (Keys)</label>
       <button
         onclick={syncKeys}
         disabled={isSyncing || !bulkKeys}
@@ -211,6 +211,7 @@
       </button>
     </div>
     <textarea
+      id="bulk-keys"
       bind:value={bulkKeys}
       placeholder="Paste comma-separated Gemini API keys..."
       class="w-full h-16 bg-black/40 border border-white/5 rounded-xl p-3 text-[11px] font-mono text-zinc-400 focus:outline-none focus:border-emerald-500/30 transition-all resize-none"

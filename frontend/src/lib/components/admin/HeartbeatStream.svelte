@@ -11,6 +11,7 @@
   import Play from "lucide-svelte/icons/play";
   import { fade, fly } from "svelte/transition";
   import ContentReviewCard from "./ui/ContentReviewCard.svelte";
+  import XohiLogo from "./XohiLogo.svelte";
 
   let { hideHeader = false } = $props();
 
@@ -283,7 +284,7 @@
             <div
               class="w-5 h-5 flex items-center justify-center rounded-sm bg-transparent"
             >
-                <img src="/hamster-core.png" alt="X" class="w-10 h-10 object-contain opacity-60 group-hover:opacity-100 transition-opacity" />
+                <XohiLogo variant="simple" size={20} />
             </div>
             <span
               class="text-[9px] font-black tracking-tighter text-white/30 uppercase"

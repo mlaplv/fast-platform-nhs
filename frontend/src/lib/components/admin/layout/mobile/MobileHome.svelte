@@ -10,6 +10,7 @@
   import Users from "lucide-svelte/icons/users";
   import Sparkles from "lucide-svelte/icons/sparkles";
   import Megaphone from "lucide-svelte/icons/megaphone";
+  import XohiLogo from "$lib/components/admin/XohiLogo.svelte";
 
   interface QuickAction {
     label: string;
@@ -89,9 +90,7 @@
       style:transform-origin="left top"
     >
       <div class="flex items-center gap-2 mb-2">
-        <div class="w-10 h-10 rounded-full border border-neon-cyan/20 flex items-center justify-center bg-black/20 shrink-0 overflow-hidden shadow-glow-sm">
-          <img src="/hamster-core.png" alt="X" class="w-full h-full object-cover" />
-        </div>
+        <XohiLogo variant="simple" size={40} interactive={true} />
       </div>
       <div>
         <h1 class="text-3xl font-light text-white tracking-tight leading-tight">

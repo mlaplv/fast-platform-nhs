@@ -19,6 +19,7 @@ import { createResumeManager } from "./nanobot/resume";
 import { createPulseManager } from "./nanobot/pulse";
 
 import { createSyncManager } from "./nanobot/sync";
+import { playTacticalPurge } from "$lib/utils/sfx";
 
 export * from "./types";
 import type { WidgetType, Suggestion, CommandAction, ToastType, ChatSettings, CommandVerb, CommandEntity, SystemLog, CampaignData } from "./types";
@@ -198,6 +199,40 @@ export function createNanobotState() {
     stopRecording: () => vuiController.stopRecording(),
     interruptAll: () => vuiController.interruptAll(),
     speak: (text: string) => vuiController.speak(text),
+
+    softClose: () => {
+      voice.setVuiActive(false);
+      ui.setUniversalModalOpen(false);
+      state.activeWidget = "NONE";
+      voice.clearVuiResponse();
+      // Optional: small tick SFX here if needed, but usually UI close is enough
+    },
+
+    hardKill: async (campaignId?: string) => {
+      const cid = campaignId || (voice.vuiResponse?.data as CampaignData)?.id || (voice.vuiResponse?.data as any)?.campaign_id;
+      
+      // 1. Play tactical purge SFX immediately for instant feedback
+      playTacticalPurge();
+      
+      // 2. Hide UI
+      voice.setVuiActive(false);
+      ui.setUniversalModalOpen(false);
+      state.activeWidget = "NONE";
+      
+      // 3. Signal backend if we have a campaign ID
+      if (cid) {
+        try {
+          await apiClient.post(`/api/v1/content/campaigns/${cid}/cancel`);
+          ui.showToast("Tiến trình đã được ngắt khẩn cấp.", "success");
+        } catch (e) {
+          console.error("[HardKill] Signal failed:", e);
+        }
+      }
+      
+      // 4. Full Reset
+      voice.clearVuiResponse();
+      resetVui();
+    },
 
     get universalModalOpen() { return ui.universalModalOpen; },
     get confirmDialog() { return ui.confirmDialog; },

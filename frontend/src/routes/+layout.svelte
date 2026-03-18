@@ -2,6 +2,7 @@
   import "./layout.css";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { vuiState, vuiController } from "$lib/vui";
+  import XohiLogo from "$lib/components/admin/XohiLogo.svelte";
   import { fade, scale, slide } from "svelte/transition";
   import Sparkles from "lucide-svelte/icons/sparkles";
   import X from "lucide-svelte/icons/x";
@@ -133,13 +134,8 @@
         <div
           class="relative w-28 h-28 bg-black border-2 border-cyan-500/40 rounded-full flex items-center justify-center overflow-hidden"
         >
-          <div class="w-20 h-20 bg-cyan-500/10 rounded-full animate-ping"></div>
-          <img 
-            src="/hamster-core.png" 
-            alt="Hamster Core" 
-            class="w-20 h-20 object-contain animate-[pulse_3s_ease-in-out_infinite]"
-            style="filter: drop-shadow(0 0 15px rgba(34,211,238,0.8))"
-          />
+          <div class="absolute inset-0 w-20 h-20 bg-cyan-500/10 rounded-full animate-ping m-auto"></div>
+          <XohiLogo variant="simple" size={80} />
         </div>
       </div>
 
