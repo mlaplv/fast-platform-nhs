@@ -187,22 +187,25 @@ function init_deploy() {
     fi
     (cd frontend && pnpm install)
     
-    echo -e "${CYAN}[4/6] Xây dựng và khởi động Containers (Docker)...${NC}"
-    docker compose up -d --build
+    echo -e "${CYAN}[4/6] Xây dựng và khởi động Cơ sở hạ tầng (Database & Cache)...${NC}"
+    docker compose up -d db redis caddy --build
     
     echo -e "${CYAN}[5/6] Database Migration & SSL Setup...${NC}"
+    echo -e "${YELLOW}Đang khởi động API tạm thời để migrate...${NC}"
+    docker compose up -d api
     echo -e "${YELLOW}Đang chờ DB sẵn sàng...${NC}"
     sleep 5
     run_backend --env-file "${PWD}/.env" alembic -c backend/alembic.ini upgrade head
-    chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
     
     echo -e "${CYAN}[6/6] Gieo mầm dữ liệu (Seeding Database)...${NC}"
     run_backend --env-file "${PWD}/.env" python3 backend/scripts/seed.py
     
-    echo -e "${YELLOW}Đang đồng bộ bộ nhớ (Restarting API)...${NC}"
+    echo -e "${YELLOW}Đang khởi động UI và hoàn tất...${NC}"
+    docker compose up -d ui
+    chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
     docker compose restart api
     
-    echo -e "${GREEN}=== HỆ THỐNG ĐÃ SẴN SÀNG! ===${NC}"
+    echo -e "${GREEN}=== HỆ THỐNG ĐÃ SẴN SÀNG! (Đã tối ưu RAM) ===${NC}"
     echo -e "${CYAN}Truy cập: https://admin.smartshop.test${NC}"
     read -p "Nhấn Enter để quay lại menu..."
 }
