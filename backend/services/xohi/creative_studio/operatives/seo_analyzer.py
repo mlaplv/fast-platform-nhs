@@ -2,12 +2,13 @@ import os
 import asyncio
 import logging
 import re
-from typing import List, Tuple, Dict, Union, Optional, cast
+from typing import List, Dict, Union, Any, Optional, cast
 from pydantic import BaseModel, ConfigDict
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
+from backend.database.repositories import ContentCampaignRepository
+from backend.services.xohi.creative_studio.models.schemas import AgentResponse, AgentSignal
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-from backend.utils.http_client import get_http_client
 from backend.utils.http_client import get_http_client
 from backend.utils.noise_cleaner import noise_cleaner, RE_WHITESPACE, RE_HTML_TAGS
 

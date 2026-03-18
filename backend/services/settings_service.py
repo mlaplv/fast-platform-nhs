@@ -9,7 +9,8 @@ from litestar.exceptions import HTTPException, NotFoundException
 
 from backend.schemas.voice import (
     VoiceSettingsPayload, VoiceSettingsResponse, CapabilityMetadata,
-    CampaignModePayload, LexiconOverridePayload, LexiconStopwordPayload,
+    CampaignModePayload, CampaignModeResponse,
+    LexiconOverridePayload, LexiconStopwordPayload,
     LexiconOverridesResponse, LexiconStopwordsResponse
 )
 from backend.schemas.common import SuccessResponse

@@ -11,7 +11,10 @@ from backend.utils.http_client import get_http_client
 from backend.services.event_bus import event_bus
 from backend.constants.agentic import MAX_SEARCH_RETRY_PER_STEP, SEARCH_CIRCUIT_BREAKER_COOLDOWN_MINUTES
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+from pydantic import BaseModel, ConfigDict
 from pydantic_ai import Agent
+from backend.database.models import ContentCampaign
+from backend.database.repositories import ContentCampaignRepository
 from backend.services.xohi.creative_studio.models.schemas import VisualSearchPlan, AgentResponse, AgentSignal
 
 logger = logging.getLogger("api-gateway")
