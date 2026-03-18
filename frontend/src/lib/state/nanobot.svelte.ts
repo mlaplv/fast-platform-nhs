@@ -317,14 +317,7 @@ export function createNanobotState() {
     get heartbeatCollapsed() { return ui.heartbeatCollapsed; },
     toggleHeartbeat: () => {
       if (typeof window === "undefined") return;
-      // V71.1: Unified Breakpoint logic at 1536px (2XL) for Laptop safety
-      // If null (Auto), calculate current state then flip it to force Manual override
-      if (ui.heartbeatCollapsed === null) {
-        const isCurrentlySmall = window.innerWidth < 1536;
-        ui.heartbeatCollapsed = !isCurrentlySmall;
-      } else {
-        ui.heartbeatCollapsed = !ui.heartbeatCollapsed;
-      }
+      ui.heartbeatCollapsed = !ui.heartbeatCollapsed;
     },
     get showMobileSidebar() { return state.showMobileSidebar; },
     get showMobileDrawer() { return state.showMobileSidebar; },

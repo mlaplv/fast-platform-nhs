@@ -48,11 +48,13 @@
   // Auto-scroll logic: Ultra-Smooth & Resilient (Phase 76.3 Optimization)
   let scrollContainer = $state<HTMLDivElement>();
   let lastScrollHeight = 0;
-
+  
   const scrollToBottom = (force = false) => {
     if (!scrollContainer) return;
     const { scrollHeight, clientHeight, scrollTop } = scrollContainer;
-    const isNearBottom = scrollHeight - clientHeight - scrollTop < 150;
+    // Aggressive scroll: if not at idle, we always want to be at bottom
+    const threshold = phase === "idle" ? 150 : 10000; 
+    const isNearBottom = scrollHeight - clientHeight - scrollTop < threshold;
 
     if (force || isNearBottom) {
       scrollContainer.scrollTo({
@@ -63,9 +65,16 @@
   };
 
   $effect(() => {
+    // Reactive triggers for auto-scroll
     const _len = vuiState.history.length;
-    requestAnimationFrame(() => scrollToBottom(_len > 0 && phase === "idle"));
+    const _live = vuiState.liveText;
+    const _sys = vuiState.systemMessage;
+    const _phase = phase; 
+    
+    // Force scroll if we are in an active phase or got new text
+    scrollToBottom(_phase !== "idle");
   });
+
 
   $effect(() => {
     if (!scrollContainer) return;
@@ -101,7 +110,7 @@
 <div class="relative w-full h-full overflow-hidden pointer-events-none">
   <!-- Main Content Layer (Scrollable) -->  <div
     bind:this={scrollContainer}
-    class="relative w-full h-full overflow-y-auto scroll-smooth pointer-events-auto p-8 md:p-12 mb-20 transition-all duration-500 {nanobot.vuiResponse?.data?.campaign_id ? 'opacity-10 blur-md pointer-events-none' : ''}"
+    class="relative w-full h-full overflow-y-auto scroll-smooth pointer-events-auto p-8 md:p-12 pb-32 transition-all duration-500 {nanobot.vuiResponse?.data?.campaign_id ? 'opacity-10 blur-md pointer-events-none' : ''}"
     style="--history-spacing: {theme.HISTORY_SPACING}"
   >
     <div class="max-w-5xl mx-auto flex flex-col space-y-[var(--history-spacing)]">

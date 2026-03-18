@@ -52,7 +52,7 @@
   // Status Animation Logic (Monochromatic but Alive)
   let rotationSpeed = $derived((phase === 'thinking' || localStatus === 'THINKING') ? '3s' : '25s');
   let dynamicScale = $derived(1 + (phase === 'speaking' ? volume * 0.2 : phase === 'listening' ? volume * 0.05 : 0));
-  let glowOpacity = $derived(variant === "watermark" ? "0.15" : "0.5");
+  let glowOpacity = $derived(variant === "watermark" ? "0.005" : "0.5");
 
   function handleClick() {
     if (interactive || variant === "header") {
@@ -84,7 +84,7 @@
       x="50" y="50" width="180" height="180" rx="28"
       stroke="rgb({activeColor})"
       stroke-width={svgSize < 50 ? "4" : (variant === "hero" ? "2" : "1.5")}
-      stroke-opacity={variant === "watermark" ? "0.2" : "0.5"}
+      stroke-opacity={variant === "watermark" ? "0.008" : "0.5"}
       fill="none"
       class="logo-ring-outer"
       style="animation: spin {rotationSpeed} linear infinite"
@@ -95,7 +95,7 @@
       x="75" y="75" width="130" height="130" rx="20"
       stroke="rgb({activeColor})"
       stroke-width={svgSize < 50 ? "3" : (variant === "hero" ? "1.5" : "1")}
-      stroke-opacity={variant === "watermark" ? "0.15" : "0.4"}
+      stroke-opacity={variant === "watermark" ? "0.005" : "0.4"}
       fill="none"
       class="logo-ring-inner"
       style="animation: spin-reverse {rotationSpeed} linear infinite"
@@ -104,23 +104,23 @@
     <!-- Central Core (STATIONARY PER SẾP'S ORDER) -->
     <g class="logo-core">
       <circle cx="140" cy="140" r="38" fill="black" fill-opacity="0.8" />
-      <circle cx="140" cy="140" r="35" fill="rgb({activeColor})" fill-opacity={svgSize < 50 ? "0.2" : "0.1"} class:thinking-pulse={phase === 'thinking' || localStatus === 'THINKING'} />
+      <circle cx="140" cy="140" r="35" fill="rgb({activeColor})" fill-opacity={variant === "watermark" ? "0.003" : (svgSize < 50 ? "0.2" : "0.1")} class:thinking-pulse={phase === 'thinking' || localStatus === 'THINKING'} />
       
       <text
         x="140" y="155"
         text-anchor="middle"
         class="font-mono font-black select-none"
         class:thinking-shimmer={phase === 'thinking' || localStatus === 'THINKING'}
-        style="fill: rgb({activeColor}); font-size: {svgSize < 50 ? '54px' : '42px'}; filter: drop-shadow(0 0 {svgSize < 50 ? '4px' : '12px'} rgba({activeColor}, 0.8))"
+        style="fill: rgb({activeColor}); fill-opacity: {variant === 'watermark' ? '0.01' : '1'}; font-size: {svgSize < 50 ? '54px' : '42px'}; filter: drop-shadow(0 0 {svgSize < 50 ? '4px' : '12px'} rgba({activeColor}, {variant === 'watermark' ? '0.02' : '0.8'}))"
       >
         X
       </text>
 
-      <circle cx="140" cy="140" r="32" stroke="rgb({activeColor})" stroke-width={svgSize < 50 ? "3" : "2"} fill="none" opacity="0.6" />
+      <circle cx="140" cy="140" r="32" stroke="rgb({activeColor})" stroke-width={svgSize < 50 ? "3" : "2"} fill="none" opacity={variant === "watermark" ? "0.005" : "0.6"} />
     </g>
 
     <!-- Accent Dots -->
-    <g opacity={(phase !== 'idle' || localStatus !== 'IDLE') ? '1' : '0.4'}>
+    <g opacity={variant === "watermark" ? "0.005" : ((phase !== 'idle' || localStatus !== 'IDLE') ? '1' : '0.4')}>
       <circle cx="140" cy="16" r="4" fill="rgb({activeColor})">
         <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" />
       </circle>

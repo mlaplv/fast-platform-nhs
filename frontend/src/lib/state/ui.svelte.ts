@@ -11,7 +11,7 @@ export function createUiState() {
     heartbeatCollapsed: typeof window !== "undefined" 
       ? (localStorage.getItem("xohi_heartbeat_collapsed") !== null 
           ? localStorage.getItem("xohi_heartbeat_collapsed") === "true" 
-          : null)
+          : true)
       : null,
   });
 

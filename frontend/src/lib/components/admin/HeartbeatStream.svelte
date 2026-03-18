@@ -276,16 +276,11 @@
   {#if !hideHeader}
     <div class="h-12 shrink-0 border-b border-white/5 bg-black/20 backdrop-blur-sm">
       <!-- Neural Control Bar (Minimalist Icon Row) -->
-      <div class="h-full flex items-center justify-between px-5">
+      <div class="h-full flex items-center justify-between px-2">
         <!-- Left Group: Branding & View Controls -->
         <div class="flex items-center gap-1">
-          <!-- Logo Restored (Static) -->
-          <div class="flex items-center gap-1.5 px-0.5 mr-1">
-            <div
-              class="w-5 h-5 flex items-center justify-center rounded-sm bg-transparent"
-            >
-                <XohiLogo variant="simple" size={20} />
-            </div>
+          <!-- Logo Removed -->
+          <div class="flex items-center gap-1.5">
             <span
               class="text-[9px] font-black tracking-tighter text-white/30 uppercase"
               >Xohi Hearting</span

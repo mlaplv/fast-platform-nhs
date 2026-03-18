@@ -91,7 +91,6 @@
             onclick={() => nanobot.toggleHeartbeat()}
             class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-white/5 text-neon-cyan/60 hover:text-neon-cyan transition-colors"
             class:hidden={nanobot.heartbeatCollapsed === false}
-            class:2xl:hidden={nanobot.heartbeatCollapsed === null}
             title="Mở rộng Heartbeat"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M15 3v18"/></svg>
@@ -170,32 +169,16 @@
     min-width: var(--sidebar-w);
   }
 
-  /* Default for Laptop/Small Screens: Auto-Collapse */
-  @media (max-width: 1535.9px) {
-    #heartbeat-sidebar {
-      --sidebar-w: 0px;
-    }
-    #heartbeat-sidebar .sidebar-content {
-      opacity: 0;
-      pointer-events: none;
-    }
-    #heartbeat-sidebar .vertical-indicator {
-      display: none;
-    }
+  /* Default: Hidden (Manual Toggle Only) */
+  #heartbeat-sidebar {
+    --sidebar-w: 0px;
   }
-  
-  /* Default for Desktop/Large Screens: Auto-Expand (2XL Breakpoint) */
-  @media (min-width: 1536px) {
-    #heartbeat-sidebar {
-      --sidebar-w: 300px;
-    }
-    #heartbeat-sidebar .sidebar-content {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    #heartbeat-sidebar .vertical-indicator {
-      display: none;
-    }
+  #heartbeat-sidebar .sidebar-content {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #heartbeat-sidebar .vertical-indicator {
+    display: none;
   }
 
   /* Manual Override: Force Collapse (Trumps Auto) */

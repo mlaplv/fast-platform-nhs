@@ -116,6 +116,7 @@ class ExecutionEngine:
 
                     # CNS V82.10: Reactive Cancellation Support
                     # Re-fetch campaign to check for user-triggered REJECTED (Hard Kill)
+                    from backend.database.alchemy_config import alchemy_config
                     async with alchemy_config.create_session_maker()() as check_session:
                         check_repo = ContentCampaignRepository(session=check_session)
                         check_campaign = await check_repo.get(campaign_id)

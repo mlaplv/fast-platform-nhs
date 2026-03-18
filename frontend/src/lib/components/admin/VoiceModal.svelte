@@ -114,36 +114,26 @@
         class="absolute top-1 right-1 z-[110000] group pointer-events-auto transition-all duration-300 active:scale-90"
         title="Short: Hide UI | Long: Kill Process (Hard Kill)"
       >
-        <div class="relative w-8 h-8 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-md border border-white/10 hover:border-white/20 transition-all duration-300">
-           <!-- Progress Ring for Hard Kill -->
+        <div class="relative w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/10 transition-all duration-200">
+           <!-- Progress Ring for Hard Kill (Subtle) -->
            <svg class="absolute inset-0 w-full h-full -rotate-90 pointer-events-none">
              <circle 
-               cx="16" cy="16" r="14" 
+               cx="16" cy="16" r="12" 
                fill="none" 
                stroke="currentColor" 
                stroke-width="1.5" 
-               class="text-white/5"
-             />
-             <circle 
-               cx="16" cy="16" r="14" 
-               fill="none" 
-               stroke="currentColor" 
-               stroke-width="1.5" 
-               stroke-dasharray="87.96"
-               stroke-dashoffset={87.96 * (1 - holdProgress)}
+               stroke-dasharray="75.39"
+               stroke-dashoffset={75.39 * (1 - holdProgress)}
                style="transition: stroke-dashoffset 0.1s linear"
-               class={isHardKillReady ? "text-red-500" : "text-white/60"}
+               class={isHardKillReady ? "text-red-500" : "text-white/40"}
              />
            </svg>
 
            <X 
-             size={12} 
-             strokeWidth={isHardKillReady ? 3 : 2} 
-             class="transition-all duration-300 {isHardKillReady ? 'text-red-500 scale-125' : 'text-white group-hover:scale-110'}" 
+             size={16} 
+             strokeWidth={2} 
+             class="transition-all duration-300 {isHardKillReady ? 'text-red-500 scale-110' : 'text-white/70 group-hover:text-white'}" 
            />
-           
-           <!-- Modern Red Glow on Hover -->
-           <div class="absolute inset-0 opacity-0 group-hover:opacity-40 bg-red-500/20 blur-xl transition-all duration-500 -z-10"></div>
         </div>
       </button>
 
