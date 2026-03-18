@@ -133,7 +133,7 @@
   .xohi-widget-overlay {
     position: absolute;
     inset: 0;
-    z-index: 50;
+    z-index: 160000;
     display: flex;
     flex-direction: column;
   }

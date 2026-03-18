@@ -34,11 +34,19 @@
   let totalOrders = $derived(orderData.reduce((a: number, b: number) => a + b, 0));
   let avgRevenue = $derived(totalRevenue / (labels.length || 1));
 
-  // Header value: Synchronize with AI's spoken response (data.revenue)
+  // Header value: Synchronize with AI's spoken response (injected_count or revenue)
   // Fallback to totalRevenue if data.revenue is missing
   let displayRevenue = $derived(
+    data?.injected_count !== undefined ? data.injected_count :
     data?.revenue !== undefined ? data.revenue : totalRevenue,
   );
+
+  // Synchronize with AI's timeframe (V60.1)
+  $effect(() => {
+    if (data?.raw_timeframe === "this_month") activeTab = "Tháng";
+    if (data?.raw_timeframe === "today") activeTab = "Ngày";
+    if (data?.raw_timeframe === "this_year") activeTab = "Năm";
+  });
 
   // Dynamic Growth Calculation (V59.3)
   let growth = $derived.by(() => {
@@ -114,14 +122,16 @@
       <div class="flex flex-col">
         <div class="flex items-baseline gap-2">
           <span class="text-3xl sm:text-4xl font-black text-white tracking-tighter">
-            {totalRevenue.toLocaleString("vi-VN")}
+            {displayRevenue.toLocaleString("vi-VN")}
           </span>
           <span class="text-lg text-emerald-500 font-bold">đ</span>
         </div>
         <span
           class="text-[10px] text-zinc-500 font-medium uppercase tracking-widest"
         >
-          Tổng doanh thu {tabLabelMap[activeTab]}
+          {data?.revenue !== undefined || data?.injected_count !== undefined 
+            ? (data?.period_label || "Doanh thu theo báo cáo")
+            : `Tổng doanh thu ${tabLabelMap[activeTab]}`}
         </span>
       </div>
     </div>

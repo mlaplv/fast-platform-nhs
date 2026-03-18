@@ -82,9 +82,13 @@ export function createIntentManager(
     voice.setVoiceResult(transcript, responseText, uiAction, data, source, routerTier);
     state.nanoBotStatus = voice.status === "VOICE" ? "IDLE" : "SUCCESS";
 
-    // Phase 60: Always persist session context for multi-turn conversation
-    if (data?.session_id) {
-      state.currentData = { ...state.currentData, ...data };
+    // Phase 60: Robust data merging with Smart Flattening
+    if (data) {
+      const mergedData = { ...state.currentData, ...data };
+      if (data.data && typeof data.data === 'object') {
+        Object.assign(mergedData, data.data);
+      }
+      state.currentData = mergedData;
     }
 
     // ═══ SESSION CONTROL OVERRIDES (Wake/Sleep) ═══
@@ -103,7 +107,11 @@ export function createIntentManager(
       const targetWidget = ACTION_WIDGET_MAP[actualUiAction];
 
       if (targetWidget) {
-        state.currentData = { ...state.currentData, ...data };
+        const mergedData = { ...state.currentData, ...data };
+        if (data.data && typeof data.data === 'object') {
+          Object.assign(mergedData, data.data);
+        }
+        state.currentData = mergedData;
         const intentType = (data?.intent_type as string) || "";
 
         const requiresConfirmationForVoice = (d: Record<string, unknown>) => {
@@ -115,6 +123,8 @@ export function createIntentManager(
 
         if (
           isNavAction(actualUiAction, intentType) ||
+          actualUiAction.startsWith("show_") ||
+          actualUiAction.includes("revenue") ||
           actualUiAction.includes("edit") ||
           actualUiAction.includes("content_factory") ||
           actualUiAction.includes("campaigns") ||
@@ -126,7 +136,12 @@ export function createIntentManager(
           ui.setUniversalModalOpen(true);
           log.addLog(actualUiAction.replace("show_", "").replace(/_/g, " "), "[ACTION]");
 
-          if (source === "voice" && isNavAction(actualUiAction, intentType)) {
+          if (
+            source === "voice" && 
+            (isNavAction(actualUiAction, intentType) || 
+             actualUiAction.startsWith("show_") || 
+             actualUiAction.includes("revenue"))
+          ) {
             voice.setVuiActive(false);
           }
         } else {

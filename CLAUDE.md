@@ -1,7 +1,8 @@
 # HIẾN PHÁP FAST-PLATFORM (ELITE V2.2)
 
-> **CHỈ THỊ TỐI CAO:** Dự án Agentic AI 2026. Stack: **SvelteKit 5 (Runes) + Litestar (Python 3.14) + SQLAlchemy 2.0 + PydanticAI + LiteLLM**. Ép kiểu tĩnh 100% (CẤM 'any'), cấm R105. Hoạt động trên domain `*.smartshop.test`.
->> ** CẤM LÀM TIẾP KHI SỬA MÀ HỆ THỐNG BỊ LỖI, LOG LỖI CÒN THÌ PHẢI TIẾN HÀNH CHO HẾT, BÁO CÁO & XIN PHÉP LÀM TIẾP.**
+> **CHỈ THỊ TỐI CAO:** Dự án Agentic AI 2026. Stack: **SvelteKit 5 (Runes) + Litestar (Python 3.14) + SQLAlchemy 2.0 + PydanticAI + LiteLLM**. Ép kiểu tĩnh 100% (CẤM 'any'). Hoạt động trên domain `*.smartshop.test`.
+>
+> > ** CẤM LÀM TIẾP KHI SỬA MÀ HỆ THỐNG BỊ LỖI, LOG LỖI CÒN THÌ PHẢI TIẾN HÀNH CHO HẾT, BÁO CÁO & XIN PHÉP LÀM TIẾP.**
 
 ---
 
@@ -30,7 +31,6 @@
 - 🧪 **TRINH SÁT CÔNG NGHỆ:** AI không được dậm chân tại chỗ. Phải luôn chủ động tìm kiếm các kỹ thuật lập trình, thuật toán và giải pháp kiến trúc mới nhất/tầng cao nhất để áp dụng cho Sếp.
 - 💡 **ĐỀ XUẤT CẢI TIẾN:** Nếu thấy một giải pháp cũ (legacy) có thể thay thế bằng công nghệ mới hiệu quả hơn, BẮT BUỘC phải đề xuất trong bước PROPOSE.
 
-
 ## 🏗️ I. ĐỊA BÀN & HIỆU NĂNG (ULTRA-LEAN ARCHITECTURE)
 
 - **Backend Architecture (Onion/Hexagonal chuẩn Elite V2.2):**
@@ -45,6 +45,7 @@
 ## 🚫 III. DANH MỤC LỖI CẤM (ANTI-PATTERNS)
 
 ### 1. Lỗi Kỹ thuật (Technical Sins)
+
 - ❌ **Blocking Async:** Cấm dùng hàm đồng bộ (sync) trong luồng async gây treo event loop.
 - ❌ **Memory Leak:** Cấm quên `revokeObjectURL` hoặc không dọn dẹp `Event Listener` khi hủy component.
 - ❌ **Svelte 5 Binding Trap:** CẤM dùng giá trị mặc định (fallback) cho `$bindable` props (ví dụ: `prop = $bindable("")`). Nếu cha truyền `undefined`, ứng dụng sẽ crash (`props_invalid_value`). Bắt buộc khởi tạo giá trị an toàn tại Store hoặc `onMount`.
@@ -52,6 +53,7 @@
 - ❌ **Silent Fail:** Cấm dùng `try-catch` rỗng mà không có log hoặc báo cáo cho Sếp.
 
 ### 2. Lỗi Kiến Trúc & Bảo Tồn (Architecture & Preservation Sins)
+
 - ❌ **Cấm đổi kiến trúc:** Giữ nguyên cấu trúc thư mục, file. Muốn đổi PHẢI hỏi.
 - ❌ **Cấm sửa tính năng cũ:** Không xóa/sửa logic đang chạy. Chỉ fix và thêm.
 - ❌ **Cấm dùng tech cũ:** Luôn dùng syntax mới nhất, không hạ cấp thư viện.

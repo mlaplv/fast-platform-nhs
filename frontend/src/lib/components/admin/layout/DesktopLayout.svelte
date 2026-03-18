@@ -112,10 +112,8 @@
         <VoiceModal />
       </div>
 
-      <!-- XoHi Widget Modal (NOW scoped to Canvas Area only, NOT covering Footer/OmniCommand) -->
       <div
-        class="absolute inset-0 z-50 pointer-events-none"
-        class:hidden={nanobot.isVuiActive && !nanobot.isTraining}
+        class="absolute inset-0 z-[160000] pointer-events-none"
       >
         <div
           class="{nanobot.universalModalOpen
