@@ -35,11 +35,21 @@ export function typewriter(node: HTMLElement, params: TypewriterParams) {
   let idx = 0;
   let lastTime = 0;
   let pauseUntil = 0; // emotion pause timestamp
+  let isDormant = false; // Elite 2026: Visual Continuity Shield
 
   node.style.willChange = "contents";
-  node.textContent = "";
+
+  // Elite 2026: Instant Mode
+  if (speed <= 0) {
+    node.textContent = text;
+    isDormant = true;
+    onComplete?.();
+  } else {
+    node.textContent = "";
+  }
 
   function tick(ts: number) {
+    if (isDormant) return;
     if (!lastTime) lastTime = ts;
 
     // Emotion pause: wait it out
@@ -62,25 +72,18 @@ export function typewriter(node: HTMLElement, params: TypewriterParams) {
 
     if (speaking) {
       // ═══ VOICE-SYNC MODE ═══
-      // Voice active: type when there's audio output
-      // Higher volume = type more frequently
       if (vol > 0.02) {
-        // Voice is producing sound → advance
-        // Faster at higher volumes, min 20ms between chars
         const volSpeed = Math.max(20, 80 - vol * 100);
         if (ts - lastTime >= volSpeed) {
           shouldAdvance = true;
         }
       } else {
-        // Voice is in a micro-pause (between words/syllables)
-        // Still advance slowly so text doesn't freeze
         if (ts - lastTime >= 150) {
           shouldAdvance = true;
         }
       }
     } else {
       // ═══ FALLBACK MODE ═══
-      // No voice playing: steady typewriter at base speed
       if (ts - lastTime >= speed) {
         shouldAdvance = true;
       }
@@ -91,7 +94,6 @@ export function typewriter(node: HTMLElement, params: TypewriterParams) {
       node.textContent = text.slice(0, idx);
       lastTime = ts;
 
-      // Check for emotion pause on the char just typed
       const c = text[idx - 1];
       const p = idx > 1 ? text[idx - 2] : "";
       const n = idx < text.length ? text[idx] : "";
@@ -104,14 +106,28 @@ export function typewriter(node: HTMLElement, params: TypewriterParams) {
     frameId = requestAnimationFrame(tick);
   }
 
-  frameId = requestAnimationFrame(tick);
+  if (!isDormant) {
+    frameId = requestAnimationFrame(tick);
+  }
 
   return {
     update(p: TypewriterParams) {
       const isExtension = p.text.startsWith(text) && p.text.length > text.length;
+      const wasSpeaking = isSpeaking?.() ?? false;
+      const isStillSpeaking = p.isSpeaking?.() ?? false;
+
+      // Elite 2026: Visual Continuity Shield
+      // If speed becomes 0 OR if we stop speaking and text is same, freeze it.
+      if ((p.speed ?? 60) <= 0 || (p.text === text && wasSpeaking && !isStillSpeaking)) {
+        isDormant = true;
+        node.textContent = p.text;
+        text = p.text;
+        node.style.willChange = "auto";
+        if (frameId) cancelAnimationFrame(frameId);
+        return;
+      }
 
       if (p.text !== text) {
-        const oldText = text;
         text = p.text;
         speed = p.speed ?? 60;
         getVolume = p.getVolume;
@@ -122,6 +138,7 @@ export function typewriter(node: HTMLElement, params: TypewriterParams) {
           idx = 0;
           lastTime = 0;
           pauseUntil = 0;
+          isDormant = false;
           node.textContent = "";
         }
 

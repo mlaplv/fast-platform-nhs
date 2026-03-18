@@ -99,12 +99,17 @@
   </div>
 {/snippet}
 
-{#snippet AiMessage({ text, active = false })}
+{#snippet AiMessage({ text, active = false, animate = true })}
   <div class="w-full space-y-6">
     <p 
       class="text-xl md:text-2xl font-normal tracking-tight leading-relaxed text-start max-w-4xl scifi-text" 
       style="color: {theme.AI_TEXT_COLOR}"
-      use:typewriter={{ speed: 0, text, getVolume: () => vuiState.volume, isSpeaking: () => active && (phase === "speaking" || phase === "executing") }}
+      use:typewriter={{ 
+        speed: animate ? 30 : 0, 
+        text, 
+        getVolume: () => vuiState.volume, 
+        isSpeaking: () => active && (phase === "speaking" || phase === "executing") 
+      }}
     >
       {text}
     </p>
@@ -140,20 +145,20 @@
 
       <!-- History Stream -->
       {#each vuiState.history as item (item.id)}
-        <div class="w-full flex flex-col space-y-4 pointer-events-auto" transition:fade>
+        <div class="w-full flex flex-col space-y-4 pointer-events-auto">
           {@render UserBubble({ text: item.userQuery, italic: true })}
           {#if item.aiResponse}
-            {@render AiMessage({ text: item.aiResponse, active: false })}
+            {@render AiMessage({ text: item.aiResponse, active: false, animate: false })}
           {/if}
         </div>
       {/each}
 
       <!-- Current Elite Interaction Zone -->
-      {#if phase !== "idle"}
-        <div class="w-full flex flex-col relative pointer-events-auto" transition:fade>
+      {#if phase !== "idle" || vuiState.isWaitingForAction}
+        <div class="w-full flex flex-col relative pointer-events-auto">
           <!-- Live User Speech -->
           {#if (phase === "listening" || vuiState.transcript) && vuiState.liveText}
-            <div in:scale={{ duration: 400, start: 0.95, opacity: 0 }}>
+            <div in:fade={{ duration: 200 }}>
               {@render UserBubble({ text: vuiState.liveText })}
             </div>
           {/if}
