@@ -112,30 +112,17 @@
       <!-- Central Hamster Core (Reactive Edition) -->
       <g class="logo-core" transform-origin="140 140">
         <!-- Depth Ring -->
-        <circle 
-          cx="140" cy="140" r="38" 
-          fill="black" 
-          fill-opacity="0.6"
-        />
+        <circle cx="140" cy="140" r="38" fill="black" fill-opacity="0.8" />
+        <circle cx="140" cy="140" r="35" fill={activeColor} fill-opacity={0.1} class:thinking-pulse={phase === 'thinking' || status === 'THINKING'} />
         
-        <!-- Glow backing -->
-        <circle 
-          cx="140" cy="140" r="35" 
-          fill={activeColor} 
-          fill-opacity="0.15"
-          class="transition-all duration-500"
-        />
-
-        <image
-          xlink:href="/hamster-icon.png"
-          x="105"
-          y="105"
-          width="70"
-          height="70"
-          clip-path="url(#hamster-clip)"
-          class="transition-all duration-500 rounded-full"
-          style="filter: url(#hamster-reactive-filter) drop-shadow(0 0 15px {activeColor}); clip-path: circle(50%)"
-        />
+        <text
+          x="140" y="155"
+          text-anchor="middle"
+          class="font-mono font-black select-none"
+          style="fill: {activeColor}; font-size: 54px; filter: drop-shadow(0 0 12px {activeColor})"
+        >
+          X
+        </text>
 
         {#if phase === 'thinking' || status === 'THINKING'}
           <rect
