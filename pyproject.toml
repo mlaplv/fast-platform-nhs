@@ -10,7 +10,7 @@ description = "Hệ thống Agentic AI hiện đại theo chuẩn kiến trúc V
 authors = [
     { name = "Admin", email = "admin@example.com" }
 ]
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 
 dependencies = [
     "litestar[standard]>=2.14.0",
