@@ -32,7 +32,7 @@ def slugify(text: str) -> str:
     text = normalize_vn(text)
     return text.replace(" ", "-")
 
-def sanitize_id(id_val: Optional[str]) -> Optional[str]:
+def sanitize_id(id_val: str | None) -> str | None:
     """
     R105: Standardize ID logic - strips legacy 'undefined' or 'null' strings
     and empty whitespace to prevent DB leakage.
