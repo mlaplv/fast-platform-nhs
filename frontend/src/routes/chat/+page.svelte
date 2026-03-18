@@ -3,6 +3,7 @@
   import { nanobot } from "$lib/state/nanobot.svelte";
   import OmniCommand from "$lib/components/admin/OmniCommand.svelte";
   import { fade } from "svelte/transition";
+  import { Z_INDEX } from "$lib/core/constants/zIndex";
   import LoaderCircle from "lucide-svelte/icons/loader-circle";
 
   let scrollContainer = $state<HTMLDivElement>();
@@ -143,7 +144,10 @@
     {/if}
   </div>
 
-  <div class="fixed bottom-8 left-0 right-0 pointer-events-none z-[1100]">
+  <div 
+    class="fixed bottom-8 left-0 right-0 pointer-events-none"
+    style="z-index: {Z_INDEX.POPOVER};"
+  >
     <div class="pointer-events-auto">
       <OmniCommand />
     </div>

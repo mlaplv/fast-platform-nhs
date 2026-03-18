@@ -1,8 +1,10 @@
 <script lang="ts">
   import { vuiState } from "$lib/vui";
   import { nanobot } from "$lib/state/nanobot.svelte";
-  import { fade } from "svelte/transition";
+  import { fade, fly } from "svelte/transition";
   import { playSciFiBeep, playSiriDing } from "$lib/utils/sfx";
+  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { portal } from "$lib/actions/portal";
   import VoiceStatusCaption from "./vui/VoiceStatusCaption.svelte";
   import ContentReviewCard from "./ui/ContentReviewCard.svelte";
   import X from "lucide-svelte/icons/x";
@@ -86,8 +88,10 @@
 
 {#if nanobot.isVuiActive && !nanobot.isTraining}
   <div
-    class="absolute inset-0 z-[99999] flex flex-col pointer-events-none"
-    transition:fade={{ duration: 400 }}
+    use:portal
+    class="absolute inset-0 flex flex-col pointer-events-none"
+    style="z-index: {Z_INDEX.OVERLAY};"
+    transition:fade={{ duration: 300 }}
   >
     <!-- Main Container (Purely Transparent Overlay) -->
     <div class="relative w-full h-full pointer-events-none">
@@ -154,8 +158,9 @@
 
         {#if (nanobot.vuiResponse?.data?.category === "CONTENT_CREATE" || nanobot.vuiResponse?.data?.campaign_id) && vuiState.showCampaign}
           <div
-            class="transition-all duration-300 {nanobot.isExpanded ? 'fixed inset-0 w-screen h-screen z-[150000] m-0 rounded-none p-6 md:p-12 md:pb-24 bg-[#030712]/98 backdrop-blur-3xl' : 'fixed inset-0 w-full h-full md:relative md:w-[98%] md:h-[90vh] md:bg-black/40 md:rounded-3xl md:mt-12 md:shadow-2xl bg-[#020202] z-[120000] flex flex-col'} mx-auto pointer-events-auto"
-            transition:fade={{ duration: 250 }}
+            class="transition-all duration-300 {nanobot.isExpanded ? 'fixed inset-0 w-screen h-screen' : 'fixed bottom-4 right-4 w-[450px] max-h-[85vh]'} border border-white/10 bg-black/90 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto"
+            style="z-index: {nanobot.isExpanded ? Z_INDEX.TOAST + 100 : Z_INDEX.MODAL};"
+            transition:fly={{ y: 20, duration: 400 }}
           >
             <ContentReviewCard
               campaign_id={nanobot.vuiResponse.data.campaign_id}

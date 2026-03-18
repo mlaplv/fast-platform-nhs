@@ -6,6 +6,7 @@
   import LucideShield from "lucide-svelte/icons/shield";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { permissionState } from "$lib/state/permissions.svelte";
+  import { Z_INDEX } from "$lib/core/constants/zIndex";
 
   function toggleDropdown() {
     nanobot.toggleHudPopup("USER");
@@ -45,7 +46,8 @@
     <div 
       in:scale={{duration: 250, start: 0.95, opacity: 0}}
       out:fade={{duration: 150}}
-      class="absolute right-0 mt-4 w-80 bg-[#080808] md:bg-[#080808]/98 md:backdrop-blur-3xl border border-white/10 rounded-2xl shadow-[0_20px_80px_rgba(0,0,0,0.9),0_0_30px_rgba(0,255,255,0.05)] z-50 overflow-hidden"
+      class="absolute right-0 mt-4 w-80 bg-[#080808] md:bg-[#080808]/98 md:backdrop-blur-3xl border border-white/10 rounded-2xl shadow-[0_20px_80px_rgba(0,0,0,0.9),0_0_30px_rgba(0,255,255,0.05)] overflow-hidden"
+      style="z-index: {Z_INDEX.SURFACE + 40};"
     >
       <!-- MISSION CONTROL HEADER -->
       <div class="p-6 pb-4 border-b border-white/5 relative">

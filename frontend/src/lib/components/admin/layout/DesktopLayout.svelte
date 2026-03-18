@@ -12,6 +12,7 @@
   import VaultModal from "../VaultModal.svelte";
   import ConfirmationModal from "../ui/ConfirmationModal.svelte";
   import UniversalModal from "../ui/UniversalModal.svelte";
+  import { Z_INDEX } from "$lib/core/constants/zIndex";
   import { permissionState } from "$lib/state/permissions.svelte";
   import CurrentSessionStatus from "./HUD/CurrentSessionStatus.svelte";
   import TechStackFooter from "./TechStackFooter.svelte";
@@ -113,7 +114,8 @@
       </div>
 
       <div
-        class="absolute inset-0 z-[160000] pointer-events-none"
+        class="absolute inset-0 pointer-events-none"
+        style="z-index: {Z_INDEX.MODAL};"
       >
         <div
           class="{nanobot.universalModalOpen

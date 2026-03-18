@@ -2,6 +2,7 @@
   import "./layout.css";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { vuiState, vuiController } from "$lib/vui";
+  import { Z_INDEX } from "$lib/core/constants/zIndex";
   import XohiLogo from "$lib/components/admin/XohiLogo.svelte";
   import { fade, scale, slide } from "svelte/transition";
   import Sparkles from "lucide-svelte/icons/sparkles";
@@ -77,15 +78,28 @@
     removedIndices = new Set();
     nanobot.cancelTraining();
   }
+
+  // Inject Z_INDEX as CSS variables for global CSS use (V66.8 Elite)
+  const zIndexStyle = Object.entries(Z_INDEX)
+    .map(([key, value]) => `--z-${key.toLowerCase()}: ${value};`)
+    .join(" ");
 </script>
 
-<svelte:head><link rel="icon" href="/favicon.svg" /></svelte:head>
+<svelte:head>
+  <link rel="icon" href="/favicon.svg" />
+  <style>
+    :root {
+      {zIndexStyle}
+    }
+  </style>
+</svelte:head>
 {@render children()}
 
 <!-- VUI Audio Unlock Overlay (Browser Compliance V66.5) -->
 {#if vuiState.isAudioBlocked}
   <div 
-    class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100000] flex flex-col items-center gap-4"
+    class="fixed bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4"
+    style="z-index: {Z_INDEX.SYSTEM};"
     transition:slide
   >
     <button
@@ -115,7 +129,8 @@
 <!-- V44.2 Absolute Surface: Neural Capture (Root Level to prevent clipping) -->
 {#if nanobot.isTraining}
   <div
-    class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/5 backdrop-blur-sm pointer-events-none"
+    class="fixed inset-0 flex items-center justify-center bg-black/5 backdrop-blur-sm pointer-events-none"
+    style="z-index: {Z_INDEX.SYSTEM - 1};"
     transition:fade
   >
     <div

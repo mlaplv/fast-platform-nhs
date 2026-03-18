@@ -1,5 +1,6 @@
 <script lang="ts">
     import { fade, scale } from 'svelte/transition';
+    import { Z_INDEX } from '$lib/core/constants/zIndex';
     import FileManager from './FileManager.svelte';
     import type { MediaAsset } from '$lib/types';
 
@@ -21,7 +22,8 @@
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div
-        class="fixed inset-0 z-[2000] flex items-center justify-center p-4 md:p-8 bg-black/80 backdrop-blur-sm"
+        class="fixed inset-0 flex items-center justify-center p-4 md:p-8 bg-black/80 backdrop-blur-sm"
+        style="z-index: {Z_INDEX.TOAST};"
         onclick={onClose}
         transition:fade={{ duration: 200 }}
         role="dialog"
@@ -36,7 +38,8 @@
             <!-- Close Button -->
             <button
                 onclick={onClose}
-                class="absolute top-4 right-4 z-[110] p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-500"
+                class="absolute top-4 right-4 p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-500"
+                style="z-index: {Z_INDEX.POPOVER};"
                 aria-label="Close dialog"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>

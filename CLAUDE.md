@@ -60,3 +60,10 @@
 - ❌ **KISS (Đơn giản):** Code trực diện, dễ hiểu. Cấm bày vẽ phức tạp (Over-engineering).
 - ❌ **YAGNI (Vừa đủ):** Chỉ làm đúng yêu cầu. Không thêm code thừa, không "lo xa" tính năng tương lai.
 - ❌ **Xác nhận:** Luôn hỏi trước khi xóa code cũ hoặc refactor lớn.
+
+## 💎 IV. QUY TẮC Z-INDEX TẬP TRUNG (ELITE V2.2)
+
+- ❌ **CẤM Tuyệt đối:** Hardcode giá trị `z-index` trong file `.svelte` hoặc dùng class Tailwind `z-[...]`.
+- ✅ **SINGLE SOURCE OF TRUTH:** Toàn bộ `z-index` phải được khai báo tại `src/lib/core/constants/zIndex.ts`.
+- ✅ **PORTAL ACTION:** Ưu tiên dùng `use:portal` cho các phần tử nổi (Modal, Overlay, Toast) để tách biệt Stacking Context.
+- ✅ **GLOBAL SYNC:** Sử dụng CSS Variables được tiêm từ `+layout.svelte` cho các file `.css` thuần thông qua `--z-*`.

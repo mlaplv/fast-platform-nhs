@@ -1,5 +1,6 @@
 <script lang="ts">
   import { nanobot } from "$lib/state/nanobot.svelte";
+  import { Z_INDEX } from "$lib/core/constants/zIndex";
   import { fade } from "svelte/transition";
   import X from "lucide-svelte/icons/x";
   import Terminal from "lucide-svelte/icons/terminal";
@@ -76,6 +77,7 @@
   <div
     class="xohi-widget-overlay"
     transition:fade={{ duration: 300 }}
+    style="z-index: {Z_INDEX.MODAL};"
   >
     <!-- Backdrop (scoped to main content) -->
     <div
@@ -133,7 +135,6 @@
   .xohi-widget-overlay {
     position: absolute;
     inset: 0;
-    z-index: 160000;
     display: flex;
     flex-direction: column;
   }

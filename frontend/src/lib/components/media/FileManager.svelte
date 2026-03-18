@@ -4,6 +4,7 @@
     import { nanobot } from '$lib/state/nanobot.svelte';
     import { vuiController, vuiState } from '$lib/vui';
     import { fade, slide } from 'svelte/transition';
+    import { Z_INDEX } from '$lib/core/constants/zIndex';
     import type { MediaAsset } from '$lib/state/types';
 
     interface Props {
@@ -250,7 +251,11 @@
                 </button>
 
                 {#if showRemoteInput}
-                    <div class="absolute top-full right-0 mt-2 w-72 p-3 bg-white dark:bg-zinc-800 rounded-xl shadow-2xl border border-zinc-200 dark:border-zinc-700 z-[60]" transition:fade>
+                    <div 
+                        class="absolute top-full right-0 mt-2 w-72 p-3 bg-white dark:bg-zinc-800 rounded-xl shadow-2xl border border-zinc-200 dark:border-zinc-700" 
+                        style="z-index: {Z_INDEX.SURFACE + 50};"
+                        transition:fade
+                    >
                         <p class="text-[10px] font-bold text-zinc-400 uppercase mb-2">Dán link ảnh để AI tải về:</p>
                         <div class="flex flex-col gap-2">
                             <input
@@ -870,7 +875,8 @@
     <!-- Bulk SEO Editor Modal (V11.0 Elite) -->
     {#if showBulkSeo}
         <div
-            class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+            class="fixed inset-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+            style="z-index: {Z_INDEX.POPOVER};"
             transition:fade={{ duration: 200 }}
         >
             <div
