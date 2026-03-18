@@ -169,7 +169,7 @@ export class VuiStreamManager {
       }
 
       
-      const isCreationTask = dataPkg.category === "CONTENT_CREATE" || 
+      const isCreationTask = lastData?.category === "CONTENT_CREATE" || 
                             lastData?.action === "CONTENT_CREATE" ||
                             this.lastActionType === "CONTENT_CREATE";
 
@@ -182,7 +182,7 @@ export class VuiStreamManager {
         vuiState.setActive(true);
       }
 
-      nanobot.setVoiceResult(query, finalMsg, this.lastActionType, dataPkg, source, lastData?.router_tier);
+      nanobot.setVoiceResult(query, finalMsg, this.lastActionType, lastData || {}, source, lastData?.router_tier);
 
       if (source === "text") {
         setTimeout(() => {
