@@ -9,6 +9,10 @@
   --color-neon-yellow: #ffff00;
   --color-idle-gray: #333333;
 
+  /* Raw RGB for alpha channel support */
+  --color-neon-cyan-raw: 0, 255, 255;
+  --color-alert-red-raw: 255, 51, 51;
+
   /* Custom Glow utility */
   --shadow-glow-cyan: 0 0 15px var(--color-neon-cyan);
   --shadow-glow-green: 0 0 15px var(--color-hacker-green);

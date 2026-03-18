@@ -44,12 +44,16 @@
   );
 
   // Unified Identity Color - 100% Neural Cyan (Elite Standard)
-  const BRAND_COLOR = "var(--color-neon-cyan-raw)";
-  const ERROR_COLOR = "var(--color-alert-red-raw)";
+  // We use the raw RGB values to support both hex-like fill and rgba glow
+  const BRAND_COLOR = "var(--color-neon-cyan-raw, 0, 229, 255)";
+  const ERROR_COLOR = "var(--color-alert-red-raw, 255, 49, 49)";
 
   let activeColor = $derived(
-    phase === 'error' || localStatus === 'ERROR' ? ERROR_COLOR : BRAND_COLOR
+    phase === 'error' || localStatus === 'ERROR' ? "#FF3131" : "#00E5FF"
   );
+  
+  // High-visibility Debug Color (will be removed once confirmed)
+  let debugBorder = $state(false);
 
   // Status Animation Logic (Monochromatic but Alive)
   let rotationSpeed = $derived((phase === 'thinking' || localStatus === 'THINKING') ? '3s' : '25s');
@@ -79,14 +83,14 @@
     viewBox="0 0 280 280"
     fill="none"
     class="transition-all duration-1000"
-    style="filter: drop-shadow(0 0 {svgSize/10}px rgba({activeColor}, {glowOpacity}))"
+    style="filter: drop-shadow(0 0 {svgSize/10}px {activeColor}); opacity: {variant === 'watermark' ? 0.2 : 0.8}"
   >
     <defs></defs>
 
     <!-- Outer Diamond Ring -->
     <rect
       x="50" y="50" width="180" height="180" rx="28"
-      stroke="rgb({activeColor})"
+      stroke={activeColor}
       stroke-width={svgSize < 50 ? "4" : (variant === "hero" ? "2" : "1.5")}
       stroke-opacity={variant === "watermark" ? "0.2" : "0.5"}
       fill="none"
@@ -97,7 +101,7 @@
     <!-- Inner Diamond Ring -->
     <rect
       x="75" y="75" width="130" height="130" rx="20"
-      stroke="rgb({activeColor})"
+      stroke={activeColor}
       stroke-width={svgSize < 50 ? "3" : (variant === "hero" ? "1.5" : "1")}
       stroke-opacity={variant === "watermark" ? "0.15" : "0.4"}
       fill="none"
@@ -108,29 +112,29 @@
     <!-- Central Core (STATIONARY PER SẾP'S ORDER) -->
     <g class="logo-core">
       <circle cx="140" cy="140" r="38" fill="black" fill-opacity="0.8" />
-      <circle cx="140" cy="140" r="35" fill="rgb({activeColor})" fill-opacity={svgSize < 50 ? "0.2" : "0.1"} class:thinking-pulse={phase === 'thinking' || localStatus === 'THINKING'} />
+      <circle cx="140" cy="140" r="35" fill={activeColor} fill-opacity={svgSize < 50 ? "0.2" : "0.1"} class:thinking-pulse={phase === 'thinking' || localStatus === 'THINKING'} />
       
       <text
         x="140" y="155"
         text-anchor="middle"
         class="font-mono font-black select-none"
         class:thinking-shimmer={phase === 'thinking' || localStatus === 'THINKING'}
-        style="fill: rgb({activeColor}); font-size: {svgSize < 50 ? '54px' : '42px'}; filter: drop-shadow(0 0 {svgSize < 50 ? '4px' : '12px'} rgba({activeColor}, 0.8))"
+        style="fill: {activeColor}; font-size: {svgSize < 50 ? '54px' : '42px'}; filter: drop-shadow(0 0 {svgSize < 50 ? '4px' : '12px'} {activeColor})"
       >
         X
       </text>
 
-      <circle cx="140" cy="140" r="32" stroke="rgb({activeColor})" stroke-width={svgSize < 50 ? "3" : "2"} fill="none" opacity="0.6" />
+      <circle cx="140" cy="140" r="32" stroke={activeColor} stroke-width={svgSize < 50 ? "3" : "2"} fill="none" opacity="0.6" />
     </g>
 
     <!-- Accent Dots -->
     <g opacity={(phase !== 'idle' || localStatus !== 'IDLE') ? '1' : '0.4'}>
-      <circle cx="140" cy="16" r="4" fill="rgb({activeColor})">
+      <circle cx="140" cy="16" r="4" fill={activeColor}>
         <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" />
       </circle>
-      <circle cx="264" cy="140" r="4" fill="rgb({activeColor})" />
-      <circle cx="140" cy="264" r="4" fill="rgb({activeColor})" />
-      <circle cx="16" cy="140" r="4" fill="rgb({activeColor})" />
+      <circle cx="264" cy="140" r="4" fill={activeColor} />
+      <circle cx="140" cy="264" r="4" fill={activeColor} />
+      <circle cx="16" cy="140" r="4" fill={activeColor} />
     </g>
   </svg>
 
