@@ -34,15 +34,12 @@ export class VuiStreamManager {
 
   public async handleWsMessage(data: VuiWsMessage) {
     const hasSpoken = this.callbacks.hasSpoken();
-    // V76: Reduced log noise in production
     if (import.meta.env.DEV) console.debug(`[VUI] WS Incoming:`, data);
     const text = (data?.text || data?.transcript || "").trim();
     if (data?.tier) vuiState.setActiveTier(data.tier);
 
-    // Phase 43: Emotional Live Streaming - Show progress but smooth the friction
     const isFinal = data?.is_final || data?.event?.includes("final");
     
-    // Phase 44: Echo Shield - Filter out system instructions leaking from Whisper
     const isEcho = VUI_CONFIG.NEURAL.ECHO_FILTERS.some(f => text.includes(f));
     if (hasSpoken && isEcho) {
        console.warn("[VUI] Prompt Echo suppressed:", text);
@@ -52,12 +49,7 @@ export class VuiStreamManager {
     
     if (text.length > 0) {
       const currentLive = vuiState.liveText;
-      // Phase 16: Hybrid Priority
-      // If we get text from WS (Groq), it's likely more accurate.
-      // We only update if it's different OR if it's the final verdict.
       if (isFinal || text !== currentLive) {
-        // Optimization: If the new text is shorter than currentLive (and not final),
-        // it might be a partial Groq result catching up. We only overwrite if it's "significant".
         if (isFinal || text.length >= currentLive.length || data?.tier === "NEURAL_SYNC") {
           vuiState.setLiveText(text, isFinal);
         }
@@ -75,8 +67,6 @@ export class VuiStreamManager {
 
     this.isProcessingFinal = true;
     
-    // Phase 82.2: De-duplication Shield
-    // If text is like "A A" or "A. A.", common in Whisper glitches
     let cleanedText = text;
     const mid = Math.floor(text.length / 2);
     const firstHalf = text.substring(0, mid).trim();
@@ -87,14 +77,13 @@ export class VuiStreamManager {
     }
 
     if (!hasSpoken || cleanedText.trim().length < 1) {
-      // If VAD hasn't detected speech or text is empty, ignore it but don't close.
-      // E.g., Whisper hallucinates "..." on mic open noise.
+      this.isProcessingFinal = false;
       return;
     }
 
-    // Ignore hallucinated dot-only sequences entirely even after speech
     if (cleanedText.replace(/\./g, "").trim().length === 0) {
       console.warn("[VUI] Dropped hallucinated dots:", cleanedText);
+      this.isProcessingFinal = false;
       return;
     }
 
@@ -113,19 +102,15 @@ export class VuiStreamManager {
   }
 
   public async streamLLM(query: string, session_id: string, source: "text" | "voice" = "voice", intentData?: Record<string, unknown>) {
-    vuiState.setIsWaitingForAction(false); // Reset "waiting" state on new interaction
+    vuiState.setIsWaitingForAction(false);
     vuiState.setPhase("thinking");
-    // Leave the STT text as liveText so the user can read it.
-    // vuiState.setLiveText("");
-    vuiState.setSystemMessage(""); // Clear previous AI text
+    vuiState.setSystemMessage("");
     this.lastActionType = "";
     let txtResult = "";
     let lastData: IntentStreamEvent | null = null;
     let receivedAny = false;
 
-    // Phase 76.3.4: Throttled State Updates (Sub-100ms batching)
     let lastUpdateAt = 0;
-    const UPDATE_THRESHOLD_MS = 64; // ~15fps for text deltas to save CPU on 2GB RAM devices
 
     try {
       const stream = vuiService.streamIntent(query, session_id, source, nanobot.screenContext as Record<string, unknown>, intentData);
@@ -136,7 +121,6 @@ export class VuiStreamManager {
         if (parsed.router_tier) vuiState.setActiveTier(parsed.router_tier.toUpperCase());
 
         if (parsed.phase === "transcript" && parsed.text) {
-          // Phase 76.3.2: Immediate Feedback from Backend
           vuiState.setLiveText(parsed.text);
           vuiState.setTranscript(parsed.text);
         } else if (parsed.phase === "text_delta" && parsed.text) {
@@ -147,9 +131,8 @@ export class VuiStreamManager {
             this.audio.processChunk(parsed.text);
           }
 
-          // Throttle UI updates for systemMessage
           const now = Date.now();
-          if (now - lastUpdateAt > 32) { // V87.0 Upgrade: 64ms -> 32ms for better LLM-TTS sync
+          if (now - lastUpdateAt > 32) {
             vuiState.setSystemMessage(txtResult);
             lastUpdateAt = now;
           }
@@ -164,7 +147,6 @@ export class VuiStreamManager {
             vuiState.requiresConfirmation = parsed.requires_confirmation;
           }
 
-          // Phase 76.3: Hardware Signal Listener (Aligned with Orchestrator)
           const isSleep = (parsed.category === "SESSION_CTRL" && (parsed.type === "SLEEP" || parsed.action === "HARDWARE_SLEEP"));
           if (isSleep) {
              console.warn("[VUI] Hardware SLEEP signal received.");
@@ -186,12 +168,7 @@ export class VuiStreamManager {
         vuiState.setLiveText(`Action: ${this.lastActionType.toUpperCase().replace("_", " ")}`);
       }
 
-      const dataPkg = { ...lastData?.data, session_id: lastData?.session_id || lastData?.data?.session_id || "" };
-      if (dataPkg.category === "CONTENT_CREATE") {
-        vuiState.setIsWaitingForAction(true);
-      }
       
-      // Phase 63: Selective Pop-up for Chat
       const isCreationTask = dataPkg.category === "CONTENT_CREATE" || 
                             lastData?.action === "CONTENT_CREATE" ||
                             this.lastActionType === "CONTENT_CREATE";
@@ -201,7 +178,6 @@ export class VuiStreamManager {
                          this.lastActionType !== "";
       
       if (shouldPopUp && source === "text") {
-        console.debug("[VUI] Intent-based pop-up triggered for source=text");
         nanobot.setVuiActive(true);
         vuiState.setActive(true);
       }
@@ -209,7 +185,6 @@ export class VuiStreamManager {
       nanobot.setVoiceResult(query, finalMsg, this.lastActionType, dataPkg, source, lastData?.router_tier);
 
       if (source === "text") {
-        // Phase 82: Graceful transition - give modal time to mount/animate
         setTimeout(() => {
           vuiState.setPhase("idle");
           vuiState.setLiveText("");
@@ -217,7 +192,6 @@ export class VuiStreamManager {
         return;
       }
 
-      // Phase 57: Ensure voice responses are spoken even if no streaming deltas came
       if (source === "voice" && finalMsg && !txtResult) {
         await this.callbacks.speak(finalMsg);
       } else if (!finalMsg && this.lastActionType) {

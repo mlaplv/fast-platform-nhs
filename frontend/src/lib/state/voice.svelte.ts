@@ -79,6 +79,11 @@ export function createVoiceState(
     };
     state.routerTier = routerTier;
 
+    // Elite 2026: Centralized UI activation for campaign items
+    if (cleanData.category === "CONTENT_CREATE" || cleanData.campaign_id) {
+       import("$lib/vui").then(({ vuiState }) => vuiState.showCampaign = true);
+    }
+
     // Phase 45/62: Deactivation Logic
     if (source === "voice" && !data?.isSilent) {
       state.status = "VOICE";

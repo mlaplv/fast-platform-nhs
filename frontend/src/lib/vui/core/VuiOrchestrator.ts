@@ -12,8 +12,6 @@ import { isDev } from "$lib/state/nanobot/env";
 /**
  * VuiOrchestrator 2026: The "Neural Conductor"
  * Orchestrates VAD Engine, Mic, WS Stream, Audio Engine, and Stream Manager.
- * Phase 15: Silero VAD Integration — Neural Voice Activity Detection.
- * Phase 16: Hybrid STT Layer — Native Speech API for sub-100ms Preview.
  */
 class VuiOrchestrator {
   private mic: MicrophoneEngine | null = null;
@@ -26,7 +24,6 @@ class VuiOrchestrator {
   private hasSpoken = false;
   private stopAfterSpeech = false;
   
-  // Phase 42: Neural Lifecycle Control (Premium Timer Management)
   private activeTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   private clearTimer(key: string) {
@@ -73,6 +70,14 @@ class VuiOrchestrator {
     if (vuiState.phase === 'thinking' || vuiState.phase === 'error') {
        vuiState.setPhase('idle');
     }
+
+    // Elite 2026: Root Cause Fix - Sanitize state to prevent "Resume" hijack
+    // When starting from idle, we force clear any previous VUI response data
+    // to ensure the microphone only focuses on the new conversation.
+    if (vuiState.phase === 'idle') {
+      nanobot.clearVuiResponse();
+      nanobot.clearCommandAction();
+    }
     
     vuiState.setStartingLock(true);
     vuiState.setActive(true);
@@ -91,11 +96,9 @@ class VuiOrchestrator {
     vuiState.setPhase("listening");
 
     try {
-      // V71.4: Multi-Browser Warmup. Proactively ensure context is unlocked.
       await this.audio!.unlock();
       this.audio!.playSystemSound('start');
       
-      // Step 1: Connect WebSocket for STT streaming
       const sessionId = nanobot.currentData?.session_id || "";
       await this.ws!.connect(
         (data) => this.streamManager!.handleWsMessage(data),
@@ -103,7 +106,6 @@ class VuiOrchestrator {
         { session_id: sessionId }
       );
       
-      // Step 2: Start MicrophoneEngine for sending WebM chunks to WS
       if (this.mic!.isActive()) this.mic!.stop();
       this.mic!.start(VUI_CONFIG.MIC.CHUNK_DURATION_MS,
         (blob) => {
@@ -111,28 +113,22 @@ class VuiOrchestrator {
           this.ws!.sendBinary(blob);
         },
         (vol) => {
-          // Volume is now ONLY used for UI animation, NOT for VAD
           vuiState.setVolume(vol);
         }
       );
       
-      // Step 3: Start Silero VAD Engine (Neural Voice Detection)
       await this.vadEngine!.start(
-        // onSpeechStart: Neural network confirmed human voice
         () => {
           if (vuiState.phase !== "listening") return;
           this.hasSpoken = true;
-          // Clear initial timeout — user is speaking
           this.clearTimer('initial');
         },
-        // onSpeechEnd: Neural network confirmed silence after speech
         (audioBlob) => {
           if (vuiState.phase !== "listening") return;
           if (this.hasSpoken) {
             this.stopRecording();
           }
         },
-        // onFrameProcessed: Per-frame probability for UI feedback
         (probability) => {
           if (vuiState.phase === "listening") {
             vuiState.setSpeechProb(probability);
@@ -140,21 +136,17 @@ class VuiOrchestrator {
         }
       );
 
-      // Step 4: Hybrid STT Preview (Live Word-by-Word)
       this.speechEngine!.start((text) => {
         if (vuiState.phase !== "listening") return;
-        // Native preview updates the UI immediately
         vuiState.setLiveText(text);
       });
 
-      // Step 5: Initial timeout — if no speech detected within 7s, clean exit
       this.setManagedTimer('initial', () => {
         if (vuiState.phase === "listening" && !this.hasSpoken) {
           this.interruptAll();
         }
       }, VUI_CONFIG.VAD.INITIAL_TIMEOUT_MS);
 
-      // Step 5: Hard safety limit for recording duration
       this.setManagedTimer('max_duration', () => {
         if (vuiState.phase === "listening") {
            console.warn("[VuiOrchestrator] Recording exceeded MAX_DURATION. Auto-finalizing.");
@@ -174,8 +166,6 @@ class VuiOrchestrator {
   stopRecording() {
     if (vuiState.phase !== "listening") return;
 
-    // ROOT FIX: If VAD never confirmed speech, there is nothing to transcribe.
-    // Clean exit immediately — don't enter thinking phase or send STOP to WS.
     if (!this.hasSpoken) {
       this.interruptAll();
       return;
@@ -209,9 +199,6 @@ class VuiOrchestrator {
     this.streamManager!.setLastAction("");
   }
 
-  /**
-   * Surgical Interruption: Stop current reading/text but keep VUI modal active.
-   */
   private phaseResetTimer: ReturnType<typeof setTimeout> | null = null;
 
   resetToIdle() {
@@ -279,8 +266,6 @@ class VuiOrchestrator {
     } else if (vuiState.isActive) {
       console.info("[VUI] AI requested sleep or no behavior defined. Standing by.");
       this.setManagedTimer('interrupt_check', () => {
-         // Auto-cleanup if idle too long and not listening
-         // this.interruptAll(); // Optional: user might want it kept open
       }, 5000);
     }
   }
@@ -290,13 +275,12 @@ class VuiOrchestrator {
     this.audio!.abort();
     this.ws!.disconnect();
 
-    // Unified VUI: Always active for both voice and text sources
     vuiState.setActive(true);
     nanobot.setVuiActive(true);
 
     vuiState.setPhase("thinking");
     vuiState.setTranscript(query);
-    vuiState.setLiveText(query); // Ensure query is visible in VUI modal
+    vuiState.setLiveText(query);
     vuiState.setSystemMessage("");
 
     await this.streamManager!.streamLLM(query, nanobot.currentData?.session_id || "", source, intentData);
@@ -315,7 +299,7 @@ class VuiOrchestrator {
     vuiState.setSystemMessage(text);
 
     const result = await this.audio!.speak(text);
-    this.onTTSFinished(); // V87.5 Fix: Re-open mic after manual/error speech
+    this.onTTSFinished();
     return result;
   }
 

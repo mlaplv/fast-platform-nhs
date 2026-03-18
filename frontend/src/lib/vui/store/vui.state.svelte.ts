@@ -7,8 +7,6 @@ export interface VuiInteraction {
   duration: number;
 }
 
-export const requiresListening = $state(false);
-
 export const vuiState = $state({
   isActive: false,
   requiresListening: false,
@@ -26,6 +24,7 @@ export const vuiState = $state({
   activeTier: "",
   cmdBuffer: "",
   isAudioBlocked: false,
+  showCampaign: false, // Elite 2026: Explicit UI signal for ContentReviewCard
 
   isWaitingForAction: false,
   history: [] as VuiInteraction[],
@@ -108,6 +107,7 @@ export const vuiState = $state({
 
     this.cmdBuffer = "";
     this.isWaitingForAction = false;
+    this.showCampaign = false;
   },
 
   clearHistory() {
