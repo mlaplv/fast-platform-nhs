@@ -54,14 +54,29 @@ if [ "$OS_TYPE" == "Linux" ]; then
     echo -e "${GREEN}[OK] Hệ thống Linux đã tin tưởng chứng chỉ.${NC}"
 elif [ "$OS_TYPE" == "Darwin" ]; then
     echo -e "${YELLOW}Đang kiểm tra chứng chỉ cũ trên macOS...${NC}"
-    # Dọn dẹp chứng chỉ cũ mang tên "Caddy Local Authority" để tránh xung đột hash/serial
-    if security find-certificate -c "Caddy Local Authority" /Library/Keychains/System.keychain > /dev/null 2>&1; then
-        echo -e "${CYAN}[INFO] Phát hiện chứng chỉ cũ. Đang dọn dẹp (Sếp vui lòng xác thực)...${NC}"
-        sudo security delete-certificate -c "Caddy Local Authority" /Library/Keychains/System.keychain || true
+    # SMART SSL TRUST: Chỉ cập nhật nếu cần thiết
+    LOCAL_HASH=$(openssl x509 -noout -fingerprint -sha1 -in "$CERT_PATH" | awk -F'=' '{print $2}' | tr -d ':')
+    ALREADY_TRUSTED=false
+
+    echo -e "${YELLOW}Đang kiểm tra chứng chỉ trong Keychain...${NC}"
+    
+    # Duyệt qua các chứng chỉ cùng tên "Caddy Local Authority"
+    for hash in $(security find-certificate -c "Caddy Local Authority" -a -Z /Library/Keychains/System.keychain 2>/dev/null | grep "SHA-1 hash" | awk '{print $NF}'); do
+        if [ "$hash" == "$LOCAL_HASH" ]; then
+            ALREADY_TRUSTED=true
+        else
+            echo -e "${CYAN}[CLEANUP] Phát hiện bản sao cũ ($hash). Đang dọn dẹp...${NC}"
+            sudo security delete-certificate -Z "$hash" /Library/Keychains/System.keychain || true
+        fi
+    done
+
+    if [ "$ALREADY_TRUSTED" = true ]; then
+        echo -e "${GREEN}[OK] Chứng chỉ hiện tại đã được tin tưởng. Bỏ qua bước cài đặt.${NC}"
+    else
+        echo -e "${YELLOW}Đang thiết lập tin cậy chứng chỉ mới (Sếp vui lòng xác thực Popup)...${NC}"
+        sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$CERT_PATH"
+        echo -e "${GREEN}[OK] macOS đã cập nhật chứng chỉ tin cậy mới.${NC}"
     fi
-    echo -e "${YELLOW}Đang thiết lập tin cậy chứng chỉ mới (Sếp vui lòng xác thực Popup)...${NC}"
-    sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$CERT_PATH"
-    echo -e "${GREEN}[OK] macOS đã cập nhật chứng chỉ tin cậy mới.${NC}"
 else
     echo -e "${YELLOW}[WARNING] Hệ điều hành $OS_TYPE chưa hỗ trợ tự động. Hãy thêm chứng chỉ thủ công.${NC}"
 fi
