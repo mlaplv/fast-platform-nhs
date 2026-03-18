@@ -178,8 +178,24 @@ class XoHiResponder:
     async def handle_media_uploaded(self, payload: Dict[str, object]):
         """Callback for MEDIA_UPLOADED event. Triggers AI analysis."""
         asset_id = payload.get("id")
+        campaign_id = payload.get("campaign_id")
         if not asset_id:
             return
+
+        # R106: Check content_mode to bypass AI if in 'normal' mode (Sếp Elite R00)
+        if campaign_id:
+            try:
+                async with self.session_maker() as session:
+                    from backend.database.models import ContentCampaign
+                    from sqlalchemy import select
+                    stmt = select(ContentCampaign.creation_config).where(ContentCampaign.id == campaign_id)
+                    result = await session.execute(stmt)
+                    config = result.scalar()
+                    if config and config.get("content_mode") == "normal":
+                        logger.info(f"[XoHiResponder] Bypassing AI Analysis for asset {asset_id} (Normal Mode)")
+                        return
+            except Exception as e:
+                logger.error(f"[XoHiResponder] Failed to check campaign mode for bypass: {e}")
 
         from backend.services.xohi.creative_studio.operatives.media_analyst import MediaAnalyst
         analyst = MediaAnalyst()

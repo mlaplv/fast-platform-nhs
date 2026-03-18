@@ -39,7 +39,8 @@ TARGET_KEYWORDS = {
 
 MODE_KEYWORDS = {
     "viral": ["viral", "ngan", "nhanh", "tiktok", "facebook", "ngắn"],
-    "deep_dive": ["sau", "phan tich", "chi tiet", "dai", "deep dive", "sâu", "phân tích", "dài"]
+    "deep_dive": ["sau", "phan tich", "chi tiet", "dai", "deep dive", "sâu", "phân tích", "dài"],
+    "normal": ["thuong", "binh thuong", "stock", "regular", "thường", "bình thường"]
 }
 
 TIMEFRAME_KEYWORDS = {

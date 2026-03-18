@@ -82,19 +82,67 @@
     <div class="relative w-full h-full pointer-events-none">
       <!-- Pure Minimalist Cyber-Exit (2026 Edition) -->
       <button
-        onclick={() => {
-          nanobot.interruptAll();
-          nanobot.resetVui();
+        onmousedown={(e) => {
+          if (e.button !== 0) return;
+          const start = Date.now();
+          const timer = setInterval(() => {
+            const elapsed = Date.now() - start;
+            if (typeof holdProgress !== 'undefined') holdProgress = Math.min(elapsed / 600, 1);
+            if (typeof isHardKillReady !== 'undefined' && holdProgress >= 1) {
+              isHardKillReady = true;
+              clearInterval(timer);
+            }
+          }, 16);
+
+          const endHold = () => {
+            clearInterval(timer);
+            const duration = Date.now() - start;
+            if (duration >= 600) {
+              nanobot.hardKill(nanobot.vuiResponse?.data?.campaign_id || nanobot.currentData?.campaign_id);
+            } else {
+              nanobot.softClose();
+            }
+            if (typeof holdProgress !== 'undefined') holdProgress = 0;
+            if (typeof isHardKillReady !== 'undefined') isHardKillReady = false;
+            window.removeEventListener('mouseup', endHold);
+          };
+          window.addEventListener('mouseup', endHold);
         }}
-        class="absolute top-[14px] right-6 z-[110000] group pointer-events-auto transition-all duration-300 active:scale-75"
-        title="Close Session"
+        class="absolute top-1 right-1 z-[110000] group pointer-events-auto transition-all duration-300 active:scale-90"
+        title="Short: Hide UI | Long: Kill Process (Hard Kill)"
       >
-        <div class="relative w-10 h-10 flex items-center justify-center transition-all duration-300">
+        <div class="relative w-8 h-8 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-md border border-white/10 hover:border-white/20 transition-all duration-300">
+           <!-- Progress Ring for Hard Kill -->
+           <svg class="absolute inset-0 w-full h-full -rotate-90 pointer-events-none">
+             <circle 
+               cx="16" cy="16" r="14" 
+               fill="none" 
+               stroke="currentColor" 
+               stroke-width="1.5" 
+               class="text-white/5"
+             />
+             <circle 
+               cx="16" cy="16" r="14" 
+               fill="none" 
+               stroke="currentColor" 
+               stroke-width="1.5" 
+               stroke-dasharray="87.96"
+               stroke-dashoffset={87.96 * (1 - holdProgress)}
+               style="transition: stroke-dashoffset 0.1s linear"
+               class={isHardKillReady ? "text-red-500" : "text-white/60"}
+             />
+           </svg>
+
            <X 
-             size={20} 
-             strokeWidth={2} 
-             class="text-white/20 group-hover:text-red-500 group-hover:scale-125 transition-all duration-300 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" 
+             size={12} 
+             strokeWidth={isHardKillReady ? 3 : 2} 
+             class="transition-all duration-300 {isHardKillReady ? 'text-red-500 scale-125' : 'text-white group-hover:scale-110'}" 
            />
+           
+           <!-- Modern Red Glow on Hover -->
+           <div class="absolute inset-0 opacity-0 group-hover:opacity-40 bg-red-500/20 blur-xl transition-all duration-500 -z-10"></div>
+        </div>
+      </button>
            
            <!-- Modern Red Glow on Hover -->
            <div class="absolute inset-0 opacity-0 group-hover:opacity-40 bg-red-500/20 blur-xl transition-all duration-500 -z-10"></div>

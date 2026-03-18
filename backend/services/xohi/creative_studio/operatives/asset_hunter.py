@@ -92,21 +92,37 @@ class AssetHunter:
 
             # Step 2.1: AI Search Planning (Subject-First Logic)
             content_mode = campaign.get_gold_val("content_mode", "viral")
-            try:
-                prompt = (
-                    f"Title: {title}\n"
-                    f"Primary Keyword: {primary}\n"
-                    f"Secondary Keywords: {', '.join(secondary)}\n"
-                    f"Persona: {persona}\n"
-                    f"Content Mode: {content_mode.upper()}"
-                )
-                result = await trinity_bridge.run(self.planner_agent, prompt, session_id=campaign.id)
-                plan: VisualSearchPlan = result.data if hasattr(result, "data") else result.output
-                queries: List[str] = plan.queries
-                logger.info(f"[AssetHunter] AI Planner queries: {queries}")
-            except Exception as e:
-                logger.error(f"[AssetHunter] AI planning failed, fallback to keywords: {e}")
-                queries = [primary if primary else title]
+            
+            if content_mode == "normal":
+                await event_bus.emit("CONTENT_PROGRESS", {
+                    "campaign_id": campaign_id,
+                    "user_id": str(campaign.user_id),
+                    "step": 2,
+                    "message": "⚡ Đang sử dụng từ khóa trực tiếp (Chế độ Thường)...",
+                    "status": "PROCESSING",
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                })
+                # Bypassing AI Planner (R03 Elite: Minimal Latency)
+                # Apply standard filters even in normal mode for better stock quality
+                base_query = primary if primary else title
+                queries = [f"{base_query} -text -word -typography -quote -infographic"]
+                logger.info(f"[AssetHunter] Normal Mode: Using direct keywords {queries}")
+            else:
+                try:
+                    prompt = (
+                        f"Title: {title}\n"
+                        f"Primary Keyword: {primary}\n"
+                        f"Secondary Keywords: {', '.join(secondary)}\n"
+                        f"Persona: {persona}\n"
+                        f"Content Mode: {content_mode.upper()}"
+                    )
+                    result = await trinity_bridge.run(self.planner_agent, prompt, session_id=campaign.id)
+                    plan: VisualSearchPlan = result.data if hasattr(result, "data") else result.output
+                    queries: List[str] = plan.queries
+                    logger.info(f"[AssetHunter] AI Planner queries: {queries}")
+                except Exception as e:
+                    logger.error(f"[AssetHunter] AI planning failed, fallback to keywords: {e}")
+                    queries = [primary if primary else title]
 
             # Step 2.2: Multi-Query Search & Deduplication
             all_urls = []

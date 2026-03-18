@@ -300,6 +300,10 @@ class CreativePen:
             paras_per_section = 4 # Allow more depth for analytical content
             total_para_limit = max_sections * 5
             mode_instruction = "Viết chi tiết, phân tích sâu sắc, cung cấp nhiều giá trị chuyên môn."
+        elif content_mode == "normal":
+            paras_per_section = 2
+            total_para_limit = max_sections * 3
+            mode_instruction = "Viết theo phong cách báo chí, tin tức, khách quan và chuyên nghiệp."
         else:
             # Roughly 1-2 paragraphs per segment to keep total paragraph count under control
             paras_per_section = 1 if max_sections >= 8 else 2

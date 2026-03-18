@@ -85,6 +85,8 @@ class VisionInsight:
         mode_instruction = ""
         if content_mode == "deep_dive":
             mode_instruction = "\n[CHẾ ĐỘ: PHÂN TÍCH SÂU] Bắt buộc word_count >= 1000, max_sections >= 6, style='Hàn lâm/Chuyên gia'."
+        elif content_mode == "normal":
+            mode_instruction = "\n[CHẾ ĐỘ: THÔNG THƯỜNG] Bắt buộc word_count ~ 500, max_sections ~ 3, style='Chuyên nghiệp/Tin tức'."
         else:
             mode_instruction = "\n[CHẾ ĐỘ: VIRAL] Bắt buộc word_count ~ 500, max_sections ~ 3, style='Sắc sảo/Viral'."
 
