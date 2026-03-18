@@ -1,120 +1,190 @@
 <script lang="ts">
-  import { fade, scale } from "svelte/transition";
-
-  interface Props {
-    size?: "sm" | "md" | "lg" | "xl" | "hero";
-    status?: "IDLE" | "THINKING" | "SPEAKING" | "ERROR" | "SUCCESS";
-    interactive?: boolean;
-    className?: string;
-  }
+  /**
+   * XohiLogo.svelte - DEFINITIVE BRAND UNIT 2026
+   * One file. One size. One color. One vision.
+   */
+  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { scale, fade } from "svelte/transition";
+  import { vuiState } from "$lib/vui";
 
   let { 
-    size = "md", 
-    status = "IDLE", 
+    variant = "simple", // "hero" | "header" | "watermark" | "simple"
+    size = 0, // override
     interactive = false,
-    className = "" 
-  }: Props = $props();
+    status = "", // override
+    className = ""
+  } = $props<{
+    variant?: "hero" | "header" | "watermark" | "simple";
+    size?: number | "sm" | "md" | "lg" | "xl" | "hero";
+    interactive?: boolean;
+    status?: string;
+    className?: string;
+  }>();
 
-  // 2026 AI Color Palette - Minimalist & Elegant
-  const theme = {
-    IDLE: { core: "#00E5FF", glow: "rgba(0, 229, 255, 0.4)" },
-    THINKING: { core: "#FF00FF", glow: "rgba(255, 0, 255, 0.6)" },
-    SPEAKING: { core: "#00FF41", glow: "rgba(0, 255, 65, 0.6)" },
-    ERROR: { core: "#FF3131", glow: "rgba(255, 49, 49, 0.6)" },
-    SUCCESS: { core: "#FFD700", glow: "rgba(255, 215, 0, 0.6)" }
+  // Unified State Mapping
+  const localStatus = $derived(status || nanobot?.nanoBotStatus || "IDLE");
+  const phase = $derived(vuiState.phase);
+  const volume = $derived(vuiState.volume);
+  const speechProb = $derived(vuiState.speechProb);
+
+  // Standard Dimension Map
+  const sizeMap = {
+    hero: 240,
+    watermark: 240,
+    header: 36,
+    simple: 80,
+    sm: 32,
+    md: 48,
+    lg: 80,
+    xl: 128
   };
 
-  const dimensions = {
-    sm: "w-8 h-8",
-    md: "w-12 h-12",
-    lg: "w-20 h-20",
-    xl: "w-32 h-32",
-    hero: "w-48 h-48"
-  };
+  const svgSize = $derived(
+    typeof size === 'number' && size > 0 ? size : (sizeMap[size] || sizeMap[variant] || 80)
+  );
 
-  let activeTheme = $derived(theme[status] || theme.IDLE);
-  let isHovered = $state(false);
+  // Unified Identity Color - 100% Neural Cyan (Elite Standard)
+  const BRAND_COLOR = "var(--color-neon-cyan-raw)";
+  const ERROR_COLOR = "var(--color-alert-red-raw)";
+
+  let activeColor = $derived(
+    phase === 'error' || localStatus === 'ERROR' ? ERROR_COLOR : BRAND_COLOR
+  );
+
+  // Status Animation Logic (Monochromatic but Alive)
+  let rotationSpeed = $derived((phase === 'thinking' || localStatus === 'THINKING') ? '3s' : '25s');
+  let dynamicScale = $derived(1 + (phase === 'speaking' ? volume * 0.2 : phase === 'listening' ? volume * 0.05 : 0));
+  let glowOpacity = $derived(variant === "watermark" ? "0.15" : "0.5");
+
+  function handleClick() {
+    if (interactive || variant === "header") {
+      if (localStatus === "IDLE") {
+        nanobot?.startRecording();
+      } else {
+        nanobot?.setVuiActive(true);
+      }
+    }
+  }
 </script>
 
 <div 
-  class="relative flex items-center justify-center {dimensions[size]} {className} group"
-  onmouseenter={() => interactive && (isHovered = true)}
-  onmouseleave={() => interactive && (isHovered = false)}
+  class="relative flex items-center justify-center transition-all duration-700 {interactive || variant === 'header' ? 'cursor-pointer active:scale-95 group' : 'pointer-events-none'} {className}"
+  style="width: {svgSize}px; height: {svgSize}px; transform: scale({dynamicScale});"
+  onclick={handleClick}
   role="presentation"
 >
-  <!-- SVG QUANTUM CORE (Streamlined) -->
-  <svg 
-    viewBox="0 0 100 100" 
-    class="absolute inset-0 w-full h-full overflow-visible drop-shadow-[0_0_15px_{activeTheme.glow}]"
+  <svg
+    width={svgSize}
+    height={svgSize}
+    viewBox="0 0 280 280"
+    fill="none"
+    class="transition-all duration-1000"
+    style="filter: drop-shadow(0 0 {svgSize/10}px rgba({activeColor}, {glowOpacity}))"
   >
-    <!-- Neural Data Processing (Minimalist Dots) -->
-    <g class="neural-processing">
-      <!-- Fast Inner Particles -->
-      <circle 
-        cx="50" cy="50" r="42" 
-        stroke={activeTheme.core} 
-        stroke-width="1.5" 
-        fill="none" 
-        stroke-dasharray="2 15" 
-        class="animate-data-flow"
-        opacity="0.4"
-      />
-      <!-- Slow Outer Pulse Particles -->
-      <circle 
-        cx="50" cy="50" r="39" 
-        stroke={activeTheme.core} 
-        stroke-width="0.5" 
-        fill="none" 
-        stroke-dasharray="1 8" 
-        class="animate-pulse-magnetic"
-      />
+    <defs></defs>
+
+    <!-- Outer Diamond Ring -->
+    <rect
+      x="50" y="50" width="180" height="180" rx="28"
+      stroke="rgb({activeColor})"
+      stroke-width={svgSize < 50 ? "4" : (variant === "hero" ? "2" : "1.5")}
+      stroke-opacity={variant === "watermark" ? "0.2" : "0.5"}
+      fill="none"
+      class="logo-ring-outer"
+      style="animation: spin {rotationSpeed} linear infinite"
+    />
+
+    <!-- Inner Diamond Ring -->
+    <rect
+      x="75" y="75" width="130" height="130" rx="20"
+      stroke="rgb({activeColor})"
+      stroke-width={svgSize < 50 ? "3" : (variant === "hero" ? "1.5" : "1")}
+      stroke-opacity={variant === "watermark" ? "0.15" : "0.4"}
+      fill="none"
+      class="logo-ring-inner"
+      style="animation: spin-reverse {rotationSpeed} linear infinite"
+    />
+
+    <!-- Central Core (STATIONARY PER SẾP'S ORDER) -->
+    <g class="logo-core">
+      <circle cx="140" cy="140" r="38" fill="black" fill-opacity="0.8" />
+      <circle cx="140" cy="140" r="35" fill="rgb({activeColor})" fill-opacity={svgSize < 50 ? "0.2" : "0.1"} class:thinking-pulse={phase === 'thinking' || localStatus === 'THINKING'} />
+      
+      <text
+        x="140" y="155"
+        text-anchor="middle"
+        class="font-mono font-black select-none"
+        class:thinking-shimmer={phase === 'thinking' || localStatus === 'THINKING'}
+        style="fill: rgb({activeColor}); font-size: {svgSize < 50 ? '54px' : '42px'}; filter: drop-shadow(0 0 {svgSize < 50 ? '4px' : '12px'} rgba({activeColor}, 0.8))"
+      >
+        X
+      </text>
+
+      <circle cx="140" cy="140" r="32" stroke="rgb({activeColor})" stroke-width={svgSize < 50 ? "3" : "2"} fill="none" opacity="0.6" />
     </g>
 
-    <!-- Core Shadow -->
-    <circle cx="50" cy="50" r="35" fill="black" />
+    <!-- Accent Dots -->
+    <g opacity={(phase !== 'idle' || localStatus !== 'IDLE') ? '1' : '0.4'}>
+      <circle cx="140" cy="16" r="4" fill="rgb({activeColor})">
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="264" cy="140" r="4" fill="rgb({activeColor})" />
+      <circle cx="140" cy="264" r="4" fill="rgb({activeColor})" />
+      <circle cx="16" cy="140" r="4" fill="rgb({activeColor})" />
+    </g>
   </svg>
 
-  <!-- THE MASTER ICON (HAMSTER) -->
-  <div 
-    class="relative w-[70%] h-[70%] rounded-full overflow-hidden transition-all duration-700 {isHovered ? 'scale-110' : 'scale-100'}"
-    style="clip-path: circle(50%)"
-  >
-    <img 
-      src="/hamster-icon.png" 
-      alt="Xohi AI" 
-      class="w-full h-full object-cover {status === 'THINKING' ? 'animate-pulse contrast-125 saturate-150' : ''}"
-      style="filter: drop-shadow(0 0 8px {activeTheme.glow})"
-    />
-  </div>
-
-  <!-- Orbital Scanning Node (Elegant Single Point) -->
-  <div class="absolute inset-0 animate-spin-slow pointer-events-none">
-    <div 
-      class="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
-      style="background: {activeTheme.core}; box-shadow: 0 0 10px {activeTheme.core}"
-    ></div>
-  </div>
+  <!-- Status Label (Variant: Header Only) -->
+  {#if variant === "header" && localStatus !== "IDLE"}
+    <div
+      in:scale={{ duration: 200 }}
+      class="absolute -top-7 left-1/2 -translate-x-1/2 text-[7px] font-black tracking-widest uppercase whitespace-nowrap px-2 py-0.5 rounded-full bg-black/80 border border-white/10 {localStatus === 'ERROR' ? 'text-alert-red' : 'text-neon-cyan'} shadow-glow-sm"
+    >
+      {localStatus}
+    </div>
+  {/if}
 </div>
 
 <style>
-  .animate-data-flow {
-    animation: spin 8s linear infinite;
-  }
-  .animate-pulse-magnetic {
-    animation: pulse-magnetic 4s ease-in-out infinite;
-    transform-origin: center;
-  }
-  .animate-spin-slow {
-    animation: spin 20s linear infinite;
+  .logo-ring-outer, .logo-ring-inner {
+    transform-origin: 140px 140px;
   }
 
-  @keyframes pulse-magnetic {
-    0%, 100% { transform: scale(1); opacity: 0.1; }
-    50% { transform: scale(1.05); opacity: 0.5; }
+  .logo-core {
+    transform-origin: 140px 140px;
   }
 
   @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from { transform: rotate(45deg); }
+    to { transform: rotate(405deg); }
+  }
+
+  @keyframes spin-reverse {
+    from { transform: rotate(45deg); }
+    to { transform: rotate(-315deg); }
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  .thinking-shimmer {
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+
+  .thinking-pulse {
+    animation: thinking-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0%, 100% { opacity: 1; filter: brightness(1) drop-shadow(0 0 12px rgba(var(--color-neon-cyan-raw), 0.8)); }
+    50% { opacity: 0.7; filter: brightness(1.5) drop-shadow(0 0 20px rgba(var(--color-neon-cyan-raw), 1)); }
+  }
+
+  @keyframes thinking-pulse {
+    0% { opacity: 0.2; }
+    50% { opacity: 0.4; }
+    100% { opacity: 0.2; }
   }
 </style>

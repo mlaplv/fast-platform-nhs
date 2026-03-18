@@ -143,11 +143,6 @@
            <div class="absolute inset-0 opacity-0 group-hover:opacity-40 bg-red-500/20 blur-xl transition-all duration-500 -z-10"></div>
         </div>
       </button>
-           
-           <!-- Modern Red Glow on Hover -->
-           <div class="absolute inset-0 opacity-0 group-hover:opacity-40 bg-red-500/20 blur-xl transition-all duration-500 -z-10"></div>
-        </div>
-      </button>
 
       <!-- VUI Content (Centered GPT-style) -->
       <div class="{nanobot.isExpanded ? 'absolute inset-0 block overflow-hidden' : 'absolute inset-0 flex justify-center items-center overflow-hidden p-4'}">

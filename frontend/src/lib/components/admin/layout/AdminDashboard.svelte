@@ -3,6 +3,7 @@
   import ToastNotification from "$lib/components/admin/ui/ToastNotification.svelte";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { vuiController } from "$lib/vui";
+  import XohiLogo from "$lib/components/admin/XohiLogo.svelte";
 
   let { children, userEmail, isMobile } = $props<{
     children?: import("svelte").Snippet;
