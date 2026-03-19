@@ -377,17 +377,20 @@
       const currentAvatar = viewingStep === 2 ? (xohiImageStore.primaryAsset?.file_path || xohiImageStore.primaryAsset?.url) : selectedAvatarUrl;
 
       // Rule R109: REST Alignment — Use keys expected by ActionHandler.update_metadata
-      await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, {
+      const payload = {
         assets: currentAssets, // Backend expects 'assets' NOT 'assets_data' in PATCH alias
         avatar: currentAvatar || selectedAvatarUrl,
         selected_index: newIndex ?? selectedAssetIndex,
-        gold_metadata: { reserve_assets } // R120: Persist reserve list
-      });
+        reserve_assets: reserve_assets // R120: Persist reserve list
+      };
+      
+      await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, payload);
       // Phase 73.12: Predictive Global Sync for Assets
       nanobot.updateCurrentData({
         assets: currentAssets,
         selectedAvatarUrl: currentAvatar || selectedAvatarUrl,
-        selectedAssetIndex: newIndex ?? selectedAssetIndex
+        selectedAssetIndex: newIndex ?? selectedAssetIndex,
+        reserve_assets: reserve_assets
       });
     } catch (e) { console.error("Sync failed:", e); }
   }

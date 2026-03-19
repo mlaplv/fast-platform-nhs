@@ -29,6 +29,11 @@
   }
 
   let safelyMutableData = $state(createSafeData(data));
+  
+  // CNS V75.6: Session-based Awareness Set
+  // We track every URL/ID ever seen in this session to distinguish 
+  // between "New AI Discovery" and "Old Stale Pulse (after deletion)".
+  let historicalSeen = $state(new Set<string>());
 
   $effect(() => {
     // CNS V75.3: Robust Pulse Sync Engine (Dual Property Support)
@@ -37,9 +42,20 @@
     if (data && sourceId) {
       if (sourceId !== safelyMutableData.campaign_id) {
         safelyMutableData = createSafeData(data);
+        historicalSeen.clear(); // Reset awareness for new campaign
       } else {
+        // Phase 1: Update Awareness Set from local state
+        // This ensures the UI "remembers" what the user just deleted.
+        safelyMutableData.assets?.forEach((a: any) => {
+          const url = typeof a === 'string' ? a : (a.file_path || a.url);
+          if (url) historicalSeen.add(url);
+        });
+        safelyMutableData.reserve_assets?.forEach((url: any) => {
+          const u = typeof url === 'string' ? url : (url.file_path || url.url);
+          if (u) historicalSeen.add(u);
+        });
+
         // Deep reactive sync for progress-related fields
-        // Rule R109: Normalize 'current_step' to 'step' for UI consistency
         const nextStep = data.current_step ?? data.step;
         if (nextStep !== undefined && nextStep !== safelyMutableData.step) {
           safelyMutableData.step = nextStep;
@@ -65,17 +81,26 @@
           }
         }
         
-        // Sync assets if they were updated via background task
-        if (data.assets && JSON.stringify(data.assets) !== JSON.stringify(safelyMutableData.assets)) {
-           safelyMutableData.assets = [...data.assets];
+        // CNS V75.7: Intelligent Merging with Awareness
+        // We only ADD items that have NEVER been seen in this session.
+        // This effectively ignores "Undelete" pulses while allowing "New AI" assets.
+        if (data.assets && Array.isArray(data.assets)) {
+           const newAssets = data.assets.filter(a => !historicalSeen.has(a.file_path || a.url));
+           if (newAssets.length > 0) {
+             safelyMutableData.assets = [...safelyMutableData.assets, ...newAssets];
+             newAssets.forEach(a => historicalSeen.add(a.file_path || a.url));
+           }
         }
         
-        // Phase 73.11: Sync Reserve Assets
-        if (data.reserve_assets && JSON.stringify(data.reserve_assets) !== JSON.stringify(safelyMutableData.reserve_assets)) {
-          safelyMutableData.reserve_assets = [...data.reserve_assets];
+        if (data.reserve_assets && Array.isArray(data.reserve_assets)) {
+          const newReserves = data.reserve_assets.filter(url => !historicalSeen.has(url));
+          if (newReserves.length > 0) {
+            safelyMutableData.reserve_assets = [...safelyMutableData.reserve_assets, ...newReserves];
+            newReserves.forEach(url => historicalSeen.add(url));
+          }
         }
 
-        // Phase 73.11: Sync Analysis Cache & Metrics
+        // Phase 73.11: Sync Analysis Cache & Metrics (Always sync as they are server-driven)
         if (data.analysis_cache && JSON.stringify(data.analysis_cache) !== JSON.stringify(safelyMutableData.analysis_cache)) {
           safelyMutableData.analysis_cache = data.analysis_cache;
         }

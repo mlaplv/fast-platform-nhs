@@ -168,7 +168,8 @@ export function createXohiImageState() {
                 {
                     action: mode === 'ai' ? 'smart_crop' : 'crop',
                     params: { preset },
-                    source_url: asset.file_path || asset.url
+                    source_url: asset.file_path || asset.url,
+                    campaign_id: campaignId
                 }
             );
 

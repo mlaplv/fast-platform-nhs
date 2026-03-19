@@ -267,7 +267,8 @@ class MediaController(Controller):
             data.action,
             params=data.params,
             owner_id=owner_id,
-            source_url=data.source_url
+            source_url=data.source_url,
+            campaign_id=data.campaign_id
         )
 
         if asset:

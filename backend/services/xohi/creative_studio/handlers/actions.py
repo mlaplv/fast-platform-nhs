@@ -58,6 +58,8 @@ class ActionHandler:
                     if avatar: gold["avatar"] = avatar
                     if selected_index is not None: gold["selected_index"] = selected_index
                     campaign.gold_metadata = gold
+                    from sqlalchemy.orm.attributes import flag_modified
+                    flag_modified(campaign, "gold_metadata")
 
             if step == 1:
                 campaign.gold_metadata = campaign.topic_data  # Golden Thread sealed after Step 1 approval
@@ -215,24 +217,37 @@ class ActionHandler:
         if not campaign:
             return GenericResponse(status="error", message="Campaign not found")
 
-        for field in ["assets", "keywords", "outline_data", "draft_content", "final_html"]:
+        # Unified Gold Metadata Update Logic (Phase 73.15)
+        gold = dict(campaign.gold_metadata or {})
+        gold_changed = False
+
+        logger.info(f"[ActionHandler] Updating metadata for {campaign_id}. Data: {data.keys()}")
+
+        for field in ["assets", "keywords", "outline_data", "draft_content", "final_html", "reserve_assets", "avatar", "selected_index"]:
             val = data.get(field)
             if val is not None:
                 if field == "assets": campaign.assets_data = val
+                elif field == "reserve_assets":
+                    gold["reserve_assets"] = val
+                    gold_changed = True
+                elif field == "avatar":
+                    gold["avatar"] = val
+                    gold_changed = True
+                elif field == "selected_index":
+                    gold["selected_index"] = val
+                    gold_changed = True
                 elif field == "keywords": campaign.topic_data = val
                 elif field == "outline_data": campaign.outline_data = val
                 elif field == "draft_content": campaign.draft_content = val
                 elif field == "final_html": campaign.final_html = val
 
-        avatar = data.get("avatar")
-        selected_index = data.get("selected_index")
-        if avatar or selected_index is not None:
-            gold = dict(campaign.gold_metadata or {})
-            if avatar: gold["avatar"] = avatar
-            if selected_index is not None: gold["selected_index"] = selected_index
+        if gold_changed:
             campaign.gold_metadata = gold
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(campaign, "gold_metadata")
 
         await campaign_repo.update(campaign)
         if hasattr(campaign_repo, "session"):
             await campaign_repo.session.commit()
+            logger.info(f"[ActionHandler] Sync complete for {campaign_id}")
         return GenericResponse(status="success", message="Neural data synchronized.", data={"campaign_id": campaign_id})

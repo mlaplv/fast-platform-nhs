@@ -373,7 +373,8 @@ class MediaService:
         action: str, 
         params: Optional[QuickEditParams] = None, 
         owner_id: Optional[str] = None,
-        source_url: Optional[str] = None
+        source_url: Optional[str] = None,
+        campaign_id: Optional[str] = None
     ) -> Optional[MediaRegistry]:
         """Thực hiện xử lý nhanh (Xoay/Lật/Crop/Watermark) - V10.0 Elite."""
         import os
@@ -387,7 +388,7 @@ class MediaService:
             # V75: If not found, try to register on the fly if source_url is provided
             if source_url:
                 logger.info(f"[QuickEdit] Asset {asset_id} not found, registering from source_url: {source_url}")
-                asset = await self.fetch_remote_asset(repo, source_url, owner_id=owner_id)
+                asset = await self.fetch_remote_asset(repo, source_url, owner_id=owner_id, campaign_id=campaign_id)
                 if not asset:
                     logger.error(f"[QuickEdit] Failed to register asset on the fly from {source_url}")
                     return None

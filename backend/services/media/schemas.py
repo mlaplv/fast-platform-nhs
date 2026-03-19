@@ -123,6 +123,7 @@ class QuickEditRequest(BaseModel):
     action: str
     params: Optional[QuickEditParams] = None
     source_url: Optional[str] = None # V75: Support on-the-fly registration
+    campaign_id: Optional[str] = None # V76: Pass context for AI bypass logic
 
 class BulkDeleteRequest(BaseModel):
     model_config = ConfigDict(strict=True)

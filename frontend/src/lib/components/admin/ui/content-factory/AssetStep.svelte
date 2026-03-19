@@ -335,7 +335,7 @@
       <div
         class="flex gap-4 overflow-x-auto overflow-y-hidden pb-4 pt-1 px-1 -mx-1 custom-scrollbar-horizontal snap-x snap-mandatory"
       >
-        {#each reserve_assets as url, i}
+        {#each reserve_assets as url, i (url)}
           <div
             class="flex-shrink-0 w-[80px] md:w-[100px] lg:w-[120px] snap-start"
           >
@@ -371,13 +371,21 @@
 
               <!-- Delete button for reserve assets -->
               <button
-                onclick={(e) => {
+                class="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white/60 hover:bg-red-500 hover:text-white opacity-0 group-hover/reserve:opacity-100 transition-all z-20 cursor-pointer"
+                onclick={async (e) => {
                   e.stopPropagation();
-                  reserve_assets = reserve_assets.filter((_, idx) => idx !== i);
-                  syncAssetChanges();
-                  vuiController.speak("Đã xóa khỏi kho dự phòng.");
+                  try {
+                    reserve_assets = (reserve_assets as string[]).filter((_, idx) => idx !== i);
+                    
+                    const { tick } = await import("svelte");
+                    await tick(); 
+                    
+                    syncAssetChanges();
+                    vuiController.speak("Đã xóa khỏi kho dự phòng.");
+                  } catch (err) {
+                    console.error("[AssetStep] Delete failed", err);
+                  }
                 }}
-                class="absolute top-2 right-2 p-1.5 rounded-full bg-black/40 text-white/40 hover:bg-red-500 hover:text-white opacity-0 group-hover/reserve:opacity-100 transition-all"
               >
                 <Trash2 size={12} />
               </button>

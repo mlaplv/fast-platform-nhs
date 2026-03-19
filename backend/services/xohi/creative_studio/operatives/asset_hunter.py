@@ -163,7 +163,7 @@ class AssetHunter:
             async def _check_url(url: str) -> Optional[str]:
                 if not url.startswith("https://"): return None
 
-                skip_domains = ["ytimg.com", "img.youtube.com", "vimeo.com", "fbsbx.com", "fbcdn.net", "licdn.com"]
+                skip_domains = ["ytimg.com", "img.youtube.com", "vimeo.com", "fbsbx.com", "fbcdn.net", "instagram.com", "lookaside.instagram.com", "licdn.com"]
                 if any(domain in url.lower() for domain in skip_domains): return None
 
                 async with sem:

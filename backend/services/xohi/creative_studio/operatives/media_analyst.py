@@ -128,7 +128,7 @@ class MediaAnalyst:
 
                     # --- REAL-TIME NOTIFICATION (V65.0) ---
                     # Emit event to InternalBus so SSE can pick it up
-                    event_bus.emit("MEDIA_ANALYZED", {
+                    await event_bus.emit("MEDIA_ANALYZED", {
                         "type": "MEDIA_ANALYZED",
                         "id": entry.id,
                         "campaign_id": entry.campaign_id,
