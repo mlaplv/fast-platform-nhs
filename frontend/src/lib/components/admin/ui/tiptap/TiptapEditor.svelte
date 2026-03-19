@@ -219,7 +219,7 @@
     internalFullScreen
       ? 'fixed inset-0 z-[99999] bg-[#0a0d14]'
       : (editable
-          ? 'bg-[#0d1117] border ' + (isFocused ? 'border-blue-500/40' : 'border-white/10') + ' overflow-hidden shadow-2xl'
+          ? 'bg-transparent border ' + (isFocused ? 'border-blue-500/40' : 'border-white/10') + ' shadow-2xl'
           : 'bg-transparent border-none overflow-visible')
   } transition-all duration-300 rounded-none`);
 
@@ -374,11 +374,11 @@
   {/if}
 
   <div
-    class="flex-1 overflow-y-auto document-scroll {internalFullScreen ? 'bg-[#0a0d14]' : 'bg-[#0d1117] p-6'}"
+    class="flex-1 overflow-y-auto document-scroll {internalFullScreen ? 'bg-[#0a0d14]' : 'bg-transparent'}"
     onmouseleave={() => { if (!isFixing) tooltipVisible = false; }}
   >
     <div class="
-      {internalFullScreen ? 'max-w-4xl mx-auto my-0 bg-[#0f172a] min-h-screen px-20 py-16 border-x border-white/5' : 'max-w-4xl mx-auto my-8 bg-[#111827] shadow-2xl min-h-[700px] px-16 py-12 border border-white/5'}
+      {internalFullScreen ? 'max-w-4xl mx-auto my-0 bg-[#0f172a] min-h-screen px-20 py-16 border-x border-white/5' : 'w-full bg-transparent min-h-[400px] px-6 py-4'}
       {!editable ? 'cursor-default' : ''}
     ">
       <div bind:this={element} class="tiptap-content prose prose-invert max-w-none {!editable ? 'opacity-90' : ''}"></div>

@@ -3,18 +3,38 @@
   import { ShieldCheck, BarChart2, Sparkles } from "lucide-svelte";
   import TiptapEditor from "../tiptap/TiptapEditor.svelte";
   import CheckResultPanel from "./CheckResultPanel.svelte";
+  import { purifyAIContent } from "$lib/utils/purify";
 
   import { apiClient } from "$lib/utils/apiClient";
+  import type { EditorAnnotation } from "$lib/types";
   import type {
-    EditorAnnotation,
     MediaAsset,
     CampaignOutline,
     CampaignSection,
+    CampaignMetrics,
+    AnalysisCache,
+    AnalysisAnnotation,
     CopyrightResult,
     SEOResult,
-    AIInspectResult,
-    AnalysisAnnotation
-  } from "$lib/types";
+    AIInspectResult
+  } from "$lib/state/types";
+
+  interface Props {
+    campaign_id: string;
+    isEditing: boolean;
+    editedDraft: string;
+    draft_content: string;
+    outline: CampaignOutline;
+    assets: (MediaAsset | string)[];
+    isExpanded: boolean;
+    editorRef?: TiptapEditor | null;
+    analysis_cache: AnalysisCache;
+    analysis_metrics: CampaignMetrics;
+    copyrightScore: number;
+    seoScore: number;
+    aiScore: number;
+    isProcessing?: boolean;
+  }
 
   let {
     campaign_id,
@@ -25,12 +45,13 @@
     assets = [] as (MediaAsset | string)[],
     isExpanded,
     editorRef = $bindable(),
-    analysis_cache = {} as Record<string, { data: CopyrightResult | SEOResult | AIInspectResult }>,
-    analysis_metrics = {} as Record<string, unknown> & { last_analyzed?: string },
+    analysis_cache = {} as AnalysisCache,
+    analysis_metrics = {} as CampaignMetrics,
     copyrightScore = $bindable(),
     seoScore = $bindable(),
-    aiScore = $bindable()
-  } = $props();
+    aiScore = $bindable(),
+    isProcessing = false
+  }: Props = $props();
 
   function fixUrl(url: string | null): string {
     if (!url) return "";
@@ -78,7 +99,8 @@
       });
       base = base.replace(/\[IMAGE_\d+\]/g, "");
     }
-    return base || "";
+    // Final Purification (Senior Architect V2026)
+    return purifyAIContent(base);
   });
 
   // -- Analysis States --
@@ -108,6 +130,17 @@
   $effect(() => { if (_copyrightScore !== null) copyrightScore = _copyrightScore; });
   $effect(() => { if (_seoScore !== null) seoScore = _seoScore; });
   $effect(() => { if (_aiScore !== null) aiScore = _aiScore; });
+ 
+  // -- Time Formatting (Senior Architect V2026) --
+  let lastAnalyzedTime = $derived.by(() => {
+    const val = analysis_metrics?.last_analyzed;
+    if (!val) return null;
+    try {
+      return new Date(val as string).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return null;
+    }
+  });
 
   // -- Gate Conditions --
   let seoLocked = $derived(_copyrightScore === null || _copyrightScore < 90);
@@ -361,7 +394,7 @@
   );
 </script>
 
-<div class="flex-1 overflow-hidden flex flex-col gap-3">
+<div class="p-5 md:p-8 space-y-4 flex flex-col">
   <!-- Studio Label -->
   <div class="flex items-center gap-3 shrink-0">
     <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-purple-500/50"></div>
@@ -378,15 +411,31 @@
       {@const ac = _aiScore >= 85 ? 'text-purple-400' : _aiScore >= 65 ? 'text-fuchsia-400' : 'text-red-400'}
       <span class="text-[9px] font-black uppercase {ac}">· AI {_aiScore}%</span>
     {/if}
-    {#if analysis_metrics?.last_analyzed}
+    {#if lastAnalyzedTime}
       <span class="text-[8px] font-medium text-white/20 ml-auto">
-        Lân cuối: {new Date(analysis_metrics.last_analyzed).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+        Lân cuối: {lastAnalyzedTime}
       </span>
     {/if}
   </div>
 
   <!-- Editor -->
-  <div class="flex-1 flex flex-col relative transition-all overflow-hidden min-h-0 {isEditing ? 'border border-white/10 shadow-2xl ring-2 ring-purple-500/30 bg-black/40' : 'bg-transparent'}">
+  <div class="flex flex-col relative transition-all {isEditing ? 'border border-white/10 shadow-2xl ring-2 ring-purple-500/30 bg-black/40' : 'bg-transparent'}">
+    {#if isProcessing && !displayContent}
+      <div class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-700">
+        <div class="relative">
+          <div class="w-20 h-20 rounded-full border-t-2 border-r-2 border-purple-500/40 animate-spin"></div>
+          <div class="absolute inset-0 m-auto w-12 h-12 bg-purple-500/10 rounded-full blur-xl animate-pulse"></div>
+        </div>
+        <div class="mt-8 flex flex-col items-center gap-2">
+          <span class="text-[10px] font-black uppercase tracking-[0.3em] text-purple-400/80 animate-pulse">AI đang chấp bút bản thảo</span>
+          <div class="flex gap-1">
+             <div class="w-1 h-1 rounded-full bg-purple-500/40 animate-bounce" style="animation-delay: 0s"></div>
+             <div class="w-1 h-1 rounded-full bg-purple-500/40 animate-bounce" style="animation-delay: 0.1s"></div>
+             <div class="w-1 h-1 rounded-full bg-purple-500/40 animate-bounce" style="animation-delay: 0.2s"></div>
+          </div>
+        </div>
+      </div>
+    {/if}
     <TiptapEditor
       bind:this={editorRef}
       content={displayContent}
@@ -575,4 +624,7 @@
   :global(.custom-scrollbar::-webkit-scrollbar) { width: 3px; }
   :global(.custom-scrollbar::-webkit-scrollbar-thumb) { background: rgba(59,130,246,0.1); border-radius: 0; }
   :global(.custom-scrollbar::-webkit-scrollbar-thumb:hover) { background: rgba(59,130,246,0.6); }
+
+  @keyframes shimmer { 0% { opacity: 0.3; } 50% { opacity: 0.7; } 100% { opacity: 0.3; } }
+  .animate-pulse { animation: shimmer 2s infinite ease-in-out; }
 </style>

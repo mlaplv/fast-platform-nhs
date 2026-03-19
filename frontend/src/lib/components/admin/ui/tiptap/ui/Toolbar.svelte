@@ -60,7 +60,7 @@
   }
 </script>
 
-<div class="flex flex-wrap items-center gap-0.5 px-2 py-1.5 bg-white/[0.03] border-b border-white/5 pb-2">
+<div class="sticky top-0 z-[100] flex flex-wrap items-center gap-0.5 px-2 py-1.5 bg-black/90 backdrop-blur-xl border-b border-white/5 pb-2">
   <!-- History -->
   <button onclick={() => editor?.chain().focus().undo().run()} class="tb-btn" title="Undo"><UndoIcon size={13} /></button>
   <button onclick={() => editor?.chain().focus().redo().run()} class="tb-btn" title="Redo"><RedoIcon size={13} /></button>
@@ -177,21 +177,8 @@
       </button>
     {/if}
 
-    {#if onToggleFullScreen}
-      <button
-        onclick={onToggleFullScreen}
-        class="flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide border transition-all bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white active:scale-95"
-        title={fullScreen ? "Thu nhỏ (Esc)" : "Toàn màn hình"}
-      >
-        {#if fullScreen}
-          <MinimizeIcon size={10} />
-          Exit
-        {:else}
-          <MaximizeIcon size={10} />
-          Full
-        {/if}
-      </button>
-    {/if}
+    <!-- Phase 78: Full Screen button removed per user request -->
+
 
     {#if onClean}
       <button

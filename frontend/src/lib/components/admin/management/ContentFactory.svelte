@@ -196,7 +196,6 @@
   }
 
   function resumeCampaign(campaign: CampaignData) {
-    nanobot.closeUniversalModal();
     nanobot.resumeCampaign(campaign as unknown as Record<string, unknown>);
   }
 

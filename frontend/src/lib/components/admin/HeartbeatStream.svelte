@@ -420,15 +420,19 @@
                       Giai đoạn {log.data.step || 1}
                     </span>
                   </div>
-                  <button
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      nanobot.resumeCampaign(log);
-                    }}
-                    class="shrink-0 text-[11px] font-bold tracking-tight px-4 py-1.5 bg-white text-black rounded-full hover:bg-neon-cyan transition-all active:scale-95 shadow-lg"
-                  >
-                    MỞ DUYỆT
-                  </button>
+                  <!-- Phase 42.1: Resume Icon Button for small cards -->
+                  {#if log.data?.campaign_id}
+                    <button 
+                      class="shrink-0 text-[11px] font-bold tracking-tight px-4 py-1.5 bg-white text-black rounded-full hover:bg-neon-cyan transition-all active:scale-95 shadow-lg"
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        nanobot.resumeCampaign(log);
+                      }}
+                      title="Tiếp tục bài viết này"
+                    >
+                      MỞ DUYỆT
+                    </button>
+                  {/if}
                 </div>
               {/if}
             </div>
@@ -523,12 +527,14 @@
                         Sẵn sàng duyệt: Bước {log.data.step || 1}
                       </span>
                     </div>
-                    <button
-                      onclick={() => nanobot.resumeCampaign(log)}
-                      class="shrink-0 text-[10px] font-bold tracking-wider px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors shadow-lg shadow-blue-500/20"
-                    >
-                      RESUME
-                    </button>
+                    {#if log.data?.campaign_id}
+                      <button 
+                        class="shrink-0 text-[10px] font-bold tracking-wider px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors shadow-lg shadow-blue-500/20"
+                        onclick={() => nanobot.resumeCampaign(log)}
+                      >
+                        RESUME
+                      </button>
+                    {/if}
                   </div>
                 {/if}
               {/if}

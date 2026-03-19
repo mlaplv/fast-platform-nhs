@@ -66,6 +66,7 @@ export function createResumeManager(
         ? `/api/v1/content/campaigns/${campaignId}?user_id_query=${cleanUserId}`
         : `/api/v1/content/campaigns/${campaignId}`;
       const campaign = await apiClient.get<Record<string, unknown>>(url);
+      
       if (campaign?.id) {
         campaignData = {
           category: "CONTENT_CREATE",
@@ -94,7 +95,7 @@ export function createResumeManager(
       (logOrCampaign as SystemLog).message || (logOrCampaign as Record<string, unknown>).text as string || "Đang tiếp tục bài viết cũ...",
       "CONTENT_CREATE",
       { ...campaignData, isSilent },
-      isSilent ? "text" : "voice",
+      "text", // Force "text" so the backend does not mistakenly open VUI thinking it was a voice command
       (logOrCampaign as SystemLog).routerTier || 2
     );
 
@@ -155,21 +156,24 @@ export function createResumeManager(
          if (success) {
            log.addLog(`Neural Link Restored: Đã khôi phục bản thảo cho ${currentUserName}.`, "SYS", "success");
            cleanupGreeting();
+           vuiState.setActive(false); // Decouple: Close VUI immediately after welcoming the user!
          }
       };
 
       setTimeout(trySpeak, 1500);
     } else {
-      import("$lib/vui").then(({ vuiState }) => {
-        vuiState.setActive(true);
-        if (campaignData.status === "WAITING_FOR_REVIEW" || campaignData.category === "CONTENT_CREATE") {
-          vuiState.setPhase("idle");
-          vuiState.setIsWaitingForAction(true);
-        } else {
-          vuiState.setPhase("executing");
-          startSmartPolling();
-        }
-      });
+      if (campaignData.status === "WAITING_FOR_REVIEW" || campaignData.category === "CONTENT_CREATE" || campaignData.campaign_id) {
+         // Decoupled from VUI: Mở độc lập UniversalModal, KHÔNG dính dáng vuiState
+         import("$lib/vui").then(({ vuiState }) => {
+            vuiState.setActive(false);
+         });
+      } else {
+         import("$lib/vui").then(({ vuiState }) => {
+            vuiState.setActive(true);
+            vuiState.setPhase("executing");
+            startSmartPolling();
+         });
+      }
     }
     state.isResumingManually = false;
     log.closeFullLog();

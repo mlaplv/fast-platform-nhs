@@ -6,7 +6,7 @@
   import { vuiController } from "$lib/vui";
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
   import Header from "./content-factory/Header.svelte";
-  import Timeline from "./content-factory/Timeline.svelte";
+
   import IdeaStep from "./content-factory/IdeaStep.svelte";
   import AssetStep from "./content-factory/AssetStep.svelte";
   import OutlineStep from "./content-factory/OutlineStep.svelte";
@@ -18,9 +18,10 @@
   import TiptapEditor from "./tiptap/TiptapEditor.svelte";
   import type {
     CampaignKeywords,
-    CampaignMetrics,
     MediaAsset,
     CampaignOutline,
+    CampaignMetrics,
+    AnalysisCache,
     CopyrightResult,
     SEOResult,
     AIInspectResult
@@ -41,11 +42,7 @@
     selectedAvatarUrl: string | null;
     selectedAssetIndex: number;
     creation_config: Record<string, unknown>;
-    analysis_cache: {
-      copyright?: { data: CopyrightResult };
-      seo?: { data: SEOResult };
-      ai_inspect?: { data: AIInspectResult };
-    };
+    analysis_cache: AnalysisCache;
     analysis_metrics: CampaignMetrics;
   }
 
@@ -82,7 +79,6 @@
   });
 
   let isPublishing = $state(false);
-  let resultMsg = $state("");
   let customImageUrl = $state("");
   let editedKeywords = $state<CampaignKeywords>({});
   let editedConfig = $state<Record<string, unknown>>({});
@@ -189,29 +185,21 @@
     if (viewingStep < 1) viewingStep = 1;
   });
 
-  // Rule R82.42: Reactive Prep — Ensure editedDraft is ready for next steps
+  // Phase 73.9: Liquid State Sync (Guarded)
   $effect(() => {
-    // CNS V73.8: Expert Streaming Sync
-    // When generating (status === "PROCESSING") or viewing (isEditing === false), 
-    // we must sync the external draft_content (SSE/Pulse) to our local buffer.
     const source = draft_content || finalHtml || "";
-    
-    // Expert Optimizer: Always prioritize source if it's non-empty and has changed
-    // This fixed the "white screen" when streaming starts.
-    if (source && (isProcessing || !isEditing)) {
-      if (source !== editedDraft) {
-        untrack(() => {
-          editedDraft = source;
-          // Ensure draft_content itself is never empty if we have source
-          if (!draft_content) draft_content = source;
-        });
-      }
-    }
-    
-    // R102: Content integrity safeguard — Ensure draft_content is synchronized with source if missing
-    // But ONLY if source is actually a draft, not a fallback
-    if (!draft_content && source) {
-      untrack(() => { draft_content = source; });
+    const currentOutline = outline?.html || "";
+
+    if (isProcessing) {
+      // During processing, ALWAYS sync the AI output to the buffer
+      if (source && source !== editedDraft) editedDraft = source;
+      if (currentOutline && currentOutline !== editedOutline) editedOutline = currentOutline;
+    } else if (!isEditing) {
+      // When NOT editing and NOT processing, keep buffers in sync with props
+      untrack(() => {
+        if (source && source !== editedDraft) editedDraft = source;
+        if (currentOutline && currentOutline !== editedOutline) editedOutline = currentOutline;
+      });
     }
   });
 
@@ -272,6 +260,14 @@
           ? { ...editedKeywords, creation_config: editedConfig } 
           : { html: viewingStep === 3 ? editedOutline : editedDraft } 
       } : {};
+      const stepNames: Record<number, string> = {
+        1: "ý tưởng và từ khóa",
+        2: "các hình ảnh",
+        3: "dàn ý bài viết",
+        4: "bản thảo nội dung",
+        5: "kết quả kiểm tra",
+        6: "bài viết hoàn thiện"
+      };
       await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/approve`, payload);
       
       // Update local props to prevent $effect sync back to old values
@@ -286,14 +282,6 @@
       }
 
       isEditing = false;
-      const stepNames: Record<number, string> = {
-        1: "ý tưởng và từ khóa",
-        2: "các hình ảnh",
-        3: "dàn ý bài viết",
-        4: "bản thảo nội dung",
-        5: "kết quả kiểm tra",
-        6: "bài viết hoàn thiện"
-      };
       vuiController.speak(`Đã duyệt ${stepNames[viewingStep] || 'thành công'}!`);
     } catch (e) {
       console.error("Approve failed:", e);
@@ -369,7 +357,6 @@
     isPublishing = true;
     try {
       await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/publish`);
-      resultMsg = "Xuất bản thành công!";
       vuiController.speak("Bài viết đã được xuất bản.");
     } catch (e) {
       console.error("Publish failed:", e);
@@ -405,9 +392,6 @@
     }
   }
 
-  // deleteAsset legacy has been replaced by xohiImageStore.removeAsset in sub-components
-
-
   function handleMouseMove(e: MouseEvent) {
     const el = e.currentTarget as HTMLElement;
     const rect = el.getBoundingClientRect();
@@ -421,47 +405,22 @@
     apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, { keywords });
   }
 
-  let lastScrollY = 0;
-  let isCompact = $state(false);
-
-  function handleScroll(e: Event) {
-    const target = e.target as HTMLElement;
-    const currentScrollY = target.scrollTop;
-    
-    // Rule: Compact when scrolling down, expand when scrolling up or at extremeties
-    if (currentScrollY > lastScrollY && currentScrollY > 100) {
-      isCompact = true;
-    } else {
-      isCompact = false;
-    }
-    
-    // Auto-expand at bottom
-    if (target.scrollHeight - target.scrollTop <= target.clientHeight + 50) {
-      isCompact = false;
-    }
-    
-    lastScrollY = currentScrollY;
-  }
 </script>
 
 <div 
-  class="content-review-card w-full {nanobot.isExpanded ? 'h-full bg-transparent' : 'h-full md:h-[85vh] bg-[#0c0a0f]/80 md:backdrop-blur-3xl md:border md:border-white/10'} flex flex-col p-4 md:p-6 transition-all duration-700 overflow-hidden md:shadow-[0_30px_100px_rgba(0,0,0,0.8)] rounded-none z-[150000]"
+  class="content-review-card w-full h-full flex flex-col p-0 transition-all duration-700 overflow-hidden rounded-none z-[150000] bg-slate-950/95 backdrop-blur-xl"
   in:fade={{ duration: 600 }}
 >
-  <Header 
-    {viewingStep} {status} {progress_msg} {campaign_id} 
+  <Header
+    bind:viewingStep={viewingStep} {step} {status} {progress_msg} {campaign_id}
     bind:isEditing 
     toggleExpand={ () => { nanobot.toggleExpand(); } }
     isExpanded={nanobot.isExpanded}
     creation_config={isEditing ? editedConfig : creation_config}
   />
 
-  <Timeline {step} bind:viewingStep bind:isEditing />
-
-  <div 
-    class="flex-1 min-h-0 flex flex-col p-4 md:p-5 {nanobot.isExpanded ? 'p-8' : ''} {viewingStep === 6 ? 'overflow-hidden pb-5' : 'overflow-y-auto pb-32 md:pb-5'} custom-scrollbar relative z-10"
-    onscroll={handleScroll}
-  >
+  <!-- Steps Container: High-Performance Scroll with Dock Clearance -->
+  <div class="flex-1 overflow-y-auto custom-scrollbar relative pb-24 flex flex-col min-h-0">
     {#if viewingStep === 1}
       <IdeaStep 
         bind:isEditing 
@@ -483,13 +442,13 @@
       {:else if viewingStep === 3}
         <OutlineStep 
           {isEditing} bind:editedOutline={editedOutline} {outline} {assets} 
-          isExpanded={nanobot.isExpanded} editorAnnotations={[]} {step}
+          isExpanded={nanobot.isExpanded} editorAnnotations={[]} {step} {isProcessing}
         />
       {:else if viewingStep === 4}
         <DraftStep 
           {campaign_id} {isEditing} bind:editedDraft {draft_content} 
           {assets} isExpanded={nanobot.isExpanded} bind:editorRef {outline}
-          {analysis_cache} {analysis_metrics}
+          {analysis_cache} {analysis_metrics} {isProcessing}
           bind:copyrightScore bind:seoScore bind:aiScore
         />
       {:else if viewingStep === 5}
@@ -507,18 +466,13 @@
       {/if}
   </div>
 
-  {#if resultMsg}
-    <div class="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 text-blue-300 text-[13px] font-bold">
-      {resultMsg}
-    </div>
-  {/if}
-
+  <!-- iPhone 18 Action Dock: Floating & Global -->
   <ActionButtons
     {isLoading} {status} bind:viewingStep {step} bind:isEditing {isProcessing} {isPublishing}
     {handleRetry} {handleUpdateMetadata} {handlePublish} {handleApprove}
-    {isCompact}
   />
-</div>
+</div> <!-- End of Card -->
+
 
 <!-- Gate Block Modal -->
 {#if showGateModal}

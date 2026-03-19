@@ -1,8 +1,26 @@
 <script lang="ts">
-  import { Edit2, Sparkles } from "lucide-svelte";
+  import { Pencil, Sparkles } from "lucide-svelte";
   import TiptapEditor from "../tiptap/TiptapEditor.svelte";
   import type { CampaignKeywords, MediaAsset } from "$lib/state/types";
+  import type { CopyrightResult, SEOResult, AIInspectResult } from "$lib/types";
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
+  import { purifyAIContent } from "$lib/utils/purify";
+
+  interface Props {
+    assets: (MediaAsset | string)[];
+    selectedAvatarUrl: string | null;
+    viewingStep: number;
+    isEditing: boolean;
+    keywords: CampaignKeywords;
+    finalHtml: string;
+    draft_content: string;
+    campaign_id: string;
+    apiClient: typeof import('$lib/utils/apiClient').apiClient;
+    copyrightScore: number;
+    seoScore: number;
+    aiScore: number;
+    analysis_cache: AnalysisCache;
+  }
 
   let {
     assets = [],
@@ -18,7 +36,7 @@
     seoScore,
     aiScore,
     analysis_cache = {}
-  } = $props();
+  }: Props = $props();
 
   let editingField = $state<string | null>(null);
   let showAvatarPicker = $state(false);
@@ -35,7 +53,7 @@
   // finalHtml: đã qua MediaCompressor (ảnh local) → ưu tiên trước
   // draft_content: bản raw từ AI → fallback
   let displayContent = $derived.by(() => {
-    let base = finalHtml || draft_content || "";
+    let base = finalHtml || purifyAIContent(draft_content) || "";
     if (!base) return "";
 
     const currentAssets = xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets;
@@ -117,7 +135,7 @@
   - Không tràn ra ngoài
   - 3 phần: [shrink-0 header] [flex-1 scroll content] [shrink-0 footer]
 -->
-<div class="flex-1 min-h-0 overflow-hidden flex flex-col">
+<div class="p-5 md:p-8 space-y-4 flex flex-col">
 
   <!-- ===== HEADER: Title + Avatar (cố định, không co giãn) ===== -->
   <div class="shrink-0 flex items-center gap-3 p-3 border-b border-white/5 bg-black/20">
@@ -186,7 +204,7 @@
   </div>
 
   <!-- ===== MIDDLE: Article Content (chiếm toàn bộ không gian còn lại) ===== -->
-  <div class="flex-1 min-h-0 flex flex-col overflow-hidden border-b border-white/5"
+  <div class="flex flex-col border-b border-white/5"
     ondblclick={() => { if (editingField !== 'content') editingField = 'content'; }}
   >
     <!-- Sub-header -->
@@ -248,7 +266,7 @@
         {:else}
           <div class="flex items-center justify-between cursor-text group">
             <span class="text-xs font-bold text-white">{keywords.category || 'Chưa phân loại'}</span>
-            <Edit2 size={9} class="text-white/10 group-hover:text-blue-400" />
+            <Pencil size={9} class="text-white/10 group-hover:text-blue-400" />
           </div>
         {/if}
       </div>
@@ -270,7 +288,7 @@
           <div class="flex items-center gap-1 cursor-text group">
             <span class="text-[9px] text-white/20">/</span>
             <span class="text-[10px] font-bold text-white truncate">{keywords.slug || (keywords.title?.toLowerCase().replace(/\s+/g,'-').replace(/[^\w-]/g,'') || 'article-url')}</span>
-            <Edit2 size={9} class="text-white/10 group-hover:text-blue-400 ml-auto shrink-0" />
+            <Pencil size={9} class="text-white/10 group-hover:text-blue-400 ml-auto shrink-0" />
           </div>
         {/if}
       </div>

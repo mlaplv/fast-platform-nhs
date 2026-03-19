@@ -16,6 +16,7 @@
   import NotificationList from "../widgets/NotificationList.svelte";
   import VoiceSettings from "../management/VoiceSettings.svelte";
   import ContentFactory from "../management/ContentFactory.svelte";
+  import ContentReviewWidget from "../widgets/ContentReviewWidget.svelte";
 
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
@@ -35,6 +36,7 @@
     NOTIFICATION_LIST: NotificationList,
     VOICE_SETTINGS: VoiceSettings,
     CAMPAIGNS: ContentFactory,
+    CONTENT_REVIEW: ContentReviewWidget,
   };
 
   const WIDGET_LABEL: Record<string, string> = {
@@ -49,6 +51,7 @@
     NOTIFICATION_LIST: "NOTIFICATIONS",
     VOICE_SETTINGS: "VOICE SETTINGS",
     CAMPAIGNS: "CONTENT FACTORY",
+    CONTENT_REVIEW: "TRÌNH DUYỆT BÀI VIẾT",
   };
 
   let open = $derived(nanobot.universalModalOpen);
@@ -92,6 +95,7 @@
       class="relative z-10 w-full h-full flex flex-col max-h-full overflow-hidden"
     >
       <!-- Header -->
+      {#if nanobot.activeWidget !== 'CONTENT_REVIEW'}
       <div class="flex items-center justify-between px-5 py-3 border-b border-cyan-500/20 bg-black md:bg-black/80 md:backdrop-blur-md shrink-0">
         <div class="flex items-center gap-3">
           <div class="w-8 h-8 rounded-md bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
@@ -108,9 +112,6 @@
         </div>
 
         <div class="flex items-center gap-4">
-          <span class="text-[9px] font-mono text-gray-500 uppercase">
-            {currentTime}
-          </span>
           <button
             onclick={close}
             class="w-7 h-7 rounded border border-red-500/30 bg-red-500/10 flex items-center justify-center hover:bg-red-500/30 transition-colors"
@@ -119,9 +120,10 @@
           </button>
         </div>
       </div>
+      {/if}
 
-      <!-- Widget Content (scrollable) -->
-      <div class="flex-1 overflow-y-auto p-4">
+      <!-- Widget Content (scrollable container managed by widget internally for CONTENT_REVIEW) -->
+      <div class="flex-1 {nanobot.activeWidget === 'CONTENT_REVIEW' ? 'overflow-hidden p-0' : 'overflow-y-auto p-4'}">
         <ActiveWidget data={WidgetData} />
       </div>
 

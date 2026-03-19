@@ -1,7 +1,24 @@
 <script lang="ts">
   import { onMount } from "svelte";
 
-  import type { MediaAsset } from "$lib/state/types";
+  import type { MediaAsset, CampaignKeywords } from "$lib/state/types";
+  import type { CopyrightResult, SEOResult, AIInspectResult } from "$lib/types";
+  import { purifyAIContent } from "$lib/utils/purify";
+
+  interface Props {
+    draft_content: string;
+    assets: (MediaAsset | string)[];
+    keywords: CampaignKeywords;
+    copyrightScore: number;
+    seoScore: number;
+    aiScore: number;
+    analysis_cache: {
+      copyright?: { data: CopyrightResult };
+      seo?: { data: SEOResult };
+      ai_inspect?: { data: AIInspectResult };
+    };
+    isExpanded: boolean;
+  }
 
   let {
     draft_content,
@@ -12,7 +29,7 @@
     aiScore,
     analysis_cache,
     isExpanded
-  } = $props();
+  }: Props = $props();
 
   function fixUrl(url: string | null): string {
     if (!url) return "";
@@ -31,7 +48,7 @@
   // Computed Data
   let title = $derived.by(() => {
     let base = keywords?.primary_keyword ? `Bài viết chuẩn SEO về: ${keywords.primary_keyword}` : "Tiêu đề bài viết";
-    if (analysis_cache?.seo?.data?.signals) {
+    if (analysis_cache?.seo?.data) {
        const h1Match = draft_content.match(/<h1[^>]*>(.*?)<\/h1>/i);
        if (h1Match) base = h1Match[1].replace(/<[^>]+>/g, '').trim();
     }
@@ -45,11 +62,11 @@
     const url = typeof first === 'string' ? first : first.url;
     return fixUrl(url);
   });
-  let description = $derived(draft_content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 160) + "...");
+  let description = $derived(purifyAIContent(draft_content).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 160) + "...");
 
 </script>
 
-<div class="w-full h-full flex flex-col md:flex-row gap-6 p-2 animate-in fade-in duration-700">
+<div class="w-full p-5 md:p-8 flex flex-col md:flex-row gap-6 animate-in fade-in duration-700">
   
   <!-- LEFT PANEL: NEWS ARTICLE PREVIEW -->
   <div class="flex-[1.5] bg-black/40 border border-white/10 flex flex-col overflow-hidden relative shadow-2xl">
@@ -93,7 +110,7 @@
   </div>
 
   <!-- RIGHT PANEL: CERTIFICATION DASHBOARD -->
-  <div class="flex-1 flex flex-col gap-6 overflow-y-auto custom-scrollbar pb-10">
+  <div class="p-5 md:p-8 space-y-4 flex flex-col">
     
     <!-- 1. TRUST BADGES -->
     <div class="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-purple-500/30 p-6 relative overflow-hidden group shrink-0">

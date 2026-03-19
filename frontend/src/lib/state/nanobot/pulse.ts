@@ -103,37 +103,44 @@ export function createPulseManager(
     eventSource.onmessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
-        const { event: eventName, payload }: { event: string; payload: unknown } = data;
+        const { event: eventName, payload }: { event: string; payload: any } = data;
+        const activeData = (state.currentData as unknown as CampaignData);
 
         if (eventName === "CONTENT_PROGRESS") {
-          const contentPayload = payload as CampaignData & { message: string; data?: Record<string, unknown> };
-          if (voice?.vuiResponse?.data?.campaign_id === contentPayload.campaign_id) {
+          const contentPayload = payload as CampaignData & { message: string; data?: Record<string, any> };
+          const newData = (contentPayload.data || {}) as Record<string, any>;
+          const goldMeta = (newData.gold_metadata || {}) as Record<string, any>;
+
+          if (voice?.vuiResponse?.data && (voice.vuiResponse.data as any).campaign_id === contentPayload.campaign_id) {
             vuiState.setActive(true);
             vuiState.setPhase("executing");
             vuiState.setSystemMessage(contentPayload.message);
+          }
 
-            if (voice.vuiResponse?.data) {
-              const d = voice.vuiResponse.data as unknown as CampaignData;
-              const newData = (contentPayload.data || {}) as Record<string, unknown>;
-              const goldMeta = (newData.gold_metadata || {}) as Record<string, unknown>;
+          const syncTarget = (target: CampaignData) => {
+            if (!target) return;
+            target.progress_msg = contentPayload.message;
+            target.status = "PROCESSING";
+            target.step = contentPayload.step;
+            
+            if (hasContent(newData.keywords) || hasContent(newData.topic_data)) target.keywords = (newData.keywords || newData.topic_data) as CampaignKeywords;
+            if (hasContent(newData.assets) || hasContent(newData.assets_data)) target.assets = normalizeAssets((newData.assets || newData.assets_data) as (MediaAsset | string)[]);
+            if (hasContent(newData.outline) || hasContent(newData.outline_data)) target.outline = (newData.outline || newData.outline_data) as CampaignOutline;
+            if (hasContent(newData.draft_content)) target.draft_content = newData.draft_content as string;
+            
+            if (hasContent(goldMeta.avatar)) target.selectedAvatarUrl = goldMeta.avatar as string;
+            if (goldMeta.selected_index !== undefined) target.selectedAssetIndex = Number(goldMeta.selected_index);
+            if (hasContent(goldMeta.reserve_assets)) target.reserve_assets = normalizeAssets(goldMeta.reserve_assets as (MediaAsset | string)[]);
+            if (hasContent(goldMeta.creation_config)) target.creation_config = goldMeta.creation_config as Record<string, unknown>;
+            if (hasContent(goldMeta.analysis_cache)) target.analysis_cache = goldMeta.analysis_cache as Record<string, unknown>;
+            if (hasContent(goldMeta.analysis_metrics)) target.analysis_metrics = goldMeta.analysis_metrics as CampaignMetrics;
+          };
 
-              // CNS V82.5: Direct Mutation for Proxy Stability
-              d.progress_msg = contentPayload.message;
-              d.status = "PROCESSING";
-              d.step = contentPayload.step;
-              
-              if (hasContent(newData.keywords) || hasContent(newData.topic_data)) d.keywords = (newData.keywords || newData.topic_data) as CampaignKeywords;
-              if (hasContent(newData.assets) || hasContent(newData.assets_data)) d.assets = normalizeAssets((newData.assets || newData.assets_data) as (MediaAsset | string)[]);
-              if (hasContent(newData.outline) || hasContent(newData.outline_data)) d.outline = (newData.outline || newData.outline_data) as CampaignOutline;
-              if (hasContent(newData.draft_content)) d.draft_content = newData.draft_content as string;
-              
-              if (hasContent(goldMeta.avatar)) d.selectedAvatarUrl = goldMeta.avatar as string;
-              if (goldMeta.selected_index !== undefined) d.selectedAssetIndex = Number(goldMeta.selected_index);
-              if (hasContent(goldMeta.reserve_assets)) d.reserve_assets = normalizeAssets(goldMeta.reserve_assets as (MediaAsset | string)[]);
-              if (hasContent(goldMeta.creation_config)) d.creation_config = goldMeta.creation_config as Record<string, unknown>;
-              if (hasContent(goldMeta.analysis_cache)) d.analysis_cache = goldMeta.analysis_cache as Record<string, unknown>;
-              if (hasContent(goldMeta.analysis_metrics)) d.analysis_metrics = goldMeta.analysis_metrics as CampaignMetrics;
-            }
+          if (voice.vuiResponse?.data && (voice.vuiResponse.data as any).campaign_id === contentPayload.campaign_id) {
+            syncTarget(voice.vuiResponse.data as unknown as CampaignData);
+          }
+          if (activeData && (activeData.campaign_id === contentPayload.campaign_id || (activeData as any).id === contentPayload.campaign_id)) {
+            syncTarget(activeData);
           }
 
           const existingLogs = [...log.activityLogs];
@@ -142,8 +149,7 @@ export function createPulseManager(
             String(l.data?.step ?? "") === String(contentPayload.step ?? "")
           );
           if (logIdx !== -1) {
-            const current = (existingLogs[logIdx].data || {}) as Record<string, unknown>;
-            const newData = contentPayload.data || {};
+            const current = (existingLogs[logIdx].data || {}) as Record<string, any>;
             existingLogs[logIdx].data = {
               ...current,
               step: contentPayload.step,
@@ -162,54 +168,63 @@ export function createPulseManager(
           log.addLog(`🔄 AI: ${backtrackPayload.reason || 'Đang sửa lại nội dung...'}`, "XOHI", "warning", 2, {
             campaign_id: backtrackPayload.campaign_id, step: backtrackPayload.step
           });
-          if (voice.vuiResponse?.data?.campaign_id === backtrackPayload.campaign_id) {
+          
+          if (voice.vuiResponse?.data && (voice.vuiResponse.data as any).campaign_id === backtrackPayload.campaign_id) {
             vuiState.setPhase("executing");
-            if (voice.vuiResponse?.data) {
-              const d = voice.vuiResponse.data as unknown as CampaignData;
-              d.status = "PROCESSING";
-              d.step = backtrackPayload.step;
-              d.progress_msg = "🔄 Hệ thống đang tự động sửa lại bản thảo...";
-            }
+            const d = voice.vuiResponse.data as unknown as CampaignData;
+            d.status = "PROCESSING"; d.step = backtrackPayload.step;
+            d.progress_msg = "🔄 Hệ thống đang tự động sửa lại bản thảo...";
+          }
+          if (activeData && (activeData.campaign_id === backtrackPayload.campaign_id || (activeData as any).id === backtrackPayload.campaign_id)) {
+             activeData.status = "PROCESSING"; activeData.step = backtrackPayload.step;
+             activeData.progress_msg = "🔄 Hệ thống đang tự động sửa lại bản thảo...";
           }
           startSmartPolling();
         } else if (eventName === "CONTENT_STEP_COMPLETED") {
-          const completedPayload = payload as CampaignData & { message: string };
-          if (voice?.vuiResponse?.data?.campaign_id === completedPayload.campaign_id) {
-              vuiState.setActive(true);
-              vuiState.setPhase("idle");
-              vuiState.setIsWaitingForAction(true);
+          const completedPayload = payload as CampaignData & { message: string; data?: any };
+          const rawData = (completedPayload.data || completedPayload || {}) as CampaignData;
+          const goldMeta = (rawData.gold_metadata || {}) as Record<string, any>;
 
-              if (!voice.vuiResponse) {
-                voice.setVoiceResult("Neural Update", "Cập nhật từ hệ thống...", "CONTENT_CREATE", { campaign_id: completedPayload.campaign_id }, "text");
-              }
+          if (completedPayload.campaign_id) {
+            liveCampaigns.set(completedPayload.campaign_id, Date.now());
+          }
 
-              if (voice.vuiResponse?.data) {
-                const d = voice.vuiResponse.data as unknown as CampaignData;
-                const rawData = (completedPayload.data || completedPayload || {}) as CampaignData;
-                const goldMeta = (rawData.gold_metadata || {}) as Record<string, unknown>;
+          // Ensure voice response exists if this is the active campaign
+          if (!voice.vuiResponse && (activeData?.campaign_id === completedPayload.campaign_id || (activeData as any)?.id === completedPayload.campaign_id)) {
+             voice.setVoiceResult("Neural Update", "Cập nhật từ hệ thống...", "CONTENT_CREATE", { campaign_id: completedPayload.campaign_id }, "text");
+          }
 
-                if (completedPayload.campaign_id) {
-                  liveCampaigns.set(completedPayload.campaign_id, Date.now());
-                }
+          if (voice.vuiResponse?.data && (voice.vuiResponse.data as any).campaign_id === completedPayload.campaign_id) {
+            vuiState.setActive(true); vuiState.setPhase("idle");
+            vuiState.setIsWaitingForAction(true);
+          }
 
-                d.status = completedPayload.status || d.status;
-                d.step = completedPayload.step || d.step;
-                d.progress_msg = "";
-                
-                if (hasContent(rawData.keywords) || hasContent(rawData.topic_data)) d.keywords = (rawData.keywords || rawData.topic_data) as CampaignKeywords;
-                if (hasContent(rawData.assets) || hasContent(rawData.assets_data)) d.assets = normalizeAssets((rawData.assets || rawData.assets_data) as (MediaAsset | string)[]);
-                if (hasContent(rawData.outline) || hasContent(rawData.outline_data)) d.outline = (rawData.outline || rawData.outline_data) as CampaignOutline;
-                if (hasContent(rawData.draft_content)) d.draft_content = rawData.draft_content;
-                if (hasContent(rawData.final_html)) d.final_html = rawData.final_html;
-                if (rawData.unique_score !== undefined) d.unique_score = rawData.unique_score;
-                
-                if (hasContent(goldMeta.analysis_cache)) d.analysis_cache = goldMeta.analysis_cache as Record<string, unknown>;
-                if (hasContent(goldMeta.analysis_metrics)) d.analysis_metrics = goldMeta.analysis_metrics as CampaignMetrics;
-                if (hasContent(goldMeta.avatar)) d.selectedAvatarUrl = goldMeta.avatar as string;
-                if (goldMeta.selected_index !== undefined) d.selectedAssetIndex = Number(goldMeta.selected_index);
-                if (hasContent(goldMeta.reserve_assets)) d.reserve_assets = normalizeAssets(goldMeta.reserve_assets as (MediaAsset | string)[]);
-                if (hasContent(goldMeta.creation_config)) d.creation_config = goldMeta.creation_config as Record<string, unknown>;
-              }
+          const syncCompleted = (target: CampaignData) => {
+            if (!target) return;
+            target.status = completedPayload.status || target.status;
+            target.step = completedPayload.step || target.step;
+            target.progress_msg = "";
+            
+            if (hasContent(rawData.keywords) || hasContent(rawData.topic_data)) target.keywords = (rawData.keywords || rawData.topic_data) as CampaignKeywords;
+            if (hasContent(rawData.assets) || hasContent(rawData.assets_data)) target.assets = normalizeAssets((rawData.assets || rawData.assets_data) as (MediaAsset | string)[]);
+            if (hasContent(rawData.outline) || hasContent(rawData.outline_data)) target.outline = (rawData.outline || rawData.outline_data) as CampaignOutline;
+            if (hasContent(rawData.draft_content)) target.draft_content = rawData.draft_content;
+            if (hasContent(rawData.final_html)) target.final_html = rawData.final_html;
+            if (rawData.unique_score !== undefined) target.unique_score = rawData.unique_score;
+            
+            if (hasContent(goldMeta.analysis_cache)) target.analysis_cache = goldMeta.analysis_cache as Record<string, unknown>;
+            if (hasContent(goldMeta.analysis_metrics)) target.analysis_metrics = goldMeta.analysis_metrics as CampaignMetrics;
+            if (hasContent(goldMeta.avatar)) target.selectedAvatarUrl = goldMeta.avatar as string;
+            if (goldMeta.selected_index !== undefined) target.selectedAssetIndex = Number(goldMeta.selected_index);
+            if (hasContent(goldMeta.reserve_assets)) target.reserve_assets = normalizeAssets(goldMeta.reserve_assets as (MediaAsset | string)[]);
+            if (hasContent(goldMeta.creation_config)) target.creation_config = goldMeta.creation_config as Record<string, unknown>;
+          };
+
+          if (voice.vuiResponse?.data && (voice.vuiResponse.data as any).campaign_id === completedPayload.campaign_id) {
+            syncCompleted(voice.vuiResponse.data as unknown as CampaignData);
+          }
+          if (activeData && (activeData.campaign_id === completedPayload.campaign_id || (activeData as any).id === completedPayload.campaign_id)) {
+            syncCompleted(activeData);
           }
 
           const existingLogs = [...log.activityLogs];
@@ -219,10 +234,8 @@ export function createPulseManager(
             log.setActivityLogs(existingLogs);
           } else {
             log.addLog(completedPayload.message || `Bước ${completedPayload.step} hoàn tất.`, "XOHI", "info", 2, {
-              category: "CONTENT_CREATE",
-              campaign_id: completedPayload.campaign_id,
-              step: completedPayload.step,
-              status: completedPayload.status,
+              category: "CONTENT_CREATE", campaign_id: completedPayload.campaign_id,
+              step: completedPayload.step, status: completedPayload.status,
               ...(completedPayload.data || {}),
               assets: normalizeAssets(completedPayload.data?.assets)
             });
@@ -230,11 +243,19 @@ export function createPulseManager(
           startSmartPolling();
         } else if (eventName === "CONTENT_CHUNK") {
           const chunkPayload = payload as { campaign_id: string; text: string; step: number };
-          if (voice.vuiResponse?.data?.campaign_id === chunkPayload.campaign_id) {
-             const d = voice.vuiResponse.data as unknown as CampaignData;
-             d.draft_content = (d.draft_content || "") + chunkPayload.text;
-             d.step = chunkPayload.step || d.step;
-             d.status = "PROCESSING";
+          const syncChunk = (target: CampaignData) => {
+             if (!target) return;
+             target.draft_content = (target.draft_content || "") + chunkPayload.text;
+             target.step = chunkPayload.step || target.step;
+             target.status = "PROCESSING";
+          };
+
+          if (voice.vuiResponse?.data && (voice.vuiResponse.data as any).campaign_id === chunkPayload.campaign_id) {
+             syncChunk(voice.vuiResponse.data as unknown as CampaignData);
+             liveCampaigns.set(chunkPayload.campaign_id, Date.now());
+          }
+          if (activeData && (activeData.campaign_id === chunkPayload.campaign_id || (activeData as any).id === chunkPayload.campaign_id)) {
+             syncChunk(activeData);
              liveCampaigns.set(chunkPayload.campaign_id, Date.now());
           }
         } else if (eventName === "SYSTEM_SIGNAL") {
@@ -251,20 +272,16 @@ export function createPulseManager(
 
           if (discipline === "interrupt") {
             import("$lib/vui").then(({ vuiController, vuiState }) => {
-              vuiController.interruptSpeech();
-              vuiState.setActive(true);
-              vuiState.setPhase("idle");
-              vuiController.speak(message);
+              vuiController.interruptSpeech(); vuiState.setActive(true);
+              vuiState.setPhase("idle"); vuiController.speak(message);
             }).catch(() => {});
           } else if (discipline === "patient") {
             import("$lib/vui").then(({ vuiController, vuiState }) => {
-              vuiState.setActive(true);
-              vuiState.setPhase("idle");
+              vuiState.setActive(true); vuiState.setPhase("idle");
               vuiController.playNotificationPing();
               setTimeout(() => vuiController.speak(message), 800);
             }).catch(() => {});
           } else if (discipline === "ping") {
-             // CNS V82.9: Precise import for notification ping
              import("$lib/vui").then(({ vuiController }) => {
                vuiController.playNotificationPing();
              }).catch(() => {});
@@ -274,13 +291,13 @@ export function createPulseManager(
           const cid = purgePayload.campaign_id;
           const logs = [...log.activityLogs];
           const filtered = logs.filter(l => l.data?.campaign_id !== cid);
-          if (filtered.length !== logs.length) {
-            log.setActivityLogs(filtered);
+          if (filtered.length !== logs.length) log.setActivityLogs(filtered);
+          
+          if (voice.vuiResponse?.data && (voice.vuiResponse.data as any).campaign_id === cid) {
+            voice.clearVuiResponse(); vuiState.setActive(false); vuiState.setPhase("idle");
           }
-          if (voice.vuiResponse?.data?.campaign_id === cid) {
-            voice.clearVuiResponse();
-            vuiState.setActive(false);
-            vuiState.setPhase("idle");
+          if (activeData && (activeData.campaign_id === cid || (activeData as any).id === cid)) {
+             state.currentData = null;
           }
           ui.showToast("Chiến dịch đã được quét sạch khỏi hệ thống.", "success");
         }

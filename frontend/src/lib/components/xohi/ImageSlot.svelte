@@ -23,13 +23,13 @@
 </script>
 
 <div
-  class="relative group aspect-square rounded-none overflow-hidden transition-all duration-500 shadow-2xl
+  class="relative group aspect-square rounded-[1.5rem] overflow-hidden transition-all duration-700 shadow-2xl
          {isPrimary
-            ? 'shadow-[0_0_30px_rgba(59,130,246,0.2)] scale-[1.02] z-10'
-            : 'bg-white/[0.02]'}"
+            ? 'ring-2 ring-blue-500/50 shadow-[0_0_40px_rgba(59,130,246,0.3)] scale-[1.03] z-10'
+            : 'bg-white/[0.02] border border-white/10 hover:border-white/20'}"
   class:opacity-50={isDndShadow}
   class:pointer-events-none={isCropping}
-  in:scale={{ duration: 400, start: 0.95 }}
+  in:scale={{ duration: 500, start: 0.98, opacity: 0 }}
 >
   <!-- Thumbnail -->
   <img
@@ -69,7 +69,7 @@
             <div class="flex flex-col w-full gap-1.5 mt-1">
                 <button 
                     class="relative overflow-hidden group/btn bg-blue-600/80 hover:bg-blue-600 border border-white/10 hover:border-blue-400 py-2 rounded-xl transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-lg"
-                    onclick={() => handleSmartCrop(pendingPreset!, 'ai')}
+                    onclick={() => pendingPreset && handleSmartCrop(pendingPreset, 'ai')}
                 >
                     <div class="relative z-10 flex items-center justify-center gap-1.5">
                         <Sparkles size={10} class="text-blue-200 group-hover:text-white" />
@@ -96,21 +96,21 @@
   {/if}
 
   <!-- CNS V76: Logic Badge Display (Enhanced) -->
-  <div class="absolute top-4 right-4 flex flex-col items-end gap-1.5 z-20">
+  <div class="absolute top-3 right-3 flex flex-col items-end gap-1.5 z-20">
       {#if asset.media_metadata?.ai_analyzed || asset.media_metadata?.focal_point}
         <div 
-            class="bg-indigo-500/20 backdrop-blur-xl border border-indigo-500/40 px-3 py-1 rounded-full flex items-center gap-1.5"
+            class="bg-indigo-500/30 backdrop-blur-2xl border border-indigo-400/40 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-lg"
             transition:scale
         >
-            <div class="w-1 h-1 rounded-full bg-indigo-400 animate-pulse"></div>
-            <span class="text-[7px] font-black text-indigo-100 uppercase tracking-widest">AI Optimized</span>
+            <div class="w-1 h-1 rounded-full bg-indigo-300 animate-pulse"></div>
+            <span class="text-[7px] font-black text-indigo-50 uppercase tracking-[0.15em]">AI Optimized</span>
         </div>
       {:else if asset.dimensions && !isCropping}
         <div 
-            class="bg-white/5 backdrop-blur-xl border border-white/10 px-3 py-1 rounded-full flex items-center gap-1.5"
+            class="bg-black/30 backdrop-blur-2xl border border-white/10 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-md"
             transition:scale
         >
-            <span class="text-[7px] font-black text-white/40 uppercase tracking-widest">Standard</span>
+            <span class="text-[7px] font-black text-white/50 uppercase tracking-[0.15em]">Standard</span>
         </div>
       {/if}
   </div>
@@ -118,46 +118,49 @@
   <!-- Badge Ảnh Chính (Master Indicator) -->
   {#if isPrimary}
     <div
-      class="absolute top-3 left-3 flex items-center gap-1.5 bg-blue-500 text-white text-[9px] font-black px-2.5 py-1 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.5)] uppercase tracking-widest border border-white/20"
+      class="absolute top-3 left-3 flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white text-[9px] font-black px-3 py-1.5 rounded-full shadow-[0_8px_20px_rgba(59,130,246,0.5)] uppercase tracking-[0.15em] border border-white/20"
       transition:scale={{ duration: 300 }}
     >
-      <Star size={10} fill="currentColor" />
+      <Star size={10} fill="currentColor" class="text-blue-100" />
       Master
     </div>
   {:else}
-     <div class="absolute top-3 left-3 bg-black/40 backdrop-blur-md text-white/40 text-[9px] font-bold px-2 py-0.5 rounded-full border border-white/5">
+     <div class="absolute top-3 left-3 bg-black/50 backdrop-blur-2xl text-white/60 text-[9px] font-black px-2.5 py-1 rounded-full border border-white/10 shadow-lg tracking-widest">
         #{index + 1}
      </div>
   {/if}
 
-  <!-- Modern Controls (Glassmorphism) -->
-  <div class="absolute inset-0 bg-blue-900/20 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center gap-2">
+  <!-- Modern Controls (Minimalist Icon Ensemble) -->
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center">
     {#if !showCropPresets}
-      <div class="flex items-center justify-center gap-3" transition:fade>
+      <div 
+        class="flex items-center justify-center gap-0 p-1 rounded-xl bg-white/5 backdrop-blur-3xl border border-white/10 shadow-2xl transition-all duration-500 overflow-hidden" 
+        transition:scale={{ duration: 400, start: 0.95 }}
+      >
         {#if !isPrimary}
           <button
-            class="w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-blue-500 rounded-2xl text-white backdrop-blur-xl border border-white/10 transition-all hover:scale-110"
+            class="p-2 text-white/40 hover:text-white hover:bg-white/10 transition-all active:scale-95"
             onclick={() => xohiImageStore.swapPrimary(asset.id)}
             title="Đẩy làm ảnh chính"
           >
-            <Star size={18} />
+            <Star size={16} />
           </button>
         {/if}
 
         <button
-          class="w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-amber-500 rounded-2xl text-white backdrop-blur-xl border border-white/10 transition-all hover:scale-110"
+          class="p-2 text-white/40 hover:text-amber-400 hover:bg-white/10 transition-all active:scale-95 border-x border-white/5"
           onclick={() => showCropPresets = true}
           title="Crop & Optimize"
         >
-          <Crop size={18} />
+          <Crop size={16} />
         </button>
 
         <button
-          class="w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-red-500 rounded-2xl text-white backdrop-blur-xl border border-white/10 transition-all hover:scale-110"
+          class="p-2 text-white/40 hover:text-red-400 hover:bg-white/10 transition-all active:scale-95"
           onclick={() => xohiImageStore.removeAsset(asset.id)}
           title="Xóa ảnh"
         >
-          <Trash2 size={18} />
+          <Trash2 size={16} />
         </button>
       </div>
     {:else}
@@ -208,14 +211,14 @@
 
   <!-- Selection Checkmark if Primary -->
   {#if isPrimary}
-    <div class="absolute bottom-3 right-3 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white shadow-lg border border-white/20" transition:fade>
-      <Check size={14} strokeWidth={4} />
+    <div class="absolute bottom-3 right-3 w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center text-white shadow-[0_4px_15px_rgba(59,130,246,0.6)] border-2 border-slate-950/50" transition:scale>
+      <Check size={16} strokeWidth={4} />
     </div>
   {/if}
 
   <!-- Dimensions Indicator -->
   {#if asset.dimensions}
-    <div class="absolute bottom-3 left-3 px-2 py-0.5 bg-black/40 backdrop-blur-md rounded-md border border-white/5 text-[8px] text-white/60 font-mono">
+    <div class="absolute bottom-3 left-3 px-2 py-1 bg-black/60 backdrop-blur-2xl rounded-lg border border-white/10 text-[8px] text-white/50 font-black tracking-widest uppercase shadow-md pointer-events-none group-hover:opacity-0 transition-opacity">
       {asset.dimensions}
     </div>
   {/if}

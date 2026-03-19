@@ -17,13 +17,14 @@
   $effect(() => {
     const storeAssets = xohiImageStore.secondaryAssets;
     untrack(() => {
-        // CNS V76: Use shallow length & id check instead of heavy JSON.stringify
-        const isDifferent = items.length !== storeAssets.length ||
-                           items.some((item, i) => item.id !== storeAssets[i]?.id);
+      // CNS V76: Use shallow length & id check instead of heavy JSON.stringify
+      const isDifferent =
+        items.length !== storeAssets.length ||
+        items.some((item, i) => item.id !== storeAssets[i]?.id);
 
-        if (isDifferent) {
-            items = [...storeAssets];
-        }
+      if (isDifferent) {
+        items = [...storeAssets];
+      }
     });
   });
 
@@ -34,95 +35,128 @@
   function handleDndFinalize(e: CustomEvent<{ items: MediaAsset[] }>) {
     items = e.detail.items;
     // CNS V75.2: Only sync to global store at the very end of the gesture
-    xohiImageStore.reorderAssets(items.map(i => String(i.id)));
+    xohiImageStore.reorderAssets(items.map((i) => String(i.id)));
   }
 </script>
 
-<div class="space-y-8">
-  <!-- Header Control -->
-  <div class="flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-        <LayoutGrid size={20} class="text-blue-400" />
+<!-- Main Asset Highlight (Master Section) -->
+{#if xohiImageStore.primaryAsset}
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <!-- Master Slot -->
+    <div class="lg:col-span-3 xl:col-span-3 space-y-3">
+      <div class="flex items-center justify-between px-2">
+        <div class="flex items-center gap-2">
+          <span
+            class="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em]"
+            >Neural Main Slot</span
+          >
+          <div class="w-1 h-1 rounded-full bg-blue-500/50"></div>
+        </div>
+        <Sparkles size={14} class="text-blue-500/30" />
       </div>
-      <div>
-        <h3 class="text-sm font-black text-white uppercase tracking-widest">Cấu trúc hình ảnh</h3>
-        <p class="text-[10px] text-white/30 font-bold uppercase tracking-tight">Master-Slave Configuration // V15.3</p>
+      <div
+        class="p-0.5 rounded-[1.8rem] bg-gradient-to-b from-blue-500/10 to-transparent border border-blue-500/20 shadow-2xl overflow-hidden"
+      >
+        <ImageSlot asset={xohiImageStore.primaryAsset} index={0} />
       </div>
+      <p
+        class="text-[7.5px] text-white/40 font-bold uppercase tracking-[0.2em] px-3 italic leading-relaxed"
+      >
+        Primary focal point // Thumbnail selection
+      </p>
     </div>
 
-    <label class="cursor-pointer group relative">
-      <div class="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-      <div class="relative bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl text-[11px] font-black text-white uppercase tracking-widest transition-all flex items-center gap-2">
-        <Upload size={14} class="text-blue-400" />
-        Tải ảnh lên
-      </div>
-      <input
-        type="file"
-        multiple
-        accept="image/*"
-        class="hidden"
-        onchange={(e) => e.target.files && xohiImageStore.addImages(e.target.files)}
-      />
-    </label>
-  </div>
-
-  <!-- Main Asset Highlight (Master Section) -->
-  {#if xohiImageStore.primaryAsset}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-      <!-- Master Slot -->
-      <div class="lg:col-span-4 xl:col-span-3 space-y-3">
-        <div class="flex items-center justify-between px-1">
-          <span class="text-[9px] font-black text-blue-400 uppercase tracking-[0.2em]">Neural Main Slot</span>
-          <Sparkles size={12} class="text-blue-500/40" />
+    <!-- Secondary Assets Grid (Slaves) -->
+    <div class="lg:col-span-9 xl:col-span-9 space-y-3">
+      <div class="flex items-center justify-between px-2">
+        <div class="flex items-center gap-2">
+          <span
+            class="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]"
+            >Visual Sequence</span
+          >
+          <span
+            class="text-[8px] font-black text-white/10 uppercase bg-white/5 px-2 py-0.5 rounded-full"
+            >Drag to Reorder</span
+          >
         </div>
-        <div class="p-1 rounded-none bg-gradient-to-b from-blue-500/20 to-transparent shadow-2xl">
-          <ImageSlot asset={xohiImageStore.primaryAsset} index={0} />
-        </div>
-        <p class="text-[10px] text-white/20 font-medium italic px-2">Ảnh này sẽ được dùng làm thumbnail và ảnh đại diện chính của bài viết.</p>
-      </div>
-
-      <!-- Secondary Assets Grid (Slaves) -->
-      <div class="lg:col-span-8 xl:col-span-9 space-y-3">
-        <div class="flex items-center justify-between px-1">
-          <span class="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">Visual Sequence (Drag to reorder)</span>
-          <span class="text-[10px] font-mono text-white/20 italic">BUFFER_SIZE: {xohiImageStore.secondaryAssets.length}</span>
-        </div>
-
-        <!-- CNS V74: Persistent container for dndzone to prevent 'parentElement' crashes -->
-        <section
-          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 outline-none min-h-[150px] p-4 bg-white/[0.02] rounded-none shadow-inner"
-          use:dndzone={{
-            items: items,
-            flipDurationMs,
-            dropTargetStyle: { outline: 'none' },
-            type: 'secondary'
-          }}
-          onconsider={handleDndConsider}
-          onfinalize={handleDndFinalize}
+        <span class="text-[10px] font-mono text-white/20 italic tracking-widest"
+          >BFR_SZ: {xohiImageStore.secondaryAssets.length}</span
         >
-          {#each items as asset, i (asset.id)}
-            <div animate:flip={{ duration: flipDurationMs }}>
-              <ImageSlot {asset} index={i + 1} />
-            </div>
-          {/each}
+      </div>
 
-          {#if items.length === 0}
-            <div class="col-span-full flex items-center justify-center py-10 opacity-20 pointer-events-none">
-               <p class="text-[10px] font-black uppercase tracking-widest">No Secondary Assets</p>
-            </div>
-          {/if}
-        </section>
-      </div>
+      <!-- CNS V74: Persistent container for dndzone to prevent 'parentElement' crashes -->
+      <section
+        class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 gap-3 outline-none max-h-[40vh] md:max-h-[50vh] overflow-y-auto p-4 bg-black/20 rounded-[1.5rem] border border-white/5 shadow-inner custom-scrollbar"
+        use:dndzone={{
+          items: items,
+          flipDurationMs,
+          dropTargetStyle: { outline: "none" },
+          type: "secondary",
+        }}
+        onconsider={handleDndConsider}
+        onfinalize={handleDndFinalize}
+      >
+        {#each items as asset, i (asset.id)}
+          <div animate:flip={{ duration: flipDurationMs }}>
+            <ImageSlot {asset} index={i + 1} />
+          </div>
+        {/each}
+
+        {#if items.length === 0}
+          <div
+            class="col-span-full flex flex-col items-center justify-center py-12 opacity-20 pointer-events-none gap-3"
+          >
+            <LayoutGrid size={32} />
+            <p class="text-[10px] font-black uppercase tracking-[0.4em]">
+              Empty Sequence
+            </p>
+          </div>
+        {/if}
+      </section>
     </div>
-  {:else}
-    <!-- Empty State Cyberpunk (Persistent structure) -->
-    <div class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-white/5 rounded-[3rem] bg-white/[0.01] transition-all hover:bg-white/[0.02] group">
-      <div class="w-20 h-20 bg-blue-500/5 rounded-full flex items-center justify-center mb-6 border border-blue-500/10 group-hover:scale-110 transition-transform duration-500">
-        <Upload size={32} class="text-blue-500/20 group-hover:text-blue-400/50 transition-colors" />
-      </div>
-      <p class="text-white/40 font-black text-xs uppercase tracking-[0.3em]">Hệ thống rỗng</p>
-      <p class="text-[10px] text-white/10 mt-2 font-mono uppercase tracking-widest">Waiting for neural visual input...</p>
+  </div>
+{:else}
+  <!-- Empty State Cyberpunk (Persistent structure) -->
+  <div
+    class="flex flex-col items-center justify-center py-24 border border-dashed border-white/10 rounded-[3rem] bg-white/[0.01] transition-all hover:bg-white/[0.02] group relative overflow-hidden"
+  >
+    <div
+      class="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+    ></div>
+    <div
+      class="relative w-24 h-24 bg-blue-500/5 rounded-[2rem] flex items-center justify-center mb-8 border border-blue-500/10 group-hover:scale-110 group-hover:border-blue-500/30 transition-all duration-700 shadow-2xl"
+    >
+      <Upload
+        size={40}
+        class="text-blue-500/20 group-hover:text-blue-400 group-hover:drop-shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all"
+      />
     </div>
-  {/if}
-</div>
+    <p
+      class="text-white/40 font-black text-[11px] uppercase tracking-[0.5em] mb-2 scale-x-110"
+    >
+      Hệ thống rỗng
+    </p>
+    <p
+      class="text-[9px] text-white/10 font-mono uppercase tracking-[0.2em] italic"
+    >
+      Waiting for neural visual input...
+    </p>
+  </div>
+{/if}
+
+<style>
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.2);
+  }
+</style>

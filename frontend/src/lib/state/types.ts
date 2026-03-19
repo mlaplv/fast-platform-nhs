@@ -29,7 +29,8 @@ export type WidgetType =
   | "ORDER_MANAGEMENT"
   | "NEWS_MANAGEMENT"
   | "VOICE_SETTINGS"
-  | "CAMPAIGNS";
+  | "CAMPAIGNS"
+  | "CONTENT_REVIEW";
 
 export type NanoBotState =
   | "IDLE"
@@ -38,6 +39,8 @@ export type NanoBotState =
   | "ERROR"
   | "SUCCESS"
   | "VOICE";
+
+export type CampaignStatus = "IDLE" | "PROCESSING" | "COMPLETED" | "PAUSED" | "ERROR";
 
 export type HudPopupType = "NONE" | "NOTIFICATIONS" | "USER";
 
@@ -228,6 +231,13 @@ export interface CampaignMetrics {
   seo_score?: number;
   ai_ready_score?: number;
   draft_content?: string;
+  last_analyzed?: string | number | Date;
+}
+
+export interface AnalysisCache {
+  copyright?: { data: CopyrightResult };
+  seo?: { data: SEOResult };
+  ai_inspect?: { data: AIInspectResult };
 }
 
 export interface CampaignData {
@@ -244,7 +254,7 @@ export interface CampaignData {
   draft_content?: string;
   final_html?: string;
   unique_score?: number;
-  analysis_cache?: Record<string, unknown>;
+  analysis_cache?: AnalysisCache;
   analysis_metrics?: CampaignMetrics;
   selectedAvatarUrl?: string | null;
   selectedAssetIndex?: number;
@@ -260,8 +270,8 @@ export interface CampaignData {
     selected_index?: number;
     reserve_assets?: (MediaAsset | string)[];
     creation_config?: Record<string, unknown>;
-    analysis_cache?: Record<string, unknown>;
-    analysis_metrics?: Record<string, unknown>;
+    analysis_cache?: AnalysisCache;
+    analysis_metrics?: CampaignMetrics;
   };
 }
 

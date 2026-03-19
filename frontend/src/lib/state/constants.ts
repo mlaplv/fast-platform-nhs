@@ -34,6 +34,7 @@ export const COMMAND_WIDGET_MAP: Record<string, WidgetType> = {
 };
 
 export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
+  CONTENT_CREATE: "CONTENT_REVIEW",
   show_revenue_chart: "REVENUE_CHART",
   show_revenue: "SHOW_REVENUE",
   show_product_edit: "SHOW_PRODUCT_EDIT",
@@ -59,4 +60,5 @@ export const WIDGET_VI_LABEL: Record<string, string> = {
   NEWS_MANAGEMENT: "Quản lý Tin tức",
   VOICE_SETTINGS: "Cài đặt Giọng nói",
   CAMPAIGNS: "Content Factory",
+  CONTENT_REVIEW: "Trình Duyệt Bài Viết",
 };

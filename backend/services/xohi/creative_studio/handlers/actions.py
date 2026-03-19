@@ -96,6 +96,16 @@ class ActionHandler:
                 await campaign_repo.session.commit()
 
             # Ensure we don't exceed max steps
+            # Phase 73.11: Immediate Progress Feedback for Log Viewer
+            await event_bus.emit("CONTENT_PROGRESS", {
+                "campaign_id": campaign_id,
+                "user_id": campaign.user_id,
+                "step": target_step,
+                "message": f"✅ Đã duyệt Phase {step}. Đang khởi chạy Phase {target_step}...",
+                "status": "PROCESSING",
+                "timestamp": asyncio.get_event_loop().time()
+            })
+
             if target_step <= 6:
                 asyncio.create_task(self.orchestrator._trigger_next_step(campaign_id, force_step=target_step))
             return GenericResponse(status="success", message=f"Dạ sếp, em đang bắt đầu Bước {target_step} ạ.", data={"campaign_id": campaign_id, "next_step": target_step})
@@ -185,6 +195,16 @@ class ActionHandler:
         if hasattr(campaign_repo, "session"):
             step_val = campaign.current_step
             await campaign_repo.session.commit()
+
+        # Phase 73.11: Immediate Progress Feedback
+        await event_bus.emit("CONTENT_PROGRESS", {
+            "campaign_id": campaign_id,
+            "user_id": campaign.user_id,
+            "step": step_val,
+            "message": f"🔄 Đang chạy lại bước {step_val}...",
+            "status": "PROCESSING",
+            "timestamp": asyncio.get_event_loop().time()
+        })
 
         asyncio.create_task(self.orchestrator._trigger_next_step(campaign_id, force_step=step_val))
         return GenericResponse(status="success", message=f"Em đang chạy lại bước {step_val} cho sếp đây!", data={"campaign_id": campaign_id})

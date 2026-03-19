@@ -8,6 +8,8 @@
     Star,
     Check,
     RotateCcw,
+    LayoutGrid,
+    Upload,
   } from "lucide-svelte";
   import { fade, scale } from "svelte/transition";
   import { vuiController } from "$lib/vui";
@@ -67,14 +69,21 @@
         if (nanobot.consumeCommand(action.verb, action.entity)) {
           const parts = action.args.split(" ");
           const index = parseInt(parts[0]) - 1; // User says 1, we use 0
-          const preset = (parts[1] || "square") as "square" | "landscape" | "portrait";
+          const preset = (parts[1] || "square") as
+            | "square"
+            | "landscape"
+            | "portrait";
 
           const targetAsset = xohiImageStore.assets[index];
           if (targetAsset) {
-            vuiController.speak(`Dạ, em đang cắt ảnh số ${index + 1} theo khung ${preset} cho Sếp đây ạ.`);
+            vuiController.speak(
+              `Dạ, em đang cắt ảnh số ${index + 1} theo khung ${preset} cho Sếp đây ạ.`,
+            );
             xohiImageStore.smartCrop(targetAsset.id, preset);
           } else {
-            vuiController.speak("Dạ Sếp ơi, em không tìm thấy ảnh đó để cắt ạ.");
+            vuiController.speak(
+              "Dạ Sếp ơi, em không tìm thấy ảnh đó để cắt ạ.",
+            );
           }
         }
       }
@@ -99,9 +108,9 @@
     // Simple hash of URL to keep it stable across re-renders
     let hash = 0;
     for (let i = 0; i < url.length; i++) {
-        const char = url.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
+      const char = url.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32bit integer
     }
     return `stable_${Math.abs(hash).toString(36)}_${index}`;
   }
@@ -117,27 +126,36 @@
 
   // Phase 15.3: Đồng bộ hóa dữ liệu từ Campaign vào Store khi Step được load
   $effect(() => {
-    if (assets.length > 0 && untrack(() => xohiImageStore.assets.length) === 0) {
+    if (
+      assets.length > 0 &&
+      untrack(() => xohiImageStore.assets.length) === 0
+    ) {
       const formattedAssets = assets.map((item, i) => {
-        const url = typeof item === 'string' ? item : (item.file_path || item.url || '');
+        const url =
+          typeof item === "string" ? item : item.file_path || item.url || "";
         const recoveredId = extractIdFromUrl(url);
 
-        if (typeof item === 'string') {
+        if (typeof item === "string") {
           return {
             id: recoveredId || generateStableId(item, i),
             file_path: item, // R105 Standard alignment
-            url: item,       // UI legacy compatibility
+            url: item, // UI legacy compatibility
             is_primary: i === selectedAssetIndex,
-            order_index: i
+            order_index: i,
           } as MediaAsset;
         }
         // CNS V73.9: Safety gate for missing IDs or field names
         const obj = { ...item };
         // CNS V75: Priority to real DB ID from URL
-        if (!obj.id || obj.id.startsWith('img_') || obj.id.startsWith('stable_')) {
+        if (
+          !obj.id ||
+          obj.id.startsWith("img_") ||
+          obj.id.startsWith("stable_")
+        ) {
           if (recoveredId) obj.id = recoveredId;
         }
-        if (!obj.id) obj.id = generateStableId(obj.file_path || obj.url || '', i);
+        if (!obj.id)
+          obj.id = generateStableId(obj.file_path || obj.url || "", i);
         if (!obj.file_path && obj.url) obj.file_path = obj.url;
         return obj as MediaAsset;
       });
@@ -150,13 +168,14 @@
     const storeAssets = xohiImageStore.assets;
     // CNS V74: Shallow comparison with untrack to prevent infinite loops
     const currentAssets = untrack(() => assets);
-    
+
     if (JSON.stringify(storeAssets) !== JSON.stringify(currentAssets)) {
       assets = storeAssets;
-      const primaryIdx = storeAssets.findIndex(a => a.is_primary);
+      const primaryIdx = storeAssets.findIndex((a) => a.is_primary);
       if (primaryIdx !== -1) {
         selectedAssetIndex = primaryIdx;
-        selectedAvatarUrl = storeAssets[primaryIdx].file_path || storeAssets[primaryIdx].url;
+        selectedAvatarUrl =
+          storeAssets[primaryIdx].file_path || storeAssets[primaryIdx].url;
       } else if (storeAssets.length === 0) {
         selectedAssetIndex = 0;
         selectedAvatarUrl = null;
@@ -166,67 +185,118 @@
   });
 </script>
 
-<div class="space-y-3 flex flex-col min-h-0">
-  <!-- Modern Minimalist Header -->
-  <div class="flex items-center justify-between">
-    <div class="hidden md:flex items-center gap-4">
-      <div class="relative w-2 h-2">
+<div
+  class="flex-1 flex flex-col space-y-6 pt-2 pb-8 p-4 md:p-6 max-w-[1400px] mx-auto w-full"
+>
+  <!-- Unified Command Bar: iPhone 18 Aesthetic -->
+  <div
+    class="flex flex-col md:flex-row md:items-end justify-between gap-4 px-1 -mt-3"
+  >
+    <div class="flex items-center gap-5">
+      <div
+        class="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/10 border border-blue-400/20 flex items-center justify-center shadow-[0_8px_30px_rgba(59,130,246,0.15)] group/icon"
+      >
+        <LayoutGrid
+          size={28}
+          class="text-blue-400 group-hover:scale-110 transition-transform duration-500"
+        />
         <div
-          class="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-20"
-        ></div>
-        <div
-          class="absolute inset-0 bg-blue-400 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]"
+          class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-slate-950 shadow-[0_0_10px_#3b82f6]"
         ></div>
       </div>
       <div class="flex flex-col">
-        <span
-          class="text-[8px] text-blue-400/50 font-black tracking-[0.3em] uppercase mb-0.5"
-          >Asset Intelligence</span
+        <div class="flex items-center gap-3 mb-1 whitespace-nowrap">
+          <span
+            class="text-[10px] text-blue-400 font-black tracking-[0.4em] uppercase"
+            >Asset Intelligence</span
+          >
+          <div
+            class="px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 shadow-inner"
+          >
+            <span
+              class="text-[8px] text-blue-300 font-black uppercase tracking-widest"
+              >Active</span
+            >
+          </div>
+        </div>
+        <h3
+          class="text-xl font-black text-white uppercase tracking-[0.2em] leading-tight"
         >
-        <span
-          class="text-[12px] text-white/90 font-bold tracking-tight uppercase"
-          >SELECT_MODE://ULTRA_DND</span
-        >
+          Cấu trúc hình ảnh
+        </h3>
+        <div class="flex items-center gap-2 mt-1.5 opacity-40">
+          <div class="w-8 h-[1px] bg-white/20"></div>
+          <p
+            class="text-[9px] text-white font-bold uppercase tracking-widest italic"
+          >
+            V15.3 // Neural Asset Management
+          </p>
+        </div>
       </div>
     </div>
 
-    <div class="flex items-center gap-3">
+    <div class="flex flex-wrap items-center gap-3">
       {#if !isProcessing}
-        <div
-          class="flex bg-white/[0.03] hover:bg-white/[0.05] p-1 rounded-xl border border-white/5 transition-all h-9 group/input"
-        >
+        <div class="flex items-center gap-3">
+          <!-- URL Entry Island -->
           <div
-            class="flex items-center justify-center pl-3 text-white/20 group-focus-within/input:text-blue-400 transition-colors"
+            class="flex bg-white/[0.02] hover:bg-white/[0.04] p-1.5 rounded-2xl border border-white/10 transition-all h-11 group/input focus-within:border-blue-500/40 shadow-2xl"
           >
-            <LinkIcon size={14} />
+            <div
+              class="flex items-center justify-center pl-3 text-white/30 group-focus-within/input:text-blue-400 transition-colors"
+            >
+              <LinkIcon size={16} />
+            </div>
+            <input
+              type="url"
+              placeholder="Dán link ảnh tại đây..."
+              bind:value={customImageUrl}
+              onkeydown={(e) => {
+                if (
+                  e.key === "Enter" &&
+                  customImageUrl.trim() &&
+                  customImageUrl.startsWith("http")
+                ) {
+                  e.preventDefault();
+                  xohiImageStore.addImagesFromUrl(customImageUrl.trim());
+                  customImageUrl = "";
+                  vuiController.speak("Đã thêm ảnh.");
+                }
+              }}
+              class="bg-transparent border-none outline-none text-[12px] text-white placeholder:text-white/20 px-4 w-36 transition-all focus:w-64 font-medium"
+            />
           </div>
-          <input
-            type="url"
-            placeholder="Dán link ảnh vào đây..."
-            bind:value={customImageUrl}
-            onkeydown={(e) => {
-              if (
-                e.key === "Enter" &&
-                customImageUrl.trim() &&
-                customImageUrl.startsWith("http")
-              ) {
-                e.preventDefault();
-                xohiImageStore.addImagesFromUrl(customImageUrl.trim());
-                customImageUrl = "";
-                vuiController.speak("Đã thêm ảnh.");
-              }
-            }}
-            class="bg-transparent border-none outline-none text-[11px] text-white placeholder:text-white/20 px-3 w-40 transition-all focus:w-64"
-          />
+
+          <!-- Upload Island -->
+          <label class="cursor-pointer group relative">
+            <div
+              class="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"
+            ></div>
+            <div
+              class="relative bg-blue-600 hover:bg-blue-500 border border-white/10 px-6 py-3 rounded-2xl text-xs font-black text-white uppercase tracking-[0.15em] transition-all flex items-center gap-2 shadow-xl active:scale-95"
+            >
+              <Upload size={16} class="text-white/80" />
+              Tải ảnh lên
+            </div>
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              class="hidden"
+              onchange={(e) =>
+                e.target.files && xohiImageStore.addImages(e.target.files)}
+            />
+          </label>
         </div>
       {/if}
 
+      <!-- Found Count Badge -->
       <div
-        class="hidden md:block px-4 py-1.5 rounded-xl bg-white/[0.03] border border-white/5"
+        class="px-6 py-3 rounded-2xl bg-white/[0.03] border border-white/10 shadow-2xl backdrop-blur-md"
       >
         <span
-          class="text-[10px] text-white/40 font-bold uppercase tracking-widest"
-          >Found <span class="text-blue-400 ml-1 font-black"
+          class="text-[10px] text-white/40 font-black uppercase tracking-[0.2em]"
+          >Assets Found // <span class="text-blue-400 ml-1"
             >{xohiImageStore.assets.length}</span
           ></span
         >
@@ -234,24 +304,32 @@
     </div>
   </div>
 
-  <div class="transition-all duration-500 min-h-0 relative bg-black/20 rounded-3xl border border-white/5 overflow-hidden">
-    <ImageGrid />
+  <div
+    class="transition-all duration-700 min-h-[310px] relative bg-gradient-to-br from-blue-500/10 via-white/[0.01] to-transparent rounded-[2rem] border border-white/10 shadow-2xl mb-0"
+  >
+    <div class="p-2 md:p-3">
+      <ImageGrid />
+    </div>
   </div>
 
-  <!-- Reserve Assets Section (Phase 120) -->
+  <!-- Integrated Reserve Tray (Mini Island) -->
   {#if reserve_assets && reserve_assets.length > 0}
-    <div
-      class="mt-12 pt-8 border-t border-white/5"
-      in:fade={{ duration: 800 }}
-    >
-      <div class="flex items-center gap-2 mb-1">
+    <div class="mt-6 pt-3 border-t border-white/5" in:fade={{ duration: 600 }}>
+      <div class="flex items-center justify-between mb-3 px-1">
+        <div class="flex items-center gap-3">
+          <div
+            class="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.6)]"
+          ></div>
+          <span
+            class="text-[10px] text-amber-500/80 font-black tracking-[0.4em] uppercase"
+            >Kho dự phòng // RESERVES</span
+          >
+        </div>
         <div
-          class="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.6)]"
-        ></div>
-        <span
-          class="text-[11px] text-amber-500/80 font-black tracking-[0.2em] uppercase"
-          >Kho dự phòng</span
+          class="text-[9px] text-white/10 font-bold uppercase tracking-widest"
         >
+          {reserve_assets.length} items available
+        </div>
       </div>
 
       <div
@@ -278,12 +356,12 @@
                 xohiImageStore.addImagesFromUrl(url);
                 reserve_assets = reserve_assets.filter((_, idx) => idx !== i);
               }}
-              class="group/reserve relative aspect-square rounded-[1.5rem] overflow-hidden border border-white/5 bg-white/[0.01] hover:border-amber-500/30 hover:scale-105 transition-all duration-500 cursor-pointer"
+              class="group/reserve relative aspect-square rounded-2xl overflow-hidden border border-white/10 bg-white/[0.02] hover:border-amber-500/50 hover:bg-white/[0.05] hover:scale-105 transition-all duration-500 cursor-pointer shadow-lg"
             >
               <img
                 src={url}
                 alt="Reserve {i}"
-                class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
+                class="w-full h-full object-cover opacity-60 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-700 blur-[0.5px] hover:blur-0"
               />
               <div
                 class="absolute inset-0 bg-amber-500/10 opacity-0 group-hover/reserve:opacity-100 flex items-center justify-center transition-opacity"

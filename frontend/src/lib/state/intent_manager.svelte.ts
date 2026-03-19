@@ -113,6 +113,7 @@ export function createIntentManager(
         }
         state.currentData = mergedData;
         const intentType = (data?.intent_type as string) || "";
+        console.log("[DEBUG TRACE] processAction -> action:", actualUiAction, "intentType:", intentType, "target:", targetWidget);
 
         const requiresConfirmationForVoice = (d: Record<string, unknown>) => {
           return (
@@ -128,19 +129,23 @@ export function createIntentManager(
           actualUiAction.includes("edit") ||
           actualUiAction.includes("content_factory") ||
           actualUiAction.includes("campaigns") ||
+          actualUiAction === "CONTENT_CREATE" ||
           intentType === "CONTENT_CREATE" ||
           data?.restricted === false ||
           requiresConfirmationForVoice(data)
         ) {
           state.activeWidget = targetWidget;
           ui.setUniversalModalOpen(true);
+          console.log("[DEBUG TRACE] Bật UniversalModal với widget:", targetWidget, "Dữ liệu:", state.currentData);
           log.addLog(actualUiAction.replace("show_", "").replace(/_/g, " "), "[ACTION]");
 
           if (
             source === "voice" && 
             (isNavAction(actualUiAction, intentType) || 
              actualUiAction.startsWith("show_") || 
-             actualUiAction.includes("revenue"))
+             actualUiAction.includes("revenue") ||
+             actualUiAction === "CONTENT_CREATE" ||
+             intentType === "CONTENT_CREATE")
           ) {
             voice.setVuiActive(false);
           }

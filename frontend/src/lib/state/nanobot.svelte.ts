@@ -103,7 +103,7 @@ export function createNanobotState() {
   const setDynamicIntentMap = (val: Record<string, string>) => { state.dynamicIntentMap = val; };
   
   const intent = createIntentManager(state, voice, log, ui, chat, resetVui, softReset, setThinking);
-  const resumeManager = createResumeManager(state, voice, log, ui, () => sync.startSmartPolling());
+  const resumeManager = createResumeManager(state, intent, log, ui, () => sync.startSmartPolling());
   const pulseManager = createPulseManager(state, voice, log, ui, vuiState, notification, () => sync.startSmartPolling());
   const sync = createSyncManager(state, log, chat, notification, ui, setDynamicIntentMap, resumeManager, pulseManager);
 

@@ -4,7 +4,6 @@
   import { fade, fly } from "svelte/transition";
   import { playSciFiBeep, playSiriDing } from "$lib/utils/sfx";
   import { Z_INDEX } from "$lib/core/constants/zIndex";
-  import { portal } from "$lib/actions/portal";
   import VoiceStatusCaption from "./vui/VoiceStatusCaption.svelte";
   import ContentReviewCard from "./ui/ContentReviewCard.svelte";
   import X from "lucide-svelte/icons/x";
@@ -88,9 +87,8 @@
 
 {#if nanobot.isVuiActive && !nanobot.isTraining}
   <div
-    use:portal
     class="absolute inset-0 flex flex-col pointer-events-none transition-all duration-300"
-    style="z-index: {Z_INDEX.OVERLAY}; padding-right: var(--layout-sidebar-width, 0px);"
+    style="z-index: {Z_INDEX.OVERLAY};"
     transition:fade={{ duration: 300 }}
   >
     <!-- Main Container (Purely Transparent Overlay) -->
@@ -156,31 +154,7 @@
           <VoiceStatusCaption {phase} />
         </div>
 
-        {#if (nanobot.vuiResponse?.data?.category === "CONTENT_CREATE" || nanobot.vuiResponse?.data?.campaign_id) && vuiState.showCampaign}
-          <div
-            class="transition-all duration-300 {nanobot.isExpanded ? 'fixed inset-0 w-screen h-screen' : 'fixed bottom-4 right-4 w-[450px] max-h-[85vh]'} border border-white/10 bg-black/90 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto"
-            style="z-index: {nanobot.isExpanded ? Z_INDEX.TOAST + 100 : Z_INDEX.MODAL};"
-            transition:fly={{ y: 20, duration: 400 }}
-          >
-            <ContentReviewCard
-              campaign_id={nanobot.vuiResponse.data.campaign_id}
-              bind:keywords={nanobot.vuiResponse.data.keywords}
-              bind:assets={nanobot.vuiResponse.data.assets}
-              bind:reserve_assets={nanobot.vuiResponse.data.reserve_assets}
-              bind:outline={nanobot.vuiResponse.data.outline}
-              bind:draft_content={nanobot.vuiResponse.data.draft_content}
-              bind:step={nanobot.vuiResponse.data.step}
-              bind:status={nanobot.vuiResponse.data.status}
-              bind:progress_msg={nanobot.vuiResponse.data.progress_msg}
-              bind:finalHtml={nanobot.vuiResponse.data.final_html}
-              bind:selectedAvatarUrl={nanobot.vuiResponse.data.selectedAvatarUrl}
-              bind:selectedAssetIndex={nanobot.vuiResponse.data.selectedAssetIndex}
-              bind:creation_config={nanobot.vuiResponse.data.creation_config}
-              bind:analysis_cache={nanobot.vuiResponse.data.analysis_cache}
-              bind:analysis_metrics={nanobot.vuiResponse.data.analysis_metrics}
-            />
-          </div>
-        {/if}
+
       </div>
     </div>
   </div>
