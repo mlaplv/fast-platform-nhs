@@ -404,4 +404,45 @@
   :global(.tiptap-content h2) { @apply text-2xl font-bold mb-4 mt-8 text-white/80; }
   :global(.tiptap-content h3) { @apply text-xl font-bold mb-3 mt-6 text-white/70; }
   :global(.tiptap-content img) { @apply rounded-lg shadow-xl my-8 mx-auto border border-white/5; }
+
+  /* Premium Highlighting (Viral 2026) */
+  :global(.xohi-annotation) {
+    @apply cursor-help transition-all duration-300 border-b-2;
+    padding: 1px 0;
+  }
+  
+  :global(.xohi-annotation.severity-low) {
+    @apply bg-emerald-500/10 border-emerald-500/30 text-emerald-200/90;
+  }
+  :global(.xohi-annotation.severity-low:hover) {
+    @apply bg-emerald-500/20 border-emerald-500/50;
+  }
+
+  :global(.xohi-annotation.severity-medium) {
+    @apply bg-amber-500/15 border-amber-400/40 text-amber-100/90;
+  }
+  :global(.xohi-annotation.severity-medium:hover) {
+    @apply bg-amber-500/25 border-amber-400/60;
+  }
+
+  :global(.xohi-annotation.severity-high) {
+    @apply bg-red-500/20 border-red-500/50 text-red-100/90;
+    animation: annotation-pulse 2s infinite ease-in-out;
+  }
+  :global(.xohi-annotation.severity-high:hover) {
+    @apply bg-red-500/30 border-red-500/70;
+  }
+
+  :global(.xohi-annotation.type-fixed) {
+    @apply bg-transparent border-transparent text-white/90 cursor-default;
+    border-bottom: 2px dashed rgba(16, 185, 129, 0.4);
+    text-decoration: none;
+    animation: none;
+  }
+
+  @keyframes annotation-pulse {
+    0% { background-color: rgba(239, 68, 68, 0.15); }
+    50% { background-color: rgba(239, 68, 68, 0.3); }
+    100% { background-color: rgba(239, 68, 68, 0.15); }
+  }
 </style>

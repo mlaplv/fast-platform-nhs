@@ -128,8 +128,8 @@ function createDecorations(doc: ProseMirrorNode, annotations: EditorAnnotation[]
   const isAlphaNum = (c: string) => /\p{L}|\p{N}/u.test(c);
 
   // 1. Build a searchable normalized buffer of the doc
-  // Cerberus 2026: Surgical Position Mapping
-  let fullText = '';
+  // Viral 2026: Surgical Fuzzy Normalization
+  let searchBuffer = '';
   const posMap: number[] = [];
 
   doc.descendants((node: ProseMirrorNode, pos: number) => {
@@ -137,18 +137,16 @@ function createDecorations(doc: ProseMirrorNode, annotations: EditorAnnotation[]
       const text = node.text;
       for (let i = 0; i < text.length; i++) {
         const char = text[i];
-        // Rules R82/R03: Maximum Vietnamese standard (NFC) + Whitespace Normalization
-        // TipTap/ProseMirror often uses \u00A0 (NBSP)
-        const normalizedChar = char
-          .normalize('NFC')
-          .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, ' ')
-          .toLowerCase();
-        fullText += normalizedChar;
-        posMap.push(pos + i);
+        const nfc = char.normalize('NFC');
+        
+        // Rule R82.48: Alphanumeric-only search buffer for ultimate matching robustness
+        if (isAlphaNum(nfc)) {
+          searchBuffer += nfc.toLowerCase();
+          posMap.push(pos + i);
+        }
       }
     } else if (node.isBlock) {
-      fullText += '\n';
-      posMap.push(pos);
+      // We don't add characters to searchBuffer for blocks to allow pattern matching across blocks
     }
   });
 
@@ -156,16 +154,21 @@ function createDecorations(doc: ProseMirrorNode, annotations: EditorAnnotation[]
   for (const ann of annotations) {
     if (!ann.text || ann.text.length < 3) continue;
 
-    const pattern = ann.text
-      .normalize('NFC')
-      .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, ' ')
-      .toLowerCase();
+    // Normalize pattern the same way: keep ONLY alphanumeric
+    let normalizedPattern = '';
+    for (const char of ann.text.normalize('NFC')) {
+      if (isAlphaNum(char)) {
+        normalizedPattern += char.toLowerCase();
+      }
+    }
 
-    // Find ALL occurrences (Fixes the "5 vs 2" reported mismatch)
+    if (normalizedPattern.length < 3) continue;
+
+    // Find ALL occurrences
     let startIdx = 0;
-    while ((startIdx = fullText.indexOf(pattern, startIdx)) !== -1) {
+    while ((startIdx = searchBuffer.indexOf(normalizedPattern, startIdx)) !== -1) {
       const startPos = posMap[startIdx];
-      const endPos = posMap[startIdx + pattern.length - 1] + 1;
+      const endPos = posMap[startIdx + normalizedPattern.length - 1] + 1;
 
       if (startPos !== undefined && endPos !== undefined) {
         decorations.push(

@@ -159,6 +159,13 @@ export function createNanobotState() {
     setModality: (val: "text" | "voice") => { state.modality = val; },
     setGodModeUser: (val: string | undefined) => { state.godModeUser = sanitizeId(val) || undefined; },
     clearCurrentData: () => { state.currentData = null; },
+    updateCurrentData: (newData: Partial<Record<string, unknown>>) => {
+      if (state.currentData) {
+        state.currentData = { ...state.currentData, ...newData };
+      } else {
+        state.currentData = newData as Record<string, unknown>;
+      }
+    },
     clearCommandAction: () => { state.commandAction = null; },
     consumeCommand: (verb: CommandVerb, entity: CommandEntity | "media") => {
       if (state.commandAction && state.commandAction.verb === verb && state.commandAction.entity === entity) {

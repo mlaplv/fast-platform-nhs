@@ -107,22 +107,33 @@
     return message.length > TRUNCATE_LIMIT;
   }
 
-  function formatRelativeTime(date: Date) {
+  function formatRelativeTime(date: Date | string | number) {
+    let d: Date;
+    if (date instanceof Date) {
+      d = date;
+    } else {
+      d = new Date(date);
+    }
+
+    if (isNaN(d.getTime())) {
+      return "---";
+    }
+
     const now = new Date();
     const isToday =
-      date.getDate() === now.getDate() &&
-      date.getMonth() === now.getMonth() &&
-      date.getFullYear() === now.getFullYear();
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear();
 
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
     const isYesterday =
-      date.getDate() === yesterday.getDate() &&
-      date.getMonth() === yesterday.getMonth() &&
-      date.getFullYear() === yesterday.getFullYear();
+      d.getDate() === yesterday.getDate() &&
+      d.getMonth() === yesterday.getMonth() &&
+      d.getFullYear() === yesterday.getFullYear();
 
     if (isToday) {
-      return date.toLocaleTimeString([], {
+      return d.toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
         hourCycle: "h23",
@@ -130,7 +141,7 @@
     } else if (isYesterday) {
       return "Hôm qua";
     } else {
-      return date.toLocaleDateString("vi-VN", {
+      return d.toLocaleDateString("vi-VN", {
         day: "2-digit",
         month: "2-digit",
       });

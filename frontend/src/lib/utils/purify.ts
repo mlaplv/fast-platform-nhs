@@ -17,10 +17,8 @@ export function stripMarkdownArtifacts(content: string): string {
   if (!content) return "";
   
   return content
-    .replace(/^```[a-z]*\n/gi, '') // Opening block with newline
-    .replace(/\n```$/g, '')        // Closing block with newline
-    .replace(/^```[a-z]*/gi, '')   // Opening block without newline
-    .replace(/```$/g, '')          // Closing block without newline
+    .replace(/```[a-z]*\n?|```/gi, '') 
+    .replace(/^\s*[\r\n]+|[\r\n]+\s*$/g, '')
     .trim();
 }
 

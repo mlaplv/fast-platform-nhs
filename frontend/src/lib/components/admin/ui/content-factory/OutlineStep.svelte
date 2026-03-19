@@ -89,7 +89,7 @@
 
            const hText = header.replace(/^(H2|H3):/i, "").trim();
            const tag = header.toUpperCase().startsWith("H3") ? "h3" : "h2";
-           return `<${tag}>${hText} <span class="text-[10px] uppercase font-bold tracking-wider opacity-50 ml-2">COPYRIGHT</span></${tag}><p>${body}</p>`;
+           return `<${tag}>${hText}</${tag}><p>${body}</p>`;
         }).join("\n");
       }
       return "";

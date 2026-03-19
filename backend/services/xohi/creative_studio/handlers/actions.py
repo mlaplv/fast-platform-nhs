@@ -2,6 +2,7 @@ import asyncio
 import logging
 import uuid
 import numpy as np
+from datetime import datetime, timezone
 from typing import Dict, Union, Optional
 from backend.database.repositories import ContentCampaignRepository, ArticleRepository, ArticleEmbeddingRepository
 from backend.database.models import Article, ArticleEmbedding
@@ -103,7 +104,7 @@ class ActionHandler:
                 "step": target_step,
                 "message": f"✅ Đã duyệt Phase {step}. Đang khởi chạy Phase {target_step}...",
                 "status": "PROCESSING",
-                "timestamp": asyncio.get_event_loop().time()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             })
 
             if target_step <= 6:

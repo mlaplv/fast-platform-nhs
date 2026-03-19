@@ -69,6 +69,11 @@
         if (data.assets && JSON.stringify(data.assets) !== JSON.stringify(safelyMutableData.assets)) {
            safelyMutableData.assets = [...data.assets];
         }
+        
+        // Phase 73.11: Sync Reserve Assets
+        if (data.reserve_assets && JSON.stringify(data.reserve_assets) !== JSON.stringify(safelyMutableData.reserve_assets)) {
+          safelyMutableData.reserve_assets = [...data.reserve_assets];
+        }
 
         // Phase 73.11: Sync Analysis Cache & Metrics
         if (data.analysis_cache && JSON.stringify(data.analysis_cache) !== JSON.stringify(safelyMutableData.analysis_cache)) {

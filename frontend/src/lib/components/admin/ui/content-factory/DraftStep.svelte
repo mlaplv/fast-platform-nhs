@@ -364,13 +364,22 @@
     }
   };
 
-  // Expert Optimizer (V71.30): Hydrate detailed results from cache if not already loaded
+  // Expert Optimizer (V71.30): Hydrate detailed results from cache with reactive sync
   $effect(() => {
     if (analysis_cache) {
       untrack(() => {
-        if (analysis_cache.copyright && !copyrightResult) copyrightResult = analysis_cache.copyright.data;
-        if (analysis_cache.seo && !seoResult) seoResult = analysis_cache.seo.data;
-        if (analysis_cache.ai_inspect && !aiReadyResult) aiReadyResult = analysis_cache.ai_inspect.data;
+        // Phase 112: Use content hash to ensure we only hydrate IF the result matches the current text
+        // For now, we trust the cache update from the parent (nanobot sync)
+        if (analysis_cache.copyright?.data) copyrightResult = analysis_cache.copyright.data as CopyrightResult;
+        if (analysis_cache.seo?.data) seoResult = analysis_cache.seo.data as SEOResult;
+        if (analysis_cache.ai?.data) aiReadyResult = analysis_cache.ai.data as AIInspectResult;
+        
+        // Auto-activate tab if we have data but no active tab
+        if (!activeTab) {
+          if (copyrightResult) activeTab = 'copyright';
+          else if (seoResult) activeTab = 'seo';
+          else if (aiReadyResult) activeTab = 'ai';
+        }
       });
     }
   });
@@ -472,9 +481,17 @@
             : undefined,
           onclick: () => runAiAnalysis()
         },
-        // Bulk Fix Action rendered only IF there's an active tab and errors
-        ...(activeTab && editorAnnotations.filter(a => a.type !== 'fixed').length > 0 ? [{
-          label: isBulkFixing ? '✨ ĐANG PHẪU THUẬT...' : `✨ SỬA TOÀN BỘ (${editorAnnotations.filter(a => a.type !== 'fixed').length} LỖI ${activeTab.toUpperCase()})`,
+        // Bulk Fix Action: Viral 2026 — Show if results exist, even if highlighting is brittle
+        ...(activeTab && (
+          (activeTab === 'copyright' && (copyrightResult?.annotations || []).filter(a => a.type !== 'fixed').length > 0) ||
+          (activeTab === 'seo' && (seoResult?.seo_annotations || []).filter(a => a.type !== 'fixed').length > 0) ||
+          (activeTab === 'ai' && (aiReadyResult?.ai_annotations || []).filter(a => a.type !== 'fixed').length > 0)
+        ) ? [{
+          label: isBulkFixing ? '✨ ĐANG PHẪU THUẬT...' : `✨ SỬA TOÀN BỘ (${
+            activeTab === 'copyright' ? (copyrightResult?.annotations || []).filter(a => a.type !== 'fixed').length :
+            activeTab === 'seo' ? (seoResult?.seo_annotations || []).filter(a => a.type !== 'fixed').length :
+            (aiReadyResult?.ai_annotations || []).filter(a => a.type !== 'fixed').length
+          } LỖI ${activeTab.toUpperCase()})`,
           loading: isBulkFixing,
           onclick: runBulkFix
         }] : [])

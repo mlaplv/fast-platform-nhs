@@ -270,15 +270,17 @@
       };
       await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/approve`, payload);
       
-      // Update local props to prevent $effect sync back to old values
+      // Phase 73.12: Predictive Global Sync — Prevent race condition with Pulse
       if (viewingStep === 1) {
-        // CNS V72: Inclusion of creation_config in keywords prop sync for effect equality
         keywords = { ...editedKeywords, creation_config: { ...editedConfig } };
         creation_config = { ...editedConfig };
+        nanobot.updateCurrentData({ keywords });
       } else if (viewingStep === 3) {
         outline = { ...outline, html: editedOutline };
+        nanobot.updateCurrentData({ outline });
       } else if (viewingStep === 4) {
         draft_content = editedDraft;
+        nanobot.updateCurrentData({ draft_content });
       }
 
       isEditing = false;
@@ -323,14 +325,17 @@
         
       await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, payload);
       
+      // Phase 73.12: Predictive Global Sync — Prevent race condition with Pulse
       if (viewingStep === 1) {
-        // CNS V72: Inclusion of creation_config in keywords prop sync for effect equality
         keywords = { ...editedKeywords, creation_config: { ...editedConfig } };
         creation_config = { ...editedConfig };
+        nanobot.updateCurrentData({ keywords });
       } else if (viewingStep === 3) {
         outline = { ...outline, html: editedOutline };
+        nanobot.updateCurrentData({ outline });
       } else if (viewingStep === 4) {
         draft_content = editedDraft;
+        nanobot.updateCurrentData({ draft_content });
       }
       isEditing = false;
       editedDraft = ""; // R82.47: Clear edit buffer after successful save
@@ -377,6 +382,12 @@
         avatar: currentAvatar || selectedAvatarUrl,
         selected_index: newIndex ?? selectedAssetIndex,
         gold_metadata: { reserve_assets } // R120: Persist reserve list
+      });
+      // Phase 73.12: Predictive Global Sync for Assets
+      nanobot.updateCurrentData({
+        assets: currentAssets,
+        selectedAvatarUrl: currentAvatar || selectedAvatarUrl,
+        selectedAssetIndex: newIndex ?? selectedAssetIndex
       });
     } catch (e) { console.error("Sync failed:", e); }
   }

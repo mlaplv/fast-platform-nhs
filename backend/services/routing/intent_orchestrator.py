@@ -458,6 +458,8 @@ class RouterOrchestrator:
                 )
                 
                 pending_data: Dict[str, Any] = shadow_res.data if shadow_res else {"intent_type": "UNKNOWN"}
+                # VIRAL 2026: Preserve the corrected transcript for the restored turn
+                pending_data["cleaned_transcript"] = virtual_transcript
                 # Add source tag for logging
                 pending_data["source_tag"] = "shadow"
                 
@@ -470,6 +472,7 @@ class RouterOrchestrator:
                     message=msg,
                     router_tier=RouterTier.TIER_1_HEURISTIC,
                     cost_tokens=0.0,
+                    requires_confirmation=True,
                     data={"intent_type": "SESSION_CTRL", "action": "STT_CONFIRM", "suspected_correction": right_word}
                 )
             
