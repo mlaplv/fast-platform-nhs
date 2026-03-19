@@ -193,12 +193,12 @@ class VoiceHandler:
 
             return IntentResponse(
                 status="success", action=IntentAction.CONTENT_CREATE,
-                message=f"Dạ sếp, em đã phân tích xong từ khóa cho chủ đề '{seed_data.get('title', 'mới')}'. Mời sếp duyệt trên màn hình ạ!",
+                message=f"Dạ sếp, em đã phác thảo Bước 1 cho bài viết mới. Sếp xem qua trên màn hình nhé!",
                 router_tier=RouterTier.TIER_2_SEMANTIC,
                 data={
                     "category": "CONTENT_CREATE",
                     "intent_type": "CONTENT_CREATE",
-                    "ui_action": "show_content_factory",
+                    "ui_action": "CONTENT_CREATE",
                     "action": "STEP1_REVIEW",
                     "campaign_id": c_id,
                     "status": "WAITING_FOR_REVIEW",

@@ -33,7 +33,7 @@ TARGET_KEYWORDS = {
     "user":    ["nguoi dung", "khach", "nhan vien", "tai khoan", "khach hang", "khach han", "cat hang"],
     "category": ["danh muc", "nhom hang", "loai hang"],
     "news":    ["tin tuc", "bai viet", "viet bai", "sang tac", "content", "bai dang"],
-    "settings": ["cai dat", "setting", "cau hinh", "voice", "giong noi", "am thanh"],
+    "settings": ["cai dat", "setting", "cau hinh", "voice", "giong noi", "am thanh", "skills", "ky nang"],
     "campaign": ["campaign", "chien dich", "chien dichh", "chien dichx", "camp", "canh pain", "cam pain"],
 }
 
@@ -112,6 +112,15 @@ async def heuristic_classify(
     Zero-LLM Heuristic Fallback — classify known patterns by keyword.
     Only handles clear-cut queries. Returns None for ambiguous ones.
     """
+    # Phase 77.8: Protected Keywords Guard (Un-hackable Core)
+    if any(p in (norm_query or normalize_vn(combined_lower)) for p in ["manage skills", "skills", "voice settings"]):
+        logger.info(f"[Heuristic] Protected Keyword Match: 'skills'")
+        return IntentResponse(
+            status="success", action=IntentAction.READ,
+            message="Dạ sếp, em mở cài đặt giọng nói cho sếp ngay đây ạ.",
+            router_tier=RouterTier.TIER_1_HEURISTIC,
+            data={"intent_type": "UI_NAV", "target": "settings", "ui_action": "show_voice_settings", "category": "SESSION_CTRL", "action": "HARDWARE_SLEEP"}
+        )
     # Phase 76.4: Use persistent context from xohi_memory
     ctx = context if context is not None else {}
 
@@ -184,6 +193,8 @@ async def heuristic_classify(
                         response_msg = profile.get("greeting_template", "Dạ, em nghe đây sếp.")
                     elif widget == "CAMPAIGNS":
                         ui_action = "show_campaigns"
+                    elif widget == "VOICE_SETTINGS":
+                        ui_action = "show_voice_settings"
                     else:
                         ui_action = widget if widget.startswith("show_") else f"show_{widget.lower()}"
                     
