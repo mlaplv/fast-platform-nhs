@@ -549,6 +549,18 @@
             : undefined,
           onclick: () => runAiAnalysis(true)
         },
+        // AI BOOSTER Action — Hiển thị khi SEO chưa đạt 95đ
+        ...(seoResult && seoResult.total_score < 95 ? [{
+          label: isBoosting ? '🚀 ENRICHING...' : '🚀 AI BOOSTER',
+          loading: isBoosting,
+          onclick: runAiBooster,
+          tooltipDetails: {
+            title: 'AI Booster™',
+            description: 'Tự động cấy số liệu thực tế, câu quote từ chuyên gia và bảng so sánh để ép bài viết vượt mức 95 điểm SEO.',
+            icon: Brain,
+            colorClass: 'text-pink-400'
+          }
+        }] : []),
         // Bulk Fix Action: Viral 2026 — Show if results exist, even if highlighting is brittle
         ...(activeTab && activeTab !== 'enrich' && (
           (activeTab === 'copyright' && (copyrightResult?.annotations || []).filter(a => a.type !== 'fixed').length > 0) ||

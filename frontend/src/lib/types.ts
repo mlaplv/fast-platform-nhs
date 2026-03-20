@@ -165,6 +165,12 @@ export interface ToolbarAction {
   disabled?: boolean;       // Gate lock — nút bị khoá
   lockedMsg?: string;       // Tooltip hiển thị khi bị khoá
   onclick: () => void | Promise<void>;
+  tooltipDetails?: {        // Tooltip chuyên nghiệp
+    icon?: any;             // lucide-svelte icon component
+    title: string;
+    description: string;
+    colorClass?: string;    // e.g. text-pink-400
+  };
 }
 
 export interface BaseWidgetProps {

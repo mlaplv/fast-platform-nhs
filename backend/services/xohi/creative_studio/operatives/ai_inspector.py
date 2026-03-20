@@ -196,11 +196,12 @@ class AiInspector:
         """
         async with self._geo_semaphore:
             draft = campaign.draft_content or ""
-        
-        # Phase 76.3: Unified Logic-First Sanitization — KEEP HTML for SEO structure analysis
-        plain_text = await noise_cleaner.clean(draft, mode="light", strip_html=False)
+        # Phase 76.3: Unified Logic-First Sanitization
+        # clean_draft keeps HTML for AI structure analysis, pure_text for exact word counts
+        clean_draft = await noise_cleaner.clean(draft, mode="light", strip_html=False)
+        pure_text = await noise_cleaner.clean(draft, mode="light", strip_html=True)
 
-        content_sample = plain_text[:12000]
+        content_sample = clean_draft[:12000]
 
         try:
             # Use the global trinity_bridge (V61.0 architecture)
@@ -214,9 +215,9 @@ class AiInspector:
         except Exception as e:
             logger.error(f"[AiInspector] AI analysis failed: {e}")
             # R103: Graceful Degradation — rule-based GEO score
-            has_stats = any(c.isdigit() for c in plain_text)
-            has_quotes = "theo" in plain_text.lower() or "trích dẫn" in plain_text.lower()
-            word_count = len(plain_text.split())
+            has_stats = any(c.isdigit() for c in pure_text)
+            has_quotes = "theo" in pure_text.lower() or "trích dẫn" in pure_text.lower()
+            word_count = len(pure_text.split())
             
             base_score = 60
             if has_stats: base_score += 10

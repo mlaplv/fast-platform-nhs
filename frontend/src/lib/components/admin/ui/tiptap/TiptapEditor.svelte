@@ -10,6 +10,7 @@
   import LinkDialog from './ui/LinkDialog.svelte';
   import StatusBar from './ui/StatusBar.svelte';
   import AnnotationTooltip from './ui/AnnotationTooltip.svelte';
+  import ImageBubbleMenu from './ui/ImageBubbleMenu.svelte';
   import type { MediaAsset } from '$lib/state/types';
   import { apiClient } from '$lib/utils/apiClient';
 
@@ -82,6 +83,14 @@
   let isHoveringTooltip = $state(false);
   let isInternalUpdating = false;
   let cleanStatus = $state<'idle' | 'cleaning' | 'done'>('idle');
+
+  // Image Menu tracking
+  let imageMenuVisible = $state(false);
+  let imageMenuX = $state(0);
+  let imageMenuY = $state(0);
+  let blockClicks = $state(false);
+  let lastInternalActionAt = 0;
+  let isSyncLocked = false;
 
   // ✦ Cerberus 2026: Frontend Clean — Jaccard near-duplicate dedup + Viral 2026 Polish (Phase 76.9)
   async function handleClean() {
@@ -263,6 +272,12 @@
   });
 
   $effect(() => {
+    if (showImageDialog || showLinkDialog) {
+      if (imageMenuVisible) imageMenuVisible = false;
+    }
+  });
+
+  $effect(() => {
     if (editor && !editor.isDestroyed) editor.setEditable(editable);
   });
 
@@ -387,6 +402,35 @@
     }
   }
 
+  function handleImageClick(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    const img = target.closest('.tiptap-content img') as HTMLImageElement | null;
+    if (img && editor) {
+      editor.commands.focus();
+      const pos = editor.view.posAtDOM(img, 0);
+      if (pos >= 0) {
+        const rect = img.getBoundingClientRect();
+        imageMenuX = rect.left + rect.width / 2;
+        imageMenuY = rect.top - 10;
+        imageMenuVisible = true;
+        editor.commands.setNodeSelection(pos);
+      }
+    } else if (!target.closest('.image-bubble-menu')) {
+      imageMenuVisible = false;
+    }
+  }
+
+  function handleDoubleClick(e: MouseEvent) {
+    if (blockClicks) return;
+    if (Date.now() - lastInternalActionAt < 800) return;
+    const target = e.target as HTMLElement;
+    const img = target.closest('.tiptap-content img') as HTMLImageElement | null;
+    if (img && editor) {
+      showImageDialog = true;
+      imageMenuVisible = false;
+    }
+  }
+
 </script>
 
 <div 
@@ -409,6 +453,8 @@
 
   <div
     class="flex-1 overflow-y-auto document-scroll {internalFullScreen ? 'bg-[#0a0d14]' : 'bg-transparent'}"
+    onclick={handleImageClick}
+    ondblclick={handleDoubleClick}
   >
     <div class="
       {internalFullScreen ? 'max-w-4xl mx-auto my-0 bg-[#0f172a] min-h-screen px-20 py-16 border-x border-white/5' : 'w-full bg-transparent min-h-[400px] px-6 py-4'}
@@ -423,7 +469,21 @@
   {/if}
 </div>
 
-<ImageDialog bind:show={showImageDialog} {assets} onSelect={(url) => editor?.chain().focus().setImage({ src: url }).run()} />
+<ImageDialog 
+  bind:show={showImageDialog} 
+  {assets} 
+  onSelect={(url) => {
+    if (editor) {
+      const { selection } = editor.state;
+      if (selection instanceof editor.view.state.NodeSelection && selection.node.type.name === 'image') {
+        editor.chain().focus().updateAttributes('image', { src: url }).run();
+      } else {
+        editor.chain().focus().setImage({ src: url }).run();
+      }
+      imageMenuVisible = false;
+    }
+  }} 
+/>
 <LinkDialog bind:show={showLinkDialog} currentUrl={currentLinkUrl} onApply={(url) => url ? editor?.chain().focus().setLink({ href: url }).run() : editor?.chain().focus().unsetLink().run()} />
   <div use:portal>
     <AnnotationTooltip 
@@ -439,6 +499,20 @@
     />
   </div>
 
+  {#if editor && editable && imageMenuVisible && !blockClicks && !showImageDialog && !showLinkDialog}
+  <div
+    class="fixed z-[3000] -translate-x-1/2 -translate-y-full pointer-events-auto transition-all duration-75 ease-out image-bubble-menu"
+    style="left: {imageMenuX}px; top: {imageMenuY}px;"
+  >
+    <ImageBubbleMenu
+      {editor}
+      onReplace={() => {
+        if (!blockClicks) showImageDialog = true;
+      }}
+    />
+  </div>
+  {/if}
+
 <style>
   @reference "tailwindcss";
   :global(.tiptap-content) { @apply outline-none text-white/90 leading-relaxed; }
@@ -446,7 +520,8 @@
   :global(.tiptap-content h1) { @apply text-3xl font-black mb-6 text-white; }
   :global(.tiptap-content h2) { @apply text-2xl font-bold mb-4 mt-8 text-white/80; }
   :global(.tiptap-content h3) { @apply text-xl font-bold mb-3 mt-6 text-white/70; }
-  :global(.tiptap-content img) { @apply rounded-lg shadow-xl my-8 mx-auto border border-white/5; }
+  :global(.tiptap-content img) { @apply rounded-lg my-4 mx-auto cursor-pointer border-2 border-transparent transition-all duration-200; }
+  :global(.tiptap-content img.ProseMirror-selectednode) { @apply border-blue-500/50 shadow-lg shadow-blue-500/10; }
 
   /* Premium Highlighting (Viral 2026) */
   :global(.xohi-annotation) {

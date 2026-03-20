@@ -132,8 +132,10 @@ class SeoAnalyzer:
         """
         async with self._seo_semaphore:
             draft = campaign.draft_content or ""
-            # Phase 76.3: Unified Logic-First Sanitization — KEEP HTML for SEO structure analysis
-            plain_text = await noise_cleaner.clean(campaign.draft_content, mode="light", strip_html=False)
+            # Phase 76.3: Unified Logic-First Sanitization
+            # clean_draft keeps HTML for AI structure analysis, pure_text for exact word counts/density
+            clean_draft = await noise_cleaner.clean(draft, mode="light", strip_html=False)
+            pure_text = await noise_cleaner.clean(draft, mode="light", strip_html=True)
 
             # Phase 115: Smart topic fallback — extract from H1 or first words of article
             # NEVER use a hardcoded default that could mismatch the actual content
@@ -147,8 +149,8 @@ class SeoAnalyzer:
                 if h1_match:
                     topic = _re.sub(r'<[^>]+>', '', h1_match.group(1)).strip()
                 else:
-                    # Fall back to first 8 words of plain text
-                    words = plain_text.split()
+                    # Fall back to first 8 words of pure text
+                    words = pure_text.split()
                     topic = " ".join(words[:8]) if words else "SEO content"
                 logger.info(f"[SEO] No campaign topic set — auto-detected: '{topic}'")
             
@@ -160,7 +162,7 @@ class SeoAnalyzer:
 [BÀI VIẾT ĐANG CHẤM]
 CHỦ ĐỀ: {topic}
 DRAFT:
-{plain_text[:8000]}  # CNS V76: Clip for token safety
+{clean_draft[:8000]}  # CNS V76: Clip for token safety
 
 [ĐỐI THỦ CẠNH TRANH TOP GOOGLE]
 {competitor_str}
@@ -173,10 +175,10 @@ DRAFT:
             )
             report = response.data if hasattr(response, 'data') else response.output
             
-            # Phase 73.20: Deterministic Override for Keyword Density
+            # Phase 73.20: Deterministic Override for Keyword Density (Must use pure_text!)
             primary_kw = campaign.get_gold_val("topic")
             if primary_kw:
-                extra_annotations = self._audit_keyword_density(plain_text, primary_kw)
+                extra_annotations = self._audit_keyword_density(pure_text, primary_kw)
                 if hasattr(report, 'seo_annotations'):
                     report.seo_annotations.extend(extra_annotations)
                 elif isinstance(report, dict) and 'seo_annotations' in report:

@@ -140,25 +140,43 @@
   <!-- Custom Toolbar Actions -->
   {#if toolbarActions.length > 0}
     <div class="tb-divider ml-auto"></div>
-    {#each toolbarActions as action}
-      <button
-        onclick={action.disabled ? undefined : action.onclick}
-        disabled={action.loading || action.disabled}
-        class="flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide border transition-all
-          {action.loading
-            ? 'bg-white/5 border-white/10 text-white/30 cursor-wait'
-            : action.disabled
-              ? 'bg-white/[0.03] border-white/5 text-white/20 cursor-not-allowed opacity-50'
-              : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white active:scale-95'}"
-        title={action.lockedMsg || action.label}
-      >
-        {#if action.loading}
-          <span class="inline-block w-2.5 h-2.5 border border-white/30 border-t-transparent rounded-full animate-spin"></span>
-        {:else if action.disabled}
-          <span class="text-[8px] opacity-60">🔒</span>
+    {#each toolbarActions as action, i}
+      <div class="relative group/action{i}">
+        <button
+          onclick={action.disabled ? undefined : action.onclick}
+          disabled={action.loading || action.disabled}
+          class="flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide border transition-all
+            {action.loading
+              ? 'bg-white/5 border-white/10 text-white/30 cursor-wait'
+              : action.disabled
+                ? 'bg-white/[0.03] border-white/5 text-white/20 cursor-not-allowed opacity-50'
+                : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white active:scale-95'}"
+          title={!action.tooltipDetails ? (action.lockedMsg || action.label) : undefined}
+        >
+          {#if action.loading}
+            <span class="inline-block w-2.5 h-2.5 border border-white/30 border-t-transparent rounded-full animate-spin"></span>
+          {:else if action.disabled}
+            <span class="text-[8px] opacity-60">🔒</span>
+          {/if}
+          {action.label}
+        </button>
+
+        {#if action.tooltipDetails && !action.disabled}
+          <!-- Professional Tooltip -->
+          <div class="absolute top-[calc(100%+8px)] right-0 w-64 bg-slate-900 border border-white/10 rounded-xl p-3 shadow-2xl z-[200]
+            opacity-0 translate-y-2 pointer-events-none transition-all duration-300
+            group-hover/action{i}:opacity-100 group-hover/action{i}:translate-y-0 hidden md:block text-left">
+            <div class="flex items-center gap-2 mb-1 text-left">
+              {#if action.tooltipDetails.icon}
+                {@const Icon = action.tooltipDetails.icon}
+                <Icon size={14} class={action.tooltipDetails.colorClass || 'text-purple-400'} />
+              {/if}
+              <span class="text-[11px] font-black uppercase {action.tooltipDetails.colorClass || 'text-purple-400'}">{action.tooltipDetails.title}</span>
+            </div>
+            <p class="text-[10px] leading-relaxed text-white/50 normal-case tracking-normal text-left">{action.tooltipDetails.description}</p>
+          </div>
         {/if}
-        {action.label}
-      </button>
+      </div>
     {/each}
   {/if}
 

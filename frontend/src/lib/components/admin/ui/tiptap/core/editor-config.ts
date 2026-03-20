@@ -28,9 +28,23 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
     openOnClick: false,
     HTMLAttributes: { class: 'text-blue-400 underline hover:text-blue-300 transition-colors cursor-pointer' },
   }),
-  Image.configure({
+  Image.extend({
+    addAttributes() {
+      return {
+        ...this.parent?.(),
+        class: {
+          default: 'max-w-full mx-auto my-4 shadow-lg flex',
+          parseHTML: element => element.getAttribute('class'),
+          renderHTML: attributes => {
+            if (!attributes.class) return {};
+            return { class: attributes.class };
+          },
+        },
+      }
+    }
+  }).configure({
     inline: false,
-    HTMLAttributes: { class: 'max-w-full mx-auto my-4 shadow-lg' },
+    HTMLAttributes: { class: 'max-w-full mx-auto my-4 shadow-lg flex' },
   }),
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
   TextStyle,
