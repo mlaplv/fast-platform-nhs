@@ -326,8 +326,13 @@ class TrinityBridge:
                     error_str = str(e).lower()
                     category = self._classify_error(error_str)
                     
-                    kid = self.rotator._get_key_id(key)
-                    logger.warning(f"[TrinityBridge] Model: {model_name} | Key: {key[:8]}... | KID: {kid} | Category: {category} | Details: {error_str}")
+                    # CNS Phase 82.30: Safety Check (Avoid UnboundLocalError if get_key failed)
+                    try:
+                        key_val = key if 'key' in locals() else "UNKNOWN"
+                        kid = self.rotator._get_key_id(key_val) if key_val != "UNKNOWN" else "N/A"
+                        logger.warning(f"[TrinityBridge] Model: {model_name} | Key: {key_val[:8]}... | KID: {kid} | Category: {category} | Details: {error_str}")
+                    except Exception:
+                        logger.warning(f"[TrinityBridge] Model: {model_name} | Error before key assignment: {error_str}")
                     
                     if "429 too many requests: hệ thống ai đang tạm thời đạt giới hạn an toàn" in error_str:
                         logger.error(f"[TrinityBridge] AI Engine overloaded, failing fast.")

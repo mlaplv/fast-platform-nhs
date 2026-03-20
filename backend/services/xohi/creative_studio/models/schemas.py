@@ -1,6 +1,7 @@
 from enum import Enum
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Union, Optional, TypedDict
+from typing_extensions import NotRequired
 
 class AgentSignal(str, Enum):
     PROCEED_NEXT = "PROCEED_NEXT"
@@ -54,7 +55,7 @@ class VisualSearchPlan(BaseModel):
 
 class AiAnnotation(BaseModel):
     model_config = ConfigDict(strict=True)
-    type: str      # "geo_stats" | "geo_quotes" | "geo_fluff" | "geo_snippet"
+    type: str      # "search_intent" | "eeat_missing" | "geo_stats" | "ai_overview" | "snippet_ready" | "entity_gap" | "geo_fluff" | "citation_weak" | "geo_quotes"
     text: str      # Exact substring from the article to highlight
     message: str   # Vietnamese tip shown in tooltip
     severity: str  # "high" | "warning" | "info"
@@ -78,6 +79,64 @@ class BulkFixRequest(BaseModel):
 class BulkFixResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     new_content: str
+
+# ══════════════════════════════════════════════════════════════
+# ANALYSIS & ENRICHMENT SCHEMAS — 2026 Edition
+# ══════════════════════════════════════════════════════════════
+
+class EnrichmentItem(BaseModel):
+    model_config = ConfigDict(strict=False)
+    type: str       # "stat" | "quote" | "table"
+    location: str   # Where it was injected
+    content: str    # The actual HTML injected
+
+class EnrichResponse(BaseModel):
+    model_config = ConfigDict(strict=False)
+    new_content: str
+    items: List[EnrichmentItem]
+    stats_added: int
+    quotes_added: int
+    tables_added: int
+    seo_boost_estimate: int
+
+class CopyrightAnnotation(BaseModel):
+    model_config = ConfigDict(strict=True)
+    text: str           # Exact text fragment from the article
+    reason: str         # Why this is risky
+    source_url: str     # Competitor URL
+    severity: str       # "low" | "medium" | "high"
+    type: Optional[str] = "external"
+
+class PlagiarismResult(BaseModel):
+    model_config = ConfigDict(strict=True)
+    uniqueness_score: float
+    risk_level: str
+    flagged_sentences: List[str]
+    annotations: List[CopyrightAnnotation]
+    similar_sources: List[str]
+    verdict: str
+
+class SeoAnnotation(BaseModel):
+    model_config = ConfigDict(strict=True)
+    type: str # "missing_h1", "keyword_missing", etc
+    text: str
+    message: str
+    severity: str
+
+class SeoSignal(BaseModel):
+    model_config = ConfigDict(strict=True)
+    label: str
+    score: int
+    status: str # "good", "warning", "error"
+
+class SeoReport(BaseModel):
+    model_config = ConfigDict(strict=True)
+    total_score: int
+    grade: str
+    signals: List[SeoSignal]
+    summary: str
+    quick_wins: List[str]
+    seo_annotations: List[SeoAnnotation]
 
 class MediaAnalysisResult(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -112,3 +171,29 @@ class CreativeCampaignState(BaseModel):
 def safe_id() -> str:
     import uuid
     return uuid.uuid4().hex[:8]
+
+# ══════════════════════════════════════════════════════════════
+# TYPEDDICTS — Strict Neural Data (Phase 82.25 Martial Law)
+# ══════════════════════════════════════════════════════════════
+
+class AnalysisCacheEntry(TypedDict):
+    hash: str
+    data: Dict[str, object]
+    at: str
+
+class AnalysisMetrics(TypedDict):
+    unique_score: NotRequired[float]
+    copyright_risk: NotRequired[str]
+    seo_score: NotRequired[int]
+    seo_grade: NotRequired[str]
+    ai_ready_score: NotRequired[int]
+    last_analyzed: NotRequired[str]
+
+class GoldMetadata(TypedDict):
+    creation_config: NotRequired[Dict[str, object]]
+    analysis_cache: NotRequired[Dict[str, AnalysisCacheEntry]]
+    analysis_metrics: NotRequired[AnalysisMetrics]
+    avatar: NotRequired[str]
+    selected_index: NotRequired[int]
+    reserve_assets: NotRequired[List[object]]
+    # Add other fields as discovered in the codebase

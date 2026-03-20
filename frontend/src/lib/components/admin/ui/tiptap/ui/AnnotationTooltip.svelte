@@ -1,4 +1,3 @@
-```
 <script lang="ts">
   import Sparkles from 'lucide-svelte/icons/sparkles';
   import Check from 'lucide-svelte/icons/check';
@@ -12,7 +11,9 @@
     type, 
     text, 
     isFixing,
-    onFix 
+    onFix,
+    onMouseEnter,
+    onMouseLeave
   }: {
     visible: boolean;
     x: number;
@@ -21,6 +22,8 @@
     text: string;
     isFixing: boolean;
     onFix: () => void;
+    onMouseEnter?: () => void;
+    onMouseLeave?: () => void;
   } = $props();
 
   onMount(() => {
@@ -33,19 +36,25 @@
   const isInternal = $derived(type === 'internal-dedup');
 </script>
 
-{#if visible && (text || isFixed)}
+{#if visible}
   <div 
     bind:this={tooltipEl}
-    class="fixed z-[100001] pointer-events-none transition-opacity duration-150"
-    style="left: {x}px; top: {y}px; transform: translate(-50%, -100%)"
+    class="fixed z-[100001] opacity-100 pointer-events-none transition-opacity duration-150"
+    style="left: {x}px; top: {y}px; transform: translate(-50%, calc(-100% + 15px))"
   >
-    <div class="shadow-2xl border backdrop-blur-xl p-3 text-[10px] leading-relaxed w-56 pointer-events-auto {
-      isFixed ? 'bg-emerald-950/95 border-emerald-500/30 text-emerald-100' : 
-      isInternal ? 'bg-fuchsia-950/95 border-fuchsia-500/30 text-fuchsia-100' :
-      type === 'copyright' ? 'bg-orange-950/95 border-orange-500/30 text-orange-100' :
-      type.startsWith('seo-') ? 'bg-blue-950/95 border-blue-400/30 text-blue-50' :
-      'bg-slate-900/95 border-white/10 text-white'
-    }">
+    <div 
+      class="pointer-events-auto pb-8"
+      role="tooltip"
+      onmouseenter={onMouseEnter}
+      onmouseleave={onMouseLeave}
+    >
+      <div class="shadow-2xl border backdrop-blur-xl p-3 text-[10px] leading-relaxed w-56 {
+        isFixed ? 'bg-emerald-950/95 border-emerald-500/30 text-emerald-100' : 
+        isInternal ? 'bg-fuchsia-950/95 border-fuchsia-500/30 text-fuchsia-100' :
+        type === 'copyright' ? 'bg-orange-950/95 border-orange-500/30 text-orange-100' :
+        type.startsWith('seo-') ? 'bg-blue-950/95 border-blue-400/30 text-blue-50' :
+        'bg-slate-900/95 border-white/10 text-white'
+      }">
       <div class="flex flex-col gap-2">
         <div class="flex items-start justify-between gap-3">
           <span class="font-black uppercase tracking-widest opacity-40 shrink-0 text-[8px] mt-0.5">
@@ -84,4 +93,5 @@
       </div>
     </div>
   </div>
+</div>
 {/if}

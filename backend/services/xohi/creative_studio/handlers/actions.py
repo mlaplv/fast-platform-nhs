@@ -241,6 +241,13 @@ class ActionHandler:
                 elif field == "draft_content": campaign.draft_content = val
                 elif field == "final_html": campaign.final_html = val
 
+        # CNS Phase 82.25: Cache Invalidation (Bust all analysis metrics if requested)
+        if data.get("force_cache_invalidate"):
+            gold["analysis_cache"] = {}
+            gold["analysis_metrics"] = {}
+            gold_changed = True
+            logger.info(f"[ActionHandler] Analysis cache invalidated for {campaign_id}")
+
         if gold_changed:
             campaign.gold_metadata = gold
             from sqlalchemy.orm.attributes import flag_modified

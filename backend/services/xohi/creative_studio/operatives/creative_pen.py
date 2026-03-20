@@ -271,12 +271,29 @@ class CreativePen:
         else:
             outline_text = f"  - H2: {title}: Giới thiệu tổng quan.\n  - H2: Chi tiết: Nội dung chuyên sâu.\n  - H2: Kết luận: Tổng kết và CTA."
 
+        # Extract actual URL strings from mixed asset payloads
+        clean_assets = []
+        for a in assets:
+            if isinstance(a, dict):
+                clean_assets.append(a.get("file_path") or a.get("url") or str(a))
+            elif hasattr(a, "file_path"):
+                clean_assets.append(getattr(a, "file_path") or getattr(a, "url") or str(a))
+            else:
+                clean_assets.append(str(a))
+
         # Format asset list with descriptions
-        asset_lines = [f"  [IMAGE_{i}]: {url}" for i, url in enumerate(assets[:12], 1)]
+        asset_lines = [f"  [IMAGE_{i}]: {url}" for i, url in enumerate(clean_assets[:12], 1)]
         asset_context = "\n".join(asset_lines) if asset_lines else "  (Không có ảnh)"
 
         # Avatar context
-        avatar_url = campaign.get_gold_val("avatar", assets[0] if assets else None)
+        avatar_raw = campaign.get_gold_val("avatar", assets[0] if assets else None)
+        if isinstance(avatar_raw, dict):
+            avatar_url = avatar_raw.get("file_path") or avatar_raw.get("url") or ""
+        elif hasattr(avatar_raw, "file_path"):
+            avatar_url = getattr(avatar_raw, "file_path") or getattr(avatar_raw, "url") or ""
+        else:
+            avatar_url = str(avatar_raw) if avatar_raw else ""
+            
         avatar_context = f"  Ảnh đại diện (thumbnail): {avatar_url}" if avatar_url else "  (Chưa có ảnh đại diện)"
 
         # Phase 71: Strict Word Count Enforcement (90% - 120% Range)
@@ -367,17 +384,25 @@ Bắt đầu viết ngay:
         V72.0: Surgical [IMAGE_N] replacement pass.
         Handles both standalone markers and markers already inside src/attributes.
         """
+        clean_assets = []
+        for a in assets:
+            if isinstance(a, dict):
+                clean_assets.append(a.get("file_path") or a.get("url") or str(a))
+            elif hasattr(a, "file_path"):
+                clean_assets.append(getattr(a, "file_path") or getattr(a, "url") or str(a))
+            else:
+                clean_assets.append(str(a))
 
         # First pass: Handle cases where [IMAGE_N] is accidentally inside a src attribute
         # e.g. <img src="[IMAGE_1]" /> -> <img src="URL" />
-        for i, url in enumerate(assets[:30], 1):
+        for i, url in enumerate(clean_assets[:30], 1):
             placeholder = f"[IMAGE_{i}]"
             # Use regex to find [IMAGE_N] within quotes (src="[IMAGE_1]")
             src_pattern = rf'(src|href)=["\']\s*{re.escape(placeholder)}\s*["\']'
             content = re.sub(src_pattern, rf'\1="{url}"', content)
 
         # Second pass: Handle standalone markers
-        for i, url in enumerate(assets[:30], 1):
+        for i, url in enumerate(clean_assets[:30], 1):
             placeholder = f"[IMAGE_{i}]"
             if placeholder in content:
                 figure_tag = f'<figure class="content-image"><img src="{str(url)}" alt="{alt_text}" loading="lazy" /></figure>'

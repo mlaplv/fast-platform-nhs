@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, untrack } from "svelte";
+  import { onMount, untrack, tick } from "svelte";
   import { ShieldCheck, BarChart2, Sparkles } from "lucide-svelte";
   import TiptapEditor from "../tiptap/TiptapEditor.svelte";
   import CheckResultPanel from "./CheckResultPanel.svelte";
@@ -113,7 +113,7 @@
   let isBulkFixing = $state(false);
 
   // -- Tab Filter State --
-  let activeTab = $state<'copyright' | 'seo' | 'ai' | null>(null);
+  let activeTab = $state<'copyright' | 'seo' | 'ai' | 'enrich' | null>(null);
 
   // -- Gate Score Derived Values --
   let _copyrightScore = $derived<number | null>(
@@ -203,11 +203,22 @@
     }
   });
  
+  // Auto-scroll to result panel when analysis starts
+  let resultPanelEl = $state<HTMLElement | null>(null);
+  function scrollToPanel() {
+    setTimeout(() => {
+      resultPanelEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+  }
+
   const runCopyrightCheck = async (force: boolean = false) => {
     if (!campaign_id || isCopyrightLoading) return;
     const isForce = force === true;
     isCopyrightLoading = true;
-    copyrightResult = null;
+    activeTab = 'copyright'; // Show panel immediately
+    scrollToPanel();
+    // Phase 114: Don't pre-null — keep old result visible while loading
+    copyrightScore = null;
     try {
       await saveBeforeAnalysis();
       const res = await apiClient.post<{ data: CopyrightResult }>(`/api/v1/content/campaigns/${campaign_id}/analyze/copyright?force=${isForce}`);
@@ -224,11 +235,17 @@
     if (!campaign_id || isSeoLoading || seoLocked) return;
     const isForce = force === true;
     isSeoLoading = true;
-    seoResult = null;
+    activeTab = 'seo'; // Show panel immediately
+    scrollToPanel();
+    // Phase 114: Don't pre-null result — keep showing old while loading new
+    // Only clear score so score badge shows spinner
+    seoScore = null;
     try {
       await saveBeforeAnalysis();
       const res = await apiClient.post<{ data: SEOResult }>(`/api/v1/content/campaigns/${campaign_id}/analyze/seo?force=${isForce}`);
-      if (res?.data) seoResult = res.data;
+      if (res?.data) {
+        seoResult = res.data; // Atomic update: replaces old result in one tick
+      }
     } catch (e) {
       console.error("[DraftStep] SEO analysis failed:", e);
     } finally {
@@ -241,11 +258,16 @@
     if (!campaign_id || isAiLoading || aiLocked) return;
     const isForce = force === true;
     isAiLoading = true;
-    aiReadyResult = null;
+    activeTab = 'ai'; // Show panel immediately
+    scrollToPanel();
+    // Phase 114: Don't pre-null result
+    aiScore = null;
     try {
       await saveBeforeAnalysis();
       const res = await apiClient.post<{ data: AIInspectResult }>(`/api/v1/content/campaigns/${campaign_id}/analyze/ai-inspect?force=${isForce}`);
-      if (res?.data) aiReadyResult = res.data;
+      if (res?.data) {
+        aiReadyResult = res.data;
+      }
     } catch (e) {
       console.error("[DraftStep] AI Inspect failed:", e);
     } finally {
@@ -335,25 +357,29 @@
         // AI returned entirely new content
         const newHtml = res.data.new_content;
 
-        // Let the editor reactivity naturally pick it up through editedDraft/draft_content binding
+        // Save to DB first
+        await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, { 
+          draft_content: newHtml
+        });
+
+        // Update local buffer
         if (isEditing) {
             editedDraft = newHtml;
         } else {
             draft_content = newHtml;
         }
 
-        // Wait a small tick so Svelte can sync the draft content to the editor before we re-analyze
-        await new Promise(r => setTimeout(r, 300));
+        // Phase 114: Wait for editor to re-render new content before re-analysis
+        // This ensures annotation posMap is built against the new doc structure
+        await tick();
+        await new Promise(resolve => setTimeout(resolve, 200));
 
-        // Rerun the analysis with force=true to guarantee fresh scores and highlights!
+        // Re-analysis with force=true (saveBeforeAnalysis skipped — already saved above)
         if (activeTab === 'copyright') {
-          copyrightResult = null; // Phase 112: Clear old UI state before fresh audit
           await runCopyrightCheck(true);
         } else if (activeTab === 'seo') {
-          seoResult = null;
           await runSeoAnalysis(true);
         } else if (activeTab === 'ai') {
-          aiReadyResult = null;
           await runAiAnalysis(true);
         }
       }
@@ -361,6 +387,48 @@
       console.error('[DraftStep] Bulk Fix failed:', e);
     } finally {
       isBulkFixing = false;
+    }
+  };
+
+  // ── AI BOOSTER (Phase 115) ─────────────────────────────────
+  let isBoosting = $state(false);
+
+  const runAiBooster = async () => {
+    if (!campaign_id || isBoosting || !seoResult) return;
+    isBoosting = true;
+    activeTab = 'enrich'; 
+    scrollToPanel();
+
+    try {
+      // 1. Double check db is synced
+      await saveBeforeAnalysis();
+
+      // 2. Call the new enrich endpoint
+      const res = await apiClient.post<{ status: string; data: { new_content: string } }>(`/api/v1/content/campaigns/${campaign_id}/analyze/enrich`);
+
+      if (res?.status === 'success' && res.data?.new_content) {
+        const newHtml = res.data.new_content;
+
+        // 3. Update UI
+        if (isEditing) {
+            editedDraft = newHtml;
+        } else {
+            draft_content = newHtml;
+        }
+
+        // 4. Wait for editor to re-render
+        await tick();
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // 5. Automatically re-check SEO to show the new score
+        activeTab = 'seo';
+        seoResult = null; // Clear it to force loading UI
+        await runSeoAnalysis(true);
+      }
+    } catch (e) {
+      console.error('[DraftStep] AI Booster failed:', e);
+    } finally {
+      isBoosting = false;
     }
   };
 
@@ -461,7 +529,7 @@
         {
           label: isCopyrightLoading ? '...' : '🔍 COPYRIGHT',
           loading: isCopyrightLoading,
-          onclick: () => runCopyrightCheck()
+          onclick: () => runCopyrightCheck(true)
         },
         {
           label: isSeoLoading ? '...' : '📊 SEO',
@@ -470,7 +538,7 @@
           lockedMsg: seoLocked
             ? `🔒 SEO bị khoá — Cần COPYRIGHT ≥ 90 trước (hiện: ${_copyrightScore !== null ? _copyrightScore + '%' : 'chưa check'})`
             : undefined,
-          onclick: () => runSeoAnalysis()
+          onclick: () => runSeoAnalysis(true)
         },
         {
           label: isAiLoading ? '...' : '✨ AI MOD',
@@ -479,10 +547,10 @@
           lockedMsg: aiLocked
             ? `🔒 AI MOD bị khoá — Cần SEO ≥ 70 trước (hiện: ${_seoScore !== null ? _seoScore + '/100' : 'chưa check'})`
             : undefined,
-          onclick: () => runAiAnalysis()
+          onclick: () => runAiAnalysis(true)
         },
         // Bulk Fix Action: Viral 2026 — Show if results exist, even if highlighting is brittle
-        ...(activeTab && (
+        ...(activeTab && activeTab !== 'enrich' && (
           (activeTab === 'copyright' && (copyrightResult?.annotations || []).filter(a => a.type !== 'fixed').length > 0) ||
           (activeTab === 'seo' && (seoResult?.seo_annotations || []).filter(a => a.type !== 'fixed').length > 0) ||
           (activeTab === 'ai' && (aiReadyResult?.ai_annotations || []).filter(a => a.type !== 'fixed').length > 0)
@@ -507,39 +575,57 @@
     <div class="flex items-center gap-2">
 
       <!-- COPYRIGHT -->
-      <button
-        onclick={() => {
-          if (activeTab !== 'copyright' && !copyrightResult && !isCopyrightLoading) {
-            runCopyrightCheck();
-          } else {
-            handleTabClick('copyright');
-          }
-        }}
-        disabled={isCopyrightLoading}
-        class="group relative flex items-center gap-1.5 px-3 py-1.5 transition-all
-          {activeTab === 'copyright'
-            ? 'bg-orange-500/15 border border-orange-500/40 text-orange-300'
-            : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}
-          disabled:opacity-50"
-        title={null}
-      >
-        {#if isCopyrightLoading}
-          <span class="inline-block w-3 h-3 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></span>
-        {:else}
-          <ShieldCheck size={12} />
-        {/if}
-        <span class="text-[10px] uppercase font-bold tracking-wider">COPYRIGHT</span>
-        {#if copyrightBadge}
-          {@const badgeColor = (_copyrightScore ?? 0) >= 90 ? 'bg-emerald-500/20 text-emerald-400' : (_copyrightScore ?? 0) >= 70 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}
-          <span class="text-[8px] font-black px-1.5 py-0.5 rounded-full {badgeColor}">{copyrightBadge}</span>
-        {/if}
-      </button>
+      <div class="relative group/cr">
+        <button
+          onclick={() => {
+            if (!copyrightResult && !isCopyrightLoading) {
+              runCopyrightCheck();
+            } else {
+              handleTabClick('copyright');
+            }
+          }}
+          disabled={isCopyrightLoading}
+          class="group relative flex items-center gap-1.5 px-3 py-1.5 transition-all
+            {activeTab === 'copyright'
+              ? 'bg-orange-500/15 border border-orange-500/40 text-orange-300'
+              : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}
+            disabled:opacity-50"
+        >
+          {#if isCopyrightLoading}
+            <span class="inline-block w-3 h-3 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></span>
+          {:else}
+            <ShieldCheck size={12} />
+          {/if}
+          <span class="text-[10px] uppercase font-bold tracking-wider">COPYRIGHT</span>
+          {#if copyrightBadge}
+            {@const badgeColor = (_copyrightScore ?? 0) >= 90 ? 'bg-emerald-500/20 text-emerald-400' : (_copyrightScore ?? 0) >= 70 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}
+            <span class="text-[8px] font-black px-1.5 py-0.5 rounded-full {badgeColor}">{copyrightBadge}</span>
+          {/if}
+        </button>
+        <!-- Criteria Tooltip -->
+        <div class="criteria-tooltip opacity-0 group-hover/cr:opacity-100 pointer-events-none group-hover/cr:pointer-events-auto absolute bottom-full left-0 mb-2 w-72 bg-gradient-to-br from-orange-950/95 via-slate-950/95 to-slate-900/95 backdrop-blur-2xl border border-orange-500/20 shadow-2xl shadow-orange-500/5 p-4 z-50 transition-all duration-300 translate-y-2 group-hover/cr:translate-y-0">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-6 h-6 rounded-md bg-orange-500/20 flex items-center justify-center"><ShieldCheck size={12} class="text-orange-400" /></div>
+            <span class="text-[10px] font-black uppercase tracking-[0.15em] text-orange-400">Plagiarism Cop™</span>
+          </div>
+          <div class="space-y-2 text-[9px] leading-relaxed text-white/70">
+            <div class="flex items-start gap-2"><span class="text-orange-400 font-black mt-px">01</span><span><b class="text-white/90">Duplicate Detection</b> — So sánh từng câu với Top 10 Google, phát hiện trùng lặp ≥5 từ liên tiếp</span></div>
+            <div class="flex items-start gap-2"><span class="text-orange-400 font-black mt-px">02</span><span><b class="text-white/90">Structural Similarity</b> — Phát hiện xào nấu cấu trúc (đổi từ đồng nghĩa nhưng giữ khung)</span></div>
+            <div class="flex items-start gap-2"><span class="text-orange-400 font-black mt-px">03</span><span><b class="text-white/90">Source Attribution</b> — Truy vết URL gốc của đoạn trùng lặp</span></div>
+            <div class="flex items-start gap-2"><span class="text-orange-400 font-black mt-px">04</span><span><b class="text-white/90">Internal Dedup</b> — Phát hiện lặp ý trong chính bài viết</span></div>
+          </div>
+          <div class="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
+            <span class="text-[8px] text-white/30 italic">Powered by Google Custom Search API</span>
+            <span class="text-[8px] font-black text-orange-400/60">≥90% = PASS</span>
+          </div>
+        </div>
+      </div>
 
       <!-- SEO -->
       <div class="relative group/seo">
         <button
           onclick={() => {
-            if (activeTab !== 'seo' && !seoResult && !isSeoLoading && !seoLocked) {
+            if (!seoResult && !isSeoLoading && !seoLocked) {
               runSeoAnalysis();
             } else {
               handleTabClick('seo');
@@ -566,19 +652,37 @@
             <span class="text-[8px] font-black px-1.5 py-0.5 rounded-full {gc}">{seoBadge}</span>
           {/if}
         </button>
-        <!-- Tooltip khi locked -->
-        {#if seoLocked}
-          <div class="absolute bottom-full left-0 mb-1.5 px-2 py-1 bg-black/90 border border-white/10 text-[8px] text-orange-400 whitespace-nowrap opacity-0 group-hover/seo:opacity-100 transition-opacity pointer-events-none z-10">
-            ⚠️ Cần COPYRIGHT ≥ 90 trước ({_copyrightScore !== null ? `hiện: ${_copyrightScore}%` : 'chưa kiểm tra'})
+        <!-- Criteria / Locked Tooltip -->
+        <div class="criteria-tooltip opacity-0 group-hover/seo:opacity-100 pointer-events-none group-hover/seo:pointer-events-auto absolute bottom-full left-0 mb-2 w-80 bg-gradient-to-br from-blue-950/95 via-slate-950/95 to-slate-900/95 backdrop-blur-2xl border border-blue-500/20 shadow-2xl shadow-blue-500/5 p-4 z-50 transition-all duration-300 translate-y-2 group-hover/seo:translate-y-0">
+          {#if seoLocked}
+            <div class="text-[9px] text-orange-400 font-bold">⚠️ Cần COPYRIGHT ≥ 90% trước ({_copyrightScore !== null ? `hiện: ${_copyrightScore}%` : 'chưa kiểm tra'})</div>
+            <div class="h-px bg-white/5 my-2"></div>
+          {/if}
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-6 h-6 rounded-md bg-blue-500/20 flex items-center justify-center"><BarChart2 size={12} class="text-blue-400" /></div>
+            <span class="text-[10px] font-black uppercase tracking-[0.15em] text-blue-400">SEO Strategist™</span>
           </div>
-        {/if}
+          <div class="space-y-1.5 text-[9px] leading-relaxed text-white/70">
+            <div class="flex items-start gap-2"><span class="text-blue-400 font-black shrink-0 w-8">20%</span><span><b class="text-white/90">Search Intent</b> — Giải quyết nỗi đau user tốt hơn đối thủ</span></div>
+            <div class="flex items-start gap-2"><span class="text-blue-400 font-black shrink-0 w-8">20%</span><span><b class="text-white/90">E-E-A-T</b> — Chuyên gia, kinh nghiệm, nguồn uy tín</span></div>
+            <div class="flex items-start gap-2"><span class="text-blue-400 font-black shrink-0 w-8">15%</span><span><b class="text-white/90">Entity Coverage</b> — Bao phủ đầy đủ concept so với Top 5</span></div>
+            <div class="flex items-start gap-2"><span class="text-blue-400 font-black shrink-0 w-8">15%</span><span><b class="text-white/90">AI Naturalness</b> — Văn phong mượt, tránh lặp máy móc</span></div>
+            <div class="flex items-start gap-2"><span class="text-blue-400 font-black shrink-0 w-8">15%</span><span><b class="text-white/90">Snippet Potential</b> — Cấu trúc sắc bén để AI trích dẫn</span></div>
+            <div class="flex items-start gap-2"><span class="text-blue-400 font-black shrink-0 w-8">10%</span><span><b class="text-white/90">Semantic Richness</b> — Thuật ngữ chuyên sâu, không phổ thông</span></div>
+            <div class="flex items-start gap-2"><span class="text-blue-400 font-black shrink-0 w-8">5%</span><span><b class="text-white/90">Technical SEO</b> — H1/H2/H3 structure, CTA rõ ràng</span></div>
+          </div>
+          <div class="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
+            <span class="text-[8px] text-white/30 italic">So sánh Top 5 Google Real-time</span>
+            <span class="text-[8px] font-black text-blue-400/60">A ≥ 85 · B ≥ 70</span>
+          </div>
+        </div>
       </div>
 
       <!-- AI MOD -->
       <div class="relative group/ai">
         <button
           onclick={() => {
-            if (activeTab !== 'ai' && !aiReadyResult && !isAiLoading && !aiLocked) {
+            if (!aiReadyResult && !isAiLoading && !aiLocked) {
               runAiAnalysis();
             } else {
               handleTabClick('ai');
@@ -591,7 +695,6 @@
               : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}
             {aiLocked ? 'cursor-not-allowed opacity-50' : ''}
             disabled:opacity-50"
-          title="Kiểm tra mức độ thân thiện với LLM/AI Crawlers"
         >
           {#if isAiLoading}
             <span class="inline-block w-3 h-3 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></span>
@@ -606,19 +709,41 @@
             <span class="text-[8px] font-black px-1.5 py-0.5 rounded-full {ac}">{aiBadge}</span>
           {/if}
         </button>
-        <!-- Tooltip khi locked -->
-        {#if aiLocked}
-          <div class="absolute bottom-full left-0 mb-1.5 px-2 py-1 bg-black/90 border border-white/10 text-[8px] text-blue-400 whitespace-nowrap opacity-0 group-hover/ai:opacity-100 transition-opacity pointer-events-none z-10">
-            ⚠️ Cần SEO ≥ 70 trước ({_seoScore !== null ? `hiện: ${_seoScore}/100` : 'chưa kiểm tra'})
+        <!-- Criteria / Locked Tooltip -->
+        <div class="criteria-tooltip opacity-0 group-hover/ai:opacity-100 pointer-events-none group-hover/ai:pointer-events-auto absolute bottom-full right-0 mb-2 w-[340px] bg-gradient-to-br from-purple-950/95 via-slate-950/95 to-fuchsia-950/95 backdrop-blur-2xl border border-purple-500/20 shadow-2xl shadow-purple-500/10 p-4 z-50 transition-all duration-300 translate-y-2 group-hover/ai:translate-y-0">
+          {#if aiLocked}
+            <div class="text-[9px] text-blue-400 font-bold">⚠️ Cần SEO ≥ 70 trước ({_seoScore !== null ? `hiện: ${_seoScore}/100` : 'chưa kiểm tra'})</div>
+            <div class="h-px bg-white/5 my-2"></div>
+          {/if}
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-6 h-6 rounded-md bg-purple-500/20 flex items-center justify-center"><Sparkles size={12} class="text-purple-400" /></div>
+            <div>
+              <span class="text-[10px] font-black uppercase tracking-[0.15em] text-purple-400">Viral Edge™</span>
+              <span class="text-[7px] text-white/30 ml-1">AI Search Optimization</span>
+            </div>
           </div>
-        {/if}
+          <div class="space-y-1.5 text-[9px] leading-relaxed text-white/70">
+            <div class="flex items-start gap-2"><span class="text-purple-400 font-black shrink-0 w-8">15%</span><span><b class="text-white/90">Search Intent</b> — Match chính xác câu hỏi user gõ vào Google</span></div>
+            <div class="flex items-start gap-2"><span class="text-purple-400 font-black shrink-0 w-8">15%</span><span><b class="text-white/90">E-E-A-T Authority</b> — Chuyên gia, trích dẫn, bằng chứng thực tế</span></div>
+            <div class="flex items-start gap-2"><span class="text-purple-400 font-black shrink-0 w-8">15%</span><span><b class="text-white/90">Information Gain</b> — Insight mới so với đối thủ Top 5</span></div>
+            <div class="flex items-start gap-2"><span class="text-fuchsia-400 font-black shrink-0 w-8">15%</span><span><b class="text-white/90">AI Overview Ready</b> — Cấu trúc sẵn sàng cho Google AI Overview</span></div>
+            <div class="flex items-start gap-2"><span class="text-fuchsia-400 font-black shrink-0 w-8">10%</span><span><b class="text-white/90">Featured Snippet</b> — Direct answer ≤40 từ, list, bảng so sánh</span></div>
+            <div class="flex items-start gap-2"><span class="text-fuchsia-400 font-black shrink-0 w-8">10%</span><span><b class="text-white/90">Entity Density</b> — NLP entity: tên riêng, số liệu, thuật ngữ</span></div>
+            <div class="flex items-start gap-2"><span class="text-pink-400 font-black shrink-0 w-8">10%</span><span><b class="text-white/90">Fluff Penalty</b> — Trừ điểm cho câu sáo rỗng, lặp ý</span></div>
+            <div class="flex items-start gap-2"><span class="text-pink-400 font-black shrink-0 w-8">10%</span><span><b class="text-white/90">Citation Pattern</b> — Perplexity / ChatGPT / Gemini trích dẫn</span></div>
+          </div>
+          <div class="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
+            <span class="text-[8px] text-white/30 italic">Powered by Gemini AI · 8 Criteria</span>
+            <span class="text-[8px] font-black text-purple-400/60">&gt;85 = TOP 1</span>
+          </div>
+        </div>
       </div>
 
     </div>
 
     <!-- Result Panel (controlled by activeTab) -->
     {#if activeTab !== null}
-      <div class="max-h-52 overflow-y-auto custom-scrollbar">
+      <div bind:this={resultPanelEl} class="max-h-52 overflow-y-auto custom-scrollbar">
         <CheckResultPanel
           {activeTab}
           {copyrightResult}
@@ -627,9 +752,11 @@
           {isSeoLoading}
           {aiReadyResult}
           {isAiLoading}
+          {isBoosting}
           {runCopyrightCheck}
           {runSeoAnalysis}
           {runAiAnalysis}
+          {runAiBooster}
           onfix={runAutoFix}
         />
       </div>

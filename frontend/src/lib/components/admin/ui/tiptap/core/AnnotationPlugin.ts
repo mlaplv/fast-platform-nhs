@@ -162,15 +162,23 @@ function createDecorations(doc: ProseMirrorNode, annotations: EditorAnnotation[]
       }
     }
 
-    if (normalizedPattern.length < 3) continue;
+    if (normalizedPattern.length < 6) continue;
 
     // Find ALL occurrences
     let startIdx = 0;
     while ((startIdx = searchBuffer.indexOf(normalizedPattern, startIdx)) !== -1) {
-      const startPos = posMap[startIdx];
-      const endPos = posMap[startIdx + normalizedPattern.length - 1] + 1;
+      const endIdx = startIdx + normalizedPattern.length - 1;
 
-      if (startPos !== undefined && endPos !== undefined) {
+      // Guard: posMap may not have entry if pattern overruns the buffer
+      if (endIdx >= posMap.length || startIdx >= posMap.length) {
+        startIdx += 1;
+        continue;
+      }
+
+      const startPos = posMap[startIdx];
+      const endPos = posMap[endIdx] + 1;
+
+      if (startPos !== undefined && endPos !== undefined && endPos > startPos) {
         decorations.push(
           Decoration.inline(startPos, endPos, {
             class: `xohi-annotation type-${ann.type} severity-${ann.severity || 'medium'}`,

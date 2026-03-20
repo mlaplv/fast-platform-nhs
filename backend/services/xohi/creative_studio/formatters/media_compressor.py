@@ -80,7 +80,15 @@ class MediaCompressor:
         """Downloads and processes all assets defined in assets_data."""
         local_paths: List[str] = []
         async with httpx.AsyncClient(follow_redirects=True) as client:
-            for i, url in enumerate(campaign.assets_data or []):
+            for i, asset_iter in enumerate(campaign.assets_data or []):
+                # Extract URL securely from mixed dict/object structures
+                if isinstance(asset_iter, dict):
+                    url = asset_iter.get("file_path") or asset_iter.get("url") or ""
+                elif hasattr(asset_iter, "file_path"):
+                    url = getattr(asset_iter, "file_path") or getattr(asset_iter, "url") or ""
+                else:
+                    url = str(asset_iter)
+
                 # Phase 73: Fast Path for already localized assets
                 if url.startswith("/") or url.startswith("static"):
                     # Normalize paths (Remove /static prefix if present)

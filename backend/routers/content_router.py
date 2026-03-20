@@ -368,9 +368,9 @@ class ContentController(Controller):
         gold = campaign.gold_metadata or {}
         cache = gold.get("analysis_cache", {})
         
-        if not force and cache.get("ai_inspect", {}).get("hash") == content_hash:
+        if not force and cache.get("ai", {}).get("hash") == content_hash:
             logger.info(f"AI Inspect cache hit for campaign {campaign_id}")
-            return GenericResponse(status="success", data=cache["ai_inspect"]["data"])
+            return GenericResponse(status="success", data=cache["ai"]["data"])
 
         if force:
             logger.info(f"AI Inspect force refresh for campaign {campaign_id}")
@@ -380,7 +380,7 @@ class ContentController(Controller):
             result_data = result.model_dump()
             
             # Archiving & Metrics
-            cache["ai_inspect"] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
+            cache["ai"] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
             metrics = gold.get("analysis_metrics", {})
             metrics["ai_ready_score"] = result.geo_score
             metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
@@ -459,6 +459,35 @@ class ContentController(Controller):
             return GenericResponse(status="success", data=result.model_dump())
         except Exception as e:
             logger.error(f"Bulk-Fix error: {e}")
+            return GenericResponse(status="error", message=str(e))
+
+    @post("/campaigns/{campaign_id:uuid}/analyze/enrich")
+    async def analyze_enrich(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> GenericResponse:
+        """
+        AI Booster / Content Enricher: Inject real stats, quotes, and comparison tables to boost SEO to 95+
+        """
+        try:
+            from backend.services.xohi.creative_studio.operatives.content_enricher import enricher
+
+            campaign = await campaign_repo.get(str(campaign_id))
+            if not campaign:
+                return GenericResponse(status="error", message="Campaign not found")
+            if not campaign.draft_content:
+                return GenericResponse(status="error", message="Chưa có nội dung để enrich.")
+
+            result = await enricher.enrich(campaign)
+
+            # Persist enriched content back to DB
+            if result.new_content and result.new_content != campaign.draft_content:
+                campaign.draft_content = result.new_content
+                flag_modified(campaign, "draft_content")
+                await campaign_repo.update(campaign)
+                await campaign_repo.session.commit()
+                logger.info(f"[Enricher] Persisted enriched content ({len(result.new_content)} chars) for campaign {campaign_id}")
+
+            return GenericResponse(status="success", data=result.model_dump())
+        except Exception as e:
+            logger.error(f"Content-Enrich error: {e}")
             return GenericResponse(status="error", message=str(e))
 
     @post("/clean")

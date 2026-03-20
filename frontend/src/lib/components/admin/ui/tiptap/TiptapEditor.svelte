@@ -39,8 +39,11 @@
     onblur?: () => void;
   } = $props();
 
-  let internalFullScreen = $state(fullScreen);
-  $effect(() => { internalFullScreen = fullScreen; });
+  let internalFullScreen = $state<boolean | undefined>(undefined);
+  $effect(() => {
+    if (internalFullScreen === undefined) internalFullScreen = fullScreen;
+    else internalFullScreen = fullScreen;
+  });
 
   const toggleFullScreen = () => {
     if (onToggleFullScreen) {
@@ -75,6 +78,8 @@
   let tooltipY = $state(0);
   let isFixing = $state(false);
   let lastTooltipAnchorId = $state('');
+  let tooltipHideTimeout: ReturnType<typeof setTimeout> | null = null;
+  let isHoveringTooltip = $state(false);
   let isInternalUpdating = false;
   let cleanStatus = $state<'idle' | 'cleaning' | 'done'>('idle');
 
@@ -246,17 +251,15 @@
     });
     updateMetrics();
 
-    // Cerberus 2026: Attach visual-overlay events
-    element.addEventListener('annotation-hover', handleAnnotationHover);
-    element.addEventListener('annotation-leave', handleAnnotationLeave);
+    // Cerberus 2026: Attach visual-overlay events to window for portal-safe tracking
+    window.addEventListener('annotation-hover', handleAnnotationHover);
+    window.addEventListener('annotation-leave', handleAnnotationLeave);
   });
 
   onDestroy(() => {
     if (editor) editor.destroy();
-    if (element) {
-      element.removeEventListener('annotation-hover', handleAnnotationHover);
-      element.removeEventListener('annotation-leave', handleAnnotationLeave);
-    }
+    window.removeEventListener('annotation-hover', handleAnnotationHover);
+    window.removeEventListener('annotation-leave', handleAnnotationLeave);
   });
 
   $effect(() => {
@@ -303,12 +306,16 @@
 
   function handleAnnotationHover(e: Event) {
     if (isFixing) return;
+    if (tooltipHideTimeout) {
+      clearTimeout(tooltipHideTimeout);
+      tooltipHideTimeout = null;
+    }
     const customEvent = e as CustomEvent;
     const data = customEvent.detail;
     if (!data || !data.id) return;
 
     tooltipX = data.x;
-    tooltipY = data.y - 12;
+    tooltipY = data.y - 10; // Rule V2026: Small offset to avoid blocking initial hover
     tooltipText = data.message;
     tooltipType = data.type;
     tooltipId = data.id;
@@ -319,13 +326,31 @@
   }
 
   function handleAnnotationLeave() {
-    if (!isFixing) {
-      tooltipVisible = false;
+    if (isFixing || isHoveringTooltip) return;
+    
+    // Rule V2026: Substantial delay (600ms) to allow travel to tooltip
+    if (tooltipHideTimeout) clearTimeout(tooltipHideTimeout);
+    tooltipHideTimeout = setTimeout(() => {
+      if (!isHoveringTooltip && !isFixing) {
+        tooltipVisible = false;
+      }
+    }, 600);
+  }
+
+  function handleTooltipEnter() {
+    isHoveringTooltip = true;
+    if (tooltipHideTimeout) {
+      clearTimeout(tooltipHideTimeout);
+      tooltipHideTimeout = null;
     }
   }
 
+  function handleTooltipLeave() {
+    isHoveringTooltip = false;
+    handleAnnotationLeave();
+  }
 
-  // Rule R82.48: Viewport Reliability — Use a portal to bypass stacking context issues
+  // Rule R82.48: Viewport Reliability — Portal for stacking context bypass
   function portal(node: HTMLElement) {
     document.body.appendChild(node);
     return {
@@ -353,11 +378,20 @@
     }
   }
 
+  function handleFocusOut(e: FocusEvent) {
+    if (!onblur) return;
+    const ct = e.currentTarget;
+    const rt = e.relatedTarget;
+    if (!rt || !(ct instanceof Node) || !ct.contains(rt as Node)) {
+      onblur();
+    }
+  }
+
 </script>
 
 <div 
   class={containerClass}
-  onfocusout={(e) => { if (onblur && !e.currentTarget.contains(e.relatedTarget as Node)) onblur(); }}
+  onfocusout={handleFocusOut}
 >
   {#if editable}
     <Toolbar
@@ -375,7 +409,6 @@
 
   <div
     class="flex-1 overflow-y-auto document-scroll {internalFullScreen ? 'bg-[#0a0d14]' : 'bg-transparent'}"
-    onmouseleave={() => { if (!isFixing) tooltipVisible = false; }}
   >
     <div class="
       {internalFullScreen ? 'max-w-4xl mx-auto my-0 bg-[#0f172a] min-h-screen px-20 py-16 border-x border-white/5' : 'w-full bg-transparent min-h-[400px] px-6 py-4'}
@@ -393,7 +426,17 @@
 <ImageDialog bind:show={showImageDialog} {assets} onSelect={(url) => editor?.chain().focus().setImage({ src: url }).run()} />
 <LinkDialog bind:show={showLinkDialog} currentUrl={currentLinkUrl} onApply={(url) => url ? editor?.chain().focus().setLink({ href: url }).run() : editor?.chain().focus().unsetLink().run()} />
   <div use:portal>
-    <AnnotationTooltip bind:visible={tooltipVisible} x={tooltipX} y={tooltipY} type={tooltipType} text={tooltipText} {isFixing} onFix={handleFix} />
+    <AnnotationTooltip 
+      bind:visible={tooltipVisible} 
+      x={tooltipX} 
+      y={tooltipY} 
+      type={tooltipType} 
+      text={tooltipText} 
+      {isFixing} 
+      onFix={handleFix} 
+      onMouseEnter={handleTooltipEnter}
+      onMouseLeave={handleTooltipLeave}
+    />
   </div>
 
 <style>
