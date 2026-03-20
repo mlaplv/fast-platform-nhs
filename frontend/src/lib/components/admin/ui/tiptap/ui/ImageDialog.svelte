@@ -3,6 +3,7 @@
   import MediaModal from "$lib/components/media/MediaModal.svelte";
 
   import { onMount } from "svelte";
+  import { portal } from "$lib/actions/portal";
 
   let {
     show = $bindable(),
@@ -51,7 +52,7 @@
 {#if show}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="fixed inset-0 z-[1000] flex items-center justify-center bg-[#09090b]/80 backdrop-blur-xl transition-all duration-500" onclick={() => show = false}>
+  <div use:portal class="fixed inset-0 z-[1000] flex items-center justify-center bg-[#09090b]/80 backdrop-blur-xl transition-all duration-500" onclick={() => show = false}>
     <div 
         class="bg-[#18181b] border border-white/5 p-8 shadow-[0_0_50px_-12px_rgba(59,130,246,0.3)] w-[95%] max-w-[900px] rounded-[2rem] relative overflow-hidden group" 
         onclick={(e) => e.stopPropagation()}
@@ -139,7 +140,7 @@
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
                   <div 
                      class="group/asset relative aspect-square rounded-2xl overflow-hidden border border-white/5 hover:border-blue-500/50 cursor-pointer transition-all duration-300 bg-zinc-900 hover:scale-[1.02] hover:shadow-[0_0_30px_-10px_rgba(59,130,246,0.3)]"
-                     onclick={() => { onSelect(fullUrl); show = false; }}
+                     onclick={(e) => { e.stopPropagation(); onSelect(fullUrl); show = false; }}
                   >
                       <img src={fullUrl} alt="asset" class="w-full h-full object-cover grayscale-[0.5] group-hover/asset:grayscale-0 transition-all duration-500" onerror={handleImageError} />
                       <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover/asset:opacity-100 transition-opacity flex items-end p-3">

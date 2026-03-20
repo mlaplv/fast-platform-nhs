@@ -66,6 +66,12 @@
   let showImageDialog = $state(false);
   let showLinkDialog = $state(false);
   let currentLinkUrl = $state('');
+  
+  // Guard against double-click bleed-through from dialog
+  let lastDialogCloseAt = 0;
+  $effect(() => {
+    if (!showImageDialog) lastDialogCloseAt = Date.now();
+  });
 
   // Tooltip tracking
   let tooltipVisible = $state(false);
@@ -404,7 +410,11 @@
 
   function handleImageClick(e: MouseEvent) {
     const target = e.target as HTMLElement;
-    const img = target.closest('.tiptap-content img') as HTMLImageElement | null;
+    let img = target.closest('.tiptap-content img') as HTMLImageElement | null;
+    // Also handle clicks on figcaption
+    if (!img && target.closest('figcaption')) {
+      img = target.closest('figure')?.querySelector('img') as HTMLImageElement | null;
+    }
     if (img && editor) {
       editor.commands.focus();
       const pos = editor.view.posAtDOM(img, 0);
@@ -423,6 +433,7 @@
   function handleDoubleClick(e: MouseEvent) {
     if (blockClicks) return;
     if (Date.now() - lastInternalActionAt < 800) return;
+    if (Date.now() - lastDialogCloseAt < 500) return; // Prevent double-click bleed-through
     const target = e.target as HTMLElement;
     const img = target.closest('.tiptap-content img') as HTMLImageElement | null;
     if (img && editor) {
@@ -474,13 +485,18 @@
   {assets} 
   onSelect={(url) => {
     if (editor) {
-      const { selection } = editor.state;
-      if (selection instanceof editor.view.state.NodeSelection && selection.node.type.name === 'image') {
-        editor.chain().focus().updateAttributes('image', { src: url }).run();
-      } else {
-        editor.chain().focus().setImage({ src: url }).run();
-      }
+      blockClicks = true;
       imageMenuVisible = false;
+      // Defer focus to avoid click-through when portal unmounts
+      setTimeout(() => {
+        if (!editor || editor.isDestroyed) return;
+        if (editor.isActive('image')) {
+          editor.chain().focus().updateAttributes('image', { src: url }).run();
+        } else {
+          editor.chain().focus().setImage({ src: url }).run();
+        }
+        setTimeout(() => { blockClicks = false; }, 300);
+      }, 50);
     }
   }} 
 />
@@ -501,6 +517,7 @@
 
   {#if editor && editable && imageMenuVisible && !blockClicks && !showImageDialog && !showLinkDialog}
   <div
+    use:portal
     class="fixed z-[3000] -translate-x-1/2 -translate-y-full pointer-events-auto transition-all duration-75 ease-out image-bubble-menu"
     style="left: {imageMenuX}px; top: {imageMenuY}px;"
   >
@@ -522,6 +539,17 @@
   :global(.tiptap-content h3) { @apply text-xl font-bold mb-3 mt-6 text-white/70; }
   :global(.tiptap-content img) { @apply rounded-lg my-4 mx-auto cursor-pointer border-2 border-transparent transition-all duration-200; }
   :global(.tiptap-content img.ProseMirror-selectednode) { @apply border-blue-500/50 shadow-lg shadow-blue-500/10; }
+
+  /* Figure / Caption */
+  :global(.tiptap-content figure.image-figure) {
+    @apply my-6 mx-auto text-center;
+  }
+  :global(.tiptap-content figure.image-figure img) {
+    @apply my-0;
+  }
+  :global(.tiptap-content figure.image-figure figcaption) {
+    @apply text-xs text-white/40 mt-2 italic font-light tracking-wide;
+  }
 
   /* Premium Highlighting (Viral 2026) */
   :global(.xohi-annotation) {

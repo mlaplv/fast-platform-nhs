@@ -496,7 +496,7 @@
   </div>
 
   <!-- Editor -->
-  <div class="flex flex-col relative transition-all {isEditing ? 'border border-white/10 shadow-2xl ring-2 ring-purple-500/30 bg-black/40' : 'bg-transparent'}">
+  <div class="flex flex-col relative transition-all duration-500 {isEditing ? 'border border-white/5 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] bg-[#09090b]/40 backdrop-blur-2xl' : 'bg-transparent'}">
     {#if isProcessing && !displayContent}
       <div class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-700">
         <div class="relative">

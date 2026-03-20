@@ -40,8 +40,42 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
             return { class: attributes.class };
           },
         },
+        title: {
+          default: null,
+          parseHTML: element => element.getAttribute('title') || element.closest('figure')?.querySelector('figcaption')?.textContent || null,
+          renderHTML: attributes => {
+            if (!attributes.title) return {};
+            return { title: attributes.title };
+          },
+        },
       }
-    }
+    },
+    renderHTML({ HTMLAttributes }) {
+      const { title, ...imgAttrs } = HTMLAttributes;
+      if (title) {
+        return ['figure', { class: 'image-figure' }, 
+          ['img', imgAttrs],
+          ['figcaption', {}, title]
+        ];
+      }
+      return ['img', HTMLAttributes];
+    },
+    parseHTML() {
+      return [
+        { tag: 'figure.image-figure', getAttrs: (node: HTMLElement) => {
+          const img = node.querySelector('img');
+          if (!img) return false;
+          const caption = node.querySelector('figcaption')?.textContent || null;
+          return { 
+            src: img.getAttribute('src'),
+            alt: img.getAttribute('alt'),
+            class: img.getAttribute('class'),
+            title: caption,
+          };
+        }},
+        { tag: 'img[src]' },
+      ];
+    },
   }).configure({
     inline: false,
     HTMLAttributes: { class: 'max-w-full mx-auto my-4 shadow-lg flex' },

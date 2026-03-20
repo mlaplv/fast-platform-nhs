@@ -1,30 +1,25 @@
-export function portal(
-  node: HTMLElement,
-  target: HTMLElement | string = "body",
-) {
-  let targetNode: HTMLElement;
-  function updateTarget() {
-    if (typeof target === "string") {
-      targetNode = document.querySelector(target) as HTMLElement;
-    } else {
-      targetNode = target;
-    }
+export function portal(node: HTMLElement, target: HTMLElement | string = 'body') {
+  let targetNode: HTMLElement | null;
+  
+  function update() {
+    targetNode = typeof target === 'string' ? document.querySelector(target) : target;
     if (targetNode) {
       targetNode.appendChild(node);
+      node.hidden = false;
     }
   }
 
-  updateTarget();
+  update();
 
   return {
     update(newTarget: HTMLElement | string) {
       target = newTarget;
-      updateTarget();
+      update();
     },
     destroy() {
       if (node.parentNode) {
         node.parentNode.removeChild(node);
       }
-    },
+    }
   };
 }
