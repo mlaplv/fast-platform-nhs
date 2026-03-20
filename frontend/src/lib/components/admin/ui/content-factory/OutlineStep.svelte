@@ -131,7 +131,17 @@
 </script>
 
 <div class="p-5 md:p-8 space-y-4 flex flex-col">
-  <div class="rounded-2xl flex flex-col relative group transition-all {isEditing ? 'border border-white/10 shadow-2xl ring-2 ring-blue-500/30 bg-black/40' : 'bg-transparent'}">
+  <!-- Studio Label -->
+  <div class="flex items-center gap-3 shrink-0">
+    <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-blue-500/50"></div>
+    <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">
+      XOHI ·
+      <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">NEURAL STUDIO</span>
+    </h5>
+  </div>
+
+  <!-- Editor -->
+  <div class="flex flex-col relative transition-all duration-500 {isEditing ? 'border border-white/5 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] bg-[#09090b]/40 backdrop-blur-2xl' : 'bg-transparent'}">
      {#if isProcessing && !displayContent}
        <div class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-700">
          <div class="relative">

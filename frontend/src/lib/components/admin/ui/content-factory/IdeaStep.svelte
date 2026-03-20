@@ -33,7 +33,15 @@
 </script>
 
 {#if isEditing}
-  <div class="p-5 md:p-8 space-y-8">
+  <div class="p-5 md:p-8 space-y-4 flex flex-col">
+    <!-- Studio Label -->
+    <div class="flex items-center gap-3 shrink-0">
+      <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-blue-500/50"></div>
+      <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">
+        XOHI ·
+        <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">NEURAL STUDIO</span>
+      </h5>
+    </div>
     <div class="space-y-4">
       <div class="group/input">
         <label for="title-{campaign_id}" class="text-[10px] text-blue-300 uppercase font-black tracking-widest mb-1.5 ml-1 block">Tiêu đề (Headline) 🚀</label>
@@ -138,7 +146,7 @@
         </div>
       </div>
 
-      <!-- Phase 35: Creative Brief Configuration (Viral 2026 Style) -->
+      <!-- Phase 35: Creative Brief Configuration (Viral Style) -->
       <div class="pt-6 mt-6 border-t border-white/5 space-y-4">
         <div class="hidden md:flex items-center gap-2 mb-4">
           <div class="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
@@ -158,7 +166,7 @@
               >
                 <option value="Chuyên nghiệp" class="bg-gray-900">Chuyên nghiệp (Báo chí)</option>
                 <option value="Sáng tạo" class="bg-gray-900">Sáng tạo (Blog/Tâm sự)</option>
-                <option value="Viral" class="bg-gray-900">Viral 2026 (Tik/X/Threads)</option>
+                <option value="Viral" class="bg-gray-900">Phong cách Viral (Tik/X/Threads)</option>
                 <option value="Hàn lâm" class="bg-gray-900">Hàn lâm (Khoa học)</option>
               </select>
               <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/30"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
@@ -220,7 +228,15 @@
     </div>
   </div>
 {:else}
-  <div class="p-5 md:p-8 space-y-8">
+  <div class="p-5 md:p-8 space-y-4 flex flex-col">
+    <!-- Studio Label -->
+    <div class="flex items-center gap-3 shrink-0">
+      <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-blue-500/50"></div>
+      <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">
+        XOHI ·
+        <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">NEURAL STUDIO</span>
+      </h5>
+    </div>
     <div class="space-y-2">
       <h4 class="text-lg font-bold text-white leading-snug tracking-tight">
         {keywords.title || 'Đang phân tích tiêu đề...'}

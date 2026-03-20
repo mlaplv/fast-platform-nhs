@@ -474,8 +474,11 @@
 <div class="p-5 md:p-8 space-y-4 flex flex-col">
   <!-- Studio Label -->
   <div class="flex items-center gap-3 shrink-0">
-    <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-purple-500/50"></div>
-    <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-purple-400">Content Studio 2026</h5>
+    <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-blue-500/50"></div>
+    <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">
+      XOHI ·
+      <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">NEURAL STUDIO</span>
+    </h5>
     {#if _copyrightScore !== null}
       {@const rc = _copyrightScore >= 90 ? 'text-emerald-400' : _copyrightScore >= 70 ? 'text-yellow-400' : 'text-red-400'}
       <span class="text-[9px] font-black uppercase {rc}">· Copyright {_copyrightScore}%</span>

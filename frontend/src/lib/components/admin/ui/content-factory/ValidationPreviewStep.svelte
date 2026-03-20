@@ -66,7 +66,16 @@
 
 </script>
 
-<div class="w-full p-5 md:p-8 flex flex-col md:flex-row gap-6 animate-in fade-in duration-700">
+<div class="w-full p-5 md:p-8 flex flex-col gap-6 animate-in fade-in duration-700">
+  <!-- Studio Label -->
+  <div class="flex items-center gap-3 shrink-0 w-full">
+    <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-blue-500/50"></div>
+    <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">
+      XOHI ·
+      <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">NEURAL STUDIO</span>
+    </h5>
+  </div>
+
   
   <!-- LEFT PANEL: NEWS ARTICLE PREVIEW -->
   <div class="flex-[1.5] bg-black/40 border border-white/10 flex flex-col overflow-hidden relative shadow-2xl">

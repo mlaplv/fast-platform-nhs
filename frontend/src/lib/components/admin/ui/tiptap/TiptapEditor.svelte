@@ -190,7 +190,7 @@
       // 3. Viral 2026: Backend Semantic Polish
       const interimHTML = dedupedDiv.innerHTML;
 
-      console.log('[Clean] 🚀 Calling Viral 2026 Backend Polish...');
+      console.log('[Clean] 🚀 Calling Neural Backend Polish...');
       const response = await apiClient.post<{ data: { content: string } }>('/api/v1/content/clean', {
         content: interimHTML
       });
@@ -203,7 +203,7 @@
         onChange(cleaned);
         updateMetrics();
         isInternalUpdating = false;
-        console.log('[Clean] ✨ Viral 2026 Polish Complete');
+        console.log('[Clean] ✨ Neural Polish Complete');
       } else {
         // Fallback to deduped content if backend fails
         isInternalUpdating = true;
@@ -551,7 +551,7 @@
     @apply text-xs text-white/40 mt-2 italic font-light tracking-wide;
   }
 
-  /* Premium Highlighting (Viral 2026) */
+  /* Premium Highlighting (Neural Studio) */
   :global(.xohi-annotation) {
     @apply cursor-help transition-all duration-300 border-b-2;
     padding: 1px 0;
