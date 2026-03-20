@@ -16,6 +16,12 @@ class Category(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     parent: Mapped[Optional["Category"]] = relationship("Category", back_populates="children", remote_side=[id])
     children: Mapped[List["Category"]] = relationship("Category", back_populates="parent")
     
+    # R102 Professional Upgrade: SEO & Fashion
+    description: Mapped[Optional[str]] = mapped_column(Text)
+    seo_title: Mapped[Optional[str]] = mapped_column(String)
+    seo_description: Mapped[Optional[str]] = mapped_column(String)
+    image: Mapped[Optional[str]] = mapped_column(String) # Category banner / icon URL
+    
     products: Mapped[List["ProductBase"]] = relationship("ProductBase", back_populates="category")
 
     __table_args__ = (

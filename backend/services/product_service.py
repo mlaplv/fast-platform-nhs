@@ -1,7 +1,7 @@
 import uuid
 import logging
 from datetime import datetime, timezone
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Optional
 from sqlalchemy import text, update, select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
@@ -43,6 +43,8 @@ class ProductService:
             ProductBase.id, ProductBase.name, ProductBase.sku,
             ProductBase.price, ProductBase.stock, ProductBase.status,
             ProductBase.category_id, ProductBase.description, ProductBase.type,
+            ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description,
+            ProductBase.images, ProductBase.attributes,
             ProductBase.created_at,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
@@ -60,6 +62,8 @@ class ProductService:
             ProductBase.id, ProductBase.name, ProductBase.sku,
             ProductBase.price, ProductBase.stock, ProductBase.status,
             ProductBase.category_id, ProductBase.description, ProductBase.type,
+            ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description,
+            ProductBase.images, ProductBase.attributes,
             ProductBase.created_at,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
@@ -89,8 +93,15 @@ class ProductService:
             description=data.description,
             category_id=data.categoryId,
             type=data.type,
+            slug=data.slug,
+            seo_title=data.seoTitle,
+            seo_description=data.seoDescription,
+            images=data.images,
+            attributes=data.attributes,
         )
         db_session.add(product)
+        await db_session.commit() # Ensure product exists for RAG foreign key
+        await db_session.refresh(product)
 
         # RAG Upsert
         await product_vector_service.upsert_product_embedding(
@@ -117,6 +128,11 @@ class ProductService:
         if data.status is not None: product.status = data.status.upper()
         if data.description is not None: product.description = data.description
         if data.categoryId is not None: product.category_id = data.categoryId
+        if data.slug is not None: product.slug = data.slug
+        if data.seoTitle is not None: product.seo_title = data.seoTitle
+        if data.seoDescription is not None: product.seo_description = data.seoDescription
+        if data.images is not None: product.images = data.images
+        if data.attributes is not None: product.attributes = data.attributes
 
         if data.name is not None or data.description is not None:
             await product_vector_service.upsert_product_embedding(

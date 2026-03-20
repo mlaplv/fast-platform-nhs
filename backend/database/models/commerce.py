@@ -41,6 +41,13 @@ class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     status: Mapped[str] = mapped_column(String, default="DRAFT")
     type: Mapped[str] = mapped_column(String, default="RETAIL")
     
+    # R102 Professional Upgrade: SEO & Fashion
+    slug: Mapped[str] = mapped_column(String, index=True)
+    seo_title: Mapped[Optional[str]] = mapped_column(String)
+    seo_description: Mapped[Optional[str]] = mapped_column(String)
+    images: Mapped[Optional[list]] = mapped_column(JSON, default=list) # List of image URLs
+    attributes: Mapped[Optional[dict]] = mapped_column(JSON, default=dict) # {"size": ["S", "M"], "color": ["Black"]}
+    
     category_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('categories.id'))
     category: Mapped[Optional["Category"]] = relationship("Category", back_populates="products")
     

@@ -75,17 +75,16 @@ class ProductVectorService:
                 return
 
             vector = vectors[0]
-            vector_np = np.array(vector, dtype=np.float32)
-            vector_hex = vector_np.tobytes().hex()
+            vector_str = f"[{','.join(map(str, vector))}]"
 
             sql = text("""
                 INSERT INTO product_embeddings (id, product_base_id, embedding, created_at, updated_at)
-                VALUES (:id, :product_id, :vector, NOW(), NOW())
+                VALUES (:id, :product_id, CAST(:vector AS vector), NOW(), NOW())
                 ON CONFLICT (product_base_id)
-                DO UPDATE SET embedding = :vector, updated_at = NOW();
+                DO UPDATE SET embedding = CAST(:vector AS vector), updated_at = NOW();
             """)
-            await db_session.execute(sql, {"id": str(uuid.uuid4()), "product_id": product_id, "vector": vector_hex})
+            await db_session.execute(sql, {"id": str(uuid.uuid4()), "product_id": product_id, "vector": vector_str})
         except Exception as e:
-            logger.error(f"[RAG] Product embedding failed for {product_id}: {e}")
+            logger.warning(f"[RAG] Product embedding failed for {product_id}: {e}")
 
 product_vector_service = ProductVectorService()

@@ -1,7 +1,7 @@
 import uuid
 import logging
 from datetime import datetime, timezone
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Optional
 from collections import defaultdict
 
 from sqlalchemy import text, select, func, update
@@ -28,7 +28,9 @@ class CategoryService:
 
         # 2. Optimized Fetch (Rule 1.5 - Scalar Projection / Zero-Hydration)
         stmt = select(
-            Category.id, Category.name, Category.slug, Category.parent_id, Category.created_at
+            Category.id, Category.name, Category.slug, Category.parent_id,
+            Category.description, Category.seo_title, Category.seo_description,
+            Category.image, Category.created_at
         ).where(
             Category.parent_id == None,
             Category.deleted_at == None
@@ -44,7 +46,9 @@ class CategoryService:
 
         # Fetch children (Zero-Hydration)
         child_stmt = select(
-            Category.id, Category.name, Category.slug, Category.parent_id, Category.created_at
+            Category.id, Category.name, Category.slug, Category.parent_id,
+            Category.description, Category.seo_title, Category.seo_description,
+            Category.image, Category.created_at
         ).where(
             Category.parent_id.in_(parent_ids),
             Category.deleted_at == None
@@ -91,6 +95,10 @@ class CategoryService:
             name=data.name,
             slug=data.slug or data.name.lower().replace(" ", "-"),
             parent_id=data.parentId,
+            description=data.description,
+            seo_title=data.seoTitle,
+            seo_description=data.seoDescription,
+            image=data.image,
         )
         db_session.add(category)
         return SuccessResponse(ok=True, id=new_id)
@@ -108,6 +116,10 @@ class CategoryService:
         if data.name is not None: category.name = data.name
         if data.slug is not None: category.slug = data.slug
         if data.parentId is not None: category.parent_id = data.parentId
+        if data.description is not None: category.description = data.description
+        if data.seoTitle is not None: category.seo_title = data.seoTitle
+        if data.seoDescription is not None: category.seo_description = data.seoDescription
+        if data.image is not None: category.image = data.image
 
         return SuccessResponse(ok=True, id=category_id)
 

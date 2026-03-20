@@ -22,6 +22,10 @@
   let editingId = $state<string | null>(null),
     formName = $state(""),
     formSlug = $state(""),
+    formDescription = $state(""),
+    formSeoTitle = $state(""),
+    formSeoDescription = $state(""),
+    formImage = $state(""),
     formParentId = $state<string | null>(null);
   let selectedIds = $state<Set<string>>(new Set()),
     expandedIds = $state<Set<string>>(new Set());
@@ -44,7 +48,8 @@
   $effect(() => {
     (async () => {
       try {
-        categories = await apiClient.get<Category[]>("/api/v1/categories");
+        const res = await apiClient.get<{ data: Category[]; total: number }>("/api/v1/categories");
+        categories = res.data || [];
       } catch (e: unknown) {
         const err = e as Error;
         console.error("[CategoryManagement] Load failed:", err);
@@ -100,6 +105,10 @@
     editingId = null;
     formName = "";
     formSlug = "";
+    formDescription = "";
+    formSeoTitle = "";
+    formSeoDescription = "";
+    formImage = "";
     formParentId = p;
     showForm = true;
   }
@@ -107,6 +116,10 @@
     editingId = cat.id;
     formName = cat.name;
     formSlug = cat.slug;
+    formDescription = cat.description || "";
+    formSeoTitle = cat.seoTitle || "";
+    formSeoDescription = cat.seoDescription || "";
+    formImage = cat.image || "";
     formParentId = p;
     showForm = true;
   }
@@ -124,7 +137,15 @@
   async function save() {
     if (!formName.trim()) return;
     const s = formSlug || genSlug(formName);
-    const p = { name: formName.trim(), slug: s, parentId: formParentId };
+    const p = { 
+      name: formName.trim(), 
+      slug: s, 
+      parentId: formParentId,
+      description: formDescription,
+      seoTitle: formSeoTitle,
+      seoDescription: formSeoDescription,
+      image: formImage
+    };
     try {
       if (editingId) {
         await apiClient.patch(`/api/v1/categories/${editingId}`, p);
@@ -181,6 +202,10 @@
         {formParentId}
         bind:formName
         bind:formSlug
+        bind:formDescription
+        bind:formSeoTitle
+        bind:formSeoDescription
+        bind:formImage
         onSave={save}
         onClose={() => (showForm = false)}
         generateSlug={genSlug}

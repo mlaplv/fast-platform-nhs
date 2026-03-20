@@ -99,8 +99,9 @@ Không được đánh giá thấp bài viết chỉ vì nó chứa các từ kh
 }
 
 [YÊU CẦU BẮT BUỘC]
-- Nếu điểm `uniqueness_score` < 0.95: BẮT BUỘC phải có ít nhất 1-3 `annotations` chỉ ra các đoạn văn cụ thể bị trùng lặp hoặc xào nấu.
+- Nếu điểm `uniqueness_score` < 0.95: BẮT BUỘC phải có ít nhất 5-10 `annotations` chỉ ra các đoạn văn cụ thể bị trùng lặp, xào nấu hoặc thiếu tính bản sắc.
 - Tuyệt đối không để trống `annotations` nếu bài viết bị trừ điểm.
+- Các đoạn `text` trong annotations phải là các Substring CHÍNH XÁC từ bài viết (tối đa 200 ký tự).
 """
 
 
@@ -134,6 +135,23 @@ class PlagiarismCop:
             output_type=BulkFixResponse, 
             retries=2
         )
+
+    def _split_into_paragraphs(self, html_or_text: str) -> List[str]:
+        """
+        Phase 76.9: HTML-Aware Paragraph splitting.
+        Coạt các thẻ block-level là ranh giới phân tách.
+        """
+        if not html_or_text:
+            return []
+        
+        # 1. Replace block-level tags with double newlines if they are missing them
+        # This handles Tiptap's <p>...</p><p>...</p> without \n
+        p = html_or_text
+        p = re.sub(r'</(p|div|h[1-6]|li|blockquote|table|figure)>', r'</\1>\n\n', p, flags=re.IGNORECASE)
+        
+        # 2. Split by double newlines or more
+        paras = [it.strip() for it in re.split(r'\n\n+', p) if it.strip()]
+        return paras
 
     # ──────────────────────────────────────────────────────────
     # V76.0: Internal Dedup Detection (Zero AI Cost)
@@ -239,8 +257,8 @@ class PlagiarismCop:
         # 1. Deterministic Dedup (Zero AI Cost)
         draft = await noise_cleaner.clean(draft, mode="aggressive", strip_html=False)
 
-        # Split by paragraph (logical unit) not sentence
-        raw_paragraphs = [p.strip() for p in re.split(r'\n\n+', draft) if p.strip()]
+        # Split by paragraph (logical unit) — Phase 76.9: HTML-aware
+        raw_paragraphs = self._split_into_paragraphs(draft)
 
         # Memory Shield: Limit to 500 paragraphs to prevent OOM in 2GB VPS
         paragraphs = raw_paragraphs[:500]
@@ -281,53 +299,87 @@ class PlagiarismCop:
 
         cleaned_draft = "\n\n".join(p for p, _ in kept)
 
-        # 2. AI Surgeon for Remaining Annotations (External/High Severity)
-        # Type check to avoid crashes if annotations is missing
+        # ── Phase 117: Smart Context Injection ────────────────────────────
+        # Read cached score & flagged sources — NO extra API call needed
+        gold = campaign.gold_metadata or {}
+        cache_entry = gold.get("analysis_cache", {}).get("copyright", {}).get("data", {})
+        current_score_raw = cache_entry.get("uniqueness_score", None)
+        current_pct = int(round(current_score_raw * 100)) if current_score_raw is not None else "?"
+        similar_sources: list[str] = cache_entry.get("similar_sources", [])
+        flagged_sentences: list[str] = cache_entry.get("flagged_sentences", [])
+
+        # Build compact source avoidance map (max 5 URLs)
+        source_block = ""
+        if similar_sources:
+            source_block = "\n[CÁC NGUỒN ĐỐI THỦ MÀ BÀI ĐANG BỊ TRÙNG — PHẢI NÉ HOÀN TOÀN]\n"
+            for url in similar_sources[:5]:
+                source_block += f"  • {url}\n"
+
+        # Flagged sentences — show AI exactly what phrases triggered the detection
+        flagged_block = ""
+        if flagged_sentences:
+            flagged_block = "\n[CÁC CỤM TỪ / CÂU BỊ PHÁT HIỆN TRÙNG LẶP — BẮT BUỘC PHẢI ĐỘT BIẾN]\n"
+            for s in flagged_sentences[:10]:
+                flagged_block += f"  ❌ \"{s[:150]}\"\n"
+
+        # AI Surgeon for Remaining Annotations (External/High Severity)
         annots = req.annotations if isinstance(req.annotations, list) else []
-        external_annots = [a for a in annots if a.get("type", "external") != "internal-dedup"]
-        
-        if not external_annots:
-            return BulkFixResponse(new_content=cleaned_draft)
+        all_annots = [a for a in annots if a.get("text") or a.get("reason")]
 
-        # Format for AI Surgeon
+        # Build annotation list — include ALL types (not just external)
         annot_list = ""
-        for i, a in enumerate(external_annots[:15]):
-            annot_list += f"\n[Lỗi {i+1}]:\n- Đoạn văn: \"{a.get('text', '')}\"\n- Vấn đề: {a.get('reason', '') or a.get('message', '')}\n"
+        for i, a in enumerate(all_annots[:40]):
+            msg = a.get('reason', '') or a.get('message', '')
+            annot_list += f"\n[Lỗi {i+1}] ({a.get('type','external')}):\n- Đoạn: \"{a.get('text', '')[:150]}\"\n- Vấn đề: {msg}\n"
 
+        # Even if no annotations, still run the surgeon to maximize uniqueness
         prompt = f"""
-[ROLE] MASTER SURGEON AGENT — XoHi VIRAL 2026 EDITION
+[ROLE] EXTREME NEURAL REWRITER — XoHi VIRAL 2026 COPYRIGHT SURGEON
 
+[MỤC TIÊU BẮT BUỘC]
+Điểm độc đáo hiện tại: {current_pct}% → Phải đạt: ≥ 96%
+Chỉ được 1 lần chỉnh sửa duy nhất, PHẢI làm đúng ngay từ đầu.
+{source_block}{flagged_block}
 [BÀI VIẾT HIỆN TẠI]
 {cleaned_draft}
 
-[DANH SÁCH LỖI COPYRIGHT/DEDUP CẦN XỬ LÝ]
-{annot_list}
+[DANH SÁCH LỖI CẦN XỬ LÝ]
+{annot_list if annot_list else "(Không có lỗi cụ thể — hãy tối ưu hóa toàn diện cả bài)"}
 
-[NHIỆM VỤ - THUẬT TOÁN NEURAL REWRITING 2026]
-Bạn là một High-IQ Content Architect. Nhiệm vụ của bạn là đưa bài viết này lên tầm "Authority" (Điểm độc đáo >95%) bằng cách:
+[4 PHẪU THUẬT BẮTBUỘC]
+1. 🔪 STRUCTURAL MUTATION (Đột biến cấu trúc — QUAN TRỌNG NHẤT):
+   • Đảo lộn HOÀN TOÀN cấu trúc ngữ pháp của từng câu bị flagged: Chủ ngữ ↔ Vị ngữ, Passive ↔ Active, Inversion.
+   • Không chỉ thay từ đồng nghĩa — phải phá nát pattern ngôn ngữ mà hệ thống plagiarism nhận ra.
+   • Ví dụ: "A cho phép B làm C" → "Khi B muốn thực hiện C, A chính là cơ chế duy nhất đảm bảo điều đó."
 
-1. **EXTREME FACTUAL DENSITY (Bơm mật độ thông tin)**: Không chỉ viết lại câu, hãy **CHÈN THÊM** các số liệu cụ thể, nghiên cứu, hoặc thống kê (có thể dùng giả định hợp lý/ước lượng của chuyên gia, ví dụ: "Theo khảo sát thực tế, hiệu quả tăng đến 27.5%...", "Nghiên cứu của [Source] chỉ ra rẳng..."). Đây là yếu tố then chốt để lách thuật toán đạo văn của Google.
-2. **PERSPECTIVE SHIFTING (Thay đổi góc nhìn)**: Đừng chỉ thuật lại sự việc. Hãy chuyển sang phong cách "Review thực tế", "Phân tích chiến lược" hoặc "Cảnh báo từ chuyên gia". Phá vỡ hoàn toàn cấu trúc "xào nấu" của đối thủ.
-3. **INSIGHT INJECTION**: Mỗi đoạn văn phải chứa ít nhất một "Insight" (góc nhìn mới) mà các bài viết phổ thông trên mạng không có.
-4. **HTML & ASSET FIDELITY**: Giữ nguyên 100% định dạng HTML và CÁC THẺ ẢNH [IMAGE_N]. Tuyệt đối không làm mất ảnh.
-5. **KEYWORD NATURALIZATION**: Lồng ghép từ khóa một cách tinh tế trong ngữ cảnh mới, sáng tạo.
+2. 💉 PRECISION DATA INJECTION (Bơm dữ liệu cụ thể):
+   • Thay mọi cụm từ định tính ("nhiều", "nhanh", "hiệu quả") bằng con số ước lượng chuyên gia.
+   • Ví dụ: "giúp tăng hiệu quả" → "rút ngắn 42% thời gian xử lý, tiết kiệm đến 3.2 giờ/ngày".
+   • Thêm: "Theo nghiên cứu [domain_sector] năm 2025..." để tạo tín hiệu E-E-A-T mạnh.
 
-=> MỤC TIÊU: Một bài viết hoàn toàn mới, đẳng cấp, độc nhất vô nhị, đạt điểm 95-100% Uniqueness.
+3. 🎯 PERSPECTIVE FLIP (Đổi góc nhìn):
+   • Chuyển từ "mô tả" sang "phân tích chiến lược" hoặc "cảnh báo ngành".
+   • Thêm 1 "Insight độc quyền" mỗi section mà báo chí/đối thủ chưa đề cập.
+
+4. 🛡️ ASSET FIDELITY (Bảo toàn tài sản):
+   • Giữ nguyên 100% thẻ HTML (h1, h2, p, table, figure), thẻ ảnh [IMAGE_N].
+   • Không rút ngắn bài — chỉ thay nội dung, KHÔNG xóa section.
+
+⚡ KẾT QUẢ MONG MUỐN: Bài viết mới phải khiến hệ thống plagiarism xét lại từ đầu và KHÔNG tìm thấy pattern trùng với 5 nguồn đối thủ trên.
 
 Trả về toàn bộ nội dung bài viết mới trong trường `new_content` của JSON.
 """
         try:
-            # CNS Phase 82.35: Respect global plagiarism limit even for fixes
-            # Phase 82.50: Elite Neural Surgeon — Use ROLE_BRAIN + High Temp for creativity
+            # Phase 117: temperature=0.9 for maximum structural creativity (single pass)
             async with self._plagiarism_semaphore:
                 res = await trinity_bridge.run(
-                    self._bulk_surgeon_agent, 
-                    prompt, 
-                    role="brain", 
-                    model_settings={"temperature": 0.8}
+                    self._bulk_surgeon_agent,
+                    prompt,
+                    role="brain",
+                    model_settings={"temperature": 0.9}
                 )
                 raw_data = res.data if hasattr(res, 'data') else res.output
-                
+
                 # Phase 76.3: Robust Unwrapper & Noise Shield
                 new_content = ""
                 if hasattr(raw_data, 'new_content'):
@@ -336,13 +388,15 @@ Trả về toàn bộ nội dung bài viết mới trong trường `new_content`
                     new_content = raw_data
                 else:
                     new_content = str(raw_data)
-                
+
                 # Sanitize from AI artifacts (fences, preambles)
                 clean_content = await noise_cleaner.clean(new_content, mode="aggressive", strip_html=False)
+                logger.info(f"[PlagiarismCop] Phase 117: Smart single-pass rewrite done. (score was {current_pct}%)")
                 return BulkFixResponse(new_content=clean_content)
         except Exception as e:
             logger.error(f"[PlagiarismCop] AI Bulk Fix failed: {e}")
             return BulkFixResponse(new_content=cleaned_draft)
+
 
     async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0) — called by orchestrator Step 5."""
@@ -438,13 +492,12 @@ Trả về toàn bộ nội dung bài viết mới trong trường `new_content`
         plain_text = await noise_cleaner.clean(draft, mode="aggressive", strip_html=False)
 
         # ✅ Phase 76.8: PRE-SANITIZE before AI — dedup paragraphs at para level
-        # Keep 1st occurrence, remove subsequent identical paragraphs
-        # This ensures AI sees clean, non-redundant content
+        # Phase 116 — HTML-Aware split
         seen_paras: set[str] = set()
         deduped_paras: list[str] = []
         internal_annotations: list[CopyrightAnnotation] = []
+        raw_paras = self._split_into_paragraphs(plain_text)
 
-        raw_paras = [p.strip() for p in re.split(r'\n\n+', plain_text) if p.strip()]
         # Memory Shield: Limit processing to first 200 paragraphs for AI analysis
         for para in raw_paras[:200]:
             norm = normalize_vn(para)
@@ -468,8 +521,8 @@ Trả về toàn bộ nội dung bài viết mới trong trường `new_content`
                 logger.info(f"[PlagiarismCop] Pre-dedup removed duplicate para: {para[:60]}...")
 
         deduped_text = "\n\n".join(deduped_paras)
-        # Limit to 3000 chars for AI efficiency
-        snippet = deduped_text[:3000]
+        # Phase 116: Increase context window to 12,000 characters for high-IQ analysis
+        snippet = deduped_text[:12000]
 
         # Also detect sub-sentence level duplicates from the full cleaned text
         sentence_annotations = self._detect_internal_duplicates(plain_text)

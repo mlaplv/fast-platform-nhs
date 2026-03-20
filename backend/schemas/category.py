@@ -8,6 +8,12 @@ class CreateCategoryRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     slug: Optional[str] = Field(None, max_length=200, pattern=r"^[a-z0-9-]+$")
     parentId: Optional[str] = None
+    
+    # Professional Fashion Upgrade
+    description: Optional[str] = Field(None, max_length=5000)
+    seoTitle: Optional[str] = Field(None, max_length=200, alias="seo_title")
+    seoDescription: Optional[str] = Field(None, max_length=500, alias="seo_description")
+    image: Optional[str] = None
 
 
 class UpdateCategoryRequest(BaseModel):
@@ -15,6 +21,12 @@ class UpdateCategoryRequest(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     slug: Optional[str] = Field(None, max_length=200, pattern=r"^[a-z0-9-]+$")
     parentId: Optional[str] = None
+    
+    # Professional Fashion Upgrade
+    description: Optional[str] = Field(None, max_length=5000)
+    seoTitle: Optional[str] = Field(None, max_length=200, alias="seo_title")
+    seoDescription: Optional[str] = Field(None, max_length=500, alias="seo_description")
+    image: Optional[str] = None
 
 
 class CategoryResponse(BaseModel):
@@ -25,6 +37,13 @@ class CategoryResponse(BaseModel):
     slug: str
     parentId: Optional[str] = Field(None, alias="parent_id")
     productCount: int = Field(0, alias="product_count")
+    
+    # Professional Fashion Upgrade
+    description: Optional[str] = None
+    seoTitle: Optional[str] = Field(None, alias="seo_title")
+    seoDescription: Optional[str] = Field(None, alias="seo_description")
+    image: Optional[str] = None
+    
     children: List["CategoryResponse"] = Field(default_factory=list)
     createdAt: datetime = Field(alias="created_at")
 

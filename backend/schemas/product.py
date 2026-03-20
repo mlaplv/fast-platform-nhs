@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validator
-from typing import Optional, List
+from typing import Optional, List, Dict, Union
 from datetime import datetime
 
 
@@ -13,6 +13,13 @@ class CreateProductRequest(BaseModel):
     description: Optional[str] = Field(None, max_length=5000)
     categoryId: Optional[str] = None
     type: str = Field("RETAIL", pattern=r"^(RETAIL|RENTAL|SERVICE)$")
+    
+    # Professional Fashion Upgrade
+    slug: str = Field(..., min_length=1, max_length=200)
+    seoTitle: Optional[str] = Field(None, max_length=200, alias="seo_title")
+    seoDescription: Optional[str] = Field(None, max_length=500, alias="seo_description")
+    images: List[str] = Field(default_factory=list)
+    attributes: Dict[str, Union[str, int, float, bool, None]] = Field(default_factory=dict)
 
 
 class UpdateProductRequest(BaseModel):
@@ -24,6 +31,13 @@ class UpdateProductRequest(BaseModel):
     status: Optional[str] = Field(None, pattern=r"^(DRAFT|ACTIVE|ARCHIVED)$")
     description: Optional[str] = Field(None, max_length=5000)
     categoryId: Optional[str] = None
+    
+    # Professional Fashion Upgrade
+    slug: Optional[str] = Field(None, min_length=1, max_length=200)
+    seoTitle: Optional[str] = Field(None, max_length=200, alias="seo_title")
+    seoDescription: Optional[str] = Field(None, max_length=500, alias="seo_description")
+    images: Optional[List[str]] = None
+    attributes: Optional[Dict[str, Union[str, int, float, bool, None]]] = None
 
 
 class ProductResponse(BaseModel):
@@ -39,12 +53,29 @@ class ProductResponse(BaseModel):
     categoryId: Optional[str] = Field(None, alias="category_id")
     description: Optional[str] = None
     type: str = "RETAIL"
+    
+    # Professional Fashion Upgrade
+    slug: str
+    seoTitle: Optional[str] = Field(None, alias="seo_title")
+    seoDescription: Optional[str] = Field(None, alias="seo_description")
+    images: List[str] = Field(default_factory=list)
+    attributes: Dict[str, Union[str, int, float, bool, None]] = Field(default_factory=dict)
     createdAt: datetime = Field(alias="created_at")
 
     @field_validator("id", "categoryId", mode="before")
     @classmethod
     def stringify_ids(cls, v):
         return str(v) if v is not None else None
+
+    @field_validator("images", mode="before")
+    @classmethod
+    def validate_images(cls, v):
+        return v if v is not None else []
+
+    @field_validator("attributes", mode="before")
+    @classmethod
+    def validate_attributes(cls, v):
+        return v if v is not None else {}
 
     @computed_field
     @property

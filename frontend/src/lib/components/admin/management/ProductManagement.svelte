@@ -42,6 +42,14 @@
   let formStock = $state(0);
   let formCategory = $state("");
   let formStatus = $state<"active" | "draft">("draft");
+  let formDescription = $state("");
+  let formSlug = $state("");
+  let formSeoTitle = $state("");
+  let formSeoDescription = $state("");
+  let formImages = $state<string[]>([]);
+  let formAttributes = $state<Record<string, string | number | boolean | null>>({});
+  let generateSlug = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
 
   let pageSize = $state(50); // Default to 50 to prevent DOM/RAM crash on 5000+ items
   const STATUS_MAP: Record<string, { label: string; color: string }> = {
@@ -69,14 +77,14 @@
 
       const [pRes, cData] = await Promise.all([
         apiClient.get<{ data: Product[]; total: number }>(`/api/v1/products?${params.toString()}`),
-        categories.length ? Promise.resolve(null) : apiClient.get<Record<string, unknown>[]>("/api/v1/categories"),
+        categories.length ? Promise.resolve(null) : apiClient.get<{ data: Record<string, unknown>[]; total: number }>("/api/v1/categories"),
       ]);
       products = pRes.data;
       totalProducts = pRes.total;
 
-      if (cData) {
+      if (cData && cData.data) {
         const opts: CategoryOption[] = [];
-        for (const c of cData) {
+        for (const c of cData.data) {
           opts.push({ id: c.id as string, name: c.name as string });
           (c.children as Record<string, unknown>[] || []).forEach((ch) => {
             opts.push({ id: ch.id as string, name: `${c.name} / ${ch.name}` });
@@ -148,6 +156,8 @@
   function openCreate() {
     editingId = null;
     formName = ""; formSku = ""; formPrice = 0; formStock = 0; formCategory = ""; formStatus = "draft";
+    formDescription = ""; formSlug = ""; formSeoTitle = ""; formSeoDescription = "";
+    formImages = []; formAttributes = {};
     showForm = true;
   }
 
@@ -156,6 +166,12 @@
     formName = p.name; formSku = p.sku; formPrice = p.price; formStock = p.stock;
     formCategory = p.categoryId || "";
     formStatus = p.status === "archived" ? "draft" : p.status;
+    formDescription = p.description || "";
+    formSlug = p.slug || "";
+    formSeoTitle = p.seoTitle || "";
+    formSeoDescription = p.seoDescription || "";
+    formImages = p.images || [];
+    formAttributes = p.attributes || {};
     showForm = true;
   }
 
@@ -168,8 +184,18 @@
   async function save() {
     if (!formName.trim()) return;
     const payload = {
-      name: formName.trim(), sku: formSku || `SKU-${Date.now()}`,
-      price: formPrice, stock: formStock, categoryId: formCategory || null, status: formStatus,
+      name: formName.trim(), 
+      sku: formSku || `SKU-${Date.now()}`,
+      price: formPrice, 
+      stock: formStock, 
+      categoryId: formCategory || null, 
+      status: formStatus,
+      description: formDescription,
+      slug: formSlug || generateSlug(formName),
+      seoTitle: formSeoTitle,
+      seoDescription: formSeoDescription,
+      images: formImages,
+      attributes: formAttributes
     };
     try {
       if (editingId) await apiClient.patch(`/api/v1/products/${editingId}`, payload);
@@ -253,7 +279,7 @@
               <span class="hidden sm:inline">Show</span>
               <select
                 value={pageSize}
-                onchange={(e) => { pageSize = Number((e.target as HTMLSelectElement).value); currentPage = 1; }}
+                onchange={(e) => { pageSize = Number(e.currentTarget.value); currentPage = 1; }}
                 class="bg-transparent sm:bg-black/60 border-none sm:border sm:border-white/10 rounded-md px-1 sm:px-1.5 py-1 text-[#FFB800] text-[10px] sm:text-[9px] font-mono font-bold focus:outline-none cursor-pointer appearance-none text-center"
               >
                 <option value={20}>20</option>
@@ -291,9 +317,12 @@
     <ProductForm
       {editingId}
       bind:formName bind:formSku bind:formPrice bind:formStock bind:formCategory bind:formStatus
+      bind:formDescription bind:formSlug bind:formSeoTitle bind:formSeoDescription
+      bind:formImages bind:formAttributes
       {categories}
       onSave={save}
       onClose={() => (showForm = false)}
+      {generateSlug}
     />
   {/if}
 
