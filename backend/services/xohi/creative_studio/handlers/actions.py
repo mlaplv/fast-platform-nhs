@@ -140,6 +140,16 @@ class ActionHandler:
                 logger.warning(f"[ActionHandler] No content found for campaign {campaign.id}")
                 return False
 
+            # 2.1. Extract featured image from assets if possible
+            featured_image = None
+            if campaign.assets_data and isinstance(campaign.assets_data, list) and len(campaign.assets_data) > 0:
+                # Assuming assets_data is list of asset objects/dicts
+                first_asset = campaign.assets_data[0]
+                if isinstance(first_asset, dict):
+                    featured_image = first_asset.get("url") or first_asset.get("path")
+                elif isinstance(first_asset, str):
+                    featured_image = first_asset
+
             new_article = Article(
                 id=str(uuid.uuid4()),
                 title=title,
@@ -148,7 +158,8 @@ class ActionHandler:
                 author_id=campaign.user_id,
                 status="PUBLISHED",
                 tenant_id=campaign.tenant_id,
-                category="Tin tức"
+                category="Tin tức",
+                featured_image=featured_image
             )
             await article_repo.add(new_article)
 

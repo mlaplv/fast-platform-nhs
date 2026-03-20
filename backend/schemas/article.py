@@ -13,6 +13,7 @@ class CreateArticleRequest(BaseModel):
     seo_description: Optional[str] = Field(None, max_length=1000)
     status: str = Field("DRAFT", pattern=r"^(DRAFT|PUBLISHED|ARCHIVED)$")
     category: str = Field("Tin tức", max_length=100)
+    featured_image: Optional[str] = Field(None, alias="featured_image")
     authorId: Optional[str] = None
 
 
@@ -26,6 +27,7 @@ class UpdateArticleRequest(BaseModel):
     seo_description: Optional[str] = Field(None, max_length=1000)
     status: Optional[str] = Field(None, pattern=r"^(DRAFT|PUBLISHED|ARCHIVED)$")
     category: Optional[str] = Field(None, max_length=100)
+    featured_image: Optional[str] = Field(None, alias="featured_image")
 
 
 class ArticleResponse(BaseModel):
@@ -40,6 +42,7 @@ class ArticleResponse(BaseModel):
     seoDescription: Optional[str] = Field(None, alias="seo_description")
     status: str
     category: str
+    featuredImage: Optional[str] = Field(None, alias="featured_image")
     views: int = 0
     author: str = Field("System", alias="author_name")
     authorId: Optional[str] = Field(None, alias="author_id")
@@ -69,3 +72,10 @@ class ArticleListResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     data: List[ArticleResponse]
     total: int
+
+
+class BulkPatchRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    ids: List[str]
+    status: Optional[str] = Field(None, pattern=r"^(DRAFT|PUBLISHED|ARCHIVED)$")
+    category: Optional[str] = Field(None, max_length=100)

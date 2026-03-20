@@ -1,14 +1,16 @@
 <script lang="ts">
-  import FileText from "lucide-svelte/icons/file-text";
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import Calendar from "lucide-svelte/icons/calendar";
-  import Eye from "lucide-svelte/icons/eye";
-  import Pencil from "lucide-svelte/icons/pencil";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import CheckSquare from "lucide-svelte/icons/check-square";
-  import Square from "lucide-svelte/icons/square";
+  import FileTextIcon from "lucide-svelte/icons/file-text";
+  import SparklesIcon from "lucide-svelte/icons/sparkles";
+  import CalendarIcon from "lucide-svelte/icons/calendar";
+  import EyeIcon from "lucide-svelte/icons/eye";
+  import PencilIcon from "lucide-svelte/icons/pencil";
+  import Trash2Icon from "lucide-svelte/icons/trash-2";
+  import CheckSquareIcon from "lucide-svelte/icons/check-square";
+  import SquareIcon from "lucide-svelte/icons/square";
+  import GlobeIcon from "lucide-svelte/icons/globe";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import type { Article } from "$lib/types";
+  import { fade, fly } from "svelte/transition";
 
   let { articles, selectedIds, onToggleSelect, onEdit, onDelete } = $props<{
     articles: Article[];
@@ -45,77 +47,141 @@
   });
 </script>
 
-<div class="flex flex-col gap-3 sm:gap-0 sm:divide-y sm:divide-white/[0.03]">
-  {#each articles as article (article.id)}
+<div class="flex flex-col gap-4 p-6">
+  <!-- Master Checkbox Row -->
+  <div class="flex items-center gap-6 px-4 py-3 bg-white/[0.02] border border-white/5 rounded-2xl mb-2">
+    <div class="flex items-center gap-4 shrink-0">
+      <button
+        onclick={() => (selectedIds.size === articles.length ? onToggleSelect('__all_off') : onToggleSelect('__all_on'))}
+        class="p-2 rounded-xl transition-all {selectedIds.size === articles.length ? 'text-cyan-400 bg-cyan-500/10' : 'text-white/10 hover:text-white/30 bg-white/5'}"
+      >
+        {#if selectedIds.size === articles.length}
+          <CheckSquareIcon size={20} class="text-cyan-400" />
+        {:else if selectedIds.size > 0}
+          <div class="w-5 h-5 flex items-center justify-center">
+            <div class="w-3 h-0.5 bg-cyan-400 rounded-full"></div>
+          </div>
+        {:else}
+          <SquareIcon size={20} />
+        {/if}
+      </button>
+      <span class="text-[10px] font-black uppercase tracking-widest text-white/20">Select_All_Operational_Data</span>
+    </div>
+  </div>
+
+  {#each articles as article, i (article.id)}
     <div
-      class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 sm:px-6 hover:bg-white/[0.02] transition-colors group bg-[#0a0a0a] sm:bg-transparent border border-white/5 sm:border-none rounded-xl sm:rounded-none relative"
+      class="news-row group relative flex items-center gap-6 p-4 bg-[#080808]/40 backdrop-blur-md border border-white/5 rounded-3xl transition-all duration-300 hover:bg-white/5 hover:border-cyan-500/30 hover:shadow-[0_0_30px_rgba(6,182,212,0.05)] active:scale-[0.995]"
+      in:fly={{ x: -20, delay: i * 30, duration: 400 }}
     >
-      <!-- Row 1 (Mobile only) / Left Column (Desktop): Checkbox + Icon + Title + AI Badge -->
-      <div class="flex items-start gap-3 flex-1 min-w-0">
+      <!-- Selection & Thumbnail Container -->
+      <div class="relative flex items-center gap-4 shrink-0">
         <button
           onclick={() => onToggleSelect(article.id)}
-          class="mt-[2px] sm:mt-0 text-gray-600 hover:text-[#FF33FF] transition-colors shrink-0"
+          class="p-2 rounded-xl transition-all {selectedIds.has(article.id) ? 'text-cyan-400 bg-cyan-500/10' : 'text-white/10 hover:text-white/30 bg-white/5'}"
         >
-          {#if selectedIds.has(article.id)}<CheckSquare size={16} />{:else}<Square size={16} />{/if}
+          {#if selectedIds.has(article.id)}
+            <CheckSquareIcon size={20} class="text-cyan-400" />
+          {:else}
+            <SquareIcon size={20} />
+          {/if}
         </button>
-        
-        <div class="hidden sm:flex w-9 h-9 rounded-xl bg-[#FF33FF]/5 border border-[#FF33FF]/10 items-center justify-center shrink-0">
-          <FileText size={15} class="text-[#FF33FF]/50" />
-        </div>
 
-        <div class="flex-1 min-w-0">
-          <div class="flex items-start sm:items-center gap-2 mb-1 sm:mb-1.5 flex-col sm:flex-row">
-            <span class="text-[13px] sm:text-xs font-bold sm:font-medium text-white group-hover:text-[#FF33FF] transition-colors leading-tight line-clamp-2 sm:line-clamp-1 truncate sm:whitespace-nowrap sm:overflow-hidden sm:text-ellipsis">
-              {article.title}
-            </span>
-            {#if article.author === "AI Editor"}
-              <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#FF33FF]/5 border border-[#FF33FF]/10 shrink-0 self-start sm:self-auto">
-                <Sparkles size={8} class="text-[#FF33FF]" />
-                <span class="text-[8px] sm:text-[7px] font-mono text-[#FF33FF] uppercase">AI</span>
-              </div>
-            {/if}
-          </div>
+        <div class="relative w-24 h-16 sm:w-32 sm:h-20 rounded-2xl overflow-hidden bg-zinc-900 border border-white/5 shadow-inner">
+          {#if article.featuredImage && article.featuredImage.includes('/')}
+            <img 
+              src={article.featuredImage} 
+              alt={article.title}
+              class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+            />
+          {:else}
+            <div class="w-full h-full flex items-center justify-center text-white/5">
+              <FileTextIcon size={24} strokeWidth={1} />
+            </div>
+          {/if}
           
-          <div class="flex items-center flex-wrap gap-2 sm:gap-3 text-[10px] sm:text-[9px] font-mono text-gray-500 sm:text-gray-600 truncate">
-            <span class="flex items-center gap-1 shrink-0 whitespace-nowrap"><Calendar size={10} class="sm:hidden" /><Calendar size={9} class="hidden sm:block" />{article.createdAt.split(' ')[0]}</span>
-            <span class="hidden sm:inline-block w-1 h-1 rounded-full bg-gray-600"></span>
-            <span class="shrink-0 max-w-[100px] truncate">{article.category}</span>
-            <span class="hidden sm:inline-block w-1 h-1 rounded-full bg-gray-600"></span>
-            <span class="shrink-0 max-w-[100px] truncate">{article.author}</span>
-          </div>
+          <!-- Small Mini-Badge for AI on Thumbnail -->
+          {#if article.author === "AI Editor" || article.authorName === "AI Editor"}
+            <div class="absolute top-1 right-1 p-1 rounded-lg bg-purple-500/20 backdrop-blur-md border border-purple-500/30 text-purple-400">
+              <SparklesIcon size={10} />
+            </div>
+          {/if}
         </div>
       </div>
 
-      <!-- Row 2 / Right Columns: Status, Views, Actions -->
-      <div class="flex items-center justify-between sm:justify-end gap-4 shrink-0 mt-2 sm:mt-0 pt-3 sm:pt-0 border-t border-white/5 sm:border-0 pl-[38px] sm:pl-0">
-        
-        <div class="flex items-center gap-3">
-          {#if article.status === "published"}
-            <span class="px-2 py-1 sm:py-0.5 rounded-md text-[9px] sm:text-[8px] font-mono font-bold text-[#39FF14] bg-[#39FF14]/5 border border-[#39FF14]/20 uppercase">Live</span>
-            <div class="flex items-center gap-1 text-[10px] sm:text-[9px] font-mono text-gray-500">
-              <Eye size={12} class="sm:hidden" /><Eye size={11} class="hidden sm:block" />{article.views?.toLocaleString()}
+      <!-- Content Core -->
+      <div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-3 mb-1">
+            <span class="text-[9px] font-black uppercase tracking-widest text-cyan-500/80 bg-cyan-500/5 px-2 py-0.5 rounded-lg border border-cyan-500/10">
+              {article.category || 'Unclassified'}
+            </span>
+            <div class="flex items-center gap-1 text-[9px] font-mono text-gray-500">
+              <CalendarIcon size={10} /> {article.createdAt.split(' ')[0]}
             </div>
-          {:else}
-            <span class="px-2 py-1 sm:py-0.5 rounded-md text-[9px] sm:text-[8px] font-mono font-bold text-[#FFB800] bg-[#FFB800]/5 border border-[#FFB800]/20 uppercase">Draft</span>
+          </div>
+          <h3 class="text-sm sm:text-base font-bold text-white truncate group-hover:text-cyan-400 transition-colors">
+            {article.title}
+          </h3>
+          {#if article.slug}
+            <div class="flex items-center gap-1.5 text-[10px] text-gray-600 font-mono mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <GlobeIcon size={10} /> /{article.slug}
+            </div>
           {/if}
         </div>
 
-        <div class="flex items-center gap-1 sm:opacity-0 group-hover:opacity-100 transition-opacity shrink-0 bg-[#0a0a0a] sm:bg-transparent -mr-2 sm:mr-0 px-2 sm:px-0">
-          <button
-            onclick={() => onEdit(article)}
-            class="p-2 sm:p-1.5 text-gray-500 md:text-gray-600 hover:text-[#FFB800] transition-colors rounded-lg bg-white/5 sm:bg-transparent hover:bg-white/10 sm:hover:bg-white/5"
-          >
-            <Pencil size={14} class="sm:hidden" /><Pencil size={13} class="hidden sm:block" />
-          </button>
-          <button
-            onclick={() => onDelete(article.id)}
-            class="p-2 sm:p-1.5 text-red-500 md:text-gray-600 hover:text-red-400 transition-colors rounded-lg bg-white/5 sm:bg-transparent hover:bg-white/10 sm:hover:bg-white/5"
-          >
-            <Trash2 size={14} class="sm:hidden" /><Trash2 size={13} class="hidden sm:block" />
-          </button>
-        </div>
+        <!-- Meta Grid -->
+        <div class="flex items-center gap-6 shrink-0 text-[11px] font-mono">
+          <div class="flex flex-col items-center sm:items-start min-w-[60px]">
+            <span class="text-[8px] text-gray-600 uppercase tracking-tighter mb-0.5">Status</span>
+            {#if article.status === "published"}
+              <div class="text-[#39FF14] text-[9px] flex items-center gap-1"><div class="w-1 h-1 rounded-full bg-[#39FF14] shadow-[0_0_5px_#39FF14]"></div>LIVE</div>
+            {:else}
+              <div class="text-cyan-400 text-[9px]">DRAFT</div>
+            {/if}
+          </div>
 
+          <div class="flex flex-col items-center sm:items-start min-w-[60px] hidden sm:flex">
+            <span class="text-[8px] text-gray-600 uppercase tracking-tighter mb-0.5">Reach</span>
+            <div class="flex items-center gap-1.5 text-gray-400">
+              <EyeIcon size={12} class="text-cyan-500/40" />
+              {(article.views || 0).toLocaleString()}
+            </div>
+          </div>
+
+          <!-- Vertical Divider -->
+          <div class="h-8 w-px bg-white/5 hidden sm:block"></div>
+
+          <!-- Actions Group -->
+          <div class="flex items-center gap-1">
+            <button
+              onclick={() => onEdit(article)}
+              class="p-2.5 rounded-xl bg-white/5 hover:bg-cyan-500/20 hover:text-cyan-400 border border-transparent hover:border-cyan-500/30 transition-all"
+              title="Edit Stream"
+            >
+              <PencilIcon size={15} />
+            </button>
+            <button
+              onclick={() => onDelete(article.id)}
+              class="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 hover:text-red-400 border border-transparent hover:border-red-500/30 transition-all"
+              title="Purge Intel"
+            >
+              <Trash2Icon size={15} />
+            </button>
+          </div>
+        </div>
       </div>
+
+      <!-- Hover Indicator Light -->
+      <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-cyan-500 rounded-r-full opacity-0 group-hover:opacity-100 transition-opacity blur-[2px]"></div>
     </div>
   {/each}
 </div>
+
+<style>
+  @reference "tailwindcss";
+
+  .news-row {
+    transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1), background-color 0.3s ease;
+  }
+</style>

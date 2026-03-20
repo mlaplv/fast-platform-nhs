@@ -41,6 +41,7 @@ class Article(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     status: Mapped[str] = mapped_column(String, default="DRAFT")
     category: Mapped[str] = mapped_column(String, default="Tin tức")
     views: Mapped[int] = mapped_column(Integer, default=0)
+    featured_image: Mapped[Optional[str]] = mapped_column(String)
     
     author_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('users.id'))
     author: Mapped[Optional["User"]] = relationship("User", back_populates="articles")

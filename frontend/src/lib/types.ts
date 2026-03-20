@@ -53,7 +53,7 @@ export interface Order {
   customerName: string;
   total: number;
   status: string;
-  items: number;
+  itemCount: number;
   isSpam: boolean;
   spamScore?: number;
   fingerprint?: string;
@@ -71,8 +71,12 @@ export interface Article {
   title: string;
   slug: string;
   excerpt: string | null;
+  content: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
   status: string;
   category: string;
+  featuredImage: string | null;
   views: number;
   author: string;
   authorId: string | null;
@@ -90,6 +94,11 @@ export interface Product {
     categoryId: string | null;
     description: string | null;
     type: string;
+    slug: string;
+    seoTitle: string | null;
+    seoDescription: string | null;
+    images: string[];
+    attributes: Record<string, any>;
     createdAt: string;
 }
 

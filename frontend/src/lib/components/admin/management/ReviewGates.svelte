@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import StepModal from './StepModal.svelte';
-    import MediaModal from '$lib/components/media/MediaModal.svelte';
+    import MediaVaultModal from '$lib/components/media/MediaVaultModal.svelte';
 
     let { campaign = $bindable() } = $props();
 
@@ -17,6 +17,12 @@
     let showModal = $state(false);
     let showMediaModal = $state(false);
     let selectedStep = $state(1);
+    
+    // Media Intelligence states
+    let assets = $state<string[]>([]);
+    let reserve_assets = $state<string[]>([]);
+    let selectedAvatarUrl = $state<string | null>(null);
+    let selectedAssetIndex = $state(0);
 
     function getStepStatus(stepId: number) {
         if (campaign.current_step > stepId) return 'completed';
@@ -91,9 +97,12 @@
 {/if}
 
 {#if showMediaModal}
-    <MediaModal
-        bind:show={showMediaModal}
-        campaignId={campaign.id}
+    <MediaVaultModal
+        isOpen={showMediaModal}
+        bind:assets
+        bind:reserve_assets
+        bind:selectedAvatarUrl
+        bind:selectedAssetIndex
         onClose={() => showMediaModal = false}
     />
 {/if}

@@ -9,6 +9,8 @@
   import Plus from "lucide-svelte/icons/plus";
   import Trash2 from "lucide-svelte/icons/trash-2";
   import TiptapEditor from "../ui/tiptap/TiptapEditor.svelte";
+  import MediaVaultModal from "../../media/MediaVaultModal.svelte";
+  import type { MediaAsset } from "$lib/types";
 
   let {
     editingId,
@@ -52,12 +54,24 @@
   let newImageUrl = $state("");
   let newAttrKey = $state("");
   let newAttrValue = $state("");
+  let showMediaModal = $state(false);
+  let reserve_assets = $state<string[]>([]);
+  let selectedAvatarUrl = $state<string | null>(null);
+  let selectedAssetIndex = $state(0);
 
   function addImage() {
     if (newImageUrl.trim()) {
       formImages = [...formImages, newImageUrl.trim()];
       newImageUrl = "";
     }
+  }
+
+  function handleMediaSelect(asset: MediaAsset) {
+    const url = asset.file_path || asset.url;
+    if (url && !formImages.includes(url)) {
+      formImages = [...formImages, url];
+    }
+    showMediaModal = false;
   }
 
   function removeImage(index: number) {
@@ -187,18 +201,24 @@
       </div>
     {:else if activeTab === "media"}
       <div class="flex flex-col gap-8" transition:slide>
-        <div class="flex flex-col gap-4">
-          <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Ingest_Media_Asset</label>
-          <div class="flex gap-3">
-            <div class="flex-1 relative bg-white/[0.03] border border-white/5 focus-within:border-[#FFB800]/40 rounded-2xl transition-all shadow-inner">
-              <input bind:value={newImageUrl} placeholder="Paste image URL..." class="w-full bg-transparent py-4 px-6 text-sm text-gray-400 font-mono focus:outline-none" />
-            </div>
-            <button onclick={addImage} class="px-8 py-4 bg-white/10 hover:bg-[#FFB800] hover:text-black rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">Add_Source</button>
-          </div>
-        </div>
+         <button 
+           onclick={(e) => { e.preventDefault(); showMediaModal = true; }}
+           class="w-fit relative group/btn overflow-hidden rounded-[1.8rem] p-[1px] transition-all duration-500 hover:scale-[1.01] active:scale-95 shadow-2xl"
+         >
+           <div class="absolute inset-0 bg-gradient-to-r from-[#FFB800] via-amber-400 to-[#FFB800] animate-rotate-slow opacity-20 group-hover/btn:opacity-100 transition-opacity"></div>
+           <div class="relative h-full w-full bg-[#0a0a0a] rounded-[calc(1.8rem-1px)] py-5 px-8 flex items-center justify-center gap-4 border border-white/5">
+             <div class="w-10 h-10 rounded-xl bg-[#FFB800]/10 flex items-center justify-center group-hover/btn:bg-[#FFB800]/20 transition-colors">
+               <Plus size={20} class="text-[#FFB800]" />
+             </div>
+             <div class="flex flex-col items-start">
+               <span class="text-[11px] font-black text-white uppercase tracking-[0.2em]">Open MEDIA INTELLIGENCE</span>
+               <span class="text-[7px] font-mono text-[#FFB800]/40 uppercase tracking-widest mt-0.5">Manage Neural_Assets</span>
+             </div>
+           </div>
+         </button>
 
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {#each formImages as img, i}
+          {#each formImages.filter(img => img && img.includes('/')) as img, i}
             <div class="aspect-square rounded-2xl bg-white/5 border border-white/10 relative group overflow-hidden">
               <img src={img} alt="Product" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
               <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -285,6 +305,15 @@
   </div>
 </div>
 
+<MediaVaultModal 
+  isOpen={showMediaModal} 
+  onClose={() => showMediaModal = false}
+  bind:assets={formImages}
+  bind:reserve_assets
+  bind:selectedAvatarUrl
+  bind:selectedAssetIndex
+/>
+
 <style>
   :global(.tiptap-shell) {
     @apply border-none !bg-transparent;
@@ -295,5 +324,12 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  @keyframes rotate-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .animate-rotate-slow {
+    animation: rotate-slow 8s linear infinite;
   }
 </style>

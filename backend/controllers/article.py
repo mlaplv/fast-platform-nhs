@@ -71,3 +71,12 @@ class ArticleController(Controller):
         res = await article_service.bulk_publish(db_session, data.ids)
         await db_session.commit()
         return res
+
+    @patch("/bulk-update", guards=[PermissionGuard("content:write")])
+    async def bulk_patch(self, db_session: "AsyncSession", data: "Any") -> BulkActionResponse:
+        """Bulk update status or category."""
+        from backend.schemas.article import BulkPatchRequest
+        # Cast for type safety in logic if needed, but here simple access is fine
+        res = await article_service.bulk_patch(db_session, data.ids, data.status, data.category)
+        await db_session.commit()
+        return res

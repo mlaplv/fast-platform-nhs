@@ -217,7 +217,7 @@
                 <span class="p-1.5 bg-blue-600 text-white rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                 </span>
-                AI Media Manager
+                MEDIA INTELLIGENCE
             </h3>
 
             <div class="flex items-center gap-2 ml-4">
@@ -436,7 +436,7 @@
                             </button>
 
                             <img
-                                src="/api/v1/media/{asset.id}/thumb?w=400&t={asset._updatedAt || ''}"
+                                src={asset.id ? `/api/v1/media/${asset.id}/thumb?w=400&t=${asset._updatedAt || ''}` : ''}
                                 alt={asset.alt_text || asset.filename}
                                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                 loading="lazy"
@@ -507,7 +507,7 @@
                             </div>
                             <div class="col-span-5 flex items-center gap-3">
                                 <div class="w-12 h-12 rounded-lg overflow-hidden bg-zinc-100 flex-shrink-0 relative">
-                                    <img src="{asset.file_path}?t={asset._updatedAt || ''}" alt="" class="w-full h-full object-cover" />
+                                    <img src={asset.file_path && asset.file_path.includes('/') ? `${asset.file_path}?t=${asset._updatedAt || ''}` : ''} alt="" class="w-full h-full object-cover" />
                                     {#if !asset.is_public}
                                         <div class="absolute inset-0 bg-black/40 flex items-center justify-center text-yellow-500">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -554,7 +554,7 @@
                 <div class="p-4 flex flex-col gap-6">
                     <!-- Preview -->
                     <div class="aspect-video bg-zinc-200 dark:bg-zinc-800 rounded-xl overflow-hidden border shadow-inner relative group/preview">
-                        <img src="{selectedAsset.file_path}?t={selectedAsset._updatedAt || ''}" alt="" class="w-full h-full object-contain" />
+                        <img src={selectedAsset.file_path && selectedAsset.file_path.includes('/') ? `${selectedAsset.file_path}?t=${selectedAsset._updatedAt || ''}` : ''} alt="" class="w-full h-full object-contain" />
 
                         {#if !selectedAsset.media_metadata.ai_description}
                             <div class="absolute inset-0 bg-blue-500/5 flex items-center justify-center">
@@ -662,7 +662,10 @@
                                 <div class="relative group/desc">
                                     <p class="text-[11px] text-zinc-600 dark:text-zinc-400 italic mb-3 pr-8">"{selectedAsset.media_metadata.ai_description}"</p>
                                     <button
-                                        onclick={() => applyAIAltText(selectedAsset!.media_metadata.ai_description as string)}
+                                        onclick={() => { 
+                                            const desc = selectedAsset?.media_metadata?.ai_description;
+                                            if (typeof desc === 'string') applyAIAltText(desc);
+                                        }}
                                         class="absolute top-0 right-0 p-1 bg-blue-500 text-white rounded opacity-0 group-hover/desc:opacity-100 transition-opacity hover:scale-110 active:scale-95"
                                         title="Sử dụng làm Alt-text"
                                     >

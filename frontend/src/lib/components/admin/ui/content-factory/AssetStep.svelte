@@ -217,7 +217,7 @@
         <div class="flex items-center gap-3 mb-1 whitespace-nowrap">
           <span
             class="text-[10px] text-blue-400 font-black tracking-[0.4em] uppercase"
-            >Asset Intelligence</span
+            >MEDIA INTELLIGENCE</span
           >
           <div
             class="px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 shadow-inner"
@@ -231,7 +231,7 @@
         <h3
           class="text-xl font-black text-white uppercase tracking-[0.2em] leading-tight"
         >
-          Cấu trúc hình ảnh
+          VISUAL ASSETS COMMAND CENTER
         </h3>
         <div class="flex items-center gap-2 mt-1.5 opacity-40">
           <div class="w-8 h-[1px] bg-white/20"></div>
@@ -331,7 +331,7 @@
           ></div>
           <span
             class="text-[10px] text-amber-500/80 font-black tracking-[0.4em] uppercase"
-            >Kho dự phòng // RESERVES</span
+            >RECENT INTELLIGENCE ASSETS</span
           >
         </div>
         <div
@@ -384,7 +384,7 @@
                 onclick={async (e) => {
                   e.stopPropagation();
                   try {
-                    reserve_assets = (reserve_assets as string[]).filter((_, idx) => idx !== i);
+                    reserve_assets = reserve_assets.filter((_, idx) => idx !== i);
                     
                     const { tick } = await import("svelte");
                     await tick(); 

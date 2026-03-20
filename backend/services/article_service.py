@@ -69,7 +69,7 @@ class ArticleService:
         stmt = select(
             Article.id, Article.title, Article.slug, Article.excerpt,
             Article.status, Article.category, Article.views,
-            Article.created_at, Article.author_id,
+            Article.created_at, Article.author_id, Article.featured_image,
             UserModel.name.label("author_name")
         ).outerjoin(UserModel, Article.author_id == UserModel.id).where(
             and_(*conditions)
@@ -85,7 +85,7 @@ class ArticleService:
         stmt = select(
             Article.id, Article.title, Article.slug, Article.excerpt, Article.content,
             Article.status, Article.category, Article.views,
-            Article.seo_title, Article.seo_description,
+            Article.seo_title, Article.seo_description, Article.featured_image,
             Article.created_at, Article.author_id,
             UserModel.name.label("author_name")
         ).outerjoin(UserModel, Article.author_id == UserModel.id).where(
@@ -125,6 +125,7 @@ class ArticleService:
             status=data.status.upper(),
             category=data.category,
             author_id=data.authorId,
+            featured_image=data.featured_image,
         )
         db_session.add(article)
 
@@ -154,6 +155,7 @@ class ArticleService:
         if data.seo_description is not None: article.seo_description = data.seo_description
         if data.status is not None: article.status = data.status.upper()
         if data.category is not None: article.category = data.category
+        if data.featured_image is not None: article.featured_image = data.featured_image
 
         if data.title is not None or data.content is not None:
             await article_vector_service.upsert_article_embedding(
@@ -177,6 +179,21 @@ class ArticleService:
     @staticmethod
     async def bulk_publish(db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
         stmt = update(Article).where(Article.id.in_(ids)).values(status="PUBLISHED")
+        await db_session.execute(stmt)
+        return BulkActionResponse(ok=True, count=len(ids))
+
+    @staticmethod
+    async def bulk_patch(
+        db_session: AsyncSession, ids: List[str], status: Optional[str] = None, category: Optional[str] = None
+    ) -> BulkActionResponse:
+        values = {}
+        if status: values["status"] = status.upper()
+        if category: values["category"] = category
+        
+        if not values:
+            return BulkActionResponse(ok=True, count=0)
+            
+        stmt = update(Article).where(Article.id.in_(ids)).values(**values)
         await db_session.execute(stmt)
         return BulkActionResponse(ok=True, count=len(ids))
 

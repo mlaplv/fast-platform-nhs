@@ -87,20 +87,31 @@
         </div>
 
         <!-- Product Image & Basic Info (Title/Category) -->
-        <div class="flex items-start md:items-center gap-3 md:pl-0 pl-6 w-full">
+        <div class="flex items-start md:items-center gap-4 md:pl-0 pl-6 w-full">
           <div
-            class="w-12 h-12 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-[#FFB800]/10 to-transparent border border-[#FFB800]/20 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(255,184,0,0.05)] md:group-hover:scale-105 transition-transform duration-300"
+            class="w-14 h-14 md:w-12 md:h-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center shrink-0 overflow-hidden relative group-hover:border-[#FFB800]/30 transition-all duration-300 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)]"
           >
-            <Package size={18} class="text-[#FFB800]/70" />
+            {#if product.images && product.images.length > 0 && product.images[0].includes('/')}
+              <img 
+                src={product.images[0]} 
+                alt={product.name}
+                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+              />
+            {:else}
+              <div class="w-full h-full bg-gradient-to-br from-[#FFB800]/10 to-transparent flex items-center justify-center">
+                <Package size={20} class="text-[#FFB800]/40" />
+              </div>
+            {/if}
+            <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
           </div>
           <div class="min-w-0 flex flex-col justify-center flex-1">
-            <div class="text-[14px] md:text-[13px] font-bold text-gray-100 truncate group-hover:text-white transition-colors tracking-wide">
+            <div class="text-[14px] md:text-[13px] font-bold text-gray-100 truncate group-hover:text-[#FFB800] transition-colors tracking-wide">
               {product.name}
             </div>
-            <div class="text-[10px] font-mono text-[#FFB800]/50 mt-1 uppercase tracking-widest flex items-center gap-2">
-              <span class="truncate">{product.category || "Uncategorized"}</span>
-              <span class="md:hidden text-gray-600">|</span>
-              <span class="md:hidden text-gray-500">{product.sku}</span>
+            <div class="text-[10px] font-mono text-gray-500 mt-1 uppercase tracking-[0.2em] flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded-lg bg-white/5 border border-white/5 text-[8px] text-[#FFB800]/70">{product.category || "General_Node"}</span>
+              <span class="md:hidden text-gray-800">/</span>
+              <span class="md:hidden text-gray-600 font-bold">{product.sku}</span>
             </div>
           </div>
         </div>

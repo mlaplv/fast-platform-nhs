@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fade } from "svelte/transition";
+  import { fade, fly } from "svelte/transition";
   import Newspaper from "lucide-svelte/icons/newspaper";
   import Plus from "lucide-svelte/icons/plus";
   import Search from "lucide-svelte/icons/search";
@@ -12,7 +12,7 @@
 
   import NewsList from "./NewsList.svelte";
   import OrderPagination from "./OrderPagination.svelte";
-  import DraftGenerativeForm from "./DraftGenerativeForm.svelte";
+  import NewsForm from "./NewsForm.svelte";
 
   let { data = {} } = $props<BaseWidgetProps>();
 
@@ -31,10 +31,19 @@
   let selectedIds = $state<Set<string>>(new Set());
   let formTitle = $state("");
   let formCategory = $state<string>(CATEGORIES[0]);
+  let formStatus = $state("DRAFT");
   let formExcerpt = $state("");
+  let formContent = $state("");
+  let formSlug = $state("");
+  let formSeoTitle = $state("");
+  let formSeoDescription = $state("");
+  let formFeaturedImage = $state<string | null>(null);
   let showDraftForm = $state(false);
 
   let pageSize = $state(10);
+  let showPurgeConfirm = $state(false);
+  let purgeTargetId = $state<string | null>(null);
+  let isBulkPurge = $state(false);
   const totalPages = $derived(Math.max(1, Math.ceil(totalArticles / pageSize)));
   const allSelected = $derived(articles.length > 0 && selectedIds.size === articles.length);
 
@@ -116,55 +125,160 @@
     if (activeCategoryFilter !== cat) { activeCategoryFilter = cat; currentPage = 1; }
   }
 
+  function generateSlug(title: string) {
+    return title.toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[đĐ]/g, 'd')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/[\s-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
   function openCreate() {
-    editingId = null; formTitle = ""; formCategory = CATEGORIES[0]; formExcerpt = "";
+    editingId = null; 
+    formTitle = ""; 
+    formCategory = CATEGORIES[0]; 
+    formExcerpt = "";
+    formContent = "";
+    formSlug = "";
+    formSeoTitle = "";
+    formSeoDescription = "";
+    formFeaturedImage = null;
     showDraftForm = true;
   }
+
   function openEdit(a: Article) {
-    editingId = a.id; formTitle = a.title; formCategory = a.category; formExcerpt = a.excerpt || "";
+    editingId = a.id; 
+    formTitle = a.title; 
+    formCategory = a.category; 
+    formExcerpt = a.excerpt || "";
+    formContent = a.content || "";
+    formSlug = a.slug;
+    formSeoTitle = a.seoTitle || "";
+    formSeoDescription = a.seoDescription || "";
+    formFeaturedImage = a.featuredImage || null;
     showDraftForm = true;
+  }
+
+  async function saveArticle() {
+    if (!formTitle.trim()) {
+      nanobot.showToast("Dạ sếp, tiêu đề không thể để trống ạ", "error");
+      return;
+    }
+    try {
+      const payload = {
+        title: formTitle,
+        category: formCategory,
+        excerpt: formExcerpt,
+        content: formContent,
+        slug: formSlug || generateSlug(formTitle),
+        status: activeTab === 'all' ? 'DRAFT' : activeTab.toUpperCase(),
+        seo_title: formSeoTitle,
+        seo_description: formSeoDescription,
+        featured_image: formFeaturedImage
+      };
+
+      if (editingId) {
+        await apiClient.patch(`/api/v1/articles/${editingId}`, payload);
+        nanobot.showToast("Neural sync complete. Cập nhật thành công ạ.", "success");
+      } else {
+        await apiClient.post("/api/v1/articles", payload);
+        nanobot.showToast("Intelligence deployed. Đăng bài thành công ạ.", "success");
+      }
+      showDraftForm = false;
+      await loadArticles();
+    } catch {
+      nanobot.showToast("Neural link failed. Không thể lưu bài viết ạ.", "error");
+    }
   }
   function toggleSelect(id: string) {
+    if (id === "__all_on") {
+      selectAll();
+      return;
+    }
+    if (id === "__all_off") {
+      deselectAll();
+      return;
+    }
     const n = new Set(selectedIds);
     n.has(id) ? n.delete(id) : n.add(id);
     selectedIds = n;
   }
 
-  async function bulk(v: "del" | "pub") {
+  function selectAll() {
+    selectedIds = new Set(articles.map(a => a.id));
+  }
+
+  function deselectAll() {
+    selectedIds = new Set();
+  }
+
+  function invertSelection() {
+    const current = new Set(selectedIds);
+    const inverted = new Set(articles.filter(a => !current.has(a.id)).map(a => a.id));
+    selectedIds = inverted;
+  }
+
+  async function bulkUpdate(fields: { status?: string, category?: string }) {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
     try {
-      if (v === "del") await apiClient.post("/api/v1/articles/bulk-delete", { ids });
-      else await apiClient.post("/api/v1/articles/bulk-publish", { ids });
+      await apiClient.patch("/api/v1/articles/bulk-update", { ids, ...fields });
       selectedIds = new Set();
+      nanobot.showToast(`Neural override complete. Updated ${ids.length} articles.`, "success");
       await loadArticles();
-    } catch { nanobot.showToast("Thao tác hàng loạt thất bại", "error"); }
+    } catch {
+      nanobot.showToast("Neural sync failed. Could not update articles.", "error");
+    }
+  }
+
+  function confirmDelete(id: string) {
+    purgeTargetId = id;
+    isBulkPurge = false;
+    showPurgeConfirm = true;
+  }
+
+  function confirmBulkDelete() {
+    isBulkPurge = true;
+    showPurgeConfirm = true;
+  }
+
+  async function executePurge() {
+    if (isBulkPurge) {
+      await bulkDelete();
+    } else if (purgeTargetId) {
+      try {
+        await apiClient.post("/api/v1/articles/bulk-delete", { ids: [purgeTargetId] });
+        nanobot.showToast("Purge complete.", "success");
+        await loadArticles();
+      } catch { nanobot.showToast("Purge failed.", "error"); }
+    }
+    showPurgeConfirm = false;
+    purgeTargetId = null;
   }
 </script>
 
 <!-- Simple inline flex: List | Form side-by-side INSIDE the modal content area -->
-<div class="news-split w-full h-full flex overflow-hidden">
+<div class="news-split w-full h-full flex overflow-hidden relative">
   <!-- LEFT: Article List (shrinks when form is open) -->
   <div class="news-list-pane flex flex-col overflow-hidden" class:has-form={showDraftForm}>
     <div class="flex flex-col gap-4 px-2 sm:px-4 py-4 sm:py-0">
       <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4"></div>
+        <div class="flex items-center gap-4">
+          <h2 class="text-xs font-black uppercase tracking-[0.4em] text-white/40 flex items-center gap-2">
+            <Newspaper size={14} class="text-cyan-500" />
+            Intelligence_Archive
+          </h2>
+        </div>
         <div class="flex items-center gap-3">
-          {#if selectedIds.size > 0}
-            <button onclick={() => bulk("pub")}
-              class="px-4 py-2 text-[10px] font-mono uppercase bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] rounded-xl hover:bg-[#39FF14]/20 transition-all shadow-[0_0_15px_rgba(57,255,20,0.1)]"
-              ><Send size={12} class="inline mr-1" /> Deploy_Live ({selectedIds.size})</button>
-            <button onclick={() => bulk("del")}
-              class="px-4 py-2 text-[10px] font-mono uppercase bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all shadow-[0_0_15px_rgba(239,68,68,0.1)]"
-              ><Trash2 size={12} class="inline mr-1" /> Purge ({selectedIds.size})</button>
-          {/if}
-
           <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-500 uppercase tracking-widest">
             <span>Show</span>
             <select
               value={pageSize}
               onchange={(e) => { pageSize = Number((e.target as HTMLSelectElement).value); currentPage = 1; }}
-              class="bg-black/60 border border-white/10 rounded-md px-1.5 py-1 text-[#FF33FF] text-[9px] font-mono font-bold focus:outline-none focus:border-[#FF33FF]/50 cursor-pointer appearance-none text-center w-12"
+              class="bg-black/60 border border-white/10 rounded-md px-1.5 py-1 text-cyan-500 text-[9px] font-mono font-bold focus:outline-none focus:border-cyan-500/50 cursor-pointer appearance-none text-center w-12"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -174,32 +288,33 @@
           </div>
 
           <button onclick={openCreate}
-            class="px-4 py-2 text-[10px] font-mono uppercase bg-[#FF33FF]/10 border border-[#FF33FF]/30 text-[#FF33FF] rounded-xl hover:bg-[#FF33FF]/20 transition-all shadow-[0_0_15px_rgba(255,51,255,0.1)]"
+            class="px-4 py-2 text-[10px] font-mono uppercase bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 rounded-xl hover:bg-cyan-500/20 transition-all shadow-[0_0_15px_rgba(6,182,212,0.1)]"
             ><Plus size={12} class="inline mr-1" /> New_Intel</button>
 
           <button onclick={loadArticles} title="Force Resync"
-            class="p-2.5 text-gray-500 hover:text-[#FF33FF] border border-white/5 hover:border-[#FF33FF]/30 rounded-xl bg-black/40 hover:bg-[#FF33FF]/10 transition-all"
+            class="p-2.5 text-gray-500 hover:text-cyan-400 border border-white/5 hover:border-cyan-500/30 rounded-xl bg-black/40 hover:bg-cyan-500/10 transition-all"
           >
-            <RefreshCw size={14} class={isLoading ? "animate-spin text-[#FF33FF]" : ""} />
+            <RefreshCw size={14} class={isLoading ? "animate-spin text-cyan-400" : ""} />
           </button>
         </div>
       </div>
       <div class="flex flex-col xl:flex-row xl:items-center gap-3 sm:gap-4 bg-white/[0.01] border border-white/5 p-3 sm:p-2 rounded-2xl w-full">
         <div class="flex-1 relative group w-full xl:min-w-[250px]">
           <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-            <Search size={14} class="text-gray-600 group-focus-within:text-[#FF33FF] transition-colors" />
+            <Search size={14} class="text-gray-600 group-focus-within:text-cyan-400 transition-colors" />
           </div>
           <input
             value={searchInput}
             oninput={handleSearchInput}
             type="text"
             placeholder="SEARCH_CONTENT_STREAM..."
-            class="w-full bg-black/40 border border-white/5 rounded-xl py-3 pl-11 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-700 focus:outline-none focus:border-[#FF33FF]/40 focus:ring-1 focus:ring-[#FF33FF]/10 transition-all uppercase tracking-widest"
+            class="w-full bg-black/40 border border-white/5 rounded-xl py-3 pl-11 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-700 focus:outline-none focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/10 transition-all uppercase tracking-widest"
           />
         </div>
 
         <div class="flex flex-col sm:flex-row xl:items-center gap-3 sm:gap-4 xl:gap-0 mt-2 xl:mt-0 w-full xl:w-auto">
-          <div class="flex gap-1 p-1 bg-black/40 border border-white/5 rounded-xl overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+          <div class="flex items-center gap-1 p-1 bg-black/40 border border-white/5 rounded-xl overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+            <span class="px-3 text-[7px] font-mono text-white/20 uppercase tracking-[0.3em] flex-shrink-0">Category_</span>
             {#each ["all", ...CATEGORIES] as c}
               <button
                 onclick={() => handleCategoryChange(c)}
@@ -208,7 +323,7 @@
                   ? 'bg-neon-cyan/10 text-neon-cyan/90 ring-1 ring-neon-cyan/30'
                   : 'text-gray-500 hover:text-white hover:bg-white/5'}"
               >
-                {c === "all" ? "All_Nodes" : c}
+                {c === "all" ? "Tất cả" : c}
               </button>
             {/each}
           </div>
@@ -221,7 +336,7 @@
                 onclick={() => handleTabChange(t)}
                 class="px-4 py-2 text-[8px] font-mono uppercase tracking-[0.2em] rounded-lg transition-all relative overflow-hidden group/btn flex-shrink-0
                   {activeTab === t
-                  ? 'bg-[#FF33FF]/10 text-[#FF33FF]/90 ring-1 ring-[#FF33FF]/30'
+                  ? 'bg-cyan-500/10 text-cyan-500/90 ring-1 ring-cyan-500/30'
                   : 'text-gray-500 hover:text-white hover:bg-white/5'}"
               >
                 {t === "all" ? "Archive" : t === "published" ? "Live" : "Staging"}
@@ -235,7 +350,7 @@
     <div class="flex-1 overflow-y-auto custom-scrollbar px-2 sm:px-4">
       {#if isLoading}
         <div class="h-full flex items-center justify-center animate-pulse">
-          <span class="text-[9px] font-mono text-[#FF33FF]/40 uppercase tracking-[0.3em]">Loading Content...</span>
+          <span class="text-[9px] font-mono text-cyan-500/40 uppercase tracking-[0.3em]">Loading Content...</span>
         </div>
       {:else}
         <NewsList
@@ -243,12 +358,7 @@
           {selectedIds}
           onToggleSelect={toggleSelect}
           onEdit={openEdit}
-          onDelete={async (id) => {
-            try {
-              await apiClient.post("/api/v1/articles/bulk-delete", { ids: [id] });
-              await loadArticles();
-            } catch { nanobot.showToast("Xóa bài viết thất bại", "error"); }
-          }}
+          onDelete={confirmDelete}
         />
       {/if}
     </div>
@@ -263,20 +373,117 @@
     </div>
   </div>
 
-  <!-- RIGHT: Draft Form (slides in from right) -->
+  <!-- RIGHT: News Form (slides in from right) -->
   {#if showDraftForm}
     <div class="news-form-pane border-l border-white/10 overflow-y-auto">
-      <DraftGenerativeForm
+      <NewsForm
         {editingId}
-        initialTitle={formTitle}
-        onSuccess={async () => { showDraftForm = false; await loadArticles(); }}
+        bind:formTitle
+        bind:formCategory
+        bind:formStatus
+        bind:formExcerpt
+        bind:formContent
+        bind:formSlug
+        bind:formSeoTitle
+        bind:formSeoDescription
+        bind:formFeaturedImage
+        onSave={saveArticle}
         onClose={() => (showDraftForm = false)}
+        {generateSlug}
+        {CATEGORIES}
       />
+    </div>
+  {/if}
+
+  <!-- NEURAL COMMAND BAR (Floating Bulk Actions) -->
+  {#if selectedIds.size > 0}
+    <div 
+      class="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-6 p-2 pl-6 bg-[#0a0a0a]/80 backdrop-blur-2xl border border-white/10 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.1)]"
+      transition:fly={{ y: 50, duration: 400 }}
+    >
+      <div class="flex items-center gap-3 border-r border-white/10 pr-6">
+        <div class="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-xs font-bold">
+          {selectedIds.size}
+        </div>
+        <span class="text-[10px] font-black uppercase tracking-widest text-white/60">Selected</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick={selectAll} class="cmd-btn">All</button>
+        <button onclick={invertSelection} class="cmd-btn">Invert</button>
+        <button onclick={deselectAll} class="cmd-btn">Clear</button>
+      </div>
+
+      <div class="w-px h-6 bg-white/5 ml-2"></div>
+
+      <div class="flex items-center gap-2 pr-2">
+        <div class="relative group/drop">
+          <button class="action-btn text-cyan-400 hover:bg-cyan-500/10">Status</button>
+          <div class="absolute bottom-full mb-2 left-0 hidden group-hover/drop:flex flex-col bg-[#111] border border-white/10 rounded-xl overflow-hidden min-w-[120px]">
+            <button onclick={() => bulkUpdate({ status: 'PUBLISHED' })} class="drop-item hover:text-[#39FF14]">Deploy_Live</button>
+            <button onclick={() => bulkUpdate({ status: 'DRAFT' })} class="drop-item hover:text-cyan-400">Move_Staging</button>
+          </div>
+        </div>
+
+        <div class="relative group/drop">
+          <button class="action-btn text-purple-400 hover:bg-purple-500/10">Category</button>
+          <div class="absolute bottom-full mb-2 left-0 hidden group-hover/drop:flex flex-col bg-[#111] border border-white/10 rounded-xl overflow-hidden min-w-[120px]">
+            {#each CATEGORIES as cat}
+              <button onclick={() => bulkUpdate({ category: cat })} class="drop-item">{cat}</button>
+            {/each}
+          </div>
+        </div>
+
+        <button onclick={confirmBulkDelete} class="action-btn text-red-400 hover:bg-red-500/10">Purge</button>
+      </div>
+    </div>
+  {/if}
+
+  <!-- PURGE CONFIRMATION MODAL -->
+  {#if showPurgeConfirm}
+    <div 
+      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      transition:fade
+    >
+      <div 
+        class="w-full max-w-md bg-[#0a0a0a] border border-red-500/20 rounded-3xl p-8 shadow-[0_0_50px_rgba(239,68,68,0.1)]"
+        transition:fly={{ y: 20, duration: 400 }}
+      >
+        <div class="flex flex-col items-center text-center gap-6">
+          <div class="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 animate-pulse">
+            <Trash2 size={32} />
+          </div>
+          
+          <div class="flex flex-col gap-2">
+            <h3 class="text-xl font-black uppercase tracking-widest text-white">Xác nhận xóa</h3>
+            <p class="text-sm text-gray-500 font-mono italic">
+              Dữ liệu sẽ bị xóa vĩnh viễn khỏi Intelligence_Archive. Sếp có chắc chắn không?
+            </p>
+          </div>
+
+          <div class="flex items-center gap-4 w-full">
+            <button 
+              onclick={() => (showPurgeConfirm = false)}
+              class="flex-1 px-6 py-3 rounded-xl border border-white/5 text-[10px] uppercase font-black tracking-widest text-gray-400 hover:bg-white/5 transition-all"
+            >
+              Hủy lệnh
+            </button>
+            <button 
+              onclick={executePurge}
+              class="flex-1 px-6 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-[10px] uppercase font-black tracking-widest text-red-500 hover:bg-red-500/20 transition-all shadow-[0_0_20px_rgba(239,68,68,0.1)]"
+            >
+              Kích hoạt xóa
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   {/if}
 </div>
 
 <style>
+  @reference "tailwindcss";
+
   .news-list-pane {
     width: 100%;
     transition: width 0.3s ease;
@@ -302,5 +509,17 @@
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 20px;
+  }
+
+  .cmd-btn {
+    @apply px-3 py-1.5 text-[9px] font-black uppercase tracking-tighter text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-all;
+  }
+
+  .action-btn {
+    @apply px-4 py-1.5 text-[9px] font-black uppercase tracking-widest border border-white/5 rounded-full transition-all;
+  }
+
+  .drop-item {
+    @apply px-4 py-2.5 text-[9px] font-black uppercase tracking-widest text-white/40 border-b border-white/5 last:border-0 text-left transition-all;
   }
 </style>
