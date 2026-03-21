@@ -6,6 +6,8 @@
   import MobileHome from "./MobileHome.svelte";
   import MobileContextSheet from "./MobileContextSheet.svelte";
   import MobileQuickTips from "./MobileQuickTips.svelte";
+  import ConfirmationModal from "../../ui/ConfirmationModal.svelte";
+  import VaultModal from "../../VaultModal.svelte";
 
   let { children } = $props();
 </script>
@@ -43,4 +45,8 @@
 
   <!-- Full-screen Voice Interaction Modal -->
   <VoiceModal />
+
+  <!-- Global System Modals -->
+  <ConfirmationModal />
+  <VaultModal />
 </div>

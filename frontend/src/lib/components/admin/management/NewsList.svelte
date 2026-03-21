@@ -47,7 +47,7 @@
   });
 </script>
 
-<div class="flex flex-col gap-4 p-6">
+<div class="flex flex-col gap-2 sm:gap-4 p-2 sm:p-6">
   <!-- Master Checkbox Row -->
   <div class="flex items-center gap-6 px-4 py-3 bg-white/[0.02] border border-white/5 rounded-2xl mb-2">
     <div class="flex items-center gap-4 shrink-0">
@@ -71,11 +71,11 @@
 
   {#each articles as article, i (article.id)}
     <div
-      class="news-row group relative flex items-center gap-6 p-4 bg-[#080808]/40 backdrop-blur-md border border-white/5 rounded-3xl transition-all duration-300 hover:bg-white/5 hover:border-cyan-500/30 hover:shadow-[0_0_30px_rgba(6,182,212,0.05)] active:scale-[0.995]"
+      class="news-row group relative flex items-center gap-2 sm:gap-6 p-2 sm:p-4 bg-[#080808]/40 backdrop-blur-md border border-white/5 rounded-xl sm:rounded-3xl transition-all duration-300 hover:bg-white/5 hover:border-cyan-500/30 hover:shadow-[0_0_30px_rgba(6,182,212,0.05)] active:scale-[0.995]"
       in:fly={{ x: -20, delay: i * 30, duration: 400 }}
     >
       <!-- Selection & Thumbnail Container -->
-      <div class="relative flex items-center gap-4 shrink-0">
+      <div class="relative flex items-center gap-1.5 sm:gap-4 shrink-0">
         <button
           onclick={() => onToggleSelect(article.id)}
           class="p-2 rounded-xl transition-all {selectedIds.has(article.id) ? 'text-cyan-400 bg-cyan-500/10' : 'text-white/10 hover:text-white/30 bg-white/5'}"
@@ -87,7 +87,7 @@
           {/if}
         </button>
 
-        <div class="relative w-24 h-16 sm:w-32 sm:h-20 rounded-2xl overflow-hidden bg-zinc-900 border border-white/5 shadow-inner">
+        <div class="relative w-16 h-12 sm:w-32 sm:h-20 rounded-lg sm:rounded-2xl overflow-hidden bg-zinc-900 border border-white/5 shadow-inner">
           {#if article.featuredImage && article.featuredImage.includes('/')}
             <img 
               src={article.featuredImage} 
@@ -117,10 +117,10 @@
               {article.category || 'Unclassified'}
             </span>
             <div class="flex items-center gap-1 text-[9px] font-mono text-gray-500">
-              <CalendarIcon size={10} /> {article.createdAt.split(' ')[0]}
+              <CalendarIcon size={10} /> {article.createdAt?.slice(0, 10) || 'N/A'}
             </div>
           </div>
-          <h3 class="text-sm sm:text-base font-bold text-white truncate group-hover:text-cyan-400 transition-colors">
+          <h3 class="text-sm sm:text-base font-bold text-white line-clamp-2 sm:truncate group-hover:text-cyan-400 transition-colors">
             {article.title}
           </h3>
           {#if article.slug}

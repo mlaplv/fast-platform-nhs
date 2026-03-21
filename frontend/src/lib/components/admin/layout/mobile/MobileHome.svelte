@@ -23,7 +23,7 @@
 
   const quickActions: QuickAction[] = [
     { label: "Đơn hàng", icon: ShoppingCart, widget: "ORDER_MANAGEMENT", color: "text-vibrant-purple", bg: "bg-vibrant-purple/10", border: "border-vibrant-purple/20" },
-    { label: "Campaigns", icon: Megaphone, widget: "NONE", color: "text-hacker-green", bg: "bg-hacker-green/10", border: "border-hacker-green/20" }, // CAMPAIGNS needs to be in WidgetType if it exists
+    { label: "Campaigns", icon: Megaphone, widget: "CAMPAIGNS", color: "text-hacker-green", bg: "bg-hacker-green/10", border: "border-hacker-green/20" },
     { label: "Sản phẩm", icon: Package, widget: "PRODUCT_MANAGEMENT", color: "text-neon-cyan", bg: "bg-neon-cyan/10", border: "border-neon-cyan/20" },
     { label: "Tin tức", icon: Newspaper, widget: "NEWS_MANAGEMENT", color: "text-fuchsia-400", bg: "bg-fuchsia-400/10", border: "border-fuchsia-400/20" },
     { label: "Nhân viên", icon: Users, widget: "USER_MANAGEMENT", color: "text-[#39FF14]", bg: "bg-[#39FF14]/10", border: "border-[#39FF14]/20" }
@@ -85,7 +85,7 @@
     ></div>
 
     <div 
-      class="flex flex-col gap-1 mb-10 transition-transform duration-500 pointer-events-auto"
+      class="flex flex-col gap-1 mb-6 transition-transform duration-500 pointer-events-auto"
       style:transform="scale({0.85 + ($scrollSpring * 0.15)})"
       style:transform-origin="left top"
     >
@@ -93,10 +93,10 @@
         <XohiLogo variant="simple" size={40} interactive={true} />
       </div>
       <div>
-        <h1 class="text-3xl font-light text-white tracking-tight leading-tight">
+        <h1 class="text-2xl font-light text-white tracking-tight leading-tight">
           Chào {permissionState.userName || 'Sếp'},
         </h1>
-        <p class="text-gray-400 font-normal text-[14px] mt-1 tracking-wide opacity-80">
+        <p class="text-gray-400 font-normal text-[12px] mt-1 tracking-wide opacity-80">
           Chúc {permissionState.userName || 'Sếp'} một {getGreeting()}.
         </p>
       </div>
@@ -110,12 +110,12 @@
       {#each quickActions as action}
         <button
           onclick={() => openWidget(action.widget)}
-          class="flex items-center gap-2 py-2 px-4 rounded-full border border-white/5 bg-white/5 backdrop-blur-xl active:scale-95 active:bg-white/10 transition-all shrink-0 shadow-sm"
+          class="group flex items-center gap-2 py-1.5 px-3.5 rounded-full border border-white/5 bg-white/5 backdrop-blur-xl active:scale-95 active:bg-white/10 transition-all shrink-0 shadow-sm"
         >
           <div class="{action.color} opacity-70 group-active:opacity-100">
-            <action.icon size={14} />
+            <action.icon size={13} />
           </div>
-          <span class="font-medium text-white/90 text-[13px] whitespace-nowrap tracking-wide">{action.label}</span>
+          <span class="font-medium text-white/90 text-[12px] whitespace-nowrap tracking-wide">{action.label}</span>
         </button>
       {/each}
     </div>
@@ -126,7 +126,7 @@
     <!-- Reactive Spacer: Follows the header height to avoid gaps -->
     <div 
       class="w-full transition-all duration-300" 
-      style:height="{$scrollSpring * 200}px"
+      style:height="{$scrollSpring * 260}px"
     ></div>
     <HeartbeatStream hideHeader={true} />
   </div>

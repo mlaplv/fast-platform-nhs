@@ -112,18 +112,19 @@ export function createXohiImageState() {
         const asset = assets.find(a => a.id === id);
         const path = asset?.file_path || asset?.url;
         if (path && path.startsWith('blob:')) {
-            URL.revokeObjectURL(path); // R03: Dọn dẹp bộ nhớ
+            URL.revokeObjectURL(path);
         }
 
-        // Delete from server
-        if (asset && !asset.id.startsWith('tmp_')) {
+        // Phase 15.4: Resilient Server Synchro (Only delete if persisted real ID)
+        const isPersisted = asset && !asset.id.startsWith('tmp_') && !asset.id.startsWith('stable_');
+
+        if (isPersisted) {
             try {
                 const url = permanent ? `/api/v1/media/${id}?permanent=true` : `/api/v1/media/${id}`;
                 await apiClient.delete(url);
             } catch (error) {
-                console.error("Failed to delete asset from server", error);
-                // Throw so the UI can catch and notify the user
-                throw error;
+                // R03: Log error but proceed to update local state to avoid UI hang
+                console.warn("[xohiImage] Server deletion failed or not found, continuing with local removal", error);
             }
         }
 

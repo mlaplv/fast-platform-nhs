@@ -47,7 +47,12 @@
   });
 
   let viewingStep = $state(step || 1), isEditing = $state(false), maxStepSeen = $state(step || 1), isProcessing = $derived(status === "PROCESSING");
-  let customImageUrl = $state(""), editedKeywords = $state<CampaignKeywords>({}), editedConfig = $state<Record<string, unknown>>({}), editedDraft = $state(""), editedOutline = $state("");
+  let customImageUrl = $state(""), editedKeywords = $state<CampaignKeywords>({}), editedConfig = $state<Record<string, any>>({
+    style: "Viral",
+    word_count: 500,
+    max_assets: 10,
+    max_sections: 3
+  }), editedDraft = $state(""), editedOutline = $state("");
   let showGateModal = $state(false), gateBlockers = $state<any[]>([]), focusTabFromModal = $state<string | null>(null);
 
   $effect(() => { if (status !== "PROCESSING") untrack(() => { campaign.isLoading = false; }); });
@@ -55,8 +60,44 @@
   $effect(() => { if (viewingStep >= 6 && !finalHtml && draft_content) untrack(() => { finalHtml = processContentImages(draft_content, xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets); }); });
   $effect(() => {
     const src = draft_content || finalHtml || "", out = outline?.html || "";
-    if (isProcessing) { if (src && src !== editedDraft) editedDraft = src; if (out && out !== editedOutline) editedOutline = out; }
-    else if (!isEditing) untrack(() => { if (src && src !== editedDraft) editedDraft = src; if (out && out !== editedOutline) editedOutline = out; });
+    if (isProcessing) {
+      if (src && src !== editedDraft) editedDraft = src;
+      if (out && out !== editedOutline) editedOutline = out;
+      
+      // Phase 82.8: Proactive Sync during Processing (Ensure defaults show while AI is thinking)
+      if (!isEditing) {
+        untrack(() => {
+          const rawSource = (creation_config && Object.keys(creation_config).length) ? creation_config : (keywords?.creation_config || {});
+          const cleanSource = Object.fromEntries(Object.entries(rawSource).filter(([_, v]) => v !== undefined && v !== null && v !== ""));
+          
+          editedConfig = {
+            style: "Viral",
+            word_count: 500,
+            max_assets: 10,
+            max_sections: 3,
+            ...cleanSource
+          };
+        });
+      }
+    } else if (!isEditing) {
+      untrack(() => {
+        if (src && src !== editedDraft) editedDraft = src;
+        if (out && out !== editedOutline) editedOutline = out;
+
+        // CNS: Reactive sync for Keywords & Creative Config (Fix: Auto-select defaults)
+        const rawSource = (creation_config && Object.keys(creation_config).length) ? creation_config : (keywords?.creation_config || {});
+        const cleanSource = Object.fromEntries(Object.entries(rawSource).filter(([_, v]) => v !== undefined && v !== null && v !== ""));
+
+        editedConfig = {
+          style: "Viral",
+          word_count: 500,
+          max_assets: 10,
+          max_sections: 3,
+          ...cleanSource
+        };
+        editedKeywords = JSON.parse(JSON.stringify(keywords || {}));
+      });
+    }
   });
 
   onMount(() => {
@@ -75,8 +116,9 @@
     if (analysis_cache === undefined) analysis_cache = {} as AnalysisCache;
     if (analysis_metrics === undefined) analysis_metrics = {} as CampaignMetrics;
 
-    editedConfig = { style: "Chuyên nghiệp", word_count: 500, max_assets: 10, max_sections: 3, ...(creation_config && Object.keys(creation_config).length ? creation_config : (keywords?.creation_config || {})) };
-    editedKeywords = JSON.parse(JSON.stringify(keywords || {})); editedDraft = draft_content || ""; editedOutline = outline?.html || "";
+    // Phase 82.5: Initial sync is handled by the $effect above after mount
+    editedDraft = draft_content || ""; 
+    editedOutline = outline?.html || "";
   });
 
   async function handleApprove() {

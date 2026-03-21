@@ -18,6 +18,8 @@
   import NewsManagement from "../../management/NewsManagement.svelte";
   import NotificationList from "../../widgets/NotificationList.svelte";
   import VoiceSettings from "../../management/VoiceSettings.svelte";
+  import ContentFactory from "../../management/ContentFactory.svelte";
+  import ContentReviewWidget from "../../widgets/ContentReviewWidget.svelte";
 
   const WIDGET_REGISTRY: Partial<Record<WidgetType, Component<BaseWidgetProps>>> = {
     REVENUE_CHART: RevenueChart as Component<BaseWidgetProps>,
@@ -30,6 +32,8 @@
     NEWS_MANAGEMENT: NewsManagement as Component<BaseWidgetProps>,
     NOTIFICATION_LIST: NotificationList as Component<BaseWidgetProps>,
     VOICE_SETTINGS: VoiceSettings as Component<BaseWidgetProps>,
+    CAMPAIGNS: ContentFactory as unknown as Component<BaseWidgetProps>,
+    CONTENT_REVIEW: ContentReviewWidget as unknown as Component<BaseWidgetProps>,
   };
 
   const WIDGET_LABEL: Partial<Record<WidgetType, string>> = {
@@ -41,6 +45,8 @@
     ORDER_MANAGEMENT: "Đơn hàng",
     NEWS_MANAGEMENT: "Tin tức",
     VOICE_SETTINGS: "Voice Settings",
+    CAMPAIGNS: "Chiến dịch",
+    CONTENT_REVIEW: "Duyệt bài",
   };
 
   let ActiveWidget = $derived(

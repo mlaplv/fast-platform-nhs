@@ -24,7 +24,7 @@
     { id: "ORDER_MANAGEMENT", label: "Đơn hàng", icon: ShoppingCart, color: "#FFAA00" },
     { id: "PRODUCT_MANAGEMENT", label: "Sản phẩm", icon: Package, color: "#00FFFF" },
     { id: "NEWS_MANAGEMENT", label: "Tin tức", icon: Newspaper, color: "#FF33FF" },
-    { id: "NONE", label: "Campaigns", icon: Megaphone, color: "#39ff14" }, // CAMPAIGNS not in WidgetType
+    { id: "CAMPAIGNS", label: "Campaigns", icon: Megaphone, color: "#39ff14" },
     { id: "USER_MANAGEMENT", label: "Nhân viên", icon: Users, color: "#39FF14" },
     { id: "PERMISSION_MANAGEMENT", label: "Phân quyền", icon: Shield, color: "#39FF14" },
     { id: "VOICE_SETTINGS", label: "Cài đặt giọng nói", icon: Settings, color: "#gray-400" },

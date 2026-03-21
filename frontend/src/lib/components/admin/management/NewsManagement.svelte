@@ -314,15 +314,17 @@
   <!-- LEFT: Article List (shrinks when form is open) -->
   <div class="news-list-pane flex flex-col overflow-hidden" class:has-form={showDraftForm}>
     <div class="flex flex-col gap-4 px-2 sm:px-4 py-4 sm:py-0">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <h2 class="text-xs font-black uppercase tracking-[0.4em] text-white/40 flex items-center gap-2">
-            <Newspaper size={14} class="text-cyan-500" />
-            Intelligence_Archive
+      <div class="flex items-center justify-between gap-2 overflow-hidden">
+        <div class="flex items-center gap-2 shrink-0">
+          <Newspaper size={14} class="text-cyan-500 shrink-0" />
+          <h2 class="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] text-white/40 truncate">
+            <span class="hidden sm:inline">Intelligence_Archive</span>
+            <span class="sm:hidden">Archive</span>
           </h2>
         </div>
-        <div class="flex items-center gap-3">
-          <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-500 uppercase tracking-widest">
+
+        <div class="flex items-center gap-2 shrink-0">
+          <div class="hidden sm:flex items-center gap-1.5 text-[9px] font-mono text-gray-500 uppercase tracking-widest">
             <span>Show</span>
             <select
               value={pageSize}
@@ -336,15 +338,17 @@
             <span>of {totalArticles}</span>
           </div>
 
-          <button onclick={openCreate}
-            class="px-4 py-2 text-[10px] font-mono uppercase bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 rounded-xl hover:bg-cyan-500/20 transition-all shadow-[0_0_15px_rgba(6,182,212,0.1)]"
-            ><Plus size={12} class="inline mr-1" /> New_Intel</button>
+          <div class="flex items-center gap-1.5">
+            <button onclick={openCreate}
+              class="px-2.5 sm:px-4 py-2 text-[10px] font-mono uppercase bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 rounded-xl hover:bg-cyan-500/20 transition-all shadow-[0_0_15px_rgba(6,182,212,0.1)] flex items-center gap-1.5"
+              ><Plus size={12} /> <span class="hidden xs:inline">New_Intel</span><span class="xs:hidden">New</span></button>
 
-          <button onclick={loadArticles} title="Force Resync"
-            class="p-2.5 text-gray-500 hover:text-cyan-400 border border-white/5 hover:border-cyan-500/30 rounded-xl bg-black/40 hover:bg-cyan-500/10 transition-all"
-          >
-            <RefreshCw size={14} class={isLoading ? "animate-spin text-cyan-400" : ""} />
-          </button>
+            <button onclick={loadArticles} title="Force Resync"
+              class="p-2 sm:p-2.5 text-gray-500 hover:text-cyan-400 border border-white/5 hover:border-cyan-500/30 rounded-xl bg-black/40 hover:bg-cyan-500/10 transition-all"
+            >
+              <RefreshCw size={14} class={isLoading ? "animate-spin text-cyan-400" : ""} />
+            </button>
+          </div>
         </div>
       </div>
       <div class="flex flex-col xl:flex-row xl:items-center gap-3 sm:gap-4 bg-white/[0.01] border border-white/5 p-3 sm:p-2 rounded-2xl w-full">

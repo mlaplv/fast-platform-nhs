@@ -137,11 +137,9 @@
       </div>
     </div>
 
-    <div class:hidden={nanobot.isVuiActive && !nanobot.isTraining}>
-      <FullLogView />
-      <VaultModal />
-      <ConfirmationModal />
-    </div>
+    <FullLogView />
+    <VaultModal />
+    <ConfirmationModal />
   </main>
 
   <!-- Right Sidebar: Heartbeat -->

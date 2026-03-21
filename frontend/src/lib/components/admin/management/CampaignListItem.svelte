@@ -167,7 +167,7 @@
     <button
       onclick={() => onDelete(campaign.id)}
       disabled={isDeleting}
-      class="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-gray-600 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-all opacity-0 group-hover:opacity-100 active:scale-95"
+      class="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-gray-600 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-all opacity-20 md:opacity-0 group-hover:opacity-100 active:scale-95 touch-manipulation"
       title="Purge Campaign"
     >
       {#if isDeleting}
