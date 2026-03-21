@@ -26,9 +26,16 @@
     onSelect?: (url: string) => void;
   } = $props();
 
-  import { untrack } from "svelte";
+  import { untrack, onMount } from "svelte";
 
   let internalAssets = $state<(MediaAsset | string)[]>([]);
+
+  onMount(() => {
+    if (assets === undefined) assets = [];
+    if (reserve_assets === undefined) reserve_assets = [];
+    if (selectedAvatarUrl === undefined) selectedAvatarUrl = null;
+    if (selectedAssetIndex === undefined) selectedAssetIndex = 0;
+  });
 
   $effect(() => {
     if (isOpen) {

@@ -1,6 +1,7 @@
 <script lang="ts">
   import Search from "lucide-svelte/icons/search";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import { onMount } from "svelte";
   import PlusCircle from "lucide-svelte/icons/plus-circle";
   import BarChart3 from "lucide-svelte/icons/bar-chart-3";
   import Sparkles from "lucide-svelte/icons/sparkles";
@@ -26,6 +27,13 @@
     onSearchInput: (e: Event) => void;
     onCreateNew: () => void;
   }>();
+
+  onMount(() => {
+    if (searchInput === undefined) searchInput = "";
+    if (activeStatus === undefined) activeStatus = "all";
+    if (activeCategory === undefined) activeCategory = "all";
+    if (activeStep === undefined) activeStep = "all";
+  });
 
   const statusFilters = [
     { id: "all", label: "TOTAL_SCOPE" },

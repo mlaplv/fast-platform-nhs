@@ -1,11 +1,6 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-
-  import type { MediaAsset, CampaignKeywords } from "$lib/state/types";
-  import type { CopyrightResult, SEOResult, AIInspectResult } from "$lib/types";
-  import { xohiImageStore } from "$lib/state/xohiImage.svelte";
-  import { purifyAIContent } from "$lib/utils/purify";
-  import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
+  import type { MediaAsset, CampaignKeywords, CopyrightResult, SEOResult, AIInspectResult, AnalysisCache } from "$lib/state/types";
+  import { createPreviewController } from "$lib/state/xohiPreview.svelte";
 
   interface Props {
     draft_content: string;
@@ -14,11 +9,7 @@
     copyrightScore: number;
     seoScore: number;
     aiScore: number;
-    analysis_cache: {
-      copyright?: { data: CopyrightResult };
-      seo?: { data: SEOResult };
-      ai_inspect?: { data: AIInspectResult };
-    };
+    analysis_cache: AnalysisCache;
     isExpanded: boolean;
   }
 
@@ -33,33 +24,12 @@
     isExpanded
   }: Props = $props();
 
-  let previewMode = $state<'desktop' | 'mobile'>('desktop');
-
-  // Computed Data
-  let title = $derived.by(() => {
-    let base = keywords?.primary_keyword ? `Bài viết chuẩn SEO về: ${keywords.primary_keyword}` : "Tiêu đề bài viết";
-    if (analysis_cache?.seo?.data) {
-       const h1Match = draft_content.match(/<h1[^>]*>(.*?)<\/h1>/i);
-       if (h1Match) base = h1Match[1].replace(/<[^>]+>/g, '').trim();
-    }
-    return base;
+  const ctrl = createPreviewController({
+    getDraftContent: () => draft_content,
+    getAssets: () => assets,
+    getKeywords: () => keywords,
+    getAnalysisCache: () => analysis_cache
   });
-
-  let thumbnail = $derived.by(() => {
-    const currentAssets = xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets;
-    if (currentAssets.length === 0) return "https://via.placeholder.com/600x315?text=No+Image";
-    const primary = currentAssets.find(a => typeof a === 'object' && a.is_primary);
-    const first = primary || currentAssets[0];
-    const url = typeof first === 'string' ? first : (first.file_path || first.url);
-    return resolveMediaUrl(url);
-  });
-
-  let processedContent = $derived.by(() => {
-    const currentAssets = xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets;
-    return processContentImages(draft_content, currentAssets);
-  });
-  let description = $derived(purifyAIContent(draft_content).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 160) + "...");
-
 </script>
 
 <div class="w-full p-5 md:p-8 flex flex-col gap-6 animate-in fade-in duration-700">
@@ -83,32 +53,32 @@
         <span class="ml-4 text-xs font-semibold text-white/50 tracking-wider">PREVIEW MODE</span>
       </div>
       <div class="flex bg-black/50 p-1 border border-white/5 disabled-group">
-         <button 
-           class="px-4 py-1.5 text-xs font-bold transition-all {previewMode === 'desktop' ? 'bg-white/20 text-white shadow-sm' : 'text-white/40 hover:text-white/80'}"
-           onclick={() => previewMode = 'desktop'}
+         <button
+           class="px-4 py-1.5 text-xs font-bold transition-all {ctrl.previewMode === 'desktop' ? 'bg-white/20 text-white shadow-sm' : 'text-white/40 hover:text-white/80'}"
+           onclick={() => ctrl.previewMode = 'desktop'}
          >
            Desktop
          </button>
-         <button 
-           class="px-4 py-1.5 text-xs font-bold transition-all {previewMode === 'mobile' ? 'bg-white/20 text-white shadow-sm' : 'text-white/40 hover:text-white/80'}"
-           onclick={() => previewMode = 'mobile'}
+         <button
+           class="px-4 py-1.5 text-xs font-bold transition-all {ctrl.previewMode === 'mobile' ? 'bg-white/20 text-white shadow-sm' : 'text-white/40 hover:text-white/80'}"
+           onclick={() => ctrl.previewMode = 'mobile'}
          >
            Mobile
          </button>
       </div>
     </div>
-    
+
     <div class="flex-1 overflow-y-auto custom-scrollbar flex items-start justify-center p-4 md:p-8 bg-[#f8f9fa] dark:bg-[#0c0a0f]">
        <!-- Adaptive Container -->
-       <div class="transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] {previewMode === 'mobile' ? 'w-[375px] max-w-full min-h-[812px] bg-white text-black shadow-2xl p-6 border-[8px] border-zinc-800' : 'w-full max-w-3xl bg-white text-black shadow-xl p-8 md:p-12'}">
+       <div class="transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] {ctrl.previewMode === 'mobile' ? 'w-[375px] max-w-full min-h-[812px] bg-white text-black shadow-2xl p-6 border-[8px] border-zinc-800' : 'w-full max-w-3xl bg-white text-black shadow-xl p-8 md:p-12'}">
           <!-- Mock Header like VNExpress -->
           <div class="border-b-2 border-red-600 pb-4 mb-8 flex justify-between items-end">
              <div class="text-3xl font-black text-red-600 tracking-tighter uppercase">BAOMOI.COM</div>
              <div class="text-xs font-bold text-gray-500">{new Date().toLocaleDateString('vi-VN')}</div>
           </div>
-          
+
           <div class="prose prose-lg prose-red max-w-none break-words" style="font-family: 'Merriweather', serif;">
-            {@html processedContent || "<p class='text-gray-400 italic'>Chưa có nội dung bản thảo...</p>"}
+            {@html ctrl.processedContent || "<p class='text-gray-400 italic'>Chưa có nội dung bản thảo...</p>"}
           </div>
        </div>
     </div>
@@ -166,23 +136,23 @@
              </div>
           </div>
           <div class="text-[20px] text-[#1a0dab] group-hover:underline cursor-pointer leading-tight mb-1" style="font-family: arial, sans-serif;">
-             {title}
+             {ctrl.title}
           </div>
           <div class="text-[14px] text-[#4d5156] leading-snug line-clamp-2" style="font-family: arial, sans-serif;">
-             {description}
+             {ctrl.description}
           </div>
        </div>
     </div>
-    
+
     <!-- 3. GOOGLE SGE SIMULATOR -->
-    {#if analysis_cache?.seo?.data?.signals || title.length > 5}
+    {#if analysis_cache?.seo?.data?.signals || ctrl.title.length > 5}
     <div class="bg-gradient-to-b from-[#e8f0fe] to-white p-6 shadow-xl border border-blue-100 flex flex-col gap-3 relative overflow-hidden shrink-0">
        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-purple-400 to-red-400"></div>
        <h3 class="text-xs font-black text-gray-500 uppercase flex items-center gap-2 mb-2">
          ✨ AI Overview Simulator
        </h3>
        <div class="text-sm text-gray-800 leading-relaxed font-sans">
-          Theo các nguồn đáng tin cậy, <b>{title.split(' ').slice(0, 5).join(' ')}</b> được đánh giá cao nhờ {keywords?.primary_keyword ? `các phân tích về ${keywords.primary_keyword}.` : 'tính thực tiễn cao.'}
+          Theo các nguồn đáng tin cậy, <b>{ctrl.title.split(' ').slice(0, 5).join(' ')}</b> được đánh giá cao nhờ {keywords?.primary_keyword ? `các phân tích về ${keywords.primary_keyword}.` : 'tính thực tiễn cao.'}
           Đáng chú ý:
           <ul class="list-disc pl-5 mt-2 space-y-1 text-gray-700">
              <li>Nội dung được cấu trúc logic chuẩn SEO.</li>
@@ -191,8 +161,8 @@
        </div>
        <div class="mt-2 flex gap-2">
           <div class="bg-white border border-gray-200 p-2 w-32 shadow-sm shrink-0 flex gap-2 items-center cursor-pointer hover:bg-gray-50">
-             <img src={thumbnail} alt="thumb" class="w-8 h-8 rounded-lg object-cover" />
-             <div class="text-[10px] font-bold text-gray-800 leading-tight line-clamp-2">{title}</div>
+             <img src={ctrl.thumbnail} alt="thumb" class="w-8 h-8 rounded-lg object-cover" />
+             <div class="text-[10px] font-bold text-gray-800 leading-tight line-clamp-2">{ctrl.title}</div>
           </div>
        </div>
     </div>
@@ -205,12 +175,12 @@
           <h3 class="text-xs font-black text-gray-400 uppercase">Facebook / Zalo Share Preview</h3>
        </div>
        <div class="w-full h-48 bg-gray-100 relative">
-          <img src={thumbnail} alt="Social Thumbnail" class="w-full h-full object-cover" />
+          <img src={ctrl.thumbnail} alt="Social Thumbnail" class="w-full h-full object-cover" />
        </div>
        <div class="p-4 bg-[#f2f3f5]">
           <div class="text-[12px] text-gray-500 uppercase tracking-wide font-semibold mb-1">YOUR-DOMAIN.COM</div>
-          <div class="text-[16px] font-bold text-black leading-tight mb-1">{title}</div>
-          <div class="text-[14px] text-gray-600 leading-snug line-clamp-1">{description}</div>
+          <div class="text-[16px] font-bold text-black leading-tight mb-1">{ctrl.title}</div>
+          <div class="text-[14px] text-gray-600 leading-snug line-clamp-1">{ctrl.description}</div>
        </div>
     </div>
 

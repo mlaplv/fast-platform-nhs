@@ -1,6 +1,7 @@
 <script lang="ts">
   import Search from "lucide-svelte/icons/search";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import { onMount } from "svelte";
   import { ORDER_STATUS_MAP } from "$lib/constants/order";
 
   let {
@@ -20,6 +21,12 @@
     onRefresh: () => void;
     onSearchInput: (e: Event) => void;
   }>();
+
+  onMount(() => {
+    if (searchInput === undefined) searchInput = "";
+    if (activeFilter === undefined) activeFilter = "all";
+    if (pageSize === undefined) pageSize = 10;
+  });
 
   const filters = [
     "all",

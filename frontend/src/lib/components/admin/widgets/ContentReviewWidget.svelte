@@ -13,32 +13,32 @@
       step: source?.step ?? 1,
       status: source?.status || "IDLE",
       progress_msg: source?.progress_msg || "",
-      keywords: source?.keywords || {},
-      assets: source?.assets || [],
-      reserve_assets: source?.reserve_assets || [],
-      outline: source?.outline || {},
+      keywords: source?.keywords || source?.topic_data || {},
+      assets: source?.assets || source?.assets_data || [],
+      reserve_assets: source?.reserve_assets || source?.gold_metadata?.reserve_assets || [],
+      outline: source?.outline || source?.outline_data || {},
       draft_content: source?.draft_content || "",
       final_html: source?.final_html || "",
-      selectedAvatarUrl: source?.selectedAvatarUrl || null,
+      selectedAvatarUrl: source?.selectedAvatarUrl || source?.gold_metadata?.selectedAvatarUrl || null,
       selectedAssetIndex: source?.selectedAssetIndex || 0,
-      creation_config: source?.creation_config || {},
-      analysis_cache: source?.analysis_cache || {},
-      analysis_metrics: source?.analysis_metrics || {},
+      creation_config: source?.creation_config || source?.gold_metadata?.creation_config || {},
+      analysis_cache: source?.analysis_cache || source?.gold_metadata?.analysis_cache || {},
+      analysis_metrics: source?.analysis_metrics || source?.gold_metadata?.analysis_metrics || {},
       ...source
     };
   }
 
   let safelyMutableData = $state(createSafeData(data));
-  
+
   // CNS V75.6: Session-based Awareness Set
-  // We track every URL/ID ever seen in this session to distinguish 
+  // We track every URL/ID ever seen in this session to distinguish
   // between "New AI Discovery" and "Old Stale Pulse (after deletion)".
   let historicalSeen = $state(new Set<string>());
 
   $effect(() => {
     // CNS V75.3: Robust Pulse Sync Engine (Dual Property Support)
     const sourceId = data?.campaign_id || data?.id || "";
-    
+
     if (data && sourceId) {
       if (sourceId !== safelyMutableData.campaign_id) {
         safelyMutableData = createSafeData(data);
@@ -60,14 +60,18 @@
         if (nextStep !== undefined && nextStep !== safelyMutableData.step) {
           safelyMutableData.step = nextStep;
         }
-        
+
         if (data.status !== undefined && data.status !== safelyMutableData.status) {
+          // Phase 75.9: Clear awareness set on new processing (Retry / New Step)
+          if (data.status === "PROCESSING" && safelyMutableData.status !== "PROCESSING") {
+            historicalSeen.clear();
+          }
           safelyMutableData.status = data.status;
         }
         if (data.progress_msg !== undefined && data.progress_msg !== safelyMutableData.progress_msg) {
           safelyMutableData.progress_msg = data.progress_msg;
         }
-        
+
         // Sync streaming content only if not locally editing
         if (!safelyMutableData.isEditing) {
           if (data.draft_content && data.draft_content !== safelyMutableData.draft_content) {
@@ -76,27 +80,42 @@
           if (data.final_html && data.final_html !== safelyMutableData.final_html) {
             safelyMutableData.final_html = data.final_html;
           }
-          if (data.outline && JSON.stringify(data.outline) !== JSON.stringify(safelyMutableData.outline)) {
-            safelyMutableData.outline = data.outline;
+          const incomingOutline = data.outline || data.outline_data;
+          if (incomingOutline && JSON.stringify(incomingOutline) !== JSON.stringify(safelyMutableData.outline)) {
+            safelyMutableData.outline = incomingOutline;
           }
         }
-        
+
         // CNS V75.7: Intelligent Merging with Awareness
         // We only ADD items that have NEVER been seen in this session.
         // This effectively ignores "Undelete" pulses while allowing "New AI" assets.
-        if (data.assets && Array.isArray(data.assets)) {
-           const newAssets = data.assets.filter(a => !historicalSeen.has(a.file_path || a.url));
+        const incomingAssets = data.assets || data.assets_data;
+        if (incomingAssets && Array.isArray(incomingAssets)) {
+           const newAssets = incomingAssets.filter(a => {
+             const url = typeof a === 'string' ? a : (a.file_path || a.url);
+             return url && !historicalSeen.has(url);
+           });
            if (newAssets.length > 0) {
              safelyMutableData.assets = [...safelyMutableData.assets, ...newAssets];
-             newAssets.forEach(a => historicalSeen.add(a.file_path || a.url));
+             newAssets.forEach(a => {
+               const url = typeof a === 'string' ? a : (a.file_path || a.url);
+               if (url) historicalSeen.add(url);
+             });
            }
         }
-        
-        if (data.reserve_assets && Array.isArray(data.reserve_assets)) {
-          const newReserves = data.reserve_assets.filter(url => !historicalSeen.has(url));
+
+        const incomingReserves = data.reserve_assets || data.gold_metadata?.reserve_assets;
+        if (incomingReserves && Array.isArray(incomingReserves)) {
+          const newReserves = incomingReserves.filter(url => {
+            const u = typeof url === 'string' ? url : (url.file_path || url.url);
+            return u && !historicalSeen.has(u);
+          });
           if (newReserves.length > 0) {
             safelyMutableData.reserve_assets = [...safelyMutableData.reserve_assets, ...newReserves];
-            newReserves.forEach(url => historicalSeen.add(url));
+            newReserves.forEach(url => {
+              const u = typeof url === 'string' ? url : (url.file_path || url.url);
+              if (u) historicalSeen.add(u);
+            });
           }
         }
 

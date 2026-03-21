@@ -5,9 +5,9 @@
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { vuiController } from "$lib/vui";
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
-  import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
+  import { processContentImages } from "$lib/state/utils";
+  import { createCampaignController } from "$lib/state/xohiCampaign.svelte";
   import Header from "./content-factory/Header.svelte";
-
   import IdeaStep from "./content-factory/IdeaStep.svelte";
   import AssetStep from "./content-factory/AssetStep.svelte";
   import OutlineStep from "./content-factory/OutlineStep.svelte";
@@ -16,514 +16,114 @@
   import PublishStep from "./content-factory/PublishStep.svelte";
   import ActionButtons from "./content-factory/ActionButtons.svelte";
   import GateBlockModal from "./content-factory/GateBlockModal.svelte";
-  import TiptapEditor from "./tiptap/TiptapEditor.svelte";
-  import type {
-    CampaignKeywords,
-    MediaAsset,
-    CampaignOutline,
-    CampaignMetrics,
-    AnalysisCache,
-    CopyrightResult,
-    SEOResult,
-    AIInspectResult
-  } from "$lib/state/types";
+  import type { CampaignKeywords, MediaAsset, CampaignOutline, CampaignMetrics, AnalysisCache } from "$lib/state/types";
 
   interface Props {
-    campaign_id: string;
-    step: number;
-    status: string;
-    progress_msg?: string;
-    title?: string;
-    keywords: CampaignKeywords;
-    assets: (MediaAsset | string)[];
-    reserve_assets: string[];
-    outline: CampaignOutline;
-    draft_content: string;
-    finalHtml: string;
-    selectedAvatarUrl: string | null;
-    selectedAssetIndex: number;
-    creation_config: Record<string, unknown>;
-    analysis_cache: AnalysisCache;
-    analysis_metrics: CampaignMetrics;
+    campaign_id: string; step: number; status: string; progress_msg?: string; title?: string;
+    keywords: CampaignKeywords; assets: (MediaAsset | string)[]; reserve_assets: string[];
+    outline: CampaignOutline; draft_content: string; finalHtml: string;
+    selectedAvatarUrl: string | null; selectedAssetIndex: number; creation_config: Record<string, unknown>;
+    analysis_cache: AnalysisCache; analysis_metrics: CampaignMetrics;
   }
 
   let {
-    campaign_id,
-    step = $bindable(),
-    status = $bindable(),
-    progress_msg = $bindable(),
-    title = $bindable(),
-    keywords = $bindable(),
-    assets = $bindable(),
-    reserve_assets = $bindable(),
-    outline = $bindable(),
-    draft_content = $bindable(),
-    finalHtml = $bindable(),
-    selectedAvatarUrl = $bindable(),
-    selectedAssetIndex = $bindable(),
-    creation_config = $bindable(),
-    analysis_cache = $bindable(),
-    analysis_metrics = $bindable()
+    campaign_id, step = $bindable(), status = $bindable(), progress_msg = $bindable(),
+    keywords = $bindable(), assets = $bindable(), reserve_assets = $bindable(),
+    outline = $bindable(), draft_content = $bindable(), finalHtml = $bindable(),
+    selectedAvatarUrl = $bindable(), selectedAssetIndex = $bindable(),
+    creation_config = $bindable(), analysis_cache = $bindable(), analysis_metrics = $bindable()
   }: Props = $props();
 
-  // -- Local UI Orchestration --
-  let viewingStep = $state(step || 1);
-  let isEditing = $state(false);
-  let isProcessing = $derived(status === "PROCESSING");
-  let isLoading = $state(false);
-  
-  // Rule R82.43: Global Spinner Sync — Ensure buttons re-enable when AI finishing
-  $effect(() => {
-    if (status !== "PROCESSING") {
-      untrack(() => { isLoading = false; });
-    }
+  const campaign = createCampaignController({
+    get campaign_id() { return campaign_id; }, get keywords() { return keywords; }, set keywords(v) { keywords = v; },
+    get creation_config() { return creation_config; }, set creation_config(v) { creation_config = v; },
+    get outline() { return outline; }, set outline(v) { outline = v; },
+    get draft_content() { return draft_content; }, set draft_content(v) { draft_content = v; },
+    get assets() { return assets; }, set assets(v) { assets = v; },
+    get reserve_assets() { return reserve_assets; }, set reserve_assets(v) { reserve_assets = v; },
+    get selectedAvatarUrl() { return selectedAvatarUrl; }, set selectedAvatarUrl(v) { selectedAvatarUrl = v; },
+    get selectedAssetIndex() { return selectedAssetIndex; }, set selectedAssetIndex(v) { selectedAssetIndex = v; },
+    get analysis_metrics() { return analysis_metrics; }, get analysis_cache() { return analysis_cache; }
   });
 
-  let isPublishing = $state(false);
-  let customImageUrl = $state("");
-  let editedKeywords = $state<CampaignKeywords>({});
-  let editedConfig = $state<Record<string, unknown>>({});
-  let editedDraft = $state("");
-  let editedOutline = $state(""); // CNS V85: Separate buffer for Step 3 to prevent draft pollution
-  let editorRef = $state<TiptapEditor | null>(null); // Tiptap component ref
-  let maxStepSeen = $state(step);
+  let viewingStep = $state(step || 1), isEditing = $state(false), maxStepSeen = $state(step || 1), isProcessing = $derived(status === "PROCESSING");
+  let customImageUrl = $state(""), editedKeywords = $state<CampaignKeywords>({}), editedConfig = $state<Record<string, unknown>>({}), editedDraft = $state(""), editedOutline = $state("");
+  let showGateModal = $state(false), gateBlockers = $state<any[]>([]), focusTabFromModal = $state<string | null>(null);
 
-  // -- Gate Score State (synced from DraftStep via bind:) --
-  let copyrightScore = $state<number | null>(null);
-  let seoScore = $state<number | null>(null);
-  let aiScore = $state<number | null>(null);
-
-  // Phase 73: Initialize scores from metrics & cache (Single Source of Truth)
+  $effect(() => { if (status !== "PROCESSING") untrack(() => { campaign.isLoading = false; }); });
+  $effect(() => { if (step > maxStepSeen) { maxStepSeen = step; viewingStep = step; } });
+  $effect(() => { if (viewingStep >= 6 && !finalHtml && draft_content) untrack(() => { finalHtml = processContentImages(draft_content, xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets); }); });
   $effect(() => {
-    // 1. Data Source: analysis_metrics (Gold DB)
-    if (analysis_metrics) {
-      if (copyrightScore === null && analysis_metrics.unique_score !== undefined) {
-        copyrightScore = Math.round(analysis_metrics.unique_score * 100);
-      }
-      if (seoScore === null && analysis_metrics.seo_score !== undefined) {
-        seoScore = analysis_metrics.seo_score;
-      }
-      if (aiScore === null && analysis_metrics.ai_ready_score !== undefined) {
-        aiScore = analysis_metrics.ai_ready_score;
-      }
-    }
-
-    // 2. Data Source: analysis_cache (In-memory/Recent)
-    if (analysis_cache) {
-      if (copyrightScore === null && analysis_cache.copyright?.data?.uniqueness_score !== undefined) {
-        copyrightScore = Math.round(analysis_cache.copyright.data.uniqueness_score * 100);
-      }
-      if (seoScore === null && analysis_cache.seo?.data?.total_score !== undefined) {
-        seoScore = analysis_cache.seo.data.total_score;
-      }
-      if (aiScore === null && analysis_cache.ai_inspect?.data?.geo_score !== undefined) {
-        aiScore = analysis_cache.ai_inspect.data.geo_score;
-      }
-    }
-  });
-
-  // -- Gate Block Modal --
-  let showGateModal = $state(false);
-  let gateBlockers = $state<Array<{ label: string; current: string; required: string; tab: 'copyright' | 'seo' | 'ai' }>>([]);
-  let focusTabFromModal = $state<'copyright' | 'seo' | 'ai' | null>(null);
-
-  const DEFAULT_CONFIG = {
-    style: "Chuyên nghiệp",
-    word_count: 500,
-    max_assets: 10,
-    max_sections: 3
-  };
-
-  // -- Sync & Initialization --
-  // Rule R82.41: Smart Auto-Advance — Only jump to current step if it increases
-  $effect(() => { 
-    if (step > maxStepSeen) {
-      maxStepSeen = step;
-      viewingStep = step;
-    }
+    const src = draft_content || finalHtml || "", out = outline?.html || "";
+    if (isProcessing) { if (src && src !== editedDraft) editedDraft = src; if (out && out !== editedOutline) editedOutline = out; }
+    else if (!isEditing) untrack(() => { if (src && src !== editedDraft) editedDraft = src; if (out && out !== editedOutline) editedOutline = out; });
   });
 
   onMount(() => {
-    // Rule R82.10.2: Content Integrity Guard — Manual fallbacks for bindable props without defaults (Svelte 5 safety)
     if (step === undefined) step = 1;
     if (status === undefined) status = "IDLE";
     if (progress_msg === undefined) progress_msg = "";
-    if (keywords === undefined) keywords = {};
+    if (keywords === undefined) keywords = {} as CampaignKeywords;
     if (assets === undefined) assets = [];
     if (reserve_assets === undefined) reserve_assets = [];
-    if (outline === undefined) outline = {};
+    if (outline === undefined) outline = {} as CampaignOutline;
     if (draft_content === undefined) draft_content = "";
-    if (creation_config === undefined) creation_config = {};
+    if (finalHtml === undefined) finalHtml = "";
     if (selectedAvatarUrl === undefined) selectedAvatarUrl = null;
     if (selectedAssetIndex === undefined) selectedAssetIndex = 0;
-    if (analysis_cache === undefined) analysis_cache = {};
-    if (analysis_metrics === undefined) analysis_metrics = {};
+    if (creation_config === undefined) creation_config = {};
+    if (analysis_cache === undefined) analysis_cache = {} as AnalysisCache;
+    if (analysis_metrics === undefined) analysis_metrics = {} as CampaignMetrics;
 
-    // Local UI Orchestration Initialization
-    
-    viewingStep = step;
-    // Merge defaults with creation_config to ensure all keys are present
-    const baseConfig = creation_config && Object.keys(creation_config).length > 0
-      ? creation_config 
-      : (keywords?.creation_config || {});
-    
-    editedConfig = { ...DEFAULT_CONFIG, ...baseConfig };
-    if (typeof editedConfig !== 'object') editedConfig = {};
-    editedKeywords = JSON.parse(JSON.stringify(keywords || {}));
-    
-    // CNS V73.5: Minimal state restoration — Don't pollute draft_content with outline
-    // The child components (OutlineStep, DraftStep) handle display-only fallbacks
-    editedDraft = draft_content || "";
-    editedOutline = outline?.html || "";
-    
-    // Ensure viewingStep is valid
-    if (viewingStep < 1 || viewingStep > 6) viewingStep = step || 1;
-    if (viewingStep < 1) viewingStep = 1;
+    editedConfig = { style: "Chuyên nghiệp", word_count: 500, max_assets: 10, max_sections: 3, ...(creation_config && Object.keys(creation_config).length ? creation_config : (keywords?.creation_config || {})) };
+    editedKeywords = JSON.parse(JSON.stringify(keywords || {})); editedDraft = draft_content || ""; editedOutline = outline?.html || "";
   });
 
-  // Rule R82.49: Step 6 Initialization — Ensure finalHtml has resolved images
-  $effect(() => {
-    if (viewingStep >= 6 && !finalHtml && draft_content) {
-      untrack(() => {
-        const currentAssets = xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets;
-        finalHtml = processContentImages(draft_content, currentAssets);
-      });
-    }
-  });
-
-  // Phase 73.9: Liquid State Sync (Guarded)
-  $effect(() => {
-    const source = draft_content || finalHtml || "";
-    const currentOutline = outline?.html || "";
-
-    if (isProcessing) {
-      // During processing, ALWAYS sync the AI output to the buffer
-      if (source && source !== editedDraft) editedDraft = source;
-      if (currentOutline && currentOutline !== editedOutline) editedOutline = currentOutline;
-    } else if (!isEditing) {
-      // When NOT editing and NOT processing, keep buffers in sync with props
-      untrack(() => {
-        const currentAssets = xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets;
-        if (source && source !== editedDraft) {
-           editedDraft = processContentImages(source, currentAssets);
-        }
-        if (currentOutline && currentOutline !== editedOutline) {
-           editedOutline = processContentImages(currentOutline, currentAssets);
-        }
-      });
-    }
-  });
-
-  // Keep editedConfig in sync for Ghost UI summary display (Phase 33)
-  $effect(() => {
-     if (!isEditing && creation_config) {
-       const next = { ...DEFAULT_CONFIG, ...creation_config };
-       if (JSON.stringify(next) !== JSON.stringify(untrack(() => editedConfig))) {
-         editedConfig = next;
-       }
-     }
-  });
-
-  // Sync keywords to editedKeywords when not editing
-  $effect(() => {
-    if (!isEditing && keywords) {
-      if (JSON.stringify(keywords) !== JSON.stringify(untrack(() => editedKeywords))) {
-        editedKeywords = JSON.parse(JSON.stringify(keywords));
-      }
-    }
-  });
-
-  // -- Event Handlers --
   async function handleApprove() {
-    if (isLoading) return;
-
-    // Gate Check — chỉ áp dụng ở Step 4 (bản thảo)
-    if (viewingStep === 4) {
-      const blockers: typeof gateBlockers = [];
-      if (copyrightScore === null || copyrightScore < 90) {
-        blockers.push({
-          label: '🔍 COPYRIGHT',
-          current: copyrightScore !== null ? `${copyrightScore}%` : 'Chưa kiểm tra',
-          required: '≥ 90%',
-          tab: 'copyright'
-        });
-      }
-      if (seoScore === null || seoScore < 70) {
-        blockers.push({
-          label: '📊 SEO Score',
-          current: seoScore !== null ? `${seoScore}/100` : 'Chưa kiểm tra',
-          required: '≥ 70/100',
-          tab: 'seo'
-        });
-      }
-      if (blockers.length > 0) {
-        gateBlockers = blockers;
-        showGateModal = true;
-        vuiController.speak('Bài viết chưa đủ điều kiện. Vui lòng xem hướng dẫn và sửa lỗi trước khi duyệt.');
-        return;
-      }
-    }
-
-    isLoading = true;
-    try {
-      let payload: any = isEditing ? {
-        edited_data: viewingStep === 1
-          ? { ...editedKeywords, creation_config: editedConfig }
-          : { html: viewingStep === 3 ? editedOutline : editedDraft }
-      } : {};
-
-      // Phase 15.3: Elite Image Persistence — Ensure final_html is resolved when approving validation
-      if (viewingStep === 5 && draft_content) {
-        const currentAssets = xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets;
-        payload.final_html = processContentImages(draft_content, currentAssets);
-      }
-
-      const stepNames: Record<number, string> = {
-        1: "ý tưởng và từ khóa",
-        2: "các hình ảnh",
-        3: "dàn ý bài viết",
-        4: "bản thảo nội dung",
-        5: "kết quả kiểm tra",
-        6: "bài viết hoàn thiện"
-      };
-      await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/approve`, payload);
-      
-      // Phase 73.12: Predictive Global Sync — Prevent race condition with Pulse
-      if (viewingStep === 1) {
-        keywords = { ...editedKeywords, creation_config: { ...editedConfig } };
-        creation_config = { ...editedConfig };
-        nanobot.updateCurrentData({ keywords });
-      } else if (viewingStep === 3) {
-        outline = { ...outline, html: editedOutline };
-        nanobot.updateCurrentData({ outline });
-      } else if (viewingStep === 4) {
-        draft_content = editedDraft;
-        nanobot.updateCurrentData({ draft_content });
-      }
-
-      isEditing = false;
-      vuiController.speak(`Đã duyệt ${stepNames[viewingStep] || 'thành công'}!`);
-    } catch (e) {
-      console.error("Approve failed:", e);
-    } finally {
-      isLoading = false;
+    const res = await campaign.approve(viewingStep, isEditing, editedKeywords, editedConfig, editedOutline, editedDraft);
+    if (res === true) isEditing = false;
+    else if (res?.gateBlocked) {
+      gateBlockers = [
+        ...(campaign.copyrightScore === null || campaign.copyrightScore < 90 ? [{ label: '🔍 COPYRIGHT', current: campaign.copyrightScore !== null ? `${campaign.copyrightScore}%` : 'Chưa kiểm tra', required: '≥ 90%', tab: 'copyright' }] : []),
+        ...(campaign.seoScore === null || campaign.seoScore < 70 ? [{ label: '📊 SEO Score', current: campaign.seoScore !== null ? `${campaign.seoScore}/100` : 'Chưa kiểm tra', required: '≥ 70/100', tab: 'seo' }] : [])
+      ];
+      showGateModal = true;
     }
   }
 
-  async function handleRetry() {
-    if (isLoading) return;
-    isLoading = true;
-    try {
-      await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/retry`);
-      editedDraft = ""; // R82.46: Clear edit buffer on retry to show fresh AI output
-      isEditing = false;
-      
-      const stepNames: Record<number, string> = {
-        1: "ý tưởng và từ khóa",
-        2: "các hình ảnh",
-        3: "dàn ý bài viết",
-        4: "bản thảo nội dung",
-        5: "kết quả kiểm tra",
-        6: "bài viết hoàn thiện"
-      };
-      vuiController.speak(`Đang chạy lại bước ${stepNames[viewingStep] || 'này'}.`);
-    } catch (e) {
-      console.error("Retry failed:", e);
-    } finally {
-      isLoading = false;
-    }
-  }
-
-  async function handleUpdateMetadata() {
-    isLoading = true;
-    try {
-      const payload = viewingStep === 1 
-        ? { keywords: { ...editedKeywords, creation_config: editedConfig } } 
-        : (viewingStep === 3 ? { outline_data: { html: editedOutline } } : { draft_content: editedDraft });
-        
-      await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, payload);
-      
-      // Phase 73.12: Predictive Global Sync — Prevent race condition with Pulse
-      if (viewingStep === 1) {
-        keywords = { ...editedKeywords, creation_config: { ...editedConfig } };
-        creation_config = { ...editedConfig };
-        nanobot.updateCurrentData({ keywords });
-      } else if (viewingStep === 3) {
-        outline = { ...outline, html: editedOutline };
-        nanobot.updateCurrentData({ outline });
-      } else if (viewingStep === 4) {
-        draft_content = editedDraft;
-        nanobot.updateCurrentData({ draft_content });
-      }
-      isEditing = false;
-      editedDraft = ""; // R82.47: Clear edit buffer after successful save
-      editedOutline = "";
-      
-      const stepNames: Record<number, string> = {
-        1: "ý tưởng và từ khóa",
-        2: "các hình ảnh",
-        3: "dàn ý bài viết",
-        4: "bản thảo nội dung",
-        5: "kết quả kiểm tra",
-        6: "bài viết hoàn thiện"
-      };
-      vuiController.speak(`Đã lưu ${stepNames[viewingStep] || 'thành công'}.`);
-    } catch (e) {
-      console.error("Update failed:", e);
-    } finally {
-      isLoading = false;
-    }
-  }
-
-  async function handlePublish() {
-    if (isPublishing) return;
-    isPublishing = true;
-    try {
-      await apiClient.post(`/api/v1/content/campaigns/${campaign_id}/publish`);
-      vuiController.speak("Bài viết đã được xuất bản.");
-    } catch (e) {
-      console.error("Publish failed:", e);
-    } finally {
-      isPublishing = false;
-    }
-  }
-
-  async function syncAssetChanges(newIndex?: number) {
-    try {
-      // Phase 15.3: Sử dụng dữ liệu từ Store nếu đang ở Step 2
-      const currentAssets = viewingStep === 2 ? xohiImageStore.assets : assets;
-      const currentAvatar = viewingStep === 2 ? (xohiImageStore.primaryAsset?.file_path || xohiImageStore.primaryAsset?.url) : selectedAvatarUrl;
-
-      // Rule R109: REST Alignment — Use keys expected by ActionHandler.update_metadata
-      const payload = {
-        assets: currentAssets, // Backend expects 'assets' NOT 'assets_data' in PATCH alias
-        avatar: currentAvatar || selectedAvatarUrl,
-        selected_index: newIndex ?? selectedAssetIndex,
-        reserve_assets: reserve_assets // R120: Persist reserve list
-      };
-      
-      await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, payload);
-      // Phase 73.12: Predictive Global Sync for Assets
-      nanobot.updateCurrentData({
-        assets: currentAssets,
-        selectedAvatarUrl: currentAvatar || selectedAvatarUrl,
-        selectedAssetIndex: newIndex ?? selectedAssetIndex,
-        reserve_assets: reserve_assets
-      });
-    } catch (e) { console.error("Sync failed:", e); }
-  }
-
-  function handleImageError(url: string) {
-    // Phase 15.3: Xóa ảnh lỗi thông qua Store để kích hoạt hiệu ứng phản ứng
-    const asset = xohiImageStore.assets.find(a => a.file_path === url || a.url === url);
-    if (asset) {
-      xohiImageStore.removeAsset(asset.id);
-      vuiController.speak("Đã tự động loại bỏ ảnh không tải được.");
-    } else {
-      assets = assets.filter(a => typeof a === 'string' ? a !== url : a.url !== url);
-    }
-  }
-
-  function handleMouseMove(e: MouseEvent) {
-    const el = e.currentTarget as HTMLElement;
-    const rect = el.getBoundingClientRect();
-    el.style.setProperty('--mouse-x', `${((e.clientX - rect.left) / rect.width) * 100}%`);
-    el.style.setProperty('--mouse-y', `${((e.clientY - rect.top) / rect.height) * 100}%`);
-  }
-
-  function handleSelectKeyword(kw: string) {
-    keywords.primary_keyword = kw;
-    vuiController.speak(`Đã chọn ${kw}.`);
-    apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, { keywords });
-  }
-
+  const handleRetry = async () => { if (await campaign.retry()) { editedDraft = ""; isEditing = false; } };
+  const handleUpdateMetadata = async () => { if (await campaign.updateMetadata(viewingStep, editedKeywords, editedConfig, editedOutline, editedDraft)) { isEditing = false; editedDraft = ""; editedOutline = ""; } };
+  const handleImageError = (url: string) => { const a = xohiImageStore.assets.find(x => x.file_path === url || x.url === url); if (a) xohiImageStore.removeAsset(a.id); else assets = assets.filter(x => typeof x === 'string' ? x !== url : x.url !== url); };
+  const handleSelectKeyword = (kw: string) => { keywords.primary_keyword = kw; vuiController.speak(`Đã chọn ${kw}.`); apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, { keywords }); };
+  const handleMouseMove = (e: MouseEvent) => { const el = e.currentTarget as HTMLElement, r = el.getBoundingClientRect(); el.style.setProperty('--mouse-x', `${((e.clientX - r.left) / r.width) * 100}%`); el.style.setProperty('--mouse-y', `${((e.clientY - r.top) / r.height) * 100}%`); };
 </script>
 
-<div 
-  class="content-review-card w-full h-full flex flex-col p-0 transition-all duration-700 overflow-hidden rounded-none z-[150000] bg-slate-950/95 backdrop-blur-xl"
-  in:fade={{ duration: 600 }}
->
-  <Header
-    bind:viewingStep={viewingStep} {step} {status} {progress_msg} {campaign_id}
-    bind:isEditing 
-    toggleExpand={ () => { nanobot.toggleExpand(); } }
-    isExpanded={nanobot.isExpanded}
-    creation_config={isEditing ? editedConfig : creation_config}
-  />
-
-  <!-- Steps Container: High-Performance Scroll with Dock Clearance -->
+<div class="content-review-card w-full h-full flex flex-col transition-all duration-700 overflow-hidden z-[150000] bg-slate-950/95 backdrop-blur-xl" in:fade={{ duration: 600 }}>
+  <Header bind:viewingStep {step} {status} {progress_msg} {campaign_id} bind:isEditing toggleExpand={() => nanobot.toggleExpand()} isExpanded={nanobot.isExpanded} creation_config={isEditing ? editedConfig : creation_config} />
   <div class="flex-1 overflow-y-auto custom-scrollbar relative pb-24 flex flex-col min-h-0">
     {#if viewingStep === 1}
-      <IdeaStep 
-        bind:isEditing 
-        {campaign_id} 
-        bind:keywords 
-        bind:editedKeywords
-        creation_config={creation_config}
-        bind:editedConfig
-        {handleSelectKeyword}
-        {handleUpdateMetadata}
-        {isLoading} 
-      />
-      {:else if viewingStep === 2}
-        <AssetStep
-          {isProcessing} isExpanded={nanobot.isExpanded}
-          bind:assets bind:reserve_assets bind:customImageUrl bind:selectedAvatarUrl bind:selectedAssetIndex
-          {handleImageError} {syncAssetChanges} {handleRetry} {handleMouseMove}
-        />
-      {:else if viewingStep === 3}
-        <OutlineStep
-          {isEditing} bind:editedOutline={editedOutline} {outline} {assets}
-          isExpanded={nanobot.isExpanded} editorAnnotations={[]} {step} {isProcessing}
-          {campaign_id}
-        />
-      {:else if viewingStep === 4}
-        <DraftStep
-          {campaign_id} {isEditing} bind:editedDraft {draft_content}
-          {assets} isExpanded={nanobot.isExpanded} bind:editorRef {outline}
-          {analysis_cache} {analysis_metrics} {isProcessing}
-          bind:copyrightScore bind:seoScore bind:aiScore
-        />
-      {:else if viewingStep === 5}
-        <ValidationPreviewStep
-          {draft_content} {assets} {keywords}
-          {copyrightScore} {seoScore} {aiScore}
-          {analysis_cache} isExpanded={nanobot.isExpanded}
-        />
-      {:else if viewingStep === 6}
-        <PublishStep
-          {selectedAvatarUrl} bind:viewingStep bind:isEditing bind:keywords
-          bind:finalHtml bind:draft_content {assets} {campaign_id} {apiClient}
-          {copyrightScore} {seoScore} {aiScore} {analysis_cache}
-        />
-      {/if}
+      <IdeaStep bind:isEditing {campaign_id} bind:keywords bind:editedKeywords creation_config={creation_config} bind:editedConfig {handleSelectKeyword} {handleUpdateMetadata} isLoading={campaign.isLoading} />
+    {:else if viewingStep === 2}
+      <AssetStep {isProcessing} isExpanded={nanobot.isExpanded} bind:assets bind:reserve_assets bind:customImageUrl bind:selectedAvatarUrl bind:selectedAssetIndex {handleImageError} syncAssetChanges={campaign.syncAssetChanges} {handleRetry} {handleMouseMove} />
+    {:else if viewingStep === 3}
+      <OutlineStep {isEditing} bind:editedOutline {outline} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex isExpanded={nanobot.isExpanded} {campaign_id} {isProcessing} />
+    {:else if viewingStep === 4}
+      <DraftStep {campaign_id} {isEditing} bind:editedDraft {draft_content} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex isExpanded={nanobot.isExpanded} {outline} {analysis_cache} {analysis_metrics} {isProcessing} bind:copyrightScore={campaign.copyrightScore} bind:seoScore={campaign.seoScore} bind:aiScore={campaign.aiScore} />
+    {:else if viewingStep === 5}
+      <ValidationPreviewStep {draft_content} {assets} {keywords} copyrightScore={campaign.copyrightScore} seoScore={campaign.seoScore} aiScore={campaign.aiScore} {analysis_cache} isExpanded={nanobot.isExpanded} />
+    {:else if viewingStep === 6}
+      <PublishStep bind:selectedAvatarUrl bind:selectedAssetIndex bind:viewingStep bind:isEditing bind:keywords bind:finalHtml bind:draft_content bind:assets {campaign_id} {apiClient} copyrightScore={campaign.copyrightScore} seoScore={campaign.seoScore} aiScore={campaign.aiScore} {analysis_cache} />
+    {/if}
   </div>
+  <ActionButtons isLoading={campaign.isLoading} {status} bind:viewingStep {step} bind:isEditing {isProcessing} isPublishing={campaign.isPublishing} {handleRetry} {handleUpdateMetadata} handlePublish={campaign.publish} {handleApprove} />
+</div>
 
-  <!-- iPhone 18 Action Dock: Floating & Global -->
-  <ActionButtons
-    {isLoading} {status} bind:viewingStep {step} bind:isEditing {isProcessing} {isPublishing}
-    {handleRetry} {handleUpdateMetadata} {handlePublish} {handleApprove}
-  />
-</div> <!-- End of Card -->
-
-
-<!-- Gate Block Modal -->
-{#if showGateModal}
-  <GateBlockModal
-    blockers={gateBlockers}
-    onClose={() => { showGateModal = false; }}
-    onViewDetails={(tab) => {
-      showGateModal = false;
-      focusTabFromModal = tab;
-    }}
-  />
-{/if}
+{#if showGateModal}<GateBlockModal blockers={gateBlockers} onClose={() => showGateModal = false} onViewDetails={(tab) => { showGateModal = false; focusTabFromModal = tab; }} />{/if}
 
 <style>
   .content-review-card { position: relative; isolation: isolate; }
   :global(.custom-scrollbar::-webkit-scrollbar) { width: 3px; }
-  :global(.custom-scrollbar::-webkit-scrollbar-thumb) { background: rgba(59, 130, 246, 0.1); border-radius: 0; }
-  :global(.custom-scrollbar::-webkit-scrollbar-thumb:hover) { background: rgba(59, 130, 246, 0.6); }
+  :global(.custom-scrollbar::-webkit-scrollbar-thumb) { background: rgba(59, 130, 246, 0.1); }
   @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
   :global(.animate-shimmer) { position: relative; overflow: hidden; }
   :global(.animate-shimmer::after) { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent); animation: shimmer 1.5s infinite linear; }

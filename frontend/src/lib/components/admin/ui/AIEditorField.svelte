@@ -1,8 +1,12 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import type { GhostCompletionResponse } from "$lib/state/types";
 
   let { value = $bindable() } = $props();
+
+  onMount(() => {
+    if (value === undefined) value = "";
+  });
 
   let ghostText = $state("");
   let textareaEl: HTMLTextAreaElement;

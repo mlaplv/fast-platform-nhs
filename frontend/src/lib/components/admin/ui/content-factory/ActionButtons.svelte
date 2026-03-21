@@ -10,6 +10,7 @@
     Play
   } from "lucide-svelte";
 
+  import { onMount } from "svelte";
   import type { CampaignStatus } from "$lib/state/types";
 
   interface Props {
@@ -39,6 +40,11 @@
     handlePublish,
     handleApprove
   }: Props = $props();
+
+  onMount(() => {
+    if (viewingStep === undefined) viewingStep = 1;
+    if (isEditing === undefined) isEditing = false;
+  });
 </script>
 
 <div class="fixed bottom-6 right-6 z-[200000] flex flex-col items-end pointer-events-none">

@@ -5,7 +5,13 @@
   import History from "lucide-svelte/icons/history";
   import ShieldCheck from "lucide-svelte/icons/shield-check";
 
+  import { onMount } from "svelte";
+
   let { chatSettings = $bindable() } = $props();
+
+  onMount(() => {
+    if (chatSettings === undefined) chatSettings = {};
+  });
 
   const options = [
     {

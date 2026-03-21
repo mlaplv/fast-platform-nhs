@@ -1,13 +1,19 @@
 <script lang="ts">
   import { Fingerprint } from "lucide-svelte";
+  import { onMount } from "svelte";
 
-  let { 
-    greetingTemplate = $bindable(), 
-    farewellTemplate = $bindable() 
+  let {
+    greetingTemplate = $bindable(),
+    farewellTemplate = $bindable()
   } = $props<{
     greetingTemplate: string;
     farewellTemplate: string;
   }>();
+
+  onMount(() => {
+    if (greetingTemplate === undefined) greetingTemplate = "";
+    if (farewellTemplate === undefined) farewellTemplate = "";
+  });
 </script>
 
 <div class="bg-black/40 backdrop-blur-md border border-white/10 rounded-[2.5rem] p-6 sm:p-10 shadow-2xl relative overflow-hidden">

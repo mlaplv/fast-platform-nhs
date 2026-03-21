@@ -4,8 +4,9 @@
     MessageSquare,
     FileText
   } from "lucide-svelte";
-  import { vuiController } from "$lib/vui";
+  import { onMount } from "svelte";
   import type { CampaignKeywords } from "$lib/state/types";
+  import { createIdeaController } from "$lib/state/xohiIdea.svelte";
 
   interface Props {
     isEditing: boolean;
@@ -30,6 +31,23 @@
     handleUpdateMetadata,
     isLoading
   }: Props = $props();
+
+  const ctrl = createIdeaController({
+    getKeywords: () => keywords,
+    setKeywords: (v) => { keywords = v; },
+    getEditedKeywords: () => editedKeywords,
+    setEditedKeywords: (v) => { editedKeywords = v; },
+    getEditedConfig: () => editedConfig,
+    setEditedConfig: (v) => { editedConfig = v; },
+    onSelectKeyword: handleSelectKeyword
+  });
+
+  onMount(() => {
+    if (isEditing === undefined) isEditing = false;
+    if (keywords === undefined) keywords = {} as CampaignKeywords;
+    if (editedKeywords === undefined) editedKeywords = {} as CampaignKeywords;
+    if (editedConfig === undefined) editedConfig = {};
+  });
 </script>
 
 {#if isEditing}
@@ -82,12 +100,7 @@
                 {kw}
                 <button
                   type="button"
-                  onclick={() => {
-                    const arr = [...(editedKeywords.secondary_keywords || [])];
-                    const removed = arr.splice(kwIdx, 1);
-                    editedKeywords.secondary_keywords = arr;
-                    vuiController.speak(`Đã xóa từ khóa ${removed}.`);
-                  }}
+                  onclick={() => ctrl.removeSecondaryKeyword(kwIdx)}
                   class="ml-1 text-white/30 hover:text-red-400 transition-colors"
                 ><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
               </span>
@@ -96,17 +109,8 @@
               id="secondary-{campaign_id}"
               placeholder="Gõ từ khóa & Enter..."
               class="flex-1 min-w-[140px] bg-transparent text-[11px] font-medium text-white/80 placeholder-white/20 outline-none pl-2"
-            onkeydown={(e) => {
-              if ((e.key === 'Enter' || e.key === ',') && e.currentTarget.value.trim()) {
-                e.preventDefault();
-                const val = e.currentTarget.value.trim();
-                const arr = [...(editedKeywords.secondary_keywords || []), val];
-                editedKeywords.secondary_keywords = arr;
-                vuiController.speak(`Đã thêm từ khóa ${val}.`);
-                e.currentTarget.value = '';
-              }
-            }}
-          />
+              onkeydown={ctrl.handleSecondaryKeydown}
+            />
         </div>
       </div>
       

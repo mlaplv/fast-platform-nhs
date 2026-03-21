@@ -1,5 +1,6 @@
 <script lang="ts">
   import { slide } from "svelte/transition";
+  import { onMount } from "svelte";
   import XIcon from "lucide-svelte/icons/x";
   import GlobeIcon from "lucide-svelte/icons/globe";
   import FileTextIcon from "lucide-svelte/icons/file-text";
@@ -9,6 +10,7 @@
   import TiptapEditor from "../ui/tiptap/TiptapEditor.svelte";
   import PlusIcon from "lucide-svelte/icons/plus";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
+  import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
   import type { MediaAsset } from "$lib/types";
 
   let {
@@ -55,6 +57,12 @@
   let selectedAvatarUrl = $state<string | null>(null);
   let selectedAssetIndex = $state(0);
 
+  // CNS V2.2: Reactive Media Resolution for Editor
+  let displayContent = $derived.by(() => {
+    const assets = formFeaturedImage ? [formFeaturedImage] : [];
+    return processContentImages(formContent, assets);
+  });
+
   $effect(() => {
     if (formFeaturedImage && featuredAssets.length === 0) {
       featuredAssets = [formFeaturedImage];
@@ -83,6 +91,18 @@
     }
     showMediaModal = false;
   }
+
+  onMount(() => {
+    if (formTitle === undefined) formTitle = "";
+    if (formCategory === undefined) formCategory = dbCategories?.[0] || "";
+    if (formStatus === undefined) formStatus = "DRAFT";
+    if (formExcerpt === undefined) formExcerpt = "";
+    if (formContent === undefined) formContent = "";
+    if (formSlug === undefined) formSlug = "";
+    if (formSeoTitle === undefined) formSeoTitle = "";
+    if (formSeoDescription === undefined) formSeoDescription = "";
+    if (formFeaturedImage === undefined) formFeaturedImage = null;
+  });
 </script>
 
 <div
@@ -175,10 +195,13 @@
           <FileTextIcon size={12} /> Nội dung bài viết (Tiptap V2)
         </label>
         <div class="flex-1 rounded-3xl overflow-hidden border border-white/5 bg-black/40">
-          <TiptapEditor 
-            content={formContent} 
+          <TiptapEditor
+            content={displayContent}
+            bind:assets={featuredAssets}
+            bind:selectedAvatarUrl={selectedAvatarUrl}
+            bind:selectedAssetIndex={selectedAssetIndex}
             onChange={(val) => { formContent = val; }}
-            placeholder="Viết nội dung bài viết tại đây..." 
+            placeholder="Viết nội dung bài viết tại đây..."
           />
         </div>
       </div>
@@ -189,10 +212,10 @@
           <div class="max-w-2xl">
             {#if formFeaturedImage && formFeaturedImage.includes('/')}
               <div class="relative group aspect-video rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl bg-black">
-                <img 
-                  src={formFeaturedImage} 
-                  alt="Featured" 
-                  class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                <img
+                  src={resolveMediaUrl(formFeaturedImage)}
+                  alt="Featured"
+                  class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
                 
                 <!-- Hover Overlay Actions -->

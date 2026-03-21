@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import Mic from "lucide-svelte/icons/mic";
   import Zap from "lucide-svelte/icons/zap";
   import Plus from "lucide-svelte/icons/plus";
@@ -15,6 +16,11 @@
     sleepTriggers: string[];
     onStartTraining: (type: "wake" | "sleep") => void;
   }>();
+
+  onMount(() => {
+    if (wakeTriggers === undefined) wakeTriggers = [];
+    if (sleepTriggers === undefined) sleepTriggers = [];
+  });
 
   let editingWake = $state<number | null>(null);
   let editingSleep = $state<number | null>(null);

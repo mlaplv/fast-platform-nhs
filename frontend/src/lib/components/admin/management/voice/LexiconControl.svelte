@@ -32,6 +32,7 @@
   onMount(() => {
     if (sttOverrides === undefined) sttOverrides = {};
     if (sttStopwords === undefined) sttStopwords = [];
+    if (capabilities === undefined) capabilities = [];
   });
 
   let lexiconTab = $state<"overrides" | "stopwords">("overrides");

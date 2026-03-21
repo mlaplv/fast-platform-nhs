@@ -16,6 +16,7 @@
     }[stepId] || { title: 'Review', key: '' });
 
     onMount(() => {
+        if (show === undefined) show = false;
         const rawData = campaign[stepInfo.key];
         editedData = typeof rawData === 'object' ? JSON.stringify(rawData, null, 2) : rawData;
     });

@@ -6,6 +6,7 @@
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { fade, scale } from "svelte/transition";
   import { vuiController } from "$lib/vui";
+  import { onMount } from "svelte";
 
   interface Props {
     viewingStep: number;
@@ -30,6 +31,11 @@
     isExpanded,
     creation_config = {}
   }: Props = $props();
+
+  onMount(() => {
+    if (viewingStep === undefined) viewingStep = 1;
+    if (isEditing === undefined) isEditing = false;
+  });
 
   let isMenuOpen = $state(false);
 

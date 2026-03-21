@@ -1,5 +1,6 @@
 <script lang="ts">
   import { slide } from "svelte/transition";
+  import { onMount } from "svelte";
   import X from "lucide-svelte/icons/x";
   import Globe from "lucide-svelte/icons/globe";
   import FileText from "lucide-svelte/icons/file-text";
@@ -10,7 +11,7 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import TiptapEditor from "../ui/tiptap/TiptapEditor.svelte";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
-  import { resolveMediaUrl } from "$lib/state/utils";
+  import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
   import type { MediaAsset } from "$lib/types";
 
   let {
@@ -60,6 +61,11 @@
   let selectedAvatarUrl = $state<string | null>(null);
   let selectedAssetIndex = $state(0);
 
+  // CNS V2.2: Reactive Media Resolution for Product Description
+  let displayDescription = $derived.by(() => {
+    return processContentImages(formDescription, formImages);
+  });
+
   function addImage() {
     if (newImageUrl.trim()) {
       formImages = [...formImages, newImageUrl.trim()];
@@ -92,6 +98,21 @@
     delete updated[key];
     formAttributes = updated;
   }
+
+  onMount(() => {
+    if (formName === undefined) formName = "";
+    if (formSku === undefined) formSku = "";
+    if (formPrice === undefined) formPrice = 0;
+    if (formStock === undefined) formStock = 0;
+    if (formCategory === undefined) formCategory = "";
+    if (formStatus === undefined) formStatus = "draft";
+    if (formDescription === undefined) formDescription = "";
+    if (formSlug === undefined) formSlug = "";
+    if (formSeoTitle === undefined) formSeoTitle = "";
+    if (formSeoDescription === undefined) formSeoDescription = "";
+    if (formImages === undefined) formImages = [];
+    if (formAttributes === undefined) formAttributes = {};
+  });
 </script>
 
 <div
@@ -197,10 +218,13 @@
           <FileText size={12} /> Narrative_Rich_Description
         </label>
         <div class="flex-1 rounded-3xl overflow-hidden border border-white/5 bg-black/40">
-          <TiptapEditor 
-            content={formDescription} 
+          <TiptapEditor
+            content={displayDescription}
+            bind:assets={formImages}
+            bind:selectedAvatarUrl={selectedAvatarUrl}
+            bind:selectedAssetIndex={selectedAssetIndex}
             onChange={(val) => { formDescription = val; }}
-            placeholder="Craft a compelling story for this fashion item..." 
+            placeholder="Craft a compelling story for this fashion item..."
           />
         </div>
       </div>

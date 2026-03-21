@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { fade, fly } from "svelte/transition";
   import X from "lucide-svelte/icons/x";
   import Package from "lucide-svelte/icons/package";
@@ -28,6 +29,10 @@
     onClose: () => void;
     onReload?: () => void;
   }>();
+
+  onMount(() => {
+    if (isOpen === undefined) isOpen = false;
+  });
 
   let orderData = $state<OrderDetail | null>(null);
   let isLoading = $state(false);

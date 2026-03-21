@@ -1,5 +1,6 @@
 <script lang="ts">
   import { slide } from "svelte/transition";
+  import { onMount } from "svelte";
   import X from "lucide-svelte/icons/x";
   import Globe from "lucide-svelte/icons/globe";
   import FileText from "lucide-svelte/icons/file-text";
@@ -31,6 +32,15 @@
     onClose: () => void;
     generateSlug: (name: string) => string;
   }>();
+
+  onMount(() => {
+    if (formName === undefined) formName = "";
+    if (formSlug === undefined) formSlug = "";
+    if (formDescription === undefined) formDescription = "";
+    if (formSeoTitle === undefined) formSeoTitle = "";
+    if (formSeoDescription === undefined) formSeoDescription = "";
+    if (formImage === undefined) formImage = "";
+  });
 
   let activeTab = $state("general");
 </script>

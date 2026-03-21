@@ -15,11 +15,13 @@
   import { apiClient } from '$lib/utils/apiClient';
 
   let {
-    content = $bindable(""),
+    content = $bindable(),
     onChange = () => {},
     editable = true,
     placeholder = "Start writing...",
-    assets = [] as (MediaAsset | string)[],
+    assets = $bindable([] as (MediaAsset | string)[]),
+    selectedAvatarUrl = $bindable(null as string | null),
+    selectedAssetIndex = $bindable(0),
     fullScreen = false,
     onToggleFullScreen = null,
     toolbarActions = [] as ToolbarAction[],
@@ -33,6 +35,8 @@
     editable?: boolean;
     placeholder?: string;
     assets?: (MediaAsset | string)[];
+    selectedAvatarUrl?: string | null;
+    selectedAssetIndex?: number;
     fullScreen?: boolean;
     onToggleFullScreen?: (() => void) | null;
     toolbarActions?: ToolbarAction[];
@@ -251,6 +255,7 @@
   }
 
   onMount(() => {
+    if (content === undefined) content = "";
     editor = new Editor({
       element,
       content,
@@ -486,6 +491,9 @@
   isOpen={showMediaVault}
   onClose={() => showMediaVault = false}
   {campaignId}
+  bind:assets
+  bind:selectedAvatarUrl={selectedAvatarUrl as any}
+  bind:selectedAssetIndex
   onSelect={(url) => {
     if (editor) {
       blockClicks = true;
@@ -502,7 +510,7 @@
         setTimeout(() => { blockClicks = false; }, 300);
       }, 50);
     }
-  }} 
+  }}
 />
 <LinkDialog bind:show={showLinkDialog} currentUrl={currentLinkUrl} onApply={(url) => url ? editor?.chain().focus().setLink({ href: url }).run() : editor?.chain().focus().unsetLink().run()} />
   <div use:portal>

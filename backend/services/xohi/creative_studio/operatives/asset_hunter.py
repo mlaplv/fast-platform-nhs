@@ -210,7 +210,7 @@ class AssetHunter:
                     "file_path": url,  # R105 Standard alignment
                     "is_primary": i == 0,
                     "order_index": i,
-                    "metadata": {"source": "google_search"}
+                    "media_metadata": {"source": "google_search"}
                 })
 
             campaign.assets_data = final_assets

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { nanobot, type WidgetType } from "$lib/state/nanobot.svelte";
-  import type { Component } from "svelte";
+  import { onMount, type Component } from "svelte";
   import Package from "lucide-svelte/icons/package";
   import Users from "lucide-svelte/icons/users";
   import Newspaper from "lucide-svelte/icons/newspaper";
@@ -17,6 +17,10 @@
   import { fade, fly } from "svelte/transition";
 
   let { open = $bindable() } = $props();
+
+  onMount(() => {
+    if (open === undefined) open = false;
+  });
 
   interface SubItem {
     label: string;

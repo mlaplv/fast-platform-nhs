@@ -1,32 +1,9 @@
 <script lang="ts">
   import TiptapEditor from "../tiptap/TiptapEditor.svelte";
+  import { onMount } from "svelte";
   import type { MediaAsset } from "$lib/state/types";
-  import { purifyAIContent } from "$lib/utils/purify";
-  import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
-
-  interface OutlineSection {
-    heading?: string;
-    H2?: string;
-    H3?: string;
-    title?: string;
-    Title?: string;
-    content?: string;
-    Content?: string;
-    body?: string;
-    text?: string;
-    description?: string;
-  }
-
-  type RawOutline = {
-    html?: string;
-    sections?: OutlineSection[];
-    outline?: {
-      sections?: OutlineSection[];
-    };
-    outline_data?: {
-      sections?: OutlineSection[];
-    };
-  } | OutlineSection[] | string;
+  import { xohiImageStore } from "$lib/state/xohiImage.svelte";
+  import { createOutlineController, type RawOutline } from "$lib/state/xohiOutline.svelte";
 
   interface Props {
     isEditing: boolean;
@@ -34,6 +11,8 @@
     outline: RawOutline;
     assets: (MediaAsset | string)[];
     isExpanded: boolean;
+    selectedAvatarUrl: string | null;
+    selectedAssetIndex: number;
     editorAnnotations?: unknown[];
     step?: number;
     isProcessing?: boolean;
@@ -44,62 +23,30 @@
     isEditing,
     editedOutline = $bindable(),
     outline = {} as RawOutline,
-    assets = [] as (MediaAsset | string)[],
+    assets = $bindable([] as (MediaAsset | string)[]),
     isExpanded,
+    selectedAvatarUrl = $bindable(null as string | null),
+    selectedAssetIndex = $bindable(0),
     editorAnnotations = [],
     step = 3,
     isProcessing = false,
     campaign_id,
   }: Props = $props();
 
-  // Rule R82.41: Smart Data Mapping — Map structured sections to editor content if draft is empty
-  let displayContent = $derived.by(() => {
-    // 1. Helper: Convert structured outline (sections) to HTML
-    const getStructuredOutline = (): string => {
-      if (typeof outline === 'string') return outline;
-      
-      // Robust type guarding for the union
-      const isPlainObject = (val: unknown): val is Record<string, unknown> => 
-        typeof val === 'object' && val !== null && !Array.isArray(val);
+  const ctrl = createOutlineController({
+    getOutline: () => outline,
+    getEditedOutline: () => editedOutline,
+    getAssets: () => assets,
+    setEditedOutline: (v) => { editedOutline = v; }
+  });
 
-      if (isPlainObject(outline) && 'html' in outline && typeof outline.html === 'string') {
-        return outline.html;
-      }
-
-      const sections: OutlineSection[] = 
-        isPlainObject(outline)
-          ? ((outline.sections as OutlineSection[]) || 
-             (outline.outline as any)?.sections || // fallback for nested
-             (outline.outline_data as any)?.sections || [])
-          : (Array.isArray(outline) ? outline : []);
-
-      if (sections.length > 0) {
-        return sections.map((s) => {
-           const header = s.heading || s.H2 || s.H3 || s.title || s.Title || "";
-           const body = s.content || s.Content || s.body || s.description || s.text || "";
-
-           const hText = header.replace(/^(H2|H3):/i, "").trim();
-           const tag = header.toUpperCase().startsWith("H3") ? "h3" : "h2";
-           return `<${tag}>${hText}</${tag}><p>${body}</p>`;
-        }).join("\n");
-      }
-      return "";
-    };
-
-    // 2. Step 3 logic: ALWAYS prioritize the outline.
-    let base = (isEditing ? editedOutline : "") || getStructuredOutline();
-
-    // 3. Rule R82.42: Image Placeholder Replacement (Elite V2.2 Unified)
-    const currentAssets = xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets;
-    return processContentImages(base, currentAssets);
+  onMount(() => {
+    if (editedOutline === undefined) editedOutline = "";
   });
 
   // Ensure editedOutline is initialized when entering edit mode if it was empty
   $effect(() => {
-    if (isEditing && !editedOutline) {
-      const fallback = displayContent;
-      if (fallback) editedOutline = fallback;
-    }
+    if (isEditing) ctrl.syncInitialDraft();
   });
 </script>
 
@@ -115,7 +62,7 @@
 
   <!-- Editor -->
   <div class="flex flex-col relative transition-all duration-500 {isEditing ? 'border border-white/5 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] bg-[#09090b]/40 backdrop-blur-2xl' : 'bg-transparent'}">
-     {#if isProcessing && !displayContent}
+     {#if isProcessing && !ctrl.displayContent}
        <div class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-700">
          <div class="relative">
            <!-- Spinning Ring -->
@@ -134,9 +81,11 @@
        </div>
      {/if}
 
-     <TiptapEditor 
-       content={displayContent}
-       assets={assets}
+     <TiptapEditor
+       content={ctrl.displayContent}
+       bind:assets={assets}
+       bind:selectedAvatarUrl={selectedAvatarUrl}
+       bind:selectedAssetIndex={selectedAssetIndex}
        campaignId={campaign_id}
        onChange={(val) => {
           if (isEditing && val !== editedOutline) {
