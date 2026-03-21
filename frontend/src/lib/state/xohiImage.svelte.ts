@@ -1,5 +1,5 @@
 import type { MediaAsset } from "./types";
-import { safeRandomUUID, extractIdFromUrl, sanitizeId } from "./utils";
+import { safeRandomUUID, extractIdFromUrl, sanitizeId, resolveMediaUrl } from "./utils";
 import { apiClient } from "$lib/utils/apiClient";
 
 export function createXohiImageState() {
@@ -69,8 +69,6 @@ export function createXohiImageState() {
                 is_primary: assets.length === 0 && index === 0,
                 order_index: assets.length,
                 media_metadata: { status: 'uploading', name: file.name },
-                is_primary_ui: assets.length === 0 && index === 0, // Fallback fields if needed
-                order_index_ui: assets.length
             };
             assets.push(newAsset);
 
@@ -155,7 +153,7 @@ export function createXohiImageState() {
             }
             const newAsset: MediaAsset = {
                 ...serverAsset,
-                file_path: serverAsset.file_path || serverAsset.url, // CNS V73.9: Safety fallback
+                file_path: resolveMediaUrl(serverAsset.file_path || serverAsset.url || ''), // CNS V80: Force resolve
                 is_primary: assets.length === 0,
                 order_index: assets.length
             };
@@ -191,7 +189,7 @@ export function createXohiImageState() {
             if (idx !== -1) {
                 assets[idx] = {
                     ...assets[idx],
-                    file_path: serverAsset.file_path,
+                    file_path: resolveMediaUrl(serverAsset.file_path), // CNS V80: Force resolve
                     dimensions: serverAsset.dimensions,
                     media_metadata: serverAsset.media_metadata
                 };
@@ -201,21 +199,28 @@ export function createXohiImageState() {
         }
     }
 
-    function initAssets(initialAssets: MediaAsset[], id?: string) {
+    function initAssets(initialAssets: (MediaAsset | string)[], id?: string) {
         if (id) campaignId = sanitizeId(id);
 
-        // CNS V74: Standardize IDs and ensure path safety
+        // CNS V80: Polymorphic Normalization (Handle both objects and raw URLs)
         const formatted = initialAssets.map((a, i) => {
-            const obj = { ...a };
-            const url = obj.file_path || obj.url || '';
+            const isStr = typeof a === 'string';
+            const url = isStr ? a : (a.file_path || a.url || '');
+            const resolvedUrl = resolveMediaUrl(url);
+
+            // Create base object
+            const obj: MediaAsset = isStr
+                ? { id: '', file_path: resolvedUrl, is_primary: i === 0, order_index: i }
+                : { ...a, file_path: resolvedUrl };
+
             const recoveredId = extractIdFromUrl(url);
 
             // CNS V75: Priority to real DB ID from URL if current ID is client-side or missing
             if (!obj.id || obj.id.startsWith('img_') || obj.id.startsWith('stable_')) {
                 if (recoveredId) {
                     obj.id = recoveredId;
-                } else if (!obj.id) {
-                    // Fallback to stable hash if absolutely no ID available
+                } else {
+                    // Fallback to stable hash if absolutely no ID available (Critical for Google links)
                     const seed = url || `seed_${i}`;
                     let hash = 0;
                     for (let j = 0; j < seed.length; j++) {
@@ -225,7 +230,7 @@ export function createXohiImageState() {
                     obj.id = `stable_${Math.abs(hash).toString(36)}_${i}`;
                 }
             }
-            if (!obj.file_path && obj.url) obj.file_path = obj.url;
+
             return obj;
         });
 

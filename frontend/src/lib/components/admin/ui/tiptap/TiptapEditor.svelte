@@ -482,18 +482,15 @@
   {/if}
 </div>
 
-  <MediaVaultModal 
-  isOpen={showMediaVault} 
+  <MediaVaultModal
+  isOpen={showMediaVault}
   onClose={() => showMediaVault = false}
   {campaignId}
   onSelect={(url) => {
     if (editor) {
       blockClicks = true;
       imageMenuVisible = false;
-      // Normalize relative paths (uploads/...) to root-relative URLs (/uploads/...) to prevent relative resolution errors
-      const safeUrl = url && !url.startsWith('http') && !url.startsWith('blob:') && !url.startsWith('data:')
-        ? (url.startsWith('/') ? url : `/${url}`)
-        : url;
+      const safeUrl = resolveMediaUrl(url);
       // Defer focus to avoid click-through when portal unmounts
       setTimeout(() => {
         if (!editor || editor.isDestroyed) return;

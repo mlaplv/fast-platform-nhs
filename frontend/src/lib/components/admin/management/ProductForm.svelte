@@ -10,6 +10,7 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import TiptapEditor from "../ui/tiptap/TiptapEditor.svelte";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
+  import { resolveMediaUrl } from "$lib/state/utils";
   import type { MediaAsset } from "$lib/types";
 
   let {
@@ -208,9 +209,9 @@
         <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Bộ sưu tập hình ảnh sản phẩm</label>
         
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {#each formImages.filter(img => img && img.includes('/')) as img, i}
+          {#each formImages.filter(img => img && (img.includes('/') || img.startsWith('blob:'))) as img, i}
             <div class="aspect-square rounded-2xl bg-white/5 border border-white/10 relative group overflow-hidden">
-              <img src={img} alt="Product" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+              <img src={resolveMediaUrl(img)} alt="Product" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
               <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <button onclick={() => removeImage(i)} class="p-3 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all">
                   <Trash2 size={16} />

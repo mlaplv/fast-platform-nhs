@@ -49,3 +49,71 @@ export function sanitizeId(id: string | null | undefined): string | null {
   if (s.toLowerCase() === "undefined" || !s) return null;
   return s;
 }
+
+import { purifyAIContent } from "$lib/utils/purify";
+import type { MediaAsset } from "./types";
+
+/**
+ * CNS V80: Polymorphic Media Resolver.
+ * Ensures consistent URL for local files and external (Google/AI) links.
+ */
+export function resolveMediaUrl(url: string | null | undefined): string {
+    if (!url) return '';
+
+    // 1. Absolute URLs (http, https, //, blob, data)
+    if (url.startsWith('http') || url.startsWith('//') || url.startsWith('blob:') || url.startsWith('data:')) {
+        return url;
+    }
+
+    // 2. Clean up leading slashes and legacy prefixes
+    let path = url.trim();
+    if (path.startsWith('/')) path = path.slice(1);
+
+    // Legacy support: remove redundant 'static/uploads' or 'uploads' if they exist twice
+    if (path.startsWith('static/uploads/')) path = path.slice(15);
+    if (path.startsWith('uploads/')) path = path.slice(8);
+
+    // 3. Construct final path (default to /uploads/ prefix for internal files)
+    return `/uploads/${path}`;
+}
+
+/**
+ * Elite V2.2: Unified HTML Media Processor.
+ * Standardizes [IMAGE_n] replacement and external-to-local link mapping.
+ */
+export function processContentImages(html: string | null | undefined, assets: (MediaAsset | string)[]): string {
+    let base = html || "";
+    if (!base) return "";
+
+    const assetList = Array.isArray(assets) ? assets : [];
+
+    // 1. Resolve [IMAGE_n] placeholders
+    if (base.includes("[IMAGE_")) {
+        assetList.forEach((asset, i) => {
+            const url = typeof asset === 'string' ? asset : (asset.file_path || asset.url || '');
+            const local = resolveMediaUrl(url);
+            const placeholder = `[IMAGE_${i + 1}]`;
+
+            // Surgical replacement: Handle markers inside src first
+            const srcPattern = new RegExp(`(src|href)=["']\\s*${placeholder.replace('[', '\\[').replace(']', '\\]')}\\s*["']`, 'g');
+            base = base.replace(srcPattern, `$1="${local}"`);
+
+            // Then handle standalone markers (even if wrapped in figure by AI)
+            const figurePattern = new RegExp(`(<figure[^>]*>\\s*)?${placeholder.replace('[', '\\[').replace(']', '\\]')}(\\s*<\\/figure>)?`, 'g');
+            base = base.replace(figurePattern, `<figure class="image-figure"><img src="${local}" alt="content image" loading="lazy" /></figure>`);
+        });
+        // Cleanup leftover placeholders
+        base = base.replace(/\[IMAGE_\d+\]/g, "");
+    }
+
+    // 2. Replace external links with local assets in sequence (Viral 2026 Engine)
+    if (base.includes("<img") && assetList.length > 0) {
+        let idx = 0;
+        const locals = assetList.map(a => resolveMediaUrl(typeof a === 'string' ? a : (a.file_path || a.url || '')));
+        base = base.replace(/<img([^>]+)src=["'](https?:\/\/[^"']+)["']([^>]*)>/gi, (full, pre, src, post) => {
+            return idx < locals.length ? `<img${pre}src="${locals[idx++]}"${post}>` : full;
+        });
+    }
+
+    return purifyAIContent(base);
+}

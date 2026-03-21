@@ -1,10 +1,11 @@
 <script lang="ts">
   import { Pencil, Sparkles } from "lucide-svelte";
   import TiptapEditor from "../tiptap/TiptapEditor.svelte";
-  import type { CampaignKeywords, MediaAsset } from "$lib/state/types";
+  import type { CampaignKeywords, MediaAsset, AnalysisCache } from "$lib/state/types";
   import type { CopyrightResult, SEOResult, AIInspectResult } from "$lib/types";
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
   import { purifyAIContent } from "$lib/utils/purify";
+  import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
 
   interface Props {
     assets: (MediaAsset | string)[];
@@ -53,38 +54,10 @@
   // finalHtml: đã qua MediaCompressor (ảnh local) → ưu tiên trước
   // draft_content: bản raw từ AI → fallback
   let displayContent = $derived.by(() => {
-    let base = finalHtml || purifyAIContent(draft_content) || "";
-    if (!base) return "";
-
+    const base = finalHtml || draft_content || "";
     const currentAssets = xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets;
-
-    // Thay thế [IMAGE_n] placeholder
-    if (base.includes("[IMAGE_")) {
-      currentAssets.forEach((asset, i) => {
-        const url = typeof asset === 'string' ? asset : asset.url;
-        const local = fixUrl(url);
-        base = base.split(`[IMAGE_${i + 1}]`).join(`<img src="${local}" alt="image ${i+1}" />`);
-      });
-    }
-
-    // Thay link ảnh ngoài bằng assets local theo thứ tự
-    if (base.includes("<img") && currentAssets.length > 0) {
-      let idx = 0;
-      const locals = currentAssets.map(a => fixUrl(typeof a === 'string' ? a : a.url));
-      base = base.replace(/<img([^>]+)src=["'](https?:\/\/[^"']+)["']([^>]*)>/gi, (full, pre, src, post) => {
-        return idx < locals.length ? `<img${pre}src="${locals[idx++]}"${post}>` : full;
-      });
-    }
-    return base;
+    return processContentImages(base, currentAssets);
   });
-
-  function fixUrl(url: string | null): string {
-    if (!url) return "";
-    let p = url;
-    if (p.startsWith("static/")) p = "/" + p;
-    if (p.startsWith("/static/uploads/")) p = p.replace("/static/uploads/", "/uploads/");
-    return p;
-  }
 
   $effect(() => {
     if (!selectedAvatarUrl && xohiImageStore.primaryAsset) {
@@ -98,8 +71,11 @@
   async function saveField() {
     editingField = null;
     try {
+      // Phase 15.3: Save processed displayContent to final_html to ensure images are resolved
       await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, {
-        keywords, draft_content, final_html: draft_content
+        keywords,
+        draft_content,
+        final_html: displayContent
       });
     } catch (e) { console.error("Save failed", e); }
   }
@@ -171,7 +147,7 @@
         onclick={() => showAvatarPicker = !showAvatarPicker}
       >
         {#if selectedAvatarUrl}
-          <img src={fixUrl(selectedAvatarUrl)} alt="avatar" class="w-full h-full object-cover" />
+          <img src={resolveMediaUrl(selectedAvatarUrl)} alt="avatar" class="w-full h-full object-cover" />
         {:else}
           <div class="w-full h-full bg-white/5 flex items-center justify-center">
             <Sparkles size={14} class="text-white/20" />
@@ -186,7 +162,7 @@
               {@const url = typeof asset === 'string' ? asset : asset.url}
               <button class="aspect-square overflow-hidden border {selectedAvatarUrl === url ? 'border-green-500' : 'border-transparent'}"
                 onclick={() => selectAvatar(asset)}>
-                <img src={fixUrl(url)} alt="" class="w-full h-full object-cover" />
+                <img src={resolveMediaUrl(url)} alt="" class="w-full h-full object-cover" />
               </button>
             {/each}
           </div>
@@ -227,7 +203,7 @@
     {#if editingField === 'content'}
       <div class="flex-1 min-h-0 flex flex-col bg-black/40">
         <TiptapEditor
-          content={finalHtml || draft_content}
+          content={displayContent}
           assets={assets}
           campaignId={campaign_id}
           onChange={(val) => {
@@ -246,7 +222,7 @@
     {:else if displayContent}
       <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
         <TiptapEditor
-          content={finalHtml || draft_content}
+          content={displayContent}
           assets={assets}
           campaignId={campaign_id}
           editable={false}

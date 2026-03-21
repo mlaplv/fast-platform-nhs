@@ -135,10 +135,10 @@
             <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar pb-4">
                 {#each assets.filter(a => a) as asset}
                   {@const assetUrl = typeof asset === 'string' ? asset : (asset.file_path || asset.url || asset.link || '')}
-                  {@const fullUrl = assetUrl && (assetUrl.startsWith('http') || assetUrl.startsWith('data:')) ? assetUrl : (assetUrl.startsWith('/') ? assetUrl : '/storage/' + assetUrl)}
+                  {@const fullUrl = resolveMediaUrl(assetUrl)}
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div 
+                  <div
                      class="group/asset relative aspect-square rounded-2xl overflow-hidden border border-white/5 hover:border-blue-500/50 cursor-pointer transition-all duration-300 bg-zinc-900 hover:scale-[1.02] hover:shadow-[0_0_30px_-10px_rgba(59,130,246,0.3)]"
                      onclick={(e) => { e.stopPropagation(); onSelect(fullUrl); show = false; }}
                   >

@@ -53,7 +53,7 @@
   import ImageGrid from "$lib/components/xohi/ImageGrid.svelte";
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
   import { nanobot } from "$lib/state/nanobot.svelte";
-  import { extractIdFromUrl } from "$lib/state/utils";
+  import { extractIdFromUrl, resolveMediaUrl } from "$lib/state/utils";
 
   // V22: Voice Mutation Injection - Asset Management
   $effect(() => {
@@ -136,36 +136,8 @@
       assets.length > 0 &&
       untrack(() => xohiImageStore.assets.length) === 0
     ) {
-      const formattedAssets = assets.map((item, i) => {
-        const url =
-          typeof item === "string" ? item : item.file_path || item.url || "";
-        const recoveredId = extractIdFromUrl(url);
-
-        if (typeof item === "string") {
-          return {
-            id: recoveredId || generateStableId(item, i),
-            file_path: item, // R105 Standard alignment
-            url: item, // UI legacy compatibility
-            is_primary: i === selectedAssetIndex,
-            order_index: i,
-          } as MediaAsset;
-        }
-        // CNS V73.9: Safety gate for missing IDs or field names
-        const obj = { ...item };
-        // CNS V75: Priority to real DB ID from URL
-        if (
-          !obj.id ||
-          obj.id.startsWith("img_") ||
-          obj.id.startsWith("stable_")
-        ) {
-          if (recoveredId) obj.id = recoveredId;
-        }
-        if (!obj.id)
-          obj.id = generateStableId(obj.file_path || obj.url || "", i);
-        if (!obj.file_path && obj.url) obj.file_path = obj.url;
-        return obj as MediaAsset;
-      });
-      xohiImageStore.initAssets(formattedAssets);
+      // CNS V80: Using Store's built-in initAssets which handles normalization
+      xohiImageStore.initAssets(assets);
     }
   });
 
@@ -180,8 +152,9 @@
       const primaryIdx = storeAssets.findIndex((a) => a.is_primary);
       if (primaryIdx !== -1) {
         selectedAssetIndex = primaryIdx;
-        selectedAvatarUrl =
-          storeAssets[primaryIdx].file_path || storeAssets[primaryIdx].url;
+        selectedAvatarUrl = resolveMediaUrl(
+          storeAssets[primaryIdx].file_path || storeAssets[primaryIdx].url || ''
+        );
       } else if (storeAssets.length === 0) {
         selectedAssetIndex = 0;
         selectedAvatarUrl = null;
@@ -380,20 +353,20 @@
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   vuiController.speak("Đã thêm vào bộ sưu tập.");
-                  xohiImageStore.addImagesFromUrl(url);
+                  xohiImageStore.addImagesFromUrl(url as string);
                   reserve_assets = reserve_assets.filter((_, idx) => idx !== i);
                 }
               }}
               onclick={() => {
                 // Add Logic: Move from reserve to primary collection
                 vuiController.speak("Đã thêm vào bộ sưu tập.");
-                xohiImageStore.addImagesFromUrl(url);
+                xohiImageStore.addImagesFromUrl(url as string);
                 reserve_assets = reserve_assets.filter((_, idx) => idx !== i);
               }}
               class="group/reserve relative aspect-square rounded-2xl overflow-hidden border border-white/10 bg-white/[0.02] hover:border-amber-500/50 hover:bg-white/[0.05] hover:scale-105 transition-all duration-500 cursor-pointer shadow-lg"
             >
               <img
-                src={url}
+                src={resolveMediaUrl(typeof url === 'string' ? url : (url.file_path || url.url || ''))}
                 alt="Reserve {i}"
                 class="w-full h-full object-cover opacity-60 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-700 blur-[0.5px] hover:blur-0"
               />
@@ -511,7 +484,7 @@
         </div>
 
         <div class="w-24 h-24 rounded-2xl border border-white/5 overflow-hidden shadow-inner">
-          <img src={pendingPurgeAsset.file_path} alt="Purge Preview" class="w-full h-full object-cover" />
+          <img src={resolveMediaUrl(pendingPurgeAsset.file_path || pendingPurgeAsset.url)} alt="Purge Preview" class="w-full h-full object-cover" />
         </div>
 
         <p class="text-[10px] text-white/40 font-medium leading-relaxed">

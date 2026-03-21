@@ -5,6 +5,7 @@
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { vuiController } from "$lib/vui";
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
+  import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
   import Header from "./content-factory/Header.svelte";
 
   import IdeaStep from "./content-factory/IdeaStep.svelte";
@@ -175,14 +176,19 @@
     editedDraft = draft_content || "";
     editedOutline = outline?.html || "";
     
-    // Ensure finalHtml is not empty if we are in step 6
-    if (viewingStep >= 6 && !finalHtml) {
-      finalHtml = draft_content;
-    }
-    
     // Ensure viewingStep is valid
     if (viewingStep < 1 || viewingStep > 6) viewingStep = step || 1;
     if (viewingStep < 1) viewingStep = 1;
+  });
+
+  // Rule R82.49: Step 6 Initialization — Ensure finalHtml has resolved images
+  $effect(() => {
+    if (viewingStep >= 6 && !finalHtml && draft_content) {
+      untrack(() => {
+        const currentAssets = xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets;
+        finalHtml = processContentImages(draft_content, currentAssets);
+      });
+    }
   });
 
   // Phase 73.9: Liquid State Sync (Guarded)
@@ -197,8 +203,13 @@
     } else if (!isEditing) {
       // When NOT editing and NOT processing, keep buffers in sync with props
       untrack(() => {
-        if (source && source !== editedDraft) editedDraft = source;
-        if (currentOutline && currentOutline !== editedOutline) editedOutline = currentOutline;
+        const currentAssets = xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets;
+        if (source && source !== editedDraft) {
+           editedDraft = processContentImages(source, currentAssets);
+        }
+        if (currentOutline && currentOutline !== editedOutline) {
+           editedOutline = processContentImages(currentOutline, currentAssets);
+        }
       });
     }
   });
@@ -255,11 +266,18 @@
 
     isLoading = true;
     try {
-      const payload = isEditing ? { 
-        edited_data: viewingStep === 1 
-          ? { ...editedKeywords, creation_config: editedConfig } 
-          : { html: viewingStep === 3 ? editedOutline : editedDraft } 
+      let payload: any = isEditing ? {
+        edited_data: viewingStep === 1
+          ? { ...editedKeywords, creation_config: editedConfig }
+          : { html: viewingStep === 3 ? editedOutline : editedDraft }
       } : {};
+
+      // Phase 15.3: Elite Image Persistence — Ensure final_html is resolved when approving validation
+      if (viewingStep === 5 && draft_content) {
+        const currentAssets = xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets;
+        payload.final_html = processContentImages(draft_content, currentAssets);
+      }
+
       const stepNames: Record<number, string> = {
         1: "ý tưởng và từ khóa",
         2: "các hình ảnh",

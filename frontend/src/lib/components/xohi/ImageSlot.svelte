@@ -3,8 +3,9 @@
   import type { MediaAsset } from "$lib/state/types";
   import { fade, scale } from "svelte/transition";
   import { Star, Trash2, Check, Crop, Square, Layout, Smartphone, Tablet, Sparkles, Flame } from "lucide-svelte";
+  import { resolveMediaUrl } from "$lib/state/utils";
 
-  let { 
+  let {
     asset, 
     index, 
     isDndShadow = false,
@@ -21,11 +22,13 @@
 
   const isPrimary = $derived(asset.is_primary);
   const isLocal = $derived(
-    asset.file_path.startsWith('/uploads/') || 
-    asset.file_path.startsWith('uploads/') || 
-    asset.file_path.startsWith('/static/') ||
-    asset.file_path.startsWith('static/') ||
-    !asset.file_path.startsWith('http')
+    asset.file_path && (
+      asset.file_path.startsWith('/uploads/') ||
+      asset.file_path.startsWith('uploads/') ||
+      asset.file_path.startsWith('/static/') ||
+      asset.file_path.startsWith('static/') ||
+      (!asset.file_path.startsWith('http') && !asset.file_path.startsWith('//') && !asset.file_path.startsWith('blob:'))
+    )
   );
 
   let pendingPreset = $state<'square' | 'banner' | 'story' | 'feed' | null>(null);
@@ -50,7 +53,7 @@
 >
   <!-- Thumbnail -->
   <img
-    src={asset.file_path}
+    src={resolveMediaUrl(asset.file_path || asset.url)}
     alt="Asset {index}"
     class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
     class:blur-sm={isCropping}

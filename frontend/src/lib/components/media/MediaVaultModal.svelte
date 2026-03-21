@@ -4,6 +4,7 @@
   import type { MediaAsset } from "$lib/state/types";
   import { mediaStore } from "$lib/state/media.svelte";
   import { fade } from "svelte/transition";
+  import { resolveMediaUrl } from "$lib/state/utils";
 
   let {
     isOpen,
@@ -38,11 +39,27 @@
   });
 
   function onConfirm() {
+    // CNS V80: Polymorphic Return. If parent passed strings, return strings. If objects, return objects.
     const isStringMode = assets && (assets.length === 0 || typeof assets[0] === 'string');
+
     if (isStringMode) {
-      assets = internalAssets.map(a => typeof a === 'string' ? a : (a.file_path || a.url || ''));
+      assets = internalAssets.map(a => {
+        if (typeof a === 'string') return a;
+        return a.file_path || a.url || '';
+      });
     } else {
-      assets = [...internalAssets];
+      // Normalize objects before returning
+      assets = internalAssets.map(a => {
+        if (typeof a === 'string') {
+          return {
+            id: `stable_${Math.random().toString(36).slice(2)}`,
+            file_path: resolveMediaUrl(a),
+            is_primary: false,
+            order_index: 0
+          } as MediaAsset;
+        }
+        return { ...a, file_path: resolveMediaUrl(a.file_path || a.url) };
+      });
     }
     onClose();
   }
@@ -106,14 +123,15 @@
 
   // === Current post image helpers ===
   function getImageUrl(asset: MediaAsset | string): string {
-    if (typeof asset === 'string') return asset;
-    return asset.file_path || asset.url || '';
+    const url = typeof asset === 'string' ? asset : (asset.file_path || asset.url || '');
+    return resolveMediaUrl(url);
   }
 
   function getImageLabel(asset: MediaAsset | string): string {
     if (typeof asset === 'string') {
       const parts = asset.split('/');
-      return parts[parts.length - 1] || 'image';
+      const last = parts[parts.length - 1] || 'image';
+      return last.split('?')[0];
     }
     return asset.filename || asset.alt_text || 'image';
   }

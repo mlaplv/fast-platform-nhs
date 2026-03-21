@@ -3,7 +3,9 @@
 
   import type { MediaAsset, CampaignKeywords } from "$lib/state/types";
   import type { CopyrightResult, SEOResult, AIInspectResult } from "$lib/types";
+  import { xohiImageStore } from "$lib/state/xohiImage.svelte";
   import { purifyAIContent } from "$lib/utils/purify";
+  import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
 
   interface Props {
     draft_content: string;
@@ -31,18 +33,6 @@
     isExpanded
   }: Props = $props();
 
-  function fixUrl(url: string | null): string {
-    if (!url) return "";
-    let p = url;
-    if (p.startsWith("http")) return p;
-    if (p.startsWith("static/")) p = "/" + p;
-    if (p.startsWith("uploads/")) p = "/" + p;
-    if (!p.startsWith("/")) p = "/uploads/" + p;
-    
-    if (p.startsWith("/static/uploads/")) p = p.replace("/static/uploads/", "/uploads/");
-    return p;
-  }
-
   let previewMode = $state<'desktop' | 'mobile'>('desktop');
 
   // Computed Data
@@ -54,13 +44,19 @@
     }
     return base;
   });
-  
+
   let thumbnail = $derived.by(() => {
-    if (assets.length === 0) return "https://via.placeholder.com/600x315?text=No+Image";
-    const primary = assets.find(a => typeof a === 'object' && a.is_primary);
-    const first = primary || assets[0];
-    const url = typeof first === 'string' ? first : first.url;
-    return fixUrl(url);
+    const currentAssets = xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets;
+    if (currentAssets.length === 0) return "https://via.placeholder.com/600x315?text=No+Image";
+    const primary = currentAssets.find(a => typeof a === 'object' && a.is_primary);
+    const first = primary || currentAssets[0];
+    const url = typeof first === 'string' ? first : (first.file_path || first.url);
+    return resolveMediaUrl(url);
+  });
+
+  let processedContent = $derived.by(() => {
+    const currentAssets = xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets;
+    return processContentImages(draft_content, currentAssets);
   });
   let description = $derived(purifyAIContent(draft_content).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 160) + "...");
 
@@ -112,7 +108,7 @@
           </div>
           
           <div class="prose prose-lg prose-red max-w-none break-words" style="font-family: 'Merriweather', serif;">
-            {@html draft_content || "<p class='text-gray-400 italic'>Chưa có nội dung bản thảo...</p>"}
+            {@html processedContent || "<p class='text-gray-400 italic'>Chưa có nội dung bản thảo...</p>"}
           </div>
        </div>
     </div>

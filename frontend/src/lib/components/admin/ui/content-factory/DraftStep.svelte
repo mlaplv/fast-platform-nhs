@@ -1,9 +1,11 @@
 <script lang="ts">
   import { onMount, untrack, tick } from "svelte";
-  import { ShieldCheck, BarChart2, Sparkles } from "lucide-svelte";
+  import { ShieldCheck, BarChart2, Sparkles, Brain } from "lucide-svelte";
   import TiptapEditor from "../tiptap/TiptapEditor.svelte";
   import CheckResultPanel from "./CheckResultPanel.svelte";
   import { purifyAIContent } from "$lib/utils/purify";
+  import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
+  import { xohiImageStore } from "$lib/state/xohiImage.svelte";
 
   import { apiClient } from "$lib/utils/apiClient";
   import type { EditorAnnotation } from "$lib/types";
@@ -53,18 +55,6 @@
     isProcessing = false
   }: Props = $props();
 
-  function fixUrl(url: string | null): string {
-    if (!url) return "";
-    let p = url;
-    if (p.startsWith("http")) return p;
-    if (p.startsWith("static/")) p = "/" + p;
-    if (p.startsWith("uploads/")) p = "/" + p;
-    if (!p.startsWith("/")) p = "/uploads/" + p;
-    
-    if (p.startsWith("/static/uploads/")) p = p.replace("/static/uploads/", "/uploads/");
-    return p;
-  }
-
   // Rule R82.41: Smart Data Mapping
   let displayContent = $derived.by(() => {
     let base = isEditing ? (editedDraft || draft_content) : draft_content;
@@ -82,25 +72,10 @@
         }
       }
     }
-    if (base && base.includes("[IMAGE_")) {
-      const assetList = Array.isArray(assets) ? assets : [];
-      assetList.forEach((asset, i) => {
-        // Fallback-first mapping: priority to file_path if available
-        const url = typeof asset === 'string' ? asset : (asset.file_path || asset.url);
-        const local = fixUrl(url);
-        const placeholder = `[IMAGE_${i + 1}]`;
-        // Surgical replacement: Handle markers inside src first
-        const srcPattern = new RegExp(`(src|href)=["']\\s*${placeholder.replace('[', '\\[').replace(']', '\\]')}\\s*["']`, 'g');
-        base = base.replace(srcPattern, `$1="${local}"`);
 
-        // Then handle standalone markers (even if wrapped in figure by AI)
-        const figurePattern = new RegExp(`(<figure[^>]*>\\s*)?${placeholder.replace('[', '\\[').replace(']', '\\]')}(\\s*<\\/figure>)?`, 'g');
-        base = base.replace(figurePattern, `<figure class="content-image"><img src="${local}" alt="content image" loading="lazy" /></figure>`);
-      });
-      base = base.replace(/\[IMAGE_\d+\]/g, "");
-    }
-    // Final Purification (Senior Architect V2026)
-    return purifyAIContent(base);
+    // Rule R82.42: Image Placeholder Replacement (Elite V2.2 Unified)
+    const currentAssets = xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets;
+    return processContentImages(base, currentAssets);
   });
 
   // -- Analysis States --
