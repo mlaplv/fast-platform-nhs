@@ -1,6 +1,7 @@
 import { apiClient } from '$lib/utils/apiClient';
 import type { MediaAsset, MediaStats, MediaSseEvent, MediaMetadata } from '$lib/types';
 import { sanitizeId } from './utils';
+import { nanobot } from '$lib/state/nanobot.svelte';
 
 class MediaStore {
     // States using Runes
@@ -11,6 +12,13 @@ class MediaStore {
 
     // Analytics State (V9.0)
     stats = $state<MediaStats | null>(null);
+
+    // Buffer for ultra-fast SSE events that arrive before upload API returns
+    private pendingMetadataUpdates = new Map<string, MediaSseEvent>();
+
+    // Post-tracking filter state
+    linkedPostId = $state<string | null>(null);
+    linkedPostType = $state<string | null>(null);
 
     // Selection State (V65.0 Bulk Ops)
     selectedIds = $state<Set<string>>(new Set());
@@ -46,6 +54,7 @@ class MediaStore {
                 this.assets = this.assets.filter(a => !this.selectedIds.has(a.id));
                 this.total -= this.selectedIds.size;
                 this.clearSelection();
+                await this.loadStats();
             }
         } catch (error) {
             console.error('[MediaStore] Bulk delete failed:', error);
@@ -106,6 +115,7 @@ class MediaStore {
             if (response.status === 'success') {
                 this.assets = this.assets.filter(a => a.id !== assetId);
                 this.total--;
+                await this.loadStats();
             }
         } catch (error) {
             console.error('[MediaStore] Failed to restore asset:', error);
@@ -151,7 +161,7 @@ class MediaStore {
 
         // Auto-subscribe to updates if campaignId is provided
         if (cleanCid) {
-            this.subscribeToUpdates(cleanCid);
+            this.subscribeToStoreUpdates(cleanCid);
         }
 
         try {
@@ -174,6 +184,14 @@ class MediaStore {
                 params.trash = 'true';
             }
 
+            if (this.linkedPostId) {
+                params.linked_post_id = this.linkedPostId;
+            }
+
+            if (this.linkedPostType) {
+                params.linked_post_type = this.linkedPostType;
+            }
+
             const response = await apiClient.get<{ status: string, data: { items: MediaAsset[], total: number } }>(endpoint, { params });
             if (response.status === 'success') {
                 // Ensure field mapping consistency for R105
@@ -185,6 +203,30 @@ class MediaStore {
         } finally {
             this.isLoading = false;
         }
+    }
+
+    async linkToPost(postId: string, postType: string) {
+        if (this.selectedIds.size === 0) return;
+        try {
+            const asset_ids = Array.from(this.selectedIds);
+            await apiClient.post('/api/v1/media/link-to-post', { asset_ids, post_id: postId, post_type: postType });
+            // Update local state
+            this.assets = this.assets.map(a => 
+                this.selectedIds.has(a.id)
+                    ? { ...a, linked_post_id: postId, linked_post_type: postType }
+                    : a
+            );
+            this.clearSelection();
+        } catch (error) {
+            console.error('[MediaStore] Link to post failed:', error);
+        }
+    }
+
+    setPostFilter(postId: string | null, postType: string | null) {
+        this.linkedPostId = postId;
+        this.linkedPostType = postType;
+        this.offset = 0;
+        this.loadAssets(this.currentCampaignId || undefined, true);
     }
 
     async toggleTrashMode() {
@@ -199,10 +241,11 @@ class MediaStore {
             const response = await apiClient.get<{ status: string, data: {
                 total_count: number;
                 total_size: number;
+                total_trash_count: number;
                 breakdown: Array<{ type: string; count: number; size: number }>;
                 storage_provider: string;
             } }>('/api/v1/media/stats');
-            if (response.status === 'success') {
+            if (response.status === 'success' && response.data) {
                 this.stats = response.data;
             }
         } catch (error: unknown) {
@@ -210,20 +253,38 @@ class MediaStore {
         }
     }
 
-    subscribeToUpdates(campaignId: string) {
-        if (this.eventSource) {
-            this.eventSource.close();
-        }
+   public subscribeToStoreUpdates(campaignId?: string | null) {
+    if (this.currentCampaignId === campaignId && this.eventSource) {
+      return;
+    }
 
+    if (this.eventSource) {
+      this.eventSource.close();
+    }
+
+    if (campaignId && campaignId !== 'undefined' && campaignId !== 'null') {
         console.log(`[MediaStore] Subscribing to AI updates for campaign: ${campaignId}`);
         this.eventSource = new EventSource(`/api/v1/content/stream/${campaignId}`);
+    } else {
+        console.log(`[MediaStore] Subscribing to Global Pulse stream for media events`);
+        this.eventSource = new EventSource(`/api/v1/pulse/stream`);
+    }
 
     this.eventSource.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data) as MediaSseEvent;
+        const data = JSON.parse(event.data);
+        
+        // Handle standard SSE (MediaSseEvent payload structure)
+        let payload = data;
+        
+        // Handle Pulse Stream wrapper structure
+        if (data.event && data.payload) {
+            if (data.event !== "MEDIA_ANALYZED") return;
+            payload = data.payload;
+        }
 
-        if (data.type === 'MEDIA_ANALYZED' || (data.metadata && data.metadata.source === 'MediaAnalyst')) {
-          this.handleMediaAnalyzed(data);
+        if (payload.type === 'MEDIA_ANALYZED' || (payload.metadata && payload.metadata.source === 'MediaAnalyst')) {
+          this.handleMediaAnalyzed(payload);
         }
       } catch (e) {
         // Probably a ping or non-JSON data
@@ -249,6 +310,10 @@ class MediaStore {
           ...metadata,
         },
       };
+    } else {
+        // Asset not yet in state (race condition with ultra-fast heuristic analysis)
+        console.log(`[MediaStore] Buffering fast SSE update for asset: ${assetId}`);
+        this.pendingMetadataUpdates.set(assetId, payload);
     }
   }
 
@@ -288,6 +353,88 @@ class MediaStore {
         }
     }
 
+    async uploadAssets(files: FileList): Promise<{ successCount: number, failCount: number }> {
+        if (!files || files.length === 0) return { successCount: 0, failCount: 0 };
+        
+        let successCount = 0;
+        let failCount = 0;
+        this.isLoading = true;
+        
+        const uploadPromises = Array.from(files).map(async (file, index) => {
+            const tempId = `tmp_${Date.now()}_${index}`;
+            const blobUrl = URL.createObjectURL(file);
+            
+            // Optimistic UI: Add immediately
+            const tempAsset: MediaAsset = {
+                id: tempId,
+                filename: file.name,
+                file_path: blobUrl,
+                mime_type: file.type,
+                size_bytes: file.size,
+                created_at: new Date().toISOString(),
+                is_public: true,
+                media_metadata: { status: 'uploading' },
+                is_primary: false,
+                order_index: this.assets.length
+            };
+            this.assets = [tempAsset, ...this.assets];
+            this.total++;
+
+            try {
+                const formData = new FormData();
+                formData.append('data', file);
+                const cleanCid = sanitizeId(this.currentCampaignId);
+                if (cleanCid) formData.append('campaign_id', cleanCid);
+
+                const response = await apiClient.upload<any>(
+                    '/api/v1/media',
+                    formData
+                );
+
+                // Defensive parsing
+                let serverAsset = response?.data || response;
+                if (response?.status === 'success' && response?.data) {
+                    serverAsset = response.data;
+                }
+
+                if (serverAsset && serverAsset.id) {
+                    // Check if there was a fast SSE event for this asset
+                    let finalMetadata = { ...serverAsset.media_metadata, status: 'ready' };
+                    let finalAltText = serverAsset.alt_text;
+                    
+                    const pendingUpdate = this.pendingMetadataUpdates.get(serverAsset.id);
+                    if (pendingUpdate) {
+                        console.log(`[MediaStore] Applying buffered SSE update for asset: ${serverAsset.id}`);
+                        const pMeta = (pendingUpdate.media_metadata || pendingUpdate.metadata || {}) as Record<string, unknown>;
+                        finalMetadata = { ...finalMetadata, ...pMeta };
+                        finalAltText = pendingUpdate.alt_text || finalAltText;
+                        this.pendingMetadataUpdates.delete(serverAsset.id);
+                    }
+
+                    // Update temp asset to real server asset with resolved metadata
+                    this.assets = this.assets.map(a => 
+                        a.id === tempId ? { ...serverAsset, alt_text: finalAltText, media_metadata: finalMetadata } : a
+                    );
+                    URL.revokeObjectURL(blobUrl);
+                    successCount++;
+                } else {
+                    throw new Error("Invalid server response format");
+                }
+            } catch (error) {
+                console.error('[MediaStore] Upload failed for', file.name, error);
+                // Remove temp asset on failure
+                this.assets = this.assets.filter(a => a.id !== tempId);
+                this.total--;
+                URL.revokeObjectURL(blobUrl);
+                failCount++;
+            }
+        });
+
+        await Promise.all(uploadPromises);
+        this.isLoading = false;
+        return { successCount, failCount };
+    }
+
     async deleteAsset(assetId: string, permanent = false) {
         try {
             const response = await apiClient.delete<{ status: string }>(`/api/v1/media/${assetId}`, {
@@ -296,9 +443,31 @@ class MediaStore {
             if (response.status === 'success') {
                 this.assets = this.assets.filter(a => a.id !== assetId);
                 this.total--;
+                await this.loadStats();
             }
         } catch (error: unknown) {
             console.error('[MediaStore] Failed to delete asset:', (error as Error).message);
+        }
+    }
+
+    async bulkRestore() {
+        if (this.selectedIds.size === 0) return;
+        this.isLoading = true;
+        try {
+            const ids = Array.from(this.selectedIds);
+            const promises = ids.map(id => 
+                apiClient.post<{ status: string, message: string }>(`/api/v1/media/${id}/restore`, {})
+            );
+            await Promise.allSettled(promises);
+            this.assets = this.assets.filter(a => !this.selectedIds.has(a.id));
+            this.total -= this.selectedIds.size;
+            nanobot.showToast(`Đã khôi phục ${this.selectedIds.size} tài nguyên`, "success");
+            this.clearSelection();
+            await this.loadStats();
+        } catch (error: unknown) {
+            console.error('[MediaStore] Bulk restore failed:', (error as Error).message);
+        } finally {
+            this.isLoading = false;
         }
     }
 

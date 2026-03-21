@@ -38,6 +38,8 @@ class MediaAssetResponse(BaseModel):
     campaign_id: Optional[str] = None
     owner_id: Optional[str] = None
     created_at: Optional[str] = None
+    linked_post_id: Optional[str] = None
+    linked_post_type: Optional[str] = None
     media_metadata: MediaMetadata = Field(default_factory=MediaMetadata)
 
     @field_validator("id", "campaign_id", "owner_id", mode="before")
@@ -77,6 +79,7 @@ class MediaStatsResponseData(BaseModel):
     model_config = ConfigDict(strict=True)
     total_count: int
     total_size: int
+    total_trash_count: int
     breakdown: List[MimeTypeBreakdown]
     storage_provider: str
 
@@ -150,6 +153,7 @@ class MediaStatsResult(BaseModel):
     model_config = ConfigDict(strict=True)
     total_count: int
     total_size: int
+    total_trash_count: int
     breakdown: List[MimeTypeBreakdown]
     storage_provider: str
 

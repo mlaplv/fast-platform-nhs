@@ -17,6 +17,7 @@
   import VoiceSettings from "../management/VoiceSettings.svelte";
   import ContentFactory from "../management/ContentFactory.svelte";
   import ContentReviewWidget from "../widgets/ContentReviewWidget.svelte";
+  import MediaHubOverlay from "../../media/MediaHubOverlay.svelte";
 
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
@@ -37,6 +38,7 @@
     VOICE_SETTINGS: VoiceSettings,
     CAMPAIGNS: ContentFactory,
     CONTENT_REVIEW: ContentReviewWidget,
+    MEDIA_MANAGER: MediaHubOverlay,
   };
 
   const WIDGET_LABEL: Record<string, string> = {
@@ -52,6 +54,7 @@
     VOICE_SETTINGS: "VOICE SETTINGS",
     CAMPAIGNS: "CONTENT FACTORY",
     CONTENT_REVIEW: "TRÌNH DUYỆT BÀI VIẾT",
+    MEDIA_MANAGER: "THƯ VIỆN HÌNH ẢNH",
   };
 
   let open = $derived(nanobot.universalModalOpen);
@@ -77,11 +80,14 @@
 </script>
 
 {#if open && ActiveWidget}
-  <div
-    class="xohi-widget-overlay"
-    transition:fade={{ duration: 300 }}
-    style="z-index: {Z_INDEX.MODAL};"
-  >
+  {#if nanobot.activeWidget === 'MEDIA_MANAGER'}
+    <ActiveWidget data={WidgetData} />
+  {:else}
+    <div
+      class="xohi-widget-overlay"
+      transition:fade={{ duration: 300 }}
+      style="z-index: {Z_INDEX.MODAL};"
+    >
     <!-- Backdrop (scoped to main content) -->
     <div
       class="absolute inset-0 bg-black/80 md:bg-black/60 md:backdrop-blur-sm"
@@ -131,6 +137,7 @@
       <div class="h-px bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent shrink-0"></div>
     </div>
   </div>
+  {/if}
 {/if}
 
 <style>

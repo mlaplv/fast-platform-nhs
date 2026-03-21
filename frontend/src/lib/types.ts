@@ -138,6 +138,7 @@ export interface MediaStatsBreakdown {
 export interface MediaStats {
   total_count: number;
   total_size: number;
+  total_trash_count: number;
   breakdown: MediaStatsBreakdown[];
   storage_provider: string;
 }

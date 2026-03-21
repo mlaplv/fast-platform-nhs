@@ -110,16 +110,21 @@ export function createXohiImageState() {
         isUploading = false;
     }
 
-    function removeAsset(id: string) {
+    async function removeAsset(id: string, permanent: boolean = false) {
         const asset = assets.find(a => a.id === id);
         const path = asset?.file_path || asset?.url;
         if (path && path.startsWith('blob:')) {
             URL.revokeObjectURL(path); // R03: Dọn dẹp bộ nhớ
         }
 
-        // Permanent delete from server if it's not a temp blob
+        // Delete from server
         if (asset && !asset.id.startsWith('tmp_')) {
-            apiClient.delete(`/api/v1/media/${id}`).catch(e => console.error("Failed to delete asset from server", e));
+            try {
+                const url = permanent ? `/api/v1/media/${id}?permanent=true` : `/api/v1/media/${id}`;
+                await apiClient.delete(url);
+            } catch (e) {
+                console.error("Failed to delete asset from server", e);
+            }
         }
 
         const wasPrimary = asset?.is_primary;

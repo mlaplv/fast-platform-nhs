@@ -13,6 +13,7 @@ certs/caddy/pki/
 
 # 2. Rác thư viện & Môi trường
 node_modules/
+static/
 .pnpm-store/
 .venv/
 venv/
@@ -28,6 +29,7 @@ pnpm-lock.yaml
 uv.lock
 poetry.lock
 yarn.lock
+check_gemini.sh
 
 # 3. Dữ liệu sinh ra khi dev
 backups/

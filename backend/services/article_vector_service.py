@@ -26,7 +26,7 @@ class ArticleVectorService:
             # 3. Cú pháp SQL thuần BẮT BUỘC sử dụng (<=>) và Type Casting (::vector)
             # 3. Cú pháp SQL thuần BẮT BUỘC sử dụng (<=>) và Type Casting (::vector)
             raw_query = """
-                SELECT a.id, a.title, a.slug, a.category, e.embedding <=> :v::vector AS cosine_distance
+                SELECT a.id, a.title, a.slug, a.category, e.embedding <=> CAST(:v AS vector) AS cosine_distance
                 FROM "articles" a
                 JOIN "article_embeddings" e ON a.id = e.article_id
                 WHERE a.deleted_at IS NULL
@@ -82,9 +82,9 @@ class ArticleVectorService:
 
             sql = text("""
                 INSERT INTO article_embeddings (id, article_id, embedding, created_at, updated_at, tenant_id)
-                VALUES (:id, :article_id, :vector::vector, NOW(), NOW(), :tenant_id)
+                VALUES (:id, :article_id, CAST(:vector AS vector), NOW(), NOW(), :tenant_id)
                 ON CONFLICT (article_id)
-                DO UPDATE SET embedding = :vector::vector, updated_at = NOW();
+                DO UPDATE SET embedding = CAST(:vector AS vector), updated_at = NOW();
             """)
             await db_session.execute(sql, {
                 "id": str(uuid.uuid4()),

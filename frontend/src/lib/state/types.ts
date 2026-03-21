@@ -30,7 +30,8 @@ export type WidgetType =
   | "NEWS_MANAGEMENT"
   | "VOICE_SETTINGS"
   | "CAMPAIGNS"
-  | "CONTENT_REVIEW";
+  | "CONTENT_REVIEW"
+  | "MEDIA_MANAGER";
 
 export type NanoBotState =
   | "IDLE"
@@ -210,9 +211,12 @@ export interface MediaAsset {
   owner_id?: string;
   created_at?: string;
   media_metadata?: MediaMetadata;
+  linked_post_id?: string;
+  linked_post_type?: string;
   // UI-specific fields (Managed by Campaign/Store)
   is_primary: boolean;
   order_index: number;
+  _updatedAt?: number;
 }
 
 export interface CampaignKeywords {

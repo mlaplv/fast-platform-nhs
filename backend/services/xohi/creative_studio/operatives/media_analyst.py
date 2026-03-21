@@ -4,6 +4,7 @@ import asyncio
 from typing import Optional, Dict, List
 from datetime import datetime, timezone
 from pydantic_ai import Agent
+from pydantic_ai.messages import BinaryImage
 from pydantic_ai.models.google import GoogleModel
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.xohi.creative_studio.models.schemas import MediaAnalysisResult
@@ -46,10 +47,7 @@ class MediaAnalyst:
         """
         prompt = [
             "Hãy phân tích hình ảnh này theo yêu cầu chuyên môn.",
-            {
-                "data": image_data,
-                "content_type": mime_type
-            }
+            BinaryImage(data=image_data, media_type=mime_type)
         ]
 
         try:
@@ -141,6 +139,60 @@ class MediaAnalyst:
 
                 except Exception as e:
                     logger.error(f"[MediaAnalyst] Post-processing failed for {entry_id}: {e}")
+
+    async def heuristic_analysis(self, entry_id: str):
+        """
+        [V2026 Viral] Phân tích nhanh bằng Heuristics khi AI Vision bị TẮT.
+        Dựa vào filename, extension để tạo metadata ảo diệu lấp chỗ trống.
+        """
+        import os
+        from backend.database.alchemy_config import alchemy_config
+        from backend.database.repositories import MediaRegistryRepository
+
+        session_maker = alchemy_config.create_session_maker()
+        async with session_maker() as session:
+            media_repo = MediaRegistryRepository(session=session)
+            entry = await media_repo.get(entry_id)
+
+            if not entry:
+                return
+
+            try:
+                # Phân tích nhanh từ filename
+                filename = entry.filename or "hình-ảnh-nội-bộ"
+                base_name = os.path.splitext(filename)[0]
+                clean_name = base_name.replace("-", " ").replace("_", " ").title()
+
+                # Cập nhật metadata "Viral 2026"
+                entry.alt_text = f"{clean_name} - Tối ưu hoá Neural 2026"
+                
+                meta = dict(entry.media_metadata or {})
+                meta.update({
+                    "ai_tags": ["XoHi 2026", "Viral", "Original Content", "High Quality", "Trending"],
+                    "ai_description": f"Tài nguyên media hệ thống: {clean_name}. Được xử lý tốc độ cao qua luồng Heuristic Engine (Vision OFF).",
+                    "ai_sentiment": "Chuyên nghiệp, Năng động",
+                    "focal_point": {"x": 0.5, "y": 0.5},
+                    "analyzed_at": datetime.now(timezone.utc).isoformat()
+                })
+                entry.media_metadata = meta
+
+                await media_repo.update(entry)
+                await session.commit()
+
+                # --- REAL-TIME NOTIFICATION ---
+                await event_bus.emit("MEDIA_ANALYZED", {
+                    "type": "MEDIA_ANALYZED",
+                    "id": entry.id,
+                    "campaign_id": entry.campaign_id,
+                    "file_path": entry.file_path,
+                    "alt_text": entry.alt_text,
+                    "media_metadata": entry.media_metadata
+                })
+
+                logger.info(f"[MediaAnalyst] Heuristic analysis completed instantly for: {entry_id}")
+
+            except Exception as e:
+                logger.error(f"[MediaAnalyst] Heuristic Post-processing failed for {entry_id}: {e}")
 
     def _read_file(self, path: str) -> bytes:
         """Internal helper for thread-safe file reading."""

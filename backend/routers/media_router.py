@@ -44,11 +44,13 @@ class MediaController(Controller):
         q: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
-        trash: bool = False
+        trash: bool = False,
+        linked_post_id: Optional[str] = None,
+        linked_post_type: Optional[str] = None
     ) -> MediaListResponse:
         """
         FileManager: Liệt kê tài nguyên tập trung.
-        Hỗ trợ lọc theo campaign_id, Tìm kiếm ngữ nghĩa AI (V76) và Thùng rác (V10).
+        Hỗ trợ lọc theo campaign_id, post (linked_post_id/type), Tìm kiếm AI và Thùng rác.
         """
         user = request.state.get("user", {})
         owner_id = user.get("sub") or user.get("id")
@@ -60,7 +62,9 @@ class MediaController(Controller):
             limit=limit,
             offset=offset,
             include_deleted=trash,
-            owner_id=owner_id
+            owner_id=owner_id,
+            linked_post_id=linked_post_id,
+            linked_post_type=linked_post_type
         )
 
         return MediaListResponse(
@@ -73,7 +77,33 @@ class MediaController(Controller):
             )
         )
 
-    @post("/", media_type=RequestEncodingType.MULTI_PART)
+    @get("/settings/ai-vision")
+    async def get_ai_vision_status(self) -> dict:
+        """Get the current status of the AI Vision analysis feature."""
+        try:
+            from backend.services.xohi_memory import xohi_memory
+            enabled = await xohi_memory.client.get("ai:vision:enabled") if xohi_memory._use_redis else "0"
+            return {"enabled": enabled == "1"}
+        except Exception as e:
+            logger.error(f"[MediaRouter] Failed to get AI Vision status: {e}")
+            return {"enabled": False}
+
+    @patch("/settings/ai-vision")
+    async def toggle_ai_vision(self, data: dict) -> GenericResponse:
+        """Toggle the AI Vision analysis feature on/off via Redis."""
+        enabled = data.get("enabled", False)
+        try:
+            from backend.services.xohi_memory import xohi_memory
+            if xohi_memory._use_redis:
+                await xohi_memory.client.set("ai:vision:enabled", "1" if enabled else "0")
+                logger.info(f"[MediaRouter] AI Vision toggled to: {'ON' if enabled else 'OFF'}")
+                return GenericResponse(status="success", message=f"AI Vision {'enabled' if enabled else 'disabled'}")
+            return GenericResponse(status="error", message="Redis is not connected")
+        except Exception as e:
+            logger.error(f"[MediaRouter] Failed to toggle AI Vision: {e}")
+            return GenericResponse(status="error", message=str(e))
+
+    @post("/")
     async def upload_media(
         self,
         request: Request,
@@ -96,8 +126,8 @@ class MediaController(Controller):
         )
 
         if not asset:
-             from backend.exceptions import ClientException
-             raise ClientException(status_code=400, detail="Failed to upload asset")
+             from litestar.exceptions import HTTPException
+             raise HTTPException(status_code=400, detail="Failed to upload asset")
 
         return MediaDetailResponse(
             status="success",
@@ -116,6 +146,7 @@ class MediaController(Controller):
             data=MediaStatsResponseData(
                 total_count=stats.total_count,
                 total_size=stats.total_size,
+                total_trash_count=stats.total_trash_count,
                 breakdown=stats.breakdown,
                 storage_provider=stats.storage_provider
             )
@@ -325,3 +356,32 @@ class MediaController(Controller):
             )
         else:
             return GenericResponse(status="error", message="Failed to fetch remote asset.")
+
+    @post("/link-to-post")
+    async def link_media_to_post(
+        self,
+        request: Request,
+        media_repo: MediaRegistryRepository,
+        data: dict
+    ) -> GenericResponse:
+        """Gắn nhãn bài viết/sản phẩm cho danh sách ảnh (Post Tracking V569)."""
+        user = request.state.get("user", {})
+        owner_id = user.get("sub") or user.get("id")
+
+        asset_ids: List[str] = data.get("asset_ids", [])
+        post_id: str = data.get("post_id", "")
+        post_type: str = data.get("post_type", "")
+
+        if not asset_ids or not post_id or not post_type:
+            return GenericResponse(status="error", message="Missing required fields: asset_ids, post_id, post_type.")
+
+        count = await media_service.link_to_post(
+            repo=media_repo,
+            asset_ids=asset_ids,
+            post_id=post_id,
+            post_type=post_type,
+            owner_id=owner_id
+        )
+
+        return GenericResponse(status="success", message=f"Linked {count} assets to {post_type}:{post_id}.")
+

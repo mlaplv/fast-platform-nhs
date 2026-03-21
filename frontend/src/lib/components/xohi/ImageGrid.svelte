@@ -4,9 +4,9 @@
   import ImageSlot from "./ImageSlot.svelte";
   import { dndzone } from "svelte-dnd-action";
   import { flip } from "svelte/animate";
-  import { Upload, LayoutGrid, Sparkles } from "lucide-svelte";
-
+  import { Sparkles, LayoutGrid, Upload } from "lucide-svelte";
   import { untrack } from "svelte";
+  let { onPurge }: { onPurge?: (asset: MediaAsset) => void } = $props();
 
   const flipDurationMs = 300;
 
@@ -48,7 +48,7 @@
         <div class="flex items-center gap-2">
           <span
             class="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em]"
-            >Neural Main Slot</span
+            >Ảnh đại diện chính</span
           >
           <div class="w-1 h-1 rounded-full bg-blue-500/50"></div>
         </div>
@@ -57,7 +57,7 @@
       <div
         class="p-0.5 rounded-[1.8rem] bg-gradient-to-b from-blue-500/10 to-transparent border border-blue-500/20 shadow-2xl overflow-hidden"
       >
-        <ImageSlot asset={xohiImageStore.primaryAsset} index={0} />
+        <ImageSlot asset={xohiImageStore.primaryAsset} index={0} {onPurge} />
       </div>
       <p
         class="text-[7.5px] text-white/40 font-bold uppercase tracking-[0.2em] px-3 italic leading-relaxed"
@@ -72,15 +72,15 @@
         <div class="flex items-center gap-2">
           <span
             class="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]"
-            >Visual Sequence</span
+            >Hình ảnh bổ sung</span
           >
           <span
             class="text-[8px] font-black text-white/10 uppercase bg-white/5 px-2 py-0.5 rounded-full"
-            >Drag to Reorder</span
+            >Kéo để sắp xếp</span
           >
         </div>
         <span class="text-[10px] font-mono text-white/20 italic tracking-widest"
-          >BFR_SZ: {xohiImageStore.secondaryAssets.length}</span
+          >Số lượng: {xohiImageStore.secondaryAssets.length}</span
         >
       </div>
 
@@ -98,7 +98,7 @@
       >
         {#each items as asset, i (asset.id)}
           <div animate:flip={{ duration: flipDurationMs }}>
-            <ImageSlot {asset} index={i + 1} />
+            <ImageSlot {asset} index={i + 1} {onPurge} />
           </div>
         {/each}
 
@@ -108,7 +108,7 @@
           >
             <LayoutGrid size={32} />
             <p class="text-[10px] font-black uppercase tracking-[0.4em]">
-              Empty Sequence
+              Danh sách trống
             </p>
           </div>
         {/if}
@@ -134,12 +134,12 @@
     <p
       class="text-white/40 font-black text-[11px] uppercase tracking-[0.5em] mb-2 scale-x-110"
     >
-      Hệ thống rỗng
+      Chưa có hình ảnh
     </p>
     <p
       class="text-[9px] text-white/10 font-mono uppercase tracking-[0.2em] italic"
     >
-      Waiting for neural visual input...
+      Vùi lòng tải ảnh lên hoặc dán link ảnh...
     </p>
   </div>
 {/if}

@@ -134,6 +134,8 @@ class ArticleService:
             db_session, new_id, data.title, data.content
         )
 
+        # Invalidate Count Cache
+        await xohi_memory.clear_article_cache()
         return SuccessResponse(ok=True, id=new_id)
 
     @staticmethod
@@ -162,24 +164,32 @@ class ArticleService:
                 db_session, article_id, article.title, article.content
             )
 
+        # Invalidate Count Cache
+        await xohi_memory.clear_article_cache()
         return SuccessResponse(ok=True, id=article_id)
 
     @staticmethod
     async def delete_article(db_session: AsyncSession, article_id: str) -> SuccessResponse:
         stmt = update(Article).where(Article.id == article_id).values(deleted_at=datetime.now(timezone.utc))
         await db_session.execute(stmt)
+        # Invalidate Count Cache
+        await xohi_memory.clear_article_cache()
         return SuccessResponse(ok=True, id=article_id)
 
     @staticmethod
     async def bulk_delete(db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
         stmt = update(Article).where(Article.id.in_(ids)).values(deleted_at=datetime.now(timezone.utc))
         await db_session.execute(stmt)
+        # Invalidate Count Cache
+        await xohi_memory.clear_article_cache()
         return BulkActionResponse(ok=True, count=len(ids))
 
     @staticmethod
     async def bulk_publish(db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
         stmt = update(Article).where(Article.id.in_(ids)).values(status="PUBLISHED")
         await db_session.execute(stmt)
+        # Invalidate Count Cache
+        await xohi_memory.clear_article_cache()
         return BulkActionResponse(ok=True, count=len(ids))
 
     @staticmethod
@@ -195,6 +205,8 @@ class ArticleService:
             
         stmt = update(Article).where(Article.id.in_(ids)).values(**values)
         await db_session.execute(stmt)
+        # Invalidate Count Cache
+        await xohi_memory.clear_article_cache()
         return BulkActionResponse(ok=True, count=len(ids))
 
 article_service = ArticleService()

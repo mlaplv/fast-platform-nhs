@@ -401,6 +401,21 @@ class XoHiMemory:
         except Exception as e:
             logger.debug(f"[XoHiMemory] Redis chat push failed: {e}")
 
+    async def delete_pattern(self, pattern: str):
+        """Neural Clear: Delete all keys matching the literal pattern."""
+        try:
+            if self._use_redis:
+                keys = await self.client.keys(pattern)
+                if keys:
+                    await self.client.delete(*keys)
+                    logger.info(f"[XoHiMemory] Purged {len(keys)} keys matching '{pattern}'")
+        except Exception as e:
+            logger.warning(f"[XoHiMemory] Redis pattern delete failed: {e}")
+
+    async def clear_article_cache(self):
+        """Specifically clear all article count caches."""
+        await self.delete_pattern("articles:count:*")
+
 
 # Singleton
 xohi_memory = XoHiMemory()

@@ -26,6 +26,10 @@ class MediaRegistry(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     campaign_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('content_campaigns.id', ondelete='SET NULL'), index=True)
     owner_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('users.id', ondelete='SET NULL'), index=True)
 
+    # Post tracking: type = 'news' | 'product' | 'campaign' | ...
+    linked_post_id: Mapped[Optional[str]] = mapped_column(String, index=True)
+    linked_post_type: Mapped[Optional[str]] = mapped_column(String(30), index=True)
+
     # AI & Professional Metadata (Extensible)
     # Lưu: { "ai_tags": ["laptop", "office"], "original_url": "...", "compression_level": 85 }
     media_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
@@ -39,4 +43,5 @@ class MediaRegistry(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __table_args__ = (
         Index("ix_media_tenant_deleted", "tenant_id", "deleted_at"),
         Index("ix_media_campaign_provider", "campaign_id", "provider"),
+        Index("ix_media_linked_post", "linked_post_type", "linked_post_id"),
     )

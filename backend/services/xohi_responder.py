@@ -176,10 +176,24 @@ class XoHiResponder:
         logger.debug(f"[XoHiResponder] Progress (ephemeral): campaign={campaign_id} step={step} msg={msg[:60]}")
 
     async def handle_media_uploaded(self, payload: Dict[str, object]):
-        """Callback for MEDIA_UPLOADED event. Triggers AI analysis."""
+        """Callback for MEDIA_UPLOADED event. Triggers AI analysis if enabled."""
         asset_id = payload.get("id")
         campaign_id = payload.get("campaign_id")
         if not asset_id:
+            return
+
+        # R107: AI Vision Toggle — default OFF. Check Redis flag before running.
+        try:
+            from backend.services.xohi_memory import xohi_memory
+            enabled = await xohi_memory.client.get("ai:vision:enabled") if xohi_memory._use_redis else None
+            if enabled != "1":
+                logger.debug(f"[XoHiResponder] AI Vision is OFF — using heuristic analysis for asset {asset_id}")
+                from backend.services.xohi.creative_studio.operatives.media_analyst import MediaAnalyst
+                analyst = MediaAnalyst()
+                asyncio.create_task(analyst.heuristic_analysis(asset_id))
+                return
+        except Exception as e:
+            logger.warning(f"[XoHiResponder] Could not check AI Vision flag: {e}. Skipping analysis.")
             return
 
         # R106: Check content_mode to bypass AI if in 'normal' mode (Sếp Elite R00)
@@ -202,6 +216,7 @@ class XoHiResponder:
         # Chạy phân tích trong background (Non-blocking)
         asyncio.create_task(analyst.process_registry_entry(asset_id))
         logger.info(f"[XoHiResponder] Triggered AI Analysis for asset: {asset_id}")
+
 
 # Initialize and subscribe
 xohi_responder = XoHiResponder()

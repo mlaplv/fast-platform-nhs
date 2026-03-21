@@ -10,15 +10,20 @@
     RotateCcw,
     LayoutGrid,
     Upload,
+    Library,
+    X,
+    Flame
   } from "lucide-svelte";
   import { fade, scale } from "svelte/transition";
   import { vuiController } from "$lib/vui";
+  import FileManager from "$lib/components/media/FileManager.svelte";
 
   import type { MediaAsset } from "$lib/state/types";
 
   let {
     isProcessing,
     isExpanded,
+    isStandalone = false,
     assets = $bindable(),
     reserve_assets = $bindable(),
     customImageUrl = $bindable(),
@@ -32,6 +37,7 @@
   }: {
     isProcessing: boolean;
     isExpanded: boolean;
+    isStandalone?: boolean;
     assets: (MediaAsset | string)[];
     reserve_assets: (MediaAsset | string)[];
     customImageUrl: string;
@@ -183,7 +189,34 @@
       untrack(() => syncAssetChanges());
     }
   });
+  // Phase 15.4: Media Library Integration
+  let showLibrary = $state(false);
+  let pendingPurgeAsset = $state<MediaAsset | null>(null);
+
+  async function confirmPurge(asset: MediaAsset) {
+    if (!asset.id) return;
+    try {
+      await xohiImageStore.removeAsset(asset.id, true);
+      vuiController.speak("Đã xoá dứt điểm ảnh khỏi hệ thống.");
+      pendingPurgeAsset = null;
+    } catch (err) {
+      console.error("[AssetStep] Purge failed", err);
+      vuiController.speak("Dạ, có lỗi khi xoá dứt điểm ảnh ạ.");
+    }
+  }
+
+  function handleLibrarySelect(selectedAssets: MediaAsset[]) {
+    selectedAssets.forEach(asset => {
+      // Add to current project assets if not already there
+      if (!xohiImageStore.assets.find(a => a.id === asset.id)) {
+        xohiImageStore.addImagesFromUrl(asset.file_path || asset.url);
+      }
+    });
+    showLibrary = false;
+    vuiController.speak(`Dạ, em đã lấy ${selectedAssets.length} ảnh từ thư viện cho Sếp rồi ạ.`);
+  }
 </script>
+
 
 <div
   class="flex-1 flex flex-col space-y-6 pt-2 pb-8 p-4 md:p-6 max-w-[1400px] mx-auto w-full"
@@ -197,51 +230,18 @@
     </h5>
   </div>
 
-  <!-- Unified Command Bar: iPhone 18 Aesthetic -->
-  <div
-    class="flex flex-col md:flex-row md:items-end justify-between gap-4 px-1 -mt-3"
-  >
-    <div class="flex items-center gap-5">
-      <div
-        class="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/10 border border-blue-400/20 flex items-center justify-center shadow-[0_8px_30px_rgba(59,130,246,0.15)] group/icon"
-      >
-        <LayoutGrid
-          size={28}
-          class="text-blue-400 group-hover:scale-110 transition-transform duration-500"
-        />
-        <div
-          class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-slate-950 shadow-[0_0_10px_#3b82f6]"
-        ></div>
+  <!-- Tùy chọn hình ảnh: Clean & Professional -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1">
+    <div class="flex items-center gap-4">
+      <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-inner">
+        <LayoutGrid size={24} class="text-blue-400/80" />
       </div>
+      {#if !isStandalone}
       <div class="flex flex-col">
-        <div class="flex items-center gap-3 mb-1 whitespace-nowrap">
-          <span
-            class="text-[10px] text-blue-400 font-black tracking-[0.4em] uppercase"
-            >MEDIA INTELLIGENCE</span
-          >
-          <div
-            class="px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 shadow-inner"
-          >
-            <span
-              class="text-[8px] text-blue-300 font-black uppercase tracking-widest"
-              >Active</span
-            >
-          </div>
-        </div>
-        <h3
-          class="text-xl font-black text-white uppercase tracking-[0.2em] leading-tight"
-        >
-          VISUAL ASSETS COMMAND CENTER
-        </h3>
-        <div class="flex items-center gap-2 mt-1.5 opacity-40">
-          <div class="w-8 h-[1px] bg-white/20"></div>
-          <p
-            class="text-[9px] text-white font-bold uppercase tracking-widest italic"
-          >
-            XOHI // NEURAL STUDIO
-          </p>
-        </div>
+        <h3 class="text-lg font-bold text-white tracking-tight uppercase">TÙY CHỌN HÌNH ẢNH</h3>
+        <p class="text-[9px] text-white/30 font-bold uppercase tracking-[0.3em]">AI Generator & Web Upload</p>
       </div>
+      {/if}
     </div>
 
     <div class="flex flex-wrap items-center gap-3">
@@ -249,16 +249,16 @@
         <div class="flex items-center gap-3">
           <!-- URL Entry Island -->
           <div
-            class="flex bg-white/[0.02] hover:bg-white/[0.04] p-1.5 rounded-2xl border border-white/10 transition-all h-11 group/input focus-within:border-blue-500/40 shadow-2xl"
+            class="flex bg-white/[0.04] p-1.5 rounded-2xl border border-white/5 transition-all h-12 group/input focus-within:border-blue-500/40 shadow-inner"
           >
             <div
-              class="flex items-center justify-center pl-3 text-white/30 group-focus-within/input:text-blue-400 transition-colors"
+              class="flex items-center justify-center pl-3 text-white/20 group-focus-within/input:text-blue-400 transition-colors"
             >
               <LinkIcon size={16} />
             </div>
             <input
               type="url"
-              placeholder="Dán link ảnh tại đây..."
+              placeholder="Dán link ảnh (URL) tại đây..."
               bind:value={customImageUrl}
               onkeydown={(e) => {
                 if (
@@ -279,12 +279,9 @@
           <!-- Upload Island -->
           <label class="cursor-pointer group relative">
             <div
-              class="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"
-            ></div>
-            <div
-              class="relative bg-blue-600 hover:bg-blue-500 border border-white/10 px-6 py-3 rounded-2xl text-xs font-black text-white uppercase tracking-[0.15em] transition-all flex items-center gap-2 shadow-xl active:scale-95"
+              class="relative bg-blue-600 hover:bg-blue-500 border border-white/5 px-6 py-3.5 rounded-2xl text-[10px] font-black text-white uppercase tracking-widest transition-all flex items-center gap-2 shadow-xl active:scale-95"
             >
-              <Upload size={16} class="text-white/80" />
+              <Upload size={14} class="text-white/80" />
               Tải ảnh lên
             </div>
             <input
@@ -299,13 +296,24 @@
         </div>
       {/if}
 
+      <!-- Library Link Island -->
+      {#if !isStandalone}
+        <button 
+          onclick={() => showLibrary = true}
+          class="bg-indigo-600 hover:bg-indigo-500 border border-white/5 px-6 py-3.5 rounded-2xl text-[10px] font-black text-white uppercase tracking-widest transition-all flex items-center gap-2 shadow-xl active:scale-95 group"
+        >
+          <Library size={14} class="text-white/80 group-hover:rotate-12 transition-transform" />
+          Mở thư viện
+        </button>
+      {/if}
+
       <!-- Found Count Badge -->
       <div
-        class="px-6 py-3 rounded-2xl bg-white/[0.03] border border-white/10 shadow-2xl backdrop-blur-md"
+        class="px-5 py-3.5 rounded-2xl bg-white/[0.04] border border-white/5 shadow-inner"
       >
         <span
-          class="text-[10px] text-white/40 font-black uppercase tracking-[0.2em]"
-          >Assets Found // <span class="text-blue-400 ml-1"
+          class="text-[9px] text-white/40 font-black uppercase tracking-[0.2em]"
+          >Đã chọn // <span class="text-blue-400 ml-1"
             >{xohiImageStore.assets.length}</span
           ></span
         >
@@ -314,10 +322,10 @@
   </div>
 
   <div
-    class="transition-all duration-700 min-h-[310px] relative bg-gradient-to-br from-blue-500/10 via-white/[0.01] to-transparent rounded-[2rem] border border-white/10 shadow-2xl mb-0"
+    class="transition-all duration-700 min-h-[310px] relative {xohiImageStore.assets.length > 0 ? 'bg-gradient-to-br from-blue-500/10 via-white/[0.01] to-transparent rounded-[2rem] border border-white/10 shadow-2xl' : ''} mb-0"
   >
     <div class="p-2 md:p-3">
-      <ImageGrid />
+      <ImageGrid onPurge={(asset) => pendingPurgeAsset = asset} />
     </div>
   </div>
 
@@ -331,7 +339,7 @@
           ></div>
           <span
             class="text-[10px] text-amber-500/80 font-black tracking-[0.4em] uppercase"
-            >RECENT INTELLIGENCE ASSETS</span
+            >HÌNH ẢNH DỰ PHÒNG</span
           >
         </div>
         <div
@@ -406,7 +414,113 @@
   {/if}
 </div>
 
-{#if assets.length === 0 && !isProcessing}
+<!-- CNS V78: Media Library Modal (Full Manager Picker) -->
+{#if showLibrary}
+  <div 
+    class="fixed inset-0 z-[60] flex items-center justify-center p-4 md:p-8 bg-slate-950/80 backdrop-blur-2xl"
+    transition:fade
+  >
+    <div 
+      class="relative w-full h-full max-w-7xl bg-[#0a0c10] rounded-[2.5rem] border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden"
+      transition:scale={{ duration: 500, start: 0.95 }}
+    >
+      <!-- Header -->
+      <div class="flex items-center justify-between px-8 py-6 border-b border-white/5 bg-white/[0.02]">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
+            <Library class="text-indigo-400" size={24} />
+          </div>
+          <div>
+            <h2 class="text-xl font-black text-white uppercase tracking-widest leading-none">THƯ VIỆN HỆ THỐNG</h2>
+            <p class="text-[9px] text-white/30 font-bold uppercase tracking-[0.3em] mt-1.5 flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+              Kho ảnh hệ thống // Chế độ chọn ảnh
+            </p>
+          </div>
+        </div>
+        <button 
+          onclick={() => showLibrary = false}
+          class="p-4 bg-white/5 hover:bg-red-500/20 text-white/20 hover:text-red-400 rounded-2xl transition-all border border-white/5 hover:border-red-500/30 group"
+          title="Đóng thư viện"
+        >
+          <X size={20} class="group-hover:rotate-90 transition-transform" />
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="flex-1 overflow-hidden relative">
+        <FileManager 
+          mode="pick" 
+          onSelect={handleLibrarySelect} 
+        />
+      </div>
+
+      <!-- Footer HUD -->
+      <div class="px-8 py-4 bg-black/40 border-t border-white/5 flex items-center justify-between">
+        <div class="flex items-center gap-4 text-[7px] font-mono text-white/10 uppercase tracking-[0.3em]">
+          <span>XOHI PROTOCOL V.03-ALPHA</span>
+          <span class="w-1 h-1 rounded-full bg-white/10"></span>
+          <span>EST_CONN: STABLE</span>
+        </div>
+        <button 
+          onclick={() => showLibrary = false}
+          class="px-8 py-3 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-white/10 active:scale-95"
+        >
+          Đóng thư viện
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- CNS V78.2: Hard Delete (Purge) Confirmation Modal -->
+{#if pendingPurgeAsset}
+  <div 
+    class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-red-950/40 backdrop-blur-md"
+    transition:fade
+  >
+    <div 
+      class="w-full max-w-sm bg-slate-900 border border-red-500/30 rounded-[2rem] p-8 shadow-[0_20px_60px_rgba(239,68,68,0.2)]"
+      transition:scale
+    >
+      <div class="flex flex-col items-center text-center gap-6">
+        <div class="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 animate-pulse">
+          <Flame size={32} />
+        </div>
+        
+        <div>
+          <h3 class="text-lg font-black text-white uppercase tracking-widest leading-none">XÁCH NHẬN XOÁ VĨNH VIỄN?</h3>
+          <p class="text-[10px] text-red-400 font-bold uppercase tracking-widest mt-2">Ảnh này sẽ bị xóa khỏi hệ thống, không thể hoàn tác!</p>
+        </div>
+
+        <div class="w-24 h-24 rounded-2xl border border-white/5 overflow-hidden shadow-inner">
+          <img src={pendingPurgeAsset.file_path} alt="Purge Preview" class="w-full h-full object-cover" />
+        </div>
+
+        <p class="text-[10px] text-white/40 font-medium leading-relaxed">
+          Hành động này không thể hoàn tác. Ảnh sẽ bị xóa vĩnh viễn khỏi máy chủ của Sếp.
+        </p>
+
+        <div class="grid grid-cols-2 gap-3 w-full">
+          <button 
+            onclick={() => pendingPurgeAsset = null}
+            class="py-3 px-4 bg-white/5 hover:bg-white/10 text-white/60 font-black text-[10px] uppercase tracking-widest rounded-xl transition-all border border-white/5"
+          >
+            Hủy bỏ
+          </button>
+          <button 
+            onclick={() => { if (pendingPurgeAsset) confirmPurge(pendingPurgeAsset); }}
+            class="py-3 px-4 bg-red-600 hover:bg-red-500 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-[0_10px_30px_rgba(220,38,38,0.4)] active:scale-95"
+          >
+            XÁC NHẬN XOÁ
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if assets.length === 0 && !isProcessing && !isStandalone}
   <div
     class="flex flex-col items-center justify-center py-12 text-center gap-4"
     in:fade={{ duration: 300 }}
@@ -433,6 +547,10 @@
 {/if}
 
 <style>
+  .neural-grid-glow {
+    background: radial-gradient(1000px circle at var(--x) var(--y), rgba(59, 130, 246, 0.08), transparent 40%);
+  }
+
   /* Subtle Custom Scrollbar - Vertical */
   .custom-scrollbar::-webkit-scrollbar {
     width: 3px;

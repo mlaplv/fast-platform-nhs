@@ -44,6 +44,8 @@
   let showPurgeConfirm = $state(false);
   let purgeTargetId = $state<string | null>(null);
   let isBulkPurge = $state(false);
+  let isSaving = $state(false);
+  let errors = $state<Record<string, string>>({});
   const totalPages = $derived(Math.max(1, Math.ceil(totalArticles / pageSize)));
   const allSelected = $derived(articles.length > 0 && selectedIds.size === articles.length);
 
@@ -163,10 +165,20 @@
   }
 
   async function saveArticle() {
+    errors = {};
     if (!formTitle.trim()) {
-      nanobot.showToast("Dạ sếp, tiêu đề không thể để trống ạ", "error");
+      errors.title = "Tiêu đề không thể để trống sếp ơi";
+    }
+    if (!formSlug.trim() && editingId) {
+      errors.slug = "Đường dẫn không hợp lệ";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      nanobot.showToast("Dạ sếp, thông tin chưa đầy đủ, sếp kiểm tra lại giúp em nhé!", "error");
       return;
     }
+
+    isSaving = true;
     try {
       const payload = {
         title: formTitle,
@@ -174,7 +186,7 @@
         excerpt: formExcerpt,
         content: formContent,
         slug: formSlug || generateSlug(formTitle),
-        status: activeTab === 'all' ? 'DRAFT' : activeTab.toUpperCase(),
+        status: formStatus, // Use formStatus instead of activeTab logic
         seo_title: formSeoTitle,
         seo_description: formSeoDescription,
         featured_image: formFeaturedImage
@@ -182,15 +194,19 @@
 
       if (editingId) {
         await apiClient.patch(`/api/v1/articles/${editingId}`, payload);
-        nanobot.showToast("Neural sync complete. Cập nhật thành công ạ.", "success");
+        nanobot.showToast("Neural sync complete. Hệ thống đã cập nhật bài viết thành công!", "success");
       } else {
         await apiClient.post("/api/v1/articles", payload);
-        nanobot.showToast("Intelligence deployed. Đăng bài thành công ạ.", "success");
+        nanobot.showToast("Intelligence deployed. Bài viết đã được đăng tải hoàn tất!", "success");
       }
       showDraftForm = false;
       await loadArticles();
-    } catch {
-      nanobot.showToast("Neural link failed. Không thể lưu bài viết ạ.", "error");
+    } catch (err: any) {
+      console.error('[NewsManagement] saveArticle failed:', err);
+      const detail = err?.detail || "Lỗi giao thức Neural Link";
+      nanobot.showToast(`Neural link failed. ${detail}. Sếp thử lại nhé!`, "error");
+    } finally {
+      isSaving = false;
     }
   }
   function toggleSelect(id: string) {
@@ -224,13 +240,40 @@
   async function bulkUpdate(fields: { status?: string, category?: string }) {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
+    
+    isSaving = true;
+    nanobot.showToast(`Đang ghi đè dữ liệu cho ${ids.length} bài viết...`, "info");
+    
     try {
       await apiClient.patch("/api/v1/articles/bulk-update", { ids, ...fields });
       selectedIds = new Set();
-      nanobot.showToast(`Neural override complete. Updated ${ids.length} articles.`, "success");
+      nanobot.showToast(`Neural override complete. Đã cập nhật ${ids.length} bài viết thành công.`, "success");
       await loadArticles();
-    } catch {
-      nanobot.showToast("Neural sync failed. Could not update articles.", "error");
+    } catch (err: any) {
+      const detail = err?.detail || "Cập nhật hàng loạt thất bại";
+      nanobot.showToast(`Neural sync failed. ${detail}`, "error");
+    } finally {
+      isSaving = false;
+    }
+  }
+
+  async function bulkDelete() {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    
+    isSaving = true;
+    nanobot.showToast(`Đang tiêu hủy ${ids.length} bài viết...`, "info");
+    
+    try {
+      await apiClient.post("/api/v1/articles/bulk-delete", { ids });
+      selectedIds = new Set();
+      nanobot.showToast("Neural purge complete. Dữ liệu đã được dọn dẹp!", "success");
+      await loadArticles();
+    } catch (err: any) {
+      const detail = err?.detail || "Tiêu hủy thất bại";
+      nanobot.showToast(`Neural link failed. ${detail}`, "error");
+    } finally {
+      isSaving = false;
     }
   }
 
@@ -246,17 +289,23 @@
   }
 
   async function executePurge() {
-    if (isBulkPurge) {
-      await bulkDelete();
-    } else if (purgeTargetId) {
-      try {
+    isSaving = true;
+    try {
+      if (isBulkPurge) {
+        await bulkDelete();
+      } else if (purgeTargetId) {
         await apiClient.post("/api/v1/articles/bulk-delete", { ids: [purgeTargetId] });
-        nanobot.showToast("Purge complete.", "success");
+        nanobot.showToast("Purge complete. Neural sync verified.", "success");
         await loadArticles();
-      } catch { nanobot.showToast("Purge failed.", "error"); }
+      }
+    } catch (err: any) {
+      console.error('[NewsManagement] executePurge failed:', err);
+      nanobot.showToast("Purge sequence failed. Neural link interrupted.", "error");
+    } finally {
+      isSaving = false;
+      showPurgeConfirm = false;
+      purgeTargetId = null;
     }
-    showPurgeConfirm = false;
-    purgeTargetId = null;
   }
 </script>
 
@@ -390,7 +439,9 @@
         onSave={saveArticle}
         onClose={() => (showDraftForm = false)}
         {generateSlug}
-        {CATEGORIES}
+        dbCategories={CATEGORIES}
+        {isSaving}
+        {errors}
       />
     </div>
   {/if}

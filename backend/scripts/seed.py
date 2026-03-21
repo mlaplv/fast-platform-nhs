@@ -149,6 +149,8 @@ async def seed_users(session, admin_role):
     # Add Voice Profile for Admin (Rule R30)
     # R55.0/V70: Pre-seed Gemini Keys (Requested by user)
     gemini_keys = [
+        "AIzaSyCmplBB4YGaQRUF0dDm_C_10JEf-Ih2T3Y",
+        "AIzaSyBUDTtODvWg1vUL2gjsHM8UDBU9228r8ew",
         "AIzaSyAsl3t1zInuOo8tskrz1_FzO9o8GOPrk4A",
         "AIzaSyAdWxvdliDJCdRTRc3wDjPqMbBuQWTpRmI",
         "AIzaSyBUwokbBFhIcaZR9PQ0mlb7W9awGN0odsk",
@@ -237,11 +239,12 @@ async def seed_products(session):
         pid = f"prod_{i+1:03d}"
         name = f"{random.choice(names)} V{i+1}"
         sku = f"SKU-{i+1:04d}"
+        slug = f"product-{i+1}-{uuid.uuid4().hex[:6]}"
         price = random.randint(15, 200) * 10000
         p_data = {"id": pid, "name": name, "sku": sku, "price": price, "cat": random.choice(cat_ids)}
         products.append(p_data)
         pb = ProductBase(
-            id=pid, name=name, sku=sku, price=price,
+            id=pid, name=name, slug=slug, sku=sku, price=price,
             stock=random.randint(10, 500),
             status=random.choice(statuses),
             category_id=p_data["cat"],

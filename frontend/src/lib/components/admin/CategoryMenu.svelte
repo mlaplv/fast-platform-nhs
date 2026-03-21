@@ -13,6 +13,7 @@
   import BoxIcon from "lucide-svelte/icons/box";
   import UserCog from "lucide-svelte/icons/user-cog";
   import Shield from "lucide-svelte/icons/shield";
+  import Image from "lucide-svelte/icons/image";
   import { fade, fly } from "svelte/transition";
 
   let { open = $bindable() } = $props();
@@ -80,6 +81,14 @@
       sublabel: "Bài viết & Blog",
       widget: "NEWS_MANAGEMENT",
       color: "#FF33FF",
+    },
+    {
+      id: "media",
+      icon: Image,
+      label: "Thư viện Ảnh",
+      sublabel: "Toàn cục & Quản lý file",
+      widget: "MEDIA_MANAGER",
+      color: "#00F3FF", // matching neon-cyan for media
     }
   ];
 

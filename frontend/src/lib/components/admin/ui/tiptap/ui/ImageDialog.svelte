@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { MediaAsset } from "$lib/state/types";
-  import MediaModal from "$lib/components/media/MediaModal.svelte";
+  import FileManager from "$lib/components/media/FileManager.svelte";
 
   import { onMount } from "svelte";
   import { portal } from "$lib/actions/portal";
@@ -167,15 +167,25 @@
     </div>
   </div>
 
-  <MediaModal
-    bind:show={showMediaLibrary}
-    onSelect={(asset) => {
-      onSelect(asset.file_path);
-      showMediaLibrary = false;
-      show = false;
-    }}
-    onClose={() => showMediaLibrary = false}
-  />
+  {#if showMediaLibrary}
+    <div use:portal class="fixed inset-0 z-[1050] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-8" onclick={() => showMediaLibrary = false}>
+      <div class="w-full h-full max-w-7xl max-h-[85vh] bg-zinc-900 rounded-2xl overflow-hidden shadow-2xl flex flex-col relative border border-white/10" onclick={(e) => e.stopPropagation()}>
+        <button onclick={() => showMediaLibrary = false} class="absolute top-4 right-4 z-50 p-2 bg-black/50 hover:bg-black text-white/50 hover:text-white rounded-lg transition-all backdrop-blur-md border border-white/10">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+        <div class="flex-1 overflow-hidden">
+          <FileManager
+            standalone={true}
+            onSelect={(asset) => {
+              onSelect(asset.file_path);
+              showMediaLibrary = false;
+              show = false;
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  {/if}
 {/if}
 
 <style>

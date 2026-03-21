@@ -105,18 +105,18 @@
     <div class="flex flex-col gap-2">
       <div class="text-[10px] font-black text-[#FFB800] uppercase tracking-[0.4em] flex items-center gap-2">
         <div class="w-1.5 h-1.5 rounded-full bg-[#FFB800] animate-pulse"></div>
-        {editingId ? "Product Mutation Active" : "Initialize New Asset"}
+        {editingId ? "Sửa đổi thuộc tính sản phẩm" : "Tạo mới sản phẩm"}
       </div>
-      <h2 class="text-2xl font-bold text-white tracking-tight">{formName || "Untitled_Entity"}</h2>
+      <h2 class="text-2xl font-bold text-white tracking-tight">{formName || "Sản phẩm chưa đặt tên"}</h2>
     </div>
 
     <div class="flex items-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/10 overflow-x-auto custom-scrollbar no-scrollbar">
       {#each [
-        { id: "general", label: "General", icon: Settings },
-        { id: "content", label: "Content", icon: FileText },
-        { id: "media", label: "Media", icon: ImageIcon },
+        { id: "general", label: "Thông tin", icon: Settings },
+        { id: "content", label: "Mô tả", icon: FileText },
+        { id: "media", label: "Hình ảnh", icon: ImageIcon },
         { id: "seo", label: "SEO", icon: Globe },
-        { id: "attrs", label: "Specs", icon: Tag }
+        { id: "attrs", label: "Thông số", icon: Tag }
       ] as tab}
         <button 
           onclick={() => activeTab = tab.id}
@@ -134,18 +134,18 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" transition:slide>
         <div class="flex flex-col gap-6">
           <div class="flex flex-col gap-2">
-            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Universal_Name</label>
+            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Tên sản phẩm</label>
             <div class="relative bg-white/[0.03] border border-white/5 focus-within:border-[#FFB800]/40 rounded-2xl transition-all shadow-inner">
               <input 
                 bind:value={formName} 
                 oninput={() => { if (!editingId) formSlug = generateSlug(formName); }}
-                placeholder="Product title..." 
+                placeholder="Nhập tên sản phẩm..." 
                 class="w-full bg-transparent py-4 px-6 text-sm text-gray-100 placeholder:text-gray-700 focus:outline-none" 
               />
             </div>
           </div>
           <div class="flex flex-col gap-2">
-            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">SKU_Code</label>
+            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Mã sản phẩm (SKU)</label>
             <div class="relative bg-white/[0.03] border border-white/5 focus-within:border-[#FFB800]/40 rounded-2xl transition-all shadow-inner">
               <input bind:value={formSku} placeholder="SKU-XXXX..." class="w-full bg-transparent py-4 px-6 text-sm text-[#FFB800] font-mono placeholder:text-gray-700 focus:outline-none uppercase" />
             </div>
@@ -154,27 +154,27 @@
 
         <div class="flex flex-col gap-6">
           <div class="flex flex-col gap-2">
-            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Valuation (VND)</label>
+            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Giá bán (VND)</label>
             <div class="relative bg-white/[0.03] border border-white/5 focus-within:border-[#FFB800]/40 rounded-2xl transition-all shadow-inner">
               <input type="number" bind:value={formPrice} placeholder="0" class="w-full bg-transparent py-4 px-6 text-sm text-gray-100 font-mono focus:outline-none" />
               <div class="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] text-gray-600 font-bold">VND</div>
             </div>
           </div>
           <div class="flex flex-col gap-2">
-            <label class="text-[9px) font-bold text-gray-500 uppercase tracking-widest ml-1">Inventory_Stock</label>
+            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Tồn kho</label>
             <div class="relative bg-white/[0.03] border border-white/5 focus-within:border-[#FFB800]/40 rounded-2xl transition-all shadow-inner">
               <input type="number" bind:value={formStock} placeholder="0" class="w-full bg-transparent py-4 px-6 text-sm text-gray-100 font-mono focus:outline-none" />
-              <div class="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] text-gray-600 font-bold">UNITS</div>
+              <div class="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] text-gray-600 font-bold">SẢN PHẨM</div>
             </div>
           </div>
         </div>
 
         <div class="flex flex-col gap-6">
           <div class="flex flex-col gap-2">
-            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Classification</label>
+            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Danh mục</label>
             <div class="relative bg-white/[0.03] border border-white/5 focus-within:border-[#FFB800]/40 rounded-2xl transition-all shadow-inner">
               <select bind:value={formCategory} class="w-full bg-[#0a0a0a] py-4 px-6 text-sm text-gray-300 focus:outline-none rounded-2xl appearance-none">
-                <option value="">Ungrouped_Node</option>
+                <option value="">Chưa phân loại</option>
                 {#each categories as cat}
                   <option value={cat.id}>{cat.name}</option>
                 {/each}
@@ -182,10 +182,10 @@
             </div>
           </div>
           <div class="flex flex-col gap-2">
-            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Availability_Status</label>
+            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Trạng thái hiện thị</label>
             <div class="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
-              <button onclick={() => formStatus = 'active'} class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all {formStatus === 'active' ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'text-gray-500 hover:text-white'}">Active</button>
-              <button onclick={() => formStatus = 'draft'} class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all {formStatus === 'draft' ? 'bg-[#FFB800]/20 text-[#FFB800]' : 'text-gray-500 hover:text-white'}">Draft</button>
+              <button onclick={() => formStatus = 'active'} class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all {formStatus === 'active' ? 'bg-[#39FF14]/20 text-[#39FF14]' : 'text-gray-500 hover:text-white'}">Hoạt động</button>
+              <button onclick={() => formStatus = 'draft'} class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all {formStatus === 'draft' ? 'bg-[#FFB800]/20 text-[#FFB800]' : 'text-gray-500 hover:text-white'}">Bản thảo</button>
             </div>
           </div>
         </div>
@@ -200,23 +200,9 @@
         </div>
       </div>
     {:else if activeTab === "media"}
-      <div class="flex flex-col gap-8" transition:slide>
-         <button 
-           onclick={(e) => { e.preventDefault(); showMediaModal = true; }}
-           class="w-fit relative group/btn overflow-hidden rounded-[1.8rem] p-[1px] transition-all duration-500 hover:scale-[1.01] active:scale-95 shadow-2xl"
-         >
-           <div class="absolute inset-0 bg-gradient-to-r from-[#FFB800] via-amber-400 to-[#FFB800] animate-rotate-slow opacity-20 group-hover/btn:opacity-100 transition-opacity"></div>
-           <div class="relative h-full w-full bg-[#0a0a0a] rounded-[calc(1.8rem-1px)] py-5 px-8 flex items-center justify-center gap-4 border border-white/5">
-             <div class="w-10 h-10 rounded-xl bg-[#FFB800]/10 flex items-center justify-center group-hover/btn:bg-[#FFB800]/20 transition-colors">
-               <Plus size={20} class="text-[#FFB800]" />
-             </div>
-             <div class="flex flex-col items-start">
-               <span class="text-[11px] font-black text-white uppercase tracking-[0.2em]">Open MEDIA INTELLIGENCE</span>
-               <span class="text-[7px] font-mono text-[#FFB800]/40 uppercase tracking-widest mt-0.5">Manage Neural_Assets</span>
-             </div>
-           </div>
-         </button>
-
+      <div class="flex flex-col gap-4" transition:slide>
+        <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Bộ sưu tập hình ảnh sản phẩm</label>
+        
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {#each formImages.filter(img => img && img.includes('/')) as img, i}
             <div class="aspect-square rounded-2xl bg-white/5 border border-white/10 relative group overflow-hidden">
@@ -228,34 +214,44 @@
               </div>
             </div>
           {/each}
-          {#if formImages.length === 0}
-            <div class="col-span-full py-20 border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center opacity-30">
-              <ImageIcon size={48} class="mb-4" />
-              <div class="text-[10px] font-bold uppercase tracking-[0.3em]">No_Visual_Data_Projected</div>
-            </div>
-          {/if}
+          
+          <!-- Add Image Card -->
+          <button 
+            onclick={() => showMediaModal = true}
+            class="aspect-square rounded-2xl border-2 border-dashed border-white/5 hover:border-amber-500/30 bg-white/[0.02] hover:bg-amber-500/[0.02] transition-all flex flex-col items-center justify-center gap-2 group/add"
+          >
+            <Plus size={24} class="text-amber-500/50 group-hover/add:text-amber-400 transition-colors" />
+            <span class="text-[9px] font-black text-white/40 group-hover/add:text-white uppercase tracking-widest">Thêm hình</span>
+          </button>
         </div>
+
+        {#if formImages.length === 0}
+          <div class="py-10 border border-white/5 rounded-3xl flex flex-col items-center justify-center opacity-30 mt-4">
+            <ImageIcon size={32} class="mb-3 text-amber-500/50" />
+            <div class="text-[9px] font-bold uppercase tracking-[0.2em]">Chưa có hình ảnh được chọn</div>
+          </div>
+        {/if}
       </div>
     {:else if activeTab === "seo"}
       <div class="max-w-3xl flex flex-col gap-8" transition:slide>
         <div class="flex flex-col gap-2">
-          <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">SEO_Slug_Identifier</label>
+          <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Đường dẫn sản phẩm (Slug)</label>
           <div class="relative bg-white/[0.03] border border-white/5 focus-within:border-blue-500/40 rounded-2xl transition-all shadow-inner">
             <div class="absolute left-6 top-1/2 -translate-y-1/2 text-gray-700 font-mono text-xs">/products/</div>
-            <input bind:value={formSlug} placeholder="slug-path..." class="w-full bg-transparent py-4 pl-24 pr-6 text-sm text-blue-400 font-mono focus:outline-none" />
+            <input bind:value={formSlug} placeholder="slug-san-pham..." class="w-full bg-transparent py-4 pl-24 pr-6 text-sm text-blue-400 font-mono focus:outline-none" />
           </div>
         </div>
         <div class="flex flex-col gap-2">
-          <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Search_Index_Title</label>
+          <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Tiêu đề SEO</label>
           <div class="relative bg-white/[0.03] border border-white/5 focus-within:border-blue-500/40 rounded-2xl transition-all shadow-inner">
-            <input bind:value={formSeoTitle} placeholder={formName} class="w-full bg-transparent py-4 px-6 text-sm text-gray-100 focus:outline-none" />
+            <input bind:value={formSeoTitle} placeholder="Nhập tiêu đề SEO..." class="w-full bg-transparent py-4 px-6 text-sm text-gray-100 focus:outline-none" />
             <div class="absolute right-6 top-1/2 -translate-y-1/2 text-[9px] font-mono text-gray-600">{formSeoTitle.length}/60</div>
           </div>
         </div>
         <div class="flex flex-col gap-2">
-          <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Index_Description_Meta</label>
+          <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Mô tả SEO</label>
           <div class="relative bg-white/[0.03] border border-white/10 focus-within:border-blue-500/40 rounded-2xl transition-all shadow-inner">
-            <textarea bind:value={formSeoDescription} placeholder="Meta data for search engine results..." rows="4" class="w-full bg-transparent py-4 px-6 text-sm text-gray-100 focus:outline-none resize-none"></textarea>
+            <textarea bind:value={formSeoDescription} placeholder="Nhập mô tả SEO cho sản phẩm..." rows="4" class="w-full bg-transparent py-4 px-6 text-sm text-gray-100 focus:outline-none resize-none"></textarea>
             <div class="absolute right-6 bottom-4 text-[9px] font-mono text-gray-600">{formSeoDescription.length}/160</div>
           </div>
         </div>
@@ -295,12 +291,12 @@
   </div>
 
   <div class="flex items-center justify-end gap-4 mt-8 pt-8 border-t border-white/5">
-    <button onclick={onClose} class="px-8 py-4 text-gray-500 hover:text-white text-[10px] font-black uppercase tracking-[0.3em] transition-all">Abort_Mutation</button>
+    <button onclick={onClose} class="px-8 py-4 text-gray-500 hover:text-white text-[10px] font-black uppercase tracking-[0.3em] transition-all">Hủy bỏ</button>
     <button
       onclick={onSave}
       class="px-12 py-4 bg-[#FFB800] text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] hover:shadow-[0_0_50px_rgba(255,184,0,0.4)] hover:scale-[1.02] active:scale-95 transition-all duration-400 shadow-[0_10px_30px_rgba(255,184,0,0.2)]"
     >
-      {editingId ? "Sync_Object_State" : "Deploy_Asset"}
+      {editingId ? "Cập nhật" : "Lưu sản phẩm"}
     </button>
   </div>
 </div>
