@@ -199,7 +199,7 @@ function init_deploy() {
     run_backend --env-file "${PWD}/.env" alembic -c backend/alembic.ini upgrade head
     
     echo -e "${CYAN}[6/6] Gieo mầm dữ liệu (Seeding Database)...${NC}"
-    docker compose exec -T api python3 backend/scripts/seed.py
+    docker compose exec -T api python3 -m backend.scripts.seed
     
     echo -e "${YELLOW}Đang khởi động UI và hoàn tất...${NC}"
     docker compose up -d ui
@@ -214,7 +214,7 @@ function init_deploy() {
 function seed_db() {
     echo -e "${YELLOW}=== [SEED] KHỞI TẠO DỮ LIỆU MẪU (R1.5) ===${NC}"
     check_deps
-    docker compose exec -T api python3 backend/scripts/seed.py
+    docker compose exec -T api python3 -m backend.scripts.seed
     echo -e "${GREEN}== SEEDING HOÀN TẤT! ==${NC}"
     read -p "Nhấn Enter để quay lại menu..."
 }
@@ -287,7 +287,7 @@ while true; do
             run_tests
             ;;
         7)
-            run_backend --env-file "${PWD}/.env" python3 backend/scripts/audit_v61.py
+            run_backend --env-file "${PWD}/.env" python3 -m backend.scripts.audit_v61
             read -p "Nhấn Enter để tiếp tục..."
             ;;
         8)
