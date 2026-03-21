@@ -13,12 +13,11 @@ import { AnnotationExtension } from './AnnotationPlugin';
 
 export const getEditorExtensions = (placeholderText: string = 'Start writing...') => [
   StarterKit.configure({
-    typography: false,
-    bold: true,
-    italic: true,
-    strike: true,
-    code: true,
-    history: true,
+    bold: {},
+    italic: {},
+    strike: {},
+    code: {},
+    history: {},
     link: false,
     underline: false
   }),
@@ -32,6 +31,22 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
     addAttributes() {
       return {
         ...this.parent?.(),
+        src: {
+          default: null,
+          parseHTML: element => element.getAttribute('src'),
+          renderHTML: attributes => {
+            if (!attributes.src) return {};
+            return { src: attributes.src };
+          },
+        },
+        alt: {
+          default: null,
+          parseHTML: element => element.getAttribute('alt'),
+          renderHTML: attributes => {
+            if (!attributes.alt) return {};
+            return { alt: attributes.alt };
+          },
+        },
         class: {
           default: 'max-w-full mx-auto my-4 shadow-lg flex',
           parseHTML: element => element.getAttribute('class'),

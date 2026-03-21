@@ -116,7 +116,8 @@
           </label>
           <div class="flex-1 min-h-[180px] rounded-2xl overflow-hidden border border-white/5 focus-within:border-[#00FFFF]/20 transition-all">
             <TiptapEditor 
-              bind:content={formDescription}
+              content={formDescription}
+              onChange={(val) => { formDescription = val; }}
               placeholder="Describe this category for your customers and search engines..."
             />
           </div>

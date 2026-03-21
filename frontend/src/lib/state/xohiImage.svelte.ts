@@ -122,8 +122,10 @@ export function createXohiImageState() {
             try {
                 const url = permanent ? `/api/v1/media/${id}?permanent=true` : `/api/v1/media/${id}`;
                 await apiClient.delete(url);
-            } catch (e) {
-                console.error("Failed to delete asset from server", e);
+            } catch (error) {
+                console.error("Failed to delete asset from server", error);
+                // Throw so the UI can catch and notify the user
+                throw error;
             }
         }
 
@@ -160,6 +162,7 @@ export function createXohiImageState() {
             assets.push(newAsset);
         } catch (error) {
             console.error("Failed to fetch remote image", error);
+            throw error;
         }
     }
 

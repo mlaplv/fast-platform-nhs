@@ -6,7 +6,7 @@
   import type { EditorAnnotation, ToolbarAction } from '$lib/types';
 
   import Toolbar from './ui/Toolbar.svelte';
-  import ImageDialog from './ui/ImageDialog.svelte';
+  import MediaVaultModal from "../../../media/MediaVaultModal.svelte";
   import LinkDialog from './ui/LinkDialog.svelte';
   import StatusBar from './ui/StatusBar.svelte';
   import AnnotationTooltip from './ui/AnnotationTooltip.svelte';
@@ -15,7 +15,7 @@
   import { apiClient } from '$lib/utils/apiClient';
 
   let {
-    content = "",
+    content = $bindable(""),
     onChange = () => {},
     editable = true,
     placeholder = "Start writing...",
@@ -26,6 +26,7 @@
     annotations = [] as EditorAnnotation[],
     onfix = null,
     onblur = () => {},
+    campaignId = undefined,
   }: {
     content?: string;
     onChange?: (val: string) => void;
@@ -38,6 +39,7 @@
     annotations?: EditorAnnotation[];
     onfix?: ((snippet: string, type: string, message: string) => Promise<string | null>) | null;
     onblur?: () => void;
+    campaignId?: string;
   } = $props();
 
   let internalFullScreen = $state<boolean | undefined>(undefined);
@@ -63,14 +65,14 @@
   let wordCount = $state(0);
   let charCount = $state(0);
 
-  let showImageDialog = $state(false);
+  let showMediaVault = $state(false);
   let showLinkDialog = $state(false);
   let currentLinkUrl = $state('');
   
   // Guard against double-click bleed-through from dialog
   let lastDialogCloseAt = 0;
   $effect(() => {
-    if (!showImageDialog) lastDialogCloseAt = Date.now();
+    if (!showMediaVault) lastDialogCloseAt = Date.now();
   });
 
   // Tooltip tracking
@@ -99,6 +101,27 @@
   let isSyncLocked = false;
 
   // ✦ Cerberus 2026: Frontend Clean — Jaccard near-duplicate dedup + Viral 2026 Polish (Phase 76.9)
+  // Extract meaningful word tokens: lowercase, NFC, strip digits + punctuation (Viral 2026 Core)
+  function tokenize(text: string): Set<string> {
+    const normalized = text.toLowerCase().normalize('NFC');
+    const words = normalized
+      .replace(/\d+/g, '')                        // strip numbers (noise like 1111)
+      .replace(/[^\w\s\u00C0-\u024F\u1E00-\u1EFF]/g, ' ')  // strip punctuation/emoji
+      .split(/\s+/)
+      .filter(w => w.length >= 2);                // skip very short tokens
+    return new Set(words);
+  }
+
+  // Jaccard similarity between two word sets
+  function jaccard(a: Set<string>, b: Set<string>): number {
+    if (a.size === 0 && b.size === 0) return 1;
+    if (a.size === 0 || b.size === 0) return 0;
+    let intersect = 0;
+    a.forEach(w => { if (b.has(w)) intersect++; });
+    const union = a.size + b.size - intersect;
+    return intersect / union;
+  }
+
   async function handleClean() {
     console.log('[Clean] ▶ handleClean fired (Viral 2026 Edition)');
     if (!editor || editor.isDestroyed) {
@@ -138,57 +161,34 @@
         }
       });
 
-      // 2. Local Dedup (Jaccard)
-      const allBlocks = div.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote');
-      console.log('[Clean] Total blocks for dedup:', allBlocks.length);
+      // 2. Structural Dedup (Viral 2026 Edition)
+      // Rule: Identify near-duplicate blocks while preserving the document hierarchy.
+      const THRESHOLD = 0.85; 
+      const keptTokens: Array<{ tokens: Set<string>; el: Element }> = [];
+      let removedCount = 0;
 
-      // Extract meaningful word tokens: lowercase, NFC, strip digits + punctuation
-      function tokenize(text: string): Set<string> {
-        const normalized = text.toLowerCase().normalize('NFC');
-        const words = normalized
-          .replace(/\d+/g, '')                        // strip numbers (noise like 1111)
-          .replace(/[^\w\s\u00C0-\u024F\u1E00-\u1EFF]/g, ' ')  // strip punctuation/emoji
-          .split(/\s+/)
-          .filter(w => w.length >= 2);                // skip very short tokens
-        return new Set(words);
-      }
+      // We only dedup top-level blocks or list items to avoid destroying nested structures like figure/img
+      const blocksToDedup = div.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote');
+      
+      blocksToDedup.forEach(el => {
+        const text = el.textContent?.trim() || "";
+        if (text.length < 20) return; 
 
-      // Jaccard similarity between two word sets
-      function jaccard(a: Set<string>, b: Set<string>): number {
-        if (a.size === 0 && b.size === 0) return 1;
-        if (a.size === 0 || b.size === 0) return 0;
-        let intersect = 0;
-        a.forEach(w => { if (b.has(w)) intersect++; });
-        const union = a.size + b.size - intersect;
-        return intersect / union;
-      }
+        const tokens = tokenize(text);
+        const duplicate = keptTokens.find(k => jaccard(tokens, k.tokens) >= THRESHOLD);
 
-      const THRESHOLD = 0.82; // ≥82% word overlap → near-duplicate
-      const kept: Array<{ el: Element; tokens: Set<string>; text: string }> = [];
-      let removed = 0;
-      const dedupedDiv = document.createElement('div');
-
-      allBlocks.forEach((el, idx) => {
-        const t = el.textContent?.trim() ?? '';
-        if (!t || t.length < 15) {
-          dedupedDiv.appendChild(el.cloneNode(true));
-          return;
-        }
-        const tokens = tokenize(t);
-        const isDup = kept.some(k => jaccard(tokens, k.tokens) >= THRESHOLD);
-
-        if (!isDup) {
-          kept.push({ el, tokens, text: t });
-          dedupedDiv.appendChild(el.cloneNode(true));
+        if (duplicate) {
+          el.remove();
+          removedCount++;
         } else {
-          removed++;
+          keptTokens.push({ tokens, el });
         }
       });
 
-      console.log(`[Clean] Dedup done — removed: ${removed}`);
+      console.log(`[Clean] Dedup done — removed: ${removedCount} blocks`);
 
       // 3. Viral 2026: Backend Semantic Polish
-      const interimHTML = dedupedDiv.innerHTML;
+      const interimHTML = div.innerHTML;
 
       console.log('[Clean] 🚀 Calling Neural Backend Polish...');
       const response = await apiClient.post<{ data: { content: string } }>('/api/v1/content/clean', {
@@ -260,7 +260,9 @@
       onUpdate: () => {
         if (isInternalUpdating) return;
         const html = editor?.getHTML() ?? '';
-        onChange(stripMarks(html));
+        const cleaned = stripMarks(html);
+        content = cleaned;
+        onChange(cleaned);
         updateMetrics();
       },
     });
@@ -278,7 +280,7 @@
   });
 
   $effect(() => {
-    if (showImageDialog || showLinkDialog) {
+    if (showMediaVault || showLinkDialog) {
       if (imageMenuVisible) imageMenuVisible = false;
     }
   });
@@ -437,7 +439,7 @@
     const target = e.target as HTMLElement;
     const img = target.closest('.tiptap-content img') as HTMLImageElement | null;
     if (img && editor) {
-      showImageDialog = true;
+      showMediaVault = true;
       imageMenuVisible = false;
     }
   }
@@ -453,7 +455,7 @@
       {editor}
       {toolbarActions}
       {annotations}
-      onOpenImage={() => showImageDialog = true}
+      onOpenImage={() => showMediaVault = true}
       onOpenLink={() => { currentLinkUrl = editor?.getAttributes('link').href || ''; showLinkDialog = true; }}
       onClearHighlights={() => editor?.commands.clearAllAnnotations()}
       onClean={handleClean}
@@ -480,20 +482,25 @@
   {/if}
 </div>
 
-<ImageDialog 
-  bind:show={showImageDialog} 
-  {assets} 
+  <MediaVaultModal 
+  isOpen={showMediaVault} 
+  onClose={() => showMediaVault = false}
+  {campaignId}
   onSelect={(url) => {
     if (editor) {
       blockClicks = true;
       imageMenuVisible = false;
+      // Normalize relative paths (uploads/...) to root-relative URLs (/uploads/...) to prevent relative resolution errors
+      const safeUrl = url && !url.startsWith('http') && !url.startsWith('blob:') && !url.startsWith('data:')
+        ? (url.startsWith('/') ? url : `/${url}`)
+        : url;
       // Defer focus to avoid click-through when portal unmounts
       setTimeout(() => {
         if (!editor || editor.isDestroyed) return;
         if (editor.isActive('image')) {
-          editor.chain().focus().updateAttributes('image', { src: url }).run();
+          editor.chain().focus().updateAttributes('image', { src: safeUrl }).run();
         } else {
-          editor.chain().focus().setImage({ src: url }).run();
+          editor.chain().focus().setImage({ src: safeUrl }).run();
         }
         setTimeout(() => { blockClicks = false; }, 300);
       }, 50);
@@ -515,7 +522,7 @@
     />
   </div>
 
-  {#if editor && editable && imageMenuVisible && !blockClicks && !showImageDialog && !showLinkDialog}
+  {#if editor && editable && imageMenuVisible && !blockClicks && !showMediaVault && !showLinkDialog}
   <div
     use:portal
     class="fixed z-[3000] -translate-x-1/2 -translate-y-full pointer-events-auto transition-all duration-75 ease-out image-bubble-menu"
@@ -524,7 +531,7 @@
     <ImageBubbleMenu
       {editor}
       onReplace={() => {
-        if (!blockClicks) showImageDialog = true;
+        if (!blockClicks) showMediaVault = true;
       }}
     />
   </div>

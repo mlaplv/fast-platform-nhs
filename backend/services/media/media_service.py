@@ -44,7 +44,17 @@ class MediaService:
 
         # 1. RBAC Logic (V10.0 Elite Safety)
         # Chỉ thấy ảnh công khai HOẶC ảnh do chính mình sở hữu
-        if owner_id:
+        # R105: Admin/Sếp (SUPER_ADMIN/ADMIN) có đặc quyền xem toàn bộ thư viện
+        is_admin = False
+        if isinstance(owner_id, dict):  # Payload case
+            roles = owner_id.get("roles", [])
+            is_admin = any(r in ["ADMIN", "SUPER_ADMIN", "OWNER"] for r in roles)
+            owner_id = owner_id.get("id") or owner_id.get("sub")
+
+        if is_admin:
+            # Admin thấy tất cả (chỉ lọc theo deleted_at và campaign_id phía sau)
+            pass
+        elif owner_id:
             stmt = stmt.where(or_(MediaRegistry.is_public == True, MediaRegistry.owner_id == owner_id))
         else:
             # Nếu không có context user (với các task hệ thống), chỉ lấy ảnh công khai
@@ -71,7 +81,9 @@ class MediaService:
             total_count = await repo.session.execute(count_stmt)
             total = total_count.scalar_one()
 
-            stmt = stmt.order_by(MediaRegistry.created_at.desc()).limit(limit).offset(offset)
+            # 3. Order & Limit
+            # V10.0 UX Fix: Sắp xếp theo updated_at để hình ảnh vừa khôi phục/vừa sửa sẽ nhảy lên đầu
+            stmt = stmt.order_by(MediaRegistry.updated_at.desc()).limit(limit).offset(offset)
             result = await repo.session.execute(stmt)
             orm_assets = result.scalars().all()
             assets = [MediaAssetResponse.model_validate(a) for a in orm_assets]
@@ -215,19 +227,30 @@ class MediaService:
             logger.error(f"[MediaService] Failed to delete asset {asset_id}: {e}")
             return False
 
-    async def restore_asset(self, repo: MediaRegistryRepository, asset_id: str, owner_id: Optional[str] = None) -> bool:
+    async def restore_asset(self, repo: MediaRegistryRepository, asset_id: str, owner_id: Union[str, Dict, None] = None) -> bool:
         """Khôi phục tài nguyên từ Thùng rác (V10.0)."""
+        from sqlalchemy import func
         try:
             asset = await repo.get_one_or_none(id=asset_id)
             if not asset:
                 return False
 
-            # RBAC Check (V10.0 Elite)
-            if owner_id and asset.owner_id and asset.owner_id != owner_id:
-                logger.warning(f"[RBAC] Unauthorized restore attempt on {asset_id} by {owner_id}")
+            # RBAC Check (V10.0 Elite Elite)
+            is_admin = False
+            user_id = owner_id
+            if isinstance(owner_id, dict):
+                roles = owner_id.get("roles", [])
+                is_admin = any(r in ["ADMIN", "SUPER_ADMIN", "OWNER"] for r in roles)
+                user_id = owner_id.get("id") or owner_id.get("sub")
+
+            if not is_admin and user_id and asset.owner_id and asset.owner_id != user_id:
+                logger.warning(f"[RBAC] Unauthorized restore attempt on {asset_id} by {user_id}")
                 return False
 
             asset.deleted_at = None
+            # V10.0 Force updated_at to bring it to top of Library
+            asset.updated_at = func.now()
+            
             await repo.update(asset)
             await repo.session.commit()
             return True
@@ -859,9 +882,13 @@ class MediaService:
                     logger.error(f"[MediaService] Local file not found for registration: {url}")
                     return None
             else:
-                # 1. Tải file với timeout bảo vệ
+                # 1. Tải file với timeout bảo vệ và User-Agent giả lập trình duyệt (R106)
                 client = await SharedHttpClient.get_client()
-                response = await client.get(url, timeout=10.0, follow_redirects=True)
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                    "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
+                }
+                response = await client.get(url, timeout=10.0, follow_redirects=True, headers=headers)
                 response.raise_for_status()
 
             content_type = response.headers.get("Content-Type", "")

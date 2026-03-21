@@ -175,7 +175,11 @@
           <FileTextIcon size={12} /> Nội dung bài viết (Tiptap V2)
         </label>
         <div class="flex-1 rounded-3xl overflow-hidden border border-white/5 bg-black/40">
-          <TiptapEditor bind:content={formContent} placeholder="Viết nội dung bài viết tại đây..." />
+          <TiptapEditor 
+            content={formContent} 
+            onChange={(val) => { formContent = val; }}
+            placeholder="Viết nội dung bài viết tại đây..." 
+          />
         </div>
       </div>
     {:else if activeTab === "media"}

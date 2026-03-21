@@ -118,7 +118,8 @@
     });
 
     onMount(() => {
-        mediaStore.loadAssets(campaignId);
+        if (mode === 'pick') mediaStore.isTrashMode = false;
+        mediaStore.loadAssets(campaignId, true);
         mediaStore.loadStats();
         fetchAIVisionStatus();
     });
@@ -1486,18 +1487,18 @@
                 </div>
                 <div class="p-5 space-y-4">
                     <p class="text-[10px] text-zinc-500 uppercase font-black tracking-widest">Đang gán {mediaStore.selectedIds.size} ảnh:</p>
-                    
+
                     <div class="space-y-4">
                         <div>
                             <label class="block text-[9px] font-bold text-zinc-400 uppercase mb-2">Phân loại nội dung</label>
                             <div class="grid grid-cols-2 gap-2">
-                                <button 
+                                <button
                                     onclick={() => linkPostType = 'news'}
                                     class="flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 transition-all {linkPostType === 'news' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600' : 'border-zinc-100 dark:border-zinc-800 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'}"
                                 >
                                     <span class="text-[10px] font-black uppercase">Article</span>
                                 </button>
-                                <button 
+                                <button
                                     onclick={() => linkPostType = 'product'}
                                     class="flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 transition-all {linkPostType === 'product' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600' : 'border-zinc-100 dark:border-zinc-800 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'}"
                                 >
@@ -1508,8 +1509,8 @@
 
                         <div>
                             <label class="block text-[9px] font-bold text-zinc-400 uppercase mb-2">ID Bài viết / SKU Sản phẩm</label>
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 bind:value={linkPostId}
                                 placeholder="Nhập mã định danh..."
                                 class="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-xs font-mono"
@@ -1519,7 +1520,7 @@
                 </div>
                 <div class="p-4 bg-zinc-50 dark:bg-zinc-800/50 border-t flex items-center justify-end gap-3">
                     <button onclick={() => showLinkModal = false} class="px-4 py-2 text-[10px] font-black text-zinc-500 hover:text-zinc-700 uppercase">Huỷ</button>
-                    <button 
+                    <button
                         onclick={handleLinkToPost}
                         disabled={!linkPostId.trim()}
                         class="px-6 py-2.5 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-all shadow-lg shadow-zinc-500/20 disabled:opacity-50"

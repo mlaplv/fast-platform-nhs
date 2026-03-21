@@ -227,11 +227,14 @@
     {#if editingField === 'content'}
       <div class="flex-1 min-h-0 flex flex-col bg-black/40">
         <TiptapEditor
-          content={displayContent}
+          content={finalHtml || draft_content}
           assets={assets}
-          onChange={(val) => { draft_content = val; finalHtml = val; }}
-          editable={true}
-          placeholder="Chỉnh sửa nội dung..."
+          campaignId={campaign_id}
+          onChange={(val) => {
+            if (editingField === 'content') finalHtml = val; // Assuming isEditing refers to editingField === 'content'
+          }}
+          editable={editingField === 'content'} // Assuming isEditing refers to editingField === 'content'
+          placeholder="Nội dung bài viết..."
           onblur={saveField}
         />
         <div class="shrink-0 p-2 border-t border-white/5 flex justify-end">
@@ -243,10 +246,11 @@
     {:else if displayContent}
       <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
         <TiptapEditor
-          content={displayContent}
+          content={finalHtml || draft_content}
           assets={assets}
+          campaignId={campaign_id}
           editable={false}
-          fullScreen={false}
+          placeholder="Nội dung bài viết..."
         />
       </div>
     {:else}

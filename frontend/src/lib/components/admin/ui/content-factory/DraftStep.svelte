@@ -581,6 +581,7 @@
       ]}
       annotations={editorAnnotations}
       onfix={runAutoFix}
+      campaignId={campaign_id}
     />
   </div>
 

@@ -196,7 +196,11 @@
           <FileText size={12} /> Narrative_Rich_Description
         </label>
         <div class="flex-1 rounded-3xl overflow-hidden border border-white/5 bg-black/40">
-          <TiptapEditor bind:content={formDescription} placeholder="Craft a compelling story for this fashion item..." />
+          <TiptapEditor 
+            content={formDescription} 
+            onChange={(val) => { formDescription = val; }}
+            placeholder="Craft a compelling story for this fashion item..." 
+          />
         </div>
       </div>
     {:else if activeTab === "media"}

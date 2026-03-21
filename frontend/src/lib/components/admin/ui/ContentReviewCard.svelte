@@ -454,13 +454,14 @@
           {handleImageError} {syncAssetChanges} {handleRetry} {handleMouseMove}
         />
       {:else if viewingStep === 3}
-        <OutlineStep 
-          {isEditing} bind:editedOutline={editedOutline} {outline} {assets} 
+        <OutlineStep
+          {isEditing} bind:editedOutline={editedOutline} {outline} {assets}
           isExpanded={nanobot.isExpanded} editorAnnotations={[]} {step} {isProcessing}
+          {campaign_id}
         />
       {:else if viewingStep === 4}
-        <DraftStep 
-          {campaign_id} {isEditing} bind:editedDraft {draft_content} 
+        <DraftStep
+          {campaign_id} {isEditing} bind:editedDraft {draft_content}
           {assets} isExpanded={nanobot.isExpanded} bind:editorRef {outline}
           {analysis_cache} {analysis_metrics} {isProcessing}
           bind:copyrightScore bind:seoScore bind:aiScore

@@ -31,7 +31,6 @@ class ArticleVectorService:
                 JOIN "article_embeddings" e ON a.id = e.article_id
                 WHERE a.deleted_at IS NULL
                   AND a.tenant_id = :tid
-                  AND e.tenant_id = :tid
                 ORDER BY cosine_distance ASC
                 LIMIT :lim;
             """
@@ -81,16 +80,15 @@ class ArticleVectorService:
             tenant = current_tenant_id.get() or "default"
 
             sql = text("""
-                INSERT INTO article_embeddings (id, article_id, embedding, created_at, updated_at, tenant_id)
-                VALUES (:id, :article_id, CAST(:vector AS vector), NOW(), NOW(), :tenant_id)
+                INSERT INTO article_embeddings (id, article_id, embedding, created_at, updated_at)
+                VALUES (:id, :article_id, CAST(:vector AS vector), NOW(), NOW())
                 ON CONFLICT (article_id)
                 DO UPDATE SET embedding = CAST(:vector AS vector), updated_at = NOW();
             """)
             await db_session.execute(sql, {
                 "id": str(uuid.uuid4()),
                 "article_id": article_id,
-                "vector": vector_str,
-                "tenant_id": tenant
+                "vector": vector_str
             })
         except Exception as e:
             logger.error(f"[RAG] Article embedding failed for {article_id}: {e}")

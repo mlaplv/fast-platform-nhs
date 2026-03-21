@@ -2,22 +2,27 @@
   import AssetStep from "$lib/components/admin/ui/content-factory/AssetStep.svelte";
   import FileManager from "$lib/components/media/FileManager.svelte";
   import type { MediaAsset } from "$lib/state/types";
+  import { mediaStore } from "$lib/state/media.svelte";
   import { fade } from "svelte/transition";
 
   let {
     isOpen,
     onClose,
+    campaignId,
     assets = $bindable(),
     reserve_assets = $bindable(),
     selectedAvatarUrl = $bindable(),
-    selectedAssetIndex = $bindable()
+    selectedAssetIndex = $bindable(),
+    onSelect
   }: {
     isOpen: boolean;
     onClose: () => void;
-    assets: (MediaAsset | string)[];
-    reserve_assets: (MediaAsset | string)[];
-    selectedAvatarUrl: string | null;
-    selectedAssetIndex: number;
+    campaignId?: string;
+    assets?: (MediaAsset | string)[];
+    reserve_assets?: (MediaAsset | string)[];
+    selectedAvatarUrl?: string | null;
+    selectedAssetIndex?: number;
+    onSelect?: (url: string) => void;
   } = $props();
 
   import { untrack } from "svelte";
@@ -56,9 +61,20 @@
   let activeTab = $state<'current' | 'library' | 'ai'>('current');
 
   function handleLibrarySelect(asset: MediaAsset | MediaAsset[]) {
-    const assets = Array.isArray(asset) ? asset : [asset];
+    const assetsArr = Array.isArray(asset) ? asset : [asset];
+    
+    if (onSelect) {
+      const first = assetsArr[0];
+      const url = first.file_path || first.url || '';
+      if (url) {
+        onSelect(url);
+        onClose?.();
+        return;
+      }
+    }
+
     let changed = false;
-    assets.forEach(a => {
+    assetsArr.forEach(a => {
       const url = a.file_path || a.url || '';
       if (url && !internalAssets.find(existing => (typeof existing === 'string' ? existing : existing.file_path) === url)) {
         internalAssets = [...internalAssets, url];
@@ -72,6 +88,10 @@
 
   function switchTab(tab: 'current' | 'library' | 'ai') {
     activeTab = tab;
+    if (tab === 'library') {
+      mediaStore.isTrashMode = false;
+      mediaStore.loadAssets(undefined, true);
+    }
   }
 
   // Portal action
@@ -318,6 +338,7 @@
       <FileManager 
         mode="pick" 
         standalone={true}
+        campaignId={undefined}
         onSelect={handleLibrarySelect}
         pickTabActive={activeTab}
         onPickTabChange={switchTab}

@@ -62,7 +62,7 @@ class MediaController(Controller):
             limit=limit,
             offset=offset,
             include_deleted=trash,
-            owner_id=owner_id,
+            owner_id=user,
             linked_post_id=linked_post_id,
             linked_post_type=linked_post_type
         )
@@ -217,15 +217,13 @@ class MediaController(Controller):
             msg = "Asset moved to trash." if not permanent else "Asset permanently purged."
             return GenericResponse(status="success", message=msg)
         else:
-            return GenericResponse(status="error", message="Asset not found or unauthorized")
+            return GenericResponse(status="error", message="Asset not found or unauthorized"), 400
 
     @post("/{asset_id:str}/restore")
     async def restore_media(self, asset_id: str, request: Request, media_repo: MediaRegistryRepository) -> GenericResponse:
         """Khôi phục tài nguyên từ Thùng rác (V10.0)."""
         user = request.state.get("user", {})
-        owner_id = user.get("sub") or user.get("id")
-
-        success = await media_service.restore_asset(media_repo, str(asset_id), owner_id=owner_id)
+        success = await media_service.restore_asset(media_repo, str(asset_id), owner_id=user)
         if success:
             return GenericResponse(status="success", message="Asset restored successfully.")
         else:
@@ -355,7 +353,7 @@ class MediaController(Controller):
                 data=MediaAssetResponse.model_validate(asset)
             )
         else:
-            return GenericResponse(status="error", message="Failed to fetch remote asset.")
+            return GenericResponse(status="error", message="Failed to fetch remote asset."), 400
 
     @post("/link-to-post")
     async def link_media_to_post(

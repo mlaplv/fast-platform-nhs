@@ -51,10 +51,10 @@ class MediaStore {
                 permanent: permanent || this.isTrashMode // Auto permanent if already in trash
             });
             if (response.status === 'success') {
-                this.assets = this.assets.filter(a => !this.selectedIds.has(a.id));
-                this.total -= this.selectedIds.size;
-                this.clearSelection();
-                await this.loadStats();
+                this.assets = this.assets.filter(a => !ids.includes(a.id));
+                this.total = Math.max(0, this.total - ids.length);
+                this.selectedIds.clear();
+                await this.loadStats(); // V10.0 Refresh counts
             }
         } catch (error) {
             console.error('[MediaStore] Bulk delete failed:', error);
@@ -424,7 +424,7 @@ class MediaStore {
                 console.error('[MediaStore] Upload failed for', file.name, error);
                 // Remove temp asset on failure
                 this.assets = this.assets.filter(a => a.id !== tempId);
-                this.total--;
+                if (this.total > 0) this.total -= 1;
                 URL.revokeObjectURL(blobUrl);
                 failCount++;
             }
@@ -432,6 +432,7 @@ class MediaStore {
 
         await Promise.all(uploadPromises);
         this.isLoading = false;
+        await this.loadStats(); // V10.0 Refresh counts
         return { successCount, failCount };
     }
 

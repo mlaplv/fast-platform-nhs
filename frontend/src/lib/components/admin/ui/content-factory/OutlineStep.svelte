@@ -36,6 +36,7 @@
     editorAnnotations?: unknown[];
     step?: number;
     isProcessing?: boolean;
+    campaign_id: string;
   }
 
   let {
@@ -46,7 +47,8 @@
     isExpanded,
     editorAnnotations = [],
     step = 3,
-    isProcessing = false
+    isProcessing = false,
+    campaign_id,
   }: Props = $props();
   
   function fixUrl(url: string | null): string {
@@ -164,6 +166,7 @@
      <TiptapEditor 
        content={displayContent}
        assets={assets}
+       campaignId={campaign_id}
        onChange={(val) => {
           if (isEditing && val !== editedOutline) {
             editedOutline = val;

@@ -205,15 +205,24 @@
     }
   }
 
-  function handleLibrarySelect(selectedAssets: MediaAsset[]) {
-    selectedAssets.forEach(asset => {
-      // Add to current project assets if not already there
+  async function handleLibrarySelect(selectedAssets: MediaAsset[]) {
+    let addCount = 0;
+    for (const asset of selectedAssets) {
       if (!xohiImageStore.assets.find(a => a.id === asset.id)) {
-        xohiImageStore.addImagesFromUrl(asset.file_path || asset.url);
+        try {
+          await xohiImageStore.addImagesFromUrl(asset.file_path || asset.url);
+          addCount++;
+        } catch (err) {
+          console.error("[AssetStep] Library sync failed", err);
+        }
       }
-    });
+    }
     showLibrary = false;
-    vuiController.speak(`Dạ, em đã lấy ${selectedAssets.length} ảnh từ thư viện cho Sếp rồi ạ.`);
+    if (addCount > 0) {
+      vuiController.speak(`Dạ, em đã lấy ${addCount} ảnh từ thư viện cho Sếp rồi ạ.`);
+    } else {
+      vuiController.speak("Dạ, các ảnh này đã có sẵn trong dự án rồi ạ.");
+    }
   }
 </script>
 
@@ -267,9 +276,17 @@
                   customImageUrl.startsWith("http")
                 ) {
                   e.preventDefault();
-                  xohiImageStore.addImagesFromUrl(customImageUrl.trim());
-                  customImageUrl = "";
-                  vuiController.speak("Đã thêm ảnh.");
+                  async function runAdd() {
+                    try {
+                      await xohiImageStore.addImagesFromUrl(customImageUrl.trim());
+                      customImageUrl = "";
+                      vuiController.speak("Đã thêm ảnh.");
+                    } catch (err: any) {
+                      console.error("[AssetStep] Failed to add image", err);
+                      vuiController.speak(`Dạ Sếp ơi, em không lấy được ảnh này rồi ạ. ${err.message || ''}`);
+                    }
+                  }
+                  runAdd();
                 }
               }}
               class="bg-transparent border-none outline-none text-[12px] text-white placeholder:text-white/20 px-4 w-36 transition-all focus:w-64 font-medium"
