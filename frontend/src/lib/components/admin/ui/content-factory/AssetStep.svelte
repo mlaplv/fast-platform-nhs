@@ -103,7 +103,7 @@
   </div>
 
   <div class="transition-all duration-700 min-h-[310px] relative {xohiImageStore.assets.length > 0 ? 'bg-gradient-to-br from-blue-500/10 via-white/[0.01] to-transparent rounded-[2rem] border border-white/10 shadow-2xl' : ''} mb-0">
-    <div class="p-2 md:p-3"><ImageGrid onPurge={(asset) => ctrl.pendingPurgeAsset = asset} /></div>
+    <div class="p-2 md:p-3"><ImageGrid onPurge={(asset) => ctrl.pendingPurgeAsset = asset} {handleRetry} /></div>
   </div>
 
   {#if reserve_assets && reserve_assets.length > 0}
@@ -131,14 +131,6 @@
 </div>
 
 <AssetModals bind:showLibrary={ctrl.showLibrary} bind:pendingPurgeAsset={ctrl.pendingPurgeAsset} onLibrarySelect={ctrl.handleLibrarySelect} onCloseLibrary={() => ctrl.showLibrary = false} onClosePurge={() => ctrl.pendingPurgeAsset = null} onConfirmPurge={ctrl.confirmPurge} />
-
-{#if assets.length === 0 && !isProcessing && !isStandalone}
-  <div class="flex flex-col items-center justify-center py-12 text-center gap-4" in:fade={{ duration: 300 }}>
-    <div class="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center"><ImageIcon size={28} class="text-white/20" /></div>
-    <div><p class="text-sm font-bold text-white/60">Không tìm thấy ảnh phù hợp</p><p class="text-xs text-white/30 mt-1">Quota Google Search có thể đã hết, hoặc từ khóa quá ít phổ biến.</p></div>
-    <button onclick={handleRetry} class="flex items-center gap-2 px-5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold transition-all"><RotateCcw size={14} /> Tìm lại ảnh</button>
-  </div>
-{/if}
 
 <style>
   .custom-scrollbar::-webkit-scrollbar { width: 3px; }

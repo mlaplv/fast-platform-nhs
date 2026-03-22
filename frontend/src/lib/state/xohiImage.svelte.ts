@@ -1,3 +1,4 @@
+import { untrack } from "svelte";
 import type { MediaAsset } from "./types";
 import { safeRandomUUID, extractIdFromUrl, sanitizeId, resolveMediaUrl } from "./utils";
 import { apiClient } from "$lib/utils/apiClient";
@@ -50,7 +51,10 @@ export function createXohiImageState() {
 
     function recalculateOrder() {
         secondaryAssets.forEach((a, index) => {
-            a.order_index = index;
+            // CNS V82.7: Only assign if different to minimize reactive triggers (Rule R03)
+            if (a.order_index !== index) {
+                a.order_index = index;
+            }
         });
     }
 
@@ -110,25 +114,16 @@ export function createXohiImageState() {
 
     async function removeAsset(id: string, permanent: boolean = false) {
         const asset = assets.find(a => a.id === id);
-        const path = asset?.file_path || asset?.url;
+        if (!asset) return;
+
+        const wasPrimary = asset.is_primary;
+        const path = asset.file_path || asset.url;
+
         if (path && path.startsWith('blob:')) {
             URL.revokeObjectURL(path);
         }
 
-        // Phase 15.4: Resilient Server Synchro (Only delete if persisted real ID)
-        const isPersisted = asset && !asset.id.startsWith('tmp_') && !asset.id.startsWith('stable_');
-
-        if (isPersisted) {
-            try {
-                const url = permanent ? `/api/v1/media/${id}?permanent=true` : `/api/v1/media/${id}`;
-                await apiClient.delete(url);
-            } catch (error) {
-                // R03: Log error but proceed to update local state to avoid UI hang
-                console.warn("[xohiImage] Server deletion failed or not found, continuing with local removal", error);
-            }
-        }
-
-        const wasPrimary = asset?.is_primary;
+        // --- OPTIMISTIC UI: UPDATE LOCAL STATE FIRST ---
         assets = assets.filter(a => a.id !== id);
 
         // Phase 15.3: Auto-promote next asset if primary was deleted
@@ -137,6 +132,19 @@ export function createXohiImageState() {
             assets[0].order_index = -1;
         }
         recalculateOrder();
+
+        // --- SERVER SYNC: RUN IN BACKGROUND ---
+        const isPersisted = !asset.id.startsWith('tmp_') && !asset.id.startsWith('stable_');
+
+        if (isPersisted) {
+            try {
+                const url = permanent ? `/api/v1/media/${id}?permanent=true` : `/api/v1/media/${id}`;
+                await apiClient.delete(url);
+            } catch (error) {
+                // R01 Scout: Server deletion failed, but we already updated UI (Resilience)
+                console.warn("[xohiImage] Server deletion failed - UI will remain consistent with current state", error);
+            }
+        }
     }
 
     async function addImagesFromUrl(url: string) {
@@ -228,7 +236,7 @@ export function createXohiImageState() {
                         hash = ((hash << 5) - hash) + seed.charCodeAt(j);
                         hash |= 0;
                     }
-                    obj.id = `stable_${Math.abs(hash).toString(36)}_${i}`;
+                    obj.id = `stable_${Math.abs(hash).toString(36)}`;
                 }
             }
 
@@ -236,8 +244,10 @@ export function createXohiImageState() {
         });
 
         // CNS V76: Efficient shallow comparison before replacement to avoid reactivity storms
-        const isDifferent = formatted.length !== assets.length ||
-                           formatted.some((a, i) => a.id !== assets[i]?.id || a.file_path !== assets[i]?.file_path);
+        const isDifferent = untrack(() => (
+            formatted.length !== assets.length ||
+            formatted.some((a, i) => a.id !== assets[i]?.id || a.file_path !== assets[i]?.file_path || a.is_primary !== assets[i]?.is_primary || a.order_index !== assets[i]?.order_index)
+        ));
 
         if (isDifferent) {
             // Revoke blobs for removed assets

@@ -288,7 +288,7 @@ class AssetHunter:
             if len(urls) < 10: break # No more results
             if len(all_urls) >= num_results: break
 
-        final_urls: List[str] = list(all_urls)[:num_results]
+        final_urls = all_urls[:num_results]
         return final_urls
 
     async def _fetch_page(self, query: str, start: int, campaign_id: str = None, user_id: str = None) -> List[str]:
@@ -328,7 +328,7 @@ class AssetHunter:
                 if response.status_code == 429:
                     logger.warning(f"[AssetHunter] Key index {self.current_index} rate limited (429). Rotating...")
                     self._rotate_key()
-                    attempts = attempts + 1
+                    attempts += 1
                     continue
 
                 response.raise_for_status()
@@ -336,8 +336,21 @@ class AssetHunter:
                 
                 self.failure_count = 0
                 items = data.get('items', [])
-                logger.info(f"[AssetHunter] Found {len(items)} items for query: {query}")
-                return [item['link'] for item in items]
+                
+                # Phase 16.4: Authentic Guard (>290px dimension filter)
+                valid_links = []
+                for item in items:
+                    img = item.get('image', {})
+                    h = int(img.get('height', 0))
+                    w = int(img.get('width', 0))
+                    
+                    if h >= 290 and w >= 290:
+                        valid_links.append(item['link'])
+                    else:
+                        logger.debug(f"[AssetHunter] Dropping small/non-authentic asset: {item['link']} ({w}x{h})")
+                
+                logger.info(f"[AssetHunter] Found {len(valid_links)}/{len(items)} authentic assets (>290px) for query: {query}")
+                return valid_links
 
             except Exception as e:
                 logger.error(f"[AssetHunter] Search Page Error (Key {self.current_index}): {e}")

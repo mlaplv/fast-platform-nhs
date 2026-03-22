@@ -4,9 +4,9 @@
   import ImageSlot from "./ImageSlot.svelte";
   import { dndzone } from "svelte-dnd-action";
   import { flip } from "svelte/animate";
-  import { Sparkles, LayoutGrid, Upload } from "lucide-svelte";
+  import { Sparkles, LayoutGrid, Upload, RotateCcw } from "lucide-svelte";
   import { untrack } from "svelte";
-  let { onPurge }: { onPurge?: (asset: MediaAsset) => void } = $props();
+  let { onPurge, handleRetry }: { onPurge?: (asset: MediaAsset) => void; handleRetry?: () => void } = $props();
 
   const flipDurationMs = 300;
 
@@ -137,10 +137,23 @@
       Chưa có hình ảnh
     </p>
     <p
-      class="text-[9px] text-white/10 font-mono uppercase tracking-[0.2em] italic"
+      class="text-[9px] text-white/10 font-mono uppercase tracking-[0.2em] italic mb-6"
     >
       Vùi lòng tải ảnh lên hoặc dán link ảnh...
     </p>
+
+    {#if handleRetry}
+      <div class="flex flex-col items-center gap-4 bg-white/[0.02] p-6 rounded-[2rem] border border-white/5 backdrop-blur-sm shadow-inner">
+        <div class="text-center">
+            <p class="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Không tìm thấy ảnh phù hợp</p>
+            <p class="text-[8px] text-white/20 uppercase tracking-widest mt-1">Quota Google Search có thể đã hết, hoặc từ khóa quá ít phổ biến.</p>
+        </div>
+        <button onclick={handleRetry} class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg group/retry">
+            <RotateCcw size={12} class="group-hover/retry:rotate-[-45deg] transition-transform" /> 
+            Tìm lại ảnh
+        </button>
+      </div>
+    {/if}
   </div>
 {/if}
 

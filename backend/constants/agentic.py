@@ -24,4 +24,5 @@ SEARCH_LOCALE_PARAMS = {
     "lr": os.getenv("GOOGLE_SEARCH_LR", "lang_vi"),
     "gl": os.getenv("GOOGLE_SEARCH_GL", "vn"),
     "hl": os.getenv("GOOGLE_SEARCH_HL", "vi"),
+    "imgSize": "medium",
 }

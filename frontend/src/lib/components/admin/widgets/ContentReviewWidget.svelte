@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import ContentReviewCard from "../ui/ContentReviewCard.svelte";
   import type { CampaignData } from "$lib/state/types";
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
@@ -90,14 +91,16 @@
            // If backend has more assets than us, or different ones, update.
            // We use length and first asset ID as a heuristic for change to avoid reactive loops.
            const firstId = (a: any) => typeof a === 'string' ? a : (a.id || a.file_path);
-           if (incomingAssets.length !== safelyMutableData.assets.length || firstId(incomingAssets[0]) !== firstId(safelyMutableData.assets[0])) {
+           const currentAssets = untrack(() => safelyMutableData.assets);
+           if (incomingAssets.length !== currentAssets.length || firstId(incomingAssets[0]) !== firstId(currentAssets[0])) {
              safelyMutableData.assets = [...incomingAssets];
            }
         }
 
         const incomingReserves = data.reserve_assets || data.gold_metadata?.reserve_assets;
         if (incomingReserves && Array.isArray(incomingReserves) && incomingReserves.length > 0) {
-          if (incomingReserves.length !== safelyMutableData.reserve_assets.length) {
+          const currentReserves = untrack(() => safelyMutableData.reserve_assets);
+          if (incomingReserves.length !== currentReserves.length) {
             safelyMutableData.reserve_assets = [...incomingReserves];
           }
         }

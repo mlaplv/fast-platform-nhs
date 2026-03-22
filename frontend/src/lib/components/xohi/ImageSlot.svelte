@@ -4,6 +4,7 @@
   import { fade, scale } from "svelte/transition";
   import { Star, Trash2, Check, Crop, Square, Layout, Smartphone, Tablet, Sparkles, Flame } from "lucide-svelte";
   import { resolveMediaUrl } from "$lib/state/utils";
+  import { vuiController } from "$lib/vui";
 
   let {
     asset, 
@@ -175,7 +176,7 @@
         <!-- Remove from Post Button (Soft Delete) -->
         <button
           class="p-2 text-white/40 hover:text-zinc-300 hover:bg-white/10 rounded-xl transition-all active:scale-95"
-          onclick={() => xohiImageStore.removeAsset(asset.id)}
+          onclick={(e) => { e.stopPropagation(); e.preventDefault(); xohiImageStore.removeAsset(asset.id); vuiController.speak("Dạ, đã gỡ ảnh rồi ạ."); }}
           title="Gỡ khỏi bài (Remove)"
         >
           <Trash2 size={16} />

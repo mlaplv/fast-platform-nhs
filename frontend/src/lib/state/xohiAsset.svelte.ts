@@ -12,7 +12,7 @@ export function createAssetController(config: {
     setReserveAssets: (v: (MediaAsset | string)[]) => void;
     setSelectedAvatarUrl: (v: string | null) => void;
     setSelectedAssetIndex: (v: number) => void;
-    syncAssetChanges: (newIndex?: number) => void;
+    syncAssetChanges: (step: number, newIndex?: number) => void;
 }) {
     let showLibrary = $state(false);
     let pendingPurgeAsset = $state<MediaAsset | null>(null);
@@ -22,7 +22,7 @@ export function createAssetController(config: {
         const action = nanobot.commandAction;
         if (!action || action.consumed) return;
 
-        if (action.entity === "media" || action.entity === "image") {
+        if (action.entity === "media") {
             // 1. Giao thức Thêm ảnh (Create)
             if (action.verb === "create" && action.args) {
                 if (nanobot.consumeCommand(action.verb, action.entity)) {
@@ -36,7 +36,7 @@ export function createAssetController(config: {
                 if (nanobot.consumeCommand(action.verb, action.entity)) {
                     const parts = action.args.split(" ");
                     const index = parseInt(parts[0]) - 1;
-                    const preset = (parts[1] || "square") as "square" | "landscape" | "portrait";
+                    const preset = (parts[1] || "square") as "square" | "banner" | "story" | "feed";
 
                     const targetAsset = xohiImageStore.assets[index];
                     if (targetAsset) {
@@ -63,11 +63,21 @@ export function createAssetController(config: {
     });
 
     // Phase 15.3: Đồng bộ ngược lại khi Store thay đổi (Optimistic Sync)
+    let syncTimer: ReturnType<typeof setTimeout> | null = null;
     $effect(() => {
         const storeAssets = xohiImageStore.assets;
         const currentAssets = untrack(() => config.getAssets());
 
-        if (JSON.stringify(storeAssets) !== JSON.stringify(currentAssets)) {
+        // CNS V82.5: Efficient sequence check instead of heavy JSON.stringify (Rule R03)
+        const isDifferent = storeAssets.length !== currentAssets.length || 
+                           storeAssets.some((a, i) => {
+                               const ca = currentAssets[i];
+                               if (!ca) return true;
+                               if (typeof ca === 'string') return a.file_path !== ca && a.url !== ca;
+                               return a.id !== ca.id || a.is_primary !== ca.is_primary || a.order_index !== ca.order_index;
+                           });
+
+        if (isDifferent) {
             config.setAssets(storeAssets);
             const primaryIdx = storeAssets.findIndex((a) => a.is_primary);
             if (primaryIdx !== -1) {
@@ -79,8 +89,17 @@ export function createAssetController(config: {
                 config.setSelectedAssetIndex(0);
                 config.setSelectedAvatarUrl(null);
             }
-            untrack(() => config.syncAssetChanges());
+            
+            // CNS V82.6: Debounced Sync to prevent "API Storm" during rapid modifications
+            if (syncTimer) clearTimeout(syncTimer);
+            syncTimer = setTimeout(() => {
+                untrack(() => config.syncAssetChanges(2));
+            }, 500); // 500ms safety window
         }
+
+        return () => {
+            if (syncTimer) clearTimeout(syncTimer);
+        };
     });
 
     async function confirmPurge(asset: MediaAsset) {
@@ -100,8 +119,11 @@ export function createAssetController(config: {
         for (const asset of selectedAssets) {
             if (!xohiImageStore.assets.find(a => a.id === asset.id)) {
                 try {
-                    await xohiImageStore.addImagesFromUrl(asset.file_path || asset.url);
-                    addCount++;
+                    const assetUrl = asset.file_path || asset.url;
+                    if (assetUrl) {
+                        await xohiImageStore.addImagesFromUrl(assetUrl);
+                        addCount++;
+                    }
                 } catch (err) {
                     console.error("[AssetController] Library sync failed", err);
                 }
@@ -117,7 +139,7 @@ export function createAssetController(config: {
 
     function addFromReserve(url: string, index: number) {
         vuiController.speak("Đã thêm vào bộ sưu tập.");
-        xohiImageStore.addImagesFromUrl(url);
+        xohiImageStore.addImagesFromUrl(url as string);
         const reserves = config.getReserveAssets().filter((_, idx) => idx !== index);
         config.setReserveAssets(reserves);
     }
@@ -126,7 +148,7 @@ export function createAssetController(config: {
         const reserves = config.getReserveAssets().filter((_, idx) => idx !== index);
         config.setReserveAssets(reserves);
         await tick();
-        config.syncAssetChanges();
+        config.syncAssetChanges(2);
         vuiController.speak("Đã xóa khỏi kho dự phòng.");
     }
 
