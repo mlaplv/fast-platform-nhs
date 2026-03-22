@@ -104,6 +104,10 @@ class VisionInsight:
             if self.discovery_hunter:
                 await _emit_progress("📡 Đang kết nối mạng lưới trinh sát thực tế...")
                 ground_truth = await self.discovery_hunter.search(clean_topic)
+                
+                # Phase 15.4: Live Intelligence (Ground Truth reporting)
+                snippet = ground_truth[:120].replace("\n", " ") + "..."
+                await _emit_progress(f"🔍 Trinh sát thực tế: {snippet}")
                 logger.info(f"[VisionInsight] Ground Truth Context acquired for: {clean_topic}")
 
             # Phase 77: Dynamic mode-based constraints

@@ -16,6 +16,7 @@
   import PublishStep from "./content-factory/PublishStep.svelte";
   import ActionButtons from "./content-factory/ActionButtons.svelte";
   import GateBlockModal from "./content-factory/GateBlockModal.svelte";
+  import UltraPremiumLoading from "./content-factory/UltraPremiumLoading.svelte";
   import type { CampaignKeywords, MediaAsset, CampaignOutline, CampaignMetrics, AnalysisCache } from "$lib/state/types";
 
   interface Props {
@@ -156,6 +157,12 @@
 <div class="content-review-card w-full h-full flex flex-col transition-all duration-700 overflow-hidden z-[150000] bg-slate-950/95 backdrop-blur-xl" in:fade={{ duration: 600 }}>
   <Header bind:viewingStep {step} {status} {progress_msg} {campaign_id} bind:isEditing toggleExpand={() => nanobot.toggleExpand()} isExpanded={nanobot.isExpanded} creation_config={isEditing ? editedConfig : creation_config} />
   <div class="flex-1 overflow-y-auto custom-scrollbar relative pb-24 flex flex-col min-h-0">
+    {#if isProcessing}
+       <div class="absolute inset-0 z-[100]">
+          <UltraPremiumLoading {progress_msg} {viewingStep} {campaign_id} />
+       </div>
+    {/if}
+    
     {#if viewingStep === 1}
       <IdeaStep bind:isEditing {campaign_id} bind:keywords bind:editedKeywords creation_config={creation_config} bind:editedConfig {handleSelectKeyword} {handleUpdateMetadata} isLoading={campaign.isLoading} />
     {:else if viewingStep === 2}

@@ -5,6 +5,22 @@ All notable changes to the **Fast Platform Core** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [22.3.12.13] - 2026-03-22
+### Added
+- **Discovery-First Intelligence (Phase 15):** Integrated `DiscoveryHunter` to perform real-time Google Search trinh sát for topic context (snippets) before analysis.
+- **Neural Intent Guard (Phase 15.2):** Implemented a 3-stage reasoning process in `VisionInsight` (Disambiguation, Semantic Matching, Intent Lock) to eliminate entity hallucinations.
+- **Strategic Image Filtering (Phase 15.3):** Implemented "Subject-Locking" and automated negative keyword injection in `AssetHunter` to eliminate naming noise (e.g., product brands vs persons).
+- **Ultra-Premium Loading UI (Phase 16):** Created `UltraPremiumLoading.svelte` with mesh gradients, a glassmorphic "Neural Core", and dynamic "Data Crystals" for a world-class iPhone 18 aesthetic.
+- **Enhanced Live Intelligence (Phase 15.4):** Upgraded real-time progress reporting in `VisionInsight` and `AssetHunter` to show detailed Ground Truth snippets and exact search queries.
+
+### Changed
+- **Context Propagation (Phase 15.1):** Added `ground_truth` field to `TopicSeed` to synchronize real-time search context across `VisionInsight`, `AssetHunter`, and `CreativePen`.
+- **Golden Thread Refinement:** Updated `AssetHunter` and `CreativePen` prompts to strictly respect discovered truth (e.g., distinguishing between brands and biological species).
+
+### Fixed
+- **Master Purge (Phase 14):** Implemented a full state and data purge (`fullPurge`) on campaign deletion or publication, ensuring no "stale" context or assets remain in the UI/Store.
+- **Entity Hallucination:** Effectively resolved the issue where AI misidentified product brands as biological fungus or martial arts schools.
+
 ## [Unreleased]
 
 ### Added

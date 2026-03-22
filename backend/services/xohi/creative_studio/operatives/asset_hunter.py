@@ -27,14 +27,14 @@ Phân tích dữ liệu để tạo 3-5 câu lệnh tìm kiếm (Search queries)
 [CHIẾN THUẬT SINH QUERY "SẢN PHẨM THỰC"]
 1. ƯU TIÊN THÉP (STEEL PRIORITY): Query 1 BẮT BUỘC phải là sự kết hợp giữa [Tiêu đề] + [Từ khóa chính] để đảm bảo độ chính xác tuyệt đối.
 2. BẢO VỆ THƯƠNG HIỆU: Giữ nguyên 100% tên thương hiệu (Vd: "Thương hiệu A"). CẤM DỊCH tên riêng.
-3. TRỌNG TÂM THỰC THỂ: Các query sau (2, 3...) mới được phép thêm các từ khóa mô tả sản phẩm vật lý: "Chai", "Lọ", "Hộp", "Bao bì".
-   - TỐT: "Chai [Tên Sản Phẩm]", "Hộp sản phẩm [Thương Hiệu]".
-4. CHẶN NHIỄU NHÂN VẬT: Bắt buộc thêm `-cầu thủ -bóng đá` nếu tên thương hiệu trùng tên người nổi tiếng.
-5. CHẶN NHIỄU ĐỒ HỌA: Bắt buộc thêm: `-doll -reindeer -toys -clipart -cartoon -drawing -vector -quote`.
-6. ĐỐI CHIẾU GROUND TRUTH: Bắt buộc đọc `Ground Truth` để xác định bản chất thực thể (Vd: Nếu là thuốc bôi da, CẤM search ảnh cây cối/con nấm sinh học. Search ảnh "chai thuốc", "bao bì", "nhà thuốc").
+3. KHÓA ĐỐI TƯỢNG (SUBJECT-LOCKING): Mọi query BẮT BUỘC phải đi kèm định danh sản phẩm từ Ground Truth (Vd: "chai thuốc [Tên]", "hộp [Tên]", "bao bì [Tên]"). 
+   - CẤM Search tên riêng đơn độc (Vd: Không search "Hồng Sơn", phải search "thuốc Hồng Sơn").
+4. CHẶN NHIỄU PHI THƯƠNG MẠI: Bắt buộc tránh các bối cảnh Hội nghị, Chính trị, Thể thao nếu đối tượng là Sản phẩm.
+5. CHẶN NHIỄU ĐỒ HỌA: Bắt buộc tránh: doll, reindeer, toys, clipart, cartoon, drawing, vector, quote.
 
-[ĐỊNH DẠNG]
-Trả về JSON VisualSearchPlan chính xác.
+[GHI CHÚ] Đừng lo lắng về các bộ lọc phủ định (negative keywords), hệ thống sẽ tự động chèn chúng ở bước hậu kiểm. Hãy tập trung vào việc mô tả đúng thực thể vật lý.
+
+[ĐỊNH DẠNG] Trả về JSON VisualSearchPlan chính xác.
 """
 
 class AssetHunter:
@@ -123,11 +123,33 @@ class AssetHunter:
                     result = await trinity_bridge.run(self.planner_agent, prompt, session_id=campaign.id)
                     raw_result = cast(object, result)
                     plan = cast(VisualSearchPlan, getattr(raw_result, "data", getattr(raw_result, "output", raw_result)))
-                    queries: List[str] = plan.queries
-                    logger.info(f"[AssetHunter] AI Planner queries: {queries}")
+                    raw_queries: List[str] = plan.queries
+                    
+                    # Phase 15.3: Defensive Post-Processing (Subject-Locking)
+                    base_filters = " -text -word -typography -quote -infographic"
+                    entity_filters = ""
+                    gt_lower = ground_truth.lower()
+                    
+                    # Expanded Anti-Noise Armor for commercial products
+                    if any(word in gt_lower for word in ["thuốc", "dược", "mỹ phẩm", "thực phẩm", "shop", "cửa hàng", "thương hiệu"]):
+                        entity_filters = " -hội-nghị -đại-biểu -công-an -quân-đội -bóng-đá -cầu-thủ -chính-trị -văn-kiện -đại-hội"
+                    
+                    queries: List[str] = []
+                    for q in raw_queries:
+                        processed_q = q
+                        # Force Identifier if missing (V78.0)
+                        if "thuốc" in gt_lower and "thuốc" not in q.lower() and "sản phẩm" not in q.lower() and "box" not in q.lower():
+                            processed_q = f"thuốc {q}"
+                        elif "hồng sơn" in q.lower() and "thuốc" not in q.lower():
+                            processed_q = f"sản phẩm {q}"
+                            
+                        queries.append(f"{processed_q}{base_filters}{entity_filters}")
+                        
+                    logger.info(f"[AssetHunter] AI Planner (Thiết giáp): {queries}")
                 except Exception as e:
                     logger.error(f"[AssetHunter] AI planning failed, fallback to keywords: {e}")
-                    queries = [primary if primary else title]
+                    fallback_q = primary if primary else title
+                    queries = [f"{fallback_q} -text -word -hội-nghị -cầu-thủ"]
 
             # Step 2.2: Multi-Query Search & Deduplication
             all_urls = []
@@ -139,23 +161,23 @@ class AssetHunter:
             seen_urls = set()
             candidate_goal = target_count * 3 # Expanded buffer for filtering
 
-            for i, q in enumerate(queries[:3]): # Try up to 3 best queries
+            queries_list: List[str] = list(queries)
+            for i, q in enumerate(queries_list[:3]): # Try up to 3 best queries
                 if len(raw_candidates) >= candidate_goal:
                     break
 
-                # Phase 76.8: Smart Multi-Query Search (Title + Primary Focus)
-                current_query = q
-                
+                # Phase 15.4: Live Intelligence (Thiết giáp reporting)
+                display_query = q.split(" -")[0] # Hide negative filters for cleaner UI
                 await event_bus.emit("CONTENT_PROGRESS", {
                     "campaign_id": campaign_id,
                     "user_id": str(campaign.user_id),
                     "step": 2,
-                    "message": f"🔍 Truy quét ảnh với truy vấn #{i+1}: {current_query}",
+                    "message": f"🚀 Thiết giáp săn ảnh: '{display_query}'...",
                     "status": "PROCESSING",
                     "timestamp": datetime.now(timezone.utc).isoformat()
                 })
 
-                page_results = await self.fetch_images(current_query, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=10)
+                page_results = await self.fetch_images(q, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=10)
                 for url in page_results:
                     if url not in seen_urls:
                         seen_urls.add(url)
@@ -266,13 +288,13 @@ class AssetHunter:
             if len(urls) < 10: break # No more results
             if len(all_urls) >= num_results: break
 
-        final_urls: List[str] = all_urls[:num_results]
+        final_urls: List[str] = list(all_urls)[:num_results]
         return final_urls
 
     async def _fetch_page(self, query: str, start: int, campaign_id: str = None, user_id: str = None) -> List[str]:
         url = "https://www.googleapis.com/customsearch/v1"
-        attempts = 0
-        max_attempts = len(self.key_pairs)
+        attempts: int = 0
+        max_attempts: int = len(self.key_pairs)
         client = await get_http_client()
         
         while attempts < max_attempts:
@@ -306,7 +328,7 @@ class AssetHunter:
                 if response.status_code == 429:
                     logger.warning(f"[AssetHunter] Key index {self.current_index} rate limited (429). Rotating...")
                     self._rotate_key()
-                    attempts += 1
+                    attempts = attempts + 1
                     continue
 
                 response.raise_for_status()
