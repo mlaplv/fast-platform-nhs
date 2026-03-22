@@ -293,13 +293,19 @@ class TrinityBridge:
             daily_exhausted_count = 0  # Track how many keys hit daily quota for this model
             for attempt in range(max_keys):
                 try:
-                    key = await self.rotator.get_key(session_id=session_id)
+                    key = await self.rotator.get_key(model_name=model_name, session_id=session_id)
                 except Exception as get_key_err:
-                    if "AUTH_ERROR" in str(get_key_err):
-                        # V82.12: Fast-Fail if absolutely no keys are valid
-                        raise AIConfigurationError("Tất cả API Key đều Không hợp lệ hoặc Đã bị khóa. Hệ thống cần được Sếp cấu hình lại Key!", model_name, attempt)
+                    err_msg = str(get_key_err)
+                    if "AUTH_ERROR" in err_msg:
+                        # V82.12: Fatal Auth Failure (Wrong Keys)
+                        raise AIConfigurationError(f"Tất cả API Key đều Không hợp lệ. Hệ thống cần được Sếp cấu hình lại Key! Chi tiết: {err_msg}", model_name, attempt)
 
-                    logger.warning(f"[TrinityBridge] Model {model_name} (Attempt {attempt+1}) Key pool exhausted or cooling down: {get_key_err}")
+                    if "QUOTA_ERROR" in err_msg:
+                        # V82.30: Model-Specific Quota Exhaustion -> Try Next Model
+                        logger.warning(f"[TrinityBridge] Model '{model_name}' exhausted on all keys. Falling back to next model in chain.")
+                        break
+
+                    logger.warning(f"[TrinityBridge] Model {model_name} (Attempt {attempt+1}) temporary cooldown: {err_msg}")
                     await asyncio.sleep(1)
                     continue
 
@@ -420,13 +426,19 @@ class TrinityBridge:
             daily_exhausted_count = 0
             for attempt in range(max_keys):
                 try:
-                    key = await self.rotator.get_key(session_id=session_id)
+                    key = await self.rotator.get_key(model_name=model_name, session_id=session_id)
                 except Exception as get_key_err:
-                    if "AUTH_ERROR" in str(get_key_err):
-                        # V82.12: Fast-Fail if absolutely no keys are valid
-                        raise AIConfigurationError("Tất cả API Key đều Không hợp lệ hoặc Đã bị khóa. Hệ thống cần được Sếp cấu hình lại Key!", model_name, attempt)
+                    err_msg = str(get_key_err)
+                    if "AUTH_ERROR" in err_msg:
+                        # V82.12: Fatal Auth Failure
+                        raise AIConfigurationError(f"Tất cả API Key đều Không hợp lệ. Hệ thống cần được Sếp cấu hình lại Key! Chi tiết: {err_msg}", model_name, attempt)
 
-                    logger.warning(f"[TrinityBridge][Stream] Model {model_name} (Attempt {attempt+1}) Key pool exhausted or cooling down: {get_key_err}")
+                    if "QUOTA_ERROR" in err_msg:
+                        # V82.30: Model-Specific Quota Exhaustion -> Try Next Model
+                        logger.warning(f"[TrinityBridge][Stream] Model '{model_name}' exhausted on all keys. Falling back.")
+                        break
+
+                    logger.warning(f"[TrinityBridge][Stream] Model {model_name} (Attempt {attempt+1}) temporary cooldown: {err_msg}")
                     await asyncio.sleep(1)
                     continue
 

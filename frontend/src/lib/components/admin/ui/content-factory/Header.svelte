@@ -163,52 +163,80 @@
       </button>
     {/if}
     
-    <!-- Modal Close Button -->
-    <button
-      onmousedown={(e) => {
-        if (e.button !== 0) return;
-        const start = Date.now();
-        const timer = setInterval(() => {
-          const elapsed = Date.now() - start;
-          holdProgress = Math.min(elapsed / 600, 1);
-          if (holdProgress >= 1) {
-            isHardKillReady = true;
-            clearInterval(timer);
-          }
-        }, 16);
+    <!-- Modal Close Button (Hard Kill + Soft Close) -->
+    <div class="relative pointer-events-auto z-[3000]">
+      <button
+        oncontextmenu={(e) => e.preventDefault()}
+        onmousedown={(e) => {
+          if (e.button !== 0) return;
+          const start = Date.now();
+          const timer = setInterval(() => {
+            const elapsed = Date.now() - start;
+            holdProgress = Math.min(elapsed / 600, 1);
+            if (holdProgress >= 1) {
+              isHardKillReady = true;
+              clearInterval(timer);
+            }
+          }, 16);
 
-        const endHold = () => {
-          clearInterval(timer);
-          const duration = Date.now() - start;
-          if (duration >= 600) {
-            nanobot.hardKill(campaign_id);
-          } else {
-            nanobot.closeUniversalModal();
-          }
-          holdProgress = 0;
-          isHardKillReady = false;
-          window.removeEventListener('mouseup', endHold);
-        };
-        window.addEventListener('mouseup', endHold);
-      }}
-      class="relative w-8 h-8 rounded-lg border border-red-500/30 bg-red-500/10 flex items-center justify-center hover:bg-red-500/30 transition-all ml-1 group overflow-hidden active:scale-95 cursor-pointer"
-      title="Nhấn để đóng UI | Giữ 0.6s để Hủy tiến trình AI (Hard Kill)"
-    >
-      <!-- Progress Ring for Hard Kill -->
-      <svg class="absolute inset-0 w-full h-full -rotate-90 pointer-events-none">
-        <circle 
-          cx="16" cy="16" r="14" 
-          fill="none" 
-          stroke="currentColor" 
-          stroke-width="2" 
-          stroke-dasharray="87.96"
-          stroke-dashoffset={87.96 * (1 - holdProgress)}
-          style="transition: stroke-dashoffset 0.1s linear"
-          class={isHardKillReady ? "text-red-500" : "text-white/30"}
-        />
-      </svg>
-      <X class="w-4 h-4 transition-all duration-300 {isHardKillReady ? 'text-red-500 scale-125' : 'text-red-500/80 group-hover:text-red-400'}" />
-    </button>
+          const endHold = () => {
+            clearInterval(timer);
+            const duration = Date.now() - start;
+            if (duration >= 600) {
+              nanobot.hardKill(campaign_id);
+            } else {
+              nanobot.closeUniversalModal();
+            }
+            holdProgress = 0;
+            isHardKillReady = false;
+            window.removeEventListener('mouseup', endHold);
+          };
+          window.addEventListener('mouseup', endHold);
+        }}
+        ontouchstart={(e) => {
+          const start = Date.now();
+          const timer = setInterval(() => {
+            const elapsed = Date.now() - start;
+            holdProgress = Math.min(elapsed / 600, 1);
+            if (holdProgress >= 1) {
+              isHardKillReady = true;
+              clearInterval(timer);
+            }
+          }, 16);
+
+          const endTouch = () => {
+            clearInterval(timer);
+            const duration = Date.now() - start;
+            if (duration >= 600) {
+              nanobot.hardKill(campaign_id);
+            } else {
+              nanobot.closeUniversalModal();
+            }
+            holdProgress = 0;
+            isHardKillReady = false;
+            window.removeEventListener('touchend', endTouch);
+          };
+          window.addEventListener('touchend', endTouch);
+        }}
+        class="relative w-9 h-9 rounded-lg border border-red-500/30 bg-red-500/10 flex items-center justify-center hover:bg-red-500/30 transition-all ml-1 group overflow-hidden active:scale-90 cursor-pointer"
+        title="Nhấn: Đóng UI | Giữ 0.6s: KILL tiến trình AI"
+      >
+        <!-- Progress Ring for Hard Kill -->
+        <svg class="absolute inset-0 w-full h-full -rotate-90 pointer-events-none scale-110">
+          <circle 
+            cx="18" cy="18" r="15" 
+            fill="none" 
+            stroke="currentColor" 
+            stroke-width="2.5" 
+            stroke-dasharray="94.25"
+            stroke-dashoffset={94.25 * (1 - holdProgress)}
+            style="transition: stroke-dashoffset 0.1s linear"
+            class={isHardKillReady ? "text-red-500" : "text-white/20"}
+          />
+        </svg>
+        <X class="w-4 h-4 transition-all duration-300 {isHardKillReady ? 'text-red-500 scale-125 rotate-90' : 'text-red-500/80 group-hover:text-red-400'}" />
+      </button>
+    </div>
   </div>
 </div>
 

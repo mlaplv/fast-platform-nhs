@@ -44,7 +44,7 @@ Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt th
 - [x] Cleanup: Remove all `auth_extended` remnants and stale dependencies. <!-- id: 40 -->
 - [x] Final Audit: Verify 100% Service-Centric compliance for all controllers. <!-- id: 41 -->
 
-## 🎯 Giai đoạn 14: Next-Gen Monitoring & Auto-Scale (PENDING)
-- [ ] Backend: Real-time Prometheus/Grafana metrics for AI Key usage.
-- [ ] Backend: Automated DB Health Check & Auto-repair loop.
-- [ ] UI: Developer Console for real-time SQL & Event tracing.
+## 🎯 Giai đoạn 15: AI Content Intelligence (BẮT ĐẦU)
+- [x] Аналитика Step 2: Giải mã lỗi hình ảnh "Tuần lộc & Búp bê" cho thương hiệu Hồng Sơn. <!-- id: 50 -->
+- [ ] Logic: Bổ sung "Native Brand Protection" cho AssetHunter (Cơ chế chống dịch danh từ riêng). <!-- id: 51 -->
+- [ ] UI: Thêm toggle "Tìm ảnh Nội địa (Tiếng Việt)" trong Step 2. <!-- id: 52 -->

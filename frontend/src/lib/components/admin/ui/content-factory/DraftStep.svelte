@@ -20,7 +20,7 @@
   let {
     campaign_id, isEditing, editedDraft = $bindable(), draft_content = $bindable(),
     outline = {} as CampaignOutline, assets = [] as (MediaAsset | string)[], isExpanded,
-    selectedAvatarUrl = $bindable(null as string | null), selectedAssetIndex = $bindable(0),
+    selectedAvatarUrl = $bindable(), selectedAssetIndex = $bindable(),
     editorRef = $bindable(), analysis_cache = {} as AnalysisCache, analysis_metrics = {} as CampaignMetrics,
     copyrightScore = $bindable(), seoScore = $bindable(), aiScore = $bindable(), isProcessing = false
   }: Props = $props();
@@ -57,6 +57,8 @@
   onMount(() => {
     if (editedDraft === undefined) editedDraft = "";
     if (draft_content === undefined) draft_content = "";
+    if (selectedAvatarUrl === undefined) selectedAvatarUrl = null;
+    if (selectedAssetIndex === undefined) selectedAssetIndex = 0;
     if (copyrightScore === undefined) copyrightScore = null;
     if (seoScore === undefined) seoScore = null;
     if (aiScore === undefined) aiScore = null;

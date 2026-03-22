@@ -409,7 +409,7 @@
                 {#if showRemoteInput}
                     <div 
                         class="absolute top-full right-0 mt-2 w-72 p-3 bg-white dark:bg-zinc-800 rounded-xl shadow-2xl border border-zinc-200 dark:border-zinc-700" 
-                        style="z-index: {Z_INDEX.SURFACE + 50};"
+                        style="z-index: {Z_INDEX.HUD_FLOATING};"
                         transition:fade
                     >
                         <p class="text-[10px] font-bold text-zinc-400 uppercase mb-2">Dán link ảnh để AI tải về:</p>
@@ -546,7 +546,7 @@
                 {#if showMoreActions}
                     <div 
                         class="absolute top-full right-0 mt-2 w-64 p-3 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col gap-2"
-                        style="z-index: {Z_INDEX.SURFACE + 100};"
+                        style="z-index: {Z_INDEX.HUD_SERVICE};"
                         transition:slide={{ axis: 'y', duration: 300 }}
                     >
                         <div class="flex items-center justify-between px-2 mb-1">

@@ -29,7 +29,7 @@ pnpm-lock.yaml
 uv.lock
 poetry.lock
 yarn.lock
-check_gemini.sh
+text.key
 
 # 3. Dữ liệu sinh ra khi dev
 backups/

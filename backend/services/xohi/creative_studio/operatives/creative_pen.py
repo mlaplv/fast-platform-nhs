@@ -12,14 +12,18 @@ from backend.utils.noise_cleaner import noise_cleaner
 
 logger = logging.getLogger("api-gateway")
 
-OUTLINE_PROMPT = """[ROLE] CHIEF EDITOR — Content Precision V77.0
-[YÊU CẦU CỐT LÕI - PHẢI TUÂN THỦ]
-1. TRẬN TÂM: Bám sát Tiêu đề, Từ khóa chính và Từ khóa phụ từ Bước 1.
-2. CẤU TRÚC MỖI ĐOẠN (SECTION):
+OUTLINE_PROMPT = """[ROLE] TỔNG BIÊN TẬP — Điều phối nội dung XoHi 2026
+[CHIẾN THUẬT "THUẦN VIỆT 100%" - R03 ELITE]
+1. TRỌNG TÂM (STRICT PRIORITY):
+    - Ưu tiên 1: Tiêu đề + Từ khóa chính.
+    - Ưu tiên 2: Từ khóa chính + Từ khóa phụ.
+    - Ưu tiên 3: Từ khóa chính + Bối cảnh từ Mô tả (Description).
+2. CẤM DỊCH THUẬT: Giữ nguyên 100% tên thương hiệu và danh từ riêng bằng tiếng Việt (Vd: "Hồng Sơn" giữ nguyên).
+3. ĐỊNH DẠNG SECTION:
    - 1 Câu Sapô chủ chốt dẫn dắt nội dung.
    - 1 Gạch đầu dòng duy nhất chứa ý chính của đoạn.
-3. TỔNG SỐ ĐOẠN: Đúng số lượng `max_sections` được yêu cầu.
-4. TUYỆT ĐỐI: Không thêm bất kỳ hình ảnh nào ([IMAGE_X]), không viết thành bài báo hoàn chỉnh.
+4. TỔNG SỐ ĐOẠN: Đúng số lượng `max_sections`.
+5. TUYỆT ĐỐI: Không chèn [IMAGE_X], không viết bài báo hoàn chỉnh.
 
 [YÊU CẦU ĐỊNH DẠNG JSON]
 Trả về mảng `sections`, mỗi object:
@@ -29,16 +33,17 @@ Trả về mảng `sections`, mỗi object:
 Chỉ trả về JSON, KHÔNG giải thích thêm.
 """
 
-DRAFT_PROMPT = """[ROLE] CHIEF CONTENT ENGINEER — XoHi Press V77.0
-[TIÊU CHUẨN KỸ THUẬT NỘI DUNG (PCE)]
-1. **MẬT ĐỘ TỪ KHÓA (SEMANTIC DENSITY)**: Đan xen Từ khóa chính/phụ một cách tự nhiên nhưng bền bỉ (Mật độ 1.5-2%).
-2. **TÍNH NHẤT QUÁN CẤU TRÚC (STRUCTURAL FIDELITY)**: Tuyệt đối tuân thủ Dàn ý từ Bước 3. Mỗi gạch đầu dòng phải được triển khai thành các đoạn văn có chiều sâu, giàu thông tin.
-3. **NHỊP ĐIỆU ĐỘNG (DYNAMIC PACING)**: Điều chỉnh độ dài đoạn văn theo Chế độ nội dung (Viral: ngắn gọn, dồn dập; Deep-dive: phân tích đa chiều).
+DRAFT_PROMPT = """[ROLE] KỸ SƯ NỘI ĐỘNG LỰC — XoHi Media V2026
+[TIÊU CHUẨN KỸ THUẬT NỘI DUNG]
+1. **MẬT ĐỘ TỪ KHÓA**: Đan xen Từ khóa chính/phụ một cách tự nhiên nhưng bền bỉ (Mật độ 1.5-2%).
+2. **TÍNH NHẤT QUÁN CẤU TRÚC**: Tuyệt đối tuân thủ Dàn ý từ Bước 3. Mỗi gạch đầu dòng phải được triển khai thành các đoạn văn có chiều sâu, giàu thông tin.
+3. **NHỊP ĐIỆU ĐỘNG**: Điều chỉnh độ dài đoạn văn theo Chế độ nội dung (Viral: ngắn gọn, dồn dập; Deep-dive: phân tích đa chiều).
 
-[THUẬT TOÁN CHÈN ẢNH (NCAM)]
-- Phân tích "Giá trị bối cảnh" của từng phần.
-- Chèn mã [IMAGE_X] vào vị trí có giá trị minh họa cao nhất. Không chèn bừa bãi.
-- Đảm bảo hình ảnh bổ trợ trực tiếp cho luận điểm đang trình bày.
+[THUẬT TOÁN CHÈN ẢNH - CHIẾN THUẬT THUẦN VIỆT]
+- Phân tích "Giá trị bối cảnh" của từng phần dựa trên Title và Mô tả.
+- Chèn mã [IMAGE_X] vào vị trí có giá trị minh họa cao nhất.
+- Đảm bảo bối cảnh hình ảnh (Vietnamese Context) bổ trợ trực tiếp cho luận điểm.
+- CẤM DỊCH tên sản phẩm/thương hiệu sang tiếng Anh trong bài viết.
 
 [YÊU CẦU HTML]
 - Trả về mã HTML thuần (h1, h2, p, figure, section). 
@@ -111,6 +116,7 @@ class CreativePen:
         """
         primary = campaign.get_gold_val("primary_keyword", "N/A")
         secondary = ", ".join(campaign.get_gold_val("secondary_keywords", []))
+        description = campaign.get_gold_val("description", "")
         title = campaign.get_gold_val("title", "Bài viết mới")
         persona = campaign.get_gold_val("persona", "Chuyên gia")
         
@@ -132,13 +138,15 @@ class CreativePen:
         primary_clean = await noise_cleaner.clean(primary, mode="standard")
         
         prompt = f"""
-        [THÔNG TIN GOLDEN THREAD - ĐÃ KHỬ NHIỄU]
-        - Tiêu đề tiêu điểm: {title_clean}
-        - Từ khóa CHỦ CHỐT: {primary_clean}
-        - Từ khóa bổ trợ: {secondary}
+        [THUẦN VIỆT - THỨ TỰ ƯU TIÊN GOLDEN THREAD]
+        1. Tiêu đề: {title_clean}
+        2. Từ khóa CHÍNH: {primary_clean}
+        3. Từ khóa bổ trợ: {secondary}
+        4. Mô tả bối cảnh: {description}
+        
         - Phong cách (Persona): {persona}
         - GIỚI HẠN: {max_sections} mục H2.
-        Cần một dàn ý BÁO CHÍ chuẩn mực, tập trung vào giá trị thông tin.
+        Cần một dàn ý BÁO CHÍ thuần Việt, tập trung vào giá trị thông tin và bối cảnh Việt Nam.
         """
         
         try:
@@ -328,20 +336,21 @@ class CreativePen:
             mode_instruction = "Viết cực kỳ cô đọng, tập trung vào tính viral và nhịp điệu nhanh (Fast-paced)."
 
         prompt = f"""
-[THÔNG TIN CHIẾN DỊCH NỘI DUNG]
+[THÔNG TIN CHIẾN DỊCH NỘI DUNG - CHIẾN THUẬT THUẦN VIỆT]
 
-## GOLDEN THREAD (Cốt lõi không thể thay đổi)
-- Tiêu đề bài viết: {title}
-- Từ khóa CHÍNH (phải xuất hiện nhiều nhất): **{primary}**
-- Từ khóa PHỤ (phân bổ tự nhiên): {', '.join(secondary_list)}
-- Phong cách viết (Persona): {persona}
+## GOLDEN THREAD (Thứ tự ưu tiên 1-2-3-4)
+- **Ưu tiên 1 (Tiêu đề)**: {title}
+- **Ưu tiên 2 (Từ khóa CHÍNH)**: **{primary}** (Bắt buộc giữ nguyên tên tiếng Việt, cấm dịch)
+- **Ưu tiên 3 (Từ khóa PHỤ)**: {', '.join(secondary_list)}
+- **Ưu tiên 4 (Mô tả)**: {campaign.get_gold_val("description", "")}
+
+- Phong cách: {persona}
 - Chế độ nội dung: {content_mode.upper()} ({mode_instruction})
 
 ## DÀN Ý ĐÃ ĐƯỢC DUYỆT (BƯỚC 3)
-Viết đầy đủ và đúng thứ tự tất cả các mục sau:
 {outline_text}
 
-## KHO ẢNH ĐÃ ĐƯỢC CHỌN (BƯỚC 2)
+## KHO ẢNH VIỆT NAM (BƯỚC 2)
 {avatar_context}
 {asset_context}
 
@@ -350,11 +359,9 @@ Viết đầy đủ và đúng thứ tự tất cả các mục sau:
 - **GIỚI HẠN ĐOẠN VĂN**: Mỗi mục (H2/H3) CHỈ ĐƯỢC PHÉP có tối đa {paras_per_section} đoạn văn (<p>). Tổng bài viết KHÔNG QUÁ {total_para_limit} đoạn văn.
 - Chèn mã [IMAGE_N] vào vị trí muốn hiển thị. Bạn có thể ghi [IMAGE_N] đứng một mình hoặc chèn vào giữa văn bản.
 - **ĐỘ DÀI BẮT BUỘC**: Bài viết PHẢI nằm trong khoảng từ {min_words} đến {max_words} từ.
-- Giàu thông tin, hấp dẫn và viral.
+- Giàu thông tin, hấp dẫn và mang đậm bản sắc Việt Nam. Tuyệt đối không sử dụng văn phong dịch máy.
 - Kết thúc bằng một đoạn <section class=\"cta\"> với Call-To-Action mạnh mẽ liên quan đến \"{primary}\".
 - KHÔNG thêm lời dẫn hay giải thích. Chỉ trả về HTML thuần.
-
-Bắt đầu viết ngay:
 """
         return prompt, assets, primary
 

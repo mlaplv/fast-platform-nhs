@@ -6,8 +6,8 @@ export function createIdeaController(config: {
     setKeywords: (v: CampaignKeywords) => void;
     getEditedKeywords: () => CampaignKeywords;
     setEditedKeywords: (v: CampaignKeywords) => void;
-    getEditedConfig: () => Record<string, any>;
-    setEditedConfig: (v: Record<string, any>) => void;
+    getEditedConfig: () => Record<string, unknown>;
+    setEditedConfig: (v: Record<string, unknown>) => void;
     onSelectKeyword: (kw: string) => void;
 }) {
     function addSecondaryKeyword(val: string) {

@@ -386,7 +386,7 @@ class MediaStore {
                 const cleanCid = sanitizeId(this.currentCampaignId);
                 if (cleanCid) formData.append('campaign_id', cleanCid);
 
-                const response = await apiClient.upload<any>(
+                const response = await apiClient.upload<{ status: string, data: MediaAsset }>(
                     '/api/v1/media',
                     formData
                 );

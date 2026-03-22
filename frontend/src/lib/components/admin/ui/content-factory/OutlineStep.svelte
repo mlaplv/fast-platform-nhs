@@ -23,10 +23,10 @@
     isEditing,
     editedOutline = $bindable(),
     outline = {} as RawOutline,
-    assets = $bindable([] as (MediaAsset | string)[]),
+    assets = $bindable(),
     isExpanded,
-    selectedAvatarUrl = $bindable(null as string | null),
-    selectedAssetIndex = $bindable(0),
+    selectedAvatarUrl = $bindable(),
+    selectedAssetIndex = $bindable(),
     editorAnnotations = [],
     step = 3,
     isProcessing = false,
@@ -42,6 +42,9 @@
 
   onMount(() => {
     if (editedOutline === undefined) editedOutline = "";
+    if (assets === undefined) assets = [];
+    if (selectedAvatarUrl === undefined) selectedAvatarUrl = null;
+    if (selectedAssetIndex === undefined) selectedAssetIndex = 0;
   });
 
   // Ensure editedOutline is initialized when entering edit mode if it was empty

@@ -112,12 +112,13 @@ class SmartKeyRotator:
         """Standardize key identification via SHA256 (Truncated) for 2026 standards."""
         return hashlib.sha256(key.encode()).hexdigest()[:16]
 
-    async def get_key(self, session_id: Optional[str] = None) -> str:
+    async def get_key(self, model_name: str, session_id: Optional[str] = None) -> str:
         """
-        V70.1: Weighted Random Selection with Key-Hash based tracking.
+        V82.30: Model-Aware Key Selection.
+        Differentiates between Global Key Failure (Auth) and Model-Specific Quota Exhaustion.
         """
         if not self.keys: return ""
-        if not self._use_redis: return self.get_next_key()
+        if not self._use_redis or not self.client: return self.get_next_key()
 
         num_keys = len(self.keys)
         candidate_indices = []
@@ -128,11 +129,15 @@ class SmartKeyRotator:
         for idx, key in enumerate(self.keys):
             kid = self._get_key_id(key)
             
-            # 1. Check Blacklist
+            # 1. Check Global Blacklist (Invalid/Disabled keys)
             if await self.client.exists(f"{self.BLACKLIST_PREFIX}{kid}"):
                 continue
 
-            # 2. Check Cooldown/Health
+            # 2. Check Model-Specific Daily Quota (CNS Phase 82.30)
+            if await self.is_model_daily_exhausted(key, model_name):
+                continue
+
+            # 3. Check Cooldown/Health
             meta = await self.client.hgetall(f"{self.METADATA_PREFIX}{kid}")
             fail_count = int(meta.get("fail_count", 0))
             last_used = float(meta.get("last_used", 0))
@@ -143,41 +148,45 @@ class SmartKeyRotator:
                 if now - last_used < cooldown:
                     continue 
 
-            # 3. Chủ động kiểm tra Limits (RPM & TPM) trước khi chọn key
+            # 4. RPM & TPM limits check
             try:
-                # Cleanup records cũ
                 await self.client.zremrangebyscore(f"{self.TPM_PREFIX}{kid}", 0, now - 60)
                 tpm_members = await self.client.zrangebyscore(f"{self.TPM_PREFIX}{kid}", now - 60, now)
-                
                 current_rpm = len(tpm_members)
-                current_tpm = sum(int(m.split(":")[1]) for m in tpm_members if ":" in m and len(m.split(":")) >= 2)
+                current_tpm = sum(int(m.split(":")[1]) for m in tpm_members if ":" in m)
                 
                 if current_rpm >= self.MAX_RPM or current_tpm >= self.MAX_TPM:
-                    continue  # Bỏ qua key này nếu đang bị nóng, để Google không khóa
-            except Exception as e:
-                logger.debug(f"[KeyRotator] Bỏ qua lỗi check TPM cho {kid}: {e}")
+                    continue
+            except Exception:
+                pass
 
-            # 4. Calculate Weight
-            idle_time = now - last_used
-            weight = (idle_time + 1) * (health_score / 100.0)
-            
+            # 5. Calculate Weight
+            weight = health_score
             candidate_indices.append(idx)
             weights.append(weight)
 
         if not candidate_indices:
-            # V82.12: Check if all keys are completely dead (Blacklisted due to Auth/Invalid)
-            blacklisted_count = 0
+            # CNS Phase 82.30: Intelligent Fast-Fail Classification
+            completely_blacklisted_count: int = 0
+            model_exhausted_count: int = 0
+            
             for k in self.keys:
                 k_id = self._get_key_id(k)
                 if await self.client.exists(f"{self.BLACKLIST_PREFIX}{k_id}"):
-                    blacklisted_count += 1
+                    completely_blacklisted_count = completely_blacklisted_count + 1
+                elif await self.is_model_daily_exhausted(k, model_name):
+                    model_exhausted_count = model_exhausted_count + 1
             
-            if blacklisted_count == len(self.keys):
-                logger.error("[KeyRotator] TẤT CẢ API KEY đều bị khóa (Tài khoản/Auth Error/Limit). Fast-Fail hệ thống!")
-                raise Exception("AUTH_ERROR: Không có API Key nào hợp lệ để chạy model. Vui lòng kiểm tra lại cấu hình Key trong Database/ENV.")
+            if completely_blacklisted_count == len(self.keys):
+                logger.error(f"[KeyRotator] GLOBAL AUTH FAILURE: All {len(self.keys)} keys are blacklisted.")
+                raise Exception("AUTH_ERROR: Toàn bộ API Key đều không hợp lệ hoặc đã bị vô hiệu hóa.")
             
-            logger.warning("[KeyRotator] TẤT CẢ API KEY đều quá tải (vượt Limit/Cooldown). Chặn request để bảo vệ tài khoản.")
-            raise Exception("429 Too Many Requests: Hệ thống AI đang tạm thời đạt giới hạn an toàn. Vui lòng đợi 1 phút để hồi phục.")
+            if model_exhausted_count + completely_blacklisted_count == len(self.keys):
+                logger.warning(f"[KeyRotator] MODEL QUOTA EXHAUSTED: No keys available for model '{model_name}'.")
+                raise Exception(f"QUOTA_ERROR: Model '{model_name}' đã hết hạn mức (Daily Quota) trên tất cả các key.")
+
+            # Otherwise, it's just a temporary RPM cooldown
+            raise Exception(f"429: Hệ thống đang tạm nghỉ (Cooldown) cho model '{model_name}'.")
 
         # 5. Weighted Random Choice
         chosen_idx = random.choices(candidate_indices, weights=weights, k=1)[0]

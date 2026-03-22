@@ -46,11 +46,11 @@
       } else {
         // Phase 1: Update Awareness Set from local state
         // This ensures the UI "remembers" what the user just deleted.
-        safelyMutableData.assets?.forEach((a: any) => {
+        safelyMutableData.assets?.forEach((a: MediaAsset | string) => {
           const url = typeof a === 'string' ? a : (a.file_path || a.url);
           if (url) historicalSeen.add(url);
         });
-        safelyMutableData.reserve_assets?.forEach((url: any) => {
+        safelyMutableData.reserve_assets?.forEach((url: MediaAsset | string) => {
           const u = typeof url === 'string' ? url : (url.file_path || url.url);
           if (u) historicalSeen.add(u);
         });

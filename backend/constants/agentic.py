@@ -18,3 +18,11 @@ CONTENT_CACHE_TTL = 60 # 1 minute for hot state
 # Campaign Config
 MAX_SEARCH_RETRY_PER_STEP = 3
 SEARCH_CIRCUIT_BREAKER_COOLDOWN_MINUTES = 15
+
+# R110: Pure Vietnamese Search Locale (Fast-Platform Elite V2.2)
+SEARCH_LOCALE_PARAMS = {
+    "lr": os.getenv("GOOGLE_SEARCH_LR", "lang_vi"),
+    "cr": os.getenv("GOOGLE_SEARCH_CR", "countryVN"),
+    "gl": os.getenv("GOOGLE_SEARCH_GL", "vn"),
+    "hl": os.getenv("GOOGLE_SEARCH_HL", "vi"),
+}

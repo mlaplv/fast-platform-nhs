@@ -9,7 +9,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from backend.utils.http_client import get_http_client
 from backend.services.event_bus import event_bus
-from backend.constants.agentic import MAX_SEARCH_RETRY_PER_STEP, SEARCH_CIRCUIT_BREAKER_COOLDOWN_MINUTES
+from backend.constants.agentic import MAX_SEARCH_RETRY_PER_STEP, SEARCH_CIRCUIT_BREAKER_COOLDOWN_MINUTES, SEARCH_LOCALE_PARAMS
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from pydantic import BaseModel, ConfigDict
 from pydantic_ai import Agent
@@ -19,24 +19,22 @@ from backend.services.xohi.creative_studio.models.schemas import VisualSearchPla
 
 logger = logging.getLogger("api-gateway")
 
-PLANNER_PROMPT = """[ROLE] VISUAL CONTENT DIRECTOR — XoHi Content Factory 2026
+PLANNER_PROMPT = """[ROLE] CHUYÊN GIA ĐẠO DIỄN HÌNH ẢNH — XoHi Thuần Việt 2026
 
 [NHIỆM VỤ]
-Phân tích dữ liệu từ các trường thông tin cụ thể dưới đây để tạo 3-5 câu lệnh tìm kiếm (Search queries) bằng TIẾNG ANH, đảm bảo độ chính xác tuyệt đối về chủ thể và ngữ cảnh:
-- Dựa trên [Title]: Trích xuất ngữ cảnh/kịch bản.
-- Dựa trên [Primary Keyword]: Trích xuất thực thể chính.
-- Dựa trên [Secondary Keywords]: Trích xuất các chi tiết bổ trợ/vật thể cụ thể.
+Phân tích dữ liệu để tạo 3-5 câu lệnh tìm kiếm (Search queries) bằng TIẾNG VIỆT, đảm bảo độ chính xác tuyệt đối về chủ thể và ngữ cảnh phù hợp với thị trường Việt Nam.
 
-[CHIẾN THUẬT SUY LUẬN TỔNG LỰC]
-1. CHIẾT XUẤT BẢN SẮC (Subject Identity): Soi kỹ [Title] và [Primary Keyword] để xác định Giới tính/Độ tuổi. Nếu xuất hiện "Nam/Men", BẮT BUỘC chèn `male/men` vào 100% các query để chặn hình ảnh nữ.
-2. RÀNG BUỘC NEO (Hard Anchoring): Mỗi query BẮT BUỘC phải xâu chuỗi [Primary Keyword] với ít nhất một từ khóa trong [Secondary Keywords].
-3. ĐA DẠNG HÓA KỊCH BẢN (Visual Scenarios): Ép AI tạo ra 3-5 kịch bản thị giác khác nhau từ [Title] để Google trả về kết quả đa dạng (ví dụ: Toàn cảnh bối cảnh, Cận cảnh chi tiết vật thể, Studio sạch sẽ). 
-4. KHÓA VẬT THỂ (Concrete Objects): Tự suy luận từ [Secondary Keywords] ra các vật thể cụ thể (ví dụ: "Bộ suit", "Giày da", "Cà vạt") thay vì các từ chung chung như "Thời trang".
+[THỨ TỰ ƯU TIÊN (STRICT PRIORITY)]
+1. Tiêu đề (Title): Trích xuất kịch bản/ngữ cảnh chính.
+2. Từ khóa CHÍNH (Primary Keyword): Thực thể bắt buộc phải xuất hiện.
+3. Từ khóa PHỤ (Secondary Keywords): Các chi tiết bổ trợ.
+4. Mô tả (Description): Bối cảnh và cảm xúc.
 
-[CHỈ THỊ CỨNG]
-- TUYỆT ĐỐI không tạo các query trùng lặp cấu trúc (Chống trùng ảnh 100%).
-- PHẢI dùng từ khóa phủ định: `-text -word -typography -quote -infographic`.
-- Ưu tiên Ngôn ngữ: TIẾNG ANH (cho chất lượng Stock cao nhất).
+[CHIẾN THUẬT SINH QUERY]
+1. BẢO VỆ THƯƠNG HIỆU: Giữ nguyên 100% tên thương hiệu và danh từ riêng. CẤM DỊCH sang tiếng Anh (Vd: "Hồng Sơn" giữ nguyên, không được dịch thành "Red Mountain").
+2. QUERY TỔNG LỰC: Query 1 phải là sự kết hợp giữa [Tiêu đề] và [Từ khóa chính].
+3. NGỮ CẢNH ĐỊA PHƯƠNG: Ưu tiên các từ khóa mô tả bối cảnh Việt Nam (Vd: "tại Việt Nam", "văn phòng Việt", "đường phố Việt").
+4. CHẶN NHIỄU TUYỆT ĐỐI: Bắt buộc thêm các từ khóa phủ định: `-doll -reindeer -toys -clipart -cartoon -drawing -vector -typography -text -quote`.
 
 [ĐỊNH DẠNG]
 Trả về JSON VisualSearchPlan chính xác.
@@ -82,6 +80,7 @@ class AssetHunter:
             title: str = campaign.get_gold_val("title", campaign.source_input)
             primary: str = campaign.get_gold_val("primary_keyword", "")
             secondary: List[str] = campaign.get_gold_val("secondary_keywords", [])
+            description: str = campaign.get_gold_val("description", "")
             persona: str = campaign.get_gold_val("persona", "Professional")
 
             await event_bus.emit("CONTENT_PROGRESS", {
@@ -116,6 +115,7 @@ class AssetHunter:
                         f"Title: {title}\n"
                         f"Primary Keyword: {primary}\n"
                         f"Secondary Keywords: {', '.join(secondary)}\n"
+                        f"Description: {description}\n"
                         f"Persona: {persona}\n"
                         f"Content Mode: {content_mode.upper()}"
                     )
@@ -277,7 +277,8 @@ class AssetHunter:
                     "searchType": "image",
                     "num": 10,
                     "start": start,
-                    "imgSize": "large" 
+                    "imgSize": "large",
+                    **SEARCH_LOCALE_PARAMS
                 }
                 
                 logger.info(f"[AssetHunter] Searching index {self.current_index} (start={start}) for: {query}")

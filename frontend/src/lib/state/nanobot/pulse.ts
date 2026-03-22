@@ -9,7 +9,8 @@ import type {
   CampaignKeywords,
   CampaignOutline,
   CampaignMetrics,
-  MediaAsset
+  MediaAsset,
+  CampaignStatus
 } from "../types";
 
 // CNS V70: Voice Discipline — maps server severity to frontend action
@@ -202,8 +203,9 @@ export function createPulseManager(
 
           const syncCompleted = (target: CampaignData) => {
             if (!target) return;
-            target.status = completedPayload.status || target.status;
-            target.step = completedPayload.step || target.step;
+            // CNS Phase 82.22: Force Status Reset on Completion (Prevents UI Hang)
+            target.status = (completedPayload.status || rawData.status || "WAITING_FOR_REVIEW") as CampaignStatus;
+            target.step = (completedPayload.step || rawData.step || target.step) as number;
             target.progress_msg = "";
             
             if (hasContent(rawData.keywords) || hasContent(rawData.topic_data)) target.keywords = (rawData.keywords || rawData.topic_data) as CampaignKeywords;

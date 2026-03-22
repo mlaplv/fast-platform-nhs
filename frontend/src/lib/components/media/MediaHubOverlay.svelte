@@ -10,7 +10,7 @@
 
 <div
     class="fixed inset-0 flex flex-col pointer-events-auto overflow-hidden bg-[#0a0c12]/98 backdrop-blur-2xl"
-    style="z-index: 99999;"
+    style="z-index: {Z_INDEX.MEDIA_OVERLAY};"
     transition:fade={{ duration: 250 }}
 >
     <!-- Liquid Glass ambient glow -->

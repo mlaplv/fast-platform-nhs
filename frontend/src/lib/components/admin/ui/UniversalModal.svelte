@@ -22,7 +22,7 @@
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
 
-  const WIDGET_REGISTRY: Record<string, Component<{ data: Record<string, any> }>> = {
+  const WIDGET_REGISTRY: Record<string, Component<{ data: Record<string, unknown> }>> = {
     RevenueChart,
     REVENUE_CHART: RevenueChart,
     UserTable,
@@ -98,7 +98,8 @@
 
     <!-- Widget Container -->
     <div
-      class="relative z-10 w-full h-full flex flex-col max-h-full overflow-hidden"
+      class="relative w-full h-full flex flex-col max-h-full overflow-hidden"
+      style="z-index: {Z_INDEX.SURFACE};"
     >
       <!-- Header -->
       {#if nanobot.activeWidget !== 'CONTENT_REVIEW'}

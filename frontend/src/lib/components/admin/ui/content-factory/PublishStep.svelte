@@ -9,7 +9,7 @@
   import { apiClient as defaultClient } from "$lib/utils/apiClient";
 
   let {
-    assets = $bindable([]), selectedAvatarUrl = $bindable(), selectedAssetIndex = $bindable(0),
+    assets = $bindable(), selectedAvatarUrl = $bindable(), selectedAssetIndex = $bindable(),
     keywords = $bindable(), finalHtml = $bindable(), draft_content = $bindable(), campaign_id,
     apiClient = defaultClient, copyrightScore, seoScore, aiScore
   }: {
@@ -29,7 +29,9 @@
   });
 
   onMount(() => {
+    if (assets === undefined) assets = [];
     if (selectedAvatarUrl === undefined) selectedAvatarUrl = null;
+    if (selectedAssetIndex === undefined) selectedAssetIndex = 0;
     if (keywords === undefined) keywords = {} as CampaignKeywords;
     if (finalHtml === undefined) finalHtml = "";
     if (draft_content === undefined) draft_content = "";

@@ -108,14 +108,19 @@
     <!-- Compact Primary Action: Intense Glow -->
     <button
       onclick={viewingStep === 6 ? handlePublish : (viewingStep < step ? () => { viewingStep = step; isEditing = false; } : handleApprove)}
-      disabled={isLoading || isPublishing || isProcessing}
+      disabled={isLoading || isPublishing || (isProcessing && viewingStep === step)}
       class="group/primary relative h-9 px-4 flex items-center gap-2 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 font-black text-[10px] uppercase tracking-[0.15em] text-white shadow-[0_10px_25px_rgba(6,182,212,0.3)] hover:shadow-[0_15px_35px_rgba(6,182,212,0.5)] active:scale-95 transition-all overflow-hidden"
     >
       <!-- Neural Shimmer -->
       <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/primary:animate-shimmer" aria-hidden="true"></div>
       
-      {#if isLoading || isPublishing || isProcessing} 
+      {#if isLoading || isPublishing} 
         <Loader size={14} class="animate-spin" />
+      {:else if isProcessing && viewingStep === step}
+        <div class="flex items-center gap-2">
+          <Loader size={12} class="animate-spin opacity-50" />
+          <span>Thinking</span>
+        </div>
       {:else}
         <span class="relative">
           {#if viewingStep === 6} Launch
@@ -126,6 +131,25 @@
         <ChevronRight size={12} strokeWidth={3} class="opacity-70 group-hover/primary:translate-x-0.5 transition-transform" />
       {/if}
     </button>
+    
+    {#if isProcessing}
+      <!-- Rescue Sync Trigger (Visible during processing) -->
+      <button
+        onclick={async () => {
+          isLoading = true;
+          try {
+            // Signal a UI-only update to check for DB status changes
+            await handleUpdateMetadata(); 
+          } finally {
+            isLoading = false;
+          }
+        }}
+        class="w-9 h-9 flex items-center justify-center rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 transition-all ml-1 group"
+        title="Force Sync: Nếu bị đơ quá lâu, hãy bấm để cập nhật dữ liệu mới nhất từ server"
+      >
+        <RotateCcw size={14} class="group-hover:rotate-180 transition-transform duration-500" />
+      </button>
+    {/if}
   </div>
 </div>
 

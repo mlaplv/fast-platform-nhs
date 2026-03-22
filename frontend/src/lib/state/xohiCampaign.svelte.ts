@@ -8,7 +8,7 @@ import type { CampaignKeywords, MediaAsset, CampaignOutline, CampaignMetrics, An
 export function createCampaignController(config: {
     campaign_id: string;
     keywords: CampaignKeywords;
-    creation_config: Record<string, any>;
+    creation_config: Record<string, unknown>;
     outline: CampaignOutline;
     draft_content: string;
     assets: (MediaAsset | string)[];
@@ -56,7 +56,7 @@ export function createCampaignController(config: {
         }
     });
 
-    async function approve(viewingStep: number, isEditing: boolean, editedKeywords: any, editedConfig: any, editedOutline: string, editedDraft: string) {
+    async function approve(viewingStep: number, isEditing: boolean, editedKeywords: CampaignKeywords, editedConfig: Record<string, unknown>, editedOutline: string, editedDraft: string) {
         if (isLoading) return false;
 
         // Gate Check
@@ -69,7 +69,7 @@ export function createCampaignController(config: {
 
         isLoading = true;
         try {
-            let payload: any = isEditing ? {
+            let payload: Record<string, unknown> = isEditing ? {
                 edited_data: viewingStep === 1
                     ? { ...editedKeywords, creation_config: editedConfig }
                     : { html: viewingStep === 3 ? editedOutline : editedDraft }
@@ -86,7 +86,9 @@ export function createCampaignController(config: {
             if (viewingStep === 1) {
                 config.keywords = { ...editedKeywords, creation_config: { ...editedConfig } };
                 config.creation_config = { ...editedConfig };
-                nanobot.updateCurrentData({ keywords: config.keywords });
+                nanobot.updateCurrentData({ keywords: config.keywords, status: "PROCESSING", step: 2 });
+            } else if (viewingStep === 2) {
+                nanobot.updateCurrentData({ status: "PROCESSING", step: 3 });
             } else if (viewingStep === 3) {
                 config.outline.html = editedOutline;
                 nanobot.updateCurrentData({ outline: config.outline });
@@ -120,7 +122,7 @@ export function createCampaignController(config: {
         }
     }
 
-    async function updateMetadata(viewingStep: number, editedKeywords: any, editedConfig: any, editedOutline: string, editedDraft: string) {
+    async function updateMetadata(viewingStep: number, editedKeywords: CampaignKeywords, editedConfig: Record<string, unknown>, editedOutline: string, editedDraft: string) {
         if (isLoading) return false;
         isLoading = true;
         try {
