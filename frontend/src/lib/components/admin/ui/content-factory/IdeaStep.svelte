@@ -44,9 +44,15 @@
 
   onMount(() => {
     if (isEditing === undefined) isEditing = false;
-    if (keywords === undefined) keywords = {} as CampaignKeywords;
-    if (editedKeywords === undefined) editedKeywords = {} as CampaignKeywords;
-    if (editedConfig === undefined) editedConfig = {};
+    if (!editedConfig) editedConfig = { style: "Viral" };
+    if (!editedConfig.style) editedConfig.style = "Viral";
+  });
+
+  // Enforce mandatory writing style default
+  $effect(() => {
+    if (isEditing && !editedConfig?.style) {
+      editedConfig.style = "Viral";
+    }
   });
 </script>
 

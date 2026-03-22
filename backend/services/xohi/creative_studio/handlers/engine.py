@@ -253,3 +253,13 @@ class ExecutionEngine:
         )
         repo.session.add(event)
         await repo.update(campaign)
+        
+        # Phase 82.11: Emit explicit ERROR signal to SSE so the Svelte UI doesn't hang!
+        await event_bus.emit("CONTENT_PROGRESS", {
+            "campaign_id": campaign.id,
+            "user_id": campaign.user_id,
+            "step": campaign.current_step,
+            "message": error_msg,
+            "status": status,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })

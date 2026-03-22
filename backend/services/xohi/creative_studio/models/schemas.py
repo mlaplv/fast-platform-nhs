@@ -32,7 +32,7 @@ class TopicSeed(BaseModel):
     category: CategoryEnum = Field(default=CategoryEnum.TIN_TUC, description="Phân loại danh mục bài viết (Tin tức hoặc Chính sách)")
     creation_config: Dict[str, object] = Field(
         default_factory=lambda: {
-            "style": "Chuyên nghiệp",
+            "style": "Viral",
             "word_count": 500,
             "max_assets": 10,
             "max_sections": 3

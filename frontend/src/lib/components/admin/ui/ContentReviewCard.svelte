@@ -47,7 +47,7 @@
   });
 
   let viewingStep = $state(step || 1), isEditing = $state(false), maxStepSeen = $state(step || 1), isProcessing = $derived(status === "PROCESSING");
-  let customImageUrl = $state(""), editedKeywords = $state<CampaignKeywords>({}), editedConfig = $state<Record<string, any>>({
+  let customImageUrl = $state(""), editedKeywords = $state<CampaignKeywords>({}), editedConfig = $state<Record<string, unknown>>({
     style: "Viral",
     word_count: 500,
     max_assets: 10,
@@ -63,30 +63,25 @@
     if (isProcessing) {
       if (src && src !== editedDraft) editedDraft = src;
       if (out && out !== editedOutline) editedOutline = out;
-      
-      // Phase 82.8: Proactive Sync during Processing (Ensure defaults show while AI is thinking)
-      if (!isEditing) {
-        untrack(() => {
-          const rawSource = (creation_config && Object.keys(creation_config).length) ? creation_config : (keywords?.creation_config || {});
-          const cleanSource = Object.fromEntries(Object.entries(rawSource).filter(([_, v]) => v !== undefined && v !== null && v !== ""));
-          
-          editedConfig = {
-            style: "Viral",
-            word_count: 500,
-            max_assets: 10,
-            max_sections: 3,
-            ...cleanSource
-          };
-        });
-      }
-    } else if (!isEditing) {
-      untrack(() => {
-        if (src && src !== editedDraft) editedDraft = src;
-        if (out && out !== editedOutline) editedOutline = out;
+    }
 
-        // CNS: Reactive sync for Keywords & Creative Config (Fix: Auto-select defaults)
-        const rawSource = (creation_config && Object.keys(creation_config).length) ? creation_config : (keywords?.creation_config || {});
-        const cleanSource = Object.fromEntries(Object.entries(rawSource).filter(([_, v]) => v !== undefined && v !== null && v !== ""));
+    // Reactive Data Synchronization (Enforce Defaults & Props)
+    if (!isEditing) {
+      untrack(() => {
+        const sourceFromProp = (creation_config && typeof creation_config === 'object') ? creation_config : {};
+        const sourceFromKeywords = (keywords?.creation_config && typeof keywords.creation_config === 'object') ? keywords.creation_config : {};
+        const rawSource = Object.keys(sourceFromProp).length > 0 ? sourceFromProp : sourceFromKeywords;
+
+        const cleanSource: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(rawSource)) {
+          if (v !== undefined && v !== null && v !== "") cleanSource[k] = v;
+        }
+
+        // Phase 82.11: Strict Style Validation (Sếp's Anti-Blank Shield)
+        const validStyles = ["Chuyên nghiệp", "Sáng tạo", "Viral", "Hàn lâm"];
+        if (cleanSource.style && !validStyles.includes(cleanSource.style as string)) {
+          delete cleanSource.style;
+        }
 
         editedConfig = {
           style: "Viral",
@@ -95,6 +90,9 @@
           max_sections: 3,
           ...cleanSource
         };
+
+        if (src && src !== editedDraft) editedDraft = src;
+        if (out && out !== editedOutline) editedOutline = out;
         editedKeywords = JSON.parse(JSON.stringify(keywords || {}));
       });
     }

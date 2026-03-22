@@ -42,7 +42,7 @@
     return "đêm muộn yên bình";
   }
 
-  // Phase 11: Progressive Multi-stage Scroll Factor
+  // Adaptive Scroll Logic
   let lastPos = 0;
   let isScrollingUp = $state(false);
   
@@ -72,9 +72,9 @@
 </script>
 
 <div class="flex-1 flex flex-col relative w-full h-full overflow-hidden bg-[#020202]">
-  <!-- Absolute Adaptive Header (Phase 13.3: Minimalist Premium) -->
+  <!-- Adaptive Header -->
   <div 
-    class="absolute top-0 left-0 right-0 z-30 px-6 pt-14 pb-8 transition-all duration-500 ease-out pointer-events-none"
+    class="absolute top-0 left-0 right-0 z-30 px-6 pt-14 pb-2 transition-all duration-500 ease-out pointer-events-none"
     style:opacity={$scrollSpring}
     style:transform="translateY({(1 - $scrollSpring) * -100}px)"
   >
@@ -85,7 +85,7 @@
     ></div>
 
     <div 
-      class="flex flex-col gap-1 mb-6 transition-transform duration-500 pointer-events-auto"
+      class="flex flex-col gap-1 mb-4 transition-transform duration-500 pointer-events-auto"
       style:transform="scale({0.85 + ($scrollSpring * 0.15)})"
       style:transform-origin="left top"
     >
@@ -123,10 +123,10 @@
 
   <!-- Conversation Area -->
   <div class="flex-1 min-h-0 relative z-10">
-    <!-- Reactive Spacer: Follows the header height to avoid gaps -->
+    <!-- Content Spacer -->
     <div 
       class="w-full transition-all duration-300" 
-      style:height="{$scrollSpring * 260}px"
+      style:height="{$scrollSpring * 240}px"
     ></div>
     <HeartbeatStream hideHeader={true} />
   </div>

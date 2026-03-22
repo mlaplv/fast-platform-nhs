@@ -316,11 +316,9 @@
     <div class="flex flex-col gap-4 px-2 sm:px-4 py-4 sm:py-0">
       <div class="flex items-center justify-between gap-2 overflow-hidden">
         <div class="flex items-center gap-2 shrink-0">
-          <Newspaper size={14} class="text-cyan-500 shrink-0" />
-          <h2 class="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] text-white/40 truncate">
-            <span class="hidden sm:inline">Intelligence_Archive</span>
-            <span class="sm:hidden">Archive</span>
-          </h2>
+          <Newspaper size={14} class="text-cyan-500" />
+          <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90 hidden sm:block">Intelligence_Archive</h2>
+          <h2 class="text-[9px] font-black uppercase tracking-[0.1em] text-white/70 block sm:hidden">INTEL</h2>
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
