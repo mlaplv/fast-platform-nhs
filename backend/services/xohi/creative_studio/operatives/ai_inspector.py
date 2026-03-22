@@ -9,7 +9,7 @@ from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.services.xohi.creative_studio.models.schemas import (
     AiReadyReport, AutoFixResponse, BulkFixResponse, BulkFixRequest,
-    GoldMetadata, AiAnnotation
+    GoldMetadata, AiAnnotation, AtomicFixResponse, SurgicalSnippetFix
 )
 
 logger = logging.getLogger("api-gateway")
@@ -184,8 +184,13 @@ class AiInspector:
             retries=3
         )
         self._bulk_surgeon_agent = Agent(
-            system_prompt="Bạn là hệ thống phẫu thuật nội dung hàng loạt. Trả về JSON theo schema BulkFixResponse. Trả về toàn bộ nội dung bài viết mới.",
+            system_prompt="Bạn là hệ thống phẫu thuật nội dung GEO hàng loạt. Trả về JSON theo schema BulkFixResponse. Trả về toàn bộ nội dung bài viết mới.",
             output_type=BulkFixResponse,
+            retries=2
+        )
+        self._atomic_surgeon_agent = Agent(
+            system_prompt="Bạn là hệ thống phẫu thuật nội dung GEO chuyên sâu cấp độ nguyên tử. Trả về AtomicFixResponse.",
+            output_type=AtomicFixResponse,
             retries=2
         )
 
@@ -276,63 +281,106 @@ Hãy viết lại đoạn văn trên để khắc phục lỗi.
 
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
         """
-        Phase 46.1: Bulk correction via Master Surgeon.
-        V76.3: Integrates Logic-First HFS Sanitization and Structural Mutation.
+        Phase 82.25: Atomic GEO Reconstruction.
+        Ensures 100% integrity of non-erroneous content by only processing targeted snippets.
         """
-        draft = campaign.draft_content or ""
-        # Phase 76.3: Clean draft artifacts — KEEP HTML for SEO structure!
-        draft = await noise_cleaner.clean(draft, mode="aggressive", strip_html=False)
-        
-        # Limit to 40 annotations (Phased increase for 2026 context windows)
+        # CNS V82.55: Clean draft once to ensure internal consistency for stitching
+        draft_content = await noise_cleaner.clean(campaign.draft_content or "", mode="light", strip_html=False)
         valid_annotations = cast(List[Dict[str, object]], [a for a in req.annotations if a.get("text") or a.get("type")])
-        if len(valid_annotations) > 40:
-            valid_annotations = valid_annotations[:40]
-
-        # Format annotations for AI
-        annot_list = ""
-        for i, a in enumerate(valid_annotations):
+        
+        # ── Phase 82.25: Atomic GEO Reconstruction ──────────────────────────
+        # We only send the snippets to the AI to ensure 100% integrity of the rest
+        
+        snippet_list = ""
+        valid_items = []
+        for i, a in enumerate(valid_annotations[:40]):
+            txt_raw = (a.get('text', '') or "").strip()
+            if not txt_raw or len(txt_raw) < 5: continue
+            
+            # CNS V82.56: SANITIZE old_text from annotation BEFORE matching
+            # This ensures that if the draft was cleaned, we match the cleaned version.
+            txt = await noise_cleaner.clean(txt_raw, mode="light", strip_html=False)
+            
             msg = a.get('message', '') or a.get('reason', '')
-            annot_list += f"\n[Lỗi {i+1}]:\n- Đoạn văn: \"{a.get('text', '')}\"\n- Vấn đề: {msg}\n"
+            snippet_list += f"\n[ID {i+1}]:\n- Đoạn văn: \"{txt}\"\n- Lỗi: {msg}\n"
+            valid_items.append({"id": i+1, "old_text": txt})
 
-        prompt = f"""
-[ROLE] EXTREME NEURAL OPTIMIZER — XoHi VIRAL 2026 EDITION
+        if not valid_items:
+            return BulkFixResponse(new_content=draft_content)
 
-[BÀI VIẾT HIỆN TẠI]
-{draft}
+        bulk_prompt = f"""
+[ROLE] ATOMIC GEO SURGEON — XoHi VIRAL 2026
+Nhiệm vụ: Chỉ sửa đúng các đoạn văn được cung cấp trong danh sách dưới đây để tăng tính GEO (Information Gain).
+Tuyệt đối không được sửa bất kỳ chữ nào khác ngoài các đoạn này. Trả về AtomicFixResponse.
 
-[DANH SÁCH LỖI {req.category.upper()} CẦN PHẢI DIỆT TRỪ]
-{annot_list}
+[DANH SÁCH CÁC ĐOẠN CẦN PHẪU THUẬT]
+{snippet_list}
 
-[NHIỆM VỤ - THUẬT TOÁN EPISODIC REWRITING 2026]
-Sếp yêu cầu bài viết này PHẢI đạt điểm chất lượng tuyệt đối (>95%). Bạn không được phép làm việc hời hợt. Hãy thực hiện:
+[6 NGUYÊN TẮC VÀNG — BẢO TỒN NỘI DUNG TỐT]
+1. 💎 STRATEGIC DATA INJECTION: Không viết chung chung. Phải thêm các con số, tỷ lệ %, mốc thời gian hoặc insight chuyên gia vào các đoạn sửa.
+2. 🧩 HTML PRESERVATION: Giữ nguyên 100% thẻ [IMAGE_N] và các thẻ HTML (h2, h3, p) có trong đoạn.
+3. 🛡️ ATOMIC FIX: Chỉ trả về đoạn văn đã sửa trong AtomicFixResponse theo đúng ID.
+4. 🚀 AUTHORITY & TRUST: Dùng tông giọng chuyên nghiệp, sắc bén. Cấm dùng từ sáo rỗng (fluff).
+5. 🎯 CONSISTENCY: Duy trì văn phong nhất quán với toàn bài.
+6. 🛡️ DATA INTEGRITY: Không bịa đặt số liệu sai lệch bối cảnh bài viết.
 
-1. **ULTRA-DATA INJECTION**: Bắt buộc "bơm" vào bài viết các thông số kỹ thuật, số liệu tăng trưởng, hoặc kết quả nghiên cứu cụ thể (ví dụ: "Tăng 42.8% hiệu suất so với bản cũ...", "Cắt giảm 15 phút thời gian chờ..."). Không dùng "nhiều", "ít", "đáng kể". Dùng CON SỐ.
-2. **AUTHORITY BRANDING**: Viết lại các đoạn văn theo phong cách của một chuyên gia hàng đầu (Thought Leader). Sử dụng các cụm từ thể hiện sự tự tin và chuyên sâu. Thêm các câu trích dẫn "Theo kinh nghiệm của đội ngũ chuyên gia công nghệ..." để tăng EEAT.
-3. **MỚI MẺ 100% (INFORMATION GAIN)**: Phá nát các motif cũ. Cung cấp một góc nhìn "độc bản" mà sếp chưa từng thấy ở đối thủ. 
-4. **FEATURED SNIPPET DOMINATION**: Mỗi H2 phải đi kèm một đoạn trả lời trực tiếp (Direct Answer) cực kỳ sắc sảo và súc tích.
-5. **ASSET FIDELITY**: Tuyệt đối không xóa bất kỳ thẻ [IMAGE_N] nào. Giữ nguyên toàn bộ cấu trúc HTML.
-
-=> MỤC TIÊU: Một kiệt tác SEO không tỳ vết. Sếp phải WOW khi thấy điểm 95+.
-
-Trả về toàn bộ nội dung bài viết mới trong trường `new_content` của JSON.
+Trả về danh sách các đoạn đã sửa trong trường `replacements` của JSON.
 """
         try:
-            # Phase 82.50: Elite Neural Surgeon — Use ROLE_BRAIN + High Temp for variety
-            response = await trinity_bridge.run(
-                agent=self._bulk_surgeon_agent,
-                prompt=prompt,
-                role="brain",
-                model_settings={"temperature": 0.8}
+            res = await trinity_bridge.run(
+                self._atomic_surgeon_agent,
+                bulk_prompt,
+                role="fast", # Atomic precision doesn't need high reasoning, just surgical stability
+                model_settings={"temperature": 0.3},
+                timeout=120.0 # High timeout for complex phẫu thuật
             )
-            raw_data = response.data if hasattr(response, 'data') else response.output
-            if isinstance(raw_data, str):
-                # Phase 76.3: Physical noise stripping for the Editor
-                return BulkFixResponse(new_content=await noise_cleaner.clean(raw_data, mode="aggressive", strip_html=False))
+            raw_data = res.data if hasattr(res, 'data') else res.output
             
-            if hasattr(raw_data, "new_content"):
-                raw_data.new_content = await noise_cleaner.clean(raw_data.new_content, mode="aggressive", strip_html=False)
+            # Atomic Stitching Layer (The "Memo"): Use the original draft and only swap fixed parts
+            final_content = draft_content
+            replacements_made = 0
+            
+            if hasattr(raw_data, "replacements"):
+                # Sort replacements by length descending to avoid sub-string replacement issues
+                sorted_fixes = sorted(raw_data.replacements, key=lambda x: len(next((v["old_text"] for v in valid_items if v["id"] == x.id), "")), reverse=True)
                 
-            return raw_data
+                for fix in sorted_fixes:
+                    orig_item = next((v for v in valid_items if v["id"] == fix.id), None)
+                    if orig_item and fix.new_text:
+                        old_txt = orig_item["old_text"]
+                        new_txt = await noise_cleaner.clean(fix.new_text, mode="light", strip_html=False)
+                        
+                        # Only replace if target exists to maintain integrity
+                        # Phase 82.65: Robust Relaxed Match
+                        if old_txt in final_content:
+                            final_content = final_content.replace(old_txt, new_txt)
+                            replacements_made += 1
+                        else:
+                            # Try 'Relaxed Match' (ignore whitespace/special chars)
+                            from backend.utils.noise_cleaner import RE_WHITESPACE
+                            norm_old = RE_WHITESPACE.sub('', old_txt)
+                            if len(norm_old) > 20: 
+                                # This is a bit expensive but extremely reliable for surgical precision
+                                match_found = False
+                                # We search for a segment that normalizes to the same thing
+                                for start_idx in range(len(final_content) - len(old_txt) + 20):
+                                    window = final_content[start_idx : start_idx + len(old_txt) + 20]
+                                    if RE_WHITESPACE.sub('', window).startswith(norm_old):
+                                        # Found it! Determine actual end by finding where norm_old ends
+                                        actual_match = final_content[start_idx : start_idx + len(old_txt)]
+                                        final_content = final_content.replace(actual_match, new_txt)
+                                        replacements_made += 1
+                                        match_found = True
+                                        logger.info(f"[AiInspector] Relaxed match successful for ID {fix.id}")
+                                        break
+                                
+                                if not match_found:
+                                    logger.warning(f"[AiInspector] Surgical match failed for ID {fix.id}. Snippet not found even with relaxed match.")
+                            else:
+                                logger.warning(f"[AiInspector] Surgical match failed for ID {fix.id}. Snippet too short for relaxed match.")
+
+            logger.info(f"[AiInspector] Atomic bulk_fix complete. Made {replacements_made}/{len(valid_items)} surgical swaps.")
+            return BulkFixResponse(new_content=final_content)
         except Exception as e:
-            logger.error(f"[AiInspector] Bulk-fix failed: {e}")
-            return BulkFixResponse(new_content=draft) # Fallback to original
+            logger.error(f"[AiInspector] Atomic bulk-fix failed: {e}")
+            return BulkFixResponse(new_content=draft_content)

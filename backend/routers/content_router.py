@@ -368,9 +368,9 @@ class ContentController(Controller):
         gold = campaign.gold_metadata or {}
         cache = gold.get("analysis_cache", {})
         
-        if not force and cache.get("ai", {}).get("hash") == content_hash:
+        if not force and cache.get("ai_inspect", {}).get("hash") == content_hash:
             logger.info(f"AI Inspect cache hit for campaign {campaign_id}")
-            return GenericResponse(status="success", data=cache["ai"]["data"])
+            return GenericResponse(status="success", data=cache["ai_inspect"]["data"])
 
         if force:
             logger.info(f"AI Inspect force refresh for campaign {campaign_id}")
@@ -380,7 +380,7 @@ class ContentController(Controller):
             result_data = result.model_dump()
             
             # Archiving & Metrics
-            cache["ai"] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
+            cache["ai_inspect"] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
             metrics = gold.get("analysis_metrics", {})
             metrics["ai_ready_score"] = result.geo_score
             metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()

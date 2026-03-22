@@ -37,9 +37,13 @@ class ActionHandler:
                     existing = dict(campaign.topic_data or {})
                     existing.update(edited_data)
                     campaign.topic_data = existing
+                    from sqlalchemy.orm.attributes import flag_modified
+                    flag_modified(campaign, "topic_data")
                 elif step == 3:
                     # BUG-06 fix: Step 3 ONLY writes outline_data. The html branch was wrong.
                     campaign.outline_data = edited_data
+                    from sqlalchemy.orm.attributes import flag_modified
+                    flag_modified(campaign, "outline_data")
                 elif step == 4:
                     new_content = edited_data.get("html") or edited_data.get("content")
                     if new_content: campaign.draft_content = new_content
@@ -63,6 +67,8 @@ class ActionHandler:
 
             if step == 1:
                 campaign.gold_metadata = campaign.topic_data  # Golden Thread sealed after Step 1 approval
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(campaign, "gold_metadata")
 
             if campaign.status != "WAITING_FOR_REVIEW":
                 return GenericResponse(status="error", message="Bước này đang được xử lý hoặc đã duyệt rồi ạ.")
@@ -237,7 +243,10 @@ class ActionHandler:
         for field in ["assets", "keywords", "outline_data", "draft_content", "final_html", "reserve_assets", "avatar", "selected_index"]:
             val = data.get(field)
             if val is not None:
-                if field == "assets": campaign.assets_data = val
+                if field == "assets":
+                    campaign.assets_data = val
+                    from sqlalchemy.orm.attributes import flag_modified
+                    flag_modified(campaign, "assets_data")
                 elif field == "reserve_assets":
                     gold["reserve_assets"] = val
                     gold_changed = True
@@ -247,8 +256,14 @@ class ActionHandler:
                 elif field == "selected_index":
                     gold["selected_index"] = val
                     gold_changed = True
-                elif field == "keywords": campaign.topic_data = val
-                elif field == "outline_data": campaign.outline_data = val
+                elif field == "keywords":
+                    campaign.topic_data = val
+                    from sqlalchemy.orm.attributes import flag_modified
+                    flag_modified(campaign, "topic_data")
+                elif field == "outline_data":
+                    campaign.outline_data = val
+                    from sqlalchemy.orm.attributes import flag_modified
+                    flag_modified(campaign, "outline_data")
                 elif field == "draft_content": campaign.draft_content = val
                 elif field == "final_html": campaign.final_html = val
 

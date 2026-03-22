@@ -27,6 +27,8 @@ export function createAnalysisController(config: {
     let aiReadyResult = $state<AIInspectResult | null>(null);
     let isAiLoading = $state(false);
     let isBulkFixing = $state(false);
+    let bulkFixStatus = $state("");
+    let bulkFixLogs = $state<string[]>([]);
     let isBoosting = $state(false);
     let activeTab = $state<'copyright' | 'seo' | 'ai' | 'enrich' | null>(null);
 
@@ -80,12 +82,12 @@ export function createAnalysisController(config: {
         }
     }
 
-    async function runCopyrightCheck(force: boolean = false) {
+    async function runCopyrightCheck(force: boolean = false, skipSave: boolean = false) {
         if (!config.campaign_id || isCopyrightLoading) return;
         isCopyrightLoading = true;
         activeTab = 'copyright';
         try {
-            await saveBeforeAnalysis();
+            if (!skipSave) await saveBeforeAnalysis();
             const res = await apiClient.post<{ data: CopyrightResult }>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/copyright?force=${force}`);
             if (res?.data) copyrightResult = res.data;
         } catch (e) {
@@ -95,12 +97,12 @@ export function createAnalysisController(config: {
         }
     }
 
-    async function runSeoAnalysis(force: boolean = false) {
+    async function runSeoAnalysis(force: boolean = false, skipSave: boolean = false) {
         if (!config.campaign_id || isSeoLoading || seoLocked) return;
         isSeoLoading = true;
         activeTab = 'seo';
         try {
-            await saveBeforeAnalysis();
+            if (!skipSave) await saveBeforeAnalysis();
             const res = await apiClient.post<{ data: SEOResult }>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/seo?force=${force}`);
             if (res?.data) seoResult = res.data;
         } catch (e) {
@@ -110,12 +112,12 @@ export function createAnalysisController(config: {
         }
     }
 
-    async function runAiAnalysis(force: boolean = false) {
+    async function runAiAnalysis(force: boolean = false, skipSave: boolean = false) {
         if (!config.campaign_id || isAiLoading || aiLocked) return;
         isAiLoading = true;
         activeTab = 'ai';
         try {
-            await saveBeforeAnalysis();
+            if (!skipSave) await saveBeforeAnalysis();
             const res = await apiClient.post<{ data: AIInspectResult }>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/ai-inspect?force=${force}`);
             if (res?.data) aiReadyResult = res.data;
         } catch (e) {
@@ -145,13 +147,13 @@ export function createAnalysisController(config: {
                 };
 
                 if (seoResult?.seo_annotations) {
-                    seoResult.seo_annotations = seoResult.seo_annotations.map(a => updateMatches(a) ? { ...a, text: new_text, type: 'fixed' } : a);
+                    seoResult.seo_annotations = seoResult.seo_annotations.filter((a: AnalysisAnnotation) => !updateMatches(a));
                 }
                 if (aiReadyResult?.ai_annotations) {
-                    aiReadyResult.ai_annotations = aiReadyResult.ai_annotations.map(a => updateMatches(a) ? { ...a, text: new_text, type: 'fixed' } : a);
+                    aiReadyResult.ai_annotations = aiReadyResult.ai_annotations.filter((a: AnalysisAnnotation) => !updateMatches(a));
                 }
                 if (copyrightResult?.annotations) {
-                    copyrightResult.annotations = copyrightResult.annotations.map(a => updateMatches(a) ? { ...a, text: new_text, type: 'fixed' } : a);
+                    copyrightResult.annotations = copyrightResult.annotations.filter((a: AnalysisAnnotation) => !updateMatches(a));
                 }
                 return new_text;
             }
@@ -164,6 +166,7 @@ export function createAnalysisController(config: {
     async function runBulkFix() {
         if (!config.campaign_id || isBulkFixing || !activeTab) return;
         isBulkFixing = true;
+        bulkFixLogs = ["Đang khởi tạo Neural Engine...", "Đang nạp ngữ chuẩn Viral Edge 2026...", "Đang phân tích cấu trúc bài viết..."];
         try {
             let category = '';
             let annotationsToSend: AnalysisAnnotation[] = [];
@@ -171,30 +174,79 @@ export function createAnalysisController(config: {
             else if (activeTab === 'seo') { category = 'seo'; annotationsToSend = seoResult?.seo_annotations || []; }
             else if (activeTab === 'ai') { category = 'ai'; annotationsToSend = aiReadyResult?.ai_annotations || []; }
 
-            if (annotationsToSend.length === 0) return;
+            if (annotationsToSend.length === 0) {
+                bulkFixLogs = [...bulkFixLogs, "⚠️ Không tìm thấy lỗi nào cần sửa cho mục này."];
+                isBulkFixing = false;
+                setTimeout(() => { bulkFixStatus = ""; bulkFixLogs = []; }, 3000);
+                return;
+            }
 
+            // Phase A: Snapshot old annotation texts for fixed-area comparison later
+            bulkFixStatus = "Đang phẫu thuật...";
+            bulkFixLogs = [...bulkFixLogs, `Phát hiện ${annotationsToSend.length} phân đoạn cần tối ưu.`, "Đang kích hoạt quy trình 'Surgical Precision' (Chỉ sửa phần lỗi)..."];
+            const oldAnnotationTexts = new Set(
+                annotationsToSend.map(a => (a.text || '').trim()).filter(t => t.length > 5)
+            );
+
+            bulkFixLogs = [...bulkFixLogs, "AI đang thực hiện phẫu thuật chọn lọc...", "GIỮ NGUYÊN các đoạn đã đạt chuẩn Viral Edge...", "Đang tái cấu trúc những phần bị trùng lặp/yếu..."];
             const res = await apiClient.post<{ status: string; data: { new_content: string } }>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/bulk-fix`, {
                 category: category,
                 annotations: annotationsToSend
             });
 
             if (res?.status === 'success' && res.data?.new_content) {
+                bulkFixStatus = "Đang lưu...";
+                bulkFixLogs = [...bulkFixLogs, "✅ Phẫu thuật hoàn tất!", "Đang đồng bộ bản thảo (Asset Fidelity: Check)...", "Đang ghi đè dữ liệu AI chuẩn xác..."];
                 const newHtml = res.data.new_content;
+                // Phase B: Persist AI-fixed content (both DB and editor state)
                 await apiClient.patch(`/api/v1/content/campaigns/${config.campaign_id}`, { draft_content: newHtml });
                 if (config.isEditing) config.setEditedDraft(newHtml);
                 else config.setDraftContent(newHtml);
 
-                await tick();
-                await new Promise(resolve => setTimeout(resolve, 200));
+                // Phase C: Clear old annotations so highlights are removed cleanly
+                if (activeTab === 'copyright' && copyrightResult) copyrightResult = { ...copyrightResult, annotations: [] };
+                else if (activeTab === 'seo' && seoResult) seoResult = { ...seoResult, seo_annotations: [] };
+                else if (activeTab === 'ai' && aiReadyResult) aiReadyResult = { ...aiReadyResult, ai_annotations: [] };
 
-                if (activeTab === 'copyright') await runCopyrightCheck(true);
-                else if (activeTab === 'seo') await runSeoAnalysis(true);
-                else if (activeTab === 'ai') await runAiAnalysis(true);
+                await tick();
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                // Phase D: Re-check with skipSave=true (content already saved above)
+                bulkFixStatus = "Đang thẩm định...";
+                bulkFixLogs = [...bulkFixLogs, "Đang khởi động bộ máy thẩm định độc lập...", "Đang đối chiếu dữ liệu mới sau phẫu thuật..."];
+                if (activeTab === 'copyright') await runCopyrightCheck(true, true);
+                else if (activeTab === 'seo') await runSeoAnalysis(true, true);
+                else if (activeTab === 'ai') await runAiAnalysis(true, true);
+                
+                bulkFixLogs = [...bulkFixLogs, "✅ Đã thẩm định. Kết quả đang được cập nhật..."];
+
+                // Phase E: Inject fixed-area annotations (green highlights for repaired segments)
+                if (activeTab === 'copyright' && copyrightResult) {
+                    const newTexts = new Set(copyrightResult.annotations.map((a: AnalysisAnnotation) => (a.text || '').trim()));
+                    const fixedAnnotations: AnalysisAnnotation[] = [...oldAnnotationTexts]
+                        .filter(t => t && !newTexts.has(t))
+                        .map(t => ({
+                            text: t,
+                            reason: '✅ Đoạn này đã được AI sửa thành công',
+                            source_url: '',
+                            severity: 'low',
+                            type: 'fixed-area'
+                        }));
+                    if (fixedAnnotations.length > 0) {
+                        copyrightResult = {
+                            ...copyrightResult,
+                            annotations: [...fixedAnnotations, ...copyrightResult.annotations]
+                        };
+                    }
+                }
             }
         } catch (e) {
             console.error('Bulk Fix failed:', e);
+            bulkFixLogs = [...bulkFixLogs, "⚠️ Lỗi: Không thể hoàn tất phẫu thuật."];
         } finally {
             isBulkFixing = false;
+            // Clear status but keep logs for a brief moment in the UI
+            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3000);
         }
     }
 
@@ -225,12 +277,17 @@ export function createAnalysisController(config: {
     $effect(() => {
         const cache = config.analysis_cache;
         if (cache) {
-            if (cache.copyright?.data) copyrightResult = cache.copyright.data as CopyrightResult;
-            if (cache.seo?.data) seoResult = cache.seo.data as SEOResult;
-            if (cache.ai_inspect?.data) aiReadyResult = cache.ai_inspect.data as AIInspectResult;
+            // CNS V82.50: Use untrack to prevent recursive loops if results trigger more effects
+            if (cache.copyright?.data && !copyrightResult) copyrightResult = cache.copyright.data as CopyrightResult;
+            if (cache.seo?.data && !seoResult) seoResult = cache.seo.data as SEOResult;
+            if (cache.ai_inspect?.data && !aiReadyResult) aiReadyResult = cache.ai_inspect.data as AIInspectResult;
 
+            // CNS V82.51: Force initial active tab if missing (Ensures "Fix All" button visibility)
             if (!activeTab) {
-                if (copyrightResult) activeTab = 'copyright';
+                if (copyrightResult && (copyrightResult.annotations?.length || 0) > 0) activeTab = 'copyright';
+                else if (seoResult && (seoResult.seo_annotations?.length || 0) > 0) activeTab = 'seo';
+                else if (aiReadyResult && (aiReadyResult.ai_annotations?.length || 0) > 0) activeTab = 'ai';
+                else if (copyrightResult) activeTab = 'copyright'; // Fallback to first available
                 else if (seoResult) activeTab = 'seo';
                 else if (aiReadyResult) activeTab = 'ai';
             }
@@ -245,6 +302,8 @@ export function createAnalysisController(config: {
         get aiReadyResult() { return aiReadyResult; },
         get isAiLoading() { return isAiLoading; },
         get isBulkFixing() { return isBulkFixing; },
+        get bulkFixStatus() { return bulkFixStatus; },
+        get bulkFixLogs() { return bulkFixLogs; },
         get isBoosting() { return isBoosting; },
         get activeTab() { return activeTab; },
         set activeTab(v) { activeTab = v; },

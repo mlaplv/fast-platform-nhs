@@ -313,6 +313,17 @@
       }
       updateMetrics();
       isInternalUpdating = false;
+      // ✦ Re-dispatch annotations after doc replacement so decorations are recreated on the new doc
+      // Fixes: highlights lost after bulk-fix setContent race condition (Issue 2 & F5 Issue 3)
+      const currentAnnotations = annotations;
+      if (currentAnnotations && currentAnnotations.length > 0) {
+        editor.view.dispatch(
+          editor.state.tr.setMeta(AnnotationPluginKey, {
+            type: 'SET_ANNOTATIONS',
+            annotations: [...currentAnnotations]
+          })
+        );
+      }
     }
   });
 
@@ -596,6 +607,24 @@
     border-bottom: 2px dashed rgba(16, 185, 129, 0.4);
     text-decoration: none;
     animation: none;
+  }
+
+  /* Fixed-area: AI-repaired segment — professional emerald pulse × 3, then static */
+  :global(.xohi-annotation.type-fixed-area) {
+    background: rgba(16, 185, 129, 0.10);
+    border-bottom: 2px solid rgba(16, 185, 129, 0.55);
+    color: rgba(167, 243, 208, 0.95);
+    cursor: help;
+    animation: fixed-area-pulse 1.4s ease-in-out 3;
+  }
+  :global(.xohi-annotation.type-fixed-area:hover) {
+    background: rgba(16, 185, 129, 0.20);
+    border-bottom-color: rgba(52, 211, 153, 0.8);
+  }
+  @keyframes fixed-area-pulse {
+    0%   { background: rgba(16, 185, 129, 0.10); box-shadow: none; }
+    50%  { background: rgba(16, 185, 129, 0.30); box-shadow: 0 0 8px rgba(16, 185, 129, 0.35); }
+    100% { background: rgba(16, 185, 129, 0.10); box-shadow: none; }
   }
 
   @keyframes annotation-pulse {

@@ -21,12 +21,12 @@
   });
 
   const stepLabels = [
-    "Khởi tạo Brain",
-    "Trinh sát Ground Truth",
-    "Thiết giáp Săn ảnh",
-    "Phác thảo Neural",
-    "Chế tác Nội dung",
-    "Hậu kỳ & Viral Edge"
+    "Khởi tạo Brain",           // 1: Idea
+    "Thiết giáp Săn ảnh",       // 2: Assets
+    "Phác thảo Neural",         // 3: Outline
+    "Chế tác Nội dung",         // 4: Draft
+    "Kiểm định Viral Edge",     // 5: Analysis
+    "Vinh quang & Viral"        // 6: Publish
   ];
 </script>
 

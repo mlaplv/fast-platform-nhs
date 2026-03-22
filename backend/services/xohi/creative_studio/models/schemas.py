@@ -81,6 +81,15 @@ class BulkFixResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     new_content: str
 
+class SurgicalSnippetFix(BaseModel):
+    model_config = ConfigDict(strict=True)
+    id: int
+    new_text: str
+
+class AtomicFixResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+    replacements: List[SurgicalSnippetFix]
+
 # ══════════════════════════════════════════════════════════════
 # ANALYSIS & ENRICHMENT SCHEMAS — 2026 Edition
 # ══════════════════════════════════════════════════════════════

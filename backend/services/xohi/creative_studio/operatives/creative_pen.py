@@ -47,7 +47,7 @@ DRAFT_PROMPT = """[ROLE] KỸ SƯ NỘI ĐỘNG LỰC — XoHi Media V2026
 
 [YÊU CẦU HTML]
 - Trả về mã HTML thuần (h1, h2, p, figure, section). 
-- **ĐỘ SÂU NỘI DUNG**: Mỗi mục H2 phải có ít nhất 2 đoạn văn (<p>) phân tích chuyên sâu.
+- KHÔNG dùng dông dài (rambling). Bạn bị MẤT ĐIỂM NGHIÊM TRỌNG nếu viết lố số từ yêu cầu.
 - KHÔNG giải thích, KHÔNG dùng Markdown code fences.
 - KHÔNG trả về JSON.
 """
@@ -129,9 +129,15 @@ class CreativePen:
         max_sections = config.get("max_sections", 3)
         
         instruction = f"""
-        Hãy sinh Dàn Ý (ArticleOutline) với đúng {max_sections} mục chính. Trả về đúng schema JSON. 
-        Mỗi mục trong `content` chỉ gồm DUY NHẤT: 01 câu Sapô chủ chốt và 01 gạch đầu dòng ý chính.
-        Tuyệt đối KHÔNG chèn bất kỳ thẻ hình ảnh nào.
+        Hãy tạo một Dàn Ý (ArticleOutline) chi tiết gồm đúng {max_sections} mục chính (H2).
+        YÊU CẦU CHI TIẾT CHO MỖI MỤC:
+        1. "heading": Tiêu đề chuẩn SEO, hấp dẫn, gắn liền với từ khóa.
+        2. "content": Triển khai chi tiết ý tưởng cho đoạn này. Bao gồm:
+           - 01 câu Sapô (Intro) dẫn dắt.
+           - Tối thiểu 02-03 gạch đầu dòng chi tiết về nội dung chuyên môn, kiến thức hoặc bối cảnh thực tế.
+           - Đảm bảo bám sát dữ liệu Ground Truth nếu có.
+        
+        Trả về đúng schema JSON ArticleOutline. Tuyệt đối KHÔNG chèn mã [IMAGE_X] ở bước này.
         """
         
         # Phase 76.5: Context De-noising before AI injection
@@ -360,11 +366,10 @@ class CreativePen:
 
 ## YÊU CẦU BẮT BUỘC (CRITICAL ENFORCEMENT)
 - Bắt đầu bài viết bằng: <h1>{title}</h1>
-- **GIỚI HẠN ĐOẠN VĂN**: Mỗi mục (H2/H3) CHỈ ĐƯỢC PHÉP có tối đa {paras_per_section} đoạn văn (<p>). Tổng bài viết KHÔNG QUÁ {total_para_limit} đoạn văn.
+- **GIỚI HẠN SỐ TỪ (RẤT QUAN TRỌNG)**: Dừng viết khi đạt khoảng {target_words} từ (giới hạn tuyệt đối: ngắn hơn {max_words} từ). NẾU VIẾT QUÁ DÀI, BÀI VIẾT SẼ BỊ HỦY.
+- **GIỚI HẠN ĐOẠN VĂN**: Mỗi mục (H2/H3) CHỈ ĐƯỢC PHÉP KHÔNG QUÁ {paras_per_section} đoạn văn (<p>). Tổng bài viết KHÔNG QUÁ {total_para_limit} đoạn văn. Đi thẳng vào vấn đề.
 - Chèn mã [IMAGE_N] vào vị trí muốn hiển thị. Bạn có thể ghi [IMAGE_N] đứng một mình hoặc chèn vào giữa văn bản.
-- **ĐỘ DÀI BẮT BUỘC**: Bài viết PHẢI nằm trong khoảng từ {min_words} đến {max_words} từ.
-- Giàu thông tin, hấp dẫn và mang đậm bản sắc Việt Nam. Tuyệt đối không sử dụng văn phong dịch máy.
-- Kết thúc bằng một đoạn <section class=\"cta\"> với Call-To-Action mạnh mẽ liên quan đến \"{primary}\".
+- Kết thúc bằng một đoạn <section class=\"cta\"> với Call-To-Action mạnh mẽ liên quan đến "{primary}".
 - KHÔNG thêm lời dẫn hay giải thích. Chỉ trả về HTML thuần.
 """
         return prompt, assets, primary

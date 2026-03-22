@@ -268,6 +268,7 @@ class TrinityBridge:
         Runs an AI Agent with managed context and dynamic model/key injection.
         V65.0: API key passed directly via GoogleProvider — no env race condition.
         """
+        timeout = kwargs.pop("timeout", 90.0) # Default 90s for complex phẫu thuật
         requested_model = kwargs.pop("model", None)
         session_id = kwargs.pop("session_id", None)
         role = kwargs.pop("role", None)
@@ -321,7 +322,7 @@ class TrinityBridge:
 
                 try:
                     logger.info(f"[TrinityBridge] {model_name} (Attempt {attempt+1}/{max_keys}) (Session: {session_id})...")
-                    res = await agent.run(prompt, model=model, **kwargs)
+                    res = await asyncio.wait_for(agent.run(prompt, model=model, **kwargs), timeout=timeout)
 
                     # V70.0: Track tokens on success
                     try:
@@ -335,6 +336,11 @@ class TrinityBridge:
                     await self.rotator.set_success(key, session_id=session_id)
                     await self._save_sticky_model(model_name)
                     return res
+
+                except (asyncio.TimeoutError, TimeoutError):
+                    logger.error(f"[TrinityBridge] AI Model '{model_name}' timed out after {timeout}s.")
+                    last_error = f"AI model timed out ({timeout}s)"
+                    break # Fail fast on timeout to avoid hanging the user
 
                 except Exception as e:
                     last_error = e

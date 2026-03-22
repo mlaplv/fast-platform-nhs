@@ -249,6 +249,7 @@ class AssetHunter:
             gold["reserve_assets"] = list(reserve_urls) # R120: Store reserve candidates
             campaign.gold_metadata = gold
             flag_modified(campaign, "gold_metadata")
+            flag_modified(campaign, "assets_data")
 
             await repo.update(campaign)
             # Memory Discipline: Force GC after asset processing

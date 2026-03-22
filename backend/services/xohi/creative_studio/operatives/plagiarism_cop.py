@@ -13,7 +13,8 @@ from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
 from backend.services.xohi.creative_studio.models.schemas import (
     AgentResponse, AgentSignal, BulkFixRequest, BulkFixResponse,
-    GoldMetadata, AnalysisMetrics, AnalysisCacheEntry
+    GoldMetadata, AnalysisMetrics, AnalysisCacheEntry,
+    AtomicFixResponse, SurgicalSnippetFix
 )
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.http_client import get_http_client
@@ -131,8 +132,13 @@ class PlagiarismCop:
         self._agent = Agent(output_type=PlagiarismResult, system_prompt=PLAGIARISM_PROMPT, retries=3)
         # CNS Phase 82.40: AI Surgeon for Copyright fixes
         self._bulk_surgeon_agent = Agent(
-            system_prompt="Bạn là hệ thống phẫu thuật nội dung hàng loạt. Trả về JSON theo schema BulkFixResponse. Trả về toàn bộ nội dung bài viết mới, bắt buộc giữ nguyên định dạng HTML và các thẻ hình ảnh [IMAGE_N] nếu có.",
+            system_prompt="Bạn là hệ thống phẫu thuật nội dung hàng loạt. Trả về JSON theo schema BulkFixResponse. Trả về toàn bộ nội dung bài viết mới.",
             output_type=BulkFixResponse, 
+            retries=2
+        )
+        self._atomic_surgeon_agent = Agent(
+            system_prompt="Bạn là hệ thống phẫu thuật nội dung cấp độ nguyên tử. Trả về AtomicFixResponse.",
+            output_type=AtomicFixResponse,
             retries=2
         )
 
@@ -253,9 +259,10 @@ class PlagiarismCop:
         1. Remove internal duplicate paragraphs (Deterministic).
         2. Rewrite external plagiarism segments (AI Surgeon).
         """
-        draft = campaign.draft_content or ""
         # 1. Deterministic Dedup (Zero AI Cost)
-        draft = await noise_cleaner.clean(draft, mode="aggressive", strip_html=False)
+        # CNS V82.55: Clean draft once to ensure internal consistency for stitching
+        # R82.59: Use 'light' mode to avoid redundant AI audits during bulk-fix (Performance)
+        draft = await noise_cleaner.clean(campaign.draft_content or "", mode="light", strip_html=False)
 
         # Split by paragraph (logical unit) — Phase 76.9: HTML-aware
         raw_paragraphs = self._split_into_paragraphs(draft)
@@ -297,8 +304,34 @@ class PlagiarismCop:
             else:
                 logger.info(f"[PlagiarismCop] bulk_fix removed near-dup: {para[:60]}...")
 
+        # Phase 1.1: Paragraph-Level Dedup (Already done above)
         cleaned_draft = "\n\n".join(p for p, _ in kept)
 
+        # ── Phase 82.70: Deterministic Sentence-Level Dedup (Zero AI Cost) ──
+        # Split into sentences while keeping track of original text positions
+        sentences = [s.strip() for s in re.split(r'(?<=[.!?。])[\s\n]+', cleaned_draft) if s.strip()]
+        seen_norms: set[str] = set()
+        final_sentences: list[str] = []
+        dedup_count = 0
+        
+        for s in sentences:
+            norm = normalize_vn(s)
+            if len(norm) < 40: # Only dedup substantial sentences to avoid false positives (headings)
+                final_sentences.append(s)
+                continue
+            
+            if norm not in seen_norms:
+                seen_norms.add(norm)
+                final_sentences.append(s)
+            else:
+                # Duplicate sentence! Remove it.
+                dedup_count += 1
+                logger.info(f"[PlagiarismCop] bulk_fix removed duplicate sentence: {s[:50]}...")
+        
+        if dedup_count > 0:
+            cleaned_draft = " ".join(final_sentences)
+            logger.info(f"[PlagiarismCop] bulk_fix: Deterministically removed {dedup_count} internal duplicate sentences.")
+        
         # ── Phase 117: Smart Context Injection ────────────────────────────
         # Read cached score & flagged sources — NO extra API call needed
         gold = campaign.gold_metadata or {}
@@ -332,67 +365,99 @@ class PlagiarismCop:
             msg = a.get('reason', '') or a.get('message', '')
             annot_list += f"\n[Lỗi {i+1}] ({a.get('type','external')}):\n- Đoạn: \"{a.get('text', '')[:150]}\"\n- Vấn đề: {msg}\n"
 
-        # Even if no annotations, still run the surgeon to maximize uniqueness
-        prompt = f"""
-[ROLE] EXTREME NEURAL REWRITER — XoHi VIRAL 2026 COPYRIGHT SURGEON
+        # ── Phase 117+: High-Efficiency Atomic Rewrite ────────────────────────
+        # Standardizing Content Delivery to prevent internal redundancies
+        # We only send the snippets to the AI to ensure 100% integrity of the rest
+        
+        snippet_list = ""
+        valid_items = []
+        for i, a in enumerate(all_annots[:40]):
+            txt_raw = (a.get('text', '') or "").strip()
+            if not txt_raw or len(txt_raw) < 5: continue
+            
+            # CNS V82.56: SANITIZE old_text from annotation BEFORE matching
+            # This ensures that if the draft was cleaned, we match the cleaned version.
+            txt = await noise_cleaner.clean(txt_raw, mode="light", strip_html=False)
+            
+            msg = a.get('reason', '') or a.get('message', '')
+            snippet_list += f"\n[ID {i+1}]:\n- Cần sửa: \"{txt}\"\n- Lỗi: {msg}\n"
+            valid_items.append({"id": i+1, "old_text": txt})
 
-[MỤC TIÊU BẮT BUỘC]
-Điểm độc đáo hiện tại: {current_pct}% → Phải đạt: ≥ 96%
-Chỉ được 1 lần chỉnh sửa duy nhất, PHẢI làm đúng ngay từ đầu.
-{source_block}{flagged_block}
-[BÀI VIẾT HIỆN TẠI]
-{cleaned_draft}
+        if not valid_items:
+            return BulkFixResponse(new_content=cleaned_draft)
 
-[DANH SÁCH LỖI CẦN XỬ LÝ]
-{annot_list if annot_list else "(Không có lỗi cụ thể — hãy tối ưu hóa toàn diện cả bài)"}
+        bulk_prompt = f"""
+[ROLE] ATOMIC COPYRIGHT SURGEON — XoHi VIRAL 2026
+Nhiệm vụ: Chỉ sửa đúng các đoạn văn được cung cấp trong danh sách dưới đây. 
+Không được sửa bất kỳ chữ nào khác ngoài các đoạn này. Trả về AtomicFixResponse.
 
-[4 PHẪU THUẬT BẮTBUỘC]
-1. 🔪 STRUCTURAL MUTATION (Đột biến cấu trúc — QUAN TRỌNG NHẤT):
-   • Đảo lộn HOÀN TOÀN cấu trúc ngữ pháp của từng câu bị flagged: Chủ ngữ ↔ Vị ngữ, Passive ↔ Active, Inversion.
-   • Không chỉ thay từ đồng nghĩa — phải phá nát pattern ngôn ngữ mà hệ thống plagiarism nhận ra.
-   • Ví dụ: "A cho phép B làm C" → "Khi B muốn thực hiện C, A chính là cơ chế duy nhất đảm bảo điều đó."
+[DANH SÁCH CÁC ĐOẠN CẦN PHẪU THUẬT]
+{snippet_list}
 
-2. 💉 PRECISION DATA INJECTION (Bơm dữ liệu cụ thể):
-   • Thay mọi cụm từ định tính ("nhiều", "nhanh", "hiệu quả") bằng con số ước lượng chuyên gia.
-   • Ví dụ: "giúp tăng hiệu quả" → "rút ngắn 42% thời gian xử lý, tiết kiệm đến 3.2 giờ/ngày".
-   • Thêm: "Theo nghiên cứu [domain_sector] năm 2025..." để tạo tín hiệu E-E-A-T mạnh.
+[6 NGUYÊN TẮC VÀNG — BẢO TỒN NỘI DUNG TỐT]
+1. 🔪 SENTENCE-LEVEL MUTATION: Thay đổi hoàn toàn cấu trúc câu (Đảo ngữ, dùng mệnh đề quan hệ phức). KHÔNG chỉ thay từ đồng nghĩa.
+2. 💉 INFORMATION GAIN: Bắt buộc lồng ghép các con số cụ thể, dữ liệu chuyên gia vào các đoạn sửa.
+3. 🧩 HTML PRESERVATION: Không được làm hỏng các thẻ HTML nếu đoạn văn có chứa thẻ.
+4. 🚫 NO FLUFF: Viết trực diện, sắc bén.
+5. 🛡️ ATOMIC FIX: Chỉ trả về đoạn văn đã sửa trong AtomicFixResponse theo đúng ID.
 
-3. 🎯 PERSPECTIVE FLIP (Đổi góc nhìn):
-   • Chuyển từ "mô tả" sang "phân tích chiến lược" hoặc "cảnh báo ngành".
-   • Thêm 1 "Insight độc quyền" mỗi section mà báo chí/đối thủ chưa đề cập.
-
-4. 🛡️ ASSET FIDELITY (Bảo toàn tài sản):
-   • Giữ nguyên 100% thẻ HTML (h1, h2, p, table, figure), thẻ ảnh [IMAGE_N].
-   • Không rút ngắn bài — chỉ thay nội dung, KHÔNG xóa section.
-
-⚡ KẾT QUẢ MONG MUỐN: Bài viết mới phải khiến hệ thống plagiarism xét lại từ đầu và KHÔNG tìm thấy pattern trùng với 5 nguồn đối thủ trên.
-
-Trả về toàn bộ nội dung bài viết mới trong trường `new_content` của JSON.
+Trả về danh sách các đoạn đã sửa trong trường `replacements` của JSON.
 """
         try:
-            # Phase 117: temperature=0.9 for maximum structural creativity (single pass)
-            async with self._plagiarism_semaphore:
-                res = await trinity_bridge.run(
-                    self._bulk_surgeon_agent,
-                    prompt,
-                    role="brain",
-                    model_settings={"temperature": 0.9}
-                )
-                raw_data = res.data if hasattr(res, 'data') else res.output
-
-                # Phase 76.3: Robust Unwrapper & Noise Shield
-                new_content = ""
-                if hasattr(raw_data, 'new_content'):
-                    new_content = raw_data.new_content
-                elif isinstance(raw_data, str):
-                    new_content = raw_data
-                else:
-                    new_content = str(raw_data)
-
-                # Sanitize from AI artifacts (fences, preambles)
-                clean_content = await noise_cleaner.clean(new_content, mode="aggressive", strip_html=False)
-                logger.info(f"[PlagiarismCop] Phase 117: Smart single-pass rewrite done. (score was {current_pct}%)")
-                return BulkFixResponse(new_content=clean_content)
+            res = await trinity_bridge.run(
+                self._atomic_surgeon_agent,
+                bulk_prompt,
+                role="fast", # Use Flash for Speed & Atomic Precision
+                model_settings={"temperature": 0.3}, # Very stable for surgical work
+                timeout=120.0 # High timeout for complex phẫu thuật
+            )
+            raw_data = res.data if hasattr(res, 'data') else res.output
+            
+            # Atomic Stitching Layer (The "Memo"): Use the original draft and only swap fixed parts
+            final_content = cleaned_draft
+            replacements_made = 0
+            
+            if hasattr(raw_data, "replacements"):
+                # Sort replacements by length descending to avoid sub-string replacement issues
+                sorted_fixes = sorted(raw_data.replacements, key=lambda x: len(next((v["old_text"] for v in valid_items if v["id"] == x.id), "")), reverse=True)
+                
+                for fix in sorted_fixes:
+                    orig_item = next((v for v in valid_items if v["id"] == fix.id), None)
+                    if orig_item and fix.new_text:
+                        old_txt = orig_item["old_text"]
+                        new_txt = await noise_cleaner.clean(fix.new_text, mode="light", strip_html=False)
+                        
+                        # Phase 82.65: Robust Relaxed Match
+                        if old_txt in final_content:
+                            final_content = final_content.replace(old_txt, new_txt)
+                            replacements_made += 1
+                        else:
+                            # Try 'Relaxed Match' (ignore whitespace/special chars)
+                            from backend.utils.noise_cleaner import RE_WHITESPACE
+                            norm_old = RE_WHITESPACE.sub('', old_txt)
+                            if len(norm_old) > 20: 
+                                # This is a bit expensive but extremely reliable for surgical precision
+                                match_found = False
+                                # We search for a segment that normalizes to the same thing
+                                for start_idx in range(len(final_content) - len(old_txt) + 20):
+                                    window = final_content[start_idx : start_idx + len(old_txt) + 20]
+                                    if RE_WHITESPACE.sub('', window).startswith(norm_old):
+                                        # Found it! Determine actual end by finding where norm_old ends
+                                        # (Simple approximation: use length of old_txt)
+                                        actual_match = final_content[start_idx : start_idx + len(old_txt)]
+                                        final_content = final_content.replace(actual_match, new_txt)
+                                        replacements_made += 1
+                                        match_found = True
+                                        logger.info(f"[PlagiarismCop] Relaxed match successful for ID {fix.id}")
+                                        break
+                                
+                                if not match_found:
+                                    logger.warning(f"[PlagiarismCop] Surgical match failed for ID {fix.id}. Snippet not found even with relaxed match.")
+                            else:
+                                logger.warning(f"[PlagiarismCop] Surgical match failed for ID {fix.id}. Snippet too short for relaxed match.")
+            
+            logger.info(f"[PlagiarismCop] Atomic bulk_fix complete. Made {replacements_made}/{len(valid_items)} surgical swaps.")
+            return BulkFixResponse(new_content=final_content)
         except Exception as e:
             logger.error(f"[PlagiarismCop] AI Bulk Fix failed: {e}")
             return BulkFixResponse(new_content=cleaned_draft)
@@ -416,9 +481,9 @@ Trả về toàn bộ nội dung bài viết mới trong trường `new_content`
         result = await self.analyze(campaign)
 
         # Phase 73: Sync with gold_metadata analysis_cache for UI hydration parity
-        gold = copy.deepcopy(campaign.gold_metadata or {})
-        cache = gold.get("analysis_cache", {})
-        metrics = gold.get("analysis_metrics", {})
+        gold = dict(campaign.gold_metadata or {})
+        cache = dict(gold.get("analysis_cache", {}))
+        metrics = dict(gold.get("analysis_metrics", {}))
 
         draft_text = campaign.draft_content or ""
         content_hash = hashlib.sha256(draft_text.encode('utf-8')).hexdigest()
@@ -562,7 +627,8 @@ NHIỆM VỤ: Phân tích và trả về JSON đúng schema yêu cầu.
 
                 # Merge Internal Dedup annotations
                 for iann in internal_annotations:
-                    raw.uniqueness_score = max(0.0, raw.uniqueness_score - 0.05)
+                    # CNS Phase 82.58: Softened penalty (2% instead of 5%) to avoid score plummets
+                    raw.uniqueness_score = max(0.0, raw.uniqueness_score - 0.02)
                     iann.type = "internal-dedup"
                     validated_annotations.append(iann)
 

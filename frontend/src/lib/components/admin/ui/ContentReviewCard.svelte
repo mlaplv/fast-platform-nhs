@@ -58,8 +58,12 @@
   let showGateModal = $state(false), gateBlockers = $state<any[]>([]), focusTabFromModal = $state<string | null>(null);
 
   $effect(() => { if (status !== "PROCESSING") untrack(() => { campaign.isLoading = false; }); });
-  // CNS V82.5: Auto-jump to new step when it arrives from pulse
-  $effect(() => { if (step > viewingStep) untrack(() => { viewingStep = step; isEditing = false; }); });
+  // CNS V82.5: Auto-jump to new step when it arrives from pulse, but allow looking back
+  $effect(() => { 
+    if (step > maxStepSeen) {
+      untrack(() => { maxStepSeen = step; viewingStep = step; isEditing = false; });
+    }
+  });
   $effect(() => { if (viewingStep >= 6 && !finalHtml && draft_content) untrack(() => { finalHtml = processContentImages(draft_content, xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets); }); });
   $effect(() => {
     const src = draft_content || finalHtml || "", out = outline?.html || "";
@@ -85,6 +89,10 @@
         if (cleanSource.style && !validStyles.includes(cleanSource.style as string)) {
           delete cleanSource.style;
         }
+
+        if (cleanSource.word_count !== undefined) cleanSource.word_count = Number(cleanSource.word_count);
+        if (cleanSource.max_assets !== undefined) cleanSource.max_assets = Number(cleanSource.max_assets);
+        if (cleanSource.max_sections !== undefined) cleanSource.max_sections = Number(cleanSource.max_sections);
 
         editedConfig = {
           style: "Viral",

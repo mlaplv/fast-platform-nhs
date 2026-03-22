@@ -55,8 +55,15 @@ export function createOutlineController(config: {
                 const header = s.heading || s.H2 || s.H3 || s.title || s.Title || "";
                 const body = s.content || s.Content || s.body || s.description || s.text || "";
 
-                const hText = header.replace(/^(H2|H3):/i, "").trim();
-                const tag = header.toUpperCase().startsWith("H3") ? "h3" : "h2";
+                // R110: Robust strip of H2/H3 prefixes and markdown artifacts
+                let hText = header.replace(/^[*\-\s]*(H2|H3)[:\-\s]*/i, "").trim();
+                hText = hText.replace(/[*\-_~`]+/g, "").trim(); // Strip leftover bold/italic marks
+                
+                const tag = header.toUpperCase().includes("H3") ? "h3" : "h2";
+                
+                // Fallback: If stripping left us empty, use the whole header
+                if (!hText) hText = header || "Mục không tên";
+
                 return `<${tag}>${hText}</${tag}><p>${body}</p>`;
             }).join("\n");
         }

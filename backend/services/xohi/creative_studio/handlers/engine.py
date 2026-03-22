@@ -81,6 +81,14 @@ class ExecutionEngine:
                 response_task = asyncio.Future()
                 response_task.set_result(response)
             else:
+                # Phase 76.5: Clean buffers before run (Prevents UI ghosting)
+                campaign = await campaign_repo.get(campaign_id)
+                if step == 3:
+                    campaign.outline_data = None
+                elif step == 1:
+                    campaign.topic_data = None
+                await campaign_repo.update(campaign)
+
                 response_task = asyncio.create_task(operative.execute(campaign_id, campaign_repo, step=step))
 
             # Phase 76: Zero-Latency Heartbeat (V76)
@@ -165,11 +173,14 @@ class ExecutionEngine:
                         campaign.final_html = response.data["final_html"]
                     if "assets" in response.data:
                         campaign.assets_data = response.data["assets"]
+                        flag_modified(campaign, "assets_data")
 
             # Phase 73: Always set to WAITING_FOR_REVIEW after an automated step completes
             # This allows the user to review Step 5 (Plagiarism) and Step 6 (Final Package)
             campaign.status = "WAITING_FOR_REVIEW"
-            if step == 2: campaign.search_count = (campaign.search_count or 0) + 1
+            if step == 2:
+                campaign.search_count = (campaign.search_count or 0) + 1
+                flag_modified(campaign, "assets_data")
 
             await campaign_repo.update(campaign)
 
