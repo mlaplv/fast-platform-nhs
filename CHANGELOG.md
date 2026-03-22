@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Neural Intent Guard (Phase 15.2):** Implemented a 3-stage reasoning process in `VisionInsight` (Disambiguation, Semantic Matching, Intent Lock) to eliminate entity hallucinations.
 - **Strategic Image Filtering (Phase 15.3):** Implemented "Subject-Locking" and automated negative keyword injection in `AssetHunter` to eliminate naming noise (e.g., product brands vs persons).
 - **Ultra-Premium Loading UI (Phase 16):** Created `UltraPremiumLoading.svelte` with mesh gradients, a glassmorphic "Neural Core", and dynamic "Data Crystals" for a world-class iPhone 18 aesthetic.
+- **Zero-Latency Trigger (Phase 16.1):** Re-architected Step 1 to use background analysis (Nói là làm liền), allowing the Content Factory modal to open instantly with the premium loading UI.
 - **Enhanced Live Intelligence (Phase 15.4):** Upgraded real-time progress reporting in `VisionInsight` and `AssetHunter` to show detailed Ground Truth snippets and exact search queries.
 
 ### Changed

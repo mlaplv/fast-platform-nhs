@@ -11,6 +11,8 @@ from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from backend.services.event_bus import event_bus
 from backend.services.ai_engine.core.trinity_bridge import AIConfigurationError
 from litestar.repository.filters import LimitOffset
+import asyncio
+from backend.database.alchemy_config import alchemy_config
 
 logger = logging.getLogger("api-gateway")
 
@@ -171,29 +173,17 @@ class VoiceHandler:
             await campaign_repo.add(campaign)
             if hasattr(campaign_repo, "session"):
                 await campaign_repo.session.commit()
-                await campaign_repo.session.refresh(campaign)
 
-            seed: TopicSeed = await self.orchestrator.vision.analyze_input(
-                transcript,
-                c_id,
-                u_id_str,
-                content_mode=gold_meta.get("content_mode", "viral")
-            )
-            seed_data = seed.model_dump()
-            campaign.topic_data = seed_data
-            campaign.status = "WAITING_FOR_REVIEW"
-            await campaign_repo.update(campaign)
-            if hasattr(campaign_repo, "session"):
-                await campaign_repo.session.commit()
-
-            await event_bus.emit("CONTENT_STEP_COMPLETED", {
-                "campaign_id": c_id, "step": 1, "status": "WAITING_FOR_REVIEW",
-                "user_id": u_id_str, "data": {"keywords": seed_data}
-            })
+            # Phase 16.1: Zero-Latency Trigger (Instant Neural Hub)
+            # We background the heavy analysis and return the campaign ID immediately
+            # so the Svelte UI can pop up the Premium Loading screen instantly.
+            asyncio.create_task(self._run_background_analysis(
+                c_id, transcript, u_id_str, tenant_id, gold_meta.get("content_mode", "viral"), campaign_repo
+            ))
 
             return IntentResponse(
                 status="success", action=IntentAction.CONTENT_CREATE,
-                message=f"Dạ sếp, em đã phác thảo Bước 1 cho bài viết mới. Sếp xem qua trên màn hình nhé!",
+                message=f"Dạ thưa Sếp, em đang khởi tạo XoHi Core để phân tích ý tưởng của Sếp đây ạ. Sếp đợi em một chút nhé! 🚀",
                 router_tier=RouterTier.TIER_2_SEMANTIC,
                 data={
                     "category": "CONTENT_CREATE",
@@ -201,8 +191,7 @@ class VoiceHandler:
                     "ui_action": "CONTENT_CREATE",
                     "action": "STEP1_REVIEW",
                     "campaign_id": c_id,
-                    "status": "WAITING_FOR_REVIEW",
-                    "keywords": seed_data,
+                    "status": "PROCESSING",
                     "step": 1,
                     "campaign_category": category.value
                 },
@@ -228,3 +217,61 @@ class VoiceHandler:
                 data={"category": "CONTENT_CREATE", "source_input": transcript},
                 cost_tokens=0.0
             )
+
+    async def _run_background_analysis(
+        self, campaign_id: str, transcript: str, user_id: str, 
+        tenant_id: str, content_mode: str, old_repo: ContentCampaignRepository
+    ):
+        """
+        [PHASE 16.1] Heavy-lifting background task for Step 1.
+        Uses its own session to guarantee thread/greenlet safety.
+        """
+        try:
+            session_maker = alchemy_config.create_session_maker()
+            async with session_maker() as session:
+                repo = ContentCampaignRepository(session=session)
+                campaign = await repo.get(campaign_id)
+                if not campaign:
+                    logger.error(f"[XoHi Background] Campaign {campaign_id} not found!")
+                    return
+
+                # Execute Step 1 Analysis (AI)
+                seed: TopicSeed = await self.orchestrator.vision.analyze_input(
+                    transcript, campaign_id, user_id, content_mode=content_mode
+                )
+                
+                seed_data = seed.model_dump()
+                campaign.topic_data = seed_data
+                campaign.status = "WAITING_FOR_REVIEW"
+                await repo.update(campaign)
+                await session.commit()
+
+                # Final signal to UI: Card is ready for review!
+                await event_bus.emit("CONTENT_STEP_COMPLETED", {
+                    "campaign_id": campaign_id, 
+                    "step": 1, 
+                    "status": "WAITING_FOR_REVIEW",
+                    "user_id": user_id, 
+                    "data": {"keywords": seed_data}
+                })
+                logger.info(f"[XoHi Background] Step 1 analysis complete for {campaign_id}")
+
+        except Exception as e:
+            logger.exception(f"[XoHi Background] Analysis failed for {campaign_id}: {e}")
+            # Optional: update status to ERROR so UI doesn't hang forever
+            async with alchemy_config.create_session_maker()() as err_session:
+                err_repo = ContentCampaignRepository(session=err_session)
+                err_campaign = await err_repo.get(campaign_id)
+                if err_campaign:
+                    err_campaign.status = "ERROR"
+                    await err_repo.update(err_campaign)
+                    await err_session.commit()
+
+            await event_bus.emit("CONTENT_PROGRESS", {
+                "campaign_id": campaign_id,
+                "user_id": user_id,
+                "step": 1,
+                "message": f"Lỗi khởi tạo: {str(e)}",
+                "status": "ERROR",
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
