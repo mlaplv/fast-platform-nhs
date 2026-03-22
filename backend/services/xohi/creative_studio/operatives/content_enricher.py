@@ -1,15 +1,15 @@
 import asyncio
 import logging
 import re
+import os
 from typing import List, Dict, Optional
 from datetime import datetime
 
 from pydantic_ai import Agent
 from backend.utils.http_client import get_http_client
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-from backend.services.xohi.creative_studio.models.schemas import EnrichResponse, EnrichmentItem
+from backend.services.xohi.creative_studio.models.schemas import EnrichResponse, EnrichmentItem, EnrichAIPayload
 from backend.database.repositories import ContentCampaignRepository
-from backend.core.config import settings
 
 logger = logging.getLogger("api-gateway")
 
@@ -58,22 +58,34 @@ class ContentEnricher:
     
     def __init__(self):
         self._key_lock = asyncio.Lock()
-        
-        # Parse Google Search keys
-        raw_keys = settings.GOOGLE_SEARCH_KEYS or ""
-        self.search_keys = []
-        for pair in raw_keys.split(","):
-            if "|" in pair:
-                parts = pair.split("|", 1)
-                self.search_keys.append({"key": parts[0].strip(), "cx": parts[1].strip()})
+        self.search_keys = None # Lazy load
         
         if not hasattr(ContentEnricher, "_key_idx"):
             ContentEnricher._key_idx = 0
             
-        self._agent = Agent(output_type=EnrichResponse, system_prompt=ENRICHER_PROMPT, retries=3)
+        self._agent = Agent(output_type=EnrichAIPayload, system_prompt=ENRICHER_PROMPT, retries=3)
+
+    def _ensure_keys(self):
+        if self.search_keys is not None:
+            return
+            
+        logger.info("[Enricher] Loading search keys from environment...")
+        self.search_keys = []
+        # Support both underscore and non-underscore patterns for maximum compatibility
+        patterns = ["", "_1", "_2", "1", "2", "3"]
+        for i in patterns:
+            k = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}")
+            cx = os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
+            if k and cx:
+                self.search_keys.append({"key": k, "cx": cx})
+        
+        logger.info(f"[Enricher] Loaded {len(self.search_keys)} search keys.")
 
     async def _get_search_pair(self) -> Optional[Dict[str, str]]:
-        if not self.search_keys: return None
+        self._ensure_keys()
+        if not self.search_keys: 
+            logger.warning("[Enricher] No GOOGLE_SEARCH_API_KEY found in environment (patterns: '', '_1', '1', etc.)")
+            return None
         async with self._key_lock:
             pair = self.search_keys[self.__class__._key_idx % len(self.search_keys)]
             self.__class__._key_idx += 1
@@ -102,6 +114,8 @@ class ContentEnricher:
             return []
 
     async def enrich(self, campaign: ContentCampaignRepository) -> EnrichResponse:
+        logs = []
+        logs.append("🔍 Khởi động hệ thống AI Booster (Phase 82.8)...")
         draft = campaign.draft_content or ""
         if not draft:
             raise ValueError("Không có nội dung để enrich")
@@ -116,8 +130,10 @@ class ContentEnricher:
                 topic = "Kiến thức chung"
                 
         logger.info(f"[Enricher] Starting enrichment for topic: {topic}")
+        logs.append(f"🧠 Đang phân tích chủ đề: '{topic}'...")
 
         # Phase 1: Gather Real Data (Parallel)
+        logs.append("📡 Đang trinh sát dữ liệu thực tế từ Google (Stats & Quotes)...")
         year = datetime.now().year
         stats_query = f"{topic} statistics {year} số liệu thống kê"
         quotes_query = f"{topic} expert quotes ý kiến chuyên gia"
@@ -144,12 +160,34 @@ Hãy chọn số liệu/quote hay nhất từ DỮ LIỆU THỰC TẾ và TỰ T
 TRẢ VỀ toàn bộ HTML của bài viết SAU KHI ĐÃ CHÈN.
 """
         logger.info("[Enricher] Sending to Gemini for synthesis...")
-        result = await trinity_bridge.run(self._agent, user_input, model="gemini-2.5-flash")
+        logs.append("🧠 Đang tổng hợp số liệu và chèn vào bản thảo...")
+        try:
+            # Use role="brain" for complex synthesis tasks
+            result = await trinity_bridge.run(self._agent, user_input, role="brain")
+        except Exception as ai_err:
+            logger.error(f"[Enricher] AI Synthesis Fail: {ai_err}")
+            logs.append(f"❌ Lỗi xử lý AI: {str(ai_err)[:100]}...")
+            raise
         
-        if not result or getattr(result, "data", None) is None:
-            raise ValueError("AI fail to generate enriched content")
+        if not result or not hasattr(result, "data") or result.data is None:
+            # CNS V82.50: Enhanced AI response diagnostics
+            raw_text = "N/A"
+            if result and hasattr(result, "all_messages"):
+                # Extract text from the last message to see what went wrong
+                last_msg = result.all_messages()[-1]
+                raw_text = str(last_msg)
+            
+            logger.error(f"[Enricher] AI returned invalid data. Result: {result is not None} | Data: {getattr(result, 'data', 'N/A')}")
+            logger.error(f"[Enricher] Raw Payload (first 500 chars): {raw_text[:500]}")
+            raise ValueError("AI fail to generate enriched content structure")
             
         logger.info(f"[Enricher] Enrichment complete. Stats: {result.data.stats_added}, Quotes: {result.data.quotes_added}")
-        return result.data
+        logs.append(f"✅ Hoàn tất! Đã chèn {result.data.stats_added} số liệu, {result.data.quotes_added} câu quote và {result.data.tables_added} bảng so sánh.")
+        
+        # Convert EnrichAIPayload to EnrichResponse by adding logs
+        return EnrichResponse(
+            **result.data.model_dump(),
+            logs=logs
+        )
 
 enricher = ContentEnricher()

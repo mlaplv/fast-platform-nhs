@@ -80,6 +80,7 @@ class BulkFixRequest(BaseModel):
 class BulkFixResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     new_content: str
+    logs: List[str] = Field(default_factory=list, description="Detailed progress logs for the UI")
 
 class SurgicalSnippetFix(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -100,7 +101,7 @@ class EnrichmentItem(BaseModel):
     location: str   # Where it was injected
     content: str    # The actual HTML injected
 
-class EnrichResponse(BaseModel):
+class EnrichAIPayload(BaseModel):
     model_config = ConfigDict(strict=False)
     new_content: str
     items: List[EnrichmentItem]
@@ -108,6 +109,9 @@ class EnrichResponse(BaseModel):
     quotes_added: int
     tables_added: int
     seo_boost_estimate: int
+
+class EnrichResponse(EnrichAIPayload):
+    logs: List[str] = Field(default_factory=list, description="Detailed progress logs for the UI")
 
 class CopyrightAnnotation(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -125,6 +129,7 @@ class PlagiarismResult(BaseModel):
     annotations: List[CopyrightAnnotation]
     similar_sources: List[str]
     verdict: str
+    logs: List[str] = Field(default_factory=list, description="Live progress logs")
 
 class SeoAnnotation(BaseModel):
     model_config = ConfigDict(strict=True)
