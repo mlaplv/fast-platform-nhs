@@ -292,7 +292,12 @@ class TrinityBridge:
         for model_name in models_to_try:
             daily_exhausted_count = 0  # Track how many keys hit daily quota for this model
             for attempt in range(max_keys):
-                key = await self.rotator.get_key(session_id=session_id)
+                try:
+                    key = await self.rotator.get_key(session_id=session_id)
+                except Exception as get_key_err:
+                    logger.warning(f"[TrinityBridge] Model {model_name} (Attempt {attempt+1}) Key pool exhausted or cooling down: {get_key_err}")
+                    await asyncio.sleep(1)
+                    continue
 
                 # V73.0: Skip (key+model) combos already known to be daily-exhausted
                 if await self.rotator.is_model_daily_exhausted(key, model_name):
@@ -410,7 +415,12 @@ class TrinityBridge:
         for model_name in models_to_try:
             daily_exhausted_count = 0
             for attempt in range(max_keys):
-                key = await self.rotator.get_key(session_id=session_id)
+                try:
+                    key = await self.rotator.get_key(session_id=session_id)
+                except Exception as get_key_err:
+                    logger.warning(f"[TrinityBridge][Stream] Model {model_name} (Attempt {attempt+1}) Key pool exhausted or cooling down: {get_key_err}")
+                    await asyncio.sleep(1)
+                    continue
 
                 # V73.0: Skip (key+model) combos already known to be daily-exhausted
                 if await self.rotator.is_model_daily_exhausted(key, model_name):

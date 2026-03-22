@@ -54,7 +54,7 @@ class CreativePen:
     Step 3 & 4: Generate Outline and Draft Content.
     V62.1: Full AI-powered content generation with Golden Thread injection.
     """
-    def __init__(self, model_name: str = "gemini-2.0-flash"):
+    def __init__(self, model_name: Optional[str] = None):
         self.model_name = model_name
 
         # CNS V76: Global-like semaphore for Pen tasks to protect VPS RAM

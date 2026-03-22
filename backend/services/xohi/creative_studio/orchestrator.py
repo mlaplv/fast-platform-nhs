@@ -30,7 +30,8 @@ class ContentOrchestrator:
     """
     def __init__(self, vision=None, hunter=None, pen=None, cop=None, media=None):
         self.vision = vision or VisionInsight()
-        self.pen = pen or CreativePen(model_name=os.getenv("TIER3_MODEL", "gemini-3.1-pro-preview-customtools"))
+        # V76.6: Removed hardcoded `TIER3_MODEL`. Allow TrinityBridge to use Database Priority!
+        self.pen = pen or CreativePen(model_name=None)
         self.cop = cop or PlagiarismCop()
         self.media = media or MediaCompressor()
         
