@@ -161,8 +161,7 @@ async def seed_users(session, admin_role):
         "AIzaSyAdWxvdliDJCdRTRc3wDjPqMbBuQWTpRmI",
         "AIzaSyBUwokbBFhIcaZR9PQ0mlb7W9awGN0odsk",
         "AIzaSyAMEVZrNziQi1zPINg09iURV5LEtqcI7bo",
-        "AIzaSyBYYrrjd61yL98W61owDVbkH6MCchXLHj8",
-        "AIzaSyAW1C9a66Cy4TeiE5SO5hnCVRGE2KfM"
+        "AIzaSyBYYrrjd61yL98W61owDVbkH6MCchXLHj8"
     ]
     
     voice_profile = VoiceProfile(

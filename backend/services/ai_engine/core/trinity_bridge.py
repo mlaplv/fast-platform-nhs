@@ -295,6 +295,10 @@ class TrinityBridge:
                 try:
                     key = await self.rotator.get_key(session_id=session_id)
                 except Exception as get_key_err:
+                    if "AUTH_ERROR" in str(get_key_err):
+                        # V82.12: Fast-Fail if absolutely no keys are valid
+                        raise AIConfigurationError("Tất cả API Key đều Không hợp lệ hoặc Đã bị khóa. Hệ thống cần được Sếp cấu hình lại Key!", model_name, attempt)
+
                     logger.warning(f"[TrinityBridge] Model {model_name} (Attempt {attempt+1}) Key pool exhausted or cooling down: {get_key_err}")
                     await asyncio.sleep(1)
                     continue
@@ -418,6 +422,10 @@ class TrinityBridge:
                 try:
                     key = await self.rotator.get_key(session_id=session_id)
                 except Exception as get_key_err:
+                    if "AUTH_ERROR" in str(get_key_err):
+                        # V82.12: Fast-Fail if absolutely no keys are valid
+                        raise AIConfigurationError("Tất cả API Key đều Không hợp lệ hoặc Đã bị khóa. Hệ thống cần được Sếp cấu hình lại Key!", model_name, attempt)
+
                     logger.warning(f"[TrinityBridge][Stream] Model {model_name} (Attempt {attempt+1}) Key pool exhausted or cooling down: {get_key_err}")
                     await asyncio.sleep(1)
                     continue

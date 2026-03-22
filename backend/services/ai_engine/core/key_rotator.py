@@ -165,6 +165,17 @@ class SmartKeyRotator:
             weights.append(weight)
 
         if not candidate_indices:
+            # V82.12: Check if all keys are completely dead (Blacklisted due to Auth/Invalid)
+            blacklisted_count = 0
+            for k in self.keys:
+                k_id = self._get_key_id(k)
+                if await self.client.exists(f"{self.BLACKLIST_PREFIX}{k_id}"):
+                    blacklisted_count += 1
+            
+            if blacklisted_count == len(self.keys):
+                logger.error("[KeyRotator] TẤT CẢ API KEY đều bị khóa (Tài khoản/Auth Error/Limit). Fast-Fail hệ thống!")
+                raise Exception("AUTH_ERROR: Không có API Key nào hợp lệ để chạy model. Vui lòng kiểm tra lại cấu hình Key trong Database/ENV.")
+            
             logger.warning("[KeyRotator] TẤT CẢ API KEY đều quá tải (vượt Limit/Cooldown). Chặn request để bảo vệ tài khoản.")
             raise Exception("429 Too Many Requests: Hệ thống AI đang tạm thời đạt giới hạn an toàn. Vui lòng đợi 1 phút để hồi phục.")
 

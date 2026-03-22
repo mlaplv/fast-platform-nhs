@@ -36,8 +36,9 @@
     if (viewingStep === undefined) viewingStep = 1;
     if (isEditing === undefined) isEditing = false;
   });
-
   let isMenuOpen = $state(false);
+  let holdProgress = $state(0);
+  let isHardKillReady = $state(false);
 
   const PHASES = [
     { s: 1, icon: Sparkles, label: "Ý tưởng", desc: "Brainstorming" },
@@ -164,10 +165,49 @@
     
     <!-- Modal Close Button -->
     <button
-      onclick={() => nanobot.closeUniversalModal()}
-      class="w-8 h-8 rounded-lg border border-red-500/30 bg-red-500/10 flex items-center justify-center hover:bg-red-500/30 transition-colors ml-1"
+      onmousedown={(e) => {
+        if (e.button !== 0) return;
+        const start = Date.now();
+        const timer = setInterval(() => {
+          const elapsed = Date.now() - start;
+          holdProgress = Math.min(elapsed / 600, 1);
+          if (holdProgress >= 1) {
+            isHardKillReady = true;
+            clearInterval(timer);
+          }
+        }, 16);
+
+        const endHold = () => {
+          clearInterval(timer);
+          const duration = Date.now() - start;
+          if (duration >= 600) {
+            nanobot.hardKill(campaign_id);
+          } else {
+            nanobot.closeUniversalModal();
+          }
+          holdProgress = 0;
+          isHardKillReady = false;
+          window.removeEventListener('mouseup', endHold);
+        };
+        window.addEventListener('mouseup', endHold);
+      }}
+      class="relative w-8 h-8 rounded-lg border border-red-500/30 bg-red-500/10 flex items-center justify-center hover:bg-red-500/30 transition-all ml-1 group overflow-hidden active:scale-95 cursor-pointer"
+      title="Nhấn để đóng UI | Giữ 0.6s để Hủy tiến trình AI (Hard Kill)"
     >
-      <X class="w-4 h-4 text-red-500" />
+      <!-- Progress Ring for Hard Kill -->
+      <svg class="absolute inset-0 w-full h-full -rotate-90 pointer-events-none">
+        <circle 
+          cx="16" cy="16" r="14" 
+          fill="none" 
+          stroke="currentColor" 
+          stroke-width="2" 
+          stroke-dasharray="87.96"
+          stroke-dashoffset={87.96 * (1 - holdProgress)}
+          style="transition: stroke-dashoffset 0.1s linear"
+          class={isHardKillReady ? "text-red-500" : "text-white/30"}
+        />
+      </svg>
+      <X class="w-4 h-4 transition-all duration-300 {isHardKillReady ? 'text-red-500 scale-125' : 'text-red-500/80 group-hover:text-red-400'}" />
     </button>
   </div>
 </div>

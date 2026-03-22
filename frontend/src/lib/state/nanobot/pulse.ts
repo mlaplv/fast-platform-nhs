@@ -120,7 +120,8 @@ export function createPulseManager(
           const syncTarget = (target: CampaignData) => {
             if (!target) return;
             target.progress_msg = contentPayload.message;
-            target.status = "PROCESSING";
+            // V82.12: Respect incoming status (like ERROR) instead of hardcoding PROCESSING
+            target.status = contentPayload.status || "PROCESSING";
             target.step = contentPayload.step;
             
             if (hasContent(newData.keywords) || hasContent(newData.topic_data)) target.keywords = (newData.keywords || newData.topic_data) as CampaignKeywords;
@@ -153,7 +154,7 @@ export function createPulseManager(
             existingLogs[logIdx].data = {
               ...current,
               step: contentPayload.step,
-              status: "PROCESSING",
+              status: contentPayload.status || "PROCESSING",
               progress_msg: contentPayload.message,
               keywords: (newData.keywords || newData.topic_data || current.keywords) as CampaignKeywords,
               assets: normalizeAssets((newData.assets || newData.assets_data || current.assets) as (MediaAsset | string)[]),
