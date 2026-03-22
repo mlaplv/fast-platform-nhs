@@ -56,7 +56,8 @@
   let showGateModal = $state(false), gateBlockers = $state<any[]>([]), focusTabFromModal = $state<string | null>(null);
 
   $effect(() => { if (status !== "PROCESSING") untrack(() => { campaign.isLoading = false; }); });
-  $effect(() => { if (step > maxStepSeen) { maxStepSeen = step; viewingStep = step; } });
+  // CNS V82.5: Auto-jump to new step when it arrives from pulse
+  $effect(() => { if (step > viewingStep) untrack(() => { viewingStep = step; isEditing = false; }); });
   $effect(() => { if (viewingStep >= 6 && !finalHtml && draft_content) untrack(() => { finalHtml = processContentImages(draft_content, xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets); }); });
   $effect(() => {
     const src = draft_content || finalHtml || "", out = outline?.html || "";
@@ -121,8 +122,9 @@
 
   async function handleApprove() {
     const res = await campaign.approve(viewingStep, isEditing, editedKeywords, editedConfig, editedOutline, editedDraft);
-    if (res === true) isEditing = false;
-    else if (res?.gateBlocked) {
+    if (res === true) {
+      isEditing = false;
+    } else if (res?.gateBlocked) {
       gateBlockers = [
         ...(campaign.copyrightScore === null || campaign.copyrightScore < 90 ? [{ label: '🔍 COPYRIGHT', current: campaign.copyrightScore !== null ? `${campaign.copyrightScore}%` : 'Chưa kiểm tra', required: '≥ 90%', tab: 'copyright' }] : []),
         ...(campaign.seoScore === null || campaign.seoScore < 70 ? [{ label: '📊 SEO Score', current: campaign.seoScore !== null ? `${campaign.seoScore}/100` : 'Chưa kiểm tra', required: '≥ 70/100', tab: 'seo' }] : [])

@@ -47,7 +47,7 @@
   });
 </script>
 
-<div class="fixed bottom-6 right-6 z-[200000] flex flex-col items-end pointer-events-none">
+<div class="fixed bottom-6 right-6 z-[250000] flex flex-col items-end pointer-events-none">
   <!-- iPhone 18 "Water Droplet" Liquid Dock -->
   <div 
     class="pointer-events-auto flex items-center gap-1 p-1 rounded-full bg-white/[0.01] backdrop-blur-[80px] saturate-[2.5] contrast-[1.1] border border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.5),inset_0_1px_3px_rgba(255,255,255,0.05)] transition-all duration-700 hover:scale-[1.08] active:scale-100 group"
@@ -58,7 +58,7 @@
       {#if viewingStep > 1}
         <button
           onclick={() => { viewingStep--; isEditing = false; }}
-          disabled={isLoading}
+          disabled={isPublishing}
           class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all active:scale-75"
           title="Back"
         >
@@ -69,7 +69,7 @@
       {#if viewingStep < step}
         <button
           onclick={() => { viewingStep++; isEditing = false; }}
-          disabled={isLoading}
+          disabled={isPublishing}
           class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all active:scale-75"
           title="Forward"
         >
@@ -79,7 +79,7 @@
 
       <button
         onclick={handleRetry}
-        disabled={isLoading}
+        disabled={isLoading || isProcessing}
         class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all active:scale-75 group/retry"
         title="Retry"
       >

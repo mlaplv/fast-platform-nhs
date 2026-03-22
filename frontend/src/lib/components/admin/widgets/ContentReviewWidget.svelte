@@ -42,90 +42,58 @@
     if (data && sourceId) {
       if (sourceId !== safelyMutableData.campaign_id) {
         safelyMutableData = createSafeData(data);
-        historicalSeen.clear(); // Reset awareness for new campaign
+        historicalSeen.clear();
       } else {
-        // Phase 1: Update Awareness Set from local state
-        // This ensures the UI "remembers" what the user just deleted.
-        safelyMutableData.assets?.forEach((a: MediaAsset | string) => {
-          const url = typeof a === 'string' ? a : (a.file_path || a.url);
-          if (url) historicalSeen.add(url);
-        });
-        safelyMutableData.reserve_assets?.forEach((url: MediaAsset | string) => {
-          const u = typeof url === 'string' ? url : (url.file_path || url.url);
-          if (u) historicalSeen.add(u);
-        });
+        // Phase 1: Keep Awareness Set updated for deleted items
+        // We track WHAT WAS DELETED locally so we don't re-add it from stale pulses.
+        // (This part is fine, but we must be careful not to hide brand new AI assets)
 
         // Deep reactive sync for progress-related fields
+        // CNS V80.3: Monotonic Step Sync (Allow manual backtrack but pulses ONLY advance)
         const nextStep = data.current_step ?? data.step;
-        if (nextStep !== undefined && nextStep !== safelyMutableData.step) {
+        if (nextStep !== undefined && nextStep > safelyMutableData.step) {
           safelyMutableData.step = nextStep;
         }
 
         if (data.status !== undefined && data.status !== safelyMutableData.status) {
-          // Phase 75.9: Clear awareness set on new processing (Retry / New Step)
-          if (data.status === "PROCESSING" && safelyMutableData.status !== "PROCESSING") {
-            historicalSeen.clear();
-          }
           safelyMutableData.status = data.status;
+          if (data.status === "PROCESSING") historicalSeen.clear();
         }
-        if (data.progress_msg !== undefined && data.progress_msg !== safelyMutableData.progress_msg) {
+        
+        if (data.progress_msg !== undefined) {
           safelyMutableData.progress_msg = data.progress_msg;
         }
 
         // Sync streaming content only if not locally editing
         if (!safelyMutableData.isEditing) {
-          if (data.draft_content && data.draft_content !== safelyMutableData.draft_content) {
-            safelyMutableData.draft_content = data.draft_content;
-          }
-          if (data.final_html && data.final_html !== safelyMutableData.final_html) {
-            safelyMutableData.final_html = data.final_html;
-          }
+          if (data.draft_content) safelyMutableData.draft_content = data.draft_content;
+          if (data.final_html) safelyMutableData.final_html = data.final_html;
           const incomingOutline = data.outline || data.outline_data;
-          if (incomingOutline && JSON.stringify(incomingOutline) !== JSON.stringify(safelyMutableData.outline)) {
-            safelyMutableData.outline = incomingOutline;
-          }
+          if (incomingOutline) safelyMutableData.outline = incomingOutline;
         }
 
-        // CNS V75.7: Intelligent Merging with Awareness
-        // We only ADD items that have NEVER been seen in this session.
-        // This effectively ignores "Undelete" pulses while allowing "New AI" assets.
+        // CNS V75.7: Intelligent Merge (Direct Replacement if Pulse is non-empty)
+        // If the backend sends a non-empty list, it's the source of truth.
         const incomingAssets = data.assets || data.assets_data;
-        if (incomingAssets && Array.isArray(incomingAssets)) {
-           const newAssets = incomingAssets.filter(a => {
-             const url = typeof a === 'string' ? a : (a.file_path || a.url);
-             return url && !historicalSeen.has(url);
-           });
-           if (newAssets.length > 0) {
-             safelyMutableData.assets = [...safelyMutableData.assets, ...newAssets];
-             newAssets.forEach(a => {
-               const url = typeof a === 'string' ? a : (a.file_path || a.url);
-               if (url) historicalSeen.add(url);
-             });
+        if (incomingAssets && Array.isArray(incomingAssets) && incomingAssets.length > 0) {
+           // If backend has more assets than us, or different ones, update.
+           // We use length and first asset ID as a heuristic for change to avoid reactive loops.
+           const firstId = (a: any) => typeof a === 'string' ? a : (a.id || a.file_path);
+           if (incomingAssets.length !== safelyMutableData.assets.length || firstId(incomingAssets[0]) !== firstId(safelyMutableData.assets[0])) {
+             safelyMutableData.assets = [...incomingAssets];
            }
         }
 
         const incomingReserves = data.reserve_assets || data.gold_metadata?.reserve_assets;
-        if (incomingReserves && Array.isArray(incomingReserves)) {
-          const newReserves = incomingReserves.filter(url => {
-            const u = typeof url === 'string' ? url : (url.file_path || url.url);
-            return u && !historicalSeen.has(u);
-          });
-          if (newReserves.length > 0) {
-            safelyMutableData.reserve_assets = [...safelyMutableData.reserve_assets, ...newReserves];
-            newReserves.forEach(url => {
-              const u = typeof url === 'string' ? url : (url.file_path || url.url);
-              if (u) historicalSeen.add(u);
-            });
+        if (incomingReserves && Array.isArray(incomingReserves) && incomingReserves.length > 0) {
+          if (incomingReserves.length !== safelyMutableData.reserve_assets.length) {
+            safelyMutableData.reserve_assets = [...incomingReserves];
           }
         }
 
-        // Phase 73.11: Sync Analysis Cache & Metrics (Always sync as they are server-driven)
-        if (data.analysis_cache && JSON.stringify(data.analysis_cache) !== JSON.stringify(safelyMutableData.analysis_cache)) {
-          safelyMutableData.analysis_cache = data.analysis_cache;
-        }
-        if (data.analysis_metrics && JSON.stringify(data.analysis_metrics) !== JSON.stringify(safelyMutableData.analysis_metrics)) {
-          safelyMutableData.analysis_metrics = data.analysis_metrics;
-        }
+        // Phase 73.11: Sync Analysis Cache & Metrics
+        if (data.analysis_cache) safelyMutableData.analysis_cache = data.analysis_cache;
+        if (data.analysis_metrics) safelyMutableData.analysis_metrics = data.analysis_metrics;
       }
     }
   });

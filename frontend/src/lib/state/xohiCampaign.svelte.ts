@@ -82,21 +82,6 @@ export function createCampaignController(config: {
 
             await apiClient.post(`/api/v1/content/campaigns/${config.campaign_id}/approve`, payload);
 
-            // Predictive Global Sync
-            if (viewingStep === 1) {
-                config.keywords = { ...editedKeywords, creation_config: { ...editedConfig } };
-                config.creation_config = { ...editedConfig };
-                nanobot.updateCurrentData({ keywords: config.keywords, status: "PROCESSING", step: 2 });
-            } else if (viewingStep === 2) {
-                nanobot.updateCurrentData({ status: "PROCESSING", step: 3 });
-            } else if (viewingStep === 3) {
-                config.outline.html = editedOutline;
-                nanobot.updateCurrentData({ outline: config.outline });
-            } else if (viewingStep === 4) {
-                config.draft_content = editedDraft;
-                nanobot.updateCurrentData({ draft_content: config.draft_content });
-            }
-
             vuiController.speak("Đã duyệt thành công!");
             return true;
         } catch (e) {
