@@ -140,13 +140,6 @@
   </div>
 
   <div class="flex items-center gap-3 relative z-[2100]">
-    {#if status === "PROCESSING"}
-      <div class="mr-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-400 animate-pulse">
-        <RotateCcw size={12} class="animate-spin" />
-        <span class="font-medium hidden md:inline">{progress_msg || "AI is working..."}</span>
-      </div>
-    {/if}
-
     <!-- Edit Button Moved Up to Header -->
     {#if status !== "PROCESSING" && (viewingStep === 1 || viewingStep === 3 || viewingStep === 4)}
       <button

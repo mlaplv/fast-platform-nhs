@@ -30,7 +30,7 @@
   ];
 </script>
 
-<div class="relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-slate-950/40 p-12" in:fade>
+<div class="relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-slate-950/95 backdrop-blur-2xl p-12" in:fade>
   <!-- 1. Mesh Gradient Background (iPhone 18 Style) -->
   <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
     <div class="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-purple-600/20 blur-[120px] animate-mesh-1"></div>
@@ -104,7 +104,8 @@
   </div>
 
   <!-- 5. Status Indicators (Bottom) -->
-  <div class="absolute bottom-12 left-0 right-0 flex flex-col items-center gap-6 z-10">
+  <div class="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent z-10 pointer-events-none"></div>
+  <div class="absolute bottom-12 left-0 right-0 flex flex-col items-center gap-6 z-20">
     <div class="flex items-center gap-6">
        {#each Array(6) as _, i}
          <div class="relative">

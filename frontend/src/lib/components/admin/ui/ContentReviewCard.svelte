@@ -47,7 +47,8 @@
     get analysis_metrics() { return analysis_metrics; }, get analysis_cache() { return analysis_cache; }
   });
 
-  let viewingStep = $state(step || 1), isEditing = $state(false), maxStepSeen = $state(step || 1), isProcessing = $derived(status === "PROCESSING");
+  let viewingStep = $state(step || 1), isEditing = $state(false), maxStepSeen = $state(step || 1);
+  let isProcessing = $derived(status === "PROCESSING" || (viewingStep === 1 && (!keywords.title || !keywords.primary_keyword)));
   let customImageUrl = $state(""), editedKeywords = $state<CampaignKeywords>({}), editedConfig = $state<Record<string, unknown>>({
     style: "Viral",
     word_count: 500,
@@ -163,19 +164,21 @@
        </div>
     {/if}
     
-    {#if viewingStep === 1}
-      <IdeaStep bind:isEditing {campaign_id} bind:keywords bind:editedKeywords creation_config={creation_config} bind:editedConfig {handleSelectKeyword} {handleUpdateMetadata} isLoading={campaign.isLoading} />
-    {:else if viewingStep === 2}
-      <AssetStep {isProcessing} isExpanded={nanobot.isExpanded} bind:assets bind:reserve_assets bind:customImageUrl bind:selectedAvatarUrl bind:selectedAssetIndex {handleImageError} syncAssetChanges={campaign.syncAssetChanges} {handleRetry} {handleMouseMove} />
-    {:else if viewingStep === 3}
-      <OutlineStep {isEditing} bind:editedOutline {outline} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex isExpanded={nanobot.isExpanded} {campaign_id} {isProcessing} />
-    {:else if viewingStep === 4}
-      <DraftStep {campaign_id} {isEditing} bind:editedDraft {draft_content} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex isExpanded={nanobot.isExpanded} {outline} {analysis_cache} {analysis_metrics} {isProcessing} bind:copyrightScore={campaign.copyrightScore} bind:seoScore={campaign.seoScore} bind:aiScore={campaign.aiScore} />
-    {:else if viewingStep === 5}
-      <ValidationPreviewStep {draft_content} {assets} {keywords} copyrightScore={campaign.copyrightScore} seoScore={campaign.seoScore} aiScore={campaign.aiScore} {analysis_cache} isExpanded={nanobot.isExpanded} />
-    {:else if viewingStep === 6}
-      <PublishStep bind:selectedAvatarUrl bind:selectedAssetIndex bind:viewingStep bind:isEditing bind:keywords bind:finalHtml bind:draft_content bind:assets {campaign_id} {apiClient} copyrightScore={campaign.copyrightScore} seoScore={campaign.seoScore} aiScore={campaign.aiScore} {analysis_cache} />
-    {/if}
+    <div class={isProcessing ? 'invisible h-0 overflow-hidden' : 'contents'}>
+      {#if viewingStep === 1}
+        <IdeaStep bind:isEditing {campaign_id} bind:keywords bind:editedKeywords creation_config={creation_config} bind:editedConfig {handleSelectKeyword} {handleUpdateMetadata} isLoading={campaign.isLoading} />
+      {:else if viewingStep === 2}
+        <AssetStep {isProcessing} isExpanded={nanobot.isExpanded} bind:assets bind:reserve_assets bind:customImageUrl bind:selectedAvatarUrl bind:selectedAssetIndex {handleImageError} syncAssetChanges={campaign.syncAssetChanges} {handleRetry} {handleMouseMove} />
+      {:else if viewingStep === 3}
+        <OutlineStep {isEditing} bind:editedOutline {outline} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex isExpanded={nanobot.isExpanded} {campaign_id} {isProcessing} />
+      {:else if viewingStep === 4}
+        <DraftStep {campaign_id} {isEditing} bind:editedDraft {draft_content} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex isExpanded={nanobot.isExpanded} {outline} {analysis_cache} {analysis_metrics} {isProcessing} bind:copyrightScore={campaign.copyrightScore} bind:seoScore={campaign.seoScore} bind:aiScore={campaign.aiScore} />
+      {:else if viewingStep === 5}
+        <ValidationPreviewStep {draft_content} {assets} {keywords} copyrightScore={campaign.copyrightScore} seoScore={campaign.seoScore} aiScore={campaign.aiScore} {analysis_cache} isExpanded={nanobot.isExpanded} />
+      {:else if viewingStep === 6}
+        <PublishStep bind:selectedAvatarUrl bind:selectedAssetIndex bind:viewingStep bind:isEditing bind:keywords bind:finalHtml bind:draft_content bind:assets {campaign_id} {apiClient} copyrightScore={campaign.copyrightScore} seoScore={campaign.seoScore} aiScore={campaign.aiScore} {analysis_cache} />
+      {/if}
+    </div>
   </div>
   <ActionButtons isLoading={campaign.isLoading} {status} bind:viewingStep {step} bind:isEditing {isProcessing} isPublishing={campaign.isPublishing} {handleRetry} {handleUpdateMetadata} {handlePublish} {handleApprove} />
 </div>
