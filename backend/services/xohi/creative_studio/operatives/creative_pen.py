@@ -18,7 +18,7 @@ OUTLINE_PROMPT = """[ROLE] TỔNG BIÊN TẬP — Điều phối nội dung XoHi
     - Ưu tiên 1: Tiêu đề + Từ khóa chính.
     - Ưu tiên 2: Từ khóa chính + Từ khóa phụ.
     - Ưu tiên 3: Từ khóa chính + Bối cảnh từ Mô tả (Description).
-2. CẤM DỊCH THUẬT: Giữ nguyên 100% tên thương hiệu và danh từ riêng bằng tiếng Việt (Vd: "Hồng Sơn" giữ nguyên).
+2. CẤM DỊCH THUẬT: Giữ nguyên 100% tên thương hiệu và danh từ riêng bằng tiếng Việt (Vd: "Thương hiệu A" giữ nguyên).
 3. ĐỊNH DẠNG SECTION:
    - 1 Câu Sapô chủ chốt dẫn dắt nội dung.
    - 1 Gạch đầu dòng duy nhất chứa ý chính của đoạn.
@@ -80,9 +80,10 @@ class CreativePen:
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
 
         async with self.pen_semaphore:
-            step = kwargs.get("step")
+            step: Optional[int] = kwargs.get("step")
             if step == 3:
-                outline = await self.generate_outline(campaign)
+                # R110: Explicit type handling for Pydantic/Dict variants
+                outline: Union[ArticleOutline, Dict[str, object], None] = await self.generate_outline(campaign)
 
                 if isinstance(outline, ArticleOutline):
                     campaign.outline_data = outline.model_dump()
@@ -109,7 +110,7 @@ class CreativePen:
 
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message=f"Invalid step {step} for CreativePen")
 
-    async def generate_outline(self, campaign: ContentCampaign) -> ArticleOutline:
+    async def generate_outline(self, campaign: ContentCampaign) -> Union[ArticleOutline, Dict[str, object], None]:
         """
         Step 3: Generate a technical outline based on Golden Thread.
         Now using Standardized Golden Context Helpers.
@@ -248,7 +249,7 @@ class CreativePen:
             yield {"type": "error", "message": str(e)}
             raise
 
-    async def _build_draft_prompt(self, campaign: ContentCampaign):
+    async def _build_draft_prompt(self, campaign: ContentCampaign) -> tuple[str, List[str], str]:
         """Helper to build prompt (Shared between sync and stream)."""
         outline_data = campaign.outline_data or {}
         assets = campaign.assets_data or []

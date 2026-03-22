@@ -2,7 +2,7 @@ import httpx
 import asyncio
 import logging
 import re
-from typing import List, Optional, Dict, Union
+from typing import List, Optional, Dict, Union, cast
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse, quote, urlunparse
 from sqlalchemy.orm.attributes import flag_modified
@@ -15,26 +15,22 @@ from pydantic import BaseModel, ConfigDict
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
-from backend.services.xohi.creative_studio.models.schemas import VisualSearchPlan, AgentResponse, AgentSignal
+from backend.services.xohi.creative_studio.models.schemas import VisualSearchPlan, AgentResponse, AgentSignal, ArticleOutline
 
 logger = logging.getLogger("api-gateway")
 
 PLANNER_PROMPT = """[ROLE] CHUYÊN GIA ĐẠO DIỄN HÌNH ẢNH — XoHi Thuần Việt 2026
 
 [NHIỆM VỤ]
-Phân tích dữ liệu để tạo 3-5 câu lệnh tìm kiếm (Search queries) bằng TIẾNG VIỆT, đảm bảo độ chính xác tuyệt đối về chủ thể và ngữ cảnh phù hợp với thị trường Việt Nam.
+Phân tích dữ liệu để tạo 3-5 câu lệnh tìm kiếm (Search queries) bằng TIẾNG VIỆT tập trung vào thực thể sản phẩm/dịch vụ vật lý.
 
-[THỨ TỰ ƯU TIÊN (STRICT PRIORITY)]
-1. Tiêu đề (Title): Trích xuất kịch bản/ngữ cảnh chính.
-2. Từ khóa CHÍNH (Primary Keyword): Thực thể bắt buộc phải xuất hiện.
-3. Từ khóa PHỤ (Secondary Keywords): Các chi tiết bổ trợ.
-4. Mô tả (Description): Bối cảnh và cảm xúc.
-
-[CHIẾN THUẬT SINH QUERY]
-1. BẢO VỆ THƯƠNG HIỆU: Giữ nguyên 100% tên thương hiệu và danh từ riêng. CẤM DỊCH sang tiếng Anh (Vd: "Hồng Sơn" giữ nguyên, không được dịch thành "Red Mountain").
-2. QUERY TỔNG LỰC: Query 1 phải là sự kết hợp giữa [Tiêu đề] và [Từ khóa chính].
-3. NGỮ CẢNH ĐỊA PHƯƠNG: Ưu tiên các từ khóa mô tả bối cảnh Việt Nam (Vd: "tại Việt Nam", "văn phòng Việt", "đường phố Việt").
-4. CHẶN NHIỄU TUYỆT ĐỐI: Bắt buộc thêm các từ khóa phủ định: `-doll -reindeer -toys -clipart -cartoon -drawing -vector -typography -text -quote`.
+[CHIẾN THUẬT SINH QUERY "SẢN PHẨM THỰC"]
+1. ƯU TIÊN THÉP (STEEL PRIORITY): Query 1 BẮT BUỘC phải là sự kết hợp giữa [Tiêu đề] + [Từ khóa chính] để đảm bảo độ chính xác tuyệt đối.
+2. BẢO VỆ THƯƠNG HIỆU: Giữ nguyên 100% tên thương hiệu (Vd: "Thương hiệu A"). CẤM DỊCH tên riêng.
+3. TRỌNG TÂM THỰC THỂ: Các query sau (2, 3...) mới được phép thêm các từ khóa mô tả sản phẩm vật lý: "Chai", "Lọ", "Hộp", "Bao bì".
+   - TỐT: "Chai [Tên Sản Phẩm]", "Hộp sản phẩm [Thương Hiệu]".
+4. CHẶN NHIỄU NHÂN VẬT: Bắt buộc thêm `-cầu thủ -bóng đá` nếu tên thương hiệu trùng tên người nổi tiếng.
+5. CHẶN NHIỄU ĐỒ HỌA: Bắt buộc thêm: `-doll -reindeer -toys -clipart -cartoon -drawing -vector -quote`.
 
 [ĐỊNH DẠNG]
 Trả về JSON VisualSearchPlan chính xác.
@@ -50,6 +46,7 @@ class AssetHunter:
         self.current_index: int = 0
         self.failure_count: int = 0
         self.cooldown_until: Optional[datetime] = None
+        self.use_cache: bool = True # R110: Enable caching for performance.
 
         # CNS V76: Global-like semaphore for Hunting tasks to protect VPS RAM
         self.hunt_semaphore = asyncio.Semaphore(2)
@@ -119,8 +116,10 @@ class AssetHunter:
                         f"Persona: {persona}\n"
                         f"Content Mode: {content_mode.upper()}"
                     )
+                    # CNS V76: Reliable unwrapper for Agent results with strict casting
                     result = await trinity_bridge.run(self.planner_agent, prompt, session_id=campaign.id)
-                    plan: VisualSearchPlan = result.data if hasattr(result, "data") else result.output
+                    raw_result = cast(object, result)
+                    plan = cast(VisualSearchPlan, getattr(raw_result, "data", getattr(raw_result, "output", raw_result)))
                     queries: List[str] = plan.queries
                     logger.info(f"[AssetHunter] AI Planner queries: {queries}")
                 except Exception as e:
@@ -141,16 +140,19 @@ class AssetHunter:
                 if len(raw_candidates) >= candidate_goal:
                     break
 
+                # Phase 76.8: Smart Multi-Query Search (Title + Primary Focus)
+                current_query = q
+                
                 await event_bus.emit("CONTENT_PROGRESS", {
                     "campaign_id": campaign_id,
                     "user_id": str(campaign.user_id),
                     "step": 2,
-                    "message": f"🔍 Truy quét ảnh với truy vấn #{i+1}: {q}",
+                    "message": f"🔍 Truy quét ảnh với truy vấn #{i+1}: {current_query}",
                     "status": "PROCESSING",
                     "timestamp": datetime.now(timezone.utc).isoformat()
                 })
 
-                page_results = await self.fetch_images(q, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=10)
+                page_results = await self.fetch_images(current_query, campaign_id=campaign_id, user_id=str(campaign.user_id), num_results=10)
                 for url in page_results:
                     if url not in seen_urls:
                         seen_urls.add(url)
@@ -214,14 +216,19 @@ class AssetHunter:
                 })
 
             campaign.assets_data = final_assets
+            
             # Phase 74: Seed the Golden Thread with original remote URLs
-            gold = campaign.gold_metadata or {}
+            # R110: Strict typing for JSONB fields
+            gold: Dict[str, Union[List[str], Dict[str, object]]] = dict(campaign.gold_metadata or {})
             gold["original_remote_assets"] = list(all_urls)
             gold["reserve_assets"] = list(reserve_urls) # R120: Store reserve candidates
             campaign.gold_metadata = gold
             flag_modified(campaign, "gold_metadata")
 
             await repo.update(campaign)
+            # Memory Discipline: Force GC after asset processing
+            import gc
+            gc.collect()
 
             await event_bus.emit("CONTENT_PROGRESS", {
                 "campaign_id": campaign_id,
@@ -243,14 +250,11 @@ class AssetHunter:
         Fetches image URLs from Google.
         Supports pagination up to num_results (max 2 requests).
         """
-        if self.cooldown_until and datetime.now(timezone.utc) < self.cooldown_until:
-            logger.error(f"[AssetHunter] Circuit Breaker Active until {self.cooldown_until}")
-            return []
-
         all_urls = []
-        # Google CSE allows max 10 per request. We iterate to fill num_results.
-        # R88.5: Fetch at most 20 for buffer balance.
         pages_to_fetch = (num_results + 9) // 10
+        
+        # R110: Intelligent Cache Control
+        can_use_cache = self.use_cache
         
         for page in range(pages_to_fetch):
             start_index = page * 10 + 1
@@ -259,7 +263,8 @@ class AssetHunter:
             if len(urls) < 10: break # No more results
             if len(all_urls) >= num_results: break
 
-        return all_urls[:num_results]
+        final_urls: List[str] = all_urls[:num_results]
+        return final_urls
 
     async def _fetch_page(self, query: str, start: int, campaign_id: str = None, user_id: str = None) -> List[str]:
         url = "https://www.googleapis.com/customsearch/v1"
@@ -277,10 +282,10 @@ class AssetHunter:
                     "searchType": "image",
                     "num": 10,
                     "start": start,
-                    "imgSize": "large",
                     **SEARCH_LOCALE_PARAMS
                 }
                 
+                logger.info(f"[AssetHunter] Parameters for index {self.current_index}: {params}")
                 logger.info(f"[AssetHunter] Searching index {self.current_index} (start={start}) for: {query}")
                 
                 if campaign_id:
@@ -306,6 +311,7 @@ class AssetHunter:
                 
                 self.failure_count = 0
                 items = data.get('items', [])
+                logger.info(f"[AssetHunter] Found {len(items)} items for query: {query}")
                 return [item['link'] for item in items]
 
             except Exception as e:
