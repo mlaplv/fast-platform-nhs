@@ -17,30 +17,37 @@ logger = logging.getLogger("api-gateway")
 # Pre-compiled Regex for Performance (V76.3)
 RE_CLEAN_PREFIX = re.compile(r'^(viết bài|tạo bài|làm bài|thiết kế|viết một bài về|viết bài về|tạo bài về|viết)\s+', re.IGNORECASE)
 
-VISION_PROMPT = """[ROLE] CHUYÊN GIA SEO CONTENT STRATEGY — Hệ thống XoHi Content Factory V62.1
+VISION_PROMPT = """[ROLE] CHUYÊN GIA SEO CONTENT STRATEGY — Hệ thống XoHi Content Factory V63.0 Alpha
 
 [NHIỆM VỤ]
-Phân tích chủ đề sếp đưa ra và đề xuất bộ Keywords SEO cho bài viết.
+Phân tích chủ để và KHÓA MỤC TIÊU (Intent Lock) dựa trên dữ liệu thực tế.
 
-[LUẬT]
-1. Tiêu đề phải giật tít nhưng KHÔNG clickbait rác, KHÔNG dùng emoji.
-2. Từ khóa chính phải ngắn gọn (2-4 từ), có search volume cao.
-3. Từ khóa phụ bổ trợ chủ đề chính, 3-5 từ khóa.
-4. Persona: Mô tả giọng văn phù hợp đối tượng mục tiêu.
-5. Description: Viết 1 câu Meta Description tóm tắt bài viết chuẩn SEO (tối đa 160 ký tự).
-6. Category: Phân loại danh mục bài viết. CHỈ ĐƯỢC CHỌN 1 TRONG 2 GIÁ TRỊ SAU: "Tin tức" hoặc "Chính sách".
-7. creation_config: Đề xuất cấu hình (style, word_count, max_assets, max_sections). 
-   Mặc định sếp yêu cầu: style="Chuyên nghiệp", word_count=500, max_assets=10, max_sections=3.
-8. Trả về đúng JSON schema, KHÔNG thêm text ngoài."""
+[QUY TRÌNH SUY LUẬN 3 BƯỚC - NEURAL GUARD]
+BƯỚC 1: PHÂN BIỆT THỰC THỂ (Disambiguation)
+- Đọc toàn bộ `[GROUND TRUTH]`. Liệt kê các thực thể trùng tên nhưng khác bản chất (Vd: Hồng Sơn là Thuốc/Dược, Võ thuật, hay Cây sầu riêng).
+
+BƯỚC 2: ĐỐI CHIẾU Ý ĐỊNH (Semantic Matching)
+- So khớp thực thể tìm được với động từ/từ khóa của Sếp. 
+- Ví dụ: Sếp dùng "đặc trị", "bài thuốc", "chữa" -> CHỌN thực thể Dược phẩm.
+- Nếu Sếp chỉ nói tên chung chung -> Ưu tiên thực thể có tính thương mại/phổ biến nhất trên Google.
+
+BƯỚC 3: KHÓA MỤC TIÊU (Intent Lock)
+- Chỉ sử dụng thông tin của thực thể đã chọn để sinh TopicSeed.
+- Tuyệt đối không để lẫn lộn từ khóa của các thực thể khác (Vd: Không mang "võ thuật" vào bài "thuốc").
+- Tóm tắt bối cảnh thực thể đã khóa vào trường `ground_truth`.
+
+[YÊU CẦU ĐỊNH DẠNG]
+Trả về JSON TopicSeed chính xác. KHÔNG giải thích."""
 
 class VisionInsight:
     """
-    Step 1: Analyze input (text/image) and generate the Golden Thread metadata.
-    Uses PydanticAI Agent with Structured Output (TopicSeed).
+    Step 1: Analyze input and generate the Golden Thread metadata.
+    [PHASE 15: DISCOVERY-FIRST REFORM]
     """
-    def __init__(self):
+    def __init__(self, discovery_hunter=None):
         # CNS V76: Global-like semaphore for Insight tasks to protect VPS RAM
         self.insight_semaphore = asyncio.Semaphore(2)
+        self.discovery_hunter = discovery_hunter
         self.agent = Agent(
             output_type=TopicSeed,
             system_prompt=VISION_PROMPT,
@@ -79,19 +86,10 @@ class VisionInsight:
         c_id = campaign_id
         u_id = user_id
 
+        # Phase 15: Discovery-First Context Injection
         clean_topic = self._sanitize_topic(raw_input)
-
-        # Phase 77: Dynamic mode-based constraints
-        mode_instruction = ""
-        if content_mode == "deep_dive":
-            mode_instruction = "\n[CHẾ ĐỘ: PHÂN TÍCH SÂU] Bắt buộc word_count >= 1000, max_sections >= 6, style='Hàn lâm/Chuyên gia'."
-        elif content_mode == "normal":
-            mode_instruction = "\n[CHẾ ĐỘ: THÔNG THƯỜNG] Bắt buộc word_count ~ 500, max_sections ~ 3, style='Chuyên nghiệp/Tin tức'."
-        else:
-            mode_instruction = "\n[CHẾ ĐỘ: VIRAL] Bắt buộc word_count ~ 500, max_sections ~ 3, style='Sắc sảo/Viral'."
-
-        prompt = f"Chủ đề bài viết: {clean_topic}{mode_instruction}"
-
+        ground_truth = ""
+        
         async def _emit_progress(msg: str):
             await event_bus.emit("CONTENT_PROGRESS", {
                 "campaign_id": c_id,
@@ -103,6 +101,24 @@ class VisionInsight:
             })
 
         try:
+            if self.discovery_hunter:
+                await _emit_progress("📡 Đang kết nối mạng lưới trinh sát thực tế...")
+                ground_truth = await self.discovery_hunter.search(clean_topic)
+                logger.info(f"[VisionInsight] Ground Truth Context acquired for: {clean_topic}")
+
+            # Phase 77: Dynamic mode-based constraints
+            mode_instruction = ""
+            if content_mode == "deep_dive":
+                mode_instruction = "\n[CHẾ ĐỘ: PHÂN TÍCH SÂU] Bắt buộc word_count >= 1000, max_sections >= 6, style='Hàn lâm/Chuyên gia'."
+            elif content_mode == "normal":
+                mode_instruction = "\n[CHẾ ĐỘ: THÔNG THƯỜNG] Bắt buộc word_count ~ 500, max_sections ~ 3, style='Chuyên nghiệp/Tin tức'."
+            else:
+                mode_instruction = "\n[CHẾ ĐỘ: VIRAL] Bắt buộc word_count ~ 500, max_sections ~ 3, style='Sắc sảo/Viral'."
+
+            prompt = f"Chủ đề bài viết: {clean_topic}\n"
+            if ground_truth:
+                prompt += f"\n[GROUND TRUTH CONTEXT - DỮ LIỆU THỰC TẾ TỪ GOOGLE]:\n{ground_truth}\n"
+            prompt += mode_instruction
             await _emit_progress("🧠 Đang kích hoạt lõi phân tích SEO Content...")
 
             # CNS V76: Enforce concurrency limit for insight tasks

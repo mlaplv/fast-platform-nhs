@@ -30,6 +30,7 @@ class TopicSeed(BaseModel):
     persona: str = Field(description="Mô tả phong cách viết bài (e.g. trẻ trung, chuyên gia)")
     description: str = Field(description="Mô tả tóm tắt chuẩn SEO cho bài viết (Meta Description)")
     category: CategoryEnum = Field(default=CategoryEnum.TIN_TUC, description="Phân loại danh mục bài viết (Tin tức hoặc Chính sách)")
+    ground_truth: Optional[str] = Field(default=None, description="Tóm tắt bối cảnh thực tế trinh sát được từ Google (Phase 15.1)")
     creation_config: Dict[str, object] = Field(
         default_factory=lambda: {
             "style": "Viral",

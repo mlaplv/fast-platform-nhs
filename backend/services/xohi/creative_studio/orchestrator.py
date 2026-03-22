@@ -20,6 +20,7 @@ from backend.models.schemas import GenericResponse, AgentResponse
 from backend.services.xohi.creative_studio.handlers.voice import VoiceHandler
 from backend.services.xohi.creative_studio.handlers.actions import ActionHandler
 from backend.services.xohi.creative_studio.handlers.engine import ExecutionEngine
+from backend.services.xohi.creative_studio.operatives.discovery_hunter import DiscoveryHunter
 
 logger = logging.getLogger("api-gateway")
 
@@ -29,21 +30,21 @@ class ContentOrchestrator:
     Coaches specialized agents and delegates request handling to domain handlers.
     """
     def __init__(self, vision=None, hunter=None, pen=None, cop=None, media=None):
-        self.vision = vision or VisionInsight()
+        # Search Keys for Hunters
+        keys = []
+        for i in ["", "_1", "_2"]:
+            k, cx = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}"), os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
+            if k and cx: keys.append({"key": k, "cx": cx})
+
+        self.discovery = DiscoveryHunter(keys)
+        self.vision = vision or VisionInsight(discovery_hunter=self.discovery)
         # V76.6: Removed hardcoded `TIER3_MODEL`. Allow TrinityBridge to use Database Priority!
         self.pen = pen or CreativePen(model_name=None)
         self.cop = cop or PlagiarismCop()
         self.media = media or MediaCompressor()
         
         # AssetHunter config
-        if not hunter:
-            keys = []
-            for i in ["", "_1", "_2"]:
-                k, cx = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}"), os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
-                if k and cx: keys.append({"key": k, "cx": cx})
-            self.hunter = AssetHunter(keys)
-        else:
-            self.hunter = hunter
+        self.hunter = hunter or AssetHunter(keys)
             
         self.semaphore = asyncio.Semaphore(ORCHESTRATOR_SEMAPHORE_LIMIT)
         

@@ -120,7 +120,7 @@ class CreativePen:
         description = campaign.get_gold_val("description", "")
         title = campaign.get_gold_val("title", "Bài viết mới")
         persona = campaign.get_gold_val("persona", "Chuyên gia")
-        
+        ground_truth = campaign.get_gold_val("ground_truth", "")
         assets = campaign.assets_data or []
         num_assets = len(assets)
         
@@ -144,6 +144,7 @@ class CreativePen:
         2. Từ khóa CHÍNH: {primary_clean}
         3. Từ khóa bổ trợ: {secondary}
         4. Mô tả bối cảnh: {description}
+        5. Dữ liệu thực tế (Ground Truth): {ground_truth}
         
         - Phong cách (Persona): {persona}
         - GIỚI HẠN: {max_sections} mục H2.
@@ -259,6 +260,7 @@ class CreativePen:
         secondary_list = campaign.get_gold_val("secondary_keywords", [])
         title = campaign.get_gold_val("title", primary)
         persona = campaign.get_gold_val("persona", "Chuyên gia")
+        ground_truth = campaign.get_gold_val("ground_truth", "")
 
         # V71.0: Improved Outline Parsing (Handle both sections and html)
         sections = []
@@ -281,7 +283,7 @@ class CreativePen:
             outline_text = f"  - H2: {title}: Giới thiệu tổng quan.\n  - H2: Chi tiết: Nội dung chuyên sâu.\n  - H2: Kết luận: Tổng kết và CTA."
 
         # Extract actual URL strings from mixed asset payloads
-        clean_assets = []
+        clean_assets: List[str] = []
         for a in assets:
             if isinstance(a, dict):
                 clean_assets.append(a.get("file_path") or a.get("url") or str(a))
@@ -339,11 +341,12 @@ class CreativePen:
         prompt = f"""
 [THÔNG TIN CHIẾN DỊCH NỘI DUNG - CHIẾN THUẬT THUẦN VIỆT]
 
-## GOLDEN THREAD (Thứ tự ưu tiên 1-2-3-4)
+## GOLDEN THREAD (Thứ tự ưu tiên 1-2-3-4-5)
 - **Ưu tiên 1 (Tiêu đề)**: {title}
 - **Ưu tiên 2 (Từ khóa CHÍNH)**: **{primary}** (Bắt buộc giữ nguyên tên tiếng Việt, cấm dịch)
 - **Ưu tiên 3 (Từ khóa PHỤ)**: {', '.join(secondary_list)}
 - **Ưu tiên 4 (Mô tả)**: {campaign.get_gold_val("description", "")}
+- **Ưu tiên 5 (Ground Truth)**: {ground_truth}
 
 - Phong cách: {persona}
 - Chế độ nội dung: {content_mode.upper()} ({mode_instruction})
@@ -392,7 +395,7 @@ class CreativePen:
         V72.0: Surgical [IMAGE_N] replacement pass.
         Handles both standalone markers and markers already inside src/attributes.
         """
-        clean_assets = []
+        clean_assets: List[str] = []
         for a in assets:
             if isinstance(a, dict):
                 clean_assets.append(a.get("file_path") or a.get("url") or str(a))

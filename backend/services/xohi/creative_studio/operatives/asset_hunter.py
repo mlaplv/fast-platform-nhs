@@ -31,6 +31,7 @@ Phân tích dữ liệu để tạo 3-5 câu lệnh tìm kiếm (Search queries)
    - TỐT: "Chai [Tên Sản Phẩm]", "Hộp sản phẩm [Thương Hiệu]".
 4. CHẶN NHIỄU NHÂN VẬT: Bắt buộc thêm `-cầu thủ -bóng đá` nếu tên thương hiệu trùng tên người nổi tiếng.
 5. CHẶN NHIỄU ĐỒ HỌA: Bắt buộc thêm: `-doll -reindeer -toys -clipart -cartoon -drawing -vector -quote`.
+6. ĐỐI CHIẾU GROUND TRUTH: Bắt buộc đọc `Ground Truth` để xác định bản chất thực thể (Vd: Nếu là thuốc bôi da, CẤM search ảnh cây cối/con nấm sinh học. Search ảnh "chai thuốc", "bao bì", "nhà thuốc").
 
 [ĐỊNH DẠNG]
 Trả về JSON VisualSearchPlan chính xác.
@@ -79,6 +80,7 @@ class AssetHunter:
             secondary: List[str] = campaign.get_gold_val("secondary_keywords", [])
             description: str = campaign.get_gold_val("description", "")
             persona: str = campaign.get_gold_val("persona", "Professional")
+            ground_truth: str = campaign.get_gold_val("ground_truth", "")
 
             await event_bus.emit("CONTENT_PROGRESS", {
                 "campaign_id": campaign_id,
@@ -114,6 +116,7 @@ class AssetHunter:
                         f"Secondary Keywords: {', '.join(secondary)}\n"
                         f"Description: {description}\n"
                         f"Persona: {persona}\n"
+                        f"Ground Truth: {ground_truth}\n"
                         f"Content Mode: {content_mode.upper()}"
                     )
                     # CNS V76: Reliable unwrapper for Agent results with strict casting
