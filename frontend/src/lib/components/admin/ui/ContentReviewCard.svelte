@@ -48,7 +48,7 @@
   });
 
   let viewingStep = $state(step || 1), isEditing = $state(false), maxStepSeen = $state(step || 1);
-  let isProcessing = $derived(status === "PROCESSING" || (viewingStep === 1 && (!keywords.title || !keywords.primary_keyword)));
+  let isProcessing = $derived(status === "PROCESSING");
   let customImageUrl = $state(""), editedKeywords = $state<CampaignKeywords>({}), editedConfig = $state<Record<string, unknown>>({
     style: "Viral",
     word_count: 500,

@@ -30,7 +30,7 @@
   ];
 </script>
 
-<div class="relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-slate-950/95 backdrop-blur-2xl p-12" in:fade>
+<div class="relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-slate-950/85 backdrop-blur-2xl p-12" in:fade>
   <!-- 1. Mesh Gradient Background (iPhone 18 Style) -->
   <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
     <div class="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-purple-600/20 blur-[120px] animate-mesh-1"></div>
