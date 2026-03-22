@@ -127,6 +127,11 @@
 
       allCampaigns = allCampaigns.filter(c => c.id !== id);
       
+      // CNS V82.11: Root Cause Fix - Total Disposal of local state
+      if (typeof nanobot.fullPurge === 'function') {
+        nanobot.fullPurge(id);
+      }
+
       // Trigger Log Re-sync (Phase 4): Robust re-sync that doesn't block UI
       try {
         const sessionId = "account"; // standard session for global factory logs
@@ -174,9 +179,20 @@
         }
       }
 
-      nanobot.showToast(`Batch operation complete: ${successCount}/${ids.length} entities purged.`, "success");
-      selectedIds = new Set();
-      await loadCampaigns(false); // Reset list
+      if (successCount > 0) {
+        selectedIds.clear();
+        // CNS V82.11: Mass Purge local state for ANY of the deleted IDs that might be active
+        // Simplest strategy: full purge if ANY of the selected matches active. 
+        // Or just let fullPurge(id) handle it in the loop if we want to be granular.
+        // For mass purge, a single global reset is safer if currentData matches any ID.
+        if (typeof nanobot.fullPurge === 'function') {
+          nanobot.fullPurge(); // Clear everything for batch safety
+        }
+        await loadCampaigns(false); // Assuming hydrateCampaignGrid is equivalent to loadCampaigns(false) for refreshing the grid
+        nanobot.showToast(`Đã tiêu hủy ${successCount} chiến dịch.`, "success");
+      } else {
+        nanobot.showToast(`Batch operation complete: ${successCount}/${ids.length} entities purged.`, "info");
+      }
       
       // Global re-sync
       if (nanobot.chat) {

@@ -135,6 +135,19 @@
 
   const handleRetry = async () => { if (await campaign.retry()) { editedDraft = ""; isEditing = false; } };
   const handleUpdateMetadata = async () => { if (await campaign.updateMetadata(viewingStep, editedKeywords, editedConfig, editedOutline, editedDraft)) { isEditing = false; editedDraft = ""; editedOutline = ""; } };
+  
+  // CNS V82.11: Root Cause Fix - Total Disposal after Step 6 Publication
+  const handlePublish = async () => {
+    if (await campaign.publish()) {
+      // Small delay for the "Success" toast to be visible before closing
+      setTimeout(() => {
+        if (typeof nanobot.fullPurge === 'function') {
+          nanobot.fullPurge(campaign_id);
+        }
+      }, 1500);
+    }
+  };
+
   const handleImageError = (url: string) => { const a = xohiImageStore.assets.find(x => x.file_path === url || x.url === url); if (a) xohiImageStore.removeAsset(a.id); else assets = assets.filter(x => typeof x === 'string' ? x !== url : x.url !== url); };
   const handleSelectKeyword = (kw: string) => { keywords.primary_keyword = kw; vuiController.speak(`Đã chọn ${kw}.`); apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, { keywords }); };
   const handleMouseMove = (e: MouseEvent) => { const el = e.currentTarget as HTMLElement, r = el.getBoundingClientRect(); el.style.setProperty('--mouse-x', `${((e.clientX - r.left) / r.width) * 100}%`); el.style.setProperty('--mouse-y', `${((e.clientY - r.top) / r.height) * 100}%`); };
@@ -157,7 +170,7 @@
       <PublishStep bind:selectedAvatarUrl bind:selectedAssetIndex bind:viewingStep bind:isEditing bind:keywords bind:finalHtml bind:draft_content bind:assets {campaign_id} {apiClient} copyrightScore={campaign.copyrightScore} seoScore={campaign.seoScore} aiScore={campaign.aiScore} {analysis_cache} />
     {/if}
   </div>
-  <ActionButtons isLoading={campaign.isLoading} {status} bind:viewingStep {step} bind:isEditing {isProcessing} isPublishing={campaign.isPublishing} {handleRetry} {handleUpdateMetadata} handlePublish={campaign.publish} {handleApprove} />
+  <ActionButtons isLoading={campaign.isLoading} {status} bind:viewingStep {step} bind:isEditing {isProcessing} isPublishing={campaign.isPublishing} {handleRetry} {handleUpdateMetadata} {handlePublish} {handleApprove} />
 </div>
 
 {#if showGateModal}<GateBlockModal blockers={gateBlockers} onClose={() => showGateModal = false} onViewDetails={(tab) => { showGateModal = false; focusTabFromModal = tab; }} />{/if}

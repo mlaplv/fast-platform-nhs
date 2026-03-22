@@ -1,6 +1,7 @@
 <script lang="ts">
   import ContentReviewCard from "../ui/ContentReviewCard.svelte";
   import type { CampaignData } from "$lib/state/types";
+  import { xohiImageStore } from "$lib/state/xohiImage.svelte";
 
   let { data } = $props<{ data: Partial<CampaignData> }>();
 
@@ -42,7 +43,8 @@
     if (data && sourceId) {
       if (sourceId !== safelyMutableData.campaign_id) {
         safelyMutableData = createSafeData(data);
-        historicalSeen.clear();
+        historicalSeen.clear(); // Reset awareness for new campaign
+        xohiImageStore.clearAll(); // CNS V82.10: Hard reset global store to prevent leakage (Hôi nách nam)
       } else {
         // Phase 1: Keep Awareness Set updated for deleted items
         // We track WHAT WAS DELETED locally so we don't re-add it from stale pulses.

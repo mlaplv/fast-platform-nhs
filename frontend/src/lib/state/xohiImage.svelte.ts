@@ -252,6 +252,15 @@ export function createXohiImageState() {
         }
     }
 
+    function clearAll() {
+        assets.forEach(a => {
+            if (a.file_path?.startsWith('blob:')) URL.revokeObjectURL(a.file_path);
+        });
+        assets = [];
+        campaignId = null;
+        isUploading = false;
+    }
+
     return {
         get assets() { return assets; },
         get primaryAsset() { return primaryAsset; },
@@ -265,7 +274,8 @@ export function createXohiImageState() {
         addImagesFromUrl,
         initAssets,
         removeAsset,
-        smartCrop
+        smartCrop,
+        clearAll
     };
 }
 

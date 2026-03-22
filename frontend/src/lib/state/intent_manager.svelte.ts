@@ -82,13 +82,24 @@ export function createIntentManager(
     voice.setVoiceResult(transcript, responseText, uiAction, data, source, routerTier);
     state.nanoBotStatus = voice.status === "VOICE" ? "IDLE" : "SUCCESS";
 
-    // Phase 60: Robust data merging with Smart Flattening
+    // Phase 82: Robust data isolation (Sếp's Request)
     if (data) {
-      const mergedData = { ...state.currentData, ...data };
-      if (data.data && typeof data.data === 'object') {
-        Object.assign(mergedData, data.data);
+      const newCid = data.campaign_id || data.id || (data.data as any)?.campaign_id || (data.data as any)?.id;
+      const oldCid = (state.currentData as any)?.campaign_id || (state.currentData as any)?.id;
+
+      // Logic: If it's a NEW campaign ID, we MUST replace the entire data object to avoid leakage (e.g. Hôi nách nam -> Hôi nách nữ)
+      if (newCid && oldCid && newCid !== oldCid) {
+        console.log("[DEBUG] New Campaign Context. Replacing stale data.");
+        state.currentData = { ...data };
+      } else {
+        // Same campaign: merge normally for incremental updates (like Step 1 -> 2)
+        state.currentData = { ...state.currentData, ...data };
       }
-      state.currentData = mergedData;
+
+      // Flatten data.data if it exists (Smart Flattening Phase 60)
+      if (data.data && typeof data.data === 'object') {
+        state.currentData = { ...state.currentData, ...data.data };
+      }
     }
 
     // ═══ SESSION CONTROL OVERRIDES (Wake/Sleep) ═══

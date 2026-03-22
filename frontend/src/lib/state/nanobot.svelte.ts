@@ -241,6 +241,28 @@ export function createNanobotState() {
       resetVui();
     },
 
+    // 5. Total Disposal (CNS V82.11 Root Cause Fix)
+    fullPurge: (campaignId?: string) => {
+      const activeCid = (state.currentData as any)?.campaign_id || (state.currentData as any)?.id;
+      
+      // If a specific ID is provided and it doesn't match active, we just clear logs (handled by Pulse)
+      // If no ID or it matches, we Wipe Everything.
+      if (!campaignId || campaignId === activeCid) {
+        state.currentData = null;
+        state.activeWidget = "NONE";
+        ui.setUniversalModalOpen(false);
+        voice.clearVuiResponse();
+        resetVui();
+        
+        // CNS V82.11: Hard Purge Global Image Store
+        import("$lib/state/xohiImage.svelte.ts").then(({ xohiImageStore }) => {
+          if (xohiImageStore && typeof xohiImageStore.clearAll === 'function') {
+            xohiImageStore.clearAll();
+          }
+        });
+      }
+    },
+
     get universalModalOpen() { return ui.universalModalOpen; },
     get confirmDialog() { return ui.confirmDialog; },
     get toasts() { return ui.toasts; },
