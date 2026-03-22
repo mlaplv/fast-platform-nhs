@@ -66,6 +66,15 @@
           safelyMutableData.progress_msg = data.progress_msg;
         }
 
+        // CNS Phase 16.2: Pulse-driven Keyword & Topic Sync
+        const incomingKeywords = data.keywords || data.topic_data;
+        if (incomingKeywords && typeof incomingKeywords === 'object' && Object.keys(incomingKeywords).length > 0) {
+          // We only sync if changed to avoid unnecessary re-renders of the Step 1 card
+          if (JSON.stringify(incomingKeywords) !== JSON.stringify(safelyMutableData.keywords)) {
+            safelyMutableData.keywords = { ...incomingKeywords };
+          }
+        }
+
         // Sync streaming content only if not locally editing
         if (!safelyMutableData.isEditing) {
           if (data.draft_content) safelyMutableData.draft_content = data.draft_content;
