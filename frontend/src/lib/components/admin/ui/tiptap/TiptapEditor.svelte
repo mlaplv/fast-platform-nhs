@@ -641,6 +641,21 @@
     />
   </div>
 
+  {#if linkMenuVisible && editor && !blockClicks}
+    <div 
+      use:portal
+      class="fixed z-[1001] pointer-events-auto link-bubble-menu" 
+      style="left: {linkMenuX}px; top: {linkMenuY}px; transform: translate(-50%, -100%);"
+      role="tooltip"
+    >
+      <LinkBubbleMenu 
+        {editor} 
+        onEdit={() => { showLinkDialog = true; linkMenuVisible = false; }} 
+        onClose={() => linkMenuVisible = false} 
+      />
+    </div>
+  {/if}
+
   {#if editor && editable && imageMenuVisible && !blockClicks && !showMediaVault && !showLinkDialog}
   <div
     use:portal
