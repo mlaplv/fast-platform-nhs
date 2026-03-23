@@ -49,7 +49,7 @@
         <div
           class="text-[9px] text-white/40 font-mono uppercase tracking-[0.4em] mb-4 flex items-center gap-2"
         >
-          <div class="w-1.5 h-1.5 bg-alert-red animate-ping rounded-full"></div>
+          <div class="w-1.5 h-1.5 bg-alert-red rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
           Origin: Agentic_Orchestrator
         </div>
         <div
@@ -86,7 +86,7 @@
             >
               <span
                 class="text-[10px] font-mono font-bold {analysis.risk_score > 70
-                  ? 'text-alert-red animate-pulse'
+                  ? 'text-alert-red'
                   : 'text-hacker-green'}"
               >
                 RISK_SCORE: {analysis.risk_score}%
@@ -108,7 +108,7 @@
                 ></div>
               </div>
               <span
-                class="text-[11px] font-mono text-neon-cyan/60 animate-pulse tracking-[0.5em] uppercase"
+                class="text-[11px] font-mono text-neon-cyan/60 tracking-[0.5em] uppercase"
                 >Booting Diagnostics...</span
               >
             </div>
@@ -118,7 +118,7 @@
                 <div
                   class="w-2 h-2 rounded-full {analysis.impact_level ===
                   'CRITICAL'
-                    ? 'bg-alert-red animate-ping'
+                    ? 'bg-alert-red'
                     : 'bg-hacker-green'}"
                 ></div>
                 <span
@@ -160,7 +160,7 @@
             </div>
           {:else}
             <div class="flex flex-col items-center py-6">
-              <div class="w-8 h-1 bg-white/10 animate-pulse mb-4"></div>
+              <div class="w-8 h-1 bg-white/10 mb-4"></div>
               <p
                 class="text-[11px] text-gray-600 font-mono italic tracking-widest uppercase"
               >

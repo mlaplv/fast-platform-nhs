@@ -82,9 +82,9 @@
       : 'opacity-20'}"
   ></div>
 
-  <!-- Inner Rotating Core (Xohi Edition) -->
+  <!-- Inner Core (Xohi Edition) -->
   <div
-    class="w-6 h-6 rounded-full overflow-hidden border-2 transition-all duration-500 animate-[spin_6s_linear_infinite] {borderClass} {bgClass} {localStatus === 'THINKING' ? 'animate-pulse scale-110' : ''} {isGlow ? 'shadow-inner' : 'grayscale opacity-50'}"
+    class="w-6 h-6 rounded-full overflow-hidden border-2 transition-all duration-500 {borderClass} {bgClass} {localStatus === 'THINKING' ? 'scale-110' : ''} {isGlow ? 'shadow-inner' : 'grayscale opacity-50'}"
   >
     <XohiLogo variant="simple" size={24} />
   </div>

@@ -23,31 +23,11 @@
 <div
   class="flex h-screen overflow-hidden bg-[#000000] text-gray-100 font-sans selection:bg-[#00FFFF]/30 relative"
 >
-  <!-- Liquid & Water Drop Background Layer (Vantablack 70% Darker) -->
+  <!-- Base Background Layer: Elite Pure Black -->
   <div
     class="absolute inset-0 pointer-events-none overflow-hidden bg-black"
     style="z-index: {Z_INDEX.BASE};"
   >
-    <!-- Base Liquid Blobs (70% Opacity Reduction) -->
-    <div
-      class="absolute top-[-10%] left-[-10%] w-[80%] h-[80%] bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,255,0.012),transparent_60%)] animate-[liquid_25s_ease-in-out_infinite]"
-    ></div>
-    <div
-      class="absolute bottom-[-10%] right-[-10%] w-[90%] h-[90%] bg-[radial-gradient(circle_at_50%_50%,rgba(57,255,20,0.006),transparent_50%)] animate-[liquid_30s_ease-in-out_infinite_reverse]"
-    ></div>
-
-    <!-- Floating "Water Drops" -->
-    <div
-      class="absolute top-[20%] left-[30%] w-[30%] h-[30%] bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.003),transparent_40%)] animate-[drop_15s_ease-in-out_infinite]"
-    ></div>
-    <div
-      class="absolute bottom-[30%] right-[20%] w-[25%] h-[25%] bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,255,0.006),transparent_45%)] animate-[drop_20s_ease-in-out_infinite_reverse]"
-    ></div>
-
-    <!-- Center Glow -->
-    <div
-      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(0,0,0,0)_30%,rgba(0,255,255,0.005)_100%)]"
-    ></div>
   </div>
 
   <!-- Left/Central Main Content -->

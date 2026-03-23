@@ -9,6 +9,7 @@
   import type { Article, BaseWidgetProps } from "$lib/types";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient, ApiError } from "$lib/utils/apiClient";
+  import { onMount, tick } from "svelte";
 
   import NewsList from "./NewsList.svelte";
   import OrderPagination from "./OrderPagination.svelte";
@@ -86,7 +87,7 @@
     }
   }
 
-  $effect(() => { 
+  onMount(() => { 
     loadArticles(); 
     loadCategories();
   });
@@ -135,15 +136,15 @@
     const val = (e.target as HTMLInputElement).value;
     searchInput = val;
     if (searchTimer) clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => { searchTerm = val; currentPage = 1; }, 400);
+    searchTimer = setTimeout(() => { searchTerm = val; currentPage = 1; loadArticles(); }, 400);
   }
 
   function handleTabChange(tab: string) {
-    if (activeTab !== tab) { activeTab = tab; currentPage = 1; }
+    if (activeTab !== tab) { activeTab = tab; currentPage = 1; loadArticles(); }
   }
 
   function handleCategoryChange(cat: string) {
-    if (activeCategoryFilter !== cat) { activeCategoryFilter = cat; currentPage = 1; }
+    if (activeCategoryFilter !== cat) { activeCategoryFilter = cat; currentPage = 1; loadArticles(); }
   }
 
   function generateSlug(title: string) {
@@ -293,60 +294,33 @@
   }
 </script>
 
+<!-- NewsForm Modal Layer -->
+<NewsForm
+  {editingId}
+  bind:isOpen={showDraftForm}
+  bind:formTitle
+  bind:formCategory
+  bind:formStatus
+  bind:formExcerpt
+  bind:formContent
+  bind:formSlug
+  bind:formSeoTitle
+  bind:formSeoDescription
+  bind:formSeoKeywords
+  bind:formSeoOgImage
+  bind:formFeaturedImage
+  onSave={saveArticle}
+  onClose={() => (showDraftForm = false)}
+  {generateSlug}
+  dbCategories={categories}
+  {isSaving}
+  {errors}
+/>
+
 <div class="w-full h-full flex flex-col overflow-hidden relative bg-[#050505]">
-
-  {#if showDraftForm}
-    <!-- ======================== FULL-SCREEN EDIT MODE ======================== -->
-    <div class="w-full h-full flex flex-col overflow-y-auto custom-scrollbar" transition:fade={{ duration: 250 }}>
-      <!-- Back navigation bar -->
-      <div class="flex items-center gap-4 px-6 py-4 border-b border-white/5 shrink-0">
-        <button
-          onclick={() => { showDraftForm = false; }}
-          class="flex items-center gap-2.5 px-5 py-2.5 bg-white/[0.03] border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-white hover:bg-white/[0.06] hover:border-white/20 active:scale-95 transition-all duration-300"
-        >
-          <ChevronLeft size={14} />
-          <span>Intelligence_Archive</span>
-        </button>
-
-        <div class="w-px h-5 bg-white/10"></div>
-
-        <div class="flex items-center gap-2">
-          <Newspaper size={12} class="text-cyan-400/50" />
-          <span class="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">
-            {editingId ? `EDIT // ID_${editingId.slice(0, 8)}` : "NEW_ENTRY"}
-          </span>
-        </div>
-      </div>
-
-      <!-- NewsForm fills remaining space -->
-      <div class="flex-1 px-6 py-4">
-        <NewsForm
-          {editingId}
-          bind:formTitle
-          bind:formCategory
-          bind:formStatus
-          bind:formExcerpt
-          bind:formContent
-          bind:formSlug
-          bind:formSeoTitle
-          bind:formSeoDescription
-          bind:formSeoKeywords
-          bind:formSeoOgImage
-          bind:formFeaturedImage
-          onSave={saveArticle}
-          onClose={() => (showDraftForm = false)}
-          {generateSlug}
-          dbCategories={categories}
-          {isSaving}
-          {errors}
-        />
-      </div>
-    </div>
-
-  {:else}
-    <!-- ======================== LIST VIEW MODE ======================== -->
-    <div class="w-full h-full flex flex-col overflow-hidden" transition:fade={{ duration: 250 }}>
-      <!-- Toolbar -->
+  <!-- ======================== LIST VIEW MODE ======================== -->
+  <div class="w-full h-full flex flex-col overflow-hidden" transition:fade={{ duration: 250 }}>
+    <!-- Toolbar -->
       <div class="flex flex-col gap-4 px-4 sm:px-6 py-5 border-b border-white/5 shrink-0">
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-2.5">
@@ -360,7 +334,7 @@
               <span>Show</span>
               <select
                 value={pageSize}
-                onchange={(e) => { pageSize = Number(e.currentTarget.value); currentPage = 1; }}
+                onchange={(e) => { pageSize = Number(e.currentTarget.value); currentPage = 1; loadArticles(); }}
                 class="bg-black/60 border border-white/10 rounded-md px-1.5 py-1 text-cyan-500 text-[9px] font-mono font-bold focus:outline-none focus:border-cyan-500/50 cursor-pointer appearance-none text-center w-12"
               >
                 <option value={10}>10</option>
@@ -443,12 +417,12 @@
       </div>
 
       <div class="px-4 sm:px-6 shrink-0">
-        <OrderPagination bind:currentPage {totalPages} {pageSize} totalItems={totalArticles} />
+        <OrderPagination bind:currentPage {totalPages} {pageSize} totalItems={totalArticles} onPageChange={() => loadArticles()} />
       </div>
     </div>
 
-    <!-- NEURAL COMMAND BAR (Floating Bulk Actions) -->
-    {#if selectedIds.size > 0}
+  <!-- NEURAL COMMAND BAR (Floating Bulk Actions) -->
+  {#if selectedIds.size > 0}
       <div
         class="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-6 p-2 pl-6 bg-[#0a0a0a]/80 backdrop-blur-2xl border border-white/10 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_20px_rgba(6,182,212,0.1)]"
         transition:fly={{ y: 50, duration: 400 }}
@@ -478,7 +452,6 @@
         </div>
       </div>
     {/if}
-  {/if}
 
   <!-- PURGE CONFIRMATION MODAL -->
   {#if showPurgeConfirm}

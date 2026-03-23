@@ -25,7 +25,7 @@
     onclick={toggleDropdown}
     class="flex items-center gap-3 p-1 pl-4 bg-black/80 md:bg-black/40 md:backdrop-blur-md border border-white/5 rounded-full hover:border-[#00FFFF]/40 hover:bg-[#00FFFF]/5 transition-all group relative overflow-hidden"
   >
-    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[#00FFFF]/5 to-transparent -translate-x-full group-hover:animate-scan-fast pointer-events-none"></div>
+    <div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
 
     <div class="flex flex-col items-end mr-1">
       <span class="text-[8px] font-mono text-gray-400 uppercase tracking-[0.2em] leading-tight opacity-70">Identity Verified</span>

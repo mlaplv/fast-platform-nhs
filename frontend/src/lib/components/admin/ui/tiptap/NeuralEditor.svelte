@@ -41,8 +41,12 @@
   // Internal edit buffer — mirrors content prop while editing
   let editBuffer = $state(content);
 
-  // Keep editBuffer in sync when content is set from outside
-  $effect(() => { if (!editable) editBuffer = content; });
+  // Keep editBuffer in sync when content is set from outside (Zero-Flicker)
+  $effect(() => { 
+    if (content !== editBuffer) {
+      editBuffer = content; 
+    }
+  });
 
   // Adhoc analysis controller — no campaign_id needed
   const analysis = createAnalysisController({

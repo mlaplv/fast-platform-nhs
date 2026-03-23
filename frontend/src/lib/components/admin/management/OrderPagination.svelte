@@ -8,12 +8,14 @@
     currentPage = $bindable(), 
     totalPages, 
     pageSize, 
-    totalItems 
+    totalItems,
+    onPageChange
   } = $props<{
     currentPage: number;
     totalPages: number;
     pageSize: number;
     totalItems: number;
+    onPageChange?: () => void;
   }>();
 
   onMount(() => {
@@ -29,7 +31,7 @@
 
     <div class="flex items-center gap-0.5">
       <button 
-        onclick={() => currentPage > 1 && (currentPage -= 1)}
+        onclick={() => { if (currentPage > 1) { currentPage -= 1; onPageChange?.(); } }}
         disabled={currentPage === 1}
         class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-white disabled:opacity-20 transition-colors"
       >
@@ -40,7 +42,7 @@
         {@const page = i + 1}
         {#if page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)}
           <button 
-            onclick={() => currentPage = page}
+            onclick={() => { currentPage = page; onPageChange?.(); }}
             class="w-6 h-6 flex items-center justify-center text-[9px] font-mono font-bold transition-colors
               {currentPage === page ? 'text-neon-cyan' : 'text-gray-600 hover:text-white'}"
           >
@@ -52,7 +54,7 @@
       {/each}
       
       <button 
-        onclick={() => currentPage < totalPages && (currentPage += 1)}
+        onclick={() => { if (currentPage < totalPages) { currentPage += 1; onPageChange?.(); } }}
         disabled={currentPage === totalPages}
         class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-white disabled:opacity-20 transition-colors"
       >

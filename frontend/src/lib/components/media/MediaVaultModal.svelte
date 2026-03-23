@@ -161,10 +161,8 @@
   isOpen={isOpen}
   onClose={onClose}
   headerIcon={ImagePlus}
-  maxWidth="max-w-full"
-  height="h-screen"
+  fullScreen={true}
   zIndex={Z_INDEX.MEDIA_OVERLAY}
-  backdropClass="bg-[#0a0c12]/98 backdrop-blur-2xl"
 >
   <div class="w-full h-full flex flex-col">
     {#if activeTab === 'current'}

@@ -20,6 +20,7 @@
     headerIcon?: string | Component;
     zIndex?: number;
     backdropClass?: string;
+    fullScreen?: boolean;
   }
 
   let {
@@ -35,7 +36,8 @@
     children,
     headerIcon = Terminal,
     zIndex = 100,
-    backdropClass = "bg-[#050505]/95 md:bg-black/85 md:backdrop-blur-2xl",
+    backdropClass = "bg-[#050505]/98",
+    fullScreen = false,
   }: Props = $props();
 
   const theme = $derived({
@@ -69,7 +71,7 @@
 
 {#if isOpen}
   <div
-    class="absolute inset-0 flex items-center justify-center p-6 pointer-events-none"
+    class="absolute inset-0 flex items-center justify-center pointer-events-none {fullScreen ? 'p-0' : 'p-6'}"
     style="z-index: {zIndex}"
     transition:fade={{ duration: 400 }}
   >
@@ -79,53 +81,17 @@
       onclick={(e) => { e.stopPropagation(); onClose(); }}
       onkeydown={(e) => e.key === "Escape" && onClose()}
       role="presentation"
-    >
-      <!-- Scanning Line Effect -->
-      <div
-        class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(0,255,255,0.06),rgba(0,0,0,0.02),rgba(0,255,0,0.02))] z-0 pointer-events-none bg-[length:100%_2px,3px_100%]"
-      ></div>
-      <div
-        class="absolute inset-0 overflow-hidden pointer-events-none opacity-20"
-      >
-        <div class="universal-scanline"></div>
-      </div>
-    </div>
+    ></div>
 
     <!-- THE MASTER FRAME -->
     <div
-      class="relative w-full {maxWidth} {height} bg-[#0a0a0a]/95 border {theme.borderClass} flex flex-col pointer-events-auto {theme.shadowClass} overflow-hidden"
+      class="relative border {theme.borderClass} flex flex-col pointer-events-auto {theme.shadowClass} overflow-hidden {fullScreen ? 'w-full h-full max-w-[100vw] rounded-none border-0 bg-[#000000]' : `w-full ${maxWidth} ${height} rounded-2xl bg-[#0a0a0a]/95`}"
       transition:fly={{ y: 50, duration: 600, opacity: 0 }}
     >
-      <!-- ELECTRONIC BORDER EFFECT -->
+      <!-- STATIC BORDER -->
       <div
-        class="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-50"
-      >
-        <div
-          class="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent {theme.flowClass} to-transparent animate-border-flow-x"
-        ></div>
-        <div
-          class="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent {theme.flowClass} to-transparent animate-border-flow-x-reverse"
-        ></div>
-        <div
-          class="absolute top-0 left-0 w-[1px] h-full bg-gradient-to-b from-transparent {theme.flowClass} to-transparent animate-border-flow-y"
-        ></div>
-        <div
-          class="absolute top-0 right-0 w-[1px] h-full bg-gradient-to-b from-transparent {theme.flowClass} to-transparent animate-border-flow-y-reverse"
-        ></div>
-
-        <div
-          class="absolute top-0 left-0 w-16 h-[1px] {theme.sparkClass} animate-spark-top"
-        ></div>
-        <div
-          class="absolute bottom-0 right-0 w-16 h-[1px] {theme.sparkClass} animate-spark-bottom"
-        ></div>
-        <div
-          class="absolute top-0 right-0 w-[1px] h-16 {theme.sparkClass} animate-spark-right"
-        ></div>
-        <div
-          class="absolute bottom-0 left-0 w-[1px] h-16 {theme.sparkClass} animate-spark-left"
-        ></div>
-      </div>
+        class="absolute inset-0 z-0 pointer-events-none border {theme.borderClass} opacity-20"
+      ></div>
 
       <!-- HUD Brackets -->
       <div
@@ -208,10 +174,6 @@
       <div
         class="flex-1 overflow-y-auto relative scrollbar-mission z-10"
       >
-        <div
-          class="absolute inset-0 opacity-[0.04] pointer-events-none"
-          style="background-image: url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E&quot;)"
-        ></div>
         {@render children?.()}
       </div>
 

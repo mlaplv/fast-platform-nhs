@@ -19,6 +19,7 @@ from backend.database import async_session_maker
 from backend.database.models import *
 from backend.utils.security import GeminiSecurity
 from backend.scripts.seed_data import GEMINI_KEYS, CATEGORY_DEFS, SUB_CATEGORY_DEFS, PRODUCT_NAMES, ARTICLE_TITLES
+from backend.services.xohi.creative_studio.models.schemas import CategoryEnum
 
 TENANT_ID = "smartshop"
 def utcnow(): return datetime.now(timezone.utc)
@@ -76,7 +77,17 @@ async def seed_products(session):
 async def seed_articles(session, author_id):
     print("📰 Seeding 30 articles...")
     for i in range(30):
-        session.add(Article(id=str(uuid.uuid4()), title=f"{random.choice(ARTICLE_TITLES)} #{i+1}", slug=f"art-{i+1}-{uuid.uuid4().hex[:4]}", content="..." , status="PUBLISHED", category="News", author_id=author_id, tenant_id=TENANT_ID, created_at=utcnow() - timedelta(days=random.randint(0, 30))))
+        session.add(Article(
+            id=str(uuid.uuid4()), 
+            title=f"{random.choice(ARTICLE_TITLES)} #{i+1}", 
+            slug=f"art-{i+1}-{uuid.uuid4().hex[:4]}", 
+            content="<p>Dữ liệu mẫu từ hệ thống AI 2026. Công nghệ lõi đang được kích hoạt...</p>", 
+            status="PUBLISHED", 
+            category=random.choice([c.value for c in CategoryEnum]), 
+            author_id=author_id, 
+            tenant_id=TENANT_ID, 
+            created_at=utcnow() - timedelta(days=random.randint(0, 30))
+        ))
     await session.flush()
 
 async def seed_orders(session, user_id, products):

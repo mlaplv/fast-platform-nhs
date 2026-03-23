@@ -101,6 +101,26 @@
     <button onclick={onOpenLink} class="tb-btn text-cyan-400/60 hover:text-cyan-400" title="Link System"><Link2Icon size={13} /></button>
   </div>
 
+  <!-- Island: Neural Color System -->
+  <div class="tb-platter gap-0.5 px-1.5 min-w-[120px]">
+    {#each COLORS as color}
+      <button 
+        onclick={() => editor?.chain().focus().setColor(color).run()} 
+        class="w-4 h-4 rounded-full border border-white/10 transition-transform active:scale-75 hover:scale-125 cursor-pointer" 
+        style="background: {color};"
+        title={color}
+      ></button>
+    {/each}
+    <div class="w-px h-3 bg-white/5 mx-1"></div>
+    <button 
+      onclick={() => editor?.chain().focus().unsetColor().run()} 
+      class="tb-btn !w-6 !h-6 opacity-60 hover:opacity-100" 
+      title="Reset Color"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M21 3L3 21"/></svg>
+    </button>
+  </div>
+
   <!-- Flexible Space -->
   <div class="flex-1"></div>
 

@@ -9,13 +9,16 @@
   import ImagePlus from "lucide-svelte/icons/image-plus";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import Lock from "lucide-svelte/icons/lock";
+  import Newspaper from "lucide-svelte/icons/newspaper";
+  import MissionControlShell from "../ui/MissionControlShell.svelte";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
   import NeuralEditor from "../ui/tiptap/NeuralEditor.svelte";
   import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
-  import type { MediaAsset } from "$lib/types";
   import { Z_INDEX } from "$lib/core/constants/zIndex";
-
+  import type { MediaAsset } from "$lib/types";
+  
   let {
+    isOpen = false,
     editingId,
     formTitle = $bindable(),
     formCategory = $bindable(),
@@ -52,6 +55,7 @@
     onClose: () => void;
     generateSlug: (title: string) => string;
     isSaving?: boolean;
+    isOpen?: boolean;
     errors?: Record<string, string>;
   }>();
 
@@ -117,10 +121,16 @@
   const isSlugLocked = $derived(formStatus === 'PUBLISHED' && !!editingId);
 </script>
 
-<!-- ===================================================
-      SINGLE-PAGE PROFESSIONAL NEWS EDITOR
-====================================================== -->
-<div class="w-full flex flex-col gap-0 pb-6">
+<MissionControlShell
+  title={editingId ? `Intelligence_Archive // EDIT_${editingId.slice(0, 8)}` : "Intelligence_Archive // NEW_ENTRY"}
+  variant="cyan"
+  {isOpen}
+  {onClose}
+  headerIcon={Newspaper}
+  fullScreen={true}
+  zIndex={Z_INDEX.MODAL}
+>
+  <div class="w-full flex flex-col gap-0 pb-10">
 
   <section class="relative px-5 pt-5 pb-0" style="z-index: {Z_INDEX.SURFACE}">
     <div class="section-label">
@@ -197,9 +207,13 @@
             <div class="field-group">
               <label class="field-label">Chuyên mục</label>
               <div class="relative">
-                <select bind:value={formCategory} class="field-select">
+                <select 
+                  value={formCategory} 
+                  onchange={(e) => formCategory = e.currentTarget.value}
+                  class="field-select"
+                >
                   {#each dbCategories as c}
-                    <option value={c} class="bg-[#0f0f0f]">{c}</option>
+                    <option value={c} selected={c === formCategory} class="bg-[#0f0f0f]">{c}</option>
                   {/each}
                 </select>
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/20">
@@ -482,6 +496,7 @@
     </div>
   </section>
 </div>
+</MissionControlShell>
 
 <MediaVaultModal
   isOpen={showMediaModal}
