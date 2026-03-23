@@ -1,6 +1,8 @@
+```typescript
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import { fade } from "svelte/transition";
+  import { Z_INDEX } from "$lib/core/constants/zIndex";
   import { apiClient } from "$lib/utils/apiClient";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { vuiController } from "$lib/vui";
@@ -83,6 +85,12 @@
     "Vinh quang & Viral"        // 6: Publish
   ];
 
+  let isMajorStepMessage = $derived.by(() => {
+    if (!progress_msg) return false;
+    const majorKeywords = ["Chế tác", "Phác thảo", "Khởi tạo", "Thiết giáp", "Vinh quang", "phát hành", "Neural Core", "Neural Engine", "khởi tạo lại", "đang viết", "đang gắn hình"];
+    return majorKeywords.some(kw => progress_msg.toLowerCase().includes(kw.toLowerCase()));
+  });
+  
   let isAnalysisMessage = $derived.by(() => {
     if (!progress_msg) return false;
     const keywords = [
@@ -95,27 +103,25 @@
 
   let analysisSession = $state(false);
 
-  // CNS V85.4: Analysis Session Lock — persistent suppression during tools
+  // CNS V85.5: Resilient Analysis Session Lock
+  // Only reset when we see a MAJOR step indicator or when moving to a new step
   $effect(() => {
     if (isProcessing) {
       if (isAnalysisMessage) {
         analysisSession = true;
         isOverlaySticky = false;
         if (stickyTimer) { clearTimeout(stickyTimer); stickyTimer = null; }
+      } else if (isMajorStepMessage) {
+        // We found a major step: reset analysis lock
+        analysisSession = false;
       }
-    } else {
-      // Back to IDLE: Reset session
-      analysisSession = false;
-      isOverlaySticky = false;
-      if (stickyTimer) { clearTimeout(stickyTimer); stickyTimer = null; }
     }
   });
 
   // Keep sticky for major transitions to prevent "chập điện"
   $effect(() => {
     if (isProcessing && !isAnalysisMessage && progress_msg) {
-      const stepIndicators = ["Chế tác", "Phác thảo", "Khởi tạo", "Thiết giáp", "Vinh quang", "phát hành"];
-      if (stepIndicators.some(w => progress_msg.includes(w))) {
+      if (isMajorStepMessage) {
         isOverlaySticky = true;
         if (stickyTimer) clearTimeout(stickyTimer);
         stickyTimer = setTimeout(() => { isOverlaySticky = false; stickyTimer = null; }, 2500);
@@ -246,7 +252,7 @@
   const handleMouseMove = (e: MouseEvent) => { const el = e.currentTarget as HTMLElement, r = el.getBoundingClientRect(); el.style.setProperty('--mouse-x', `${((e.clientX - r.left) / r.width) * 100}%`); el.style.setProperty('--mouse-y', `${((e.clientY - r.top) / r.height) * 100}%`); };
 </script>
 
-<div class="content-review-card w-full h-full flex flex-col transition-all duration-700 overflow-hidden z-[150000] bg-slate-950/95 backdrop-blur-xl" in:fade={{ duration: 600 }}>
+<div class="content-review-card w-full h-full flex flex-col transition-all duration-700 overflow-hidden bg-slate-950/95 backdrop-blur-xl" style="z-index: {Z_INDEX.SYSTEM};" in:fade={{ duration: 600 }}>
   <Header bind:viewingStep {step} {status} {progress_msg} {campaign_id} bind:isEditing toggleExpand={() => nanobot.toggleExpand()} isExpanded={nanobot.isExpanded} creation_config={isEditing ? editedConfig : creation_config} />
   <div class="flex-1 {(viewingStep === 3 || viewingStep === 4 || viewingStep === 6) ? 'overflow-hidden pb-0' : 'overflow-y-auto custom-scrollbar pb-24'} relative flex flex-col min-h-0">
     {#if shouldShowOverlay}
@@ -261,7 +267,7 @@
        </div>
     {/if}
     
-    <div class={isProcessing ? 'invisible h-0 overflow-hidden' : 'flex-1 flex flex-col min-h-0'}>
+    <div class="flex-1 flex flex-col min-h-0">
       {#if viewingStep === 1}
         <IdeaStep bind:isEditing {campaign_id} bind:keywords bind:editedKeywords creation_config={creation_config} bind:editedConfig {handleSelectKeyword} {handleUpdateMetadata} isLoading={campaign.isLoading} />
       {:else if viewingStep === 2}

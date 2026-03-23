@@ -4,6 +4,7 @@
     RotateCcw, Pencil, X, Terminal, ChevronDown
   } from "lucide-svelte";
   import { nanobot } from "$lib/state/nanobot.svelte";
+  import { Z_INDEX } from "$lib/core/constants/zIndex";
   import { fade, scale } from "svelte/transition";
   import { vuiController } from "$lib/vui";
   import { onMount } from "svelte";
@@ -157,8 +158,16 @@
     {/if}
     
     <!-- Modal Close Button (Hard Kill + Soft Close) -->
-    <div class="relative pointer-events-auto z-[3000]">
+    <div class="relative pointer-events-auto" style="z-index: {Z_INDEX.SUPREME_POWER};">
       <button
+        onclick={(e) => {
+          // CNS V85.6: Supreme Power - immediate close if not a long hold
+          // We use onclick as a secondary safety net for standard clicks
+          e.stopPropagation();
+          if (!isHardKillReady) {
+            nanobot.softClose();
+          }
+        }}
         oncontextmenu={(e) => e.preventDefault()}
         onmousedown={(e) => {
           if (e.button !== 0) return;
@@ -172,13 +181,14 @@
             }
           }, 16);
 
-          const endHold = () => {
+          const endHold = (ev) => {
             clearInterval(timer);
             const duration = Date.now() - start;
             if (duration >= 600) {
               nanobot.hardKill(campaign_id);
             } else {
-              nanobot.closeUniversalModal();
+              // Standard click handled by onclick, but we can call it here too as safety
+              nanobot.softClose();
             }
             holdProgress = 0;
             isHardKillReady = false;
@@ -203,7 +213,7 @@
             if (duration >= 600) {
               nanobot.hardKill(campaign_id);
             } else {
-              nanobot.closeUniversalModal();
+              nanobot.softClose();
             }
             holdProgress = 0;
             isHardKillReady = false;
@@ -211,7 +221,8 @@
           };
           window.addEventListener('touchend', endTouch);
         }}
-        class="relative w-9 h-9 rounded-lg border border-red-500/30 bg-red-500/10 flex items-center justify-center hover:bg-red-500/30 transition-all ml-1 group overflow-hidden active:scale-90 cursor-pointer"
+        class="relative w-9 h-9 rounded-lg border border-red-500/30 bg-red-500/10 flex items-center justify-center hover:bg-red-500/30 transition-all ml-1 group overflow-hidden active:scale-95 cursor-pointer isolate"
+        style="z-index: {Z_INDEX.SUPREME_POWER};"
         title="Nhấn: Đóng UI | Giữ 0.6s: KILL tiến trình AI"
       >
         <!-- Progress Ring for Hard Kill -->

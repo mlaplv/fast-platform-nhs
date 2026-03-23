@@ -18,4 +18,5 @@ export const Z_INDEX = {
   MEDIA_OVERLAY: 99999, // Lớp phủ Media Hub (Full Screen)
   SYSTEM: 100000, // Các thành phần hệ thống (Crash, Loading toàn trang)
   VUI_EXIT: 110000, // Nút thoát VUI khẩn cấp (Top layer)
+  SUPREME_POWER: 999999, // Quyền lực tối cao cho nút thoát khẩn cấp AI
 } as const;
