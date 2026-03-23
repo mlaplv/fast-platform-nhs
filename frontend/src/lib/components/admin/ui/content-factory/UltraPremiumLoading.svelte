@@ -11,12 +11,13 @@
 
   let { progress_msg = "", viewingStep, campaign_id }: Props = $props();
 
-  // History of messages to create "Data Crystals"
+  // History of messages for the "Live Feed" effect
   let messageHistory = $state<string[]>([]);
   
   $effect(() => {
     if (progress_msg && !messageHistory.includes(progress_msg)) {
-      messageHistory = [progress_msg, ...messageHistory].slice(0, 5);
+      // Don't add the same message twice, and keep only the last 3
+      messageHistory = [progress_msg, ...messageHistory].slice(0, 4);
     }
   });
 
@@ -28,6 +29,12 @@
     "Kiểm định Viral Edge",     // 5: Analysis
     "Vinh quang & Viral"        // 6: Publish
   ];
+
+  // Map messages to status icons
+  function getStatusIcon(msg: string, isLatest: boolean) {
+    if (isLatest) return "animate-pulse text-blue-400";
+    return "text-green-500/50";
+  }
 </script>
 
 <div class="relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-slate-950/85 backdrop-blur-2xl p-12 z-[100000]" in:fade>
@@ -46,61 +53,98 @@
       <div class="absolute inset-[-20px] bg-purple-500/15 rounded-full blur-[40px] animate-pulse-slow opacity-40"></div>
       
       <!-- Glass Sphere -->
-      <div class="w-48 h-48 rounded-full border border-white/20 bg-white/5 backdrop-blur-3xl flex items-center justify-center relative overflow-hidden shadow-[0_0_50px_rgba(255,255,255,0.05),inset_0_0_20px_rgba(255,255,255,0.1)]">
+      <div class="w-48 h-48 md:w-56 md:h-56 rounded-full border border-white/20 bg-white/5 backdrop-blur-3xl flex items-center justify-center relative overflow-hidden shadow-[0_0_80px_rgba(59,130,246,0.15),inset_0_0_30px_rgba(255,255,255,0.1)]">
         <!-- Inner Shimmers -->
         <div class="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
         <div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.2)_0%,transparent_50%)]"></div>
         
         <!-- Animated Elements inside Core -->
         <div class="flex flex-col items-center gap-2">
-           <Zap size={32} class="text-white animate-bounce-gentle drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" />
-           <div class="text-[10px] font-black tracking-[0.3em] uppercase text-white/40">XOHI CORE</div>
+           <Zap size={40} class="text-white animate-bounce-gentle drop-shadow-[0_0_20px_rgba(255,255,255,1)]" />
+           <div class="text-[11px] font-black tracking-[0.4em] uppercase text-white/50">NEURAL CORE</div>
         </div>
         
         <!-- Scanning Effect -->
-        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-transparent h-1/2 w-full animate-scan-v"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-transparent h-1/2 w-full animate-scan-v"></div>
       </div>
     </div>
 
-    <!-- 3. Dynamic Progress Information -->
-    <div class="flex flex-col items-center gap-3 max-w-md w-full text-center">
-      <div class="space-y-1">
-        <h3 class="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-200 to-white/70 tracking-tight">
-          {stepLabels[viewingStep - 1] || "AI đang chế tác..."}
-        </h3>
-        <p class="text-[10px] md:text-[11px] font-bold text-blue-400/80 uppercase tracking-[0.2em] flex items-center justify-center gap-2">
-          <Activity size={12} class="animate-pulse" /> Đẳng cấp Viral Edge V2.2
-        </p>
+    <!-- 3. Progress Log (Claude/IDE Style) -->
+    <div class="w-full max-w-lg mt-8 space-y-3 px-4">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="w-2 h-2 rounded-full bg-blue-500 animate-ping"></div>
+        <span class="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">System Execution Logs</span>
       </div>
 
-      <!-- Progressive Message -->
-      <div class="mt-4 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md min-w-[280px] shadow-2xl overflow-hidden relative group" in:fly={{ y: 20 }}>
-        <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-purple-500"></div>
-        <span class="text-[13px] font-semibold text-white/90 leading-relaxed italic block truncate">
-           "{progress_msg || 'Kế nối Neural Network...'}"
-        </span>
+      <div class="space-y-2 font-mono">
+        <!-- Active Task -->
+        {#if progress_msg}
+          <div class="p-4 rounded-xl bg-white/[0.08] border border-white/20 backdrop-blur-md shadow-2xl relative overflow-hidden group mb-4" in:fly={{ y: 20 }}>
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-400 to-cyan-300"></div>
+            <div class="flex items-center gap-3">
+              <Activity size={16} class="text-blue-400 animate-pulse" />
+              <div class="flex flex-col gap-0.5">
+                <span class="text-[8px] font-black uppercase tracking-widest text-blue-400/60">Executing Task</span>
+                <span class="text-[14px] font-bold text-white leading-tight">
+                  {progress_msg}
+                </span>
+              </div>
+            </div>
+            <!-- Progress Shimmer -->
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-progress-shimmer"></div>
+          </div>
+        {/if}
+
+        <!-- Historical Feed (Claude/IDE Style) -->
+        <div class="space-y-1.5 opacity-80 pl-1">
+          {#each messageHistory.slice(1) as logMsg, i}
+            <div 
+              class="flex items-center gap-3 py-1 px-2 rounded-lg hover:bg-white/5 transition-colors group/log"
+              in:fly={{ x: -10, delay: i * 50 }}
+            >
+              <div class="w-4 h-4 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
+                <div class="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+              </div>
+              <span class="text-[11px] text-white/40 group-hover/log:text-white/60 transition-colors truncate">
+                {logMsg}
+              </span>
+              <span class="ml-auto text-[8px] font-black text-green-500/30 uppercase tracking-tighter">Done</span>
+            </div>
+          {/each}
+        </div>
+
+        <div class="h-px bg-white/5 my-4"></div>
+
+        <!-- System Specs -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/40 border border-white/5 text-[9px] text-white/30">
+            <Cpu size={12} class="text-blue-500/30" />
+            <span>Neural Engine V2</span>
+          </div>
+          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/40 border border-white/5 text-[9px] text-white/30">
+            <Sparkles size={12} class="text-cyan-500/30" />
+            <span>Style: {stepLabels[viewingStep - 1]?.split(" ")[0] || 'Viral'}</span>
+          </div>
+          <div class="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-black/40 border border-white/5 text-[9px] text-white/30">
+            <Zap size={12} class="text-yellow-500/30" />
+            <span>Latency: 42ms</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- 4. Data Crystals (Floating History) -->
-  <div class="absolute inset-0 z-5 pointer-events-none">
-    {#each messageHistory as msg, i}
-      <div 
-        class="absolute hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/5 backdrop-blur-sm text-[9px] font-medium text-white/30"
-        style="
-          left: {15 + (i * 10)}%; 
-          top: {20 + (i * 15)}%; 
-          animation: float {5 + i}s infinite ease-in-out;
-          opacity: {1 - (i * 0.2)};
-          transform: scale({1 - (i * 0.1)});
-        "
-        in:scale
-      >
-        <Sparkles size={8} class="text-white/20" />
-        {msg.substring(0, 40)}{msg.length > 40 ? '...' : ''}
-      </div>
-    {/each}
+  <!-- 4. Metadata Clusters (Subtle technical details) -->
+  <div class="absolute bottom-32 left-10 md:left-20 z-10 flex flex-col gap-2 pointer-events-none opacity-40">
+    <div class="text-[8px] font-mono text-white/30 uppercase tracking-[0.2em] mb-2 font-black">Environment Specs</div>
+    <div class="flex items-center gap-2 px-2 py-1 bg-white/5 border border-white/10 rounded-md text-[9px] font-mono text-blue-300">
+      <div class="w-1 h-1 rounded-full bg-blue-500"></div>
+      ID: {campaign_id?.slice(0, 8) || 'SYSTEM'}
+    </div>
+    <div class="flex items-center gap-2 px-2 py-1 bg-white/5 border border-white/10 rounded-md text-[9px] font-mono text-cyan-300">
+      <div class="w-1 h-1 rounded-full bg-cyan-500"></div>
+      STEP: 0{viewingStep}/06
+    </div>
   </div>
 
   <!-- 5. Status Indicators (Bottom) -->
@@ -137,6 +181,10 @@
     0% { transform: translateY(-100%); }
     100% { transform: translateY(200%); }
   }
+  @keyframes progress-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
   @keyframes float {
     0%, 100% { transform: translateY(0) rotate(0); }
     50% { transform: translateY(-20px) rotate(2deg); }
@@ -150,6 +198,7 @@
   .animate-mesh-2 { animation: mesh-2 15s infinite ease-in-out; }
   .animate-mesh-3 { animation: mesh-3 25s infinite ease-in-out; }
   .animate-scan-v { animation: scan-v 3s linear infinite; }
+  .animate-progress-shimmer { animation: progress-shimmer 2.5s infinite linear; }
   
   :global(.text-glow) {
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
