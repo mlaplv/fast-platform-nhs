@@ -1,4 +1,3 @@
-```typescript
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import { fade } from "svelte/transition";
