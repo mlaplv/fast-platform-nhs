@@ -108,6 +108,7 @@ async def heuristic_classify(combined_lower: str, user_id: str, context: Optiona
         for mode, keywords in NORM_MODE_KEYWORDS.items():
             if any(kw in norm_query for kw in keywords): content_mode = mode; break
 
+    is_content_factory = (target == "news" and is_mutate and verb == "create") or any(kw in norm_query for kw in NORM_CONTENT_FACTORY)
     if is_content_factory: intent_type, action = "CONTENT_CREATE", IntentAction.CONTENT_CREATE
     elif is_mutate: intent_type, action = "MUTATE", IntentAction.MUTATE
     elif not any(kw in norm_query for kw in NORM_NAV_EXPLICIT) and (any(kw in norm_query for kw in NORM_COUNT_KEYWORDS) or any(kw in norm_query for kw in NORM_QUESTION_KEYWORDS) or (target != "none" and timeframe != "none") or target == "revenue"):
