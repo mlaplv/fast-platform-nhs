@@ -80,14 +80,13 @@
     "Vinh quang & Viral"        // 6: Publish
   ];
 
-  let isStepLevelMessage = $derived.by(() => {
+  let isAnalysisMessage = $derived.by(() => {
     if (!progress_msg) return false;
-    return stepLabels.some(label => progress_msg.includes(label)) || 
-           progress_msg.includes("Neural Network") || 
-           progress_msg.includes("khởi động lại");
+    const keywords = ["tầm soát", "quét", "phân tích", "rà soát", "Booster", "phẫu thuật", "Neural Engine", "Surgical Precision", "điểm số", "Copyright Check", "SEO Analysis", "AI MOD"];
+    return keywords.some(kw => progress_msg.toLowerCase().includes(kw.toLowerCase()));
   });
 
-  let shouldShowOverlay = $derived(isProcessing && (campaign.isStepProcessing || isStepLevelMessage));
+  let shouldShowOverlay = $derived(isProcessing && (campaign.isStepProcessing || !isAnalysisMessage));
 
   $effect(() => { if (viewingStep >= 6 && !finalHtml && draft_content) untrack(() => { finalHtml = processContentImages(draft_content, xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets); }); });
   $effect(() => {
