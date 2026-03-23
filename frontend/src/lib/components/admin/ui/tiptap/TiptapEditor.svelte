@@ -563,7 +563,6 @@
         
         // Final sync
         const cleaned = stripMarks(editor.getHTML());
-        console.log('[TiptapEditor] Content after image insertion:', cleaned);
         content = cleaned;
         onChange(cleaned);
         

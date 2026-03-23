@@ -1,14 +1,15 @@
 <script lang="ts">
   import { slide } from "svelte/transition";
   import { onMount } from "svelte";
-  import XIcon from "lucide-svelte/icons/x";
-  import GlobeIcon from "lucide-svelte/icons/globe";
-  import FileTextIcon from "lucide-svelte/icons/file-text";
-  import ImageIcon from "lucide-svelte/icons/image";
-  import SettingsIcon from "lucide-svelte/icons/settings";
-  import Trash2Icon from "lucide-svelte/icons/trash-2";
-  import TiptapEditor from "../ui/tiptap/TiptapEditor.svelte";
-  import PlusIcon from "lucide-svelte/icons/plus";
+  import { 
+    X, 
+    Globe, 
+    FileText, 
+    Image, 
+    Settings, 
+    Trash2, 
+    Plus 
+  } from "lucide-svelte";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
   import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
   import type { MediaAsset } from "$lib/types";
@@ -145,10 +146,10 @@
 
     <div class="flex items-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/10 overflow-x-auto no-scrollbar">
       {#each [
-        { id: "general", label: "Thông tin", icon: SettingsIcon },
-        { id: "content", label: "Nội dung", icon: FileTextIcon },
-        { id: "media", label: "Hình ảnh", icon: ImageIcon },
-        { id: "seo", label: "SEO", icon: GlobeIcon }
+        { id: "general", label: "Thông tin", icon: Settings },
+        { id: "content", label: "Nội dung", icon: FileText },
+        { id: "media", label: "Hình ảnh", icon: Image },
+        { id: "seo", label: "SEO", icon: Globe }
       ] as tab}
         <button 
           onclick={() => activeTab = tab.id}
@@ -214,7 +215,7 @@
     {:else if activeTab === "content"}
       <div class="flex flex-col gap-4 h-[600px]" transition:slide>
         <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-          <FileTextIcon size={12} /> Nội dung bài viết (Tiptap V2)
+          <FileText size={12} /> Nội dung bài viết (Tiptap V2)
         </label>
         <div class="flex-1 rounded-3xl overflow-hidden border border-white/5 bg-black/40">
           <TiptapEditor
@@ -252,7 +253,7 @@
                     onclick={() => formFeaturedImage = null}
                     class="p-3 bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500 hover:text-white transition-all"
                   >
-                    <Trash2Icon size={18} />
+                    <Trash2 size={18} />
                   </button>
                 </div>
 
@@ -267,7 +268,7 @@
                 class="w-full aspect-video rounded-[2rem] border-2 border-dashed border-white/5 hover:border-cyan-500/30 bg-white/[0.02] hover:bg-cyan-500/[0.02] transition-all flex flex-col items-center justify-center gap-4 group/drop"
               >
                 <div class="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center group-hover/drop:bg-cyan-500/10 transition-colors">
-                  <ImageIcon size={32} class="text-cyan-500/50 group-hover/drop:text-cyan-400" />
+                  <Image size={32} class="text-cyan-500/50 group-hover/drop:text-cyan-400" />
                 </div>
                 <div class="flex flex-col items-center gap-1">
                   <span class="text-[11px] font-black text-white/40 group-hover/drop:text-white uppercase tracking-widest">Thêm ảnh đại diện</span>

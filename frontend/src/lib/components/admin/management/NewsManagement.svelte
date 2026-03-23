@@ -1,14 +1,16 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
-  import Newspaper from "lucide-svelte/icons/newspaper";
-  import Plus from "lucide-svelte/icons/plus";
-  import Search from "lucide-svelte/icons/search";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import Send from "lucide-svelte/icons/send";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import { 
+    Newspaper, 
+    Plus, 
+    Search, 
+    Trash2, 
+    Send, 
+    RefreshCw 
+  } from "lucide-svelte";
   import type { Article, BaseWidgetProps } from "$lib/types";
   import { nanobot } from "$lib/state/nanobot.svelte";
-  import { apiClient } from "$lib/utils/apiClient";
+  import { apiClient, ApiError } from "$lib/utils/apiClient";
 
   import NewsList from "./NewsList.svelte";
   import OrderPagination from "./OrderPagination.svelte";
@@ -86,7 +88,7 @@
       formTitle =
         (data?.title as string) ||
         (data?.name as string) ||
-        (data?.entities as Record<string, unknown>)?.name as string ||
+        (String((data?.entities as Record<string, unknown>)?.name || "")) ||
         "";
       formCategory = (data?.category as string) || CATEGORIES[0];
       formExcerpt = (data?.excerpt as string) || "";
@@ -154,10 +156,7 @@
   async function openEdit(a: Article) {
     try {
       nanobot.showToast("Loading intelligence...", "info");
-      const res = await apiClient.get<Article>(`/api/v1/articles/${a.id}`);
-      console.log('[NewsManagement] openEdit raw response:', res);
-      const fullArticle = res;
-      console.log('[NewsManagement] openEdit fullArticle:', fullArticle);
+      const fullArticle = await apiClient.get<Article>(`/api/v1/articles/${a.id}`);
       
       editingId = fullArticle.id; 
       formTitle = fullArticle.title; 
@@ -170,7 +169,6 @@
       formFeaturedImage = fullArticle.featuredImage || null;
       showDraftForm = true;
     } catch (err) {
-      console.error('[NewsManagement] openEdit failed:', err);
       nanobot.showToast("Dạ sếp, không lấy được chi tiết bài viết. Neural Link bị lỗi rồi!", "error");
     }
   }
@@ -191,7 +189,6 @@
 
     isSaving = true;
     try {
-      console.log('[NewsManagement] Saving formContent:', formContent);
       const payload = {
         title: formTitle,
         category: formCategory,
@@ -213,9 +210,8 @@
       }
       showDraftForm = false;
       await loadArticles();
-    } catch (err: any) {
-      console.error('[NewsManagement] saveArticle failed:', err);
-      const detail = err?.detail || "Lỗi giao thức Neural Link";
+    } catch (err: unknown) {
+      const detail = err instanceof ApiError ? (err.data as any)?.detail : "Lỗi giao thức Neural Link";
       nanobot.showToast(`Neural link failed. ${detail}. Sếp thử lại nhé!`, "error");
     } finally {
       isSaving = false;
@@ -261,8 +257,8 @@
       selectedIds = new Set();
       nanobot.showToast(`Neural override complete. Đã cập nhật ${ids.length} bài viết thành công.`, "success");
       await loadArticles();
-    } catch (err: any) {
-      const detail = err?.detail || "Cập nhật hàng loạt thất bại";
+    } catch (err: unknown) {
+      const detail = err instanceof ApiError ? (err.data as any)?.detail : "Cập nhật hàng loạt thất bại";
       nanobot.showToast(`Neural sync failed. ${detail}`, "error");
     } finally {
       isSaving = false;
@@ -281,8 +277,8 @@
       selectedIds = new Set();
       nanobot.showToast("Neural purge complete. Dữ liệu đã được dọn dẹp!", "success");
       await loadArticles();
-    } catch (err: any) {
-      const detail = err?.detail || "Tiêu hủy thất bại";
+    } catch (err: unknown) {
+      const detail = err instanceof ApiError ? (err.data as any)?.detail : "Tiêu hủy thất bại";
       nanobot.showToast(`Neural link failed. ${detail}`, "error");
     } finally {
       isSaving = false;
@@ -310,8 +306,7 @@
         nanobot.showToast("Purge complete. Neural sync verified.", "success");
         await loadArticles();
       }
-    } catch (err: any) {
-      console.error('[NewsManagement] executePurge failed:', err);
+    } catch (err: unknown) {
       nanobot.showToast("Purge sequence failed. Neural link interrupted.", "error");
     } finally {
       isSaving = false;
