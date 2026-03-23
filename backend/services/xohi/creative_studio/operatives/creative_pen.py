@@ -29,11 +29,14 @@ class CreativePen:
 
         async with self.pen_semaphore:
             step = kwargs.get("step")
+            logger.info(f"🖊️ [CreativePen] Executing Step {step} for {campaign_id}")
             if step == 3:
+                logger.info(f"📝 [CreativePen] Generating Outline for {campaign_id}")
                 outline = await self.generate_outline(campaign)
                 campaign.outline_data = outline.model_dump() if isinstance(outline, ArticleOutline) else outline
                 return AgentResponse(signal=AgentSignal.PROCEED_NEXT, message="Outline generated.", data=campaign.outline_data)
             elif step == 4:
+                logger.info(f"🖋️ [CreativePen] Writing Draft for {campaign_id}")
                 content = await self.write_draft(campaign)
                 campaign.draft_content = content
                 return AgentResponse(signal=AgentSignal.PROCEED_NEXT, message="Draft generated.", data={"content": content})

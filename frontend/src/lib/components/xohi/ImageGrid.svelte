@@ -6,41 +6,89 @@
   import { flip } from "svelte/animate";
   import { Sparkles, LayoutGrid, Upload, RotateCcw } from "lucide-svelte";
   import { untrack } from "svelte";
-  let { onPurge, handleRetry, onSelect }: { onPurge?: (asset: MediaAsset) => void; handleRetry?: () => void; onSelect?: (url: string) => void } = $props();
+
+  let {
+    items = $bindable([]),
+    isProcessing = false,
+    isExpanded = false,
+    campaign_id,
+    onSelect,
+    handleImageError,
+    onRemove,
+    handleRetry
+  }: {
+    items: (MediaAsset | string)[];
+    isProcessing?: boolean;
+    isExpanded?: boolean;
+    campaign_id: string;
+    onSelect?: (url: string) => void;
+    handleImageError?: (url: string) => void;
+    onRemove?: (asset: MediaAsset) => void;
+    handleRetry?: () => void;
+  } = $props();
 
   const flipDurationMs = 300;
+  let localItems = $state<(MediaAsset | string)[]>([]);
 
-  // CNS V75: Local state for DND to prevent 'parentElement' crashes caused by rapid reactivity
-  let items = $state([...xohiImageStore.secondaryAssets]);
+  // CNS V90: Primary asset is always the one with is_primary=true, or the first one if none set
+  let primaryAsset = $derived(
+    localItems.find(a => typeof a !== 'string' && a.is_primary) || 
+    (localItems.length > 0 ? localItems[0] : null)
+  );
+  
+  // CNS V91: Secondary items are everything EXCEPT the primary asset
+  let secondaryItems = $derived(
+    localItems.filter(item => item !== primaryAsset)
+  );
 
-  // CNS V75.1: Sync store to local items with untrack to prevent reactive loops
+  // CNS V75.1: Sync store to local items
   $effect(() => {
-    const storeAssets = xohiImageStore.secondaryAssets;
+    // CNS V92: Track all critical reactive properties for deep synchronization
+    const propItems = items;
+    propItems.forEach(item => {
+      if (typeof item === 'object' && item !== null) {
+        item.is_primary;
+        item.id;
+        item.file_path;
+      }
+    });
+
     untrack(() => {
-      // CNS V76: Use shallow length & id check instead of heavy JSON.stringify
-      const isDifferent =
-        items.length !== storeAssets.length ||
-        items.some((item, i) => item.id !== storeAssets[i]?.id);
+      const isDifferent = localItems.length !== propItems.length ||
+        localItems.some((item, i) => {
+          const id = typeof item === 'string' ? item : item.id;
+          const propItem = propItems[i];
+          const propId = typeof propItem === 'string' ? propItem : propItem?.id;
+          const primaryChanged = typeof item !== 'string' && typeof propItem !== 'string' && 
+                               item.is_primary !== propItem?.is_primary;
+          return id !== propId || primaryChanged;
+        });
 
       if (isDifferent) {
-        items = [...storeAssets];
+        localItems = [...propItems];
       }
     });
   });
 
-  function handleDndConsider(e: CustomEvent<{ items: MediaAsset[] }>) {
-    items = e.detail.items;
+  function handleDndConsider(e: CustomEvent<{ items: (MediaAsset | string)[] }>) {
+    // Preserve primary at its current position, update others
+    const newItems = [...localItems];
+    const secondaryIdxs = localItems.map((item, i) => item !== primaryAsset ? i : -1).filter(i => i !== -1);
+    
+    e.detail.items.forEach((item, i) => {
+      newItems[secondaryIdxs[i]] = item;
+    });
+    localItems = newItems;
   }
 
-  function handleDndFinalize(e: CustomEvent<{ items: MediaAsset[] }>) {
-    items = e.detail.items;
-    // CNS V75.2: Only sync to global store at the very end of the gesture
-    xohiImageStore.reorderAssets(items.map((i) => String(i.id)));
+  function handleDndFinalize(e: CustomEvent<{ items: (MediaAsset | string)[] }>) {
+    handleDndConsider(e);
+    items = localItems;
   }
 </script>
 
 <!-- Main Asset Highlight (Master Section) -->
-{#if xohiImageStore.primaryAsset}
+{#if xohiImageStore.assets.length > 0}
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
     <!-- Master Slot -->
     <div class="lg:col-span-3 xl:col-span-3 space-y-3">
@@ -57,7 +105,9 @@
       <div
         class="p-0.5 rounded-[1.8rem] bg-gradient-to-b from-blue-500/10 to-transparent border border-blue-500/20 shadow-2xl overflow-hidden"
       >
-        <ImageSlot asset={xohiImageStore.primaryAsset} index={0} {onPurge} {onSelect} />
+        {#if primaryAsset}
+          <ImageSlot asset={primaryAsset} index={localItems.indexOf(primaryAsset)} {onSelect} />
+        {/if}
       </div>
       <p
         class="text-[7.5px] text-white/40 font-bold uppercase tracking-[0.2em] px-3 italic leading-relaxed"
@@ -80,15 +130,15 @@
           >
         </div>
         <span class="text-[10px] font-mono text-white/20 italic tracking-widest"
-          >Số lượng: {xohiImageStore.secondaryAssets.length}</span
+          >Số lượng: {secondaryItems.length}</span
         >
       </div>
 
-      <!-- CNS V74: Persistent container for dndzone to prevent 'parentElement' crashes -->
+      <!-- CNS V74: Persistent container for dndzone -->
       <section
         class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 gap-3 outline-none max-h-[40vh] md:max-h-[50vh] overflow-y-auto p-4 bg-black/20 rounded-[1.5rem] border border-white/5 shadow-inner custom-scrollbar"
         use:dndzone={{
-          items: items,
+          items: secondaryItems,
           flipDurationMs,
           dropTargetStyle: { outline: "none" },
           type: "secondary",
@@ -96,13 +146,19 @@
         onconsider={handleDndConsider}
         onfinalize={handleDndFinalize}
       >
-        {#each items as asset, i (asset.id)}
-          <div animate:flip={{ duration: flipDurationMs }}>
-            <ImageSlot {asset} index={i + 1} {onPurge} {onSelect} />
+        {#each secondaryItems as asset (typeof asset === 'string' ? asset : asset.id)}
+          <div animate:flip={{ duration: 300 }} class="relative group">
+            <ImageSlot
+              {asset}
+              index={localItems.indexOf(asset)}
+              onSelect={onSelect}
+              onRemove={onRemove}
+              {handleImageError}
+            />
           </div>
         {/each}
 
-        {#if items.length === 0}
+        {#if secondaryItems.length === 0}
           <div
             class="col-span-full flex flex-col items-center justify-center py-12 opacity-20 pointer-events-none gap-3"
           >

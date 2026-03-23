@@ -20,38 +20,30 @@
   import type { MediaAsset } from "$lib/state/types";
 
   let {
-    isProcessing, isStandalone = false, assets = $bindable(), reserve_assets = $bindable(),
+    campaign_id, isProcessing, isStandalone = false, isExpanded = false, assets = $bindable(), reserve_assets = $bindable(),
     customImageUrl = $bindable(), selectedAvatarUrl = $bindable(), selectedAssetIndex = $bindable(),
     syncAssetChanges, handleRetry, onSelect
   }: {
-    isProcessing: boolean; isStandalone?: boolean; assets: (MediaAsset | string)[];
+    campaign_id: string; isProcessing: boolean; isStandalone?: boolean; isExpanded?: boolean; assets: (MediaAsset | string)[];
     reserve_assets: (MediaAsset | string)[]; customImageUrl: string;
     selectedAvatarUrl: string | null; selectedAssetIndex: number;
-    syncAssetChanges: (newIndex?: number) => void; handleRetry: () => void;
+    syncAssetChanges: (step: number, newIndex?: number) => void; handleRetry: () => void;
     onSelect?: (url: string) => void;
   } = $props();
 
   const ctrl = createAssetController({
+    get id() { return campaign_id; },
     getAssets: () => assets, setAssets: (v) => { assets = v; },
     getReserveAssets: () => reserve_assets, setReserveAssets: (v) => { reserve_assets = v; },
+    getIsProcessing: () => isProcessing,
     setSelectedAvatarUrl: (v) => { selectedAvatarUrl = v; },
     setSelectedAssetIndex: (v) => { selectedAssetIndex = v; },
-    syncAssetChanges
+    syncAssetChanges: () => syncAssetChanges
   });
 
   onMount(() => {
-    if (assets === undefined) assets = [];
-    if (reserve_assets === undefined) reserve_assets = [];
-    if (customImageUrl === undefined) customImageUrl = "";
     if (selectedAvatarUrl === undefined) selectedAvatarUrl = null;
     if (selectedAssetIndex === undefined) selectedAssetIndex = 0;
-  });
-
-  // Phase 15.4: Force sync from parent to store whenever assets prop changes
-  $effect(() => {
-    if (assets) {
-      xohiImageStore.initAssets(assets);
-    }
   });
 
   async function handleAddFromUrl() {
@@ -60,8 +52,8 @@
       await xohiImageStore.addImagesFromUrl(customImageUrl.trim());
       customImageUrl = "";
       vuiController.speak("Đã thêm ảnh.");
-    } catch (err: any) {
-      vuiController.speak(`Dạ Sếp ơi, em không lấy được ảnh này rồi ạ. ${err.message || ''}`);
+    } catch (err: unknown) {
+      vuiController.speak(`Dạ Sếp ơi, em không lấy được ảnh này rồi ạ. ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 </script>
@@ -104,7 +96,17 @@
   </div>
 
   <div class="transition-all duration-700 min-h-[310px] relative {xohiImageStore.assets.length > 0 ? 'bg-gradient-to-br from-blue-500/10 via-white/[0.01] to-transparent rounded-[2rem] border border-white/10 shadow-2xl' : ''} mb-0">
-    <div class="p-2 md:p-3"><ImageGrid onPurge={(asset) => ctrl.pendingPurgeAsset = asset} {handleRetry} {onSelect} /></div>
+    <div class="p-2 md:p-3">
+        <ImageGrid 
+          bind:items={assets} 
+          {campaign_id} 
+          {isProcessing} 
+          {isExpanded}
+          onRemove={(asset) => ctrl.confirmPurge(asset)} 
+          {handleRetry} 
+          {onSelect} 
+        />
+    </div>
   </div>
 
   {#if reserve_assets && reserve_assets.length > 0}
@@ -117,10 +119,11 @@
         <div class="text-[9px] text-white/10 font-bold uppercase tracking-widest">{reserve_assets.length} items available</div>
       </div>
       <div class="flex gap-4 overflow-x-auto overflow-y-hidden pb-4 pt-1 px-1 -mx-1 custom-scrollbar-horizontal snap-x snap-mandatory">
-        {#each reserve_assets as url, i (url)}
+        {#each reserve_assets as item, i (typeof item === 'string' ? item : (item.id || i))}
+          {@const url = typeof item === 'string' ? item : (item.file_path || item.url || '')}
           <div class="flex-shrink-0 w-[80px] md:w-[100px] lg:w-[120px] snap-start">
-            <div role="button" tabindex="0" onkeydown={(e) => (e.key === "Enter" || e.key === " ") && ctrl.addFromReserve(url as string, i)} onclick={() => ctrl.addFromReserve(url as string, i)} class="group/reserve relative aspect-square rounded-2xl overflow-hidden border border-white/10 bg-white/[0.02] hover:border-amber-500/50 hover:bg-white/[0.05] hover:scale-105 transition-all duration-500 cursor-pointer shadow-lg">
-              <img src={resolveMediaUrl(typeof url === 'string' ? url : (url.file_path || url.url || ''))} alt="Reserve {i}" class="w-full h-full object-cover opacity-60 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-700 blur-[0.5px] hover:blur-0" />
+            <div role="button" tabindex="0" onkeydown={(e) => (e.key === "Enter" || e.key === " ") && ctrl.addFromReserve(url, i)} onclick={() => ctrl.addFromReserve(url, i)} class="group/reserve relative aspect-square rounded-2xl overflow-hidden border border-white/10 bg-white/[0.02] hover:border-amber-500/50 hover:bg-white/[0.05] hover:scale-105 transition-all duration-500 cursor-pointer shadow-lg">
+              <img src={resolveMediaUrl(url)} alt="Reserve {i}" class="w-full h-full object-cover opacity-60 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-700 blur-[0.5px] hover:blur-0" />
               <div class="absolute inset-0 bg-amber-500/10 opacity-0 group-hover/reserve:opacity-100 flex items-center justify-center transition-opacity"><Plus size={20} class="text-white drop-shadow-lg" /></div>
               <button class="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white/60 hover:bg-red-500 hover:text-white opacity-0 group-hover/reserve:opacity-100 transition-all z-20 cursor-pointer" onclick={(e) => { e.stopPropagation(); ctrl.removeFromReserve(i); }}><Trash2 size={12} /></button>
             </div>
@@ -134,10 +137,6 @@
 <AssetModals bind:showLibrary={ctrl.showLibrary} bind:pendingPurgeAsset={ctrl.pendingPurgeAsset} onLibrarySelect={ctrl.handleLibrarySelect} onCloseLibrary={() => ctrl.showLibrary = false} onClosePurge={() => ctrl.pendingPurgeAsset = null} onConfirmPurge={ctrl.confirmPurge} />
 
 <style>
-  .custom-scrollbar::-webkit-scrollbar { width: 3px; }
-  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.1); border-radius: 10px; }
-  .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); }
   .custom-scrollbar-horizontal::-webkit-scrollbar { height: 3px; }
   .custom-scrollbar-horizontal::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar-horizontal::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.1); border-radius: 10px; }

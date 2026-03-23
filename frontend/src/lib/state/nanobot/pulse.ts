@@ -106,6 +106,12 @@ export function createPulseManager(
         const data = JSON.parse(event.data);
         const { event: eventName, payload }: { event: string; payload: any } = data;
         const activeData = (state.currentData as unknown as CampaignData);
+        console.log(`[Pulse] Received event: ${eventName} for CID: ${payload?.campaign_id}`);
+        if (activeData) {
+          console.log(`[Pulse] Active CID: ${activeData.campaign_id || (activeData as any).id}`);
+          const match = activeData.campaign_id === payload?.campaign_id || (activeData as any).id === payload?.campaign_id;
+          console.log(`[Pulse] CID Match: ${match}`);
+        }
 
         if (eventName === "CONTENT_PROGRESS") {
           const contentPayload = payload as CampaignData & { message: string; data?: Record<string, any> };
@@ -200,27 +206,33 @@ export function createPulseManager(
             vuiState.setActive(true); vuiState.setPhase("idle");
             vuiState.setIsWaitingForAction(true);
           }
+          console.log(`[Pulse] STEP_COMPLETED Syncing assets: ${completedPayload.data?.assets?.length || 0}, Reserves: ${completedPayload.data?.gold_metadata?.reserve_assets?.length || 0}`);
 
           const syncCompleted = (target: CampaignData) => {
             if (!target) return;
-            // CNS Phase 82.22: Force Status Reset on Completion (Prevents UI Hang)
-            target.status = (completedPayload.status || rawData.status || "WAITING_FOR_REVIEW") as CampaignStatus;
-            target.step = (completedPayload.step || rawData.step || target.step) as number;
-            target.progress_msg = "";
+            const updated = { ...target };
             
-            if (hasContent(rawData.keywords) || hasContent(rawData.topic_data)) target.keywords = (rawData.keywords || rawData.topic_data) as CampaignKeywords;
-            if (hasContent(rawData.assets) || hasContent(rawData.assets_data)) target.assets = normalizeAssets((rawData.assets || rawData.assets_data) as (MediaAsset | string)[]);
-            if (hasContent(rawData.outline) || hasContent(rawData.outline_data)) target.outline = (rawData.outline || rawData.outline_data) as CampaignOutline;
-            if (hasContent(rawData.draft_content)) target.draft_content = rawData.draft_content;
-            if (hasContent(rawData.final_html)) target.final_html = rawData.final_html;
-            if (rawData.unique_score !== undefined) target.unique_score = rawData.unique_score;
+            updated.status = (completedPayload.status || rawData.status || "WAITING_FOR_REVIEW") as CampaignStatus;
+            updated.step = (completedPayload.step || rawData.step || updated.step) as number;
+            updated.progress_msg = "";
             
-            if (hasContent(goldMeta.analysis_cache)) target.analysis_cache = goldMeta.analysis_cache as Record<string, unknown>;
-            if (hasContent(goldMeta.analysis_metrics)) target.analysis_metrics = goldMeta.analysis_metrics as CampaignMetrics;
-            if (hasContent(goldMeta.avatar)) target.selectedAvatarUrl = goldMeta.avatar as string;
-            if (goldMeta.selected_index !== undefined) target.selectedAssetIndex = Number(goldMeta.selected_index);
-            if (hasContent(goldMeta.reserve_assets)) target.reserve_assets = normalizeAssets(goldMeta.reserve_assets as (MediaAsset | string)[]);
-            if (hasContent(goldMeta.creation_config)) target.creation_config = goldMeta.creation_config as Record<string, unknown>;
+            if (hasContent(rawData.keywords) || hasContent(rawData.topic_data)) updated.keywords = (rawData.keywords || rawData.topic_data) as CampaignKeywords;
+            if (hasContent(rawData.assets) || hasContent(rawData.assets_data)) updated.assets = normalizeAssets((rawData.assets || rawData.assets_data) as (MediaAsset | string)[]);
+            if (hasContent(rawData.outline) || hasContent(rawData.outline_data)) updated.outline = (rawData.outline || rawData.outline_data) as CampaignOutline;
+            if (hasContent(rawData.draft_content)) updated.draft_content = rawData.draft_content;
+            if (hasContent(rawData.final_html)) updated.final_html = rawData.final_html;
+            if (rawData.unique_score !== undefined) updated.unique_score = rawData.unique_score;
+            
+            if (hasContent(goldMeta.analysis_cache)) updated.analysis_cache = goldMeta.analysis_cache as Record<string, unknown>;
+            if (hasContent(goldMeta.analysis_metrics)) updated.analysis_metrics = goldMeta.analysis_metrics as CampaignMetrics;
+            if (hasContent(goldMeta.avatar)) updated.selectedAvatarUrl = goldMeta.avatar as string;
+            if (goldMeta.selected_index !== undefined) updated.selectedAssetIndex = Number(goldMeta.selected_index);
+            if (hasContent(goldMeta.reserve_assets)) updated.reserve_assets = normalizeAssets(goldMeta.reserve_assets as (MediaAsset | string)[]);
+            if (hasContent(goldMeta.creation_config)) updated.creation_config = goldMeta.creation_config as Record<string, unknown>;
+            
+            // Re-assign to state.currentData to force reactivity
+            state.currentData = updated;
+            console.log(`[Pulse] Successfully re-assigned currentData for Step ${updated.step}`);
           };
 
           if (voice.vuiResponse?.data && (voice.vuiResponse.data as any).campaign_id === completedPayload.campaign_id) {

@@ -70,9 +70,9 @@ export function createCampaignController(config: {
         isLoading = true;
         try {
             let payload: Record<string, unknown> = isEditing ? {
-                edited_data: viewingStep === 1
+                edited_data: $state.snapshot(viewingStep === 1
                     ? { ...editedKeywords, creation_config: editedConfig }
-                    : { html: viewingStep === 3 ? editedOutline : editedDraft }
+                    : { html: viewingStep === 3 ? editedOutline : editedDraft })
             } : {};
 
             if (viewingStep === 5 && config.draft_content) {
@@ -95,6 +95,14 @@ export function createCampaignController(config: {
     async function retry() {
         if (isLoading) return false;
         isLoading = true;
+        
+        // CNS Phase 82.25: Instant Global Feedback
+        // Force global status to PROCESSING so all widgets show UltraPremiumLoading immediately
+        nanobot.updateCurrentData({ 
+            status: "PROCESSING", 
+            progress_msg: "Đang khởi tạo lại Neural Network cho bước này..." 
+        });
+
         try {
             await apiClient.post(`/api/v1/content/campaigns/${config.campaign_id}/retry`);
             vuiController.speak("Đang chạy lại bước này.");
@@ -112,8 +120,8 @@ export function createCampaignController(config: {
         isLoading = true;
         try {
             const payload = viewingStep === 1
-                ? { keywords: { ...editedKeywords, creation_config: editedConfig } }
-                : (viewingStep === 3 ? { outline_data: { html: editedOutline } } : { draft_content: editedDraft });
+                ? { keywords: $state.snapshot({ ...editedKeywords, creation_config: editedConfig }) }
+                : (viewingStep === 3 ? { outline_data: { html: $state.snapshot(editedOutline) } } : { draft_content: $state.snapshot(editedDraft) });
 
             await apiClient.patch(`/api/v1/content/campaigns/${config.campaign_id}`, payload);
 
@@ -160,10 +168,10 @@ export function createCampaignController(config: {
             const currentAvatar = viewingStep === 2 ? (xohiImageStore.primaryAsset?.file_path || xohiImageStore.primaryAsset?.url) : config.selectedAvatarUrl;
 
             const payload = {
-                assets: currentAssets,
+                assets: $state.snapshot(currentAssets),
                 avatar: currentAvatar || config.selectedAvatarUrl,
                 selected_index: newIndex ?? config.selectedAssetIndex,
-                reserve_assets: config.reserve_assets
+                reserve_assets: $state.snapshot(config.reserve_assets)
             };
 
             await apiClient.patch(`/api/v1/content/campaigns/${config.campaign_id}`, payload);

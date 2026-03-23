@@ -10,7 +10,8 @@
     asset, 
     index, 
     isDndShadow = false,
-    onPurge 
+    onPurge,
+    onSelect
   }: { 
     asset: MediaAsset, 
     index: number, 

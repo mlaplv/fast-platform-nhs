@@ -20,15 +20,79 @@ logger = logging.getLogger("api-gateway")
 class ExecutionEngine:
     def __init__(self, orchestrator: "ContentOrchestrator"):
         self.orchestrator = orchestrator
+        self._active_tasks: Dict[str, asyncio.Task] = {} # CNS V82.50: Campaign task tracking
 
     async def trigger_step(self, campaign_id: str, force_step: Optional[int] = None):
-        await asyncio.sleep(0.05)
-        async with self.orchestrator.semaphore:
+        # CNS V82.50: Capture and cancel existing task BEFORE registering the new one
+        # This avoids the race where a task might accidentally wait on itself
+        old_task = self._active_tasks.get(campaign_id)
+        if old_task and not old_task.done():
+            logger.warning(f"[ExecutionEngine] Triggering cancellation for campaign {campaign_id}.")
+            old_task.cancel()
+            # CNS V82.50: REMOVED await wait_for. Let the old task die asynchronously while the new task prepares.
+            # This ensures zero-blocking during retries.
+
+        # Register CURRENT task as the active one
+        current_task = asyncio.current_task()
+        self._active_tasks[campaign_id] = current_task
+        logger.info(f"📌 [ExecutionEngine] Registered NEW task {current_task.get_name()} for {campaign_id}")
+
+        try:
+            # CNS V82.50: IMMEDIATE HARD WIPE & STATE TRANSITION
+            # We do this BEFORE the semaphore to ensure the UI resets instantly
             session_maker = alchemy_config.create_session_maker()
             async with session_maker() as session:
                 repo = ContentCampaignRepository(session=session)
-                await self._execute_step(campaign_id, repo, force_step=force_step)
-                await session.commit()
+                c = await repo.get(campaign_id)
+                if c:
+                    # CNS V82.50: Define step if missing
+                    step = force_step if force_step is not None else c.current_step
+
+                    # CNS V82.50: CASCADING HARD WIPE
+                    # When a step is retried, we MUST clear all data for THAT step AND ALL FUTURE steps
+                    # to prevent "ghosting" or "stale data leaks" from previous higher-step runs.
+                    logger.info(f"🧹 [ExecutionEngine] CASCADING WIPE from Step {step} onwards.")
+                    
+                    if step <= 1: 
+                        c.topic_data = None
+                    if step <= 2:
+                        c.assets_data = []
+                        if c.gold_metadata:
+                            gold = dict(c.gold_metadata)
+                            gold["reserve_assets"] = []
+                            c.gold_metadata = gold
+                            flag_modified(c, "gold_metadata")
+                    if step <= 3: 
+                        c.outline_data = None
+                    if step <= 4: 
+                        c.draft_content = ""
+                    if step <= 5: 
+                        c.unique_score = None
+                    if step <= 6: 
+                        c.final_html = None
+                    
+                    await repo.update(c)
+                    await session.commit()
+                    logger.info(f"✅ [ExecutionEngine] Cascading Wipe Complete for {campaign_id}")
+            
+            # Signal UI immediately after wipe
+            await event_bus.emit("CONTENT_PROGRESS", {
+                "campaign_id": campaign_id,
+                "step": step, 
+                "message": "💥 Đã dọn sạch dữ liệu. Đang khởi động lại...",
+                "status": "PROCESSING",
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+
+            async with self.orchestrator.semaphore:
+                async with session_maker() as session:
+                    repo = ContentCampaignRepository(session=session)
+                    await self._execute_step(campaign_id, repo, force_step=force_step)
+                    await session.commit()
+        finally:
+            # Only remove if we are still the active task
+            if self._active_tasks.get(campaign_id) == current_task:
+                del self._active_tasks[campaign_id]
 
     async def _execute_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository, force_step: Optional[int] = None):
         campaign = await campaign_repo.get(campaign_id)
@@ -39,8 +103,10 @@ class ExecutionEngine:
         logger.info(f"[Content Factory] Executing Step {step} for {campaign_id}")
         
         await asyncio.sleep(STEP_ARTIFICIAL_LATENCY_SECONDS)
+        campaign.status = "PROCESSING" # CNS V82.50: Explicitly set status to PROCESSING
         if campaign.current_step != step:
             campaign.current_step = step
+        await campaign_repo.update(campaign)
 
         try:
             messages = {1: "✍️ Đang phân tích chủ đề...", 2: "🔍 Đang tìm ảnh...", 3: "📝 Lập dàn ý...", 4: "🖋️ AI đang viết...", 5: "🛡️ Đang kiểm tra đạo văn...", 6: "📦 Đang hoàn thiện..."}
@@ -158,10 +224,12 @@ class ExecutionEngine:
                 elif step == 2:
                     # Phase 15.3: Chuẩn hóa dữ liệu assets (hỗ trợ kéo thả)
                     raw_assets = response.data.get("assets", response.data) if isinstance(response.data, dict) else response.data
+                    logger.info(f"[ExecutionEngine] Syncing Step 2 assets. Raw count from response: {len(raw_assets) if isinstance(raw_assets, list) else 'N/A'}")
                     if isinstance(raw_assets, list):
                         campaign.assets_data = raw_assets
                     else:
                         campaign.assets_data = raw_assets
+                    logger.info(f"[ExecutionEngine] campaign.assets_data now has {len(campaign.assets_data) if isinstance(campaign.assets_data, list) else 'N/A'} items.")
                 elif step == 3: campaign.outline_data = response.data.get("outline", response.data) if isinstance(response.data, dict) else response.data
                 elif step == 4: campaign.draft_content = response.data.get("content", campaign.draft_content)
                 elif step == 5:
@@ -218,6 +286,8 @@ class ExecutionEngine:
 
             # Always include gold_metadata for avatar/config sync
             payload_data["gold_metadata"] = getattr(campaign, "gold_metadata", None) or {}
+            
+            logger.info(f"[ExecutionEngine] Emitting CONTENT_STEP_COMPLETED for Step {step}. Assets in payload: {len(payload_data.get('assets', [])) if isinstance(payload_data.get('assets'), list) else 'N/A'}, Reserves: {len(payload_data.get('gold_metadata', {}).get('reserve_assets', []))}")
 
             await event_bus.emit("CONTENT_STEP_COMPLETED", payload)
             logger.info(f"[Content Factory] Step {step} SUCCESS in {time.time() - start_time:.2f}s")

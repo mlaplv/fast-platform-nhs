@@ -1,21 +1,72 @@
 import { xohiImageStore } from "./xohiImage.svelte";
 import { nanobot } from "./nanobot.svelte";
-import { vuiController } from "$lib/vui";
 import { resolveMediaUrl } from "./utils";
 import { untrack, tick } from "svelte";
 import type { MediaAsset } from "./types";
+import { vuiController } from "../vui";
 
 export function createAssetController(config: {
+    get id(): string;
     getAssets: () => (MediaAsset | string)[];
     setAssets: (v: (MediaAsset | string)[]) => void;
     getReserveAssets: () => (MediaAsset | string)[];
     setReserveAssets: (v: (MediaAsset | string)[]) => void;
+    getIsProcessing: () => boolean;
     setSelectedAvatarUrl: (v: string | null) => void;
     setSelectedAssetIndex: (v: number) => void;
-    syncAssetChanges: (step: number, newIndex?: number) => void;
+    syncAssetChanges: () => (step: number, newIndex?: number) => void;
 }) {
     let showLibrary = $state(false);
     let pendingPurgeAsset = $state<MediaAsset | null>(null);
+    let hasAutoRescued = $state(false);
+    let blockPropSync = false; // CNS V82.17: Bridge-lock to prevent ping-pong loop
+
+    // Phase 15.5: Rescue Mechanism (Auto-promote from reserve)
+    $effect(() => {
+        const isProcessing = config.getIsProcessing();
+        if (isProcessing) {
+            if (hasAutoRescued) hasAutoRescued = false;
+            return;
+        }
+
+        if (hasAutoRescued) return;
+
+        const storeAssets = xohiImageStore.assets;
+        const reserveAssets = config.getReserveAssets();
+        const propAssets = config.getAssets(); // CNS V82.37: Check prop assets too
+
+        // Only rescue if BOTH store and prop are empty, but we have reserves
+        if (storeAssets.length === 0 && propAssets.length === 0 && reserveAssets.length > 0) {
+            hasAutoRescued = true;
+            untrack(() => {
+                const first = reserveAssets[0];
+                const url = typeof first === 'string' ? first : (first.file_path || first.url || '');
+                if (url && (url.startsWith('http') || url.startsWith('/storage'))) {
+                    vuiController.speak("Đã tự động lấy hình dự phòng cho Sếp.");
+                    xohiImageStore.addImagesFromUrl(url);
+                    const nextReserves = reserveAssets.filter((_: MediaAsset | string, i: number) => i !== 0);
+                    config.setReserveAssets(nextReserves);
+                    config.syncAssetChanges()(2);
+                }
+            });
+        }
+    });
+
+    // Phase 15.6: Reactive Prop Sync (Bridge Prop -> Store)
+    $effect(() => {
+        const propAssets = config.getAssets();
+        const propId = config.id;
+        
+        untrack(() => {
+            // CNS V82.37: Only sync pulse data into store if store is empty or bridge is unlocked
+            // This prevents the "empty store overwriting valid prop" race condition
+            if (propAssets && propAssets.length > 0 && !blockPropSync) {
+                if (xohiImageStore.assets.length === 0 || xohiImageStore.campaignId !== propId) {
+                    xohiImageStore.initAssets(propAssets, propId);
+                }
+            }
+        });
+    });
 
     // V22: Voice Mutation Injection - Asset Management
     $effect(() => {
@@ -68,38 +119,38 @@ export function createAssetController(config: {
         const storeAssets = xohiImageStore.assets;
         const currentAssets = untrack(() => config.getAssets());
 
-        // CNS V82.5: Efficient sequence check instead of heavy JSON.stringify (Rule R03)
+        // CNS V82.5: Stable comparison logic
         const isDifferent = storeAssets.length !== currentAssets.length || 
                            storeAssets.some((a, i) => {
                                const ca = currentAssets[i];
                                if (!ca) return true;
-                               if (typeof ca === 'string') return a.file_path !== ca && a.url !== ca;
-                               return a.id !== ca.id || a.is_primary !== ca.is_primary || a.order_index !== ca.order_index;
+                               const isCaString = typeof ca === 'string';
+                               const caId = isCaString ? `stbl_${ca.split('/').pop()?.split('?')[0]}` : ca.id;
+                               const caIsPrimary = isCaString ? false : (ca as MediaAsset).is_primary;
+                               return a.id !== caId || a.is_primary !== caIsPrimary;
                            });
 
         if (isDifferent) {
-            config.setAssets(storeAssets);
+            blockPropSync = true;
+            config.setAssets([...storeAssets]);
+            // Re-enable sync after a tick to allow the prop change to propagate
+            tick().then(() => { blockPropSync = false; });
+            
             const primaryIdx = storeAssets.findIndex((a) => a.is_primary);
             if (primaryIdx !== -1) {
                 config.setSelectedAssetIndex(primaryIdx);
                 config.setSelectedAvatarUrl(resolveMediaUrl(
                     storeAssets[primaryIdx].file_path || storeAssets[primaryIdx].url || ''
                 ));
-            } else if (storeAssets.length === 0) {
-                config.setSelectedAssetIndex(0);
-                config.setSelectedAvatarUrl(null);
             }
-            
-            // CNS V82.6: Debounced Sync to prevent "API Storm" during rapid modifications
+
             if (syncTimer) clearTimeout(syncTimer);
             syncTimer = setTimeout(() => {
-                untrack(() => config.syncAssetChanges(2));
-            }, 500); // 500ms safety window
+                untrack(() => config.syncAssetChanges()(2));
+            }, 1000); // Increased debounce to 1s for stability
         }
 
-        return () => {
-            if (syncTimer) clearTimeout(syncTimer);
-        };
+        return () => { if (syncTimer) clearTimeout(syncTimer); };
     });
 
     async function confirmPurge(asset: MediaAsset) {
@@ -108,9 +159,8 @@ export function createAssetController(config: {
             await xohiImageStore.removeAsset(asset.id, true);
             vuiController.speak("Đã xoá dứt điểm ảnh khỏi hệ thống.");
             pendingPurgeAsset = null;
-        } catch (err) {
-            console.error("[AssetController] Purge failed", err);
-            vuiController.speak("Dạ, có lỗi khi xoá dứt điểm ảnh ạ.");
+        } catch (err: unknown) {
+            vuiController.speak(`Dạ, có lỗi khi xoá dứt điểm ảnh ạ: ${err instanceof Error ? err.message : String(err)}`);
         }
     }
 
@@ -124,8 +174,8 @@ export function createAssetController(config: {
                         await xohiImageStore.addImagesFromUrl(assetUrl);
                         addCount++;
                     }
-                } catch (err) {
-                    console.error("[AssetController] Library sync failed", err);
+                } catch (err: unknown) {
+                    // Fail silently for bulk sync
                 }
             }
         }
@@ -137,19 +187,37 @@ export function createAssetController(config: {
         }
     }
 
-    function addFromReserve(url: string, index: number) {
-        vuiController.speak("Đã thêm vào bộ sưu tập.");
-        xohiImageStore.addImagesFromUrl(url as string);
-        const reserves = config.getReserveAssets().filter((_, idx) => idx !== index);
-        config.setReserveAssets(reserves);
+    async function addFromReserve(url: string) {
+        try {
+            vuiController.speak("Đã thêm vào bộ sưu tập.");
+            await xohiImageStore.addImagesFromUrl(url);
+            // CNS V82.20: Remove from reserve after successful store addition
+            const reserve = untrack(() => config.getReserveAssets());
+            config.setReserveAssets(reserve.filter((_: MediaAsset | string, idx: number) => (typeof reserve[idx] === 'string' ? reserve[idx] : (reserve[idx] as MediaAsset).url) !== url));
+            config.syncAssetChanges()(2);
+        } catch (err: unknown) {
+            vuiController.speak(`Dạ Sếp ơi, có biến khi lấy ảnh từ kho: ${err instanceof Error ? err.message : String(err)}`);
+        }
     }
 
     async function removeFromReserve(index: number) {
-        const reserves = config.getReserveAssets().filter((_, idx) => idx !== index);
-        config.setReserveAssets(reserves);
-        await tick();
-        config.syncAssetChanges(2);
-        vuiController.speak("Đã xóa khỏi kho dự phòng.");
+        try {
+            const reserves = config.getReserveAssets().filter((_: MediaAsset | string, idx: number) => idx !== index);
+            config.setReserveAssets(reserves);
+            await tick();
+            config.syncAssetChanges()(2);
+            vuiController.speak("Đã xóa khỏi kho dự phòng.");
+        } catch (error: unknown) {
+            vuiController.speak(`Lỗi khi xóa ảnh dự phòng: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    function handleDndConsider(e: { detail: { items: (MediaAsset | string)[] } }) {
+        config.setAssets(e.detail.items);
+    }
+    function handleDndFinalize(e: { detail: { items: (MediaAsset | string)[] } }) {
+        config.setAssets(e.detail.items);
+        config.syncAssetChanges()(2);
     }
 
     return {
@@ -160,6 +228,12 @@ export function createAssetController(config: {
         confirmPurge,
         handleLibrarySelect,
         addFromReserve,
-        removeFromReserve
+        removeFromReserve,
+        syncFromProp: () => {
+            // CNS V82.17: Force sync without logs
+            config.syncAssetChanges()(2);
+            const propAssets = config.getAssets();
+            if (propAssets) xohiImageStore.initAssets(propAssets, config.id);
+        }
     };
 }

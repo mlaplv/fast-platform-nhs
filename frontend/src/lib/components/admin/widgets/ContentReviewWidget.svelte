@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from "svelte";
   import ContentReviewCard from "../ui/ContentReviewCard.svelte";
-  import type { CampaignData } from "$lib/state/types";
+  import type { CampaignData, MediaAsset } from "$lib/state/types";
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
 
   let { data } = $props<{ data: Partial<CampaignData> }>();
@@ -87,18 +87,16 @@
         // CNS V75.7: Intelligent Merge (Direct Replacement if Pulse is non-empty)
         // If the backend sends a non-empty list, it's the source of truth.
         const incomingAssets = data.assets || data.assets_data;
-        if (incomingAssets && Array.isArray(incomingAssets) && incomingAssets.length > 0) {
-           // If backend has more assets than us, or different ones, update.
-           // We use length and first asset ID as a heuristic for change to avoid reactive loops.
-           const firstId = (a: any) => typeof a === 'string' ? a : (a.id || a.file_path);
+        if (incomingAssets && Array.isArray(incomingAssets)) {
+           const firstId = (a: MediaAsset | string) => typeof a === 'string' ? a : (a.id || a.file_path);
            const currentAssets = untrack(() => safelyMutableData.assets);
-           if (incomingAssets.length !== currentAssets.length || firstId(incomingAssets[0]) !== firstId(currentAssets[0])) {
+           if (incomingAssets.length !== currentAssets.length || (incomingAssets.length > 0 && firstId(incomingAssets[0]) !== firstId(currentAssets[0]))) {
              safelyMutableData.assets = [...incomingAssets];
            }
         }
 
         const incomingReserves = data.reserve_assets || data.gold_metadata?.reserve_assets;
-        if (incomingReserves && Array.isArray(incomingReserves) && incomingReserves.length > 0) {
+        if (incomingReserves && Array.isArray(incomingReserves)) {
           const currentReserves = untrack(() => safelyMutableData.reserve_assets);
           if (incomingReserves.length !== currentReserves.length) {
             safelyMutableData.reserve_assets = [...incomingReserves];

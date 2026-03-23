@@ -121,7 +121,8 @@
           };
           window.addEventListener('mouseup', endHold);
         }}
-        class="absolute top-1 right-1 z-[110000] group pointer-events-auto transition-all duration-300 active:scale-90"
+        class="absolute top-1 right-1 group pointer-events-auto transition-all duration-300 active:scale-90"
+        style="z-index: {Z_INDEX.VUI_EXIT}"
         title="Short: Hide UI | Long: Kill Process (Hard Kill)"
       >
         <div class="relative w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/10 transition-all duration-200">
@@ -150,7 +151,7 @@
       <!-- VUI Content (Centered GPT-style) -->
       <div class="{nanobot.isExpanded ? 'absolute inset-0 block overflow-hidden' : 'absolute inset-0 flex justify-center items-center overflow-hidden p-4'}">
         <!-- Voice Caption Layer (GPT-style Background/Overlay) -->
-        <div class="absolute inset-0 left-0 w-full flex justify-center {nanobot.isExpanded ? 'z-[5]' : 'z-[50]'} pointer-events-none">
+        <div class="absolute inset-0 left-0 w-full flex justify-center pointer-events-none" style="z-index: {nanobot.isExpanded ? Z_INDEX.VUI_CAPTION_EXPANDED : Z_INDEX.VUI_CAPTION}">
           <VoiceStatusCaption {phase} />
         </div>
 

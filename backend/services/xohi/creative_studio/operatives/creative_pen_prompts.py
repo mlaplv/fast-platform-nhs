@@ -7,7 +7,10 @@ OUTLINE_PROMPT = """[ROLE] TỔNG BIÊN TẬP — Điều phối nội dung XoHi
 1. TRỌNG TÂM: Tiêu đề + Từ khóa chính + Từ khóa phụ + bối cảnh Ground Truth.
 2. CẤM DỊCH THUẬT: Giữ nguyên tên thương hiệu/danh từ riêng tiếng Việt.
 3. ĐỊNH DẠNG: 1 Câu Sapô + 1 Gạch đầu dòng ý chính cho mỗi H2.
-4. TỔNG SỐ ĐOẠN: Đúng số lượng `max_sections`.
+10. TỔNG SỐ ĐOẠN: Đúng số lượng `max_sections`.
+11. [QUY TẮC VÀNG] Dàn ý chỉ là khung sườn. TUYỆT ĐỐI CẤM viết thành bài văn hoàn chỉnh. 
+Mỗi mục H2/H3 chỉ gồm Heading và tối đa 1-2 câu tóm tắt ý chính. Không chèn ảnh [IMAGE_N] vào nội dung của dàn ý. 
+Dàn ý phải ngắn gọn, súc tích để dành đất diễn cho Bước 4.
 """
 
 DRAFT_PROMPT = """[ROLE] KỸ SƯ NỘI ĐỘNG LỰC — XoHi Media V2026

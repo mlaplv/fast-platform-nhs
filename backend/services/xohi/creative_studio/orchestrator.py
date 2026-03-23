@@ -32,11 +32,22 @@ class ContentOrchestrator:
     Coaches specialized agents and delegates request handling to domain handlers.
     """
     def __init__(self, vision=None, hunter=None, pen=None, cop=None, media=None):
-        # Search Keys for Hunters
+        # Search Keys for Hunters (V82.36: Supporting both separate and comma-separated keys)
         keys = []
-        for i in ["", "_1", "_2"]:
-            k, cx = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}"), os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
-            if k and cx: keys.append({"key": k, "cx": cx})
+        
+        # Priority 1: Comma-separated keys (from .env.example format)
+        env_keys = os.getenv("GOOGLE_SEARCH_KEYS")
+        env_cx = os.getenv("GOOGLE_SEARCH_CX") or os.getenv("GOOGLE_SEARCH_ENGINE_ID")
+        if env_keys and env_cx:
+            for k in env_keys.split(","):
+                k = k.strip()
+                if k: keys.append({"key": k, "cx": env_cx})
+        
+        # Priority 2: Individual suffixed keys (backwards compat)
+        if not keys:
+            for i in ["", "_1", "_2"]:
+                k, cx = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}"), os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
+                if k and cx: keys.append({"key": k, "cx": cx})
 
         self.discovery = DiscoveryHunter(keys)
         self.vision = vision or VisionInsight(discovery_hunter=self.discovery)

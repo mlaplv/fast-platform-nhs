@@ -143,7 +143,25 @@
     }
   }
 
-  const handleRetry = async () => { if (await campaign.retry()) { editedDraft = ""; isEditing = false; } };
+  const handleRetry = async () => { 
+    // CNS V82.50: Hard Wipe UI state immediately
+    status = "PROCESSING";
+    progress_msg = "💥 Đang dọn sạch dữ liệu và khởi động lại...";
+    
+    untrack(() => {
+      if (viewingStep === 2) {
+        xohiImageStore.clearAll();
+        assets = [];
+        reserve_assets = [];
+      }
+      editedDraft = "";
+      editedOutline = "";
+    });
+
+    if (await campaign.retry()) { 
+      isEditing = false; 
+    } 
+  };
   const handleUpdateMetadata = async () => { if (await campaign.updateMetadata(viewingStep, editedKeywords, editedConfig, editedOutline, editedDraft)) { isEditing = false; editedDraft = ""; editedOutline = ""; } };
   
   // CNS V82.11: Root Cause Fix - Total Disposal after Step 6 Publication
@@ -159,7 +177,7 @@
   };
 
   const handleImageError = (url: string) => { const a = xohiImageStore.assets.find(x => x.file_path === url || x.url === url); if (a) xohiImageStore.removeAsset(a.id); else assets = assets.filter(x => typeof x === 'string' ? x !== url : x.url !== url); };
-  const handleSelectKeyword = (kw: string) => { keywords.primary_keyword = kw; vuiController.speak(`Đã chọn ${kw}.`); apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, { keywords }); };
+  const handleSelectKeyword = (kw: string) => { keywords.primary_keyword = kw; vuiController.speak(`Đã chọn ${kw}.`); apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, { keywords: $state.snapshot(keywords) }); };
   const handleMouseMove = (e: MouseEvent) => { const el = e.currentTarget as HTMLElement, r = el.getBoundingClientRect(); el.style.setProperty('--mouse-x', `${((e.clientX - r.left) / r.width) * 100}%`); el.style.setProperty('--mouse-y', `${((e.clientY - r.top) / r.height) * 100}%`); };
 </script>
 
@@ -176,7 +194,7 @@
       {#if viewingStep === 1}
         <IdeaStep bind:isEditing {campaign_id} bind:keywords bind:editedKeywords creation_config={creation_config} bind:editedConfig {handleSelectKeyword} {handleUpdateMetadata} isLoading={campaign.isLoading} />
       {:else if viewingStep === 2}
-        <AssetStep {isProcessing} isExpanded={nanobot.isExpanded} bind:assets bind:reserve_assets bind:customImageUrl bind:selectedAvatarUrl bind:selectedAssetIndex {handleImageError} syncAssetChanges={campaign.syncAssetChanges} {handleRetry} {handleMouseMove} />
+        <AssetStep {campaign_id} {isProcessing} isExpanded={nanobot.isExpanded} bind:assets bind:reserve_assets bind:customImageUrl bind:selectedAvatarUrl bind:selectedAssetIndex {handleImageError} syncAssetChanges={campaign.syncAssetChanges} {handleRetry} {handleMouseMove} />
       {:else if viewingStep === 3}
         <OutlineStep {isEditing} bind:editedOutline {outline} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex isExpanded={nanobot.isExpanded} {campaign_id} {isProcessing} />
       {:else if viewingStep === 4}
