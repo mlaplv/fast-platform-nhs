@@ -13,7 +13,7 @@
 - ✅ **PROPOSE-FIRST:** Mọi thay đổi phải qua 2 giai đoạn: PROPOSE (Kế hoạch + Phản biện rủi ro RAM/Latency) -> HALT (Đợi duyệt).
 - ✅ **QUY TRÌNH QUẢN TRỊ:** Bắt buộc duy trì `task.md` (check-list) và `walkthrough.md` (bằng chứng) cho mọi task.
 - ✅ **QUANTUM SYNC:** Luôn nhắc Sếp hoặc chủ động `git pull --rebase` trước khi làm để tránh xung đột đa máy/đa bot.
-- ✅ **FILE SIZE:** mỗi file không quá 300 dòng.
+- ✅ **FILE SIZE:** mỗi file không quá 500 dòng.
 
 ## 🔍 R01 – TRINH SÁT (SCOUT PROTOCOL)
 
