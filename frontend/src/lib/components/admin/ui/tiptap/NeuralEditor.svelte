@@ -115,7 +115,7 @@
             else { analysis.activeTab = 'copyright'; if (!analysis.copyrightResult && !analysis.isCopyrightLoading) handleAction(analysis.runCopyrightCheck); }
           }}
           disabled={analysis.isCopyrightLoading}
-          class="flex items-center gap-1.5 px-3 py-1.5 {analysis.activeTab === 'copyright' ? 'bg-orange-500/15 border border-orange-500/40 text-orange-300' : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}"
+          class="flex items-center gap-1.5 h-[32px] px-3 {analysis.activeTab === 'copyright' ? 'bg-orange-500/15 border border-orange-500/40 text-orange-300' : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}"
         >
           {#if analysis.isCopyrightLoading}<span class="w-3 h-3 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></span>{:else}<ShieldCheck size={12} />{/if}
           <span class="text-[10px] uppercase font-bold tracking-wider">COPYRIGHT</span>
@@ -133,7 +133,7 @@
             else { analysis.activeTab = 'seo'; if (!analysis.seoResult && !analysis.isSeoLoading && !analysis.seoLocked) handleAction(analysis.runSeoAnalysis); }
           }}
           disabled={analysis.isSeoLoading || analysis.seoLocked}
-          class="flex items-center gap-1.5 px-3 py-1.5 {analysis.activeTab === 'seo' ? 'bg-blue-500/15 border border-blue-500/40 text-blue-300' : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}"
+          class="flex items-center gap-1.5 h-[32px] px-3 {analysis.activeTab === 'seo' ? 'bg-blue-500/15 border border-blue-500/40 text-blue-300' : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}"
         >
           {#if analysis.isSeoLoading}<span class="w-3 h-3 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></span>{:else}<BarChart2 size={12} />{/if}
           <span class="text-[10px] uppercase font-bold tracking-wider">SEO</span>
@@ -151,7 +151,7 @@
             else { analysis.activeTab = 'ai'; if (!analysis.aiReadyResult && !analysis.isAiLoading && !analysis.aiLocked) handleAction(analysis.runAiAnalysis); }
           }}
           disabled={analysis.isAiLoading || analysis.aiLocked}
-          class="flex items-center gap-1.5 px-3 py-1.5 {analysis.activeTab === 'ai' ? 'bg-purple-500/15 border border-purple-500/40 text-purple-300' : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}"
+          class="flex items-center gap-1.5 h-[32px] px-3 {analysis.activeTab === 'ai' ? 'bg-purple-500/15 border border-purple-500/40 text-purple-300' : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}"
         >
           {#if analysis.isAiLoading}<span class="w-3 h-3 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></span>{:else}<Sparkles size={12} />{/if}
           <span class="text-[10px] uppercase font-bold tracking-wider">AI MOD</span>
