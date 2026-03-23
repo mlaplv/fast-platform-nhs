@@ -110,6 +110,15 @@
     }
   }
 
+  function handlePickConfirm(selectedAssets?: MediaAsset[]) {
+    if (selectedAssets && selectedAssets.length > 0) {
+      handleLibrarySelect(selectedAssets);
+    }
+    // If we switched to 'current', let it render or just call onConfirm immediately.
+    // handleLibrarySelect already pushed to internalAssets, so we are good.
+    onConfirm();
+  }
+
   function switchTab(tab: 'current' | 'library' | 'ai') {
     activeTab = tab;
     if (tab === 'library') {
@@ -349,7 +358,7 @@
         onSelect={handleLibrarySelect}
         pickTabActive={activeTab}
         onPickTabChange={switchTab}
-        onPickConfirm={onConfirm}
+        onPickConfirm={handlePickConfirm}
         onPickClose={onClose}
       />
     {/if}

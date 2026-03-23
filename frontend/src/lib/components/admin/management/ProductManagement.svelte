@@ -11,6 +11,7 @@
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import ProductStats from "./ProductStats.svelte";
+  import ProductToolbar from "./ProductToolbar.svelte";
   import ProductForm from "./ProductForm.svelte";
   import ProductTable from "./ProductTable.svelte";
   import OrderPagination from "./OrderPagination.svelte";
@@ -46,6 +47,7 @@
   let formSlug = $state("");
   let formSeoTitle = $state("");
   let formSeoDescription = $state("");
+  let formSeoKeywords = $state("");
   let formImages = $state<string[]>([]);
   let formAttributes = $state<Record<string, string | number | boolean | null>>({});
   let generateSlug = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -156,7 +158,7 @@
   function openCreate() {
     editingId = null;
     formName = ""; formSku = ""; formPrice = 0; formStock = 0; formCategory = ""; formStatus = "draft";
-    formDescription = ""; formSlug = ""; formSeoTitle = ""; formSeoDescription = "";
+    formDescription = ""; formSlug = ""; formSeoTitle = ""; formSeoDescription = ""; formSeoKeywords = "";
     formImages = []; formAttributes = {};
     showForm = true;
   }
@@ -170,6 +172,7 @@
     formSlug = p.slug || "";
     formSeoTitle = p.seoTitle || "";
     formSeoDescription = p.seoDescription || "";
+    formSeoKeywords = p.seoKeywords || "";
     formImages = p.images || [];
     formAttributes = p.attributes || {};
     showForm = true;
@@ -194,6 +197,7 @@
       slug: formSlug || generateSlug(formName),
       seoTitle: formSeoTitle,
       seoDescription: formSeoDescription,
+      seoKeywords: formSeoKeywords,
       images: formImages,
       attributes: formAttributes
     };
@@ -225,106 +229,37 @@
       </div>
     {/if}
 
-    <div class="flex flex-col xl:flex-row xl:items-center gap-4 bg-white/[0.02] border border-white/10 p-3 sm:p-2.5 rounded-2xl">
-      <!-- Search Input (Debounced) -->
-      <div class="flex-1 relative group w-full xl:min-w-[250px]">
-        <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-          <Search size={16} class="text-gray-500 group-focus-within:text-[#FFB800] group-focus-within:scale-110 transition-all" />
-        </div>
-        <input
-          value={searchInput}
-          oninput={handleSearchInput}
-          type="text"
-          placeholder="QUERY_CATALOG..."
-          class="w-full bg-black/50 border border-white/5 rounded-xl py-3 left-0 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-[#FFB800]/50 focus:ring-2 focus:ring-[#FFB800]/20 transition-all uppercase tracking-widest shadow-inner shadow-black/50"
-        />
-      </div>
-
-      <div class="flex flex-col sm:flex-row xl:items-center gap-4 xl:gap-0 mt-2 xl:mt-0">
-        <!-- Filters (Scrollable on small screens) -->
-        <div class="flex items-center gap-2 sm:gap-1 px-1 sm:px-2 xl:border-l xl:border-white/10 xl:pl-4 overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
-          {#each ["all", "active", "draft", "archived"] as f}
-            <button
-              onclick={() => handleFilterChange(f)}
-              class="px-4 py-2.5 text-[10px] font-mono uppercase tracking-[0.2em] rounded-xl transition-all duration-300 relative overflow-hidden group/btn font-bold flex-shrink-0
-                  {activeFilter === f
-                ? 'text-[#FFB800] bg-white/[0.05] ring-1 ring-[#FFB800]/30 shadow-sm'
-                : 'text-gray-500 hover:text-white hover:bg-white/[0.05]'}"
-            >
-              {f === "all" ? "Full_Grid" : STATUS_MAP[f]?.label || f}
-            </button>
-          {/each}
-        </div>
-
-        <!-- Actions -->
-        <div class="flex items-center gap-2 sm:gap-3 xl:border-l xl:border-white/10 xl:pl-4 pr-1 sm:pr-2 flex-wrap sm:flex-nowrap justify-between sm:justify-start w-full sm:w-auto mt-2 sm:mt-0">
-          <div class="flex items-center gap-2">
-            {#if selectedIds.size > 0}
-              <button onclick={() => bulk("act")}
-                class="px-3 py-2 text-[10px] font-mono uppercase bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] rounded-xl hover:bg-[#39FF14]/20 transition-all hidden sm:inline-block"
-                ><Eye size={12} class="inline mr-1" /> Kích hoạt ({selectedIds.size})</button>
-              <button onclick={() => bulk("act")}
-                class="p-2.5 text-[#39FF14] bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-xl sm:hidden" title="Kích hoạt ({selectedIds.size})"><Eye size={14}/></button>
-
-              <button onclick={() => bulk("del")}
-                class="px-3 py-2 text-[10px] font-mono uppercase bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all hidden sm:inline-block"
-                ><Trash2 size={12} class="inline mr-1" /> Xoá ({selectedIds.size})</button>
-              <button onclick={() => bulk("del")}
-                class="p-2.5 text-red-400 bg-red-500/10 border border-red-500/30 rounded-xl sm:hidden" title="Xoá ({selectedIds.size})"><Trash2 size={14}/></button>
-            {/if}
-          </div>
-
-          <div class="flex items-center gap-2 sm:gap-3 ml-auto sm:ml-0">
-            <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-500 uppercase tracking-widest bg-black/40 sm:bg-transparent px-2 sm:px-0 py-1.5 sm:py-0 rounded-lg sm:rounded-none">
-              <span class="hidden sm:inline">Show</span>
-              <select
-                value={pageSize}
-                onchange={(e) => { pageSize = Number(e.currentTarget.value); currentPage = 1; }}
-                class="bg-transparent sm:bg-black/60 border-none sm:border sm:border-white/10 rounded-md px-1 sm:px-1.5 py-1 text-[#FFB800] text-[10px] sm:text-[9px] font-mono font-bold focus:outline-none cursor-pointer appearance-none text-center"
-              >
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-              <span class="opacity-50 sm:opacity-100">/ {totalProducts}</span>
-            </div>
-
-            <button onclick={openCreate}
-              class="flex items-center justify-center gap-2 p-2.5 sm:px-4 sm:py-2 text-[10px] font-bold tracking-widest font-mono uppercase bg-[#FFB800]/10 border border-[#FFB800]/30 text-[#FFB800] hover:bg-[#FFB800]/20 hover:text-white rounded-xl transition-all duration-300"
-              title="Add Product"
-            >
-              <Plus size={14} /> <span class="hidden sm:inline">Add_Product</span>
-            </button>
-            <button onclick={loadProducts} title="Force Resync"
-              class="p-2.5 text-gray-500 hover:text-[#FFB800] border border-white/5 hover:border-[#FFB800]/30 rounded-xl bg-black/40 hover:bg-[#FFB800]/10 transition-all hidden sm:block"
-            >
-              <RefreshCw size={14} class={isLoading ? "animate-spin text-[#FFB800]" : ""} />
-            </button>
-            <button
-              onclick={() => (isHeaderCollapsed = !isHeaderCollapsed)}
-              class="p-2.5 border border-white/10 text-gray-500 hover:text-[#FFB800] hover:border-[#FFB800]/30 bg-black/40 hover:bg-[#FFB800]/10 rounded-xl transition-all"
-              title={isHeaderCollapsed ? "Phóng to thống kê" : "Thu gọn thống kê"}
-            >
-              {#if isHeaderCollapsed}<ChevronDown size={14} />{:else}<ChevronUp size={14} />{/if}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ProductToolbar
+      {searchInput}
+      {activeFilter}
+      bind:pageSize
+      {selectedIds}
+      {totalProducts}
+      {isLoading}
+      bind:isHeaderCollapsed
+      {STATUS_MAP}
+      onSearchInput={handleSearchInput}
+      onFilterChange={handleFilterChange}
+      onPageSizeChange={() => { currentPage = 1; }}
+      onBulkActivate={() => bulk("act")}
+      onBulkDelete={() => bulk("del")}
+      onOpenCreate={openCreate}
+      onLoadProducts={loadProducts}
+    />
   </div>
 
-  {#if showForm}
-    <ProductForm
-      {editingId}
-      bind:formName bind:formSku bind:formPrice bind:formStock bind:formCategory bind:formStatus
-      bind:formDescription bind:formSlug bind:formSeoTitle bind:formSeoDescription
-      bind:formImages bind:formAttributes
-      {categories}
-      onSave={save}
-      onClose={() => (showForm = false)}
-      {generateSlug}
-    />
-  {/if}
+  <!-- ProductForm Modal Layer -->
+  <ProductForm
+    {editingId}
+    isOpen={showForm}
+    bind:formName bind:formSku bind:formPrice bind:formStock bind:formCategory bind:formStatus
+    bind:formDescription bind:formSlug bind:formSeoTitle bind:formSeoDescription bind:formSeoKeywords
+    bind:formImages bind:formAttributes
+    {categories}
+    onSave={save}
+    onClose={() => (showForm = false)}
+    {generateSlug}
+  />
 
   <div class="flex-1 overflow-y-auto custom-scrollbar relative">
     {#if isLoading}
@@ -341,10 +276,8 @@
           onToggleSelect={toggleSelect}
           onEdit={openEdit}
           onDelete={async (id) => {
-            try {
-              await apiClient.post("/api/v1/products/bulk-delete", { ids: [id] });
-              await loadProducts();
-            } catch (err) { nanobot.showToast("Xóa sản phẩm thất bại", "error"); }
+            try { await apiClient.post("/api/v1/products/bulk-delete", { ids: [id] }); await loadProducts(); } 
+            catch { nanobot.showToast("Xóa sản phẩm thất bại", "error"); }
           }}
         />
       </div>
@@ -362,11 +295,6 @@
 </div>
 
 <style>
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
-  }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 20px; }
 </style>

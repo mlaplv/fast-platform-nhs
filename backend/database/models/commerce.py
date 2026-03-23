@@ -45,6 +45,7 @@ class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     slug: Mapped[str] = mapped_column(String, index=True)
     seo_title: Mapped[Optional[str]] = mapped_column(String)
     seo_description: Mapped[Optional[str]] = mapped_column(String)
+    seo_keywords: Mapped[Optional[str]] = mapped_column(String)
     images: Mapped[Optional[list]] = mapped_column(JSON, default=list) # List of image URLs
     attributes: Mapped[Optional[dict]] = mapped_column(JSON, default=dict) # {"size": ["S", "M"], "color": ["Black"]}
     

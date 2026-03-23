@@ -43,7 +43,7 @@ class ProductService:
             ProductBase.id, ProductBase.name, ProductBase.sku,
             ProductBase.price, ProductBase.stock, ProductBase.status,
             ProductBase.category_id, ProductBase.description, ProductBase.type,
-            ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description,
+            ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
             ProductBase.images, ProductBase.attributes,
             ProductBase.created_at,
             Category.name.label("category_name")
@@ -62,7 +62,7 @@ class ProductService:
             ProductBase.id, ProductBase.name, ProductBase.sku,
             ProductBase.price, ProductBase.stock, ProductBase.status,
             ProductBase.category_id, ProductBase.description, ProductBase.type,
-            ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description,
+            ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
             ProductBase.images, ProductBase.attributes,
             ProductBase.created_at,
             Category.name.label("category_name")
@@ -96,6 +96,7 @@ class ProductService:
             slug=data.slug,
             seo_title=data.seoTitle,
             seo_description=data.seoDescription,
+            seo_keywords=data.seoKeywords,
             images=data.images,
             attributes=data.attributes,
         )
@@ -131,6 +132,7 @@ class ProductService:
         if data.slug is not None: product.slug = data.slug
         if data.seoTitle is not None: product.seo_title = data.seoTitle
         if data.seoDescription is not None: product.seo_description = data.seoDescription
+        if data.seoKeywords is not None: product.seo_keywords = data.seoKeywords
         if data.images is not None: product.images = data.images
         if data.attributes is not None: product.attributes = data.attributes
 

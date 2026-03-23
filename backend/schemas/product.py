@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 class CreateProductRequest(BaseModel):
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(populate_by_name=True, strict=True)
     name: str = Field(..., min_length=1, max_length=500)
     sku: Optional[str] = Field(None, max_length=50)
     price: float = Field(0, ge=0)
@@ -18,12 +18,13 @@ class CreateProductRequest(BaseModel):
     slug: str = Field(..., min_length=1, max_length=200)
     seoTitle: Optional[str] = Field(None, max_length=200, alias="seo_title")
     seoDescription: Optional[str] = Field(None, max_length=500, alias="seo_description")
+    seoKeywords: Optional[str] = Field(None, max_length=500, alias="seo_keywords")
     images: List[str] = Field(default_factory=list)
     attributes: Dict[str, Union[str, int, float, bool, None]] = Field(default_factory=dict)
 
 
 class UpdateProductRequest(BaseModel):
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(populate_by_name=True, strict=True)
     name: Optional[str] = Field(None, min_length=1, max_length=500)
     sku: Optional[str] = Field(None, max_length=50)
     price: Optional[float] = Field(None, ge=0)
@@ -36,6 +37,7 @@ class UpdateProductRequest(BaseModel):
     slug: Optional[str] = Field(None, min_length=1, max_length=200)
     seoTitle: Optional[str] = Field(None, max_length=200, alias="seo_title")
     seoDescription: Optional[str] = Field(None, max_length=500, alias="seo_description")
+    seoKeywords: Optional[str] = Field(None, max_length=500, alias="seo_keywords")
     images: Optional[List[str]] = None
     attributes: Optional[Dict[str, Union[str, int, float, bool, None]]] = None
 
@@ -58,6 +60,7 @@ class ProductResponse(BaseModel):
     slug: str
     seoTitle: Optional[str] = Field(None, alias="seo_title")
     seoDescription: Optional[str] = Field(None, alias="seo_description")
+    seoKeywords: Optional[str] = Field(None, alias="seo_keywords")
     images: List[str] = Field(default_factory=list)
     attributes: Dict[str, Union[str, int, float, bool, None]] = Field(default_factory=dict)
     createdAt: datetime = Field(alias="created_at")

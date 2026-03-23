@@ -14,7 +14,7 @@
         mode?: 'manage' | 'pick';
         pickTabActive?: 'current' | 'ai' | 'library';
         onPickTabChange?: (tab: string) => void;
-        onPickConfirm?: () => void;
+        onPickConfirm?: (assets: MediaAsset[]) => void;
         onPickClose?: () => void;
     }
 
@@ -641,7 +641,7 @@
                     <div class="flex items-center gap-2 pl-2 border-l border-white/10 shrink-0">
                         {#if onPickConfirm}
                         <button 
-                            onclick={onPickConfirm}
+                            onclick={() => onPickConfirm(mediaStore.assets.filter(a => mediaStore.selectedIds.has(a.id)))}
                             class="px-4 py-1.5 bg-indigo-500/90 hover:bg-indigo-400/90 text-white rounded-lg text-[11px] font-bold transition-all shadow-lg shadow-indigo-500/15"
                         >
                             Xác nhận
