@@ -7,10 +7,13 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import ChevronDown from "lucide-svelte/icons/chevron-down";
   import ImagePlus from "lucide-svelte/icons/image-plus";
+  import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import Lock from "lucide-svelte/icons/lock";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
   import NeuralEditor from "../ui/tiptap/NeuralEditor.svelte";
   import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
   import type { MediaAsset } from "$lib/types";
+  import { Z_INDEX } from "$lib/core/constants/zIndex";
 
   let {
     editingId,
@@ -111,6 +114,7 @@
   const ogDesc = $derived(formSeoDescription || formExcerpt || 'Mô tả ngắn gọn về bài viết...');
   const ogUrl = $derived(`smartshop.test/tin-tuc/${formSlug || 'slug-bai-viet'}`);
   const ogImg = $derived(formSeoOgImage ? resolveMediaUrl(formSeoOgImage) : (formFeaturedImage ? resolveMediaUrl(formFeaturedImage) : null));
+  const isSlugLocked = $derived(formStatus === 'PUBLISHED' && !!editingId);
 </script>
 
 <!-- ===================================================
@@ -118,7 +122,7 @@
 ====================================================== -->
 <div class="w-full flex flex-col gap-0 pb-6">
 
-  <section class="relative z-10 px-5 pt-5 pb-0">
+  <section class="relative px-5 pt-5 pb-0" style="z-index: {Z_INDEX.SURFACE}">
     <div class="section-label">
       <Settings size={11} />
       Thông tin cơ bản
@@ -149,18 +153,42 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
           <!-- Slug -->
           <div class="field-group">
             <label class="field-label">Đường dẫn (Slug)</label>
-            <div class="relative">
-              <input
-                type="text"
-                bind:value={formSlug}
-                placeholder="duong-dan-bai-viet"
-                class="field-input font-mono text-sm text-cyan-400/80"
-              />
-              <div class="field-line"></div>
+            <div class="relative flex items-center gap-2">
+              <div class="relative flex-1">
+                <input
+                  type="text"
+                  bind:value={formSlug}
+                  placeholder="duong-dan-bai-viet"
+                  disabled={isSlugLocked}
+                  class="field-input font-mono text-sm text-cyan-400/80 {isSlugLocked ? 'opacity-50 cursor-not-allowed' : ''}"
+                />
+                <div class="field-line"></div>
+              </div>
+              <button
+                onclick={() => { if (!isSlugLocked) formSlug = generateSlug(formTitle); }}
+                disabled={isSlugLocked}
+                title={isSlugLocked ? 'Slug bị khóa — bài viết đã Published, thay đổi slug sẽ làm mất link trên Search Engine' : 'Tạo lại slug từ tiêu đề'}
+                class="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-wider cursor-pointer
+                  {isSlugLocked
+                    ? 'bg-red-500/10 border border-red-500/20 text-red-400/60 cursor-not-allowed'
+                    : 'bg-white/5 border border-white/10 text-white/40 hover:text-cyan-400 hover:border-cyan-500/30 hover:bg-cyan-500/5'}"
+              >
+                {#if isSlugLocked}
+                  <Lock size={10} />
+                  Khóa
+                {:else}
+                  <RefreshCw size={10} />
+                  Tạo lại
+                {/if}
+              </button>
             </div>
+            {#if isSlugLocked}
+              <p class="text-[8px] text-red-400/50 italic">⚠ Slug đã khóa — bài viết đang Published. Đổi slug = mất link trên Google.</p>
+            {/if}
           </div>
 
           <!-- Category + Status side by side -->
@@ -257,7 +285,7 @@
   </section>
 
   <!-- ── SECTION 2: Nội Dung Chính ──────────────────── -->
-  <section class="relative z-10 px-5 pt-4 pb-0">
+  <section class="relative px-5 pt-4 pb-0" style="z-index: {Z_INDEX.SURFACE}">
     <div class="section-label">
       <FileText size={11} />
       Nội dung bài viết
@@ -274,7 +302,7 @@
   </section>
 
   <!-- ── SECTION 3: SEO ──────────────────── -->
-  <section class="relative z-10 px-5 pt-4 pb-0">
+  <section class="relative px-5 pt-4 pb-0" style="z-index: {Z_INDEX.SURFACE}">
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
       <!-- 3B: SEO -->
       <div>
@@ -425,7 +453,7 @@
   </section>
 
   <!-- ── ACTION BAR ─────────────────── -->
-  <section class="relative z-10 px-5 pt-3">
+  <section class="relative px-5 pt-3" style="z-index: {Z_INDEX.LAYOUT_HEADER}">
     <div class="flex items-center justify-between gap-4 py-2">
       <div class="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-white/20">
         <div class="w-1.5 h-1.5 rounded-full bg-cyan-400"></div>
@@ -435,13 +463,13 @@
       <div class="flex items-center gap-3">
         <button
           onclick={onClose}
-          class="px-5 py-2.5 text-[10px] font-black uppercase tracking-wider text-white/30 hover:text-white"
+          class="px-5 py-2.5 text-[10px] font-black uppercase tracking-wider text-white/30 hover:text-white cursor-pointer"
         >Hủy bỏ</button>
 
         <button
           onclick={onSave}
           disabled={isSaving}
-          class="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-black rounded-xl text-[10px] font-black uppercase tracking-wider hover:opacity-90 active:scale-[0.97] disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed"
+          class="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-black rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed"
         >
           {#if isSaving}
             <div class="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>

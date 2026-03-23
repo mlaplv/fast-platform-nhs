@@ -18,7 +18,7 @@
     height?: string;
     children?: Snippet;
     headerIcon?: string | Component;
-    zIndex?: string;
+    zIndex?: number;
     backdropClass?: string;
   }
 
@@ -34,7 +34,7 @@
     height = "h-[85vh]",
     children,
     headerIcon = Terminal,
-    zIndex = "z-[100]",
+    zIndex = 100,
     backdropClass = "bg-[#050505]/95 md:bg-black/85 md:backdrop-blur-2xl",
   }: Props = $props();
 
@@ -69,7 +69,8 @@
 
 {#if isOpen}
   <div
-    class="absolute inset-0 {zIndex} flex items-center justify-center p-6 pointer-events-none"
+    class="absolute inset-0 flex items-center justify-center p-6 pointer-events-none"
+    style="z-index: {zIndex}"
     transition:fade={{ duration: 400 }}
   >
     <!-- Master Backdrop -->

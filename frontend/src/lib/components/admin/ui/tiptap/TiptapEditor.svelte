@@ -244,11 +244,16 @@
           : 'bg-transparent overflow-visible')
   }`);
 
+  let metricsTimer: ReturnType<typeof setTimeout> | null = null;
   function updateMetrics() {
-    if (!editor) return;
-    const text = editor.getText();
-    charCount = text.length;
-    wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+    if (metricsTimer) return; // Already scheduled
+    metricsTimer = setTimeout(() => {
+      metricsTimer = null;
+      if (!editor) return;
+      const text = editor.getText();
+      charCount = text.length;
+      wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+    }, 300);
   }
 
   onMount(() => {
@@ -277,6 +282,8 @@
 
   onDestroy(() => {
     if (editor) editor.destroy();
+    if (metricsTimer) clearTimeout(metricsTimer);
+    if (imageScanTimer) clearTimeout(imageScanTimer);
     window.removeEventListener('annotation-hover', handleAnnotationHover);
     window.removeEventListener('annotation-leave', handleAnnotationLeave);
   });
@@ -316,45 +323,38 @@
             setTimeout(() => { isInternalUpdating = false; }, 50);
         }
     });
-
-    // ✦ Re-dispatch annotations after doc replacement so decorations are recreated on the new doc
-    // Fixes: highlights lost after bulk-fix setContent race condition (Issue 2 & F5 Issue 3)
-    const currentAnnotations = annotations;
-    if (currentAnnotations && currentAnnotations.length > 0) {
-      editor.view.dispatch(
-        editor.state.tr.setMeta(AnnotationPluginKey, {
-          type: 'SET_ANNOTATIONS',
-          annotations: [...currentAnnotations]
-        })
-      );
-    }
   });
 
-  // Elite V2.2: Scan Editor for Images to keep assets prop in sync
+  // Elite V2.2: Scan Editor for Images — debounced to avoid regex on every keystroke
+  let imageScanTimer: ReturnType<typeof setTimeout> | null = null;
   $effect(() => {
     if (!editor || editor.isDestroyed || isInternalUpdating) return;
     
-    // Only scan on content changes
-    const _trigger = [wordCount, charCount, content]; 
+    // Track content as dependency
+    const _trigger = content; 
     
-    untrack(() => {
-      const html = editor.getHTML();
-      const imgRegex = /<img[^>]+src=["']([^"']+)["']/g;
-      const found: string[] = [];
-      let match;
-      while ((match = imgRegex.exec(html)) !== null) {
-        let src = match[1];
-        if (src && !found.includes(src)) found.push(src);
-      }
-      
-      // Update assets if changed (ignore order for simple sync)
-      const currentUrls = assets.map(a => typeof a === 'string' ? a : (a.file_path || a.url || ''));
-      const hasChanged = found.length !== currentUrls.length || found.some(url => !currentUrls.includes(url));
-      
-      if (hasChanged) {
-        assets = found;
-      }
-    });
+    // Debounce: only scan after 500ms of inactivity
+    if (imageScanTimer) clearTimeout(imageScanTimer);
+    imageScanTimer = setTimeout(() => {
+      untrack(() => {
+        if (!editor || editor.isDestroyed) return;
+        const html = editor.getHTML();
+        const imgRegex = /<img[^>]+src=["']([^"']+)["']/g;
+        const found: string[] = [];
+        let match;
+        while ((match = imgRegex.exec(html)) !== null) {
+          let src = match[1];
+          if (src && !found.includes(src)) found.push(src);
+        }
+        
+        const currentUrls = assets.map(a => typeof a === 'string' ? a : (a.file_path || a.url || ''));
+        const hasChanged = found.length !== currentUrls.length || found.some(url => !currentUrls.includes(url));
+        
+        if (hasChanged) {
+          assets = found;
+        }
+      });
+    }, 500);
   });
 
   // Cerberus 2026: Sustainable Highlighting Sync
@@ -531,46 +531,81 @@
   {/if}
 </div>
 
-  <MediaVaultModal
-    isOpen={showMediaVault}
-    onClose={() => showMediaVault = false}
-    {campaignId}
-    bind:assets
-    bind:selectedAvatarUrl
-    bind:selectedAssetIndex
-    onSelect={(url) => {
-    if (editor) {
-      blockClicks = true;
-      imageMenuVisible = false;
-      const safeUrl = resolveMediaUrl(url);
-      
-      // V22: Robust Insertion
-      isSyncLocked = true;
-      
-      // Defer focus to avoid click-through when portal unmounts
-      setTimeout(() => {
-        if (!editor || editor.isDestroyed) { isSyncLocked = false; return; }
-        
-        if (editor.isActive('image')) {
-          editor.chain().focus().updateAttributes('image', { src: safeUrl }).run();
-        } else {
-          editor.chain().focus().setImage({ src: safeUrl }).run();
+  <div use:portal>
+    <MediaVaultModal
+      isOpen={showMediaVault}
+      onClose={() => showMediaVault = false}
+      {campaignId}
+      bind:assets
+      bind:selectedAvatarUrl
+      bind:selectedAssetIndex
+      onSelect={(url) => {
+        if (editor) {
+          blockClicks = true;
+          imageMenuVisible = false;
+          const safeUrl = resolveMediaUrl(url);
+          
+          // V22: Robust Insertion
+          isSyncLocked = true;
+          
+          // Defer focus to avoid click-through when portal unmounts
+          setTimeout(() => {
+            if (!editor || editor.isDestroyed) { isSyncLocked = false; return; }
+            
+            if (editor.isActive('image')) {
+              editor.chain().focus().updateAttributes('image', { src: safeUrl }).run();
+            } else {
+              editor.chain().focus().setImage({ src: safeUrl }).run();
+            }
+            
+            // Final sync
+            const cleaned = stripMarks(editor.getHTML());
+            content = cleaned;
+            onChange(cleaned);
+            
+            setTimeout(() => { 
+              blockClicks = false; 
+              isSyncLocked = false;
+            }, 300);
+          }, 50);
         }
-        
-        // Final sync
-        const cleaned = stripMarks(editor.getHTML());
-        content = cleaned;
-        onChange(cleaned);
-        
-        setTimeout(() => { 
-          blockClicks = false; 
-          isSyncLocked = false;
-        }, 300);
-      }, 50);
-    }
-  }}
-/>
-<LinkDialog bind:show={showLinkDialog} currentUrl={currentLinkUrl} onApply={(url) => url ? editor?.chain().focus().setLink({ href: url }).run() : editor?.chain().focus().unsetLink().run()} />
+      }}
+    />
+  </div>
+
+  <div use:portal>
+  let currentLinkData = $state({ url: '', title: '', target: null as string | null, rel: null as string | null });
+
+  // ... (inside the toolbar open link handler)
+  // onOpenLink={() => { 
+  //   const attrs = editor?.getAttributes('link');
+  //   currentLinkData = { 
+  //     url: attrs?.href || '', 
+  //     title: attrs?.title || '', 
+  //     target: attrs?.target || null, 
+  //     rel: attrs?.rel || null 
+  //   }; 
+  //   showLinkDialog = true; 
+  // }}
+
+// ... (in the template)
+    <LinkDialog 
+      bind:show={showLinkDialog} 
+      currentData={currentLinkData} 
+      onApply={(data) => {
+        if (data.url && editor) {
+          editor.chain().focus().setLink({ 
+            href: data.url, 
+            title: data.title, 
+            target: data.target || undefined, 
+            rel: data.rel || undefined 
+          }).run();
+        } else if (editor) {
+          editor.chain().focus().unsetLink().run();
+        }
+      }} 
+    />
+  </div>
   <div use:portal>
     <AnnotationTooltip 
       bind:visible={tooltipVisible} 
@@ -621,6 +656,10 @@
   
   :global(.tiptap-content) { @apply outline-none text-white/90 leading-relaxed; }
   :global(.tiptap-content p) { @apply my-4; }
+  :global(.tiptap-content.prose) {
+    --tw-prose-links: #00f3ff;
+    --tw-prose-invert-links: #00f3ff;
+  }
   :global(.tiptap-content h1) { @apply text-3xl font-black mb-6 text-white; }
   :global(.tiptap-content h2) { @apply text-2xl font-bold mb-4 mt-8 text-white/80; }
   :global(.tiptap-content h3) { @apply text-xl font-bold mb-3 mt-6 text-white/70; }
