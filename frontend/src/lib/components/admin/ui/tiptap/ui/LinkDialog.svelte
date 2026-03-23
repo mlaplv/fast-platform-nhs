@@ -149,6 +149,8 @@
 </MissionControlShell>
 
 <style>
+  @reference "tailwindcss";
+
   .box-shadow-cyan {
     box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
   }

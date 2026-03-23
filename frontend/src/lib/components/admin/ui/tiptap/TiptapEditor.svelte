@@ -10,6 +10,7 @@
   import LinkDialog from './ui/LinkDialog.svelte';
   import StatusBar from './ui/StatusBar.svelte';
   import AnnotationTooltip from './ui/AnnotationTooltip.svelte';
+  import LinkBubbleMenu from './ui/LinkBubbleMenu.svelte';
   import ImageBubbleMenu from './ui/ImageBubbleMenu.svelte';
   import type { MediaAsset } from '$lib/state/types';
   import { resolveMediaUrl } from '$lib/state/utils';
@@ -68,7 +69,7 @@
 
   let showMediaVault = $state(false);
   let showLinkDialog = $state(false);
-  let currentLinkUrl = $state('');
+  let currentLinkData = $state({ url: '', title: '', target: null as string | null, rel: null as string | null });
   
   // Guard against double-click bleed-through from dialog
   let lastDialogCloseAt = 0;
@@ -97,6 +98,9 @@
   let imageMenuVisible = $state(false);
   let imageMenuX = $state(0);
   let imageMenuY = $state(0);
+  let linkMenuVisible = $state(false);
+  let linkMenuX = $state(0);
+  let linkMenuY = $state(0);
   let blockClicks = $state(false);
   let lastInternalActionAt = 0;
   let isSyncLocked = false;
@@ -476,6 +480,29 @@
     } else if (!target.closest('.image-bubble-menu')) {
       imageMenuVisible = false;
     }
+
+    // Handle link clicks/selection
+    const link = target.closest('.tiptap-content a') as HTMLAnchorElement | null;
+    if (link && editor) {
+      editor.commands.focus();
+      const pos = editor.view.posAtDOM(link, 0);
+      if (pos >= 0) {
+        const rect = link.getBoundingClientRect();
+        linkMenuX = rect.left + rect.width / 2;
+        linkMenuY = rect.top - 10;
+        linkMenuVisible = true;
+        // Also update data for potential edit
+        const attrs = editor.getAttributes('link');
+        currentLinkData = { 
+          url: attrs.href || '', 
+          title: attrs.title || '', 
+          target: attrs.target || null, 
+          rel: attrs.rel || null 
+        };
+      }
+    } else if (!target.closest('.link-bubble-menu')) {
+      linkMenuVisible = false;
+    }
   }
 
   function handleDoubleClick(e: MouseEvent) {
@@ -502,7 +529,16 @@
       {toolbarActions}
       {annotations}
       onOpenImage={() => showMediaVault = true}
-      onOpenLink={() => { currentLinkUrl = editor?.getAttributes('link').href || ''; showLinkDialog = true; }}
+      onOpenLink={() => { 
+        const attrs = editor?.getAttributes('link');
+        currentLinkData = { 
+          url: attrs?.href || '', 
+          title: attrs?.title || '', 
+          target: attrs?.target || null, 
+          rel: attrs?.rel || null 
+        }; 
+        showLinkDialog = true; 
+      }}
       onClearHighlights={() => editor?.commands.clearAllAnnotations()}
       onClean={handleClean}
       fullScreen={internalFullScreen}
@@ -574,21 +610,6 @@
   </div>
 
   <div use:portal>
-  let currentLinkData = $state({ url: '', title: '', target: null as string | null, rel: null as string | null });
-
-  // ... (inside the toolbar open link handler)
-  // onOpenLink={() => { 
-  //   const attrs = editor?.getAttributes('link');
-  //   currentLinkData = { 
-  //     url: attrs?.href || '', 
-  //     title: attrs?.title || '', 
-  //     target: attrs?.target || null, 
-  //     rel: attrs?.rel || null 
-  //   }; 
-  //   showLinkDialog = true; 
-  // }}
-
-// ... (in the template)
     <LinkDialog 
       bind:show={showLinkDialog} 
       currentData={currentLinkData} 
