@@ -63,11 +63,14 @@
   }), editedDraft = $state(""), editedOutline = $state("");
   let showGateModal = $state(false), gateBlockers = $state<any[]>([]), focusTabFromModal = $state<string | null>(null);
 
-  $effect(() => { if (status !== "PROCESSING") untrack(() => { campaign.isLoading = false; campaign.resetStepProcessing(); }); });
+  let isOverlaySticky = $state(false);
+  let stickyTimer: ReturnType<typeof setTimeout> | null = null;
+
+  $effect(() => { if (status !== "PROCESSING") untrack(() => { campaign.isLoading = false; campaign.isStepProcessing = false; }); });
   // CNS V82.5: Auto-jump to new step when it arrives from pulse, but allow looking back
   $effect(() => { 
     if (step > maxStepSeen) {
-      untrack(() => { maxStepSeen = step; viewingStep = step; isEditing = false; campaign.resetStepProcessing(); });
+      untrack(() => { maxStepSeen = step; viewingStep = step; isEditing = false; campaign.isStepProcessing = false; });
     }
   });
 
@@ -86,7 +89,18 @@
     return keywords.some(kw => progress_msg.toLowerCase().includes(kw.toLowerCase()));
   });
 
-  let shouldShowOverlay = $derived(isProcessing && (campaign.isStepProcessing || !isAnalysisMessage));
+  // CNS V85.1: Sticky Heuristic to prevent "chập điện" (flickering)
+  // If we are in a main step (not analysis), keep the overlay ON for at least 2.5s 
+  // to bridge gap between pulses.
+  $effect(() => {
+    if (isProcessing && !isAnalysisMessage && progress_msg) {
+        isOverlaySticky = true;
+        if (stickyTimer) clearTimeout(stickyTimer);
+        stickyTimer = setTimeout(() => { isOverlaySticky = false; stickyTimer = null; }, 2500);
+    }
+  });
+
+  let shouldShowOverlay = $derived(isProcessing && (campaign.isStepProcessing || isOverlaySticky || !isAnalysisMessage));
 
   $effect(() => { if (viewingStep >= 6 && !finalHtml && draft_content) untrack(() => { finalHtml = processContentImages(draft_content, xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets); }); });
   $effect(() => {
