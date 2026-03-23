@@ -58,186 +58,109 @@
   }
 </script>
 
-<div class="sticky top-0 z-[100] w-full flex flex-nowrap overflow-x-auto hide-scrollbar items-center gap-2 md:gap-3 px-3 py-2 bg-[#09090b]/80 backdrop-blur-[40px] border-b border-white/10 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] transition-all duration-500">
+<div class="sticky top-0 z-[100] w-full flex flex-nowrap overflow-x-auto hide-scrollbar items-center gap-2 md:gap-3 px-4 py-1 bg-white/[0.03] backdrop-blur-[80px] border-b border-white/5 shadow-xl transition-all duration-700">
   
-  <!-- Island: History -->
+  <!-- Island: Navigation & History -->
+  <div class="tb-platter group/history">
+    <button onclick={() => editor?.chain().focus().undo().run()} class="tb-btn" title="Undo"><UndoIcon size={13} /></button>
+    <button onclick={() => editor?.chain().focus().redo().run()} class="tb-btn" title="Redo"><RedoIcon size={13} /></button>
+    {#if onToggleFullScreen}
+      <button onclick={onToggleFullScreen} class="tb-btn {fullScreen ? 'text-cyan-400' : ''}" title="Toàn màn hình">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 3 6 6"/><path d="m9 21-6-6"/><path d="M21 3v6h-6"/><path d="M3 21v-6h6"/></svg>
+      </button>
+    {/if}
+  </div>
+
+  <!-- Island: Typography (Neural Dropdowns) -->
+  <div class="tb-platter hidden lg:flex px-2">
+    <select class="tb-select font-black uppercase tracking-widest text-[8px]" onchange={handleParagraphChange}>
+      <option value="p">Paragraph</option>
+      <option value="h1">Heading 1</option>
+      <option value="h2">Heading 2</option>
+      <option value="h3">Heading 3</option>
+    </select>
+    <div class="w-px h-3 bg-white/5 mx-1"></div>
+    <select class="tb-select font-mono text-[8px] uppercase tracking-wider" onchange={handleFontChange}>
+      {#each FONTS as font}
+        <option value={font}>{font}</option>
+      {/each}
+    </select>
+  </div>
+
+  <!-- Island: Formatting (Neural Active States) -->
   <div class="tb-platter">
-    <button onclick={() => editor?.chain().focus().undo().run()} class="tb-btn" title="Undo"><UndoIcon size={14} /></button>
-    <button onclick={() => editor?.chain().focus().redo().run()} class="tb-btn" title="Redo"><RedoIcon size={14} /></button>
+    <button onclick={() => editor?.chain().focus().toggleBold().run()} class="tb-btn {editor?.isActive('bold') ? 'active-neural' : ''}" title="Bold"><BoldIcon size={13} /></button>
+    <button onclick={() => editor?.chain().focus().toggleItalic().run()} class="tb-btn {editor?.isActive('italic') ? 'active-neural' : ''}" title="Italic"><ItalicIcon size={13} /></button>
+    <button onclick={() => editor?.chain().focus().toggleUnderline().run()} class="tb-btn {editor?.isActive('underline') ? 'active-neural' : ''}" title="Underline"><UnderlineIcon size={13} /></button>
+    <button onclick={() => editor?.chain().focus().toggleStrike().run()} class="tb-btn {editor?.isActive('strike') ? 'active-neural' : ''}" title="Strike"><StrikethroughIcon size={13} /></button>
   </div>
 
-  <!-- Island: Typography -->
-  <div class="tb-platter hidden sm:flex">
-    <div class="relative group">
-      <select class="tb-select font-medium" onchange={handleParagraphChange}>
-        <option value="p">Paragraph</option>
-        <option value="h1">Heading 1</option>
-        <option value="h2">Heading 2</option>
-        <option value="h3">Heading 3</option>
-      </select>
-    </div>
-    <div class="w-px h-4 bg-white/10 mx-0.5"></div>
-    <div class="relative group">
-      <select class="tb-select" onchange={handleFontChange}>
-        {#each FONTS as font}
-          <option value={font}>{font.split(' ')[0]}</option>
-        {/each}
-      </select>
-    </div>
-  </div>
-
-  <!-- Island: Formatting (Liquid Active States) -->
-  <div class="tb-platter">
-    <button onclick={() => editor?.chain().focus().toggleBold().run()} class="tb-btn {editor?.isActive('bold') ? 'active' : ''}" title="Bold"><BoldIcon size={14} /></button>
-    <button onclick={() => editor?.chain().focus().toggleItalic().run()} class="tb-btn {editor?.isActive('italic') ? 'active' : ''}" title="Italic"><ItalicIcon size={14} /></button>
-    <button onclick={() => editor?.chain().focus().toggleUnderline().run()} class="tb-btn {editor?.isActive('underline') ? 'active' : ''}" title="Underline"><UnderlineIcon size={14} /></button>
-    <button onclick={() => editor?.chain().focus().toggleStrike().run()} class="tb-btn {editor?.isActive('strike') ? 'active' : ''}" title="Strike"><StrikethroughIcon size={14} /></button>
-  </div>
-
-  <!-- Island: Alignment -->
-  <div class="tb-platter">
-    <button onclick={() => editor?.chain().focus().setTextAlign('left').run()} class="tb-btn {editor?.isActive({ textAlign: 'left' }) ? 'active' : ''}" title="Align Left"><AlignLeftIcon size={14} /></button>
-    <button onclick={() => editor?.chain().focus().setTextAlign('center').run()} class="tb-btn {editor?.isActive({ textAlign: 'center' }) ? 'active' : ''}" title="Align Center"><AlignCenterIcon size={14} /></button>
-    <button onclick={() => editor?.chain().focus().setTextAlign('right').run()} class="tb-btn {editor?.isActive({ textAlign: 'right' }) ? 'active' : ''}" title="Align Right"><AlignRightIcon size={14} /></button>
-    <button onclick={() => editor?.chain().focus().setTextAlign('justify').run()} class="tb-btn {editor?.isActive({ textAlign: 'justify' }) ? 'active hidden md:flex' : 'hidden md:flex'}" title="Justify"><AlignJustifyIcon size={14} /></button>
-  </div>
-
-  <!-- Island: Layout Elements -->
-  <div class="tb-platter hidden md:flex">
-    <button onclick={() => editor?.chain().focus().toggleBulletList().run()} class="tb-btn {editor?.isActive('bulletList') ? 'active' : ''}" title="Bullet List"><ListIcon size={14} /></button>
-    <button onclick={() => editor?.chain().focus().toggleOrderedList().run()} class="tb-btn {editor?.isActive('orderedList') ? 'active' : ''}" title="Ordered List"><ListOrderedIcon size={14} /></button>
-    <div class="w-px h-4 bg-white/10 mx-0.5"></div>
-    <button onclick={() => editor?.chain().focus().toggleBlockquote().run()} class="tb-btn {editor?.isActive('blockquote') ? 'active' : ''}" title="Quote"><BlockquoteIcon size={14} /></button>
-    <button onclick={() => editor?.chain().focus().toggleCodeBlock().run()} class="tb-btn {editor?.isActive('codeBlock') ? 'active' : ''}" title="Code"><CodeIcon size={14} /></button>
-    <button onclick={() => editor?.chain().focus().setHorizontalRule().run()} class="tb-btn" title="Divider"><MinusIcon size={14} /></button>
-  </div>
-
-  <!-- Island: Media Insert -->
-  <div class="tb-platter">
-    <button onclick={onOpenImage} class="tb-btn hover:text-blue-400 hover:bg-blue-500/10" title="Insert Image"><ImageIcon size={14} /></button>
-    <button onclick={onOpenLink} class="tb-btn hover:text-blue-400 hover:bg-blue-500/10" title="Insert Link"><Link2Icon size={14} /></button>
-  </div>
-
-  <!-- Island: Color Rings -->
-  <div class="tb-platter bg-transparent border-none shadow-none ring-0 gap-1.5 hidden xl:flex">
-    {#each COLORS as color}
-      <button
-        onclick={() => editor?.chain().focus().setColor(color).run()}
-        class="w-4 h-4 rounded-full ring-1 ring-white/20 hover:scale-125 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] shadow-[0_2px_10px_rgba(0,0,0,0.5)] cursor-pointer"
-        style="background: {color}; box-shadow: inset 0 2px 4px rgba(255,255,255,0.3), 0 2px 10px rgba(0,0,0,0.5);"
-        title="Color: {color}"
-      ></button>
-    {/each}
-    <button
-      onclick={() => editor?.chain().focus().unsetColor().run()}
-      class="w-4 h-4 rounded-full bg-white/5 ring-1 ring-white/20 hover:scale-125 transition-all duration-300 flex items-center justify-center text-[8px] text-white/50 backdrop-blur-md"
-      title="Reset color"
-    >↺</button>
+  <!-- Island: Media & Links (Hyper-vibrant) -->
+  <div class="tb-platter border-cyan-500/10 bg-cyan-500/[0.02]">
+    <button onclick={onOpenImage} class="tb-btn text-cyan-400/60 hover:text-cyan-400" title="Insert Media"><ImageIcon size={13} /></button>
+    <button onclick={onOpenLink} class="tb-btn text-cyan-400/60 hover:text-cyan-400" title="Link System"><Link2Icon size={13} /></button>
   </div>
 
   <!-- Flexible Space -->
   <div class="flex-1"></div>
 
-  <!-- Island: Tools & Actions -->
-  {#if toolbarActions.length > 0 || onClean || (annotations && annotations.length > 0)}
-    <div class="tb-platter ml-auto">
-      {#if annotations && annotations.length > 0}
+  <!-- Island: Intelligence & Actions -->
+  <div class="flex items-center gap-2">
+    {#if onClean}
+      <button
+        onclick={onClean}
+        class="tb-neural-action bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500 hover:text-white"
+        title="Neural Clean: Optimize content flow"
+      >
+        <SparklesIcon size={11} class="animate-pulse" />
+        <span class="hidden xl:inline text-[9px]">Neural Clean</span>
+      </button>
+    {/if}
+
+    {#if toolbarActions.length > 0}
+      {#each toolbarActions as action, i}
         <button
-          onclick={onClearHighlights}
-          class="tb-pill bg-white/5 hover:bg-white/10 text-white/50 hover:text-white"
-          title="Xóa tất cả highlights"
+          onclick={action.disabled ? undefined : action.onclick}
+          disabled={action.loading || action.disabled}
+          class="tb-neural-action {action.loading ? 'loading' : action.disabled ? 'disabled' : 'bg-cyan-500 text-black font-black'}"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-          Highlight
+          {#if action.loading}
+            <div class="w-2.5 h-2.5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+          {/if}
+          <span class="text-[9px]">{action.label}</span>
         </button>
-      {/if}
-
-      {#if onClean}
-        <button
-          onclick={onClean}
-          class="tb-pill bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20"
-          title="Làm sạch: xóa trùng lặp, markdown thừa, rác"
-        >
-          <SparklesIcon size={12} />
-          <span class="hidden sm:inline">Clean</span>
-        </button>
-      {/if}
-
-      {#if toolbarActions.length > 0}
-        <div class="w-px h-4 bg-white/10 mx-1"></div>
-        {#each toolbarActions as action, i}
-          <div class="relative group/action{i}">
-            <button
-              onclick={action.disabled ? undefined : action.onclick}
-              disabled={action.loading || action.disabled}
-              class="tb-pill {action.loading ? 'bg-white/5 text-white/30 cursor-wait' : action.disabled ? 'bg-white/[0.03] text-white/20' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'}"
-              title={!action.tooltipDetails ? (action.lockedMsg || action.label) : undefined}
-            >
-              {#if action.loading}
-                <span class="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-              {:else if action.disabled}
-                <span class="text-[10px] opacity-60">🔒</span>
-              {/if}
-              {action.label}
-            </button>
-
-            {#if action.tooltipDetails && !action.disabled}
-              <div class="absolute top-[calc(100%+12px)] right-0 w-64 bg-[#09090b]/90 backdrop-blur-3xl border border-white/10 rounded-[20px] p-4 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.8)] z-[200] opacity-0 translate-y-3 pointer-events-none transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/action{i}:opacity-100 group-hover/action{i}:translate-y-0 hidden md:block text-left">
-                <div class="flex items-center gap-2 mb-2 text-left">
-                  {#if action.tooltipDetails.icon}
-                    {@const Icon = action.tooltipDetails.icon}
-                    <Icon size={16} class={action.tooltipDetails.colorClass || 'text-blue-400'} />
-                  {/if}
-                  <span class="text-xs font-black uppercase tracking-widest {action.tooltipDetails.colorClass || 'text-blue-400'}">{action.tooltipDetails.title}</span>
-                </div>
-                <p class="text-[11px] leading-relaxed text-white/60 normal-case tracking-normal text-left">{action.tooltipDetails.description}</p>
-              </div>
-            {/if}
-          </div>
-        {/each}
-      {/if}
-    </div>
-  {/if}
+      {/each}
+    {/if}
+  </div>
 
 </div>
 
 <style>
   @reference "tailwindcss";
 
-  /* The Platter (Island Container) */
   .tb-platter {
-    @apply flex items-center gap-0.5 bg-white/[0.04] p-1 rounded-[16px] border border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_2px_10px_rgba(0,0,0,0.2)];
+    @apply flex items-center gap-1 bg-white/[0.03] p-1 rounded-xl border border-white/10 shadow-xl backdrop-blur-md transition-all duration-300;
   }
 
-  /* Standard Interaction Button */
   .tb-btn {
-    @apply flex items-center justify-center w-8 h-8 rounded-[12px] text-white/50 hover:text-white hover:bg-white/10 transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-75 cursor-pointer;
+    @apply flex items-center justify-center w-8 h-8 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-all duration-500 active:scale-90 cursor-pointer;
   }
 
-  /* Liquid Active State */
-  .tb-btn.active {
-    @apply bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.4)] scale-105;
+  .active-neural {
+    @apply bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.4)] scale-105 border border-cyan-400/20;
   }
 
-  /* Typography Glass Selects */
   .tb-select {
-    @apply appearance-none bg-transparent text-white/70 text-[11px] px-3 py-1.5 h-8 outline-none cursor-pointer rounded-[12px] hover:bg-white/10 hover:text-white transition-all duration-300;
-  }
-  .tb-select option {
-    @apply bg-zinc-900 text-white;
+    @apply appearance-none bg-transparent text-white/40 px-2 py-1 h-8 outline-none cursor-pointer rounded-lg hover:bg-white/5 hover:text-white transition-all duration-500;
   }
 
-  /* Modern Pill Action Buttons */
-  .tb-pill {
-    @apply flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] text-[10px] font-black uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.85] border border-transparent;
+  .tb-neural-action {
+    @apply flex items-center gap-1.5 px-4 py-2 rounded-lg text-[9px] uppercase tracking-[0.15em] transition-all duration-500 active:scale-95 border border-white/10 shadow-2xl;
   }
 
-  /* Cross-browser Scrollbar Hiding */
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .hide-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+  .tb-neural-action.loading { @apply bg-white/5 text-white/20 cursor-wait; }
+  .tb-neural-action.disabled { @apply opacity-30 grayscale; }
+
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>

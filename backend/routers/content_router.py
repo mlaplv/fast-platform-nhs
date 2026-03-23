@@ -119,3 +119,25 @@ class ContentController(Controller):
             logger.error(f"[ContentController] Viral Clean Error: {e}")
             return GenericResponse(status="error", message=str(e))
 
+    @post("/analyze/copyright")
+    async def analyze_copyright_adhoc(self, request: Request) -> GenericResponse:
+        data = await request.json()
+        return await content_factory.analyst.analyze_copyright(None, None, force=data.get("force", False), raw_content=data.get("content"))
+
+    @post("/analyze/seo")
+    async def analyze_seo_adhoc(self, request: Request) -> GenericResponse:
+        data = await request.json()
+        return await content_factory.analyst.analyze_seo(None, None, force=data.get("force", False), raw_content=data.get("content"), raw_topic=data.get("topic"))
+
+    @post("/analyze/ai-inspect")
+    async def analyze_ai_inspect_adhoc(self, request: Request) -> GenericResponse:
+        data = await request.json()
+        return await content_factory.analyst.analyze_ai_inspect(None, None, force=data.get("force", False), raw_content=data.get("content"))
+
+    @post("/analyze/bulk-fix")
+    async def analyze_bulk_fix_adhoc(self, request: Request) -> GenericResponse:
+        data = await request.json()
+        # Extract only the fields BulkFixRequest accepts (strict mode: category + annotations)
+        fix_payload = {"category": data.get("category", ""), "annotations": data.get("annotations", [])}
+        return await content_factory.analyst.bulk_fix(None, fix_payload, None, raw_content=data.get("content"))
+

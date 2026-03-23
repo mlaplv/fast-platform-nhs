@@ -38,6 +38,8 @@ class Article(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     content: Mapped[Optional[str]] = mapped_column(Text)
     seo_title: Mapped[Optional[str]] = mapped_column(String)
     seo_description: Mapped[Optional[str]] = mapped_column(String)
+    seo_keywords: Mapped[Optional[str]] = mapped_column(String)
+    seo_og_image: Mapped[Optional[str]] = mapped_column(String)
     status: Mapped[str] = mapped_column(String, default="DRAFT")
     category: Mapped[str] = mapped_column(String, default="Tin tức")
     views: Mapped[int] = mapped_column(Integer, default=0)

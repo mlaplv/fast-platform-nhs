@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validator
 from typing import Optional, List
 from datetime import datetime
+from backend.services.xohi.creative_studio.models.schemas import CategoryEnum
 
 
 class CreateArticleRequest(BaseModel):
@@ -11,8 +12,10 @@ class CreateArticleRequest(BaseModel):
     content: Optional[str] = Field(None, max_length=200000)
     seo_title: Optional[str] = Field(None, max_length=500)
     seo_description: Optional[str] = Field(None, max_length=1000)
+    seo_keywords: Optional[str] = Field(None, max_length=1000)
+    seo_og_image: Optional[str] = Field(None, max_length=500)
     status: str = Field("DRAFT", pattern=r"^(DRAFT|PUBLISHED|ARCHIVED)$")
-    category: str = Field("Tin tức", max_length=100)
+    category: CategoryEnum = Field(CategoryEnum.TIN_TUC)
     featured_image: Optional[str] = Field(None, alias="featured_image")
     authorId: Optional[str] = None
 
@@ -25,8 +28,10 @@ class UpdateArticleRequest(BaseModel):
     content: Optional[str] = Field(None, max_length=200000)
     seo_title: Optional[str] = Field(None, max_length=500)
     seo_description: Optional[str] = Field(None, max_length=1000)
+    seo_keywords: Optional[str] = Field(None, max_length=1000)
+    seo_og_image: Optional[str] = Field(None, max_length=500)
     status: Optional[str] = Field(None, pattern=r"^(DRAFT|PUBLISHED|ARCHIVED)$")
-    category: Optional[str] = Field(None, max_length=100)
+    category: Optional[CategoryEnum] = Field(None)
     featured_image: Optional[str] = Field(None, alias="featured_image")
 
 
@@ -40,6 +45,8 @@ class ArticleResponse(BaseModel):
     content: Optional[str] = None
     seoTitle: Optional[str] = Field(None, alias="seo_title")
     seoDescription: Optional[str] = Field(None, alias="seo_description")
+    seoKeywords: Optional[str] = Field(None, alias="seo_keywords")
+    seoOgImage: Optional[str] = Field(None, alias="seo_og_image")
     status: str
     category: str
     featuredImage: Optional[str] = Field(None, alias="featured_image")

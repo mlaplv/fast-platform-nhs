@@ -47,11 +47,7 @@
     campaignId?: string;
   } = $props();
 
-  let internalFullScreen = $state<boolean | undefined>(undefined);
-  $effect(() => {
-    if (internalFullScreen === undefined) internalFullScreen = fullScreen;
-    else internalFullScreen = fullScreen;
-  });
+  let internalFullScreen = $state<boolean>(fullScreen);
 
   const toggleFullScreen = () => {
     if (onToggleFullScreen) {
@@ -240,13 +236,13 @@
     return (hash >>> 0).toString(36);
   }
   
-  const containerClass = $derived(`tiptap-shell flex flex-col w-full h-full ${
+  const containerClass = $derived(`tiptap-shell flex flex-col w-full ${
     internalFullScreen
       ? 'fixed inset-0 z-[99999] bg-[#0a0d14]'
       : (editable
-          ? 'bg-transparent border ' + (isFocused ? 'border-blue-500/40' : 'border-white/10') + ' shadow-2xl'
-          : 'bg-transparent border-none overflow-visible')
-  } transition-all duration-300 rounded-none`);
+          ? 'bg-transparent'
+          : 'bg-transparent overflow-visible')
+  }`);
 
   function updateMetrics() {
     if (!editor) return;
@@ -515,7 +511,7 @@
   {/if}
 
   <div
-    class="flex-1 overflow-y-auto document-scroll {internalFullScreen ? 'bg-[#0a0d14]' : 'bg-transparent'}"
+    class="w-full overflow-y-auto document-scroll {internalFullScreen ? 'bg-[#0a0d14] flex-1' : 'bg-transparent max-h-[650px]'}"
     onclick={handleImageClick}
     ondblclick={handleDoubleClick}
     onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleImageClick(e); }}
@@ -600,12 +596,29 @@
       onReplace={() => {
         if (!blockClicks) showMediaVault = true;
       }}
+      onClose={() => imageMenuVisible = false}
     />
   </div>
   {/if}
 
 <style>
   @reference "tailwindcss";
+  
+  .document-scroll::-webkit-scrollbar {
+    width: 4px;
+  }
+  .document-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .document-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    transition: background 0.3s;
+  }
+  .document-scroll:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+  }
+  
   :global(.tiptap-content) { @apply outline-none text-white/90 leading-relaxed; }
   :global(.tiptap-content p) { @apply my-4; }
   :global(.tiptap-content h1) { @apply text-3xl font-black mb-6 text-white; }

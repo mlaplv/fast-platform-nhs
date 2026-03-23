@@ -74,6 +74,8 @@ export interface Article {
   content: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
+  seoKeywords: string | null;
+  seoOgImage: string | null;
   status: string;
   category: string;
   featuredImage: string | null;

@@ -2,7 +2,7 @@
 
 > **CHỈ THỊ TỐI CAO:** Dự án Agentic AI 2026. Stack: **SvelteKit 5 (Runes) + Litestar (Python 3.14) + SQLAlchemy 2.0 + PydanticAI + LiteLLM**. Ép kiểu tĩnh 100% (CẤM 'any'). Hoạt động trên domain `*.smartshop.test`.
 >
-> > ** CẤM LÀM TIẾP KHI SỬA MÀ HỆ THỐNG BỊ LỖI, LOG LỖI CÒN THÌ PHẢI TIẾN HÀNH CHO HẾT, BÁO CÁO & XIN PHÉP LÀM TIẾP.**
+> > ** CẤM GIẢI THÍCH, LÀM XONG BÁO KẾT QUẢ.**
 
 ---
 

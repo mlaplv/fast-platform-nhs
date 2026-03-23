@@ -11,7 +11,11 @@ import type {
 } from "$lib/state/types";
 
 export function createAnalysisController(config: {
-    campaign_id: string;
+    campaign_id?: string | null;
+    /** Required in adhoc mode: returns the full current HTML for analysis */
+    getContent?: () => string;
+    /** Optional topic/keyword for SEO analysis in adhoc mode */
+    topic?: string;
     isEditing: boolean;
     getEditedDraft: () => string;
     getDraftContent: () => string;
@@ -20,6 +24,8 @@ export function createAnalysisController(config: {
     analysis_cache: AnalysisCache;
     analysis_metrics: CampaignMetrics;
 }) {
+    /** Resolve whether we are operating in Campaign or Adhoc (stateless) mode */
+    const isAdhoc = !config.campaign_id;
     let copyrightResult = $state<CopyrightResult | null>(null);
     let isCopyrightLoading = $state(false);
     let seoResult = $state<SEOResult | null>(null);
@@ -83,7 +89,8 @@ export function createAnalysisController(config: {
     }
 
     async function runCopyrightCheck(force: boolean = false, skipSave: boolean = false) {
-        if (!config.campaign_id || isCopyrightLoading) return;
+        if (isCopyrightLoading) return;
+        if (!isAdhoc && !config.campaign_id) return;
         isCopyrightLoading = true;
         isBulkFixing = true; // Trigger NeuralProgressTooltip
         bulkFixStatus = "Đang quét...";
@@ -91,7 +98,11 @@ export function createAnalysisController(config: {
         activeTab = 'copyright';
         try {
             if (!skipSave) await saveBeforeAnalysis();
-            const res = await apiClient.post<{ data: { uniqueness_score: number, risk_level: string, annotations: any[], logs?: string[] } }>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/copyright?force=${force}`);
+            const url = isAdhoc
+                ? `/api/v1/content/analyze/copyright?force=${force}`
+                : `/api/v1/content/campaigns/${config.campaign_id}/analyze/copyright?force=${force}`;
+            const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)() } : undefined;
+            const res = await apiClient.post<{ data: { uniqueness_score: number, risk_level: string, annotations: AnalysisAnnotation[], logs?: string[] } }>(url, body);
             
             if (res?.data) {
                 // Phase 3.7: Premium Log Replay for Analysis
@@ -118,7 +129,8 @@ export function createAnalysisController(config: {
     }
 
     async function runSeoAnalysis(force: boolean = false, skipSave: boolean = false) {
-        if (!config.campaign_id || isSeoLoading || seoLocked) return;
+        if (isSeoLoading || seoLocked) return;
+        if (!isAdhoc && !config.campaign_id) return;
         isSeoLoading = true;
         isBulkFixing = true; // CNS V4.0: Trigger NeuralProgressTooltip
         bulkFixStatus = "Đang quét SEO...";
@@ -126,7 +138,11 @@ export function createAnalysisController(config: {
         activeTab = 'seo';
         try {
             if (!skipSave) await saveBeforeAnalysis();
-            const res = await apiClient.post<{ data: { geo_score: number, summary: string, ai_annotations: any[], logs?: string[] } }>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/seo?force=${force}`);
+            const url = isAdhoc
+                ? `/api/v1/content/analyze/seo?force=${force}`
+                : `/api/v1/content/campaigns/${config.campaign_id}/analyze/seo?force=${force}`;
+            const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)(), topic: config.topic ?? '' } : undefined;
+            const res = await apiClient.post<{ data: { geo_score: number, summary: string, ai_annotations: AnalysisAnnotation[], logs?: string[] } }>(url, body);
             if (res?.data) {
                 // Phase 4.0: Premium Log Replay
                 if (res.data.logs && res.data.logs.length > 0) {
@@ -150,7 +166,8 @@ export function createAnalysisController(config: {
     }
 
     async function runAiAnalysis(force: boolean = false, skipSave: boolean = false) {
-        if (!config.campaign_id || isAiLoading || aiLocked) return;
+        if (isAiLoading || aiLocked) return;
+        if (!isAdhoc && !config.campaign_id) return;
         isAiLoading = true;
         isBulkFixing = true; // CNS V4.0: Trigger NeuralProgressTooltip
         bulkFixStatus = "Đang quét AI MOD...";
@@ -158,7 +175,11 @@ export function createAnalysisController(config: {
         activeTab = 'ai';
         try {
             if (!skipSave) await saveBeforeAnalysis();
-            const res = await apiClient.post<{ data: { geo_score: number, summary: string, ai_annotations: any[], logs?: string[] } }>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/ai-inspect?force=${force}`);
+            const url = isAdhoc
+                ? `/api/v1/content/analyze/ai-inspect?force=${force}`
+                : `/api/v1/content/campaigns/${config.campaign_id}/analyze/ai-inspect?force=${force}`;
+            const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)() } : undefined;
+            const res = await apiClient.post<{ data: { geo_score: number, summary: string, ai_annotations: AnalysisAnnotation[], logs?: string[] } }>(url, body);
             if (res?.data) {
                 // Phase 4.0: Premium Log Replay
                 if (res.data.logs && res.data.logs.length > 0) {
@@ -218,7 +239,8 @@ export function createAnalysisController(config: {
     }
 
     async function runBulkFix() {
-        if (!config.campaign_id || isBulkFixing || !activeTab) return;
+        if (isBulkFixing || !activeTab) return;
+        if (!isAdhoc && !config.campaign_id) return;
         isBulkFixing = true;
         bulkFixLogs = ["Đang khởi tạo Neural Engine...", "Đang nạp ngữ chuẩn Viral Edge 2026...", "Đang phân tích cấu trúc bài viết..."];
         try {
@@ -252,10 +274,13 @@ export function createAnalysisController(config: {
             }
 
             bulkFixLogs = [...bulkFixLogs, ...initialLogs];
-            const res = await apiClient.post<{ status: string; data: { new_content: string, logs?: string[] } }>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/bulk-fix`, {
-                category: category,
-                annotations: annotationsToSend
-            });
+            const bulkUrl = isAdhoc
+                ? `/api/v1/content/analyze/bulk-fix`
+                : `/api/v1/content/campaigns/${config.campaign_id}/analyze/bulk-fix`;
+            const bulkBody = isAdhoc
+                ? { content: (config.getContent ?? config.getEditedDraft)(), topic: config.topic ?? '', category, annotations: annotationsToSend }
+                : { category, annotations: annotationsToSend };
+            const res = await apiClient.post<{ status: string; data: { new_content: string, logs?: string[] } }>(bulkUrl, bulkBody);
 
             if (res?.status === 'success' && res.data?.new_content) {
                 // Phase 82.80: Premium Log Replay (iPhone 18/Claude Style)
@@ -269,8 +294,10 @@ export function createAnalysisController(config: {
                 bulkFixStatus = "Đang lưu...";
                 bulkFixLogs = [...bulkFixLogs, "✅ Phẫu thuật hoàn tất!", "Đang đồng bộ bản thảo (Asset Fidelity)...", "Đang ghi đè dữ liệu AI chuẩn xác..."];
                 const newHtml = res.data.new_content;
-                // Phase B: Persist AI-fixed content (both DB and editor state)
-                await apiClient.patch(`/api/v1/content/campaigns/${config.campaign_id}`, { draft_content: newHtml });
+                // In campaign mode, also persist fixed content to DB
+                if (!isAdhoc && config.campaign_id) {
+                    await apiClient.patch(`/api/v1/content/campaigns/${config.campaign_id}`, { draft_content: newHtml });
+                }
                 if (config.isEditing) config.setEditedDraft(newHtml);
                 else config.setDraftContent(newHtml);
 
@@ -322,7 +349,8 @@ export function createAnalysisController(config: {
     }
 
     async function runAiBooster() {
-        if (!config.campaign_id || isBoosting || !seoResult) return;
+        // AI Booster requires a persistent campaign context (enrich endpoint needs campaign record in DB)
+        if (isAdhoc || !config.campaign_id || isBoosting || !seoResult) return;
         isBoosting = true;
         isBulkFixing = true; // CNS V3.6: Trigger NeuralProgressTooltip
         bulkFixStatus = "Đang Booster...";
@@ -357,7 +385,7 @@ export function createAnalysisController(config: {
             }
         } catch (e) {
             console.error('AI Booster failed:', e);
-            bulkFixLogs = [...bulkFixLogs, "❌ Lỗi: " + (e?.message || "Không thể kết nối AI Booster.")];
+            bulkFixLogs = [...bulkFixLogs, "❌ Lỗi: " + (e instanceof Error ? e.message : "Không thể kết nối AI Booster.")];
             setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; bulkFixLogs = []; }, 4000);
         } finally {
             isBoosting = false;

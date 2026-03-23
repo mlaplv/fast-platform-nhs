@@ -70,6 +70,7 @@ class ArticleService:
             Article.id, Article.title, Article.slug, Article.excerpt,
             Article.status, Article.category, Article.views,
             Article.created_at, Article.author_id, Article.featured_image,
+            Article.seo_keywords, Article.seo_og_image,
             UserModel.name.label("author_name")
         ).outerjoin(UserModel, Article.author_id == UserModel.id).where(
             and_(*conditions)
@@ -85,7 +86,9 @@ class ArticleService:
         stmt = select(
             Article.id, Article.title, Article.slug, Article.excerpt, Article.content,
             Article.status, Article.category, Article.views,
-            Article.seo_title, Article.seo_description, Article.featured_image,
+            Article.seo_title, Article.seo_description, 
+            Article.seo_keywords, Article.seo_og_image,
+            Article.featured_image,
             Article.created_at, Article.author_id,
             UserModel.name.label("author_name")
         ).outerjoin(UserModel, Article.author_id == UserModel.id).where(
@@ -122,6 +125,8 @@ class ArticleService:
             content=data.content,
             seo_title=data.seo_title,
             seo_description=data.seo_description,
+            seo_keywords=data.seo_keywords,
+            seo_og_image=data.seo_og_image,
             status=data.status.upper(),
             category=data.category,
             author_id=data.authorId,
@@ -155,6 +160,8 @@ class ArticleService:
         if data.content is not None: article.content = data.content
         if data.seo_title is not None: article.seo_title = data.seo_title
         if data.seo_description is not None: article.seo_description = data.seo_description
+        if data.seo_keywords is not None: article.seo_keywords = data.seo_keywords
+        if data.seo_og_image is not None: article.seo_og_image = data.seo_og_image
         if data.status is not None: article.status = data.status.upper()
         if data.category is not None: article.category = data.category
         if data.featured_image is not None: article.featured_image = data.featured_image

@@ -10,7 +10,7 @@
     X
   } from 'lucide-svelte';
 
-  let { editor, onReplace }: { editor: Editor; onReplace: () => void } = $props();
+  let { editor, onReplace, onClose }: { editor: Editor; onReplace: () => void; onClose: () => void } = $props();
 
   let altText = $state('');
   let titleText = $state('');
@@ -59,6 +59,7 @@
   function deleteImage() {
     if (!editor || editor.isDestroyed) return;
     editor.chain().focus().deleteSelection().run();
+    onClose();
   }
 
   // Auto-apply on blur for convenience
@@ -104,7 +105,7 @@
       <div class="w-px h-4 bg-white/10 mx-0.5"></div>
 
       <!-- Actions -->
-      <button onclick={onReplace} class="p-1.5 rounded-lg text-white/50 hover:bg-blue-500/20 hover:text-blue-400 transition-all active:scale-90" title="Thay thế ảnh"><ImagePlus size={14} /></button>
+      <button onclick={() => { onReplace(); onClose(); }} class="p-1.5 rounded-lg text-white/50 hover:bg-blue-500/20 hover:text-blue-400 transition-all active:scale-90" title="Thay thế ảnh"><ImagePlus size={14} /></button>
       <button onclick={deleteImage} class="p-1.5 rounded-lg text-white/50 hover:bg-red-500/20 hover:text-red-400 transition-all active:scale-90" title="Xóa ảnh"><Trash2 size={14} /></button>
     </div>
 

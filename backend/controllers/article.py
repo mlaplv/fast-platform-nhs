@@ -20,6 +20,12 @@ class ArticleController(Controller):
     """R2: Class-based Litestar Controller for Article/News CRUD."""
     path = "/api/v1/articles"
     dependencies = {"art_repo": Provide(provide_article_repo)}
+    
+    @get("/categories", guards=[PermissionGuard("content:read")])
+    async def list_categories(self) -> List[str]:
+        """Returns valid values from CategoryEnum for the UI. R1.5: Zero-Hydration."""
+        from backend.services.xohi.creative_studio.models.schemas import CategoryEnum
+        return [c.value for c in CategoryEnum]
 
     @get("/", guards=[PermissionGuard("content:read")])
     async def list_articles(

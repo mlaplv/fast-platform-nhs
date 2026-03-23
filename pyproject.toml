@@ -8,7 +8,7 @@ name = "fast-platform-core"
 version = "0.1.0"
 description = "Hệ thống Agentic AI hiện đại theo chuẩn kiến trúc V60.0"
 authors = [
-    { name = "Admin", email = "admin@example.com" }
+    { name = "Admin", email = "lapiweb@gmail.com" }
 ]
 requires-python = ">=3.13"
 

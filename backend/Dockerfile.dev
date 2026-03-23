@@ -26,4 +26,4 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
 
 # GOD MODE COMMAND: Entrypoint for Litestar
-CMD ["litestar", "--app", "backend.main:app", "run", "--port", "8000", "--host", "0.0.0.0", "--reload"]
+ENTRYPOINT ["/app/backend/entrypoint.sh"]

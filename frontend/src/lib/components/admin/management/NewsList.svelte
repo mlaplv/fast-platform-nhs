@@ -53,16 +53,16 @@
     <div class="flex items-center gap-4 shrink-0">
       <button
         onclick={() => (selectedIds.size === articles.length ? onToggleSelect('__all_off') : onToggleSelect('__all_on'))}
-        class="p-2 rounded-xl transition-all {selectedIds.size === articles.length ? 'text-cyan-400 bg-cyan-500/10' : 'text-white/10 hover:text-white/30 bg-white/5'}"
+        class="p-1.5 rounded-lg transition-all {selectedIds.size === articles.length ? 'text-cyan-400 bg-cyan-500/10' : 'text-white/10 hover:text-white/30 bg-white/5'}"
       >
         {#if selectedIds.size === articles.length}
-          <CheckSquareIcon size={20} class="text-cyan-400" />
+          <CheckSquareIcon size={16} class="text-cyan-400" />
         {:else if selectedIds.size > 0}
-          <div class="w-5 h-5 flex items-center justify-center">
-            <div class="w-3 h-0.5 bg-cyan-400 rounded-full"></div>
+          <div class="w-4 h-4 flex items-center justify-center">
+            <div class="w-2.5 h-0.5 bg-cyan-400 rounded-full"></div>
           </div>
         {:else}
-          <SquareIcon size={20} />
+          <SquareIcon size={16} />
         {/if}
       </button>
       <span class="text-[10px] font-black uppercase tracking-widest text-white/20">Select_All_Operational_Data</span>
@@ -78,12 +78,12 @@
       <div class="relative flex items-center gap-1.5 sm:gap-4 shrink-0">
         <button
           onclick={() => onToggleSelect(article.id)}
-          class="p-2 rounded-xl transition-all {selectedIds.has(article.id) ? 'text-cyan-400 bg-cyan-500/10' : 'text-white/10 hover:text-white/30 bg-white/5'}"
+          class="p-1.5 rounded-lg transition-all {selectedIds.has(article.id) ? 'text-cyan-400 bg-cyan-500/10' : 'text-white/10 hover:text-white/30 bg-white/5'}"
         >
           {#if selectedIds.has(article.id)}
-            <CheckSquareIcon size={20} class="text-cyan-400" />
+            <CheckSquareIcon size={16} class="text-cyan-400" />
           {:else}
-            <SquareIcon size={20} />
+            <SquareIcon size={16} />
           {/if}
         </button>
 
@@ -132,12 +132,20 @@
 
         <!-- Meta Grid -->
         <div class="flex items-center gap-6 shrink-0 text-[11px] font-mono">
+          <div class="flex flex-col items-end sm:items-start min-w-[70px]">
+            <span class="text-[7px] text-gray-600 uppercase tracking-tighter mb-0.5">Publish_Date</span>
+            <div class="flex items-center gap-1.5 text-white/60 text-[10px]">
+              <CalendarIcon size={10} class="text-cyan-500/40" />
+              {article.createdAt?.slice(0, 10) || 'N/A'}
+            </div>
+          </div>
+
           <div class="flex flex-col items-center sm:items-start min-w-[60px]">
-            <span class="text-[8px] text-gray-600 uppercase tracking-tighter mb-0.5">Status</span>
-            {#if article.status === "published"}
-              <div class="text-[#39FF14] text-[9px] flex items-center gap-1"><div class="w-1 h-1 rounded-full bg-[#39FF14] shadow-[0_0_5px_#39FF14]"></div>LIVE</div>
+            <span class="text-[7px] text-gray-600 uppercase tracking-tighter mb-0.5">Current_Status</span>
+            {#if article.status.toLowerCase() === "published"}
+              <div class="text-[#39FF14] text-[9px] flex items-center gap-1 font-black underline decoration-[#39FF14]/30 underline-offset-4 tracking-[0.1em]">LIVE</div>
             {:else}
-              <div class="text-cyan-400 text-[9px]">DRAFT</div>
+              <div class="text-cyan-400/60 text-[9px] font-bold tracking-[0.1em]">DRAFT</div>
             {/if}
           </div>
 

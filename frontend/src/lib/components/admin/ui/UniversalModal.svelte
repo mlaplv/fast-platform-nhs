@@ -130,7 +130,7 @@
       {/if}
 
       <!-- Widget Content (scrollable container managed by widget internally for CONTENT_REVIEW) -->
-      <div class="flex-1 {nanobot.activeWidget === 'CONTENT_REVIEW' ? 'overflow-hidden p-0' : 'overflow-y-auto p-4'}">
+      <div class="flex-1 {nanobot.activeWidget === 'CONTENT_REVIEW' ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
         <ActiveWidget data={WidgetData} />
       </div>
 

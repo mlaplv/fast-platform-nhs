@@ -1,5 +1,6 @@
 <script lang="ts">
     import { nanobot } from "$lib/state/nanobot.svelte";
+    import { Z_INDEX } from "$lib/core/constants/zIndex";
     import FileManager from "./FileManager.svelte";
     import { fade } from "svelte/transition";
 
