@@ -1,7 +1,20 @@
 from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validator
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Dict, Union, Any
 from datetime import datetime
 
+
+class TierVariation(BaseModel):
+    name: str
+    options: List[str]
+    images: Optional[List[str]] = None
+
+class ProductVariantSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True, strict=True)
+    id: Optional[str] = None
+    tierIndex: List[int] = Field(default_factory=list, alias="tier_index")
+    sku: str
+    price: float
+    stock: int
 
 class CreateProductRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True, strict=True)
@@ -21,7 +34,10 @@ class CreateProductRequest(BaseModel):
     seoKeywords: Optional[str] = Field(None, max_length=500, alias="seo_keywords")
     images: List[str] = Field(default_factory=list)
     attributes: Dict[str, Union[str, int, float, bool, None]] = Field(default_factory=dict)
-
+    
+    # R102 Variants Matrix
+    tierVariations: List[TierVariation] = Field(default_factory=list, alias="tier_variations")
+    variants: List[ProductVariantSchema] = Field(default_factory=list)
 
 class UpdateProductRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True, strict=True)
@@ -40,7 +56,10 @@ class UpdateProductRequest(BaseModel):
     seoKeywords: Optional[str] = Field(None, max_length=500, alias="seo_keywords")
     images: Optional[List[str]] = None
     attributes: Optional[Dict[str, Union[str, int, float, bool, None]]] = None
-
+    
+    # R102 Variants Matrix
+    tierVariations: Optional[List[TierVariation]] = Field(None, alias="tier_variations")
+    variants: Optional[List[ProductVariantSchema]] = None
 
 class ProductResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True, strict=True)
@@ -63,6 +82,11 @@ class ProductResponse(BaseModel):
     seoKeywords: Optional[str] = Field(None, alias="seo_keywords")
     images: List[str] = Field(default_factory=list)
     attributes: Dict[str, Union[str, int, float, bool, None]] = Field(default_factory=dict)
+    
+    # R102 Variants Matrix
+    tierVariations: List[TierVariation] = Field(default_factory=list, alias="tier_variations")
+    variants: List[ProductVariantSchema] = Field(default_factory=list)
+    
     createdAt: datetime = Field(alias="created_at")
 
     @field_validator("id", "categoryId", mode="before")
@@ -79,6 +103,11 @@ class ProductResponse(BaseModel):
     @classmethod
     def validate_attributes(cls, v):
         return v if v is not None else {}
+
+    @field_validator("tierVariations", "variants", mode="before")
+    @classmethod
+    def validate_matrix_fields(cls, v):
+        return v if v is not None else []
 
     @computed_field
     @property

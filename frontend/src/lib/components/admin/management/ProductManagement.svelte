@@ -50,6 +50,8 @@
   let formSeoKeywords = $state("");
   let formImages = $state<string[]>([]);
   let formAttributes = $state<Record<string, string | number | boolean | null>>({});
+  let formTierVariations = $state<any[]>([]);
+  let formVariants = $state<any[]>([]);
   let generateSlug = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
 
@@ -160,6 +162,7 @@
     formName = ""; formSku = ""; formPrice = 0; formStock = 0; formCategory = ""; formStatus = "draft";
     formDescription = ""; formSlug = ""; formSeoTitle = ""; formSeoDescription = ""; formSeoKeywords = "";
     formImages = []; formAttributes = {};
+    formTierVariations = []; formVariants = [];
     showForm = true;
   }
 
@@ -175,6 +178,8 @@
     formSeoKeywords = p.seoKeywords || "";
     formImages = p.images || [];
     formAttributes = p.attributes || {};
+    formTierVariations = p.tierVariations || [];
+    formVariants = p.variants || [];
     showForm = true;
   }
 
@@ -199,7 +204,9 @@
       seoDescription: formSeoDescription,
       seoKeywords: formSeoKeywords,
       images: formImages,
-      attributes: formAttributes
+      attributes: formAttributes,
+      tier_variations: formTierVariations,
+      variants: formVariants
     };
     try {
       if (editingId) await apiClient.patch(`/api/v1/products/${editingId}`, payload);
@@ -254,7 +261,7 @@
     isOpen={showForm}
     bind:formName bind:formSku bind:formPrice bind:formStock bind:formCategory bind:formStatus
     bind:formDescription bind:formSlug bind:formSeoTitle bind:formSeoDescription bind:formSeoKeywords
-    bind:formImages bind:formAttributes
+    bind:formImages bind:formAttributes bind:formTierVariations bind:formVariants
     {categories}
     onSave={save}
     onClose={() => (showForm = false)}

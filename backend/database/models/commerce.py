@@ -48,6 +48,7 @@ class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     seo_keywords: Mapped[Optional[str]] = mapped_column(String)
     images: Mapped[Optional[list]] = mapped_column(JSON, default=list) # List of image URLs
     attributes: Mapped[Optional[dict]] = mapped_column(JSON, default=dict) # {"size": ["S", "M"], "color": ["Black"]}
+    tier_variations: Mapped[Optional[list]] = mapped_column(JSON, default=list) # R102 Matrix: [{"name": "Màu", "options": ["Đỏ", "Xanh"], "images": ["url1", "url2"]}, {"name": "Size", "options": ["S", "M"]}]
     
     category_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('categories.id'))
     category: Mapped[Optional["Category"]] = relationship("Category", back_populates="products")
@@ -67,6 +68,7 @@ class ProductVariant(Base, AuditMixin, SoftDeleteMixin):
     id: Mapped[str] = mapped_column(String, primary_key=True)
     product_base_id: Mapped[str] = mapped_column(String, ForeignKey('product_bases.id'))
     product_base: Mapped["ProductBase"] = relationship("ProductBase", back_populates="variants")
+    tier_index: Mapped[Optional[list]] = mapped_column(JSON, default=list) # R102 Matrix Index: e.g [0, 1] means Đỏ, Size M
     sku: Mapped[str] = mapped_column(String, unique=True)
     price: Mapped[float] = mapped_column(Float)
     stock: Mapped[int] = mapped_column(Integer, default=0)

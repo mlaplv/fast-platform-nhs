@@ -6,7 +6,7 @@ from sqlalchemy import text, update, select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
 
-from backend.database.models import ProductBase, Category
+from backend.database.models import ProductBase, Category, ProductVariant
 from backend.schemas.product import CreateProductRequest, UpdateProductRequest, ProductResponse, ProductListResponse
 from backend.schemas.common import SuccessResponse, BulkActionResponse
 from backend.services.product_vector_service import product_vector_service
@@ -44,7 +44,7 @@ class ProductService:
             ProductBase.price, ProductBase.stock, ProductBase.status,
             ProductBase.category_id, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-            ProductBase.images, ProductBase.attributes,
+            ProductBase.images, ProductBase.attributes, ProductBase.tier_variations,
             ProductBase.created_at,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
@@ -52,7 +52,12 @@ class ProductService:
         ).limit(limit).offset(offset).order_by(ProductBase.created_at.desc())
 
         result = await db_session.execute(stmt)
-        data = [ProductResponse.model_validate(row._mapping) for row in result]
+        data = []
+        for row in result:
+            row_dict = dict(row._mapping)
+            row_dict["variants"] = [] # Optimize: don't load variants in list view
+            data.append(ProductResponse.model_validate(row_dict))
+            
         return ProductListResponse(data=data, total=total)
 
     @staticmethod
@@ -63,7 +68,7 @@ class ProductService:
             ProductBase.price, ProductBase.stock, ProductBase.status,
             ProductBase.category_id, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-            ProductBase.images, ProductBase.attributes,
+            ProductBase.images, ProductBase.attributes, ProductBase.tier_variations,
             ProductBase.created_at,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
@@ -77,7 +82,13 @@ class ProductService:
         if not row:
             raise NotFoundException(f"Product {product_id} not found")
 
-        return ProductResponse.model_validate(row._mapping)
+        # Fetch variants
+        v_stmt = select(ProductVariant).where(ProductVariant.product_base_id == product_id, ProductVariant.deleted_at == None)
+        variants = (await db_session.execute(v_stmt)).scalars().all()
+        
+        row_dict = dict(row._mapping)
+        row_dict["variants"] = variants
+        return ProductResponse.model_validate(row_dict)
 
     @staticmethod
     async def create_product(db_session: AsyncSession, data: CreateProductRequest) -> SuccessResponse:
@@ -99,8 +110,24 @@ class ProductService:
             seo_keywords=data.seoKeywords,
             images=data.images,
             attributes=data.attributes,
+            tier_variations=[tv.model_dump() for tv in data.tierVariations] if data.tierVariations else [],
         )
         db_session.add(product)
+        
+        # Add variants
+        if data.variants:
+            for v in data.variants:
+                v_id = v.id if v.id and len(v.id) > 5 else f"v_{uuid.uuid4().hex[:12]}"
+                variant = ProductVariant(
+                    id=v_id,
+                    product_base_id=new_id,
+                    tier_index=v.tierIndex,
+                    sku=v.sku,
+                    price=v.price,
+                    stock=v.stock
+                )
+                db_session.add(variant)
+                
         await db_session.commit() # Ensure product exists for RAG foreign key
         await db_session.refresh(product)
 
@@ -135,6 +162,26 @@ class ProductService:
         if data.seoKeywords is not None: product.seo_keywords = data.seoKeywords
         if data.images is not None: product.images = data.images
         if data.attributes is not None: product.attributes = data.attributes
+        if data.tierVariations is not None: product.tier_variations = [tv.model_dump() for tv in data.tierVariations]
+        
+        if data.variants is not None:
+            # Delete old variants strictly
+            await db_session.execute(update(ProductVariant).where(ProductVariant.product_base_id == product_id).values(
+                deleted_at=datetime.now(timezone.utc),
+                sku=ProductVariant.sku + "_del_" + str(uuid.uuid4().hex[:8]) # Free up unique SKU
+            ))
+            # Insert new ones
+            for v in data.variants:
+                v_id = v.id if v.id and not v.id.startswith('new_') else f"v_{uuid.uuid4().hex[:12]}"
+                variant = ProductVariant(
+                    id=v_id,
+                    product_base_id=product_id,
+                    tier_index=v.tierIndex,
+                    sku=v.sku,
+                    price=v.price,
+                    stock=v.stock
+                )
+                db_session.add(variant)
 
         if data.name is not None or data.description is not None:
             await product_vector_service.upsert_product_embedding(

@@ -11,6 +11,7 @@
   import ProductFormMedia from "./ProductFormMedia.svelte";
   import ProductFormSeo from "./ProductFormSeo.svelte";
   import ProductFormSpecs from "./ProductFormSpecs.svelte";
+  import ProductFormVariants from "./ProductFormVariants.svelte";
   import { processContentImages } from "$lib/state/utils";
   import { Z_INDEX } from "$lib/core/constants/zIndex";
   import type { MediaAsset } from "$lib/types";
@@ -31,6 +32,8 @@
     formSeoKeywords = $bindable(),
     formImages = $bindable(),
     formAttributes = $bindable(),
+    formTierVariations = $bindable(),
+    formVariants = $bindable(),
     categories,
     onSave,
     onClose,
@@ -53,6 +56,8 @@
     formSeoKeywords: string;
     formImages: string[];
     formAttributes: Record<string, string | number | boolean | null>;
+    formTierVariations: any[];
+    formVariants: any[];
     categories: { id: string; name: string }[];
     onSave: () => void;
     onClose: () => void;
@@ -62,6 +67,11 @@
   }>();
 
   let showMediaModal = $state(false);
+  
+  // Tracking which variant image is being edited
+  let variantEditTierIndex = $state<number | null>(null);
+  let variantEditOptionIndex = $state<number | null>(null);
+
   let reserve_assets = $state<string[]>([]);
   let selectedAvatarUrl = $state<string | null>(null);
   let selectedAssetIndex = $state(0);
@@ -102,7 +112,38 @@
     if (formSeoKeywords === undefined) formSeoKeywords = "";
     if (formImages === undefined) formImages = [];
     if (formAttributes === undefined) formAttributes = {};
+    if (formVariants === undefined) formVariants = [];
   });
+
+  function handleVariantImageSelect(url: string) {
+    if (variantEditTierIndex !== null && variantEditOptionIndex !== null) {
+      if (formTierVariations[variantEditTierIndex]) {
+        // Ensure images array exists
+        if (!formTierVariations[variantEditTierIndex].images) {
+          formTierVariations[variantEditTierIndex].images = [];
+        }
+        formTierVariations[variantEditTierIndex].images[variantEditOptionIndex] = url;
+        // Trigger reactivity
+        formTierVariations = [...formTierVariations];
+      }
+    }
+    variantEditTierIndex = null;
+    variantEditOptionIndex = null;
+    showMediaModal = false;
+  }
+
+  function openVaultForGeneral() {
+    variantEditTierIndex = null;
+    variantEditOptionIndex = null;
+    showMediaModal = true;
+  }
+
+  function openVaultForVariant(tIdx: number, oIdx: number) {
+    variantEditTierIndex = tIdx;
+    variantEditOptionIndex = oIdx;
+    reserve_assets = []; // clear previous selection
+    showMediaModal = true;
+  }
 
 </script>
 
@@ -132,6 +173,15 @@
             bind:formName bind:formSku bind:formPrice bind:formStock bind:formCategory bind:formStatus
             {categories} {generateSlug} {errors}
             onNameInput={() => { if (!editingId) formSlug = generateSlug(formName); }}
+          />
+        </div>
+
+        <!-- NEW: Section 1.5 (Variants / Matrix) -->
+        <div class="flex flex-col">
+          <ProductFormVariants 
+            bind:formTierVariations={formTierVariations}
+            bind:formVariants={formVariants}
+            onOpenVault={openVaultForVariant}
           />
         </div>
 
@@ -176,7 +226,7 @@
             Album hiển thị
             <span class="text-amber-500 ml-auto bg-amber-500/10 px-1.5 py-0.5 rounded text-[8px]">{formImages?.length || 0}</span>
           </div>
-          <ProductFormMedia bind:formImages onOpenVault={() => showMediaModal = true} />
+          <ProductFormMedia bind:formImages onOpenVault={openVaultForGeneral} />
         </div>
 
         <!-- Specs -->
@@ -221,7 +271,8 @@
 
 <MediaVaultModal
   isOpen={showMediaModal}
-  onClose={() => showMediaModal = false}
+  onClose={() => { showMediaModal = false; variantEditTierIndex = null; variantEditOptionIndex = null; }}
+  onSelect={variantEditOptionIndex !== null ? handleVariantImageSelect : undefined}
   bind:assets={formImages}
   bind:reserve_assets
   bind:selectedAvatarUrl
