@@ -85,22 +85,49 @@
 
   let isAnalysisMessage = $derived.by(() => {
     if (!progress_msg) return false;
-    const keywords = ["tầm soát", "quét", "phân tích", "rà soát", "Booster", "phẫu thuật", "Neural Engine", "Surgical Precision", "điểm số", "Copyright Check", "SEO Analysis", "AI MOD"];
+    const keywords = [
+      "tầm soát", "quét", "phân tích", "rà soát", "Booster", "phẫu thuật", "Neural Engine", 
+      "Surgical Precision", "điểm số", "Copyright Check", "SEO Analysis", "AI MOD", 
+      "Clean", "làm sạch", "Enrich", "tối ưu", "đánh giá"
+    ];
     return keywords.some(kw => progress_msg.toLowerCase().includes(kw.toLowerCase()));
   });
 
-  // CNS V85.1: Sticky Heuristic to prevent "chập điện" (flickering)
-  // If we are in a main step (not analysis), keep the overlay ON for at least 2.5s 
-  // to bridge gap between pulses.
+  let analysisSession = $state(false);
+
+  // CNS V85.4: Analysis Session Lock — persistent suppression during tools
   $effect(() => {
-    if (isProcessing && !isAnalysisMessage && progress_msg) {
-        isOverlaySticky = true;
-        if (stickyTimer) clearTimeout(stickyTimer);
-        stickyTimer = setTimeout(() => { isOverlaySticky = false; stickyTimer = null; }, 2500);
+    if (isProcessing) {
+      if (isAnalysisMessage) {
+        analysisSession = true;
+        isOverlaySticky = false;
+        if (stickyTimer) { clearTimeout(stickyTimer); stickyTimer = null; }
+      }
+    } else {
+      // Back to IDLE: Reset session
+      analysisSession = false;
+      isOverlaySticky = false;
+      if (stickyTimer) { clearTimeout(stickyTimer); stickyTimer = null; }
     }
   });
 
-  let shouldShowOverlay = $derived(isProcessing && (campaign.isStepProcessing || isOverlaySticky || !isAnalysisMessage));
+  // Keep sticky for major transitions to prevent "chập điện"
+  $effect(() => {
+    if (isProcessing && !isAnalysisMessage && progress_msg) {
+      const stepIndicators = ["Chế tác", "Phác thảo", "Khởi tạo", "Thiết giáp", "Vinh quang", "phát hành"];
+      if (stepIndicators.some(w => progress_msg.includes(w))) {
+        isOverlaySticky = true;
+        if (stickyTimer) clearTimeout(stickyTimer);
+        stickyTimer = setTimeout(() => { isOverlaySticky = false; stickyTimer = null; }, 2500);
+      }
+    }
+  });
+
+  let shouldShowOverlay = $derived(
+    (isProcessing || isOverlaySticky) && !analysisSession && !isAnalysisMessage
+  );
+
+
 
   $effect(() => { if (viewingStep >= 6 && !finalHtml && draft_content) untrack(() => { finalHtml = processContentImages(draft_content, xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets); }); });
   $effect(() => {
@@ -224,7 +251,13 @@
   <div class="flex-1 {(viewingStep === 3 || viewingStep === 4 || viewingStep === 6) ? 'overflow-hidden pb-0' : 'overflow-y-auto custom-scrollbar pb-24'} relative flex flex-col min-h-0">
     {#if shouldShowOverlay}
        <div class="absolute inset-0 z-[100]">
-          <UltraPremiumLoading {progress_msg} {viewingStep} {campaign_id} />
+          <UltraPremiumLoading 
+            {progress_msg} 
+            {viewingStep} 
+            {campaign_id} 
+            {isAnalysisMessage}
+            liveContent={viewingStep === 3 ? editedOutline : (viewingStep === 4 ? editedDraft : '')}
+          />
        </div>
     {/if}
     

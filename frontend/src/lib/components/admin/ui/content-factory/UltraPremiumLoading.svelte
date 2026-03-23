@@ -7,17 +7,30 @@
     progress_msg: string;
     viewingStep: number;
     campaign_id?: string;
+    liveContent?: string;
+    isAnalysisMessage?: boolean;
   }
 
-  let { progress_msg = "", viewingStep, campaign_id }: Props = $props();
+  let { progress_msg = "", viewingStep, campaign_id, liveContent = "", isAnalysisMessage = false }: Props = $props();
+
+  // CNS V85.2: Live Telemetry (Neural Metrics)
+  let telemetry = $derived.by(() => {
+    if (!liveContent) return { words: 0, sentences: 0, images: 0, sections: 0 };
+    const cleanText = liveContent.replace(/<[^>]*>/g, ' ');
+    const words = cleanText.trim().split(/\s+/).filter(w => w.length > 0).length;
+    const sentences = (cleanText.match(/[.!?]+/g) || []).length;
+    const images = (liveContent.match(/<img/g) || []).length;
+    const sections = (liveContent.match(/<h[1-6]/g) || []).length;
+    return { words, sentences, images, sections };
+  });
 
   // History of messages for the "Live Feed" effect
   let messageHistory = $state<string[]>([]);
   
   $effect(() => {
     if (progress_msg && !messageHistory.includes(progress_msg)) {
-      // Don't add the same message twice, and keep only the last 3
-      messageHistory = [progress_msg, ...messageHistory].slice(0, 4);
+      // Don't add the same message twice, and keep only the last 5
+      messageHistory = [progress_msg, ...messageHistory].slice(0, 5);
     }
   });
 
@@ -96,21 +109,53 @@
         {/if}
 
         <!-- Historical Feed (Claude/IDE Style) -->
-        <div class="space-y-1.5 opacity-80 pl-1">
-          {#each messageHistory.slice(1) as logMsg, i}
-            <div 
-              class="flex items-center gap-3 py-1 px-2 rounded-lg hover:bg-white/5 transition-colors group/log"
-              in:fly={{ x: -10, delay: i * 50 }}
-            >
-              <div class="w-4 h-4 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
-                <div class="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+          <div class="space-y-1.5 opacity-80 pl-1 border-r border-white/5 pr-4">
+            <span class="text-[8px] font-black uppercase text-white/20 tracking-widest block mb-2">Process Stack</span>
+            {#each messageHistory.slice(1) as logMsg, i}
+              <div 
+                class="flex items-center gap-3 py-1 px-2 rounded-lg hover:bg-white/5 transition-colors group/log"
+                in:fly={{ x: -10, delay: i * 50 }}
+              >
+                <div class="w-3.5 h-3.5 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(34,197,94,0.1)]">
+                  <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                </div>
+                <span class="text-[10px] text-white/40 group-hover/log:text-white/60 transition-colors truncate">
+                  {logMsg}
+                </span>
+                <span class="ml-auto text-[7px] font-black text-green-500/30 uppercase tracking-tighter">Done</span>
               </div>
-              <span class="text-[11px] text-white/40 group-hover/log:text-white/60 transition-colors truncate">
-                {logMsg}
-              </span>
-              <span class="ml-auto text-[8px] font-black text-green-500/30 uppercase tracking-tighter">Done</span>
-            </div>
-          {/each}
+            {/each}
+            {#if viewingStep === 4 && !isAnalysisMessage}
+               <div class="flex items-center gap-3 py-1 px-2 animate-pulse">
+                  <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                  <span class="text-[10px] text-blue-400 font-mono tracking-tighter italic">Neural surgeon injecting patterns...</span>
+               </div>
+            {/if}
+          </div>
+
+          <!-- CNS V85.2: Live Telemetry Dashboard -->
+          <div class="space-y-3">
+             <span class="text-[8px] font-black uppercase text-white/20 tracking-widest block mb-2">Neural Telemetry</span>
+             <div class="grid grid-cols-2 gap-2">
+                <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center justify-center gap-1 group/tel">
+                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-blue-400">Words</span>
+                   <span class="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">{telemetry.words}</span>
+                </div>
+                <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center justify-center gap-1 group/tel">
+                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-cyan-400">Sentences</span>
+                   <span class="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">{telemetry.sentences}</span>
+                </div>
+                <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center justify-center gap-1 group/tel">
+                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-emerald-400">Images</span>
+                   <span class="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">{telemetry.images}</span>
+                </div>
+                <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center justify-center gap-1 group/tel">
+                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-purple-400">Sections</span>
+                   <span class="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">{telemetry.sections}</span>
+                </div>
+             </div>
+          </div>
         </div>
 
         <div class="h-px bg-white/5 my-4"></div>
@@ -160,11 +205,13 @@
          </div>
        {/each}
     </div>
-    <div class="text-[8px] font-black text-white/20 uppercase tracking-[0.5em] animate-pulse">NEURAL PROCESSING UNIT · ACTIVATED</div>
+    <div class="text-[8px] font-black text-white/20 uppercase tracking-[0.5em] animate-pulse">NEURAL PROCESSING UNIT · CORE V2.8 ACTIVE</div>
   </div>
 </div>
 
 <style>
+  @reference "tailwindcss";
+  
   @keyframes mesh-1 {
     0%, 100% { transform: translate(0, 0) scale(1); }
     50% { transform: translate(10%, 15%) scale(1.1); }
