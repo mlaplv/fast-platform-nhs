@@ -95,18 +95,6 @@
         <VoiceModal />
       </div>
 
-      <div
-        class="absolute inset-0 pointer-events-none"
-        style="z-index: {Z_INDEX.MODAL};"
-      >
-        <div
-          class="{nanobot.universalModalOpen
-            ? 'pointer-events-auto'
-            : 'pointer-events-none'} w-full h-full"
-        >
-          <UniversalModal />
-        </div>
-      </div>
     </div>
 
     <!-- OmniCommand: Floats over everything, persistent for VUI control -->
@@ -117,6 +105,18 @@
     >
       <div class="pointer-events-auto max-w-4xl mx-auto px-4 sm:px-6">
         <OmniCommand />
+      </div>
+    </div>
+    <div
+      class="absolute inset-0 pointer-events-none"
+      style="z-index: {Z_INDEX.MODAL};"
+    >
+      <div
+        class="{nanobot.universalModalOpen
+          ? 'pointer-events-auto'
+          : 'pointer-events-none'} w-full h-full"
+      >
+        <UniversalModal />
       </div>
     </div>
 
