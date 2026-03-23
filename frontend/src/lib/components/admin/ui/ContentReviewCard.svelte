@@ -49,6 +49,12 @@
 
   let viewingStep = $state(step || 1), isEditing = $state(false), maxStepSeen = $state(step || 1);
   let isProcessing = $derived(status === "PROCESSING");
+  let isAnalysisRunning = $derived.by(() => {
+    if (!progress_msg) return false;
+    const keywords = ["tầm soát", "quét", "phân tích", "rà soát", "Booster", "phẫu thuật", "Neural Engine", "Surgical Precision", "điểm số", "Copyright Check", "SEO Analysis", "AI MOD"];
+    return keywords.some(kw => progress_msg.toLowerCase().includes(kw.toLowerCase()));
+  });
+
   let customImageUrl = $state(""), editedKeywords = $state<CampaignKeywords>({}), editedConfig = $state<Record<string, unknown>>({
     style: "Viral",
     word_count: 500,
@@ -57,13 +63,32 @@
   }), editedDraft = $state(""), editedOutline = $state("");
   let showGateModal = $state(false), gateBlockers = $state<any[]>([]), focusTabFromModal = $state<string | null>(null);
 
-  $effect(() => { if (status !== "PROCESSING") untrack(() => { campaign.isLoading = false; }); });
+  $effect(() => { if (status !== "PROCESSING") untrack(() => { campaign.isLoading = false; campaign.resetStepProcessing(); }); });
   // CNS V82.5: Auto-jump to new step when it arrives from pulse, but allow looking back
   $effect(() => { 
     if (step > maxStepSeen) {
-      untrack(() => { maxStepSeen = step; viewingStep = step; isEditing = false; });
+      untrack(() => { maxStepSeen = step; viewingStep = step; isEditing = false; campaign.resetStepProcessing(); });
     }
   });
+
+  const stepLabels = [
+    "Khởi tạo Brain",           // 1: Idea
+    "Thiết giáp Săn ảnh",       // 2: Assets
+    "Phác thảo Neural",         // 3: Outline
+    "Chế tác Nội dung",         // 4: Draft
+    "Kiểm định Viral Edge",     // 5: Analysis
+    "Vinh quang & Viral"        // 6: Publish
+  ];
+
+  let isStepLevelMessage = $derived.by(() => {
+    if (!progress_msg) return false;
+    return stepLabels.some(label => progress_msg.includes(label)) || 
+           progress_msg.includes("Neural Network") || 
+           progress_msg.includes("khởi động lại");
+  });
+
+  let shouldShowOverlay = $derived(isProcessing && (campaign.isStepProcessing || isStepLevelMessage));
+
   $effect(() => { if (viewingStep >= 6 && !finalHtml && draft_content) untrack(() => { finalHtml = processContentImages(draft_content, xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets); }); });
   $effect(() => {
     const src = draft_content || finalHtml || "", out = outline?.html || "";
@@ -183,14 +208,14 @@
 
 <div class="content-review-card w-full h-full flex flex-col transition-all duration-700 overflow-hidden z-[150000] bg-slate-950/95 backdrop-blur-xl" in:fade={{ duration: 600 }}>
   <Header bind:viewingStep {step} {status} {progress_msg} {campaign_id} bind:isEditing toggleExpand={() => nanobot.toggleExpand()} isExpanded={nanobot.isExpanded} creation_config={isEditing ? editedConfig : creation_config} />
-  <div class="flex-1 overflow-y-auto custom-scrollbar relative pb-24 flex flex-col min-h-0">
-    {#if isProcessing}
+  <div class="flex-1 {(viewingStep === 3 || viewingStep === 4 || viewingStep === 6) ? 'overflow-hidden pb-0' : 'overflow-y-auto custom-scrollbar pb-24'} relative flex flex-col min-h-0">
+    {#if shouldShowOverlay}
        <div class="absolute inset-0 z-[100]">
           <UltraPremiumLoading {progress_msg} {viewingStep} {campaign_id} />
        </div>
     {/if}
     
-    <div class={isProcessing ? 'invisible h-0 overflow-hidden' : 'contents'}>
+    <div class={isProcessing ? 'invisible h-0 overflow-hidden' : 'flex-1 flex flex-col min-h-0'}>
       {#if viewingStep === 1}
         <IdeaStep bind:isEditing {campaign_id} bind:keywords bind:editedKeywords creation_config={creation_config} bind:editedConfig {handleSelectKeyword} {handleUpdateMetadata} isLoading={campaign.isLoading} />
       {:else if viewingStep === 2}

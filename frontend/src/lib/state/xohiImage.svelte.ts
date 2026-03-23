@@ -27,14 +27,13 @@ export class XohiImageStore {
 
         if (!newPrimary) return;
 
-        this.assets.forEach(a => {
+        this.assets = this.assets.map(a => {
             if (a.id === assetId) {
-                a.is_primary = true;
-                a.order_index = -1;
+                return { ...a, is_primary: true, order_index: -1 };
             } else if (a.is_primary) {
-                a.is_primary = false;
-                a.order_index = oldPrimary ? oldPrimary.order_index : 0;
+                return { ...a, is_primary: false, order_index: oldPrimary ? oldPrimary.order_index : 0 };
             }
+            return a;
         });
 
         this.recalculateOrder();
@@ -50,15 +49,26 @@ export class XohiImageStore {
     }
 
     recalculateOrder() {
-        const secondary = this.assets
-            .filter(a => !a.is_primary)
-            .sort((a, b) => a.order_index - b.order_index);
-            
-        secondary.forEach((a, index) => {
-            if (a.order_index !== index) {
-                a.order_index = index;
-            }
+        // CNS V85.1: Immutable sort/map to ensure all Svelte components receive fresh reactive references
+        const items = [...this.assets].sort((a, b) => {
+            if (a.is_primary) return -1;
+            if (b.is_primary) return 1;
+            return a.order_index - b.order_index;
         });
+
+        const reordered = items.map((a, index) => {
+            const newOrder = a.is_primary ? -1 : (items.findIndex(x => !x.is_primary && x === a));
+            if (a.order_index !== newOrder) {
+                return { ...a, order_index: newOrder };
+            }
+            return a;
+        });
+
+        // Only update if indices actually changed
+        const isActuallyDifferent = reordered.some((a, i) => a.order_index !== this.assets[i]?.order_index || a.id !== this.assets[i]?.id);
+        if (isActuallyDifferent) {
+            this.assets = reordered;
+        }
     }
 
     async addImages(files: FileList) {

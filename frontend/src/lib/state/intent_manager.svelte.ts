@@ -146,10 +146,10 @@ export function createIntentManager(
           requiresConfirmationForVoice(data)
         ) {
           // Phase 82.5: Anti-Hijacking Guard
-          // If a background update (text source / SSE) arrives for CONTENT_CREATE, 
+          // If a background update arrives from SSE/pulse (Neural Update), 
           // we ONLY open the modal if the user is already IN the CONTENT_REVIEW widget.
-          // This prevents "Creativity Initialized" from popping up while editing news.
-          if (actualUiAction === "CONTENT_CREATE" && source === "text" && state.activeWidget !== "CONTENT_REVIEW") {
+          // This prevents automated updates from stealing focus while the user is elsewhere.
+          if (actualUiAction === "CONTENT_CREATE" && transcript === "Neural Update" && state.activeWidget !== "CONTENT_REVIEW") {
             console.log("[IntentManager] Deflecting background Content Factory hijack.");
             return;
           }

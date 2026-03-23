@@ -48,8 +48,8 @@
   });
 </script>
 
-<div class="p-5 md:p-8 space-y-4 flex flex-col">
-  <div class="flex items-center gap-3 shrink-0">
+<div class="p-5 md:p-8 flex flex-col flex-1 min-h-0 overflow-hidden">
+  <div class="flex items-center gap-3 shrink-0 mb-4">
     <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-blue-500/50"></div>
     <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">XOHI · <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">NEURAL STUDIO</span></h5>
   </div>
@@ -109,7 +109,7 @@
   </div>
 
   <div 
-    class="flex flex-col border-b border-white/5" 
+    class="flex flex-col flex-1 min-h-0 border-b border-white/5" 
     role="presentation"
   >
     <div class="shrink-0 flex items-center justify-between px-3 py-1.5 bg-white/[0.02] border-b border-white/5">
@@ -118,7 +118,7 @@
     </div>
     {#if ctrl.editingField === 'content'}
       <div class="flex-1 min-h-0 flex flex-col bg-black/40">
-        <TiptapEditor content={ctrl.displayContent} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex campaignId={campaign_id} onChange={(val) => { if (ctrl.editingField === 'content') finalHtml = val; }} editable={true} placeholder="Nội dung bài viết..." onblur={ctrl.saveField} />
+        <TiptapEditor content={ctrl.displayContent} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex campaignId={campaign_id} onChange={(val) => { if (ctrl.editingField === 'content') finalHtml = val; }} editable={true} placeholder="Nội dung bài viết..." onblur={ctrl.saveField} flex={true} />
         <div class="shrink-0 p-2 border-t border-white/5 flex justify-end"><button onclick={ctrl.saveField} class="px-3 py-1 bg-purple-500 text-[9px] font-black text-white hover:bg-purple-600 uppercase">Lưu nội dung</button></div>
       </div>
     {:else if ctrl.displayContent}
@@ -126,7 +126,7 @@
         class="flex-1 min-h-0 flex flex-col overflow-hidden text-left w-full" 
         onclick={() => { if (ctrl.editingField !== 'content') ctrl.editingField = 'content'; }}
       >
-        <TiptapEditor content={ctrl.displayContent} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex campaignId={campaign_id} editable={false} placeholder="Nội dung bài viết..." />
+        <TiptapEditor content={ctrl.displayContent} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex campaignId={campaign_id} editable={false} placeholder="Nội dung bài viết..." flex={true} />
       </button>
     {:else}
       <div class="flex-1 flex flex-col items-center justify-center gap-2 p-4 bg-red-950/20"><span class="text-red-400 text-xs font-bold">⚠ Lỗi tải nội dung</span><code class="text-[9px] text-red-300/50 text-center">draft: {(draft_content || '').length}c | html: {(finalHtml || '').length}c | assets: {assets.length}</code></div>

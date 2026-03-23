@@ -67,7 +67,7 @@ class ExecutionEngine:
                     if step <= 4: 
                         c.draft_content = ""
                     if step <= 5: 
-                        c.unique_score = None
+                        c.unique_score = 1.0
                     if step <= 6: 
                         c.final_html = None
                     
@@ -87,6 +87,7 @@ class ExecutionEngine:
             async with self.orchestrator.semaphore:
                 async with session_maker() as session:
                     repo = ContentCampaignRepository(session=session)
+                    logger.info(f"[ExecutionEngine] Ready to execute Step {step} for {campaign_id}")
                     await self._execute_step(campaign_id, repo, force_step=force_step)
                     await session.commit()
         finally:

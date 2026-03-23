@@ -75,17 +75,44 @@
   const handleAction = async (fn: Function, ...args: any[]) => { await fn(...args); scrollToPanel(); };
 </script>
 
-<div class="p-5 md:p-8 space-y-4 flex flex-col">
-  <div class="flex items-center gap-3 shrink-0">
+<div class="p-5 md:p-8 flex flex-col flex-1 min-h-0 overflow-hidden">
+  <div class="flex items-center gap-3 shrink-0 mb-4">
     <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-blue-500/50"></div>
     <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">XOHI · <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">NEURAL STUDIO</span></h5>
-    {#if analysis.copyrightScore !== null}<span class="text-[9px] font-black uppercase {analysis.copyrightScore >= 90 ? 'text-emerald-400' : 'text-yellow-400'}">· Copyright {analysis.copyrightScore}%</span>{/if}
-    {#if analysis.seoResult}<span class="text-[9px] font-black uppercase {analysis.seoResult.grade === 'A' ? 'text-emerald-400' : 'text-blue-400'}">· SEO {analysis.seoResult.grade} ({analysis.seoResult.total_score}/100)</span>{/if}
-    {#if analysis.aiScore !== null}<span class="text-[9px] font-black uppercase {analysis.aiScore >= 85 ? 'text-purple-400' : 'text-fuchsia-400'}">· AI {analysis.aiScore}%</span>{/if}
+    
+    <div class="flex items-center gap-2 ml-4">
+      <button 
+        onclick={() => { analysis.activeTab = 'copyright'; if (!analysis.copyrightResult && !analysis.isCopyrightLoading) handleAction(analysis.runCopyrightCheck); }}
+        disabled={analysis.isCopyrightLoading}
+        class="flex items-center gap-1.5 text-[9px] font-black uppercase px-2 py-1 rounded border {analysis.activeTab === 'copyright' ? 'border-orange-500/50 bg-orange-500/10 text-orange-400' : 'border-white/10 bg-white/5 text-white/40 hover:text-white/60'} {analysis.isCopyrightLoading ? 'opacity-70' : ''}"
+      >
+        {#if analysis.isCopyrightLoading}<span class="w-2 h-2 border border-white/20 border-t-orange-400 rounded-full animate-spin"></span>{/if}
+        · Copyright {analysis.copyrightScore !== null ? `${analysis.copyrightScore}%` : '---'}
+      </button>
+      
+      <button 
+        onclick={() => { if (!analysis.seoLocked) { analysis.activeTab = 'seo'; if (!analysis.seoResult && !analysis.isSeoLoading) handleAction(analysis.runSeoAnalysis); } }}
+        disabled={analysis.seoLocked || analysis.isSeoLoading}
+        class="flex items-center gap-1.5 text-[9px] font-black uppercase px-2 py-1 rounded border {analysis.activeTab === 'seo' ? 'border-blue-500/50 bg-blue-500/10 text-blue-400' : 'border-white/10 bg-white/5 text-white/40 hover:text-white/60'} {analysis.seoLocked ? 'opacity-30 cursor-not-allowed' : ''} {analysis.isSeoLoading ? 'opacity-70' : ''}"
+      >
+        {#if analysis.isSeoLoading}<span class="w-2 h-2 border border-white/20 border-t-blue-400 rounded-full animate-spin"></span>{/if}
+        · SEO {analysis.seoResult ? analysis.seoResult.grade : '---'}
+      </button>
+
+      <button 
+        onclick={() => { if (!analysis.aiLocked) { analysis.activeTab = 'ai'; if (!analysis.aiReadyResult && !analysis.isAiLoading) handleAction(analysis.runAiAnalysis); } }}
+        disabled={analysis.aiLocked || analysis.isAiLoading}
+        class="flex items-center gap-1.5 text-[11px] font-black uppercase px-2 py-1 rounded border {analysis.activeTab === 'ai' ? 'border-purple-500/50 bg-purple-500/10 text-purple-400' : 'border-white/10 bg-white/5 text-white/40 hover:text-white/60'} {analysis.aiLocked ? 'opacity-30 cursor-not-allowed' : ''} {analysis.isAiLoading ? 'opacity-70' : ''}"
+      >
+        {#if analysis.isAiLoading}<span class="w-2 h-2 border border-white/20 border-t-purple-400 rounded-full animate-spin"></span>{/if}
+        · AI MOD {analysis.aiScore !== null ? `${analysis.aiScore}%` : '---'}
+      </button>
+    </div>
+
     {#if lastAnalyzedTime}<span class="text-[8px] font-medium text-white/20 ml-auto">Lân cuối: {lastAnalyzedTime}</span>{/if}
   </div>
 
-  <div class="flex flex-col relative transition-all duration-500 {isEditing ? 'border border-white/5 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] bg-[#09090b]/40 backdrop-blur-2xl' : 'bg-transparent'}">
+  <div class="flex flex-col relative flex-1 min-h-0 transition-all duration-500 {isEditing ? 'border border-white/5 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] bg-[#09090b]/40 backdrop-blur-2xl' : 'bg-transparent'}">
     {#if isProcessing && !displayContent}
       <div class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-700">
         <div class="w-20 h-20 rounded-full border-t-2 border-r-2 border-purple-500/40 animate-spin"></div>
@@ -93,9 +120,10 @@
       </div>
     {/if}
     <TiptapEditor
-      bind:this={editorRef} content={displayContent} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex editable={isEditing} placeholder="AI đang chấp bút bản thảo..." fullScreen={isExpanded} campaignId={campaign_id}
+      bind:this={editorRef} content={displayContent} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex editable={isEditing} placeholder="AI đang chấp bút bản thảo..." fullScreen={isExpanded} campaignId={campaign_id} flex={true}
       onChange={(val) => { if (isEditing && val !== editedDraft) editedDraft = val; }}
       onfix={analysis.runAutoFix} annotations={analysis.editorAnnotations}
+      onClean={() => editorRef?.editor?.commands.clearContent()}
       toolbarActions={[
         { label: analysis.isCopyrightLoading ? '...' : '🔍 COPYRIGHT', loading: analysis.isCopyrightLoading, onclick: () => handleAction(analysis.runCopyrightCheck, true) },
         { label: analysis.isSeoLoading ? '...' : '📊 SEO', loading: analysis.isSeoLoading, disabled: analysis.seoLocked, onclick: () => handleAction(analysis.runSeoAnalysis, true), lockedMsg: analysis.seoLocked ? `🔒 SEO bị khoá — Cần COPYRIGHT ≥ 90 trước` : undefined },
@@ -110,63 +138,11 @@
     />
   </div>
 
-  <div class="shrink-0 flex flex-col gap-2">
-    <div class="flex items-center gap-2">
-      <div class="relative group">
-        <button onclick={() => {
-          if (analysis.activeTab === 'copyright' && !analysis.isCopyrightLoading) {
-            handleAction(analysis.runCopyrightCheck, true);
-          } else {
-            analysis.activeTab = 'copyright';
-            if (!analysis.copyrightResult && !analysis.isCopyrightLoading) handleAction(analysis.runCopyrightCheck);
-          }
-        }} disabled={analysis.isCopyrightLoading} class="flex items-center gap-1.5 px-3 py-1.5 {analysis.activeTab === 'copyright' ? 'bg-orange-500/15 border border-orange-500/40 text-orange-300' : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}">
-          {#if analysis.isCopyrightLoading}<span class="w-3 h-3 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></span>{:else}<ShieldCheck size={12} />{/if}
-          <span class="text-[10px] uppercase font-bold tracking-wider">COPYRIGHT</span>
-          {#if analysis.copyrightScore}<span class="text-[8px] font-black px-1.5 py-0.5 rounded-full {analysis.copyrightScore >= 90 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'}">{analysis.copyrightScore}%</span>{/if}
-        </button>
-        <CriteriaTooltip type="copyright" />
-      </div>
-
-      <div class="relative group">
-        <button onclick={() => {
-          if (analysis.activeTab === 'seo' && !analysis.isSeoLoading) {
-            handleAction(analysis.runSeoAnalysis, true);
-          } else {
-            analysis.activeTab = 'seo';
-            if (!analysis.seoResult && !analysis.isSeoLoading && !analysis.seoLocked) handleAction(analysis.runSeoAnalysis);
-          }
-        }} disabled={analysis.isSeoLoading || analysis.seoLocked} class="flex items-center gap-1.5 px-3 py-1.5 {analysis.activeTab === 'seo' ? 'bg-blue-500/15 border border-blue-500/40 text-blue-300' : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}">
-          {#if analysis.isSeoLoading}<span class="w-3 h-3 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></span>{:else}<BarChart2 size={12} />{/if}
-          <span class="text-[10px] uppercase font-bold tracking-wider">SEO</span>
-          {#if analysis.seoLocked}<span>🔒</span>{:else if analysis.seoResult}<span class="text-[8px] font-black px-1.5 py-0.5 rounded-full {analysis.seoResult.grade === 'A' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}">{analysis.seoResult.grade}.{analysis.seoResult.total_score}</span>{/if}
-        </button>
-        <CriteriaTooltip type="seo" locked={analysis.seoLocked} score={analysis.copyrightScore} />
-      </div>
-
-      <div class="relative group">
-        <button onclick={() => {
-          if (analysis.activeTab === 'ai' && !analysis.isAiLoading) {
-            handleAction(analysis.runAiAnalysis, true);
-          } else {
-            analysis.activeTab = 'ai';
-            if (!analysis.aiReadyResult && !analysis.isAiLoading && !analysis.aiLocked) handleAction(analysis.runAiAnalysis);
-          }
-        }} disabled={analysis.isAiLoading || analysis.aiLocked} class="flex items-center gap-1.5 px-3 py-1.5 {analysis.activeTab === 'ai' ? 'bg-purple-500/15 border border-purple-500/40 text-purple-300' : 'bg-black/40 border border-white/10 text-white/60 hover:bg-white/5'}">
-          {#if analysis.isAiLoading}<span class="w-3 h-3 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></span>{:else}<Sparkles size={12} />{/if}
-          <span class="text-[10px] uppercase font-bold tracking-wider">AI MOD</span>
-          {#if analysis.aiLocked}<span>🔒</span>{:else if analysis.aiScore}<span class="text-[8px] font-black px-1.5 py-0.5 rounded-full {analysis.aiScore >= 85 ? 'bg-purple-500/20 text-purple-400' : 'bg-fuchsia-500/20 text-fuchsia-400'}">{analysis.aiScore}%</span>{/if}
-        </button>
-        <CriteriaTooltip type="ai" locked={analysis.aiLocked} score={analysis.seoScore} />
-      </div>
-    </div>
-
     {#if analysis.activeTab}
-      <div bind:this={resultPanelEl} class="max-h-52 overflow-y-auto custom-scrollbar">
+      <div bind:this={resultPanelEl} class="mt-4 max-h-52 overflow-y-auto custom-scrollbar border-t border-white/5 pt-4">
         <CheckResultPanel activeTab={analysis.activeTab} copyrightResult={analysis.copyrightResult} isCopyrightLoading={analysis.isCopyrightLoading} seoResult={analysis.seoResult} isSeoLoading={analysis.isSeoLoading} aiReadyResult={analysis.aiReadyResult} isAiLoading={analysis.isAiLoading} isBoosting={analysis.isBoosting} runCopyrightCheck={analysis.runCopyrightCheck} runSeoAnalysis={analysis.runSeoAnalysis} runAiAnalysis={analysis.runAiAnalysis} onfix={analysis.runAutoFix} />
       </div>
     {/if}
-  </div>
 </div>
 
 <NeuralProgressTooltip 

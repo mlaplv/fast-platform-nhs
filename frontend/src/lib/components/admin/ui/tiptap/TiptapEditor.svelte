@@ -31,6 +31,7 @@
     onfix = null,
     onblur = () => {},
     campaignId = undefined,
+    flex = false,
   }: {
     content?: string;
     onChange?: (val: string) => void;
@@ -46,6 +47,7 @@
     onfix?: ((snippet: string, type: string, message: string) => Promise<string | null>) | null;
     onblur?: () => void;
     campaignId?: string;
+    flex?: boolean;
   } = $props();
 
   let internalFullScreen = $state<boolean>(fullScreen);
@@ -243,9 +245,9 @@
   const containerClass = $derived(`tiptap-shell flex flex-col w-full ${
     internalFullScreen
       ? 'fixed inset-0 z-[99999] bg-[#0a0d14]'
-      : (editable
-          ? 'bg-transparent'
-          : 'bg-transparent overflow-visible')
+      : (flex 
+          ? 'flex-1 h-full bg-transparent min-h-0' 
+          : (editable ? 'bg-transparent' : 'bg-transparent overflow-visible'))
   }`);
 
   let metricsTimer: ReturnType<typeof setTimeout> | null = null;
@@ -547,17 +549,24 @@
   {/if}
 
   <div
-    class="w-full overflow-y-auto document-scroll {internalFullScreen ? 'bg-[#0a0d14] flex-1' : 'bg-transparent max-h-[650px]'}"
-    onclick={handleImageClick}
+    class="w-full flex flex-col overflow-y-auto document-scroll {internalFullScreen ? 'bg-[#0a0d14] flex-1 min-h-0' : (flex ? 'bg-transparent flex-1 min-h-0' : 'bg-transparent max-h-[650px]')}"
+    onclick={(e) => { 
+      if (e.target === e.currentTarget) editor?.commands.focus();
+      handleImageClick(e); 
+    }}
     ondblclick={handleDoubleClick}
     onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleImageClick(e); }}
     role="button"
     tabindex="0"
   >
-    <div class="
-      {internalFullScreen ? 'max-w-4xl mx-auto my-0 bg-[#0f172a] min-h-screen px-20 py-16 border-x border-white/5' : 'w-full bg-transparent min-h-[400px] px-6 py-4'}
-      {!editable ? 'cursor-default' : ''}
-    ">
+    <div 
+      class="
+        {internalFullScreen ? 'max-w-4xl mx-auto my-0 bg-[#0f172a] min-h-screen px-20 py-16 border-x border-white/5' : (flex ? 'w-full bg-transparent flex-1 min-h-full px-6 py-4' : 'w-full bg-transparent min-h-[400px] px-6 py-4')}
+        {!editable ? 'cursor-default' : 'cursor-text'}
+      "
+      onclick={() => { if (editable) editor?.commands.focus(); }}
+      role="presentation"
+    >
       <div bind:this={element} class="tiptap-content prose prose-invert max-w-none {!editable ? 'opacity-90' : ''}"></div>
     </div>
   </div>

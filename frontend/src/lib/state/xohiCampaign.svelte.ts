@@ -20,6 +20,7 @@ export function createCampaignController(config: {
 }) {
     let isLoading = $state(false);
     let isPublishing = $state(false);
+    let isStepProcessing = $state(false); // CNS V83: Explicit flag for major transitions (Overlay trigger)
 
     // Gate scores derived from metrics/cache
     let copyrightScore = $state<number | null>(null);
@@ -68,6 +69,7 @@ export function createCampaignController(config: {
         }
 
         isLoading = true;
+        isStepProcessing = true; // CNS V83: Trigger full-screen overlay for approve
         try {
             let payload: Record<string, unknown> = isEditing ? {
                 edited_data: $state.snapshot(viewingStep === 1
@@ -98,6 +100,7 @@ export function createCampaignController(config: {
         
         // CNS Phase 82.25: Instant Global Feedback
         // Force global status to PROCESSING so all widgets show UltraPremiumLoading immediately
+        isStepProcessing = true; // CNS V83: Trigger full-screen overlay for retry
         nanobot.updateCurrentData({ 
             status: "PROCESSING", 
             progress_msg: "Đang khởi tạo lại Neural Network cho bước này..." 
@@ -145,6 +148,11 @@ export function createCampaignController(config: {
         } finally {
             isLoading = false;
         }
+    }
+
+    // CNS V83: Auto-clear processing state when step changes or status becomes IDLE/WAITING
+    function resetStepProcessing() {
+        isStepProcessing = false;
     }
 
     async function publish() {
@@ -202,6 +210,10 @@ export function createCampaignController(config: {
         retry,
         updateMetadata,
         publish,
-        syncAssetChanges
+        publish,
+        syncAssetChanges,
+        get isStepProcessing() { return isStepProcessing; },
+        set isStepProcessing(v) { isStepProcessing = v; },
+        resetStepProcessing
     };
 }

@@ -85,9 +85,7 @@ class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     draft_content: Mapped[Optional[str]] = mapped_column(Text)
     search_count: Mapped[int] = mapped_column(Integer, default=0)
     unique_score: Mapped[float] = mapped_column(sa.Float, default=1.0)
-    category: Mapped[str] = mapped_column(String, default="Tin tức")
-    
-    # --- PROFESSIONAL CTO HELPERS (Phase 42) ---
+    # Deferred Loading for heavy fields (Rule R102)
     def get_gold_config(self) -> dict:
         """Returns the creation configuration from gold_metadata or topic_data safely."""
         gold = self.gold_metadata or {}

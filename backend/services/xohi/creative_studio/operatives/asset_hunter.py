@@ -22,7 +22,8 @@ class AssetHunter:
     Modularized for Martial Law (<300 lines).
     """
     def __init__(self, key_pairs: List[Dict[str, str]]) -> None:
-        self.key_pairs, self.current_index, self.hunt_semaphore = key_pairs, 0, asyncio.Semaphore(2)
+        # Phase 82.50: Increased semaphore from 2 to 5 for higher throughput
+        self.key_pairs, self.current_index, self.hunt_semaphore = key_pairs, 0, asyncio.Semaphore(5)
         self.planner_agent = Agent(output_type=VisualSearchPlan, system_prompt=PLANNER_PROMPT)
 
     async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
@@ -33,6 +34,7 @@ class AssetHunter:
             title = campaign.get_gold_val("title", campaign.source_input)
             primary, ground_truth = campaign.get_gold_val("primary_keyword", ""), campaign.get_gold_val("ground_truth", "")
             
+            logger.info(f"📌 [AssetHunter] Starting execute for campaign {campaign_id}")
             await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "user_id": str(campaign.user_id), "step": 2, "message": "🧠 Đang lập kế hoạch săn ảnh...", "status": "PROCESSING", "timestamp": datetime.now(timezone.utc).isoformat()})
 
             content_mode, queries = campaign.get_gold_val("content_mode", "viral"), []
@@ -116,7 +118,13 @@ class AssetHunter:
             campaign.gold_metadata = gold
             flag_modified(campaign, "gold_metadata")
             flag_modified(campaign, "assets_data") # Ensure assets_data is marked as modified for the final update
-            await repo.update(campaign)
+            if not final_assets:
+                return AgentResponse(
+                    signal=AgentSignal.REDO_PREVIOUS,
+                    message="⚠️ Sếp ơi, Google đang chặn em (Rate Limit) hoặc không tìm thấy ảnh nào phù hợp. Sếp thử nhấn 'Chạy lại' nhé!",
+                    data={"assets": [], "error": "Search Quota Exceeded or No Results"}
+                )
+
             return AgentResponse(
                 signal=AgentSignal.PROCEED_NEXT,
                 message=f"Tìm thấy {len(final_assets)} ảnh (và {len(reserve_slice)} ảnh dự phòng).",
