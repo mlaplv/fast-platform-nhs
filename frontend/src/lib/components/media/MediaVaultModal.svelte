@@ -253,6 +253,17 @@
                   <!-- Actions overlay -->
                   <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-3">
                     <p class="text-[10px] text-white/70 truncate mb-2 font-medium">{getImageLabel(asset)}</p>
+                    
+                    {#if onSelect}
+                      <button 
+                        onclick={() => { onSelect?.(getImageUrl(asset)); onClose?.(); }}
+                        class="mb-3 w-full py-2 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 border border-white/10"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17l-5-5"/></svg>
+                        SỬ DỤNG ẢNH NÀY
+                      </button>
+                    {/if}
+
                     <div class="flex items-center gap-1.5">
                       <!-- Move up -->
                       <button 
@@ -354,6 +365,7 @@
             {deleteAsset}
             {handleRetry}
             {handleMouseMove}
+            {onSelect}
           />
         </div>
       </div>

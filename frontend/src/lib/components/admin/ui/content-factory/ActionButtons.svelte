@@ -86,7 +86,7 @@
         <RotateCcw 
           size={16} 
           strokeWidth={2.5} 
-          class="{isProcessing ? 'animate-spin text-cyan-400' : 'group-hover:rotate-[-45deg] transition-transform'}" 
+          class={isProcessing ? 'animate-spin text-cyan-400' : 'group-hover:rotate-[-45deg] transition-transform'} 
         />
       </button>
 
@@ -158,7 +158,7 @@
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
   }
-  .animate-shimmer {
+  :global(.animate-shimmer) {
     animation: shimmer 1.5s infinite;
   }
 </style>

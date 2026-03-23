@@ -22,12 +22,13 @@
   let {
     isProcessing, isStandalone = false, assets = $bindable(), reserve_assets = $bindable(),
     customImageUrl = $bindable(), selectedAvatarUrl = $bindable(), selectedAssetIndex = $bindable(),
-    syncAssetChanges, handleRetry
+    syncAssetChanges, handleRetry, onSelect
   }: {
     isProcessing: boolean; isStandalone?: boolean; assets: (MediaAsset | string)[];
     reserve_assets: (MediaAsset | string)[]; customImageUrl: string;
     selectedAvatarUrl: string | null; selectedAssetIndex: number;
     syncAssetChanges: (newIndex?: number) => void; handleRetry: () => void;
+    onSelect?: (url: string) => void;
   } = $props();
 
   const ctrl = createAssetController({
@@ -103,7 +104,7 @@
   </div>
 
   <div class="transition-all duration-700 min-h-[310px] relative {xohiImageStore.assets.length > 0 ? 'bg-gradient-to-br from-blue-500/10 via-white/[0.01] to-transparent rounded-[2rem] border border-white/10 shadow-2xl' : ''} mb-0">
-    <div class="p-2 md:p-3"><ImageGrid onPurge={(asset) => ctrl.pendingPurgeAsset = asset} {handleRetry} /></div>
+    <div class="p-2 md:p-3"><ImageGrid onPurge={(asset) => ctrl.pendingPurgeAsset = asset} {handleRetry} {onSelect} /></div>
   </div>
 
   {#if reserve_assets && reserve_assets.length > 0}

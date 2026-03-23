@@ -26,7 +26,7 @@ async def test_rotation():
     key_rotator.keys = ["KEY_1_XXXXXXXXX", "KEY_2_XXXXXXXXX", "KEY_3_XXXXXXXXX"]
 
     # 1. Test get_key
-    key = await key_rotator.get_key()
+    key = await key_rotator.get_key(model_name="gemini-1.5-flash")
     print(f"Chosen Key: {key}")
     
     # 2. Test Success
@@ -48,7 +48,7 @@ async def test_rotation():
     
     # 5. Check if blacklisted key is avoided
     for _ in range(20):
-        k = await key_rotator.get_key()
+        k = await key_rotator.get_key(model_name="gemini-1.5-flash")
         if k == key_rotator.keys[0]:
             print("❌ FAILURE: Blacklisted key was selected!")
             return

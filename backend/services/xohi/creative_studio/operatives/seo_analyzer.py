@@ -96,6 +96,16 @@ class SeoAnalyzer:
         # BUG-07 fix: Cache Agent at class scope — R1.6 prohibits per-request Agent creation
         self._agent = Agent(output_type=SeoReport, system_prompt=SEO_ANALYSIS_PROMPT, retries=3)
 
+    async def _emit_log(self, campaign: ContentCampaign, msg: str):
+        """Emit progress event to the system bus."""
+        await event_bus.emit("CONTENT_PROGRESS", {
+            "campaign_id": str(campaign.id),
+            "user_id": str(campaign.user_id),
+            "message": msg,
+            "status": "PROCESSING",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+
     async def _get_search_pair(self) -> Optional[Dict[str, str]]:
         if not self.search_keys: return None
         async with self._key_lock:
@@ -125,12 +135,14 @@ class SeoAnalyzer:
             logger.error(f"[SEO] Search API error: {e}")
             return ["(Lỗi khi kết nối Google Search API)"]
 
-    async def analyze(self, campaign: ContentCampaignRepository) -> SeoReport:
+    async def analyze(self, campaign) -> SeoReport:
         """
         Performs full SEO analysis against top 5 competitor snippets.
         CNS Phase 82.35: Enforce GLOBAL serial processing for SEO.
         """
         async with self._seo_semaphore:
+            logs = ["🔍 Khởi động SEO Analysis Engine..."]
+            await self._emit_log(campaign, logs[-1])
             draft = campaign.draft_content or ""
             # Phase 76.3: Unified Logic-First Sanitization
             # clean_draft keeps HTML for AI structure analysis, pure_text for exact word counts/density
@@ -154,9 +166,13 @@ class SeoAnalyzer:
                     topic = " ".join(words[:8]) if words else "SEO content"
                 logger.info(f"[SEO] No campaign topic set — auto-detected: '{topic}'")
             
+            logs.append(f"📡 Đang tải nội dung đối thủ cho: '{topic}'...")
+            await self._emit_log(campaign, logs[-1])
             competitors = await self._fetch_competitors(topic)
             competitor_str = "\n".join(competitors)
             
+            logs.append("🧠 Đang phân tích SEO bằng Neural Engine...")
+            await self._emit_log(campaign, logs[-1])
             # Logic Layer: Pass data to AI judge
             user_input = f"""
 [BÀI VIẾT ĐANG CHẤM]
@@ -174,6 +190,7 @@ DRAFT:
                 role="brain"
             )
             report = response.data if hasattr(response, 'data') else response.output
+            report.logs = logs
             
             # Phase 73.20: Deterministic Override for Keyword Density (Must use pure_text!)
             primary_kw = campaign.get_gold_val("topic")

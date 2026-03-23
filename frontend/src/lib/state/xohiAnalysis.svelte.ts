@@ -120,30 +120,64 @@ export function createAnalysisController(config: {
     async function runSeoAnalysis(force: boolean = false, skipSave: boolean = false) {
         if (!config.campaign_id || isSeoLoading || seoLocked) return;
         isSeoLoading = true;
+        isBulkFixing = true; // CNS V4.0: Trigger NeuralProgressTooltip
+        bulkFixStatus = "Đang quét SEO...";
+        bulkFixLogs = ["🔍 Đang khởi động SEO Optimizer (Phase 82.8)...", "🧠 Đang phân tích mật độ từ khóa & cấu trúc bài..."];
         activeTab = 'seo';
         try {
             if (!skipSave) await saveBeforeAnalysis();
-            const res = await apiClient.post<{ data: SEOResult }>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/seo?force=${force}`);
-            if (res?.data) seoResult = res.data;
+            const res = await apiClient.post<{ data: { geo_score: number, summary: string, ai_annotations: any[], logs?: string[] } }>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/seo?force=${force}`);
+            if (res?.data) {
+                // Phase 4.0: Premium Log Replay
+                if (res.data.logs && res.data.logs.length > 0) {
+                    for (const log of res.data.logs) {
+                        if (!bulkFixLogs.includes(log)) {
+                            bulkFixLogs = [...bulkFixLogs, log];
+                            await new Promise(r => setTimeout(r, 400));
+                        }
+                    }
+                }
+                seoResult = res.data;
+            }
         } catch (e) {
             console.error("SEO analysis failed:", e);
+            bulkFixLogs = [...bulkFixLogs, "⚠️ Lỗi: Không thể hoàn tất thẩm định SEO."];
         } finally {
             isSeoLoading = false;
+            isBulkFixing = false;
+            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3000);
         }
     }
 
     async function runAiAnalysis(force: boolean = false, skipSave: boolean = false) {
         if (!config.campaign_id || isAiLoading || aiLocked) return;
         isAiLoading = true;
+        isBulkFixing = true; // CNS V4.0: Trigger NeuralProgressTooltip
+        bulkFixStatus = "Đang quét AI MOD...";
+        bulkFixLogs = ["🔍 Đang khởi động AI MOD (Phase 82.8)...", "🧠 Đang rà soát dấu vân tay AI & phong cách viết..."];
         activeTab = 'ai';
         try {
             if (!skipSave) await saveBeforeAnalysis();
-            const res = await apiClient.post<{ data: AIInspectResult }>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/ai-inspect?force=${force}`);
-            if (res?.data) aiReadyResult = res.data;
+            const res = await apiClient.post<{ data: { geo_score: number, summary: string, ai_annotations: any[], logs?: string[] } }>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/ai-inspect?force=${force}`);
+            if (res?.data) {
+                // Phase 4.0: Premium Log Replay
+                if (res.data.logs && res.data.logs.length > 0) {
+                    for (const log of res.data.logs) {
+                        if (!bulkFixLogs.includes(log)) {
+                            bulkFixLogs = [...bulkFixLogs, log];
+                            await new Promise(r => setTimeout(r, 400));
+                        }
+                    }
+                }
+                aiReadyResult = res.data;
+            }
         } catch (e) {
             console.error("AI Inspect failed:", e);
+            bulkFixLogs = [...bulkFixLogs, "⚠️ Lỗi: Không thể hoàn tất thẩm định AI MOD."];
         } finally {
             isAiLoading = false;
+            isBulkFixing = false;
+            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3000);
         }
     }
 

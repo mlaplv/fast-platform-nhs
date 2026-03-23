@@ -65,6 +65,17 @@ class ContentEnricher:
             
         self._agent = Agent(output_type=EnrichAIPayload, system_prompt=ENRICHER_PROMPT, retries=3)
 
+    async def _emit_log(self, campaign: ContentCampaign, msg: str):
+        """Emit progress event to the system bus."""
+        from backend.services.event_bus import event_bus
+        await event_bus.emit("CONTENT_PROGRESS", {
+            "campaign_id": str(campaign.id),
+            "user_id": str(campaign.user_id),
+            "message": msg,
+            "status": "PROCESSING",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+
     def _ensure_keys(self):
         if self.search_keys is not None:
             return
@@ -113,9 +124,9 @@ class ContentEnricher:
             logger.error(f"[Enricher] Search API error: {e}")
             return []
 
-    async def enrich(self, campaign: ContentCampaignRepository) -> EnrichResponse:
-        logs = []
-        logs.append("🔍 Khởi động hệ thống AI Booster (Phase 82.8)...")
+    async def enrich(self, campaign) -> EnrichResponse:
+        logs = ["🔍 Khởi động hệ thống AI Booster (Phase 82.8)..."]
+        await self._emit_log(campaign, logs[-1])
         draft = campaign.draft_content or ""
         if not draft:
             raise ValueError("Không có nội dung để enrich")
@@ -131,9 +142,11 @@ class ContentEnricher:
                 
         logger.info(f"[Enricher] Starting enrichment for topic: {topic}")
         logs.append(f"🧠 Đang phân tích chủ đề: '{topic}'...")
+        await self._emit_log(campaign, logs[-1])
 
         # Phase 1: Gather Real Data (Parallel)
         logs.append("📡 Đang trinh sát dữ liệu thực tế từ Google (Stats & Quotes)...")
+        await self._emit_log(campaign, logs[-1])
         year = datetime.now().year
         stats_query = f"{topic} statistics {year} số liệu thống kê"
         quotes_query = f"{topic} expert quotes ý kiến chuyên gia"
@@ -161,6 +174,7 @@ TRẢ VỀ toàn bộ HTML của bài viết SAU KHI ĐÃ CHÈN.
 """
         logger.info("[Enricher] Sending to Gemini for synthesis...")
         logs.append("🧠 Đang tổng hợp số liệu và chèn vào bản thảo...")
+        await self._emit_log(campaign, logs[-1])
         try:
             # Use role="brain" for complex synthesis tasks
             result = await trinity_bridge.run(self._agent, user_input, role="brain")
@@ -181,8 +195,10 @@ TRẢ VỀ toàn bộ HTML của bài viết SAU KHI ĐÃ CHÈN.
             logger.error(f"[Enricher] Raw Payload (first 500 chars): {raw_text[:500]}")
             raise ValueError("AI fail to generate enriched content structure")
             
+            
         logger.info(f"[Enricher] Enrichment complete. Stats: {result.data.stats_added}, Quotes: {result.data.quotes_added}")
         logs.append(f"✅ Hoàn tất! Đã chèn {result.data.stats_added} số liệu, {result.data.quotes_added} câu quote và {result.data.tables_added} bảng so sánh.")
+        await self._emit_log(campaign, logs[-1])
         
         # Convert EnrichAIPayload to EnrichResponse by adding logs
         return EnrichResponse(

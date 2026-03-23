@@ -6,7 +6,7 @@
   import { flip } from "svelte/animate";
   import { Sparkles, LayoutGrid, Upload, RotateCcw } from "lucide-svelte";
   import { untrack } from "svelte";
-  let { onPurge, handleRetry }: { onPurge?: (asset: MediaAsset) => void; handleRetry?: () => void } = $props();
+  let { onPurge, handleRetry, onSelect }: { onPurge?: (asset: MediaAsset) => void; handleRetry?: () => void; onSelect?: (url: string) => void } = $props();
 
   const flipDurationMs = 300;
 
@@ -57,7 +57,7 @@
       <div
         class="p-0.5 rounded-[1.8rem] bg-gradient-to-b from-blue-500/10 to-transparent border border-blue-500/20 shadow-2xl overflow-hidden"
       >
-        <ImageSlot asset={xohiImageStore.primaryAsset} index={0} {onPurge} />
+        <ImageSlot asset={xohiImageStore.primaryAsset} index={0} {onPurge} {onSelect} />
       </div>
       <p
         class="text-[7.5px] text-white/40 font-bold uppercase tracking-[0.2em] px-3 italic leading-relaxed"
@@ -98,7 +98,7 @@
       >
         {#each items as asset, i (asset.id)}
           <div animate:flip={{ duration: flipDurationMs }}>
-            <ImageSlot {asset} index={i + 1} {onPurge} />
+            <ImageSlot {asset} index={i + 1} {onPurge} {onSelect} />
           </div>
         {/each}
 

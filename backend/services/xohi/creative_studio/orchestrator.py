@@ -20,6 +20,8 @@ from backend.models.schemas import GenericResponse, AgentResponse
 from backend.services.xohi.creative_studio.handlers.voice import VoiceHandler
 from backend.services.xohi.creative_studio.handlers.actions import ActionHandler
 from backend.services.xohi.creative_studio.handlers.engine import ExecutionEngine
+from backend.services.xohi.creative_studio.handlers.analyst import AnalystHandler
+from backend.services.xohi.creative_studio.handlers.management import ManagementHandler
 from backend.services.xohi.creative_studio.operatives.discovery_hunter import DiscoveryHunter
 
 logger = logging.getLogger("api-gateway")
@@ -58,6 +60,8 @@ class ContentOrchestrator:
         self.voice_handler = VoiceHandler(self)
         self.action_handler = ActionHandler(self)
         self.engine = ExecutionEngine(self)
+        self.analyst = AnalystHandler(self)
+        self.management = ManagementHandler(self)
         
         logger.info("[Content Factory] Orchestrator initialized with lean modular handlers.")
 

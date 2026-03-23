@@ -12,6 +12,7 @@
   import AnnotationTooltip from './ui/AnnotationTooltip.svelte';
   import ImageBubbleMenu from './ui/ImageBubbleMenu.svelte';
   import type { MediaAsset } from '$lib/state/types';
+  import { resolveMediaUrl } from '$lib/state/utils';
   import { apiClient } from '$lib/utils/apiClient';
 
   let {
@@ -295,36 +296,69 @@
   });
 
   $effect(() => {
-    if (!editor || editor.isDestroyed) return;
+    // CNS V2.2: Stabilized Content Sync (Zero-Flicker)
+    if (!editor || editor.isDestroyed || isInternalUpdating || isSyncLocked) return;
     
-    // Defensive content stabilization
     const normalizedContent = content || "<p></p>";
-    const currentHTML = editor.getHTML();
     
-    const cleanNew = stripMarks(normalizedContent).trim().replace(/\n/g, '');
-    const cleanCurrent = stripMarks(currentHTML).trim().replace(/\n/g, '');
+    untrack(() => {
+        const currentHTML = editor!.getHTML();
+        
+        // Use a more relaxed comparison to avoid loops (ignore whitespace between tags)
+        const cleanContent = (html: string) => html.replace(/\s+/g, ' ').replace(/>\s+</g, '><').trim();
+        
+        if (cleanContent(normalizedContent) !== cleanContent(currentHTML)) {
+            console.log('[Tiptap] Prop-driven content sync triggered');
+            isInternalUpdating = true;
+            const { from, to } = editor!.state.selection;
+            editor!.commands.setContent(normalizedContent, false);
+            
+            // Re-sync selection if it was focused
+            if (isFocused) {
+                try { editor!.commands.setTextSelection({ from, to }); } catch (e) {}
+            }
+            setTimeout(() => { isInternalUpdating = false; }, 50);
+        }
+    });
 
-    if (cleanNew !== cleanCurrent) {
-      isInternalUpdating = true;
-      const { from, to } = editor.state.selection;
-      editor.commands.setContent(normalizedContent, false);
-      if (isFocused) {
-        try { editor.commands.setTextSelection({ from, to }); } catch (e) {}
-      }
-      updateMetrics();
-      isInternalUpdating = false;
-      // ✦ Re-dispatch annotations after doc replacement so decorations are recreated on the new doc
-      // Fixes: highlights lost after bulk-fix setContent race condition (Issue 2 & F5 Issue 3)
-      const currentAnnotations = annotations;
-      if (currentAnnotations && currentAnnotations.length > 0) {
-        editor.view.dispatch(
-          editor.state.tr.setMeta(AnnotationPluginKey, {
-            type: 'SET_ANNOTATIONS',
-            annotations: [...currentAnnotations]
-          })
-        );
-      }
+    // ✦ Re-dispatch annotations after doc replacement so decorations are recreated on the new doc
+    // Fixes: highlights lost after bulk-fix setContent race condition (Issue 2 & F5 Issue 3)
+    const currentAnnotations = annotations;
+    if (currentAnnotations && currentAnnotations.length > 0) {
+      editor.view.dispatch(
+        editor.state.tr.setMeta(AnnotationPluginKey, {
+          type: 'SET_ANNOTATIONS',
+          annotations: [...currentAnnotations]
+        })
+      );
     }
+  });
+
+  // Elite V2.2: Scan Editor for Images to keep assets prop in sync
+  $effect(() => {
+    if (!editor || editor.isDestroyed || isInternalUpdating) return;
+    
+    // Only scan on content changes
+    const _trigger = [wordCount, charCount, content]; 
+    
+    untrack(() => {
+      const html = editor.getHTML();
+      const imgRegex = /<img[^>]+src=["']([^"']+)["']/g;
+      const found: string[] = [];
+      let match;
+      while ((match = imgRegex.exec(html)) !== null) {
+        let src = match[1];
+        if (src && !found.includes(src)) found.push(src);
+      }
+      
+      // Update assets if changed (ignore order for simple sync)
+      const currentUrls = assets.map(a => typeof a === 'string' ? a : (a.file_path || a.url || ''));
+      const hasChanged = found.length !== currentUrls.length || found.some(url => !currentUrls.includes(url));
+      
+      if (hasChanged) {
+        assets = found;
+      }
+    });
   });
 
   // Cerberus 2026: Sustainable Highlighting Sync
@@ -426,7 +460,7 @@
     }
   }
 
-  function handleImageClick(e: MouseEvent) {
+  function handleImageClick(e: MouseEvent | KeyboardEvent) {
     const target = e.target as HTMLElement;
     let img = target.closest('.tiptap-content img') as HTMLImageElement | null;
     // Also handle clicks on figcaption
@@ -484,6 +518,9 @@
     class="flex-1 overflow-y-auto document-scroll {internalFullScreen ? 'bg-[#0a0d14]' : 'bg-transparent'}"
     onclick={handleImageClick}
     ondblclick={handleDoubleClick}
+    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleImageClick(e); }}
+    role="button"
+    tabindex="0"
   >
     <div class="
       {internalFullScreen ? 'max-w-4xl mx-auto my-0 bg-[#0f172a] min-h-screen px-20 py-16 border-x border-white/5' : 'w-full bg-transparent min-h-[400px] px-6 py-4'}
@@ -499,26 +536,41 @@
 </div>
 
   <MediaVaultModal
-  isOpen={showMediaVault}
-  onClose={() => showMediaVault = false}
-  {campaignId}
-  bind:assets
-  bind:selectedAvatarUrl={selectedAvatarUrl as any}
-  bind:selectedAssetIndex
-  onSelect={(url) => {
+    isOpen={showMediaVault}
+    onClose={() => showMediaVault = false}
+    {campaignId}
+    bind:assets
+    bind:selectedAvatarUrl
+    bind:selectedAssetIndex
+    onSelect={(url) => {
     if (editor) {
       blockClicks = true;
       imageMenuVisible = false;
       const safeUrl = resolveMediaUrl(url);
+      
+      // V22: Robust Insertion
+      isSyncLocked = true;
+      
       // Defer focus to avoid click-through when portal unmounts
       setTimeout(() => {
-        if (!editor || editor.isDestroyed) return;
+        if (!editor || editor.isDestroyed) { isSyncLocked = false; return; }
+        
         if (editor.isActive('image')) {
           editor.chain().focus().updateAttributes('image', { src: safeUrl }).run();
         } else {
           editor.chain().focus().setImage({ src: safeUrl }).run();
         }
-        setTimeout(() => { blockClicks = false; }, 300);
+        
+        // Final sync
+        const cleaned = stripMarks(editor.getHTML());
+        console.log('[TiptapEditor] Content after image insertion:', cleaned);
+        content = cleaned;
+        onChange(cleaned);
+        
+        setTimeout(() => { 
+          blockClicks = false; 
+          isSyncLocked = false;
+        }, 300);
       }, 50);
     }
   }}

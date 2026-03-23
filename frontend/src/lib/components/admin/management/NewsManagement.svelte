@@ -151,17 +151,28 @@
     showDraftForm = true;
   }
 
-  function openEdit(a: Article) {
-    editingId = a.id; 
-    formTitle = a.title; 
-    formCategory = a.category; 
-    formExcerpt = a.excerpt || "";
-    formContent = a.content || "";
-    formSlug = a.slug;
-    formSeoTitle = a.seoTitle || "";
-    formSeoDescription = a.seoDescription || "";
-    formFeaturedImage = a.featuredImage || null;
-    showDraftForm = true;
+  async function openEdit(a: Article) {
+    try {
+      nanobot.showToast("Loading intelligence...", "info");
+      const res = await apiClient.get<Article>(`/api/v1/articles/${a.id}`);
+      console.log('[NewsManagement] openEdit raw response:', res);
+      const fullArticle = res;
+      console.log('[NewsManagement] openEdit fullArticle:', fullArticle);
+      
+      editingId = fullArticle.id; 
+      formTitle = fullArticle.title; 
+      formCategory = fullArticle.category; 
+      formExcerpt = fullArticle.excerpt || "";
+      formContent = fullArticle.content || "";
+      formSlug = fullArticle.slug;
+      formSeoTitle = fullArticle.seoTitle || "";
+      formSeoDescription = fullArticle.seoDescription || "";
+      formFeaturedImage = fullArticle.featuredImage || null;
+      showDraftForm = true;
+    } catch (err) {
+      console.error('[NewsManagement] openEdit failed:', err);
+      nanobot.showToast("Dạ sếp, không lấy được chi tiết bài viết. Neural Link bị lỗi rồi!", "error");
+    }
   }
 
   async function saveArticle() {
@@ -180,6 +191,7 @@
 
     isSaving = true;
     try {
+      console.log('[NewsManagement] Saving formContent:', formContent);
       const payload = {
         title: formTitle,
         category: formCategory,
@@ -326,7 +338,7 @@
             <span>Show</span>
             <select
               value={pageSize}
-              onchange={(e) => { pageSize = Number((e.target as HTMLSelectElement).value); currentPage = 1; }}
+              onchange={(e) => { pageSize = Number(e.currentTarget.value); currentPage = 1; }}
               class="bg-black/60 border border-white/10 rounded-md px-1.5 py-1 text-cyan-500 text-[9px] font-mono font-bold focus:outline-none focus:border-cyan-500/50 cursor-pointer appearance-none text-center w-12"
             >
               <option value={10}>10</option>

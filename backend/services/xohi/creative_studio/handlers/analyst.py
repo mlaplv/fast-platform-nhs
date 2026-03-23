@@ -1,0 +1,118 @@
+import logging
+import hashlib
+import copy
+from datetime import datetime, timezone
+from typing import Dict, Optional, Any
+from sqlalchemy.orm.attributes import flag_modified
+
+from backend.database.repositories import ContentCampaignRepository
+from backend.models.schemas import GenericResponse
+
+logger = logging.getLogger("api-gateway")
+
+class AnalystHandler:
+    def __init__(self, orchestrator: "ContentOrchestrator"):
+        self.orchestrator = orchestrator
+
+    async def _run_analysis(self, campaign_id: str, campaign_repo: ContentCampaignRepository, analyzer_class, category: str, force: bool = False) -> GenericResponse:
+        campaign = await campaign_repo.get(campaign_id)
+        if not campaign: return GenericResponse(status="error", message="Campaign not found")
+        if not campaign.draft_content: return GenericResponse(status="error", message="Chưa có nội dung để phân tích.")
+
+        draft_text = campaign.draft_content or ""
+        content_hash = hashlib.sha256(draft_text.encode('utf-8')).hexdigest()
+        gold = campaign.gold_metadata or {}
+        cache = gold.get("analysis_cache", {})
+
+        if not force and cache.get(category, {}).get("hash") == content_hash:
+            return GenericResponse(status="success", data=cache[category]["data"])
+
+        try:
+            analyzer = analyzer_class()
+            result = await analyzer.analyze(campaign)
+            result_data = result.model_dump()
+
+            cache[category] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
+            metrics = gold.get("analysis_metrics", {})
+            
+            if category == "copyright":
+                metrics["unique_score"] = result.uniqueness_score
+                metrics["copyright_risk"] = result.risk_level
+                campaign.unique_score = result.uniqueness_score
+            elif category == "seo":
+                metrics["seo_score"] = result.total_score
+                metrics["seo_grade"] = result.grade
+            elif category == "ai_inspect":
+                metrics["ai_ready_score"] = result.geo_score
+            
+            metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
+            
+            new_gold = copy.deepcopy(gold)
+            new_gold["analysis_cache"] = cache
+            new_gold["analysis_metrics"] = metrics
+            campaign.gold_metadata = new_gold
+            flag_modified(campaign, "gold_metadata")
+            
+            await campaign_repo.update(campaign)
+            if hasattr(campaign_repo, "session"): await campaign_repo.session.commit()
+            
+            return GenericResponse(status="success", data=result_data)
+        except Exception as e:
+            logger.error(f"[AnalystHandler] {category} analysis failed: {str(e)}", exc_info=True)
+            return GenericResponse(status="error", message=str(e))
+
+    async def analyze_copyright(self, campaign_id: str, campaign_repo: ContentCampaignRepository, force: bool = False) -> GenericResponse:
+        from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
+        return await self._run_analysis(campaign_id, campaign_repo, PlagiarismCop, "copyright", force)
+
+    async def analyze_seo(self, campaign_id: str, campaign_repo: ContentCampaignRepository, force: bool = False) -> GenericResponse:
+        from backend.services.xohi.creative_studio.operatives.seo_analyzer import SeoAnalyzer
+        return await self._run_analysis(campaign_id, campaign_repo, SeoAnalyzer, "seo", force)
+
+    async def analyze_ai_inspect(self, campaign_id: str, campaign_repo: ContentCampaignRepository, force: bool = False) -> GenericResponse:
+        from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
+        return await self._run_analysis(campaign_id, campaign_repo, AiInspector, "ai_inspect", force)
+
+    async def auto_fix(self, campaign_id: str, data: Dict[str, Any], campaign_repo: ContentCampaignRepository) -> GenericResponse:
+        from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector, AutoFixRequest
+        campaign = await campaign_repo.get(campaign_id)
+        if not campaign: return GenericResponse(status="error", message="Campaign not found")
+        if not campaign.draft_content: return GenericResponse(status="error", message="Chưa có nội dung để biên tập.")
+        try:
+            result = await AiInspector().auto_fix(campaign, AutoFixRequest(**data))
+            return GenericResponse(status="success", data=result.model_dump())
+        except Exception as e: return GenericResponse(status="error", message=str(e))
+
+    async def bulk_fix(self, campaign_id: str, data: Dict[str, Any], campaign_repo: ContentCampaignRepository) -> GenericResponse:
+        from backend.services.xohi.creative_studio.models.schemas import BulkFixRequest
+        from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
+        from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
+        campaign = await campaign_repo.get(campaign_id)
+        if not campaign: return GenericResponse(status="error", message="Campaign not found")
+        if not campaign.draft_content: return GenericResponse(status="error", message="Chưa có nội dung để biên tập.")
+        try:
+            fix_req = BulkFixRequest(**data)
+            op = PlagiarismCop() if fix_req.category == "copyright" else AiInspector()
+            res = await op.bulk_fix(campaign, fix_req)
+            if res.new_content and res.new_content != campaign.draft_content:
+                campaign.draft_content = res.new_content
+                flag_modified(campaign, "draft_content")
+                await campaign_repo.update(campaign)
+                if hasattr(campaign_repo, "session"): await campaign_repo.session.commit()
+            return GenericResponse(status="success", data=res.model_dump())
+        except Exception as e: return GenericResponse(status="error", message=str(e))
+
+    async def enrich(self, campaign_id: str, campaign_repo: ContentCampaignRepository) -> GenericResponse:
+        from backend.services.xohi.creative_studio.operatives.content_enricher import enricher
+        campaign = await campaign_repo.get(campaign_id)
+        if not campaign: return GenericResponse(status="error", message="Campaign not found")
+        if not campaign.draft_content: return GenericResponse(status="error", message="Chưa có nội dung để enrich.")
+        try:
+            res = await enricher.enrich(campaign)
+            if res.new_content and res.new_content != campaign.draft_content:
+                campaign.draft_content = res.new_content
+                flag_modified(campaign, "draft_content")
+                await campaign_repo.update(campaign)
+                if hasattr(campaign_repo, "session"): await campaign_repo.session.commit()
+            return GenericResponse(status="success", data=res.model_dump())
+        except Exception as e: return GenericResponse(status="error", message=str(e))

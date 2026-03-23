@@ -667,7 +667,7 @@
         <div class="p-4 bg-zinc-50 dark:bg-zinc-800/30 border-b flex flex-col gap-4" transition:slide>
             <div class="flex items-center justify-between">
                 <span class="text-[10px] font-black uppercase tracking-widest text-zinc-500">BỘ LỌC TRUY XUẤT NGUỒN GỐC</span>
-                <button onclick={() => showPostFilter = false} class="text-zinc-400 hover:text-zinc-600">
+                <button onclick={() => showPostFilter = false} class="text-zinc-400 hover:text-zinc-600" aria-label="Đóng bộ lọc">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
@@ -780,6 +780,7 @@
                             class="group relative aspect-square bg-zinc-100 dark:bg-white/[0.04] rounded-2xl overflow-hidden border transition-all duration-300
                             {selectedAssetId === asset.id ? 'border-indigo-400/50 ring-1 ring-indigo-400/20 shadow-[0_0_25px_rgba(99,102,241,0.15)]' : 'border-white/[0.06] hover:border-white/[0.15] hover:shadow-lg hover:shadow-black/20'} cursor-pointer glass-card"
                             onclick={() => selectedAssetId = asset.id}
+                            ondblclick={() => { if (mode === 'pick' && onSelect) onSelect([asset]); }}
                             role="button"
                             tabindex="0"
                         >
@@ -903,6 +904,7 @@
                             class="grid grid-cols-12 items-center px-4 py-3 bg-white dark:bg-zinc-800 border rounded-xl hover:shadow-sm transition-all group cursor-pointer text-left
                             {selectedAssetId === asset.id ? 'border-blue-500 bg-blue-50/30 dark:bg-blue-900/10' : ''}"
                             onclick={() => selectedAssetId = asset.id}
+                            ondblclick={() => { if (mode === 'pick' && onSelect) onSelect([asset]); }}
                             onkeydown={(e) => e.key === 'Enter' && (selectedAssetId = asset.id)}
                         >
                             <div class="col-span-1 flex justify-center">
@@ -1248,7 +1250,7 @@
                         </div>
                     </div>
 
-                    <div class="flex flex-col gap-2 mt-auto">
+                    <div class="sticky bottom-0 left-0 right-0 p-4 border-t bg-zinc-50/80 dark:bg-zinc-900/80 backdrop-blur-md flex flex-col gap-2 mt-auto">
                         {#if mediaStore.isTrashMode}
                             <button
                                 onclick={() => handleRestore(selectedAsset!.id)}
@@ -1266,7 +1268,7 @@
                         {:else}
                             {#if onSelect}
                                 <button
-                                    onclick={() => onSelect!(selectedAsset!)}
+                                    onclick={() => onSelect!([selectedAsset!])}
                                     class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
@@ -1481,7 +1483,7 @@
             <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-700 w-full max-w-sm overflow-hidden" transition:slide>
                 <div class="p-4 border-b flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/50">
                     <h3 class="font-bold text-[10px] uppercase tracking-wider">GẮN ẢNH VÀO BÀI VIẾT / SẢN PHẨM</h3>
-                    <button onclick={() => showLinkModal = false} class="text-zinc-500 hover:text-zinc-700">
+                    <button onclick={() => showLinkModal = false} class="text-zinc-500 hover:text-zinc-700" aria-label="Đóng">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                 </div>
@@ -1490,7 +1492,7 @@
 
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-[9px] font-bold text-zinc-400 uppercase mb-2">Phân loại nội dung</label>
+                            <span class="block text-[9px] font-bold text-zinc-400 uppercase mb-2">Phân loại nội dung</span>
                             <div class="grid grid-cols-2 gap-2">
                                 <button
                                     onclick={() => linkPostType = 'news'}
@@ -1508,8 +1510,9 @@
                         </div>
 
                         <div>
-                            <label class="block text-[9px] font-bold text-zinc-400 uppercase mb-2">ID Bài viết / SKU Sản phẩm</label>
+                            <label for="link_post_id" class="block text-[9px] font-bold text-zinc-400 uppercase mb-2">ID Bài viết / SKU Sản phẩm</label>
                             <input
+                                id="link_post_id"
                                 type="text"
                                 bind:value={linkPostId}
                                 placeholder="Nhập mã định danh..."

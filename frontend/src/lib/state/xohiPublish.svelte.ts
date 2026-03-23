@@ -4,14 +4,14 @@ import { untrack } from "svelte";
 import type { CampaignKeywords, MediaAsset } from "./types";
 
 export function createPublishController(config: {
-    campaign_id: string;
+    getCampaignId: () => string;
     getKeywords: () => CampaignKeywords;
     getDraftContent: () => string;
     getFinalHtml: () => string;
     getAssets: () => (MediaAsset | string)[];
     setSelectedAvatarUrl: (v: string | null) => void;
     setFinalHtml: (v: string) => void;
-    apiClient: any;
+    getApiClient: () => any;
 }) {
     let editingField = $state<string | null>(null);
     let showAvatarPicker = $state(false);
@@ -33,7 +33,7 @@ export function createPublishController(config: {
     async function saveField() {
         editingField = null;
         try {
-            await config.apiClient.patch(`/api/v1/content/campaigns/${config.campaign_id}`, {
+            await config.getApiClient().patch(`/api/v1/content/campaigns/${config.getCampaignId()}`, {
                 keywords: config.getKeywords(),
                 draft_content: config.getDraftContent(),
                 final_html: displayContent
@@ -44,7 +44,7 @@ export function createPublishController(config: {
     }
 
     async function selectAvatar(asset: MediaAsset | string) {
-        const url = typeof asset === 'string' ? asset : asset.url;
+        const url = typeof asset === 'string' ? asset : (asset.url || null);
         config.setSelectedAvatarUrl(url);
 
         if (typeof asset !== 'string' && asset.id) {
@@ -53,7 +53,7 @@ export function createPublishController(config: {
 
         showAvatarPicker = false;
         try {
-            await config.apiClient.patch(`/api/v1/content/campaigns/${config.campaign_id}`, {
+            await config.getApiClient().patch(`/api/v1/content/campaigns/${config.getCampaignId()}`, {
                 assets: xohiImageStore.assets,
                 avatar: url
             });

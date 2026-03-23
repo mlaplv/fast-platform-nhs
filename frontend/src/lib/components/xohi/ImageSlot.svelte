@@ -15,7 +15,8 @@
     asset: MediaAsset, 
     index: number, 
     isDndShadow?: boolean,
-    onPurge?: (asset: MediaAsset) => void 
+    onPurge?: (asset: MediaAsset) => void,
+    onSelect?: (url: string) => void
   } = $props();
 
   let showCropPresets = $state(false);
@@ -162,6 +163,16 @@
             title="Đẩy làm ảnh chính"
           >
             <Star size={16} class="group-hover/star:fill-yellow-400" />
+          </button>
+        {/if}
+
+        {#if onSelect}
+          <button
+            class="p-2 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-500/20 group/select"
+            onclick={(e) => { e.stopPropagation(); onSelect?.(resolveMediaUrl(asset.file_path || asset.url)); }}
+            title="SỬ DỤNG ẢNH NÀY"
+          >
+            <Check size={16} strokeWidth={3} />
           </button>
         {/if}
 

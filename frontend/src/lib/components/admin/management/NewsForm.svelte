@@ -58,22 +58,43 @@
   let selectedAssetIndex = $state(0);
 
   // CNS V2.2: Reactive Media Resolution for Editor
-  let displayContent = $derived.by(() => {
-    const assets = formFeaturedImage ? [formFeaturedImage] : [];
-    return processContentImages(formContent, assets);
-  });
+  // CNS V2.2: Stabilized Image Resolution Logic
+  // We avoid re-processing on every keystroke to prevent feedback loops
+  let contentAssets = $state<(MediaAsset | string)[]>([]);
+  let featuredContextAssets = $state<(MediaAsset | string)[]>([]);
 
+  // V22: Stabilized Image Resolution Logic
+  function resolvePlaceholders(html: string) {
+    if (!html) return "";
+    return processContentImages(html, contentAssets);
+  }
+
+  // Extract assets from content on initial load (only if contentAssets is empty)
   $effect(() => {
-    if (formFeaturedImage && featuredAssets.length === 0) {
-      featuredAssets = [formFeaturedImage];
+    if (formContent && contentAssets.length === 0) {
+      const imgRegex = /<img[^>]+src=["']([^"']+)["']/g;
+      const found: string[] = [];
+      let match;
+      while ((match = imgRegex.exec(formContent)) !== null) {
+        if (match[1] && !found.includes(match[1])) found.push(match[1]);
+      }
+      if (found.length > 0) {
+        contentAssets = found;
+      }
     }
   });
 
+  // Effect to resolve placeholders from AI/Legacy content
   $effect(() => {
-    if (featuredAssets.length > 0) {
-      formFeaturedImage = featuredAssets[0];
-    } else {
-      formFeaturedImage = null;
+    if (formContent && formContent.includes("[IMAGE_")) {
+      formContent = resolvePlaceholders(formContent);
+    }
+  });
+
+  // Synergize: Ensure featured image is in the context assets for the modal
+  $effect(() => {
+    if (formFeaturedImage && featuredContextAssets.length === 0) {
+      featuredContextAssets = [formFeaturedImage];
     }
   });
 
@@ -145,9 +166,10 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8" transition:slide>
         <div class="flex flex-col gap-6">
           <div class="flex flex-col gap-2">
-            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Tiêu đề bài viết</label>
+            <label for="news-title" class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Tiêu đề bài viết</label>
             <div class="relative bg-white/[0.03] border {errors?.title ? 'border-red-500/50' : 'border-white/5'} focus-within:border-cyan-500/40 rounded-2xl transition-all shadow-inner">
               <input 
+                id="news-title"
                 bind:value={formTitle} 
                 oninput={() => { if (!editingId) formSlug = generateSlug(formTitle); }}
                 placeholder="Nhập tiêu đề..." 
@@ -160,9 +182,9 @@
           </div>
           
           <div class="flex flex-col gap-2">
-            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Chuyên mục</label>
+            <label for="news-category" class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Chuyên mục</label>
             <div class="relative bg-white/[0.03] border border-white/5 focus-within:border-cyan-500/40 rounded-2xl transition-all shadow-inner">
-              <select bind:value={formCategory} class="w-full bg-[#0a0a0a] py-4 px-6 text-sm text-gray-300 focus:outline-none rounded-2xl appearance-none">
+              <select id="news-category" bind:value={formCategory} class="w-full bg-[#0a0a0a] py-4 px-6 text-sm text-gray-300 focus:outline-none rounded-2xl appearance-none">
                 {#each dbCategories as c}
                   <option value={c}>{c}</option>
                 {/each}
@@ -182,9 +204,9 @@
           </div>
 
           <div class="flex flex-col gap-2">
-            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Mô tả ngắn (Excerpt)</label>
+            <label for="news-excerpt" class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Mô tả ngắn (Excerpt)</label>
             <div class="relative bg-white/[0.03] border border-white/5 focus-within:border-cyan-500/40 rounded-2xl transition-all shadow-inner">
-              <textarea bind:value={formExcerpt} placeholder="Tóm tắt nội dung bài viết..." rows="3" class="w-full bg-transparent py-4 px-6 text-sm text-gray-400 focus:outline-none resize-none"></textarea>
+              <textarea id="news-excerpt" bind:value={formExcerpt} placeholder="Tóm tắt nội dung bài viết..." rows="3" class="w-full bg-transparent py-4 px-6 text-sm text-gray-400 focus:outline-none resize-none"></textarea>
             </div>
           </div>
         </div>
@@ -196,8 +218,8 @@
         </label>
         <div class="flex-1 rounded-3xl overflow-hidden border border-white/5 bg-black/40">
           <TiptapEditor
-            content={displayContent}
-            bind:assets={featuredAssets}
+            content={formContent}
+            bind:assets={contentAssets}
             bind:selectedAvatarUrl={selectedAvatarUrl}
             bind:selectedAssetIndex={selectedAssetIndex}
             onChange={(val) => { formContent = val; }}
@@ -259,26 +281,26 @@
     {:else if activeTab === "seo"}
       <div class="max-w-3xl flex flex-col gap-8" transition:slide>
         <div class="flex flex-col gap-2">
-          <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Đường dẫn bài viết (Slug)</label>
+          <label for="news-slug" class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Đường dẫn bài viết (Slug)</label>
           <div class="relative bg-white/[0.03] border {errors?.slug ? 'border-red-500/50' : 'border-white/5'} focus-within:border-blue-500/40 rounded-2xl transition-all shadow-inner">
             <div class="absolute left-6 top-1/2 -translate-y-1/2 text-gray-700 font-mono text-xs">/news/</div>
-            <input bind:value={formSlug} placeholder="slug-bai-viet..." class="w-full bg-transparent py-4 pl-20 pr-6 text-sm text-cyan-400 font-mono focus:outline-none" />
+            <input id="news-slug" bind:value={formSlug} placeholder="slug-bai-viet..." class="w-full bg-transparent py-4 pl-20 pr-6 text-sm text-cyan-400 font-mono focus:outline-none" />
           </div>
           {#if errors?.slug}
             <span class="text-[9px] font-bold text-red-500 ml-2">{errors.slug}</span>
           {/if}
         </div>
         <div class="flex flex-col gap-2">
-          <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Tiêu đề SEO (Meta Title)</label>
+          <label for="news-seo-title" class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Tiêu đề SEO (Meta Title)</label>
           <div class="relative bg-white/[0.03] border border-white/5 focus-within:border-blue-500/40 rounded-2xl transition-all shadow-inner">
-            <input bind:value={formSeoTitle} placeholder="Nhập tiêu đề SEO..." class="w-full bg-transparent py-4 px-6 text-sm text-gray-100 focus:outline-none" />
+            <input id="news-seo-title" bind:value={formSeoTitle} placeholder="Nhập tiêu đề SEO..." class="w-full bg-transparent py-4 px-6 text-sm text-gray-100 focus:outline-none" />
             <div class="absolute right-6 top-1/2 -translate-y-1/2 text-[9px] font-mono text-gray-600">{(formSeoTitle || '').length}/60</div>
           </div>
         </div>
         <div class="flex flex-col gap-2">
-          <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Mô tả SEO (Meta Description)</label>
+          <label for="news-seo-description" class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Mô tả SEO (Meta Description)</label>
           <div class="relative bg-white/[0.03] border border-white/10 focus-within:border-blue-500/40 rounded-2xl transition-all shadow-inner">
-            <textarea bind:value={formSeoDescription} placeholder="Nhập mô tả SEO cho bài viết..." rows="4" class="w-full bg-transparent py-4 px-6 text-sm text-gray-100 focus:outline-none resize-none"></textarea>
+            <textarea id="news-seo-description" bind:value={formSeoDescription} placeholder="Nhập mô tả SEO cho bài viết..." rows="4" class="w-full bg-transparent py-4 px-6 text-sm text-gray-100 focus:outline-none resize-none"></textarea>
             <div class="absolute right-6 bottom-4 text-[9px] font-mono text-gray-600">{(formSeoDescription || '').length}/160</div>
           </div>
         </div>
@@ -306,10 +328,11 @@
 <MediaVaultModal 
   isOpen={showMediaModal} 
   onClose={() => showMediaModal = false}
-  bind:assets={featuredAssets}
+  bind:assets={featuredContextAssets}
   bind:reserve_assets
   bind:selectedAvatarUrl
   bind:selectedAssetIndex
+  onSelect={(url) => { formFeaturedImage = url; showMediaModal = false; }}
 />
 
 <style>

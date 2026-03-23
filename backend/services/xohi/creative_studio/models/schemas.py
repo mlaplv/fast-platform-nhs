@@ -66,6 +66,7 @@ class AiReadyReport(BaseModel):
     geo_score: int
     summary: str
     ai_annotations: List[AiAnnotation] = Field(default_factory=list)
+    logs: List[str] = Field(default_factory=list, description="Live progress logs")
 
 class AutoFixResponse(BaseModel):
     model_config = ConfigDict(strict=True)

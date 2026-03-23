@@ -117,7 +117,11 @@ class IntentController(Controller):
 
             # ── TRINITY PHASE 2: Skill Guard (Constitutional Protection) ──
             # Guard runs BEFORE expensive Data Injection/Reasoning
-            if user_id and result.status != "error":
+            intent_data = result.data or {}
+            intent_type = intent_data.get("intent_type")
+            result_category = intent_data.get("category")
+            
+            if user_id and result.status != "error" and result_category != "SESSION_CTRL":
                 profile = await profile_repo.get_one_or_none(user_id=user_id)
                 if profile and profile.capabilities:
                     caps = profile.capabilities if isinstance(profile.capabilities, dict) else json.loads(profile.capabilities)
@@ -132,9 +136,6 @@ class IntentController(Controller):
             # Only execute Trinity Loop or Tier 3 if NOT restricted
             # BẮT BUỘC: Bỏ qua Execute cho SESSION_CTRL (Wake/Sleep) — đã hoàn thành ở T1
             # Tuy nhiên, UI_NAV cần Execute để Inject dữ liệu (ví dụ: Biểu đồ)
-            intent_data = result.data or {}
-            intent_type = intent_data.get("intent_type")
-            result_category = intent_data.get("category")
             
             if result.status != "error" and (result_category != "SESSION_CTRL" or intent_type == "UI_NAV"):
                 try:

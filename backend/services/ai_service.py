@@ -108,7 +108,7 @@ class AIService:
     async def discover_models(db_session: AsyncSession, user_id: str) -> ModelDiscoveryResponse:
         """Fetch available Gemini models and persist."""
         try:
-            key = await key_rotator.get_key()
+            key = await key_rotator.get_key(model_name="gemini-1.5-flash")
             models = []
 
             if key:

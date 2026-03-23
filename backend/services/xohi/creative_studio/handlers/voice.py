@@ -110,7 +110,23 @@ class VoiceHandler:
                 # Rule R82: Explicit Resume (or "ok" confirmation)
                 if is_resume_request or target_id == stale.id:
                     if stale.status == "WAITING_FOR_REVIEW":
-                        return await self.orchestrator.approve_step(stale.id, {"approved": True}, campaign_repo)
+                        gr = await self.orchestrator.approve_step(stale.id, {"approved": True}, campaign_repo)
+                        return IntentResponse(
+                            status=gr.status,
+                            action=IntentAction.CONTENT_APPROVE,
+                            message=gr.message,
+                            router_tier=RouterTier.TIER_2_SEMANTIC,
+                            data={
+                                "category": "CONTENT_CREATE",
+                                "intent_type": "CONTENT_CREATE",
+                                "ui_action": "show_content_factory",
+                                "campaign_id": stale.id,
+                                "step": stale.current_step,
+                                "campaign_category": stale_cat,
+                                **(gr.data or {})
+                            },
+                            cost_tokens=0.0
+                        )
                     else:
                         return IntentResponse(
                             status="success", action=IntentAction.CONTENT_CREATE,
