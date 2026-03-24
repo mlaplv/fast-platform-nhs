@@ -48,6 +48,7 @@
     onblur?: () => void;
     campaignId?: string;
     flex?: boolean;
+    syncAssetsMode?: 'strict' | 'append';
   } = $props();
 
   let internalFullScreen = $state<boolean>(fullScreen);
@@ -354,10 +355,17 @@
         }
         
         const currentUrls = assets.map(a => typeof a === 'string' ? a : (a.file_path || a.url || ''));
-        const hasChanged = found.length !== currentUrls.length || found.some(url => !currentUrls.includes(url));
         
-        if (hasChanged) {
-          assets = found;
+        if (syncAssetsMode === 'append') {
+          const newFound = found.filter(url => !currentUrls.includes(url));
+          if (newFound.length > 0) {
+            assets = [...assets, ...newFound];
+          }
+        } else {
+          const hasChanged = found.length !== currentUrls.length || found.some(url => !currentUrls.includes(url));
+          if (hasChanged) {
+            assets = found;
+          }
         }
       });
     }, 500);

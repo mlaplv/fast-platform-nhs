@@ -20,8 +20,11 @@
     
     // Use faster, simpler counting logic for telemetry
     const words = liveContent.split(/\s+/).length;
-    const images = (liveContent.match(/<img/g) || []).length;
-    const sections = (liveContent.match(/<h[2-6]/g) || []).length;
+    const imgTags = (liveContent.match(/<img/gi) || []).length;
+    const mdImages = (liveContent.match(/!\[.*?\]\(.*?\)/g) || []).length;
+    const placeholders = (liveContent.match(/\[IMAGE_\d+\]/gi) || []).length;
+    const images = imgTags + mdImages + placeholders;
+    const sections = (liveContent.match(/<h[2-6]/gi) || []).length + (liveContent.match(/^#{2,6}\s/gm) || []).length;
     const sentences = (liveContent.match(/[.!?]+/g) || []).length;
     
     return { words: Math.max(0, words), sentences, images, sections };

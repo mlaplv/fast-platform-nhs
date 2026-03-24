@@ -17,7 +17,6 @@
           litestar: "2.x",
           pydantic_ai: "0.x",
           litellm: "1.x",
-          prisma: "5.x",
           python: "3.x",
           caddy: "2.x",
         };
@@ -52,7 +51,6 @@
   >
     SV {versions.svelte} // TW {versions.tailwind} // SQLA {versions.sqlalchemy}
     // ALB {versions.alembic} // LITE {versions.litestar} // PAI {versions.pydantic_ai}
-    // PR {versions.prisma}
   </div>
 
   <!-- Mobile Mode: Ultra Compact -->
@@ -62,8 +60,6 @@
     <span>SV {versions.svelte.split(".").slice(0, 2).join(".")}</span>
     <span class="text-[#00FFFF]/20">/</span>
     <span>LS {versions.litestar.split(".").slice(0, 2).join(".")}</span>
-    <span class="text-[#00FFFF]/20">/</span>
-    <span>PR {versions.prisma.split(".").slice(0, 2).join(".")}</span>
   </div>
 
   <div class="h-3 w-[1px] bg-white/10 hidden md:block"></div>

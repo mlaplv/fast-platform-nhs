@@ -5,6 +5,7 @@
   import CheckResultPanel from "./CheckResultPanel.svelte";
   import CriteriaTooltip from "./CriteriaTooltip.svelte";
   import NeuralProgressTooltip from "./NeuralProgressTooltip.svelte";
+  import UltraPremiumLoading from "./UltraPremiumLoading.svelte";
   import { processContentImages } from "$lib/state/utils";
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
   import { createAnalysisController } from "$lib/state/xohiAnalysis.svelte";
@@ -130,14 +131,18 @@
   </div>
 
   <div class="flex flex-col relative flex-1 min-h-0 transition-all duration-500 {isEditing ? 'border border-white/5 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] bg-[#09090b]/40 backdrop-blur-2xl' : 'bg-transparent'}">
-    {#if isProcessing && !displayContent}
-      <div class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-700">
-        <div class="w-20 h-20 rounded-full border-t-2 border-r-2 border-purple-500/40 animate-spin"></div>
-        <span class="mt-8 text-[10px] font-black uppercase tracking-[0.3em] text-purple-400/80 animate-pulse">AI đang chấp bút bản thảo</span>
+    {#if isProcessing}
+      <div class="absolute inset-0 z-[100]">
+        <UltraPremiumLoading 
+          progress_msg="AI đang chấp bút bản thảo..." 
+          viewingStep={4} 
+          campaign_id={campaign_id} 
+          liveContent={displayContent || ""} 
+        />
       </div>
     {/if}
     <TiptapEditor
-      bind:this={editorRef} content={displayContent} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex editable={isEditing} placeholder="AI đang chấp bút bản thảo..." fullScreen={isExpanded} campaignId={campaign_id} flex={true}
+      bind:this={editorRef} content={displayContent} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex editable={isEditing} placeholder="AI đang chấp bút bản thảo..." fullScreen={isExpanded} campaignId={campaign_id} flex={true} syncAssetsMode="append"
       onChange={(val) => { if (isEditing && val !== editedDraft) editedDraft = val; }}
       onfix={analysis.runAutoFix} annotations={analysis.editorAnnotations}
       onClean={() => editorRef?.editor?.commands.clearContent()}
