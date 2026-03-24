@@ -151,7 +151,8 @@ function start_dev() {
     echo -e "${YELLOW}-> Cập nhật Database (Migration)...${NC}"
     # Đợi DB sẵn sàng một chút
     sleep 2
-    run_backend --env-file "${PWD}/.env" alembic -c backend/alembic.ini upgrade head || echo -e "${YELLOW}[SKIP] Không có migration mới.${NC}"
+    # [DEDUPLICATED] Đã chuyển giao việc migration cho backend/entrypoint.sh lúc container khởi động
+    # run_backend --env-file "${PWD}/.env" alembic -c backend/alembic.ini upgrade head || echo -e "${YELLOW}[SKIP] Không có migration mới.${NC}"
     
     echo -e "${GREEN}[READY] Hệ thống đã sẵn sàng cho dev!${NC}"
     echo -e "${CYAN}Admin: https://admin.smartshop.test${NC}"
@@ -196,7 +197,8 @@ function init_deploy() {
     docker compose up -d api
     echo -e "${YELLOW}Đang chờ DB sẵn sàng...${NC}"
     sleep 5
-    run_backend --env-file "${PWD}/.env" alembic -c backend/alembic.ini upgrade head
+    # [DEDUPLICATED] Đã chuyển giao việc migration cho backend/entrypoint.sh lúc container khởi động
+    # run_backend --env-file "${PWD}/.env" alembic -c backend/alembic.ini upgrade head
     
     echo -e "${CYAN}[6/6] Gieo mầm dữ liệu (Seeding Database)...${NC}"
     docker compose exec -T api python3 -m backend.scripts.seed

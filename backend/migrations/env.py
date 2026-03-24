@@ -4,35 +4,52 @@ import sys
 from logging.config import fileConfig
 from dotenv import load_dotenv
 
-# Load environment variables
+# [Elite V2.2] Tự động nạp .env để lấy DATABASE_URL chuẩn
 load_dotenv(os.path.realpath(os.path.join(os.path.dirname(__file__), '../../.env')))
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
 
-# Add the project root to sys.path so we can import 'backend'
+# Thêm root dự án vào sys.path để import được module backend
 sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '../..')))
 
+# Import Base chứa MetaData của dự án
 from backend.database.models import Base
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+# Object config của Alembic
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
+# Cấu hình logging
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
 target_metadata = Base.metadata
 
 def get_url():
+    """Lấy Database URL từ environment (.env)"""
     return os.environ.get("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
+
+def include_object(object, name, type_, reflected, compare_to):
+    """
+    [MASTER LEVEL] Chiến thuật chặn đứng OOM từ trong trứng nước.
+    1. Chỉ quét bảng nằm trong MetaData dự án.
+    2. Bỏ qua hoàn toàn các bảng hệ thống, schema ngoại lai.
+    3. Giảm thiểu tối đa việc phản chiếu (reflection) dữ liệu ko cần thiết.
+    """
+    # 1. Chặn schema rác (cực kỳ quan trọng với Postgres/PostGIS)
+    if hasattr(object, "schema") and object.schema is not None and object.schema != "public":
+        return False
+        
+    # 2. Chỉ cho lọc bảng nội bộ
+    if type_ == "table":
+        # So sánh tên bảng trực tiếp để tránh nạp Object Table vào RAM
+        return name in target_metadata.tables
+        
+    # 3. Chặn các index/constraint không liên quan
+    return True
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
@@ -42,31 +59,40 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object,
+        include_schemas=False,
+        render_as_batch=True,
     )
 
     with context.begin_transaction():
         context.run_migrations()
 
-
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    """Cấu hình Context đẳng cấp Master: Chống Reflection Bloat"""
+    context.configure(
+        connection=connection, 
+        target_metadata=target_metadata,
+        compare_type=False,
+        compare_server_default=False,
+        include_object=include_object,
+        include_schemas=False,         # Master Fix: Không quét đa schema
+        render_as_batch=True,
+        # Tối ưu hóa việc nạp metadata
+        reflection_options={
+            "skip_nested": True,      # Không nạp quan hệ lồng nhau khi quét
+        }
+    )
 
     with context.begin_transaction():
         context.run_migrations()
 
-
 async def run_async_migrations() -> None:
-    """In this scenario we need to create an Engine
-    and associate a connection with the context.
-    """
-    configuration = config.get_section(config.config_ini_section)
-    if configuration is None:
-        configuration = {}
-    configuration["sqlalchemy.url"] = get_url()
+    """Thực thi migration theo luồng Async Native"""
+    url = get_url()
     
-    connectable = async_engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
+    # Khởi tạo engine với NullPool để giải phóng RAM ngay sau khi xong
+    connectable = create_async_engine(
+        url,
         poolclass=pool.NullPool,
     )
 
@@ -75,11 +101,9 @@ async def run_async_migrations() -> None:
 
     await connectable.dispose()
 
-
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode."""
+    """Chạy migration online thông qua asyncio loop"""
     asyncio.run(run_async_migrations())
-
 
 if context.is_offline_mode():
     run_migrations_offline()

@@ -2,6 +2,8 @@ services:
   db:
     image: pgvector/pgvector:pg16
     container_name: fast_platform_db
+    shm_size: 256mb
+    command: postgres -c shared_buffers=128MB -c max_connections=40 -c work_mem=4MB -c maintenance_work_mem=32MB
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -10,25 +12,48 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 400M
+        reservations:
+          memory: 200M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 3s
-      timeout: 3s
-      retries: 10
+      interval: 30s
+      timeout: 10s
+      retries: 5
     restart: always
 
   redis:
     image: redis:7-alpine
     container_name: fast_platform_redis
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+        reservations:
+          memory: 50M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 3s
-      timeout: 3s
-      retries: 10
+      interval: 30s
+      timeout: 10s
+      retries: 5
     restart: always
 
   caddy:
@@ -42,6 +67,17 @@ services:
       - ./certs/caddy/pki:/data/caddy/pki
       - caddy_data:/data
       - caddy_config:/config
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+        reservations:
+          memory: 50M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
     env_file:
       - .env
     restart: always
@@ -51,11 +87,21 @@ services:
       context: .
       dockerfile: backend/Dockerfile.dev
     container_name: fast_platform_api
-    # R25: No host ports — API only accessible via Caddy (api.smartshop.test)
     expose:
       - "8000"
     volumes:
       - .:/app
+    deploy:
+      resources:
+        limits:
+          memory: 850M
+        reservations:
+          memory: 400M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     env_file:
       - .env
     environment:
@@ -67,6 +113,7 @@ services:
       - TTS_USE_STUB=false
       - TZ=Asia/Ho_Chi_Minh
       - PYTHONWARNINGS=ignore:Core Pydantic V1 functionality:UserWarning
+      - MALLOC_ARENA_MAX=2  # [GHOST MODE] Chống phân mảnh bộ nhớ glibc
     depends_on:
       db:
         condition: service_healthy
@@ -82,9 +129,19 @@ services:
     volumes:
       - ./frontend:/app/frontend
       - /app/frontend/node_modules
-    # R25: No host ports — UI only accessible via Caddy (smartshop.test / admin.smartshop.test)
     expose:
       - "5173"
+    deploy:
+      resources:
+        limits:
+          memory: 400M
+        reservations:
+          memory: 200M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
     environment:
       - VITE_API_URL=${API_DOMAIN}
       - VITE_API_PROXY_TARGET=http://api:8000

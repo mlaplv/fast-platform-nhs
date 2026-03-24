@@ -1,14 +1,30 @@
 import os
 import logging
+import orjson
+from typing import Any
 from advanced_alchemy.extensions.litestar import SQLAlchemyAsyncConfig
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy import event
 
 logger = logging.getLogger("api-gateway")
+
+async def asyncpg_setup(conn: Any) -> None:
+    """
+    [CTO ELITE] Cấu hình asyncpg ở mức độ Native.
+    1. Đưa orjson vào lõi để byte-to-JSON siêu tốc.
+    2. Giới hạn cache để bảo vệ 2GB RAM.
+    """
+    # Đăng ký orjson cho JSON và JSONB
+    await conn.set_type_codec(
+        "json", encoder=orjson.dumps, decoder=orjson.loads, schema="pg_catalog"
+    )
+    await conn.set_type_codec(
+        "jsonb", encoder=orjson.dumps, decoder=orjson.loads, schema="pg_catalog"
+    )
 
 class AlchemyConfig:
     """
     R1.5 Unified Database Engine Management.
-    Centralizes engine and session maker creation to prevent duplicate engines and import errors.
     """
     def __init__(self):
         self._engine = None
@@ -29,19 +45,30 @@ class AlchemyConfig:
 
     def get_engine(self):
         if self._engine is None:
-            engine_kwargs = {
+            engine_kwargs: dict[str, Any] = {
                 "echo": False,
                 "pool_recycle": 3600,
             }
             # Rule: Only add pooling for Postgres (SQLite uses StaticPool)
             if self._url.startswith("postgresql"):
-                # R1.5 Improved pooling for High-Concurrency Agent Flows
-                engine_kwargs["pool_size"] = 20        # Increase from 10
-                engine_kwargs["max_overflow"] = 20     # Increase from 10
-                engine_kwargs["pool_timeout"] = 60      # Default is 30
-                engine_kwargs["pool_pre_ping"] = True
-                engine_kwargs["pool_recycle"] = 300
-                logger.info(f"[Database] Initializing engine with shared pool (size: 20, overflow: 20)")
+                # [Elite V2.2] Optimized pooling for 2GB RAM VPS
+                engine_kwargs.update({
+                    "pool_size": 5,
+                    "max_overflow": 5,
+                    "pool_timeout": 30,
+                    "pool_pre_ping": True,
+                    "pool_recycle": 300,
+                    # [PHASE 8] Truyền cấu hình chuyên sâu xuống asyncpg
+                    "connect_args": {
+                        "command_timeout": 30,
+                        "server_settings": {
+                            "jit": "off", # Tắt JIT để tiết kiệm RAM cho Postgres
+                            "application_name": "fast-platform-v2.2",
+                        },
+                        "on_connect": asyncpg_setup,
+                    }
+                })
+                logger.info(f"[Database] Initializing Elite asyncpg engine (orjson enabled)")
                 
             self._engine = create_async_engine(self._url, **engine_kwargs)
         return self._engine

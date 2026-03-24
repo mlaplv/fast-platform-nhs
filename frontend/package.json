@@ -5,8 +5,8 @@
   "type": "module",
   "description": "Fast Platform Monorepo - Token Saver & A2A Edition",
   "scripts": {
-    "dev": "vite dev --host 0.0.0.0",
-    "build": "vite build",
+    "dev": "NODE_OPTIONS='--max-old-space-size=512' vite dev --host 0.0.0.0",
+    "build": "NODE_OPTIONS='--max-old-space-size=512' vite build",
     "preview": "vite preview",
     "test": "vitest run"
   },

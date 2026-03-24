@@ -2,8 +2,8 @@
     # Local/Internal TLS for .test domains
     tls internal
 
-    # R90: Compression boost for HTTP/2
-    encode zstd gzip
+    # R90: CTO Elite Compression (Zstd + Brotli + Gzip)
+    encode zstd br gzip
 
     handle /api/v1/*/stream* {
         reverse_proxy api:8000 {
@@ -18,11 +18,15 @@
     }
 
     handle /api/* {
-        reverse_proxy api:8000
+        reverse_proxy api:8000 {
+            flush_interval -1
+        }
     }
 
     handle /ws/* {
-        reverse_proxy api:8000
+        reverse_proxy api:8000 {
+            flush_interval -1
+        }
     }
 
     # Frontend Dev/Stage Proxy (Docker Synergy)
@@ -42,5 +46,7 @@
 
 {$API_DOMAIN} {
     tls internal
-    reverse_proxy api:8000
+    reverse_proxy api:8000 {
+        flush_interval -1
+    }
 }

@@ -1,6 +1,8 @@
 import os
 import logging
 import asyncio as _aio
+import gc
+import psutil
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
 from sqlalchemy import select, delete as sql_delete
@@ -29,6 +31,7 @@ async def lifespan(app: Litestar):
     # Initialize AI Bridge (V76)
     await trinity_bridge.initialize()
 
+    gc_task = None
     heartbeat_task = None
     purge_task = None
     media_cleanup_task = None
@@ -73,6 +76,10 @@ async def lifespan(app: Litestar):
         except Exception as e:
             logger.critical(f"[Trinity Core] Warmup failed: {e}")
 
+        # [GHOST MODE] Start GC Watchdog first
+        gc.set_threshold(700, 10, 5) # Chống rác tích tụ lâu
+        gc_task = _aio.create_task(_gc_watchdog_loop())
+
         # Start Background Loops
         heartbeat_task = _aio.create_task(_heartbeat_loop())
         purge_task = _aio.create_task(_auto_purge_loop())
@@ -81,6 +88,7 @@ async def lifespan(app: Litestar):
 
         yield
     finally:
+        if gc_task: gc_task.cancel()
         if heartbeat_task: heartbeat_task.cancel()
         if purge_task: purge_task.cancel()
         if media_cleanup_task: media_cleanup_task.cancel()
@@ -129,3 +137,26 @@ async def _media_cleanup_loop():
             logger.warning(f"[MediaCleanup] Cycle failed: {e}")
         # 12 giờ = 43200 giây
         await _aio.sleep(43200)
+
+async def _gc_watchdog_loop():
+    """
+    [GHOST MODE] Vệ binh giải phóng RAM.
+    Theo dõi mức độ sử dụng RAM và chủ động gọi bộ dọn rác (GC) 
+    khi có dấu hiệu RAM bị chiếm dụng bất thường hoặc sau chu kỳ 10 phút.
+    """
+    process = psutil.Process(os.getpid())
+    while True:
+        try:
+            # 1. Định kỳ 10 phút dọn rác một lần bất kể trạng thái
+            await _aio.sleep(600) 
+            
+            ram_mb = process.memory_info().rss / (1024 * 1024)
+            # Nếu tiến trình API chiếm > 600MB (trên giới hạn 850MB), ép dọn rác ngay
+            if ram_mb > 600:
+                logger.warning(f"[GhostMode] RAM usage high ({ram_mb:.1f}MB). Forcing aggressive GC...")
+                gc.collect(generation=2) # Dọn rác ở tầng sâu nhất
+            else:
+                gc.collect() # Dọn rác thông thường
+                
+        except Exception as e:
+            logger.error(f"[GhostMode] Watchdog error: {e}")
