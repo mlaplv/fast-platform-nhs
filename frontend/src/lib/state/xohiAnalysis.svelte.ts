@@ -111,7 +111,7 @@ export function createAnalysisController(config: {
                         // Avoid duplicates if initial logs are also in backend logs
                         if (!bulkFixLogs.includes(log)) {
                             bulkFixLogs = [...bulkFixLogs, log];
-                            await new Promise(r => setTimeout(r, 400));
+                            
                         }
                     }
                 }
@@ -149,7 +149,7 @@ export function createAnalysisController(config: {
                     for (const log of res.data.logs) {
                         if (!bulkFixLogs.includes(log)) {
                             bulkFixLogs = [...bulkFixLogs, log];
-                            await new Promise(r => setTimeout(r, 400));
+                            
                         }
                     }
                 }
@@ -186,7 +186,7 @@ export function createAnalysisController(config: {
                     for (const log of res.data.logs) {
                         if (!bulkFixLogs.includes(log)) {
                             bulkFixLogs = [...bulkFixLogs, log];
-                            await new Promise(r => setTimeout(r, 400));
+                            
                         }
                     }
                 }
@@ -287,7 +287,6 @@ export function createAnalysisController(config: {
                 if (res.data.logs && res.data.logs.length > 0) {
                     for (const log of res.data.logs) {
                         bulkFixLogs = [...bulkFixLogs, log];
-                        await new Promise(r => setTimeout(r, 450)); // iOS-style micro-animation delay
                     }
                 }
 
@@ -364,7 +363,6 @@ export function createAnalysisController(config: {
                 if (res.data.logs && res.data.logs.length > 0) {
                     for (const log of res.data.logs) {
                         bulkFixLogs = [...bulkFixLogs, log];
-                        await new Promise(r => setTimeout(r, 600)); // Premium feel
                     }
                 }
                 

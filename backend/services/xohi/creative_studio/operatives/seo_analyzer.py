@@ -13,6 +13,8 @@ from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.services.xohi.creative_studio.models.schemas import SeoReport, SeoSignal, SeoAnnotation
 from backend.database.repositories import ContentCampaignRepository
+from backend.database.models.content import ContentCampaign
+from backend.services.event_bus import event_bus
 
 logger = logging.getLogger("api-gateway")
 
@@ -90,7 +92,6 @@ class SeoAnalyzer:
             cx = os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
             if k and cx:
                 self.search_keys.append({"key": k, "cx": cx})
-        self._key_idx = 0
         self._key_lock = asyncio.Lock()
         
         # BUG-07 fix: Cache Agent at class scope — R1.6 prohibits per-request Agent creation

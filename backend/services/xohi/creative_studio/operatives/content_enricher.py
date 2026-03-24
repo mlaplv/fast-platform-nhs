@@ -3,9 +3,10 @@ import logging
 import re
 import os
 from typing import List, Dict, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pydantic_ai import Agent
+from backend.database.models import ContentCampaign
 from backend.utils.http_client import get_http_client
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.xohi.creative_studio.models.schemas import EnrichResponse, EnrichmentItem, EnrichAIPayload

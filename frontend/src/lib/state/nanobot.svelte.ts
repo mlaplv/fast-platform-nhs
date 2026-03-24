@@ -225,6 +225,9 @@ export function createNanobotState() {
       voice.setVuiActive(false);
       ui.setUniversalModalOpen(false);
       state.activeWidget = "NONE";
+      state.isBusy = false;
+      state.nanoBotStatus = "IDLE";
+      voice.clearVuiResponse();
       
       // 3. Signal backend if we have a campaign ID
       if (cid) {

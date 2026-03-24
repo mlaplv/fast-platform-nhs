@@ -3,6 +3,7 @@
   import { Z_INDEX } from "$lib/core/constants/zIndex";
   import { fade } from "svelte/transition";
   import X from "lucide-svelte/icons/x";
+  import SupremeCloseButton from "./SupremeCloseButton.svelte";
   import Terminal from "lucide-svelte/icons/terminal";
   import RevenueChart from "../widgets/RevenueChart.svelte";
   import ConfirmModal from "../widgets/ConfirmModal.svelte";
@@ -119,12 +120,10 @@
         </div>
 
         <div class="flex items-center gap-4">
-          <button
-            onclick={close}
-            class="w-7 h-7 rounded border border-red-500/30 bg-red-500/10 flex items-center justify-center hover:bg-red-500/30 transition-colors"
-          >
-            <X class="w-3.5 h-3.5 text-red-400" />
-          </button>
+          <SupremeCloseButton 
+            campaign_id={nanobot.activeWidget === 'CONTENT_REVIEW' ? WidgetData.campaign_id : undefined} 
+            onClose={close}
+          />
         </div>
       </div>
       {/if}

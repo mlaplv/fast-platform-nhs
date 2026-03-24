@@ -14,15 +14,17 @@
 
   let { progress_msg = "", viewingStep, campaign_id, liveContent = "", isAnalysisMessage = false }: Props = $props();
 
-  // CNS V85.2: Live Telemetry (Neural Metrics)
+  // CNS V85.2: Live Telemetry (Neural Metrics) - Optimized to prevent UI thread blockage
   let telemetry = $derived.by(() => {
-    if (!liveContent) return { words: 0, sentences: 0, images: 0, sections: 0 };
-    const cleanText = liveContent.replace(/<[^>]*>/g, ' ');
-    const words = cleanText.trim().split(/\s+/).filter(w => w.length > 0).length;
-    const sentences = (cleanText.match(/[.!?]+/g) || []).length;
+    if (!liveContent || liveContent.length < 10) return { words: 0, sentences: 0, images: 0, sections: 0 };
+    
+    // Use faster, simpler counting logic for telemetry
+    const words = liveContent.split(/\s+/).length;
     const images = (liveContent.match(/<img/g) || []).length;
-    const sections = (liveContent.match(/<h[1-6]/g) || []).length;
-    return { words, sentences, images, sections };
+    const sections = (liveContent.match(/<h[2-6]/g) || []).length;
+    const sentences = (liveContent.match(/[.!?]+/g) || []).length;
+    
+    return { words: Math.max(0, words), sentences, images, sections };
   });
 
   // History of messages for the "Live Feed" effect
@@ -51,12 +53,11 @@
   }
 </script>
 
-<div class="relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-slate-950/85 backdrop-blur-2xl p-12" style="z-index: {Z_INDEX.SYSTEM};" in:fade>
-  <!-- 1. Mesh Gradient Background (iPhone 18 Style) -->
-  <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-    <div class="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-purple-600/20 blur-[120px] animate-mesh-1"></div>
-    <div class="absolute top-[30%] -right-[10%] w-[50%] h-[50%] rounded-full bg-blue-600/20 blur-[100px] animate-mesh-2"></div>
-    <div class="absolute -bottom-[10%] left-[20%] w-[40%] h-[40%] rounded-full bg-fuchsia-600/15 blur-[80px] animate-mesh-3"></div>
+<div class="relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-slate-950/90 backdrop-blur-xl p-12" style="z-index: {Z_INDEX.SYSTEM};" in:fade>
+  <!-- 1. Mesh Gradient Background - Simplified for Performance -->
+  <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-60">
+    <div class="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-purple-600/10 blur-[80px] animate-mesh-1"></div>
+    <div class="absolute top-[30%] -right-[10%] w-[50%] h-[50%] rounded-full bg-blue-600/10 blur-[60px] animate-mesh-2"></div>
   </div>
 
   <!-- 2. The Neural Core (Glassmorphism) -->
