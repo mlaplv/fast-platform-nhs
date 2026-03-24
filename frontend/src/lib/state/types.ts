@@ -157,17 +157,28 @@ export interface AnalysisAnnotation {
 
 export interface CopyrightResult {
   uniqueness_score: number;
+  risk_level?: string;
   annotations: AnalysisAnnotation[];
+}
+
+export interface SeoSignal {
+  label: string;
+  score: number;
+  status: string;
 }
 
 export interface SEOResult {
   total_score: number;
   grade: string;
+  summary: string;
+  signals: SeoSignal[];
+  quick_wins: string[];
   seo_annotations: AnalysisAnnotation[];
 }
 
 export interface AIInspectResult {
   geo_score: number;
+  summary: string;
   ai_annotations: AnalysisAnnotation[];
 }
 
@@ -328,4 +339,10 @@ export interface GhostCompletionResponse {
   status?: 'done' | 'processing';
   message?: string;
   token?: string;
+}
+export interface GenericResponse<T = any> {
+  status: 'success' | 'error';
+  message?: string;
+  data: T;
+  logs?: string[];
 }

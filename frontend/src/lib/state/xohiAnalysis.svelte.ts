@@ -7,7 +7,8 @@ import type {
     AnalysisCache,
     CampaignMetrics,
     AnalysisAnnotation,
-    EditorAnnotation
+    EditorAnnotation,
+    GenericResponse
 } from "$lib/state/types";
 
 export function createAnalysisController(config: {
@@ -102,7 +103,7 @@ export function createAnalysisController(config: {
                 ? `/api/v1/content/analyze/copyright?force=${force}`
                 : `/api/v1/content/campaigns/${config.campaign_id}/analyze/copyright?force=${force}`;
             const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)() } : undefined;
-            const res = await apiClient.post<{ data: { uniqueness_score: number, risk_level: string, annotations: AnalysisAnnotation[], logs?: string[] } }>(url, body);
+            const res = await apiClient.post<GenericResponse<CopyrightResult>>(url, body);
             
             if (res?.data) {
                 // Phase 3.7: Premium Log Replay for Analysis
@@ -142,7 +143,7 @@ export function createAnalysisController(config: {
                 ? `/api/v1/content/analyze/seo?force=${force}`
                 : `/api/v1/content/campaigns/${config.campaign_id}/analyze/seo?force=${force}`;
             const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)(), topic: config.topic ?? '' } : undefined;
-            const res = await apiClient.post<{ data: { geo_score: number, summary: string, ai_annotations: AnalysisAnnotation[], logs?: string[] } }>(url, body);
+            const res = await apiClient.post<GenericResponse<SEOResult>>(url, body);
             if (res?.data) {
                 // Phase 4.0: Premium Log Replay
                 if (res.data.logs && res.data.logs.length > 0) {
@@ -179,7 +180,7 @@ export function createAnalysisController(config: {
                 ? `/api/v1/content/analyze/ai-inspect?force=${force}`
                 : `/api/v1/content/campaigns/${config.campaign_id}/analyze/ai-inspect?force=${force}`;
             const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)() } : undefined;
-            const res = await apiClient.post<{ data: { geo_score: number, summary: string, ai_annotations: AnalysisAnnotation[], logs?: string[] } }>(url, body);
+            const res = await apiClient.post<GenericResponse<AIInspectResult>>(url, body);
             if (res?.data) {
                 // Phase 4.0: Premium Log Replay
                 if (res.data.logs && res.data.logs.length > 0) {

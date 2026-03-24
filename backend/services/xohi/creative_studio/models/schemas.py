@@ -153,6 +153,7 @@ class SeoReport(BaseModel):
     summary: str
     quick_wins: List[str]
     seo_annotations: List[SeoAnnotation]
+    logs: List[str] = Field(default_factory=list, description="Detailed progress logs for the UI")
 
 class MediaAnalysisResult(BaseModel):
     model_config = ConfigDict(strict=True)
