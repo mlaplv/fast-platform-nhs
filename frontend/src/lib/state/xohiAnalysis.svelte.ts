@@ -475,13 +475,13 @@ export function createAnalysisController(config: {
         const cache = config.analysis_cache;
         if (cache && Object.keys(cache).length > 0) {
             untrack(() => {
-                if (cache.copyright?.data && (!copyrightResult || copyrightResult.uniqueness_score === 0)) {
+                if (cache.copyright?.data && (copyrightResult === null || copyrightResult === undefined)) {
                     copyrightResult = cache.copyright.data as CopyrightResult;
                 }
-                if (cache.seo?.data && (!seoResult || (seoResult.total_score || 0) === 0)) {
+                if (cache.seo?.data && (seoResult === null || seoResult === undefined)) {
                     seoResult = cache.seo.data as SEOResult;
                 }
-                if (cache.ai_inspect?.data && (!aiReadyResult || (aiReadyResult.geo_score || 0) === 0)) {
+                if (cache.ai_inspect?.data && (aiReadyResult === null || aiReadyResult === undefined)) {
                     aiReadyResult = cache.ai_inspect.data as AIInspectResult;
                 }
 

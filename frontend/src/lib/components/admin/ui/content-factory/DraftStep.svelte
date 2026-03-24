@@ -84,8 +84,15 @@
     <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">XOHI · <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">NEURAL STUDIO</span></h5>
     
     <div class="flex items-center gap-2 ml-4 overflow-x-auto no-scrollbar pb-1">
-      <button 
-        onclick={() => { analysis.activeTab = 'copyright'; if (!analysis.copyrightResult && !analysis.isCopyrightLoading) handleAction(analysis.runCopyrightCheck); }}
+      <button
+        onclick={() => {
+          if (analysis.activeTab === 'copyright') {
+            handleAction(analysis.runCopyrightCheck, true);
+          } else {
+            analysis.activeTab = 'copyright';
+            if (!analysis.copyrightResult && !analysis.isCopyrightLoading) handleAction(analysis.runCopyrightCheck);
+          }
+        }}
         disabled={analysis.isCopyrightLoading}
         class="flex items-center gap-1.5 text-[10px] sm:text-xs font-black uppercase px-3 py-1.5 rounded-lg border {analysis.activeTab === 'copyright' ? 'border-orange-500/50 bg-orange-500/10 text-orange-400' : 'border-white/10 bg-white/5 text-white/40 hover:text-white/60'} {analysis.isCopyrightLoading ? 'opacity-70' : ''} transition-all active:scale-95"
       >
@@ -93,8 +100,17 @@
         COPYRIGHT {analysis.copyrightScore !== null ? `${analysis.copyrightScore}%` : ''}
       </button>
       
-      <button 
-        onclick={() => { if (!analysis.seoLocked) { analysis.activeTab = 'seo'; if (!analysis.seoResult && !analysis.isSeoLoading) handleAction(analysis.runSeoAnalysis); } }}
+      <button
+        onclick={() => {
+          if (!analysis.seoLocked) {
+            if (analysis.activeTab === 'seo') {
+              handleAction(analysis.runSeoAnalysis, true);
+            } else {
+              analysis.activeTab = 'seo';
+              if (!analysis.seoResult && !analysis.isSeoLoading) handleAction(analysis.runSeoAnalysis);
+            }
+          }
+        }}
         disabled={analysis.seoLocked || analysis.isSeoLoading}
         class="flex items-center gap-1.5 text-[10px] sm:text-xs font-black uppercase px-3 py-1.5 rounded-lg border {analysis.activeTab === 'seo' ? 'border-blue-500/50 bg-blue-500/10 text-blue-400' : 'border-white/10 bg-white/5 text-white/40 hover:text-white/60'} {analysis.seoLocked ? 'opacity-30 cursor-not-allowed' : ''} {analysis.isSeoLoading ? 'opacity-70' : ''} transition-all active:scale-95"
       >
@@ -102,8 +118,17 @@
         SEO {analysis.seoResult ? analysis.seoResult.grade : ''}
       </button>
 
-      <button 
-        onclick={() => { if (!analysis.aiLocked) { analysis.activeTab = 'ai'; if (!analysis.aiReadyResult && !analysis.isAiLoading) handleAction(analysis.runAiAnalysis); } }}
+      <button
+        onclick={() => {
+          if (!analysis.aiLocked) {
+            if (analysis.activeTab === 'ai') {
+              handleAction(analysis.runAiAnalysis, true);
+            } else {
+              analysis.activeTab = 'ai';
+              if (!analysis.aiReadyResult && !analysis.isAiLoading) handleAction(analysis.runAiAnalysis);
+            }
+          }
+        }}
         disabled={analysis.aiLocked || analysis.isAiLoading}
         class="flex items-center gap-1.5 text-[10px] sm:text-xs font-black uppercase px-3 py-1.5 rounded-lg border {analysis.activeTab === 'ai' ? 'border-purple-500/50 bg-purple-500/10 text-purple-400' : 'border-white/10 bg-white/5 text-white/40 hover:text-white/60'} {analysis.aiLocked ? 'opacity-30 cursor-not-allowed' : ''} {analysis.isAiLoading ? 'opacity-70' : ''} transition-all active:scale-95"
       >

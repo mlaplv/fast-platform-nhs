@@ -36,10 +36,21 @@ class PlagiarismCop:
     def __init__(self, threshold: float = 0.75):
         self.threshold = threshold
         self.search_keys = []
-        for i in ["", "_1", "_2"]:
-            k, cx = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}"), os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
-            if k and cx: self.search_keys.append({"key": k, "cx": cx})
-        
+
+        # Priority 1: Comma-separated keys (V82.36 Standard)
+        env_keys = os.getenv("GOOGLE_SEARCH_KEYS")
+        env_cx = os.getenv("GOOGLE_SEARCH_CX") or os.getenv("GOOGLE_SEARCH_ENGINE_ID")
+        if env_keys and env_cx:
+            for k in env_keys.split(","):
+                k = k.strip()
+                if k: self.search_keys.append({"key": k, "cx": env_cx})
+
+        # Priority 2: Individual keys (Backwards Compatibility)
+        if not self.search_keys:
+            for i in ["", "_1", "_2"]:
+                k, cx = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}"), os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
+                if k and cx: self.search_keys.append({"key": k, "cx": cx})
+
         self._agent = Agent(output_type=PlagiarismResult, system_prompt=PLAGIARISM_PROMPT, retries=3)
         self._surgeon = PlagiarismSurgeon()
 
@@ -92,66 +103,67 @@ class PlagiarismCop:
         Phase 3: AI Analysis (Plagiarism Annotations & Uniqueness Score)
         Phase 4: Heuristic Fallback (If AI fails)
         """
-        logs = ["🔍 Khởi động hệ thống rà soát bản quyền (Neural V82.8)..."]
-        await self._emit_log(campaign, logs[-1])
-        
-        # If force is true, we should tell the bridge to try even if some keys are flagged
-        # But for now, we just pass it down.
-        
-        async with self._plagiarism_semaphore: draft = campaign.draft_content or ""
-        kw = campaign.get_gold_val("primary_keyword", "")
-        if not kw and not draft:
-            return PlagiarismResult(uniqueness_score=1.0, risk_level="LOW", flagged_sentences=[], annotations=[], similar_sources=[], verdict="Thiếu dữ liệu (Chưa có Topic/Keyword).", logs=logs)
+        async with self._plagiarism_semaphore:
+            logs = ["🔍 Khởi động hệ thống rà soát bản quyền (Neural V82.8)..."]
+            await self._emit_log(campaign, logs[-1])
 
-        logs.append("🧹 Đang tiền xử lý...")
-        await self._emit_log(campaign, logs[-1])
-        plain = await noise_cleaner.clean(draft, mode="aggressive", strip_html=False)
-        
-        logs.append("🧠 Đang rà soát trùng lặp nội bộ...")
-        await self._emit_log(campaign, logs[-1])
-        seen, deduped, i_annots = set(), [], []
-        for para in self._surgeon._split_into_paragraphs(plain)[:200]:
-            norm = normalize_vn(para)
-            if len(norm) < 10: deduped.append(para); continue
-            if norm not in seen: seen.add(norm); deduped.append(para)
-            else: i_annots.append(CopyrightAnnotation(text=para[:200], reason="Đoạn lặp lại trong bài", source_url="internal", severity="high", type="internal-dedup"))
+            # If force is true, we should tell the bridge to try even if some keys are flagged
+            # But for now, we just pass it down.
 
-        logs.append(f"📡 Đang trinh sát nguồn đối thủ cho: '{kw}'...")
-        await self._emit_log(campaign, logs[-1])
-        comps = await self._fetch_competitor_snippets(campaign, kw, logs=logs)
-        
-        logs.append("🧠 Đang nạp dữ liệu vào Neural Engine...")
-        await self._emit_log(campaign, logs[-1])
-        try:
-            prompt = f"[BÀI VIẾT]\n{('\n'.join(deduped))[:12000]}\n\n[ĐỐI THỦ]\n{'\n'.join(comps)}"
-            res = await trinity_bridge.run(self._agent, prompt, force=force)
-            
-            # Phase 3.1: Strict Typing & Result Extraction (V89.1 Fix: Use .data or .output)
-            raw = res.data if hasattr(res, "data") else (res.output if hasattr(res, "output") else res)
-            
-            # Final Safety: If for some Reason trinity_bridge returned the raw AgentRunResult
-            # outside the casted object, we MUST extract its data to avoid 'model_dump' errors.
-            if hasattr(raw, 'data') and not hasattr(raw, 'uniqueness_score'):
-                raw = raw.data
+            draft = campaign.draft_content or ""
+            kw = campaign.get_gold_val("primary_keyword", "")
+            if not kw and not draft:
+                return PlagiarismResult(uniqueness_score=1.0, risk_level="LOW", flagged_sentences=[], annotations=[], similar_sources=[], verdict="Thiếu dữ liệu (Chưa có Topic/Keyword).", logs=logs)
 
-            if hasattr(raw, 'annotations'):
-                annots = list(raw.annotations or [])
-                for ian in i_annots:
-                    # Deeply link internal dedup annotations
-                    raw.uniqueness_score = max(0.0, raw.uniqueness_score - 0.02)
-                    annots.append(ian)
-                raw.annotations = annots
-                raw.risk_level = "HIGH" if raw.uniqueness_score < 0.65 else ("MEDIUM" if raw.uniqueness_score < 0.9 else "LOW")
-            
-            if hasattr(raw, 'logs'): raw.logs = logs
-            return raw
-        except Exception as e:
-            logger.error(f"[PlagiarismCop] Neural Engine Error: {str(e)}", exc_info=True)
-            if logs is not None: logs.append(f"📡 AI đang bận, kích hoạt Heuristic Mode (Dò tìm cục bộ)...")
-            h_res = self._heuristic_analyze(deduped, comps, i_annots)
-            h_res.logs = logs
-            h_res.verdict = f"Hệ thống bận ({str(e)[:40]}). Kết quả dựa trên đối soát cục bộ."
-            return h_res
+            logs.append("🧹 Đang tiền xử lý...")
+            await self._emit_log(campaign, logs[-1])
+            plain = await noise_cleaner.clean(draft, mode="aggressive", strip_html=False)
+
+            logs.append("🧠 Đang rà soát trùng lặp nội bộ...")
+            await self._emit_log(campaign, logs[-1])
+            seen, deduped, i_annots = set(), [], []
+            for para in self._surgeon._split_into_paragraphs(plain)[:200]:
+                norm = normalize_vn(para)
+                if len(norm) < 10: deduped.append(para); continue
+                if norm not in seen: seen.add(norm); deduped.append(para)
+                else: i_annots.append(CopyrightAnnotation(text=para[:200], reason="Đoạn lặp lại trong bài", source_url="internal", severity="high", type="internal-dedup"))
+
+            logs.append(f"📡 Đang trinh sát nguồn đối thủ cho: '{kw}'...")
+            await self._emit_log(campaign, logs[-1])
+            comps = await self._fetch_competitor_snippets(campaign, kw, logs=logs)
+
+            logs.append("🧠 Đang nạp dữ liệu vào Neural Engine...")
+            await self._emit_log(campaign, logs[-1])
+            try:
+                prompt = f"[BÀI VIẾT]\n{('\n'.join(deduped))[:12000]}\n\n[ĐỐI THỦ]\n{'\n'.join(comps)}"
+                res = await trinity_bridge.run(self._agent, prompt, force=force, role="brain")
+
+                # Phase 3.1: Strict Typing & Result Extraction (V89.1 Fix: Use .data or .output)
+                raw = res.data if hasattr(res, "data") else (res.output if hasattr(res, "output") else res)
+
+                # Final Safety: If for some Reason trinity_bridge returned the raw AgentRunResult
+                # outside the casted object, we MUST extract its data to avoid 'model_dump' errors.
+                if hasattr(raw, 'data') and not hasattr(raw, 'uniqueness_score'):
+                    raw = raw.data
+
+                if hasattr(raw, 'annotations'):
+                    annots = list(raw.annotations or [])
+                    for ian in i_annots:
+                        # Deeply link internal dedup annotations
+                        raw.uniqueness_score = max(0.0, raw.uniqueness_score - 0.02)
+                        annots.append(ian)
+                    raw.annotations = annots
+                    raw.risk_level = "HIGH" if raw.uniqueness_score < 0.65 else ("MEDIUM" if raw.uniqueness_score < 0.9 else "LOW")
+
+                if hasattr(raw, 'logs'): raw.logs = logs
+                return raw
+            except Exception as e:
+                logger.error(f"[PlagiarismCop] Neural Engine Error: {str(e)}", exc_info=True)
+                if logs is not None: logs.append(f"📡 AI đang bận, kích hoạt Heuristic Mode (Dò tìm cục bộ)...")
+                h_res = self._heuristic_analyze(deduped, comps, i_annots)
+                h_res.logs = logs
+                h_res.verdict = f"Hệ thống bận ({str(e)[:40]}). Kết quả dựa trên đối soát cục bộ."
+                return h_res
 
     def _heuristic_analyze(self, deduped: List[str], comps: List[str], i_annots: List[CopyrightAnnotation]) -> PlagiarismResult:
         """R102: Heuristic Fallback — Phân tích cục bộ không dùng AI."""

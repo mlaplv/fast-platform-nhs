@@ -44,7 +44,11 @@ Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt th
 - [x] Cleanup: Remove all `auth_extended` remnants and stale dependencies. <!-- id: 40 -->
 - [x] Final Audit: Verify 100% Service-Centric compliance for all controllers. <!-- id: 41 -->
 
-## 🎯 Giai đoạn 15: AI Content Intelligence (BẮT ĐẦU)
-- [x] Аналитика Step 2: Giải mã lỗi hình ảnh "Tuần lộc & Búp bê" cho thương hiệu Hồng Sơn. <!-- id: 50 -->
-- [ ] Logic: Bổ sung "Native Brand Protection" cho AssetHunter (Cơ chế chống dịch danh từ riêng). <!-- id: 51 -->
-- [ ] UI: Thêm toggle "Tìm ảnh Nội địa (Tiếng Việt)" trong Step 2. <!-- id: 52 -->
+## 🎯 Giai đoạn 16: Content Quality Assurance & Plagiarism Shield (COMPLETED)
+- [x] Backend: Cập nhật `PlagiarismCop` hỗ trợ `GOOGLE_SEARCH_KEYS` (Key Rotation). <!-- id: 60 -->
+- [x] Backend: Mở rộng `_plagiarism_semaphore` bao phủ toàn bộ luồng `analyze` để bảo vệ quota. <!-- id: 61 -->
+- [x] Backend: Ép sử dụng `role="brain"` cho audit bản quyền qua `TrinityBridge`. <!-- id: 62 -->
+- [x] Logic: Sửa lỗi hydration score `0` (100% plagiarized) tại `xohiAnalysis.svelte.ts`. <!-- id: 63 -->
+- [x] UI: Nâng cấp nút "COPYRIGHT" cho phép Click Re-run (Force) khi tab đang active. <!-- id: 64 -->
+- [x] UI: Đồng bộ cơ chế Click Re-run cho SEO và AI MOD tabs. <!-- id: 65 -->
+

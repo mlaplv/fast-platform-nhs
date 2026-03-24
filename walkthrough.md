@@ -1,4 +1,31 @@
-# Walkthrough - Phase 13: Elite V2.2 Zero-Hydration & Service-Centric Architecture
+# Walkthrough - Phase 16: Content Quality Assurance & Plagiarism Shield
+
+## 🛠️ Công việc đã thực hiện
+
+### 1. Backend: PlagiarismCop & Search Key Rotation
+- **Key Rotation Support**: Cập nhật constructor của `PlagiarismCop` để hỗ trợ biến môi trường `GOOGLE_SEARCH_KEYS` (phân tách bằng dấu phẩy). Hệ thống giờ đây tự động xoay vòng qua danh sách key để tránh cạn kiệt quota Google Search.
+- **Concurrency Guard**: Mở rộng phạm vi của `_plagiarism_semaphore` (class-level) để bao phủ toàn bộ phương thức `analyze`. Điều này ngăn chặn việc gọi API Google Search song song gây lãng phí tài nguyên và lỗi rate-limit.
+- **Neural Model Priority**: Ép sử dụng `role="brain"` khi gọi `trinity_bridge.run` để đảm bảo các model cao cấp nhất (Pro/Ultra) thực hiện nhiệm vụ thẩm định bản quyền.
+
+### 2. Frontend: Zero-Hydration Fix & UI UX Elite
+- **Score Hydration Fix**: Sửa lỗi logic tại `xohiAnalysis.svelte.ts` nơi score `0` (trùng lặp 100%) bị coi là "thiếu dữ liệu", gây hiện tượng UI không hiển thị kết quả hoặc nhảy loading liên tục.
+- **Proactive Re-check UI**: Nâng cấp `DraftStep.svelte`, cho phép người dùng click vào tab đang active (COPYRIGHT, SEO, AI MOD) để kích hoạt lệnh `force=true` re-run phân tích ngay lập tức. Đây là cơ chế UX "Elite" giúp người dùng linh hoạt kiểm tra lại sau khi thay đổi key hoặc nội dung mà không cần tìm nút trong toolbar.
+
+## 🧪 Bằng chứng xác thực (Verification)
+- **Key Rotation**: Kiểm tra code đảm bảo `_get_search_pair` lấy đúng key từ danh sách phân tách bởi dấu phẩy.
+- **Hydration**: Debug state xác nhận uniqueness score `0` được giữ lại và hiển thị chính xác (High Risk).
+- **UI Logic**: Thao tác click vào tab active đã gọi đúng `runCopyrightCheck(true)`.
+
+## 📊 Nhật ký thực thi
+- [2026-03-24]: Khởi tạo Phase 16. Khắc phục lỗi nút Check Copyright không hoạt động.
+- [2026-03-24]: Cập nhật backend hỗ trợ Key Rotation và mở rộng Semaphore.
+- [2026-03-24]: Đồng bộ UI re-run cho toàn bộ các tab phân tích trong Creative Studio.
+
+---
+
+*Xác nhận hoàn thành bởi Antigravity (TrinityBridge Protocol).*
+
+---
 
 ## 🛠️ Công việc đã thực hiện
 
