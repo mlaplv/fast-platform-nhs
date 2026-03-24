@@ -48,3 +48,19 @@ def sanitize_id(id_val: str | None) -> str | None:
         return None
 
     return s
+
+def to_int(val: object, default: int = 0) -> int:
+    """
+    Robust integer parsing: handles "~500", "500+", "approx 500", etc.
+    Extracts the first numeric sequence found in the string.
+    """
+    if val is None: return default
+    if isinstance(val, int): return val
+    try:
+        s = str(val).strip()
+        m = re.search(r'\d+', s)
+        if m:
+            return int(m.group())
+        return default
+    except (ValueError, TypeError):
+        return default

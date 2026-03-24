@@ -79,7 +79,7 @@
         <!-- Animated Elements inside Core -->
         <div class="flex flex-col items-center gap-2">
            <Zap size={40} class="text-white animate-bounce-gentle drop-shadow-[0_0_20px_rgba(255,255,255,1)]" />
-           <div class="text-[11px] font-black tracking-[0.4em] uppercase text-white/50">NEURAL CORE</div>
+           <div class="text-[11px] font-black tracking-[0.4em] uppercase text-white/50">NEURAL XOHI</div>
         </div>
         
         <!-- Scanning Effect -->
@@ -169,7 +169,7 @@
         <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
           <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/40 border border-white/5 text-[9px] text-white/30">
             <Cpu size={12} class="text-blue-500/30" />
-            <span>Neural Engine V2</span>
+            <span>Neural Xohi Engine V2</span>
           </div>
           <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/40 border border-white/5 text-[9px] text-white/30">
             <Sparkles size={12} class="text-cyan-500/30" />
@@ -210,7 +210,7 @@
          </div>
        {/each}
     </div>
-    <div class="text-[8px] font-black text-white/20 uppercase tracking-[0.5em] animate-pulse">NEURAL PROCESSING UNIT · CORE V2.8 ACTIVE</div>
+    <div class="text-[8px] font-black text-white/20 uppercase tracking-[0.5em] animate-pulse">NEURAL PROCESSING UNIT · XOHI V2.8 ACTIVE</div>
   </div>
 </div>
 

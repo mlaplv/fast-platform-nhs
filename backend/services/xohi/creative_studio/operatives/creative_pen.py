@@ -7,6 +7,7 @@ from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
 from backend.services.xohi.creative_studio.models.schemas import ArticleOutline, AgentResponse, AgentSignal
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+from backend.utils.text import to_int
 from backend.utils.noise_cleaner import noise_cleaner
 from .creative_pen_prompts import OUTLINE_PROMPT, DRAFT_PROMPT
 from .creative_pen_utils import process_pen_draft
@@ -19,6 +20,7 @@ class CreativePen:
     Modularized for Martial Law (<300 lines).
     """
     def __init__(self, model_name: Optional[str] = None):
+        logger.info("🔥 [CreativePen] CNS V82.55 Loaded with to_int protection.")
         self.model_name, self.pen_semaphore = model_name, asyncio.Semaphore(1)
         self.outline_agent = Agent(output_type=ArticleOutline, system_prompt=OUTLINE_PROMPT, retries=3)
         self.draft_agent = Agent(system_prompt=DRAFT_PROMPT)
@@ -46,7 +48,7 @@ class CreativePen:
         config = campaign.get_gold_config()
         t, p = campaign.get_gold_val("title", ""), campaign.get_gold_val("primary_keyword", "")
         gt = campaign.get_gold_val("ground_truth", "")
-        max_s = config.get("max_sections", 3)
+        max_s = to_int(config.get("max_sections", 3))
         
         inst = f"Hãy tạo Dàn Ý (ArticleOutline) chi tiết gồm đúng {max_s} mục H2. Bám sát Ground Truth."
         prompt = f"Tiêu đề: {t}\nTừ khóa: {p}\nGround Truth: {gt}\nGiới hạn: {max_s} mục H2."
@@ -94,8 +96,8 @@ class CreativePen:
         asset_ctx = "\n".join([f"[IMAGE_{i}]: {url}" for i, url in enumerate(clean_assets[:12], 1)]) or "(Không có ảnh)"
         
         config = campaign.get_gold_config()
-        target_w = min(max(int(config.get("word_count", 500)), 100), 2500)
-        max_s = int(config.get("max_sections", 3))
+        target_w = min(max(to_int(config.get("word_count", 500)), 100), 2500)
+        max_s = to_int(config.get("max_sections", 3))
         mode = config.get("content_mode", "viral")
         
         p_per_s = 4 if mode == "deep_dive" else (2 if mode == "normal" else (1 if max_s >= 8 else 2))

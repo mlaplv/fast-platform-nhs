@@ -71,7 +71,13 @@
   // CNS V82.5: Auto-jump to new step when it arrives from pulse, but allow looking back
   $effect(() => { 
     if (step > maxStepSeen) {
-      untrack(() => { maxStepSeen = step; viewingStep = step; isEditing = false; campaign.isStepProcessing = false; });
+      untrack(() => { 
+        maxStepSeen = step; 
+        viewingStep = step; 
+        isEditing = false; 
+        // CNS V85.10: Delayed reset to prevent "vấp" (flicker)
+        setTimeout(() => { campaign.isStepProcessing = false; }, 1000);
+      });
     }
   });
 
@@ -119,18 +125,27 @@
 
   // Keep sticky for major transitions to prevent "chập điện"
   $effect(() => {
-    if (isProcessing && !isAnalysisMessage && progress_msg) {
-      if (isMajorStepMessage) {
+    // CNS V85.10: Also trigger sticky when major processing starts manually
+    if ((isProcessing && !isAnalysisMessage && progress_msg) || campaign.isStepProcessing) {
+      if (isMajorStepMessage || campaign.isStepProcessing) {
         isOverlaySticky = true;
         if (stickyTimer) clearTimeout(stickyTimer);
-        stickyTimer = setTimeout(() => { isOverlaySticky = false; stickyTimer = null; }, 2500);
+        // CNS V85.10: Increased to 4000ms for ultra-premium smoothness
+        stickyTimer = setTimeout(() => { isOverlaySticky = false; stickyTimer = null; }, 4000);
       }
     }
   });
 
-  let shouldShowOverlay = $derived(
-    (isProcessing || isOverlaySticky) && !analysisSession && !isAnalysisMessage
-  );
+  let shouldShowOverlay = $derived.by(() => {
+    if (campaign.isStepProcessing || isOverlaySticky) return true;
+    if (!isProcessing) return false;
+    
+    // Only hide overlay for Step 5 (Manual Analysis view) or specific analysis messages
+    // Step 4 (Draft) should stay covered by Neural Xohi during generation
+    if (viewingStep === 5 && !isMajorStepMessage) return false;
+    
+    return true;
+  });
 
 
 

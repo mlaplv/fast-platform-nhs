@@ -82,6 +82,7 @@ class AnalystHandler:
             return GenericResponse(status="error", message=str(e))
 
     async def analyze_copyright(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None) -> GenericResponse:
+        logger.info(f"💓 [AnalystHandler] Hammering copyright check for {campaign_id}")
         from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
         return await self._run_analysis(campaign_id, campaign_repo, PlagiarismCop, "copyright", force, raw_content=raw_content, raw_topic=raw_topic)
 

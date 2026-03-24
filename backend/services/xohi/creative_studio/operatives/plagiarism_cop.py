@@ -85,6 +85,7 @@ class PlagiarismCop:
         })
 
     async def analyze(self, campaign: "ContentCampaign", force: bool = False) -> PlagiarismResult:
+        logger.info(f"💓 [PlagiarismCop] Diving into copyright analysis for campaign {campaign.id}")
         """
         Phase 1: Search (Google Custom Search with Key Rotation)
         Phase 2: Scrape (Fetch top 3 competitor contents)
@@ -125,10 +126,14 @@ class PlagiarismCop:
             prompt = f"[BÀI VIẾT]\n{('\n'.join(deduped))[:12000]}\n\n[ĐỐI THỦ]\n{'\n'.join(comps)}"
             res = await trinity_bridge.run(self._agent, prompt, force=force)
             
-            # Phase 3.1: Strict Typing & Result Extraction
-            raw = cast(PlagiarismResult, res.data if hasattr(res, "data") else res)
+            # Phase 3.1: Strict Typing & Result Extraction (V89.1 Fix: Use .data or .output)
+            raw = res.data if hasattr(res, "data") else (res.output if hasattr(res, "output") else res)
             
-            # If raw is the PlagiarismResult itself
+            # Final Safety: If for some Reason trinity_bridge returned the raw AgentRunResult
+            # outside the casted object, we MUST extract its data to avoid 'model_dump' errors.
+            if hasattr(raw, 'data') and not hasattr(raw, 'uniqueness_score'):
+                raw = raw.data
+
             if hasattr(raw, 'annotations'):
                 annots = list(raw.annotations or [])
                 for ian in i_annots:

@@ -9,6 +9,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm.attributes import flag_modified
 from backend.database.models import ContentCampaign, CampaignEvent
 from backend.database.repositories import ContentCampaignRepository
+from backend.utils.text import to_int
 from backend.services.xohi.creative_studio.models.schemas import AgentResponse, AgentSignal
 from backend.services.xohi.creative_studio.registry import registry
 from backend.services.event_bus import event_bus
@@ -23,6 +24,7 @@ class ExecutionEngine:
         self._active_tasks: Dict[str, asyncio.Task] = {} # CNS V82.50: Campaign task tracking
 
     async def trigger_step(self, campaign_id: str, force_step: Optional[int] = None):
+        logger.info(f"🔥 [ExecutionEngine] CNS V82.55 Active for campaign {campaign_id}")
         # CNS V82.50: Capture and cancel existing task BEFORE registering the new one
         # This avoids the race where a task might accidentally wait on itself
         old_task = self._active_tasks.get(campaign_id)

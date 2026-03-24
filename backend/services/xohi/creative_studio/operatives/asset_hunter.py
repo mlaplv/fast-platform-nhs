@@ -13,6 +13,7 @@ from backend.services.event_bus import event_bus
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from .asset_hunter_prompts import PLANNER_PROMPT
 from .asset_hunter_utils import check_asset_url, fetch_google_page
+from backend.utils.text import to_int
 
 logger = logging.getLogger("api-gateway")
 
@@ -22,6 +23,7 @@ class AssetHunter:
     Modularized for Martial Law (<300 lines).
     """
     def __init__(self, key_pairs: List[Dict[str, str]]) -> None:
+        logger.info("🚀 [AssetHunter] CNS V82.55 Loaded with to_int protection.")
         # Phase 82.50: Increased semaphore from 2 to 5 for higher throughput
         self.key_pairs, self.current_index, self.hunt_semaphore = key_pairs, 0, asyncio.Semaphore(5)
         self.planner_agent = Agent(output_type=VisualSearchPlan, system_prompt=PLANNER_PROMPT)
@@ -51,12 +53,11 @@ class AssetHunter:
                     logger.error(f"[AssetHunter] AI Planner failed: {e}")
                     queries = [f"{primary if primary else title} -text -word"]
 
-            # V82.35: Safety guard if AI returns empty queries
             if not queries:
                  queries = [f"{primary if primary else title} -text -word"]
 
             raw_candidates, seen_urls = [], set()
-            target_count = int(campaign.get_gold_config().get("max_assets", 10))
+            target_count = to_int(campaign.get_gold_config().get("max_assets", 10))
             if target_count < 3: # CNS V82.35: Safety Floor — Sếp yêu cầu luôn có tối đa 10, tối thiểu 3
                 target_count = 10
             
