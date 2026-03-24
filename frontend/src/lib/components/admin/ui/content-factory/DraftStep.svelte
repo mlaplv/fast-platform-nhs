@@ -31,7 +31,8 @@
     campaign_id, isEditing,
     getEditedDraft: () => editedDraft, getDraftContent: () => draft_content,
     setEditedDraft: (v) => { editedDraft = v; }, setDraftContent: (v) => { draft_content = v; },
-    analysis_cache, analysis_metrics
+    get analysis_cache() { return analysis_cache; },
+    get analysis_metrics() { return analysis_metrics; }
   });
 
   let displayContent = $derived.by(() => {
@@ -145,11 +146,11 @@
       bind:this={editorRef} content={displayContent} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex editable={isEditing} placeholder="AI đang chấp bút bản thảo..." fullScreen={isExpanded} campaignId={campaign_id} flex={true} syncAssetsMode="append"
       onChange={(val) => { if (isEditing && val !== editedDraft) editedDraft = val; }}
       onfix={analysis.runAutoFix} annotations={analysis.editorAnnotations}
-      onClean={() => editorRef?.editor?.commands.clearContent()}
+      onClean={analysis.runCleanContent}
       toolbarActions={[
         { label: analysis.isCopyrightLoading ? '...' : '🔍 COPYRIGHT', loading: analysis.isCopyrightLoading, onclick: () => handleAction(analysis.runCopyrightCheck, true) },
-        { label: analysis.isSeoLoading ? '...' : '📊 SEO', loading: analysis.isSeoLoading, disabled: analysis.seoLocked, onclick: () => handleAction(analysis.runSeoAnalysis, true), lockedMsg: analysis.seoLocked ? `🔒 SEO bị khoá — Cần COPYRIGHT ≥ 90 trước` : undefined },
-        { label: analysis.isAiLoading ? '...' : '✨ AI MOD', loading: analysis.isAiLoading, disabled: analysis.aiLocked, onclick: () => handleAction(analysis.runAiAnalysis, true), lockedMsg: analysis.aiLocked ? `🔒 AI MOD bị khoá — Cần SEO ≥ 70 trước` : undefined },
+        { label: analysis.isSeoLoading ? '...' : '📊 SEO', loading: analysis.isSeoLoading, disabled: analysis.seoLocked, onclick: () => handleAction(analysis.runSeoAnalysis, true), lockedMsg: analysis.seoLocked ? `🔒 SEO bị khoá — Cần COPYRIGHT ≥ 55 trước` : undefined },
+        { label: analysis.isAiLoading ? '...' : '✨ AI MOD', loading: analysis.isAiLoading, disabled: analysis.aiLocked, onclick: () => handleAction(analysis.runAiAnalysis, true), lockedMsg: analysis.aiLocked ? `🔒 AI MOD bị khoá — Cần SEO ≥ 40 trước` : undefined },
         ...(analysis.seoResult && analysis.seoResult.total_score < 95 ? [{ label: analysis.isBoosting ? '🚀 ENRICHING...' : '🚀 AI BOOSTER', loading: analysis.isBoosting, onclick: () => handleAction(analysis.runAiBooster), tooltipDetails: { title: 'AI Booster™', description: 'Tự động cấy số liệu thực tế và câu quote chuyên gia để ép SEO vượt 95đ.', icon: Brain, colorClass: 'text-pink-400' } }] : []),
         ...(analysis.activeTab && analysis.activeTab !== 'enrich' && (analysis.editorAnnotations.length > 0) ? [{ 
           label: analysis.isBulkFixing ? (analysis.bulkFixStatus || '✨ ĐANG PHẪU THUẬT...') : `✨ SỬA TOÀN BỘ LỖI ${analysis.activeTab.toUpperCase()}`, 

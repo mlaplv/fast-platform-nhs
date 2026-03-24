@@ -6,9 +6,6 @@ from pathlib import Path
 from typing import List, Dict, Optional
 from flashtext import KeywordProcessor
 from rapidfuzz import fuzz
-from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-from pydantic_ai import Agent
-
 logger = logging.getLogger("api-gateway")
 
 # Phase 76.3: Advanced Deterministic Artifact Stripper (HFS)
@@ -55,29 +52,6 @@ class NoiseCleaner:
         self.fuzzy_patterns: Dict[str, List[str]] = {}
         self.semantic_categories: List[str] = []
         
-        # SLM Agent for Layer 3 (Semantic Audit)
-        self._audit_agent = Agent(
-            system_prompt="Bạn là một chuyên gia lọc nhiễu văn bản. Hãy xác định xem đoạn văn sau có chứa thông tin rác (quảng cáo, mã lỗi, boilerplate) hay không. Chỉ trả về label: CLEAN hoặc JUNK.",
-        )
-
-        # Phase 76.9: Viral 2026 Polish Agent
-        self._polish_agent = Agent(
-            system_prompt="""[ROLE] VIRAL CONTENT ARCHITECT — Fast Platform 2026
-[NHIỆM VỤ]
-Làm sạch và tối ưu bài viết HTML/Text sau đây để đạt chuẩn "Viral 2026".
-
-[QUY TẮC CỨNG - TUYỆT ĐỐI TUÂN THỦ]
-1. XÓA BỎ: Các đoạn mã code dư thừa (js, css, html comment), link rác không liên quan đến nội dung chính.
-2. XÓA BỎ: Các câu lặp ý, nội dung boilerplate (ví dụ: "Click here", "Read more", "Copyright by...").
-3. TỐI ƯU: Nếu là HTML, giữ nguyên các thẻ cấu trúc (h1, h2, p, figure).
-4. TỐI ƯU: Đảm bảo nhịp điệu (pacing) nhanh, lôi cuốn. Không thêm bớt ý chính của sếp.
-5. CẤM: Không thêm lời dẫn giải "Đây là bài viết đã làm sạch...". Chỉ trả về nội dung đã tối ưu.
-""",
-        )
-
-        # R105: Semaphore to protect 2GB VPS RAM from concurrent LLM cleaning
-        self._semaphore = asyncio.Semaphore(1)
-
         self._load_dictionary()
 
     def _load_dictionary(self):
@@ -150,86 +124,79 @@ Làm sạch và tối ưu bài viết HTML/Text sau đây để đạt chuẩn "
         
         cleaned_text = text
         
-        # --- LAYER 2: FUZZY CLEANING ---
-        # Split into tokens for fuzzy checking (limited to identified risky areas)
-        # To avoid performance hit on large texts, we only fuzzy-check words > 5 chars
-        words = cleaned_text.split()
-        final_words = []
-        
-        for word in words:
-            is_noise = False
-            if len(word) > 4:
-                word_lower = str(word).lower()
-                for category, patterns in self.fuzzy_patterns.items():
-                    for pattern in patterns:
-                        if fuzz.ratio(word_lower, str(pattern).lower()) > 85:
-                            is_noise = True
-                            logger.debug(f"[Noise Shield] Fuzzy hit: '{word}' resembles '{pattern}'")
-                            break
-                    if is_noise: break
-            
-            if not is_noise:
-                final_words.append(str(word))
-        
-        cleaned_text = " ".join(final_words)
+        # --- LAYERS 2+3: CPU-BOUND — run off-thread to avoid blocking event loop ---
+        cleaned_text = await asyncio.to_thread(self._sync_clean_cpu, cleaned_text, mode)
 
-        # --- LAYER 3: SEMANTIC AUDIT (OPTIONAL) ---
-        # Only trigger for suspicious segments if mode is "aggressive"
-        if mode == "aggressive" and len(cleaned_text) > 50:
-            # We audit large chunks or the whole thing if it seems too noisy
-            # For draft generation, we usually clean the whole output.
-            noise_detected = await self._semantic_audit(cleaned_text)
-            if noise_detected:
-                # If the AI thinks it's pure junk, we might need a redo signal
-                # For now, we just log it and return the best-effort clean text.
-                logger.warning("[Noise Shield] Semantic Audit flagged the content as JUNK.")
-        
         # Final pass: Collapse horizontal whitespace but preserve structure (V76.4)
         import unicodedata
         cleaned_text = re.sub(r'[ \t]+', ' ', cleaned_text)
         cleaned_text = re.sub(r'\n\s*\n', '\n\n', cleaned_text) # Normalize paragraph breaks
         return unicodedata.normalize('NFC', cleaned_text.strip())
 
-    async def viral_polish(self, content: str) -> str:
+    def _sync_clean_cpu(self, text: str, mode: str) -> str:
+        """CPU-bound cleaning layers (Fuzzy + Heuristic Audit) — run via asyncio.to_thread."""
+        # --- LAYER 2: FUZZY CLEANING ---
+        # Pre-flatten patterns once for O(n × total_patterns) instead of nested loops
+        all_flat_patterns = [
+            (str(p).lower(), cat)
+            for cat, patterns in self.fuzzy_patterns.items()
+            for p in patterns
+        ]
+        words = text.split()
+        final_words: list[str] = []
+        for word in words:
+            is_noise = False
+            if len(word) > 4:
+                word_lower = word.lower()
+                for pat_lower, cat in all_flat_patterns:
+                    if fuzz.ratio(word_lower, pat_lower) > 85:
+                        is_noise = True
+                        logger.debug(f"[Noise Shield] Fuzzy hit: '{word}' resembles '{pat_lower}' [{cat}]")
+                        break
+            if not is_noise:
+                final_words.append(word)
+        cleaned = " ".join(final_words)
+
+        # --- LAYER 3: HEURISTIC SEMANTIC AUDIT ---
+        if mode == "aggressive" and len(cleaned) > 50:
+            if self._semantic_audit(cleaned):
+                logger.warning("[Noise Shield] Heuristic Audit flagged the content as JUNK.")
+
+        return cleaned
+
+
+
+    def _semantic_audit(self, sample: str) -> bool:
         """
-        Phase 76.9: Viral 2026 Semantic Polish.
-        Uses AI to surgically remove remaining noise and optimize for viral engagement.
+        Heuristic Semantic Audit — NO AI, 0 quota cost.
+        Flags content as JUNK if noise-keyword density > 40%.
+        Capped to first 100 words + pre-flattened patterns to avoid O(n×m×k) CPU block.
         """
-        if not content or len(content) < 50:
-            return content
-
-        async with self._semaphore:
-            try:
-                # Phase 76.9: Use TrinityBridge for the polish task with dedicated agent
-                result = await trinity_bridge.run(
-                    self._polish_agent,
-                    content[:4000], # Limit context for speed and safety
-                    model="gemini-2.0-flash"
-                )
-
-                polished = str(result.output).strip()
-
-                # Sanitization pass: Remove markdown fences if the AI accidentally adds them
-                if polished.startswith("```"):
-                    polished = re.sub(r'^```[a-z]*\n', '', polished)
-                    polished = re.sub(r'\n```$', '', polished)
-
-                return polished if len(polished) > 10 else content
-            except Exception as e:
-                logger.error(f"[Noise Shield] Viral Polish failed: {e}")
-                return content
-
-    async def _semantic_audit(self, sample: str) -> bool:
-        """Asks AI if the content is predominantly junk."""
-        try:
-            # Only audit first 500 chars to save tokens
-            check_sample = sample[:500]
-            result = await trinity_bridge.run(self._audit_agent, check_sample)
-            verdict = str(result.output).strip().upper()
-            return "JUNK" in verdict
-        except Exception as e:
-            logger.error(f"[Noise Shield] Semantic Audit error: {e}")
+        if not sample or not self.fuzzy_patterns:
             return False
+        # Cap to 100 words to keep this O(100 × total_patterns) — safe for async context
+        words = sample.split()[:100]
+        if not words:
+            return False
+        # Pre-flatten all patterns once (not per-word)
+        all_patterns = [
+            p.lower()
+            for patterns in self.fuzzy_patterns.values()
+            for p in patterns
+        ]
+        if not all_patterns:
+            return False
+        noise_hits = 0
+        for w in words:
+            w_lower = w.lower()
+            # Early exit per word: break as soon as one pattern matches
+            if any(fuzz.ratio(w_lower, p) > 85 for p in all_patterns):
+                noise_hits += 1
+        ratio = noise_hits / len(words)
+        if ratio > 0.40:
+            logger.debug(f"[Noise Shield] Heuristic audit: noise ratio={ratio:.2%} → JUNK")
+            return True
+        return False
 
 # Singleton instance
 noise_cleaner = NoiseCleaner()

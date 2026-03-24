@@ -46,7 +46,8 @@ class AnalystHandler:
 
         try:
             analyzer = analyzer_class()
-            result = await analyzer.analyze(campaign)
+            # Pass force flag to analyzer if it supports it (to bypass AI exhaustion cache)
+            result = await analyzer.analyze(campaign, force=force)
             result_data = result.model_dump()
 
             # If it's a persistent campaign, update metrics and cache
@@ -80,17 +81,17 @@ class AnalystHandler:
             logger.error(f"[AnalystHandler] {category} analysis failed: {str(e)}", exc_info=True)
             return GenericResponse(status="error", message=str(e))
 
-    async def analyze_copyright(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None) -> GenericResponse:
+    async def analyze_copyright(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None) -> GenericResponse:
         from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
-        return await self._run_analysis(campaign_id, campaign_repo, PlagiarismCop, "copyright", force, raw_content=raw_content)
+        return await self._run_analysis(campaign_id, campaign_repo, PlagiarismCop, "copyright", force, raw_content=raw_content, raw_topic=raw_topic)
 
     async def analyze_seo(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None) -> GenericResponse:
         from backend.services.xohi.creative_studio.operatives.seo_analyzer import SeoAnalyzer
         return await self._run_analysis(campaign_id, campaign_repo, SeoAnalyzer, "seo", force, raw_content=raw_content, raw_topic=raw_topic)
 
-    async def analyze_ai_inspect(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None) -> GenericResponse:
+    async def analyze_ai_inspect(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None) -> GenericResponse:
         from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
-        return await self._run_analysis(campaign_id, campaign_repo, AiInspector, "ai_inspect", force, raw_content=raw_content)
+        return await self._run_analysis(campaign_id, campaign_repo, AiInspector, "ai_inspect", force, raw_content=raw_content, raw_topic=raw_topic)
 
     async def auto_fix(self, campaign_id: str, data: Dict[str, Any], campaign_repo: ContentCampaignRepository) -> GenericResponse:
         # Auto-fix still requires a campaign for now due to complexity of snippet replacement

@@ -83,15 +83,15 @@ class ContentController(Controller):
 
     @post("/campaigns/{campaign_id:uuid}/analyze/copyright")
     async def analyze_copyright(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> GenericResponse:
-        return await content_factory.analyst.analyze_copyright(str(campaign_id), campaign_repo, force)
+        return await content_factory.analyst.analyze_copyright(str(campaign_id), campaign_repo, force=force)
 
     @post("/campaigns/{campaign_id:uuid}/analyze/seo")
     async def analyze_seo(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> GenericResponse:
-        return await content_factory.analyst.analyze_seo(str(campaign_id), campaign_repo, force)
+        return await content_factory.analyst.analyze_seo(str(campaign_id), campaign_repo, force=force)
 
     @post("/campaigns/{campaign_id:uuid}/analyze/ai-inspect")
     async def analyze_ai_readiness(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, force: bool = False) -> GenericResponse:
-        return await content_factory.analyst.analyze_ai_inspect(str(campaign_id), campaign_repo, force)
+        return await content_factory.analyst.analyze_ai_inspect(str(campaign_id), campaign_repo, force=force)
 
     @post("/campaigns/{campaign_id:uuid}/analyze/auto-fix")
     async def analyze_auto_fix(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> GenericResponse:
@@ -122,7 +122,7 @@ class ContentController(Controller):
     @post("/analyze/copyright")
     async def analyze_copyright_adhoc(self, request: Request) -> GenericResponse:
         data = await request.json()
-        return await content_factory.analyst.analyze_copyright(None, None, force=data.get("force", False), raw_content=data.get("content"))
+        return await content_factory.analyst.analyze_copyright(None, None, force=data.get("force", False), raw_content=data.get("content"), raw_topic=data.get("topic"))
 
     @post("/analyze/seo")
     async def analyze_seo_adhoc(self, request: Request) -> GenericResponse:
@@ -132,7 +132,7 @@ class ContentController(Controller):
     @post("/analyze/ai-inspect")
     async def analyze_ai_inspect_adhoc(self, request: Request) -> GenericResponse:
         data = await request.json()
-        return await content_factory.analyst.analyze_ai_inspect(None, None, force=data.get("force", False), raw_content=data.get("content"))
+        return await content_factory.analyst.analyze_ai_inspect(None, None, force=data.get("force", False), raw_content=data.get("content"), raw_topic=data.get("topic"))
 
     @post("/analyze/bulk-fix")
     async def analyze_bulk_fix_adhoc(self, request: Request) -> GenericResponse:

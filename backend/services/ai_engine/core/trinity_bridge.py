@@ -40,14 +40,18 @@ class TrinityBridge:
 
     async def run(self, agent: Agent, prompt: str, **kwargs: object):
         t, r_m, s_id, role = kwargs.pop("timeout", 90.0), kwargs.pop("model", None), kwargs.pop("session_id", None), kwargs.pop("role", None)
+        force = kwargs.pop("force", False)
         models = ([r_m] if r_m else []) + await self.models_helper.build_chain(role, self.db_primary_model, self.db_waterfall, self.discovered)
         max_k, last_err = max(1, self.rotator.get_count()), None
 
         for m_name in models:
             for att in range(max_k):
+                key = None
                 try:
+                    # R105: Key discovery with strict safety
                     key = await self.rotator.get_key(model_name=m_name, session_id=s_id)
-                    if await self.rotator.is_model_daily_exhausted(key, m_name): continue
+                    if not key: continue
+                    if not force and await self.rotator.is_model_daily_exhausted(key, m_name): continue
                     
                     logger.info(f"[TrinityBridge] {m_name} (Att {att+1}/{max_k}) (S: {s_id})")
                     res = await asyncio.wait_for(agent.run(prompt, model=GoogleModel(m_name, provider=GoogleProvider(api_key=key)), **kwargs), timeout=t)
@@ -60,6 +64,7 @@ class TrinityBridge:
                     last_err, cat = e, self.models_helper.classify_error(str(e))
                     if cat == "fail_fast": raise AIConfigurationError(f"AI Fail-Fast: {e}", m_name, att)
                     if cat == "tool_unsupported": break
+                    if not key: continue # Cannot mark unhealthy if we don't have a key
                     if cat == "rate_limit":
                         if self.models_helper.is_daily_quota(str(e)): await self.rotator.mark_model_daily(key, m_name); continue
                         await self.rotator.mark_unhealthy(key, reason="rate_limit", session_id=s_id); continue
@@ -70,19 +75,23 @@ class TrinityBridge:
     @asynccontextmanager
     async def run_stream(self, agent: Agent, prompt: str, **kwargs: object):
         r_m, s_id, role = kwargs.pop("model", None), kwargs.pop("session_id", None), kwargs.pop("role", None)
+        force = kwargs.pop("force", False)
         models = ([r_m] if r_m else []) + await self.models_helper.build_chain(role, self.db_primary_model, self.db_waterfall, self.discovered)
         max_k, last_err = max(1, self.rotator.get_count()), None
 
         for m_name in models:
             for att in range(max_k):
+                key = None
                 try:
                     key = await self.rotator.get_key(model_name=m_name, session_id=s_id)
-                    if await self.rotator.is_model_daily_exhausted(key, m_name): continue
+                    if not key: continue
+                    if not force and await self.rotator.is_model_daily_exhausted(key, m_name): continue
                     async with agent.run_stream(prompt, model=GoogleModel(m_name, provider=GoogleProvider(api_key=key)), **kwargs) as stream:
                         yield stream
                     await self.rotator.set_success(key, session_id=s_id); return
                 except Exception as e:
                     last_err, cat = e, self.models_helper.classify_error(str(e))
+                    if not key: continue
                     if cat == "rate_limit" and self.models_helper.is_daily_quota(str(e)): await self.rotator.mark_model_daily(key, m_name); continue
                     if cat in ["rate_limit", "auth"]: await self.rotator.mark_unhealthy(key, reason=cat, session_id=s_id); continue
                     if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break

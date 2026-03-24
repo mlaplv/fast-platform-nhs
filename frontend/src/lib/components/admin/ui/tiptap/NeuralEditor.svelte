@@ -91,11 +91,12 @@
       fullScreen={fullScreen}
       onChange={(val) => { if (editable && val !== editBuffer) { editBuffer = val; content = val; } }}
       onfix={analysis.runAutoFix}
+      onClean={analysis.runCleanContent}
       annotations={analysis.editorAnnotations}
       toolbarActions={[
         { label: analysis.isCopyrightLoading ? '...' : '🔍 COPYRIGHT', loading: analysis.isCopyrightLoading, onclick: () => handleAction(analysis.runCopyrightCheck, true) },
-        { label: analysis.isSeoLoading ? '...' : '📊 SEO', loading: analysis.isSeoLoading, disabled: analysis.seoLocked, onclick: () => handleAction(analysis.runSeoAnalysis, true), lockedMsg: analysis.seoLocked ? '🔒 SEO bị khoá — Cần COPYRIGHT ≥ 90 trước' : undefined },
-        { label: analysis.isAiLoading ? '...' : '✨ AI MOD', loading: analysis.isAiLoading, disabled: analysis.aiLocked, onclick: () => handleAction(analysis.runAiAnalysis, true), lockedMsg: analysis.aiLocked ? '🔒 AI MOD bị khoá — Cần SEO ≥ 70 trước' : undefined },
+        { label: analysis.isSeoLoading ? '...' : '📊 SEO', loading: analysis.isSeoLoading, disabled: analysis.seoLocked, onclick: () => handleAction(analysis.runSeoAnalysis, true), lockedMsg: analysis.seoLocked ? '🔒 SEO bị khoá — Cần COPYRIGHT ≥ 55 trước' : undefined },
+        { label: analysis.isAiLoading ? '...' : '✨ AI MOD', loading: analysis.isAiLoading, disabled: analysis.aiLocked, onclick: () => handleAction(analysis.runAiAnalysis, true), lockedMsg: analysis.aiLocked ? '🔒 AI MOD bị khoá — Cần SEO ≥ 40 trước' : undefined },
         ...(analysis.activeTab && analysis.activeTab !== 'enrich' && analysis.editorAnnotations.length > 0 ? [{
           label: analysis.isBulkFixing ? (analysis.bulkFixStatus || '✨ ĐANG PHẪU THUẬT...') : `✨ SỬA TOÀN BỘ LỖI ${(analysis.activeTab ?? '').toUpperCase()}`,
           loading: analysis.isBulkFixing,

@@ -32,6 +32,8 @@
     onblur = () => {},
     campaignId = undefined,
     flex = false,
+    onClean = null,
+    syncAssetsMode = 'append',
   }: {
     content?: string;
     onChange?: (val: string) => void;
@@ -48,6 +50,7 @@
     onblur?: () => void;
     campaignId?: string;
     flex?: boolean;
+    onClean?: (() => Promise<string | null>) | null;
     syncAssetsMode?: 'strict' | 'append';
   } = $props();
 
@@ -550,7 +553,7 @@
         showLinkDialog = true; 
       }}
       onClearHighlights={() => editor?.commands.clearAllAnnotations()}
-      onClean={handleClean}
+      onClean={onClean || handleClean}
       fullScreen={internalFullScreen}
       onToggleFullScreen={toggleFullScreen}
     />

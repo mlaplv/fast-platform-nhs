@@ -11,6 +11,7 @@
   // Svelte 5 strict mode will crash silently if a mandatory prop is passed as undefined!
   function createSafeData(source: Partial<CampaignData>): Partial<CampaignData> {
     return {
+      ...source,
       campaign_id: source?.campaign_id || source?.id || "",
       step: source?.step ?? 1,
       status: source?.status || "IDLE",
@@ -25,8 +26,7 @@
       selectedAssetIndex: source?.selectedAssetIndex || 0,
       creation_config: source?.creation_config || source?.gold_metadata?.creation_config || {},
       analysis_cache: source?.analysis_cache || source?.gold_metadata?.analysis_cache || {},
-      analysis_metrics: source?.analysis_metrics || source?.gold_metadata?.analysis_metrics || {},
-      ...source
+      analysis_metrics: source?.analysis_metrics || source?.gold_metadata?.analysis_metrics || {}
     };
   }
 

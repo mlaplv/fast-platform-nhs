@@ -110,7 +110,12 @@ export function processContentImages(html: string | null | undefined, assets: (M
     if (base.includes("<img") && assetList.length > 0) {
         let idx = 0;
         const locals = assetList.map(a => resolveMediaUrl(typeof a === 'string' ? a : (a.file_path || a.url || '')));
-        base = base.replace(/<img([^>]+)src=["'](https?:\/\/[^"']+)["']([^>]*)>/gi, (full, pre, src, post) => {
+        base = base.replace(/<img([^>]+)src=["']([^"']+)["']([^>]*)>/gi, (full, pre, src, post) => {
+            // R100: Skip replacement if the user manually inserted an internal media URL
+            if (src.includes('/api/v1/media/') || src.includes('/uploads/') || src.startsWith('data:')) {
+                return full;
+            }
+            // For external links or AI-generated dummy links, replace them sequentially
             return idx < locals.length ? `<img${pre}src="${locals[idx++]}"${post}>` : full;
         });
     }

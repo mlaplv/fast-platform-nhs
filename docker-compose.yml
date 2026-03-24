@@ -65,6 +65,7 @@ services:
       - CORS_ALLOWED_ORIGINS=https://${APP_DOMAIN},https://${ADMIN_DOMAIN}
       - STT_USE_STUB=false
       - TTS_USE_STUB=false
+      - TZ=Asia/Ho_Chi_Minh
       - PYTHONWARNINGS=ignore:Core Pydantic V1 functionality:UserWarning
     depends_on:
       db:

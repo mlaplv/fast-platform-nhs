@@ -1,5 +1,6 @@
 import { apiClient } from "$lib/utils/apiClient";
-import { tick } from "svelte";
+import { nanobot } from "./nanobot.svelte";
+import { tick, untrack } from "svelte";
 import type {
     CopyrightResult,
     SEOResult,
@@ -39,14 +40,33 @@ export function createAnalysisController(config: {
     let isBoosting = $state(false);
     let activeTab = $state<'copyright' | 'seo' | 'ai' | 'enrich' | null>(null);
 
+    // Phase 82.90: Live HUD Sync — Syncs real-time messages from global Pulse stream into local HUD logs
+    $effect(() => {
+        const data = nanobot.currentData as any;
+        if (!data || !config.campaign_id || (data.campaign_id !== config.campaign_id && data.id !== config.campaign_id)) return;
+        
+        const msg = data.progress_msg;
+        if (msg) {
+            untrack(() => {
+                // Only append if it's a new message and something is actually loading
+                const currentLoading = isCopyrightLoading || isSeoLoading || isAiLoading || isBulkFixing || isBoosting;
+                if (currentLoading && !bulkFixLogs.includes(msg)) {
+                    bulkFixLogs = [...bulkFixLogs, msg];
+                    // Sync broad status if empty
+                    if (!bulkFixStatus) bulkFixStatus = "Đang xử lý...";
+                }
+            });
+        }
+    });
+
     // Derived scores
     let copyrightScore = $derived(copyrightResult ? Math.round(copyrightResult.uniqueness_score * 100) : null);
     let seoScore = $derived(seoResult ? seoResult.total_score : null);
     let aiScore = $derived(aiReadyResult ? aiReadyResult.geo_score : null);
 
     // Gate conditions
-    let seoLocked = $derived(copyrightScore === null || copyrightScore < 90);
-    let aiLocked = $derived(seoScore === null || seoScore < 70);
+    let seoLocked = $derived(copyrightScore === null || copyrightScore < 55);
+    let aiLocked = $derived(seoScore === null || seoScore < 40);
 
     // Derived annotations for editor
     let editorAnnotations = $derived.by(() => {
@@ -123,9 +143,9 @@ export function createAnalysisController(config: {
             bulkFixLogs = [...bulkFixLogs, "⚠️ Lỗi: Không thể hoàn tất thẩm định bản quyền."];
         } finally {
             isCopyrightLoading = false;
-            isBulkFixing = false;
-            // Clear status after delay
-            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3000);
+            // CNS V82.9: Delayed release - keep tooltip visible for a few seconds to read the finish log
+            setTimeout(() => { if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) isBulkFixing = false; }, 3000);
+            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3200);
         }
     }
 
@@ -166,8 +186,8 @@ export function createAnalysisController(config: {
             bulkFixLogs = [...bulkFixLogs, "⚠️ Lỗi: Không thể hoàn tất thẩm định SEO."];
         } finally {
             isSeoLoading = false;
-            isBulkFixing = false;
-            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3000);
+            setTimeout(() => { if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) isBulkFixing = false; }, 3000);
+            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3200);
         }
     }
 
@@ -207,9 +227,46 @@ export function createAnalysisController(config: {
             bulkFixLogs = [...bulkFixLogs, "⚠️ Lỗi: Không thể hoàn tất thẩm định AI MOD."];
         } finally {
             isAiLoading = false;
-            isBulkFixing = false;
-            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3000);
+            setTimeout(() => { if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) isBulkFixing = false; }, 3000);
+            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3200);
         }
+    }
+
+    async function runCleanContent(): Promise<string | null> {
+        if (isCopyrightLoading || isSeoLoading || isAiLoading) return null;
+        isBulkFixing = true;
+        bulkFixStatus = "Đang dọn dẹp...";
+        bulkFixLogs = ["🧹 Đang khởi động Neural Clean (Phase 76.9)...", "🧠 Đang dọn dẹp artifacts & Jaccard dedup..."];
+        try {
+            const content = (config.getContent ?? config.getEditedDraft)();
+            if (!content) return null;
+            
+            // Phase 82.9: HUD Real-time Log injection
+            setTimeout(() => { 
+                if (isBulkFixing) bulkFixLogs = [...bulkFixLogs, "🚀 Đang tối ưu cấu trúc & dọn dẹp..."]; 
+            }, 1000);
+
+            const res = await apiClient.post<any>('/api/v1/content/clean', { content });
+            if (res?.data?.content) {
+                const cleaned = res.data.content;
+                config.setEditedDraft?.(cleaned);
+                bulkFixLogs = [...bulkFixLogs, "🎯 Đã dọn dẹp xong (Deterministic Clean) ✅"];
+                nanobot.showToast("Đã dọn dẹp & tối ưu cấu trúc thành công!", "success");
+                return cleaned;
+            }
+        } catch (e) {
+            console.error("Neural Clean failed:", e);
+            bulkFixLogs = [...bulkFixLogs, "⚠️ Lỗi: Không thể hoàn tất Neural Clean."];
+        } finally {
+            // CNS V82.9: Consistency in delay
+            setTimeout(() => { 
+                if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) {
+                    isBulkFixing = false;
+                }
+            }, 3000);
+            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3200);
+        }
+        return null;
     }
 
     async function runAutoFix(targetSnippet: string, annotationType: string, errorMessage: string): Promise<string | null> {
@@ -290,7 +347,7 @@ export function createAnalysisController(config: {
             const bulkBody = isAdhoc
                 ? { content: (config.getContent ?? config.getEditedDraft)(), topic: config.topic ?? '', category, annotations: annotationsToSend }
                 : { category, annotations: annotationsToSend };
-            const res = await apiClient.post<{ status: string; data: { new_content: string, logs?: string[] } }>(bulkUrl, bulkBody);
+            const res = await apiClient.post<{ status: string; data: { new_content: string, logs?: string[], replacements?: Array<{old_text: string, new_text: string}> } }>(bulkUrl, bulkBody);
 
             if (res?.status === 'success' && res.data?.new_content) {
                 // Phase 82.80: Premium Log Replay (iPhone 18/Claude Style)
@@ -413,24 +470,28 @@ export function createAnalysisController(config: {
         }
     }
 
-    // Hydrate from cache
+    // Hydrate from cache (CNS V82.52: Reactive Sync)
     $effect(() => {
         const cache = config.analysis_cache;
-        if (cache) {
-            // CNS V82.50: Use untrack to prevent recursive loops if results trigger more effects
-            if (cache.copyright?.data && !copyrightResult) copyrightResult = cache.copyright.data as CopyrightResult;
-            if (cache.seo?.data && !seoResult) seoResult = cache.seo.data as SEOResult;
-            if (cache.ai_inspect?.data && !aiReadyResult) aiReadyResult = cache.ai_inspect.data as AIInspectResult;
+        if (cache && Object.keys(cache).length > 0) {
+            untrack(() => {
+                if (cache.copyright?.data && (!copyrightResult || copyrightResult.uniqueness_score === 0)) {
+                    copyrightResult = cache.copyright.data as CopyrightResult;
+                }
+                if (cache.seo?.data && (!seoResult || (seoResult.total_score || 0) === 0)) {
+                    seoResult = cache.seo.data as SEOResult;
+                }
+                if (cache.ai_inspect?.data && (!aiReadyResult || (aiReadyResult.geo_score || 0) === 0)) {
+                    aiReadyResult = cache.ai_inspect.data as AIInspectResult;
+                }
 
-            // CNS V82.51: Force initial active tab if missing (Ensures "Fix All" button visibility)
-            if (!activeTab) {
-                if (copyrightResult && (copyrightResult.annotations?.length || 0) > 0) activeTab = 'copyright';
-                else if (seoResult && (seoResult.seo_annotations?.length || 0) > 0) activeTab = 'seo';
-                else if (aiReadyResult && (aiReadyResult.ai_annotations?.length || 0) > 0) activeTab = 'ai';
-                else if (copyrightResult) activeTab = 'copyright'; // Fallback to first available
-                else if (seoResult) activeTab = 'seo';
-                else if (aiReadyResult) activeTab = 'ai';
-            }
+                // Force initial active tab if missing (Ensures "Fix All" button visibility)
+                if (!activeTab) {
+                    if (copyrightResult && (copyrightResult.annotations?.length || 0) > 0) activeTab = 'copyright';
+                    else if (seoResult && (seoResult.seo_annotations?.length || 0) > 0) activeTab = 'seo';
+                    else if (aiReadyResult && (aiReadyResult.ai_annotations?.length || 0) > 0) activeTab = 'ai';
+                }
+            });
         }
     });
 
@@ -457,6 +518,7 @@ export function createAnalysisController(config: {
         runSeoAnalysis,
         runAiAnalysis,
         runAutoFix,
+        runCleanContent,
         runBulkFix,
         runAiBooster
     };
