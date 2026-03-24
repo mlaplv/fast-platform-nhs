@@ -1,0 +1,35 @@
+Sửa Lỗi Hàng Loạt (Bulk Fix) phiên bản mới nhất hiện đang hoạt động theo một quy trình phẫu thuật vòng khép kín cực kỳ tinh xảo. Chi tiết luồng đi như sau:
+
+Bước 1: Thu thập bệnh án (Frontend)
+Khi Sếp bấm nút "Sửa tất cả", hệ thống (
+
+xohiAnalysis.svelte.ts
+) sẽ gom nhóm toàn bộ các đoạn đang bị bôi đỏ (Ví dụ: đoạn trùng lặp bản quyền, tỷ lệ văn phong AI cao, thiếu từ khóa tối ưu) và gửi lên Backend kèm theo toàn bộ text hiện tại của bài viết.
+
+Bước 2: AI Surgeon Phẫu thuật (Backend)
+Backend sẽ kích hoạt Operatives tương ứng (
+
+PlagiarismSurgeon
+ cho bản quyền, hoặc 
+
+AiInspector
+ cho luồng AI Mod).
+
+AI sẽ rà soát từng đoạn lỗi, đưa vào LLM để viết lại (re-write) sao cho thoát lỗi.
+Các "bác sĩ" này (thông qua hàm surgical_stitch và noise_cleaner) sẽ khâu chuẩn xác đoạn chữ mới vào bài viết mà không làm gãy thẻ HTML/Markdown.
+Backend theo dõi và gom toàn bộ những gì đã sửa được vào danh sách replacements (một mảng chứa cặp old_text -> new_text), gửi trả về Frontend cùng với nội dung bài viết mới.
+Bước 3: Đắp thuốc & Bôi Xanh (Frontend - Không Auto Check)
+Khi Frontend nhận được kết quả (bao gồm new_content và replacements):
+
+Cập nhật bài viết trên Tiptap Editor ngay lập tức thành bản nháp mới nhất.
+Hệ thống dò trong mảng replacements do Backend trả về:
+Nếu lỗi nào đã được chữa, hệ thống lấy chính xác nội dung mới (new_text) để sinh ra một thẻ lỗi loại Xanh (fixed-area). Nhờ khớp đúng 100% text mới, khung editor sẽ bôi xanh chuẩn xác từng chữ vừa được viết ra.
+Lỗi nào AI không chữa được sẽ giữ nguyên trạng thái bôi đỏ ban đầu.
+Phanh khẩn cấp: Hệ thống dừng hoàn toàn ở đây, chỉ hiển thị thông báo "✅ Đã phẫu thuật xong...", nhường quyền quyết định "Bao giờ thì Check lại" cho Sếp.
+Bước 4: Vớt thẻ Xanh khi Check Lại (Salvage Mode)
+Khi Sếp review xong các đoạn xanh/đỏ và bấm nút "Check" (Thẩm định lại):
+
+Hệ thống xóa trắng toàn bộ danh sách "bệnh án đỏ" cũ và gửi toàn bộ bài mới nhất lên Backend bắt kiểm tra lại từ đầu.
+Backend soi lại bài và trả về danh sách lỗi đỏ hoàn toàn mới tinh khiết.
+Tuy nhiên trên Frontend, em đã đặt "Bùa chú" Cứu Trợ (Salvage): Thay vì xóa rụng sạch kết quả, Frontend sẽ chủ động nhặt lại (filter) toàn bộ các thẻ Highlight Xanh (fixed-area) từ hồi Bước 3, giữ nguyên chúng lại rồi trộn (merge) chung vào danh sách lỗi đỏ vừa mới nhận.
+👉 Kết quả cuối cùng: Sau khi bấm Check, màn hình của Sếp sẽ vừa hiển thị các vị trí bôi xanh (Dấu tích AI đã sửa), vừa hiển thị các vị trí bôi đỏ (Cặn lỗi mới tìm ra hoặc chưa xử lý xong) một cách trơn tru, chính xác, không mập mờ dữ liệu giả.

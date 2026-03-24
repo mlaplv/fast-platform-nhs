@@ -105,6 +105,7 @@ class PlagiarismSurgeon:
             raw_data = res.data if hasattr(res, 'data') else res.output
             final_content = cleaned_draft
             replacements_made = 0
+            replacements_log = []
             if hasattr(raw_data, "replacements"):
                 sorted_fixes = sorted(raw_data.replacements, key=lambda x: len(next((v["old_text"] for v in valid_items if v["id"] == x.id), "")), reverse=True)
                 for fix in sorted_fixes:
@@ -116,10 +117,11 @@ class PlagiarismSurgeon:
                         if new_content != final_content:
                             final_content = new_content
                             replacements_made += 1
+                            replacements_log.append({"old_text": old_txt, "new_text": new_txt})
                             logs.append(f"✅ Đã phẫu thuật xong: \"{old_txt[:30]}...\"")
             
             logs.append(f"🏅 Hoàn tất! Đã xử lý {replacements_made + dedup_count} điểm yếu.")
-            return BulkFixResponse(new_content=final_content, logs=logs)
+            return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:
             logger.error(f"[PlagiarismSurgeon] AI Bulk Fix failed: {e}")
             return BulkFixResponse(new_content=cleaned_draft, logs=logs)

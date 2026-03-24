@@ -130,30 +130,35 @@ export function createAnalysisController(config: {
     }
 
     async function runSeoAnalysis(force: boolean = false, skipSave: boolean = false) {
-        if (isSeoLoading || seoLocked) return;
+        if (isSeoLoading) return;
         if (!isAdhoc && !config.campaign_id) return;
         isSeoLoading = true;
-        isBulkFixing = true; // CNS V4.0: Trigger NeuralProgressTooltip
+        isBulkFixing = true; // CNS V3.5: Trigger NeuralProgressTooltip
         bulkFixStatus = "Đang quét SEO...";
-        bulkFixLogs = ["🔍 Đang khởi động SEO Optimizer (Phase 82.8)...", "🧠 Đang phân tích mật độ từ khóa & cấu trúc bài..."];
+        bulkFixLogs = ["🔍 Đang khởi động máy quét SEO (Phase 82.8)...", "🧠 Đang phân tích mật độ từ khóa & cấu trúc HTML..."];
+        const topicName = config.topic ?? '';
         activeTab = 'seo';
         try {
             if (!skipSave) await saveBeforeAnalysis();
             const url = isAdhoc
                 ? `/api/v1/content/analyze/seo?force=${force}`
                 : `/api/v1/content/campaigns/${config.campaign_id}/analyze/seo?force=${force}`;
-            const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)(), topic: config.topic ?? '' } : undefined;
+            const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)(), topic: topicName } : undefined;
+            
             const res = await apiClient.post<GenericResponse<SEOResult>>(url, body);
             if (res?.data) {
-                // Phase 4.0: Premium Log Replay
                 if (res.data.logs && res.data.logs.length > 0) {
                     for (const log of res.data.logs) {
                         if (!bulkFixLogs.includes(log)) {
                             bulkFixLogs = [...bulkFixLogs, log];
-                            
                         }
                     }
                 }
+                
+                // Salvage green highlights (fixed-area) as requested by user
+                const oldFixed = (seoResult?.seo_annotations || []).filter((a: AnalysisAnnotation) => a.type === 'fixed-area');
+                res.data.seo_annotations = [...oldFixed, ...(res.data.seo_annotations || [])];
+                
                 seoResult = res.data;
             }
         } catch (e) {
@@ -191,6 +196,10 @@ export function createAnalysisController(config: {
                         }
                     }
                 }
+                // Salvage green highlights (fixed-area) as requested by user
+                const oldFixed = (aiReadyResult?.ai_annotations || []).filter((a: AnalysisAnnotation) => a.type === 'fixed-area');
+                res.data.ai_annotations = [...oldFixed, ...(res.data.ai_annotations || [])];
+                
                 aiReadyResult = res.data;
             }
         } catch (e) {
@@ -294,6 +303,8 @@ export function createAnalysisController(config: {
                 bulkFixStatus = "Đang lưu...";
                 bulkFixLogs = [...bulkFixLogs, "✅ Phẫu thuật hoàn tất!", "Đang đồng bộ bản thảo (Asset Fidelity)...", "Đang ghi đè dữ liệu AI chuẩn xác..."];
                 const newHtml = res.data.new_content;
+                const replacements = res.data.replacements || []; // Array of { old_text, new_text }
+                
                 // In campaign mode, also persist fixed content to DB
                 if (!isAdhoc && config.campaign_id) {
                     await apiClient.patch(`/api/v1/content/campaigns/${config.campaign_id}`, { draft_content: newHtml });
@@ -301,41 +312,52 @@ export function createAnalysisController(config: {
                 if (config.isEditing) config.setEditedDraft(newHtml);
                 else config.setDraftContent(newHtml);
 
-                // Phase C: Clear old annotations so highlights are removed cleanly
-                if (activeTab === 'copyright' && copyrightResult) copyrightResult = { ...copyrightResult, annotations: [] };
-                else if (activeTab === 'seo' && seoResult) seoResult = { ...seoResult, seo_annotations: [] };
-                else if (activeTab === 'ai' && aiReadyResult) aiReadyResult = { ...aiReadyResult, ai_annotations: [] };
-
                 await tick();
                 await new Promise(resolve => setTimeout(resolve, 300));
 
-                // Phase D: Re-check with skipSave=true (content already saved above)
-                bulkFixStatus = "Đang thẩm định...";
-                bulkFixLogs = [...bulkFixLogs, "Đang khởi động bộ máy thẩm định độc lập...", "Đang đối chiếu dữ liệu mới sau phẫu thuật..."];
-                if (activeTab === 'copyright') await runCopyrightCheck(true, true);
-                else if (activeTab === 'seo') await runSeoAnalysis(true, true);
-                else if (activeTab === 'ai') await runAiAnalysis(true, true);
-                
-                bulkFixLogs = [...bulkFixLogs, "✅ Đã thẩm định. Kết quả đang được cập nhật..."];
+                // NO AUTO-CHECK PER USER REQUEST ("sửa xong đánh dấu đã sửa tôi kiểm tra")
+                bulkFixLogs = [...bulkFixLogs, "✅ Đã phẫu thuật xong. Vui lòng bấm Check lại khi CẦN."];
 
-                // Phase E: Inject fixed-area annotations (green highlights for repaired segments)
-                if (activeTab === 'copyright' && copyrightResult) {
-                    const newTexts = new Set(copyrightResult.annotations.map((a: AnalysisAnnotation) => (a.text || '').trim()));
-                    const fixedAnnotations: AnalysisAnnotation[] = [...oldAnnotationTexts]
-                        .filter(t => t && !newTexts.has(t))
-                        .map(t => ({
-                            text: t,
-                            reason: '✅ Đoạn này đã được AI sửa thành công',
-                            source_url: '',
+                // Phase C: Extract fixed areas directly from replacements array so Tiptap accurately finds them
+                const fixedAnnotations: AnalysisAnnotation[] = [];
+                const remainingErrors: AnalysisAnnotation[] = [];
+
+                for (const a of annotationsToSend) {
+                    const t = (a.text || '').trim();
+                    if (!t) continue;
+
+                    const normalizedT = t.normalize('NFC').replace(/[^\p{L}\p{N}]/gu, '').toLowerCase();
+                    const fixRecord = replacements.find((r: any) => {
+                        if (!r.old_text) return false;
+                        const normOld = r.old_text.normalize('NFC').replace(/[^\p{L}\p{N}]/gu, '').toLowerCase();
+                        return normOld === normalizedT;
+                    });
+
+                    if (fixRecord && fixRecord.new_text) {
+                        fixedAnnotations.push({
+                            text: fixRecord.new_text, // EXACT new text so TiptapEditor highlights it correctly!
+                            reason: '✅ Đoạn này đã được AI sửa thành công (Chờ thẩm định lại)',
+                            message: '✅ Đoạn này đã được AI sửa thành công (Chờ thẩm định lại)',
+                            source_url: a.source_url || '',
                             severity: 'low',
                             type: 'fixed-area'
-                        }));
-                    if (fixedAnnotations.length > 0) {
-                        copyrightResult = {
-                            ...copyrightResult,
-                            annotations: [...fixedAnnotations, ...copyrightResult.annotations]
-                        };
+                        });
+                    } else {
+                        remainingErrors.push({
+                            ...a,
+                            type: a.type || (activeTab === 'seo' ? 'seo-info' : activeTab === 'ai' ? 'geo-info' : 'copyright'),
+                            reason: a.reason ? `[CHƯA SỬA ĐƯỢC] ${a.reason}` : a.reason,
+                            message: a.message ? `[CHƯA SỬA ĐƯỢC] ${a.message}` : a.message
+                        });
                     }
+                }
+
+                if (activeTab === 'copyright' && copyrightResult) {
+                    copyrightResult = { ...copyrightResult, annotations: [...fixedAnnotations, ...remainingErrors] };
+                } else if (activeTab === 'seo' && seoResult) {
+                    seoResult = { ...seoResult, seo_annotations: [...fixedAnnotations, ...remainingErrors] };
+                } else if (activeTab === 'ai' && aiReadyResult) {
+                    aiReadyResult = { ...aiReadyResult, ai_annotations: [...fixedAnnotations, ...remainingErrors] };
                 }
             }
         } catch (e) {

@@ -82,6 +82,7 @@ class BulkFixResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     new_content: str
     logs: List[str] = Field(default_factory=list, description="Detailed progress logs for the UI")
+    replacements: List[Dict[str, str]] = Field(default_factory=list, description="List of old vs new text to highlight in editor")
 
 class SurgicalSnippetFix(BaseModel):
     model_config = ConfigDict(strict=True)

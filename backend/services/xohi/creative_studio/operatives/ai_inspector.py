@@ -94,6 +94,7 @@ class AiInspector:
             raw = res.data if hasattr(res, "data") else res.output
             final_content = draft
             replacements_made = 0
+            replacements_log = []
             if hasattr(raw, "replacements"):
                 for fix in sorted(raw.replacements, key=lambda x: len(next((v["old_text"] for v in valid_items if v["id"] == x.id), "")), reverse=True):
                     orig = next((v for v in valid_items if v["id"] == fix.id), None)
@@ -102,11 +103,12 @@ class AiInspector:
                         new_c = surgical_stitch(final_content, old, new, label="AiInspector")
                         if new_c != final_content:
                             final_content, replacements_made = new_c, replacements_made + 1
+                            replacements_log.append({"old_text": old, "new_text": new})
                             logs.append(f"✅ Đã phẫu thuật: \"{old[:30]}...\"")
                             await self._emit_log(campaign, logs[-1])
             logs.append(f"🏅 Hoàn tất! Đã tối ưu {replacements_made} phân đoạn.")
             await self._emit_log(campaign, logs[-1])
-            return BulkFixResponse(new_content=final_content, logs=logs)
+            return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:
             logger.error(f"[AiInspector] Bulk fix failed: {e}")
             return BulkFixResponse(new_content=draft, logs=logs)
