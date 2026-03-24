@@ -65,9 +65,9 @@ async def seed_categories(session):
     await session.flush()
 
 async def seed_products(session):
-    print("👕 Seeding 50 products...")
+    print("👕 Seeding 3 products...")
     cats, products = ["cat_ao_so_mi", "cat_quan_jean", "cat_dam_vay"], []
-    for i in range(50):
+    for i in range(3):
         pid = f"prod_{i+1:03d}"
         p = {"id": pid, "name": f"{random.choice(PRODUCT_NAMES)} V{i+1}", "sku": f"SKU-{i+1:04d}", "price": random.randint(15, 200) * 10000, "cat": random.choice(cats)}
         session.add(ProductBase(id=pid, name=p["name"], slug=f"p-{i+1}-{uuid.uuid4().hex[:4]}", sku=p["sku"], price=p["price"], stock=random.randint(10, 500), status="ACTIVE", category_id=p["cat"], tenant_id=TENANT_ID))
@@ -75,8 +75,8 @@ async def seed_products(session):
     await session.flush(); return products
 
 async def seed_articles(session, author_id):
-    print("📰 Seeding 30 articles...")
-    for i in range(30):
+    print("📰 Seeding 3 articles...")
+    for i in range(3):
         session.add(Article(
             id=str(uuid.uuid4()), 
             title=f"{random.choice(ARTICLE_TITLES)} #{i+1}", 
@@ -91,8 +91,8 @@ async def seed_articles(session, author_id):
     await session.flush()
 
 async def seed_orders(session, user_id, products):
-    print("🛒 Seeding 100 orders...")
-    for i in range(100):
+    print("🛒 Seeding 3 orders...")
+    for i in range(3):
         items, total = [], 0
         for _ in range(random.randint(1, 2)):
             p = random.choice(products); qty = random.randint(1, 3); sub = p["price"] * qty; total += sub

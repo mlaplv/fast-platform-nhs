@@ -2,8 +2,8 @@
     # Local/Internal TLS for .test domains
     tls internal
 
-    # R90: CTO Elite Compression (Zstd + Brotli + Gzip)
-    encode zstd br gzip
+    # R90: CTO Elite Compression (Zstd + Gzip)
+    encode zstd gzip
 
     handle /api/v1/*/stream* {
         reverse_proxy api:8000 {

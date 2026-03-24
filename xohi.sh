@@ -137,11 +137,13 @@ function start_dev() {
     
     echo -e "${YELLOW}-> Đồng bộ thư viện (UV & PNPM)...${NC}"
     if [ "$IS_INTEL_MAC" = true ]; then
-        echo -e "${YELLOW}[INTEL MAC] Đang bỏ qua uv sync local để tránh lỗi onnxruntime. Docker sẽ lo việc này.${NC}"
-        # Chạy uv sync nhưng không dừng nếu lỗi (nếu sếp muốn thử vận may)
-        uv sync || echo -e "${YELLOW}[SKIP] Không thể sync local trên Intel Mac. Chuyển sang dùng Docker...${NC}"
+        echo -e "${YELLOW}[INTEL MAC] Đang bỏ qua uv sync local...${NC}"
+        uv sync --python 3.13 || true
     else
-        uv sync
+        echo -e "${CYAN}-> Đang đồng bộ thư viện (Mirror Aliyun & Python 3.13)...${NC}"
+        export UV_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
+        export UV_HTTP_TIMEOUT=300
+        uv sync --python 3.13
     fi
     (cd frontend && pnpm install)
     
@@ -183,9 +185,24 @@ function init_deploy() {
     mkdir -p certs/caddy/pki
     if [ "$IS_INTEL_MAC" = true ]; then
         echo -e "${YELLOW}[INTEL MAC] Skip uv sync local...${NC}"
-        uv sync || true
+        uv venv --python 3.13 && source .venv/bin/activate
+        uv pip install -e . || true
     else
-        uv sync
+        echo -e "${CYAN}-> Đang tạo môi trường ảo (Python 3.13)...${NC}"
+        # [CTO ELITE] Vượt rào mạng tuyệt đối bằng Mirror Aliyun
+        export UV_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
+        export PIP_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
+        
+        uv venv --seed --python 3.13
+        source .venv/bin/activate
+        echo -e "${CYAN}-> Đang cài đặt Core Dependencies (Mirror Mode)...${NC}"
+        ./.venv/bin/pip install --upgrade pip
+        ./.venv/bin/pip install litellm==1.40.0 --index-url "$PIP_INDEX_URL"
+        uv pip install litestar[standard] advanced-alchemy asyncpg pydantic-ai
+        # Sau đó cài nốt các thằng còn lại
+        uv pip install -e .
+        echo -e "${CYAN}-> [CTO ELITE] Đang tạo uv.lock cho Docker...${NC}"
+        uv lock
     fi
     (cd frontend && pnpm install)
     
@@ -194,14 +211,15 @@ function init_deploy() {
     
     echo -e "${CYAN}[5/6] Database Migration & SSL Setup...${NC}"
     echo -e "${YELLOW}Đang khởi động API tạm thời để migrate...${NC}"
-    docker compose up -d api
+    docker compose up -d api --build
     echo -e "${YELLOW}Đang chờ DB sẵn sàng...${NC}"
     sleep 5
     # [DEDUPLICATED] Đã chuyển giao việc migration cho backend/entrypoint.sh lúc container khởi động
     # run_backend --env-file "${PWD}/.env" alembic -c backend/alembic.ini upgrade head
     
     echo -e "${CYAN}[6/6] Gieo mầm dữ liệu (Seeding Database)...${NC}"
-    docker compose exec -T api python3 -m backend.scripts.seed
+    # [CTO ELITE] Dùng 'run' thay vì 'exec' để seed mượt mà
+    docker compose run --rm api /opt/venv/bin/python3 -m backend.scripts.seed
     
     echo -e "${YELLOW}Đang khởi động UI và hoàn tất...${NC}"
     docker compose up -d ui

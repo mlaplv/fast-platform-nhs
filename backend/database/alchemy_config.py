@@ -1,26 +1,11 @@
 import os
 import logging
-import orjson
 from typing import Any
 from advanced_alchemy.extensions.litestar import SQLAlchemyAsyncConfig
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy import event
 
 logger = logging.getLogger("api-gateway")
-
-async def asyncpg_setup(conn: Any) -> None:
-    """
-    [CTO ELITE] Cấu hình asyncpg ở mức độ Native.
-    1. Đưa orjson vào lõi để byte-to-JSON siêu tốc.
-    2. Giới hạn cache để bảo vệ 2GB RAM.
-    """
-    # Đăng ký orjson cho JSON và JSONB
-    await conn.set_type_codec(
-        "json", encoder=orjson.dumps, decoder=orjson.loads, schema="pg_catalog"
-    )
-    await conn.set_type_codec(
-        "jsonb", encoder=orjson.dumps, decoder=orjson.loads, schema="pg_catalog"
-    )
 
 class AlchemyConfig:
     """
@@ -64,11 +49,10 @@ class AlchemyConfig:
                         "server_settings": {
                             "jit": "off", # Tắt JIT để tiết kiệm RAM cho Postgres
                             "application_name": "fast-platform-v2.2",
-                        },
-                        "on_connect": asyncpg_setup,
+                        }
                     }
                 })
-                logger.info(f"[Database] Initializing Elite asyncpg engine (orjson enabled)")
+                logger.info(f"[Database] Initializing Elite asyncpg engine")
                 
             self._engine = create_async_engine(self._url, **engine_kwargs)
         return self._engine

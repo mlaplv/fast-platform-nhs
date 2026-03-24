@@ -409,7 +409,7 @@
                 </div>
                 <div class="space-y-1">
                   <label for="map_key" class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Maps API Key (Optional)</label>
-                  <input id="map_key" bind:value={settings.google_maps.api_key} type="password" autocomplete="off" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-cyan-500/50 outline-none transition-colors" placeholder="AIza..." />
+                  <input id="map_key" bind:value={settings.google_maps.api_key} type="password" autocomplete="new-password" spellcheck="false" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-cyan-500/50 outline-none transition-colors" placeholder="AIza..." />
                 </div>
               </div>
 

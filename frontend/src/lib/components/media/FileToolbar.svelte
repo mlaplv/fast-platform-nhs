@@ -20,20 +20,22 @@
     onRefresh: () => void;
     onViewModeToggle: () => void;
     onPostFilterToggle: () => void;
-    searchQueryBind: string;
-    filterPostTypeBind: string;
-    filterPostIdBind: string;
-    showUnlinkedOnlyBind: boolean;
+    mode?: 'manage' | 'pick';
+    pickTabActive?: 'current' | 'ai' | 'library';
+    onPickTabChange?: (tab: string) => void;
+    onPickConfirm?: () => void;
+    onPickClose?: () => void;
+    campaignId?: string;
   }
 
   let {
     searchQuery = $bindable(),
-    viewMode,
+    viewMode = $bindable(),
     showPostFilter = $bindable(),
     filterPostType = $bindable(),
     filterPostId = $bindable(),
     showUnlinkedOnly = $bindable(),
-    showStats,
+    showStats = $bindable(),
     aiVisionEnabled,
     isUploading,
     isAutoFilling,
@@ -44,7 +46,13 @@
     onBulkSeoClick,
     onRefresh,
     onViewModeToggle,
-    onPostFilterToggle
+    onPostFilterToggle,
+    mode = 'manage',
+    pickTabActive,
+    onPickTabChange,
+    onPickConfirm,
+    onPickClose,
+    campaignId
   } = $props<Props>();
 
 </script>
@@ -141,6 +149,27 @@
             </div>
             <span class="text-[10px] font-black uppercase tracking-widest">{aiVisionEnabled ? 'AI VISION: ON' : 'AI VISION: OFF'}</span>
         </button>
+
+        {#if onPickConfirm}
+            <button
+                onclick={onPickConfirm}
+                class="ml-2 flex items-center gap-2 px-6 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-blue-500/20"
+                title="Xác nhận"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                Xác nhận
+            </button>
+        {/if}
+
+        {#if onPickClose}
+            <button
+               onclick={onPickClose}
+               class="ml-1 w-9 h-9 flex items-center justify-center bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all"
+               title="Đóng thư viện"
+            >
+               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        {/if}
     </div>
 </header>
 

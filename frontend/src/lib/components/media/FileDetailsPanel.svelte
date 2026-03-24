@@ -1,8 +1,9 @@
 <script lang="ts">
     import { fade, slide, scale } from 'svelte/transition';
-    import { X, Trash2, RotateCcw, Edit3, Link, Wand2, Info, Calendar, Database, Maximize2, ShieldCheck, Tag, Fingerprint, Activity, Clock } from 'lucide-svelte';
+    import { X, Trash2, RotateCcw, Edit3, Link, Wand2, Maximize2, ShieldCheck, Tag, Fingerprint, Activity, Clock, HardDrive, Image as ImageIcon } from 'lucide-svelte';
     import type { MediaAsset } from '$lib/state/types';
     import { mediaStore } from '$lib/state/media.svelte';
+    import { resolveMediaUrl } from '$lib/state/utils';
 
     interface Props {
         asset: MediaAsset | null;
@@ -63,7 +64,11 @@
 
     function getImageUrl(asset: MediaAsset) {
         if (asset.id?.startsWith('tmp_')) return asset.file_path;
-        const base = `/api/v1/media/${asset.id}`;
+        
+        // Use resolveMediaUrl for full image preview, or thumbnail if preferred
+        const url = asset.file_path || asset.url || '';
+        const base = resolveMediaUrl(url);
+        
         return asset._updatedAt ? `${base}?t=${asset._updatedAt}` : base;
     }
 </script>
@@ -100,7 +105,10 @@
                 />
                 <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <div class="absolute top-4 right-4 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
-                    <button class="p-2.5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl text-white hover:bg-white/20 transition-all shadow-2xl">
+                    <button 
+                        onclick={() => window.open(getImageUrl(asset), '_blank')}
+                        class="p-2.5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl text-white hover:bg-white/20 transition-all shadow-2xl"
+                    >
                         <Maximize2 size={18} />
                     </button>
                 </div>

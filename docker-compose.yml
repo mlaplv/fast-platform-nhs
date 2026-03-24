@@ -12,12 +12,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    deploy:
-      resources:
-        limits:
-          memory: 400M
-        reservations:
-          memory: 200M
     logging:
       driver: "json-file"
       options:
@@ -38,12 +32,6 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    deploy:
-      resources:
-        limits:
-          memory: 100M
-        reservations:
-          memory: 50M
     logging:
       driver: "json-file"
       options:
@@ -67,12 +55,6 @@ services:
       - ./certs/caddy/pki:/data/caddy/pki
       - caddy_data:/data
       - caddy_config:/config
-    deploy:
-      resources:
-        limits:
-          memory: 100M
-        reservations:
-          memory: 50M
     logging:
       driver: "json-file"
       options:
@@ -91,12 +73,6 @@ services:
       - "8000"
     volumes:
       - .:/app
-    deploy:
-      resources:
-        limits:
-          memory: 850M
-        reservations:
-          memory: 400M
     logging:
       driver: "json-file"
       options:
@@ -131,12 +107,6 @@ services:
       - /app/frontend/node_modules
     expose:
       - "5173"
-    deploy:
-      resources:
-        limits:
-          memory: 400M
-        reservations:
-          memory: 200M
     logging:
       driver: "json-file"
       options:

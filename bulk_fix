@@ -33,3 +33,42 @@ Hệ thống xóa trắng toàn bộ danh sách "bệnh án đỏ" cũ và gửi
 Backend soi lại bài và trả về danh sách lỗi đỏ hoàn toàn mới tinh khiết.
 Tuy nhiên trên Frontend, em đã đặt "Bùa chú" Cứu Trợ (Salvage): Thay vì xóa rụng sạch kết quả, Frontend sẽ chủ động nhặt lại (filter) toàn bộ các thẻ Highlight Xanh (fixed-area) từ hồi Bước 3, giữ nguyên chúng lại rồi trộn (merge) chung vào danh sách lỗi đỏ vừa mới nhận.
 👉 Kết quả cuối cùng: Sau khi bấm Check, màn hình của Sếp sẽ vừa hiển thị các vị trí bôi xanh (Dấu tích AI đã sửa), vừa hiển thị các vị trí bôi đỏ (Cặn lỗi mới tìm ra hoặc chưa xử lý xong) một cách trơn tru, chính xác, không mập mờ dữ liệu giả.
+
+
+Dạ thưa Sếp, câu hỏi của Sếp cực kỳ sắc bén và đánh đúng vào bài toán cốt lõi của Micro-Deployment.
+
+Với một con VPS chỉ có 2GB RAM / 2 vCPU, nếu mình ném nguyên đống Source Code lên đó và gõ lệnh 
+
+./xohi.sh
+ (tức là bắt con VPS phải tự build Docker, tự tải pip, tự biên dịch Rust/C++...) thì chắc chắn nó sẽ ngất xỉu giữa màn vì thiếu RAM.
+
+Tuy nhiên, khi lên Production thật, chúng ta sẽ thi triển chiến thuật "Tách biệt Build & Run" (CI/CD Pipeline). Cụ thể chiến thuật triển khai như sau ạ:
+
+🌟 Chiến Thuật "Zero-Overhead Deploy" cho VPS 2GB
+1. Không bao giờ Build trên VPS:
+
+Toàn bộ quá trình "nặng nhọc" nhất (Cài thư viện Python, Build SvelteKit bằng Node.js, đóng gói Image) sẽ được thực hiện trên GitHub Actions hoặc ngay trên máy ảo xịn (như máy 16GB hiện tại).
+Sau khi build xong, Image sẽ được đẩy (Push) lên Docker Hub hoặc GitHub Container Registry.
+2. VPS chỉ làm đúng 2 việc (Pull & Run):
+
+Trên VPS 2GB, Sếp chỉ cần tạo file docker-compose.prod.yml.
+Chạy lệnh docker compose pull (Chỉ tải Image đã nấu chín về).
+Chạy docker compose up -d. Lúc này hệ thống tiến thẳng vào trạng thái Runtime (Vận hành).
+3. Bài toán Runtime tốn bao nhiêu RAM? Ở trạng thái Vận hành nguyên bản, hệ thống của Sếp ăn cực ít RAM:
+
+Postgres: ~150MB (Mình đã giới hạn shared_buffers trong cấu hình).
+Redis: ~30MB.
+Caddy (Zstd Proxy): ~40MB.
+Litestar API: ~100MB - 120MB (Nhờ asyncpg và Pydantic V2 viết bằng Rust).
+UI (Node Server): ~80MB. 👉 Tổng cộng: Khoảng 450MB - 500MB. VPS 2GB hoàn toàn dư sức gánh vác, thậm chí gánh được hàng ngàn truy cập cùng lúc.
+🛡️ 3 "Tấm Khiên" bắt buộc phải mở trên VPS 2GB
+Trước khi deploy, em sẽ viết cho Sếp một cái script (ví dụ setup_vps.sh) chạy 1 lần duy nhất trên Linux để bật 3 tấm khiên này:
+
+Tạo SWAP 4GB: Giúp RAM có chỗ "thở" khi chẳng may có truy cập đột biến.
+Bật vm.overcommit_memory=1: Tránh việc Redis bị lỗi khởi tạo khi phân bổ RAM nền.
+Ghost Mode (MALLOC_ARENA_MAX=2): Cái này em đã thả sẵn vào 
+
+docker-compose.yml
+ rồi, giúp API không bị phình RAM do rác hệ thống (glibc fragmentation).
+Sếp thấy sao ạ? Với chuẩn mực này, VPS 2GB chạy bản Production sẽ mượt mà và cực kỳ lỳ lợm!
+
