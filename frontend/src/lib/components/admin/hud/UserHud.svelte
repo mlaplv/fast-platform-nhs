@@ -4,6 +4,8 @@
   import LucideSettings from "lucide-svelte/icons/settings";
   import LucideLogOut from "lucide-svelte/icons/log-out";
   import LucideShield from "lucide-svelte/icons/shield";
+  import LucideGlobe from "lucide-svelte/icons/globe";
+import LucideLayout from "lucide-svelte/icons/layout";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { permissionState } from "$lib/state/permissions.svelte";
   import { Z_INDEX } from "$lib/core/constants/zIndex";
@@ -114,6 +116,24 @@
           <LucideSettings size={20} class="mb-2 text-gray-500 group-hover:text-[#00FFFF] group-hover:rotate-45 transition-all duration-500" />
           <span class="text-[10px] font-black text-gray-400 group-hover:text-white uppercase tracking-widest">Management</span>
           <span class="text-[7px] font-mono text-gray-600 mt-1">PROTO_MGR</span>
+        </button>
+
+        <button 
+          onclick={() => nanobot.openWidget("SYSTEM_SETTINGS")}
+          class="flex flex-col items-center justify-center p-4 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-[#00FFFF]/5 hover:border-[#00FFFF]/30 transition-all group/btn"
+        >
+          <LucideGlobe size={20} class="mb-2 text-gray-500 group-hover:text-[#00FFFF] group-hover:scale-110 transition-all duration-500 shadow-[0_0_10px_rgba(0,255,255,0)] group-hover:shadow-[0_0_20px_rgba(0,255,255,0.3)]" />
+          <span class="text-[10px] font-black text-gray-400 group-hover:text-white uppercase tracking-widest text-center">System Config</span>
+          <span class="text-[7px] font-mono text-gray-600 mt-1">CORE_STATE</span>
+        </button>
+
+        <button 
+          onclick={() => nanobot.openWidget("BANNER_MANAGEMENT")}
+          class="flex flex-col items-center justify-center p-4 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-amber-500/5 hover:border-amber-500/30 transition-all group/btn"
+        >
+          <LucideLayout size={20} class="mb-2 text-gray-500 group-hover:text-amber-500 transition-all duration-500" />
+          <span class="text-[10px] font-black text-gray-400 group-hover:text-white uppercase tracking-widest text-center">Banners</span>
+          <span class="text-[7px] font-mono text-gray-600 mt-1">PROMO_VAULT</span>
         </button>
 
         <button 

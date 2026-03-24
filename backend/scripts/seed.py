@@ -100,12 +100,63 @@ async def seed_orders(session, user_id, products):
         session.add(Order(id=str(uuid.uuid4()), user_id=user_id, total_amount=total, status="COMPLETED", items=items, tenant_id=TENANT_ID, created_at=utcnow() - timedelta(days=random.randint(0, 30))))
     await session.flush()
 
+async def seed_system_settings(session):
+    print("⚙️ Seeding system settings...")
+    default_settings = {
+        "basic_info": {
+            "site_name": "SmartShop Xohi",
+            "description": "Hệ thống bán hàng AI thế hệ mới 2026",
+            "logo_desktop": None,
+            "logo_mobile": None,
+            "favicon": None
+        },
+        "contact_info": {
+            "phone": "0901234567",
+            "hotline": "1800-XOHI",
+            "email": "contact@smartshop.test",
+            "address": "Bitexco Financial Tower, Quận 1, TP.HCM",
+            "working_hours": "8:00 - 22:00"
+        },
+        "social_media": [
+            {"platform": "Facebook", "url": "https://facebook.com/xohi", "icon_url": None},
+            {"platform": "Zalo", "url": "https://zalo.me/xohi", "icon_url": None},
+            {"platform": "TikTok", "url": "https://tiktok.com/@xohi", "icon_url": None}
+        ],
+        "seo_analytics": {
+            "meta_title": "SmartShop - Mua sắm thông minh cùng AI",
+            "meta_description": "Trải nghiệm mua sắm cá nhân hóa với trợ lý ảo Xohi.",
+            "meta_keywords": "AI, shopping, smartshop, xohi",
+            "google_analytics_id": "G-XXXXXXXXXX",
+            "facebook_pixel_id": "XXXXXXXXXXXXXXX"
+        },
+        "google_maps": {
+            "map_iframe": "",
+            "api_key": ""
+        },
+        "maintenance": {
+            "is_enabled": False,
+            "message": "Hệ thống đang bảo trì để nâng cấp Core AI. Vui lòng quay lại sau."
+        }
+    }
+    
+    # Check if exists
+    stmt = select(SystemSetting).where(SystemSetting.key == "primary_config")
+    existing = (await session.execute(stmt)).scalar_one_or_none()
+    
+    if not existing:
+        session.add(SystemSetting(key="primary_config", value=default_settings))
+    else:
+        existing.value = default_settings
+    
+    await session.flush()
+
 async def main():
     print("🚀 Starting Refactored Seed Process...")
     async with async_session_maker() as session:
         try:
             await clear_data(session); r = await seed_rbac(session); u = await seed_users(session, r)
             await seed_categories(session); p = await seed_products(session); await seed_articles(session, u.id); await seed_orders(session, u.id, p)
+            await seed_system_settings(session)
             await session.commit(); print("✨ Successful!")
         except Exception as e: print(f"❌ Error: {e}"); await session.rollback(); raise
 

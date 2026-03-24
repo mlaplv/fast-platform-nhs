@@ -13,8 +13,9 @@ from backend.schemas.voice import (
     LexiconOverridePayload, LexiconStopwordPayload,
     LexiconOverridesResponse, LexiconStopwordsResponse
 )
+from backend.schemas.system_settings import SystemSettingsPayload, SystemSettingsResponse
 from backend.schemas.common import SuccessResponse
-from backend.database.models import User, VoiceProfile
+from backend.database.models import User, VoiceProfile, SystemSetting
 from backend.services.capability_registry import capability_registry
 from backend.services.xohi_memory import xohi_memory
 
@@ -219,10 +220,48 @@ class SettingsService:
         return SuccessResponse(ok=True, message=f"Đã thêm từ dư thừa: {word}")
 
     @staticmethod
-    async def delete_lexicon_stopword(word: str) -> SuccessResponse:
-        norm_word = word.strip().lower()
-        await xohi_memory.delete_system_stt_stopword(norm_word)
-        logger.info(f"[Lexicon] Deleted stopword '{word}'")
-        return SuccessResponse(ok=True, message=f"Đã xóa từ dư thừa: {word}")
+    async def get_lexicon_stopword(word: str) -> LexiconStopwordsResponse:
+        stopwords = await xohi_memory.get_system_stt_stopwords()
+        return LexiconStopwordsResponse(stopwords=stopwords)
+
+    @staticmethod
+    async def get_general_settings(db_session: AsyncSession) -> SystemSettingsResponse:
+        """Fetch global system settings."""
+        stmt = select(SystemSetting).where(SystemSetting.key == "primary_config")
+        result = await db_session.execute(stmt)
+        setting = result.scalar_one_or_none()
+
+        if not setting:
+            # Return default values if not exists
+            return SystemSettingsResponse(settings=SystemSettingsPayload())
+        
+        return SystemSettingsResponse(settings=SystemSettingsPayload(**setting.value))
+
+    @staticmethod
+    async def update_general_settings(db_session: AsyncSession, data: SystemSettingsPayload) -> SuccessResponse:
+        """Update global system settings."""
+        stmt = select(SystemSetting).where(SystemSetting.key == "primary_config")
+        result = await db_session.execute(stmt)
+        setting = result.scalar_one_or_none()
+
+        data_dict = data.model_dump()
+
+        if not setting:
+            setting = SystemSetting(
+                key="primary_config",
+                value=data_dict
+            )
+            db_session.add(setting)
+        else:
+            setting.value = data_dict
+
+        # Cache important values in Redis (e.g., maintenance mode)
+        await xohi_memory.client.set("system:maintenance_mode", "1" if data.maintenance.is_enabled else "0")
+        
+        return SuccessResponse(
+            ok=True,
+            message="Đã cập nhật cấu hình hệ thống.",
+            data=SystemSettingsResponse(settings=data).model_dump()
+        )
 
 settings_service = SettingsService()

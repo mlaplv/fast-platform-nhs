@@ -20,6 +20,7 @@
   import VoiceSettings from "../../management/VoiceSettings.svelte";
   import ContentFactory from "../../management/ContentFactory.svelte";
   import ContentReviewWidget from "../../widgets/ContentReviewWidget.svelte";
+  import SystemSettings from "../../management/SystemSettings.svelte";
 
   const WIDGET_REGISTRY: Partial<Record<WidgetType, Component<BaseWidgetProps>>> = {
     REVENUE_CHART: RevenueChart as Component<BaseWidgetProps>,
@@ -34,6 +35,7 @@
     VOICE_SETTINGS: VoiceSettings as Component<BaseWidgetProps>,
     CAMPAIGNS: ContentFactory as unknown as Component<BaseWidgetProps>,
     CONTENT_REVIEW: ContentReviewWidget as unknown as Component<BaseWidgetProps>,
+    SYSTEM_SETTINGS: SystemSettings as Component<BaseWidgetProps>,
   };
 
   const WIDGET_LABEL: Partial<Record<WidgetType, string>> = {
@@ -47,6 +49,7 @@
     VOICE_SETTINGS: "Voice Settings",
     CAMPAIGNS: "Chiến dịch",
     CONTENT_REVIEW: "Duyệt bài",
+    SYSTEM_SETTINGS: "Cấu hình hệ thống",
   };
 
   let ActiveWidget = $derived(

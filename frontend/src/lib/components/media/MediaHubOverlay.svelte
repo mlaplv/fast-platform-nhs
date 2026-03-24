@@ -3,6 +3,9 @@
     import { Z_INDEX } from "$lib/core/constants/zIndex";
     import FileManager from "./FileManager.svelte";
     import { fade } from "svelte/transition";
+    import type { BaseWidgetProps } from "$lib/types";
+
+    let { data = {} } = $props<BaseWidgetProps>();
 
     function close() {
         nanobot.closeUniversalModal();
@@ -23,7 +26,13 @@
     <!-- Main Content Area — full bleed, no wrapper chrome -->
     <div class="relative z-10 flex-1 overflow-hidden">
         <div class="w-full h-full flex flex-col">
-            <FileManager standalone={true} onPickClose={close} />
+            <FileManager 
+                standalone={true} 
+                onPickClose={close} 
+                mode={data.mode || 'manage'}
+                onSelect={data.onSelect}
+                onPickConfirm={data.onPickConfirm}
+            />
         </div>
     </div>
 </div>

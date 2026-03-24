@@ -12,6 +12,7 @@
   import OrderManagement from "./management/OrderManagement.svelte";
   import NewsManagement from "./management/NewsManagement.svelte";
   import VoiceSettings from "./management/VoiceSettings.svelte";
+  import SystemSettings from "./management/SystemSettings.svelte";
 
   const WIDGET_REGISTRY: Record<string, Component<BaseWidgetProps>> = {
     RevenueChart: RevenueChart as Component<BaseWidgetProps>,
@@ -28,6 +29,7 @@
     ORDER_MANAGEMENT: OrderManagement as Component<BaseWidgetProps>,
     NEWS_MANAGEMENT: NewsManagement as Component<BaseWidgetProps>,
     VOICE_SETTINGS: VoiceSettings as Component<BaseWidgetProps>,
+    SYSTEM_SETTINGS: SystemSettings as Component<BaseWidgetProps>,
   };
 
   let ActiveWidget = $derived(

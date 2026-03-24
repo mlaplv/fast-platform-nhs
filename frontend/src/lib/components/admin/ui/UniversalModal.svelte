@@ -1,4 +1,5 @@
 <script lang="ts">
+  // Force HMR Update for Widget Registry Integration
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { Z_INDEX } from "$lib/core/constants/zIndex";
   import { fade } from "svelte/transition";
@@ -19,6 +20,8 @@
   import ContentFactory from "../management/ContentFactory.svelte";
   import ContentReviewWidget from "../widgets/ContentReviewWidget.svelte";
   import MediaHubOverlay from "../../media/MediaHubOverlay.svelte";
+  import SystemSettings from "../management/SystemSettings.svelte";
+import BannerManagement from "../management/BannerManagement.svelte";
 
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
@@ -40,6 +43,8 @@
     CAMPAIGNS: ContentFactory,
     CONTENT_REVIEW: ContentReviewWidget,
     MEDIA_MANAGER: MediaHubOverlay,
+    SYSTEM_SETTINGS: SystemSettings,
+    BANNER_MANAGEMENT: BannerManagement,
   };
 
   const WIDGET_LABEL: Record<string, string> = {
@@ -56,6 +61,8 @@
     CAMPAIGNS: "CONTENT FACTORY",
     CONTENT_REVIEW: "TRÌNH DUYỆT BÀI VIẾT",
     MEDIA_MANAGER: "THƯ VIỆN HÌNH ẢNH",
+    SYSTEM_SETTINGS: "SYSTEM CONFIGURATION",
+    BANNER_MANAGEMENT: "BANNER MANAGEMENT",
   };
 
   let open = $derived(nanobot.universalModalOpen);

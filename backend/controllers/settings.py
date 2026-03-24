@@ -17,6 +17,7 @@ from backend.schemas.voice import (
     CampaignModeResponse, LexiconOverridesResponse,
     LexiconStopwordsResponse
 )
+from backend.schemas.system_settings import SystemSettingsPayload, SystemSettingsResponse
 from backend.schemas.common import SuccessResponse
 from backend.services.settings_service import settings_service
 from backend.guards import PermissionGuard
@@ -106,5 +107,19 @@ class SettingsController(Controller):
     async def delete_lexicon_stopword(self, request: Request, word: str) -> SuccessResponse:
         """Delete a Stopword from the system"""
         return await settings_service.delete_lexicon_stopword(word)
+
+    @get("/general")
+    async def get_general_settings(self, db_session: "AsyncSession") -> SystemSettingsResponse:
+        """Fetch global system settings."""
+        return await settings_service.get_general_settings(db_session)
+
+    @post("/general")
+    async def update_general_settings(
+        self, db_session: "AsyncSession", data: SystemSettingsPayload
+    ) -> SuccessResponse:
+        """Update global system settings."""
+        res = await settings_service.update_general_settings(db_session, data)
+        await db_session.commit()
+        return res
 
 

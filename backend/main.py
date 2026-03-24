@@ -41,6 +41,7 @@ from backend.controllers.ai_management import AIController
 from backend.controllers.chat import ChatController
 from backend.routers.content_router import ContentController
 from backend.routers.media_router import MediaController
+from backend.controllers.banner import BannerController
 from backend.routers.content_stream import ContentStreamController
 from backend.routers.voice_stream import stt_websocket
 from backend.routers.intent_map import IntentMapController
@@ -85,7 +86,8 @@ app = Litestar(
         HealthController, MCPController, AuthController,
         NotificationController, AuditorController, UserController,
         CategoryController, ProductController, ArticleController, OrderController,
-        ChatController, SettingsController, AIController, ContentController, MediaController, ContentStreamController, stt_websocket, TTSController, IntentMapController,
+        ChatController, SettingsController, AIController, ContentController, MediaController, ContentStreamController, 
+        BannerController, stt_websocket, TTSController, IntentMapController,
     ],
     middleware=[BodyLimitMiddleware, rate_limit_config.middleware, AuthMiddleware],
     cors_config=cors_config,

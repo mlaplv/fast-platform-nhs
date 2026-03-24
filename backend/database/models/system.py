@@ -51,3 +51,9 @@ class Notification(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     type: Mapped[str] = mapped_column(String, default="INFO")
     message: Mapped[str] = mapped_column(String)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+
+class SystemSetting(Base, AuditMixin):
+    __tablename__ = 'system_settings'
+
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    value: Mapped[dict] = mapped_column(JSON, default=dict)
