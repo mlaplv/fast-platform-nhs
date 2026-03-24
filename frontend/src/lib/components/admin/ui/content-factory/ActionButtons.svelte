@@ -119,7 +119,7 @@
       {:else if isProcessing && viewingStep === step}
         <div class="flex items-center gap-2">
           <Loader size={12} class="animate-spin opacity-50" />
-          <span>Thinking</span>
+          <span>NEURAL XOHI...</span>
         </div>
       {:else}
         <span class="relative">

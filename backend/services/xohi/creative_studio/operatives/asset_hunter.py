@@ -1,3 +1,4 @@
+from __future__ import annotations
 import httpx
 import asyncio
 import logging
@@ -5,13 +6,10 @@ import gc
 from typing import List, Optional, Dict, Union, cast
 from datetime import datetime, timezone
 from sqlalchemy.orm.attributes import flag_modified
-from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
-from backend.services.xohi.creative_studio.models.schemas import VisualSearchPlan, AgentResponse, AgentSignal
+from backend.services.xohi.creative_studio.models.schemas import AgentResponse, AgentSignal
 from backend.services.event_bus import event_bus
-from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-from .asset_hunter_prompts import PLANNER_PROMPT
 from .asset_hunter_utils import check_asset_url, fetch_google_page
 from backend.utils.text import to_int
 
@@ -23,12 +21,11 @@ class AssetHunter:
     Modularized for Martial Law (<300 lines).
     """
     def __init__(self, key_pairs: List[Dict[str, str]]) -> None:
-        logger.info("🚀 [AssetHunter] CNS V82.55 Loaded with to_int protection.")
+        logger.info("🚀 [AssetHunter] CNS V82.56 (Ultra Lean 1-Request Mode) Loaded.")
         # Phase 82.50: Increased semaphore from 2 to 5 for higher throughput
         self.key_pairs, self.current_index, self.hunt_semaphore = key_pairs, 0, asyncio.Semaphore(5)
-        self.planner_agent = Agent(output_type=VisualSearchPlan, system_prompt=PLANNER_PROMPT)
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
+    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: Union[str, int, float, bool, Dict, List, None]) -> AgentResponse:
         campaign = await repo.get(campaign_id)
         if not campaign: return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found.")
 
@@ -39,48 +36,25 @@ class AssetHunter:
             logger.info(f"📌 [AssetHunter] Starting execute for campaign {campaign_id}")
             await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "user_id": str(campaign.user_id), "step": 2, "message": "🧠 Đang lập kế hoạch săn ảnh...", "status": "PROCESSING", "timestamp": datetime.now(timezone.utc).isoformat()})
 
-            content_mode, queries = campaign.get_gold_val("content_mode", "viral"), []
-            if content_mode == "normal":
-                queries = [f"{primary if primary else title} -text -word -typography -quote"]
-            else:
-                try:
-                    res = await trinity_bridge.run(self.planner_agent, f"Title: {title}\nPrimary: {primary}\nGT: {ground_truth}", session_id=campaign.id)
-                    raw_res = getattr(res, "data", getattr(res, "output", res))
-                    base_f, ent_f = " -text -word -quote", (" -hội-nghị -chính-trị" if "thuốc" in ground_truth.lower() else "")
-                    queries = [f"{q}{base_f}{ent_f}" for q in raw_res.queries]
-                    logger.info(f"[AssetHunter] AI Planner generated {len(queries)} queries.")
-                except Exception as e: 
-                    logger.error(f"[AssetHunter] AI Planner failed: {e}")
-                    queries = [f"{primary if primary else title} -text -word"]
-
-            if not queries:
-                 queries = [f"{primary if primary else title} -text -word"]
-
-            raw_candidates, seen_urls = [], set()
-            target_count = to_int(campaign.get_gold_config().get("max_assets", 10))
-            if target_count < 3: # CNS V82.35: Safety Floor — Sếp yêu cầu luôn có tối đa 10, tối thiểu 3
-                target_count = 10
+            # CNS V82.56: Extreme Efficiency Optimization (1 Request/Article)
+            # Use primary keyword directly instead of AI Planner to save LLM tokens and time
+            query = f"{primary if primary else title} -text -word -typography -quote"
+            logger.info(f"[AssetHunter] Priority Search (1-Request Mode): {query}")
             
-            logger.info(f"[AssetHunter] Target Asset Count: {target_count}")
-            
-            for q in queries[:3]:
-                if len(raw_candidates) >= target_count * 4: break # CNS V82.36: Increased from 3x to 4x for better reserve
-                display_q = q.split(' -')[0]
-                logger.info(f"[AssetHunter] Targeted Search: {display_q}")
-                await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "user_id": str(campaign.user_id), "step": 2, "message": f"🚀 Thiết giáp săn ảnh: '{display_q}'...", "status": "PROCESSING", "timestamp": datetime.now(timezone.utc).isoformat()})
-                page_urls = await self.fetch_images(q, campaign_id, str(campaign.user_id), 15) # CNS V82.36: Increased from 10 to 15
-                if not page_urls:
-                    logger.warning(f"[AssetHunter] Search yielded 0 results for: {display_q}")
-                for url in page_urls:
-                    if url not in seen_urls: seen_urls.add(url); raw_candidates.append(url)
+            await event_bus.emit("CONTENT_PROGRESS", {
+                "campaign_id": campaign_id, 
+                "user_id": str(campaign.user_id), 
+                "step": 2, 
+                "message": f"🚀 Thiết giáp săn ảnh (1 Request): '{primary if primary else title}'...", 
+                "status": "PROCESSING", 
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
 
-            # CNS Phase 82.30: Emergency fallback if no candidates found
+            # Fetch exactly 10 images (1 API Page = 1 Request)
+            raw_candidates = await self.fetch_images(query, campaign_id, str(campaign.user_id), 10)
+            
             if not raw_candidates:
-                fallback_q = f"{primary if primary else title} high quality"
-                logger.warning(f"[AssetHunter] Emergency fallback search: {fallback_q}")
-                page_urls = await self.fetch_images(fallback_q, campaign_id, str(campaign.user_id), 20, universal=True) # CNS V82.36: Increased from 15 to 20
-                for url in page_urls:
-                    if url not in seen_urls: seen_urls.add(url); raw_candidates.append(url)
+                logger.warning(f"[AssetHunter] Search yielded 0 results for: {query}")
 
             sem = asyncio.Semaphore(20) 
             valid_urls = []
@@ -105,10 +79,9 @@ class AssetHunter:
                     # Emit a pulse to trigger UI frontend sync
                     await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 2, "message": f"🔍 Đã tìm thấy {len(valid_urls)} ảnh chất lượng...", "status": "PROCESSING"})
 
-            logger.info(f"[AssetHunter] Final valid images found: {len(valid_urls)}")
-            
+            target_count = to_int(campaign.get_gold_config().get("max_assets", 10))
             primary_slice = valid_urls[:target_count]
-            reserve_slice = valid_urls[target_count:target_count+20]
+            reserve_slice = valid_urls[target_count:target_count+10]
             
             final_assets = [{"id": f"img_{i}_{campaign_id[:4]}", "file_path": url, "is_primary": i == 0, "order_index": i, "media_metadata": {"source": "google"}} for i, url in enumerate(primary_slice)]
             
@@ -133,7 +106,7 @@ class AssetHunter:
             )
 
     async def fetch_images(self, query: str, campaign_id: str, user_id: str, num: int = 10, universal: bool = False) -> List[str]:
-        all_urls = []
+        all_urls: List[str] = []
         pages_to_fetch = (num + 9) // 10
         
         for page in range(pages_to_fetch):
@@ -142,6 +115,14 @@ class AssetHunter:
             success = False
             
             while attempts < max_attempts and not success:
+                # Phase 82.55: Health Check — Skip dead or currently limited keys
+                import time
+                now, initial_idx = time.time(), self.current_index
+                while self.key_pairs[self.current_index].get("dead") or \
+                      cast(float, self.key_pairs[self.current_index].get("limit_until", 0)) > now:
+                    self.current_index = (self.current_index + 1) % len(self.key_pairs)
+                    if self.current_index == initial_idx: break # All are bad, will raise error via fetch_google_page
+                
                 pair = self.key_pairs[self.current_index]
                 try:
                     if campaign_id: 
@@ -149,7 +130,7 @@ class AssetHunter:
                         await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "user_id": user_id, "step": 2, "message": msg, "status": "PROCESSING", "timestamp": datetime.now(timezone.utc).isoformat()})
                     
                     from backend.constants.agentic import SEARCH_LOCALE_PARAMS
-                    params = dict(SEARCH_LOCALE_PARAMS)
+                    params: Dict[str, Union[str, int, float, bool]] = dict(SEARCH_LOCALE_PARAMS)
                     if universal:
                         params.pop("lr", None); params.pop("gl", None)
                     
@@ -158,12 +139,23 @@ class AssetHunter:
                     success = True
                     if len(urls) < 1: break # No more results for this query
                 except Exception as e: 
-                    # CNS V82.50: Softened from ERROR to WARNING as this is handled by rotation
-                    logger.warning(f"[AssetHunter] Key index {self.current_index} rate-limited or failed: {e}")
+                    # CNS V82.55: Detailed Health Transition
+                    error_str = str(e).lower()
+                    is_quota = any(x in error_str for x in ["429", "quota", "limit", "rate"])
+                    
+                    if "403" in error_str and not is_quota:
+                        logger.error(f"[AssetHunter] Key index {self.current_index} is FORBIDDEN (403). Marking as DEAD.")
+                        self.key_pairs[self.current_index]["dead"] = True
+                    else:
+                        # 429 or 403-Quota: Cooldown instead of death
+                        cooldown = 3600 if "403" in error_str else 900 # 1 hour for 403-Quota, 15m for 429
+                        logger.warning(f"[AssetHunter] Key index {self.current_index} rate-limited or quota exceeded. Cooling down for {cooldown}s...")
+                        self.key_pairs[self.current_index]["limit_until"] = time.time() + cooldown
+                    
                     self.current_index = (self.current_index + 1) % len(self.key_pairs)
                     attempts += 1
                     logger.warning(f"[AssetHunter] Rotating to key index {self.current_index} (Attempt {attempts}/{max_attempts})")
-                    await asyncio.sleep(1.0) # V82.36: Increased cooldown to 1s for better quota recovery
+                    await asyncio.sleep(1.0)
             
             if len(all_urls) >= num: break
             

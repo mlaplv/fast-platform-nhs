@@ -1,6 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Brain, ShieldCheck, BarChart2, Sparkles } from "lucide-svelte";
+  import Brain from "lucide-svelte/icons/brain";
+  import ShieldCheck from "lucide-svelte/icons/shield-check";
+  import BarChart2 from "lucide-svelte/icons/bar-chart-2";
+  import Sparkles from "lucide-svelte/icons/sparkles";
   import TiptapEditor from "../tiptap/TiptapEditor.svelte";
   import CheckResultPanel from "./CheckResultPanel.svelte";
   import CriteriaTooltip from "./CriteriaTooltip.svelte";
@@ -81,7 +84,7 @@
 <div class="p-5 md:p-8 flex flex-col flex-1 min-h-0 overflow-hidden">
   <div class="flex items-center gap-3 shrink-0 mb-4">
     <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-blue-500/50"></div>
-    <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">XOHI · <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">NEURAL STUDIO</span></h5>
+    <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">NEURAL <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">XOHI · STUDIO</span></h5>
     
     <div class="flex items-center gap-2 ml-4 overflow-x-auto no-scrollbar pb-1">
       <button

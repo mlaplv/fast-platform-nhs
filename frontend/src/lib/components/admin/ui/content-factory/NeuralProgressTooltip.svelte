@@ -1,6 +1,11 @@
 <script lang="ts">
   import { fade, slide, fly } from 'svelte/transition';
-  import { Sparkles, Brain, Cpu, Loader2, CheckCircle2, Zap } from 'lucide-svelte';
+  import Sparkles from "lucide-svelte/icons/sparkles";
+  import Brain from "lucide-svelte/icons/brain";
+  import Cpu from "lucide-svelte/icons/cpu";
+  import Loader2 from "lucide-svelte/icons/loader-2";
+  import CheckCircle2 from "lucide-svelte/icons/check-circle-2";
+  import Zap from "lucide-svelte/icons/zap";
   import { tick } from 'svelte';
 
   interface Props {
@@ -54,8 +59,8 @@
             </div>
           </div>
           <div class="flex flex-col">
-            <span class="text-[12px] font-black tracking-widest text-white uppercase opacity-80">XOHI</span>
-            <span class="text-[10px] font-bold text-blue-400/80 uppercase tracking-tighter">Neural Surgeon v82.9</span>
+            <span class="text-[12px] font-black tracking-widest text-white uppercase opacity-80">NEURAL XOHI</span>
+            <span class="text-[10px] font-bold text-blue-400/80 uppercase tracking-tighter">Neural Surgeon v85.5</span>
           </div>
         </div>
         
@@ -77,9 +82,9 @@
           >
             <div class="mt-1 shrink-0">
               {#if i === logs.length - 1 && !log.includes('✅') && !log.includes('⚠️')}
-                <Loader2 size={12} class="animate-spin text-blue-400" />
+                <Loader size={12} class="animate-spin text-blue-400" />
               {:else if log.includes('✅') || log.includes('thành công')}
-                <CheckCircle2 size={12} class="text-emerald-400" />
+                <CheckCircle size={12} class="text-emerald-400" />
               {:else if log.includes('AI') || log.includes('Neural')}
                 <Brain size={12} class="text-purple-400" />
               {:else if log.includes('phẫu thuật') || log.includes('quét')}

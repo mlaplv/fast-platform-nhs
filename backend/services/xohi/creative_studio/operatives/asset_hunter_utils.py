@@ -1,7 +1,8 @@
+from __future__ import annotations
 import re
 import logging
 import asyncio
-from typing import List, Optional, Dict
+from typing import Optional, Union, cast, Any
 from urllib.parse import urlparse, quote, urlunparse
 from backend.utils.http_client import get_http_client
 from backend.constants.agentic import SEARCH_LOCALE_PARAMS
@@ -41,18 +42,34 @@ async def check_asset_url(url: str, sem: asyncio.Semaphore) -> Optional[str]:
             pass
     return None
 
-async def fetch_google_page(query: str, start: int, pair: Dict[str, str], override_params: Optional[Dict] = None) -> List[str]:
+async def fetch_google_page(query: str, start: int, pair: dict[str, str], override_params: Optional[dict[str, Union[str, int, float, bool]]] = None) -> list[str]:
     """Google Custom Search API Page Fetcher."""
     url = "https://www.googleapis.com/customsearch/v1"
     client = await get_http_client()
-    base_params = override_params if override_params is not None else SEARCH_LOCALE_PARAMS
-    params = {"key": pair["key"], "cx": pair["cx"], "q": query, "searchType": "image", "num": 10, "start": start, **base_params}
+    # Support for both override and default SEARCH_LOCALE_PARAMS
+    base_p: dict[str, Union[str, int, float, bool]] = cast(dict[str, Union[str, int, float, bool]], SEARCH_LOCALE_PARAMS)
+    if override_params is not None:
+        base_p = override_params
+        
+    params: dict[str, Union[str, int, float, bool]] = {"key": pair["key"], "cx": pair["cx"], "q": query, "searchType": "image", "num": 10, "start": start, **base_p}
     response = await client.get(url, params=params, timeout=10.0)
     
     if response.status_code in [429, 403]:
-        logger.warning(f"[AssetHunterUtils] SEARCH QUOTA EXCEEDED or Forbidden (Status {response.status_code})")
+        reason = "unknown"
+        try:
+            error_data = cast(dict[str, Union[str, dict]], response.json())
+            err_list = cast(list[dict[str, str]], error_data.get("error", {}).get("errors", [{}]))
+            reason = err_list[0].get("reason", "unknown")
+            logger.warning(f"[AssetHunterUtils] SEARCH QUOTA EXCEEDED or Forbidden (Status {response.status_code}, Reason: {reason})")
+        except:
+            logger.warning(f"[AssetHunterUtils] SEARCH QUOTA EXCEEDED or Forbidden (Status {response.status_code})")
         
     response.raise_for_status()
-    items = response.json().get('items', [])
-    valid_links = [it['link'] for it in items if int(it.get('image', {}).get('height', 0)) >= 200 and int(it.get('image', {}).get('width', 0)) >= 200]
+    # Explicitly cast items for strict typing compliance
+    items = cast(list[dict[str, Union[str, dict]]], response.json().get('items', []))
+    valid_links: list[str] = []
+    for it in items:
+        img_data = cast(dict[str, Union[str, int]], it.get('image', {}))
+        if int(img_data.get('height', 0)) >= 200 and int(img_data.get('width', 0)) >= 200:
+            valid_links.append(cast(str, it['link']))
     return valid_links

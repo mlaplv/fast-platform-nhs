@@ -61,7 +61,7 @@
   };
 
   let subtitle = $derived.by(() => {
-    let base = "XOHI · TRINITY CORE";
+    let base = "NEURAL XOHI · TRINITY CORE";
     const stepName = stepNames[viewingStep] || "Processing";
     const style = creation_config?.style || '';
     const wc = creation_config?.word_count ? `${creation_config.word_count} từ` : '';

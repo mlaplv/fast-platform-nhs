@@ -111,8 +111,8 @@
   let lastInternalActionAt = 0;
   let isSyncLocked = false;
 
-  // ✦ Cerberus 2026: Frontend Clean — Jaccard near-duplicate dedup + Viral 2026 Polish (Phase 76.9)
-  // Extract meaningful word tokens: lowercase, NFC, strip digits + punctuation (Viral 2026 Core)
+  // ✦ Cerberus NEURAL XOHI: Frontend Clean — Jaccard near-duplicate dedup + Viral NEURAL XOHI Polish (Phase 76.9)
+  // Extract meaningful word tokens: lowercase, NFC, strip digits + punctuation (Viral NEURAL XOHI Core)
   function tokenize(text: string): Set<string> {
     const normalized = text.toLowerCase().normalize('NFC');
     const words = normalized
@@ -134,7 +134,7 @@
   }
 
   async function handleClean() {
-    console.log('[Clean] ▶ handleClean fired (Viral 2026 Edition)');
+    console.log('[Clean] ▶ handleClean fired (Viral NEURAL XOHI Edition)');
     if (!editor || editor.isDestroyed) {
       console.warn('[Clean] Editor not ready');
       return;
@@ -198,7 +198,7 @@
 
       console.log(`[Clean] Dedup done — removed: ${removedCount} blocks`);
 
-      // 3. Viral 2026: Backend Semantic Polish
+      // 3. Viral NEURAL XOHI: Backend Semantic Polish
       const interimHTML = div.innerHTML;
 
       console.log('[Clean] 🚀 Calling Neural Backend Polish...');
@@ -374,7 +374,7 @@
     }, 500);
   });
 
-  // Cerberus 2026: Sustainable Highlighting Sync
+  // Cerberus NEURAL XOHI: Sustainable Highlighting Sync
   $effect(() => {
     if (!editor || editor.isDestroyed) return;
     
@@ -401,7 +401,7 @@
     if (!data || !data.id) return;
 
     tooltipX = data.x;
-    tooltipY = data.y - 10; // Rule V2026: Small offset to avoid blocking initial hover
+    tooltipY = data.y - 10; // Rule NEURAL XOHI: Small offset to avoid blocking initial hover
     tooltipText = data.message;
     tooltipType = data.type;
     tooltipId = data.id;
@@ -414,7 +414,7 @@
   function handleAnnotationLeave() {
     if (isFixing || isHoveringTooltip) return;
     
-    // Rule V2026: Substantial delay (600ms) to allow travel to tooltip
+    // Rule NEURAL XOHI: Substantial delay (600ms) to allow travel to tooltip
     if (tooltipHideTimeout) clearTimeout(tooltipHideTimeout);
     tooltipHideTimeout = setTimeout(() => {
       if (!isHoveringTooltip && !isFixing) {

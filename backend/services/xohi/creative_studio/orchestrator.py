@@ -1,8 +1,9 @@
+from __future__ import annotations
 import os
 import logging
 import asyncio
 from sqlalchemy import select, text
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Union, List
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
 from backend.services.xohi.creative_studio.operatives.vision_insight import VisionInsight
@@ -36,18 +37,29 @@ class ContentOrchestrator:
         keys = []
         
         # Priority 1: Comma-separated keys (from .env.example format)
-        env_keys = os.getenv("GOOGLE_SEARCH_KEYS")
-        env_cx = os.getenv("GOOGLE_SEARCH_CX") or os.getenv("GOOGLE_SEARCH_ENGINE_ID")
-        if env_keys and env_cx:
-            for k in env_keys.split(","):
-                k = k.strip()
-                if k: keys.append({"key": k, "cx": env_cx})
+        env_keys = os.getenv("GOOGLE_SEARCH_KEYS") or ""
+        env_cxs = os.getenv("GOOGLE_SEARCH_ENGINE_IDS") or ""
         
-        # Priority 2: Individual suffixed keys (backwards compat)
-        if not keys:
-            for i in ["", "_1", "_2"]:
-                k, cx = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}"), os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
+        # Parse comma-separated lists
+        keys_list = [k.strip() for k in env_keys.split(",") if k.strip()]
+        cxs_list = [c.strip() for c in env_cxs.split(",") if c.strip()]
+        
+        if keys_list:
+            # Match keys with cxs (fallback to the first cx if list too short)
+            default_cx = env_cxs.split(",")[0].strip() or os.getenv("GOOGLE_SEARCH_ENGINE_ID")
+            for i, k in enumerate(keys_list):
+                cx = cxs_list[i] if i < len(cxs_list) else default_cx
                 if k and cx: keys.append({"key": k, "cx": cx})
+        
+        # Priority 2: Individual suffixed keys (up to _10 for robustness)
+        if not keys:
+            suffixes = [""] + [f"_{i}" for i in range(1, 11)]
+            for s in suffixes:
+                k, cx = os.getenv(f"GOOGLE_SEARCH_API_KEY{s}"), os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{s}")
+                if k and cx: keys.append({"key": k, "cx": cx})
+
+        if not keys:
+            logger.warning("⚠️ [ContentOrchestrator] No Google Search Keys configured in .env!")
 
         self.discovery = DiscoveryHunter(keys)
         self.vision = vision or VisionInsight(discovery_hunter=self.discovery)
@@ -96,16 +108,16 @@ class ContentOrchestrator:
     async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None) -> Optional[ContentCampaign]:
         return await self.voice_handler.get_active_campaign(campaign_repo, user_id, tenant_id, query=query)
 
-    async def approve_step(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> GenericResponse:
+    async def approve_step(self, campaign_id: str, data: Dict[str, Union[str, int, float, bool, Dict[str, object], List[object]]], campaign_repo: ContentCampaignRepository) -> GenericResponse:
         return await self.action_handler.approve_step(campaign_id, data, campaign_repo)
 
     async def retry_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository) -> GenericResponse:
         return await self.action_handler.retry_step(campaign_id, campaign_repo)
 
-    async def update_metadata(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> GenericResponse:
+    async def update_metadata(self, campaign_id: str, data: Dict[str, Union[str, int, float, bool, Dict[str, object], List[object]]], campaign_repo: ContentCampaignRepository) -> GenericResponse:
         return await self.action_handler.update_metadata(campaign_id, data, campaign_repo)
 
-    async def _trigger_next_step(self, campaign_id: str, force_step: int = None):
+    async def _trigger_next_step(self, campaign_id: str, force_step: Optional[int] = None) -> None:
         await self.engine.trigger_step(campaign_id, force_step)
 
 # Singleton

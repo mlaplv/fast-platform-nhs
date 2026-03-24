@@ -91,7 +91,7 @@
     <div class="w-full max-w-lg mt-8 space-y-3 px-4">
       <div class="flex items-center gap-2 mb-4">
         <div class="w-2 h-2 rounded-full bg-blue-500 animate-ping"></div>
-        <span class="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">System Execution Logs</span>
+        <span class="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Neural Xohi Execution Logs</span>
       </div>
 
       <div class="space-y-2 font-mono">
@@ -210,7 +210,7 @@
          </div>
        {/each}
     </div>
-    <div class="text-[8px] font-black text-white/20 uppercase tracking-[0.5em] animate-pulse">NEURAL PROCESSING UNIT · XOHI V2.8 ACTIVE</div>
+    <div class="text-[8px] font-black text-white/20 uppercase tracking-[0.5em] animate-pulse">NEURAL PROCESSING UNIT · NEURAL XOHI ACTIVE</div>
   </div>
 </div>
 

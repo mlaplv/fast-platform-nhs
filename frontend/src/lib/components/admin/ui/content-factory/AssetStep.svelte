@@ -61,7 +61,7 @@
 <div class="flex-1 flex flex-col space-y-6 pt-2 pb-8 p-4 md:p-6 max-w-[1400px] mx-auto w-full">
   <div class="flex items-center gap-3 shrink-0 w-full px-1">
     <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-blue-500/50"></div>
-    <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">XOHI · <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">NEURAL STUDIO</span></h5>
+    <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">NEURAL XOHI · <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">STUDIO</span></h5>
   </div>
 
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1">

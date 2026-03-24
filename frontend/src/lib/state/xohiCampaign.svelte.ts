@@ -91,6 +91,7 @@ export function createCampaignController(config: {
             return false;
         } finally {
             isLoading = false;
+            isStepProcessing = false;
         }
     }
 
@@ -115,6 +116,7 @@ export function createCampaignController(config: {
             return false;
         } finally {
             isLoading = false;
+            isStepProcessing = false;
         }
     }
 
@@ -148,6 +150,7 @@ export function createCampaignController(config: {
             return false;
         } finally {
             isLoading = false;
+            isStepProcessing = false;
         }
     }
 
