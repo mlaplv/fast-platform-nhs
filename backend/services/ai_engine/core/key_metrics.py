@@ -39,12 +39,12 @@ class KeyMetricsMixin:
                 await pipe.execute()
         except: pass
 
-    async def mark_model_daily(self, key: str, model_name: str = "gemini-1.5-flash"):
+    async def mark_model_daily(self, key: str, model_name: str):
         if not self._use_redis or not self.client: return
         kid, m_slug = self._get_key_id(key), str(model_name).replace("/", "_").replace("-", "_")[:40]
         await self.client.set(f"{self.MODEL_DAILY_PREFIX}{kid}:{m_slug}", "DAILY_EXHAUSTED", ex=self.MAX_COOLDOWN)
 
-    async def is_model_daily_exhausted(self, key: str, model_name: str = "gemini-1.5-flash") -> bool:
+    async def is_model_daily_exhausted(self, key: str, model_name: str) -> bool:
         if not self._use_redis or not self.client: return False
         kid, m_slug = self._get_key_id(key), str(model_name).replace("/", "_").replace("-", "_")[:40]
         return bool(await self.client.exists(f"{self.MODEL_DAILY_PREFIX}{kid}:{m_slug}"))

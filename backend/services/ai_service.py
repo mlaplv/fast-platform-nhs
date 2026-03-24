@@ -108,7 +108,7 @@ class AIService:
     async def discover_models(db_session: AsyncSession, user_id: str) -> ModelDiscoveryResponse:
         """Fetch available Gemini models and persist."""
         try:
-            key = await key_rotator.get_key(model_name="gemini-1.5-flash")
+            key = await key_rotator.get_key(model_name=trinity_bridge.models_helper.default_model)
             models = []
 
             if key:
@@ -153,8 +153,8 @@ class AIService:
         data = result.first()
 
         return AIModelStatusResponse(
-            primary_model=data.primary_model if data and data.primary_model else trinity_bridge.default_model_name,
-            ai_models=data.ai_models if data and data.ai_models else trinity_bridge.model_waterfall,
+            primary_model=data.primary_model if data and data.primary_model else trinity_bridge.primary_model,
+            ai_models=data.ai_models if data and data.ai_models else [trinity_bridge.primary_model, trinity_bridge.fallback_model],
             discovered_models=data.discovered_models if data and data.discovered_models else []
         )
 
@@ -187,7 +187,8 @@ class AIService:
         key = key_rotator.keys[index]
         try:
             async with httpx.AsyncClient() as client:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+                m = trinity_bridge.models_helper.default_model
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={key}"
                 resp = await client.post(url, json={"contents": [{"parts":[{"text": "ping"}]}]})
 
                 if resp.status_code == 200:

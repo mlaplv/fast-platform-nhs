@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import os
 from typing import Optional, List, Dict
 from contextlib import asynccontextmanager
 from pydantic_ai import Agent
@@ -19,9 +20,15 @@ class TrinityBridge:
     """V65.0: Centralized AI Bridge. Modularized for Martial Law (<300 lines)."""
     def __init__(self):
         self.rotator = key_rotator
-        self.models_helper = TrinityModels(self.rotator, "gemini-2.0-flash", "gemini-1.5-pro")
+        self.primary_model = os.getenv("AI_PRIMARY_MODEL", "gemini-2.0-flash")
+        self.fallback_model = os.getenv("AI_FALLBACK_MODEL", "gemini-1.5-pro")
+        self.models_helper = TrinityModels(self.rotator, self.primary_model, self.fallback_model)
         self.db_primary_model, self.db_waterfall, self.discovered, self._initialized = None, [], [], False
         self.ROLE_FAST, self.ROLE_BRAIN = "fast", "brain"
+
+    @property
+    def default_model_name(self) -> str:
+        return self.db_primary_model or self.primary_model
 
     async def initialize(self):
         if not self._initialized: await self.reload_models(); self._initialized = True
@@ -66,8 +73,12 @@ class TrinityBridge:
                     if cat == "tool_unsupported": break
                     if not key: continue # Cannot mark unhealthy if we don't have a key
                     if cat == "rate_limit":
-                        if self.models_helper.is_daily_quota(str(e)): await self.rotator.mark_model_daily(key, m_name); continue
-                        await self.rotator.mark_unhealthy(key, reason="rate_limit", session_id=s_id); continue
+                        if "QUOTA/COOLDOWN" in str(e):
+                            logger.info(f"[TrinityBridge] Model '{m_name}' has NO keys available. Skipping model.")
+                            break # Move to next model immediately!
+                        if self.models_helper.is_daily_quota(str(e)) and key:
+                            await self.rotator.mark_model_daily(key, m_name)
+                        continue
                     if cat == "auth": await self.rotator.mark_unhealthy(key, reason="auth", session_id=s_id); continue
                     if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break
         raise AIConfigurationError(f"AI Overloaded: {last_err}", models[-1] if models else "N/A", max_k-1)

@@ -26,7 +26,8 @@ class KeyLoaderMixin:
             recovered = [k for p in profiles for k in GeminiSecurity.decrypt_keys(p.gemini_keys_enc)]
             return list(set(recovered))
 
-    def _get_key_id(self, key: str) -> str:
+    def _get_key_id(self, key: Optional[str]) -> str:
+        if not key: return "no_key"
         return hashlib.sha256(key.encode()).hexdigest()[:16]
 
     async def save_discovered_models(self, models: List[str]):

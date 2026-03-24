@@ -149,6 +149,8 @@ export function createPulseManager(
           }
           if (activeData && (activeData.campaign_id === contentPayload.campaign_id || (activeData as any).id === contentPayload.campaign_id)) {
             syncTarget(activeData);
+            // CNS V82.9: Force re-assignment to trigger reactivity for deep observers
+            state.currentData = { ...activeData };
           }
 
           const existingLogs = [...log.activityLogs];

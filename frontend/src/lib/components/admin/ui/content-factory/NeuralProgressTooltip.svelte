@@ -55,7 +55,7 @@
           </div>
           <div class="flex flex-col">
             <span class="text-[12px] font-black tracking-widest text-white uppercase opacity-80">XOHI</span>
-            <span class="text-[10px] font-bold text-blue-400/80 uppercase tracking-tighter">Neural Surgeon v2.2</span>
+            <span class="text-[10px] font-bold text-blue-400/80 uppercase tracking-tighter">Neural Surgeon v82.9</span>
           </div>
         </div>
         

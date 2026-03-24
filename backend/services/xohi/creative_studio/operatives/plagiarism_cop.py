@@ -117,7 +117,7 @@ class PlagiarismCop:
 
         logs.append(f"📡 Đang trinh sát nguồn đối thủ cho: '{kw}'...")
         await self._emit_log(campaign, logs[-1])
-        comps = await self._fetch_competitor_snippets(kw, logs=logs)
+        comps = await self._fetch_competitor_snippets(campaign, kw, logs=logs)
         
         logs.append("🧠 Đang nạp dữ liệu vào Neural Engine...")
         await self._emit_log(campaign, logs[-1])
@@ -193,7 +193,7 @@ class PlagiarismCop:
             verdict="Kết quả sơ bộ (Local Heuristic)."
         )
 
-    async def _fetch_competitor_snippets(self, keyword: str, logs: Optional[List[str]] = None) -> List[str]:
+    async def _fetch_competitor_snippets(self, campaign: ContentCampaign, keyword: str, logs: Optional[List[str]] = None) -> List[str]:
         if not self.search_keys:
             if logs is not None: logs.append("❌ Thiếu API Key Search.")
             return ["(No API key)"]
@@ -213,10 +213,12 @@ class PlagiarismCop:
                         return ["(No results)"]
                     
                     # Success: start content fetching
-                    async def _c(it: dict):
+                    await self._emit_log(campaign, f"🕵️ Phát hiện {len(items)} nguồn dữ liệu khả nghi. Đang thẩm định...")
+                    async def _c(it: dict, idx: int):
                         url = it.get("link", "")
                         if not url.startswith("http"): return it.get("snippet","")
                         try:
+                            await self._emit_log(campaign, f"🌐 Trinh sát [{idx+1}/5]: {url[:45]}...")
                             # Use shorter timeout for competitor sites
                             r = await client.get(url, timeout=5.0)
                             if r.status_code == 200:
@@ -227,9 +229,11 @@ class PlagiarismCop:
                             logger.debug(f"[PlagiarismCop] Failed to fetch {url}: {e}")
                         return f"URL: {url}\nSnippet: {it.get('snippet','')}"
 
-                    rs = await asyncio.gather(*[_c(i) for i in items[:5]], return_exceptions=True)
+                    rs = await asyncio.gather(*[_c(it, i) for i, it in enumerate(items[:5])], return_exceptions=True)
                     valid_rs = [r if isinstance(r, str) else "(Snippet only)" for r in rs]
-                    if logs is not None: logs.append(f"📡 Đã tải xong nội dung từ {len(valid_rs)} website đối thủ.")
+                    msg = f"📡 Đã tải xong nội dung từ {len(valid_rs)} website đối thủ."
+                    await self._emit_log(campaign, msg)
+                    if logs is not None: logs.append(msg)
                     return valid_rs
 
                 elif resp.status_code in [429, 403]:
