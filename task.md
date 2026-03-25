@@ -65,9 +65,14 @@ Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt th
 - [x] Cleanup: Remove local scrollbar CSS in `ProductToolbar.svelte`. <!-- id: 93 -->
 - [x] Logic: Replace `any[]` with proper interfaces in `ProductManagement.svelte`. <!-- id: 94 -->
 
-## 🎯 Giai đoạn 20: Order Management Deep Reconnaissance (R01) (CURRENT)
-- [ ] Scout: Kiểm tra toàn bộ components thuộc Order Management về Z-index (Protocol R04). <!-- id: 100 -->
-- [ ] Scout: Kiểm tra Type Safety (Protocol R03) trong Order-related components. <!-- id: 101 -->
-- [ ] Propose: Đề xuất phương án refactor nếu phát hiện sai lệch Protocol. <!-- id: 102 -->
+## 🎯 Giai đoạn 20: Order Management Deep Reconnaissance (R01) (COMPLETED)
+- [x] Scout: Kiểm tra toàn bộ components thuộc Order Management về Z-index (Protocol R04). <!-- id: 100 -->
+- [x] Scout: Kiểm tra Type Safety (Protocol R03) trong Order-related components. <!-- id: 101 -->
+- [x] Propose: Đề xuất phương án refactor nếu phát hiện sai lệch Protocol. <!-- id: 102 -->
+
+## 🎯 Giai đoạn 21: Order Management Refactoring (Elite V2.2) (COMPLETED)
+- [x] UI: Fix Z-index violation in `OrderListItem.svelte` (Replace `z-[100]` with `var(--z-popover)`). <!-- id: 110 -->
+- [x] Logic: Ensure strict `unknown` type in all `catch` blocks in Order components. <!-- id: 111 -->
+- [x] Logic: Standardize prop interfaces and rune usage across Order components. <!-- id: 112 -->
 
 

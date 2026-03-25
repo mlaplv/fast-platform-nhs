@@ -33,6 +33,10 @@
     }
     return items;
   });
+
+  onMount(() => {
+    if (currentPage === undefined) currentPage = 1;
+  });
 </script>
 
 {#if totalPages > 1}
@@ -64,7 +68,7 @@
           </button>
         {:else}
           <span class="text-gray-700 text-[9px] px-0.5 font-mono">{page}</span>
-        {if}
+        {/if}
       {/each}
 
       <button

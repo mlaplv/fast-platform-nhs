@@ -35,7 +35,7 @@
     height = "h-[85vh]",
     children,
     headerIcon = Terminal,
-    zIndex = 100,
+    zIndex = 1000,
     backdropClass = "bg-[#050505]/98",
     fullScreen = false,
   }: Props = $props();

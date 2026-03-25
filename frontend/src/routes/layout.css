@@ -35,28 +35,33 @@ body {
   @apply transition-colors duration-200;
 }
 
-/* Premium Dark Scrollbar */
+/* Premium Dark Scrollbar - Global & Scoped (Elite V2.2) */
+::-webkit-scrollbar,
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
+::-webkit-scrollbar-track,
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 
+::-webkit-scrollbar-thumb,
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.02);
 }
 
+::-webkit-scrollbar-thumb:hover,
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Firefox support */
+/* Firefox support - Global & Scoped */
+html,
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.05) transparent;

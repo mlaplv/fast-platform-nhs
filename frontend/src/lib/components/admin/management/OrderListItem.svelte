@@ -11,10 +11,10 @@
   import { formatCurrency, timeAgo } from "$lib/utils/format";
   import type { Order } from "$lib/types";
 
-  let { order, status, onClick, onAction } = $props<{
+  let { order, status, onclick, onAction } = $props<{
     order: Order;
     status: { label: string; color: string; border: string };
-    onClick: (id: string) => void;
+    onclick: (id: string) => void;
     onAction: (id: string, action: string) => void;
   }>();
 
@@ -27,11 +27,11 @@
 <div
   role="button"
   tabindex="0"
-  onclick={() => onClick(order.id)}
+  onclick={() => onclick(order.id)}
   onkeydown={(e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      onClick(order.id);
+      onclick(order.id);
     }
   }}
   class="order-item group flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6 w-full {order.isSpam
@@ -177,7 +177,8 @@
 
           <!-- Viral 2026 Security Tooltip (Horizontal Scanner Design to avoid clipping) -->
           <div
-            class="absolute top-1/2 -translate-y-1/2 right-full mr-4 w-[450px] h-[48px] bg-black/95 border border-red-500/40 rounded-lg backdrop-blur-xl opacity-0 invisible group-hover/spam:opacity-100 group-hover/spam:visible transition-all duration-300 z-[100] pointer-events-none shadow-[0_0_30px_rgba(239,68,68,0.2)] flex items-center px-4 gap-6 overflow-hidden"
+            class="absolute top-1/2 -translate-y-1/2 right-full mr-4 w-[450px] h-[48px] bg-black/95 border border-red-500/40 rounded-lg backdrop-blur-xl opacity-0 invisible group-hover/spam:opacity-100 group-hover/spam:visible transition-all duration-300 pointer-events-none shadow-[0_0_30px_rgba(239,68,68,0.2)] flex items-center px-4 gap-6 overflow-hidden"
+            style="z-index: var(--z-popover);"
           >
             <div class="flex flex-col shrink-0">
               <span

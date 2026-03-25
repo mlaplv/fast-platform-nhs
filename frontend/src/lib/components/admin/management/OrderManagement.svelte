@@ -133,8 +133,10 @@
   });
 
   function openDrawer(id: string) {
+    if (!id) return;
     selectedOrderId = id;
     isDrawerOpen = true;
+    nanobot.addLog(`[ACTION] Mở chi tiết đơn: ${id.split("-")[0]}`, "Nanobot-System");
   }
 
   async function handleOrderAction(orderId: string, actionType: string) {
@@ -262,7 +264,7 @@
           <OrderListItem
             {order}
             {status}
-            onClick={openDrawer}
+            onclick={openDrawer}
             onAction={handleOrderAction}
           />
         {/each}

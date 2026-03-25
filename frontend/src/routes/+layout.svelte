@@ -99,6 +99,11 @@
 
   $effect(() => {
     if (typeof document !== "undefined") {
+      // Svelte 5 Elite Sync: Inject Z_INDEX as CSS variables
+      Object.entries(Z_INDEX).forEach(([key, value]) => {
+        document.documentElement.style.setProperty(`--z-${key.toLowerCase()}`, value.toString());
+      });
+      // Sidebar width sync
       document.documentElement.style.setProperty("--layout-sidebar-width", `${sidebarWidth}px`);
     }
   });
@@ -107,9 +112,7 @@
 <svelte:head>
   <link rel="icon" href="/favicon.svg" />
   <style>
-    :root {
-      {zIndexStyle}
-    }
+    /* Global styles only, dynamic tokens handled via $effect/inline-style */
   </style>
 </svelte:head>
 {@render children()}

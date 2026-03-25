@@ -49,7 +49,7 @@
     isLoading = true;
     try {
       orderData = await apiClient.get<OrderDetail>(`/api/v1/orders/${orderId}`);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to load order details", err);
     } finally {
       isLoading = false;
