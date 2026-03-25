@@ -23,10 +23,10 @@ elif [[ -f /proc/meminfo ]]; then
 fi
 
 # Default Performance Settings (High RAM)
-export UV_CONCURRENCY=""
+export UV_CONCURRENCY=8
 export PNPM_OPTS=""
 export DOCKER_BUILDKIT=1
-export COMPOSE_PARALLEL_LIMIT=""
+export COMPOSE_PARALLEL_LIMIT=10
 export API_MEM_LIMIT="4G"
 export UI_MEM_LIMIT="2G"
 
@@ -87,32 +87,36 @@ function run_backend() {
 
 # Helper: Deep Clean function
 function deep_clean() {
-    echo -e "${CYAN}[CLEAN] Đang dọn dẹp hệ thống (Code artifacts)...${NC}"
+    echo -e "${CYAN}[CLEAN] Đang dọn dẹp hệ thống (Code artifacts & Caches)...${NC}"
     echo -e "${GREEN}[SAFE] Giữ lại: .env, certs/, .git/${NC}"
 
     # === FRONTEND CLEANUP ===
-    echo -e "${YELLOW}-> [1/5] Đang xóa Frontend rác (node_modules, .pnpm-store, build caches)...${NC}"
+    echo -e "${YELLOW}-> [1/6] Đang xóa Frontend rác (node_modules, .pnpm-store, build caches)...${NC}"
     sudo rm -rf frontend/node_modules frontend/dist frontend/.svelte-kit frontend/.vite frontend/.pnpm-store
 
     # === BACKEND CLEANUP ===
-    echo -e "${YELLOW}-> [2/5] Đang xóa Backend rác (.venv, pytest caches)...${NC}"
+    echo -e "${YELLOW}-> [2/6] Đang xóa Backend rác (.venv, pytest caches)...${NC}"
     sudo rm -rf .venv .pytest_cache backend/.pytest_cache
 
     # === PYTHON CACHES ===
-    echo -e "${YELLOW}-> [3/5] Đang xóa Python caches (__pycache__)...${NC}"
+    echo -e "${YELLOW}-> [3/6] Đang xóa Python caches (__pycache__)...${NC}"
     sudo find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
+    # === DATA & APPLICATION CACHES ===
+    echo -e "${YELLOW}-> [4/6] Đang xóa Application Caches (backend/cache)...${NC}"
+    sudo rm -rf backend/cache
+
     # === LOCK FILES, LOGS, OS JUNK ===
-    echo -e "${YELLOW}-> [4/5] Đang xóa Lock files, Logs, .DS_Store...${NC}"
+    echo -e "${YELLOW}-> [5/6] Đang xóa Lock files, Logs, .DS_Store...${NC}"
     sudo rm -f uv.lock vad.slice kehoach.txt
     sudo find . -maxdepth 3 -type f \( -name "pnpm-lock.yaml" -o -name "package-lock.json" -o -name "yarn.lock" -o -name "*.log" -o -name ".DS_Store" \) -delete 2>/dev/null || true
 
     # === ORPHAN EMPTY DIRS ===
-    echo -e "${YELLOW}-> [5/5] Đang xóa thư mục rỗng...${NC}"
+    echo -e "${YELLOW}-> [6/6] Đang xóa thư mục rỗng...${NC}"
     sudo rm -rf static
     sudo find . -maxdepth 3 -type d -empty -not -path './.git/*' -not -path './certs/*' -delete 2>/dev/null || true
 
-    echo -e "${GREEN}[OK] Đã dọn dẹp Code artifacts sạch bóng!${NC}"
+    echo -e "${GREEN}[OK] Đã dọn dẹp hệ thống sạch bóng!${NC}"
 }
 
 function hard_reset_docker() {
@@ -126,6 +130,18 @@ function hard_reset_docker() {
     docker system prune -af --volumes 2>/dev/null || true
     docker builder prune -af 2>/dev/null || true
     echo -e "${GREEN}   ✔ Docker đã reset như mới cài!${NC}"
+}
+
+function update_docker() {
+    echo -e "${CYAN}[UPDATE] Đang cập nhật hệ thống Docker...${NC}"
+    echo -e "${YELLOW}-> Đang kéo (pull) các image mới nhất...${NC}"
+    docker compose pull
+    echo -e "${YELLOW}-> Đang xây dựng (build) lại các services...${NC}"
+    docker compose build
+    echo -e "${YELLOW}-> Đang khởi động lại hệ thống...${NC}"
+    docker compose up -d
+    echo -e "${GREEN}[OK] Đã cập nhật Docker thành công!${NC}"
+    read -p "Nhấn Enter để quay lại menu..."
 }
 
 # Helper: Dependency Check
@@ -316,6 +332,7 @@ while true; do
     echo "6) CHẠY TEST (Backend/Frontend)"
     echo "7) AUDIT V61.1"
     echo "8) XEM LOG BACKEND"
+    echo "9) CẬP NHẬT DOCKER (Pull + Build)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -351,6 +368,9 @@ while true; do
             ;;
         8)
             view_logs
+            ;;
+        9)
+            update_docker
             ;;
         0)
             exit 0

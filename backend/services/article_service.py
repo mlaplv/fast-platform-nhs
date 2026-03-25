@@ -14,15 +14,20 @@ from backend.schemas.article import (
     UpdateArticleRequest
 )
 from backend.schemas.common import SuccessResponse, BulkActionResponse
-from backend.services.article_vector_service import article_vector_service
+from backend.services.article_vector_service import ArticleVectorService
 from backend.services.xohi_memory import xohi_memory
 from backend.utils.sql import escape_like
 
 logger = logging.getLogger("api-gateway")
 
 class ArticleService:
-    @staticmethod
+    """Business Logic for Articles/News (Elite V2.2)."""
+    
+    def __init__(self, vector_service: ArticleVectorService):
+        self.vector_service = vector_service
+
     async def list_articles(
+        self,
         db_session: AsyncSession,
         limit: int = 20,
         offset: int = 0,
@@ -80,8 +85,7 @@ class ArticleService:
         data = [ArticleResponse.model_validate(row._mapping) for row in result]
         return ArticleListResponse(data=data, total=total)
 
-    @staticmethod
-    async def get_article(db_session: AsyncSession, article_id: str) -> ArticleResponse:
+    async def get_article(self, db_session: AsyncSession, article_id: str) -> ArticleResponse:
         """Get a single article (R76: Scalar Projection)."""
         stmt = select(
             Article.id, Article.title, Article.slug, Article.excerpt, Article.content,
@@ -104,8 +108,7 @@ class ArticleService:
 
         return ArticleResponse.model_validate(row._mapping)
 
-    @staticmethod
-    async def create_article(db_session: AsyncSession, data: CreateArticleRequest) -> SuccessResponse:
+    async def create_article(self, db_session: AsyncSession, data: CreateArticleRequest) -> SuccessResponse:
         """Create a new article and its embedding."""
         slug = data.slug or re.sub(
             r'[^a-z0-9]+', '-',
@@ -135,7 +138,7 @@ class ArticleService:
         db_session.add(article)
 
         # RAG Upsert
-        await article_vector_service.upsert_article_embedding(
+        await self.vector_service.upsert_article_embedding(
             db_session, new_id, data.title, data.content
         )
 
@@ -143,8 +146,7 @@ class ArticleService:
         await xohi_memory.clear_article_cache()
         return SuccessResponse(ok=True, id=new_id)
 
-    @staticmethod
-    async def update_article(db_session: AsyncSession, article_id: str, data: UpdateArticleRequest) -> SuccessResponse:
+    async def update_article(self, db_session: AsyncSession, article_id: str, data: UpdateArticleRequest) -> SuccessResponse:
         """Update an article and its embedding."""
         # Rule 1.5: Detail fetch for update (Surgical)
         stmt = select(Article).where(Article.id == article_id, Article.deleted_at == None)
@@ -167,7 +169,7 @@ class ArticleService:
         if data.featured_image is not None: article.featured_image = data.featured_image
 
         if data.title is not None or data.content is not None:
-            await article_vector_service.upsert_article_embedding(
+            await self.vector_service.upsert_article_embedding(
                 db_session, article_id, article.title, article.content
             )
 
@@ -175,33 +177,29 @@ class ArticleService:
         await xohi_memory.clear_article_cache()
         return SuccessResponse(ok=True, id=article_id)
 
-    @staticmethod
-    async def delete_article(db_session: AsyncSession, article_id: str) -> SuccessResponse:
+    async def delete_article(self, db_session: AsyncSession, article_id: str) -> SuccessResponse:
         stmt = update(Article).where(Article.id == article_id).values(deleted_at=datetime.now(timezone.utc))
         await db_session.execute(stmt)
         # Invalidate Count Cache
         await xohi_memory.clear_article_cache()
         return SuccessResponse(ok=True, id=article_id)
 
-    @staticmethod
-    async def bulk_delete(db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
+    async def bulk_delete(self, db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
         stmt = update(Article).where(Article.id.in_(ids)).values(deleted_at=datetime.now(timezone.utc))
         await db_session.execute(stmt)
         # Invalidate Count Cache
         await xohi_memory.clear_article_cache()
         return BulkActionResponse(ok=True, count=len(ids))
 
-    @staticmethod
-    async def bulk_publish(db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
+    async def bulk_publish(self, db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
         stmt = update(Article).where(Article.id.in_(ids)).values(status="PUBLISHED")
         await db_session.execute(stmt)
         # Invalidate Count Cache
         await xohi_memory.clear_article_cache()
         return BulkActionResponse(ok=True, count=len(ids))
 
-    @staticmethod
     async def bulk_patch(
-        db_session: AsyncSession, ids: List[str], status: Optional[str] = None, category: Optional[str] = None
+        self, db_session: AsyncSession, ids: List[str], status: Optional[str] = None, category: Optional[str] = None
     ) -> BulkActionResponse:
         values = {}
         if status: values["status"] = status.upper()
@@ -216,4 +214,10 @@ class ArticleService:
         await xohi_memory.clear_article_cache()
         return BulkActionResponse(ok=True, count=len(ids))
 
-article_service = ArticleService()
+# ==========================================
+# SERVICE PROVIDERS (V76.2 DI PATTERN)
+# ==========================================
+
+async def provide_article_service(article_vector_service: ArticleVectorService) -> ArticleService:
+    """Standard Litestar Provider for ArticleService."""
+    return ArticleService(vector_service=article_vector_service)

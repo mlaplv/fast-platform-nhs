@@ -2,8 +2,13 @@
     # Local/Internal TLS for .test domains
     tls internal
 
-    # R90: CTO Elite Compression (Zstd + Gzip)
-    encode zstd gzip
+    # Matched to exclude SSE and large binary streams from compression (R90: Protocol Stability)
+    @encodable {
+        not header Content-Type text/event-stream
+        not path /api/v1/*/stream*
+        not path /ws/*
+    }
+    encode @encodable zstd gzip
 
     handle /api/v1/*/stream* {
         reverse_proxy api:8000 {

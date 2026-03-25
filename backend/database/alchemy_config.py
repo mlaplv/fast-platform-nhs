@@ -31,7 +31,7 @@ class AlchemyConfig:
     def get_engine(self):
         if self._engine is None:
             engine_kwargs: dict[str, Any] = {
-                "echo": True,
+                "echo": False,
                 "pool_recycle": 3600,
             }
             # Rule: Only add pooling for Postgres (SQLite uses StaticPool)

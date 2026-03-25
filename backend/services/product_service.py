@@ -9,14 +9,19 @@ from litestar.exceptions import NotFoundException
 from backend.database.models import ProductBase, Category, ProductVariant
 from backend.schemas.product import CreateProductRequest, UpdateProductRequest, ProductResponse, ProductListResponse
 from backend.schemas.common import SuccessResponse, BulkActionResponse
-from backend.services.product_vector_service import product_vector_service
+from backend.services.product_vector_service import ProductVectorService
 from backend.utils.sql import escape_like
 
 logger = logging.getLogger("api-gateway")
 
 class ProductService:
-    @staticmethod
+    """Business Logic for Products (Elite V2.2)."""
+
+    def __init__(self, vector_service: ProductVectorService):
+        self.vector_service = vector_service
+
     async def list_products(
+        self,
         db_session: AsyncSession,
         limit: int = 20,
         offset: int = 0,
@@ -60,8 +65,7 @@ class ProductService:
             
         return ProductListResponse(data=data, total=total)
 
-    @staticmethod
-    async def get_product(db_session: AsyncSession, product_id: str) -> ProductResponse:
+    async def get_product(self, db_session: AsyncSession, product_id: str) -> ProductResponse:
         """Get a single product (R76: Scalar Projection)."""
         stmt = select(
             ProductBase.id, ProductBase.name, ProductBase.sku,
@@ -90,8 +94,7 @@ class ProductService:
         row_dict["variants"] = variants
         return ProductResponse.model_validate(row_dict)
 
-    @staticmethod
-    async def create_product(db_session: AsyncSession, data: CreateProductRequest) -> SuccessResponse:
+    async def create_product(self, db_session: AsyncSession, data: CreateProductRequest) -> SuccessResponse:
         """Create a new product and its embedding."""
         new_id = str(uuid.uuid4())
         product = ProductBase(
@@ -132,14 +135,13 @@ class ProductService:
         await db_session.refresh(product)
 
         # RAG Upsert
-        await product_vector_service.upsert_product_embedding(
+        await self.vector_service.upsert_product_embedding(
             db_session, new_id, data.name, data.description
         )
 
         return SuccessResponse(ok=True, id=new_id)
 
-    @staticmethod
-    async def update_product(db_session: AsyncSession, product_id: str, data: UpdateProductRequest) -> SuccessResponse:
+    async def update_product(self, db_session: AsyncSession, product_id: str, data: UpdateProductRequest) -> SuccessResponse:
         """Update a product and its embedding."""
         # Rule 1.5: Detail fetch for update (Surgical)
         stmt = select(ProductBase).where(ProductBase.id == product_id, ProductBase.deleted_at == None)
@@ -184,28 +186,31 @@ class ProductService:
                 db_session.add(variant)
 
         if data.name is not None or data.description is not None:
-            await product_vector_service.upsert_product_embedding(
+            await self.vector_service.upsert_product_embedding(
                 db_session, product_id, product.name, product.description
             )
 
         return SuccessResponse(ok=True, id=product_id)
 
-    @staticmethod
-    async def delete_product(db_session: AsyncSession, product_id: str) -> SuccessResponse:
+    async def delete_product(self, db_session: AsyncSession, product_id: str) -> SuccessResponse:
         stmt = update(ProductBase).where(ProductBase.id == product_id).values(deleted_at=datetime.now(timezone.utc))
         await db_session.execute(stmt)
         return SuccessResponse(ok=True, id=product_id)
 
-    @staticmethod
-    async def bulk_delete(db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
+    async def bulk_delete(self, db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
         stmt = update(ProductBase).where(ProductBase.id.in_(ids)).values(deleted_at=datetime.now(timezone.utc))
         await db_session.execute(stmt)
         return BulkActionResponse(ok=True, count=len(ids))
 
-    @staticmethod
-    async def bulk_activate(db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
+    async def bulk_activate(self, db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
         stmt = update(ProductBase).where(ProductBase.id.in_(ids)).values(status="ACTIVE")
         await db_session.execute(stmt)
         return BulkActionResponse(ok=True, count=len(ids))
 
-product_service = ProductService()
+# ==========================================
+# SERVICE PROVIDERS (V76.2 DI PATTERN)
+# ==========================================
+
+async def provide_product_service(product_vector_service: ProductVectorService) -> ProductService:
+    """Standard Litestar Provider for ProductService."""
+    return ProductService(vector_service=product_vector_service)

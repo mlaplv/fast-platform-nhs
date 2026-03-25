@@ -64,18 +64,23 @@ async def lifespan(app: Litestar):
 
             # Load & Decrypt Gemini Keys (Unified V72.0)
             await key_rotator.load_keys()
-            logger.info(f"[Trinity Core] Hot Reload Cache: {count} profiles and all keys loaded.")
+            logger.info(f"🔑 [Trinity Core] Keys hot-reloaded ({key_rotator.get_count()} keys).")
+    except Exception as e:
+        logger.error(f"❌ [Trinity Core] Key reload failed: {e}")
 
-        # Zero-Cold-Start Warmups
-        try:
-            from backend.services.ai_engine.core.encoder_singleton import warmup_encoder
-            await _aio.wait_for(warmup_encoder(), timeout=30)
-            from backend.services.ai_engine.core.semantic_router import SemanticRouter
-            await _aio.wait_for(SemanticRouter().warmup(), timeout=30)
-            logger.info("[Trinity Core] AI warmup complete.")
-        except Exception as e:
-            logger.critical(f"[Trinity Core] Warmup failed: {e}")
+    # Start Proactive Nerve System
+    setup_subscriptions()
+    await event_bus.start()
 
+    # Initialize AI Bridge (V76)
+    await trinity_bridge.initialize()
+
+    gc_task = None
+    heartbeat_task = None
+    purge_task = None
+    media_cleanup_task = None
+
+    try:
         # [GHOST MODE] Start GC Watchdog first
         gc.set_threshold(700, 10, 5) # Chống rác tích tụ lâu
         gc_task = _aio.create_task(_gc_watchdog_loop())
@@ -151,12 +156,12 @@ async def _gc_watchdog_loop():
             await _aio.sleep(600) 
             
             ram_mb = process.memory_info().rss / (1024 * 1024)
-            # Nếu tiến trình API chiếm > 600MB (trên giới hạn 850MB), ép dọn rác ngay
-            if ram_mb > 600:
+            # Threshold adjusted to 1.2GB (V2.2: Accommodates fastembed + Litestar)
+            if ram_mb > 1200:
                 logger.warning(f"[GhostMode] RAM usage high ({ram_mb:.1f}MB). Forcing aggressive GC...")
                 gc.collect(generation=2) # Dọn rác ở tầng sâu nhất
-            else:
-                gc.collect() # Dọn rác thông thường
+            elif ram_mb > 800:
+                gc.collect() # Dọn rác thông thường khi vượt 800MB
                 
         except Exception as e:
             logger.error(f"[GhostMode] Watchdog error: {e}")

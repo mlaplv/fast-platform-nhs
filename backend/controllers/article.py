@@ -12,14 +12,19 @@ from backend.schemas.article import (
     ArticleResponse, ArticleListResponse, CreateArticleRequest,
     UpdateArticleRequest
 )
-from backend.services.article_service import article_service
+from backend.services.article_service import ArticleService, provide_article_service
+from backend.services.article_vector_service import ArticleVectorService, provide_article_vector_service
 
 logger = logging.getLogger("api-gateway")
 
 class ArticleController(Controller):
     """R2: Class-based Litestar Controller for Article/News CRUD."""
     path = "/api/v1/articles"
-    dependencies = {"art_repo": Provide(provide_article_repo)}
+    dependencies = {
+        "art_repo": Provide(provide_article_repo),
+        "vector_service": Provide(provide_article_vector_service),
+        "article_service": Provide(provide_article_service),
+    }
     
     @get("/categories", guards=[PermissionGuard("content:read")])
     async def list_categories(self) -> List[str]:
@@ -29,57 +34,96 @@ class ArticleController(Controller):
 
     @get("/", guards=[PermissionGuard("content:read")])
     async def list_articles(
-        self, db_session: "AsyncSession",
-        limit: int = 20, offset: int = 0,
+        self, 
+        db_session: AsyncSession,
+        article_service: ArticleService,
+        limit: int = 20, 
+        offset: int = 0,
         status: Optional[str] = None,
         search: Optional[str] = None,
         category: Optional[str] = None,
     ) -> ArticleListResponse:
         """List articles with server-side pagination. R41: N+1 Safe. R1.5: Zero-Hydration."""
-        return await article_service.list_articles(db_session, limit, offset, status, search, category)
+        return await article_service.list_articles(db_session=db_session, limit=limit, offset=offset, status=status, search=search, category=category)
 
     @get("/{article_id:str}", guards=[PermissionGuard("content:read")])
-    async def get_article(self, db_session: "AsyncSession", article_id: str) -> ArticleResponse:
+    async def get_article(
+        self, 
+        db_session: AsyncSession, 
+        article_service: ArticleService,
+        article_id: str
+    ) -> ArticleResponse:
         """Get a single article (R76: Scalar Projection)."""
         return await article_service.get_article(db_session, article_id)
 
     @post("/", guards=[PermissionGuard("content:write")])
-    async def create_article(self, db_session: "AsyncSession", data: CreateArticleRequest) -> SuccessResponse:
+    async def create_article(
+        self, 
+        db_session: AsyncSession, 
+        article_service: ArticleService,
+        data: CreateArticleRequest
+    ) -> SuccessResponse:
         """Create a new article (Service-Centric RAG)."""
         res = await article_service.create_article(db_session, data)
         await db_session.commit()
         return res
 
     @patch("/{article_id:str}", guards=[PermissionGuard("content:write")])
-    async def update_article(self, db_session: "AsyncSession", article_id: str, data: UpdateArticleRequest) -> SuccessResponse:
+    async def update_article(
+        self, 
+        db_session: AsyncSession, 
+        article_service: ArticleService,
+        article_id: str, 
+        data: UpdateArticleRequest
+    ) -> SuccessResponse:
         """Update an article (Service-Centric RAG)."""
         res = await article_service.update_article(db_session, article_id, data)
         await db_session.commit()
         return res
 
     @delete("/{article_id:str}", status_code=200, guards=[PermissionGuard("content:write")])
-    async def delete_article(self, db_session: "AsyncSession", article_id: str) -> SuccessResponse:
+    async def delete_article(
+        self, 
+        db_session: AsyncSession, 
+        article_service: ArticleService,
+        article_id: str
+    ) -> SuccessResponse:
         """R18: Soft delete."""
         res = await article_service.delete_article(db_session, article_id)
         await db_session.commit()
         return res
 
     @post("/bulk-delete", guards=[PermissionGuard("content:write")])
-    async def bulk_delete(self, db_session: "AsyncSession", data: BulkIdsRequest) -> BulkActionResponse:
+    async def bulk_delete(
+        self, 
+        db_session: AsyncSession, 
+        article_service: ArticleService,
+        data: BulkIdsRequest
+    ) -> BulkActionResponse:
         """R18: Soft delete multiple articles."""
         res = await article_service.bulk_delete(db_session, data.ids)
         await db_session.commit()
         return res
 
     @post("/bulk-publish", guards=[PermissionGuard("content:publish")])
-    async def bulk_publish(self, db_session: "AsyncSession", data: BulkIdsRequest) -> BulkActionResponse:
+    async def bulk_publish(
+        self, 
+        db_session: AsyncSession, 
+        article_service: ArticleService,
+        data: BulkIdsRequest
+    ) -> BulkActionResponse:
         """Publish multiple articles."""
         res = await article_service.bulk_publish(db_session, data.ids)
         await db_session.commit()
         return res
 
     @patch("/bulk-update", guards=[PermissionGuard("content:write")])
-    async def bulk_patch(self, db_session: "AsyncSession", data: "Any") -> BulkActionResponse:
+    async def bulk_patch(
+        self, 
+        db_session: AsyncSession, 
+        article_service: ArticleService,
+        data: BulkIdsRequest
+    ) -> BulkActionResponse:
         """Bulk update status or category."""
         from backend.schemas.article import BulkPatchRequest
         # Cast for type safety in logic if needed, but here simple access is fine

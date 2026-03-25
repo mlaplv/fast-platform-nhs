@@ -1,6 +1,6 @@
 import logging
 from typing import List, Dict, Union, Optional
-from backend.services.ai_engine.core.encoder_singleton import get_encoder
+from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
 from backend.database import async_session_maker
 
 logger = logging.getLogger("api-gateway")
@@ -11,13 +11,26 @@ class ProductVectorService:
     Enforces strict pgvector typing via SQLAlchemy/Raw SQL.
     """
     def __init__(self):
-        # Elite V2.2: Shared encoder to save 400MB RAM
-        self.embedding_model = get_encoder()
+        # [GHOST MODE] Service-local state only
+        self._embedding_model = None
+
+    @property
+    def embedding_model(self):
+        """Lazy loader for the embedding model."""
+        if self._embedding_model is None:
+            from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
+            self._embedding_model = get_shared_encoder()
+        return self._embedding_model
 
     async def search_semantic(self, query: str, tenant_id: str = "default", limit: int = 5) -> List[Dict[str, object]]:
         try:
+            model = self.embedding_model
+            if not model:
+                logger.warning("[VECTOR-SEARCH] Encoder not ready. Skipping semantic search.")
+                return []
+
             # 1. Embed query
-            vectors = list(self.embedding_model.embed([query]))
+            vectors = list(model.embed([query]))
             embedding_array = vectors[0]
 
             # 2. Ép kiểu mảng float thành chuỗi chuẩn Vector của Postgres (BẮT BUỘC)
@@ -50,7 +63,7 @@ class ProductVectorService:
                     "price": float(r["price"]),
                     "stock": r["stock"],
                     "description": r["description"],
-                    "match_score": round(1.0 - float(r["cosine_distance"]), 3)
+                    "match_score": round(1.0 - float(r["cosine_distance"] or 1.0), 3)
                 }
                 for r in results
             ]
@@ -68,8 +81,14 @@ class ProductVectorService:
 
         try:
             content = f"{name} {description or ''}".strip()
+            # Elite V2.2: Use local model and check readiness
+            model = self.embedding_model
+            if not model:
+                logger.warning(f"[RAG] Product Encoder not ready. Skipping embedding for {product_id}")
+                return
+
             loop = asyncio.get_running_loop()
-            vectors = await loop.run_in_executor(None, lambda: list(self.embedding_model.embed([content])))
+            vectors = await loop.run_in_executor(None, lambda: list(model.embed([content])))
 
             if not vectors:
                 return
@@ -87,4 +106,10 @@ class ProductVectorService:
         except Exception as e:
             logger.warning(f"[RAG] Product embedding failed for {product_id}: {e}")
 
-product_vector_service = ProductVectorService()
+# ==========================================
+# SERVICE PROVIDERS (V76.2 DI PATTERN)
+# ==========================================
+
+async def provide_product_vector_service() -> ProductVectorService:
+    """Standard Litestar Provider for ProductVectorService."""
+    return ProductVectorService()

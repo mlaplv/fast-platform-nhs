@@ -3,6 +3,9 @@ import logging
 import warnings
 from dotenv import load_dotenv
 
+from backend.app_logging import setup_logging
+setup_logging()
+
 # Suppress library warnings
 warnings.filterwarnings("ignore", message=".*now uses mean pooling instead of CLS embedding.*")
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic_ai")
@@ -44,9 +47,10 @@ from backend.routers.media_router import MediaController
 from backend.controllers.banner import BannerController
 from backend.routers.content_stream import ContentStreamController
 from backend.routers.voice_stream import stt_websocket
-from backend.routers.intent_map import IntentMapController
 from backend.controllers.tts_handler import TTSController
+from backend.routers.intent_map import IntentMapController
 from backend.routers.scheduler_router import SchedulerController
+
 from backend.middleware import AuthMiddleware
 from backend.body_limit import BodyLimitMiddleware
 

@@ -1,6 +1,6 @@
 import logging
 from typing import List, Dict, Union, Optional
-from backend.services.ai_engine.core.encoder_singleton import get_encoder
+from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
 from backend.database import async_session_maker
 
 logger = logging.getLogger("api-gateway")
@@ -11,19 +11,31 @@ class ArticleVectorService:
     Enforces strict pgvector typing via SQLAlchemy/Raw SQL.
     """
     def __init__(self):
-        # Elite V2.2: Shared encoder to save 400MB RAM
-        self.embedding_model = get_encoder()
+        # [GHOST MODE] Service-local state only
+        self._embedding_model = None
+
+    @property
+    def embedding_model(self):
+        """Lazy loader (V76.2: Trinity Boot)"""
+        if self._embedding_model is None:
+            from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
+            self._embedding_model = get_shared_encoder()
+        return self._embedding_model
 
     async def search_semantic(self, query: str, tenant_id: str = "default", limit: int = 5) -> List[Dict[str, object]]:
         try:
+            model = self.embedding_model
+            if not model:
+                logger.warning("[VECTOR-SEARCH] Article Encoder not ready. Skipping semantic search.")
+                return []
+
             # 1. Embed query
-            vectors = list(self.embedding_model.embed([query]))
+            vectors = list(model.embed([query]))
             embedding_array = vectors[0]
 
             # 2. Ép kiểu mảng float thành chuỗi chuẩn Vector của Postgres (BẮT BUỘC)
             vector_str = f"[{','.join(map(str, embedding_array))}]"
 
-            # 3. Cú pháp SQL thuần BẮT BUỘC sử dụng (<=>) và Type Casting (::vector)
             # 3. Cú pháp SQL thuần BẮT BUỘC sử dụng (<=>) và Type Casting (::vector)
             raw_query = """
                 SELECT a.id, a.title, a.slug, a.category, e.embedding <=> CAST(:v AS vector) AS cosine_distance
@@ -49,7 +61,7 @@ class ArticleVectorService:
                     "title": r["title"],
                     "slug": r["slug"],
                     "category": r["category"],
-                    "match_score": round(1.0 - float(r["cosine_distance"]), 3)
+                    "match_score": round(1.0 - float(r["cosine_distance"] or 1.0), 3)
                 }
                 for r in results
             ]
@@ -69,8 +81,13 @@ class ArticleVectorService:
             text_to_embed = f"{title}\n{content or ''}".strip()
 
             # Rule 1.10: Run CPU-bound embedding in executor
+            model = self.embedding_model
+            if not model:
+                logger.warning(f"[RAG] Encoder not ready. Skipping embedding for article {article_id}")
+                return
+
             loop = asyncio.get_running_loop()
-            vectors = await loop.run_in_executor(None, lambda: list(self.embedding_model.embed([text_to_embed])))
+            vectors = await loop.run_in_executor(None, lambda: list(model.embed([text_to_embed])))
 
             if not vectors:
                 return
@@ -93,4 +110,10 @@ class ArticleVectorService:
         except Exception as e:
             logger.error(f"[RAG] Article embedding failed for {article_id}: {e}")
 
-article_vector_service = ArticleVectorService()
+# ==========================================
+# SERVICE PROVIDERS (V76.2 DI PATTERN)
+# ==========================================
+
+async def provide_article_vector_service() -> ArticleVectorService:
+    """Standard Litestar Provider for ArticleVectorService."""
+    return ArticleVectorService()

@@ -7,44 +7,53 @@ from fastembed import TextEmbedding
 logger = logging.getLogger("api-gateway")
 
 # Elite V2.2: Centralized Model Cache to avoid Docker permission issues and redundant downloads
-# Uses project-relative path (5 levels up from core/ to reach fast-platform-core/)
+# Uses project-relative path
 _project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+# [GHOST MODE] Ensure absolute path and handle Docker volume mapping
 CACHE_DIR = os.getenv("FASTEMBED_CACHE_DIR", os.path.join(_project_root, "backend/cache/fastembed"))
-os.makedirs(CACHE_DIR, exist_ok=True)
+
+# Force disable symlinks to avoid common Docker/NTFS/OverlayFS issues
+os.environ["HF_HUB_DISABLE_SYMLINKS"] = "1"
 
 _shared_encoder: Optional[TextEmbedding] = None
 _lock = asyncio.Lock()
 
 async def warmup_encoder():
-    """Pre-loads the embedding model into memory using project-local cache."""
+    """
+    [TRINITY BOOT] Pre-loads the embedding model into memory.
+    Must be called during application lifespan.
+    """
     global _shared_encoder
     async with _lock:
         if _shared_encoder is None:
             logger.info(f"[Encoder] Initializing fastembed in {CACHE_DIR}...")
             try:
-                loop = asyncio.get_event_loop()
-                _shared_encoder = await loop.run_in_executor(
-                    None,
-                    lambda: TextEmbedding(
-                        model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+                # model_name must match the one baked in Docker or desired for RAG
+                model_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+                
+                os.makedirs(CACHE_DIR, exist_ok=True)
+                
+                # Check if directory is writable (R00: Security & Stability)
+                if not os.access(CACHE_DIR, os.W_OK):
+                    logger.error(f"[Encoder] CACHE_DIR {CACHE_DIR} is NOT WRITABLE!")
+                
+                def _init():
+                    return TextEmbedding(
+                        model_name=model_name,
                         cache_dir=CACHE_DIR
                     )
-                )
+
+                loop = asyncio.get_event_loop()
+                _shared_encoder = await loop.run_in_executor(None, _init)
                 logger.info("[Encoder] fastembed initialized successfully.")
             except Exception as e:
                 logger.error(f"[Encoder] Failed to initialize fastembed: {e}")
+                # We do NOT raise here to allow the rest of the app to boot, 
+                # but services using it will need to handle None.
 
 def get_shared_encoder() -> Optional[TextEmbedding]:
-    """Returns the pre-loaded encoder."""
+    """Returns the pre-loaded encoder. Returns None if not warmed up."""
     return _shared_encoder
 
-def get_encoder() -> TextEmbedding:
-    """Synchronous getter for services. Warning: will initialize if None."""
-    global _shared_encoder
-    if _shared_encoder is None:
-        logger.warning("[Encoder] Synchronous initialization triggered.")
-        _shared_encoder = TextEmbedding(
-            model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-            cache_dir=CACHE_DIR
-        )
-    return _shared_encoder
+# REMOVED: get_encoder() synchronous blocking helper to prevent startup hangs.
+# Services should use get_shared_encoder() and handle None or use a lazy property.
