@@ -8,6 +8,7 @@
   import ChevronDown from "lucide-svelte/icons/chevron-down";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import type { Product, BaseWidgetProps } from "$lib/types";
+  import { formatCurrency } from "$lib/utils/format";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import ProductStats from "./ProductStats.svelte";
@@ -50,8 +51,8 @@
   let formSeoKeywords = $state("");
   let formImages = $state<string[]>([]);
   let formAttributes = $state<Record<string, string | number | boolean | null>>({});
-  let formTierVariations = $state<any[]>([]);
-  let formVariants = $state<any[]>([]);
+  let formTierVariations = $state<Product["tierVariations"]>([]);
+  let formVariants = $state<Product["variants"]>([]);
   let generateSlug = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
 
@@ -155,8 +156,6 @@
     if (activeFilter !== filter) { activeFilter = filter; currentPage = 1; }
   }
 
-  const formatCurrency = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + "đ";
-
   function openCreate() {
     editingId = null;
     formName = ""; formSku = ""; formPrice = 0; formStock = 0; formCategory = ""; formStatus = "draft";
@@ -232,7 +231,7 @@
   <div class="flex flex-col gap-6 p-6 border-b border-white/[0.05]">
     {#if !isHeaderCollapsed}
       <div transition:fade={{ duration: 200 }} class="flex flex-col gap-6">
-        <ProductStats {stats} {formatCurrency} />
+        <ProductStats {stats} />
       </div>
     {/if}
 
@@ -279,11 +278,10 @@
           {products}
           {selectedIds}
           statusMap={STATUS_MAP}
-          {formatCurrency}
           onToggleSelect={toggleSelect}
           onEdit={openEdit}
           onDelete={async (id) => {
-            try { await apiClient.post("/api/v1/products/bulk-delete", { ids: [id] }); await loadProducts(); } 
+            try { await apiClient.post("/api/v1/products/bulk-delete", { ids: [id] }); await loadProducts(); }
             catch { nanobot.showToast("Xóa sản phẩm thất bại", "error"); }
           }}
         />

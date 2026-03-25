@@ -22,12 +22,6 @@
     onSearchInput: (e: Event) => void;
   }>();
 
-  onMount(() => {
-    if (searchInput === undefined) searchInput = "";
-    if (activeFilter === undefined) activeFilter = "all";
-    if (pageSize === undefined) pageSize = 10;
-  });
-
   const filters = [
     "all",
     "pending",
@@ -41,7 +35,8 @@
 </script>
 
 <div
-  class="sticky top-0 z-20 bg-[#050505] border-b border-white/5 p-4 flex flex-col gap-3 shrink-0"
+  class="sticky top-0 bg-[#050505] border-b border-white/5 p-4 flex flex-col gap-3 shrink-0"
+  style="z-index: var(--z-sticky_header);"
 >
   <div
     class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 justify-between"

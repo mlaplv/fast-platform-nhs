@@ -1,7 +1,7 @@
 <script lang="ts">
-  let { stats, formatCurrency } = $props<{
+  import { formatCurrency } from "$lib/utils/format";
+  let { stats } = $props<{
     stats: { total: number; active: number; draft: number; totalValue: number };
-    formatCurrency: (n: number) => string;
   }>();
 </script>
 
@@ -13,7 +13,7 @@
     <div
       class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-white/10 transition-colors duration-500"
     ></div>
-    <div class="flex items-center justify-between mb-3 relative z-10">
+    <div class="flex items-center justify-between mb-3 relative z-[var(--z-surface)]">
       <span
         class="text-[10px] font-bold font-mono text-gray-500 uppercase tracking-widest"
         >Registry Depth</span
@@ -22,7 +22,7 @@
         class="w-2 h-2 rounded-full border border-white/20 shadow-[0_0_8px_rgba(255,255,255,0.1)]"
       ></div>
     </div>
-    <div class="flex items-baseline gap-2 relative z-10">
+    <div class="flex items-baseline gap-2 relative z-[var(--z-surface)]">
       <span
         class="text-3xl font-black text-white tracking-widest leading-none drop-shadow-md"
         >{stats.total}</span
@@ -43,7 +43,7 @@
     <div
       class="absolute top-0 right-0 w-32 h-32 bg-[#39FF14]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-[#39FF14]/20 transition-colors duration-500"
     ></div>
-    <div class="flex items-center justify-between mb-3 relative z-10">
+    <div class="flex items-center justify-between mb-3 relative z-[var(--z-surface)]">
       <span
         class="text-[10px] font-bold font-mono text-[#39FF14]/70 uppercase tracking-widest drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]"
         >Live Supply</span
@@ -52,7 +52,7 @@
         class="w-2 h-2 rounded-full bg-[#39FF14] animate-pulse shadow-[0_0_12px_#39FF14]"
       ></div>
     </div>
-    <div class="flex items-baseline gap-2 relative z-10">
+    <div class="flex items-baseline gap-2 relative z-[var(--z-surface)]">
       <span
         class="text-3xl font-black text-[#39FF14] tracking-widest leading-none drop-shadow-[0_0_8px_rgba(57,255,20,0.3)]"
         >{stats.active}</span
@@ -73,7 +73,7 @@
     <div
       class="absolute top-0 right-0 w-32 h-32 bg-[#FFB800]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-[#FFB800]/20 transition-colors duration-500"
     ></div>
-    <div class="flex items-center justify-between mb-3 relative z-10">
+    <div class="flex items-center justify-between mb-3 relative z-[var(--z-surface)]">
       <span
         class="text-[10px] font-bold font-mono text-[#FFB800]/70 uppercase tracking-widest drop-shadow-[0_0_5px_rgba(255,184,0,0.5)]"
         >Staging Cache</span
@@ -82,7 +82,7 @@
         class="w-2 h-2 rounded-full border border-[#FFB800]/50 shadow-[0_0_8px_rgba(255,184,0,0.2)]"
       ></div>
     </div>
-    <div class="flex items-baseline gap-2 relative z-10">
+    <div class="flex items-baseline gap-2 relative z-[var(--z-surface)]">
       <span
         class="text-3xl font-black text-[#FFB800] tracking-widest leading-none drop-shadow-[0_0_8px_rgba(255,184,0,0.3)]"
         >{stats.draft}</span
@@ -103,7 +103,7 @@
     <div
       class="absolute top-0 right-0 w-32 h-32 bg-[#00FFFF]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-[#00FFFF]/20 transition-colors duration-500"
     ></div>
-    <div class="flex items-center justify-between mb-3 relative z-10">
+    <div class="flex items-center justify-between mb-3 relative z-[var(--z-surface)]">
       <span
         class="text-[10px] font-bold font-mono text-[#00FFFF]/70 uppercase tracking-widest drop-shadow-[0_0_5px_rgba(0,255,255,0.5)]"
         >Inventory Mass</span
@@ -112,7 +112,7 @@
         class="w-2 h-2 rounded-full border border-[#00FFFF]/50 shadow-[0_0_8px_rgba(0,255,255,0.2)]"
       ></div>
     </div>
-    <div class="flex flex-col relative z-10 mt-1">
+    <div class="flex flex-col relative z-[var(--z-surface)] mt-1">
       <span
         class="text-2xl font-black text-[#00FFFF] tracking-wider leading-none drop-shadow-[0_0_8px_rgba(0,255,255,0.3)]"
         >{formatCurrency(stats.totalValue)}</span

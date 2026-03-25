@@ -33,7 +33,45 @@
 
 ---
 
-# Walkthrough - CNS V82.11: Persistence & UI Integrity Fixes
+# Walkthrough - CNS V83.3: Product Management Optimization (Elite V2.2) (COMPLETED)
+- **Action**: Tối ưu hóa mô-đun Quản lý sản phẩm theo tiêu chuẩn Elite V2.2.
+- **Artifacts**:
+    - Centralized `formatCurrency` usage in `ProductManagement.svelte`, `ProductTable.svelte`, and `ProductStats.svelte`.
+    - Integrated CSS variables for Z-Index in `ProductTable.svelte` and `ProductStats.svelte` (`--z-sticky_header`, `--z-surface`).
+    - Fixed missed Z-index hardcodes in `OrderDetailDrawer.svelte` to ensure 100% compliance.
+    - Cleaned up redundant CSS in `ProductToolbar.svelte`.
+    - Enhanced type safety for `formTierVariations` and `formVariants` in `ProductManagement.svelte` using `Product` interface.
+- **Compliance**:
+    - **Z-Index**: Hoàn thành Protocol R04, triệt tiêu hardcode z-index.
+    - **DRY**: Sử dụng S.O.T format utils, loại bỏ prop-drilling không cần thiết.
+    - **Types**: Loại bỏ `any[]`, ép kiểu chặt chẽ theo `Product` interface.
+
+*Hoàn thành bởi Antigravity (Elite V2.2 Protocol).*
+
+---
+
+# Walkthrough - CNS V83.2: Order Management Optimization (Elite V2.2) (COMPLETED)
+- **Action**: Tối ưu hóa toàn diện hệ thống quản lý đơn hàng theo tiêu chuẩn Elite V2.2.
+- **Artifacts**:
+    - Created `frontend/src/lib/utils/format.ts` (S.O.T for formatting).
+    - Refactored: `OrderDetailDrawer.svelte`, `OrderFilters.svelte`, `OrderListItem.svelte`, `OrderManagement.svelte`, `OrderPagination.svelte`.
+- **Compliance**:
+    - **Z-Index**: 100% sử dụng CSS Variables (`--z-overlay`, `--z-modal`, `--z-sticky_header`, `--z-surface`).
+    - **Runes**: Sử dụng `$derived.by` cho pagination logic, tối ưu hóa `$effect` với `untrack`.
+    - **DRY**: Triệt tiêu trùng lặp code formatting.
+
+*Hoàn thành bởi Antigravity (Elite V2.2 Protocol).*
+
+---
+
+# Walkthrough - CNS V83.1: Security Hardening - Domain Guard
+- **Action**: Triển khai `backend/domain_guard.py` để cô lập Admin/Client.
+- **Logic**:
+    - Chặn request gọi vào `/users`, `/settings`, `/ai`, v.v. nếu không đến từ `admin.smartshop.test`.
+    - Chặn các phương thức `POST/PATCH/DELETE` vào tài nguyên chung từ Client domain.
+- **Integration**: Đã tích hợp vào `backend/main.py` middleware stack.
+
+*Xác nhận hoàn thành bởi Antigravity (Elite V2.2 Protocol).*
 
 ## 🛠️ Công việc đã thực hiện
 

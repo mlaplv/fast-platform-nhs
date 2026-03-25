@@ -65,6 +65,4 @@
   @reference "tailwindcss";
   .section-label { @apply flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.35em] text-white/30; }
   .field-input { @apply w-full bg-transparent border-b border-white/8 px-1 py-1.5 text-white placeholder:text-white/15 outline-none transition-colors; }
-  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 20px; }
 </style>

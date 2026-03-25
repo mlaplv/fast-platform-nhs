@@ -1,28 +1,15 @@
 <script lang="ts">
   import { Plus, X, ImagePlus, Trash2, ListTree, Zap, ChevronRight, Check } from "lucide-svelte";
   import { resolveMediaUrl } from "$lib/state/utils";
-
-  type TierVariation = {
-    name: string;
-    options: string[];
-    images: (string | null)[];
-  };
-
-  type ProductVariantSchema = {
-    id?: string;
-    tierIndex: number[];
-    sku: string;
-    price: number;
-    stock: number;
-  };
+  import type { Product } from "$lib/types";
 
   let {
     formTierVariations = $bindable([]),
     formVariants = $bindable([]),
     onOpenVault
   } = $props<{
-    formTierVariations: TierVariation[];
-    formVariants: ProductVariantSchema[];
+    formTierVariations: Product['tierVariations'];
+    formVariants: Product['variants'];
     onOpenVault: (tierIndex: number, optionIndex: number) => void;
   }>();
 

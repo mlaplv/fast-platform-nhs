@@ -48,7 +48,7 @@
 |   |   |-- protocol.py
 |   |   |-- tools.py
 |   |-- middleware.py
--   |   |-- domain_guard.py         <-- [ELITE: CHẶN CROSS-DOMAIN ADMIN/CLIENT]
+|   |-- domain_guard.py         <-- [ELITE: CHẶN CROSS-DOMAIN ADMIN/CLIENT]
 |   |-- migrations
 |   |   |-- env.py
 |   |   |-- script.py.mako

@@ -5,13 +5,13 @@
   import CheckSquare from "lucide-svelte/icons/check-square";
   import Square from "lucide-svelte/icons/square";
   import { nanobot } from "$lib/state/nanobot.svelte";
+  import { formatCurrency } from "$lib/utils/format";
   import type { Product } from "$lib/types";
 
   let {
     products,
     selectedIds,
     statusMap,
-    formatCurrency,
     onToggleSelect,
     onEdit,
     onDelete,
@@ -19,7 +19,6 @@
     products: Product[];
     selectedIds: Set<string>;
     statusMap: Record<string, { label: string; color: string }>;
-    formatCurrency: (n: number) => string;
     onToggleSelect: (id: string) => void;
     onEdit: (p: Product) => void;
     onDelete: (id: string) => void;
@@ -55,7 +54,8 @@
 </script>
 
 <!-- Responsive Table Header (Hidden on Mobile) -->
-<div class="hidden md:grid grid-cols-[40px_minmax(250px,2fr)_1fr_1fr_1fr_1fr_100px] gap-4 px-4 py-4 sticky top-0 bg-[#050505] z-10 border-b border-white/10 uppercase tracking-widest text-[9px] font-bold font-mono text-gray-400">
+<div class="hidden md:grid grid-cols-[40px_minmax(250px,2fr)_1fr_1fr_1fr_1fr_100px] gap-4 px-4 py-4 sticky top-0 bg-[#050505] border-b border-white/10 uppercase tracking-widest text-[9px] font-bold font-mono text-gray-400"
+     style="z-index: var(--z-sticky_header);">
   <div class="text-center"></div>
   <div>Product Details</div>
   <div>Registry ID</div>
@@ -77,7 +77,8 @@
         class="group relative flex flex-col md:grid md:grid-cols-[40px_minmax(250px,2fr)_1fr_1fr_1fr_1fr_100px] md:gap-4 md:items-center bg-[#0a0a0a] md:bg-transparent border border-white/5 md:border-none p-3 sm:p-4 rounded-xl md:rounded-none hover:bg-white/[0.03] transition-colors duration-300"
       >
         <!-- Selection Checkbox -->
-        <div class="absolute top-2 left-2 md:relative md:top-auto md:left-auto md:flex md:justify-center z-10">
+        <div class="absolute top-2 left-2 md:relative md:top-auto md:left-auto md:flex md:justify-center"
+             style="z-index: var(--z-surface);">
           <button
             onclick={() => onToggleSelect(product.id)}
             class="text-gray-600 hover:text-[#FFB800] transition-colors"

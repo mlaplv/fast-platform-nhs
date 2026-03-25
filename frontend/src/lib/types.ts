@@ -124,6 +124,18 @@ export interface Product {
     seoDescription: string | null;
     images: string[];
     attributes: Record<string, any>;
+    tierVariations?: {
+      name: string;
+      options: string[];
+      images: (string | null)[];
+    }[];
+    variants?: {
+      id?: string;
+      tierIndex: number[];
+      sku: string;
+      price: number;
+      stock: number;
+    }[];
     createdAt: string;
 }
 

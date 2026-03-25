@@ -8,6 +8,7 @@
   import Shield from "lucide-svelte/icons/shield";
   import Phone from "lucide-svelte/icons/phone";
   import MapPin from "lucide-svelte/icons/map-pin";
+  import { formatCurrency, timeAgo } from "$lib/utils/format";
   import type { Order } from "$lib/types";
 
   let { order, status, onClick, onAction } = $props<{
@@ -20,19 +21,6 @@
   function handleAction(e: Event, actionType: string) {
     e.stopPropagation();
     onAction(order.id, actionType);
-  }
-
-  function formatCurrency(n: number): string {
-    return new Intl.NumberFormat("vi-VN").format(n) + "đ";
-  }
-
-  function timeAgo(iso: string): string {
-    const diff = Date.now() - new Date(iso).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins}m trước`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h trước`;
-    return `${Math.floor(hrs / 24)}d trước`;
   }
 </script>
 
@@ -382,7 +370,7 @@
   }
   .order-item:hover {
     background: rgba(255, 255, 255, 0.03);
-    z-index: 30;
+    z-index: var(--z-surface);
     position: relative;
   }
   .action-btn {

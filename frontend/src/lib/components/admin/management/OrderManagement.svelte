@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
+  import { untrack } from "svelte";
   import ShoppingCart from "lucide-svelte/icons/shopping-cart";
   import Search from "lucide-svelte/icons/search";
   import Package from "lucide-svelte/icons/package";
@@ -64,8 +65,13 @@
     loadOrders();
   });
 
+  // Reset page when filter or search changes
   $effect(() => {
-    if (activeFilter) currentPage = 1;
+    if (activeFilter || searchTerm) {
+      untrack(() => {
+        currentPage = 1;
+      });
+    }
   });
 
   let searchTimer: ReturnType<typeof setTimeout> | undefined;

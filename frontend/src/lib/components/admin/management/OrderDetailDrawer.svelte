@@ -20,6 +20,7 @@
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { portal } from "$lib/actions/portal";
+  import { formatCurrency, formatDate } from "$lib/utils/format";
   import type { OrderDetail } from "$lib/types";
   import { ORDER_STATUS_MAP } from "$lib/constants/order";
 
@@ -34,10 +35,6 @@
     onClose: () => void;
     onReload?: () => void;
   }>();
-
-  onMount(() => {
-    if (isOpen === undefined) isOpen = false;
-  });
 
   let orderData = $state<OrderDetail | null>(null);
   let isLoading = $state(false);
@@ -110,23 +107,15 @@
     }
   }
 
-  function formatCurrency(n: number): string {
-    return new Intl.NumberFormat("vi-VN").format(n) + "đ";
-  }
-
-  function formatDate(iso: string): string {
-    return new Intl.DateTimeFormat("vi-VN", {
-      year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit"
-    }).format(new Date(iso));
-  }
+  // Removed local formatters (moved to centralized utils)
 </script>
 
 {#if isOpen}
-  <div use:portal class="relative z-[9999]">
+  <div use:portal class="relative" style="z-index: var(--z-modal);">
     <!-- Backdrop -->
-    <div 
-      class="fixed inset-0 bg-black/95 md:bg-black/90 md:backdrop-blur-sm z-[200]"
+    <div
+      class="fixed inset-0 bg-black/95 md:bg-black/90 md:backdrop-blur-sm"
+      style="z-index: var(--z-overlay);"
       transition:fade={{ duration: 200 }}
       onclick={onClose}
       aria-label="Close drawer"
@@ -136,8 +125,9 @@
     ></div>
 
     <!-- Drawer Panel -->
-    <div 
-      class="fixed top-0 right-0 h-full w-[500px] max-w-full bg-[#050505] border-l border-white/10 z-[210] shadow-[-30px_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden"
+    <div
+      class="fixed top-0 right-0 h-full w-[500px] max-w-full bg-[#050505] border-l border-white/10 shadow-[-30px_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden"
+      style="z-index: calc(var(--z-modal) + 10);"
       transition:fly={{ x: 500, duration: 300, opacity: 1 }}
     >
       <!-- Header -->

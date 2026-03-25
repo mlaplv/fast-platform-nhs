@@ -13,9 +13,8 @@
   import ProductFormSpecs from "./ProductFormSpecs.svelte";
   import ProductFormVariants from "./ProductFormVariants.svelte";
   import { processContentImages } from "$lib/state/utils";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
-  import type { MediaAsset } from "$lib/types";
-  
+  import type { MediaAsset, Product } from "$lib/types";
+
   let {
     isOpen = false,
     editingId,
@@ -56,8 +55,8 @@
     formSeoKeywords: string;
     formImages: string[];
     formAttributes: Record<string, string | number | boolean | null>;
-    formTierVariations: any[];
-    formVariants: any[];
+    formTierVariations: Product['tierVariations'];
+    formVariants: Product['variants'];
     categories: { id: string; name: string }[];
     onSave: () => void;
     onClose: () => void;
@@ -154,14 +153,13 @@
   {onClose}
   headerIcon={ShoppingCart}
   fullScreen={true}
-  zIndex={Z_INDEX.MODAL}
 >
   <div class="w-full flex flex-col gap-0 pb-10">
-    <div class="grid grid-cols-1 xl:grid-cols-12 gap-x-8 gap-y-8 px-5 pt-5" style="z-index: {Z_INDEX.SURFACE}">
-      
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-x-8 gap-y-8 px-5 pt-5" style="z-index: var(--z-surface)">
+
       <!-- MACRO LEFT COLUMN (8/12) -->
       <div class="xl:col-span-8 flex flex-col gap-8">
-        
+
         <!-- Section 1 (Base Info) -->
         <div class="flex flex-col gap-4">
           <div class="section-label">
@@ -178,7 +176,7 @@
 
         <!-- NEW: Section 1.5 (Variants / Matrix) -->
         <div class="flex flex-col">
-          <ProductFormVariants 
+          <ProductFormVariants
             bind:formTierVariations={formTierVariations}
             bind:formVariants={formVariants}
             onOpenVault={openVaultForVariant}
@@ -218,7 +216,7 @@
 
       <!-- MACRO RIGHT COLUMN (4/12) -->
       <div class="xl:col-span-4 flex flex-col gap-8">
-        
+
         <!-- Media Gallery -->
         <div class="flex flex-col gap-4">
           <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
@@ -238,7 +236,7 @@
     </div>
 
     <!-- ACTION BAR -->
-    <section class="relative px-5 pt-5 pb-2 mt-auto" style="z-index: {Z_INDEX.LAYOUT_HEADER}">
+    <section class="relative px-5 pt-5 pb-2 mt-auto" style="z-index: var(--z-layout_header)">
       <div class="flex items-center justify-between gap-4 py-2 border-t border-white/5 pt-4">
         <div class="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-white/20">
           <div class="w-1.5 h-1.5 rounded-full bg-amber-400"></div>

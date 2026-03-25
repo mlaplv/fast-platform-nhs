@@ -44,8 +44,30 @@ Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt th
 - [x] Cleanup: Remove all `auth_extended` remnants and stale dependencies. <!-- id: 40 -->
 - [x] Final Audit: Verify 100% Service-Centric compliance for all controllers. <!-- id: 41 -->
 
-## 🎯 Giai đoạn 17: Scouting & Documentation (CURRENT)
+## 🎯 Giai đoạn 18: Order Management Optimization (Elite V2.2) (COMPLETED)
+- [x] Logic: Centralize format utilities (currency, date, timeAgo) in `src/lib/utils/format.ts`. <!-- id: 80 -->
+- [x] UI: Refactor `OrderDetailDrawer.svelte` (Z-index CSS variables, centralized format utils). <!-- id: 81 -->
+- [x] UI: Refactor `OrderFilters.svelte` (Z-index CSS variables). <!-- id: 82 -->
+- [x] UI: Refactor `OrderListItem.svelte` (Z-index, format utils, optimize `timeAgo` re-renders). <!-- id: 83 -->
+- [x] UI: Refactor `OrderManagement.svelte` (Rune optimization, clean up effects). <!-- id: 84 -->
+- [x] UI: Refactor `OrderPagination.svelte` (Z-index CSS variables). <!-- id: 85 -->
+
+## 🎯 Giai đoạn 17: Scouting & Documentation (COMPLETED)
 - [x] Scout: Vẽ cấu trúc cây thư mục dự án (project.md). <!-- id: 70 -->
 - [x] Design: Đề xuất và tích hợp cấu trúc trang bán hàng (Client) vào project.md. <!-- id: 71 -->
 - [x] Optimization: Cập nhật project.md theo Best Practice Elite V2.2 & Ghi chú trực tiếp. <!-- id: 72 -->
+- [x] Security: Triển khai Domain Guard Middleware cô lập Admin/Client. <!-- id: 73 -->
+
+## 🎯 Giai đoạn 19: Product Management Optimization (Elite V2.2) (COMPLETED)
+- [x] Logic: Centralize format utilities (currency) in `ProductManagement.svelte`. <!-- id: 90 -->
+- [x] UI: Refactor `ProductTable.svelte` (Z-index CSS variables, centralized format utils). <!-- id: 91 -->
+- [x] UI: Refactor `ProductStats.svelte` (Remove prop drilling for format utils, Z-index CSS variables). <!-- id: 92 -->
+- [x] Cleanup: Remove local scrollbar CSS in `ProductToolbar.svelte`. <!-- id: 93 -->
+- [x] Logic: Replace `any[]` with proper interfaces in `ProductManagement.svelte`. <!-- id: 94 -->
+
+## 🎯 Giai đoạn 20: Order Management Deep Reconnaissance (R01) (CURRENT)
+- [ ] Scout: Kiểm tra toàn bộ components thuộc Order Management về Z-index (Protocol R04). <!-- id: 100 -->
+- [ ] Scout: Kiểm tra Type Safety (Protocol R03) trong Order-related components. <!-- id: 101 -->
+- [ ] Propose: Đề xuất phương án refactor nếu phát hiện sai lệch Protocol. <!-- id: 102 -->
+
 
