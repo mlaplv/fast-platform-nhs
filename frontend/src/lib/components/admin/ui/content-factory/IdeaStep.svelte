@@ -60,6 +60,10 @@
     // CNS V62.2: Restore Scout Report from persisted campaign state
     if (editedKeywords?.scout_report) {
       scoutReport = editedKeywords.scout_report;
+      // CNS V62.5: Auto-expand section if report exists on mount
+      if (editedConfig && !editedConfig.scouting_active) {
+        editedConfig.scouting_active = true;
+      }
     }
   });
 
@@ -70,38 +74,36 @@
   async function performScout(e?: MouseEvent) {
     if (e) e.stopPropagation();
     
-    // CNS V62.2: Elite Auto-fallback - Use analyzed keyword if editing one is empty
-    const targetTopic = editedKeywords.primary_keyword || keywords.primary_keyword;
+    // CNS V62.4: Atomic Recon Logic - Unified topic selection
+    const targetTopic = editedKeywords.primary_keyword || keywords.primary_keyword || editedKeywords.title || keywords.title;
 
     if (!targetTopic) {
-      nanobot.showToast("Dạ Sếp, em cần Từ khóa chính để bắt đầu trinh sát ạ!", "warning");
+      nanobot.showToast("Dạ Sếp, em cần Từ khóa chính hoặc Tiêu đề để bắt đầu trinh sát ạ!", "warning");
       return;
     }
 
-    // Auto-sync back to edited view if we took it from original keywords
-    if (!editedKeywords.primary_keyword) {
-      editedKeywords.primary_keyword = targetTopic;
-    }
+    // Auto-sync back to edited view for UX consistency
+    if (!editedKeywords.primary_keyword) editedKeywords.primary_keyword = targetTopic;
 
     const startTime = Date.now();
     isScouting = true;
     try {
-      const res = await apiClient.post('/api/v1/content/scout', { topic: targetTopic });
+      // CNS V62.4: Atomic Sync - Backend will persist result to campaign.topic_data["scout_report"]
+      const res = await apiClient.post('/api/v1/content/scout', { 
+        topic: targetTopic,
+        campaign_id: campaign_id 
+      });
+
       if (res.status === 'success') {
         scoutReport = res.data;
-        // CNS V62.2: Sync into specialized campaign metadata
-        editedKeywords.scout_report = res.data;
+        // Sync local state for immediate UI update without F5
+        if (editedKeywords) editedKeywords.scout_report = res.data;
         
-        // Elite UX: Ensure at least 1.5s of "Neural Scanning" delay for perception of value
+        // Elite UX: Ensure perception of depth (1.5s neural shimmer)
         const elapsed = Date.now() - startTime;
         if (elapsed < 1500) await new Promise(r => setTimeout(r, 1500 - elapsed));
         
-        // CNS V62.2: Direct Background Sync (Bypasses parent handleUpdateMetadata to keep editor open)
-        await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, {
-          keywords: $state.snapshot(editedKeywords)
-        });
-        
-        nanobot.showToast("Báo cáo trinh sát Elite đã sẵn sàng.", "success");
+        nanobot.showToast("Báo cáo trinh sát Neural đã được 'Elite' hóa và lưu trữ vĩnh viễn.", "success");
       } else {
         nanobot.showToast("Lỗi trinh sát: " + res.message, "error");
       }
@@ -113,15 +115,22 @@
     }
   }
 
-  // Enforce mandatory writing style default
+  // Elite UX: Enforce mandatory writing style default
   $effect(() => {
     if (isEditing && !editedConfig?.style) {
       editedConfig.style = "Viral";
     }
   });
 
+  // CNS V62.3: Restore Scout Report Reactively (if editedKeywords changes externally)
   $effect(() => {
-    keywords = { ...editedKeywords };
+    if (editedKeywords?.scout_report && !scoutReport) {
+      scoutReport = editedKeywords.scout_report;
+      // CNS V62.5: Force expand if new report arrived and section is hidden
+      if (editedConfig && !editedConfig.scouting_active) {
+        editedConfig.scouting_active = true;
+      }
+    }
   });
 </script>
 

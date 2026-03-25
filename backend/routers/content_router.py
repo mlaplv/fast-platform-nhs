@@ -146,6 +146,7 @@ class ContentController(Controller):
         """[CNS V62.2] Perform high-IQ content scouting and strategic analysis."""
         data = await request.json()
         topic = data.get("topic")
+        campaign_id = data.get("campaign_id")
         if not topic: return GenericResponse(status="error", message="Thiếu chủ đề (topic) để trinh sát.")
-        return await content_factory.analyst.scout(topic)
+        return await content_factory.analyst.scout(topic, campaign_id=campaign_id)
 

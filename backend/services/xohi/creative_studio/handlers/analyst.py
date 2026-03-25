@@ -147,7 +147,7 @@ class AnalystHandler:
             return GenericResponse(status="success", data=res.model_dump())
         except Exception as e: return GenericResponse(status="error", message=str(e))
 
-    async def scout(self, topic: str) -> GenericResponse:
+    async def scout(self, topic: str, campaign_id: Optional[str] = None) -> GenericResponse:
         """
         [CNS V62.2] High-IQ Neural Scout with Smart Caching.
         Performs Google Search recon + AI Strategic Synthesis (ADS vs TOP 10).
@@ -158,7 +158,7 @@ class AnalystHandler:
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
         from backend.database.alchemy_config import alchemy_config
         from backend.database.repositories import ContentScoutRepository
-        from backend.database.models import ContentScout
+        from backend.database.models import ContentScout, ContentCampaign
         from pydantic_ai import Agent
         from datetime import datetime, timedelta, timezone
         import uuid
@@ -183,6 +183,28 @@ class AnalystHandler:
                     if exp > now:
                         logs.append("💡 [CACHE HIT] Tìm thấy báo cáo trinh sát còn hiệu lực. Đang truy xuất...")
                         report_data = existing.report_data
+                        
+                        # CNS V62.4: Atomic Sync to Campaign if provided
+                        if campaign_id:
+                            campaign_repo = ContentCampaignRepository(session=session)
+                            campaign = await campaign_repo.get(campaign_id)
+                            if campaign:
+                                topic_data = dict(campaign.topic_data or {})
+                                topic_data["scout_report"] = report_data
+                                campaign.topic_data = topic_data
+                                flag_modified(campaign, "topic_data")
+                                
+                                # CNS V62.5: UI Persistence - Auto-expand scout section
+                                gold = dict(campaign.gold_metadata or {})
+                                if "creation_config" not in gold: gold["creation_config"] = {}
+                                gold["creation_config"]["scouting_active"] = True
+                                campaign.gold_metadata = gold
+                                flag_modified(campaign, "gold_metadata")
+                                
+                                await campaign_repo.update(campaign)
+                                await session.commit() # CNS V62.5: Ensure sync is persisted to DB
+                                logs.append(f"🔗 [SYNC] Đã tự động cập nhật báo cáo vào chiến dịch {campaign_id} (Auto-expand enabled).")
+
                         report = ScoutReport(**report_data)
                         report.logs = logs + ["✅ Truy xuất dữ liệu từ Neural Cache thành công."]
                         return GenericResponse(status="success", data=report.model_dump())
@@ -239,6 +261,27 @@ CHÚ Ý: Bản trình báo chiến lược phải mang tính THAM KHẢO CHIẾN
                         expires_at=datetime.now(timezone.utc) + timedelta(hours=24)
                     )
                     await scout_repo.add(new_scout)
+                    
+                    # CNS V62.4: Atomic Sync to Campaign for fresh results
+                    if campaign_id:
+                        campaign_repo = ContentCampaignRepository(session=session)
+                        campaign = await campaign_repo.get(campaign_id)
+                        if campaign:
+                            topic_data = dict(campaign.topic_data or {})
+                            topic_data["scout_report"] = report.model_dump()
+                            campaign.topic_data = topic_data
+                            flag_modified(campaign, "topic_data")
+                            
+                            # CNS V62.5: UI Persistence - Auto-expand scout section
+                            gold = dict(campaign.gold_metadata or {})
+                            if "creation_config" not in gold: gold["creation_config"] = {}
+                            gold["creation_config"]["scouting_active"] = True
+                            campaign.gold_metadata = gold
+                            flag_modified(campaign, "gold_metadata")
+                            
+                            await campaign_repo.update(campaign)
+                            logs.append(f"🔗 [SYNC] Đã lưu báo cáo mới vào chiến dịch {campaign_id} (Auto-expand enabled).")
+                    
                     await session.commit()
                 except Exception as db_e:
                     logger.error(f"Failed to cache scout: {str(db_e)}")
