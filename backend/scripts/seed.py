@@ -27,7 +27,7 @@ def utcnow(): return datetime.now(timezone.utc)
 async def clear_data(session):
     print(f"🧹 Clearing old data for tenant: {TENANT_ID}...")
     user_ids = (await session.execute(select(User.id).where((User.tenant_id == TENANT_ID) | (User.id == "user_admin")))).scalars().all()
-    for model in [Order, Article, Notification, Draft, ChatMessage, AgentTelemetryLog, CampaignEvent, ContentCampaign, ProductBase, Category]:
+    for model in [Order, Article, Notification, Draft, ChatMessage, AgentTelemetryLog, CampaignEvent, ContentCampaign, ProductBase, Category, Appointment]:
         await session.execute(delete(model).where(model.tenant_id == TENANT_ID))
     if user_ids:
         for model in [Notification, Draft, CampaignEvent, ContentCampaign, ChatMessage, Order, VoiceProfile]:
@@ -150,12 +150,42 @@ async def seed_system_settings(session):
     
     await session.flush()
 
+async def seed_appointments(session):
+    print("📅 Seeding sample appointments...")
+    now = utcnow()
+    apps = [
+        Appointment(
+            id=str(uuid.uuid4()),
+            title="Elite Strategic Planning",
+            description="Phiên làm việc Neural đầu tiên để thiết lập lộ trình 2026.",
+            start_time=now + timedelta(hours=2),
+            end_time=now + timedelta(hours=3),
+            status="UPCOMING",
+            tenant_id=TENANT_ID,
+            recurring_type="none"
+        ),
+        Appointment(
+            id=str(uuid.uuid4()),
+            title="Neural Scout: Competitor Audit",
+            description="Tự động quét và phân tích chiến lược của đối thủ hàng tuần.",
+            start_time=now + timedelta(days=1, hours=10),
+            end_time=now + timedelta(days=1, hours=11),
+            status="UPCOMING",
+            tenant_id=TENANT_ID,
+            recurring_type="weekly",
+            recurring_metadata={"days": [1]} # Monday
+        )
+    ]
+    session.add_all(apps)
+    await session.flush()
+
 async def main():
     print("🚀 Starting Refactored Seed Process...")
     async with async_session_maker() as session:
         try:
             await clear_data(session); r = await seed_rbac(session); u = await seed_users(session, r)
             await seed_categories(session); p = await seed_products(session); await seed_articles(session, u.id); await seed_orders(session, u.id, p)
+            await seed_appointments(session)
             await seed_system_settings(session)
             await session.commit(); print("✨ Successful!")
         except Exception as e: print(f"❌ Error: {e}"); await session.rollback(); raise

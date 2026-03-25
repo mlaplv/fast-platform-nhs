@@ -1,6 +1,6 @@
 from backend.database.models.base import Base, AuditMixin, SoftDeleteMixin, TenantMixin
 from backend.database.models.auth import User, VoiceProfile, Role, Permission, user_roles, role_permissions
-from backend.database.models.content import Category, Article, ArticleEmbedding, ContentCampaign, CampaignEvent
+from backend.database.models.content import Category, Article, ArticleEmbedding, ContentCampaign, CampaignEvent, Appointment
 from backend.database.models.media import MediaRegistry
 from backend.database.models.commerce import Order, ProductBase, ProductVariant, RentalContract, ProductEmbedding
 from backend.database.models.system import Draft, Notification, AgentTelemetryLog, ChatMessage, SystemSetting
@@ -34,4 +34,5 @@ __all__ = [
     "ChatMessage",
     "SystemSetting",
     "Banner",
+    "Appointment",
 ]

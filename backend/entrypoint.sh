@@ -33,8 +33,7 @@ if [ "$#" -eq 0 ]; then
         --http h11 \
         --limit-max-requests 1000 \
         --limit-concurrency 50 \
-        --timeout-keep-alive 5 \
-        --no-access-log
+        --timeout-keep-alive 5 
 else
     echo "⚡ [Trinity Boot] Executing custom command: $@"
     exec "$@"

@@ -9,8 +9,14 @@ import type {
     CampaignMetrics,
     AnalysisAnnotation,
     EditorAnnotation,
-    GenericResponse
+    GenericResponse,
+    CampaignData
 } from "$lib/state/types";
+
+interface BulkFixReplacement {
+    old_text: string;
+    new_text: string;
+}
 
 export function createAnalysisController(config: {
     campaign_id?: string | null;
@@ -25,6 +31,7 @@ export function createAnalysisController(config: {
     setDraftContent: (v: string) => void;
     analysis_cache: AnalysisCache;
     analysis_metrics: CampaignMetrics;
+    getIsProcessing?: () => boolean;
 }) {
     /** Resolve whether we are operating in Campaign or Adhoc (stateless) mode */
     const isAdhoc = !config.campaign_id;
@@ -42,17 +49,19 @@ export function createAnalysisController(config: {
 
     // Phase 82.90: Live HUD Sync — Syncs real-time messages from global Pulse stream into local HUD logs
     $effect(() => {
-        const data = nanobot.currentData as any;
+        const data = nanobot.currentData as CampaignData;
         if (!data || !config.campaign_id || (data.campaign_id !== config.campaign_id && data.id !== config.campaign_id)) return;
         
         const msg = data.progress_msg;
         if (msg) {
             untrack(() => {
-                // Only append if it's a new message and something is actually loading
-                const currentLoading = isCopyrightLoading || isSeoLoading || isAiLoading || isBulkFixing || isBoosting;
-                if (currentLoading && !bulkFixLogs.includes(msg)) {
+                // CNS V85.12: Dứt điểm logic - Only collect logs if it's a MAJOR creation step (1-6) or a BULK action (Fix/Clean)
+                const isCreationRunning = config.getIsProcessing?.() || false;
+                const isManualAction = isBulkFixing; // excludes copyright, seo, ai, and booster
+                
+                if ((isCreationRunning || isManualAction) && !bulkFixLogs.includes(msg)) {
+
                     bulkFixLogs = [...bulkFixLogs, msg];
-                    // Sync broad status if empty
                     if (!bulkFixStatus) bulkFixStatus = "Đang xử lý...";
                 }
             });
@@ -113,7 +122,6 @@ export function createAnalysisController(config: {
         if (isCopyrightLoading) return;
         if (!isAdhoc && !config.campaign_id) return;
         isCopyrightLoading = true;
-        isBulkFixing = true; // Trigger NeuralProgressTooltip
         bulkFixStatus = "Đang quét...";
         bulkFixLogs = ["🔍 Đang khởi động hệ thống tầm soát bản quyền...", "🧠 Đang phân tích cấu trúc bài viết..."];
         activeTab = 'copyright';
@@ -153,7 +161,6 @@ export function createAnalysisController(config: {
         if (isSeoLoading) return;
         if (!isAdhoc && !config.campaign_id) return;
         isSeoLoading = true;
-        isBulkFixing = true; // CNS V3.5: Trigger NeuralProgressTooltip
         bulkFixStatus = "Đang quét SEO...";
         bulkFixLogs = ["🔍 Đang khởi động máy quét SEO (Phase 82.8)...", "🧠 Đang phân tích mật độ từ khóa & cấu trúc HTML..."];
         const topicName = config.topic ?? '';
@@ -195,7 +202,6 @@ export function createAnalysisController(config: {
         if (isAiLoading || aiLocked) return;
         if (!isAdhoc && !config.campaign_id) return;
         isAiLoading = true;
-        isBulkFixing = true; // CNS V4.0: Trigger NeuralProgressTooltip
         bulkFixStatus = "Đang quét AI MOD...";
         bulkFixLogs = ["🔍 Đang khởi động AI MOD (Phase 82.8)...", "🧠 Đang rà soát dấu vân tay AI & phong cách viết..."];
         activeTab = 'ai';
@@ -246,7 +252,7 @@ export function createAnalysisController(config: {
                 if (isBulkFixing) bulkFixLogs = [...bulkFixLogs, "🚀 Đang tối ưu cấu trúc & dọn dẹp..."]; 
             }, 1000);
 
-            const res = await apiClient.post<any>('/api/v1/content/clean', { content });
+            const res = await apiClient.post<GenericResponse<{ content: string }>>('/api/v1/content/clean', { content });
             if (res?.data?.content) {
                 const cleaned = res.data.content;
                 config.setEditedDraft?.(cleaned);
@@ -347,7 +353,7 @@ export function createAnalysisController(config: {
             const bulkBody = isAdhoc
                 ? { content: (config.getContent ?? config.getEditedDraft)(), topic: config.topic ?? '', category, annotations: annotationsToSend }
                 : { category, annotations: annotationsToSend };
-            const res = await apiClient.post<{ status: string; data: { new_content: string, logs?: string[], replacements?: Array<{old_text: string, new_text: string}> } }>(bulkUrl, bulkBody);
+            const res = await apiClient.post<{ status: string; data: { new_content: string, logs?: string[], replacements?: BulkFixReplacement[] } }>(bulkUrl, bulkBody);
 
             if (res?.status === 'success' && res.data?.new_content) {
                 // Phase 82.80: Premium Log Replay (iPhone 18/Claude Style)
@@ -384,7 +390,7 @@ export function createAnalysisController(config: {
                     if (!t) continue;
 
                     const normalizedT = t.normalize('NFC').replace(/[^\p{L}\p{N}]/gu, '').toLowerCase();
-                    const fixRecord = replacements.find((r: any) => {
+                    const fixRecord = replacements.find((r: BulkFixReplacement) => {
                         if (!r.old_text) return false;
                         const normOld = r.old_text.normalize('NFC').replace(/[^\p{L}\p{N}]/gu, '').toLowerCase();
                         return normOld === normalizedT;
@@ -431,7 +437,6 @@ export function createAnalysisController(config: {
         // AI Booster requires a persistent campaign context (enrich endpoint needs campaign record in DB)
         if (isAdhoc || !config.campaign_id || isBoosting || !seoResult) return;
         isBoosting = true;
-        isBulkFixing = true; // CNS V3.6: Trigger NeuralProgressTooltip
         bulkFixStatus = "Đang Booster...";
         bulkFixLogs = ["🚀 Đang khởi động Neural Booster™ (Phase 82.85)...", "🧠 Đang phân tích chiến lược trinh sát dữ liệu..."];
         activeTab = 'enrich';

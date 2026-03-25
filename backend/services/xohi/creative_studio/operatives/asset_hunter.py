@@ -59,6 +59,7 @@ class AssetHunter:
             sem = asyncio.Semaphore(20) 
             valid_urls = []
             
+            target_count = to_int(campaign.get_gold_config().get("max_assets", 10))
             # CNS V82.50: Incremental Waves (V2). Process all but update UI as soon as we have enough for a first look.
             tasks = [check_asset_url(u, sem) for u in raw_candidates]
             
@@ -79,7 +80,6 @@ class AssetHunter:
                     # Emit a pulse to trigger UI frontend sync
                     await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 2, "message": f"🔍 Đã tìm thấy {len(valid_urls)} ảnh chất lượng...", "status": "PROCESSING"})
 
-            target_count = to_int(campaign.get_gold_config().get("max_assets", 10))
             primary_slice = valid_urls[:target_count]
             reserve_slice = valid_urls[target_count:target_count+10]
             

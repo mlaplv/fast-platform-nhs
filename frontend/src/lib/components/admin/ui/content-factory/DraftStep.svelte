@@ -35,8 +35,10 @@
     getEditedDraft: () => editedDraft, getDraftContent: () => draft_content,
     setEditedDraft: (v) => { editedDraft = v; }, setDraftContent: (v) => { draft_content = v; },
     get analysis_cache() { return analysis_cache; },
-    get analysis_metrics() { return analysis_metrics; }
+    get analysis_metrics() { return analysis_metrics; },
+    getIsProcessing: () => isProcessing
   });
+
 
   let displayContent = $derived.by(() => {
     let base = isEditing ? (editedDraft || draft_content) : draft_content;
@@ -78,8 +80,12 @@
   let isFullResults = $state(false); // CNS V85: Detailed view for IDE-like progress
   
   function scrollToPanel() { setTimeout(() => resultPanelEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50); }
-  const handleAction = async (fn: Function, ...args: any[]) => { await fn(...args); scrollToPanel(); };
+  const handleAction = async <T extends (...args: never[]) => Promise<void> | void>(fn: T, ...args: Parameters<T>) => { 
+    await fn(...args); 
+    scrollToPanel(); 
+  };
 </script>
+
 
 <div class="p-5 md:p-8 flex flex-col flex-1 min-h-0 overflow-hidden">
   <div class="flex items-center gap-3 shrink-0 mb-4">

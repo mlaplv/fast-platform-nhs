@@ -2,11 +2,18 @@
   import {
     Sparkles,
     MessageSquare,
-    FileText
+    FileText,
+    Search,
+    ShieldCheck,
+    Globe,
+    TrendingUp,
+    Calendar as CalendarIcon,
+    ChevronRight 
   } from "lucide-svelte";
   import { onMount } from "svelte";
   import type { CampaignKeywords } from "$lib/state/types";
   import { createIdeaController } from "$lib/state/xohiIdea.svelte";
+  import NeuralScheduler from "./NeuralScheduler.svelte";
 
   interface Props {
     isEditing: boolean;
@@ -233,6 +240,83 @@
               <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/30"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
             </div>
           </div>
+        </div>
+      </div>
+      <div class="pt-8 mt-8 border-t border-white/5 space-y-8">
+        
+        <!-- Research Intelligence Section (Neural Scout) - NOW PRIMARY -->
+        <div class="p-8 rounded-[2.5rem] bg-gradient-to-br from-indigo-500/5 to-transparent border border-indigo-500/10 relative overflow-hidden group/intel">
+          <div class="absolute -bottom-20 -right-20 w-64 h-64 bg-indigo-500/10 blur-[80px] rounded-full group-hover/intel:bg-indigo-400/20 transition-all duration-1000"></div>
+          
+          <div class="flex items-center justify-between relative z-10 mb-8">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-indigo-400 shadow-xl shadow-indigo-500/5">
+                <Search size={22} strokeWidth={1.5} />
+              </div>
+              <div>
+                <h4 class="text-sm font-black uppercase tracking-[0.2em] text-white">Neural Content Scout</h4>
+                <p class="text-[10px] text-indigo-300/40 font-bold uppercase tracking-widest">Trinh sát nội dung & Gợi ý từ đối thủ</p>
+              </div>
+            </div>
+
+            <button 
+              onclick={() => { 
+                if (!editedConfig.scouting_active) editedConfig.scouting_active = false;
+                editedConfig.scouting_active = !editedConfig.scouting_active; 
+              }}
+              class="px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-500 {editedConfig.scouting_active ? 'bg-indigo-500 text-white shadow-xl shadow-indigo-500/20' : 'bg-white/5 text-white/40 border border-white/10 hover:text-white hover:bg-white/10'}"
+            >
+              {editedConfig.scouting_active ? 'Sẵn sàng Trinh sát' : 'Kích hoạt Scout Engine'}
+            </button>
+          </div>
+
+          {#if editedConfig.scouting_active}
+            <div class="space-y-6 animate-in fade-in slide-in-from-top-4 duration-1000 relative z-10">
+              <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1 p-6 rounded-3xl bg-black/40 border border-white/5 shadow-inner">
+                  <div class="flex items-center justify-between mb-4">
+                    <span class="text-[10px] font-black text-white/40 uppercase tracking-widest flex items-center gap-2"><TrendingUp size={12} /> Gợi ý tiêu đề (ADS & TOP 10)</span>
+                    <button class="text-[9px] font-black text-indigo-400 hover:underline uppercase tracking-tighter">Manual Scan</button>
+                  </div>
+                  <div class="space-y-2">
+                    {#each ["Làm sao để...", "Top 10 bí kíp...", "Hướng dẫn chi tiết từ chuyên gia..."] as suggestion}
+                      <button 
+                        onclick={() => editedKeywords.title = suggestion}
+                        class="w-full text-left p-2.5 rounded-xl bg-white/[0.03] border border-white/5 text-[11px] text-white/60 hover:bg-indigo-500/10 hover:border-indigo-500/30 hover:text-white transition-all text-xs truncate"
+                      >
+                        {suggestion}
+                      </button>
+                    {/each}
+                  </div>
+                </div>
+
+                <div class="flex-1 p-6 rounded-3xl bg-black/40 border border-white/5 shadow-inner">
+                  <div class="flex items-center justify-between mb-4">
+                    <span class="text-[10px] font-black text-white/40 uppercase tracking-widest flex items-center gap-2"><Globe size={12} /> Từ khóa Semantic (LSI)</span>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    {#each ["chiến lược", "tối ưu hoá", "xu hướng 2026", "bí mật content"] as lsi}
+                      <button 
+                        onclick={() => {
+                          if (!(editedKeywords.secondary_keywords || []).includes(lsi)) {
+                            editedKeywords.secondary_keywords = [...(editedKeywords.secondary_keywords || []), lsi];
+                          }
+                        }}
+                        class="px-2.5 py-1.5 rounded-lg bg-indigo-400/5 border border-indigo-400/20 text-[10px] text-indigo-400 font-bold hover:bg-indigo-400/20 transition-all uppercase tracking-tighter"
+                      >
+                        + {lsi}
+                      </button>
+                    {/each}
+                  </div>
+                </div>
+              </div>
+            </div>
+          {/if}
+        </div>
+
+        <!-- Secondary: Post Scheduling -->
+        <div class="p-8 rounded-[2.5rem] bg-gradient-to-br from-white/[0.01] to-transparent border border-white/5">
+           <NeuralScheduler bind:config={editedConfig} />
         </div>
       </div>
     </div>

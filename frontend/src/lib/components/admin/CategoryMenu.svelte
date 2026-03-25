@@ -14,6 +14,9 @@
   import UserCog from "lucide-svelte/icons/user-cog";
   import Shield from "lucide-svelte/icons/shield";
   import Image from "lucide-svelte/icons/image";
+  import Globe from "lucide-svelte/icons/globe";
+  import Calendar from "lucide-svelte/icons/calendar";
+  import Layout from "lucide-svelte/icons/layout";
   import { fade, fly } from "svelte/transition";
 
   let { open = $bindable() } = $props();
@@ -45,6 +48,14 @@
       icon: ShoppingCart,
       color: "#FFB800", // Amber/Gold for orders
       widget: "ORDER_MANAGEMENT",
+    },
+    {
+      id: "appointments",
+      label: "Lịch hẹn",
+      sublabel: "Neural Scheduling",
+      icon: Calendar,
+      color: "#00F3FF", // matching neon-cyan
+      widget: "APPOINTMENTS",
     },
     {
       id: "product",
@@ -93,6 +104,22 @@
       sublabel: "Toàn cục & Quản lý file",
       widget: "MEDIA_MANAGER",
       color: "#00F3FF", // matching neon-cyan for media
+    },
+    {
+      id: "banners",
+      label: "Quản lý Banner",
+      sublabel: "Quảng cáo & Promo",
+      icon: Layout,
+      color: "#FFB800",
+      widget: "BANNER_MANAGEMENT",
+    },
+    {
+      id: "system",
+      label: "Cấu hình hệ thống",
+      sublabel: "Node Config & Rules",
+      icon: Globe,
+      color: "#00F3FF",
+      widget: "SYSTEM_SETTINGS",
     }
   ];
 

@@ -22,6 +22,7 @@
   import MediaHubOverlay from "../../media/MediaHubOverlay.svelte";
   import SystemSettings from "../management/SystemSettings.svelte";
 import BannerManagement from "../management/BannerManagement.svelte";
+import AppointmentManagement from "../management/AppointmentManagement.svelte";
 
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
@@ -45,6 +46,7 @@ import BannerManagement from "../management/BannerManagement.svelte";
     MEDIA_MANAGER: MediaHubOverlay,
     SYSTEM_SETTINGS: SystemSettings,
     BANNER_MANAGEMENT: BannerManagement,
+    APPOINTMENTS: AppointmentManagement,
   };
 
   const WIDGET_LABEL: Record<string, string> = {
@@ -63,6 +65,7 @@ import BannerManagement from "../management/BannerManagement.svelte";
     MEDIA_MANAGER: "THƯ VIỆN HÌNH ẢNH",
     SYSTEM_SETTINGS: "SYSTEM CONFIGURATION",
     BANNER_MANAGEMENT: "BANNER MANAGEMENT",
+    APPOINTMENTS: "LỊCH HẸN NEURAL",
   };
 
   let open = $derived(nanobot.universalModalOpen);
@@ -136,8 +139,8 @@ import BannerManagement from "../management/BannerManagement.svelte";
       {/if}
 
       <!-- Widget Content (scrollable container managed by widget internally for CONTENT_REVIEW) -->
-      <div class="flex-1 {nanobot.activeWidget === 'CONTENT_REVIEW' ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
-        <ActiveWidget data={WidgetData} />
+      <div class="flex-1 {nanobot.activeWidget === 'CONTENT_REVIEW' || nanobot.activeWidget === 'APPOINTMENTS' ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
+        <ActiveWidget data={WidgetData} isWidget={true} />
       </div>
 
       <!-- Bottom Border Accent -->

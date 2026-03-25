@@ -4,7 +4,7 @@ from backend.database.models import (
     User, VoiceProfile, Role, Permission, Category, Article, Order,
     ProductBase, ProductVariant, RentalContract, ProductEmbedding,
     ArticleEmbedding, Draft, AgentTelemetryLog, ChatMessage, Notification,
-    ContentCampaign, MediaRegistry
+    ContentCampaign, MediaRegistry, Appointment
 )
 
 class UserRepository(SQLAlchemyAsyncRepository[User]):
@@ -61,6 +61,9 @@ class ContentCampaignRepository(SQLAlchemyAsyncRepository[ContentCampaign]):
 class MediaRegistryRepository(SQLAlchemyAsyncRepository[MediaRegistry]):
     model_type = MediaRegistry
 
+class AppointmentRepository(SQLAlchemyAsyncRepository[Appointment]):
+    model_type = Appointment
+
 # ==========================================
 # REPOSITORY PROVIDERS (V55.0 DI PATTERN)
 # ==========================================
@@ -97,3 +100,6 @@ async def provide_campaign_repo(db_session: AsyncSession) -> ContentCampaignRepo
 
 async def provide_media_repo(db_session: AsyncSession) -> MediaRegistryRepository:
     return MediaRegistryRepository(session=db_session)
+
+async def provide_appointment_repo(db_session: AsyncSession) -> AppointmentRepository:
+    return AppointmentRepository(session=db_session)

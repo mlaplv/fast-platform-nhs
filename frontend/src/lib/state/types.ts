@@ -33,7 +33,8 @@ export type WidgetType =
   | "CONTENT_REVIEW"
   | "MEDIA_MANAGER"
   | "SYSTEM_SETTINGS"
-  | "BANNER_MANAGEMENT";
+  | "BANNER_MANAGEMENT"
+  | "APPOINTMENTS";
 
 export type NanoBotState =
   | "IDLE"

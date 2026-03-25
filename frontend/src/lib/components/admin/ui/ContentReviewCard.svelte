@@ -50,10 +50,16 @@
 
   let viewingStep = $state(step || 1), isEditing = $state(false), maxStepSeen = $state(step || 1);
   let isProcessing = $derived(status === "PROCESSING");
-  let isAnalysisRunning = $derived.by(() => {
+  let isAnalysisMessage = $derived.by(() => {
     if (!progress_msg) return false;
     const keywords = ["tầm soát", "quét", "phân tích", "rà soát", "Booster", "phẫu thuật", "Neural Engine", "Surgical Precision", "điểm số", "Copyright Check", "SEO Analysis", "AI MOD"];
     return keywords.some(kw => progress_msg.toLowerCase().includes(kw.toLowerCase()));
+  });
+
+  let isMajorStepMessage = $derived.by(() => {
+    if (!progress_msg) return false;
+    const majors = ["Brain khởi tạo", "Thiết giáp", "Phác thảo", "Chế tác", "Publish", "Vinh quang"];
+    return majors.some(m => progress_msg.includes(m));
   });
 
   let customImageUrl = $state(""), editedKeywords = $state<CampaignKeywords>({}), editedConfig = $state<Record<string, unknown>>({
@@ -62,7 +68,7 @@
     max_assets: 10,
     max_sections: 3
   }), editedDraft = $state(""), editedOutline = $state("");
-  let showGateModal = $state(false), gateBlockers = $state<any[]>([]), focusTabFromModal = $state<string | null>(null);
+  let showGateModal = $state(false), gateBlockers = $state<Array<{ label: string, current: string, required: string, tab: string }>>([]), focusTabFromModal = $state<string | null>(null);
 
   let isOverlaySticky = $state(false);
   let stickyTimer: ReturnType<typeof setTimeout> | null = null;
@@ -89,22 +95,6 @@
     "Kiểm định Viral Edge",     // 5: Analysis
     "Vinh quang & Viral"        // 6: Publish
   ];
-
-  let isMajorStepMessage = $derived.by(() => {
-    if (!progress_msg) return false;
-    const majorKeywords = ["Chế tác", "Phác thảo", "Khởi tạo", "Thiết giáp", "Vinh quang", "phát hành", "Neural Core", "Neural Engine", "khởi tạo lại", "đang viết", "đang gắn hình"];
-    return majorKeywords.some(kw => progress_msg.toLowerCase().includes(kw.toLowerCase()));
-  });
-  
-  let isAnalysisMessage = $derived.by(() => {
-    if (!progress_msg) return false;
-    const keywords = [
-      "tầm soát", "quét", "phân tích", "rà soát", "Booster", "phẫu thuật", "Neural Engine", 
-      "Surgical Precision", "điểm số", "Copyright Check", "SEO Analysis", "AI MOD", 
-      "Clean", "làm sạch", "Enrich", "tối ưu", "đánh giá"
-    ];
-    return keywords.some(kw => progress_msg.toLowerCase().includes(kw.toLowerCase()));
-  });
 
   let analysisSession = $state(false);
 
@@ -137,12 +127,13 @@
   });
 
   let shouldShowOverlay = $derived.by(() => {
+    // Phase 85.15: Dứt điểm logic - Overlay purely based on creation steps (1-4) and explicit transitions.
+    // Step 5 (Analysis) and 6 (Publish) are interactive, so we hide the overlay to show results/UI.
     if (campaign.isStepProcessing || isOverlaySticky) return true;
     if (!isProcessing) return false;
     
-    // Only hide overlay for Step 5 (Manual Analysis view) or specific analysis messages
-    // Step 4 (Draft) should stay covered by Neural Xohi during generation
-    if (viewingStep === 5 && !isMajorStepMessage) return false;
+    // Hide overlay for Steps 5 & 6 to allow user interaction even if PROCESSING (e.g. background check)
+    if (viewingStep >= 5) return false;
     
     return true;
   });
@@ -275,7 +266,7 @@
             {progress_msg} 
             {viewingStep} 
             {campaign_id} 
-            {isAnalysisMessage}
+            isAnalysisMessage={false}
             liveContent={viewingStep === 3 ? editedOutline : (viewingStep === 4 ? editedDraft : '')}
           />
        </div>

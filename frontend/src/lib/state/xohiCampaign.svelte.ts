@@ -123,7 +123,6 @@ export function createCampaignController(config: {
     async function updateMetadata(viewingStep: number, editedKeywords: CampaignKeywords, editedConfig: Record<string, unknown>, editedOutline: string, editedDraft: string) {
         if (isLoading) return false;
         isLoading = true;
-        isStepProcessing = true; // CNS V83: Trigger overlay for metadata-driven transitions (e.g. Create/Update)
         try {
             const payload = viewingStep === 1
                 ? { keywords: $state.snapshot({ ...editedKeywords, creation_config: editedConfig }) }
