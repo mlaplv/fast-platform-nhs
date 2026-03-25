@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [22.3.25.01] - 2026-03-25
 ### Added
+- **Elite Backup & Restore (Elite V2.2):** Integrated professional-grade **password-protected** backup/restore suite into `xohi.sh` featuring **AES-256-CBC encryption**, SHA256 integrity checks, manifest-based versioning (Git Hash), auto-pruning (last 5 backups), a pre-restore safety net, and a **secure purge function** with **Admin Password verification** against the database.
 - **Standardized SSE Discipline (Elite V2.2):** Implemented mandatory 15s heartbeats and strict lifecycle cut-offs (Pulse: 4h, Content: 30m, Intent: 5m) to eliminate zombie resource leaks.
 - **Proxy-Aware Header Suite:** Injected `X-Accel-Buffering: no`, `Cache-Control: no-cache`, and `Connection: keep-alive` into all streaming responses to bypass proxy buffering.
 - **Trinity Boot Architecture (Backend):** Refactored lifespan logic into a 3-stage asynchronous sequence with unified Elite log aesthetics and silenced infrastructure noise (SQLAlchemy, Uvicorn).

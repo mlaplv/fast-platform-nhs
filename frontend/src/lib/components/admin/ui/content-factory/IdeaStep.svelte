@@ -490,9 +490,10 @@
              bind:config={editedConfig} 
              onSync={() => {
                handleUpdateMetadata();
-               const s = editedConfig.scheduling as any;
-               if (s?.is_active) {
-                 nanobot.showToast(`Autopilot Elite: Đã lên lịch thực thi lúc ${s.schedule_at} (${s.frequency})`, "success");
+               // CNS V82.3: Ensure we check the current state after sync trigger
+               const sch = editedConfig.scheduling as any;
+               if (sch?.is_active) {
+                 nanobot.showToast(`Autopilot Elite: Đã lên lịch thực thi lúc ${sch.schedule_at} (${sch.frequency})`, "success");
                } else {
                  nanobot.showToast("Autopilot đã chuyển sang chế độ Standby.", "info");
                }

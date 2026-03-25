@@ -313,6 +313,141 @@ function view_logs() {
     docker compose logs -f api --tail 100 --since 5m --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION|WARNING"
 }
 
+function backup_data() {
+    BACKUP_DIR="backups"
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    BKP_NAME="XOHI_BKP_$TIMESTAMP"
+    
+    echo -e "${CYAN}[BACKUP] Đang khởi tạo bản sao lưu Elite V2.2...${NC}"
+    mkdir -p "$BACKUP_DIR/$BKP_NAME"
+    
+    # [1/4] Database Dump
+    echo -e "${YELLOW}-> 1. Đang trích xuất Database (PostgreSQL)...${NC}"
+    if ! docker exec fast_platform_db pg_dump -U postgres fast_platform > "$BACKUP_DIR/$BKP_NAME/db.sql" 2>/dev/null; then
+        echo -e "${RED}[ERROR] Không thể kết nối DB. Sếp hãy chắc chắn Docker đang chạy!${NC}"
+        rm -rf "$BACKUP_DIR/$BKP_NAME"
+        read -p "Nhấn Enter để quay lại..."
+        return 1
+    fi
+    
+    # [2/4] Media Files
+    echo -e "${YELLOW}-> 2. Đang đóng gói hình ảnh (uploads)...${NC}"
+    if [ -d "frontend/static/uploads" ]; then
+        sudo cp -r frontend/static/uploads "$BACKUP_DIR/$BKP_NAME/"
+        sudo chown -R $USER:$USER "$BACKUP_DIR/$BKP_NAME/uploads"
+    else
+        mkdir -p "$BACKUP_DIR/$BKP_NAME/uploads"
+    fi
+    
+    # [3/4] Metadata & Versioning
+    echo -e "${YELLOW}-> 3. Tạo Manifest & Versioning...${NC}"
+    echo "TIMESTAMP=$TIMESTAMP" > "$BACKUP_DIR/$BKP_NAME/manifest.txt"
+    git rev-parse HEAD > "$BACKUP_DIR/$BKP_NAME/git_version.txt" 2>/dev/null || echo "not_a_git_repo" > "$BACKUP_DIR/$BKP_NAME/git_version.txt"
+    
+    # [4/4] Compression & Security (AES-256)
+    echo -e "${YELLOW}-> 4. Đang mã hóa AES-256 & tạo mã bảo mật (SHA256)...${NC}"
+    read -s -p "Nhập mật khẩu để bảo vệ bản sao lưu: " BKP_PASS
+    echo ""
+    
+    tar -czf - -C "$BACKUP_DIR" "$BKP_NAME" | openssl enc -aes-256-cbc -salt -pbkdf2 -out "$BACKUP_DIR/$BKP_NAME.tar.gz.enc" -pass pass:"$BKP_PASS"
+    sha256sum "$BACKUP_DIR/$BKP_NAME.tar.gz.enc" | awk '{print $1}' > "$BACKUP_DIR/$BKP_NAME.tar.gz.enc.sha256"
+    
+    rm -rf "$BACKUP_DIR/$BKP_NAME"
+    
+    # Pruning (Keep only last 5)
+    ls -t "$BACKUP_DIR"/XOHI_BKP_*.tar.gz.enc 2>/dev/null | tail -n +6 | xargs -I {} rm -f {} 2>/dev/null || true
+    ls -t "$BACKUP_DIR"/XOHI_BKP_*.tar.gz.enc.sha256 2>/dev/null | tail -n +6 | xargs -I {} rm -f {} 2>/dev/null || true
+    
+    echo -e "${GREEN}[SUCCESS] Đã sao lưu và mã hóa thành công: $BKP_NAME.tar.gz.enc${NC}"
+    read -p "Nhấn Enter để quay lại menu..."
+}
+
+function restore_data() {
+    BACKUP_DIR="backups"
+    if [ ! -d "$BACKUP_DIR" ] || [ -z "$(ls -A "$BACKUP_DIR"/*.enc 2>/dev/null)" ]; then
+        echo -e "${RED}[ERROR] Không tìm thấy bản sao lưu .enc nào trong thư mục 'backups/'.${NC}"
+        read -p "Nhấn Enter để quay lại..."
+        return 1
+    fi
+    
+    echo -e "${CYAN}[RESTORE] Danh sách bản sao lưu mã hóa khả dụng:${NC}"
+    select ARCHIVE in "$BACKUP_DIR"/*.enc; do
+        if [ -n "$ARCHIVE" ]; then
+            break
+        fi
+    done
+    
+    echo -e "${YELLOW}-> Đang kiểm tra tính toàn vẹn (Integrity Check)...${NC}"
+    EXPECTED_SHA=$(cat "${ARCHIVE}.sha256" 2>/dev/null || echo "none")
+    ACTUAL_SHA=$(sha256sum "$ARCHIVE" | awk '{print $1}')
+    
+    if [ "$EXPECTED_SHA" != "none" ] && [ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]; then
+        echo -e "${RED}[CAUTION] Mã SHA256 không khớp! File backup có thể đã bị hỏng.${NC}"
+        read -p "Sếp vẫn muốn tiếp tục? (y/n): " confirm
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then return 1; fi
+    fi
+    
+    # [SAFETY] Backup current state before restore
+    echo -e "${YELLOW}-> Đang tạo bản lưu an toàn (Pre-Restore Safety)...${NC}"
+    mkdir -p "$BACKUP_DIR/safety_net"
+    docker exec fast_platform_db pg_dump -U postgres fast_platform > "$BACKUP_DIR/safety_net/pre_restore_db.sql" 2>/dev/null || true
+    
+    echo -e "${CYAN}-> Đang giải mã và khôi phục...${NC}"
+    read -s -p "Nhập mật khẩu để giải mã: " BKP_PASS
+    echo ""
+    
+    TEMP_RESTORE="temp_restore"
+    mkdir -p "$TEMP_RESTORE"
+    
+    if ! openssl enc -aes-256-cbc -d -pbkdf2 -in "$ARCHIVE" -pass pass:"$BKP_PASS" | tar -xzf - -C "$TEMP_RESTORE" 2>/dev/null; then
+        echo -e "${RED}[ERROR] Sai mật khẩu hoặc file bị hỏng!${NC}"
+        rm -rf "$TEMP_RESTORE"
+        read -p "Nhấn Enter để quay lại..."
+        return 1
+    fi
+    
+    BKP_FOLDER=$(ls "$TEMP_RESTORE")
+    
+    # Restore DB
+    echo -e "${YELLOW}-> 1. Đang khôi phục Database (Dọn sạch Schema cũ)...${NC}"
+    docker exec -t fast_platform_db psql -U postgres -d fast_platform -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" > /dev/null
+    cat "$TEMP_RESTORE/$BKP_FOLDER/db.sql" | docker exec -i fast_platform_db psql -U postgres fast_platform > /dev/null
+    
+    # Restore Media
+    echo -e "${YELLOW}-> 2. Đang khôi phục hình ảnh (Media/Uploads)...${NC}"
+    if [ -d "$TEMP_RESTORE/$BKP_FOLDER/uploads" ]; then
+        sudo mkdir -p frontend/static/uploads
+        sudo cp -r "$TEMP_RESTORE/$BKP_FOLDER/uploads/"* frontend/static/uploads/
+        sudo chown -R root:root frontend/static/uploads # Keeping it consistent with Docker expectations
+    fi
+    
+    rm -rf "$TEMP_RESTORE"
+    
+    echo -e "${YELLOW}-> 3. Đang khởi động lại hệ thống để làm mới cache...${NC}"
+    docker compose restart api ui redis
+    
+    echo -e "${GREEN}[SUCCESS] Đã khôi phục dữ liệu hoàn tất!${NC}"
+    read -p "Nhấn Enter để quay lại menu..."
+}
+
+function clean_backups() {
+    BACKUP_DIR="backups"
+    echo -e "${RED}[WARNING] THAO TÁC NGUY HIỂM: Xóa vĩnh viễn toàn bộ bản sao lưu!${NC}"
+    read -s -p "Sếp hãy nhập mật mã quản trị (Admin Password): " confirm_pass
+    echo ""
+    
+    echo -e "${YELLOW}-> Đang xác thực quyền hạn...${NC}"
+    # Xác thực mật khẩu admin thông qua container api
+    if docker exec -i fast_platform_api /opt/venv/bin/python3 -m backend.scripts.verify_admin "$confirm_pass" | grep -q "MATCH"; then
+        echo -e "${YELLOW}-> Xác thực thành công. Đang dọn dẹp thư mục backups/...${NC}"
+        sudo rm -rf "${BACKUP_DIR:?}"/*
+        echo -e "${GREEN}[OK] Đã dọn sạch toàn bộ bản sao lưu!${NC}"
+    else
+        echo -e "${RED}[ERROR] Sai mật mã quản trị! Thao tác bị từ chối.${NC}"
+    fi
+    read -p "Nhấn Enter để quay lại menu..."
+}
+
 while true; do
     clear
     echo -e "${CYAN}"
@@ -333,6 +468,9 @@ while true; do
     echo "7) AUDIT V61.1"
     echo "8) XEM LOG BACKEND"
     echo "9) CẬP NHẬT DOCKER (Pull + Build)"
+    echo "10) SAO LƯU DỮ LIỆU (DB + Images)"
+    echo "11) KHÔI PHỤC DỮ LIỆU"
+    echo "12) DỌN DẸP BẢN SAO LƯU (Xóa sạch)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -371,6 +509,15 @@ while true; do
             ;;
         9)
             update_docker
+            ;;
+        10)
+            backup_data
+            ;;
+        11)
+            restore_data
+            ;;
+        12)
+            clean_backups
             ;;
         0)
             exit 0
