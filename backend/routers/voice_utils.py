@@ -19,7 +19,7 @@ async_session_maker = alchemy_config.create_session_maker()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 WHISPER_MODEL = "groq/whisper-large-v3-turbo"
-litellm.set_verbose(True)
+litellm.set_verbose = True
 
 # Minimum audio size to avoid sending silence/noise (bytes)
 MIN_AUDIO_BYTES = 1500
