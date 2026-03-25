@@ -18,6 +18,13 @@ class Order(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     cancellation_reason: Mapped[Optional[str]] = mapped_column(String)
     history: Mapped[Optional[list]] = mapped_column(JSON, default=list)
     
+    # V2026 Identity Snapshot (Immutable Point-in-Time Data)
+    customer_name: Mapped[Optional[str]] = mapped_column(String, index=True)
+    customer_phone: Mapped[Optional[str]] = mapped_column(String, index=True)
+    customer_address: Mapped[Optional[str]] = mapped_column(Text)
+    customer_ip: Mapped[Optional[str]] = mapped_column(String)
+    order_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
+    
     # V56.5 Anti-Spam Shield Fields
     is_spam: Mapped[bool] = mapped_column(Boolean, default=False)
     spam_score: Mapped[float] = mapped_column(Float, default=0.0)

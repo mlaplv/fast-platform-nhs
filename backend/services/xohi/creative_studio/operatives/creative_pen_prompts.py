@@ -11,7 +11,7 @@ PROMPTS = {
 2. PHONG CÁCH: Viral, lôi cuốn, kể chuyện (Storytelling).
 3. ĐỊNH DẠNG: 1 Câu Sapô + 1 Gạch đầu dòng ý chính cho mỗi H2. 
 4. TỔNG SỐ ĐOẠN: Đúng số lượng `max_sections`.
-5. [QUY TẮC VÀNG] Dàn ý súc tích, không viết thành bài văn hoàn chỉnh.""",
+5. [QUY TẮC VÀNG] Dàn ý súc tích, không viết thành bài văn hoàn chỉnh. TUYỆT ĐỐI KHÔNG chèn [IMAGE_N] vào dàn ý.""",
         
         "draft": """[ROLE] NHÀ BÁO NEURAL — XoHi Media V2026
 [TIÊU CHUẨN]
@@ -27,7 +27,7 @@ PROMPTS = {
 1. TRỌNG TÂM: Tính năng cốt lõi + Thông số kỹ thuật (Specs) + Lợi ích khách hàng (Benefits).
 2. PHONG CÁCH: Thuyết phục, chuyên nghiệp, tập trung vào giải pháp.
 3. CƠ CẤU: H2 cho Đặc điểm nổi bật, H2 cho Thông số kĩ thuật, H2 cho Ưu đãi/Hành động.
-4. TUYỆT ĐỐI CẤM: Giọng văn báo chí, tin tức, giật gân hoặc tiêu đề kiểu TOP X.""",
+4. [QUY TẮC VÀNG] Dàn ý chỉ là khung sườn (1-2 câu mỗi mục). TUYỆT ĐỐI KHÔNG viết thành bài văn hoàn chỉnh. KHÔNG chèn [IMAGE_N] ở bước này.""",
         
         "draft": """[ROLE] COPYWRITER BÁN HÀNG BẬC THẦY — XoHi E-com V2026
 [TIÊU CHUẨN]

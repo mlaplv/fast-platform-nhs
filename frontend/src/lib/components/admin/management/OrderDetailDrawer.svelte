@@ -12,6 +12,11 @@
   import Truck from "lucide-svelte/icons/truck";
   import Play from "lucide-svelte/icons/play";
   import ShieldAlert from "lucide-svelte/icons/shield-alert";
+  import Phone from "lucide-svelte/icons/phone";
+  import MapPin from "lucide-svelte/icons/map-pin";
+  import TrendingUp from "lucide-svelte/icons/trending-up";
+  import Target from "lucide-svelte/icons/target";
+  import History from "lucide-svelte/icons/history";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { portal } from "$lib/actions/portal";
@@ -181,25 +186,156 @@
             <div class="absolute inset-0 opacity-10" style:background="linear-gradient(45deg, transparent, currentColor)" style:color={statusInfo.color.replace('text-', '')}></div>
           </div>
 
-          <!-- Customer Info -->
+          <!-- Customer 360 Insights (Viral 2026 Dashboard) -->
           <div class="mb-8">
-            <div class="flex items-center gap-2 mb-4">
-              <User size={12} class="text-neon-cyan" />
-              <h3 class="text-[10px] font-mono text-white/80 uppercase tracking-widest font-bold">Customer Profile</h3>
-            </div>
-            <div class="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex flex-col gap-3">
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <span class="block text-[9px] font-mono text-gray-500 mb-1">Name</span>
-                  <span class="text-xs text-white font-medium">{orderData.customerName}</span>
-                </div>
-                <div>
-                  <span class="block text-[9px] font-mono text-gray-500 mb-1">Timestamp</span>
-                  <span class="text-xs text-white font-mono">{formatDate(orderData.createdAt)}</span>
-                </div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <Target size={12} class="text-neon-cyan" />
+                <h3 class="text-[10px] font-mono text-white/80 uppercase tracking-widest font-bold">Customer 360 Insights</h3>
               </div>
+              {#if orderData.insight && orderData.insight.trust_score >= 80}
+                <span class="text-[8px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-sm border border-emerald-500/30 uppercase font-black tracking-tighter">High Trust</span>
+              {/if}
+            </div>
+            
+            <div class="bg-white/[0.02] border border-white/5 rounded-xl p-5 flex flex-col gap-6">
+              <!-- Grid Statistics -->
+              <div class="grid grid-cols-2 gap-x-8 gap-y-6">
+                <!-- Row 1: Identity -->
+                <div class="col-span-2 flex items-center justify-between border-b border-white/5 pb-4">
+                  <div>
+                    <span class="block text-[8px] font-mono text-gray-500 mb-1 uppercase tracking-wider">Identified Persona</span>
+                    <span class="text-sm font-bold text-white">{orderData.customerName}</span>
+                  </div>
+                  <div class="text-right">
+                     <span class="block text-[8px] font-mono text-gray-500 mb-1 uppercase tracking-wider">Contact Trace</span>
+                     <div class="flex items-center gap-2 text-neon-cyan font-mono text-[11px]">
+                        <Phone size={10} class="opacity-50" />
+                        {orderData.customerPhone || "UNREGISTERED"}
+                     </div>
+                  </div>
+                </div>
+
+                <!-- Row 2: Financials & History -->
+                <div>
+                  <div class="flex items-center gap-2 mb-1.5">
+                    <TrendingUp size={10} class="text-emerald-400" />
+                    <span class="text-[8px] font-mono text-gray-500 uppercase">Lifetime Value (LTV)</span>
+                  </div>
+                  <span class="text-base font-bold text-emerald-400 font-mono tracking-wider">
+                    {formatCurrency(orderData.insight?.ltv || 0)}
+                  </span>
+                </div>
+
+                <div>
+                   <div class="flex items-center gap-2 mb-1.5">
+                    <Package size={10} class="text-blue-400" />
+                    <span class="text-[8px] font-mono text-gray-500 uppercase">Order Frequency</span>
+                  </div>
+                  <div class="flex items-baseline gap-1">
+                    <span class="text-sm font-bold text-white font-mono">{orderData.insight?.total_orders || 1}</span>
+                    <span class="text-[8px] text-gray-500 uppercase font-bold">Deployments</span>
+                  </div>
+                </div>
+
+                <!-- Row 3: Trust Radar -->
+                <div class="col-span-2 pt-2">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-[8px] font-mono text-gray-500 uppercase">Trust Radar Intelligence</span>
+                    <span class="text-[10px] font-mono font-bold {orderData.insight?.trust_score ?? 0 >= 70 ? 'text-emerald-400' : 'text-rose-400'}">
+                      {(orderData.insight?.trust_score ?? 0).toFixed(1)}% SUCCESS
+                    </span>
+                  </div>
+                  <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden flex">
+                    <div 
+                      class="h-full {orderData.insight?.trust_score ?? 0 >= 70 ? 'bg-emerald-500' : 'bg-rose-500'} shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all duration-1000" 
+                      style="width: {orderData.insight?.trust_score ?? 0}%"
+                    ></div>
+                  </div>
+                </div>
+
+                <!-- Row 4: Timeline Trace -->
+                {#if orderData.insight?.first_order}
+                  <div class="col-span-2 bg-black/40 border border-white/5 rounded-lg p-3 flex items-center justify-between mt-2">
+                    <div class="flex flex-col gap-1">
+                       <span class="text-[7px] text-gray-500 uppercase font-bold">First Extraction</span>
+                       <span class="text-[9px] font-mono text-gray-400">{formatDate(orderData.insight.first_order)}</span>
+                    </div>
+                    <div class="w-px h-6 bg-white/10 mx-4"></div>
+                    <div class="flex flex-col gap-1 text-right">
+                       <span class="text-[7px] text-gray-500 uppercase font-bold">Last Active</span>
+                       <span class="text-[9px] font-mono text-neon-cyan">{formatDate(orderData.insight.last_order || orderData.createdAt)}</span>
+                    </div>
+                  </div>
+                {/if}
+              </div>
+
+              {#if orderData.customerAddress}
+                <div class="flex items-start gap-2 pt-4 border-t border-white/5">
+                   <MapPin size={12} class="text-gray-500 mt-0.5" />
+                   <span class="text-[10px] text-gray-400 italic leading-relaxed">{orderData.customerAddress}</span>
+                </div>
+              {/if}
+
+              {#if orderData.cancellationReason}
+                <div class="bg-rose-500/10 border border-rose-500/20 rounded-lg p-3 flex items-start gap-3 mt-2">
+                  <ShieldAlert size={14} class="text-rose-400 shrink-0" />
+                  <div>
+                    <div class="text-[8px] text-rose-400 font-mono uppercase font-bold mb-0.5">Termination Reason</div>
+                    <div class="text-[10px] text-rose-300 italic">"{orderData.cancellationReason}"</div>
+                  </div>
+                </div>
+              {/if}
             </div>
           </div>
+
+          <!-- Historical Purchase Timeline (Phase 4) -->
+          {#if orderData.insight?.previous_orders && orderData.insight.previous_orders.length > 0}
+            <div class="mb-8 p-1 border border-neon-cyan/10 rounded-2xl bg-neon-cyan/[0.01]">
+              <div class="flex items-center gap-2 mb-4 px-3 pt-3">
+                <History size={12} class="text-neon-cyan" />
+                <h3 class="text-[10px] font-mono text-white/80 uppercase tracking-widest font-bold">Historical Purchase Timeline</h3>
+              </div>
+              
+              <div class="bg-black/40 border border-white/5 rounded-xl overflow-hidden shadow-2xl">
+                <div class="max-h-[320px] overflow-y-auto custom-scrollbar">
+                  {#each orderData.insight.previous_orders as prev}
+                    <div class="group border-b border-white/5 last:border-0 p-4 hover:bg-white/[0.03] transition-all">
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                           <span class="text-[8px] font-mono text-gray-500 uppercase px-1 bg-white/5 rounded-sm">#{prev.id.slice(0,8)}</span>
+                           <span class="text-[9px] font-mono text-gray-400">{formatDate(prev.created_at)}</span>
+                        </div>
+                        <span class="text-[7px] px-1.5 py-0.5 rounded-sm font-black uppercase tracking-tighter
+                          {prev.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">
+                          {prev.status}
+                        </span>
+                      </div>
+                      
+                      <div class="flex items-center justify-between">
+                         <div class="flex items-center gap-3">
+                            <div class="flex items-baseline gap-1">
+                               <span class="text-[10px] text-white font-bold">{prev.item_count}</span>
+                               <span class="text-[7px] text-gray-500 uppercase font-black">Quantity</span>
+                            </div>
+                            <div class="w-1 h-1 bg-white/10 rounded-full"></div>
+                            <span class="text-[10px] text-white/90 font-mono font-bold">{formatCurrency(prev.total)}</span>
+                         </div>
+                         <button 
+                           class="text-[8px] text-neon-cyan hover:text-white bg-neon-cyan/10 hover:bg-neon-cyan px-2 py-0.5 rounded-full uppercase font-black tracking-tighter transition-all opacity-0 group-hover:opacity-100"
+                         >
+                           Analyze →
+                         </button>
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              </div>
+              <div class="mt-2 pb-2 text-center text-[7px] text-gray-600 font-mono uppercase tracking-[0.2em] font-bold">
+                Dữ liệu truy xuất từ 10 năm lịch sử
+              </div>
+            </div>
+          {/if}
 
           <!-- Order Items -->
           <div class="mb-8">

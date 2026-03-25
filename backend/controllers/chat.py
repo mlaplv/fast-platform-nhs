@@ -80,13 +80,22 @@ class ChatController(Controller):
         summary="Permanently CLEAR all chat logs for a session",
         middleware=[chat_clear_limit.middleware]
     )
-    async def delete_chat_history(self, db_session: "AsyncSession", session_id: str, request: Request) -> SuccessResponse:
+    async def delete_chat_history(
+        self,
+        db_session: "AsyncSession",
+        session_id: str,
+        request: Request,
+        user_id_query: Optional[str] = None
+    ) -> SuccessResponse:
         """Hard deletes all messages for a session or account."""
         user_state = getattr(request.state, "user", {})
-        return await chat_service.clear_history(
+        res = await chat_service.clear_history(
             db_session=db_session,
             session_id=session_id,
             user_id=user_state.get("id"),
             user_email=user_state.get("sub"),
-            roles=user_state.get("roles", [])
+            roles=user_state.get("roles", []),
+            user_id_query=user_id_query
         )
+        await db_session.commit()
+        return res

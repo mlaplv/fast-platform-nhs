@@ -31,47 +31,55 @@ export class VuiService {
     screenContext?: Record<string, unknown>,
     intentData?: Record<string, unknown>
   ): AsyncGenerator<IntentStreamEvent> {
-    const res = await fetch(VUI_CONFIG.ENDPOINTS.INTENT_STREAM, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        query, 
-        session_id: sessionId, 
-        modality, 
-        screen_context: screenContext,
-        intent_data: intentData
-      })
-    });
-
-    if (!res.body) throw new Error("Stream body missing");
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      const res = await fetch(VUI_CONFIG.ENDPOINTS.INTENT_STREAM, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          query, 
+          session_id: sessionId, 
+          modality, 
+          screen_context: screenContext,
+          intent_data: intentData
+        })
+      });
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+      if (!res.body) throw new Error("Stream body missing");
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
 
-        for (const line of lines) {
-          const trimmedLine = line.trim();
-          if (trimmedLine.startsWith("data:")) {
-            const jsonStr = trimmedLine.substring(5).trim();
-            if (!jsonStr) continue;
-            try {
-              yield JSON.parse(jsonStr);
-            } catch (e) {
-              console.warn("[VuiService] JSON Parse Error", jsonStr);
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (trimmedLine.startsWith("data:")) {
+              const jsonStr = trimmedLine.substring(5).trim();
+              if (!jsonStr) continue;
+              try {
+                yield JSON.parse(jsonStr);
+              } catch (e) {
+                console.warn("[VuiService] JSON Parse Error", jsonStr);
+              }
             }
           }
         }
+      } catch (e) {
+        console.error("[VUI] Stream Read Error:", e);
+        yield { phase: "error", message: "Kết nối gián đoạn, Sếp thử lại nhé." };
+      } finally {
+        reader.releaseLock();
       }
-    } finally {
-      reader.releaseLock();
+    } catch (e) {
+      console.error("[VUI] Network Error:", e);
+      yield { phase: "error", message: "Lỗi mạng hoặc máy chủ bận, Sếp thử lại nhé." };
     }
   }
 

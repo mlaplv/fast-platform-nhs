@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
-from sqlalchemy import select, delete as sqlalchemy_delete, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import HTTPException
 
@@ -101,8 +101,8 @@ class ChatService:
         since_id: Optional[str] = None
     ) -> ChatHistoryResponse:
         """Moves logic from ChatController.get_chat_history. Implements Scalar Projection (Rule 1.5)."""
-        is_super_admin = "SUPER_ADMIN" in roles
-        target_user_id = user_id
+        is_super_admin: bool = "SUPER_ADMIN" in roles
+        target_user_id: Optional[str] = user_id
 
         # ═══ GOD-MODE: ADMIN OVERRIDE ═══
         if is_super_admin and user_id_query:
@@ -115,13 +115,15 @@ class ChatService:
 
         # ═══ CACHE BYPASS / REDIS CHECK ═══
         if session_id == "account" and not cursor and limit <= 10 and target_user_id:
-            cached = await xohi_memory.get_recent_chat(target_user_id)
-            if cached:
+            cached_data: List[Dict[str, Any]] = await xohi_memory.get_recent_chat(target_user_id)
+            if cached_data:
+                # Elite V2.2: Ensure precise type handling for indexing
+                last_msg: Dict[str, Any] = cached_data[-1]
                 return ChatHistoryResponse(
                     session_id=session_id,
                     has_more=True,
-                    next_cursor=str(cached[-1]["id"]),
-                    messages=[ChatMessageSchema(**m) for m in reversed(cached)]
+                    next_cursor=str(last_msg["id"]),
+                    messages=[ChatMessageSchema(**m) for m in reversed(cached_data)]
                 )
 
         # ═══ OWNERSHIP ENFORCEMENT ═══
@@ -167,21 +169,21 @@ class ChatService:
         res = await db_session.execute(stmt)
         rows = res.all()
 
-        has_more = len(rows) > limit
+        has_more: bool = len(rows) > limit
         if has_more:
             rows = rows[:limit]
 
-        messages = [ChatMessageSchema.model_validate(dict(r._mapping)) for r in rows]
-        next_cursor = str(messages[-1].id) if messages and not since_id else None
+        messages_list: List[ChatMessageSchema] = [ChatMessageSchema.model_validate(dict(r._mapping)) for r in rows]
+        next_cursor: Optional[str] = str(messages_list[-1].id) if messages_list and not since_id else None
 
         if not since_id:
-            messages.reverse()
+            messages_list.reverse()
 
         return ChatHistoryResponse(
             session_id=session_id,
             has_more=has_more,
             next_cursor=next_cursor,
-            messages=messages
+            messages=messages_list
         )
 
     @staticmethod
@@ -190,28 +192,51 @@ class ChatService:
         session_id: str,
         user_id: Optional[str],
         user_email: str,
-        roles: List[str]
+        roles: List[str],
+        user_id_query: Optional[str] = None
     ) -> SuccessResponse:
-        """Moves logic from ChatController.delete_chat_history."""
-        if "SUPER_ADMIN" not in roles:
-            raise HTTPException(status_code=403, detail="[SECURITY] Unauthorized: Only SUPER_ADMIN can purge system logs.")
+        """
+        [NUCLEAR PURGE] Absolute cleanup (DB + Redis + Logs).
+        Rule: "Sạch kin kít" - No audit trails left for this session.
+        Uses Repositories to handle tenant-aware hard deletes.
+        """
+        from backend.database.repositories import ChatMessageRepository, NotificationRepository
+        is_super_admin: bool = "SUPER_ADMIN" in roles
+        target_user_id: Optional[str] = user_id
 
-        await signal_center.dispatch(
-            user_id=str(user_id) if user_id else "system",
-            signal=SignalSchema(
-                message=f"SUCCESS: Chat history cleaned for session '{session_id}' by {user_email}",
-                severity=SignalSeverity.INFO,
-                signal_type="SECURITY"
-            ),
-            db_session=db_session
-        )
+        # ═══ GOD-MODE: ADMIN OVERRIDE ═══
+        if is_super_admin and user_id_query:
+            target_user_id = user_id_query
 
-        if session_id == "account" and user_id:
-            stmt = sqlalchemy_delete(ChatMessage).where(ChatMessage.user_id == user_id)
+        # ═══ OWNERSHIP ENFORCEMENT ═══
+        if not is_super_admin:
+            if session_id == "account" and target_user_id != user_id:
+                raise HTTPException(status_code=403, detail="[SECURITY] Unauthorized: Identity mismatch for account purge.")
+
+        # ═══ PHASE 1: DB PURGE (ChatMessage) ═══
+        chat_repo = ChatMessageRepository(session=db_session)
+        if session_id == "account" and target_user_id:
+            # Delete all messages for user across all sessions
+            await chat_repo.delete_where(user_id=target_user_id)
+            deleted_count = "ALL"
         else:
-            stmt = sqlalchemy_delete(ChatMessage).where(ChatMessage.session_id == session_id)
+            await chat_repo.delete_where(session_id=session_id)
+            deleted_count = "SESSION"
 
-        await db_session.execute(stmt)
+        # ═══ PHASE 2: DB PURGE (Notifications) ═══
+        if target_user_id:
+            notif_repo = NotificationRepository(session=db_session)
+            await notif_repo.delete_where(user_id=target_user_id)
+
+        # ═══ PHASE 3: REDIS PURGE ═══
+        if target_user_id:
+            await xohi_memory.delete_pattern(f"xohi:chat:{target_user_id}")
+        
+        logger.info(f"💣 [NuclearPurge] Swept {deleted_count} messages and all notifications for target={target_user_id}")
+
+        # transient SSE event for the UI toast
+        await event_bus.emit(f"chat:purged:{target_user_id or session_id}", {"ok": True})
+
         return SuccessResponse(ok=True, message=f"All logs for {session_id} have been purged.")
 
 chat_service = ChatService()

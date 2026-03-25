@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validator
-from typing import Optional, List, Union, Dict
+from typing import Optional, List, Union, Dict, Any
 from datetime import datetime
 
 
@@ -31,11 +31,23 @@ class CancelOrderRequest(BaseModel):
     reason: str = Field(..., min_length=1, max_length=1000)
 
 
+class CustomerInsight(BaseModel):
+    ltv: float = 0.0
+    total_orders: int = 0
+    trust_score: float = 0.0
+    first_order: Optional[str] = None
+    last_order: Optional[str] = None
+    previous_orders: List[Dict[str, Any]] = Field(default_factory=list)
+
 class OrderResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True, strict=True)
 
     id: str
-    customerName: str = Field("Storefront Customer", alias="customer_name")
+    customerName: Optional[str] = Field(None, alias="customer_name")
+    customerPhone: Optional[str] = Field(None, alias="customer_phone")
+    customerAddress: Optional[str] = Field(None, alias="customer_address")
+    customerIp: Optional[str] = Field(None, alias="customer_ip")
+    userName: Optional[str] = Field(None, alias="user_name")
     status: str
     total: float = Field(..., alias="total_amount")
     items: Union[List[OrderItem], int] # Can be list of items or count depending on context
@@ -45,7 +57,12 @@ class OrderResponse(BaseModel):
     spamScore: float = Field(0.0, alias="spam_score")
     spamReason: Optional[str] = Field(None, alias="spam_reason")
     fingerprint: Optional[str] = None
+    orderMetadata: Dict[str, object] = Field(default_factory=dict, alias="order_metadata")
+    successfulOrdersCount: int = Field(0, alias="successful_count")
+    cancelledOrdersCount: int = Field(0, alias="cancelled_count")
     history: List[Dict[str, Union[str, int, float, bool, None]]] = Field(default_factory=list)
+    insight: Optional[CustomerInsight] = None
+    cancellationReason: Optional[str] = Field(None, alias="cancellation_reason")
 
     @field_validator("id", mode="before")
     @classmethod
@@ -59,9 +76,23 @@ class OrderResponse(BaseModel):
 
     @computed_field
     @property
-    def items_count(self) -> int:
+    def finalCustomerName(self) -> str:
+        return self.customerName or self.userName or "Guest Customer"
+
+    @computed_field
+    @property
+    def itemCount(self) -> int:
         if isinstance(self.items, list):
-            return len(self.items)
+            # Sum quantities if list of dicts or OrderItem
+            total = 0
+            for item in self.items:
+                if isinstance(item, OrderItem):
+                    total += item.quantity
+                elif isinstance(item, dict):
+                    total += int(item.get("quantity", 0))
+            return total
+        if isinstance(self.items, int):
+            return self.items
         return 0
 
 

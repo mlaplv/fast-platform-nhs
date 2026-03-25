@@ -44,11 +44,8 @@ Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt th
 - [x] Cleanup: Remove all `auth_extended` remnants and stale dependencies. <!-- id: 40 -->
 - [x] Final Audit: Verify 100% Service-Centric compliance for all controllers. <!-- id: 41 -->
 
-## 🎯 Giai đoạn 16: Content Quality Assurance & Plagiarism Shield (COMPLETED)
-- [x] Backend: Cập nhật `PlagiarismCop` hỗ trợ `GOOGLE_SEARCH_KEYS` (Key Rotation). <!-- id: 60 -->
-- [x] Backend: Mở rộng `_plagiarism_semaphore` bao phủ toàn bộ luồng `analyze` để bảo vệ quota. <!-- id: 61 -->
-- [x] Backend: Ép sử dụng `role="brain"` cho audit bản quyền qua `TrinityBridge`. <!-- id: 62 -->
-- [x] Logic: Sửa lỗi hydration score `0` (100% plagiarized) tại `xohiAnalysis.svelte.ts`. <!-- id: 63 -->
-- [x] UI: Nâng cấp nút "COPYRIGHT" cho phép Click Re-run (Force) khi tab đang active. <!-- id: 64 -->
-- [x] UI: Đồng bộ cơ chế Click Re-run cho SEO và AI MOD tabs. <!-- id: 65 -->
+## 🎯 Giai đoạn 17: Scouting & Documentation (CURRENT)
+- [x] Scout: Vẽ cấu trúc cây thư mục dự án (project.md). <!-- id: 70 -->
+- [x] Design: Đề xuất và tích hợp cấu trúc trang bán hàng (Client) vào project.md. <!-- id: 71 -->
+- [x] Optimization: Cập nhật project.md theo Best Practice Elite V2.2 & Ghi chú trực tiếp. <!-- id: 72 -->
 

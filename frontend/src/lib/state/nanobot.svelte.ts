@@ -336,7 +336,7 @@ export function createNanobotState() {
       }, state.godModeUser || undefined);
       ui.showToast(state.godModeUser ? `Đồng bộ log [V69.0]: ${state.godModeUser}` : "Đã đồng bộ dữ liệu V69.0 (Unified)", "success");
     },
-    clearChatLogs: async () => { if (await chat.clearHistory("account")) { log.setActivityLogs([]); ui.showToast("Dữ liệu đã được quét sạch", "success"); } },
+    clearChatLogs: async () => { if (await chat.clearHistory("account", state.godModeUser || undefined)) { log.setActivityLogs([]); ui.showToast("Dữ liệu đã được quét sạch", "success"); } },
 
     // Layout Context
     get screenContext() {

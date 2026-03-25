@@ -31,13 +31,22 @@ fi
 # R82: Start Litestar Application via Uvicorn (CTO Elite Mode)
 if [ "$#" -eq 0 ]; then
     echo "⚡ [Trinity Boot] Igniting Litestar Engine (Uvicorn Recycling)..."
+    
+    # [Elite V2.2] Dynamic hot-reload for development
+    RELOAD_FLAG=""
+    if [ "$ENVIRONMENT" == "development" ]; then
+        echo "🔥 [Trinity Boot] Development mode detected: Enabling HOT-RELOAD"
+        RELOAD_FLAG="--reload"
+    fi
+
     exec /opt/venv/bin/uvicorn backend.main:app \
         --host 0.0.0.0 \
         --port 8000 \
         --http h11 \
         --limit-max-requests 500 \
         --limit-concurrency 15 \
-        --timeout-keep-alive 5 
+        --timeout-keep-alive 5 \
+        $RELOAD_FLAG
 else
     echo "⚡ [Trinity Boot] Executing custom command: $@"
     exec "$@"

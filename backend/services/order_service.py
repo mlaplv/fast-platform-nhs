@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import List, Dict, Optional, Any
 
 from sqlalchemy import select, func, or_, and_
+import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException, ValidationException
 
@@ -14,6 +15,7 @@ from backend.schemas.order import OrderResponse, OrderListResponse, OrderCreateR
 from backend.schemas.common import SuccessResponse
 
 logger = logging.getLogger("api-gateway")
+TENANT_ID = "smartshop" # V2026 Native Tenant
 
 class OrderService:
     @staticmethod
@@ -25,6 +27,14 @@ class OrderService:
             items=data.items,
             total_amount=data.total_amount,
             status="PENDING",
+            customer_name=data.customer_name,
+            customer_phone=data.customer_phone,
+            customer_address=data.customer_address,
+            customer_ip=ip,
+            order_metadata={
+                "user_agent": ua,
+                "fingerprint": data.items[0].get("fingerprint") if isinstance(data.items, list) and data.items else None 
+            },
             history=[{
                 "status": "PENDING",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -75,11 +85,32 @@ class OrderService:
         count_stmt = select(func.count(Order.id)).where(and_(*conditions))
         total = await db_session.scalar(count_stmt) or 0
 
-        # 2. R76: Scalar Projection Fetch
+        # 2. R76: Scalar Projection Fetch with Aggregate History
+        # Identity match: customer_phone (if exists) OR user_id OR fingerprint
+        
+        # Subqueries for stats (Performance Optimized Viral 2026)
+        success_sq = select(sa.func.count(Order.id)).where(
+            and_(
+                Order.customer_phone == sa.column("customer_phone"), # Reference outer column
+                Order.status == "COMPLETED",
+                Order.tenant_id == TENANT_ID
+            )
+        ).scalar_subquery().label("successful_count")
+        
+        cancel_sq = select(sa.func.count(Order.id)).where(
+            and_(
+                Order.customer_phone == sa.column("customer_phone"),
+                Order.status == "CANCELLED",
+                Order.tenant_id == TENANT_ID
+            )
+        ).scalar_subquery().label("cancelled_count")
+
         stmt = select(
             Order.id, Order.status, Order.total_amount, Order.items, Order.created_at,
             Order.is_spam, Order.spam_score, Order.spam_reason, Order.fingerprint,
-            User.name.label("customer_name")
+            Order.customer_name, Order.customer_phone, Order.customer_address, Order.customer_ip,
+            User.name.label("user_name"),
+            success_sq, cancel_sq
         ).outerjoin(User, Order.user_id == User.id).where(
             and_(*conditions)
         ).limit(limit).offset(offset).order_by(Order.created_at.desc())
@@ -92,12 +123,30 @@ class OrderService:
     @staticmethod
     async def get_order(db_session: AsyncSession, order_id: str) -> OrderResponse:
         """Moves logic from OrderController.get_order. Uses Scalar Projection."""
+        success_sq = select(sa.func.count(Order.id)).where(
+            and_(
+                Order.customer_phone == sa.column("customer_phone"),
+                Order.status == "COMPLETED",
+                Order.tenant_id == TENANT_ID
+            )
+        ).scalar_subquery().label("successful_count")
+        
+        cancel_sq = select(sa.func.count(Order.id)).where(
+            and_(
+                Order.customer_phone == sa.column("customer_phone"),
+                Order.status == "CANCELLED",
+                Order.tenant_id == TENANT_ID
+            )
+        ).scalar_subquery().label("cancelled_count")
+
         stmt = (
             select(
                 Order.id, Order.status, Order.total_amount, Order.items, Order.created_at,
                 Order.is_spam, Order.spam_score, Order.spam_reason, Order.fingerprint,
+                Order.customer_name, Order.customer_phone, Order.customer_address, Order.customer_ip,
                 Order.history, Order.cancellation_reason,
-                User.name.label("customer_name")
+                User.name.label("user_name"),
+                success_sq, cancel_sq
             )
             .outerjoin(User, Order.user_id == User.id)
             .where(Order.id == order_id)
@@ -108,7 +157,61 @@ class OrderService:
         if not row:
             raise NotFoundException(f"Order {order_id} not found")
 
-        return OrderResponse.model_validate(row)
+        # Customer 360 Insights (Viral 2026 Deep Intelligence)
+        phone = row.customer_phone
+        insight = None
+        if phone:
+            insight_stmt = select(
+                sa.func.sum(Order.total_amount).filter(Order.status == "COMPLETED").label("ltv"),
+                sa.func.count(Order.id).label("total_orders"),
+                # Success rate calculation
+                (sa.func.count(Order.id).filter(Order.status == "COMPLETED") * 100.0 / sa.func.count(Order.id)).label("trust_score"),
+                sa.func.min(Order.created_at).label("first_order"),
+                sa.func.max(Order.created_at).label("last_order")
+            ).where(
+                and_(
+                    Order.customer_phone == phone,
+                    Order.tenant_id == TENANT_ID
+                )
+            )
+            stats = (await db_session.execute(insight_stmt)).fetchone()
+            
+            # Fetch previous 10 orders (excluding self)
+            history_stmt = select(
+                Order.id, Order.created_at, Order.status, Order.total_amount, Order.items
+            ).where(
+                and_(
+                    Order.customer_phone == phone,
+                    Order.id != order_id,
+                    Order.tenant_id == TENANT_ID
+                )
+            ).order_by(Order.created_at.desc()).limit(10)
+            
+            history_result = await db_session.execute(history_stmt)
+            previous_orders = []
+            for h in history_result:
+                previous_orders.append({
+                    "id": h.id,
+                    "created_at": h.created_at.isoformat(),
+                    "status": h.status,
+                    "total": float(h.total_amount),
+                    "item_count": sum(it.get("quantity", 1) for it in h.items) if isinstance(h.items, list) else 0
+                })
+
+            if stats:
+                insight = {
+                    "ltv": float(stats.ltv) if stats.ltv else 0.0,
+                    "total_orders": stats.total_orders or 0,
+                    "trust_score": float(stats.trust_score) if stats.trust_score else 0.0,
+                    "first_order": stats.first_order.isoformat() if stats.first_order else None,
+                    "last_order": stats.last_order.isoformat() if stats.last_order else None,
+                    "previous_orders": previous_orders
+                }
+
+        # Validate with custom insight field
+        res_dict = row._asdict()
+        res_dict["insight"] = insight
+        return OrderResponse.model_validate(res_dict)
 
     @staticmethod
     async def transition_status(

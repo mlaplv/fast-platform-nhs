@@ -48,9 +48,28 @@ export interface OrderHistory {
   note?: string;
 }
 
+export interface CustomerInsight {
+  ltv: number;
+  total_orders: number;
+  trust_score: number;
+  first_order?: string;
+  last_order?: string;
+  previous_orders: {
+    id: string;
+    created_at: string;
+    status: string;
+    total: number;
+    item_count: number;
+  }[];
+}
+
 export interface Order {
-  id: string;
-  customerName: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerAddress?: string;
+  customerIp?: string;
+  userName?: string;
+  finalCustomerName: string;
   total: number;
   status: string;
   itemCount: number;
@@ -59,11 +78,15 @@ export interface Order {
   fingerprint?: string;
   spamReason?: string;
   createdAt: string;
+  successfulOrdersCount: number;
+  cancelledOrdersCount: number;
 }
 
 export interface OrderDetail extends Order {
   items: OrderItem[];
   history: OrderHistory[];
+  insight?: CustomerInsight;
+  cancellationReason?: string;
 }
 
 export interface Article {

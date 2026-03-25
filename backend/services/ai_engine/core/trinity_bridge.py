@@ -46,8 +46,21 @@ class TrinityBridge:
         self.discovered = await self.models_helper.discover_available()
 
     async def run(self, agent: Agent, prompt: str, **kwargs: object):
-        t, r_m, s_id, role = kwargs.pop("timeout", 90.0), kwargs.pop("model", None), kwargs.pop("session_id", None), kwargs.pop("role", None)
-        force = kwargs.pop("force", False)
+        val_t = kwargs.pop("timeout", 90.0)
+        t = float(val_t) if isinstance(val_t, (int, float)) else 90.0
+        
+        val_m = kwargs.pop("model", None)
+        r_m = str(val_m) if val_m is not None else None
+        
+        val_sid = kwargs.pop("session_id", None)
+        s_id = str(val_sid) if val_sid is not None else None
+        
+        val_role = kwargs.pop("role", None)
+        role = str(val_role) if val_role is not None else None
+        
+        val_force = kwargs.pop("force", False)
+        force = bool(val_force)
+        
         models = ([r_m] if r_m else []) + await self.models_helper.build_chain(role, self.db_primary_model, self.db_waterfall, self.discovered)
         max_k, last_err = max(1, self.rotator.get_count()), None
 
@@ -61,7 +74,12 @@ class TrinityBridge:
                     if not force and await self.rotator.is_model_daily_exhausted(key, m_name): continue
                     
                     logger.info(f"[TrinityBridge] {m_name} (Att {att+1}/{max_k}) (S: {s_id})")
-                    res = await asyncio.wait_for(agent.run(prompt, model=GoogleModel(m_name, provider=GoogleProvider(api_key=key)), **kwargs), timeout=t)
+                    system_prompt = kwargs.pop("system_prompt", None)
+                    if system_prompt:
+                        with agent.override(instructions=str(system_prompt)):
+                            res = await asyncio.wait_for(agent.run(prompt, model=GoogleModel(m_name, provider=GoogleProvider(api_key=key)), **kwargs), timeout=t)
+                    else:
+                        res = await asyncio.wait_for(agent.run(prompt, model=GoogleModel(m_name, provider=GoogleProvider(api_key=key)), **kwargs), timeout=t)
                     
                     if hasattr(res, 'usage'): await self.rotator.track_tokens(key, getattr(res.usage, 'total_tokens', 0))
                     await self.rotator.set_success(key, session_id=s_id)
@@ -81,12 +99,22 @@ class TrinityBridge:
                         continue
                     if cat == "auth": await self.rotator.mark_unhealthy(key, reason="auth", session_id=s_id); continue
                     if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break
-        raise AIConfigurationError(f"AI Overloaded: {last_err}", models[-1] if models else "N/A", max_k-1)
+        raise AIConfigurationError(f"AI Overloaded: {last_err}", str(models[-1]) if models else "N/A", max_k-1)
 
     @asynccontextmanager
     async def run_stream(self, agent: Agent, prompt: str, **kwargs: object):
-        r_m, s_id, role = kwargs.pop("model", None), kwargs.pop("session_id", None), kwargs.pop("role", None)
-        force = kwargs.pop("force", False)
+        val_m = kwargs.pop("model", None)
+        r_m = str(val_m) if val_m is not None else None
+        
+        val_sid = kwargs.pop("session_id", None)
+        s_id = str(val_sid) if val_sid is not None else None
+        
+        val_role = kwargs.pop("role", None)
+        role = str(val_role) if val_role is not None else None
+        
+        val_force = kwargs.pop("force", False)
+        force = bool(val_force)
+        
         models = ([r_m] if r_m else []) + await self.models_helper.build_chain(role, self.db_primary_model, self.db_waterfall, self.discovered)
         max_k, last_err = max(1, self.rotator.get_count()), None
 
@@ -97,8 +125,15 @@ class TrinityBridge:
                     key = await self.rotator.get_key(model_name=m_name, session_id=s_id)
                     if not key: continue
                     if not force and await self.rotator.is_model_daily_exhausted(key, m_name): continue
-                    async with agent.run_stream(prompt, model=GoogleModel(m_name, provider=GoogleProvider(api_key=key)), **kwargs) as stream:
-                        yield stream
+                    
+                    system_prompt = kwargs.pop("system_prompt", None)
+                    if system_prompt:
+                        with agent.override(instructions=str(system_prompt)):
+                            async with agent.run_stream(prompt, model=GoogleModel(m_name, provider=GoogleProvider(api_key=key)), **kwargs) as stream:
+                                yield stream
+                    else:
+                        async with agent.run_stream(prompt, model=GoogleModel(m_name, provider=GoogleProvider(api_key=key)), **kwargs) as stream:
+                            yield stream
                     await self.rotator.set_success(key, session_id=s_id); return
                 except Exception as e:
                     last_err, cat = e, self.models_helper.classify_error(str(e))

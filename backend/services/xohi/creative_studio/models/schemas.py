@@ -46,7 +46,7 @@ class TopicSeed(BaseModel):
 class OutlineSection(BaseModel):
     model_config = ConfigDict(strict=True)
     heading: str = Field(description="Tiêu đề mục (bắt đầu bằng H2: hoặc H3:)")
-    content: str = Field(description="Mô tả nội dung chi tiết và vị trí [IMAGE_X]")
+    content: str = Field(description="Tóm tắt ý chính (1-2 câu). TUYỆT ĐỐI KHÔNG chèn ảnh [IMAGE_X] ở bước này.")
 
 class ArticleOutline(BaseModel):
     model_config = ConfigDict(strict=False)  # R105: Guarded validation (lenient for LLM stability)

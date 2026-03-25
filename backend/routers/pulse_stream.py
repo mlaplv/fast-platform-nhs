@@ -66,7 +66,6 @@ class PulseStreamController(Controller):
         headers = {
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-cache, no-transform",
-            "Connection": "keep-alive",
             "X-Accel-Buffering": "no",  # Critical for Nginx/Caddy
             "X-Content-Type-Options": "nosniff", # Prevent MIME sniffing
         }

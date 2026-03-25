@@ -156,8 +156,9 @@ class Tier3CloudRouter:
                         last_len = len(msg)
                     
         except (asyncio.CancelledError, GeneratorExit):
-            # Normal exit/cancellation — do not yield
-            raise
+            # Normal exit/cancellation — strictly do not yield or await here
+            logger.debug("[T3 Stream] Connection closed by client.")
+            return
         except Exception as e:
             logger.error(f"[T3 Stream] Critical failure: {e}")
             yield "Dạ, hệ thống đang gặp lỗi xử lý dòng dữ liệu ạ."

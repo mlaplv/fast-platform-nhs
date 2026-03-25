@@ -228,14 +228,29 @@ export function createChatState(
     }
   }
 
-  async function clearHistory(sessionId: string) {
+  async function clearHistory(sessionId: string, userId?: string) {
     if (!sessionId) return;
     state.pagination.isLoading = true;
+    const cleanUserId = sanitizeId(userId);
     try {
-      await apiClient.delete(`/api/v1/chat/sessions/${sessionId}/messages`);
+      // CNS V82.11 Fix: Clear both remote and local caches
+      const url = cleanUserId
+        ? `/api/v1/chat/sessions/${sessionId}/messages?user_id_query=${cleanUserId}`
+        : `/api/v1/chat/sessions/${sessionId}/messages`;
+
+      await apiClient.delete(url);
+
+      // Wipe local state & SWR cache
       state.history = [];
       state.pagination.cursor = null;
       state.pagination.hasMore = false;
+
+      // Wipe exact or pattern-matched cache entries
+      const targetSessionId = sessionId || "account";
+      const cacheKey = cleanUserId ? `${targetSessionId}:${cleanUserId}` : targetSessionId;
+      cache.delete(cacheKey);
+      if (sessionId === "account") cache.clear(); // Nuclear option for account purge
+
       addLogFn("Chat history has been permanently cleared.", "System");
       return true;
     } catch (e: unknown) {

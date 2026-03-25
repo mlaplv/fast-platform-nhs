@@ -99,7 +99,6 @@ async def transcribe(audio_data: bytes, user_id: Optional[str] = None) -> str:
         headers = {
             "Authorization": f"Bearer {GROQ_API_KEY}",
             "Cache-Control": "no-cache, no-transform",
-            "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
             "X-Content-Type-Options": "nosniff",
         }

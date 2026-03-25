@@ -91,13 +91,69 @@ async def seed_articles(session, author_id):
     await session.flush()
 
 async def seed_orders(session, user_id, products):
-    print("🛒 Seeding 3 orders...")
-    for i in range(3):
+    print("🛒 Seeding 15+ professional orders with 10-year history simulation...")
+    
+    # Add 'Thuốc hôi nách Elite' to products for this session
+    hien_ke_special = {"sku": "HN-ELITE-001", "name": "Thuốc hôi nách Elite (2026 Edition)", "price": 1200000}
+    all_products = products + [hien_ke_special]
+    
+    # Configuration for identity-based history
+    sep_tong_phone = "0988-888-888"
+    vip_phone = "0909-999-999"
+    guest_phone = "0123-456-789"
+
+    # 1. Sếp Tổng: The VIP Elite (10 Orders History)
+    for i in range(10):
         items, total = [], 0
-        for _ in range(random.randint(1, 2)):
-            p = random.choice(products); qty = random.randint(1, 3); sub = p["price"] * qty; total += sub
+        # Sếp Tổng always buys the deodorant + random items
+        p_list = [hien_ke_special] + ([random.choice(products)] if random.random() > 0.5 else [])
+        for p in p_list:
+            qty = 1; sub = p["price"] * qty; total += sub
             items.append({"sku": p["sku"], "name": p["name"], "quantity": qty, "price": p["price"], "total": sub})
-        session.add(Order(id=str(uuid.uuid4()), user_id=user_id, total_amount=total, status="COMPLETED", items=items, tenant_id=TENANT_ID, created_at=utcnow() - timedelta(days=random.randint(0, 30))))
+        
+        status = "COMPLETED" if i % 4 != 0 else "CANCELLED" # 75% success rate
+        
+        session.add(Order(
+            id=str(uuid.uuid4()), user_id=user_id, total_amount=total, 
+            status=status, items=items, tenant_id=TENANT_ID,
+            customer_name="Sếp Tổng (Elite)", customer_phone=sep_tong_phone,
+            customer_address="Penthouse Bitexco, Q1, TP.HCM", customer_ip="1.1.1.1",
+            fingerprint="elite_v2026_trace_001", order_metadata={"is_seeded": True},
+            created_at=utcnow() - timedelta(days=i*45) # Every 1.5 months
+        ))
+
+    # 2. Khách VIP 2026: The Risky Customer (3+ Cancellations)
+    reasons = ["Khách đổi ý", "Đặt thử cho vui", "Tìm thấy giá rẻ hơn", "Không nghe máy khi xác nhận"]
+    for i in range(4):
+        items, total = [], 0
+        for _ in range(1):
+            p = random.choice(products); qty = 1; sub = p["price"] * qty; total += sub
+            items.append({"sku": p["sku"], "name": p["name"], "quantity": qty, "price": p["price"], "total": sub})
+        
+        status = "CANCELLED" if i < 3 else "COMPLETED"
+        reason = random.choice(reasons) if status == "CANCELLED" else None
+        
+        session.add(Order(
+            id=str(uuid.uuid4()), user_id=user_id, total_amount=total, 
+            status=status, items=items, tenant_id=TENANT_ID,
+            customer_name="Khách VIP 2026", customer_phone=vip_phone,
+            customer_address="Landmark 81, Bình Thạnh, TP.HCM", customer_ip="8.8.8.8",
+            fingerprint="viral_identity_fb_999", order_metadata={"is_seeded": True},
+            cancellation_reason=reason,
+            created_at=utcnow() - timedelta(days=i*5)
+        ))
+
+    # 3. Guest 2026: The New Customer (1 Pending)
+    p = random.choice(products); total = p["price"]
+    session.add(Order(
+        id=str(uuid.uuid4()), user_id=user_id, total_amount=total, 
+        status="PENDING", items=[{"sku": p["sku"], "name": p["name"], "quantity": 1, "price": p["price"], "total": total}], 
+        tenant_id=TENANT_ID, customer_name="Guest 2026", customer_phone=guest_phone,
+        customer_address="Chưa cập nhật", customer_ip="127.0.0.1",
+        fingerprint="guest_fingerprint_abc123", order_metadata={"is_seeded": True},
+        created_at=utcnow()
+    ))
+
     await session.flush()
 
 async def seed_system_settings(session):

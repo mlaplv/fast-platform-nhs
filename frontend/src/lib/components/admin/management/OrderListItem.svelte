@@ -6,6 +6,8 @@
   import XCircle from "lucide-svelte/icons/x-circle";
   import Play from "lucide-svelte/icons/play";
   import Shield from "lucide-svelte/icons/shield";
+  import Phone from "lucide-svelte/icons/phone";
+  import MapPin from "lucide-svelte/icons/map-pin";
   import type { Order } from "$lib/types";
 
   let { order, status, onClick, onAction } = $props<{
@@ -60,30 +62,85 @@
     <div
       class="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 xl:gap-8"
     >
-      <!-- ID & Customer -->
-      <div class="min-w-[120px]">
+      <!-- Identity & Contact Block -->
+      <div class="min-w-[200px] flex flex-col gap-1">
         <div
-          class="text-[9px] font-mono text-gray-500 uppercase tracking-widest mb-0.5 flex items-center gap-1.5"
+          class="text-[9px] font-mono text-gray-500 uppercase tracking-widest flex items-center gap-2"
         >
-          ID: {order.id.split("-")[0]}
+          <span>ID: {order.id.split("-")[0]}</span>
+          {#if order.customerIp}
+            <div class="flex items-center gap-1 bg-neon-cyan/10 border border-neon-cyan/30 px-1.5 py-0.5 rounded-sm">
+              <span class="text-[7px] text-neon-cyan/60 uppercase font-bold">IP</span>
+              <span class="text-[8px] text-neon-cyan font-mono">{order.customerIp}</span>
+            </div>
+          {/if}
+          {#if order.fingerprint}
+            <div class="flex items-center gap-1 bg-fuchsia-500/10 border border-fuchsia-500/30 px-1.5 py-0.5 rounded-sm">
+              <span class="text-[7px] text-fuchsia-400/60 uppercase font-bold">FP</span>
+              <span class="text-[8px] text-fuchsia-400 font-mono">{order.fingerprint.substring(0, 8)}...</span>
+            </div>
+          {/if}
           {#if order.status === "pending"}
-            <span class="w-1 h-1 rounded-full bg-[#FFB800] animate-pulse"
+            <span class="w-1.5 h-1.5 rounded-full bg-[#FFB800] animate-pulse ml-auto"
             ></span>
           {/if}
         </div>
-        <div
-          class="text-[13px] sm:text-sm font-bold text-white truncate max-w-[180px]"
-        >
-          {order.customerName}
+        <div class="flex flex-col gap-1.5">
+          <div class="flex items-center gap-2">
+            <div class="text-[13px] sm:text-sm font-bold {order.successfulOrdersCount >= 3 ? 'text-emerald-400 bg-emerald-400/10 px-1.5 rounded-sm' : 'text-white'} truncate max-w-[180px]">
+              {order.finalCustomerName}
+            </div>
+            {#if order.successfulOrdersCount >= 5}
+              <span class="text-[8px] bg-amber-400/20 text-amber-400 px-1 rounded-sm border border-amber-400/30 uppercase font-black tracking-tighter">VIP Elite</span>
+            {:else if order.successfulOrdersCount === 0 && order.cancelledOrdersCount === 0}
+              <span class="text-[8px] bg-blue-500/20 text-blue-400 px-1 rounded-sm border border-blue-400/30 uppercase font-bold tracking-tighter">New</span>
+            {/if}
+          </div>
+          
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {#if order.customerPhone}
+              <div class="text-[10px] font-mono text-neon-cyan/80 flex items-center gap-1">
+                <Phone size={10} class="opacity-60" />
+                {order.customerPhone}
+              </div>
+            {/if}
+            
+            <!-- Trust Radar -->
+            <div class="flex items-center gap-1.5 min-h-[16px]">
+              {#if order.successfulOrdersCount > 0}
+                <div class="flex items-center gap-1 text-[9px] text-emerald-500 bg-emerald-500/5 px-1 rounded-sm border border-emerald-500/10">
+                  <span class="font-bold">{order.successfulOrdersCount}</span>
+                  <span class="opacity-50 text-[7px] uppercase font-bold">Done</span>
+                </div>
+              {/if}
+              {#if order.cancelledOrdersCount > 0}
+                <div class="flex items-center gap-1 text-[9px] text-rose-500 bg-rose-500/5 px-1 rounded-sm border border-rose-500/10">
+                  <span class="font-bold">{order.cancelledOrdersCount}</span>
+                  <span class="opacity-50 text-[7px] uppercase font-bold">Burn</span>
+                </div>
+              {/if}
+            </div>
+          </div>
+
+          {#if order.customerAddress}
+            <div class="text-[10px] text-gray-500 italic truncate max-w-[220px] flex items-center gap-1" title={order.customerAddress}>
+              <MapPin size={10} class="shrink-0 opacity-40" />
+              {order.customerAddress}
+            </div>
+          {/if}
         </div>
       </div>
 
       <!-- Mobile-only quick stats row -->
-      <div class="flex sm:hidden items-center justify-between mt-1">
+      <div class="flex sm:hidden items-center gap-3 mt-1">
         <div class="text-[11px] font-mono font-bold text-green-400">
           {formatCurrency(order.total)}
         </div>
-        <div class="text-[9px] font-mono text-gray-400">
+        <div class="text-[10px] font-mono text-gray-500 flex items-center gap-1">
+          <span class="text-white font-bold">{order.itemCount}</span>
+          <span class="text-[8px]">UNITS</span>
+        </div>
+        <div class="text-[9px] font-mono text-gray-400 ml-auto">
           {timeAgo(order.createdAt)}
         </div>
       </div>
@@ -96,7 +153,7 @@
           Payload
         </div>
         <div class="text-xs font-mono text-gray-300">
-          <span class="font-bold text-white">{order.items}</span>
+          <span class="font-bold text-white">{order.itemCount}</span>
           <span class="text-[9px] text-gray-600 ml-1">UNITS</span>
         </div>
       </div>

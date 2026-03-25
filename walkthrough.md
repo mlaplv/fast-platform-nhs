@@ -1,4 +1,69 @@
-# Walkthrough - Phase 16: Content Quality Assurance & Plagiarism Shield
+# Walkthrough - CNS V83.0: Baseline Reconnaissance
+
+## 🛠️ Công việc đã thực hiện
+
+### 1. Scouting: Project Structure Mapping
+- **Action**: Thực hiện trinh sát toàn bộ địa bàn dự án, lọc bỏ các thư mục rác/tạm (node_modules, .venv, __pycache__, v.v.).
+- **Artifact**: Khởi tạo file `project.md` tại thư mục gốc chứa cây thư mục đầy đủ (độ sâu 3) để làm S.O.T (Source of Truth) cho các đợt tác chiến tiếp theo.
+
+### 2. Architecture: Client Shop Integration (smartshop.test)
+- **Action**: Thiết kế và cập nhật cấu trúc thư mục cho trang bán hàng (Client) vào `project.md`.
+- **Styling**: Sử dụng `diff` block với tiền tố `-` để đánh dấu các thành phần mới bằng màu đỏ.
+- **Components**: Bổ sung `(client)` route group, `shop.svelte.ts` store và `client_service.py` backend.
+
+### 3. Architecture: Best Practice & Domain Isolation
+- **Action**: Hiệu chỉnh bản vẽ kiến trúc theo tiêu chuẩn Elite V2.2 cao nhất.
+- **Improvements**:
+    - **Backend**: Thêm `domain_guard.py` để cô lập Admin/Client. Gom nhóm Controller/Schema vào thư mục `client/`.
+    - **Frontend**: Chuyển Assets của Client vào `src/lib/assets` để tối ưu hóa qua Vite.
+- **Documentation**: Bổ sung các nhãn `[ELITE]` và `[NOTE]` trực tiếp vào cây thư mục tại `project.md` để hướng dẫn chi tiết cho đội ngũ phát triển.
+
+## 🧪 Bằng chứng xác thực (Verification)
+- **File Existence**: Đã xác nhận `project.md` tồn tại tại root.
+- **Visual Distinction**: Các thành phần Client mới được đánh dấu đỏ trong code block `diff`.
+- **Note Integration**: Đã ghi chú trực tiếp các quy tắc `[ELITE]` và `[NOTE]` vào cây thư mục.
+- **Content Accuracy**: Cây thư mục phản ánh đúng cấu trúc Elite V2.2 (Backend Litestar / Frontend SvelteKit).
+
+## 📊 Nhật ký thực thi
+- [2026-03-26]: Hoàn thành trinh sát và vẽ bản đồ dự án.
+
+---
+
+*Xác nhận hoàn thành bởi Antigravity (Elite V2.2 Protocol).*
+
+---
+
+# Walkthrough - CNS V82.11: Persistence & UI Integrity Fixes
+
+## 🛠️ Công việc đã thực hiện
+
+### 1. Backend & Frontend: Chat History Persistence & God-Mode Sync
+- **Transaction Fix**: Đảm bảo `await db_session.commit()` được gọi sau lệnh xóa tại Controller.
+- **God-Mode Purge Support**: Refactor `ChatService.clear_history` hỗ trợ `user_id_query`. Admin giờ đây có thể xóa log của target user một cách chính xác.
+- **Permission Relaxation**: Cho phép người dùng phổ thông tự xóa log của chính mình (`session_id="account"`) mà không bị chặn bởi check `SUPER_ADMIN`.
+- **SWR Cache Invalidation**: Cập nhật `chat.svelte.ts` để `cache.delete()` và `cache.clear()` ngay khi lệnh xóa thành công. Triệt để khắc phục lỗi chat log "mọc lại" sau khi refresh (F5) do Stale Cache.
+- **Nanobot Integration**: Kết nối `clearChatLogs` với `godModeUser` state để đảm bảo xóa đúng đối tượng trong mọi ngữ cảnh.
+
+### 2. Backend & Frontend: Order Management UI Correction
+- **Schema Alignment**: Cập nhật `OrderResponse` schema tại backend, sử dụng `alias="itemCount"` cho `@computed_field items_count`. Việc này đồng bộ hóa dữ liệu JSON trả về với interface `Order` của frontend.
+- **UI Component Update**: Sửa lỗi hiển thị `[object,object]` tại `OrderListItem.svelte`. Chuyển đổi từ việc render trực tiếp mảng `order.items` sang sử dụng trường `order.itemCount` đã được chuẩn hóa.
+
+## 🧪 Bằng chứng xác thực (Verification)
+- **Chat Persistence**: Đã kiểm tra thực tế, chat log không còn xuất hiện lại sau khi nhấn xóa và refresh (F5). SQL log xác nhận lệnh `DELETE` đã được commit thành công.
+- **Redis Sync**: Lệnh `KEYS xohi:chat:*` trên Redis không còn trả về dữ liệu của user sau khi purge.
+- **Order UI**: Cột "Payload" trong danh sách đơn hàng đã hiển thị đúng số lượng (ví dụ: "3 UNITS") thay vì chuỗi object lỗi.
+
+## 📊 Nhật ký thực thi
+- [2026-03-25]: Khắc phục lỗi persistence của Chat Log (Missing Commit & Stale Cache).
+- [2026-03-25]: Sửa lỗi hiển thị `[object,object]` tại danh sách đơn hàng (Naming Mismatch & Array Rendering).
+
+---
+
+*Xác nhận hoàn thành bởi Antigravity (Elite V2.2 Protocol).*
+
+---
+
+
 
 ## 🛠️ Công việc đã thực hiện
 
