@@ -94,6 +94,24 @@ class AtomicFixResponse(BaseModel):
     replacements: List[SurgicalSnippetFix]
 
 # ══════════════════════════════════════════════════════════════
+# SCOUT & INTELLIGENCE SCHEMAS — V62.2 Elite
+# ══════════════════════════════════════════════════════════════
+
+class ScoutHeadline(BaseModel):
+    model_config = ConfigDict(strict=True)
+    title: str = Field(description="Tiêu đề gợi ý bám sát thực tế")
+    type: str = Field(description="Phân loại: ADS (Quảng cáo) | TOP_10 (SEO) | AI_AUGMENTED (Sáng tạo)")
+
+class ScoutReport(BaseModel):
+    model_config = ConfigDict(strict=True)
+    topic: str
+    headlines: List[ScoutHeadline]
+    semantic_keywords: List[str]
+    strategic_analysis: str = Field(description="Bản trình báo chiến lược AI chuyên sâu (Markdown)")
+    ground_truth_summary: Optional[str] = Field(default=None, description="Tóm tắt bối cảnh trinh sát từ Google")
+    logs: List[str] = Field(default_factory=list, description="Nhật ký trinh sát thời gian thực")
+
+# ══════════════════════════════════════════════════════════════
 # ANALYSIS & ENRICHMENT SCHEMAS — 2026 Edition
 # ══════════════════════════════════════════════════════════════
 

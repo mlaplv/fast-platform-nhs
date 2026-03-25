@@ -141,3 +141,11 @@ class ContentController(Controller):
         fix_payload = {"category": data.get("category", ""), "annotations": data.get("annotations", [])}
         return await content_factory.analyst.bulk_fix(None, fix_payload, None, raw_content=data.get("content"))
 
+    @post("/scout")
+    async def scout_topic(self, request: Request) -> GenericResponse:
+        """[CNS V62.2] Perform high-IQ content scouting and strategic analysis."""
+        data = await request.json()
+        topic = data.get("topic")
+        if not topic: return GenericResponse(status="error", message="Thiếu chủ đề (topic) để trinh sát.")
+        return await content_factory.analyst.scout(topic)
+

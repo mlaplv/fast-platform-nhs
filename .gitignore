@@ -42,6 +42,8 @@ backups/
 temp/
 tmp/
 uploads/
+cache/
+**/cache/
 backend/cache/
 
 # 4. File Build/Compile

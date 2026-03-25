@@ -233,6 +233,20 @@ export interface MediaAsset {
   _updatedAt?: number;
 }
 
+export interface ScoutHeadline {
+  title: string;
+  type: string;
+}
+
+export interface ScoutReport {
+  topic: string;
+  headlines: ScoutHeadline[];
+  semantic_keywords: string[];
+  strategic_analysis: string;
+  ground_truth_summary?: string;
+  logs?: string[];
+}
+
 export interface CampaignKeywords {
   title?: string;
   primary_keyword?: string;
@@ -242,6 +256,7 @@ export interface CampaignKeywords {
   slug?: string;
   description?: string;
   creation_config?: Record<string, unknown>;
+  scout_report?: ScoutReport; // CNS V62.2: Persistent Strategic Intelligence
 }
 
 export interface CampaignMetrics {
