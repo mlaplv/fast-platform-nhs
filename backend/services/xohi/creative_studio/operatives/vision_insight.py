@@ -146,12 +146,15 @@ class VisionInsight:
                 from backend.database.models import Category
                 from sqlalchemy import select
                 try:
-                    stmt = select(Category.id, Category.name).where(Category.tenant_id == campaign.tenant_id)
+                    stmt = select(Category.id, Category.name).where(
+                        Category.tenant_id == campaign.tenant_id,
+                        Category.deleted_at == None
+                    )
                     res_cat = await repo.session.execute(stmt)
                     cat_list = res_cat.all()
                     if cat_list:
-                        categories_ctx = "\n[DANH MỤC HỆ THỐNG]:\n" + "\n".join([f"- ID: {c.id} | Name: {c.name}" for c in cat_list])
-                        prompt += f"\n{categories_ctx}\n[BẮT BUỘC]: Chọn ID danh mục phù hợp nhất từ danh sách trên và điền vào trường `category_id`."
+                        categories_ctx = "\n[DANH MỤC HỆ THỐNG TRONG DB]:\n" + "\n".join([f"- ID: {c.id} | Tên: {c.name}" for c in cat_list])
+                        prompt += f"\n{categories_ctx}\n[BẮT BUỘC]: Bạn PHẢI chọn một ID danh mục phù hợp nhất từ danh sách trên và điền vào trường `category_id`. Tuyệt đối không tự bịa ID."
                 except Exception as e:
                     logger.warning(f"[VisionInsight] Failed to fetch categories: {e}")
 
@@ -178,9 +181,25 @@ class VisionInsight:
                 result = await ai_task
                 seed: TopicSeed = result.data if hasattr(result, "data") else result.output
 
-                # CNS V85.1: Enforce Category based on intent or AI detection
+                # CNS V85.4: Enforce Category and DB ID for Products
                 if target_entity == "product":
                     seed.category = CategoryEnum.SAN_PHAM
+                    # Elite Guard: If AI failed to pick a category_id but we have one in context, try to auto-pick the first one as fallback
+                    if not seed.category_id and "DANH MỤC HỆ THỐNG" in categories_ctx:
+                        # 1. Try to find a match by name if AI returned a name or if we can guess
+                        if cat_list:
+                            for c in cat_list:
+                                if c.name.lower() in clean_topic.lower() or (hasattr(seed, 'title') and c.name.lower() in seed.title.lower()):
+                                    seed.category_id = c.id
+                                    logger.info(f"[VisionInsight] Matched category_id by name: {c.name}")
+                                    break
+                        
+                        # 2. Final Fallback: First available cat
+                        if not seed.category_id:
+                            match = re.search(r"ID: ([a-z0-9_-]+) \|", categories_ctx)
+                            if match:
+                                seed.category_id = match.group(1)
+                                logger.info(f"[VisionInsight] Auto-recovered category_id for product: {seed.category_id}")
                 elif target_entity == "article":
                     seed.category = CategoryEnum.TIN_TUC
 

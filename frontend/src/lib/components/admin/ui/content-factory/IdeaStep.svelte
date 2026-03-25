@@ -12,6 +12,7 @@
     Zap
   } from "lucide-svelte";
   import { onMount } from "svelte";
+  import { ChevronDown } from "lucide-svelte";
   import type { CampaignKeywords } from "$lib/state/types";
   import { createIdeaController } from "$lib/state/xohiIdea.svelte";
   import { nanobot } from "$lib/state/nanobot.svelte";
@@ -78,7 +79,22 @@
         s.is_active = true; // Auto-ON as requested: "auto on khi có lịch"
       }
     }
+
+    // Phase 102.2: Fetch DB Categories for Product Connection
+    fetchCategories();
   });
+
+  let dbCategories = $state<{id: string, name: string}[]>([]);
+  async function fetchCategories() {
+    try {
+      const res = await apiClient.get('/api/v1/categories?limit=200');
+      if (res.status === 'success') {
+        dbCategories = res.data.items || [];
+      }
+    } catch (e) {
+      console.error("[IdeaStep] Failed to fetch categories", e);
+    }
+  }
 
   // CNS V62.2: Scout Intelligence State
   let isScouting = $state(false);
@@ -247,23 +263,59 @@
         </div>
       </div>
 
-      <div class="group/field">
-        <label for="category-{campaign_id}" class="text-[10px] text-fuchsia-300/80 uppercase font-black tracking-widest mb-1.5 ml-1 block">Danh mục (Category/Phễu)</label>
-        <div class="relative">
-          <select
-            id="category-{campaign_id}"
-            bind:value={editedKeywords.category}
-            class="w-full bg-[#0c0a0f]/80 backdrop-blur-xl border border-white/5 rounded-xl px-4 py-3 text-[12px] font-bold text-white focus:outline-none focus:border-fuchsia-500/50 focus:bg-fuchsia-500/5 transition-all appearance-none cursor-pointer shadow-[inset_0_1px_rgba(255,255,255,0.05)]"
-          >
-            <option value="Tin tức" class="bg-gray-900 text-white font-medium">1. Tin tức / Cập nhật mảng</option>
-            <option value="Chính sách" class="bg-gray-900 text-white font-medium">2. Chính sách / Quy định</option>
-            <option value="Kiến thức" class="bg-gray-900 text-white font-medium">3. Kiến thức chuyên sâu (Pillar)</option>
-            <option value="Viral" class="bg-gray-900 text-white font-medium">4. Giải trí / Viral Content</option>
-          </select>
-          <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/40">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      <!-- CNS V85.5: Unified Category & DB Link UI -->
+      <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
+        <div class="flex items-center justify-between mb-2">
+           <label for="category-{campaign_id}" class="text-[10px] text-fuchsia-300/80 uppercase font-black tracking-widest ml-1 flex items-center gap-1.5">
+            <Zap size={11} /> Phân loại & Vị trí lưu trữ
+          </label>
+          {#if editedKeywords.category_id}
+            <span class="text-[9px] font-bold text-green-400/60 uppercase tracking-tighter flex items-center gap-1 animate-pulse">
+               <ShieldCheck size={10} /> DB LINKED
+            </span>
+          {/if}
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="relative group/field">
+            <select
+              id="category-{campaign_id}"
+              bind:value={editedKeywords.category}
+              class="w-full bg-[#0c0a0f]/80 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 text-[12px] font-bold text-white focus:outline-none focus:border-fuchsia-500/50 transition-all appearance-none cursor-pointer shadow-inner"
+            >
+              <option value="Tin tức" class="bg-gray-900 text-white">1. Tin tức / Cập nhật mảng</option>
+              <option value="Sản phẩm" class="bg-gray-900 text-white font-bold text-fuchsia-400">💎 2. Sản phẩm / Dịch vụ Elite</option>
+              <option value="Chính sách" class="bg-gray-900 text-white">3. Chính sách / Quy định</option>
+              <option value="Kiến thức" class="bg-gray-900 text-white">4. Kiến thức (Pillar)</option>
+              <option value="Viral" class="bg-gray-900 text-white">5. Giải trí / Viral</option>
+            </select>
+            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/30">
+              <ChevronDown size={14} />
+            </div>
+          </div>
+
+          <div class="relative group/field">
+             <select
+              id="db-category-{campaign_id}"
+              bind:value={editedKeywords.category_id}
+              class="w-full bg-[#0c0a0f]/80 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 text-[12px] font-bold text-white/80 focus:outline-none focus:border-amber-500/50 transition-all appearance-none cursor-pointer shadow-inner"
+            >
+              <option value="" class="bg-gray-900 text-white/40">-- Chọn danh mục thực tế --</option>
+              {#each dbCategories as cat}
+                <option value={cat.id} class="bg-gray-900 text-white">{cat.name}</option>
+              {/each}
+            </select>
+            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/30">
+              <ChevronDown size={14} />
+            </div>
           </div>
         </div>
+        
+        {#if !editedKeywords.category_id && editedKeywords.category === 'Sản phẩm'}
+          <p class="text-[9px] text-amber-400/60 font-medium italic ml-1">
+            ⚠️ Sếp ơi, chọn danh mục thực tế để sản phẩm có "hộ khẩu" trên Web ạ!
+          </p>
+        {/if}
       </div>
 
       <!-- Phase 35: Creative Brief Configuration (Viral Style) -->
