@@ -43,11 +43,13 @@ class Article(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     seo_og_image: Mapped[Optional[str]] = mapped_column(String)
     status: Mapped[str] = mapped_column(String, default="DRAFT")
     category: Mapped[str] = mapped_column(String, default="Tin tức")
+    category_id: Mapped[Optional[str]] = mapped_column(String, sa.ForeignKey('categories.id'))
     views: Mapped[int] = mapped_column(Integer, default=0)
     featured_image: Mapped[Optional[str]] = mapped_column(String)
     
     author_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('users.id'))
     author: Mapped[Optional["User"]] = relationship("User", back_populates="articles")
+    category_rel: Mapped[Optional["Category"]] = relationship("Category")
 
     embedding: Mapped[Optional["ArticleEmbedding"]] = relationship("ArticleEmbedding", back_populates="article", uselist=False)
 

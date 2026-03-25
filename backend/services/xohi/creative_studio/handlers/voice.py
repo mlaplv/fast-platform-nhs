@@ -173,14 +173,32 @@ class VoiceHandler:
                 stale.status = "REJECTED"
                 await campaign_repo.update(stale)
 
-            # Phase 77: Inject content_mode into gold_metadata
+            # CNS V85.1: Neural Intent Decoding (Vừng ơi mở cửa ra)
             gold_meta = {}
+            clean_transcript = transcript
+            
+            # Article Intent
+            if re.match(r"^(adm\s+)?(viet bai|van bai:?)\s*", t_norm, re.IGNORECASE):
+                gold_meta["target_entity"] = "article"
+                gold_meta["style"] = "Viral"
+                clean_transcript = re.sub(r"^(adm\s+)?(viết bài:?\s*|vân bài:?\s*)", "", transcript, flags=re.IGNORECASE).strip()
+                response_msg = f"Dạ thưa Sếp, em đã bẻ lái sang dây chuyền TIN TỨC để xử lý chủ đề '{clean_transcript}' đây ạ! 🚀"
+            
+            # Product Intent
+            elif re.match(r"^(adm\s+)?(tao san pham|san pham:?)\s*", t_norm, re.IGNORECASE):
+                gold_meta["target_entity"] = "product"
+                gold_meta["style"] = "Chuyên nghiệp"
+                clean_transcript = re.sub(r"^(adm\s+)?(tạo sản phẩm:?\s*|san pham:?\s*)", "", transcript, flags=re.IGNORECASE).strip()
+                response_msg = f"Dạ thưa Sếp, em đã bẻ lái sang dây chuyền SẢN PHẨM để thiết kế '{clean_transcript}' chuẩn Elite ạ! 💎"
+            
+            else:
+                response_msg = f"Dạ thưa Sếp, em đang khởi tạo XoHi Core để phân tích '{transcript}' đây ạ. Sếp đợi em một chút nhé!"
+
             if intent_data and "content_mode" in intent_data:
                 gold_meta["content_mode"] = intent_data["content_mode"]
-                logger.info(f"[Phase 77] Content Mode detected: {gold_meta['content_mode']}")
 
             campaign = ContentCampaign(
-                id=str(uuid.uuid4()), user_id=user_id, source_input=transcript,
+                id=str(uuid.uuid4()), user_id=user_id, source_input=clean_transcript,
                 tenant_id=tenant_id, current_step=1, status="PROCESSING", 
                 gold_metadata=gold_meta, category=category.value
             )
@@ -190,16 +208,14 @@ class VoiceHandler:
             if hasattr(campaign_repo, "session"):
                 await campaign_repo.session.commit()
 
-            # Phase 16.1: Zero-Latency Trigger (Instant Neural Hub)
-            # We background the heavy analysis and return the campaign ID immediately
-            # so the Svelte UI can pop up the Premium Loading screen instantly.
+            # Phase 16.1: Zero-Latency Trigger
             asyncio.create_task(self._run_background_analysis(
-                c_id, transcript, u_id_str, tenant_id, gold_meta.get("content_mode", "viral"), campaign_repo
+                c_id, clean_transcript, u_id_str, tenant_id, gold_meta.get("style", "viral").lower(), campaign_repo
             ))
 
             return IntentResponse(
                 status="success", action=IntentAction.CONTENT_CREATE,
-                message=f"Dạ thưa Sếp, em đang khởi tạo XoHi Core để phân tích ý tưởng của Sếp đây ạ. Sếp đợi em một chút nhé! 🚀",
+                message=response_msg,
                 router_tier=RouterTier.TIER_2_SEMANTIC,
                 data={
                     "category": "CONTENT_CREATE",
@@ -209,7 +225,8 @@ class VoiceHandler:
                     "campaign_id": c_id,
                     "status": "PROCESSING",
                     "step": 1,
-                    "campaign_category": category.value
+                    "campaign_category": category.value,
+                    "target_entity": gold_meta.get("target_entity")
                 },
                 cost_tokens=0.0
             )
@@ -253,7 +270,7 @@ class VoiceHandler:
 
                 # Execute Step 1 Analysis (AI)
                 seed: TopicSeed = await self.orchestrator.vision.analyze_input(
-                    transcript, campaign_id, user_id, content_mode=content_mode
+                    transcript, campaign_id, repo, user_id, content_mode=content_mode
                 )
                 
                 seed_data = seed.model_dump()

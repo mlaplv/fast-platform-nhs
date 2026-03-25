@@ -67,4 +67,4 @@ NORM_QUESTION_KEYWORDS = [normalize_vn(kw) for kw in QUESTION_KEYWORDS]
 NORM_LEARN_KEYWORDS = [normalize_vn(kw) for kw in LEARN_KEYWORDS]
 NORM_MUTATE_KEYWORDS = [normalize_vn(kw) for kw in MUTATE_KEYWORDS]
 NORM_NAV_EXPLICIT = {normalize_vn(kw) for kw in ["bieu do", "mo", "xem", "vao", "show"]}
-NORM_CONTENT_FACTORY = {normalize_vn(kw) for kw in ["viet bai", "sang tac", "content"]}
+NORM_CONTENT_FACTORY = {normalize_vn(kw) for kw in ["viet bai", "sang tac", "content", "tao san pham"]}

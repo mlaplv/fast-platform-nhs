@@ -135,6 +135,25 @@
     }
   });
 
+  // CNS V82.5: Neural Intent Decoding (Vừng ơi mở cửa ra)
+  $effect(() => {
+    const title = editedKeywords?.title || "";
+    if (title.toLowerCase().startsWith("viết bài:") || title.toLowerCase().startsWith("viết bài ")) {
+      editedConfig.target_entity = "article";
+      editedConfig.style = "Viral";
+      // Clean up title for neural processing
+      const cleanTitle = title.replace(/^(viết bài:?\s*)/i, "");
+      if (cleanTitle && cleanTitle !== title) editedKeywords.title = cleanTitle;
+      nanobot.showToast("Dạ Sếp, em đã bẻ lái sang dây chuyền TIN TỨC ạ!", "info");
+    } else if (title.toLowerCase().startsWith("tạo sản phẩm:") || title.toLowerCase().startsWith("tạo sản phẩm ")) {
+      editedConfig.target_entity = "product";
+      editedConfig.style = "Chuyên nghiệp";
+      const cleanTitle = title.replace(/^(tạo sản phẩm:?\s*)/i, "");
+      if (cleanTitle && cleanTitle !== title) editedKeywords.title = cleanTitle;
+      nanobot.showToast("Dạ Sếp, em đã bẻ lái sang dây chuyền SẢN PHẨM ạ!", "success");
+    }
+  });
+
   // CNS V62.3: Restore Scout Report Reactively (if editedKeywords changes externally)
   $effect(() => {
     if (editedKeywords?.scout_report && !scoutReport) {

@@ -54,7 +54,19 @@ class ActionHandler:
             c.gold_metadata = c.topic_data; from sqlalchemy.orm.attributes import flag_modified; flag_modified(c, "gold_metadata")
 
         if step == 6:
-            if await publish_campaign_to_news(c, campaign_repo):
+            from backend.services.xohi.creative_studio.formatters.publisher import publish_campaign_to_news, publish_campaign_to_products
+            
+            ent = c.get_gold_config().get("target_entity", "article")
+            topic_data = c.topic_data or {}
+            cat_id = topic_data.get("category_id")
+            
+            success = False
+            if ent == "product":
+                success = await publish_campaign_to_products(c, campaign_repo, category_id=cat_id)
+            else:
+                success = await publish_campaign_to_news(c, campaign_repo, category_id=cat_id)
+
+            if success:
                 if hasattr(campaign_repo, "session"): await campaign_repo.session.commit()
                 await event_bus.emit("CONTENT_STEP_COMPLETED", {"campaign_id": campaign_id, "user_id": c.user_id, "step": 6, "status": "COMPLETED", "tenant_id": c.tenant_id})
                 return GenericResponse(status="success", message="🎉 Xuất bản thành công!", data={"campaign_id": campaign_id, "next_step": 7})

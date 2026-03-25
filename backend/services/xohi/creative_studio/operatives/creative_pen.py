@@ -9,7 +9,7 @@ from backend.services.xohi.creative_studio.models.schemas import ArticleOutline,
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.text import to_int
 from backend.utils.noise_cleaner import noise_cleaner
-from .creative_pen_prompts import OUTLINE_PROMPT, DRAFT_PROMPT
+from .creative_pen_prompts import PROMPTS
 from .creative_pen_utils import process_pen_draft
 
 logger = logging.getLogger("api-gateway")
@@ -17,13 +17,14 @@ logger = logging.getLogger("api-gateway")
 class CreativePen:
     """
     Step 3 & 4: Generate Outline and Draft Content. V62.1.
-    Modularized for Martial Law (<300 lines).
+    CNS V85.1: Multi-Entity Support (News vs Product).
     """
     def __init__(self, model_name: Optional[str] = None):
-        logger.info("🔥 [CreativePen] CNS V82.55 Loaded with to_int protection.")
+        logger.info("🔥 [CreativePen] CNS V85.1 Multi-Entity Engine Loaded.")
         self.model_name, self.pen_semaphore = model_name, asyncio.Semaphore(1)
-        self.outline_agent = Agent(output_type=ArticleOutline, system_prompt=OUTLINE_PROMPT, retries=3)
-        self.draft_agent = Agent(system_prompt=DRAFT_PROMPT)
+        # We'll initialize agents dynamically or with base prompts
+        self.outline_agent = Agent(output_type=ArticleOutline, retries=3)
+        self.draft_agent = Agent()
 
     async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
         campaign = await repo.get(campaign_id)
@@ -50,11 +51,19 @@ class CreativePen:
         gt = campaign.get_gold_val("ground_truth", "")
         max_s = to_int(config.get("max_sections", 3))
         
+        # CNS V85.1: Adaptive Prompting
+        ent = config.get("target_entity", "article")
+        system_prompt = PROMPTS.get(ent, PROMPTS["article"])["outline"]
+        
         inst = f"Hãy tạo Dàn Ý (ArticleOutline) chi tiết gồm đúng {max_s} mục H2. Bám sát Ground Truth."
         prompt = f"Tiêu đề: {t}\nTừ khóa: {p}\nGround Truth: {gt}\nGiới hạn: {max_s} mục H2."
         
         try:
-            res = await trinity_bridge.run(self.outline_agent, f"{inst}\n{prompt}", session_id=campaign.id, model=self.model_name)
+            res = await trinity_bridge.run(
+                self.outline_agent, f"{inst}\n{prompt}", 
+                system_prompt=system_prompt,
+                session_id=campaign.id, model=self.model_name
+            )
             raw = getattr(res, "data", getattr(res, "output", res))
             if isinstance(raw, ArticleOutline): return raw
             if isinstance(raw, dict) and "sections" in raw: return ArticleOutline(**raw)
@@ -64,24 +73,73 @@ class CreativePen:
             raise
 
     async def write_draft(self, campaign: ContentCampaign) -> str:
+        config = campaign.get_gold_config()
+        ent = config.get("target_entity", "article")
+        system_prompt = PROMPTS.get(ent, PROMPTS["article"])["draft"]
+        
         prompt, assets, primary = await self._build_p(campaign)
         try:
-            res = await trinity_bridge.run(self.draft_agent, prompt, session_id=campaign.id, model=self.model_name)
+            res = await trinity_bridge.run(
+                self.draft_agent, prompt, 
+                system_prompt=system_prompt,
+                session_id=campaign.id, model=self.model_name
+            )
             raw = getattr(res, "data", getattr(res, "output", str(res)))
-            return await process_pen_draft(str(raw), assets, primary)
+            content = await process_pen_draft(str(raw), assets, primary)
+            
+            # CNS V85.1: Extract Metadata for Products
+            if ent == "product":
+                content = self._extract_xohi_metadata(content, campaign)
+                
+            return content
         except Exception as e:
             logger.error(f"[CreativePen] Draft Error: {e}"); raise
 
     async def stream_draft(self, campaign: ContentCampaign):
+        config = campaign.get_gold_config()
+        ent = config.get("target_entity", "article")
         prompt, assets, primary = await self._build_p(campaign)
         try:
             full_raw = ""
             async with trinity_bridge.run_stream(self.draft_agent, prompt, session_id=campaign.id, model=self.model_name) as stream:
                 async for text in stream.stream_text(delta=True):
                     if text: full_raw += text; yield {"type": "chunk", "text": text}
-            yield {"type": "final", "content": await process_pen_draft(full_raw, assets, primary)}
+            
+            final_content = await process_pen_draft(full_raw, assets, primary)
+            if ent == "product":
+                final_content = self._extract_xohi_metadata(final_content, campaign)
+                
+            yield {"type": "final", "content": final_content}
         except Exception as e:
             logger.error(f"[CreativePen] Stream Error: {e}"); yield {"type": "error", "message": str(e)}; raise
+
+    def _extract_xohi_metadata(self, content: str, campaign: ContentCampaign) -> str:
+        """CNS V85.1: Neural Metadata Extraction (Regex based)."""
+        import re
+        import json
+        from sqlalchemy.orm.attributes import flag_modified
+        
+        match = re.search(r'<xohi-metadata>(.*?)</xohi-metadata>', content, re.DOTALL)
+        if match:
+            try:
+                meta = json.loads(match.group(1).strip())
+                gold = dict(campaign.gold_metadata or {})
+                
+                # Sync attributes, price, seo
+                for key in ["attributes", "price", "seo_title", "seo_description"]:
+                    if key in meta:
+                        gold[key] = meta[key]
+                
+                campaign.gold_metadata = gold
+                flag_modified(campaign, "gold_metadata")
+                logger.info(f"✅ [CreativePen] Metadata extracted for {campaign.id}")
+            except Exception as e:
+                logger.error(f"❌ [CreativePen] Metadata Parse Error: {e}")
+            
+            # Clean HTML
+            content = re.sub(r'<xohi-metadata>.*?</xohi-metadata>', '', content, flags=re.DOTALL).strip()
+            
+        return content
 
     async def _build_p(self, campaign: ContentCampaign) -> Tuple[str, List[str], str]:
         outline_data = campaign.outline_data or {}

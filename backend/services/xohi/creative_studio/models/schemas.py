@@ -10,6 +10,7 @@ class AgentSignal(str, Enum):
 
 class CategoryEnum(str, Enum):
     TIN_TUC = "Tin tức"
+    SAN_PHAM = "Sản phẩm"
     CHINH_SACH = "Chính sách"
 
 class CampaignCategory(str, Enum):
@@ -29,7 +30,8 @@ class TopicSeed(BaseModel):
     secondary_keywords: List[str] = Field(description="Danh sách 3-5 từ khóa phụ bổ trợ")
     persona: str = Field(description="Mô tả phong cách viết bài (e.g. trẻ trung, chuyên gia)")
     description: str = Field(description="Mô tả tóm tắt chuẩn SEO cho bài viết (Meta Description)")
-    category: CategoryEnum = Field(default=CategoryEnum.TIN_TUC, description="Phân loại danh mục bài viết (Tin tức hoặc Chính sách)")
+    category: CategoryEnum = Field(default=CategoryEnum.TIN_TUC, description="Phân loại hệ thực thể (Tin tức hoặc Sản phẩm)")
+    category_id: Optional[str] = Field(default=None, description="ID danh mục cụ thể từ Database (UUID)")
     ground_truth: Optional[str] = Field(default=None, description="Tóm tắt bối cảnh thực tế trinh sát được từ Google (Phase 15.1)")
     creation_config: Dict[str, object] = Field(
         default_factory=lambda: {

@@ -211,6 +211,6 @@ class ProductService:
 # SERVICE PROVIDERS (V76.2 DI PATTERN)
 # ==========================================
 
-async def provide_product_service(product_vector_service: ProductVectorService) -> ProductService:
+async def provide_product_service(vector_service: ProductVectorService) -> ProductService:
     """Standard Litestar Provider for ProductService."""
-    return ProductService(vector_service=product_vector_service)
+    return ProductService(vector_service=vector_service)

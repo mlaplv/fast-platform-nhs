@@ -218,6 +218,6 @@ class ArticleService:
 # SERVICE PROVIDERS (V76.2 DI PATTERN)
 # ==========================================
 
-async def provide_article_service(article_vector_service: ArticleVectorService) -> ArticleService:
+async def provide_article_service(vector_service: ArticleVectorService) -> ArticleService:
     """Standard Litestar Provider for ArticleService."""
-    return ArticleService(vector_service=article_vector_service)
+    return ArticleService(vector_service=vector_service)

@@ -14,8 +14,8 @@ from backend.services.event_bus import event_bus
 
 logger = logging.getLogger("api-gateway")
 
-# Pre-compiled Regex for Performance (V76.3)
-RE_CLEAN_PREFIX = re.compile(r'^(viết bài|tạo bài|làm bài|thiết kế|viết một bài về|viết bài về|tạo bài về|viết)\s+', re.IGNORECASE)
+# Pre-compiled Regex for Performance (V85.1)
+RE_CLEAN_PREFIX = re.compile(r'^(adm\s+)?(viết bài|tạo bài|làm bài|thiết kế|viết một bài về|viết bài về|tạo bài về|viết|tạo sản phẩm|san pham:?)\s+', re.IGNORECASE)
 
 VISION_PROMPT = """[ROLE] CHUYÊN GIA SEO CONTENT STRATEGY — Hệ thống XoHi Content Factory V63.0 Alpha
 
@@ -63,6 +63,7 @@ class VisionInsight:
         seed = await self.analyze_input(
             raw_input=campaign.source_input,
             campaign_id=campaign.id,
+            repo=repo,
             user_id=str(campaign.user_id) if campaign.user_id else "default"
         )
         
@@ -77,7 +78,7 @@ class VisionInsight:
         cleaned = RE_CLEAN_PREFIX.sub('', text)
         return cleaned.strip().capitalize()
 
-    async def analyze_input(self, raw_input: str, campaign_id: str, user_id: str = "default", content_mode: str = "viral") -> TopicSeed:
+    async def analyze_input(self, raw_input: str, campaign_id: str, repo: ContentCampaignRepository, user_id: str = "default", content_mode: str = "viral") -> TopicSeed:
         """
         Uses AI to extract structured keywords from input text.
         R85: Strict Structured Output via Pydantic.
@@ -101,6 +102,14 @@ class VisionInsight:
             })
 
         try:
+            campaign = await repo.get(c_id)
+            if not campaign:
+                raise ValueError(f"Campaign {c_id} not found")
+
+            # Extract target entity from metadata
+            gold_meta = campaign.gold_metadata or {}
+            target_entity = gold_meta.get("target_entity", "article")
+
             if self.discovery_hunter:
                 await _emit_progress("📡 Đang kết nối mạng lưới trinh sát thực tế...")
                 ground_truth = await self.discovery_hunter.search(clean_topic)
@@ -119,11 +128,32 @@ class VisionInsight:
             else:
                 mode_instruction = "\n[CHẾ ĐỘ: VIRAL] Bắt buộc word_count ~ 500, max_sections ~ 3, style='Sắc sảo/Viral'."
 
-            prompt = f"Chủ đề bài viết: {clean_topic}\n"
+            # Inject entity hint for AI
+            entity_hint = f"\n[ENTITY TYPE]: {target_entity.upper()}"
+            if target_entity == "product":
+                entity_hint += "\n[REQUIREMENT]: Đọc kỹ thông tin sản phẩm và phân loại category = 'Sản phẩm'."
+
+            prompt = f"Chủ đề: {clean_topic}\n"
+            prompt += entity_hint
             if ground_truth:
                 prompt += f"\n[GROUND TRUTH CONTEXT - DỮ LIỆU THỰC TẾ TỪ GOOGLE]:\n{ground_truth}\n"
             prompt += mode_instruction
             await _emit_progress("🧠 Đang kích hoạt lõi phân tích SEO Content...")
+
+            # Phase 15.6: Category Intelligence (V85.2)
+            categories_ctx = ""
+            if hasattr(repo, "session"):
+                from backend.database.models import Category
+                from sqlalchemy import select
+                try:
+                    stmt = select(Category.id, Category.name).where(Category.tenant_id == campaign.tenant_id)
+                    res_cat = await repo.session.execute(stmt)
+                    cat_list = res_cat.all()
+                    if cat_list:
+                        categories_ctx = "\n[DANH MỤC HỆ THỐNG]:\n" + "\n".join([f"- ID: {c.id} | Name: {c.name}" for c in cat_list])
+                        prompt += f"\n{categories_ctx}\n[BẮT BUỘC]: Chọn ID danh mục phù hợp nhất từ danh sách trên và điền vào trường `category_id`."
+                except Exception as e:
+                    logger.warning(f"[VisionInsight] Failed to fetch categories: {e}")
 
             # CNS V76: Enforce concurrency limit for insight tasks
             async with self.insight_semaphore:
@@ -146,27 +176,35 @@ class VisionInsight:
                         await _emit_progress(msg)
 
                 result = await ai_task
+                seed: TopicSeed = result.data if hasattr(result, "data") else result.output
 
-            await _emit_progress("✅ Phân tích chủ đề hoàn tất. Dữ liệu SEO đã sẵn sàng!")
-            
-            # result.data is the TopicSeed instance when using PydanticAI
-            return result.data if hasattr(result, "data") else result.output
+                # CNS V85.1: Enforce Category based on intent or AI detection
+                if target_entity == "product":
+                    seed.category = CategoryEnum.SAN_PHAM
+                elif target_entity == "article":
+                    seed.category = CategoryEnum.TIN_TUC
+
+                return seed
         except AIConfigurationError:
             # R109: Re-raise config errors so Orchestrator can report model/key status to sếp
             raise
         except Exception as e:
             logger.error(f"[VisionInsight] AI failed (Campaign: {c_id}): {e}", exc_info=True)
             # Fallback: Tạo keywords từ transcript đã gọt râu ria (Graceful Degradation R103)
-            # Fix: Tránh split từng từ tiếng Việt (e.g. "Thời" "trang" "nữ") -> Giữ nguyên cụm từ hoặc fallback thông minh hơn
             if not clean_topic:
                 clean_topic = "Nội dung Sáng tạo"
             
-            # Thay vì split(), chúng ta dùng title làm primary và tạo secondary từ các biến thể đơn giản
+            # Fetch target_entity for fallback
+            try:
+                temp_campaign = await repo.get(c_id)
+                target_entity = (temp_campaign.gold_metadata or {}).get("target_entity", "article") if temp_campaign else "article"
+            except: target_entity = "article"
+
             return TopicSeed(
                 title=f"Khám phá {clean_topic}",
                 primary_keyword=clean_topic[:50],
                 secondary_keywords=[clean_topic[:50], f"{clean_topic} mới nhất", "Xohi AI Strategy"],
                 persona="Chuyên gia, giọng văn thân thiện và chuyên nghiệp",
                 description=f"Khám phá kiến thức chuyên sâu về {clean_topic} để tối ưu hóa hiệu quả công việc và cuộc sống.",
-                category=CategoryEnum.TIN_TUC
+                category=CategoryEnum.SAN_PHAM if target_entity == "product" else CategoryEnum.TIN_TUC
             )
