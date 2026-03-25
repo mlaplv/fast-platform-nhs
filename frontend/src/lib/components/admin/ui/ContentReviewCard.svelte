@@ -239,6 +239,7 @@
     } 
   };
   const handleUpdateMetadata = async () => { if (await campaign.updateMetadata(viewingStep, editedKeywords, editedConfig, editedOutline, editedDraft)) { isEditing = false; editedDraft = ""; editedOutline = ""; } };
+  const handleSyncMetadata = async () => { await campaign.updateMetadata(viewingStep, editedKeywords, editedConfig, editedOutline, editedDraft); };
   
   // CNS V82.11: Root Cause Fix - Total Disposal after Step 6 Publication
   const handlePublish = async () => {
@@ -274,7 +275,7 @@
     
     <div class="flex-1 flex flex-col min-h-0">
       {#if viewingStep === 1}
-        <IdeaStep bind:isEditing {campaign_id} bind:keywords bind:editedKeywords creation_config={creation_config} bind:editedConfig {handleSelectKeyword} {handleUpdateMetadata} isLoading={campaign.isLoading} />
+        <IdeaStep bind:isEditing {campaign_id} bind:keywords bind:editedKeywords creation_config={creation_config} bind:editedConfig {handleSelectKeyword} {handleUpdateMetadata} {handleSyncMetadata} isLoading={campaign.isLoading} />
       {:else if viewingStep === 2}
         <AssetStep {campaign_id} {isProcessing} isExpanded={nanobot.isExpanded} bind:assets bind:reserve_assets bind:customImageUrl bind:selectedAvatarUrl bind:selectedAssetIndex {handleImageError} syncAssetChanges={campaign.syncAssetChanges} {handleRetry} {handleMouseMove} />
       {:else if viewingStep === 3}

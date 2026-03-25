@@ -12,9 +12,10 @@
 
   interface Props {
     config: Record<string, unknown>;
+    onSync?: () => void | Promise<void>;
   }
 
-  let { config = $bindable() }: Props = $props();
+  let { config = $bindable(), onSync }: Props = $props();
 
   // Initialize elite scheduling state
   if (!config.scheduling) {
@@ -39,17 +40,23 @@
   const weekDays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
   function toggleDay(dayIdx: number) {
-    if (!sch.days) sch.days = [];
-    if (sch.days.includes(dayIdx)) {
-      sch.days = sch.days.filter(d => d !== dayIdx);
+    const s = config.scheduling as SchedulingConfig;
+    if (!s) return;
+    if (!s.days) s.days = [];
+    if (s.days.includes(dayIdx)) {
+      s.days = s.days.filter(d => d !== dayIdx);
     } else {
-      sch.days = [...sch.days, dayIdx];
+      s.days = [...s.days, dayIdx];
     }
+    if (onSync) onSync(); // Elite: Auto-sync when day changes
   }
 
   function toggleActive() {
-    sch.is_active = !sch.is_active;
-    if (onSync) onSync();
+    const s = config.scheduling as SchedulingConfig;
+    if (s) {
+      s.is_active = !s.is_active;
+      if (onSync) onSync();
+    }
   }
 
   // CNS V82.1: Neural Auto-ON Logic

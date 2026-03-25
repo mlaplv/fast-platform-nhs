@@ -27,6 +27,7 @@
     editedConfig: Record<string, unknown>;
     handleSelectKeyword: (kw: string) => void;
     handleUpdateMetadata: () => void | Promise<void>;
+    handleSyncMetadata?: () => void | Promise<void>;
     isLoading: boolean;
   }
 
@@ -39,6 +40,7 @@
     editedConfig = $bindable(),
     handleSelectKeyword,
     handleUpdateMetadata,
+    handleSyncMetadata,
     isLoading
   }: Props = $props();
 
@@ -485,21 +487,25 @@
         </div>
 
         <!-- Secondary: Post Scheduling -->
-        <div class="p-8 rounded-[2.5rem] bg-gradient-to-br from-white/[0.01] to-transparent border border-white/5">
-           <NeuralScheduler 
-             bind:config={editedConfig} 
-             onSync={() => {
-               handleUpdateMetadata();
-               // CNS V82.3: Ensure we check the current state after sync trigger
-               const sch = editedConfig.scheduling as any;
-               if (sch?.is_active) {
-                 nanobot.showToast(`Autopilot Elite: Đã lên lịch thực thi lúc ${sch.schedule_at} (${sch.frequency})`, "success");
-               } else {
-                 nanobot.showToast("Autopilot đã chuyển sang chế độ Standby.", "info");
-               }
-             }} 
-           />
-        </div>
+         <div class="p-8 rounded-[2.5rem] bg-gradient-to-br from-white/[0.01] to-transparent border border-white/5">
+            <NeuralScheduler 
+              bind:config={editedConfig} 
+              onSync={() => {
+                if (handleSyncMetadata) {
+                  handleSyncMetadata();
+                } else {
+                  handleUpdateMetadata();
+                }
+                // CNS V82.3: Ensure we check the current state after sync trigger
+                const sch = editedConfig.scheduling as any;
+                if (sch?.is_active) {
+                  nanobot.showToast(`Autopilot Elite: Đã lên lịch thực thi lúc ${sch.schedule_at} (${sch.frequency})`, "success");
+                } else {
+                  nanobot.showToast("Autopilot đã chuyển sang chế độ Standby.", "info");
+                }
+              }} 
+            />
+         </div>
       </div>
     </div>
   </div>
