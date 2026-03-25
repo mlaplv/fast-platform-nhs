@@ -25,11 +25,11 @@ class AgentResponse(BaseModel):
 
 class TopicSeed(BaseModel):
     model_config = ConfigDict(strict=False)  # R105: Guarded validation (lenient for LLM stability)
-    title: str = Field(description="Tiêu đề bài viết thu hút, chuẩn viral")
-    primary_keyword: str = Field(description="Từ khóa chính quan trọng nhất")
-    secondary_keywords: List[str] = Field(description="Danh sách 3-5 từ khóa phụ bổ trợ")
-    persona: str = Field(description="Mô tả phong cách viết bài (e.g. trẻ trung, chuyên gia)")
-    description: str = Field(description="Mô tả tóm tắt chuẩn SEO cho bài viết (Meta Description)")
+    title: str = Field(description="Tiêu đề (Viral/Bài viết) hoặc Tên sản phẩm chính thức (Hàng hóa)")
+    primary_keyword: str = Field(description="Từ khóa chính hoặc Tên sản phẩm cốt lõi")
+    secondary_keywords: List[str] = Field(description="Danh sách từ khóa bổ trợ hoặc Thông số/Đặc tính then chốt")
+    persona: str = Field(description="Mô tả phong cách (e.g. Chuyên gia review, Copywriter bán hàng)")
+    description: str = Field(description="Mô tả SEO (Meta Description) hoặc Tóm tắt đặc điểm nổi bật SP")
     category: CategoryEnum = Field(default=CategoryEnum.TIN_TUC, description="Phân loại hệ thực thể (Tin tức hoặc Sản phẩm)")
     category_id: Optional[str] = Field(default=None, description="ID danh mục cụ thể từ Database (UUID)")
     ground_truth: Optional[str] = Field(default=None, description="Tóm tắt bối cảnh thực tế trinh sát được từ Google (Phase 15.1)")

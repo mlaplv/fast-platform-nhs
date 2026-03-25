@@ -48,8 +48,8 @@ class STTCorrector:
         words = transcript.split()
         if len(words) <= 2: return transcript, None
         
-        # Fast Bypass for context
-        if len(words) <= 4 and any(kw in transcript.lower() for kw in ["bài viết", "sản phẩm", "đơn hàng", "doanh thu", "biểu đồ"]):
+        # Fast Bypass for High-Intent Context (Elite V62.5 Upgrade: 12-word limit)
+        if len(words) <= 12 and any(kw in transcript.lower() for kw in ["bài viết", "sản phẩm", "đơn hàng", "doanh thu", "biểu đồ"]):
             return transcript, None
 
         if any(kw in transcript.lower() for kw in ["học lệnh", "dạy lệnh", "hoc lenh", "day lenh"]):

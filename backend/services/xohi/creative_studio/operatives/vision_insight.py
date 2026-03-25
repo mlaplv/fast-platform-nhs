@@ -17,27 +17,24 @@ logger = logging.getLogger("api-gateway")
 # Pre-compiled Regex for Performance (V85.1)
 RE_CLEAN_PREFIX = re.compile(r'^(adm\s+)?(viết bài|tạo bài|làm bài|thiết kế|viết một bài về|viết bài về|tạo bài về|viết|tạo sản phẩm|san pham:?)\s+', re.IGNORECASE)
 
-VISION_PROMPT = """[ROLE] CHUYÊN GIA SEO CONTENT STRATEGY — Hệ thống XoHi Content Factory V63.0 Alpha
+VISION_PROMPT = """[ROLE] CHUYÊN GIA PHÂN TÍCH NỘI DUNG ĐA THỰC THỂ (ELITE V63.5)
 
-[NHIỆM VỤ]
-Phân tích chủ để và KHÓA MỤC TIÊU (Intent Lock) dựa trên dữ liệu thực tế.
+[CHẾ ĐỘ HOẠT ĐỘNG (INTENT MODES)]
+1. CHẾ ĐỘ SẢN PHẨM (PRODUCT COPYWRITER):
+   - Persona: Chuyên gia giới thiệu sản phẩm, súc tích, tập trung vào giá trị sử dụng.
+   - Tiêu đề: TÊN SẢN PHẨM + [ĐẶC ĐIỂM CHÍNH/ƯU ĐIỂM LỚN]. Ví dụ: "Áo Thun Nam Cotton 100% - Co Giãn 4 Chiều, Thấm Hút Cực Tốt".
+   - CẤM: Tuyệt đối CẤM các tiêu đề kiểu "Bật mí", "TOP X", "Hướng dẫn" cho sản phẩm.
+   - Nội dung: Tập trung vào Thông số, Chất liệu, Giá bán, Ưu đãi.
 
-[QUY TRÌNH SUY LUẬN 3 BƯỚC - NEURAL GUARD]
-BƯỚC 1: PHÂN BIỆT THỰC THỂ (Disambiguation)
-- Đọc toàn bộ `[GROUND TRUTH]`. Liệt kê các thực thể trùng tên nhưng khác bản chất (Vd: Hồng Sơn là Thuốc/Dược, Võ thuật, hay Cây sầu riêng).
+2. CHẾ ĐỘ BÀI VIẾT (VIRAL SEO STRATEGIST):
+   - Persona: Người kể chuyện, chuyên gia thu hút đám đông (Viral).
+   - Tiêu đề: Giật gân, tò mò, chuẩn SEO Viral. Ví dụ: "Bật mí 5 bí mật về...", "TOP 10 cách...".
+   - Nội dung: Tập trung vào Kiến thức, Xu hướng, Giải quyết nỗi đau.
 
-BƯỚC 2: ĐỐI CHIẾU Ý ĐỊNH (Semantic Matching)
-- So khớp thực thể tìm được với động từ/từ khóa của Sếp. 
-- Ví dụ: Sếp dùng "đặc trị", "bài thuốc", "chữa" -> CHỌN thực thể Dược phẩm.
-- Nếu Sếp chỉ nói tên chung chung -> Ưu tiên thực thể có tính thương mại/phổ biến nhất trên Google.
-
-BƯỚC 3: KHÓA MỤC TIÊU (Intent Lock)
-- Chỉ sử dụng thông tin của thực thể đã chọn để sinh TopicSeed.
-- Tuyệt đối không để lẫn lộn từ khóa của các thực thể khác (Vd: Không mang "võ thuật" vào bài "thuốc").
-- Tóm tắt bối cảnh thực thể đã khóa vào trường `ground_truth`.
-
-[YÊU CẦU ĐỊNH DẠNG]
-Trả về JSON TopicSeed chính xác. KHÔNG giải thích."""
+[QUY TRÌNH NEURAL GUARD]
+- BƯỚC 1: Đọc [ENTITY TYPE]. Nếu là PRODUCT -> Bắt buộc dùng CHẾ ĐỘ SẢN PHẨM.
+- BƯỚC 2: Đối chiếu [GROUND TRUTH] để lấy thông số thực tế.
+- BƯỚC 3: Sinh TopicSeed chuẩn định dạng JSON, không giải thích."""
 
 class VisionInsight:
     """
@@ -121,7 +118,10 @@ class VisionInsight:
 
             # Phase 77: Dynamic mode-based constraints
             mode_instruction = ""
-            if content_mode == "deep_dive":
+            if target_entity == "product":
+                # Elite Force: Products MUST BE professional/sales-focused, NEVER viral/news
+                mode_instruction = "\n[CHẾ ĐỘ: SẢN PHẨM] Bắt buộc style='Chuyên nghiệp/Bán hàng', tập trung vào Specs và Lợi ích. CẤM tiêu đề giật gân/báo chí."
+            elif content_mode == "deep_dive":
                 mode_instruction = "\n[CHẾ ĐỘ: PHÂN TÍCH SÂU] Bắt buộc word_count >= 1000, max_sections >= 6, style='Hàn lâm/Chuyên gia'."
             elif content_mode == "normal":
                 mode_instruction = "\n[CHẾ ĐỘ: THÔNG THƯỜNG] Bắt buộc word_count ~ 500, max_sections ~ 3, style='Chuyên nghiệp/Tin tức'."
@@ -141,7 +141,7 @@ class VisionInsight:
             await _emit_progress("🧠 Đang kích hoạt lõi phân tích SEO Content...")
 
             # Phase 15.6: Category Intelligence (V85.2)
-            categories_ctx = ""
+            categories_ctx, cat_list = "", []
             if hasattr(repo, "session"):
                 from backend.database.models import Category
                 from sqlalchemy import select
@@ -154,6 +154,7 @@ class VisionInsight:
                     cat_list = res_cat.all()
                     if cat_list:
                         categories_ctx = "\n[DANH MỤC HỆ THỐNG TRONG DB]:\n" + "\n".join([f"- ID: {c.id} | Tên: {c.name}" for c in cat_list])
+                        logger.info(f"[VisionInsight] Fetched {len(cat_list)} categories for context.")
                         prompt += f"\n{categories_ctx}\n[BẮT BUỘC]: Bạn PHẢI chọn một ID danh mục phù hợp nhất từ danh sách trên và điền vào trường `category_id`. Tuyệt đối không tự bịa ID."
                 except Exception as e:
                     logger.warning(f"[VisionInsight] Failed to fetch categories: {e}")
@@ -181,27 +182,31 @@ class VisionInsight:
                 result = await ai_task
                 seed: TopicSeed = result.data if hasattr(result, "data") else result.output
 
-                # CNS V85.4: Enforce Category and DB ID for Products
+                # CNS V85.7: Infinity Unified System (Articles=Enum, Products=DB-ID)
                 if target_entity == "product":
                     seed.category = CategoryEnum.SAN_PHAM
-                    # Elite Guard: If AI failed to pick a category_id but we have one in context, try to auto-pick the first one as fallback
+                    # Elite Guard: Enforce DB ID for Products
                     if not seed.category_id and "DANH MỤC HỆ THỐNG" in categories_ctx:
-                        # 1. Try to find a match by name if AI returned a name or if we can guess
+                        # 1. Try to find a match by name if AI returned a name
                         if cat_list:
                             for c in cat_list:
                                 if c.name.lower() in clean_topic.lower() or (hasattr(seed, 'title') and c.name.lower() in seed.title.lower()):
                                     seed.category_id = c.id
-                                    logger.info(f"[VisionInsight] Matched category_id by name: {c.name}")
+                                    logger.info(f"[VisionInsight] [Unified] Matched category_id by name: {c.name}")
                                     break
                         
-                        # 2. Final Fallback: First available cat
+                        # 2. Final Fallback: Recovery via regex from context
                         if not seed.category_id:
                             match = re.search(r"ID: ([a-z0-9_-]+) \|", categories_ctx)
                             if match:
                                 seed.category_id = match.group(1)
-                                logger.info(f"[VisionInsight] Auto-recovered category_id for product: {seed.category_id}")
-                elif target_entity == "article":
-                    seed.category = CategoryEnum.TIN_TUC
+                                logger.info(f"[VisionInsight] [Unified] Auto-recovered ID for product: {seed.category_id}")
+                else:
+                    # Articles/News/Viral use the Enum value (string), no DB ID allowed
+                    seed.category_id = None
+                    # Safety: Ensure category is not SAN_PHAM if entity is article
+                    if seed.category == CategoryEnum.SAN_PHAM:
+                        seed.category = CategoryEnum.TIN_TUC
 
                 return seed
         except AIConfigurationError:

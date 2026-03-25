@@ -27,25 +27,16 @@ PROMPTS = {
 1. TRỌNG TÂM: Tính năng cốt lõi + Thông số kỹ thuật (Specs) + Lợi ích khách hàng (Benefits).
 2. PHONG CÁCH: Thuyết phục, chuyên nghiệp, tập trung vào giải pháp.
 3. CƠ CẤU: H2 cho Đặc điểm nổi bật, H2 cho Thông số kĩ thuật, H2 cho Ưu đãi/Hành động.
-4. TỔNG SỐ ĐOẠN: Tập trung vào trải nghiệm mua sắm.""",
+4. TUYỆT ĐỐI CẤM: Giọng văn báo chí, tin tức, giật gân hoặc tiêu đề kiểu TOP X.""",
         
         "draft": """[ROLE] COPYWRITER BÁN HÀNG BẬC THẦY — XoHi E-com V2026
 [TIÊU CHUẨN]
 1. CHỐT ĐƠN: Câu từ mang tính kích cầu, tập trung vào "Tại sao nên mua bài bản?".
 2. THÔNG SỐ: Trình bày Specs rõ ràng, dễ đọc (dùng bảng HTML nếu cần).
-3. HTML: h1, h2, p, figure, table, section. 
-4. ẢNH: Chèn [IMAGE_N] vào các mục giới thiệu tính năng chi tiết.
-5. CẤM DỊCH tên thương hiệu.
-
-[METADATA EXTRACTION - BẮT BUỘC]
-Cuối bài viết, hãy thêm thẻ `<xohi-metadata>` chứa JSON duy nhất với cấu trúc:
-{
-  "attributes": {"Tên thông số": "Giá trị", ...},
-  "price": 0,
-  "seo_title": "Tiêu đề SEO tối ưu (max 60 chars)",
-  "seo_description": "Mô tả SEO hấp dẫn (max 160 chars)"
-}
-Lưu ý: attributes phải bám sát các đặc tính quan trọng của sản phẩm (Chất liệu, Kích thước, Công dụng, Xuất xứ...)."""
+3. PHONG CÁCH: Chuyên nghiệp, súc tích, chuẩn merchandising.
+4. TUYỆT ĐỐI CẤM: Giọng văn báo chí, tin tức (Journalism style). Không dùng các từ "Bật mí", "Khám phá bí mật", "TOP X".
+5. HTML: h1, h2, p, figure, table, section. 
+6. METADATA EXTRACTION: Phải có `<xohi-metadata>` ở cuối bài."""
     }
 }
 

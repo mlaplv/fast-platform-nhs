@@ -5,6 +5,7 @@
     FileText,
     Search,
     ShieldCheck,
+    ShieldAlert,
     Globe,
     TrendingUp,
     Calendar as CalendarIcon,
@@ -84,15 +85,26 @@
     fetchCategories();
   });
 
-  let dbCategories = $state<{id: string, name: string}[]>([]);
+  let dbCategories = $state<{id: string, name: string, depth: int}[]>([]);
   async function fetchCategories() {
     try {
-      const res = await apiClient.get('/api/v1/categories?limit=200');
-      if (res.status === 'success') {
-        dbCategories = res.data.items || [];
+      const res = await apiClient.get('/api/v1/categories?limit=500'); // Higher limit for deep trees
+      // CNS V86.5: Recursive Flattening (Phase 102.3 Elite Hierarchy)
+      if (res && res.data) {
+        const flattened: {id: string, name: string, depth: number}[] = [];
+        const process = (cats: any[], depth = 0) => {
+          cats.forEach(c => {
+            flattened.push({ id: c.id, name: c.name, depth });
+            if (c.children && c.children.length > 0) {
+              process(c.children, depth + 1);
+            }
+          });
+        };
+        process(res.data);
+        dbCategories = flattened;
       }
     } catch (e) {
-      console.error("[IdeaStep] Failed to fetch categories", e);
+      console.error("[IdeaStep] Failed to fetch/flatten categories", e);
     }
   }
 
@@ -151,19 +163,28 @@
     }
   });
 
-  // CNS V82.5: Neural Intent Decoding (Vừng ơi mở cửa ra)
+  // CNS V82.8: Elite Context Continuity - Primary Source of Truth: category field
+  $effect(() => {
+    const cat = editedKeywords?.category;
+    if (cat === "Sản phẩm") {
+      editedConfig.target_entity = "product";
+      editedConfig.style = "Chuyên nghiệp";
+    } else if (cat === "Tin tức" || cat === "Chính sách") {
+      editedConfig.target_entity = "article";
+    }
+  });
+
+  // CNS V82.5: Neural Intent Decoding (Prefix-to-Category Snap)
   $effect(() => {
     const title = editedKeywords?.title || "";
     if (title.toLowerCase().startsWith("viết bài:") || title.toLowerCase().startsWith("viết bài ")) {
-      editedConfig.target_entity = "article";
-      editedConfig.style = "Viral";
+      editedKeywords.category = "Tin tức";
       // Clean up title for neural processing
       const cleanTitle = title.replace(/^(viết bài:?\s*)/i, "");
       if (cleanTitle && cleanTitle !== title) editedKeywords.title = cleanTitle;
       nanobot.showToast("Dạ Sếp, em đã bẻ lái sang dây chuyền TIN TỨC ạ!", "info");
     } else if (title.toLowerCase().startsWith("tạo sản phẩm:") || title.toLowerCase().startsWith("tạo sản phẩm ")) {
-      editedConfig.target_entity = "product";
-      editedConfig.style = "Chuyên nghiệp";
+      editedKeywords.category = "Sản phẩm";
       const cleanTitle = title.replace(/^(tạo sản phẩm:?\s*)/i, "");
       if (cleanTitle && cleanTitle !== title) editedKeywords.title = cleanTitle;
       nanobot.showToast("Dạ Sếp, em đã bẻ lái sang dây chuyền SẢN PHẨM ạ!", "success");
@@ -234,7 +255,9 @@
                   type="button"
                   onclick={() => ctrl.removeSecondaryKeyword(kwIdx)}
                   class="ml-1 text-white/30 hover:text-red-400 transition-colors"
-                ><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
               </span>
             {/each}
             <input
@@ -243,9 +266,8 @@
               class="flex-1 min-w-[140px] bg-transparent text-[11px] font-medium text-white/80 placeholder-white/20 outline-none pl-2"
               onkeydown={ctrl.handleSecondaryKeydown}
             />
+          </div>
         </div>
-      </div>
-      
       </div>
 
       <div class="group/field">
@@ -263,58 +285,76 @@
         </div>
       </div>
 
-      <!-- CNS V85.5: Unified Category & DB Link UI -->
-      <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-        <div class="flex items-center justify-between mb-2">
-           <label for="category-{campaign_id}" class="text-[10px] text-fuchsia-300/80 uppercase font-black tracking-widest ml-1 flex items-center gap-1.5">
-            <Zap size={11} /> Phân loại & Vị trí lưu trữ
+      <!-- Elite AI-Context Category Selector (No-Manual-Tab Edition) -->
+      <div class="p-6 rounded-[2rem] bg-gradient-to-br from-white/[0.03] to-transparent border border-white/10 space-y-4 shadow-2xl relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-fuchsia-500/5 blur-[40px] pointer-events-none"></div>
+        
+        <div class="flex items-center justify-between px-1">
+          <label for="elite-category-{campaign_id}" class="text-[11px] font-black uppercase tracking-[0.2em] text-fuchsia-300 flex items-center gap-2">
+            {#if editedConfig.target_entity === 'product'}
+              <Globe size={14} class="text-amber-400" /> Danh mục sản phẩm
+            {:else}
+              <Zap size={14} class="text-fuchsia-400" /> Danh mục tin tức
+            {/if}
           </label>
-          {#if editedKeywords.category_id}
-            <span class="text-[9px] font-bold text-green-400/60 uppercase tracking-tighter flex items-center gap-1 animate-pulse">
-               <ShieldCheck size={10} /> DB LINKED
-            </span>
-          {/if}
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="relative group/field">
-            <select
-              id="category-{campaign_id}"
-              bind:value={editedKeywords.category}
-              class="w-full bg-[#0c0a0f]/80 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 text-[12px] font-bold text-white focus:outline-none focus:border-fuchsia-500/50 transition-all appearance-none cursor-pointer shadow-inner"
-            >
-              <option value="Tin tức" class="bg-gray-900 text-white">1. Tin tức / Cập nhật mảng</option>
-              <option value="Sản phẩm" class="bg-gray-900 text-white font-bold text-fuchsia-400">💎 2. Sản phẩm / Dịch vụ Elite</option>
-              <option value="Chính sách" class="bg-gray-900 text-white">3. Chính sách / Quy định</option>
-              <option value="Kiến thức" class="bg-gray-900 text-white">4. Kiến thức (Pillar)</option>
-              <option value="Viral" class="bg-gray-900 text-white">5. Giải trí / Viral</option>
-            </select>
-            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/30">
-              <ChevronDown size={14} />
-            </div>
-          </div>
-
-          <div class="relative group/field">
-             <select
-              id="db-category-{campaign_id}"
-              bind:value={editedKeywords.category_id}
-              class="w-full bg-[#0c0a0f]/80 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 text-[12px] font-bold text-white/80 focus:outline-none focus:border-amber-500/50 transition-all appearance-none cursor-pointer shadow-inner"
-            >
-              <option value="" class="bg-gray-900 text-white/40">-- Chọn danh mục thực tế --</option>
-              {#each dbCategories as cat}
-                <option value={cat.id} class="bg-gray-900 text-white">{cat.name}</option>
-              {/each}
-            </select>
-            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/30">
-              <ChevronDown size={14} />
-            </div>
-          </div>
+          
+          <button 
+            type="button"
+            onclick={() => editedConfig.target_entity = editedConfig.target_entity === 'product' ? 'article' : 'product'}
+            class="text-[8px] font-black px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/40 uppercase tracking-tighter hover:bg-white/10 hover:text-white transition-all"
+          >
+            Chuyển sang: {editedConfig.target_entity === 'product' ? 'Bài viết' : 'Hàng hóa'}
+          </button>
         </div>
         
-        {#if !editedKeywords.category_id && editedKeywords.category === 'Sản phẩm'}
-          <p class="text-[9px] text-amber-400/60 font-medium italic ml-1">
-            ⚠️ Sếp ơi, chọn danh mục thực tế để sản phẩm có "hộ khẩu" trên Web ạ!
-          </p>
+        <div class="relative group/field z-10">
+          <select
+            id="elite-category-{campaign_id}"
+            class="w-full bg-[#0d0b14] border border-white/10 rounded-2xl px-5 py-4 text-[15px] font-black text-white focus:outline-none focus:border-white/30 transition-all appearance-none cursor-pointer shadow-2xl ring-1 ring-white/5 hover:border-white/20"
+            onchange={(e) => {
+              const val = e.currentTarget.value;
+              const isDb = dbCategories.some(c => c.id === val);
+              if (isDb) {
+                editedKeywords.category = 'Sản phẩm';
+                editedKeywords.category_id = val;
+              } else {
+                editedKeywords.category = val;
+                editedKeywords.category_id = null;
+              }
+            }}
+            value={editedKeywords.category_id || editedKeywords.category}
+          >
+            <option value="" disabled class="bg-gray-900 text-white/30">-- Vui lòng chọn danh mục phù hợp --</option>
+            
+            {#if editedConfig.target_entity === 'product'}
+              <!-- MODE: HÀNG HÓA - Chỉ hiện danh mục DB (Flat Hierarchy) -->
+              {#each dbCategories as cat}
+                <option value={cat.id} class="bg-gray-900 text-white py-3">
+                  {@html "&nbsp;".repeat(cat.depth * 4)}
+                  {cat.depth > 0 ? "└─ " : ""}💎 {cat.name}
+                </option>
+              {/each}
+              {#if dbCategories.length === 0}
+                <option disabled class="bg-gray-900 text-red-400 italic">⚠️ Không tìm thấy danh mục DB!</option>
+              {/if}
+            {:else}
+              <!-- MODE: BÀI VIẾT - Chỉ hiện danh mục hệ thống (Enum) -->
+              <option value="Tin tức" class="bg-gray-900 text-white py-3">1. Tin tức / Cập nhật mảng</option>
+              <option value="Chính sách" class="bg-gray-900 text-white py-3">2. Chính sách / Quy định</option>
+            {/if}
+          </select>
+          <div class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-white/20 group-hover/field:text-fuchsia-400 transition-colors">
+            <ChevronDown size={22} />
+          </div>
+        </div>
+
+        {#if (editedConfig.target_entity === 'product' && !editedKeywords.category_id) || (!editedConfig.target_entity && !editedKeywords.category)}
+           <div class="bg-fuchsia-500/10 p-3 rounded-xl border border-fuchsia-500/20 flex items-center gap-3">
+             <ShieldAlert size={16} class="text-fuchsia-400 shrink-0" />
+             <p class="text-[11px] text-fuchsia-100 font-bold leading-tight">
+               Sếp ơi, hãy chọn một **Danh mục mục tiêu** để bắt đầu nhé!
+             </p>
+           </div>
         {/if}
       </div>
 
@@ -336,10 +376,18 @@
                 bind:value={editedConfig.style}
                 class="w-full bg-[#0c0a0f]/80 backdrop-blur-xl border border-white/5 rounded-xl px-4 py-2.5 text-[11px] font-bold text-white outline-none focus:border-blue-500/50 transition-all appearance-none shadow-[inset_0_1px_rgba(255,255,255,0.05)]"
               >
-                <option value="Chuyên nghiệp" class="bg-gray-900">Chuyên nghiệp (Báo chí)</option>
-                <option value="Sáng tạo" class="bg-gray-900">Sáng tạo (Blog/Tâm sự)</option>
-                <option value="Viral" class="bg-gray-900">Phong cách Viral (Tik/X/Threads)</option>
-                <option value="Hàn lâm" class="bg-gray-900">Hàn lâm (Khoa học)</option>
+                {#if editedConfig.target_entity === 'product'}
+                  <option value="Chuyên nghiệp" class="bg-gray-900">Mô tả bán hàng (Chuyên nghiệp)</option>
+                  <option value="Sáng tạo" class="bg-gray-900">Review trải nghiệm (Sáng tạo)</option>
+                  <option value="Viral" class="bg-gray-900">Viral Marketing (Kích cầu)</option>
+                  <option value="Hàn lâm" class="bg-gray-900">Thông số kỹ thuật (Chi tiết)</option>
+                {:else}
+                  <option value="Chuyên nghiệp" class="bg-gray-900">Chuyên nghiệp (Báo chí)</option>
+                  <option value="Sáng tạo" class="bg-gray-900">Sáng tạo (Blog/Tâm sự)</option>
+                  <option value="Viral" class="bg-gray-900">Phong cách Viral (Tik/X/Threads)</option>
+                  <option value="Hàn lâm" class="bg-gray-900">Hàn lâm (Khoa học)</option>
+                {/if}
+ Sandra: 100% dynamic UX
               </select>
               <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/30"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
             </div>

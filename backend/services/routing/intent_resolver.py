@@ -64,7 +64,10 @@ class RouterResolver:
         if h_res and h_res.data.get("intent_type") == "LEARN_COMMAND": return h_res
 
         c_t, susp = await stt_corrector.correct(transcript, u_dict, norm_query=norm_t)
-        if susp: return await self._ask_stt_confirm(user_id, ctx, transcript, c_t, susp, profile, i_map)
+        # Elite V62.5 Bypass: Do NOT ask for confirm if intent is already explicit (Tạo sản phẩm / Viết bài)
+        explicit_intent = any(kw in transcript.lower() for kw in ["tạo sản phẩm", "viết bài", "viết bài:", "tạo bài", "tao san pham", "viet bai"])
+        if susp and not explicit_intent: 
+            return await self._ask_stt_confirm(user_id, ctx, transcript, c_t, susp, profile, i_map)
 
         transcript = c_t
         h_res = await heuristic_classify(transcript.lower(), user_id, context={**ctx, "profile": profile}, intent_map=i_map, norm_query=norm_t)
