@@ -7,6 +7,7 @@ import asyncio
 import uuid
 import unicodedata
 import litellm
+import httpx
 from typing import Dict, Optional, List, cast
 from litestar import WebSocket
 from backend.services.xohi_memory import xohi_memory
@@ -19,7 +20,6 @@ async_session_maker = alchemy_config.create_session_maker()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 WHISPER_MODEL = "groq/whisper-large-v3-turbo"
-litellm.set_verbose = True
 
 # Minimum audio size to avoid sending silence/noise (bytes)
 MIN_AUDIO_BYTES = 1500
@@ -76,35 +76,55 @@ async def transcribe(audio_data: bytes, user_id: Optional[str] = None) -> str:
         final_anchors = " ".join(stt_anchors + system_intents)
         prompt_text = final_anchors[:500]
 
-        response = await litellm.atranscription(
-            model=WHISPER_MODEL,
-            file=audio_file,
-            language="vi",
-            api_key=GROQ_API_KEY,
-            prompt=prompt_text,
-            temperature=0.0,
-            response_format="verbose_json"
-        )
+        # Direct Groq Whisper API call to bypass litellm bugs
+        logger.info(f"[STT] Calling Direct Groq API (model={WHISPER_MODEL})...")
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            files = {
+                "file": (audio_file.name, audio_file, f"audio/{ext}")
+            }
+            data = {
+                "model": WHISPER_MODEL.replace("groq/", ""),
+                "language": "vi",
+                "prompt": prompt_text,
+                "temperature": "0.0",
+                "response_format": "json"
+            }
+            headers = {"Authorization": f"Bearer {GROQ_API_KEY}"}
+            
+            api_resp = await client.post(
+                "https://api.groq.com/openai/v1/audio/transcriptions",
+                files=files,
+                data=data,
+                headers=headers
+            )
+            api_resp.raise_for_status()
+            response = api_resp.json()
         
-        if response is None:
-            logger.error("[STT] litellm.atranscription returned None")
+        if not response:
+            logger.error("[STT] Groq API returned empty response")
             return ""
 
-        raw_text = getattr(response, "text", "")
+        raw_text = response.get("text", "")
         if isinstance(raw_text, str):
             transcript = unicodedata.normalize('NFC', raw_text.strip())
         else:
             transcript = ""
 
         kill_switch_triggered = False
-        segments = getattr(response, "segments", []) or (response.get("segments", []) if isinstance(response, dict) else [])
-        for seg in segments:
-            no_speech = seg.get("no_speech_prob", 0.0)
-            comp_ratio = seg.get("compression_ratio", 0.0)
-            if no_speech > mic_sensitivity or comp_ratio > 2.4:
-                logger.warning(f"[STT] Kill-Switch triggered! no_speech={no_speech:.2f}, comp_ratio={comp_ratio:.2f}. Suppressing block.")
-                kill_switch_triggered = True
-                break
+        segments = []
+        if isinstance(response, dict):
+            segments = response.get("segments", [])
+        else:
+            segments = getattr(response, "segments", [])
+
+        if segments:
+            for seg in segments:
+                no_speech = seg.get("no_speech_prob", 0.0)
+                comp_ratio = seg.get("compression_ratio", 0.0)
+                if no_speech > mic_sensitivity or comp_ratio > 2.4:
+                    logger.warning(f"[STT] Kill-Switch triggered! no_speech={no_speech:.2f}, comp_ratio={comp_ratio:.2f}. Suppressing block.")
+                    kill_switch_triggered = True
+                    break
 
         if kill_switch_triggered:
             return ""
@@ -145,8 +165,8 @@ async def transcribe(audio_data: bytes, user_id: Optional[str] = None) -> str:
 
         return transcript
 
-    except Exception as e:
-        logger.error(f"[STT] Groq transcription failed: {e}")
+    except Exception:
+        logger.exception("[STT] Groq transcription failed")
         return ""
 
 async def background_save_telemetry(
