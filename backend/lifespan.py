@@ -90,6 +90,7 @@ async def lifespan(app: Litestar):
         purge_task = _aio.create_task(_auto_purge_loop())
         media_cleanup_task = _aio.create_task(_media_cleanup_loop())
         _aio.create_task(content_factory.resume_all())
+        _aio.create_task(_autopilot_scheduler_loop()) # CNS V82.1: Neural Autopilot Engine
 
         yield
     finally:
@@ -165,3 +166,59 @@ async def _gc_watchdog_loop():
                 
         except Exception as e:
             logger.error(f"[GhostMode] Watchdog error: {e}")
+
+async def _autopilot_scheduler_loop():
+    """
+    [Elite Engine] CNS V82.1: Neural Autopilot Coordinator.
+    Scans for due appointments and triggers automated content factory pipelines.
+    """
+    from backend.database.models import Appointment
+    from backend.database.repositories import ContentCampaignRepository
+    
+    # Wait for system to stabilize
+    await _aio.sleep(30)
+    
+    while True:
+        try:
+            now = datetime.now(timezone.utc)
+            async with alchemy_config.create_session_maker()() as session:
+                # 1. Fetch due appointments
+                stmt = select(Appointment).where(
+                    Appointment.status == "UPCOMING",
+                    Appointment.start_time <= now,
+                    Appointment.campaign_id.is_not(None)
+                )
+                result = await session.execute(stmt)
+                due_apps = result.scalars().all()
+                
+                if due_apps:
+                    logger.info(f"🚀 [Autopilot] Found {len(due_apps)} due appointments. Launching Neural Factory...")
+                
+                for app in due_apps:
+                    campaign_id = app.campaign_id
+                    
+                    # 2. Trigger the Factory (Starting from Step 1)
+                    # We use create_task to ensure non-blocking execution of the pipeline
+                    _aio.create_task(content_factory.engine.trigger_step(campaign_id, force_step=1))
+                    
+                    # 3. Handle Recurrence or Completion
+                    if app.recurring_type and app.recurring_type != "none":
+                        # Reschedule for next occurrence
+                        delta = timedelta(days=1)
+                        if app.recurring_type == "weekly": delta = timedelta(days=7)
+                        elif app.recurring_type == "monthly": delta = timedelta(days=30)
+                        
+                        app.start_time += delta
+                        app.end_time += delta
+                        logger.info(f"📅 [Autopilot] Rescheduled campaign {campaign_id} for {app.start_time}")
+                    else:
+                        app.status = "COMPLETED"
+                        logger.info(f"✅ [Autopilot] Job completed for {campaign_id}")
+                
+                await session.commit()
+                
+        except Exception as e:
+            logger.error(f"❌ [Autopilot Loop] Fatal error: {e}")
+            
+        # Scan frequency: 1 minute for precision
+        await _aio.sleep(60)

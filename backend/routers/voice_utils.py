@@ -1,14 +1,13 @@
-# backend/routers/voice_utils.py
 import io
 import os
 import re
 import logging
 import asyncio
+import httpx
+import json
 import uuid
 import unicodedata
-import litellm
-import httpx
-from typing import Dict, Optional, List, cast
+from typing import Dict, Optional, List, cast, Union
 from litestar import WebSocket
 from backend.services.xohi_memory import xohi_memory
 from backend.database.alchemy_config import alchemy_config
@@ -19,7 +18,16 @@ logger = logging.getLogger("api-gateway")
 async_session_maker = alchemy_config.create_session_maker()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-WHISPER_MODEL = "groq/whisper-large-v3-turbo"
+WHISPER_MODEL = "whisper-large-v3-turbo" # Derived from groq/ prefix
+
+# Elite Singleton: Persistent client for zero-latency reconnection
+_http_client: Optional[httpx.AsyncClient] = None
+
+def get_stt_client() -> httpx.AsyncClient:
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(timeout=30.0, limits=httpx.Limits(max_connections=100))
+    return _http_client
 
 # Minimum audio size to avoid sending silence/noise (bytes)
 MIN_AUDIO_BYTES = 1500
@@ -61,7 +69,7 @@ async def transcribe(audio_data: bytes, user_id: Optional[str] = None) -> str:
         elif b'ftyp' in audio_data[:32]: ext = "mp4"
 
         audio_file.name = f"audio.{ext}"
-        response = None
+        response_data: Optional[Dict[str, object]] = None
 
         stt_anchors = []
         mic_sensitivity = 0.6
@@ -72,55 +80,56 @@ async def transcribe(audio_data: bytes, user_id: Optional[str] = None) -> str:
                 mic_sensitivity = profile.get("mic_sensitivity", 0.6)
 
         system_mapping = await xohi_memory.get_system_intent_mapping()
-        system_intents = list(cast(Dict, system_mapping).keys())[:10] if system_mapping else []
+        system_intents = list(cast(Dict[str, object], system_mapping).keys())[:10] if system_mapping else []
         final_anchors = " ".join(stt_anchors + system_intents)
         prompt_text = final_anchors[:500]
 
-        # Direct Groq Whisper API call to bypass litellm bugs
-        logger.info(f"[STT] Calling Direct Groq API (model={WHISPER_MODEL})...")
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            files = {
-                "file": (audio_file.name, audio_file, f"audio/{ext}")
-            }
-            data = {
-                "model": WHISPER_MODEL.replace("groq/", ""),
-                "language": "vi",
-                "prompt": prompt_text,
-                "temperature": "0.0",
-                "response_format": "json"
-            }
-            headers = {"Authorization": f"Bearer {GROQ_API_KEY}"}
-            
-            api_resp = await client.post(
-                "https://api.groq.com/openai/v1/audio/transcriptions",
-                files=files,
-                data=data,
-                headers=headers
-            )
-            api_resp.raise_for_status()
-            response = api_resp.json()
+        # Direct Groq Whisper API (Elite Direct Integration)
+        client = get_stt_client()
+        files = {
+            "file": (audio_file.name, audio_file, f"audio/{ext}")
+        }
+        data = {
+            "model": WHISPER_MODEL,
+            "language": "vi",
+            "prompt": prompt_text,
+            "temperature": "0.0",
+            "response_format": "json"
+        }
+        headers = {
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+            "X-Content-Type-Options": "nosniff",
+        }
         
-        if not response:
-            logger.error("[STT] Groq API returned empty response")
+        api_resp = await client.post(
+            "https://api.groq.com/openai/v1/audio/transcriptions",
+            files=files,
+            data=data,
+            headers=headers
+        )
+        api_resp.raise_for_status()
+        response_data = cast(Dict[str, object], api_resp.json())
+        
+        if not response_data:
+            logger.error("[STT] Groq API returned empty payload")
             return ""
 
-        raw_text = response.get("text", "")
+        raw_text = response_data.get("text", "")
         if isinstance(raw_text, str):
             transcript = unicodedata.normalize('NFC', raw_text.strip())
         else:
             transcript = ""
 
         kill_switch_triggered = False
-        segments = []
-        if isinstance(response, dict):
-            segments = response.get("segments", [])
-        else:
-            segments = getattr(response, "segments", [])
+        segments = cast(List[Dict[str, object]], response_data.get("segments", []))
 
         if segments:
             for seg in segments:
-                no_speech = seg.get("no_speech_prob", 0.0)
-                comp_ratio = seg.get("compression_ratio", 0.0)
+                no_speech = float(cast(Union[float, int, str], seg.get("no_speech_prob") or 0.0))
+                comp_ratio = float(cast(Union[float, int, str], seg.get("compression_ratio") or 0.0))
                 if no_speech > mic_sensitivity or comp_ratio > 2.4:
                     logger.warning(f"[STT] Kill-Switch triggered! no_speech={no_speech:.2f}, comp_ratio={comp_ratio:.2f}. Suppressing block.")
                     kill_switch_triggered = True

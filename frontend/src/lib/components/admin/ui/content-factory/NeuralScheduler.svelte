@@ -49,7 +49,27 @@
 
   function toggleActive() {
     sch.is_active = !sch.is_active;
+    if (onSync) onSync();
   }
+
+  // CNS V82.1: Neural Auto-ON Logic
+  // Automatically activate autopilot if parameters are modified
+  let initialLoad = true;
+  $effect(() => {
+    const s = config.scheduling as SchedulingConfig;
+    if (initialLoad) {
+      initialLoad = false;
+      return;
+    }
+    if (s) {
+       // Auto-ON if not active but modified
+       if (!s.is_active) {
+         s.is_active = true;
+       }
+       // Elite UX: Auto-Sync changes to backend
+       if (onSync) onSync();
+    }
+  });
 </script>
 
 <div class="relative group/scheduler p-8 rounded-[2.5rem] bg-gradient-to-br from-white/[0.03] to-transparent border border-white/5 backdrop-blur-3xl transition-all duration-700 hover:shadow-[0_40px_100px_rgba(0,0,0,0.5)] overflow-hidden">

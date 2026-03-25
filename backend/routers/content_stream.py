@@ -84,5 +84,6 @@ class ContentStreamController(Controller):
             "Cache-Control": "no-cache, no-transform",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
+            "X-Content-Type-Options": "nosniff",
         }
         return Stream(event_generator(), headers=headers)

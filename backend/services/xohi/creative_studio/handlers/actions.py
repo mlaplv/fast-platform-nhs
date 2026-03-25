@@ -8,6 +8,10 @@ from backend.models.schemas import GenericResponse
 from backend.services.event_bus import event_bus
 from backend.services.xohi.creative_studio.formatters.publisher import publish_campaign_to_news
 from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy import select, delete as sql_delete
+
+from backend.database.models import Appointment
+from backend.database.repositories import AppointmentRepository
 
 logger = logging.getLogger("api-gateway")
 
@@ -106,4 +110,91 @@ class ActionHandler:
             await campaign_repo.session.flush()
             await campaign_repo.session.commit()
             
+        # CNS V82.1: Neural Autopilot Sync Logic
+        # If scheduling data is present, sync with Appointment system and persist in gold_metadata
+        if "keywords" in data and isinstance(data["keywords"], dict):
+            sch = data["keywords"].get("scheduling")
+            if sch:
+                # Elite Persistence: Store in gold_metadata for clean separation
+                gold["scheduling"] = sch
+                c.gold_metadata = gold
+                flag_modified(c, "gold_metadata")
+                await self._sync_appointment(campaign_id, sch, campaign_repo)
+
         return GenericResponse(status="success", message="Neural data synced.")
+
+    async def _sync_appointment(self, campaign_id: str, sch: dict, campaign_repo: ContentCampaignRepository):
+        """Elite Core: Synchronizes campaign scheduling with the global Appointment system."""
+        from datetime import datetime, time, timedelta
+        
+        is_active = sch.get("is_active", False)
+        freq = sch.get("frequency", "daily")
+        time_str = sch.get("schedule_at", "08:00")
+        days = sch.get("days", [])
+        
+        session = campaign_repo.session
+        
+        # 1. Clean up existing appointment for this campaign if it exists
+        stmt = select(Appointment).where(Appointment.campaign_id == campaign_id)
+        result = await session.execute(stmt)
+        existing = result.scalars().first()
+        
+        if not is_active:
+            if existing:
+                await session.delete(existing)
+                logger.info(f"🗑️ [Autopilot] Disabled and removed appointment for {campaign_id}")
+            return
+
+        # 2. Calculate next run time
+        try:
+            h, m = map(int, time_str.split(":"))
+            now = datetime.now()
+            next_run = datetime(now.year, now.month, now.day, h, m)
+            
+            if next_run <= now:
+                next_run += timedelta(days=1)
+                
+            # For weekly, adjust to the next available day
+            if freq == "weekly" and days:
+                current_weekday = now.weekday() # 0-6 (Mon-Sun)
+                # Frontend days might be 0-6 for T2-CN
+                target_days = sorted(days)
+                found = False
+                for d in target_days:
+                    if d > current_weekday:
+                        days_diff = d - current_weekday
+                        next_run = datetime(now.year, now.month, now.day, h, m) + timedelta(days=days_diff)
+                        found = True
+                        break
+                if not found:
+                    days_diff = 7 - current_weekday + target_days[0]
+                    next_run = datetime(now.year, now.month, now.day, h, m) + timedelta(days=days_diff)
+
+        except Exception as e:
+            logger.error(f"❌ [Autopilot] Time calculation error: {e}")
+            next_run = datetime.now() + timedelta(hours=1)
+
+        # 3. Create or Refresh valid Appointment
+        if existing:
+            existing.start_time = next_run
+            existing.end_time = next_run + timedelta(minutes=30)
+            existing.recurring_type = freq
+            existing.recurring_metadata = {"days": days}
+            existing.status = "UPCOMING"
+            logger.info(f"🔄 [Autopilot] Updated schedule for {campaign_id} to {next_run}")
+        else:
+            new_app = Appointment(
+                id=str(uuid.uuid4()),
+                title=f"Neural Autopilot: {campaign_id[:8]}",
+                description="Automated content generation session.",
+                start_time=next_run,
+                end_time=next_run + timedelta(minutes=30),
+                type="STRATEGY",
+                status="UPCOMING",
+                recurring_type=freq,
+                recurring_metadata={"days": days},
+                campaign_id=campaign_id,
+                tenant_id=getattr(campaign_repo, "tenant_id", "default")
+            )
+            session.add(new_app)
+            logger.info(f"📅 [Autopilot] Created NEW schedule for {campaign_id} at {next_run}")

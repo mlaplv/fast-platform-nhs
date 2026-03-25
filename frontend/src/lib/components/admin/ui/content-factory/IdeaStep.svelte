@@ -60,9 +60,20 @@
     // CNS V62.2: Restore Scout Report from persisted campaign state
     if (editedKeywords?.scout_report) {
       scoutReport = editedKeywords.scout_report;
-      // CNS V62.5: Auto-expand section if report exists on mount
       if (editedConfig && !editedConfig.scouting_active) {
         editedConfig.scouting_active = true;
+      }
+    }
+
+    // CNS V82.2: Elite Restore - Force Autopilot ON if valid schedule exists
+    if (!editedConfig.scheduling && editedKeywords?.scheduling) {
+      editedConfig.scheduling = editedKeywords.scheduling;
+    }
+    
+    if (editedConfig?.scheduling) {
+      const s = editedConfig.scheduling as any;
+      if (s.frequency && s.schedule_at && !s.is_active) {
+        s.is_active = true; // Auto-ON as requested: "auto on khi có lịch"
       }
     }
   });
@@ -475,7 +486,18 @@
 
         <!-- Secondary: Post Scheduling -->
         <div class="p-8 rounded-[2.5rem] bg-gradient-to-br from-white/[0.01] to-transparent border border-white/5">
-           <NeuralScheduler bind:config={editedConfig} />
+           <NeuralScheduler 
+             bind:config={editedConfig} 
+             onSync={() => {
+               handleUpdateMetadata();
+               const s = editedConfig.scheduling as any;
+               if (s?.is_active) {
+                 nanobot.showToast(`Autopilot Elite: Đã lên lịch thực thi lúc ${s.schedule_at} (${s.frequency})`, "success");
+               } else {
+                 nanobot.showToast("Autopilot đã chuyển sang chế độ Standby.", "info");
+               }
+             }} 
+           />
         </div>
       </div>
     </div>
