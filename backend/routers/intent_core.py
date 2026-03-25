@@ -42,15 +42,19 @@ class IntentStreamCore:
         product_repo: ProductBaseRepository,
         campaign_repo: ContentCampaignRepository,
     ) -> Stream:
-        """Core logic for streaming intent processing phases via SSE."""
+        """Core logic for streaming intent processing phases via SSE (Standardized V2.2)."""
 
         async def generate() -> AsyncGenerator[bytes, None]:
-            start_time = time.monotonic()
+            start_time_mono = time.monotonic()
             session_id = data.session_id or str(uuid.uuid4())
             user_id: Optional[str] = None
+            
+            # R82.1: Lifecycle Management
+            max_age = 300  # 5-minute hard cut-off for intent streams (Real-time safety)
 
             try:
-                # ── Yield STT Listening immediately ──
+                # ── Yield initial protocol signal ──
+                yield b": initial-sync\n\n"
                 yield sse("status", {"step": "stt", "msg": "listening"})
 
                 # Phase 76.3.2: Immediate Transcript Feedback
@@ -59,7 +63,7 @@ class IntentStreamCore:
 
                 # Phase 3 Kill-switch: Empty transcript
                 if not data.query or not data.query.strip():
-                    logger.warning("[SSE] Empty transcript detected. Yielding SLEEP via SESSION_CTRL.")
+                    logger.warning("[SSE] Empty transcript detected.")
                     yield sse("done", {
                         "category": "SESSION_CTRL",
                         "type": "SLEEP",
@@ -111,14 +115,30 @@ class IntentStreamCore:
                 ]
 
                 # ── Phase 1: Classify ──
-                result = await orchestrator.classify(
-                    transcript=data.query,
-                    user_id=user_id or "default",
-                    app_state=cast(Dict[str, object], request.app.state),
-                    context=context,
-                    screen_context=data.screen_context,
-                )
-
+                # R82: Heartbeat Wrapper for AI Wait
+                async def run_classify():
+                    return await orchestrator.classify(
+                        transcript=data.query,
+                        user_id=user_id or "default",
+                        app_state=cast(Dict[str, object], request.app.state),
+                        context=context,
+                        screen_context=data.screen_context,
+                    )
+                
+                classify_task = asyncio.create_task(run_classify())
+                while not classify_task.done():
+                    try:
+                        result = await asyncio.wait_for(asyncio.shield(classify_task), timeout=15.0)
+                    except asyncio.TimeoutError:
+                        # R82: Standardized Heartbeat during AI Thinking
+                        yield b": ping (thinking)\n\n"
+                        # Check max age
+                        if (time.monotonic() - start_time_mono) > max_age:
+                            classify_task.cancel()
+                            yield sse("error", {"message": "Dịch vụ phản hồi quá chậm, Sếp thử lại nhé."})
+                            return
+                
+                result = classify_task.result()
                 tier_str = str(result.router_tier.value if result.router_tier and hasattr(result.router_tier, "value") else result.router_tier)
 
                 if tier_str != "1":
@@ -153,6 +173,7 @@ class IntentStreamCore:
                     action_val = result.action.value if hasattr(result.action, "value") else str(result.action)
                     if intent_type in ["DEEP_ANALYSIS", "UNKNOWN"] or action_val == "ANALYZE":
                         full_message = ""
+                        # Reasoning stream already acts as heartbeat by yielding chunks
                         async for chunk in orchestrator.t3_router.stream_reason(
                             data.query, context, screen_context=data.screen_context
                         ):
@@ -161,25 +182,34 @@ class IntentStreamCore:
                         result.message = full_message
                     else:
                         effective_transcript = cast(str, intent_data.get("effective_transcript", data.query))
-                        try:
-                            result = await asyncio.wait_for(
-                                orchestrator.execute(
-                                    classification=result,
-                                    transcript=effective_transcript,
-                                    context=context,
-                                    screen_context=data.screen_context,
-                                    user_repo=user_repo,
-                                    order_repo=order_repo,
-                                    product_repo=product_repo,
-                                    campaign_repo=campaign_repo,
-                                    modality=data.modality,
-                                    user_id=user_id
-                                ),
-                                timeout=45.0
+                        
+                        # R82: Heartbeat Wrapper for AI Execution
+                        async def run_execute():
+                            return await orchestrator.execute(
+                                classification=result,
+                                transcript=effective_transcript,
+                                context=context,
+                                screen_context=data.screen_context,
+                                user_repo=user_repo,
+                                order_repo=order_repo,
+                                product_repo=product_repo,
+                                campaign_repo=campaign_repo,
+                                modality=data.modality,
+                                user_id=user_id
                             )
-                        except asyncio.TimeoutError:
-                            yield sse("error", {"message": "Giao thức kết nối đang bận, Sếp thử lại sau nhé."})
-                            return
+                        
+                        exec_task = asyncio.create_task(run_execute())
+                        while not exec_task.done():
+                            try:
+                                result = await asyncio.wait_for(asyncio.shield(exec_task), timeout=15.0)
+                            except asyncio.TimeoutError:
+                                yield b": ping (working)\n\n"
+                                if (time.monotonic() - start_time_mono) > max_age:
+                                    exec_task.cancel()
+                                    yield sse("error", {"message": "Thời gian xử lý vượt quá giới hạn."})
+                                    return
+                        
+                        result = exec_task.result()
 
                 # ── Phase 4: Done ──
                 intent_data_final: Dict[str, object] = result.data or {}
@@ -195,7 +225,7 @@ class IntentStreamCore:
                     "behavior": "listen" if (bool(getattr(result, "requires_confirmation", False) or intent_data_final.get("action") == "STT_CONFIRM")) else "sleep"
                 })
 
-                # ── Background: Telemetry + Chat save ──
+                # ── Background Logging ──
                 ui_action = intent_data_final.get("ui_action")
                 data_extra: Dict[str, object] = dict(intent_data_final)
                 if "error_trace" in data_extra:
@@ -214,14 +244,23 @@ class IntentStreamCore:
                         "input_tokens": getattr(result, "input_tokens", 0) or 0,
                         "output_tokens": getattr(result, "output_tokens", 0) or 0,
                         "cost_token": float(result.cost_tokens or 0.0),
-                        "duration_ms": int((time.monotonic() - start_time) * 1000)
+                        "duration_ms": int((time.monotonic() - start_time_mono) * 1000)
                     }
                 ))
                 background_tasks.add(task)
                 task.add_done_callback(background_tasks.discard)
 
+            except (asyncio.CancelledError, GeneratorExit):
+                pass
             except Exception as e:
                 logger.exception(f"[SSE Gateway Error] {e}")
                 yield sse("error", {"message": "Giao thức kết nối đang bận, Sếp thử lại sau nhé."})
 
-        return Stream(generate(), media_type="text/event-stream")
+        # R90: Explicit SSE Headers
+        headers = {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+        return Stream(generate(), headers=headers)

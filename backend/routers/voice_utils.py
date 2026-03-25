@@ -6,6 +6,7 @@ import logging
 import asyncio
 import uuid
 import unicodedata
+import litellm
 from typing import Dict, Optional, List, cast
 from litestar import WebSocket
 from backend.services.xohi_memory import xohi_memory
@@ -18,6 +19,7 @@ async_session_maker = alchemy_config.create_session_maker()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 WHISPER_MODEL = "groq/whisper-large-v3-turbo"
+litellm.set_verbose(True)
 
 # Minimum audio size to avoid sending silence/noise (bytes)
 MIN_AUDIO_BYTES = 1500
@@ -51,7 +53,6 @@ async def send_partial(socket: WebSocket, audio_data: bytes, lock: asyncio.Lock,
 async def transcribe(audio_data: bytes, user_id: Optional[str] = None) -> str:
     """Send audio to Groq Whisper via litellm and return transcript."""
     try:
-        import litellm
         audio_file = io.BytesIO(audio_data)
 
         ext = "webm"
@@ -60,6 +61,7 @@ async def transcribe(audio_data: bytes, user_id: Optional[str] = None) -> str:
         elif b'ftyp' in audio_data[:32]: ext = "mp4"
 
         audio_file.name = f"audio.{ext}"
+        response = None
 
         stt_anchors = []
         mic_sensitivity = 0.6
@@ -83,6 +85,10 @@ async def transcribe(audio_data: bytes, user_id: Optional[str] = None) -> str:
             temperature=0.0,
             response_format="verbose_json"
         )
+        
+        if response is None:
+            logger.error("[STT] litellm.atranscription returned None")
+            return ""
 
         raw_text = getattr(response, "text", "")
         if isinstance(raw_text, str):

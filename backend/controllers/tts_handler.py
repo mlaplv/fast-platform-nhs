@@ -7,5 +7,10 @@ class TTSController(Controller):
 
     @get("/stream")
     async def get_tts_stream(self, text: str) -> Stream:
-        """Endpoint to stream TTS audio to the frontend."""
-        return Stream(stream_tts(text), media_type="audio/mpeg")
+        """Endpoint to stream TTS audio (Standardized V2.2)."""
+        headers = {
+            "Content-Type": "audio/mpeg",
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+        }
+        return Stream(stream_tts(text), headers=headers)

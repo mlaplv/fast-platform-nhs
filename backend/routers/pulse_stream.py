@@ -18,23 +18,32 @@ class PulseStreamController(Controller):
 
     @get("/stream")
     async def stream_pulse(self) -> Stream:
-        """Stream system events via Native SSE."""
+        """Stream system events via Native SSE (Standardized V2.2)."""
         
         async def event_generator() -> AsyncGenerator[bytes, None]:
-            queue = asyncio.Queue()
+            # R76: Queue safety (Limit to 100 events to prevent memory bloat)
+            queue = asyncio.Queue(maxsize=100)
             event_bus.subscribe_broadcast(queue)
-            logger.info("[PulseStream] New client connected to Agent Pulse.")
+            logger.info("[PulseStream] Client linked to Agent Pulse.")
+            
+            start_time = asyncio.get_event_loop().time()
+            max_age = 4 * 3600  # 4-hour hard cut-off to prevent "infinite" zombie leaks (User Rule)
             
             try:
-                # Keep-alive ping to prevent connection timeout
-                yield b": ping\n\n"
+                # Immediate keep-alive + protocol headers handled by return Stream()
+                yield b": initial-sync\n\n"
                 
                 while True:
+                    elapsed = asyncio.get_event_loop().time() - start_time
+                    if elapsed > max_age:
+                        logger.info("[PulseStream] Reaching max age (4h). Closing for recycling.")
+                        yield b"event: recycle\ndata: {\"message\": \"Connection age limit reached. Please reconnect.\"}\n\n"
+                        break
+
                     try:
-                        # Wait for an event with a timeout for heartbeat
-                        event = await asyncio.wait_for(queue.get(), timeout=30.0)
+                        # R82: Standardized 15s Heartbeat (Proxy Friendly)
+                        event = await asyncio.wait_for(queue.get(), timeout=15.0)
                         
-                        # Format as SSE
                         data = {
                             "event": event.name,
                             "payload": event.payload,
@@ -43,16 +52,22 @@ class PulseStreamController(Controller):
                         yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n".encode("utf-8")
                         
                     except asyncio.TimeoutError:
-                        # Send keep-alive
+                        # Keep-alive ping (Standardized)
                         yield b": ping\n\n"
-            except asyncio.CancelledError:
-                # Handle client disconnection gracefully without logging as an error
-                logger.info("[PulseStream] Client connection cancelled (normal disconnection).")
+            except (asyncio.CancelledError, GeneratorExit):
+                logger.info("[PulseStream] Client disconnected (Normal).")
             except Exception as e:
                 logger.error(f"[PulseStream] Connection error: {e}")
             finally:
                 event_bus.unsubscribe_broadcast(queue)
-                logger.info("[PulseStream] Client disconnected from Agent Pulse.")
+                logger.info("[PulseStream] Client unlinked.")
 
-        # Disable default read timeout to allow infinite SSE stream (relying on heartbeat pings)
-        return Stream(event_generator(), media_type="text/event-stream")
+        # R90: Explicit SSE Headers to bypass proxy buffering and protocol conflicts
+        headers = {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Critical for Nginx/Caddy
+            "X-Content-Type-Options": "nosniff", # Prevent MIME sniffing
+        }
+        return Stream(event_generator(), headers=headers)

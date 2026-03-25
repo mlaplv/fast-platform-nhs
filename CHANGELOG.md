@@ -22,7 +22,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Master Purge (Phase 14):** Implemented a full state and data purge (`fullPurge`) on campaign deletion or publication, ensuring no "stale" context or assets remain in the UI/Store.
 - **Entity Hallucination:** Effectively resolved the issue where AI misidentified product brands as biological fungus or martial arts schools.
 
-## [Unreleased]
+## [22.3.25.01] - 2026-03-25
+### Added
+- **Standardized SSE Discipline (Elite V2.2):** Implemented mandatory 15s heartbeats and strict lifecycle cut-offs (Pulse: 4h, Content: 30m, Intent: 5m) to eliminate zombie resource leaks.
+- **Proxy-Aware Header Suite:** Injected `X-Accel-Buffering: no`, `Cache-Control: no-cache`, and `Connection: keep-alive` into all streaming responses to bypass proxy buffering.
+- **Trinity Boot Architecture (Backend):** Refactored lifespan logic into a 3-stage asynchronous sequence with unified Elite log aesthetics and silenced infrastructure noise (SQLAlchemy, Uvicorn).
+- **Lazy AI Warmup:** Introduced `get_shared_encoder()` for `fastembed` to eliminate blocking side-effects during module import.
+
+### Changed
+- **Elite DI Purge:** Converted `ArticleVectorService`, `ProductVectorService`, and business services from global singletons to Litestar-injected instances, achieving 100% architectural decoupling.
+- **Caddy Protocol Optimization:** Patched `Caddyfile` to exclude binary/event streams from compression, resolving `ERR_HTTP2_PROTOCOL_ERROR` and `502` disconnects.
+
+### Fixed
+- **Pulse Stream Stability:** Resolved persistent HTTP/2 protocol errors through compression exclusion and heartbeat synchronization.
+- **Vector Service Type Safety:** Fixed `match_score` calculation to handle potential `None` values and enforced strict float conversion.
+
+## [22.3.24.01] - 2026-03-24
 
 ### Added
 - **Centralized Z-Index Management (Elite V2.2):** Introduced `src/lib/core/constants/zIndex.ts` to eliminate magic numbers and ensure consistent stacking of VUI, Modals, and Toasts.

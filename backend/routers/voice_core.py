@@ -27,10 +27,20 @@ async def stt_websocket(socket: WebSocket) -> None:
     last_partial_time = float(asyncio.get_event_loop().time())
     last_transcribed_size = 0
 
+    start_time_mono = time.monotonic()
+    max_age = 600  # 10-minute hard limit for STT sessions (Elite Rule)
+
     try:
         while is_active:
+            # R82.1: Lifecycle check
+            if (time.monotonic() - start_time_mono) > max_age:
+                logger.warning(f"[STT] Max age reached ({max_age}s). Closing.")
+                await socket.send_json({"event": "error", "message": "Phiên làm việc quá dài, Sếp vui lòng bật lại nhé."})
+                break
+
             try:
-                msg = await asyncio.wait_for(socket.receive(), timeout=30.0)
+                # R82: Standardized 15s timeout for heartbeat logic
+                msg = await asyncio.wait_for(socket.receive(), timeout=15.0)
 
                 if msg["type"] == "websocket.receive":
                     if "bytes" in msg:
@@ -93,8 +103,10 @@ async def stt_websocket(socket: WebSocket) -> None:
                     break
 
             except asyncio.TimeoutError:
-                await socket.send_json({"event": "timeout", "text": ""})
-                break
+                # Standardized WebSocket Ping/Pong handled by Litestar, but we can send a custom ping if needed
+                # However, 15s no-data results in a soft timeout to keep things lean
+                await socket.send_json({"event": "ping", "timestamp": time.time()})
+                continue
             except (KeyError, AttributeError) as e:
                 logger.debug(f"[STT] Ignored non-data message: {e}")
                 continue
