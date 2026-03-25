@@ -12,6 +12,7 @@ keys.txt
 certs/caddy/pki/
 
 # 2. Rác thư viện & Môi trường
+backend/cache/
 node_modules/
 static/
 .pnpm-store/

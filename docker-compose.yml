@@ -68,6 +68,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile.dev
+      args:
+        - UV_CONCURRENCY=${UV_CONCURRENCY:-4}
     container_name: fast_platform_api
     expose:
       - "8000"
@@ -90,6 +92,11 @@ services:
       - TZ=Asia/Ho_Chi_Minh
       - PYTHONWARNINGS=ignore:Core Pydantic V1 functionality:UserWarning
       - MALLOC_ARENA_MAX=2  # [GHOST MODE] Chống phân mảnh bộ nhớ glibc
+    mem_limit: ${API_MEM_LIMIT:-4G}
+    deploy:
+      resources:
+        limits:
+          memory: ${API_MEM_LIMIT:-4G}
     depends_on:
       db:
         condition: service_healthy
@@ -100,6 +107,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
+      args:
+        - PNPM_CONCURRENCY=${PNPM_CONCURRENCY:-4}
     container_name: fast_platform_ui
     working_dir: /app/frontend
     volumes:
@@ -115,6 +124,11 @@ services:
     environment:
       - VITE_API_URL=${API_DOMAIN}
       - VITE_API_PROXY_TARGET=http://api:8000
+    mem_limit: ${UI_MEM_LIMIT:-2G}
+    deploy:
+      resources:
+        limits:
+          memory: ${UI_MEM_LIMIT:-2G}
     command: pnpm dev --host 0.0.0.0
     depends_on:
       - api

@@ -21,8 +21,12 @@ if [ -n "$DATABASE_URL" ]; then
 fi
 
 # R4.1: Synchronize Database Schema
-echo "🧬 [Trinity Boot] Synchronizing neural schema (Alembic)..."
-/opt/venv/bin/alembic -c backend/alembic.ini upgrade head || echo "⚠️ Migration failed, but proceeding..."
+if [ "$SKIP_MIGRATE" != "true" ]; then
+    echo "🧬 [Trinity Boot] Synchronizing neural schema (Alembic)..."
+    /opt/venv/bin/alembic -c backend/alembic.ini upgrade head || echo "⚠️ Migration failed, but proceeding..."
+else
+    echo "⏭️ [Trinity Boot] Skipping migration (Already synced by XOHI OS)."
+fi
 
 # R82: Start Litestar Application via Uvicorn (CTO Elite Mode)
 if [ "$#" -eq 0 ]; then
@@ -31,8 +35,8 @@ if [ "$#" -eq 0 ]; then
         --host 0.0.0.0 \
         --port 8000 \
         --http h11 \
-        --limit-max-requests 1000 \
-        --limit-concurrency 50 \
+        --limit-max-requests 500 \
+        --limit-concurrency 15 \
         --timeout-keep-alive 5 
 else
     echo "⚡ [Trinity Boot] Executing custom command: $@"

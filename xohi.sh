@@ -13,6 +13,34 @@ GREEN='\033[0;32m'
 CYAN='\033[0;36m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+ 
+# [GHOST MODE] Adaptive Resource Management
+TOTAL_RAM_GB=0
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    TOTAL_RAM_GB=$(($(sysctl -n hw.memsize) / 1024 / 1024 / 1024))
+elif [[ -f /proc/meminfo ]]; then
+    TOTAL_RAM_GB=$(grep MemTotal /proc/meminfo | awk '{print int($2/1024/1024)}')
+fi
+
+# Default Performance Settings (High RAM)
+export UV_CONCURRENCY=""
+export PNPM_OPTS=""
+export DOCKER_BUILDKIT=1
+export COMPOSE_PARALLEL_LIMIT=""
+export API_MEM_LIMIT="4G"
+export UI_MEM_LIMIT="2G"
+
+if [ "$TOTAL_RAM_GB" -le 12 ]; then
+    echo -e "${YELLOW}[GHOST MODE] Hệ thống phát hiện RAM thấp (${TOTAL_RAM_GB}GB). Đang tối ưu khởi tạo...${NC}"
+    export UV_CONCURRENCY=2
+    export PNPM_CONCURRENCY=1
+    export PNPM_OPTS="--network-concurrency 1"
+    export COMPOSE_PARALLEL_LIMIT=1
+    export API_MEM_LIMIT="1536M"
+    export UI_MEM_LIMIT="1024M"
+else
+    echo -e "${GREEN}[ELITE MODE] Hệ thống phát hiện RAM dồi dào (${TOTAL_RAM_GB}GB). Chạy tối đa tốc độ!${NC}"
+fi
 
 # Helper: OS & Arch check
 # [LONG-TERM NOTE: INTEL MAC WORKAROUND]
@@ -122,8 +150,13 @@ function bootstrap_all() {
     echo -e "${YELLOW}=== [GOD MODE] KHỞI ĐỘNG TỔNG LỰC (DOCKER) ===${NC}"
     mkdir -p certs/caddy/pki
     deep_clean
-    echo -e "${CYAN}[1/2] Đang xây dựng và khởi động Containers...${NC}"
-    docker compose up -d --build
+    echo -e "${CYAN}[1/2] Đang xây dựng và khởi động Containers (Sequential)...${NC}"
+    # [CTO ELITE] Build từng cái một để tránh treo máy 8GB
+    for service in db redis caddy api ui; do
+        echo -e "${YELLOW}   -> Building $service...${NC}"
+        docker compose build $service
+    done
+    docker compose up -d
     echo -e "${CYAN}[2/2] Đang thiết lập SSL Trust...${NC}"
     sleep 10
     chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
@@ -201,30 +234,36 @@ function init_deploy() {
         uv pip install litestar[standard] advanced-alchemy asyncpg pydantic-ai
         # Sau đó cài nốt các thằng còn lại
         uv pip install -e .
-        echo -e "${CYAN}-> [CTO ELITE] Đang tạo uv.lock cho Docker...${NC}"
-        uv lock
     fi
+    echo -e "${CYAN}-> [CTO ELITE] Đang tạo uv.lock cho Docker...${NC}"
+    uv lock || true
     (cd frontend && pnpm install)
     
     echo -e "${CYAN}[4/6] Xây dựng và khởi động Cơ sở hạ tầng (Database & Cache)...${NC}"
-    docker compose up -d db redis caddy --build
+    # [CTO ELITE] Build tuần tự để bảo vệ RAM tuyệt đối
+    docker compose build db
+    docker compose build redis
+    docker compose build caddy
+    docker compose up -d db redis caddy
     
     echo -e "${CYAN}[5/6] Database Migration & SSL Setup...${NC}"
-    echo -e "${YELLOW}Đang khởi động API tạm thời để migrate...${NC}"
-    docker compose up -d api --build
     echo -e "${YELLOW}Đang chờ DB sẵn sàng...${NC}"
+    # Đợi DB khởi khởi động hoàn toàn
     sleep 5
-    # [DEDUPLICATED] Đã chuyển giao việc migration cho backend/entrypoint.sh lúc container khởi động
-    # run_backend --env-file "${PWD}/.env" alembic -c backend/alembic.ini upgrade head
+    echo -e "${YELLOW}Đang chạy Migration (Một lần)...${NC}"
+    # [CTO ELITE] Chạy migration như một container tạm, tránh chiếm RAM lâu dài
+    docker compose run --rm api /opt/venv/bin/alembic -c backend/alembic.ini upgrade head
     
     echo -e "${CYAN}[6/6] Gieo mầm dữ liệu (Seeding Database)...${NC}"
-    # [CTO ELITE] Dùng 'run' thay vì 'exec' để seed mượt mà
+    # [CTO ELITE] Chạy seeding xong là xóa container ngay để giải phóng RAM
     docker compose run --rm api /opt/venv/bin/python3 -m backend.scripts.seed
     
-    echo -e "${YELLOW}Đang khởi động UI và hoàn tất...${NC}"
-    docker compose up -d ui
+    echo -e "${YELLOW}Đang khởi động toàn bộ dịch vụ (API & UI)...${NC}"
+    docker compose build api
+    docker compose build ui
+    # [CTO ELITE] SKIP_MIGRATE=true vì đã chạy migrate tuần tự ở bước [5/6] rồi
+    SKIP_MIGRATE=true docker compose up -d api ui
     chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
-    docker compose restart api
     
     echo -e "${GREEN}=== HỆ THỐNG ĐÃ SẴN SÀNG! (Đã tối ưu RAM) ===${NC}"
     echo -e "${CYAN}Truy cập: https://admin.smartshop.test${NC}"
