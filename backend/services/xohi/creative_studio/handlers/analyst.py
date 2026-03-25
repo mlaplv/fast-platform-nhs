@@ -146,3 +146,107 @@ class AnalystHandler:
                 if hasattr(campaign_repo, "session"): await campaign_repo.session.commit()
             return GenericResponse(status="success", data=res.model_dump())
         except Exception as e: return GenericResponse(status="error", message=str(e))
+
+    async def scout(self, topic: str) -> GenericResponse:
+        """
+        [CNS V62.2] High-IQ Neural Scout with Smart Caching.
+        Performs Google Search recon + AI Strategic Synthesis (ADS vs TOP 10).
+        Persists results for 24h to optimize API costs and latency.
+        """
+        logger.info(f"🕵️ [AnalystHandler] Neural Scout initiating for topic: {topic}")
+        from backend.services.xohi.creative_studio.models.schemas import ScoutReport
+        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+        from backend.database.alchemy_config import alchemy_config
+        from backend.database.repositories import ContentScoutRepository
+        from backend.database.models import ContentScout
+        from pydantic_ai import Agent
+        from datetime import datetime, timedelta, timezone
+        import uuid
+
+        logs = [f"🚀 Khởi động Neural Scout Engine cho tiêu điểm: '{topic}'..."]
+        session_maker = alchemy_config.create_session_maker()
+        
+        async with session_maker() as session:
+            scout_repo = ContentScoutRepository(session=session)
+            
+            # 1. SMART CACHE CHECK (Elite Standard)
+            existing = None
+            try:
+                logs.append("🔍 Đang kiểm tra Neural Vault cho 24h qua...")
+                existing = await scout_repo.get_one_or_none(topic=topic)
+                
+                if existing:
+                    now = datetime.now(timezone.utc)
+                    exp = existing.expires_at
+                    if exp.tzinfo is None: exp = exp.replace(tzinfo=timezone.utc)
+                    
+                    if exp > now:
+                        logs.append("💡 [CACHE HIT] Tìm thấy báo cáo trinh sát còn hiệu lực. Đang truy xuất...")
+                        report_data = existing.report_data
+                        report = ScoutReport(**report_data)
+                        report.logs = logs + ["✅ Truy xuất dữ liệu từ Neural Cache thành công."]
+                        return GenericResponse(status="success", data=report.model_dump())
+                    else:
+                        logs.append("⚠️ Dữ liệu trinh sát đã quá hạn (TTL > 24h). Tiến hành trinh sát mới...")
+                else:
+                    logs.append("📡 Không tìm thấy dữ liệu trong Cache. Tiến hành thực địa...")
+            except Exception as e:
+                logger.warning(f"Cache check failed: {str(e)}")
+                logs.append("⚠️ Lỗi Cache Controller. Tiếp tục trinh sát trực tiếp...")
+
+            try:
+                # 2. PROCEED WITH RECON
+                logs.append("📡 Đang trinh sát Top 10 Google SERP & ADS fragments...")
+                search_context = await self.orchestrator.discovery.search(topic)
+                
+                # 3. AI STRATEGIC SYNTHESIS
+                logs.append("🧠 Đang giải mã chiến lược đối thủ bằng Neural Engine...")
+                
+                scout_prompt = f"""[ROLE] SENIOR CONTENT STRATEGIST — XoHi Intelligence 2026
+Nhiệm vụ: Phân tích sâu 10 đối thủ hàng đầu và lập bản trình báo chiến thuật nội dung.
+
+[DỮ LIỆU TRINH SÁT TỪ GOOGLE]
+{search_context}
+
+[YÊU CẦU ĐẦU RA — JSON]
+Trả về một `ScoutReport` (Pydantic Model) bao gồm:
+1. `headlines`: Danh sách 6-10 tiêu đề gợi ý đa kênh.
+   - Phân loại rõ: ADS (Click-bait chất lượng cao), TOP_10 (SEO chuẩn), AI_AUGMENTED (Sáng tạo đột phá).
+2. `semantic_keywords`: 8-12 từ khóa Semantic/LSI quan trọng nhất để "đánh chặn" SEO.
+3. `strategic_analysis`: Bản TRÌNH BÁO CHIẾN LƯỢC (Markdown) cực kỳ chuyên sâu bao gồm:
+   - **Search Intent Decoding**: Giải mã mục đích thực sự và "nỗi đau" của người dùng.
+   - **Competitor Gap Analysis**: Chỉ ra những mảng nội dung/insight mà đối thủ đang bỏ trống hoặc làm hời hợt.
+   - **Elite Execution Roadmap**: Công thức cụ thể để bài viết đạt Information Gain cao nhất, vượt xa Top 1.
+4. `ground_truth_summary`: Tóm tắt ngắn gọn bối cảnh thực tế trinh sát được.
+
+CHÚ Ý: Bản trình báo chiến lược phải mang tính THAM KHẢO CHIẾN THUẬT CAO (Actionable Intelligence), không được viết chung chung.
+"""
+                agent = Agent(output_type=ScoutReport, system_prompt=scout_prompt)
+                response = await trinity_bridge.run(agent=agent, prompt=f"Tiến hành trình báo chiến lược cho chủ đề: {topic}", role="brain")
+                
+                report = response.data if hasattr(response, 'data') else response.output
+                
+                # 4. PERSIST TO CACHE
+                logs.append("💾 Đang lưu trữ kết quả trinh sát vào Neural Vault (24h)...")
+                try:
+                    if existing:
+                        await scout_repo.delete(existing.id)
+                    
+                    new_scout = ContentScout(
+                        id=str(uuid.uuid4()),
+                        topic=topic,
+                        report_data=report.model_dump(),
+                        expires_at=datetime.now(timezone.utc) + timedelta(hours=24)
+                    )
+                    await scout_repo.add(new_scout)
+                    await session.commit()
+                except Exception as db_e:
+                    logger.error(f"Failed to cache scout: {str(db_e)}")
+                    logs.append("⚠️ Không thể lưu Cache vào DB, nhưng dữ liệu vẫn ổn.")
+
+                report.logs = logs + ["✅ Trinh sát hoàn tất. Báo cáo chiến lược 'Elite' đã sẵn sàng."]
+                return GenericResponse(status="success", data=report.model_dump())
+                
+            except Exception as e:
+                logger.error(f"[AnalystHandler] Scout failed: {str(e)}", exc_info=True)
+                return GenericResponse(status="error", message=f"Neural Scout Error: {str(e)}")

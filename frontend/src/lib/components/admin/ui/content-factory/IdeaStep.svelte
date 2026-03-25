@@ -8,11 +8,14 @@
     Globe,
     TrendingUp,
     Calendar as CalendarIcon,
-    ChevronRight 
+    ChevronRight,
+    Zap
   } from "lucide-svelte";
   import { onMount } from "svelte";
   import type { CampaignKeywords } from "$lib/state/types";
   import { createIdeaController } from "$lib/state/xohiIdea.svelte";
+  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { apiClient } from "$lib/utils/apiClient";
   import NeuralScheduler from "./NeuralScheduler.svelte";
 
   interface Props {
@@ -53,13 +56,72 @@
     if (isEditing === undefined) isEditing = false;
     if (!editedConfig) editedConfig = { style: "Viral" };
     if (!editedConfig.style) editedConfig.style = "Viral";
+
+    // CNS V62.2: Restore Scout Report from persisted campaign state
+    if (editedKeywords?.scout_report) {
+      scoutReport = editedKeywords.scout_report;
+    }
   });
+
+  // CNS V62.2: Scout Intelligence State
+  let isScouting = $state(false);
+  let scoutReport = $state<ScoutReport | null>(null);
+
+  async function performScout(e?: MouseEvent) {
+    if (e) e.stopPropagation();
+    
+    // CNS V62.2: Elite Auto-fallback - Use analyzed keyword if editing one is empty
+    const targetTopic = editedKeywords.primary_keyword || keywords.primary_keyword;
+
+    if (!targetTopic) {
+      nanobot.showToast("Dạ Sếp, em cần Từ khóa chính để bắt đầu trinh sát ạ!", "warning");
+      return;
+    }
+
+    // Auto-sync back to edited view if we took it from original keywords
+    if (!editedKeywords.primary_keyword) {
+      editedKeywords.primary_keyword = targetTopic;
+    }
+
+    const startTime = Date.now();
+    isScouting = true;
+    try {
+      const res = await apiClient.post('/api/v1/content/scout', { topic: targetTopic });
+      if (res.status === 'success') {
+        scoutReport = res.data;
+        // CNS V62.2: Sync into specialized campaign metadata
+        editedKeywords.scout_report = res.data;
+        
+        // Elite UX: Ensure at least 1.5s of "Neural Scanning" delay for perception of value
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 1500) await new Promise(r => setTimeout(r, 1500 - elapsed));
+        
+        // CNS V62.2: Direct Background Sync (Bypasses parent handleUpdateMetadata to keep editor open)
+        await apiClient.patch(`/api/v1/content/campaigns/${campaign_id}`, {
+          keywords: $state.snapshot(editedKeywords)
+        });
+        
+        nanobot.showToast("Báo cáo trinh sát Elite đã sẵn sàng.", "success");
+      } else {
+        nanobot.showToast("Lỗi trinh sát: " + res.message, "error");
+      }
+    } catch (e) {
+      console.error(e);
+      nanobot.showToast("Hệ thống trinh sát gặp sự cố kỹ thuật.", "error");
+    } finally {
+      isScouting = false;
+    }
+  }
 
   // Enforce mandatory writing style default
   $effect(() => {
     if (isEditing && !editedConfig?.style) {
       editedConfig.style = "Viral";
     }
+  });
+
+  $effect(() => {
+    keywords = { ...editedKeywords };
   });
 </script>
 
@@ -260,56 +322,144 @@
             </div>
 
             <button 
-              onclick={() => { 
-                if (!editedConfig.scouting_active) editedConfig.scouting_active = false;
-                editedConfig.scouting_active = !editedConfig.scouting_active; 
+              onclick={(e) => { 
+                if (!editedConfig.scouting_active) {
+                  editedConfig.scouting_active = true;
+                  performScout(e);
+                } else {
+                  editedConfig.scouting_active = false;
+                }
               }}
-              class="px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-500 {editedConfig.scouting_active ? 'bg-indigo-500 text-white shadow-xl shadow-indigo-500/20' : 'bg-white/5 text-white/40 border border-white/10 hover:text-white hover:bg-white/10'}"
+              disabled={isScouting}
+              class="px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-500 {editedConfig.scouting_active ? 'bg-indigo-500 text-white shadow-xl shadow-indigo-500/20' : 'bg-white/5 text-white/40 border border-white/10 hover:text-white hover:bg-white/10'} {isScouting ? 'animate-pulse cursor-wait' : ''}"
             >
-              {editedConfig.scouting_active ? 'Sẵn sàng Trinh sát' : 'Kích hoạt Scout Engine'}
+              {#if isScouting}
+                Đang trinh sát...
+              {:else}
+                {editedConfig.scouting_active ? 'Hủy Trinh sát' : 'Kích hoạt Scout Engine'}
+              {/if}
             </button>
           </div>
 
           {#if editedConfig.scouting_active}
-            <div class="space-y-6 animate-in fade-in slide-in-from-top-4 duration-1000 relative z-10">
-              <div class="flex flex-col md:flex-row gap-4">
+            <div class="space-y-8 animate-in fade-in slide-in-from-top-4 duration-1000 relative z-10">
+              
+              <!-- CNS V62.2: Strategic Intelligence Result (Deep Analysis) -->
+              {#if scoutReport?.strategic_analysis}
+                <div class="p-8 rounded-[2.5rem] bg-indigo-500/10 border border-indigo-500/20 shadow-2xl relative overflow-hidden group/strat">
+                  <div class="absolute top-0 right-0 p-4">
+                    <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 animate-pulse">
+                      <Zap size={16} />
+                    </div>
+                  </div>
+                  <h5 class="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                    <ShieldCheck size={14} /> Trình báo Chiến lược AI (Elite Strategy)
+                  </h5>
+                  <div class="prose prose-invert prose-sm max-w-none text-white/80 leading-relaxed font-medium text-[13px] whitespace-pre-wrap selection:bg-indigo-500/30">
+                    {scoutReport.strategic_analysis}
+                  </div>
+                  
+                  {#if scoutReport.ground_truth_summary}
+                    <div class="mt-6 pt-6 border-t border-indigo-500/10">
+                      <p class="text-[10px] text-indigo-300/40 font-bold uppercase tracking-widest leading-loose">
+                        <span class="text-indigo-400">Ground Truth:</span> {scoutReport.ground_truth_summary}
+                      </p>
+                    </div>
+                  {/if}
+                </div>
+              {:else if isScouting}
+                <!-- Shimmer Loading for Strategy -->
+                <div class="p-8 rounded-[2.5rem] bg-white/5 border border-white/10 animate-pulse">
+                  <div class="h-4 w-48 bg-white/10 rounded-full mb-6"></div>
+                  <div class="space-y-3">
+                    <div class="h-3 w-full bg-white/5 rounded-full"></div>
+                    <div class="h-3 w-5/6 bg-white/5 rounded-full"></div>
+                    <div class="h-3 w-4/6 bg-white/5 rounded-full"></div>
+                  </div>
+                </div>
+              {/if}
+
+              <div class="flex flex-col md:flex-row gap-6">
+                <!-- Headlines Suggestions -->
                 <div class="flex-1 p-6 rounded-3xl bg-black/40 border border-white/5 shadow-inner">
                   <div class="flex items-center justify-between mb-4">
                     <span class="text-[10px] font-black text-white/40 uppercase tracking-widest flex items-center gap-2"><TrendingUp size={12} /> Gợi ý tiêu đề (ADS & TOP 10)</span>
-                    <button class="text-[9px] font-black text-indigo-400 hover:underline uppercase tracking-tighter">Manual Scan</button>
+                    <button 
+                      onclick={performScout}
+                      disabled={isScouting}
+                      class="text-[9px] font-black text-indigo-400 hover:underline uppercase tracking-tighter disabled:opacity-50"
+                    >
+                      {isScouting ? 'Scanning...' : 'Manual Scan'}
+                    </button>
                   </div>
-                  <div class="space-y-2">
-                    {#each ["Làm sao để...", "Top 10 bí kíp...", "Hướng dẫn chi tiết từ chuyên gia..."] as suggestion}
-                      <button 
-                        onclick={() => editedKeywords.title = suggestion}
-                        class="w-full text-left p-2.5 rounded-xl bg-white/[0.03] border border-white/5 text-[11px] text-white/60 hover:bg-indigo-500/10 hover:border-indigo-500/30 hover:text-white transition-all text-xs truncate"
-                      >
-                        {suggestion}
-                      </button>
-                    {/each}
+                  <div class="space-y-3">
+                    {#if scoutReport?.headlines}
+                      {#each scoutReport.headlines as suggestion}
+                        <button 
+                          onclick={() => editedKeywords.title = suggestion.title}
+                          class="w-full text-left p-3 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all group/h"
+                        >
+                          <div class="flex items-center justify-between mb-1">
+                            <span class="text-[8px] font-black uppercase tracking-tighter {suggestion.type === 'ADS' ? 'text-orange-400' : suggestion.type === 'TOP_10' ? 'text-green-400' : 'text-indigo-400'}">
+                              {suggestion.type}
+                            </span>
+                          </div>
+                          <p class="text-[11px] text-white/70 group-hover/h:text-white line-clamp-2">{suggestion.title}</p>
+                        </button>
+                      {/each}
+                    {:else}
+                      {#each Array(3) as _}
+                        <div class="w-full h-16 rounded-2xl bg-white/5 animate-pulse"></div>
+                      {/each}
+                    {/if}
                   </div>
                 </div>
 
+                <!-- LSI Keywords -->
                 <div class="flex-1 p-6 rounded-3xl bg-black/40 border border-white/5 shadow-inner">
                   <div class="flex items-center justify-between mb-4">
                     <span class="text-[10px] font-black text-white/40 uppercase tracking-widest flex items-center gap-2"><Globe size={12} /> Từ khóa Semantic (LSI)</span>
                   </div>
                   <div class="flex flex-wrap gap-2">
-                    {#each ["chiến lược", "tối ưu hoá", "xu hướng 2026", "bí mật content"] as lsi}
-                      <button 
-                        onclick={() => {
-                          if (!(editedKeywords.secondary_keywords || []).includes(lsi)) {
-                            editedKeywords.secondary_keywords = [...(editedKeywords.secondary_keywords || []), lsi];
-                          }
-                        }}
-                        class="px-2.5 py-1.5 rounded-lg bg-indigo-400/5 border border-indigo-400/20 text-[10px] text-indigo-400 font-bold hover:bg-indigo-400/20 transition-all uppercase tracking-tighter"
-                      >
-                        + {lsi}
-                      </button>
-                    {/each}
+                    {#if scoutReport?.semantic_keywords}
+                      {#each scoutReport.semantic_keywords as lsi}
+                        <button 
+                          onclick={() => {
+                            if (!(editedKeywords.secondary_keywords || []).includes(lsi)) {
+                              editedKeywords.secondary_keywords = [...(editedKeywords.secondary_keywords || []), lsi];
+                            }
+                          }}
+                          class="px-2.5 py-1.5 rounded-lg bg-indigo-400/5 border border-indigo-400/20 text-[10px] text-indigo-400 font-bold hover:bg-indigo-400/20 transition-all uppercase tracking-tighter"
+                        >
+                          + {lsi}
+                        </button>
+                      {/each}
+                    {:else}
+                      {#each Array(8) as _}
+                        <div class="w-20 h-6 rounded-lg bg-white/5 animate-pulse"></div>
+                      {/each}
+                    {/if}
                   </div>
                 </div>
               </div>
+
+              <!-- Scout Logs -->
+              {#if scoutReport?.logs || isScouting}
+                <div class="p-6 rounded-3xl bg-black/60 border border-white/5 font-mono text-[9px] text-white/30 space-y-1 max-h-32 overflow-y-auto">
+                  {#each (scoutReport?.logs || ["🕵️ Hệ thống đang khởi động..."]) as log}
+                    <div class="flex gap-2">
+                      <span class="text-indigo-500/50">›</span>
+                      <span>{log}</span>
+                    </div>
+                  {/each}
+                  {#if isScouting}
+                    <div class="flex gap-2 animate-pulse">
+                      <span class="text-indigo-500/50">›</span>
+                      <span>Đang trích xuất dữ liệu thực thể...</span>
+                    </div>
+                  {/if}
+                </div>
+              {/if}
             </div>
           {/if}
         </div>

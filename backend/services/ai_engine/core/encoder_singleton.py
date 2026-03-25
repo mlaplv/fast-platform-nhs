@@ -7,7 +7,9 @@ from fastembed import TextEmbedding
 logger = logging.getLogger("api-gateway")
 
 # Elite V2.2: Centralized Model Cache to avoid Docker permission issues and redundant downloads
-CACHE_DIR = "/app/backend/cache/fastembed"
+# Uses project-relative path (5 levels up from core/ to reach fast-platform-core/)
+_project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+CACHE_DIR = os.getenv("FASTEMBED_CACHE_DIR", os.path.join(_project_root, "backend/cache/fastembed"))
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 _shared_encoder: Optional[TextEmbedding] = None

@@ -139,3 +139,17 @@ class Appointment(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
         Index("ix_appointments_tenant_deleted", "tenant_id", "deleted_at"),
         Index("ix_appointments_time_range", "start_time", "end_time"),
     )
+
+class ContentScout(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
+    __tablename__ = 'content_scouts'
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    topic: Mapped[str] = mapped_column(String, index=True)
+    report_data: Mapped[dict] = mapped_column(JSON, default=dict)
+    
+    # CNS V62.2: TTL for cache (24h default)
+    expires_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), index=True)
+
+    __table_args__ = (
+        Index("ix_scouts_tenant_topic", "tenant_id", "topic"),
+    )
