@@ -34,6 +34,7 @@ text.key
 
 # 3. Dữ liệu sinh ra khi dev
 backups/
+temp_restore/
 *.resolved
 *.log
 *.sqlite
