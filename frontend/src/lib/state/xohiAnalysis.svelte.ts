@@ -253,42 +253,43 @@ export function createAnalysisController(config: {
             if (typeof document !== 'undefined') {
                 const div = document.createElement('div');
                 div.innerHTML = content;
-                
+
                 let changed = true;
                 let passes = 0;
-                
+
                 // Deterministic Loop: Repeat until no more changes occur (max 10 passes)
                 while (changed && passes < 10) {
                     changed = false;
                     passes++;
-                    
+
                     // Step A: Remove redundant BR tags
                     div.querySelectorAll('br + br').forEach(el => { el.remove(); changed = true; });
 
                     // Step B: Bottom-up Recursive Pruning
                     const allNodes = Array.from(div.querySelectorAll('*')).reverse();
-                    
+
                     allNodes.forEach(node => {
                         if (!node.parentNode) return;
 
                         const text = node.textContent?.replace(/[\s\u00A0\u200B\uFEFF\t\n\r]+/g, '').trim() || '';
                         const hasMedia = node.querySelector('img, iframe, video, audio, picture, canvas, svg, [data-media]');
                         const hasFunctional = node.querySelector('input, button, select, textarea');
-                        const hasMeaningfulAttr = node.tagName === 'A' && node.getAttribute('href');
-                        
-                        if (!text && !hasMedia && !hasFunctional && !hasMeaningfulAttr) {
+                        const hasMeaningfulAttr = (node.tagName === 'A' && node.getAttribute('href')) || node.getAttribute('id') || node.getAttribute('name');
+
+                        // Rule 84.1: If it's a container and effectively empty, prune it.
+                        const isContainer = ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'STRONG', 'B', 'EM', 'I', 'SPAN', 'BLOCKQUOTE', 'LI', 'SECTION', 'ARTICLE'].includes(node.tagName);
+                        const isEffectivelyEmpty = !text && !hasMedia && !hasFunctional && !hasMeaningfulAttr;
+
+                        if (isContainer && isEffectivelyEmpty) {
                             node.remove();
+                            changed = true;
+                        } else if (node.tagName === 'BR' && node.parentNode.childNodes.length === 1 && isContainer) {
+                            // If a container only has a BR, it's effectively empty for viral cleaning
+                            node.parentNode.removeChild(node);
                             changed = true;
                         }
                     });
                 }
-                
-                // Step C: Legacy Tiptap Placeholder Sanitization
-                div.querySelectorAll('p').forEach(p => {
-                    if (p.innerHTML.trim() === '<br>' || p.innerHTML.trim() === '<br/>' || p.innerHTML.trim() === '') {
-                        p.remove();
-                    }
-                });
 
                 content = div.innerHTML;
             }

@@ -19,17 +19,19 @@ from backend.services.xohi_responder import setup_subscriptions
 from backend.services.xohi.creative_studio.orchestrator import content_factory
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.http_client import SharedHttpClient
+from backend.services.ai_engine.core.encoder_singleton import warmup_encoder
 
 logger = logging.getLogger("api-gateway")
 
 @asynccontextmanager
 async def lifespan(app: Litestar):
-    # Start Proactive Nerve System
+    # 1. Start Infrastructure & AI Core (V76.2)
     setup_subscriptions()
-    await event_bus.start()
-
-    # Initialize AI Bridge (V76)
-    await trinity_bridge.initialize()
+    await _aio.gather(
+        event_bus.start(),
+        trinity_bridge.initialize(),
+        warmup_encoder()
+    )
 
     gc_task = None
     heartbeat_task = None
@@ -37,22 +39,20 @@ async def lifespan(app: Litestar):
     media_cleanup_task = None
 
     try:
-        # Pre-load Voice Profiles into Hot Cache (R76: Scalar Projection Optimization)
+        # 2. Pre-load Data into Hot Cache (R76: Scalar Projection Optimization)
         async with alchemy_config.create_session_maker()() as session:
             # R76: Return only necessary columns to reduce RAM hydration
             stmt = select(
-                VoiceProfile.user_id, 
-                VoiceProfile.wake_words, 
-                VoiceProfile.sleep_words, 
-                VoiceProfile.greeting_template, 
+                VoiceProfile.user_id,
+                VoiceProfile.wake_words,
+                VoiceProfile.sleep_words,
+                VoiceProfile.greeting_template,
                 VoiceProfile.capabilities,
                 VoiceProfile.gemini_keys_enc
             )
             results = await session.execute(stmt)
             profiles = results.all()
-            
-            count = len(profiles)
-            
+
             # Load profile for cache
             for row in profiles:
                 await xohi_memory.cache_voice_profile(str(row.user_id), {
@@ -66,26 +66,14 @@ async def lifespan(app: Litestar):
             await key_rotator.load_keys()
             logger.info(f"🔑 [Trinity Core] Keys hot-reloaded ({key_rotator.get_count()} keys).")
     except Exception as e:
-        logger.error(f"❌ [Trinity Core] Key reload failed: {e}")
-
-    # Start Proactive Nerve System
-    setup_subscriptions()
-    await event_bus.start()
-
-    # Initialize AI Bridge (V76)
-    await trinity_bridge.initialize()
-
-    gc_task = None
-    heartbeat_task = None
-    purge_task = None
-    media_cleanup_task = None
+        logger.error(f"❌ [Trinity Core] Startup data load failed: {e}")
 
     try:
-        # [GHOST MODE] Start GC Watchdog first
+        # 3. [GHOST MODE] Start GC Watchdog first
         gc.set_threshold(700, 10, 5) # Chống rác tích tụ lâu
         gc_task = _aio.create_task(_gc_watchdog_loop())
 
-        # Start Background Loops
+        # 4. Start Background Loops
         heartbeat_task = _aio.create_task(_heartbeat_loop())
         purge_task = _aio.create_task(_auto_purge_loop())
         media_cleanup_task = _aio.create_task(_media_cleanup_loop())

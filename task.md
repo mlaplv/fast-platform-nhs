@@ -88,3 +88,14 @@ Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt th
 - [x] Backend: Implement Hybrid Cleaning (Flashtext O(N) + RapidFuzz O(N log M)). <!-- id: 131 -->
 - [x] Backend: Fix Flashtext exact match bug (Space-replacement mapping). <!-- id: 132 -->
 - [x] Final: Verify performance with 277k character stress test (< 200ms). <!-- id: 133 -->
+
+## 🎯 Giai đoạn 24: Cross-Browser Sync & Deterministic Normalization (Elite V2.2) (COMPLETED)
+- [x] Frontend: Implement recursive `prune` function in `TiptapEditor.svelte`. <!-- id: 140 -->
+- [x] Frontend: Add `normalizeHTML` in `xohiAnalysis.svelte.ts` to sync with editor logic. <!-- id: 141 -->
+- [x] Logic: Eliminate flicker and cursor jumping on Safari/Firefox via deterministic normalization. <!-- id: 142 -->
+- [x] Final: Verify zero-diff between Frontend and Backend cleaning output. <!-- id: 143 -->
+
+## 🎯 Giai đoạn 25: RAG Startup Optimization & AI Core Warmup (Elite V2.2) (COMPLETED)
+- [x] Backend: Parallelize Event Bus, Trinity Bridge, and Vector Encoder warmup in `lifespan.py`. <!-- id: 150 -->
+- [x] Backend: Resolve "Product Encoder not ready" warning by ensuring early initialization. <!-- id: 151 -->
+- [x] Backend: Clean up redundant service subscriptions and initializations in lifespan logic. <!-- id: 152 -->

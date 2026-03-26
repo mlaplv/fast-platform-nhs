@@ -314,14 +314,45 @@
     if (!editor || editor.isDestroyed || isInternalUpdating || isSyncLocked) return;
     
     const normalizedContent = content || "<p></p>";
-    
+
     untrack(() => {
         const currentHTML = editor!.getHTML();
-        
-        // Use a more relaxed comparison to avoid loops (ignore whitespace between tags)
-        const cleanContent = (html: string) => html.replace(/\s+/g, ' ').replace(/>\s+</g, '><').trim();
-        
-        if (cleanContent(normalizedContent) !== cleanContent(currentHTML)) {
+
+        // CNS V2.2: Deterministic HTML Normalization for Cross-Browser Comparison
+        const normalizeHTML = (html: string) => {
+            if (typeof document === 'undefined') return html.trim();
+            const div = document.createElement('div');
+            // Rule 1: Collapse all whitespace (including newlines and multiple spaces)
+            // Rule 2: Standardize &nbsp; to space for comparison (Tiptap often converts them)
+            const clean = html
+                .replace(/&nbsp;/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            div.innerHTML = clean;
+
+            // Rule 3: Recursive pruning of empty nodes to match Backend NASP logic
+            // This prevents "ghost" tags from triggering sync loops
+            const prune = (node: Node) => {
+                for (let i = node.childNodes.length - 1; i >= 0; i--) {
+                    const child = node.childNodes[i];
+                    if (child.nodeType === 1) { // Element
+                        prune(child);
+                        const el = child as HTMLElement;
+                        const isContainer = ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'STRONG', 'B', 'EM', 'I', 'SPAN'].includes(el.tagName);
+                        const isEmpty = el.innerHTML.replace(/&nbsp;/g, '').replace(/\s+/g, '').trim() === '' || el.innerHTML === '<br>';
+                        if (isContainer && isEmpty) {
+                            el.remove();
+                        }
+                    }
+                }
+            };
+            prune(div);
+
+            return div.innerHTML.replace(/>\s+</g, '><');
+        };
+
+        if (normalizeHTML(normalizedContent) !== normalizeHTML(currentHTML)) {
             console.log('[Tiptap] Prop-driven content sync triggered');
             isInternalUpdating = true;
             const { from, to } = editor!.state.selection;

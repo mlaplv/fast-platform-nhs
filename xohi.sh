@@ -133,14 +133,26 @@ function hard_reset_docker() {
 }
 
 function update_docker() {
-    echo -e "${CYAN}[UPDATE] Đang cập nhật hệ thống Docker...${NC}"
-    echo -e "${YELLOW}-> Đang kéo (pull) các image mới nhất...${NC}"
-    docker compose pull
-    echo -e "${YELLOW}-> Đang xây dựng (build) lại các services...${NC}"
-    docker compose build
-    echo -e "${YELLOW}-> Đang khởi động lại hệ thống...${NC}"
-    docker compose up -d
-    echo -e "${GREEN}[OK] Đã cập nhật Docker thành công!${NC}"
+    echo -e "${CYAN}[SYSTEM] ĐÀO THẢI & NÂNG CẤP DOCKER ENGINE (UBUNTU)${NC}"
+    echo -e "${RED}[WARNING] Thao tác này sẽ xóa SẠCH toàn bộ Images (Bản Build), Containers, Volumes, Cache!${NC}"
+    read -p "Sếp chắc chắn muốn thực hiện? (y/n): " confirm
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        return 1
+    fi
+
+    # 1. Làm sạch triệt để (Deep Clean Docker)
+    hard_reset_docker
+
+    # 2. Cập nhật Docker Engine
+    echo -e "${YELLOW}-> [1/2] Đang cập nhật danh sách gói (apt update)...${NC}"
+    sudo apt-get update -y
+    
+    echo -e "${YELLOW}-> [2/2] Đang nâng cấp Docker Engine & Plugins...${NC}"
+    # Đảm bảo cài đặt các thành phần cốt lõi của Docker hiện đại
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+    echo -e "${GREEN}[SUCCESS] Đã bảo trì hệ thống Docker Engine thành công!${NC}"
+    echo -e "${CYAN}[TIP] Sếp có thể dùng Mục 1 (FULL INIT) sau đây để rebuild dự án sạch sẽ.${NC}"
     read -p "Nhấn Enter để quay lại menu..."
 }
 
@@ -214,6 +226,9 @@ function start_dev() {
 }
 
 function init_deploy() {
+    # [ELITE V2.2] Bảo trì hệ thống trước khi khởi tạo dự án
+    update_docker || return 1
+    
     echo -e "${YELLOW}=== [INIT] KHỞI TẠO TỔNG LỰC (DOCKER - V61.1) ===${NC}"
     check_deps
     
@@ -457,66 +472,39 @@ while true; do
     echo -e "${NC}"
 
     echo -e "${YELLOW}>>> LÊNH TỔNG LỰC:${NC}"
-    echo "1) FULL INIT (Clean + Build + Migration + Seed + SSL)"
+    echo "1) BẢO TRÌ DOCKER (Làm sạch 100% + Cập nhật Engine)"
+    echo "2) FULL INIT (Dọn + Build + Migration + Seed + SSL)"
     echo ""
     echo -e "${CYAN}>>> CÔNG CỤ HỖ TRỢ:${NC}"
-    echo "2) CHẠY DEV (Docker Up)"
-    echo "3) DỌN DẸP RÁC (Deep Clean)"
-    echo "4) BUILD PRODUCTION"
-    echo "5) SELF-HEAL (Resume Orchestrator)"
-    echo "6) CHẠY TEST (Backend/Frontend)"
-    echo "7) AUDIT V61.1"
-    echo "8) XEM LOG BACKEND"
-    echo "9) CẬP NHẬT DOCKER (Pull + Build)"
-    echo "10) SAO LƯU DỮ LIỆU (DB + Images)"
-    echo "11) KHÔI PHỤC DỮ LIỆU"
-    echo "12) DỌN DẸP BẢN SAO LƯU (Xóa sạch)"
+    echo "3) CHẠY DEV (Docker Up)"
+    echo "4) XEM LOG BACKEND"
+    echo "5) SAO LƯU DỮ LIỆU (DB + Images)"
+    echo "6) KHÔI PHỤC DỮ LIỆU"
+    echo "7) DỌN DẸP BẢN SAO LƯU (Xóa sạch)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
 
     case $choice in
         1)
-            init_deploy
-            ;;
-        2)
-            start_dev
-            ;;
-        3)
-            hard_reset_docker
-            deep_clean
-            read -p "Nhấn Enter để tiếp tục..."
-            ;;
-        4)
-            echo -e "${YELLOW}[INFO] Đang build frontend tĩnh...${NC}"
-            (cd frontend && pnpm run build)
-            read -p "Nhấn Enter để tiếp tục..."
-            ;;
-        5)
-            check_deps
-            run_backend --env-file "${PWD}/.env" python3 -c "from backend.services.xohi.creative_studio.orchestrator import content_factory; import asyncio; asyncio.run(content_factory.resume_all())"
-            read -p "Nhấn Enter để tiếp tục..."
-            ;;
-        6)
-            run_tests
-            ;;
-        7)
-            run_backend --env-file "${PWD}/.env" python3 -m backend.scripts.audit_v61
-            read -p "Nhấn Enter để tiếp tục..."
-            ;;
-        8)
-            view_logs
-            ;;
-        9)
             update_docker
             ;;
-        10)
+        2)
+            init_deploy
+            ;;
+        3)
+            start_dev
+            ;;
+        4)
+            view_logs
+            ;;
+        5)
             backup_data
             ;;
-        11)
+        6)
             restore_data
             ;;
-        12)
+        7)
             clean_backups
             ;;
         0)

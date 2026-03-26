@@ -58,6 +58,7 @@ class NoiseCleaner:
         self.all_flat_patterns: List[tuple[str, str]] = []
         self.all_pat_lower: List[str] = []
         self.semantic_categories: List[str] = []
+        self._fuzzy_cache: Dict[str, bool] = {} # Phase 84.1: Expert Fuzzy Cache (O(1) repeat hits)
 
         self._load_dictionary()
 
@@ -155,13 +156,14 @@ class NoiseCleaner:
                 'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote',
                 'strong', 'b', 'em', 'i', 'span', 'u', 's', 'del', 'a', 'section',
                 'article', 'nav', 'footer', 'header', 'table', 'tr', 'td', 'th',
-                'thead', 'tbody', 'tfoot'
+                'thead', 'tbody', 'tfoot', 'ul', 'ol', 'figure'
             }
             # Tags that always count as content (void tags or media)
             whitelisted = {
                 'img', 'iframe', 'embed', 'video', 'audio', 'canvas', 'svg',
-                'input', 'button', 'hr', 'br'
+                'input', 'button', 'hr'
             }
+            # Note: 'br' is removed from whitelisted because we want to prune containers that only have <br>
 
             # Wrap in a div to handle fragments correctly
             fragment = html.fragment_fromstring(f"<div>{html_content}</div>", create_parent=False)
@@ -177,55 +179,59 @@ class NoiseCleaner:
                     continue
                 tag = tag.lower()
 
+                # Special case for BR: We only keep BR if it's NOT the only thing in a container,
+                # or if it's at the top level. But actually, in NASP, we prune it if it's "empty content".
+                # Actually, Tiptap uses <br> for empty lines.
+                # If we prune <br>, we might lose formatting.
+                # However, the user wants <h1><strong><br></strong></h1> GONE.
+
                 # Check if element is effectively empty
                 has_content = False
 
                 # 1. Check text content (ignoring whitespace and invisible noise)
                 if element.text:
-                    clean_text = element.text.strip().replace('\u00A0', '').replace('\u200B', '').replace('\uFEFF', '')
+                    # Thorough strip of all known invisible characters
+                    clean_text = element.text.replace('\u00A0', '').replace('\u200B', '').replace('\uFEFF', '').replace('&nbsp;', '')
+                    clean_text = re.sub(r'\s+', '', clean_text)
                     if clean_text:
                         has_content = True
 
                 # 2. Check for meaningful children
-                # If we have children that are not in the 'whitelisted' list of empty-but-meaningful tags,
-                # we consider them as content.
                 if not has_content:
                     if len(element) > 0:
                         for child in element:
-                            # A child is meaningful if:
-                            # a) It's in the whitelist (like <img> or <br>)
-                            # b) It's a container that wasn't pruned (meaning it had content)
+                            # A child is meaningful if it's in the whitelist OR it's a container that survived pruning
                             if child.tag in whitelisted or child.tag in containers:
-                                # Wait, if it's a container that wasn't pruned, it means it HAS content.
-                                # If it was a container and it IS still here in reversed order,
-                                # it means it HAS content (otherwise it would have been pruned already).
+                                has_content = True
+                                break
+                            # BR is special: keep it only if it's a direct child of the root (standalone line)
+                            if child.tag == 'br' and element.getparent() == fragment:
                                 has_content = True
                                 break
                     elif tag in whitelisted:
                         has_content = True
+                    elif tag == 'br' and element.getparent() == fragment:
+                        # Keep standalone BRs at top level
+                        has_content = True
 
-                # Special case: If it's a container, it MUST have either real text
-                # or meaningful children (not just <br>/<hr>).
+                # 3. Aggressive Container Guard: If it's a container, and it ONLY contains <br> or whitespace, prune it.
                 if tag in containers:
-                    # Re-evaluate for containers: ignore <br>/<hr> as meaningful children
-                    # for the purpose of pruning the container itself.
-                    is_effectively_empty = False
+                    # Check if it has any REAL content (not just BR)
+                    is_effectively_empty = True
 
-                    # Check text again
-                    text_exists = False
-                    if element.text:
-                        if element.text.strip().replace('\u00A0', '').replace('\u200B', '').replace('\uFEFF', ''):
-                            text_exists = True
+                    # Text check
+                    text = (element.text or "").replace('\u00A0', '').replace('\u200B', '').replace('\uFEFF', '').replace('&nbsp;', '')
+                    if re.sub(r'\s+', '', text):
+                        is_effectively_empty = False
 
-                    if not text_exists:
-                        # Check if it has any children OTHER than <br> or <hr>
-                        has_real_child = False
+                    # Children check
+                    if is_effectively_empty:
                         for child in element:
-                            if child.tag not in ('br', 'hr'):
-                                has_real_child = True
+                            if child.tag in whitelisted or (child.tag in containers and child.getparent() == element):
+                                # If the child is a container, it must have survived pruning (meaning it has content)
+                                # UNLESS it was a BR.
+                                is_effectively_empty = False
                                 break
-                        if not has_real_child:
-                            is_effectively_empty = True
 
                     if is_effectively_empty:
                         has_content = False
@@ -244,11 +250,15 @@ class NoiseCleaner:
 
             # Convert back to string and remove our wrapper div
             result = html.tostring(fragment, encoding='unicode', method='html')
+            # Surgical removal of wrapper div to preserve whatever was inside
             if result.startswith('<div>'):
                 result = result[5:]
             if result.endswith('</div>'):
                 result = result[:-6]
             return result
+        except Exception as e:
+            logger.error(f"[Noise Shield] Structural pruning failed: {e}")
+            return html_content
         except Exception as e:
             logger.error(f"[Noise Shield] Structural pruning failed: {e}")
             return html_content
@@ -279,20 +289,35 @@ class NoiseCleaner:
                     final_tokens.append(token)
                     continue
 
-                is_noise = False
                 token_clean = token.strip().lower()
+
+                # Phase 84.1: Expert Fuzzy Cache (O(1) repeat hits)
+                if token_clean in self._fuzzy_cache:
+                    if self._fuzzy_cache[token_clean]:
+                        final_tokens.append("")
+                    else:
+                        final_tokens.append(token)
+                    continue
+
+                is_noise = False
 
                 # Only fuzzy match long tokens to avoid false positives (R23)
                 if len(token_clean) > 4:
                     best_match = process.extractOne(
                         token_clean,
-                        self.all_flat_patterns,
-                        processor=lambda x: x[0],
+                        self.all_pat_lower,
                         score_cutoff=85
                     )
                     if best_match:
                         is_noise = True
-                        logger.debug(f"[Noise Shield] Expert Fuzzy hit: '{token}' matches [{best_match[0][1]}] score={best_match[1]}")
+                        logger.debug(f"[Noise Shield] Expert Fuzzy hit: '{token}' matches '{best_match[0]}' score={best_match[1]}")
+
+                # Update cache
+                self._fuzzy_cache[token_clean] = is_noise
+
+                # Cleanup cache if too large to prevent memory leak
+                if len(self._fuzzy_cache) > 2000:
+                    self._fuzzy_cache.clear()
 
                 if not is_noise:
                     final_tokens.append(token)

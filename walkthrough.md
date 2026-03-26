@@ -1,3 +1,32 @@
+# Walkthrough - CNS V84.3: RAG Startup Optimization & AI Core Warmup (Elite V2.2) (COMPLETED)
+- **Action**: Tối ưu hóa quy trình khởi động hệ thống, đảm bảo AI Encoder sẵn sàng trước khi xử lý dữ liệu và triệt tiêu cảnh báo "Product Encoder not ready".
+- **Artifacts**:
+    - **Parallel Initialization**: Sử dụng `asyncio.gather` để khởi chạy song song `event_bus`, `trinity_bridge` và `warmup_encoder`, giảm thời gian boot đáng kể.
+    - **Lifespan Consolidation**: Loại bỏ các khối code thừa, gộp các lần gọi `setup_subscriptions` và `trinity_bridge.initialize` bị trùng lặp.
+    - **Encoder Readiness**: Đảm bảo `fastembed` model được nạp vào RAM ngay tại `lifespan` thay vì lazy-load gây trễ/warning ở request đầu tiên.
+- **Verification**:
+    - **Log Audit**: Xác nhận không còn log `[RAG] Product Encoder not ready` khi server vừa khởi động.
+    - **Startup Time**: Thời gian boot hệ thống ổn định nhờ cơ chế concurrency.
+    - **Clean Code**: `backend/lifespan.py` đạt chuẩn Elite V2.2, không còn redundancy.
+
+*Hoàn thành bởi Antigravity (Elite V2.2 Protocol).*
+
+---
+
+# Walkthrough - CNS V84.2: Cross-Browser Sync & Deterministic Normalization (Elite V2.2) (COMPLETED)
+- **Action**: Đồng bộ hóa logic làm sạch giữa Backend và Frontend, triệt tiêu hiện tượng nhấp nháy (flicker) và mất con trỏ (selection loss) trên Safari/Firefox.
+- **Artifacts**:
+    - **Frontend NASP**: Triển khai hàm `prune` đệ quy (Recursive Bottom-up) trong `TiptapEditor.svelte` để tái hiện chính xác logic của `lxml` backend.
+    - **Deterministic Normalization**: Chuẩn hóa HTML string (space collapse, &nbsp; removal, tag pruning) trước khi so sánh `content` props, ngăn chặn vòng lặp feedback giữa Browser Render và Svelte State.
+    - **Cross-Component Sync**: Đồng bộ logic `normalizeHTML` vào `xohiAnalysis.svelte.ts` để đảm bảo tính nhất quán toàn hệ thống.
+- **Verification**:
+    - **Safari/Firefox Test**: Xác nhận không còn hiện tượng tự động nhảy con trỏ khi gõ hoặc sau khi `clean` được kích hoạt.
+    - **Zero-Diff**: HTML sau khi qua `normalizeHTML` ở Frontend khớp 100% với output của `NoiseCleaner` Backend.
+
+*Hoàn thành bởi Antigravity (Elite V2.2 Protocol).*
+
+---
+
 # Walkthrough - CNS V84.1: Performance Optimization & Hybrid Cleaning (Elite V2.2) (COMPLETED)
 - **Action**: Tối ưu hóa hiệu năng hệ thống `NoiseCleaner` và khắc phục lỗi Timeout (500: client disconnected prematurely).
 - **Artifacts**:
