@@ -99,3 +99,9 @@ Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt th
 - [x] Backend: Parallelize Event Bus, Trinity Bridge, and Vector Encoder warmup in `lifespan.py`. <!-- id: 150 -->
 - [x] Backend: Resolve "Product Encoder not ready" warning by ensuring early initialization. <!-- id: 151 -->
 - [x] Backend: Clean up redundant service subscriptions and initializations in lifespan logic. <!-- id: 152 -->
+
+## 🎯 Giai đoạn 26: NoiseCleaner Toolbar Sync Fix (Elite V2.2) (COMPLETED)
+- [x] Frontend: Import `tick` and implement robust locking in `TiptapEditor.svelte`. <!-- id: 160 -->
+- [x] Frontend: Extend `isInternalUpdating` lock to prevent redundant `$effect` sync. <!-- id: 161 -->
+- [x] Logic: Ensure `onChange` is called after DOM has stabilized. <!-- id: 162 -->
+- [x] Final: Verify toolbar "NoiseCleaner" updates UI correctly. <!-- id: 163 -->

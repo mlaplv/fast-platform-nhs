@@ -45,7 +45,7 @@ Không được đánh giá thấp bài viết chỉ vì nó chứa các từ kh
     }
   ],
   "similar_sources": [<URL nguồn tương đồng nhất>],
-  "verdict": "<Nhận xét công tâm 1-2 câu>"
+  "verdict": "<BẢN TRÌNH BÁO CHIẾN LƯỢC BẢN QUYỀN (Neural XoHi 2026) — Phân tích sự khác biệt về Information Gain, rủi ro SEO và hướng xử lý chuyên sâu (Markdown supported)>"
 }
 """
 

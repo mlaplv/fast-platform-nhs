@@ -1,3 +1,21 @@
+# Walkthrough - CNS V84.5: Deep Sync NoiseCleaner & State Isolation (Elite V2.2) (COMPLETED)
+- **Action**: Khắc phục lỗi "nội dung không thay đổi" do Tiptap `getHTML()` trả về dữ liệu cũ ngay sau khi `setContent` và xung đột trạng thái bindable prop.
+- **Artifacts**:
+    - **State Isolation**: Sử dụng đồng thời `isInternalUpdating` và `isSyncLocked` để cô lập hoàn toàn Editor khỏi các tác động reactive của Svelte 5 trong lúc cập nhật.
+    - **Direct Sync Strategy**: Thay thế `editor.getHTML()` bằng cách sử dụng trực tiếp `finalContent` (dữ liệu sạch từ API) để cập nhật `content` prop và gọi `onChange`. Điều này triệt tiêu hoàn toàn sự phụ thuộc vào tốc độ render DOM của Tiptap.
+    - **Immediate Prop Sync**: Gán trực tiếp `content = cleaned` (bindable prop) ngay trong hàm xử lý để đảm bảo dữ liệu ở component cha được cập nhật đồng thời, tránh việc `$effect` phát hiện lệch dữ liệu và trigger sync ngược.
+- **Verification**:
+    - **UI Stability**: Nội dung Editor cập nhật ngay lập tức mà không bị "nuốt" lệnh render.
+    - **Data Integrity**: Đảm bảo `onChange` luôn nhận được dữ liệu sạch nhất từ API, không phụ thuộc vào trạng thái trung gian của Editor view.
+
+*Hoàn thành bởi Antigravity (Elite V2.2 Protocol).*
+
+---
+
+# Walkthrough - CNS V84.4: NoiseCleaner Toolbar Sync Fix (Elite V2.2) (COMPLETED)
+
+---
+
 # Walkthrough - CNS V84.3: RAG Startup Optimization & AI Core Warmup (Elite V2.2) (COMPLETED)
 - **Action**: Tối ưu hóa quy trình khởi động hệ thống, đảm bảo AI Encoder sẵn sàng trước khi xử lý dữ liệu và triệt tiêu cảnh báo "Product Encoder not ready".
 - **Artifacts**:

@@ -103,8 +103,11 @@ function deep_clean() {
     sudo find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
     # === DATA & APPLICATION CACHES ===
-    echo -e "${YELLOW}-> [4/6] Đang xóa Application Caches (backend/cache)...${NC}"
-    sudo rm -rf backend/cache
+    echo -e "${YELLOW}-> [4/6] Đang xóa Application Caches (backend/cache - GIỮ LẠI fastembed)...${NC}"
+    # [CTO ELITE] Giữ lại cache model AI để tránh tải lại 500MB mỗi lần dọn rác (R00: RAM/Latency)
+    if [ -d "backend/cache" ]; then
+        sudo find backend/cache -mindepth 1 -maxdepth 1 ! -name 'fastembed' -exec rm -rf {} + 2>/dev/null || true
+    fi
 
     # === LOCK FILES, LOGS, OS JUNK ===
     echo -e "${YELLOW}-> [5/6] Đang xóa Lock files, Logs, .DS_Store...${NC}"
@@ -133,11 +136,19 @@ function hard_reset_docker() {
 }
 
 function update_docker() {
+    local NO_WAIT=false
+    if [[ "$1" == "--no-wait" ]]; then
+        NO_WAIT=true
+    fi
+
     echo -e "${CYAN}[SYSTEM] ĐÀO THẢI & NÂNG CẤP DOCKER ENGINE (UBUNTU)${NC}"
     echo -e "${RED}[WARNING] Thao tác này sẽ xóa SẠCH toàn bộ Images (Bản Build), Containers, Volumes, Cache!${NC}"
-    read -p "Sếp chắc chắn muốn thực hiện? (y/n): " confirm
-    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-        return 1
+    
+    if [ "$NO_WAIT" = false ]; then
+        read -p "Sếp chắc chắn muốn thực hiện? (y/n): " confirm
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+            return 1
+        fi
     fi
 
     # 1. Làm sạch triệt để (Deep Clean Docker)
@@ -151,9 +162,11 @@ function update_docker() {
     # Đảm bảo cài đặt các thành phần cốt lõi của Docker hiện đại
     sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-    echo -e "${GREEN}[SUCCESS] Đã bảo trì hệ thống Docker Engine thành công!${NC}"
-    echo -e "${CYAN}[TIP] Sếp có thể dùng Mục 1 (FULL INIT) sau đây để rebuild dự án sạch sẽ.${NC}"
-    read -p "Nhấn Enter để quay lại menu..."
+    if [ "$NO_WAIT" = false ]; then
+        echo -e "${GREEN}[SUCCESS] Đã bảo trì hệ thống Docker Engine thành công!${NC}"
+        echo -e "${CYAN}[TIP] Sếp có thể dùng Mục 2 (FULL INIT) sau đây để rebuild dự án sạch sẽ.${NC}"
+        read -p "Nhấn Enter để quay lại menu..."
+    fi
 }
 
 # Helper: Dependency Check
@@ -173,61 +186,13 @@ function check_deps() {
     fi
 }
 
-function bootstrap_all() {
-    check_deps
-    echo -e "${YELLOW}=== [GOD MODE] KHỞI ĐỘNG TỔNG LỰC (DOCKER) ===${NC}"
-    mkdir -p certs/caddy/pki
-    deep_clean
-    echo -e "${CYAN}[1/2] Đang xây dựng và khởi động Containers (Sequential)...${NC}"
-    # [CTO ELITE] Build từng cái một để tránh treo máy 8GB
-    for service in db redis caddy api ui; do
-        echo -e "${YELLOW}   -> Building $service...${NC}"
-        docker compose build $service
-    done
-    docker compose up -d
-    echo -e "${CYAN}[2/2] Đang thiết lập SSL Trust...${NC}"
-    sleep 10
-    chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
-    echo -e "${GREEN}== HỆ THỐNG DOCKER SẴN SÀNG! ==${NC}"
-    read -p "Nhấn Enter để tiếp tục..."
-}
 
-function start_dev() {
-    echo -e "${CYAN}[DEV] Đang khởi động chế độ phát triển DOCKER (V61.1)...${NC}"
-    check_deps
-    
-    echo -e "${YELLOW}-> Đồng bộ thư viện (UV & PNPM)...${NC}"
-    if [ "$IS_INTEL_MAC" = true ]; then
-        echo -e "${YELLOW}[INTEL MAC] Đang bỏ qua uv sync local...${NC}"
-        uv sync --python 3.13 || true
-    else
-        echo -e "${CYAN}-> Đang đồng bộ thư viện (Mirror Aliyun & Python 3.13)...${NC}"
-        export UV_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
-        export UV_HTTP_TIMEOUT=300
-        uv sync --python 3.13
-    fi
-    (cd frontend && pnpm install)
-    
-    echo -e "${YELLOW}-> Khởi động Containers...${NC}"
-    docker compose up -d
-    
-    echo -e "${YELLOW}-> Cập nhật Database (Migration)...${NC}"
-    # Đợi DB sẵn sàng một chút
-    sleep 2
-    # [DEDUPLICATED] Đã chuyển giao việc migration cho backend/entrypoint.sh lúc container khởi động
-    # run_backend --env-file "${PWD}/.env" alembic -c backend/alembic.ini upgrade head || echo -e "${YELLOW}[SKIP] Không có migration mới.${NC}"
-    
-    echo -e "${GREEN}[READY] Hệ thống đã sẵn sàng cho dev!${NC}"
-    echo -e "${CYAN}Admin: https://admin.smartshop.test${NC}"
-    echo -e "${CYAN}UI:    https://smartshop.test${NC}"
-    echo ""
-    echo "Dùng 'docker compose logs -f' để xem log."
-    read -p "Nhấn Enter để quay lại menu..."
-}
+
+
 
 function init_deploy() {
     # [ELITE V2.2] Bảo trì hệ thống trước khi khởi tạo dự án
-    update_docker || return 1
+    update_docker --no-wait || return 1
     
     echo -e "${YELLOW}=== [INIT] KHỞI TẠO TỔNG LỰC (DOCKER - V61.1) ===${NC}"
     check_deps
@@ -298,26 +263,34 @@ function init_deploy() {
     
     echo -e "${GREEN}=== HỆ THỐNG ĐÃ SẴN SÀNG! (Đã tối ưu RAM) ===${NC}"
     echo -e "${CYAN}Truy cập: https://admin.smartshop.test${NC}"
+    
+    # [CTO ELITE] Tự động chuyển sang xem log để Sếp theo dõi WARNING/ERROR
+    view_logs
+}
+
+function update_ai_model() {
+    echo -e "${YELLOW}=== [AI] CẬP NHẬT MODEL (FAST-PLATFORM ELITE) ===${NC}"
+    echo -e "${RED}[WARNING] Thao tác này sẽ xóa cache và tải lại model ~250MB từ Internet.${NC}"
+    read -p "Sếp muốn tiến hành cập nhật? (y/n): " confirm
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        echo -e "${CYAN}-> Đang dọn dẹp cache model cũ...${NC}"
+        # Xóa cả cấu trúc cũ (models-qdrant) và cấu trúc mới (basename) để đảm bảo sạch sẽ
+        sudo rm -rf backend/cache/fastembed/paraphrase-multilingual-MiniLM-L12-v2
+        sudo rm -rf backend/cache/fastembed/models--qdrant--paraphrase-multilingual-MiniLM-L12-v2-onnx-Q
+        
+        echo -e "${CYAN}-> Đang khởi động lại Backend để kích hoạt tải model mới...${NC}"
+        docker compose stop api && docker compose rm -f api && docker compose up -d api
+        echo -e "${GREEN}[SUCCESS] Khởi động lại API thành công!${NC}"
+        echo -e "${YELLOW}[TIP] Sếp hãy xem Log (Mục 3) để theo dõi tiến trình tải model mới.${NC}"
+    else
+        echo -e "${YELLOW}-> Đã hủy cập nhật.${NC}"
+    fi
     read -p "Nhấn Enter để quay lại menu..."
 }
 
-function seed_db() {
-    echo -e "${YELLOW}=== [SEED] KHỞI TẠO DỮ LIỆU MẪU (R1.5) ===${NC}"
-    check_deps
-    docker compose exec -T api python3 -m backend.scripts.seed
-    echo -e "${GREEN}== SEEDING HOÀN TẤT! ==${NC}"
-    read -p "Nhấn Enter để quay lại menu..."
-}
 
-function run_tests() {
-    echo -e "${YELLOW}=== [TEST] KIỂM THỬ HỆ THỐNG ===${NC}"
-    echo -e "${CYAN}[1/2] Backend (Pytest)...${NC}"
-    check_deps
-    run_backend pytest || echo -e "${RED}Lỗi Test Backend.${NC}"
-    echo -e "${CYAN}[2/2] Frontend (Vitest)...${NC}"
-    (cd frontend && pnpm run test) || echo -e "${RED}Lỗi Test Frontend.${NC}"
-    read -p "Nhấn Enter để quay lại menu..."
-}
+
+
 
 function view_logs() {
     echo -e "${CYAN}[LOGS] Đang kiểm tra tín hiệu Backend (api)...${NC}"
@@ -476,11 +449,12 @@ while true; do
     echo "2) FULL INIT (Dọn + Build + Migration + Seed + SSL)"
     echo ""
     echo -e "${CYAN}>>> CÔNG CỤ HỖ TRỢ:${NC}"
-    echo "3) CHẠY DEV (Docker Up)"
-    echo "4) XEM LOG BACKEND"
-    echo "5) SAO LƯU DỮ LIỆU (DB + Images)"
-    echo "6) KHÔI PHỤC DỮ LIỆU"
-    echo "7) DỌN DẸP BẢN SAO LƯU (Xóa sạch)"
+    echo "3) XEM LOG BACKEND"
+    echo "4) SAO LƯU DỮ LIỆU (DB + Images)"
+    echo "5) KHÔI PHỤC DỮ LIỆU"
+    echo "6) DỌN DẸP BẢN SAO LƯU (Xóa sạch)"
+    echo "7) RESTART API (Kèm theo dõi Log lỗi)"
+    echo "8) CẬP NHẬT MODEL AI (~250MB)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -493,19 +467,30 @@ while true; do
             init_deploy
             ;;
         3)
-            start_dev
-            ;;
-        4)
             view_logs
             ;;
-        5)
+        4)
             backup_data
             ;;
-        6)
+        5)
             restore_data
             ;;
-        7)
+        6)
             clean_backups
+            ;;
+        7)
+            echo -e "${CYAN}[RESTART] Đang làm sạch Log và khởi động lại Backend (api)...${NC}"
+            docker compose stop api
+            docker compose rm -f api
+            docker compose up -d api
+            echo -e "${GREEN}[OK] Đã khởi động lại API với Log sạch sẽ!${NC}"
+            echo -e "${YELLOW}--- Đang theo dõi LỖI MỚI (ERROR/CRITICAL/WARNING) ---${NC}"
+            echo -e "${YELLOW}Nhấn Ctrl+C để quay lại menu.${NC}"
+            # Lọc log lỗi cho Sếp thấy thực trạng hệ thống
+            docker compose logs -f api --tail 50 --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION|WARNING"
+            ;;
+        8)
+            update_ai_model
             ;;
         0)
             exit 0

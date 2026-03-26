@@ -1,5 +1,6 @@
 import re
 import logging
+import difflib
 from typing import Optional
 
 logger = logging.getLogger("api-gateway")
@@ -15,49 +16,63 @@ def _strip(text: str) -> str:
 
 def surgical_stitch(content: str, old_text: str, new_text: str, label: str = "Stitcher") -> str:
     """
-    R1.9/V82.70: Advanced Surgical Stitching Utility.
-    Replaces old_text with new_text in content using:
-    Phase 1 - Exact match  
-    Phase 2 - HTML-agnostic fuzzy match (strips HTML before comparison)
+    R1.9/V82.75: Advanced Neural Surgical Stitching Utility.
+    Uses Difflib for high-precision fuzzy matching when exact match fails.
     """
     if not old_text or not new_text:
         return content
 
-    # Phase 1: Exact Match
+    # [PHASE 1] Exact Match (O(1) fast path)
     if old_text in content:
         return content.replace(old_text, new_text, 1)
 
-    # Phase 2: HTML-stripped fuzzy match
+    # [PHASE 2] Neural Fuzzy Discovery (difflib)
+    # We strip HTML only for comparison, but we must stay in the raw content for the final replacement
     norm_old = _strip(old_text)
-    if len(norm_old) < 10:
-        logger.warning(f"[{label}] Surgical match failed: Snippet too short.")
+    if len(norm_old) < 15: # Critical floor for fuzzy safety
+        logger.warning(f"[{label}] Surgical match failed: Snippet too short for fuzzy ({len(norm_old)} chars).")
         return content
 
-    norm_content = _strip(content)
-    if norm_old not in norm_content:
-        logger.warning(f"[{label}] Surgical match failed: Snippet not found even with relaxed match.")
-        return content
+    # To avoid O(N*M) explosion on massive articles, we clip the search window 
+    # if the anchor (first word) can be found.
+    words = norm_old.split()
+    anchor = words[0] if words else ""
+    
+    search_start = 0
+    search_end = len(content)
+    
+    if anchor and anchor.lower() in content.lower():
+        idx = content.lower().find(anchor.lower())
+        search_start = max(0, idx - 100)
+        search_end = min(len(content), idx + len(old_text) * 3 + 200)
 
-    # Use the position in stripped content to infer position in original content
-    # Strategy: find the first actual word of norm_old in raw content, then replace the surrounding block
-    first_words = norm_old.split()[:5]
-    first_token = first_words[0] if first_words else ''
-    if not first_token:
-        return content
+    window = content[search_start:search_end]
+    
+    # Use SequenceMatcher to find the best block
+    s = difflib.SequenceMatcher(None, norm_old, window)
+    match = s.find_longest_match(0, len(norm_old), 0, len(window))
+    
+    # R2026.5: If we found a substantial shared block (>50% of old_text), we proceed
+    if match.size > len(norm_old) * 0.5:
+        # Infer the start/end of the full snippet in the window
+        # This is an approximation: we find the range that surrounds the matched block
+        # and has similar character count
+        w_match_start = match.b
+        w_match_end = match.b + match.size
+        
+        # Expand backwards/forwards to cover the full expected length of old_text
+        # adjusting for the position of the match within old_text
+        offset_start = match.a
+        offset_end = len(norm_old) - (match.a + match.size)
+        
+        final_start = max(0, w_match_start - int(offset_start * 1.5))
+        final_end = min(len(window), w_match_end + int(offset_end * 1.5))
+        
+        # Verify the candidate block in raw content
+        candidate = window[final_start:final_end]
+        if len(_strip(candidate)) > len(norm_old) * 0.4:
+            logger.info(f"[{label}] Neural fuzzy match successful (Score: {match.size}/{len(norm_old)}).")
+            return content[:search_start + final_start] + new_text + content[search_start + final_end:]
 
-    start = content.lower().find(first_token.lower())
-    if start == -1:
-        logger.warning(f"[{label}] Surgical match failed: Could not locate first word '{first_token[:20]}'.")
-        return content
-
-    # Approximate end: len ratio of raw/norm content
-    ratio = len(content) / max(len(norm_content), 1)
-    approx_len = int(len(norm_old) * ratio * 1.5)
-    candidate = content[start: start + approx_len]
-
-    if _strip(candidate).startswith(norm_old[:len(norm_old) // 2]):
-        logger.info(f"[{label}] Relaxed match successful via first-word anchor.")
-        return content[:start] + new_text + content[start + approx_len:]
-
-    logger.warning(f"[{label}] Surgical match failed: Snippet not found even with relaxed match.")
+    logger.warning(f"[{label}] Surgical match failed: Snippet not found even with Neural Fuzzy Logic.")
     return content

@@ -35,10 +35,9 @@ def global_exception_handler(request: Request, exc: Exception) -> Response:
             },
         )
 
-    if isinstance(exc, HTTPException) and exc.status_code == 500 and "client disconnected prematurely" in str(exc):
-        # R82.35: Graceful Disconnection — Treat as Warning, not Error.
-        # This occurs normally when a browser closes or refresh happens during a POST body read.
-        logger.warning(f"[TRACE:{trace_id}] Client disconnected prematurely (normal behavior).")
+        # R82.35: Graceful Disconnection (Neural Hygiene) — Treat as Info, not Warning.
+        # This occurs normally when a browser closes or refresh happens during a response.
+        logger.info(f"[TRACE:{trace_id}] Client disconnected prematurely (Browser side session end).")
         return Response(
             media_type=MediaType.JSON,
             status_code=499, # Client Closed Request (standardized code)

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy, untrack } from 'svelte';
+  import { onMount, onDestroy, untrack, tick } from 'svelte';
   import { Editor } from '@tiptap/core';
   import { getEditorExtensions, editorProps } from './core/editor-config';
   import { AnnotationPluginKey } from './core/AnnotationPlugin';
@@ -209,19 +209,47 @@
 
       if (response && response.data && response.data.content) {
         const finalContent = response.data.content;
+
+        // Elite V2.2 Deep Sync: Lock everything to prevent race conditions with Svelte 5 $effect
         isInternalUpdating = true;
+        isSyncLocked = true;
+
+        console.log('[Clean] Applying cleaned content to editor...');
         editor.commands.setContent(finalContent, false);
-        const cleaned = stripMarks(editor.getHTML());
+
+        // Elite V2.2: Ensure Svelte reactivity & Tiptap internal render settle
+        await tick();
+
+        // CNS V84.5: DIRECT SYNC - Avoid editor.getHTML() immediately as it might be stale
+        const cleaned = stripMarks(finalContent);
+        content = cleaned; // Sync bindable prop immediately
         onChange(cleaned);
         updateMetrics();
-        isInternalUpdating = false;
+
+        // Safety lock: prevent redundant $effect syncs (RAG Startup Optimization-style stability)
+        setTimeout(() => {
+            isInternalUpdating = false;
+            isSyncLocked = false;
+            console.log('[Clean] Sync Locks Released');
+        }, 150);
+
         console.log('[Clean] ✨ Neural Polish Complete');
       } else {
         // Fallback to deduped content if backend fails
         isInternalUpdating = true;
+        isSyncLocked = true;
+
         editor.commands.setContent(interimHTML, false);
-        onChange(stripMarks(editor.getHTML()));
-        isInternalUpdating = false;
+        await tick();
+
+        const cleanedFallback = stripMarks(interimHTML);
+        content = cleanedFallback;
+        onChange(cleanedFallback);
+
+        setTimeout(() => {
+            isInternalUpdating = false;
+            isSyncLocked = false;
+        }, 150);
         console.log('[Clean] Backend failed, applied local dedup only');
       }
 

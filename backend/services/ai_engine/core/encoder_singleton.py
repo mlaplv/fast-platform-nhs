@@ -15,6 +15,15 @@ CACHE_DIR = os.getenv("FASTEMBED_CACHE_DIR", os.path.join(_project_root, "backen
 # Force disable symlinks to avoid common Docker/NTFS/OverlayFS issues
 os.environ["HF_HUB_DISABLE_SYMLINKS"] = "1"
 
+# [ELITE V2.2] Intelligent Offline Mode (R00: Reliability)
+# Only force offline if the model file is actually found in cache
+_model_file = os.path.join(CACHE_DIR, "paraphrase-multilingual-MiniLM-L12-v2", "model_optimized.onnx")
+if os.path.exists(_model_file):
+    os.environ["HF_HUB_OFFLINE"] = "1"
+else:
+    # Ensure offline is NOT forced if we need a download
+    os.environ.pop("HF_HUB_OFFLINE", None)
+
 _shared_encoder: Optional[TextEmbedding] = None
 _lock = asyncio.Lock()
 
@@ -38,9 +47,11 @@ async def warmup_encoder():
                     logger.error(f"[Encoder] CACHE_DIR {CACHE_DIR} is NOT WRITABLE!")
                 
                 def _init():
+                    # [ELITE V2.2] Sync local_files_only with our Intelligent Offline logic (R00)
                     return TextEmbedding(
                         model_name=model_name,
-                        cache_dir=CACHE_DIR
+                        cache_dir=CACHE_DIR,
+                        local_files_only=os.getenv("HF_HUB_OFFLINE") == "1"
                     )
 
                 loop = asyncio.get_event_loop()

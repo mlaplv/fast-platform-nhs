@@ -18,7 +18,9 @@ class AdHocContent:
         self.user_id = user_id
         self.id = id
         self.unique_score = 0.0
-    def get_gold_val(self, key): return self.gold_metadata.get(key)
+    def get_gold_val(self, key: str, fallback: object = None, *args, **kwargs) -> object:
+        # [ELITE BUGFIX] Chấp nhận variadic arguments để tránh lỗi TypeError (takes 2 positional but 3 given)
+        return self.gold_metadata.get(key, fallback)
 
 class AnalystHandler:
     def __init__(self, orchestrator: "ContentOrchestrator"):
@@ -40,9 +42,19 @@ class AnalystHandler:
         # Caching is only supported for persistent campaigns
         gold = getattr(campaign, "gold_metadata", {}) or {}
         cache = gold.get("analysis_cache", {}) if isinstance(gold, dict) else {}
-
-        if campaign_id and not force and cache.get(category, {}).get("hash") == content_hash:
-            return GenericResponse(status="success", data=cache[category]["data"])
+        
+        cached = cache.get(category)
+        if campaign_id and not force and cached and cached.get("hash") == content_hash:
+            # [ELITE R2026.9] Auto-upgrade if cache is legacy (missing Neural branding)
+            cached_data = cached.get("data", {})
+            cached_logs = cached_data.get("logs", [])
+            has_neural_vibe = any("NEURAL" in str(l).upper() for l in cached_logs)
+            
+            if has_neural_vibe:
+                logger.info(f"♻️ [AnalystHandler] Using cached {category} for {campaign_id}")
+                return GenericResponse(status="success", data=cached_data)
+            else:
+                logger.info(f"🧬 [AnalystHandler] Detected legacy cache for {category}. Upgrading to Neural Engine...")
 
         try:
             analyzer = analyzer_class()
@@ -82,15 +94,17 @@ class AnalystHandler:
             return GenericResponse(status="error", message=str(e))
 
     async def analyze_copyright(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None) -> GenericResponse:
-        logger.info(f"💓 [AnalystHandler] Hammering copyright check for {campaign_id}")
+        logger.info(f"🕵️ [AnalystHandler] Neural Copyright Engine initiating for campaign: {campaign_id}")
         from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
         return await self._run_analysis(campaign_id, campaign_repo, PlagiarismCop, "copyright", force, raw_content=raw_content, raw_topic=raw_topic)
 
     async def analyze_seo(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None) -> GenericResponse:
+        logger.info(f"📡 [AnalystHandler] Neural SEO Engine initiating for campaign: {campaign_id}")
         from backend.services.xohi.creative_studio.operatives.seo_analyzer import SeoAnalyzer
         return await self._run_analysis(campaign_id, campaign_repo, SeoAnalyzer, "seo", force, raw_content=raw_content, raw_topic=raw_topic)
 
     async def analyze_ai_inspect(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None) -> GenericResponse:
+        logger.info(f"🧠 [AnalystHandler] Neural AI-Ready Inspector initiating for campaign: {campaign_id}")
         from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
         return await self._run_analysis(campaign_id, campaign_repo, AiInspector, "ai_inspect", force, raw_content=raw_content, raw_topic=raw_topic)
 

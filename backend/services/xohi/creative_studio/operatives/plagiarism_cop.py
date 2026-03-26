@@ -104,22 +104,19 @@ class PlagiarismCop:
         Phase 4: Heuristic Fallback (If AI fails)
         """
         async with self._plagiarism_semaphore:
-            logs = ["🔍 Khởi động hệ thống rà soát bản quyền (Neural V82.8)..."]
+            logs = ["🚀 Khởi động Neural Copyright Engine (XoHi 2026)..."]
             await self._emit_log(campaign, logs[-1])
-
-            # If force is true, we should tell the bridge to try even if some keys are flagged
-            # But for now, we just pass it down.
 
             draft = campaign.draft_content or ""
             kw = campaign.get_gold_val("primary_keyword", "")
             if not kw and not draft:
                 return PlagiarismResult(uniqueness_score=1.0, risk_level="LOW", flagged_sentences=[], annotations=[], similar_sources=[], verdict="Thiếu dữ liệu (Chưa có Topic/Keyword).", logs=logs)
 
-            logs.append("🧹 Đang tiền xử lý...")
+            logs.append("🧹 Đang tiền xử lý & làm sạch dữ liệu nhiễu (Advanced Noise Cleaning)...")
             await self._emit_log(campaign, logs[-1])
             plain = await noise_cleaner.clean(draft, mode="aggressive", strip_html=False)
 
-            logs.append("🧠 Đang rà soát trùng lặp nội bộ...")
+            logs.append("🧠 Đang rà soát trùng lặp nội bộ (Cross-Paragraph Synthesis)...")
             await self._emit_log(campaign, logs[-1])
             seen, deduped, i_annots = set(), [], []
             for para in self._surgeon._split_into_paragraphs(plain)[:200]:
@@ -128,11 +125,11 @@ class PlagiarismCop:
                 if norm not in seen: seen.add(norm); deduped.append(para)
                 else: i_annots.append(CopyrightAnnotation(text=para[:200], reason="Đoạn lặp lại trong bài", source_url="internal", severity="high", type="internal-dedup"))
 
-            logs.append(f"📡 Đang trinh sát nguồn đối thủ cho: '{kw}'...")
+            logs.append(f"📡 Đang trinh sát nguồn đối thủ (Google Recon) cho: '{kw}'...")
             await self._emit_log(campaign, logs[-1])
             comps = await self._fetch_competitor_snippets(campaign, kw, logs=logs)
 
-            logs.append("🧠 Đang nạp dữ liệu vào Neural Engine...")
+            logs.append("🧠 Đang nạp dữ liệu vào Neural Engine (Trinity Core)...")
             await self._emit_log(campaign, logs[-1])
             try:
                 prompt = f"[BÀI VIẾT]\n{('\n'.join(deduped))[:12000]}\n\n[ĐỐI THỦ]\n{'\n'.join(comps)}"
@@ -161,8 +158,8 @@ class PlagiarismCop:
                 logger.error(f"[PlagiarismCop] Neural Engine Error: {str(e)}", exc_info=True)
                 if logs is not None: logs.append(f"📡 AI đang bận, kích hoạt Heuristic Mode (Dò tìm cục bộ)...")
                 h_res = self._heuristic_analyze(deduped, comps, i_annots)
-                h_res.logs = logs
-                h_res.verdict = f"Hệ thống bận ({str(e)[:40]}). Kết quả dựa trên đối soát cục bộ."
+                h_res.logs = logs + ["✅ [NEURAL XOHI] Trinh sát hoàn tất. Kết quả dựa trên đối soát cục bộ."]
+                h_res.verdict = f"Hệ thống bận ({str(e)[:40]}). Đã kích hoạt Heuristic Mode của Neural XoHi để đảm bảo tiến độ."
                 return h_res
 
     def _heuristic_analyze(self, deduped: List[str], comps: List[str], i_annots: List[CopyrightAnnotation]) -> PlagiarismResult:

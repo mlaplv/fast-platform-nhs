@@ -39,7 +39,7 @@ class AiInspector:
         })
 
     async def analyze(self, campaign: ContentCampaign) -> AiReadyReport:
-        logs = ["🔍 Khởi động Viral Edge Auditor..."]
+        logs = ["🚀 Khởi động Neural AI-Ready Engine (XoHi 2026)..."]
         await self._emit_log(campaign, logs[-1])
         
         draft = campaign.draft_content or ""
@@ -68,7 +68,7 @@ class AiInspector:
             return AutoFixResponse(old_text=snippet, new_text=snippet)
 
     async def atomic_bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
-        logs = ["🔍 Khởi động hệ thống phẫu thuật Viral Edge..."]
+        logs = ["🚀 Khởi động Neural Surgical Engine (Elite V2.2)..."]
         await self._emit_log(campaign, logs[-1])
         
         draft = await noise_cleaner.clean(campaign.draft_content or "", mode="light", strip_html=False)
