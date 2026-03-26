@@ -17,6 +17,7 @@ from backend.schemas.common import SuccessResponse, BulkActionResponse
 from backend.services.article_vector_service import ArticleVectorService
 from backend.services.xohi_memory import xohi_memory
 from backend.utils.sql import escape_like
+from backend.utils.noise_cleaner import noise_cleaner
 
 logger = logging.getLogger("api-gateway")
 
@@ -120,12 +121,17 @@ class ArticleService:
         ).strip("-") + f"-{int(time.time())}"
 
         new_id = str(uuid.uuid4())
+
+        # Phase 76.95: Advanced Structural Noise Cleaning (Elite V2.2)
+        cleaned_content = await noise_cleaner.clean(data.content, strip_html=False) if data.content else ""
+        cleaned_excerpt = await noise_cleaner.clean(data.excerpt, strip_html=True) if data.excerpt else ""
+
         article = Article(
             id=new_id,
             title=data.title,
             slug=slug,
-            excerpt=data.excerpt,
-            content=data.content,
+            excerpt=cleaned_excerpt,
+            content=cleaned_content,
             seo_title=data.seo_title,
             seo_description=data.seo_description,
             seo_keywords=data.seo_keywords,
@@ -139,7 +145,7 @@ class ArticleService:
 
         # RAG Upsert
         await self.vector_service.upsert_article_embedding(
-            db_session, new_id, data.title, data.content
+            db_session, new_id, data.title, cleaned_content
         )
 
         # Invalidate Count Cache
@@ -158,8 +164,13 @@ class ArticleService:
 
         if data.title is not None: article.title = data.title
         if data.slug is not None: article.slug = data.slug
-        if data.excerpt is not None: article.excerpt = data.excerpt
-        if data.content is not None: article.content = data.content
+
+        # Phase 76.95: Advanced Structural Noise Cleaning (Elite V2.2)
+        if data.excerpt is not None:
+            article.excerpt = await noise_cleaner.clean(data.excerpt, strip_html=True)
+        if data.content is not None:
+            article.content = await noise_cleaner.clean(data.content, strip_html=False)
+
         if data.seo_title is not None: article.seo_title = data.seo_title
         if data.seo_description is not None: article.seo_description = data.seo_description
         if data.seo_keywords is not None: article.seo_keywords = data.seo_keywords

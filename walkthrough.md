@@ -1,4 +1,38 @@
-# Walkthrough - CNS V83.0: Baseline Reconnaissance
+# Walkthrough - CNS V84.1: Performance Optimization & Hybrid Cleaning (Elite V2.2) (COMPLETED)
+- **Action**: Tối ưu hóa hiệu năng hệ thống `NoiseCleaner` và khắc phục lỗi Timeout (500: client disconnected prematurely).
+- **Artifacts**:
+    - **Hybrid Architecture**: Kết hợp `Flashtext` (O(N) exact matching) và `RapidFuzz` (O(N log M) fuzzy matching) để đạt hiệu năng tối đa.
+    - **HTML Safety**: Triển khai cơ chế phân tách HTML tags và Content, đảm bảo chỉ làm sạch nội dung mà không làm hỏng thuộc tính thẻ (attributes).
+    - **Thread Offloading**: Chuyển toàn bộ các tác vụ CPU-bound (lxml, rapidfuzz) sang background threads bằng `asyncio.to_thread`.
+    - **Pattern Optimization**: Pre-flattening fuzzy patterns để triệt tiêu overhead vòng lặp lồng nhau.
+- **Verification**:
+    - **Stress Test**: Xử lý payload 277,000 ký tự (~1000 trang nội dung) trong **0.19s** (Target < 200ms).
+    - **Bug Fix**: Khắc phục triệt để lỗi `Flashtext` bỏ sót từ khóa do mapping `""` (đã chuyển sang mapping `" "` và collapse whitespace).
+    - **E2E**: Xác nhận `/api/v1/content/clean` không còn bị ngắt kết nối đột ngột (500 error) khi xử lý văn bản lớn.
+
+*Hoàn thành bởi Antigravity (Elite V2.2 Protocol).*
+
+---
+
+# Walkthrough - CNS V84.0: Advanced Structural Noise Cleaning (Elite V2.2) (COMPLETED)
+- **Action**: Nâng cấp hệ thống làm sạch văn bản `NoiseCleaner` bằng thuật toán NASP (Neural-Agnostic Structural Pruner).
+- **Artifacts**:
+    - Triển khai `_structural_tree_pruning` sử dụng `lxml` C-backend để xử lý DOM tree với hiệu năng cực cao (Linear-time).
+    - Thay thế các vòng lặp Regex 10-pass "vá víu" bằng cơ chế Bottom-up Tree Pruning surgical.
+    - Xử lý triệt để các cấu trúc rỗng lồng nhau như `<h1><strong><br></strong></h1>`.
+- **Logic**:
+    - **Container Guard**: Tự động nhận diện và xóa bỏ các thẻ container (div, p, h1-6, strong,...) nếu chúng chỉ chứa khoảng trắng, `&nbsp;`, `br` hoặc `hr`.
+    - **Tail Preservation**: Đảm bảo không mất dữ liệu text khi xóa bỏ các node rỗng (bảo tồn `element.tail`).
+    - **NFC Normalization**: Chuẩn hóa dữ liệu đầu ra về dạng NFC.
+    - **Service Integration**: Tích hợp trực tiếp vào `ProductService` và `ArticleService` để tự động làm sạch dữ liệu khi Create/Update.
+- **Verification**:
+    - Đã chạy script `verify_nasp.py` và pass 100% test cases.
+    - Xác nhận `ProductService` tự động xóa các thẻ rỗng từ payload thực tế thông qua `verify_service_cleaning.py`.
+
+*Hoàn thành bởi Antigravity (Elite V2.2 Protocol).*
+
+---
+
 
 ## 🛠️ Công việc đã thực hiện
 

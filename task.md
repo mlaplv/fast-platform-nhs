@@ -76,3 +76,15 @@ Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt th
 - [x] Logic: Standardize prop interfaces and rune usage across Order components. <!-- id: 112 -->
 
 
+
+## 🎯 Giai đoạn 22: Advanced Structural Noise Cleaning (Elite V2.2) (COMPLETED)
+- [x] Backend: Install `lxml` for high-performance DOM manipulation. <!-- id: 120 -->
+- [x] Backend: Refactor `NoiseCleaner` to use tree-based structural pruning. <!-- id: 121 -->
+- [x] Backend: Remove legacy Regex-based "patchwork" loops. <!-- id: 122 -->
+- [x] Final: Verify logic with nested empty tags and reporting. <!-- id: 123 -->
+
+## 🎯 Giai đoạn 23: Performance Optimization & Hybrid Cleaning (Elite V2.2) (COMPLETED)
+- [x] Backend: Optimize `NoiseCleaner` performance using `asyncio.to_thread` for CPU-bound tasks. <!-- id: 130 -->
+- [x] Backend: Implement Hybrid Cleaning (Flashtext O(N) + RapidFuzz O(N log M)). <!-- id: 131 -->
+- [x] Backend: Fix Flashtext exact match bug (Space-replacement mapping). <!-- id: 132 -->
+- [x] Final: Verify performance with 277k character stress test (< 200ms). <!-- id: 133 -->

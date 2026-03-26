@@ -30,6 +30,7 @@ dependencies = [
     "fastembed>=0.5.1",
     "tqdm>=4.67.1",
     "flashtext>=2.7",
+    "lxml>=6.0.2",
 ]
 
 [build-system]

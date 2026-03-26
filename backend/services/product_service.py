@@ -11,6 +11,7 @@ from backend.schemas.product import CreateProductRequest, UpdateProductRequest, 
 from backend.schemas.common import SuccessResponse, BulkActionResponse
 from backend.services.product_vector_service import ProductVectorService
 from backend.utils.sql import escape_like
+from backend.utils.noise_cleaner import noise_cleaner
 
 logger = logging.getLogger("api-gateway")
 
@@ -97,6 +98,10 @@ class ProductService:
     async def create_product(self, db_session: AsyncSession, data: CreateProductRequest) -> SuccessResponse:
         """Create a new product and its embedding."""
         new_id = str(uuid.uuid4())
+
+        # Phase 76.95: Advanced Structural Noise Cleaning (Elite V2.2)
+        cleaned_description = await noise_cleaner.clean(data.description, strip_html=False) if data.description else ""
+
         product = ProductBase(
             id=new_id,
             name=data.name,
@@ -104,7 +109,7 @@ class ProductService:
             price=data.price,
             stock=data.stock,
             status=data.status.upper(),
-            description=data.description,
+            description=cleaned_description,
             category_id=data.categoryId,
             type=data.type,
             slug=data.slug,
@@ -116,7 +121,7 @@ class ProductService:
             tier_variations=[tv.model_dump() for tv in data.tierVariations] if data.tierVariations else [],
         )
         db_session.add(product)
-        
+
         # Add variants
         if data.variants:
             for v in data.variants:
@@ -130,13 +135,13 @@ class ProductService:
                     stock=v.stock
                 )
                 db_session.add(variant)
-                
+
         await db_session.commit() # Ensure product exists for RAG foreign key
         await db_session.refresh(product)
 
         # RAG Upsert
         await self.vector_service.upsert_product_embedding(
-            db_session, new_id, data.name, data.description
+            db_session, new_id, data.name, cleaned_description
         )
 
         return SuccessResponse(ok=True, id=new_id)
@@ -156,7 +161,11 @@ class ProductService:
         if data.price is not None: product.price = data.price
         if data.stock is not None: product.stock = data.stock
         if data.status is not None: product.status = data.status.upper()
-        if data.description is not None: product.description = data.description
+
+        if data.description is not None:
+            # Phase 76.95: Advanced Structural Noise Cleaning (Elite V2.2)
+            product.description = await noise_cleaner.clean(data.description, strip_html=False)
+
         if data.categoryId is not None: product.category_id = data.categoryId
         if data.slug is not None: product.slug = data.slug
         if data.seoTitle is not None: product.seo_title = data.seoTitle
