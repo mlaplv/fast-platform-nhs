@@ -82,9 +82,9 @@
           >
             <div class="mt-1 shrink-0">
               {#if i === logs.length - 1 && !log.includes('✅') && !log.includes('⚠️')}
-                <Loader size={12} class="animate-spin text-blue-400" />
+                <Loader2 size={12} class="animate-spin text-blue-400" />
               {:else if log.includes('✅') || log.includes('thành công')}
-                <CheckCircle size={12} class="text-emerald-400" />
+                <CheckCircle2 size={12} class="text-emerald-400" />
               {:else if log.includes('AI') || log.includes('Neural')}
                 <Brain size={12} class="text-purple-400" />
               {:else if log.includes('phẫu thuật') || log.includes('quét')}

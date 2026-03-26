@@ -23,15 +23,15 @@ class CreateProductRequest(BaseModel):
     price: float = Field(0, ge=0)
     stock: int = Field(0, ge=0)
     status: str = Field("DRAFT", pattern=r"^(DRAFT|ACTIVE|ARCHIVED)$")
-    description: Optional[str] = Field(None, max_length=5000)
+    description: Optional[str] = Field(None, max_length=100000)
     categoryId: Optional[str] = None
     type: str = Field("RETAIL", pattern=r"^(RETAIL|RENTAL|SERVICE)$")
     
     # Professional Fashion Upgrade
     slug: str = Field(..., min_length=1, max_length=200)
     seoTitle: Optional[str] = Field(None, max_length=200, alias="seo_title")
-    seoDescription: Optional[str] = Field(None, max_length=500, alias="seo_description")
-    seoKeywords: Optional[str] = Field(None, max_length=500, alias="seo_keywords")
+    seoDescription: Optional[str] = Field(None, max_length=2000, alias="seo_description")
+    seoKeywords: Optional[str] = Field(None, max_length=2000, alias="seo_keywords")
     images: List[str] = Field(default_factory=list)
     attributes: Dict[str, Union[str, int, float, bool, None]] = Field(default_factory=dict)
     
@@ -46,14 +46,14 @@ class UpdateProductRequest(BaseModel):
     price: Optional[float] = Field(None, ge=0)
     stock: Optional[int] = Field(None, ge=0)
     status: Optional[str] = Field(None, pattern=r"^(DRAFT|ACTIVE|ARCHIVED)$")
-    description: Optional[str] = Field(None, max_length=5000)
+    description: Optional[str] = Field(None, max_length=100000)
     categoryId: Optional[str] = None
     
     # Professional Fashion Upgrade
     slug: Optional[str] = Field(None, min_length=1, max_length=200)
     seoTitle: Optional[str] = Field(None, max_length=200, alias="seo_title")
-    seoDescription: Optional[str] = Field(None, max_length=500, alias="seo_description")
-    seoKeywords: Optional[str] = Field(None, max_length=500, alias="seo_keywords")
+    seoDescription: Optional[str] = Field(None, max_length=2000, alias="seo_description")
+    seoKeywords: Optional[str] = Field(None, max_length=2000, alias="seo_keywords")
     images: Optional[List[str]] = None
     attributes: Optional[Dict[str, Union[str, int, float, bool, None]]] = None
     

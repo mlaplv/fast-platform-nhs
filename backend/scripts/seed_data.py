@@ -10,27 +10,58 @@ GEMINI_KEYS = [
 ]
 
 CATEGORY_DEFS = [
-    {"name": "Thời trang Nam", "slug": "nam", "id": "cat_nam"},
-    {"name": "Thời trang Nữ", "slug": "nu", "id": "cat_nu"},
+    {"name": "Thuốc đông y", "slug": "thuoc-dong-y", "id": "cat_thuoc_dong_y"},
 ]
 
-SUB_CATEGORY_DEFS = [
-    {"name": "Áo Sơ Mi", "slug": "ao-so-mi", "parent": "cat_nam", "id": "cat_ao_so_mi"},
-    {"name": "Quần Jean", "slug": "quan-jean", "parent": "cat_nam", "id": "cat_quan_jean"},
-    {"name": "Đầm & Váy", "slug": "dam-vay", "parent": "cat_nu", "id": "cat_dam_vay"},
+SUB_CATEGORY_DEFS = []
+
+PRODUCT_DEFS = [
+    {
+        "id": "prod_hoi_nach_hong_son",
+        "name": "Thuốc Đặc Trị Hôi Nách Hồng Sơn",
+        "slug": "thuoc-dac-tri-hoi-nach-hong-son",
+        "sku": "HS-HN-BASE",
+        "price": 299000, # Base price
+        "category_id": "cat_thuoc_dong_y",
+        "description": "Thảo dược chữa trị hôi nách nặng mùi lâu năm, bị từ nhỏ (bẩm sinh), phụ nữ mang thai, sau sinh, tuổi dậy thì. Giúp giảm thâm & mồ hôi nách nhiều, se nhỏ lỗ chân lông, hiệu quả rõ rệt sau 1 liệu trình. Sản phẩm dạng xịt, thẩm thấu nhanh, không gây ố vàng áo và không kích ứng da.",
+        "images": [
+            "https://nhathuochongson.com/uploads/images/products/thuoc-dac-tri-hoi-nach-hong-son-lo-lon-20ml.jpeg",
+            "https://nhathuochongson.com/uploads/images/products/thuoc-tri-hoi-nach-hong-son-dam-dac.gif",
+            "https://nhathuochongson.com/uploads/images/products/thuoc-tri-hoi-nach-hoi-chan-hong-sonlo-lon-20ml.jpg"
+        ],
+        "tier_variations": [
+            {
+                "name": "Loại thuốc",
+                "options": ["Thường", "Đậm đặc"],
+                "images": [
+                    "https://nhathuochongson.com/uploads/images/products/thuoc-dac-tri-hoi-nach-hong-son-lo-lon-20ml.jpeg",
+                    "https://nhathuochongson.com/uploads/images/products/thuoc-tri-hoi-nach-hong-son-dam-dac.gif"
+                ]
+            }
+        ],
+        "variants": [
+            {
+                "id": "var_hn_thuong",
+                "tier_index": [0],
+                "sku": "HS-HN-20ML-REG",
+                "price": 299000,
+                "stock": 100
+            },
+            {
+                "id": "var_hn_dam_dac",
+                "tier_index": [1],
+                "sku": "HS-HN-20ML-CONC",
+                "price": 320000,
+                "stock": 50
+            }
+        ]
+    }
 ]
 
-PRODUCT_NAMES = [
-    "Áo Thun Oversize", "Quần Jean Denim", "Đầm Hoa Vintage", "Áo Khoác Bomber",
-    "Váy Midi Lụa", "Áo Polo Classic", "Quần Kaki Slim", "Đầm Maxi Boho",
-    "Áo Sơ Mi Oxford", "Quần Short Cargo", "Chân Váy Xếp Ly", "Áo Blazer Oversized",
-    "Quần Jogger", "Áo Croptop", "Váy Bodycon", "Áo Hoodie",
-    "Quần Culottes", "Đầm Cocktail", "Áo Len Cổ Lọ", "Quần Ống Rộng",
-]
+PRODUCT_NAMES = ["Thuốc Đặc Trị Hôi Nách Hồng Sơn"]
 
 ARTICLE_TITLES = [
-    "Xu hướng thời trang", "Bí quyết phối đồ", "Chính sách đổi trả",
-    "Sale cuối mùa", "Lookbook mới nhất", "Hướng dẫn chọn size",
-    "Chất liệu bền vững", "Tips bảo quản quần áo", "Street style",
-    "Phong cách công sở", "Thời trang dạo phố", "Cập nhật BST mới",
+    "Cách chữa hôi nách vĩnh viễn tại nhà",
+    "Review thuốc trị hôi nách Hồng Sơn",
+    "Nguyên nhân gây mùi cơ thể và cách khắc phục",
 ]

@@ -18,7 +18,7 @@ load_dotenv(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../.env
 from backend.database import async_session_maker
 from backend.database.models import *
 from backend.utils.security import GeminiSecurity
-from backend.scripts.seed_data import GEMINI_KEYS, CATEGORY_DEFS, SUB_CATEGORY_DEFS, PRODUCT_NAMES, ARTICLE_TITLES
+from backend.scripts.seed_data import GEMINI_KEYS, CATEGORY_DEFS, SUB_CATEGORY_DEFS, PRODUCT_DEFS, PRODUCT_NAMES, ARTICLE_TITLES
 from backend.services.xohi.creative_studio.models.schemas import CategoryEnum
 
 TENANT_ID = "smartshop"
@@ -65,14 +65,41 @@ async def seed_categories(session):
     await session.flush()
 
 async def seed_products(session):
-    print("👕 Seeding 3 products...")
-    cats, products = ["cat_ao_so_mi", "cat_quan_jean", "cat_dam_vay"], []
-    for i in range(3):
-        pid = f"prod_{i+1:03d}"
-        p = {"id": pid, "name": f"{random.choice(PRODUCT_NAMES)} V{i+1}", "sku": f"SKU-{i+1:04d}", "price": random.randint(15, 200) * 10000, "cat": random.choice(cats)}
-        session.add(ProductBase(id=pid, name=p["name"], slug=f"p-{i+1}-{uuid.uuid4().hex[:4]}", sku=p["sku"], price=p["price"], stock=random.randint(10, 500), status="ACTIVE", category_id=p["cat"], tenant_id=TENANT_ID))
-        products.append(p)
-    await session.flush(); return products
+    print(f"📦 Seeding {len(PRODUCT_DEFS)} products with variations...")
+    products = []
+    for d in PRODUCT_DEFS:
+        pb = ProductBase(
+            id=d["id"],
+            name=d["name"],
+            slug=d["slug"],
+            sku=d["sku"],
+            price=d["price"],
+            stock=sum(v["stock"] for v in d.get("variants", [])),
+            status="ACTIVE",
+            category_id=d["category_id"],
+            tenant_id=TENANT_ID,
+            description=d.get("description", ""),
+            images=d.get("images", []),
+            tier_variations=d.get("tier_variations", [])
+        )
+        session.add(pb)
+        
+        # Seed variants if they exist
+        if "variants" in d:
+            for v_data in d["variants"]:
+                variant = ProductVariant(
+                    id=v_data["id"],
+                    product_base_id=pb.id,
+                    tier_index=v_data["tier_index"],
+                    sku=v_data["sku"],
+                    price=v_data["price"],
+                    stock=v_data["stock"]
+                )
+                session.add(variant)
+        
+        products.append({"id": d["id"], "sku": d["sku"], "name": d["name"], "price": d["price"]})
+    await session.flush()
+    return products
 
 async def seed_articles(session, author_id):
     print("📰 Seeding 3 articles...")
@@ -93,10 +120,6 @@ async def seed_articles(session, author_id):
 async def seed_orders(session, user_id, products):
     print("🛒 Seeding 15+ professional orders with 10-year history simulation...")
     
-    # Add 'Thuốc hôi nách Elite' to products for this session
-    hien_ke_special = {"sku": "HN-ELITE-001", "name": "Thuốc hôi nách Elite (2026 Edition)", "price": 1200000}
-    all_products = products + [hien_ke_special]
-    
     # Configuration for identity-based history
     sep_tong_phone = "0988-888-888"
     vip_phone = "0909-999-999"
@@ -105,10 +128,10 @@ async def seed_orders(session, user_id, products):
     # 1. Sếp Tổng: The VIP Elite (10 Orders History)
     for i in range(10):
         items, total = [], 0
-        # Sếp Tổng always buys the deodorant + random items
-        p_list = [hien_ke_special] + ([random.choice(products)] if random.random() > 0.5 else [])
+        # Sếp Tổng always buys the deodorant + random items or multiple deodorants
+        p_list = [random.choice(products)]
         for p in p_list:
-            qty = 1; sub = p["price"] * qty; total += sub
+            qty = random.randint(1, 3); sub = p["price"] * qty; total += sub
             items.append({"sku": p["sku"], "name": p["name"], "quantity": qty, "price": p["price"], "total": sub})
         
         status = "COMPLETED" if i % 4 != 0 else "CANCELLED" # 75% success rate

@@ -244,15 +244,62 @@ export function createAnalysisController(config: {
         bulkFixStatus = "Đang dọn dẹp...";
         bulkFixLogs = ["🧹 Đang khởi động Neural Clean (Phase 76.9)...", "🧠 Đang dọn dẹp artifacts & Jaccard dedup..."];
         try {
-            const content = (config.getContent ?? config.getEditedDraft)();
+            let content = (config.getContent ?? config.getEditedDraft)();
             if (!content) return null;
             
+            console.log("[Clean] Starting Cleanup, length:", content.length);
+            
+            // Phase 82.95: Deterministic Neural Tree Pruning (Elite V2.2 Professional)
+            if (typeof document !== 'undefined') {
+                const div = document.createElement('div');
+                div.innerHTML = content;
+                
+                let changed = true;
+                let passes = 0;
+                
+                // Deterministic Loop: Repeat until no more changes occur (max 10 passes)
+                while (changed && passes < 10) {
+                    changed = false;
+                    passes++;
+                    
+                    // Step A: Remove redundant BR tags
+                    div.querySelectorAll('br + br').forEach(el => { el.remove(); changed = true; });
+
+                    // Step B: Bottom-up Recursive Pruning
+                    const allNodes = Array.from(div.querySelectorAll('*')).reverse();
+                    
+                    allNodes.forEach(node => {
+                        if (!node.parentNode) return;
+
+                        const text = node.textContent?.replace(/[\s\u00A0\u200B\uFEFF\t\n\r]+/g, '').trim() || '';
+                        const hasMedia = node.querySelector('img, iframe, video, audio, picture, canvas, svg, [data-media]');
+                        const hasFunctional = node.querySelector('input, button, select, textarea');
+                        const hasMeaningfulAttr = node.tagName === 'A' && node.getAttribute('href');
+                        
+                        if (!text && !hasMedia && !hasFunctional && !hasMeaningfulAttr) {
+                            node.remove();
+                            changed = true;
+                        }
+                    });
+                }
+                
+                // Step C: Legacy Tiptap Placeholder Sanitization
+                div.querySelectorAll('p').forEach(p => {
+                    if (p.innerHTML.trim() === '<br>' || p.innerHTML.trim() === '<br/>' || p.innerHTML.trim() === '') {
+                        p.remove();
+                    }
+                });
+
+                content = div.innerHTML;
+            }
+            
+            console.log("[Clean] DOM Cleanup done, calling API...");
+            
             // Phase 82.9: HUD Real-time Log injection
-            setTimeout(() => { 
-                if (isBulkFixing) bulkFixLogs = [...bulkFixLogs, "🚀 Đang tối ưu cấu trúc & dọn dẹp..."]; 
-            }, 1000);
+            if (isBulkFixing) bulkFixLogs = [...bulkFixLogs, "🚀 Đang tối ưu cấu trúc & dọn dẹp..."]; 
 
             const res = await apiClient.post<GenericResponse<{ content: string }>>('/api/v1/content/clean', { content });
+            console.log("[Clean] API Response:", res?.status);
             if (res?.data?.content) {
                 const cleaned = res.data.content;
                 config.setEditedDraft?.(cleaned);

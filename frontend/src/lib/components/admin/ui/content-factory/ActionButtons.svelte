@@ -6,7 +6,7 @@
     ArrowLeft,
     ArrowRight,
     ChevronRight,
-    Loader,
+    Loader2,
     Play
   } from "lucide-svelte";
 
@@ -115,10 +115,10 @@
       <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/primary:animate-shimmer" aria-hidden="true"></div>
       
       {#if isLoading || isPublishing} 
-        <Loader size={14} class="animate-spin" />
+        <Loader2 size={14} class="animate-spin" />
       {:else if isProcessing && viewingStep === step}
         <div class="flex items-center gap-2">
-          <Loader size={12} class="animate-spin opacity-50" />
+          <Loader2 size={12} class="animate-spin opacity-50" />
           <span>NEURAL XOHI...</span>
         </div>
       {:else}

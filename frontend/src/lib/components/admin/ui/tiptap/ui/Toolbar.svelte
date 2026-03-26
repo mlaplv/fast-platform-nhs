@@ -14,6 +14,7 @@
   import Link2Icon from 'lucide-svelte/icons/link-2';
   import QuoteIcon from 'lucide-svelte/icons/quote';
   import CodeIcon from 'lucide-svelte/icons/code';
+  import Maximize2Icon from 'lucide-svelte/icons/maximize-2';
   import MinusIcon from 'lucide-svelte/icons/minus';
   import SparklesIcon from 'lucide-svelte/icons/sparkles';
   import MoreHorizontalIcon from 'lucide-svelte/icons/more-horizontal';
@@ -29,6 +30,7 @@
     onClean = null,
     fullScreen = false,
     onToggleFullScreen = null,
+    showSource = $bindable(false),
   }: {
     editor: Editor | null;
     toolbarActions?: ToolbarAction[];
@@ -39,6 +41,7 @@
     onClean?: (() => void) | null;
     fullScreen?: boolean;
     onToggleFullScreen?: (() => void) | null;
+    showSource?: boolean;
   } = $props();
 
   const FONTS = ['Inter', 'Roboto', 'Georgia', 'Times New Roman', 'Courier New', 'Arial'];
@@ -74,9 +77,9 @@
   let showColorPicker = $state(false);
   
   // Container-based responsive states
-  const isThin = $derived(containerWidth < 900); 
-  const isCompact = $derived(containerWidth < 700);
-  const isSuperCompact = $derived(containerWidth < 500);
+  const isThin = $derived(containerWidth < 800); 
+  const isCompact = $derived(containerWidth < 600);
+  const isSuperCompact = $derived(containerWidth < 400);
 
 </script>
 
@@ -92,9 +95,12 @@
     <button onclick={() => editor?.chain().focus().redo().run()} class="tb-btn" title="Redo"><RedoIcon size={12} /></button>
     {#if onToggleFullScreen && !isCompact}
       <button onclick={onToggleFullScreen} class="tb-btn {fullScreen ? 'text-amber-500' : ''}" title="Toggle Fullscreen">
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        <Maximize2Icon size={12} />
       </button>
     {/if}
+    <button onclick={() => showSource = !showSource} class="tb-btn {showSource ? 'active-neural !bg-cyan-500/20' : ''}" title="View Source">
+      <CodeIcon size={12} />
+    </button>
   </div>
 
   <!-- Group 2: Typography (Main Bar) -->

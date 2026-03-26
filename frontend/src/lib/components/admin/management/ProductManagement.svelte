@@ -37,6 +37,7 @@
   let isHeaderCollapsed = $state(false);
   let editingId = $state<string | null>(null);
   let selectedIds = $state<Set<string>>(new Set());
+  let isSaving = $state(false);
 
   let formName = $state("");
   let formSku = $state("");
@@ -190,29 +191,51 @@
 
   async function save() {
     if (!formName.trim()) return;
+    isSaving = true;
     const payload = {
       name: formName.trim(), 
       sku: formSku || `SKU-${Date.now()}`,
-      price: formPrice, 
-      stock: formStock, 
+      price: Number(formPrice), 
+      stock: Number(formStock), 
       categoryId: formCategory || null, 
-      status: formStatus,
+      status: (formStatus || "draft").toUpperCase(), // Backend expects ACTIVE/DRAFT
       description: formDescription,
       slug: formSlug || generateSlug(formName),
       seoTitle: formSeoTitle,
       seoDescription: formSeoDescription,
       seoKeywords: formSeoKeywords,
-      images: formImages,
-      attributes: formAttributes,
-      tier_variations: formTierVariations,
-      variants: formVariants
+      images: formImages || [],
+      attributes: formAttributes || {},
+      tier_variations: (formTierVariations || []).map(tv => ({
+        name: tv.name,
+        options: tv.options,
+        images: tv.images || null
+      })),
+      variants: (formVariants || []).map(v => ({
+        id: v.id || null, // Ensure id is null if missing
+        sku: v.sku || "",
+        price: Number(v.price),
+        stock: Number(v.stock),
+        tier_index: v.tierIndex || []
+      }))
     };
+
     try {
-      if (editingId) await apiClient.patch(`/api/v1/products/${editingId}`, payload);
-      else await apiClient.post<Product>("/api/v1/products", payload);
+      if (editingId) {
+        await apiClient.patch(`/api/v1/products/${editingId}`, payload);
+        nanobot.showToast("Đã cập nhật sản phẩm thành công", "success");
+      } else {
+        await apiClient.post<Product>("/api/v1/products", payload);
+        nanobot.showToast("Đã xuất bản sản phẩm mới", "success");
+      }
       showForm = false;
       await loadProducts();
-    } catch (err) { nanobot.showToast("Lưu sản phẩm thất bại", "error"); }
+    } catch (err: any) { 
+      const msg = err?.message || "Lưu sản phẩm thất bại";
+      nanobot.showToast(msg, "error"); 
+    } finally {
+      isSaving = false;
+    }
   }
 
   async function bulk(type: "del" | "act") {
@@ -265,6 +288,7 @@
     onSave={save}
     onClose={() => (showForm = false)}
     {generateSlug}
+    {isSaving}
   />
 
   <div class="flex-1 overflow-y-auto custom-scrollbar relative">

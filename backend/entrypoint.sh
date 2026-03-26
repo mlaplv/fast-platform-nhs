@@ -46,6 +46,8 @@ if [ "$#" -eq 0 ]; then
         --limit-max-requests 500 \
         --limit-concurrency 15 \
         --timeout-keep-alive 5 \
+        --reload-dir "/app/backend" \
+        --reload-exclude "/app/.venv" \
         $RELOAD_FLAG
 else
     echo "⚡ [Trinity Boot] Executing custom command: $@"

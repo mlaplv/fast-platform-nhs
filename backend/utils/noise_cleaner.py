@@ -2,10 +2,12 @@ import json
 import logging
 import re
 import asyncio
+import unicodedata
+import time
 from pathlib import Path
 from typing import List, Dict, Optional
 from flashtext import KeywordProcessor
-from rapidfuzz import fuzz
+from rapidfuzz import fuzz, process
 logger = logging.getLogger("api-gateway")
 
 # Phase 76.3: Advanced Deterministic Artifact Stripper (HFS)
@@ -39,6 +41,10 @@ RE_AI_POSTAMBLES = re.compile(
     re.DOTALL
 )
 RE_MARKDOWN_FENCES = re.compile(r'```[a-z]*|```', re.IGNORECASE)
+RE_EMPTY_BLOCKS = re.compile(
+    r'<(p|div|h[1-6]|li|blockquote|strong|b|em|i|span|u|s|del|a)(?:\s+[^>]*?)?>(?:\s|&nbsp;|<br\s*/?>|\u00A0|\u200B|\uFEFF)*</\1>', 
+    re.IGNORECASE
+)
 
 class NoiseCleaner:
     """
@@ -47,7 +53,8 @@ class NoiseCleaner:
     """
     
     def __init__(self, dictionary_path: Optional[str] = None):
-        self.dictionary_path = dictionary_path or str(Path(__file__).parents[2] / "resources" / "noise_dictionary.json")
+        # Parents[1] is 'backend', so 'backend/resources/noise_dictionary.json'
+        self.dictionary_path = dictionary_path or str(Path(__file__).parents[1] / "resources" / "noise_dictionary.json")
         self.keyword_processor = KeywordProcessor(case_sensitive=False)
         self.fuzzy_patterns: Dict[str, List[str]] = {}
         self.semantic_categories: List[str] = []
@@ -104,33 +111,29 @@ class NoiseCleaner:
             # Deterministic Artifact Stripping (Viral 2026)
             # Remove raw code blocks and scripts that shouldn't be in viral articles
             text = RE_CODE_ARTIFACTS.sub('', text)
-
-            # Simple Link Density Mitigation: If a line/paragraph is just a link, it's often an artifact
-            # We unwrap links that look like boilerplate
-            def unwrap_spam_links(match):
-                url = match.group(1)
-                anchor = match.group(2)
-                # If anchor is just the URL or generic "click here" / "read more"
-                if url.strip('/') in anchor.strip('/') or any(kw in anchor.lower() for kw in ["click", "xem thêm", "read more", "tại đây"]):
-                    return anchor
-                return match.group(0)
-
-            text = RE_ROGUE_LINKS.sub(unwrap_spam_links, text)
-
-        # --- LAYER 1: DETERMINISTIC MARKDOWN (HFS) ---
-        if strip_markdown:
-            for pattern, subst in RE_MARKDOWN_CLEAN:
-                text = pattern.sub(subst, text)
-        
-        cleaned_text = text
-        
-        # --- LAYERS 2+3: CPU-BOUND — run off-thread to avoid blocking event loop ---
-        cleaned_text = await asyncio.to_thread(self._sync_clean_cpu, cleaned_text, mode)
+        # --- LAYER 2: CPU-BOUND LANGUAGE ANALYSIS ---
+        # Run off-thread to avoid blocking event loop
+        # CNS V2.2: Optimized fuzzy masking skips tags/attrs
+        cleaned_text = await asyncio.to_thread(self._sync_clean_cpu, text, mode)
 
         # Final pass: Collapse horizontal whitespace but preserve structure (V76.4)
-        import unicodedata
+        start_time = time.time()
         cleaned_text = re.sub(r'[ \t]+', ' ', cleaned_text)
-        cleaned_text = re.sub(r'\n\s*\n', '\n\n', cleaned_text) # Normalize paragraph breaks
+
+        # Phase 76.95: Deterministic Recursive Empty Tag Strip (Final Guard)
+        # We run this LATE because fuzzy cleaning might create new empty tags by stripping noise words
+        logger.debug(f"[Noise Shield] Final Structural Guard (Length: {len(cleaned_text)})")
+        for i in range(10):
+            new_text = RE_EMPTY_BLOCKS.sub('', cleaned_text)
+            if new_text == cleaned_text:
+                break
+            cleaned_text = new_text
+
+        # Phase 76.96: Newline Normalization
+        if strip_html:
+            cleaned_text = re.sub(r'\n\s*\n', '\n\n', cleaned_text)
+        
+        logger.debug(f"[Noise Shield] Finished Expert polish in {time.time() - start_time:.4f}s")
         return unicodedata.normalize('NFC', cleaned_text.strip())
 
     def _sync_clean_cpu(self, text: str, mode: str) -> str:
@@ -142,20 +145,41 @@ class NoiseCleaner:
             for cat, patterns in self.fuzzy_patterns.items()
             for p in patterns
         ]
-        words = text.split()
-        final_words: list[str] = []
-        for word in words:
+        # Step 1: Pre-filter words to only include meaningful text (skip HTML tags/attrs)
+        # Regex to match content outside of < >
+        words = re.split(r'(\s+)', text)
+        final_tokens: list[str] = []
+        
+        # CNA V2.3: Use rapidfuzz.process.extractOne for O(N log M) or better internal optimization
+        for token in words:
+            # Skip if it's whitespace or looks like an HTML tag part (Optimization R23)
+            if not token.strip() or '<' in token or '>' in token or '=' in token:
+                final_tokens.append(token)
+                continue
+            
+            # Layer 2.1: Expert Exact Skip (R23)
+            # If the keyword processor already handled exact noise, we only fuzzy match long tokens
             is_noise = False
-            if len(word) > 4:
-                word_lower = word.lower()
-                for pat_lower, cat in all_flat_patterns:
-                    if fuzz.ratio(word_lower, pat_lower) > 85:
-                        is_noise = True
-                        logger.debug(f"[Noise Shield] Fuzzy hit: '{word}' resembles '{pat_lower}' [{cat}]")
-                        break
+            token_clean = token.strip().lower()
+            
+            if len(token_clean) > 4:
+                # Optimized fuzzy search: extractOne is usually faster than manual loop
+                best_match = process.extractOne(
+                    token_clean, 
+                    all_flat_patterns, 
+                    processor=lambda x: x[0], 
+                    score_cutoff=85
+                )
+                if best_match:
+                    is_noise = True
+                    logger.debug(f"[Noise Shield] Expert Fuzzy hit: '{token}' matches [{best_match[0][1]}] score={best_match[1]}")
+            
             if not is_noise:
-                final_words.append(word)
-        cleaned = " ".join(final_words)
+                final_tokens.append(token)
+            else:
+                final_tokens.append("") # Neutralize noise
+        
+        cleaned = "".join(final_tokens)
 
         # --- LAYER 3: HEURISTIC SEMANTIC AUDIT ---
         if mode == "aggressive" and len(cleaned) > 50:
@@ -187,11 +211,12 @@ class NoiseCleaner:
         if not all_patterns:
             return False
         noise_hits = 0
+        all_pat_lower = [p for p in all_patterns]
         for w in words:
             w_lower = w.lower()
-            # Early exit per word: break as soon as one pattern matches
-            if any(fuzz.ratio(w_lower, p) > 85 for p in all_patterns):
-                noise_hits += 1
+            if len(w_lower) > 4:
+                if process.extractOne(w_lower, all_pat_lower, score_cutoff=85):
+                    noise_hits += 1
         ratio = noise_hits / len(words)
         if ratio > 0.40:
             logger.debug(f"[Noise Shield] Heuristic audit: noise ratio={ratio:.2%} → JUNK")

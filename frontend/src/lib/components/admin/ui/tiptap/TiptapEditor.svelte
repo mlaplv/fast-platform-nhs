@@ -55,6 +55,7 @@
   } = $props();
 
   let internalFullScreen = $state<boolean>(fullScreen);
+  let showSource = $state(false);
 
   const toggleFullScreen = () => {
     if (onToggleFullScreen) {
@@ -554,6 +555,7 @@
       }}
       onClearHighlights={() => editor?.commands.clearAllAnnotations()}
       onClean={onClean || handleClean}
+      bind:showSource
       fullScreen={internalFullScreen}
       onToggleFullScreen={toggleFullScreen}
     />
@@ -572,13 +574,25 @@
   >
     <div 
       class="
-        {internalFullScreen ? 'max-w-4xl mx-auto my-0 bg-[#0f172a] min-h-screen px-20 py-16 border-x border-white/5' : (flex ? 'w-full bg-transparent flex-1 min-h-full px-6 py-4' : 'w-full bg-transparent min-h-[400px] px-6 py-4')}
+        {internalFullScreen ? 'w-full min-h-screen px-12 md:px-24 py-16 transition-all duration-300 flex flex-col' : (flex ? 'w-full bg-transparent flex-1 min-h-full px-6 py-4' : 'w-full bg-transparent min-h-[400px] px-6 py-4')}
         {!editable ? 'cursor-default' : 'cursor-text'}
       "
-      onclick={() => { if (editable) editor?.commands.focus(); }}
+      onclick={() => { if (editable && !showSource) editor?.commands.focus(); }}
       role="presentation"
     >
-      <div bind:this={element} class="tiptap-content prose prose-invert max-w-none {!editable ? 'opacity-90' : ''}"></div>
+      <div 
+        bind:this={element} 
+        class="tiptap-content prose prose-invert max-w-none {!editable ? 'opacity-90' : ''} {showSource ? 'hidden' : ''}"
+      ></div>
+      
+      {#if showSource}
+        <textarea
+          bind:value={content}
+          class="w-full {internalFullScreen ? 'flex-1 min-h-0' : 'min-h-[500px]'} bg-black/5 text-cyan-50/70 font-mono text-[11px] p-6 outline-none border border-white/5 rounded-xl resize-none leading-relaxed custom-scrollbar shadow-2xl"
+          spellcheck="false"
+          placeholder="HTML Source Code..."
+        ></textarea>
+      {/if}
     </div>
   </div>
 
@@ -711,15 +725,15 @@
   }
   
   :global(.tiptap-content) { @apply outline-none text-white/90 leading-relaxed; }
-  :global(.tiptap-content p) { @apply my-4; }
+  :global(.tiptap-content p) { @apply my-2; }
   :global(.tiptap-content.prose) {
     --tw-prose-links: #00f3ff;
     --tw-prose-invert-links: #00f3ff;
   }
-  :global(.tiptap-content h1) { @apply text-3xl font-black mb-6 text-white; }
-  :global(.tiptap-content h2) { @apply text-2xl font-bold mb-4 mt-8 text-white/80; }
-  :global(.tiptap-content h3) { @apply text-xl font-bold mb-3 mt-6 text-white/70; }
-  :global(.tiptap-content img) { @apply rounded-lg my-4 mx-auto cursor-pointer border-2 border-transparent transition-all duration-200; }
+  :global(.tiptap-content h1) { @apply text-3xl font-black mb-4 text-white; }
+  :global(.tiptap-content h2) { @apply text-2xl font-bold mb-2 mt-4 text-white/80; }
+  :global(.tiptap-content h3) { @apply text-xl font-bold mb-1 mt-3 text-white/70; }
+  :global(.tiptap-content img) { @apply rounded-lg my-2 mx-auto cursor-pointer border-2 border-transparent transition-all duration-200; }
   :global(.tiptap-content img.ProseMirror-selectednode) { @apply border-blue-500/50 shadow-lg shadow-blue-500/10; }
 
   /* Figure / Caption */
