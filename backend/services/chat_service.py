@@ -1,7 +1,7 @@
 import uuid
 import logging
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Union, TypedDict
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +17,15 @@ from backend.services.xohi_memory import xohi_memory
 from backend.services.event_bus import event_bus
 
 logger = logging.getLogger("api-gateway")
+
+class CachedChatMsg(TypedDict):
+    id: str
+    session_id: str
+    user_id: Optional[str]
+    role: str
+    content: str
+    modality: str
+    created_at: str
 
 class ChatService:
     @staticmethod
@@ -115,10 +124,10 @@ class ChatService:
 
         # ═══ CACHE BYPASS / REDIS CHECK ═══
         if session_id == "account" and not cursor and limit <= 10 and target_user_id:
-            cached_data: List[Dict[str, Any]] = await xohi_memory.get_recent_chat(target_user_id)
+            cached_data: List[CachedChatMsg] = await xohi_memory.get_recent_chat(target_user_id) # type: ignore
             if cached_data:
                 # Elite V2.2: Ensure precise type handling for indexing
-                last_msg: Dict[str, Any] = cached_data[-1]
+                last_msg: CachedChatMsg = cached_data[-1]
                 return ChatHistoryResponse(
                     session_id=session_id,
                     has_more=True,

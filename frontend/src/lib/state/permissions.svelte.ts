@@ -62,13 +62,18 @@ class PermissionState {
         }
       } catch (e) {
         console.error("[RBAC] Token synchronization failure:", e);
-        // THIẾT QUÂN LUẬT: Khi ở trang login mà token lỗi thì chỉ xóa state, không redirect reload
         const isLoginPage = window.location.pathname.includes("/login");
-        this.purgeAuth(!isLoginPage);
+        // Elite V2.2: Only purge and redirect on Admin domain
+        const host = window.location.hostname;
+        const isAdminDomain = host.startsWith("admin.") || host.includes("admin");
+        this.purgeAuth(isAdminDomain && !isLoginPage);
       }
     } else {
       const isLoginPage = window.location.pathname.includes("/login");
-      this.purgeAuth(!isLoginPage);
+      // Elite V2.2: Zero-Barrier Storefront fix
+      const host = window.location.hostname;
+      const isAdminDomain = host.startsWith("admin.") || host.includes("admin");
+      this.purgeAuth(isAdminDomain && !isLoginPage);
     }
   }
 

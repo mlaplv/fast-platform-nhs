@@ -31,7 +31,7 @@
   }
 
   let {
-    content = $bindable(""),
+    content = $bindable(),
     topic = "",
     editable = true,
     placeholder = "Nhập nội dung...",
@@ -75,6 +75,7 @@
   };
 
   onMount(() => {
+    if (content === undefined) content = "";
     if (!editBuffer) editBuffer = content;
   });
 </script>

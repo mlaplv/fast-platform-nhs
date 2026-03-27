@@ -27,9 +27,17 @@ class DomainGuardMiddleware(AbstractMiddleware):
 
         current_host = x_forwarded_host or host
 
-        # 2. Bỏ qua kiểm tra nếu là môi trường Local/Debug (Rule R00)
-        is_local = current_host in ["localhost", "127.0.0.1", "0.0.0.0"]
-        if self.debug and is_local:
+        # 2. Bỏ qua kiểm tra nếu là môi trường Local hoặc Mạng nội bộ (Private Network)
+        import ipaddress
+        is_internal = False
+        try:
+            ip_obj = ipaddress.ip_address(current_host)
+            is_internal = ip_obj.is_private or ip_obj.is_loopback
+        except ValueError:
+            # Nếu current_host là tên (như 'api' hoặc 'localhost')
+            is_internal = current_host in ["localhost", "127.0.0.1", "api"]
+
+        if is_internal or self.debug:
             await self.app(scope, receive, send)
             return
 

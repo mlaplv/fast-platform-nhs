@@ -12,8 +12,9 @@ class ProductVariantSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True, strict=True)
     id: Optional[str] = None
     tierIndex: List[int] = Field(default_factory=list, alias="tier_index")
-    sku: str
+    sku: Optional[str] = None
     price: float
+    discountPrice: Optional[float] = Field(None, alias="discount_price")
     stock: int
 
 class CreateProductRequest(BaseModel):
@@ -21,6 +22,7 @@ class CreateProductRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=500)
     sku: Optional[str] = Field(None, max_length=50)
     price: float = Field(0, ge=0)
+    discountPrice: Optional[float] = Field(None, ge=0, alias="discount_price")
     stock: int = Field(0, ge=0)
     status: str = Field("DRAFT", pattern=r"^(DRAFT|ACTIVE|ARCHIVED)$")
     description: Optional[str] = Field(None, max_length=100000)
@@ -44,6 +46,7 @@ class UpdateProductRequest(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=500)
     sku: Optional[str] = Field(None, max_length=50)
     price: Optional[float] = Field(None, ge=0)
+    discountPrice: Optional[float] = Field(None, ge=0, alias="discount_price")
     stock: Optional[int] = Field(None, ge=0)
     status: Optional[str] = Field(None, pattern=r"^(DRAFT|ACTIVE|ARCHIVED)$")
     description: Optional[str] = Field(None, max_length=100000)
@@ -66,11 +69,12 @@ class ProductResponse(BaseModel):
 
     id: str
     name: str
-    sku: str = ""
+    sku: Optional[str] = ""
     price: float
+    discountPrice: Optional[float] = Field(None, alias="discount_price")
     stock: int
     status: str
-    category: str = Field("", alias="category_name")
+    category: Optional[str] = Field("", alias="category_name")
     categoryId: Optional[str] = Field(None, alias="category_id")
     description: Optional[str] = None
     type: str = "RETAIL"

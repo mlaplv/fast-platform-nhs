@@ -264,7 +264,7 @@
           <OrderListItem
             {order}
             {status}
-            onclick={openDrawer}
+            onOpenDetail={openDrawer}
             onAction={handleOrderAction}
           />
         {/each}

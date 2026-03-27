@@ -17,34 +17,18 @@
 
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
-  import type { BaseWidgetProps, MediaAsset } from "$lib/types";
-  import FileManager from "../../media/FileManager.svelte";
-
-  interface Banner {
-    id: string;
-    title: string;
-    description: string | null;
-    image_url: string;
-    link_url: string | null;
-    position: string;
-    order_index: number;
-    is_active: boolean;
-    device_type: string;
-    created_at: string;
-  }
+  import type { BaseWidgetProps, MediaAsset, Banner, BannerForm } from "$lib/types";
+  import BannerDrawer from "./BannerDrawer.svelte";
 
   let { data = {} } = $props<BaseWidgetProps>();
 
   // --- STATE ---
   let banners = $state<Banner[]>([]);
   let isLoading = $state(true);
-  let isSaving = $state(false);
-  let showModal = $state(false);
-  let showMediaVault = $state(false);
-  let editingId = $state<string | null>(null);
+  let showDrawer = $state(false);
 
   // Form State
-  let form = $state({
+  let form = $state<BannerForm>({
     title: "",
     description: "",
     image_url: "",
@@ -85,7 +69,6 @@
   });
 
   function openCreate() {
-    editingId = null;
     form = {
       title: "",
       description: "",
@@ -94,14 +77,15 @@
       position: "home_main",
       order_index: banners.length,
       is_active: true,
-      device_type: "all"
+      device_type: "all",
+      id: undefined
     };
-    showModal = true;
+    showDrawer = true;
   }
 
   function openEdit(b: Banner) {
-    editingId = b.id;
     form = {
+      id: b.id,
       title: b.title,
       description: b.description || "",
       image_url: b.image_url,
@@ -111,31 +95,11 @@
       is_active: b.is_active,
       device_type: b.device_type
     };
-    showModal = true;
+    showDrawer = true;
   }
 
   async function save() {
-    if (!form.title || !form.image_url) {
-      nanobot.showToast("Vui lòng nhập tiêu đề và chọn ảnh.", "warning");
-      return;
-    }
-
-    isSaving = true;
-    try {
-      if (editingId) {
-        await apiClient.put(`/api/v1/banners/${editingId}`, form);
-        nanobot.showToast("Đã cập nhật banner.", "success");
-      } else {
-        await apiClient.post("/api/v1/banners", form);
-        nanobot.showToast("Đã tạo banner mới.", "success");
-      }
-      showModal = false;
-      await loadBanners();
-    } catch (err) {
-      nanobot.showToast("Lưu banner thất bại.", "error");
-    } finally {
-      isSaving = false;
-    }
+    await loadBanners();
   }
 
   async function toggleActive(b: Banner) {
@@ -158,15 +122,7 @@
     }
   }
 
-  function handleMediaSelect(assets: MediaAsset[]) {
-    if (assets.length > 0) {
-      // Rule: Assets from FileManager use file_path.
-      // We prepend the API URL if it's not a full URL, but typically the UI handles this via proxy.
-      // Based on other components, we just store the file_path.
-      form.image_url = assets[0].file_path;
-    }
-    showMediaVault = false;
-  }
+  // Removed redundant media select (now in BannerDrawer)
 </script>
 
 <div class="w-full h-full flex flex-col bg-[#020202] text-zinc-100 font-sans selection:bg-cyan-500/30">
@@ -290,146 +246,14 @@
       </div>
     {/if}
   </main>
-
-  <!-- Modal Layer -->
-  {#if showModal}
-    <div
-      class="fixed inset-0 z-[100] flex items-center justify-center p-8 bg-black/80 backdrop-blur-md"
-      transition:fade={{ duration: 200 }}
-    >
-      <div
-        class="w-full max-w-2xl bg-[#0a0a0a] border border-white/10 rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300"
-      >
-        <header class="px-8 py-6 border-b border-white/5 flex items-center justify-between bg-zinc-950/40">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
-              <Plus size={16} class="text-cyan-400" />
-            </div>
-            <h2 class="text-sm font-black uppercase tracking-widest">
-              {editingId ? 'Modify Strategy' : 'New Deployment'}
-            </h2>
-          </div>
-          <button onclick={() => showModal = false} class="p-2 text-zinc-500 hover:text-white transition-colors">
-            <X size={20} />
-          </button>
-        </header>
-
-        <div class="p-8 space-y-6">
-          <div class="grid grid-cols-2 gap-6">
-            <div class="space-y-2">
-              <label class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Banner Title</label>
-              <input bind:value={form.title} type="text" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-cyan-500/50 outline-none" placeholder="e.g. Summer Sale 2026" />
-            </div>
-            <div class="space-y-2">
-              <label class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Target URL</label>
-              <div class="relative">
-                <input bind:value={form.link_url} type="text" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-cyan-500/50 outline-none pr-10" placeholder="https://..." />
-                <div class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600"><ExternalLink size={14} /></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <label class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Visual Asset</label>
-            <div
-              class="w-full aspect-[21/9] rounded-2xl border border-dashed border-white/10 bg-white/[0.02] flex flex-col items-center justify-center gap-4 relative overflow-hidden group/picker cursor-pointer"
-              onclick={() => showMediaVault = true}
-            >
-              {#if form.image_url}
-                <img src={form.image_url} alt="Preview" class="w-full h-full object-cover" />
-                <div class="absolute inset-0 bg-black/60 opacity-0 group-hover/picker:opacity-100 flex items-center justify-center transition-all">
-                   <div class="px-4 py-2 bg-white text-black text-[9px] font-black uppercase rounded-lg">Update Visual</div>
-                </div>
-              {:else}
-                <div class="w-12 h-12 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400">
-                  <Upload size={20} />
-                </div>
-                <div class="text-center">
-                  <p class="text-[9px] font-black uppercase text-zinc-400">Sync with Media Library</p>
-                  <p class="text-[7px] text-zinc-600 mt-1 uppercase font-mono">Recommend: 1920x800</p>
-                </div>
-              {/if}
-            </div>
-          </div>
-
-          <div class="grid grid-cols-3 gap-6">
-            <div class="space-y-2">
-              <label class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest text-center block">Placement</label>
-              <select bind:value={form.position} class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs outline-none">
-                {#each POSITIONS as p}
-                  <option value={p.id} class="bg-zinc-900">{p.label}</option>
-                {/each}
-              </select>
-            </div>
-            <div class="space-y-2">
-              <label class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest text-center block">Device Target</label>
-              <div class="flex p-1 bg-black/50 border border-white/5 rounded-xl">
-                {#each DEVICES as d}
-                  <button
-                    onclick={() => form.device_type = d.id}
-                    class="flex-1 py-2 flex items-center justify-center rounded-lg transition-all
-                      {form.device_type === d.id ? 'bg-white/10 text-cyan-400' : 'text-zinc-600 hover:text-zinc-400'}"
-                    title={d.label}
-                  >
-                    <d.icon size={14} />
-                  </button>
-                {/each}
-              </div>
-            </div>
-            <div class="space-y-2">
-              <label class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest text-center block">Priority Index</label>
-              <input bind:value={form.order_index} type="number" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-center outline-none" />
-            </div>
-          </div>
-        </div>
-
-        <footer class="px-8 py-6 border-t border-white/5 bg-zinc-950/20 flex items-center justify-between">
-          <div class="flex items-center gap-4">
-             <button
-              onclick={() => form.is_active = !form.is_active}
-              class="flex items-center gap-2 group/modtoggle"
-             >
-               <div class="w-10 h-5 rounded-full transition-colors duration-300 relative {form.is_active ? 'bg-cyan-500' : 'bg-red-500/20'}">
-                  <div class="absolute top-1 left-1 w-3 h-3 rounded-full bg-white transition-transform duration-300 {form.is_active ? 'translate-x-5' : ''} shadow-[0_0_8px_rgba(0,255,255,0.4)]"></div>
-               </div>
-               <span class="text-[9px] font-black uppercase tracking-widest {form.is_active ? 'text-cyan-400' : 'text-red-500'}">
-                  {form.is_active ? 'ACTIVE' : 'OFFLINE'}
-               </span>
-             </button>
-          </div>
-
-          <div class="flex items-center gap-4">
-            <button onclick={() => showModal = false} class="text-[10px] font-black uppercase text-zinc-500 hover:text-white transition-colors">Discard</button>
-            <button
-              onclick={save}
-              disabled={isSaving}
-              class="px-8 py-3 bg-cyan-600 hover:bg-cyan-501 text-black font-black rounded-xl text-[10px] uppercase tracking-widest shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
-            >
-              {#if isSaving}
-                <RefreshCw size={14} class="animate-spin" />
-              {:else}
-                <Save size={14} />
-              {/if}
-              Deploy
-            </button>
-          </div>
-        </footer>
-      </div>
-    </div>
-  {/if}
+  
+  <BannerDrawer
+    bind:isOpen={showDrawer}
+    bind:banner={form}
+    onClose={() => showDrawer = false}
+    onSave={loadBanners}
+  />
 </div>
-
-{#if showMediaVault}
-  <div class="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex flex-col" transition:fade>
-    <div class="flex-1 overflow-hidden">
-      <FileManager
-        mode="pick"
-        onPickConfirm={handleMediaSelect}
-        onPickClose={() => showMediaVault = false}
-      />
-    </div>
-  </div>
-{/if}
 
 <style>
   .custom-scrollbar::-webkit-scrollbar {

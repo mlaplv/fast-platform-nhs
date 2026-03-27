@@ -8,7 +8,7 @@
   import { untrack } from "svelte";
 
   let {
-    items = $bindable([]),
+    items = $bindable(),
     isProcessing = false,
     isExpanded = false,
     campaign_id,
@@ -43,6 +43,10 @@
 
   // CNS V75.1: Sync store to local items
   $effect(() => {
+    if (items === undefined) {
+      items = [];
+      return;
+    }
     // CNS V92: Track all critical reactive properties for deep synchronization
     const propItems = items;
     propItems.forEach(item => {

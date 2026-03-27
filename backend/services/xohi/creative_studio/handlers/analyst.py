@@ -2,7 +2,7 @@ import logging
 import hashlib
 import copy
 from datetime import datetime, timezone
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, List, Union
 from sqlalchemy.orm.attributes import flag_modified
 
 from backend.database.repositories import ContentCampaignRepository
@@ -108,7 +108,7 @@ class AnalystHandler:
         from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
         return await self._run_analysis(campaign_id, campaign_repo, AiInspector, "ai_inspect", force, raw_content=raw_content, raw_topic=raw_topic)
 
-    async def auto_fix(self, campaign_id: str, data: Dict[str, Any], campaign_repo: ContentCampaignRepository) -> GenericResponse:
+    async def auto_fix(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> GenericResponse:
         # Auto-fix still requires a campaign for now due to complexity of snippet replacement
         from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector, AutoFixRequest
         campaign = await campaign_repo.get(campaign_id)
@@ -119,7 +119,7 @@ class AnalystHandler:
             return GenericResponse(status="success", data=result.model_dump())
         except Exception as e: return GenericResponse(status="error", message=str(e))
 
-    async def bulk_fix(self, campaign_id: Optional[str], data: Dict[str, Any], campaign_repo: Optional[ContentCampaignRepository], raw_content: Optional[str] = None) -> GenericResponse:
+    async def bulk_fix(self, campaign_id: Optional[str], data: Dict[str, object], campaign_repo: Optional[ContentCampaignRepository], raw_content: Optional[str] = None) -> GenericResponse:
         from backend.services.xohi.creative_studio.models.schemas import BulkFixRequest
         from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
         from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop

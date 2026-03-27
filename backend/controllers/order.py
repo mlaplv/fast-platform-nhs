@@ -23,7 +23,7 @@ from backend.schemas.order import (
     OrderResponse, OrderListResponse
 )
 from backend.schemas.common import SuccessResponse
-from backend.services.order_service import order_service
+from backend.services.commerce.order import order_service
 
 logger = logging.getLogger("api-gateway")
 

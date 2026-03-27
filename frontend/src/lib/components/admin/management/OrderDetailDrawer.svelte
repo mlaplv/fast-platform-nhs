@@ -22,6 +22,7 @@
   import { portal } from "$lib/actions/portal";
   import { formatCurrency, formatDate } from "$lib/utils/format";
   import type { OrderDetail } from "$lib/types";
+  import { Z_INDEX } from "$lib/core/constants/zIndex";
   import { ORDER_STATUS_MAP } from "$lib/constants/order";
 
   let {
@@ -111,11 +112,11 @@
 </script>
 
 {#if isOpen}
-  <div use:portal class="relative" style="z-index: var(--z-modal);">
+  <div use:portal class="relative" style="z-index: {Z_INDEX.MODAL};">
     <!-- Backdrop -->
     <div
       class="fixed inset-0 bg-black/95 md:bg-black/90 md:backdrop-blur-sm"
-      style="z-index: var(--z-overlay);"
+      style="z-index: {Z_INDEX.OVERLAY};"
       transition:fade={{ duration: 200 }}
       onclick={onClose}
       aria-label="Close drawer"
@@ -127,7 +128,7 @@
     <!-- Drawer Panel -->
     <div
       class="fixed top-0 right-0 h-full w-[500px] max-w-full bg-[#050505] border-l border-white/10 shadow-[-30px_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden"
-      style="z-index: calc(var(--z-modal) + 10);"
+      style="z-index: {Z_INDEX.MODAL + 10};"
       transition:fly={{ x: 500, duration: 300, opacity: 1 }}
     >
       <!-- Header -->

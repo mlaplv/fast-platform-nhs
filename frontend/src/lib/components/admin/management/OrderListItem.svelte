@@ -11,10 +11,10 @@
   import { formatCurrency, timeAgo } from "$lib/utils/format";
   import type { Order } from "$lib/types";
 
-  let { order, status, onclick, onAction } = $props<{
+  let { order, status, onOpenDetail, onAction } = $props<{
     order: Order;
     status: { label: string; color: string; border: string };
-    onclick: (id: string) => void;
+    onOpenDetail: (id: string) => void;
     onAction: (id: string, action: string) => void;
   }>();
 
@@ -27,11 +27,11 @@
 <div
   role="button"
   tabindex="0"
-  onclick={() => onclick(order.id)}
+  onclick={() => onOpenDetail(order.id)}
   onkeydown={(e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      onclick(order.id);
+      onOpenDetail(order.id);
     }
   }}
   class="order-item group flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6 w-full {order.isSpam

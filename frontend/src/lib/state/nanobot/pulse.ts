@@ -10,8 +10,14 @@ import type {
   CampaignOutline,
   CampaignMetrics,
   MediaAsset,
-  CampaignStatus
+  CampaignStatus,
+  PulsePayload
 } from "../types";
+
+interface PulseMessage {
+  event: string;
+  payload: any; // Using any temporarily here but casting strictly in the handler
+}
 
 // CNS V70: Voice Discipline — maps server severity to frontend action
 const VOICE_DISCIPLINE = {
@@ -103,22 +109,23 @@ export function createPulseManager(
 
     eventSource.onmessage = (event: MessageEvent) => {
       try {
-        const data = JSON.parse(event.data);
-        const { event: eventName, payload }: { event: string; payload: any } = data;
+        const data = JSON.parse(event.data) as PulseMessage;
+        const { event: eventName, payload } = data;
         const activeData = (state.currentData as unknown as CampaignData);
-        console.log(`[Pulse] Received event: ${eventName} for CID: ${payload?.campaign_id}`);
+        const cid = (payload as { campaign_id?: string })?.campaign_id;
+        console.log(`[Pulse] Received event: ${eventName} for CID: ${cid}`);
         if (activeData) {
-          console.log(`[Pulse] Active CID: ${activeData.campaign_id || (activeData as any).id}`);
-          const match = activeData.campaign_id === payload?.campaign_id || (activeData as any).id === payload?.campaign_id;
+          console.log(`[Pulse] Active CID: ${activeData.campaign_id || (activeData as unknown as {id: string}).id}`);
+          const match = activeData.campaign_id === cid || (activeData as unknown as {id: string}).id === cid;
           console.log(`[Pulse] CID Match: ${match}`);
         }
 
         if (eventName === "CONTENT_PROGRESS") {
-          const contentPayload = payload as CampaignData & { message: string; data?: Record<string, any> };
-          const newData = (contentPayload.data || {}) as Record<string, any>;
-          const goldMeta = (newData.gold_metadata || {}) as Record<string, any>;
+          const contentPayload = payload as CampaignData & { message: string; data?: Record<string, unknown> };
+          const newData = (contentPayload.data || {}) as Record<string, unknown>;
+          const goldMeta = (newData.gold_metadata || {}) as Record<string, unknown>;
 
-          if (voice?.vuiResponse?.data && (voice.vuiResponse.data as any).campaign_id === contentPayload.campaign_id) {
+          if (voice?.vuiResponse?.data && (voice.vuiResponse.data as unknown as {campaign_id: string}).campaign_id === contentPayload.campaign_id) {
             vuiState.setActive(true);
             vuiState.setPhase("executing");
             vuiState.setSystemMessage(contentPayload.message);
@@ -144,10 +151,10 @@ export function createPulseManager(
             if (hasContent(goldMeta.analysis_metrics)) target.analysis_metrics = goldMeta.analysis_metrics as CampaignMetrics;
           };
 
-          if (voice.vuiResponse?.data && (voice.vuiResponse.data as any).campaign_id === contentPayload.campaign_id) {
+          if (voice.vuiResponse?.data && (voice.vuiResponse.data as unknown as {campaign_id: string}).campaign_id === contentPayload.campaign_id) {
             syncTarget(voice.vuiResponse.data as unknown as CampaignData);
           }
-          if (activeData && (activeData.campaign_id === contentPayload.campaign_id || (activeData as any).id === contentPayload.campaign_id)) {
+          if (activeData && (activeData.campaign_id === contentPayload.campaign_id || (activeData as unknown as {id: string}).id === contentPayload.campaign_id)) {
             syncTarget(activeData);
             // CNS V82.9: Force re-assignment to trigger reactivity for deep observers
             state.currentData = { ...activeData };
@@ -159,7 +166,7 @@ export function createPulseManager(
             String(l.data?.step ?? "") === String(contentPayload.step ?? "")
           );
           if (logIdx !== -1) {
-            const current = (existingLogs[logIdx].data || {}) as Record<string, any>;
+            const current = (existingLogs[logIdx].data || {}) as Record<string, unknown>;
             existingLogs[logIdx].data = {
               ...current,
               step: contentPayload.step,
@@ -179,28 +186,28 @@ export function createPulseManager(
             campaign_id: backtrackPayload.campaign_id, step: backtrackPayload.step
           });
           
-          if (voice.vuiResponse?.data && (voice.vuiResponse.data as any).campaign_id === backtrackPayload.campaign_id) {
+          if (voice.vuiResponse?.data && (voice.vuiResponse.data as unknown as {campaign_id: string}).campaign_id === backtrackPayload.campaign_id) {
             vuiState.setPhase("executing");
             const d = voice.vuiResponse.data as unknown as CampaignData;
             d.status = "PROCESSING"; d.step = backtrackPayload.step;
             d.progress_msg = "🔄 Hệ thống đang tự động sửa lại bản thảo...";
           }
-          if (activeData && (activeData.campaign_id === backtrackPayload.campaign_id || (activeData as any).id === backtrackPayload.campaign_id)) {
+          if (activeData && (activeData.campaign_id === backtrackPayload.campaign_id || (activeData as unknown as {id: string}).id === backtrackPayload.campaign_id)) {
              activeData.status = "PROCESSING"; activeData.step = backtrackPayload.step;
              activeData.progress_msg = "🔄 Hệ thống đang tự động sửa lại bản thảo...";
           }
           startSmartPolling();
         } else if (eventName === "CONTENT_STEP_COMPLETED") {
-          const completedPayload = payload as CampaignData & { message: string; data?: any };
+          const completedPayload = payload as CampaignData & { message: string; data?: unknown };
           const rawData = (completedPayload.data || completedPayload || {}) as CampaignData;
-          const goldMeta = (rawData.gold_metadata || {}) as Record<string, any>;
+          const goldMeta = (rawData.gold_metadata || {}) as Record<string, unknown>;
 
           if (completedPayload.campaign_id) {
             liveCampaigns.set(completedPayload.campaign_id, Date.now());
           }
 
           // Ensure voice response exists if this is the active campaign
-          if (!voice.vuiResponse && (activeData?.campaign_id === completedPayload.campaign_id || (activeData as any)?.id === completedPayload.campaign_id)) {
+          if (!voice.vuiResponse && (activeData?.campaign_id === completedPayload.campaign_id || (activeData as unknown as {id: string})?.id === completedPayload.campaign_id)) {
              voice.setVoiceResult("Neural Update", "Cập nhật từ hệ thống...", "CONTENT_CREATE", { campaign_id: completedPayload.campaign_id }, "text");
           }
 
@@ -208,7 +215,7 @@ export function createPulseManager(
             vuiState.setActive(true); vuiState.setPhase("idle");
             vuiState.setIsWaitingForAction(true);
           }
-          console.log(`[Pulse] STEP_COMPLETED Syncing assets: ${completedPayload.data?.assets?.length || 0}, Reserves: ${completedPayload.data?.gold_metadata?.reserve_assets?.length || 0}`);
+          console.log(`[Pulse] STEP_COMPLETED Syncing assets: ${rawData.assets?.length || 0}, Reserves: ${rawData.gold_metadata?.reserve_assets?.length || 0}`);
 
           const syncCompleted = (target: CampaignData) => {
             if (!target) return;
@@ -237,10 +244,10 @@ export function createPulseManager(
             console.log(`[Pulse] Successfully re-assigned currentData for Step ${updated.step}`);
           };
 
-          if (voice.vuiResponse?.data && (voice.vuiResponse.data as any).campaign_id === completedPayload.campaign_id) {
+          if (voice.vuiResponse?.data && (voice.vuiResponse.data as unknown as {campaign_id: string}).campaign_id === completedPayload.campaign_id) {
             syncCompleted(voice.vuiResponse.data as unknown as CampaignData);
           }
-          if (activeData && (activeData.campaign_id === completedPayload.campaign_id || (activeData as any).id === completedPayload.campaign_id)) {
+          if (activeData && (activeData.campaign_id === completedPayload.campaign_id || (activeData as unknown as {id: string}).id === completedPayload.campaign_id)) {
             syncCompleted(activeData);
           }
 
@@ -267,11 +274,11 @@ export function createPulseManager(
              target.status = "PROCESSING";
           };
 
-          if (voice.vuiResponse?.data && (voice.vuiResponse.data as any).campaign_id === chunkPayload.campaign_id) {
+          if (voice.vuiResponse?.data && (voice.vuiResponse.data as unknown as {campaign_id: string}).campaign_id === chunkPayload.campaign_id) {
              syncChunk(voice.vuiResponse.data as unknown as CampaignData);
              liveCampaigns.set(chunkPayload.campaign_id, Date.now());
           }
-          if (activeData && (activeData.campaign_id === chunkPayload.campaign_id || (activeData as any).id === chunkPayload.campaign_id)) {
+          if (activeData && (activeData.campaign_id === chunkPayload.campaign_id || (activeData as unknown as {id: string}).id === chunkPayload.campaign_id)) {
              syncChunk(activeData);
              liveCampaigns.set(chunkPayload.campaign_id, Date.now());
           }
@@ -310,10 +317,10 @@ export function createPulseManager(
           const filtered = logs.filter(l => l.data?.campaign_id !== cid);
           if (filtered.length !== logs.length) log.setActivityLogs(filtered);
           
-          if (voice.vuiResponse?.data && (voice.vuiResponse.data as any).campaign_id === cid) {
+          if (voice.vuiResponse?.data && (voice.vuiResponse.data as unknown as {campaign_id: string}).campaign_id === cid) {
             voice.clearVuiResponse(); vuiState.setActive(false); vuiState.setPhase("idle");
           }
-          if (activeData && (activeData.campaign_id === cid || (activeData as any).id === cid)) {
+          if (activeData && (activeData.campaign_id === cid || (activeData as unknown as {id: string}).id === cid)) {
              state.currentData = null;
           }
           ui.showToast("Chiến dịch đã được quét sạch khỏi hệ thống.", "success");

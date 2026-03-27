@@ -124,12 +124,16 @@ services:
     environment:
       - VITE_API_URL=${API_DOMAIN}
       - VITE_API_PROXY_TARGET=http://api:8000
+      - INTERNAL_API_URL=http://api:8000
+      - APP_DOMAIN=${APP_DOMAIN}
     mem_limit: ${UI_MEM_LIMIT:-2G}
     deploy:
       resources:
         limits:
           memory: ${UI_MEM_LIMIT:-2G}
     command: pnpm dev --host 0.0.0.0
+    links:
+      - api
     depends_on:
       - api
 

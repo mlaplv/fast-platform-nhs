@@ -1,4 +1,25 @@
-# Task: Giai đoạn 7 - Advanced Asset Optimization & Smart Download
+# Task: Giai đoạn 27 - Silent Assassin Funnel (Elite V2.2) (COMPLETED)
+
+## 🎯 Mục tiêu
+Triển khai Landing Page "Silent Assassin Funnel" tối ưu CRO cho sản phẩm "Đặc trị hôi nách" với hiệu năng FCP < 500ms và Zero-Mock Data.
+
+## 📝 Check-list
+- [x] War Room: Cập nhật `task.md` và `walkthrough.md`. <!-- id: 170 -->
+- [x] Frontend: `frontend/src/routes/(client)/[slug]/+page.server.ts` - Dynamic Slug Fetch & IP/Geo detection. <!-- id: 171 -->
+- [x] Frontend: `frontend/src/routes/(client)/[slug]/+page.svelte` - UI 4 Block (Clinical Premium, CSS-only animations). <!-- id: 172 -->
+- [x] Frontend: `frontend/src/lib/state/shop.svelte.ts` - Nanobot Store (Cart & Order Bump logic). <!-- id: 173 -->
+- [x] Frontend Components: `ClinicalQuiz.svelte`, `StealthCheckout.svelte` (Order Bump UI, Portal Action). <!-- id: 174 -->
+- [x] Backend Schemas: `backend/schemas/client/checkout.py` - Pydantic V2 schema (`has_order_bump`). <!-- id: 175 -->
+- [x] Backend Controllers: `backend/controllers/client/checkout.py` & `product.py` (Public Slug API). <!-- id: 176 -->
+- [x] Backend Services: `backend/services/product_service.py` (get_product_by_slug) & `client_service.py`. <!-- id: 177 -->
+
+## 🛠️ Trạng thái: Completed (Fixed 404 & Dynamic Slug)
+- Toàn bộ funnel đã được triển khai và hỗ trợ slug động từ DB.
+- Fix 404 bằng cách bổ sung `PublicProductController` và cập nhật frontend fetch.
+- Sẵn sàng cho chiến dịch Clinical Premium.
+
+## 🎯 Giai đoạn trước đó (Tham khảo)
+
 
 ## 🎯 Mục tiêu
 Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt thông minh.

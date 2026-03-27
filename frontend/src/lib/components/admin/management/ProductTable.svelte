@@ -4,6 +4,7 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import CheckSquare from "lucide-svelte/icons/check-square";
   import Square from "lucide-svelte/icons/square";
+  import ExternalLink from "lucide-svelte/icons/external-link";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { formatCurrency } from "$lib/utils/format";
   import type { Product } from "$lib/types";
@@ -80,7 +81,7 @@
         <div class="absolute top-2 left-2 md:relative md:top-auto md:left-auto md:flex md:justify-center"
              style="z-index: var(--z-surface);">
           <button
-            onclick={() => onToggleSelect(product.id)}
+            onclick={(e: MouseEvent) => { e.stopPropagation(); onToggleSelect(product.id); }}
             class="text-gray-600 hover:text-[#FFB800] transition-colors"
           >
             {#if selectedIds.has(product.id)}<CheckSquare size={16} />{:else}<Square size={16} />{/if}
@@ -158,16 +159,25 @@
 
         <!-- Operations / Actions -->
         <div class="absolute bottom-3 right-3 md:relative md:bottom-auto md:right-auto md:flex shadow-[-20px_0_20px_-5px_transparent]">
-          <div class="flex items-center gap-1.5 justify-end md:opacity-0 group-hover:opacity-100 transition-opacity duration-300 md:translate-x-2 md:group-hover:translate-x-0 w-full bg-[#0a0a0a] md:bg-transparent pl-2">
+          <div class="flex items-center gap-1.5 justify-end md:translate-x-2 md:group-hover:translate-x-0 w-full bg-[#0a0a0a] md:bg-transparent pl-2">
+            <a
+              href="https://smartshop.test/{product.slug}"
+              target="_blank"
+              class="p-2 text-[#FFB800] hover:text-white transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-[#FFB800]/20 hover:border-[#FFB800]/40 shadow-sm"
+              title="View Landing Page"
+              onclick={(e: MouseEvent) => e.stopPropagation()}
+            >
+              <ExternalLink size={14} />
+            </a>
             <button
-              onclick={(e) => { e.stopPropagation(); onEdit(product); }}
+              onclick={(e: MouseEvent) => { e.stopPropagation(); onEdit(product); }}
               class="p-2 text-gray-400 md:text-gray-500 hover:text-[#00FFFF] transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-transparent hover:border-[#00FFFF]/20 shadow-sm"
               title="Edit Product"
             >
               <Pencil size={14} />
             </button>
             <button
-              onclick={(e) => { e.stopPropagation(); onDelete(product.id); }}
+              onclick={(e: MouseEvent) => { e.stopPropagation(); onDelete(product.id); }}
               class="p-2 text-red-500 md:text-gray-500 hover:text-red-400 transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-transparent hover:border-red-500/20 shadow-sm"
               title="Delete Product"
             >

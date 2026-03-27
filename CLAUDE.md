@@ -33,12 +33,14 @@
 
 ## 🏗️ I. ĐỊA BÀN & HIỆU NĂNG (ULTRA-LEAN ARCHITECTURE)
 
-- **Backend Architecture (Onion/Hexagonal chuẩn Elite V2.2):**
-  - 🌐 `backend/api/` (API V1, Controllers, Schemas dùng chung). Tuyệt đối KHÔNG đặt schemas ngoài root.
-  - ⚙️ `backend/core/` (Security, Constants, Utils). Tuyệt đối KHÔNG đặt thư mục utils ngoài root.
-  - 💾 `backend/database/` (SQLAlchemy Models, Repositories, Migrations).
-  - 🧠 `backend/services/` (C.O.R.E Engine - Nơi chứa logic nghiệp vụ, Routing, AI).
-- **Frontend State:** `/frontend/src/lib/state/` (Nanobot Store).
+- **Architecture Domain (Elite V2.2 Standard):**
+  - 🧠 `backend/services/core/`: Các dịch vụ hệ thống (AI, Auth, Memory, EventBus).
+  - 🛒 `backend/services/commerce/`: Nghiệp vụ bán hàng (Product, Checkout, Order, Category).
+  - 🌐 `frontend/src/lib/state/commerce/`: Trạng thái Thương mại (Shop, Cart).
+- **Naming Context:**
+    - `commerce`: Dùng cho tầng **Domain/Logic** nghiệp vụ.
+    - `client`: Dùng cho tầng **Access/Route** công khai (Storefront).
+- **Zero-Barrier Protocol:** Các trang thuộc route `(client)` (Storefront) **BẮT BUỘC** phải duy trì khả năng truy cập công khai không cần Login để tối ưu chuyển đổi (CRO), trừ khi có chỉ thị đặc biệt.
 - **Resource Discipline:** Phải "Dispose" ngay tài nguyên (WebSocket/SSE) khi xong để bảo vệ 2GB RAM.
 - **Ultra-Fast UX:** Phản hồi <200ms. Luôn có Loading cho tác vụ dài. Cấm Request trùng lặp (Double-call).
 

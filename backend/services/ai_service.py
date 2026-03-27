@@ -2,7 +2,7 @@ import logging
 import time
 import uuid
 import httpx
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Union
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import HTTPException

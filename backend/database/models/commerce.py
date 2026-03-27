@@ -44,6 +44,7 @@ class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     description: Mapped[Optional[str]] = mapped_column(Text)
     sku: Mapped[Optional[str]] = mapped_column(String)
     price: Mapped[float] = mapped_column(Float, default=0)
+    discount_price: Mapped[Optional[float]] = mapped_column(Float)
     stock: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String, default="DRAFT")
     type: Mapped[str] = mapped_column(String, default="RETAIL")
@@ -76,8 +77,9 @@ class ProductVariant(Base, AuditMixin, SoftDeleteMixin):
     product_base_id: Mapped[str] = mapped_column(String, ForeignKey('product_bases.id'))
     product_base: Mapped["ProductBase"] = relationship("ProductBase", back_populates="variants")
     tier_index: Mapped[Optional[list]] = mapped_column(JSON, default=list) # R102 Matrix Index: e.g [0, 1] means Đỏ, Size M
-    sku: Mapped[str] = mapped_column(String, unique=True)
+    sku: Mapped[Optional[str]] = mapped_column(String, unique=True)
     price: Mapped[float] = mapped_column(Float)
+    discount_price: Mapped[Optional[float]] = mapped_column(Float)
     stock: Mapped[int] = mapped_column(Integer, default=0)
 
 class RentalContract(Base, AuditMixin, SoftDeleteMixin):

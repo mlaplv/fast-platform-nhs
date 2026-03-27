@@ -1,7 +1,7 @@
 import json
 import logging
 import time
-from typing import Optional, Dict, Any, TypedDict
+from typing import Optional, Dict, TypedDict, Union, List
 
 from backend.services.xohi_memory import xohi_memory
 
@@ -9,6 +9,9 @@ logger = logging.getLogger("api-gateway")
 
 # Synapse TTL: 90 seconds (short-term memory for confirmations)
 SYNAPSE_TTL = 90
+
+# Phase 85: Strict Intent Response Typography
+JSONType = Union[str, int, float, bool, None, List["JSONType"], Dict[str, "JSONType"]]
 
 class IntentSynapseService:
     """
@@ -18,11 +21,11 @@ class IntentSynapseService:
 
     class IntentPayload(TypedDict):
         query: str
-        classification: Dict[str, Any]  # IntentResponse data dictionary
+        classification: Dict[str, JSONType]  # IntentResponse data dictionary
         timestamp: float
 
     @staticmethod
-    async def store_pending_intent(user_id: str, classification_data: Dict[str, Any], query: str) -> None:
+    async def store_pending_intent(user_id: str, classification_data: Dict[str, JSONType], query: str) -> None:
 
         """
         Stores a 'floating' intent that awaits confirmation.

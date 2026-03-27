@@ -30,7 +30,7 @@
     onClean = null,
     fullScreen = false,
     onToggleFullScreen = null,
-    showSource = $bindable(false),
+    showSource = $bindable(),
   }: {
     editor: Editor | null;
     toolbarActions?: ToolbarAction[];

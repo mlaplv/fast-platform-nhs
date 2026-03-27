@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from .tier2_cloud import Tier2CloudRouter
 from .tier3_cloud import Tier3CloudRouter

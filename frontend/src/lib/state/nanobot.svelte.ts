@@ -216,7 +216,7 @@ export function createNanobotState() {
     },
 
     hardKill: async (campaignId?: string) => {
-      const cid = campaignId || (voice.vuiResponse?.data as CampaignData)?.id || (voice.vuiResponse?.data as any)?.campaign_id;
+      const cid = campaignId || (voice.vuiResponse?.data as unknown as {id?: string; campaign_id?: string})?.id || (voice.vuiResponse?.data as unknown as {id?: string; campaign_id?: string})?.campaign_id;
       
       // 1. Play tactical purge SFX immediately for instant feedback
       playTacticalPurge();
@@ -246,7 +246,7 @@ export function createNanobotState() {
 
     // 5. Total Disposal (CNS V82.11 Root Cause Fix)
     fullPurge: (campaignId?: string) => {
-      const activeCid = (state.currentData as any)?.campaign_id || (state.currentData as any)?.id;
+      const activeCid = (state.currentData as unknown as {campaign_id?: string; id?: string})?.campaign_id || (state.currentData as unknown as {campaign_id?: string; id?: string})?.id;
       
       // If a specific ID is provided and it doesn't match active, we just clear logs (handled by Pulse)
       // If no ID or it matches, we Wipe Everything.

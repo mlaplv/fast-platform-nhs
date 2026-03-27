@@ -1,212 +1,61 @@
 @import "tailwindcss";
 
-@theme {
-  --color-vantablack: #010101;
-  --color-neon-cyan: #00ffff;
-  --color-hacker-green: #39ff14;
-  --color-alert-red: #ff3333;
-  --color-neon-magenta: #ff33ff;
-  --color-neon-yellow: #ffff00;
-  --color-idle-gray: #333333;
+/* 
+  ELITE V2.2: GLOBAL SANITIZATION 
+  Only truly shared variables and base resets belong here.
+  NO Tailwind Engine loaded here to protect LCP/Latency.
+*/
 
-  /* Raw RGB for dynamic opacity (R00 Elite) */
-  --color-neon-cyan-raw: 0, 255, 255;
-  --color-alert-red-raw: 255, 51, 51;
+@layer base {
+  :root {
+    --bg-canvas: #020617;
+    --text-base: #ffffff;
+    --color-primary: #3b82f6;
 
-  /* Custom Glow utility */
-  --shadow-glow-cyan: 0 0 15px var(--color-neon-cyan);
-  --shadow-glow-green: 0 0 15px var(--color-hacker-green);
-  --shadow-glow-red: 0 0 15px var(--color-alert-red);
-  --shadow-glow-magenta: 0 0 15px var(--color-neon-magenta);
-  --shadow-glow-yellow: 0 0 15px var(--color-neon-yellow);
-}
-
-body {
-  background-color: var(--color-vantablack);
-  color: var(--color-gray-100);
-  font-display: swap;
-  /* Optimize rendering */
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Global optimization for transitions */
-* {
-  @apply transition-colors duration-200;
-}
-
-/* Premium Dark Scrollbar - Global & Scoped (Elite V2.2) */
-::-webkit-scrollbar,
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+    /* Z-INDEX NEXUS: GLOBAL TOKENS (ELITE V2.2) */
+    --z-base: 0;
+    --z-surface: 10;
+    --z-layout-header: 30;
+    --z-sticky-header: 100;
+    --z-sidebar: 100;
+    --z-overlay: 500;
+    --z-modal: 1000;
+    --z-modal-confirm: 1500;
+    --z-hud-dropdown: 1050;
+    --z-hud-floating: 1060;
+    --z-hud-service: 1100;
+    --z-popover: 1100;
+    --z-omni-command: 1100;
+    --z-toast: 2000;
+    --z-vui-caption: 50;
+    --z-vui-caption-expanded: 5;
+    --z-media-overlay: 99999;
+    --z-system: 100000;
+    --z-vui-exit: 110000;
+    --z-supreme-power: 999999;
+  }
 }
 
-::-webkit-scrollbar-track,
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+.root-loading-container {
+  position: fixed;
+  inset: 0;
+  background-color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
 }
 
-::-webkit-scrollbar-thumb,
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.02);
+.loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 4px solid #1e293b;
+  border-top-color: #2563eb;
+  border-radius: 9999px;
+  animation: spin 1s linear infinite;
 }
 
-::-webkit-scrollbar-thumb:hover,
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* Firefox support - Global & Scoped */
-html,
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.05) transparent;
-}
-
-/* Global Mission Control Animations */
-.scrollbar-mission::-webkit-scrollbar { width: 4px; }
-.scrollbar-mission::-webkit-scrollbar-track { background: transparent; }
-.scrollbar-mission::-webkit-scrollbar-thumb { background: rgba(0, 243, 255, 0.15); }
-
-.universal-scanline {
-  width: 100%; height: 150px; z-index: var(--z-surface);
-  background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(0, 243, 255, 0.08) 50%, rgba(0, 0, 0, 0) 100%);
-  position: absolute; bottom: 100%; animation: scanline 12s linear infinite;
-}
-
-@keyframes scanline { 0% { bottom: 100%; } 100% { bottom: -150px; } }
-@keyframes border-flow-x { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-@keyframes border-flow-y { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
-
-@keyframes spark-top { 0% { left: -10%; opacity: 0; } 10%, 90% { opacity: 1; } 100% { left: 110%; opacity: 0; } }
-@keyframes spark-bottom { 0% { right: -10%; opacity: 0; } 10%, 92% { opacity: 1; } 100% { right: 110%; opacity: 0; } }
-@keyframes spark-right { 0% { top: -10%; opacity: 0; } 10%, 90% { opacity: 1; } 100% { top: 110%; opacity: 0; } }
-@keyframes spark-left { 0% { bottom: -10%; opacity: 0; } 10%, 90% { opacity: 1; } 100% { bottom: 110%; opacity: 0; } }
-
-@keyframes hud-flicker { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } 52% { opacity: 0.8; } 54% { opacity: 0.4; } }
-.animate-hud-flicker { animation: hud-flicker 4s linear infinite; }
-.bracket-tr { animation-delay: 0.5s; }
-.bracket-bl { animation-delay: 1.2s; }
-.bracket-br { animation-delay: 0.8s; }
-
-/* Content Studio 2026: Plagiarism & SEO Highlights */
-.xohi-annotation {
-  background: transparent;
-  color: inherit;
-  position: relative;
-  cursor: pointer;
-  border-radius: 0;
-  transition: background 0.2s ease, text-shadow 0.2s ease;
-  pointer-events: auto !important;
-}
-.xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="low" i] {
-  color: #fef08a !important;
-  background: rgba(234, 179, 8, 0.18);
-  text-decoration: underline wavy rgba(234, 179, 8, 1);
-  text-decoration-thickness: 2px;
-  text-shadow: 0 0 12px rgba(234, 179, 8, 0.4);
-}
-.xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="medium" i] {
-  color: #fed7aa !important;
-  background: rgba(249, 115, 22, 0.20);
-  text-decoration: underline wavy rgba(249, 115, 22, 1);
-  text-decoration-thickness: 2px;
-  text-shadow: 0 0 14px rgba(249, 115, 22, 0.45);
-}
-.xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="high" i] {
-  color: #fca5a5 !important;
-  background: rgba(239, 68, 68, 0.22);
-  text-decoration: underline wavy rgba(239, 68, 68, 1);
-  text-decoration-thickness: 2.5px;
-  text-shadow: 0 0 18px rgba(239, 68, 68, 0.55);
-}
-.xohi-annotation[data-annotation-type="seo-error" i],
-.xohi-annotation[data-annotation-type="missing_h1" i],
-.xohi-annotation[data-annotation-type="keyword_stuffing" i] {
-  color: #fca5a5 !important;
-  background: rgba(239, 68, 68, 0.18);
-  text-decoration: underline wavy rgba(239, 68, 68, 1);
-  text-decoration-thickness: 2px;
-  text-shadow: 0 0 14px rgba(239, 68, 68, 0.45);
-}
-.xohi-annotation[data-annotation-type="seo-warning" i],
-.xohi-annotation[data-annotation-type="missing_h2" i],
-.xohi-annotation[data-annotation-type="weak_intro" i],
-.xohi-annotation[data-annotation-type="thin_section" i],
-.xohi-annotation[data-annotation-type="missing_cta" i],
-.xohi-annotation[data-annotation-type="keyword_missing" i] {
-  color: #fed7aa !important;
-  background: rgba(249, 115, 22, 0.16);
-  text-decoration: underline wavy rgba(249, 115, 22, 1);
-  text-decoration-thickness: 2px;
-  text-shadow: 0 0 12px rgba(249, 115, 22, 0.4);
-}
-.xohi-annotation[data-annotation-type="seo-info" i],
-.xohi-annotation[data-annotation-type="ai_stiff" i] {
-  color: #bae6fd !important;
-  background: rgba(96, 165, 250, 0.12);
-  text-decoration: underline dotted rgba(96, 165, 250, 1);
-  text-decoration-thickness: 1.5px;
-  text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
-}
-.xohi-annotation[data-annotation-type="internal-dedup" i] {
-  color: #e879f9 !important;
-  background: rgba(217, 70, 239, 0.12);
-  text-decoration: underline dashed rgba(217, 70, 239, 1);
-  text-decoration-thickness: 1.5px;
-  text-shadow: 0 0 12px rgba(217, 70, 239, 0.4);
-}
-.xohi-annotation[data-annotation-type="internal-dedup" i]:hover {
-  background: rgba(217, 70, 239, 0.25);
-  text-shadow: 0 0 18px rgba(217, 70, 239, 0.6);
-}
-.xohi-annotation[data-annotation-type="geo-info" i],
-.xohi-annotation[data-annotation-type="geo_stats" i],
-.xohi-annotation[data-annotation-type="geo_quotes" i],
-.xohi-annotation[data-annotation-type="geo_fluff" i],
-.xohi-annotation[data-annotation-type="geo_snippet" i] {
-  color: #f0abfc !important;
-  background: rgba(192, 38, 211, 0.15);
-  text-decoration: underline dashed rgba(192, 38, 211, 0.8);
-  text-decoration-thickness: 1.5px;
-  text-shadow: 0 0 12px rgba(192, 38, 211, 0.4);
-}
-.xohi-annotation[data-annotation-type="fixed" i] {
-  color: #6ee7b7 !important;
-  background: rgba(16, 185, 129, 0.15);
-  text-decoration: underline rgba(16, 185, 129, 1);
-  text-decoration-thickness: 2px;
-  text-shadow: 0 0 12px rgba(16, 185, 129, 0.45);
-}
-.xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="high" i]:hover {
-  background: rgba(239, 68, 68, 0.35);
-  text-shadow: 0 0 22px rgba(239, 68, 68, 0.75);
-}
-.xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="medium" i]:hover {
-  background: rgba(249, 115, 22, 0.32);
-  text-shadow: 0 0 18px rgba(249, 115, 22, 0.65);
-}
-.xohi-annotation[data-annotation-type="copyright" i][data-annotation-severity="low" i]:hover {
-  background: rgba(234, 179, 8, 0.28);
-  text-shadow: 0 0 14px rgba(234, 179, 8, 0.55);
-}
-.xohi-annotation[data-annotation-type="seo-error" i]:hover {
-  background: rgba(239, 68, 68, 0.30);
-  text-shadow: 0 0 20px rgba(239, 68, 68, 0.65);
-}
-.xohi-annotation[data-annotation-type="seo-warning" i]:hover {
-  background: rgba(249, 115, 22, 0.28);
-  text-shadow: 0 0 16px rgba(249, 115, 22, 0.6);
-}
-.xohi-annotation[data-annotation-type="seo-info" i]:hover {
-  background: rgba(96, 165, 250, 0.22);
-  text-shadow: 0 0 14px rgba(96, 165, 250, 0.45);
-}
-.xohi-annotation[data-annotation-type="geo-info" i]:hover {
-  background: rgba(192, 38, 211, 0.25);
-  text-shadow: 0 0 16px rgba(192, 38, 211, 0.55);
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

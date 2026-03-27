@@ -2,7 +2,7 @@ import logging
 import asyncio
 import numpy as np
 import re
-from typing import Dict, Optional, Tuple, List, Any
+from typing import Dict, Optional, Tuple, List, Union
 from rapidfuzz import fuzz
 from backend.utils.text import normalize_vn
 from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder

@@ -113,6 +113,7 @@ export interface Product {
     name: string;
     sku: string;
     price: number;
+    discountPrice?: number;
     stock: number;
     status: string;
     category: string;
@@ -123,20 +124,18 @@ export interface Product {
     seoTitle: string | null;
     seoDescription: string | null;
     images: string[];
-    attributes: Record<string, any>;
-    tierVariations?: {
-      name: string;
-      options: string[];
-      images: (string | null)[];
-    }[];
-    variants?: {
-      id?: string;
-      tierIndex: number[];
-      sku: string;
-      price: number;
-      stock: number;
-    }[];
+    attributes: Record<string, unknown>;
+    variants?: ProductVariant[];
     createdAt: string;
+}
+
+export interface ProductVariant {
+  id: string;
+  tierIndex: number[];
+  sku: string;
+  price: number;
+  discountPrice?: number;
+  stock: number;
 }
 
 export interface MediaMetadata {
@@ -213,7 +212,7 @@ export interface ToolbarAction {
   lockedMsg?: string;       // Tooltip hiển thị khi bị khoá
   onclick: () => void | Promise<void>;
   tooltipDetails?: {        // Tooltip chuyên nghiệp
-    icon?: any;             // lucide-svelte icon component
+    icon?: import('svelte').Component;             // lucide-svelte icon component
     title: string;
     description: string;
     colorClass?: string;    // e.g. text-pink-400
@@ -224,3 +223,52 @@ export interface BaseWidgetProps {
   data?: Record<string, unknown>;
 }
 
+export interface RecurringMetadata {
+  monthly_type?: 'day_of_month' | 'day_of_week';
+  day_of_month?: number;
+  day_of_week?: number;
+  week_index?: number;
+}
+
+export interface Appointment {
+  id: string;
+  title: string;
+  description?: string;
+  start_time: string;
+  end_time: string;
+  type: 'STRATEGY' | 'DEPLOYMENT' | 'REVIEW';
+  status: 'UPCOMING' | 'ONGOING' | 'COMPLETED';
+  recurring_type: 'none' | 'daily' | 'weekly' | 'monthly';
+  recurring_metadata: RecurringMetadata;
+  metadata_json: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AppointmentListResponse {
+  items: Appointment[];
+  total: number;
+}
+export interface Banner {
+  id: string;
+  title: string;
+  description: string | null;
+  image_url: string;
+  link_url: string | null;
+  position: string;
+  order_index: number;
+  is_active: boolean;
+  device_type: string;
+  created_at: string;
+}
+
+export interface BannerForm {
+  id?: string;
+  title: string;
+  description: string;
+  image_url: string;
+  link_url: string;
+  position: string;
+  order_index: number;
+  is_active: boolean;
+  device_type: string;
+}

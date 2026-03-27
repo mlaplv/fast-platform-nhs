@@ -455,6 +455,7 @@ while true; do
     echo "6) DỌN DẸP BẢN SAO LƯU (Xóa sạch)"
     echo "7) RESTART API (Kèm theo dõi Log lỗi)"
     echo "8) CẬP NHẬT MODEL AI (~250MB)"
+    echo "9) CẤP SSL (HTTPS) - FULL 3 DOMAINS"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -491,6 +492,11 @@ while true; do
             ;;
         8)
             update_ai_model
+            ;;
+        9)
+            echo -e "${CYAN}[SSL] Đang khởi động quy trình cấp and tin cậy SSL (HTTPS)...${NC}"
+            chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
+            read -p "Nhấn Enter để quay lại menu..."
             ;;
         0)
             exit 0

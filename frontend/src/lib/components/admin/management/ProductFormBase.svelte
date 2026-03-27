@@ -6,6 +6,7 @@
     formName = $bindable(),
     formSku = $bindable(),
     formPrice = $bindable(),
+    formDiscountPrice = $bindable(),
     formStock = $bindable(),
     formCategory = $bindable(),
     formStatus = $bindable(),
@@ -18,6 +19,7 @@
     formName: string;
     formSku: string;
     formPrice: number;
+    formDiscountPrice?: number;
     formStock: number;
     formCategory: string;
     formStatus: "active" | "draft" | "archived";
@@ -87,7 +89,7 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
     <!-- Giá bán -->
     <div class="field-group">
       <label class="field-label">Giá bán</label>
@@ -96,10 +98,25 @@
           type="number"
           bind:value={formPrice}
           placeholder="0"
-          class="field-input border-b-amber-500/30 text-sm font-mono tracking-wider w-full pr-8"
+          class="field-input border-b-amber-500/30 text-sm font-mono tracking-wider w-full pr-12"
         />
         <div class="field-line bg-amber-500/60"></div>
         <span class="absolute right-2 text-[9px] font-black uppercase text-amber-500/50">VND</span>
+      </div>
+    </div>
+
+    <!-- Giá khuyến mãi -->
+    <div class="field-group">
+      <label class="field-label text-rose-500/60">Giá khuyến mãi</label>
+      <div class="relative flex items-center">
+        <input
+          type="number"
+          bind:value={formDiscountPrice}
+          placeholder="0"
+          class="field-input border-b-rose-500/30 text-sm font-mono tracking-wider w-full pr-12 text-rose-400"
+        />
+        <div class="field-line bg-rose-500/60"></div>
+        <span class="absolute right-2 text-[9px] font-black uppercase text-rose-500/50">VND</span>
       </div>
     </div>
 
@@ -111,7 +128,7 @@
           type="number"
           bind:value={formStock}
           placeholder="0"
-          class="field-input border-b-amber-500/30 text-sm font-mono tracking-wider w-full pr-8"
+          class="field-input border-b-amber-500/30 text-sm font-mono tracking-wider w-full pr-12"
         />
         <div class="field-line bg-amber-500/60"></div>
         <span class="absolute right-2 text-[9px] font-black uppercase text-amber-500/50">Unit</span>
@@ -143,4 +160,15 @@
   .field-select { @apply w-full bg-transparent border-b border-white/8 px-1 py-[7px] text-white text-sm outline-none cursor-pointer; }
   .field-line { @apply absolute bottom-0 left-0 w-0 h-[1px] bg-amber-500/60 transition-all duration-300; }
   :global(.field-group:focus-within .field-line) { @apply w-full; }
+
+  /* ⚡ ELITE UI: Hide Browser Default Spin Buttons */
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
 </style>

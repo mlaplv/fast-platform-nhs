@@ -21,9 +21,9 @@
     onChange = () => {},
     editable = true,
     placeholder = "Start writing...",
-    assets = $bindable([] as (MediaAsset | string)[]),
-    selectedAvatarUrl = $bindable(null as string | null),
-    selectedAssetIndex = $bindable(0),
+    assets = $bindable(),
+    selectedAvatarUrl = $bindable(),
+    selectedAssetIndex = $bindable(),
     fullScreen = false,
     onToggleFullScreen = null,
     toolbarActions = [] as ToolbarAction[],
@@ -297,6 +297,10 @@
 
   onMount(() => {
     if (content === undefined) content = "";
+    if (assets === undefined) assets = [];
+    if (selectedAvatarUrl === undefined) selectedAvatarUrl = null;
+    if (selectedAssetIndex === undefined) selectedAssetIndex = 0;
+    
     editor = new Editor({
       element,
       content,

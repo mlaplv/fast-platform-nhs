@@ -27,6 +27,7 @@ def utcnow(): return datetime.now(timezone.utc)
 async def clear_data(session):
     print(f"🧹 Clearing old data for tenant: {TENANT_ID}...")
     user_ids = (await session.execute(select(User.id).where((User.tenant_id == TENANT_ID) | (User.id == "user_admin")))).scalars().all()
+    await session.execute(delete(ProductVariant))
     for model in [Order, Article, Notification, Draft, ChatMessage, AgentTelemetryLog, CampaignEvent, ContentCampaign, ProductBase, Category, Appointment]:
         await session.execute(delete(model).where(model.tenant_id == TENANT_ID))
     if user_ids:
@@ -74,6 +75,7 @@ async def seed_products(session):
             slug=d["slug"],
             sku=d["sku"],
             price=d["price"],
+            discount_price=d.get("discount_price"),
             stock=sum(v["stock"] for v in d.get("variants", [])),
             status="ACTIVE",
             category_id=d["category_id"],
@@ -93,6 +95,7 @@ async def seed_products(session):
                     tier_index=v_data["tier_index"],
                     sku=v_data["sku"],
                     price=v_data["price"],
+                    discount_price=v_data.get("discount_price"),
                     stock=v_data["stock"]
                 )
                 session.add(variant)

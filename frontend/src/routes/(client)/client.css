@@ -1,0 +1,50 @@
+
+/* --- CLIENT DOMAIN --- */
+.client-layout {
+  background-color: var(--bg-canvas);
+  color: var(--text-base);
+  font-family: 'Outfit', sans-serif;
+}
+
+/* --- HERO COMPONENT --- */
+.hero-center-layout {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+  background-color: var(--bg-canvas);
+}
+
+.elite-glass {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.liquid-oval-bg {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1000px;
+}
+
+/* --- ANIMATIONS --- */
+@keyframes v-zoom { 0%, 100% { transform: scale(1.1); } 50% { transform: scale(1.25); } }
+.animate-v-zoom { animation: v-zoom 40s linear infinite; }
+
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-30px); } }
+.animate-float { animation: float 8s ease-in-out infinite; }
+
+/* --- CLIENT PREMIUM SCROLLBAR --- */
+.client-layout ::-webkit-scrollbar { width: 6px; height: 6px; }
+.client-layout ::-webkit-scrollbar-track { background: transparent; }
+.client-layout ::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.2); /* Blue */
+  border-radius: 20px;
+}
+.client-layout ::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.4); }

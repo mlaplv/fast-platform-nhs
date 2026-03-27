@@ -2,7 +2,7 @@ from __future__ import annotations
 import re
 import logging
 import asyncio
-from typing import Optional, Union, cast, Any
+from typing import Optional, Union, cast
 from urllib.parse import urlparse, quote, urlunparse
 from backend.utils.http_client import get_http_client
 from backend.constants.agentic import SEARCH_LOCALE_PARAMS

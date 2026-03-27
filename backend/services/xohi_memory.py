@@ -6,7 +6,7 @@ Modularized for Martial Law (<300 LOC).
 import os
 import json
 import logging
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Union
 
 try:
     import redis.asyncio as redis
@@ -30,7 +30,7 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
 
     def __init__(self):
         redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
-        self._fallback_cache: Dict[str, Any] = {}
+        self._fallback_cache: Dict[str, object] = {}
         try:
             self.client = redis.from_url(redis_url, decode_responses=True)
             self._use_redis = True
@@ -129,10 +129,6 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
 
     async def clear_article_cache(self):
         await self.delete_pattern("articles:count:*")
-
-# Singleton
-xohi_memory = XoHiMemory()
-
 
 # Singleton
 xohi_memory = XoHiMemory()

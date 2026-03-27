@@ -22,6 +22,7 @@ PRODUCT_DEFS = [
         "slug": "thuoc-dac-tri-hoi-nach-hong-son",
         "sku": "HS-HN-BASE",
         "price": 299000, # Base price
+        "discount_price": 249000,
         "category_id": "cat_thuoc_dong_y",
         "description": "Thảo dược chữa trị hôi nách nặng mùi lâu năm, bị từ nhỏ (bẩm sinh), phụ nữ mang thai, sau sinh, tuổi dậy thì. Giúp giảm thâm & mồ hôi nách nhiều, se nhỏ lỗ chân lông, hiệu quả rõ rệt sau 1 liệu trình. Sản phẩm dạng xịt, thẩm thấu nhanh, không gây ố vàng áo và không kích ứng da.",
         "images": [
@@ -45,6 +46,7 @@ PRODUCT_DEFS = [
                 "tier_index": [0],
                 "sku": "HS-HN-20ML-REG",
                 "price": 299000,
+                "discount_price": 249000,
                 "stock": 100
             },
             {
@@ -52,6 +54,7 @@ PRODUCT_DEFS = [
                 "tier_index": [1],
                 "sku": "HS-HN-20ML-CONC",
                 "price": 320000,
+                "discount_price": 280000,
                 "stock": 50
             }
         ]

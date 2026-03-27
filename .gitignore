@@ -15,6 +15,7 @@ certs/caddy/pki/
 backend/cache/
 node_modules/
 static/
+frontend/static/video   
 .pnpm-store/
 .venv/
 venv/

@@ -1,19 +1,21 @@
 import type { Handle } from "@sveltejs/kit";
+import type { JwtPayload } from "$lib/types";
 import { redirect } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
 
-function parseJwt(token: string) {
+function parseJwt(token: string): JwtPayload | null {
   try {
     const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     const jsonPayload = decodeURIComponent(
       atob(base64)
         .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .map((c: string) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
         .join(""),
     );
-    return JSON.parse(jsonPayload);
-  } catch (e) {
+    return JSON.parse(jsonPayload) as JwtPayload;
+  } catch (err: unknown) {
+    console.error("JWT Parse Error:", err);
     return null;
   }
 }
@@ -32,6 +34,8 @@ export const handle: Handle = async ({ event, resolve }) => {
     event.locals.tenant = "admin";
   } else {
     event.locals.tenant = "storefront";
+    // Force allow all storefront paths (R00: Zero-Barrier)
+    return await resolve(event);
   }
 
   // Auth logic: Validate JWT
@@ -59,7 +63,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   // R31 & R33: Route Isolation & Protection
   const adminOnlyPaths = ["/chat", "/settings", "/analytics"];
-  const isTargetingAdminRoute = adminOnlyPaths.some((p) =>
+  const isTargetingAdminRoute = adminOnlyPaths.some((p: string) =>
     event.url.pathname.startsWith(p),
   );
 
@@ -69,10 +73,10 @@ export const handle: Handle = async ({ event, resolve }) => {
     throw redirect(303, `https://${adminDomain}` + event.url.pathname);
   }
 
-  // Protection logic: Admin tenant requires authenticated ADMIN or SUPER_ADMIN (EXCEPT /login)
+  // Protection logic: Admin tenant ONLY (Storefront is ALWAYS PUBLIC)
   if (event.locals.tenant === "admin" && event.url.pathname !== "/login") {
     const isAdmin =
-      event.locals.user?.roles?.some((r) =>
+      event.locals.user?.roles?.some((r: string) =>
         ["ADMIN", "SUPER_ADMIN"].includes(r),
       ) || event.locals.user?.role === "ADMIN";
 

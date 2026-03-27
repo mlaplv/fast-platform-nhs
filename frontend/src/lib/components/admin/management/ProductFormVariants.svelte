@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { Plus, X, ImagePlus, Trash2, ListTree, Zap, ChevronRight, Check } from "lucide-svelte";
+  import { Plus, X, ImagePlus, Trash2, ListTree, Zap, ChevronRight, Check, Pencil } from "lucide-svelte";
   import { resolveMediaUrl } from "$lib/state/utils";
   import type { Product } from "$lib/types";
 
   let {
-    formTierVariations = $bindable([]),
-    formVariants = $bindable([]),
+    formTierVariations = $bindable(),
+    formVariants = $bindable(),
     onOpenVault
   } = $props<{
     formTierVariations: Product['tierVariations'];
@@ -15,11 +15,18 @@
 
   let hasCustomImages = $state(false);
   let batchPrice = $state<number>(0);
+  let batchDiscountPrice = $state<number>(0);
   let batchStock = $state<number>(0);
   let batchSku = $state<string>('');
+  
+  let editingOption = $state<{ tIndex: number, oIndex: number } | null>(null);
+  let editingValue = $state("");
 
   // Svelte 5 init
   $effect(() => {
+    if (formTierVariations === undefined) formTierVariations = [];
+    if (formVariants === undefined) formVariants = [];
+
     if (formTierVariations.length > 0 && formTierVariations[0].images?.some(img => img)) {
       hasCustomImages = true;
     }
@@ -98,16 +105,33 @@
         for (let j = 0; j < t2.length; j++) {
           const tIdx = [i, j];
           const existing = findExistingVariant(tIdx);
-          newVariants.push(existing || { tierIndex: tIdx, sku: "", price: 0, stock: 0 });
+          newVariants.push(existing || { tierIndex: tIdx, sku: "", price: 0, discountPrice: 0, stock: 0 });
         }
       } else {
         const tIdx = [i];
         const existing = findExistingVariant(tIdx);
-        newVariants.push(existing || { tierIndex: tIdx, sku: "", price: 0, stock: 0 });
+        newVariants.push(existing || { tierIndex: tIdx, sku: "", price: 0, discountPrice: 0, stock: 0 });
       }
     }
 
     formVariants = newVariants;
+  }
+
+  function startEdit(tIndex: number, oIndex: number) {
+    editingOption = { tIndex, oIndex };
+    editingValue = formTierVariations[tIndex].options[oIndex];
+  }
+
+  function saveEdit() {
+    if (!editingOption) return;
+    const { tIndex, oIndex } = editingOption;
+    const newVal = editingValue.trim();
+    if (newVal && (newVal === formTierVariations[tIndex].options[oIndex] || !formTierVariations[tIndex].options.includes(newVal))) {
+      formTierVariations[tIndex].options[oIndex] = newVal;
+      formTierVariations = [...formTierVariations];
+      rebuildMatrix();
+    }
+    editingOption = null;
   }
 
   function findExistingVariant(targetIndex: number[]): ProductVariantSchema | undefined {
@@ -121,6 +145,7 @@
     formVariants = formVariants.map(v => ({
       ...v,
       price: batchPrice > 0 ? batchPrice : v.price,
+      discountPrice: batchDiscountPrice > 0 ? batchDiscountPrice : v.discountPrice,
       stock: batchStock > 0 ? batchStock : v.stock,
       sku: batchSku ? `${batchSku}-${v.tierIndex.join('-')}` : v.sku
     }));
@@ -211,13 +236,34 @@
             <div class="flex flex-wrap gap-2 items-start">
               {#each tier.options as opt, oIndex}
                 <div class="flex flex-col gap-2">
-                  <div class="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg pl-3 pr-1 py-1 group">
-                    <span class="text-[11px] font-medium text-white max-w-[120px] truncate">{opt}</span>
-                    <button 
-                      onclick={() => removeOption(tIndex, oIndex)}
-                      class="text-white/20 hover:text-red-400 p-1"
-                    ><X size={10} /></button>
-                  </div>
+                  {#if editingOption && editingOption.tIndex === tIndex && editingOption.oIndex === oIndex}
+                    <div class="flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2 py-1">
+                      <input 
+                        type="text" 
+                        bind:value={editingValue} 
+                        onkeydown={(e) => e.key === 'Enter' && saveEdit()}
+                        onblur={saveEdit}
+                        class="bg-transparent text-[11px] text-white outline-none w-[80px]"
+                        autofocus
+                      />
+                    </div>
+                  {:else}
+                    <div class="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg pl-3 pr-1 py-1 group">
+                      <span class="text-[11px] font-medium text-white max-w-[120px] truncate">{opt}</span>
+                      <button 
+                        onclick={() => startEdit(tIndex, oIndex)}
+                        class="opacity-0 group-hover:opacity-100 text-white/20 hover:text-amber-500 p-1 transition-opacity"
+                      >
+                        <Pencil size={10} />
+                      </button>
+                      <button 
+                        onclick={() => removeOption(tIndex, oIndex)}
+                        class="text-white/20 hover:text-red-400 p-1"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  {/if}
                   
                   <!-- IMAGE SELECTOR FOR TIER 1 -->
                   {#if tIndex === 0 && hasCustomImages}
@@ -266,6 +312,7 @@
             <ChevronRight size={12} class="text-amber-500/40" />
           </div>
           <input type="number" bind:value={batchPrice} placeholder="Giá bán..." class="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-amber-200 outline-none w-24 placeholder:text-white/20" />
+          <input type="number" bind:value={batchDiscountPrice} placeholder="Giá KM..." class="bg-black/40 border border-rose-500/20 rounded px-2 py-1.5 text-xs text-rose-300 outline-none w-24 placeholder:text-white/20" />
           <input type="number" bind:value={batchStock} placeholder="Tồn kho..." class="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-amber-200 outline-none w-24 placeholder:text-white/20" />
           <input type="text" bind:value={batchSku} placeholder="Mã SKU chung..." class="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-amber-200 outline-none flex-1 placeholder:text-white/20 uppercase" />
           <button onclick={applyBatch} class="px-3 py-1.5 bg-amber-500 text-black text-[9px] font-black uppercase tracking-wider rounded-lg hover:brightness-110 flex items-center gap-1">
@@ -281,6 +328,7 @@
                   <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 whitespace-nowrap">{tier.name}</th>
                 {/each}
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-amber-500/60 w-32 border-l border-white/5 whitespace-nowrap">Giá Bán</th>
+                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-rose-500/60 w-32 border-l border-white/5 whitespace-nowrap">Giá Khuyến Mãi</th>
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 w-24 border-l border-white/5 whitespace-nowrap">Kho Hàng</th>
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 min-w-[150px] border-l border-white/5">SKU (Mã PL)</th>
               </tr>
@@ -297,9 +345,13 @@
                     </td>
                   {/each}
 
-                  <!-- Price -->
                   <td class="p-1 border-l border-white/5">
                     <input type="number" bind:value={variant.price} class="w-full bg-transparent border border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-amber-500/50 !outline-none px-3 py-2 text-xs text-amber-400 font-mono text-right rounded" placeholder="0" />
+                  </td>
+
+                  <!-- Discount Price -->
+                  <td class="p-1 border-l border-white/5">
+                    <input type="number" bind:value={variant.discountPrice} class="w-full bg-transparent border border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-rose-500/50 !outline-none px-3 py-2 text-xs text-rose-400 font-mono text-right rounded" placeholder="0" />
                   </td>
 
                   <!-- Stock -->

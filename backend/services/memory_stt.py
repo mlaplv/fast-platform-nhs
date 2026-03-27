@@ -1,7 +1,7 @@
 import json
 import time
 import logging
-from typing import Dict, Any
+from typing import Dict, Union
 
 logger = logging.getLogger("api-gateway")
 

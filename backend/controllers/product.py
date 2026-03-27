@@ -9,8 +9,8 @@ from backend.database.repositories import ProductBaseRepository, provide_product
 from backend.guards import PermissionGuard
 from backend.schemas.product import CreateProductRequest, UpdateProductRequest, ProductResponse, ProductListResponse
 from backend.schemas.common import SuccessResponse, BulkActionResponse, BulkIdsRequest
-from backend.services.product_service import ProductService, provide_product_service
-from backend.services.product_vector_service import ProductVectorService, provide_product_vector_service
+from backend.services.commerce.product import ProductService, provide_product_service
+from backend.services.commerce.product_vector import ProductVectorService, provide_product_vector_service
 
 logger = logging.getLogger("api-gateway")
 

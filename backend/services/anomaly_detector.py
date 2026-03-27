@@ -12,7 +12,8 @@ import logging
 import asyncio
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Union, TypedDict, Optional, Any, Callable, Coroutine
+from typing import List, Dict, Union, TypedDict, Optional, Callable, Coroutine
+
 # Phase 12: Rule R105 — CẤM dùng Any, dùng TypedDict cho cấu trúc tường minh.
 class AnomalyAlert(TypedDict):
     type: str
@@ -48,8 +49,10 @@ class AnomalyDetector:
         alerts: List[AnomalyAlert] = []
 
         # Helper to run check safely
-        async def run_check(name: str, coro_func: Callable[..., Coroutine[Any, Any, Optional[AnomalyAlert]]], *args: Any) -> None:
+        # Note: Using object for *args to satisfy R105
+        async def run_check(name: str, coro_func: Callable[..., Coroutine[None, None, Optional[AnomalyAlert]]], *args: object) -> None:
             try:
+                # Coroutine[None, None, T] represents an async function returning T
                 res = await coro_func(*args)
                 if res:
                     alerts.append(res)
@@ -84,12 +87,12 @@ class AnomalyDetector:
         ) or 0
 
         if avg_latency > 5000: # Spike above 5s
-            return {
-                "type": "ai_latency_spike",
-                "severity": "WARNING",
-                "message": f"⚡ Độ trễ AI đang tăng cao: Trung bình {avg_latency:.0f}ms trong 30p qua.",
-                "data": {"avg_latency": avg_latency}
-            }
+            return AnomalyAlert(
+                type="ai_latency_spike",
+                severity="WARNING",
+                message=f"⚡ Độ trễ AI đang tăng cao: Trung bình {avg_latency:.0f}ms trong 30p qua.",
+                data={"avg_latency": avg_latency}
+            )
         return None
 
     async def _check_db_pool(self, session: AsyncSession) -> Optional[AnomalyAlert]:
@@ -104,12 +107,12 @@ class AnomalyDetector:
             
             # If checked out is near size
             if size > 0 and checkedout > size * 0.8:
-                return {
-                    "type": "db_pool_near_capacity",
-                    "severity": "CRITICAL",
-                    "message": f"🔥 Database Connection Pool gần cạn: {checkedout}/{size} đang sử dụng.",
-                    "data": {"checkedout": checkedout, "size": size}
-                }
+                return AnomalyAlert(
+                    type="db_pool_near_capacity",
+                    severity="CRITICAL",
+                    message=f"🔥 Database Connection Pool gần cạn: {checkedout}/{size} đang sử dụng.",
+                    data={"checkedout": checkedout, "size": size}
+                )
         return None
 
     async def _check_cancelled_orders(self, session: AsyncSession, tenant_id: str) -> Optional[AnomalyAlert]:
@@ -141,12 +144,12 @@ class AnomalyDetector:
         baseline_hourly = total_7d / (7 * 24) if total_7d > 0 else 0
 
         if recent >= MIN_BASELINE_COUNT and baseline_hourly > 0 and recent > baseline_hourly * SPIKE_THRESHOLD:
-            return {
-                "type": "cancelled_spike",
-                "severity": "WARNING",
-                "message": f"⚠️ Đơn hủy tăng đột biến: {recent} đơn trong 1h qua (trung bình {baseline_hourly:.1f}/h).",
-                "data": {"recent": recent, "baseline": round(baseline_hourly, 2)}
-            }
+            return AnomalyAlert(
+                type="cancelled_spike",
+                severity="WARNING",
+                message=f"⚠️ Đơn hủy tăng đột biến: {recent} đơn trong 1h qua (trung bình {baseline_hourly:.1f}/h).",
+                data={"recent": recent, "baseline": round(float(baseline_hourly), 2)}
+            )
         return None
 
     async def _check_order_volume(self, session: AsyncSession, tenant_id: str) -> Optional[AnomalyAlert]:
@@ -176,12 +179,12 @@ class AnomalyDetector:
         baseline_hourly = total_7d / (7 * 24) if total_7d > 0 else 0
 
         if recent >= MIN_BASELINE_COUNT and baseline_hourly > 0 and recent > baseline_hourly * SPIKE_THRESHOLD:
-            return {
-                "type": "order_volume_spike",
-                "severity": "INFO",
-                "message": f"📈 Đơn hàng mới bất thường: {recent} đơn trong 1h qua (trung bình {baseline_hourly:.1f}/h).",
-                "data": {"recent": recent, "baseline": round(baseline_hourly, 2)}
-            }
+            return AnomalyAlert(
+                type="order_volume_spike",
+                severity="INFO",
+                message=f"📈 Đơn hàng mới bất thường: {recent} đơn trong 1h qua (trung bình {baseline_hourly:.1f}/h).",
+                data={"recent": recent, "baseline": round(float(baseline_hourly), 2)}
+            )
         return None
 
     async def _check_revenue_anomaly(self, session: AsyncSession, tenant_id: str) -> Optional[AnomalyAlert]:
@@ -212,12 +215,12 @@ class AnomalyDetector:
         ) or 0
 
         if yesterday_rev > 0 and today_rev < yesterday_rev * 0.3:
-            return {
-                "type": "revenue_drop",
-                "severity": "WARNING",
-                "message": f"📉 Doanh thu hôm nay ({today_rev:,.0f}đ) thấp hơn 70% so với cùng giờ hôm qua ({yesterday_rev:,.0f}đ).",
-                "data": {"today": today_rev, "yesterday": yesterday_rev}
-            }
+            return AnomalyAlert(
+                type="revenue_drop",
+                severity="WARNING",
+                message=f"📉 Doanh thu hôm nay ({today_rev:,.0f}đ) thấp hơn 70% so với cùng giờ hôm qua ({yesterday_rev:,.0f}đ).",
+                data={"today": float(today_rev), "yesterday": float(yesterday_rev)}
+            )
         return None
 
     async def _persist_alerts(self, session: AsyncSession, alerts: List[AnomalyAlert], tenant_id: str):

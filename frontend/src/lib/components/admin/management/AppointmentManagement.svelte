@@ -19,37 +19,16 @@
 
   let { isWidget = false } = $props<{ isWidget?: boolean }>();
 
-  interface RecurringMetadata {
-    monthly_type?: 'day_of_month' | 'day_of_week';
-    day_of_month?: number;
-    day_of_week?: number;
-    week_index?: number;
-  }
-
-  interface Appointment {
-    id: string;
-    title: string;
-    description?: string;
-    start_time: string;
-    end_time: string;
-    type: 'STRATEGY' | 'DEPLOYMENT' | 'REVIEW';
-    status: 'UPCOMING' | 'ONGOING' | 'COMPLETED';
-    recurring_type: 'none' | 'daily' | 'weekly' | 'monthly';
-    recurring_metadata: RecurringMetadata;
-    metadata_json: Record<string, unknown>;
-    created_at: string;
-  }
-
-  interface AppointmentListResponse {
-    items: Appointment[];
-    total: number;
-  }
+  import type { Appointment, AppointmentListResponse } from "$lib/types";
+  import AppointmentDrawer from "./AppointmentDrawer.svelte";
 
   let selectedDate = $state(new Date());
   let appointments = $state<Appointment[]>([]);
   let isLoading = $state(true);
   let showAddModal = $state(false);
-  let newAppt = $state<Partial<Appointment>>({
+  let isEditing = $state(false);
+  
+  const initialAppt: Partial<Appointment> = {
     title: '',
     description: '',
     start_time: '',
@@ -64,7 +43,9 @@
       week_index: Math.ceil(new Date().getDate() / 7),
     },
     metadata_json: {}
-  });
+  };
+
+  let currentAppt = $state<Partial<Appointment>>({ ...initialAppt });
 
   let filterStatus = $state<'ALL' | 'UPCOMING' | 'ONGOING' | 'COMPLETED'>('ALL');
   let showDatePicker = $state(false);
@@ -138,35 +119,15 @@
     return day === 0 ? 6 : day - 1;
   }
 
-  async function saveAppointment() {
-    if (!newAppt.title || !newAppt.start_time || !newAppt.end_time) {
-      nanobot.showToast("Vui lòng điền đầy đủ thông tin", "warning");
-      return;
-    }
-
-    try {
-      const payload = {
-        ...newAppt,
-        metadata_json: newAppt.metadata_json || {}
-      };
-
-      if (newAppt.id) {
-        await apiClient.patch(`/api/v1/appointments/${newAppt.id}/`, payload);
-        nanobot.showToast("Cập nhật lịch hẹn thành công", "success");
-      } else {
-        await apiClient.post("/api/v1/appointments/", payload);
-        nanobot.showToast("Đã lưu lịch hẹn thành công", "success");
-      }
-      showAddModal = false;
-      await fetchAppointments();
-    } catch (e) {
-      console.error("Failed to save appointment", e);
-      nanobot.showToast("Không thể lưu lịch hẹn", "error");
-    }
+  function openAddDrawer() {
+    isEditing = false;
+    currentAppt = { ...initialAppt };
+    showAddModal = true;
   }
 
   function editAppointment(appt: Appointment) {
-    newAppt = { ...appt };
+    isEditing = true;
+    currentAppt = { ...appt };
     showAddModal = true;
   }
 
@@ -307,44 +268,23 @@
             />
           </div>
           <button 
-            onclick={() => showAddModal = true}
+            onclick={openAddDrawer}
             class="p-2.5 rounded-xl bg-white text-black hover:scale-105 active:scale-95 transition-all shadow-lg"
           >
             <Plus size={16} strokeWidth={3} />
           </button>
         </div>
       </div>
-       <!-- Neural Scout Toggle (Hidden/Disabled by default as per R00) -->
-       <button 
-         onclick={() => showScout = !showScout}
-         class="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 opacity-20 hover:opacity-100 transition-all group/scout"
-         title="Neural Scout (Trinh sát đối thủ)"
-       >
-         <Search size={16} class="group-hover/scout:scale-110 transition-transform" />
-       </button>
-      <button 
-        onclick={() => {
-          newAppt = {
-            title: '',
-            description: '',
-            start_time: '',
-            end_time: '',
-            type: 'STRATEGY',
-            status: 'UPCOMING',
-            recurring_type: 'none',
-            recurring_metadata: {
-              monthly_type: 'day_of_month',
-              day_of_month: new Date().getDate(),
-              day_of_week: new Date().getDay(),
-              week_index: Math.ceil(new Date().getDate() / 7),
-            }
-          };
-          showAddModal = true;
-        }}
-        class="p-2.5 rounded-xl bg-white text-black hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/5"
-      >
-        <Plus size={18} strokeWidth={3} />
-      </button>
+      <div class="flex items-center gap-2">
+         <!-- Neural Scout Toggle (Hidden/Disabled by default as per R00) -->
+         <button 
+           onclick={() => showScout = !showScout}
+           class="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 opacity-20 hover:opacity-100 transition-all group/scout"
+           title="Neural Scout (Trinh sát đối thủ)"
+         >
+           <Search size={16} class="group-hover/scout:scale-110 transition-transform" />
+         </button>
+      </div>
   </header>
 
   {#if showScout}
@@ -527,176 +467,13 @@
   </div>
 </div>
 
-<!-- Add Appointment Modal -->
-{#if showAddModal}
-  <div class="fixed inset-0 z-[3000] flex items-center justify-center p-4">
-    <div 
-      class="absolute inset-0 bg-black/80 backdrop-blur-xl"
-      role="button"
-      tabindex="0"
-      aria-label="Close modal"
-      onclick={() => showAddModal = false}
-      onkeydown={(e) => e.key === 'Escape' && (showAddModal = false)}
-    ></div>
-    
-    <div class="relative w-full max-w-xl bg-[#0a0a0a] border border-white/10 rounded-[2.5rem] p-8 lg:p-10 shadow-2xl overflow-y-auto max-h-[90vh] scrollbar-none">
-      <div class="flex items-center justify-between mb-8">
-        <div>
-          <span class="text-[9px] font-black text-blue-500 uppercase tracking-[0.3em]">Initialize</span>
-          <h2 class="text-2xl font-black tracking-tighter text-white uppercase">New Appointment</h2>
-        </div>
-        <button 
-          onclick={() => showAddModal = false}
-          class="p-2 text-white/20 hover:text-white transition-colors"
-        >
-          <ChevronRight size={20} />
-        </button>
-      </div>
-
-      <div class="space-y-6">
-        <div>
-          <label class="block text-[9px] font-black text-white/40 uppercase tracking-widest mb-2" for="title">Title</label>
-          <input 
-            id="title"
-            bind:value={newAppt.title}
-            type="text" 
-            placeholder="Neural Sync Meeting..."
-            class="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500/50 transition-all font-bold tracking-tight"
-          />
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-[9px] font-black text-white/40 uppercase tracking-widest mb-2" for="start">Start Time</label>
-            <input 
-              id="start"
-              bind:value={newAppt.start_time}
-              type="datetime-local" 
-              class="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500/50 transition-all font-bold"
-            />
-          </div>
-          <div>
-            <label class="block text-[9px] font-black text-white/40 uppercase tracking-widest mb-2" for="end">End Time</label>
-            <input 
-              id="end"
-              bind:value={newAppt.end_time}
-              type="datetime-local" 
-              class="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500/50 transition-all font-bold"
-            />
-          </div>
-        </div>
-
-        <div>
-          <div class="text-[9px] font-black text-white/40 uppercase tracking-widest mb-2">Recurring Type</div>
-          <div class="flex flex-wrap gap-2">
-            {#each ['none', 'daily', 'weekly', 'monthly'] as type}
-              <button 
-                onclick={() => newAppt.recurring_type = type as 'none' | 'daily' | 'weekly' | 'monthly'}
-                class="px-4 py-2 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all
-                {newAppt.recurring_type === type ? 'bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10'}"
-              >
-                {type}
-              </button>
-            {/each}
-          </div>
-        </div>
-
-        <div>
-           <div class="text-[9px] font-black text-white/40 uppercase tracking-widest mb-2">Operation Type</div>
-           <div class="flex flex-wrap gap-2">
-             {#each ['STRATEGY', 'DEPLOYMENT', 'REVIEW'] as type}
-               <button 
-                 onclick={() => newAppt.type = type as 'STRATEGY' | 'DEPLOYMENT' | 'REVIEW'}
-                 class="px-4 py-2 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all
-                 {newAppt.type === type ? 'bg-purple-500 border-purple-500 text-white shadow-lg shadow-purple-500/20' : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10'}"
-               >
-                 {type}
-               </button>
-             {/each}
-           </div>
-        </div>
-
-        <div>
-           <div class="text-[9px] font-black text-white/40 uppercase tracking-widest mb-2">Stage Status</div>
-           <div class="flex flex-wrap gap-2">
-             {#each ['UPCOMING', 'ONGOING', 'COMPLETED'] as status}
-               <button 
-                 onclick={() => newAppt.status = status as 'UPCOMING' | 'ONGOING' | 'COMPLETED'}
-                 class="px-4 py-2 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all
-                 {newAppt.status === status ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/20' : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10'}"
-               >
-                 {status}
-               </button>
-             {/each}
-           </div>
-        </div>
-
-        {#if newAppt.recurring_type === 'monthly'}
-          <div class="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/10 space-y-4">
-            <h4 class="text-[9px] font-black text-blue-400 uppercase tracking-[0.2em]">Monthly Configuration</h4>
-            
-            <div class="flex gap-2">
-               <button 
-                 onclick={() => newAppt.recurring_metadata.monthly_type = 'day_of_month'}
-                 class="flex-1 py-2 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all
-                 {newAppt.recurring_metadata.monthly_type === 'day_of_month' ? 'bg-blue-500/20 border-blue-500/40 text-blue-400' : 'bg-white/5 border-white/5 text-white/40'}"
-               >
-                 Theo Ngày (1-31)
-               </button>
-               <button 
-                 onclick={() => newAppt.recurring_metadata.monthly_type = 'day_of_week'}
-                 class="flex-1 py-2 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all
-                 {newAppt.recurring_metadata.monthly_type === 'day_of_week' ? 'bg-blue-500/20 border-blue-500/40 text-blue-400' : 'bg-white/5 border-white/5 text-white/40'}"
-               >
-                 Theo Thứ
-               </button>
-            </div>
-
-            {#if newAppt.recurring_metadata.monthly_type === 'day_of_month'}
-               <div>
-                 <input 
-                   type="number" min="1" max="31"
-                   bind:value={newAppt.recurring_metadata.day_of_month}
-                   class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none"
-                 />
-               </div>
-            {:else}
-              <div class="grid grid-cols-2 gap-2">
-                  <select 
-                    bind:value={newAppt.recurring_metadata.week_index}
-                    class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none appearance-none"
-                  >
-                    <option value={1} class="bg-[#0a0a0a]">Tuần 1</option>
-                    <option value={2} class="bg-[#0a0a0a]">Tuần 2</option>
-                    <option value={3} class="bg-[#0a0a0a]">Tuần 3</option>
-                    <option value={4} class="bg-[#0a0a0a]">Tuần 4</option>
-                    <option value={-1} class="bg-[#0a0a0a]">Tuần Cuối</option>
-                  </select>
-                  <select 
-                    bind:value={newAppt.recurring_metadata.day_of_week}
-                    class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none appearance-none"
-                  >
-                    {#each ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'] as day, i}
-                      <option value={i} class="bg-[#0a0a0a]">{day}</option>
-                    {/each}
-                  </select>
-              </div>
-            {/if}
-          </div>
-        {/if}
-
-        <div class="pt-4">
-          <button 
-            onclick={saveAppointment}
-            class="w-full py-4 rounded-2xl bg-white text-black text-xs font-black uppercase tracking-[0.2em] hover:bg-blue-500 hover:text-white transition-all shadow-xl shadow-white/5 active:scale-[0.98]"
-          >
-            Lưu Lịch Hẹn
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-{/if}
+<!-- Appointment Drawer -->
+<AppointmentDrawer 
+  bind:isOpen={showAddModal} 
+  bind:appointment={currentAppt}
+  onClose={() => showAddModal = false}
+  onSave={fetchAppointments}
+/>
 
 <style>
   .scrollbar-none::-webkit-scrollbar {

@@ -6,7 +6,7 @@ from typing import List, Dict, Optional
 from backend.guards import PermissionGuard
 from backend.schemas.category import CreateCategoryRequest, UpdateCategoryRequest, CategoryResponse, CategoryListResponse
 from backend.schemas.common import SuccessResponse, BulkActionResponse, BulkIdsRequest
-from backend.services.category_service import category_service
+from backend.services.commerce.category import category_service
 
 class CategoryController(Controller):
     """R2: Class-based Litestar Controller for Category CRUD."""
