@@ -293,7 +293,7 @@
 .reviews-viewport {
   & .wave-container {
     position: absolute;
-    bottom: 60px; /* Đưa lên cao thêm 100px nữa (tổng cộng 60px từ đáy) theo lệnh sếp! */
+    bottom: var(--wave-offset-reviews);
     left: 0;
     width: 100%;
     height: 30%;

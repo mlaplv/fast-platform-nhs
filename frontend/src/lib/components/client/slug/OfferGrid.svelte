@@ -193,7 +193,7 @@
   </div>
 
   <!-- Dynamic Line Wave Divider - High Impact Edition thưa Sếp! -->
-  <div class="wave-container">
+  <div class="wave-container" style="bottom: var(--wave-offset-reviews);">
     <svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
       <defs>
         <linearGradient id="wave-gradient" x1="0%" y1="0%" x2="100%" y2="0%">

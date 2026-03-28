@@ -32,20 +32,21 @@
     mouse.y = (e.clientY / window.innerHeight - 0.5) * 30;
   };
 
-  const productName = $derived(product?.name || 'Elite Formulation');
-  const mainImage = $derived(resolveMediaUrl(product?.images?.[0] || ''));
-  const rawHeadline = (product?.attributes?.hero_headline as string) || 'CHẤM DỨT <br/> MÙI CƠ THỂ.';
+  const productName: string = $derived(product?.name ?? 'Elite Formulation');
+  const mainImage: string = $derived(resolveMediaUrl(product?.images?.[0] ?? ''));
+  const rawHeadline: string = $derived((product?.attributes?.hero_headline as string) ?? 'CHẤM DỨT <br/> MÙI CƠ THỂ.');
   
-  let displayText = $state("");
-  let isTypingComplete = $state(false);
+  let displayText = $state<string>("");
+  let isTypingComplete = $state<boolean>(false);
 
-  const typeWriter = async () => {
+  const typeWriter = async (signal: AbortSignal): Promise<void> => {
     if (!browser) return;
     const parts = rawHeadline.split(/(<br\s*\/?>)/i);
     let currentText = "";
     
     // Initial delay for cinematic effect
     await new Promise(r => setTimeout(r, 800));
+    if (signal.aborted) return;
 
     for (const part of parts) {
       if (part.toLowerCase().startsWith("<br")) {
@@ -53,6 +54,7 @@
         displayText = currentText;
       } else {
         for (const char of part) {
+          if (signal.aborted) return;
           currentText += char;
           displayText = currentText;
           // Slower, more deliberate typing speed
@@ -84,14 +86,23 @@
 
   onMount(() => {
     if (browser) {
-      typeWriter();
+      const controller = new AbortController();
+      typeWriter(controller.signal);
+
       const savedTheme = localStorage.getItem('hero-theme-mode');
       const validTheme = (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') ? savedTheme : 'system';
       applyTheme(validTheme);
+      
       const mq = window.matchMedia('(prefers-color-scheme: dark)');
-      const h = (e: MediaQueryListEvent) => themeMode === 'system' && updateDOM(e.matches ? 'dark' : 'light');
+      const h = (e: MediaQueryListEvent): void => {
+        if (themeMode === 'system') updateDOM(e.matches ? 'dark' : 'light');
+      };
+      
       mq.addEventListener('change', h);
-      return () => mq.removeEventListener('change', h);
+      return () => {
+        controller.abort();
+        mq.removeEventListener('change', h);
+      };
     }
   });
 

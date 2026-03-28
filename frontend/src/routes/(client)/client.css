@@ -1,4 +1,11 @@
-/* --- CLIENT DOMAIN --- */
+:root {
+  --section-pt: 8vh;
+  --wave-offset-science: -90px;
+  --wave-offset-diag: 60px;
+  --wave-offset-reviews: 60px;
+  --z-wave: 1;
+}
+
 body { margin: 0; padding: 0; overflow-x: hidden; }
 .client-layout {
   background-color: var(--bg-canvas);

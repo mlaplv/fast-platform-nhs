@@ -3,7 +3,27 @@
   import { cubicOut } from 'svelte/easing';
   import "./VerifiedReviews.css";
 
-  const reviews = [
+  interface Review {
+    id: number;
+    name: string;
+    phone: string;
+    location: string;
+    rating: number;
+    content: string;
+    initial: string;
+  }
+
+  interface ReviewForm {
+    name: string;
+    location: string;
+    rating: number;
+    content: string;
+    phone: string;
+    isSubmitting: boolean;
+    showSuccess: boolean;
+  }
+
+  const reviews: Review[] = [
     {
       id: 1,
       name: "K.H.",
@@ -33,9 +53,9 @@
     }
   ];
 
-  let showFormModal = $state(false);
-  let isLocationOpen = $state(false);
-  let newReview = $state({
+  let showFormModal = $state<boolean>(false);
+  let isLocationOpen = $state<boolean>(false);
+  let newReview = $state<ReviewForm>({
     name: '',
     location: '',
     rating: 5,
@@ -45,7 +65,7 @@
     showSuccess: false
   });
 
-  const isValid = $derived(
+  const isValid: boolean = $derived(
     newReview.name.length >= 2 && 
     newReview.phone.length >= 10 && 
     newReview.content.length >= 10 &&

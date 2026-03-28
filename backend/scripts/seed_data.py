@@ -23,6 +23,7 @@ PRODUCT_DEFS = [
         "sku": "HS-HN-BASE",
         "price": 299000, # Base price
         "discount_price": 249000,
+        "short_description": "Sáng mai, cầm lọ tinh chất trên tay, hãy lắc nhẹ 2 nhịp. Một làn sương mát lạnh chạm vào da, khô tắp lự sau 3 giây. Giờ thì... thoải mái diện chiếc sơ mi trắng yêu thích và tự tin bước ra cửa.",
         "category_id": "cat_thuoc_dong_y",
         "description": "Thảo dược chữa trị hôi nách nặng mùi lâu năm, bị từ nhỏ (bẩm sinh), phụ nữ mang thai, sau sinh, tuổi dậy thì. Giúp giảm thâm & mồ hôi nách nhiều, se nhỏ lỗ chân lông, hiệu quả rõ rệt sau 1 liệu trình. Sản phẩm dạng xịt, thẩm thấu nhanh, không gây ố vàng áo và không kích ứng da.",
         "images": [

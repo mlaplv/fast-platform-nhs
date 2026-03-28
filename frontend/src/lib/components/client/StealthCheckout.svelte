@@ -7,7 +7,12 @@
   import { quintOut } from 'svelte/easing';
   import "./slug/LiquidEffects.css";
 
-  let customer = $state({
+  interface CustomerInfo {
+    phone: string;
+    address: string;
+  }
+
+  let customer = $state<CustomerInfo>({
     phone: '',
     address: ''
   });

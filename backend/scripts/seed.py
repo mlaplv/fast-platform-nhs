@@ -28,6 +28,8 @@ async def clear_data(session):
     print(f"🧹 Clearing old data for tenant: {TENANT_ID}...")
     user_ids = (await session.execute(select(User.id).where((User.tenant_id == TENANT_ID) | (User.id == "user_admin")))).scalars().all()
     await session.execute(delete(ProductVariant))
+    # Clear internal dependencies first thưa sếp!
+    await session.execute(delete(ProductEmbedding).where(ProductEmbedding.product_base_id.in_(select(ProductBase.id).where(ProductBase.tenant_id == TENANT_ID))))
     for model in [Order, Article, Notification, Draft, ChatMessage, AgentTelemetryLog, CampaignEvent, ContentCampaign, ProductBase, Category, Appointment]:
         await session.execute(delete(model).where(model.tenant_id == TENANT_ID))
     if user_ids:
@@ -80,6 +82,7 @@ async def seed_products(session):
             status="ACTIVE",
             category_id=d["category_id"],
             tenant_id=TENANT_ID,
+            short_description=d.get("short_description", ""),
             description=d.get("description", ""),
             images=d.get("images", []),
             tier_variations=d.get("tier_variations", [])

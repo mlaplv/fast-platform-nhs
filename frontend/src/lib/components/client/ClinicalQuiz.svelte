@@ -8,7 +8,21 @@
   let answers = $state<string[]>([]);
   let progress = $derived((currentStep / 2) * 100);
 
-  const questions = [
+  interface QuizOption {
+    label: string;
+    desc: string;
+    value: string;
+    icon: string;
+  }
+
+  interface Question {
+    id: number;
+    title: string;
+    subtitle: string;
+    options: QuizOption[];
+  }
+
+  const questions: Question[] = [
     {
       id: 1,
       title: "Tình trạng mồ hôi & mùi cơ thể?",

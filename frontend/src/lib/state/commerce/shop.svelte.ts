@@ -19,27 +19,27 @@ class ShopStore {
     error = $state<string | null>(null);
 
     // 2. Computed State ($derived)
-    totalAmount = $derived.by(() => {
+    totalAmount = $derived.by((): number => {
         if (!this.product) return 0;
-        const basePrice = this.variant?.discountPrice || this.variant?.price || 
-                         this.product.discountPrice || this.product.price || 0;
+        const basePrice = this.variant?.discountPrice ?? this.variant?.price ?? 
+                         this.product.discountPrice ?? this.product.price ?? 0;
         const orderBumpPrice = this.hasOrderBump ? 99000 : 0;
         return (basePrice * this.quantity) + orderBumpPrice;
     });
 
-    currentPrice = $derived.by(() => {
+    currentPrice = $derived.by((): number => {
         if (!this.product) return 0;
-        return this.variant?.discountPrice || this.variant?.price || 
-               this.product.discountPrice || this.product.price || 0;
+        return this.variant?.discountPrice ?? this.variant?.price ?? 
+               this.product.discountPrice ?? this.product.price ?? 0;
     });
 
-    originalPrice = $derived.by(() => {
+    originalPrice = $derived.by((): number => {
         if (!this.product) return 0;
-        return this.variant?.price || this.product.price || 0;
+        return this.variant?.price ?? this.product.price ?? 0;
     });
 
     // 3. Actions
-    init(productData: Product) {
+    init(productData: Product): void {
         this.product = productData;
         // Default to first variant if exists
         if (productData?.variants && productData.variants.length > 0) {
@@ -49,11 +49,11 @@ class ShopStore {
         }
     }
 
-    selectVariant(v: ProductVariant) {
+    selectVariant(v: ProductVariant): void {
         this.variant = v;
     }
 
-    selectVariantByTier(indices: number[]) {
+    selectVariantByTier(indices: number[]): void {
         if (!this.product?.variants) return;
         const found = this.product.variants.find(v => 
             v.tierIndex.length === indices.length && 
@@ -64,26 +64,27 @@ class ShopStore {
         }
     }
 
-    setQuantity(q: number) {
+    setQuantity(q: number): void {
         if (q < 1) return;
         this.quantity = q;
     }
 
-    toggleOrderBump() {
+    toggleOrderBump(): void {
         this.hasOrderBump = !this.hasOrderBump;
     }
 
-    openCheckout() {
+    openCheckout(): void {
         this.isCheckoutOpen = true;
     }
 
-    closeCheckout() {
+    closeCheckout(): void {
         this.isCheckoutOpen = false;
         this.orderSuccess = false;
         this.error = null;
     }
 
-    async submitCheckout(customer: { name: string; phone: string; address: string }) {
+    async submitCheckout(customer: { name: string; phone: string; address: string }): Promise<void> {
+        if (!this.product) return;
         this.isSubmitting = true;
         this.error = null;
 
@@ -103,7 +104,7 @@ class ShopStore {
                 })
             });
 
-            const result = await res.json();
+            const result: { message?: string } = await res.json();
             if (res.ok) {
                 this.orderSuccess = true;
                 // Auto-close after 3s on success
@@ -111,12 +112,13 @@ class ShopStore {
                     this.closeCheckout();
                 }, 3000);
             } else {
-                this.error = result.message || 'Có lỗi xảy ra, vui lòng thử lại';
+                this.error = result.message ?? 'Có lỗi xảy ra, vui lòng thử lại';
             }
         } catch (err: unknown) {
-            const error = err as Error;
             this.error = 'Không thể kết nối máy chủ';
-            console.error('[ShopStore] Checkout Error:', error.message);
+            if (err instanceof Error) {
+                console.error('[ShopStore] Checkout Error:', err.message);
+            }
         } finally {
             this.isSubmitting = false;
         }

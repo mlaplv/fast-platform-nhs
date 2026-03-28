@@ -14,7 +14,7 @@
 
   <section id="science" class="science-viewport snap-session relative">
 
-    <div class="science-container pt-[8vh] pb-20" style="padding-top: 8vh !important;">
+    <div class="science-container pt-[var(--section-pt)] pb-20">
       <div class="mb-8 text-center">
         <h2 class="section-title text-center text-5xl font-black uppercase md:text-7xl">
           Cơ chế khoa học
