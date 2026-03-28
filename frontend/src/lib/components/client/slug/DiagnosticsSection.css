@@ -14,22 +14,22 @@
 
   & .section-title {
     color: #fff;
+    font-size: var(--fs-title); /* Fluid thưa sếp! */
     transition: font-size 0.3s ease-in-out;
   }
 }
 
 /* Container-Aware Scaling */
+/* Container queries kept for specific structural logic if needed thưa sếp! */
 @container diagnostics (min-width: 768px) {
   .section-title {
-    font-size: 4.5rem;
     line-height: 1;
   }
 }
 
 @container diagnostics (max-width: 640px) {
   .section-title {
-    font-size: 2.25rem;
-    line-height: 2.5rem;
+    line-height: 1.1;
   }
 }
 
@@ -37,7 +37,7 @@
 .diagnostics-container {
   & .wave-container {
     position: absolute;
-    bottom: 60px; /* Đưa lên cao thêm 100px nữa (tổng cộng 60px từ đáy) theo lệnh sếp! */
+    bottom: var(--wave-offset-diag); /* Centralized thưa sếp! */
     left: 0;
     width: 100%;
     height: 20%; /* Cân bằng lại thưa sếp! */

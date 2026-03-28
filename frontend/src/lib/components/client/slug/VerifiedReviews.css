@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=JetBrains+Mono:wght@100..800&display=swap');
+
 .reviews-viewport {
   --clinical-blue: #10b981;
   --clinical-cyan: #06b6d4;
@@ -26,7 +28,7 @@
 
 .section-headline {
   font-family: 'Outfit', sans-serif;
-  font-size: clamp(2.2rem, 5vw, 3.8rem);
+  font-size: var(--fs-title); /* Fluid thưa sếp! */
   font-weight: 900;
   line-height: 1.15;
   color: white;
@@ -95,7 +97,7 @@
   .bento-hub-frame { border-radius: 2rem; }
   .review-card {
     flex: 0 0 88vw; /* Better mobile width to avoid cut */
-    padding: 2.5rem;
+    padding: var(--gap-fluid); /* Fluid padding thưa sếp! */
     border-radius: 2rem;
   }
 }
@@ -287,7 +289,7 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=JetBrains+Mono:wght@100..800&display=swap');
+
 
 /* Exclusive footer wave thưa sếp! */
 .reviews-viewport {

@@ -48,7 +48,7 @@
           </div>
 
           <!-- 2. MECHANISM (Horizon Sharp Glass) -->
-          <div class="bento-tile glass-horizon group cursor-pointer relative" onclick={openViewer}>
+          <div role="button" tabindex="0" aria-label="Open mechanism viewer" class="bento-tile glass-horizon group cursor-pointer relative" onclick={openViewer} onkeydown={(e) => e.key === 'Enter' && openViewer(e as unknown as MouseEvent)}>
             <div class="horizon-scroll-container absolute inset-0 overflow-hidden">
               <div class="horizon-slide-wrapper">
                 <img src="https://nhathuochongson.com/uploads/images/co-che-n20_1587359851.jpg" alt="Mechanism" class="w-full h-auto" />
@@ -124,6 +124,7 @@
     <!-- FULL SCREEN IMAGE VIEWER (Ultra Premium) -->
     {#if isViewerOpen}
       <div
+        role="presentation"
         class="fixed inset-0 flex items-center justify-center p-8 bg-[#020617]/90 backdrop-blur-3xl animate-in fade-in duration-700"
         style:z-index="var(--z-sticky-header)"
         onclick={() => isViewerOpen = false}
@@ -132,6 +133,7 @@
           class="absolute top-12 right-12 text-white/40 hover:text-white transition-colors"
           style:z-index="var(--z-hud-service)"
           onclick={() => isViewerOpen = false}
+          aria-label="Close image viewer"
         >
           <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M6 18L18 6M6 6l12 12" />

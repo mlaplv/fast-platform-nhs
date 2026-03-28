@@ -103,6 +103,8 @@
         {#each questions[currentStep].options as option, idx}
           <button
             onclick={() => nextStep(option.value)}
+            onkeydown={(e) => e.key === 'Enter' && nextStep(option.value)}
+            aria-label="Select {option.label}"
             class="group p-6 text-left glass-liquid border-white/5 rounded-[2rem] hover:border-blue-500/30 transition-all duration-500 flex items-center gap-6 relative overflow-hidden liquid-bubble"
             in:fly={{ x: 15, duration: 800, delay: idx * 50, easing: quintOut }}
           >

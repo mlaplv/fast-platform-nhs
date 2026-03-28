@@ -107,6 +107,7 @@
     text-align: center;
     line-height: 1.8;
     letter-spacing: 0.05em;
+    font-size: var(--fs-body); /* Fluid thưa sếp! */
 
     @media (min-width: 1024px) {
       margin-top: 15px;
@@ -114,7 +115,6 @@
     }
 
     @media (max-width: 1023px) {
-      font-size: clamp(0.95rem, 1vw + 0.35rem, 1.25rem);
       padding: 0 2rem;
       margin-bottom: clamp(1rem, 3vh, 2rem);
     }
@@ -220,7 +220,7 @@
 
     & .metric-value {
       font-family: 'Inter', sans-serif;
-      font-size: clamp(2rem, 4.25vw, 2.75rem) !important;
+      font-size: var(--fs-title) !important; /* Fluid thưa sếp! */
       font-weight: 950;
       color: #f1f5f9;
       line-height: 1;
@@ -263,13 +263,11 @@
     -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1);
     color: #ffffff;
     text-shadow: 0 10px 30px rgba(8, 51, 68, 0.3);
-
-    @media (min-width: 1024px) {
-      font-size: clamp(3.5rem, 11vw, 8.5rem) !important;
-    }
+    font-size: var(--fs-hero) !important; /* Fluid thưa sếp! */
+    line-height: 0.9 !important;
+    margin-bottom: 0.5rem !important;
 
     @media (max-height: 850px) and (min-width: 1024px) {
-      font-size: clamp(2.5rem, 13vh, 5.5rem) !important;
       line-height: 1.0 !important;
       margin-bottom: 1.25rem !important;
     }
@@ -278,7 +276,7 @@
   /* PREMIUM CTA BUTTON SYSTEM */
   & .hero-cta-button {
     position: relative;
-    padding: clamp(0.75rem, 1.25vh + 0.2rem, 1.25rem) clamp(1.75rem, 2.5vw + 0.4rem, 2.5rem);
+    padding: var(--fs-ui) calc(var(--fs-ui) * 4); /* Consistent ratio thưa sếp! */
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(148, 163, 184, 0.2);

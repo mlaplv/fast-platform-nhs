@@ -4,7 +4,7 @@
   import "./LiquidEffects.css";
 </script>
 
-<section id="diagnostics" class="diagnostics-container snap-session relative overflow-x-hidden bg-[#020617]">
+<section id="diagnostics" aria-labelledby="personalized-care" class="diagnostics-container snap-session relative overflow-x-hidden bg-[#020617]">
   <div class="container mx-auto px-6 max-w-5xl text-center relative pt-[var(--section-pt)] pb-20" style:z-index="var(--z-surface)">
     <h3 id="personalized-care" class="section-title text-neural font-black tracking-tight leading-none uppercase mb-4 text-4xl md:text-6xl">
       CHẨN ĐOÁN CÁ NHÂN HÓA

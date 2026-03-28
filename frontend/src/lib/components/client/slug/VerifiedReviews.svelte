@@ -214,6 +214,7 @@
     >
       <button 
         onclick={() => showFormModal = false}
+        aria-label="Close review modal"
         class="absolute top-8 right-8 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-90"
         style:z-index="var(--z-vui-caption)"
       >
@@ -248,19 +249,20 @@
               <div class="space-y-6">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">Danh tính</label>
-                    <input type="text" bind:value={newReview.name} placeholder="Họ và Tên *" class="input-liquid" />
+                    <label for="review-name" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">Danh tính</label>
+                    <input id="review-name" type="text" bind:value={newReview.name} placeholder="Họ và Tên *" class="input-liquid" />
                   </div>
                   <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">Liên hệ</label>
-                    <input type="tel" bind:value={newReview.phone} placeholder="Số điện thoại *" class="input-liquid" />
+                    <label for="review-phone" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">Liên hệ</label>
+                    <input id="review-phone" type="tel" bind:value={newReview.phone} placeholder="Số điện thoại *" class="input-liquid" />
                   </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div class="space-y-2 relative">
-                    <label class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">Vị trí</label>
+                    <label for="review-location" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">Vị trí</label>
                     <button 
+                      id="review-location"
                       type="button"
                       onclick={() => isLocationOpen = !isLocationOpen}
                       class="input-liquid flex items-center justify-between h-[58px] text-left"
@@ -294,10 +296,10 @@
                     {/if}
                   </div>
                   <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">Đánh giá sao</label>
-                    <div class="rating-picker flex items-center justify-center gap-3 h-[58px] rounded-2xl">
+                    <label id="rating-label" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">Đánh giá sao</label>
+                    <div role="group" aria-labelledby="rating-label" class="rating-picker flex items-center justify-center gap-3 h-[58px] rounded-2xl">
                       {#each Array(5) as _, i}
-                        <button type="button" onclick={() => setRating(i + 1)} class="star-picker-btn transition-all">
+                        <button type="button" onclick={() => setRating(i + 1)} aria-label="Rate {i + 1} stars" class="star-picker-btn transition-all">
                           <svg class="w-6 h-6 {i < newReview.rating ? 'text-amber-400' : 'text-white/5'}" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                           </svg>
@@ -310,9 +312,9 @@
 
               <!-- Right Column: Message -->
               <div class="space-y-2">
-                <label class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">Trải nghiệm thực tế</label>
+                <label for="review-content" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">Trải nghiệm thực tế</label>
                 <div class="relative h-full pb-6">
-                  <textarea bind:value={newReview.content} placeholder="Hãy cho chúng tôi biết cảm nhận của bạn... *" class="input-liquid resize-none h-[140px] lg:h-full pr-12 scrollbar-mission"></textarea>
+                  <textarea id="review-content" bind:value={newReview.content} placeholder="Hãy cho chúng tôi biết cảm nhận của bạn... *" class="input-liquid resize-none h-[140px] lg:h-full pr-12 scrollbar-mission"></textarea>
                   <div class="char-counter absolute bottom-10 right-4 opacity-40">{newReview.content.length}/500</div>
                 </div>
               </div>

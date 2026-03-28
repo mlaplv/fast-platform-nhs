@@ -117,6 +117,8 @@
 
 <section
   id="hero"
+  role="region"
+  aria-label="Hero Spotlight Area"
   class="hero-center-layout content-hero snap-session relative w-full overflow-hidden flex flex-col items-center justify-start bg-[#020617] text-white"
   onmousemove={handleMouseMove}
   style="--mx: {mouse.x}px; --my: {mouse.y}px; --hero-accent: #3b82f6; --hero-glass-blur: 32px;"
@@ -134,7 +136,7 @@
 
   <div class="container relative flex flex-col items-center pt-[clamp(1.5rem,5vh,3.5rem)] px-6" style:z-index="var(--z-surface)">
 
-    <h1 class="typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0 leading-[1.05] text-[clamp(2.5rem,5vw,3.5rem)] lg:text-[clamp(3.5rem,11vw,8.5rem)]">
+    <h1 class="typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0">
        {@html displayText}
        {#if !isTypingComplete}
           <span class="typing-cursor">|</span>
@@ -206,7 +208,7 @@
     </button>
 
     <!-- MOUSE SCROLL INDICATOR -->
-    <a href="#personalized-care" class="mouse-scroll-indicator" onclick={(e) => { e.preventDefault(); scrollToCare(); }}>
+    <a href="#personalized-care" class="mouse-scroll-indicator" aria-label="Scroll to diagnostics section" onclick={(e) => { e.preventDefault(); scrollToCare(); }}>
        <div class="mouse-body">
           <div class="mouse-wheel"></div>
        </div>

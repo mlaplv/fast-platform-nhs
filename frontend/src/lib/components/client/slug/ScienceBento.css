@@ -98,13 +98,13 @@
 
 .science-layout {
   display: flex;
-  gap: 3rem;
+  gap: var(--gap-fluid); /* Fluid gap thưa sếp! */
   width: 100%;
-  min-height: 700px; /* Reduced since Vapor card is gone */
+  min-height: 700px;
 }
 
-.column-left { flex: 6; display: flex; flex-direction: column; gap: 3rem; }
-.column-right { flex: 5; display: flex; flex-direction: column; gap: 3rem; }
+.column-left { flex: 6; display: flex; flex-direction: column; gap: var(--gap-fluid); }
+.column-right { flex: 5; display: flex; flex-direction: column; gap: var(--gap-fluid); }
 
 /* --- THE UNIQUE GLASS MASTERPIECES --- */
 
@@ -320,7 +320,7 @@
 
 .title-master {
   font-family: 'Outfit', sans-serif;
-  font-size: clamp(2.25rem, 4.5vw, 4rem);
+  font-size: var(--fs-title); /* Fluid thưa sếp! */
   font-weight: 800;
   line-height: 0.95;
   letter-spacing: -0.02em;
@@ -355,8 +355,8 @@
 
 .stats-value-giant { 
   font-family: 'Outfit', sans-serif; 
-  font-size: 7rem; 
-  font-weight: 900; 
+  font-size: clamp(4rem, 15vw, 8rem); /* Ultra Fluid thưa sếp! */
+  font-weight: 950; 
   line-height: 0.8; 
   color: white; 
   text-shadow: 0 10px 40px rgba(0, 0, 0, 1);
@@ -410,11 +410,11 @@
   }
 }
 
-@media (max-width: 1024px) {
-  .science-connection-layer { display: none; }
-  .science-layout { flex-direction: column; }
+@media (max-width: 1100px) { /* Smoother transition thưa sếp! */
+  .science-container { padding: 0 1rem; }
+  .science-layout { flex-direction: column; gap: 2rem; }
   .column-left, .column-right { width: 100%; }
-  .glass-chamfer, .glass-organic, .glass-horizon, .glass-gem { clip-path: none !important; border-radius: 2rem !important; }
+  .glass-chamfer, .glass-organic, .glass-horizon, .glass-gem { clip-path: none !important; border-radius: 2.5rem !important; }
 }
 
 /* Exclusive footer wave thưa sếp! */

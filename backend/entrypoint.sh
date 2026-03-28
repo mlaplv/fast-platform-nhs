@@ -43,9 +43,9 @@ if [ "$#" -eq 0 ]; then
         --host 0.0.0.0 \
         --port 8000 \
         --http h11 \
-        --limit-max-requests 500 \
-        --limit-concurrency 15 \
-        --timeout-keep-alive 5 \
+        --limit-max-requests 10000 \
+        --limit-concurrency 500 \
+        --timeout-keep-alive 30 \
         --reload-dir "/app/backend" \
         --reload-exclude "/app/.venv" \
         $RELOAD_FLAG
