@@ -4,13 +4,22 @@
   container-type: inline-size;
   container-name: hero;
   min-height: 100vh;
-  padding-top: 5rem;
+  padding-top: 3.5rem;
   /* Protection against fixed header */
-  scroll-margin-top: 100px;
+  scroll-margin-top: 80px;
   /* Professional Standard */
   --blue-rgb: 59, 130, 246;
   --indigo-rgb: 99, 102, 241;
   --emerald-rgb: 16, 185, 129;
+  --headline-mb: 3rem;
+
+  /* Z-INDEX REGISTRY (Standardization thưa sếp!) */
+  --z-bg: 0;
+  --z-beam: 5;
+  --z-product: 10;
+  --z-hud: 20;
+  --z-cta: 30;
+  --z-nav: 100;
 
   & .hud-frame {
     position: relative;
@@ -23,7 +32,7 @@
       height: clamp(20px, 5vw, 40px);
       border: 2px solid rgba(var(--blue-rgb), 0.3);
       pointer-events: none;
-      z-index: 10;
+      z-index: var(--z-surface);
     }
 
     &::before {
@@ -47,6 +56,8 @@
   & .hero-product-display {
     @media (min-width: 1024px) {
       margin-top: 60px;
+      /* Allow cinematic spill to breathe without clipping thưa sếp! */
+      position: relative;
     }
   }
 
@@ -54,6 +65,7 @@
   & .parallax-layer {
     transition: transform 0.15s cubic-bezier(0.23, 1, 0.32, 1);
     transform: translate3d(var(--mx, 0), var(--my, 0), 0);
+    will-change: transform;
   }
 
   & .elite-video-bg {
@@ -71,20 +83,16 @@
   }
 
   & .product-glass-container {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(40px) saturate(150%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow:
-      0 30px 60px rgba(0, 0, 0, 0.5),
-      inset 0 0 40px rgba(255, 255, 255, 0.1);
+    background: transparent;
+    backdrop-filter: none;
+    border: none;
+    box-shadow: none;
     transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
 
     &:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.3);
-      box-shadow:
-        0 40px 80px rgba(0, 0, 0, 0.6),
-        inset 0 0 60px rgba(255, 255, 255, 0.2);
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
     }
   }
 
@@ -123,28 +131,49 @@
   & .flashlight-beam {
     position: absolute;
     top: 50%;
-    left: 0;
-    width: 250%;
-    height: clamp(600px, 80vh, 1000px);
+    left: 40px; /* Moved INSIDE the product area to overlap thưa sếp! */
+    width: 160%;
+    height: clamp(500px, 60vh, 850px);
     transform: translateY(-50%);
-    /* BRIGHT LUXURY WHITE GRADIENT (Visible with Screen blend) */
-    background: radial-gradient(circle at 10% 50%,
-        rgba(255, 255, 255, 0.4) 0%,
-        /* Pure White Core */
-        rgba(255, 255, 255, 0.05) 60%,
-        transparent 95%);
-    overflow: hidden;
-    clip-path: polygon(0% 45%, 100% -20%, 100% 120%, 0% 55%);
-    filter: blur(120px);
+    background: radial-gradient(circle at 0% 50%,
+        rgba(255, 255, 255, 0.7) 0%,
+        rgba(255, 255, 255, 0.1) 40%,
+        rgba(255, 255, 255, 0.02) 70%,
+        transparent 100%);
+    overflow: visible;
+    clip-path: polygon(0% 50%, 100% 0%, 100% 100%, 0% 50%);
+    filter: blur(80px);
     mix-blend-mode: screen;
     pointer-events: none;
-    z-index: 2;
-    animation: beam-pulse 5s ease-in-out infinite;
-    opacity: 0.65;
+    z-index: var(--z-beam);
+    animation: beam-pulse 6s ease-in-out infinite; 
+    opacity: 0.85; 
+    will-change: opacity, transform;
+
+    & .beam-dot {
+      position: absolute;
+      width: 1.5px; /* Miniaturized from 4px thưa sếp! */
+      height: 1.5px;
+      background: white;
+      border-radius: 50%;
+      filter: blur(2px); /* Higher blur thưa sếp! */
+      opacity: 0.25; /* Stealth dots thưa sếp! */
+      animation: dot-float-in-beam 12s infinite linear;
+      left: calc(5% + (var(--d-idx) * 8%));
+      top: calc(15% + (var(--d-idx) * 6%) + (sin(var(--d-idx)) * 25%));
+      animation-delay: calc(var(--d-idx) * -1.5s);
+    }
 
     @media (max-width: 1023px) {
       display: none;
     }
+  }
+
+  @keyframes dot-float-in-beam {
+    0% { transform: translate(0, 0) scale(1); opacity: 0; }
+    20% { opacity: 0.6; }
+    80% { opacity: 0.6; }
+    100% { transform: translate(200px, -50px) scale(0.5); opacity: 0; }
   }
 
   /* ARC METRICS SYSTEM (Universal Cinematic Parity 1024px+) */
@@ -153,8 +182,6 @@
     container-type: inline-size;
     container-name: arc-space;
     position: relative;
-    width: max-content;
-    /* Prevent shrinking */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -162,8 +189,6 @@
     margin-top: 2rem;
 
     @media (min-width: 1024px) {
-      width: max-content;
-      min-width: 320px;
       /* Safe anchor */
       height: auto;
       flex-direction: column;
@@ -176,7 +201,6 @@
       /* Micro-adjustment for visual centering */
 
       @media (min-width: 1280px) {
-        margin-right: 0;
         /* Reset margin to ensure pure flex centering */
       }
     }
@@ -220,10 +244,20 @@
 
     & .metric-value {
       font-family: 'Inter', sans-serif;
-      font-size: var(--fs-title) !important; /* Fluid thưa sếp! */
+      font-size: var(--fs-sub) !important; /* Reduced from fs-title thưa sếp! */
       font-weight: 950;
       color: #f1f5f9;
-      line-height: 1;
+      line-height: 1.1;
+      white-space: normal; /* Allow wrapping for long titles thưa sếp! */
+    }
+
+    & .metric-desc {
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      color: #94a3b8;
+      line-height: 1.6;
+      opacity: 0.7;
+      transition: opacity 0.4s ease;
     }
   }
 
@@ -275,7 +309,10 @@
 
   /* PREMIUM CTA BUTTON SYSTEM */
   & .hero-cta-button {
-    position: relative;
+    position: absolute;
+    bottom: 100px; /* More space from the mouse indicator thưa sếp! */
+    left: 50%;
+    transform: translateX(-50%);
     padding: var(--fs-ui) calc(var(--fs-ui) * 4); /* Consistent ratio thưa sếp! */
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(20px);
@@ -283,16 +320,11 @@
     border-radius: 9999px;
     overflow: hidden;
     transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-    margin-top: clamp(1.5rem, 4vh, 3rem);
-    margin-bottom: clamp(3rem, 8vh, 6rem);
-    z-index: 20;
-
-    @media (min-width: 1024px) {
-      margin-top: calc(clamp(1.5rem, 4vh, 3rem) + 50px);
-    }
+    z-index: var(--z-cta);
+    will-change: transform, box-shadow;
 
     &:hover {
-      transform: scale(1.05);
+      transform: translateX(-50%) scale(1.05);
       border-color: rgba(148, 163, 184, 0.5);
       box-shadow: 0 0 50px rgba(8, 51, 68, 0.3);
     }
@@ -358,23 +390,6 @@
       animation: shimmer 4s infinite;
     }
   }
-
-  /* FINE MIST SPRAY (Deep Ocean Tones) */
-  & .mist-particle {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    width: clamp(10px, 2vw, 24px);
-    height: clamp(10px, 2vw, 24px);
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(8, 51, 68, 0.1) 60%, transparent 85%);
-    opacity: 0;
-    pointer-events: none;
-    animation: mist-flow 8s infinite ease-out;
-    animation-delay: calc(var(--p-idx) * 0.08s);
-    transform-origin: left center;
-    z-index: 20;
-  }
 }
 
 /* LIQUID GLASS NAVIGATION (iPhone 18 Aesthetic) */
@@ -428,7 +443,7 @@ html {
   height: 200%;
   background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
   pointer-events: none;
-  z-index: 1;
+  z-index: var(--z-base);
   animation: liquid-rotate 15s linear infinite;
 }
 
@@ -442,28 +457,6 @@ html {
   }
 }
 
-@keyframes mist-flow {
-  0% {
-    transform: translate(0, 0) scale(0.1);
-    opacity: 0;
-  }
-
-  5% {
-    opacity: 0.6;
-    /* Quick appearance */
-  }
-
-  20% {
-    /* Fast dispersal within first 2 seconds */
-    transform: translate(clamp(400px, 40vw, 800px), calc(var(--p-idx) * 8px - 80px)) scale(4);
-    opacity: 0;
-  }
-
-  100% {
-    /* Dormant phase until 8 seconds */
-    opacity: 0;
-  }
-}
 
 @keyframes cta-pulse {
 
@@ -524,7 +517,7 @@ html {
   bottom: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 30;
+  z-index: var(--z-layout-header);
   cursor: pointer;
   transition: all 0.3s ease;
   pointer-events: auto;
@@ -675,38 +668,7 @@ html {
   box-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
 }
 
-/* GLOBAL SECTION SPACING (Elite V2.2) */
-/* FULL-VIEWPORT SECTION ARCHITECTURE (Elite V2.2) */
-section[id] {
-  height: 100vh; /* Fixed height to prevent leaking */
-  height: 100dvh; /* Dynamic viewport height for mobile */
-  padding-top: 5rem;
-  padding-bottom: 5rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  position: relative;
-  overflow: hidden;
-  scroll-margin-top: 0;
-  scroll-snap-align: start;
-  box-sizing: border-box; /* Crucial: padding inside 100vh */
-  flex-shrink: 0;
-}
-
-/* SECTION 1 - HERO SPECIFIC OVERRIDE */
-section#hero {
-  justify-content: center;
-  padding-top: 0; /* Hero usually handles its own internal layout */
-  padding-bottom: 0;
-}
-
-/* SECTION 2 - DIAGNOSTICS SPECIAL BUFFER */
-#diagnostics {
-  background-color: #020617;
-}
-
-/* Global Scroll Snapping */
+/* Global Scroll Snapping (Optimized thưa sếp!) */
 html {
   scroll-snap-type: y mandatory;
   scroll-behavior: smooth;

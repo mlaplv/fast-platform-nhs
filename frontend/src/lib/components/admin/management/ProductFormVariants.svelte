@@ -21,6 +21,11 @@
   
   let editingOption = $state<{ tIndex: number, oIndex: number } | null>(null);
   let editingValue = $state("");
+  
+  // R102 Validation Rune: Track invalid price combinations
+  const variantValidation = $derived(formVariants.map(v => ({
+    isInvalid: v.discountPrice > 0 && Number(v.discountPrice) >= Number(v.price)
+  })));
 
   // Svelte 5 init
   $effect(() => {
@@ -93,7 +98,7 @@
     const t1 = formTierVariations[0].options;
     const t2 = formTierVariations.length > 1 ? formTierVariations[1].options : [];
 
-    const newVariants: ProductVariantSchema[] = [];
+    const newVariants: Product['variants'] = [];
 
     if (t1.length === 0) {
       formVariants = [];
@@ -134,7 +139,7 @@
     editingOption = null;
   }
 
-  function findExistingVariant(targetIndex: number[]): ProductVariantSchema | undefined {
+  function findExistingVariant(targetIndex: number[]): Product['variants'][number] | undefined {
     return formVariants.find(v => 
       v.tierIndex.length === targetIndex.length && 
       v.tierIndex.every((val, idx) => val === targetIndex[idx])
@@ -351,7 +356,15 @@
 
                   <!-- Discount Price -->
                   <td class="p-1 border-l border-white/5">
-                    <input type="number" bind:value={variant.discountPrice} class="w-full bg-transparent border border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-rose-500/50 !outline-none px-3 py-2 text-xs text-rose-400 font-mono text-right rounded" placeholder="0" />
+                    <input 
+                      type="number" 
+                      bind:value={variant.discountPrice} 
+                      class="w-full bg-transparent border !outline-none px-3 py-2 text-xs font-mono text-right rounded transition-all 
+                        {variantValidation[vIndex]?.isInvalid 
+                          ? 'border-red-500 bg-red-500/10 text-red-400' 
+                          : 'border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-rose-500/50 text-rose-400'}" 
+                      placeholder="0" 
+                    />
                   </td>
 
                   <!-- Stock -->

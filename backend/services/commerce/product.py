@@ -2,7 +2,8 @@ import uuid
 import logging
 from datetime import datetime, timezone
 from typing import List, Dict, Optional
-from sqlalchemy import text, update, select, func, and_, or_
+from sqlalchemy import text, update, select, func, and_, or_, delete
+import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
 
@@ -211,11 +212,8 @@ class ProductService:
         if data.tierVariations is not None: product.tier_variations = [tv.model_dump() for tv in data.tierVariations]
         
         if data.variants is not None:
-            # Delete old variants strictly
-            await db_session.execute(update(ProductVariant).where(ProductVariant.product_base_id == product_id).values(
-                deleted_at=datetime.now(timezone.utc),
-                sku=ProductVariant.sku + "_del_" + str(uuid.uuid4().hex[:8]) # Free up unique SKU
-            ))
+            # Delete old variants strictly (Hard delete to avoid PK conflicts if reusing IDs)
+            await db_session.execute(delete(ProductVariant).where(ProductVariant.product_base_id == product_id))
             # Insert new ones
             for v in data.variants:
                 v_id = v.id if v.id and not v.id.startswith('new_') else f"v_{uuid.uuid4().hex[:12]}"

@@ -51,7 +51,7 @@
     <VerifiedReviews />
 
     <!-- OFFER: Pricing Packages & Scarcity Timer -->
-    <OfferGrid {timeLeft} />
+    <OfferGrid {product} {timeLeft} />
 
     <StealthCheckout />
   {:else}

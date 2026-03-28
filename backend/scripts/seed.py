@@ -16,7 +16,12 @@ if project_root not in sys.path: sys.path.insert(0, project_root)
 load_dotenv(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../.env")))
 
 from backend.database import async_session_maker
-from backend.database.models import *
+from backend.database.models import (
+    User, VoiceProfile, Role, Permission, Category, Article, Order, 
+    ProductBase, ProductVariant, ProductEmbedding, Draft, Notification, 
+    AgentTelemetryLog, ChatMessage, SystemSetting, Appointment, ContentCampaign, 
+    CampaignEvent
+)
 from backend.utils.security import GeminiSecurity
 from backend.scripts.seed_data import GEMINI_KEYS, CATEGORY_DEFS, SUB_CATEGORY_DEFS, PRODUCT_DEFS, PRODUCT_NAMES, ARTICLE_TITLES
 from backend.services.xohi.creative_studio.models.schemas import CategoryEnum

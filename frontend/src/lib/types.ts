@@ -126,8 +126,15 @@ export interface Product {
     seoDescription: string | null;
     images: string[];
     attributes: Record<string, unknown>;
-    variants?: ProductVariant[];
+    tierVariations: TierVariation[];
+    variants: ProductVariant[];
     createdAt: string;
+}
+
+export interface TierVariation {
+  name: string;
+  options: string[];
+  images: (string | null)[];
 }
 
 export interface ProductVariant {

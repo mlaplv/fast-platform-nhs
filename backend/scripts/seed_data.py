@@ -34,10 +34,11 @@ PRODUCT_DEFS = [
         "tier_variations": [
             {
                 "name": "Loại thuốc",
-                "options": ["Thường", "Đậm đặc"],
+                "options": ["Thường", "Đậm đặc", "Hôi chân"],
                 "images": [
                     "https://nhathuochongson.com/uploads/images/products/thuoc-dac-tri-hoi-nach-hong-son-lo-lon-20ml.jpeg",
-                    "https://nhathuochongson.com/uploads/images/products/thuoc-tri-hoi-nach-hong-son-dam-dac.gif"
+                    "https://nhathuochongson.com/uploads/images/products/thuoc-tri-hoi-nach-hong-son-dam-dac.gif",
+                    "https://nhathuochongson.com/uploads/images/products/thuoc-tri-hoi-nach-hoi-chan-hong-sonlo-lon-20ml.jpg"
                 ]
             }
         ],
@@ -55,7 +56,15 @@ PRODUCT_DEFS = [
                 "tier_index": [1],
                 "sku": "HS-HN-20ML-CONC",
                 "price": 320000,
-                "discount_price": 280000,
+                "discount_price": 290000,
+                "stock": 50
+            },
+            {
+                "id": "var_hn_hc",
+                "tier_index": [2],
+                "sku": "HS-HN-20ML-CONCC",
+                "price": 320000,
+                "discount_price": 289000,
                 "stock": 50
             }
         ]

@@ -30,6 +30,14 @@
     onNameInput: () => void;
     errors?: Record<string, string>;
   }>();
+
+  // R102 Validation Rune: Track invalid price combinations
+  const isDiscountInvalid = $derived(
+    formDiscountPrice !== undefined && 
+    formDiscountPrice !== null && 
+    Number(formDiscountPrice) > 0 && 
+    Number(formDiscountPrice) >= Number(formPrice)
+  );
 </script>
 
 <!-- Left Column: Primary Data -->
@@ -125,16 +133,24 @@
 
     <!-- Giá khuyến mãi -->
     <div class="field-group">
-      <label class="field-label text-rose-500/60">Giá khuyến mãi</label>
+      <label class="field-label flex items-center gap-2 {isDiscountInvalid ? 'text-red-500' : 'text-rose-500/60'} uppercase tracking-widest">
+        Giá khuyến mãi
+        {#if isDiscountInvalid}
+           <span class="text-[8px] font-bold text-red-500 normal-case">(Phải nhỏ hơn Giá bán)</span>
+        {/if}
+      </label>
       <div class="relative flex items-center">
         <input
           type="number"
           bind:value={formDiscountPrice}
           placeholder="0"
-          class="field-input border-b-rose-500/30 text-sm font-mono tracking-wider w-full pr-12 text-rose-400"
+          class="field-input transition-all !outline-none text-sm font-mono tracking-wider w-full pr-12 
+            {isDiscountInvalid 
+               ? 'border-b-red-500 text-red-400 bg-red-500/5' 
+               : 'border-b-rose-500/30 text-rose-400'}"
         />
-        <div class="field-line bg-rose-500/60"></div>
-        <span class="absolute right-2 text-[9px] font-black uppercase text-rose-500/50">VND</span>
+        <div class="field-line {isDiscountInvalid ? 'bg-red-500' : 'bg-rose-500/60'}"></div>
+        <span class="absolute right-2 text-[9px] font-black uppercase {isDiscountInvalid ? 'text-red-500/50' : 'text-rose-500/50'}">VND</span>
       </div>
     </div>
 

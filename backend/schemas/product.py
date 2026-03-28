@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validator
+from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validator, model_validator
 from typing import Optional, List, Dict, Union, Any
 from datetime import datetime
 
@@ -16,6 +16,14 @@ class ProductVariantSchema(BaseModel):
     price: float
     discountPrice: Optional[float] = Field(None, alias="discount_price")
     stock: int
+
+    @model_validator(mode="after")
+    def validate_variant_price(self) -> "ProductVariantSchema":
+        dp = self.discountPrice
+        p = self.price
+        if dp is not None and p is not None and dp >= p:
+            raise ValueError("Giá khuyến mãi phải nhỏ hơn giá bán")
+        return self
 
 class CreateProductRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True, strict=True)
@@ -42,6 +50,14 @@ class CreateProductRequest(BaseModel):
     tierVariations: List[TierVariation] = Field(default_factory=list, alias="tier_variations")
     variants: List[ProductVariantSchema] = Field(default_factory=list)
 
+    @model_validator(mode="after")
+    def validate_base_price(self) -> "CreateProductRequest":
+        dp = self.discountPrice
+        p = self.price
+        if dp is not None and p is not None and dp >= p:
+            raise ValueError("Giá khuyến mãi phải nhỏ hơn giá bán")
+        return self
+
 class UpdateProductRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True, strict=True)
     name: Optional[str] = Field(None, min_length=1, max_length=500)
@@ -65,6 +81,14 @@ class UpdateProductRequest(BaseModel):
     # R102 Variants Matrix
     tierVariations: Optional[List[TierVariation]] = Field(None, alias="tier_variations")
     variants: Optional[List[ProductVariantSchema]] = None
+
+    @model_validator(mode="after")
+    def validate_update_price(self) -> "UpdateProductRequest":
+        dp = self.discountPrice
+        p = self.price
+        if dp is not None and p is not None and dp >= p:
+            raise ValueError("Giá khuyến mãi phải nhỏ hơn giá bán")
+        return self
 
 class ProductResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True, strict=True)

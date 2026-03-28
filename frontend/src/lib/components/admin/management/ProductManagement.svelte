@@ -42,6 +42,7 @@
   let formName = $state("");
   let formSku = $state("");
   let formPrice = $state(0);
+  let formDiscountPrice = $state(0);
   let formStock = $state(0);
   let formCategory = $state("");
   let formStatus = $state<"active" | "draft">("draft");
@@ -160,29 +161,101 @@
 
   function openCreate() {
     editingId = null;
-    formName = ""; formSku = ""; formPrice = 0; formStock = 0; formCategory = ""; formStatus = "draft";
+    formName = ""; formSku = ""; formPrice = 0; formDiscountPrice = 0; formStock = 0; formCategory = ""; formStatus = "draft";
     formShortDescription = ""; formDescription = ""; formSlug = ""; formSeoTitle = ""; formSeoDescription = ""; formSeoKeywords = "";
     formImages = []; formAttributes = {};
     formTierVariations = []; formVariants = [];
     showForm = true;
   }
 
-  function openEdit(p: Product) {
-    editingId = p.id;
-    formName = p.name; formSku = p.sku; formPrice = p.price; formStock = p.stock;
-    formCategory = p.categoryId || "";
-    formStatus = p.status === "archived" ? "draft" : p.status;
-    formShortDescription = p.shortDescription || "";
-    formDescription = p.description || "";
-    formSlug = p.slug || "";
-    formSeoTitle = p.seoTitle || "";
-    formSeoDescription = p.seoDescription || "";
-    formSeoKeywords = p.seoKeywords || "";
-    formImages = p.images || [];
-    formAttributes = p.attributes || {};
-    formTierVariations = p.tierVariations || [];
-    formVariants = p.variants || [];
-    showForm = true;
+  interface RawTierVariation {
+    name: string;
+    options: string[];
+    images: (string | null)[];
+  }
+
+  interface RawVariant {
+    id: string;
+    tierIndex?: number[];
+    tier_index?: number[];
+    sku?: string;
+    price: number | string;
+    discountPrice?: number | string;
+    discount_price?: number | string;
+    stock: number | string;
+  }
+
+  interface RawProduct extends Product {
+    discount_price?: number;
+    category_id?: string;
+    categoryId?: string | null;
+    short_description?: string;
+    shortDescription?: string | null;
+    seo_title?: string;
+    seoTitle?: string | null;
+    seo_description?: string;
+    seoDescription?: string | null;
+    seo_keywords?: string;
+    seoKeywords?: string | null;
+    tierVariations?: RawTierVariation[];
+    tier_variations?: RawTierVariation[];
+    variants?: RawVariant[];
+  }
+
+  async function openEdit(productOrId: Product | string) {
+    let p: RawProduct;
+    const id = typeof productOrId === "string" ? productOrId : productOrId.id;
+    
+    isSaving = true; // Show loading state briefly
+    try {
+      // Force cache-busting to ensure we get the latest DB state after an update
+      p = await apiClient.get<Product>(`/api/v1/products/${id}`, { params: { _cb: Date.now().toString() } });
+      
+      console.log(`[Sync] Loaded product ${id} with ${p.variants?.length || 0} variants`);
+      
+      editingId = p.id;
+      formName = p.name || "";
+      formSku = p.sku || "";
+      formPrice = Number(p.price || 0);
+      formDiscountPrice = Number(p.discountPrice ?? p.discount_price ?? 0);
+      formStock = Number(p.stock || 0);
+      formCategory = p.categoryId ?? p.category_id ?? "";
+      formStatus = (p.status || "draft").toLowerCase();
+      if (formStatus === "archived") formStatus = "draft";
+
+      formShortDescription = p.shortDescription ?? p.short_description ?? "";
+      formDescription = p.description || "";
+      formSlug = p.slug || "";
+      formSeoTitle = p.seoTitle ?? p.seo_title ?? "";
+      formSeoDescription = p.seoDescription ?? p.seo_description ?? "";
+      formSeoKeywords = p.seoKeywords ?? p.seo_keywords ?? "";
+      formImages = p.images || [];
+      formAttributes = p.attributes || {};
+      
+      // R102 Defense: map potential snake_case to camelCase
+      formTierVariations = (p.tierVariations ?? p.tier_variations ?? []).map((tv: RawTierVariation) => ({
+        name: tv.name,
+        options: tv.options || [],
+        images: tv.images || []
+      }));
+
+      formVariants = (p.variants || []).map((v: RawVariant) => ({
+        ...v,
+        id: v.id,
+        sku: v.sku || "",
+        price: Number(v.price || 0),
+        discountPrice: Number(v.discountPrice ?? v.discount_price ?? 0),
+        stock: Number(v.stock || 0),
+        tierIndex: v.tierIndex ?? v.tier_index ?? []
+      }));
+
+      showForm = true;
+    } catch (err) {
+      nanobot.showToast("Không thể tải thông tin sản phẩm đầy đủ", "error");
+      console.error(err);
+    } finally {
+      isSaving = false;
+    }
   }
 
   function toggleSelect(id: string) {
@@ -193,11 +266,26 @@
 
   async function save() {
     if (!formName.trim()) return;
+
+    // Validation: Price > Discount Price
+    if (formDiscountPrice && Number(formDiscountPrice) >= Number(formPrice)) {
+      nanobot.showToast("Giá khuyến mãi phải nhỏ hơn giá bán bản gốc", "error");
+      return;
+    }
+
+    for (const v of (formVariants || [])) {
+      if (v.discountPrice && Number(v.discountPrice) >= Number(v.price)) {
+        nanobot.showToast(`Biến thể có giá KM (${v.discountPrice}) >= giá bán (${v.price})`, "error");
+        return;
+      }
+    }
+
     isSaving = true;
     const payload = {
       name: formName.trim(), 
       sku: formSku || `SKU-${Date.now()}`,
       price: Number(formPrice), 
+      discount_price: formDiscountPrice ? Number(formDiscountPrice) : null,
       stock: Number(formStock), 
       categoryId: formCategory || null, 
       status: (formStatus || "draft").toUpperCase(), // Backend expects ACTIVE/DRAFT
@@ -218,6 +306,7 @@
         id: v.id || null, // Ensure id is null if missing
         sku: v.sku || "",
         price: Number(v.price),
+        discount_price: v.discountPrice ? Number(v.discountPrice) : null,
         stock: Number(v.stock),
         tier_index: v.tierIndex || []
       }))
@@ -226,13 +315,17 @@
     try {
       if (editingId) {
         await apiClient.patch(`/api/v1/products/${editingId}`, payload);
-        nanobot.showToast("Đã cập nhật sản phẩm thành công", "success");
+        editingId = null;
+        showForm = false;
+        // Always reload the entire list to ensure everything (counts, stats, statuses) is perfectly synced
+        await loadProducts();
+        nanobot.showToast("Dữ liệu sản phẩm đã được đồng bộ chuẩn xác", "success");
       } else {
         await apiClient.post<Product>("/api/v1/products", payload);
         nanobot.showToast("Đã xuất bản sản phẩm mới", "success");
+        showForm = false;
+        await loadProducts();
       }
-      showForm = false;
-      await loadProducts();
     } catch (err: any) { 
       const msg = err?.message || "Lưu sản phẩm thất bại";
       nanobot.showToast(msg, "error"); 
@@ -284,7 +377,7 @@
   <ProductForm
     {editingId}
     isOpen={showForm}
-    bind:formName bind:formSku bind:formPrice bind:formStock bind:formCategory bind:formStatus
+    bind:formName bind:formSku bind:formPrice bind:formDiscountPrice bind:formStock bind:formCategory bind:formStatus
     bind:formShortDescription bind:formDescription bind:formSlug bind:formSeoTitle bind:formSeoDescription bind:formSeoKeywords
     bind:formImages bind:formAttributes bind:formTierVariations bind:formVariants
     {categories}
