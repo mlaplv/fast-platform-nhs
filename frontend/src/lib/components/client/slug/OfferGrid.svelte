@@ -130,6 +130,66 @@
       </div>
 
     </div>
+
+    <!-- Pharmacy Trust Footer - Viral Liquid Glass thưa sếp! -->
+    <div class="w-full mt-20">
+      <div class="pharmacy-footer group">
+        <!-- Specular Sheen Effect -->
+        <div class="absolute inset-0 overflow-hidden rounded-[inherit] pointer-events-none">
+          <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[2000ms] ease-in-out"></div>
+        </div>
+
+        <div class="info-grid">
+          <!-- Identity -->
+          <div class="contact-item">
+            <span class="label">PHÂN PHỐI CHÍNH HÃNG</span>
+            <span class="value text-white font-bold text-lg block mb-2">Nhà Thuốc Hồng Sơn</span>
+            <div class="flex items-start gap-2">
+              <svg class="w-3.5 h-3.5 text-slate-500 mt-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              <span class="value text-[11px] text-slate-400">33 Ngô Thị Nhậm, Trung Sơn, <br/> Tam Điệp, Ninh Bình</span>
+            </div>
+          </div>
+
+          <!-- Connectivity -->
+          <div class="contact-item">
+            <span class="label">HỖ TRỢ TRỰC TUYẾN</span>
+            <div class="space-y-3">
+              <a href="tel:0978785079" class="flex items-center gap-3 group/link">
+                <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20 group-hover/link:bg-blue-500/20 transition-colors">
+                  <svg class="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 005.47 5.47l.772-1.547a1 1 0 011.06-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/></svg>
+                </div>
+                <span class="value font-bold text-blue-400">097 878 5079</span>
+              </a>
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                  <span class="text-[10px] font-black text-cyan-400">Zalo</span>
+                </div>
+                <span class="value text-slate-300">Nhà thuốc Hồng Sơn</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Trust Markers -->
+          <div class="contact-item">
+            <span class="label">CAM KẾT DỊCH VỤ</span>
+            <div class="flex flex-wrap gap-2 mb-4">
+               <span class="px-3 py-1 bg-white/5 text-white text-[9px] font-bold rounded-lg border border-white/10 backdrop-blur-md">COD TOÀN QUỐC</span>
+               <span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[9px] font-bold rounded-lg border border-emerald-500/20 backdrop-blur-md">FREE SHIPPING</span>
+            </div>
+            <p class="text-[10px] text-slate-500 italic leading-relaxed">
+              * Giao hàng tận nơi nhanh chóng, <br/> bảo mật thông tin khách hàng tuyệt đối.
+            </p>
+          </div>
+        </div>
+
+        <!-- Compliance Label -->
+        <div class="license-tag">
+          <span class="px-4 py-1.5 bg-black/40 rounded-full border border-white/5">
+            GPKD: 09 B8 004018 | Ninh Bình | nhathuochongson.com
+          </span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Dynamic Line Wave Divider - High Impact Edition thưa Sếp! -->

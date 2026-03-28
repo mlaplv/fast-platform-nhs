@@ -140,6 +140,69 @@
       animation-delay: -5s;
     }
   }
+
+  /* Pharmacy Footer - Viral Liquid Glass iPhone 2026 thưa Sếp! */
+  & .pharmacy-footer {
+    position: relative;
+    width: 100%;
+    margin: 8rem 0 0;
+    padding: 3rem 2rem; /* Reduced thưa sếp! */
+    
+    /* Organic Blob Shape thưa sếp! */
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(80px) saturate(250%); /* High blur for seamlessness */
+    border-radius: 40px 100px 40px 100px / 40px 80px 40px 80px;
+    border: none; /* Loại bỏ border thưa sếp! */
+    outline: none; /* Loại bỏ outline thưa sếp! */
+    box-shadow: 
+      0 60px 120px -30px rgba(0, 0, 0, 0.6),
+      inset 0 10px 40px rgba(255, 255, 255, 0.05); /* Soft inner glow instead of border */
+    
+    animation: floating-liquid 15s infinite ease-in-out;
+    transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+    
+    & .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 3rem;
+      text-align: left;
+      position: relative;
+      z-index: 2;
+    }
+
+    & .contact-item {
+      & .label {
+        font-size: 0.65rem;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.3em;
+        font-weight: 800;
+        margin-bottom: 0.75rem;
+        display: block;
+      }
+      & .value {
+        font-size: 0.85rem;
+        color: #e2e8f0;
+        font-weight: 500;
+        line-height: 1.6;
+      }
+    }
+
+    & .license-tag {
+      font-size: 0.7rem;
+      color: #64748b;
+      margin-top: 3.5rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.03);
+      text-align: center;
+      letter-spacing: 0.02em;
+    }
+  }
+}
+
+@keyframes floating-liquid {
+  0%, 100% { transform: translateY(0) rotate(0deg); border-radius: 60px 200px 80px 180px / 80px 180px 60px 150px; }
+  50% { transform: translateY(-15px) rotate(1deg); border-radius: 80px 180px 60px 200px / 60px 200px 80px 180px; }
 }
 
 @keyframes wave-motion {

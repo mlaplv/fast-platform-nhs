@@ -14,8 +14,8 @@
 
   <section id="science" class="science-viewport snap-session relative">
 
-    <div class="science-container my-auto">
-      <div class="mb-20 text-center">
+    <div class="science-container pt-[8vh] pb-20" style="padding-top: 8vh !important;">
+      <div class="mb-8 text-center">
         <h2 class="section-title text-center text-5xl font-black uppercase md:text-7xl">
           Cơ chế khoa học
         </h2>
@@ -148,4 +148,21 @@
         </div>
       </div>
     {/if}
-  </section>
+    <!-- Dynamic Line Wave Divider - Technical Science thưa Sếp! -->
+  <div class="wave-container">
+    <svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="wave-gradient-science" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#3b82f6" stop-opacity="0" />
+          <stop offset="50%" stop-color="#22d3ee" stop-opacity="1" />
+          <stop offset="100%" stop-color="#3b82f6" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <!-- Complex, interference-like patterns -->
+      <path class="wave-line opacity-40" d="M0,160 Q360,60 720,160 T1440,160" />
+      <path class="wave-line opacity-20" d="M0,160 Q360,260 720,160 T1440,160" />
+      <path class="wave-line" d="M0,160 C180,100 360,220 540,160 C720,100 900,220 1080,160 C1260,100 1440,220 1440,160" />
+      <path class="wave-line secondary" d="M0,160 C180,220 360,100 540,160 C720,220 900,100 1080,160 C1260,220 1440,100 1440,160" />
+    </svg>
+  </div>
+</section>

@@ -27,13 +27,14 @@
       // IntersectionObserver for Active Section
       const observerOptions = {
         root: null,
-        rootMargin: '-20% 0px -70% 0px', // Adjust to trigger when section is mostly in view
+        rootMargin: '-30% 0px -30% 0px', // Wider 40% band for robust snapping thưa Sếp!
         threshold: 0
       };
 
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
+            // Update active section when any part enters the large center band
             activeSection = entry.target.id;
           }
         });

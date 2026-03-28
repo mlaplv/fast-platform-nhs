@@ -162,6 +162,21 @@
       </div>
     </div>
   </div>
+  <!-- Dynamic Line Wave Divider - Calming Reviews thưa Sếp! -->
+  <div class="wave-container">
+    <svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="wave-gradient-reviews" x1="0%" y1="0%" x2="100%" y2="50%">
+          <stop offset="0%" stop-color="#10b981" stop-opacity="0" />
+          <stop offset="50%" stop-color="#14b8a6" stop-opacity="0.6" />
+          <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <!-- Very slow, gentle breathing waves -->
+      <path class="wave-line opacity-10" d="M0,200 C400,100 800,300 1440,200" />
+      <path class="wave-line" d="M0,220 C420,150 780,280 1440,220" />
+    </svg>
+  </div>
 </section>
 
 {#if showFormModal}
