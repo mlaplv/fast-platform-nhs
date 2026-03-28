@@ -48,7 +48,7 @@ class ProductService:
         stmt = select(
             ProductBase.id, ProductBase.name, ProductBase.sku,
             ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
-            ProductBase.category_id, ProductBase.description, ProductBase.type,
+            ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
             ProductBase.images, ProductBase.attributes, ProductBase.tier_variations,
             ProductBase.created_at,
@@ -71,7 +71,7 @@ class ProductService:
         stmt = select(
             ProductBase.id, ProductBase.name, ProductBase.sku,
             ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
-            ProductBase.category_id, ProductBase.description, ProductBase.type,
+            ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
             ProductBase.images, ProductBase.attributes, ProductBase.tier_variations,
             ProductBase.created_at,
@@ -100,7 +100,7 @@ class ProductService:
         stmt = select(
             ProductBase.id, ProductBase.name, ProductBase.sku,
             ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
-            ProductBase.category_id, ProductBase.description, ProductBase.type,
+            ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
             ProductBase.images, ProductBase.attributes, ProductBase.tier_variations,
             ProductBase.created_at,
@@ -140,6 +140,7 @@ class ProductService:
             discount_price=data.discountPrice,
             stock=data.stock,
             status=data.status.upper(),
+            short_description=data.shortDescription,
             description=cleaned_description,
             category_id=data.categoryId,
             type=data.type,
@@ -194,6 +195,7 @@ class ProductService:
         if data.discountPrice is not None: product.discount_price = data.discountPrice
         if data.stock is not None: product.stock = data.stock
         if data.status is not None: product.status = data.status.upper()
+        if data.shortDescription is not None: product.short_description = data.shortDescription
 
         if data.description is not None:
             # Phase 76.95: Advanced Structural Noise Cleaning (Elite V2.2)

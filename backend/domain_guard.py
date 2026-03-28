@@ -1,23 +1,22 @@
 import os
-from litestar.middleware import AbstractMiddleware
+from litestar.middleware import ASGIMiddleware
 from litestar.types import ASGIApp, Receive, Scope, Send
 from litestar.exceptions import PermissionDeniedException
 
-class DomainGuardMiddleware(AbstractMiddleware):
+class DomainGuardMiddleware(ASGIMiddleware):
     """
     Elite Domain Guard (V2.2): Cô lập Admin/Client và chặn truy cập chéo.
     Bảo vệ các endpoint nhạy cảm chỉ được phép gọi từ domain quản trị.
     """
-    def __init__(self, app: ASGIApp):
-        super().__init__(app)
+    def __init__(self) -> None:
         self.admin_url = os.getenv("ADMIN_URL", "admin.smartshop.test").replace("https://", "").replace("http://", "")
         self.api_url = os.getenv("API_URL", "api.smartshop.test").replace("https://", "").replace("http://", "")
         self.app_url = os.getenv("APP_URL", "smartshop.test").replace("https://", "").replace("http://", "")
         self.debug = os.getenv("DEBUG", "false").lower() == "true"
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def handle(self, scope: Scope, receive: Receive, send: Send, next_app: ASGIApp) -> None:
         if scope["type"] != "http":
-            await self.app(scope, receive, send)
+            await next_app(scope, receive, send)
             return
 
         # 1. Trích xuất Host/Origin
@@ -38,7 +37,7 @@ class DomainGuardMiddleware(AbstractMiddleware):
             is_internal = current_host in ["localhost", "127.0.0.1", "api"]
 
         if is_internal or self.debug:
-            await self.app(scope, receive, send)
+            await next_app(scope, receive, send)
             return
 
         path = scope["path"]
@@ -72,4 +71,4 @@ class DomainGuardMiddleware(AbstractMiddleware):
             elif not is_admin_domain:
                 raise PermissionDeniedException(f"Domain '{current_host}' is restricted from mutation on {path}")
 
-        await self.app(scope, receive, send)
+        await next_app(scope, receive, send)

@@ -1,0 +1,417 @@
+/* 
+  ScienceBento.css - AGENT AI 2026 ELITE V2.2 
+  Single Viewport Liquid Bento Grid
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=JetBrains+Mono:wght@100..800&display=swap');
+
+/* --- THE BACKGROUND (Clean & Silent) --- */
+.science-viewport {
+  --glare: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --cyan-active: #22d3ee;
+  --blue-active: #3b82f6;
+  --bg-deep: #020617;
+  
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-left: 2rem;
+  padding-right: 2rem;
+  background: #020617;
+  position: relative;
+  overflow: hidden;
+}
+
+/* All orbs and connections removed for Maximum Clarity as requested */
+.liquid-orb, .peeking-orb, .science-connection-layer { display: none; }
+
+.orb-cyan-1 { top: 20%; left: 30%; animation: peek-1 15s infinite alternate ease-in-out; }
+.orb-cyan-2 { bottom: 20%; right: 25%; animation: peek-2 20s infinite alternate ease-in-out; background: var(--orb-blue); }
+.orb-cyan-3 { top: 50%; left: 10%; animation: peek-3 18s infinite alternate ease-in-out; width: 150px; height: 150px; }
+
+@keyframes peek-1 {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(150px, 80px) scale(1.3); }
+}
+
+@keyframes peek-2 {
+  0% { transform: translate(0, 0) scale(1.2); }
+  100% { transform: translate(-120px, -150px) scale(0.8); }
+}
+
+@keyframes peek-3 {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(80px, 200px); }
+}
+
+.orb-1 { width: 400px; height: 400px; background: var(--orb-blue); top: 10%; right: 10%; animation-delay: -2s; }
+.orb-2 { width: 300px; height: 300px; background: var(--orb-cyan); bottom: 10%; left: 5%; animation-delay: -5s; }
+.orb-3 { width: 500px; height: 500px; background: #1e1b4b; top: 40%; left: 20%; opacity: 0.2; }
+
+@keyframes float-orb {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(50px, 100px) scale(1.2); }
+}
+
+/* --- THE NEURAL CONNECTION (Linewave) --- */
+.science-connection-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+.science-connection-layer svg {
+  width: 100%;
+  height: 100%;
+}
+
+.linewave-path {
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 2400;
+  animation: linewave-flow 20s linear infinite;
+  filter: blur(2px);
+}
+
+.path-2 {
+  animation-duration: 30s;
+  animation-direction: reverse;
+  filter: blur(4px);
+}
+
+@keyframes linewave-flow {
+  from { stroke-dashoffset: 2400; }
+  to { stroke-dashoffset: 0; }
+}
+
+.science-container {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 1400px;
+}
+
+.science-layout {
+  display: flex;
+  gap: 3rem;
+  width: 100%;
+  min-height: 700px; /* Reduced since Vapor card is gone */
+}
+
+.column-left { flex: 6; display: flex; flex-direction: column; gap: 3rem; }
+.column-right { flex: 5; display: flex; flex-direction: column; gap: 3rem; }
+
+/* --- THE UNIQUE GLASS MASTERPIECES --- */
+
+.bento-tile {
+  position: relative;
+  background: rgba(15, 23, 42, 0.85); /* Darker background for sharp contrast */
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.5s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.bento-tile:hover {
+  background: rgba(15, 23, 42, 0.95);
+  border-color: var(--orb-cyan);
+}
+
+/* CARD 1: THE CHAMFER CORE (Refined Tech Cut) */
+.glass-chamfer {
+  flex: 1.2;
+  padding: 3.5rem 4.5rem;
+  border-radius: 0.5rem;
+  clip-path: polygon(
+    0 40px, 40px 0, 
+    calc(100% - 40px) 0, 100% 40px, 
+    100% 100%, 0 100%
+  );
+}
+
+.glass-chamfer .capsule-visual {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  opacity: 1; /* Maximum clarity */
+  transition: all 1.2s ease;
+  pointer-events: none;
+}
+
+.glass-chamfer .capsule-visual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 90% 90%, rgba(2, 6, 23, 0.8) 0%, transparent 60%);
+  opacity: 0.6;
+  z-index: 1;
+}
+
+.text-shield {
+  position: absolute;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  max-width: 18rem;
+  padding: 0.6rem 1rem;
+  background: rgba(255, 255, 255, 0.01);
+  backdrop-filter: blur(40px) saturate(150%);
+  -webkit-backdrop-filter: blur(40px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  z-index: 30;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.3),
+    inset 0 0 10px rgba(255, 255, 255, 0.02);
+  overflow: hidden; /* For blobs */
+}
+
+/* INTERNAL LIQUID BLOBS FOR THAT PHOTO-REALISTIC LOOK */
+.shield-blob {
+  position: absolute;
+  width: 15rem;
+  height: 15rem;
+  border-radius: 50%;
+  filter: blur(40px);
+  z-index: -1;
+  opacity: 0.2;
+  animation: blob-move 10s infinite alternate ease-in-out;
+}
+
+.blob-1 { background: #10b981; top: -20%; left: -20%; }
+.blob-2 { background: #059669; bottom: -20%; right: -20%; animation-delay: -5s; }
+
+@keyframes blob-move {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(20%, 20%) scale(1.2); }
+}
+
+.text-shield p {
+  position: relative !important;
+  bottom: auto !important;
+  right: auto !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding-right: 0 !important;
+  border-right: none !important;
+}
+
+.glass-chamfer:hover .capsule-visual { opacity: 0.7; transform: scale(1.05); }
+
+/* CARD 2: THE ORGANIC BUBBLE (Fluid Shape) */
+.glass-organic {
+  flex: 1;
+  padding: 4rem;
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 40%;
+  background: radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.15), transparent 70%);
+  border: 1px solid rgba(34, 211, 238, 0.1);
+}
+
+/* CARD 3: THE HORIZONTAL ISLAND (Solid Contrast) */
+.glass-island {
+  flex: 1;
+  padding: 3rem;
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* CARD 4: THE CINEMATIC HORIZON (Linear Sharp) */
+.glass-horizon {
+  flex: 1;
+  border-radius: 0.5rem;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 85%);
+}
+
+.glass-horizon .horizon-scroll-container {
+  z-index: 1;
+}
+
+.horizon-slide-wrapper {
+  display: flex;
+  flex-direction: column;
+  animation: slide-up-transform 30s linear infinite;
+}
+
+.horizon-slide-wrapper img {
+  width: 100%;
+  display: block;
+}
+
+@keyframes slide-up-transform {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+.hud-view-dot {
+  pointer-events: none;
+}
+
+.hud-view-dot .w-12 {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+.animate-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.2);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #10b981;
+}
+
+@keyframes bg-slide {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* CARD 5: THE GEM CUT (Polygonal Diamond) */
+.glass-gem {
+  flex: 1;
+  padding: 3.5rem;
+  clip-path: polygon(
+    25% 0%, 75% 0%, 100% 25%, 
+    100% 75%, 75% 100%, 25% 100%, 0% 75%, 0% 25%
+  );
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent);
+}
+
+/* CARD 6: THE VAPOR FLOAT (Barely Visible) */
+.glass-vapor {
+  flex: 1;
+  border: none;
+  background: transparent;
+}
+
+.glass-vapor .vapor-inner {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  border-radius: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* --- HUD & TYPO REFINEMENT (Masterpiece) --- */
+
+.title-master {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(2.25rem, 4.5vw, 4rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  color: white;
+  text-transform: uppercase;
+  text-shadow: 0 4px 30px rgba(0, 0, 0, 1); /* Ultra high contrast */
+}
+
+.text-liquid-glow { 
+  color: var(--orb-cyan); 
+  font-weight: 900;
+  text-shadow: 0 0 40px rgba(34, 211, 238, 0.8);
+}
+
+.hud-mono-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 7px;
+  letter-spacing: 0.6em;
+  opacity: 0.25;
+  color: white;
+  margin-bottom: 2rem;
+}
+
+.quote-master {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.35rem;
+  font-style: italic;
+  font-weight: 300;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+.stats-value-giant { 
+  font-family: 'Outfit', sans-serif; 
+  font-size: 7rem; 
+  font-weight: 900; 
+  line-height: 0.8; 
+  color: white; 
+  text-shadow: 0 10px 40px rgba(0, 0, 0, 1);
+}
+.stats-unit-cyan { font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 900; color: var(--orb-cyan); }
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1.5rem;
+  background: rgba(34, 211, 238, 0.05);
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  border-radius: 100px;
+}
+
+.pulse-dot { width: 8px; height: 8px; background: var(--orb-cyan); border-radius: 50%; box-shadow: 0 0 15px var(--orb-cyan); animation: pulse 2s infinite; }
+@keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.5; } 100% { transform: scale(1); opacity: 1; } }
+
+.laser-line {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 2px;
+  background: linear-gradient(to right, transparent, var(--orb-cyan), transparent);
+  opacity: 0; animation: scan-anim 10s linear infinite;
+}
+
+.glass-chamfer:hover .laser-line { opacity: 0.5; }
+@keyframes scan-anim { from { transform: translateY(0); } to { transform: translateY(600px); } }
+
+/* --- CORE CLAIM HIGHLIGHT --- */
+.text-highlight-science {
+  color: #fff !important;
+  opacity: 1 !important;
+  text-shadow: 0 0 15px rgba(34, 211, 238, 0.6), 0 0 30px rgba(34, 211, 238, 0.2);
+  border-right: 2px solid var(--orb-cyan);
+  padding-right: 1.5rem;
+  font-weight: 500;
+  animation: tech-pulse 4s infinite alternate ease-in-out;
+}
+
+@keyframes tech-pulse {
+  0% { 
+    text-shadow: 0 0 10px rgba(34, 211, 238, 0.4); 
+    border-color: rgba(34, 211, 238, 0.3); 
+    transform: translateX(0);
+  }
+  100% { 
+    text-shadow: 0 0 25px rgba(34, 211, 238, 0.8), 0 0 45px rgba(34, 211, 238, 0.4); 
+    border-color: var(--orb-cyan);
+    transform: translateX(-5px);
+  }
+}
+
+@media (max-width: 1024px) {
+  .science-connection-layer { display: none; }
+  .science-layout { flex-direction: column; }
+  .column-left, .column-right { width: 100%; }
+  .glass-chamfer, .glass-organic, .glass-horizon, .glass-gem { clip-path: none !important; border-radius: 2rem !important; }
+}

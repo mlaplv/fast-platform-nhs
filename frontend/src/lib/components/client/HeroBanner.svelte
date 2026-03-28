@@ -2,20 +2,75 @@
   import { onMount } from 'svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
   import { browser } from '$app/environment';
+  import type { Product } from '$lib/types';
+  import LiquidHeader from './LiquidHeader.svelte';
+  import "./HeroBanner.css";
   
-  let { product = {}, scrollToQuiz } = $props();
-  let themeMode = $state('system');
+  interface HeroBannerProps {
+    product: GenericProduct;
+    scrollToQuiz?: () => void;
+  }
+
+  // Senior Architect Note: Use a more flexible type for initial props while maintaining strict safety
+  type GenericProduct = Partial<Product> & {
+    attributes?: {
+      hero_headline?: string;
+      absorption_value?: string;
+      efficiency_value?: string;
+      origin_value?: string;
+      [key: string]: unknown;
+    };
+  };
+
+  let { product, scrollToQuiz }: HeroBannerProps = $props();
+  let themeMode = $state<'system' | 'light' | 'dark'>('system');
+  let mouse = $state({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!browser) return;
+    mouse.x = (e.clientX / window.innerWidth - 0.5) * 30;
+    mouse.y = (e.clientY / window.innerHeight - 0.5) * 30;
+  };
 
   const productName = $derived(product?.name || 'Elite Formulation');
   const mainImage = $derived(resolveMediaUrl(product?.images?.[0] || ''));
+  const rawHeadline = (product?.attributes?.hero_headline as string) || 'CHẤM DỨT <br/> MÙI CƠ THỂ.';
+  
+  let displayText = $state("");
+  let isTypingComplete = $state(false);
 
-  const updateDOM = (theme: string) => {
+  const typeWriter = async () => {
+    if (!browser) return;
+    const parts = rawHeadline.split(/(<br\s*\/?>)/i);
+    let currentText = "";
+    
+    // Initial delay for cinematic effect
+    await new Promise(r => setTimeout(r, 800));
+
+    for (const part of parts) {
+      if (part.toLowerCase().startsWith("<br")) {
+        currentText += part;
+        displayText = currentText;
+      } else {
+        for (const char of part) {
+          currentText += char;
+          displayText = currentText;
+          // Slower, more deliberate typing speed
+          const delay = char === '.' || char === ',' ? 500 : 150 + Math.random() * 100;
+          await new Promise(r => setTimeout(r, delay));
+        }
+      }
+    }
+    isTypingComplete = true;
+  };
+
+  const updateDOM = (theme: 'light' | 'dark') => {
     if (!browser) return;
     document.documentElement.setAttribute('data-theme', theme);
     document.body.setAttribute('data-theme', theme);
   };
 
-  const applyTheme = (mode: string) => {
+  const applyTheme = (mode: 'system' | 'light' | 'dark') => {
     themeMode = mode;
     if (!browser) return;
     localStorage.setItem('hero-theme-mode', mode);
@@ -23,86 +78,128 @@
       const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       updateDOM(isDark ? 'dark' : 'light');
     } else {
-      updateDOM(mode);
+      updateDOM(mode as 'light' | 'dark');
     }
   };
 
   onMount(() => {
     if (browser) {
-      applyTheme(localStorage.getItem('hero-theme-mode') || 'system');
+      typeWriter();
+      const savedTheme = localStorage.getItem('hero-theme-mode');
+      const validTheme = (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') ? savedTheme : 'system';
+      applyTheme(validTheme);
       const mq = window.matchMedia('(prefers-color-scheme: dark)');
       const h = (e: MediaQueryListEvent) => themeMode === 'system' && updateDOM(e.matches ? 'dark' : 'light');
       mq.addEventListener('change', h);
       return () => mq.removeEventListener('change', h);
     }
   });
+
+  const scrollToCare = () => {
+    if (!browser) return;
+    const element = document.getElementById('personalized-care');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 </script>
 
-<section class="hero-center-layout">
-  <!-- THEME SWITCHER -->
-  <button class="fixed top-6 right-6 z-[100] w-12 h-12 rounded-full elite-glass flex items-center justify-center shadow-xl" onclick={() => {
-    const modes = ['system', 'light', 'dark'] as const;
-    applyTheme(modes[(modes.indexOf(themeMode as any) + 1) % modes.length]);
-  }}>
-    {#if themeMode === 'dark'}<svg class="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5z"/></svg>{:else}<svg class="w-5 h-5 text-blue-500 fill-current" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c.44-.06.9-.1 1.36-.1H12z"/></svg>{/if}
-  </button>
+<section
+  id="hero"
+  class="hero-center-layout content-hero snap-session relative w-full overflow-hidden flex flex-col items-center justify-start bg-[#020617] text-white"
+  onmousemove={handleMouseMove}
+  style="--mx: {mouse.x}px; --my: {mouse.y}px; --hero-accent: #3b82f6; --hero-glass-blur: 32px;"
+>
+  <LiquidHeader {themeMode} {applyTheme} scrollToQuiz={scrollToCare} />
 
-  <!-- TOP HUD -->
-  <header class="absolute top-8 left-1/2 -translate-x-1/2 z-20 flex elite-glass rounded-full p-1 opacity-80 backdrop-blur-md">
-      <div class="px-4 py-1.5 border-r border-white/5 flex items-center gap-2">
-        <div class="w-1.5 h-1.5 bg-pink-500 rounded-full"></div>
-        <span class="text-[9px] font-black uppercase tracking-widest opacity-60">Nano Silver 99.8%</span>
-      </div>
-      <div class="px-4 py-1.5 flex items-center">
-        <span class="text-[9px] font-black uppercase tracking-widest text-blue-400">Clinical Mode</span>
-      </div>
-  </header>
 
-  <!-- VIDEO BACKGROUND -->
-  <div class="absolute inset-0 z-0 w-full h-full">
-    <div class="absolute inset-0 bg-gradient-to-b from-canvas/60 to-canvas z-10 w-full h-full"></div>
-    <video autoplay muted loop playsinline class="w-full h-full object-cover opacity-20 filter grayscale v-zoom">
+  <!-- NUCLEAR VIDEO BACKGROUND (Standard Full Coverage: 100% Native) -->
+  <div class="absolute inset-x-0 top-0 bottom-0 z-0 overflow-hidden pointer-events-none w-full h-full">
+    <div class="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#020617] to-transparent w-full" style:z-index="var(--z-surface)"></div>
+    <video autoplay muted loop playsinline class="elite-video-bg">
       <source src="/video/video-hn.mp4" type="video/mp4" />
     </video>
   </div>
 
-  <div class="container relative z-10 flex flex-col items-center">
-    <div class="mb-4 inline-flex items-center px-4 py-1 bg-blue-600/10 border border-blue-500/20 rounded-md">
-       <span class="text-[8px] font-black uppercase tracking-[0.4em] text-blue-500">Elite Formulation V2.2</span>
-    </div>
+  <div class="container relative flex flex-col items-center pt-[clamp(1.5rem,5vh,3.5rem)] px-6" style:z-index="var(--z-surface)">
 
-    <h1 class="text-7xl md:text-9xl font-black mb-8">CHẤM DỨT <br/> MÙI CƠ THỂ.</h1>
+    <h1 class="typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0 leading-[1.05] text-[clamp(2.5rem,5vw,3.5rem)] lg:text-[clamp(3.5rem,11vw,8.5rem)]">
+       {@html displayText}
+       {#if !isTypingComplete}
+          <span class="typing-cursor">|</span>
+       {/if}
+    </h1>
 
-    <div class="relative w-full max-w-5xl py-12 flex items-center justify-center">
-       <div class="absolute inset-0 liquid-oval-bg scale-y-[0.8] md:scale-y-[0.7]"></div>
-       <div class="relative z-10 flex flex-col md:flex-row items-center justify-center gap-16 md:gap-32 w-full px-12">
-          <div class="relative float-anim">
-             <div class="bg-white p-6 rounded-[2.5rem] shadow-2xl border-4 border-white/10">
-                <img src="{mainImage}" alt="{productName}" class="w-48 md:w-64 object-contain" />
+    {#if product?.shortDescription}
+       <p class="hero-description outline-none">
+          {@html product.shortDescription}
+       </p>
+    {/if}
+
+    <div class="hero-product-display relative w-full max-w-6xl py-8 md:py-12 flex items-center justify-center">
+       <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+       </div>
+    <div class="relative flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-16 w-full px-4 lg:px-12" style:z-index="var(--z-surface)">
+          
+          <div class="relative float-anim parallax-layer">
+             <!-- FLASH LIGHT BEAM (Cinematic Highlight - Locked to Product Left Edge) -->
+             <div class="flashlight-beam hidden lg:block"></div>
+
+             <div class="elite-product-card relative hud-frame">
+                
+                <div class="product-glass-container flex items-center justify-center overflow-hidden rounded-[3.5rem] aspect-square w-64 md:w-80 lg:w-96">
+                   <img src="{mainImage}" alt="{productName}" class="w-full h-full object-cover image-rim-light" />
+                </div>
+                
+                <!-- NEW: Mist Spray originating from the RIGHT EDGE of the product -->
+                <div class="mist-container absolute top-1/2 -right-4 -translate-y-1/2 pointer-events-none hidden lg:block" style:z-index="var(--z-surface)">
+                   {#each Array(20) as _, i}
+                      <div class="mist-particle" style="--p-idx: {i};"></div>
+                   {/each}
+                </div>
+                
+                <!-- SCANNING LINE -->
+                <div class="absolute inset-x-0 h-[1px] bg-blue-400/20 shadow-[0_0_15px_rgba(96,165,250,0.5)] scan-anim pointer-events-none"></div>
              </div>
           </div>
-          <div class="flex flex-col gap-8 text-left">
-             <div class="flex items-center gap-6"><div class="w-2 h-2 bg-blue-500 rounded-full shadow-lg"></div><div class="flex flex-col"><span class="text-[9px] font-black text-blue-500 uppercase">Absorption</span><span class="text-3xl font-black">XUẤT THẤU 3s</span></div></div>
-             <div class="flex items-center gap-6"><div class="w-2 h-2 bg-indigo-500 rounded-full shadow-lg"></div><div class="flex flex-col"><span class="text-[9px] font-black text-indigo-500 uppercase">Persistence</span><span class="text-3xl font-black">48H KHÔ THOÁNG</span></div></div>
-             <div class="flex items-center gap-6"><div class="w-2 h-2 bg-emerald-500 rounded-full shadow-lg"></div><div class="flex flex-col"><span class="text-[9px] font-black text-emerald-500 uppercase">Organic</span><span class="text-3xl font-black">THẢO DƯỢC 100%</span></div></div>
+
+          <div id="products" class="metrics-arc-container relative">
+             {#each [
+                { label: 'Absorption', value: product?.attributes?.absorption_value || 'XUẤT THẤU 3s', color: 'blue' },
+                { label: 'Efficiency', value: product?.attributes?.efficiency_value || '48H KHÔ THOÁNG', color: 'indigo' },
+                { label: 'Origin', value: product?.attributes?.origin_value || 'THẢO DƯỢC 100%', color: 'emerald' }
+             ] as metric, i}
+                <div class="arc-item group flex flex-col" style="--idx: {i}">
+                   <div class="flex items-center gap-4 mb-2">
+                      <div class="metric-dot bg-{metric.color}-500 shadow-[0_0_15px_rgba(var(--{metric.color}-rgb),1)]"></div>
+                      <span class="text-[10px] font-black text-{metric.color}-500 uppercase tracking-[0.25em] drop-shadow-sm">{metric.label}</span>
+                   </div>
+                   <span class="metric-value transform group-hover:scale-110 transition-transform">{metric.value}</span>
+                </div>
+             {/each}
           </div>
        </div>
     </div>
+
+    <!-- PREMIUM CTA BUTTON -->
+    <button class="hero-cta-button" onclick={scrollToCare}>
+       <div class="cta-gradient-overlay"></div>
+       <div class="cta-content">
+          <div class="cta-status-dot"></div>
+          <span class="cta-text">Personalized Care AI</span>
+          <svg class="cta-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+          </svg>
+       </div>
+       <div class="cta-shimmer"></div>
+    </button>
+
+    <!-- MOUSE SCROLL INDICATOR -->
+    <a href="#personalized-care" class="mouse-scroll-indicator" onclick={(e) => { e.preventDefault(); scrollToCare(); }}>
+       <div class="mouse-body">
+          <div class="mouse-wheel"></div>
+       </div>
+    </a>
   </div>
 </section>
 
-<style>
-  .hero-center-layout {
-    position: relative; width: 100%; min-height: 100vh; background-color: #020617; color: #fff; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  }
-  .elite-glass {
-    background: rgba(0,0,0,0.3); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08);
-  }
-  .liquid-oval-bg {
-    background: rgba(255,255,255,0.02); backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.08); border-radius: 1000px;
-  }
-  .v-zoom { animation: zoom-slow 40s linear infinite; }
-  .float-anim { animation: float 8s ease-in-out infinite; }
-  @keyframes zoom-slow { 0%, 100% { transform: scale(1.1); } 50% { transform: scale(1.25); } }
-  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-30px); } }
-</style>

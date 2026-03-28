@@ -97,7 +97,7 @@ app = Litestar(
         CheckoutController, ChatController, SettingsController, AIController, ContentController, MediaController, ContentStreamController,
         BannerController, stt_websocket, TTSController, IntentMapController, SchedulerController,
     ],
-    middleware=[BodyLimitMiddleware, rate_limit_config.middleware, DomainGuardMiddleware, AuthMiddleware],
+    middleware=[BodyLimitMiddleware, rate_limit_config.middleware, DomainGuardMiddleware(), AuthMiddleware()],
     cors_config=cors_config,
     stores={"memory_store": memory_store},
     openapi_config=OpenAPIConfig(

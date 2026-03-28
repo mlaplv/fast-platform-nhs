@@ -1,6 +1,6 @@
 import os
 import jwt
-from litestar.middleware import AbstractMiddleware
+from litestar.middleware import ASGIMiddleware
 from litestar.datastructures import State
 from litestar.types import ASGIApp, Receive, Scope, Send
 from litestar.exceptions import NotAuthorizedException
@@ -8,10 +8,10 @@ from litestar.exceptions import NotAuthorizedException
 SECRET_KEY = os.environ["ENCRYPTION_SALT"]  # MUST be set — crash on start if missing (CTO Audit V2 C2)
 ALGORITHM = "HS256"
 
-class AuthMiddleware(AbstractMiddleware):
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+class AuthMiddleware(ASGIMiddleware):
+    async def handle(self, scope: Scope, receive: Receive, send: Send, next_app: ASGIApp) -> None:
         if scope["type"] != "http":
-            await self.app(scope, receive, send)
+            await next_app(scope, receive, send)
             return
 
         headers = {k.decode("utf-8").lower(): v.decode("utf-8") for k, v in scope.get("headers", [])}
@@ -87,7 +87,7 @@ class AuthMiddleware(AbstractMiddleware):
             await send(message)
 
         try:
-            await self.app(scope, receive, send_wrapper)
+            await next_app(scope, receive, send_wrapper)
         finally:
             # Clean up context to avoid bleed across requests
             current_tenant_id.reset(token_ctx)

@@ -1,13 +1,19 @@
 <script lang="ts">
   import { shopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { resolveMediaUrl } from '$lib/state/utils';
   import { portal } from '$lib/actions/portal.ts';
   import { Z_INDEX } from '$lib/core/constants/zIndex.ts';
-  import { fade, fly } from 'svelte/transition';
+  import { fade, fly, scale } from 'svelte/transition';
+  import { quintOut } from 'svelte/easing';
+  import "./slug/LiquidEffects.css";
 
   let customer = $state({
     phone: '',
     address: ''
   });
+
+  const product = $derived(shopStore.product);
+  const mainImage = $derived(resolveMediaUrl(product?.images?.[0] || ''));
 
   const zIndexStyle = `--z-index: ${Z_INDEX.MODAL}`;
 
@@ -23,127 +29,131 @@
 {#if shopStore.isCheckoutOpen}
   <div
     use:portal
-    transition:fade={{ duration: 300 }}
-    class="fixed inset-0 bg-slate-950/80 backdrop-blur-xl transition-opacity duration-300"
-    style="z-index: ${Z_INDEX.OVERLAY};"
+    transition:fade={{ duration: 400 }}
+    class="fixed inset-0 bg-[#020617]/80 backdrop-blur-sm transition-opacity duration-300"
+    style="z-index: {Z_INDEX.OVERLAY};"
     onclick={() => shopStore.closeCheckout()}
+    onkeydown={(e) => e.key === 'Escape' && shopStore.closeCheckout()}
     role="button"
+    aria-label="Close checkout overlay"
     tabindex="-1"
   ></div>
 
   <div
     use:portal
-    transition:fly={{ y: 100, duration: 500, opacity: 1 }}
-    class="fixed bottom-0 left-0 right-0 max-w-lg mx-auto glass-dark text-white rounded-t-[3rem] p-10 transition-all"
+    transition:fly={{ y: 30, duration: 800, easing: quintOut }}
+    class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-lg glass-liquid text-white rounded-[4rem] p-10 md:p-14 transition-all shadow-[0_80px_250px_rgba(0,0,0,0.9)] border border-white/5"
     style="z-index: var(--z-index); {zIndexStyle}"
   >
-    <!-- Premium Handle -->
-    <div class="w-16 h-1 bg-white/10 rounded-full mx-auto mb-10"></div>
-
-    <div class="header flex justify-between items-start mb-10">
-      <div>
-        <h2 class="text-4xl font-black text-white tracking-tighter leading-none mb-2">XÁC NHẬN</h2>
-        <p class="text-blue-400 text-sm font-bold uppercase tracking-widest">Elite Order Fulfillment</p>
+    <!-- Header with Trust Indicator -->
+    <div class="header flex justify-between items-center mb-12">
+      <div in:fly={{ x: -20, duration: 800, easing: quintOut }}>
+        <div class="flex items-center gap-3 mb-1">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></span>
+          <span class="text-emerald-500/80 text-[10px] font-black uppercase tracking-[0.3em]">Neural Encryption Active</span>
+        </div>
+        <h2 class="text-4xl font-black text-white tracking-tighter uppercase leading-none">CHECKOUT</h2>
       </div>
-      <button onclick={() => shopStore.closeCheckout()} class="p-3 bg-white/5 text-white/40 hover:text-white rounded-full transition-all hover:bg-white/10">
+      <button 
+        onclick={() => shopStore.closeCheckout()} 
+        class="p-4 bg-white/5 text-white/20 hover:text-white rounded-full transition-all border border-white/5"
+      >
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
     </div>
 
     {#if shopStore.orderSuccess}
-      <div class="success-message text-center py-16" in:fade={{ duration: 500 }}>
-        <div class="inline-flex items-center justify-center w-24 h-24 bg-blue-600 rounded-[2.5rem] mb-8 shadow-[0_0_50px_rgba(37,99,235,0.4)] animate-float">
-          <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="success-message text-center py-20" in:scale={{ duration: 800, easing: quintOut }}>
+        <div class="inline-flex items-center justify-center w-32 h-32 glass-liquid rounded-[3rem] mb-10 border-blue-500/20">
+          <svg class="w-16 h-16 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h3 class="text-4xl font-black text-white mb-4 tracking-tighter">SUCCESS!</h3>
-        <p class="text-white/60 leading-relaxed font-medium">Đơn hàng đã được chuyển tới trung tâm xử lý ưu tiên. Chúng tôi sẽ liên hệ trong tích tắc.</p>
+        <h3 class="text-5xl font-black text-white mb-6 uppercase tracking-tighter">SUCCESS</h3>
+        <p class="text-white/40 leading-relaxed font-medium text-lg max-w-sm mx-auto">Đơn hàng đã được chuyển tới trung tâm hậu cần. Nhân viên hỗ trợ sẽ gọi tới Sếp ngay.</p>
       </div>
     {:else}
-      <div class="form-container space-y-8">
-        <div class="input-group">
-          <label class="block text-xs font-black text-blue-400 uppercase tracking-[0.2em] mb-3" for="phone">Hỗ trợ nhận dạng (SĐT) <span class="text-red-500">*</span></label>
+      <div class="form-container space-y-10">
+        
+        <!-- Product Quick Summary -->
+        <div class="product-mini-card flex items-center gap-6 p-4 rounded-3xl bg-white/5 border border-white/5 mb-4" in:fly={{ y: 20, duration: 800, delay: 200, easing: quintOut }}>
+          <div class="w-20 h-20 rounded-2xl overflow-hidden bg-white/5 shrink-0">
+             <img src="{mainImage}" alt="{product?.name}" class="w-full h-full object-cover" />
+          </div>
+          <div>
+            <h4 class="font-black text-lg uppercase tracking-tight text-white/90">{product?.name}</h4>
+            <div class="flex items-center gap-2 mt-1">
+               <span class="text-blue-500 font-black text-xs">Quantity: {shopStore.quantity}</span>
+               <span class="w-1 h-1 rounded-full bg-white/10"></span>
+               <span class="text-white/30 text-[10px] font-bold uppercase tracking-widest">COD Delivery</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Solidified Inputs -->
+        <div class="input-group group" in:fly={{ y: 20, duration: 800, delay: 300, easing: quintOut }}>
+          <label class="block text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-3 ml-2" for="phone">Số điện thoại <span class="text-red-500/50">*</span></label>
           <input
             type="tel"
             id="phone"
             bind:value={customer.phone}
             placeholder="09xx xxx xxx"
-            class="w-full p-5 bg-white/5 border border-white/10 rounded-2xl focus:ring-2 focus:ring-blue-600 focus:bg-white/10 outline-none transition-all text-xl font-bold placeholder:text-white/20"
+            class="w-full p-6 bg-white/5 border border-white/10 rounded-3xl outline-none focus:border-blue-500/40 text-2xl font-black text-white placeholder:text-white/5 transition-all"
           />
         </div>
 
-        <div class="input-group">
-          <label class="block text-xs font-black text-blue-400 uppercase tracking-[0.2em] mb-3" for="address">Tọa độ giao hàng <span class="text-red-500">*</span></label>
+        <div class="input-group group" in:fly={{ y: 20, duration: 800, delay: 400, easing: quintOut }}>
+          <label class="block text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-3 ml-2" for="address">Địa chỉ giao hàng <span class="text-red-500/50">*</span></label>
           <textarea
             id="address"
             bind:value={customer.address}
-            rows="2"
-            placeholder="Số nhà, khu vực..."
-            class="w-full p-5 bg-white/5 border border-white/10 rounded-2xl focus:ring-2 focus:ring-blue-600 focus:bg-white/10 outline-none transition-all text-xl font-bold placeholder:text-white/20"
+            rows="1"
+            placeholder="Số nhà, tên đường, khu vực..."
+            class="w-full p-6 bg-white/5 border border-white/10 rounded-3xl outline-none focus:border-blue-500/40 text-xl font-bold text-white placeholder:text-white/5 transition-all resize-none"
           ></textarea>
         </div>
 
-        <!-- Order Bump (Elite Design) -->
-        <div
-          class="order-bump p-6 bg-gradient-to-r from-blue-600/20 to-transparent border border-blue-500/30 rounded-3xl flex items-center gap-5 cursor-pointer hover:from-blue-600/30 transition-all group relative overflow-hidden"
-          onclick={() => shopStore.toggleOrderBump()}
-          role="button"
-          tabindex="0"
-        >
-          <div class="relative w-8 h-8 shrink-0">
-            <input
-              type="checkbox"
-              checked={shopStore.hasOrderBump}
-              class="peer absolute inset-0 opacity-0 cursor-pointer"
-              readonly
-            />
-            <div class="w-8 h-8 border-2 border-white/20 rounded-xl bg-white/5 peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all flex items-center justify-center shadow-lg">
-              <svg class="w-5 h-5 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-          </div>
-          <div class="content flex-1">
-            <div class="flex items-center gap-3 mb-1">
-              <span class="font-black text-white uppercase tracking-tighter">Gói Quà Tặng (Add-on)</span>
-              <span class="bg-blue-600 text-[10px] font-black px-2 py-0.5 rounded-full">+99K</span>
-            </div>
-            <p class="text-xs text-white/40 font-medium">Bổ sung Nano Silver Spray cho giày - Tự tin 360 độ.</p>
-          </div>
-          <div class="absolute inset-0 animate-shimmer opacity-30"></div>
+        <!-- Conversion Badges -->
+        <div class="flex items-center justify-between gap-4 px-2" in:fly={{ y: 20, duration: 800, delay: 500, easing: quintOut }}>
+           <div class="flex items-center gap-2">
+              <span class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs">📦</span>
+              <span class="text-[9px] font-black uppercase text-white/40 tracking-wider">Free Shipping</span>
+           </div>
+           <div class="flex items-center gap-2">
+              <span class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs">🛡️</span>
+              <span class="text-[9px] font-black uppercase text-white/40 tracking-wider">Elite Privacy</span>
+           </div>
+           <div class="flex items-center gap-2">
+              <span class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs">🚚</span>
+              <span class="text-[9px] font-black uppercase text-white/40 tracking-wider">COD Payment</span>
+           </div>
         </div>
 
-        <div class="summary pt-10 border-t border-white/5">
-          <div class="flex justify-between items-end mb-10">
-            <span class="text-white/40 font-bold uppercase tracking-widest text-xs">Total Investment:</span>
+        <div class="summary pt-10 border-t border-white/5" in:fly={{ y: 20, duration: 800, delay: 600, easing: quintOut }}>
+          <div class="flex justify-between items-center mb-10">
+            <span class="text-white/20 font-black uppercase tracking-[0.4em] text-[10px]">Grand Total</span>
             <div class="text-right">
-              <span class="block text-5xl font-black text-white tracking-tighter drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">{shopStore.totalAmount.toLocaleString()}đ</span>
-              <span class="text-[10px] text-blue-400 font-bold uppercase tracking-[0.3em]">Neural Delivery Active</span>
+              <span class="block text-5xl font-black text-white">{shopStore.totalAmount.toLocaleString()}đ</span>
             </div>
           </div>
 
           <button
             onclick={handleCheckout}
             disabled={shopStore.isSubmitting}
-            class="group relative w-full py-6 bg-blue-600 text-white rounded-3xl font-black text-2xl shadow-[0_20px_40px_-10px_rgba(37,99,235,0.5)] overflow-hidden active:scale-95 transition-all flex items-center justify-center gap-4"
+            class="group relative w-full py-8 bg-blue-600 text-white rounded-[2.5rem] font-black text-3xl shadow-[0_40px_100px_-20px_rgba(37,99,235,0.4)] overflow-hidden active:scale-[0.98] transition-all flex items-center justify-center gap-4 transition-all hover:bg-blue-500"
           >
             {#if shopStore.isSubmitting}
-              <svg class="animate-spin h-8 w-8 text-white" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              SYSTEM BUSY...
+               <span class="animate-pulse">PROCESSING...</span>
             {:else}
-              <span class="relative z-10">CONFIRM ORDER</span>
-              <svg class="w-8 h-8 relative z-10 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              <span class="relative z-10">CHỐT ĐƠN NGAY</span>
+              <svg class="w-8 h-8 relative z-10 group-hover:translate-x-2 transition-transform h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
-              <div class="absolute inset-0 animate-shimmer"></div>
             {/if}
           </button>
+          <p class="text-center text-[10px] font-black text-white/10 uppercase tracking-[0.5em] mt-8">Secure by Elite Labs AI</p>
         </div>
       </div>
     {/if}
@@ -151,7 +161,9 @@
 {/if}
 
 <style>
-  /* No extra colors needed, using Elite V2.2 globals */
+  :global(.glass-liquid) {
+    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  }
 </style>
 
 

@@ -1,0 +1,289 @@
+.reviews-viewport {
+  --clinical-blue: #10b981;
+  --clinical-cyan: #06b6d4;
+  --clinical-amber: #fbbf24;
+  --bg-deep: #020617;
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-bg: rgba(15, 23, 42, 0.3);
+  
+  padding: 8rem 2rem;
+  background: var(--bg-deep);
+  position: relative;
+  overflow: hidden; /* Necessary for background effects but we'll ensure content isn't cut */
+}
+
+/* Stable Bento Hub Container */
+.reviews-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 4rem; /* Spacing between sections since border is gone */
+}
+
+.section-headline {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(2.2rem, 5vw, 3.8rem);
+  font-weight: 900;
+  line-height: 1.15;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  background: linear-gradient(to bottom, #fff 20%, rgba(255,255,255,0.4) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  padding: 0.1em 0;
+  margin-bottom: 3rem;
+}
+
+/* Bento Hub Frame - REMOVED BORDERS & BG AS REQUESTED */
+.bento-hub-frame {
+  position: relative;
+  width: 100%;
+  transition: all 0.7s var(--ease-out);
+}
+
+/* Review Grid/Swiper Optimization */
+.reviews-layout {
+  width: 100%;
+}
+
+.reviews-scroll-wrapper {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 Columns on Desktop to avoid "CUT" */
+  gap: 2rem;
+  padding-bottom: 2rem;
+}
+
+/* Mobile/Tablet Swiper Override */
+@media (max-width: 1200px) {
+  .reviews-scroll-wrapper {
+    display: flex;
+    overflow-x: auto;
+    padding: 0 0 2rem;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .reviews-scroll-wrapper::-webkit-scrollbar { display: none; }
+}
+
+.review-card {
+  /* No more flex: 0 0 450px on desktop due to grid */
+  scroll-snap-align: center;
+  padding: 3rem;
+  border-radius: 2.5rem;
+  background: rgba(15, 23, 42, 0.4); /* Darker bento card bg */
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Match heights */
+}
+
+@media (max-width: 1200px) {
+  .review-card {
+    flex: 0 0 400px;
+  }
+}
+
+@media (max-width: 768px) {
+  .bento-hub-frame { border-radius: 2rem; }
+  .review-card {
+    flex: 0 0 88vw; /* Better mobile width to avoid cut */
+    padding: 2.5rem;
+    border-radius: 2rem;
+  }
+}
+
+.review-card:hover {
+  transform: translateY(-8px);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+}
+
+/* Avatar & Badges */
+.avatar-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #1e293b, #020617);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: white;
+}
+
+.verified-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.8rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 100px;
+}
+
+/* Review Trigger Button */
+.write-review-trigger {
+  cursor: pointer;
+  z-index: 20;
+}
+
+/* Modal UI - Liquid Glass */
+.modal-overlay {
+  background: rgba(2, 6, 23, 0.7);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  backdrop-filter: blur(40px) saturate(180%);
+}
+
+.modal-content-frame {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(60px) saturate(220%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 100px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(255, 255, 255, 0.05);
+  border-radius: 3rem;
+}
+
+@media (max-width: 768px) {
+  .modal-content-frame {
+    border-radius: 2rem;
+    padding: 1rem;
+  }
+}
+
+/* Success State in Modal */
+.success-overlay {
+  background: rgba(2, 6, 23, 0.98);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Submission Form Alignment */
+.review-form-container {
+  padding: 4rem;
+  background: rgba(15, 23, 42, 0.1); /* Subtle contrast */
+}
+
+@media (max-width: 768px) {
+  .review-form-container { padding: 2rem; }
+}
+
+.hud-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+}
+
+.hud-tag.primary {
+  color: #fff;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Elite V2.2 Inputs */
+.input-liquid {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.input-liquid:focus {
+  border-color: var(--clinical-blue);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.2), inset 0 0 10px rgba(16, 185, 129, 0.05);
+}
+
+.rating-picker {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rating-picker:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.input-liquid::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+/* Premium Button - Action Row */
+.submit-glow-btn {
+  background: var(--clinical-blue);
+  color: white;
+  box-shadow: 0 20px 40px rgba(16, 185, 129, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1.5rem;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.submit-glow-btn:hover:not(:disabled) {
+  transform: translateY(-4px);
+  filter: brightness(1.2);
+  box-shadow: 0 30px 60px rgba(16, 185, 129, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.submit-glow-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submit-glow-btn:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.2);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Animations */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+.scrollbar-mission::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-mission::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-mission::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.scrollbar-mission::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=JetBrains+Mono:wght@100..800&display=swap');

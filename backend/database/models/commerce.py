@@ -41,6 +41,7 @@ class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String)
+    short_description: Mapped[Optional[str]] = mapped_column(String(1000))
     description: Mapped[Optional[str]] = mapped_column(Text)
     sku: Mapped[Optional[str]] = mapped_column(String)
     price: Mapped[float] = mapped_column(Float, default=0)

@@ -1,47 +1,21 @@
 <script lang="ts">
   import ClinicalQuiz from '$lib/components/client/ClinicalQuiz.svelte';
+  import "./DiagnosticsSection.css";
+  import "./LiquidEffects.css";
 </script>
 
-<section id="diagnostics" class="diagnostics-container py-32 bg-canvas">
-  <div class="container mx-auto px-6 max-w-4xl text-center">
-    <span class="badge-accent inline-block px-4 py-1.5 rounded-full font-bold text-[10px] uppercase tracking-[0.3em] mb-8">Personalized Care</span>
-    <h3 class="section-title text-5xl font-black tracking-tighter leading-none uppercase mb-10">CHẨN ĐOÁN <br/> CÁ NHÂN HÓA</h3>
-    <p class="section-description text-xl max-w-2xl mx-auto leading-relaxed mb-24">Hệ thống AI phân tích tình trạng để đề xuất nồng độ Nano Silver phù hợp.</p>
-    <ClinicalQuiz />
+<section id="diagnostics" class="diagnostics-container snap-session relative overflow-hidden bg-[#020617] flex-1">
+  <div class="container mx-auto px-6 max-w-5xl text-center relative my-auto" style:z-index="var(--z-surface)">
+    <h3 id="personalized-care" class="section-title text-neural font-black tracking-tight leading-none uppercase mb-6 text-4xl md:text-6xl">
+      CHẨN ĐOÁN CÁ NHÂN HÓA
+    </h3>
+    
+    <p class="section-description text-white/20 text-base md:text-lg max-w-lg mx-auto leading-relaxed mb-20">
+      Phân tích sinh trắc học chuẩn xác bởi <span class="text-white/40">AI Engine</span>.
+    </p>
+
+    <div class="quiz-wrapper relative">
+      <ClinicalQuiz />
+    </div>
   </div>
 </section>
-
-<style lang="postcss">
-  .diagnostics-container {
-    container-type: inline-size;
-    --accent-glow: color-mix(in srgb, #60a5fa, transparent 90%);
-    --accent-text: var(--color-primary);
-  }
-
-  .badge-accent {
-    background-color: var(--accent-glow);
-    color: var(--accent-text);
-  }
-
-  .section-title {
-    color: var(--text-base);
-  }
-
-  .section-description {
-    color: var(--color-secondary);
-  }
-
-  @container (min-width: 768px) {
-    .section-title {
-      font-size: 4.5rem; /* Equivalent to text-7xl */
-      line-height: 1;
-    }
-  }
-
-  @container (max-width: 640px) {
-    .section-title {
-      font-size: 2.25rem; /* Equivalent to text-4xl */
-      line-height: 2.5rem;
-    }
-  }
-</style>

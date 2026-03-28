@@ -45,6 +45,7 @@
   let formStock = $state(0);
   let formCategory = $state("");
   let formStatus = $state<"active" | "draft">("draft");
+  let formShortDescription = $state("");
   let formDescription = $state("");
   let formSlug = $state("");
   let formSeoTitle = $state("");
@@ -160,7 +161,7 @@
   function openCreate() {
     editingId = null;
     formName = ""; formSku = ""; formPrice = 0; formStock = 0; formCategory = ""; formStatus = "draft";
-    formDescription = ""; formSlug = ""; formSeoTitle = ""; formSeoDescription = ""; formSeoKeywords = "";
+    formShortDescription = ""; formDescription = ""; formSlug = ""; formSeoTitle = ""; formSeoDescription = ""; formSeoKeywords = "";
     formImages = []; formAttributes = {};
     formTierVariations = []; formVariants = [];
     showForm = true;
@@ -171,6 +172,7 @@
     formName = p.name; formSku = p.sku; formPrice = p.price; formStock = p.stock;
     formCategory = p.categoryId || "";
     formStatus = p.status === "archived" ? "draft" : p.status;
+    formShortDescription = p.shortDescription || "";
     formDescription = p.description || "";
     formSlug = p.slug || "";
     formSeoTitle = p.seoTitle || "";
@@ -199,6 +201,7 @@
       stock: Number(formStock), 
       categoryId: formCategory || null, 
       status: (formStatus || "draft").toUpperCase(), // Backend expects ACTIVE/DRAFT
+      shortDescription: formShortDescription,
       description: formDescription,
       slug: formSlug || generateSlug(formName),
       seoTitle: formSeoTitle,
@@ -282,7 +285,7 @@
     {editingId}
     isOpen={showForm}
     bind:formName bind:formSku bind:formPrice bind:formStock bind:formCategory bind:formStatus
-    bind:formDescription bind:formSlug bind:formSeoTitle bind:formSeoDescription bind:formSeoKeywords
+    bind:formShortDescription bind:formDescription bind:formSlug bind:formSeoTitle bind:formSeoDescription bind:formSeoKeywords
     bind:formImages bind:formAttributes bind:formTierVariations bind:formVariants
     {categories}
     onSave={save}

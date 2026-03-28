@@ -118,6 +118,7 @@ export interface Product {
     status: string;
     category: string;
     categoryId: string | null;
+    shortDescription: string | null;
     description: string | null;
     type: string;
     slug: string;

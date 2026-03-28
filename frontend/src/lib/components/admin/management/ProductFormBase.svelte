@@ -10,6 +10,7 @@
     formStock = $bindable(),
     formCategory = $bindable(),
     formStatus = $bindable(),
+    formShortDescription = $bindable(),
     categories,
     generateSlug,
     onNameInput,
@@ -23,6 +24,7 @@
     formStock: number;
     formCategory: string;
     formStatus: "active" | "draft" | "archived";
+    formShortDescription: string;
     categories: { id: string; name: string }[];
     generateSlug: (name: string) => string;
     onNameInput: () => void;
@@ -51,6 +53,22 @@
     {#if errors?.name}
       <p class="text-red-500 text-[10px] mt-1 font-bold">{errors.name}</p>
     {/if}
+  </div>
+
+  <!-- Mô tả ngắn -->
+  <div class="field-group">
+    <label class="field-label flex items-center gap-2">
+      Mô tả ngắn (Hiển thị Banner)
+    </label>
+    <div class="relative">
+      <textarea
+        bind:value={formShortDescription}
+        placeholder="Nhập mô tả ngắn cho banner..."
+        rows="2"
+        class="field-input border-b-amber-500/30 focus:border-amber-500 text-sm italic text-white/70"
+      ></textarea>
+      <div class="field-line bg-amber-500/60"></div>
+    </div>
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-5">

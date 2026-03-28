@@ -25,6 +25,7 @@
     formStock = $bindable(),
     formCategory = $bindable(),
     formStatus = $bindable(),
+    formShortDescription = $bindable(),
     formDescription = $bindable(),
     formSlug = $bindable(),
     formSeoTitle = $bindable(),
@@ -50,6 +51,7 @@
     formStock: number;
     formCategory: string;
     formStatus: "active" | "draft" | "archived";
+    formShortDescription: string;
     formDescription: string;
     formSlug: string;
     formSeoTitle: string;
@@ -107,8 +109,8 @@
     if (formStock === undefined) formStock = 0;
     if (formCategory === undefined) formCategory = "";
     if (formStatus === undefined) formStatus = "draft";
+    if (formShortDescription === undefined) formShortDescription = "";
     if (formDescription === undefined) formDescription = "";
-    if (formSlug === undefined) formSlug = "";
     if (formSeoTitle === undefined) formSeoTitle = "";
     if (formSeoDescription === undefined) formSeoDescription = "";
     if (formSeoKeywords === undefined) formSeoKeywords = "";
@@ -171,7 +173,7 @@
           </div>
           <ProductFormBase
             {editingId}
-            bind:formName bind:formSku bind:formPrice bind:formDiscountPrice bind:formStock bind:formCategory bind:formStatus
+            bind:formName bind:formSku bind:formPrice bind:formDiscountPrice bind:formStock bind:formCategory bind:formStatus bind:formShortDescription
             {categories} {generateSlug} {errors}
             onNameInput={() => { if (!editingId) formSlug = generateSlug(formName); }}
           />

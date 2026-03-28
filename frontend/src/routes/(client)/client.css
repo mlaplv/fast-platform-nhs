@@ -1,5 +1,5 @@
-
 /* --- CLIENT DOMAIN --- */
+body { margin: 0; padding: 0; overflow-x: hidden; }
 .client-layout {
   background-color: var(--bg-canvas);
   color: var(--text-base);
@@ -7,18 +7,6 @@
 }
 
 /* --- HERO COMPONENT --- */
-.hero-center-layout {
-  position: relative;
-  width: 100%;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  overflow: hidden;
-  background-color: var(--bg-canvas);
-}
 
 .elite-glass {
   background: rgba(0, 0, 0, 0.3);

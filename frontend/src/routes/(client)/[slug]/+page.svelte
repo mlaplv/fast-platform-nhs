@@ -7,6 +7,7 @@
   // New Modular Components
   import DiagnosticsSection from '$lib/components/client/slug/DiagnosticsSection.svelte';
   import ScienceBento from '$lib/components/client/slug/ScienceBento.svelte';
+  import VerifiedReviews from '$lib/components/client/slug/VerifiedReviews.svelte';
   import OfferGrid from '$lib/components/client/slug/OfferGrid.svelte';
   
   import type { PageData } from './$types';
@@ -16,7 +17,7 @@
   if (!data || !data.product) {
     console.error('[SlugPage] Data missing');
   }
-  const product = data?.product || {};
+  const product = $derived(data?.product || {});
 
   let timeLeft = $state(1800);
 
@@ -35,7 +36,7 @@
   <title>{product?.name || 'Loading...'} | Elite Storefront</title>
 </svelte:head>
 
-<div class="client-page-root selection:bg-blue-600 selection:text-white">
+<div class="client-page-root selection:bg-blue-600 selection:text-white h-screen overflow-y-scroll scroll-smooth">
   
   {#if product?.id}
     <HeroBanner {product} {scrollToQuiz} />
@@ -45,6 +46,9 @@
 
     <!-- SCIENCE: Bento Grid with Technology Highlights -->
     <ScienceBento {product} />
+
+    <!-- REVIEWS: Verified Stealth Reviews -->
+    <VerifiedReviews />
 
     <!-- OFFER: Pricing Packages & Scarcity Timer -->
     <OfferGrid {timeLeft} />
@@ -61,9 +65,23 @@
   .client-page-root {
     antialiased: true;
     overflow-x: hidden;
-    min-height: 100vh;
+    scroll-snap-type: y mandatory;
+    height: 100vh;
     font-family: 'Inter', sans-serif;
     background-color: var(--bg-canvas);
     color: var(--text-base);
+  }
+
+  :global(.snap-session) {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Ensure smooth transitions inside snap sessions */
+  :global(section) {
+    transition: opacity 0.8s ease;
   }
 </style>

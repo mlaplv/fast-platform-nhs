@@ -25,6 +25,7 @@ class CreateProductRequest(BaseModel):
     discountPrice: Optional[float] = Field(None, ge=0, alias="discount_price")
     stock: int = Field(0, ge=0)
     status: str = Field("DRAFT", pattern=r"^(DRAFT|ACTIVE|ARCHIVED)$")
+    shortDescription: Optional[str] = Field(None, max_length=1000)
     description: Optional[str] = Field(None, max_length=100000)
     categoryId: Optional[str] = None
     type: str = Field("RETAIL", pattern=r"^(RETAIL|RENTAL|SERVICE)$")
@@ -49,6 +50,7 @@ class UpdateProductRequest(BaseModel):
     discountPrice: Optional[float] = Field(None, ge=0, alias="discount_price")
     stock: Optional[int] = Field(None, ge=0)
     status: Optional[str] = Field(None, pattern=r"^(DRAFT|ACTIVE|ARCHIVED)$")
+    shortDescription: Optional[str] = Field(None, max_length=1000)
     description: Optional[str] = Field(None, max_length=100000)
     categoryId: Optional[str] = None
     
@@ -76,6 +78,7 @@ class ProductResponse(BaseModel):
     status: str
     category: Optional[str] = Field("", alias="category_name")
     categoryId: Optional[str] = Field(None, alias="category_id")
+    shortDescription: Optional[str] = Field(None, alias="short_description")
     description: Optional[str] = None
     type: str = "RETAIL"
     

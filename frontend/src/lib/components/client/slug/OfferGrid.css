@@ -1,0 +1,61 @@
+/* OfferGrid.css - CTO Native Version */
+
+.offer-section {
+  container-type: inline-size;
+  container-name: offer;
+  
+  --offer-accent: #3b82f6;
+  --offer-hot: #ef4444;
+
+  & .timer-badge {
+    background-color: var(--offer-hot);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+  }
+
+  & .package-card {
+    border-radius: 3.5rem;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    
+    &.popular {
+      border-width: 2px;
+      border-color: var(--offer-accent);
+      box-shadow: 0 25px 50px -12px rgba(59, 130, 246, 0.2);
+    }
+    
+    &:hover {
+      border-color: rgba(59, 130, 246, 0.5);
+      transform: translateY(-8px);
+    }
+  }
+
+  & .btn-buy {
+    transition: all 0.3s ease;
+    &.ghost:hover {
+      background-color: var(--offer-accent);
+      color: white;
+    }
+    &.primary:hover {
+      transform: scale(1.03);
+      filter: brightness(1.1);
+    }
+  }
+}
+
+/* Container-Aware Scaling */
+@container offer (min-width: 768px) {
+  .offer-title {
+    font-size: 6rem !important;
+  }
+  .package-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container offer (max-width: 600px) {
+  .offer-title {
+    font-size: 2.75rem !important;
+  }
+  .package-card {
+    padding: 2.5rem !important;
+  }
+}

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount, type Snippet } from 'svelte';
     import StepModal from './StepModal.svelte';
     import MediaVaultModal from '$lib/components/media/MediaVaultModal.svelte';
 
@@ -42,54 +42,142 @@
         selectedStep = stepId;
         showModal = true;
     }
+
+    // Status mapping for high-trust HUD aesthetics
+    const statusConfig = {
+        completed: {
+            bg: 'bg-emerald-500/10',
+            text: 'text-emerald-400',
+            border: 'border-emerald-500/30',
+            aura: 'shadow-[0_0_15px_rgba(16,185,129,0.15)]',
+            icon: 'M5 13l4 4L19 7'
+        },
+        waiting: {
+            bg: 'bg-amber-500/20',
+            text: 'text-amber-400',
+            border: 'border-amber-500/50',
+            aura: 'shadow-[0_0_20px_rgba(245,158,11,0.25)]',
+            pulse: 'animate-pulse'
+        },
+        processing: {
+            bg: 'bg-cyan-500/10',
+            text: 'text-cyan-400',
+            border: 'border-cyan-500/40',
+            aura: 'shadow-[0_0_15px_rgba(6,182,212,0.2)]',
+            spin: 'animate-spin-slow'
+        },
+        error: {
+            bg: 'bg-rose-500/20',
+            text: 'text-rose-400',
+            border: 'border-rose-500/50',
+            aura: 'shadow-[0_0_20px_rgba(244,63,94,0.3)]',
+            glitch: 'animate-hud-flicker'
+        },
+        pending: {
+            bg: 'bg-white/5',
+            text: 'text-white/20',
+            border: 'border-white/5',
+            aura: ''
+        }
+    };
 </script>
 
-<div class="review-gates flex items-center gap-4 p-4 bg-gray-900/50 rounded-xl border border-white/10">
-    {#each STEPS as step}
-        {@const status = getStepStatus(step.id)}
-        <button 
-            class="step-node flex flex-col items-center gap-2 group relative"
-            onclick={() => openReview(step.id)}
-            disabled={status === 'pending'}
-        >
-            <div class="icon-circle w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300
-                {status === 'completed' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : ''}
-                {status === 'waiting' ? 'bg-yellow-500/30 text-yellow-500 border border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : ''}
-                {status === 'processing' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50' : ''}
-                {status === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/50' : ''}
-                {status === 'pending' ? 'bg-gray-800/50 text-gray-600 border border-white/5 opacity-40' : ''}"
+<div class="review-gates-container relative group">
+    <!-- HUD Metadata Labels -->
+    <div class="absolute -top-6 left-2 flex items-center gap-4 px-2 py-0.5">
+        <div class="flex items-center gap-2">
+            <span class="w-1 h-1 bg-cyan-500 animate-pulse"></span>
+            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-500/60 font-mono">
+                System // Review_Gates_V2.2
+            </span>
+        </div>
+        <div class="h-px w-8 bg-white/10"></div>
+        <div class="text-[9px] font-bold uppercase tracking-[0.1em] text-white/30 font-mono italic">
+            Secure_Channel_Active [AES-256]
+        </div>
+    </div>
+
+    <!-- Main Liquid Glass UI -->
+    <div class="review-gates relative flex items-center gap-2 p-3 bg-[#0a0a0b]/80 backdrop-blur-3xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden transition-all duration-700 hover:border-white/20">
+        <!-- Inner Ambient Glow -->
+        <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
+        
+        {#each STEPS as step, i}
+            {@const status = getStepStatus(step.id)}
+            {@const config = statusConfig[status]}
+            
+            <button 
+                class="step-node flex flex-col items-center gap-1.5 px-4 py-2 rounded-[1.5rem] transition-all duration-500 relative z-10
+                    {status !== 'pending' ? 'hover:bg-white/5 cursor-pointer' : 'cursor-not-allowed'}"
+                onclick={() => status !== 'pending' && openReview(step.id)}
+                disabled={status === 'pending'}
             >
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d={step.icon} />
+                <div class="relative">
+                    <!-- Status Ring (for processing) -->
+                    {#if status === 'processing'}
+                        <div class="absolute -inset-1 rounded-full border border-cyan-500/30 border-t-cyan-400 animate-spin"></div>
+                    {/if}
+
+                    <div class="icon-circle w-11 h-11 rounded-full flex items-center justify-center transition-all duration-500
+                        {config.bg} {config.text} border {config.border} {config.aura} 
+                        {status === 'waiting' ? config.pulse : ''}
+                        {status === 'error' ? config.glitch : ''}"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 transition-transform duration-500 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d={status === 'completed' ? config.icon : step.icon} />
+                        </svg>
+                    </div>
+
+                    <!-- Waiting Indicator (Ping) -->
+                    {#if status === 'waiting'}
+                        <div class="absolute -top-1 -right-1 flex">
+                            <div class="absolute inset-0 bg-amber-400 rounded-full animate-ping opacity-75"></div>
+                            <div class="relative w-3 h-3 bg-amber-500 rounded-full border-2 border-[#0a0a0b]"></div>
+                        </div>
+                    {/if}
+                </div>
+
+                <span class="text-[9px] uppercase tracking-[0.15em] font-black transition-colors duration-500
+                    {status !== 'pending' ? 'text-white/80' : 'text-white/10'}">
+                    {step.name}
+                </span>
+
+                <!-- Tooltip Logic could go here -->
+            </button>
+
+            <!-- Energy Conduit (Connector) -->
+            {#if i < STEPS.length - 1}
+                <div class="relative flex-1 min-w-[20px] h-[2px]">
+                    <div class="absolute inset-0 bg-white/5 rounded-full overflow-hidden">
+                        {#if campaign.current_step > step.id}
+                            <div class="h-full bg-gradient-to-r from-emerald-500/50 to-emerald-400 glow-conduit"></div>
+                            <!-- Moving Pulse -->
+                            <div class="absolute top-0 left-0 h-full w-1/2 bg-white/20 animate-data-stream"></div>
+                        {:else if campaign.current_step === step.id && campaign.status === 'PROCESSING'}
+                            <div class="h-full bg-cyan-500/20"></div>
+                            <div class="absolute top-0 left-0 h-full w-4 bg-cyan-400 blur-[2px] animate-data-stream-slow"></div>
+                        {/if}
+                    </div>
+                </div>
+            {/if}
+        {/each}
+
+        <!-- Tactical Divider -->
+        <div class="h-8 w-px bg-white/10 mx-3 self-center"></div>
+
+        <!-- Media Intelligence Core -->
+        <button
+            class="media-core-btn flex flex-col items-center gap-1.5 px-5 py-2 rounded-[1.5rem] bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-500 group/media"
+            onclick={() => showMediaModal = true}
+        >
+            <div class="w-11 h-11 rounded-full flex items-center justify-center bg-blue-500/20 text-blue-400 border border-blue-500/30 group-hover/media:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 transition-transform duration-500 group-hover/media:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
             </div>
-            <span class="text-[10px] uppercase tracking-wider font-bold {status !== 'pending' ? 'text-white' : 'text-gray-600'}">
-                {step.name}
-            </span>
-
-            {#if status === 'waiting'}
-                <div class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full border-2 border-gray-900"></div>
-            {/if}
+            <span class="text-[9px] uppercase tracking-[0.15em] font-black text-blue-400/60 group-hover/media:text-blue-400">Library</span>
         </button>
-
-        {#if step.id < 6}
-            <div class="h-px w-8 bg-white/10 {campaign.current_step > step.id ? 'bg-green-500/30' : ''}"></div>
-        {/if}
-    {/each}
-
-    <!-- Nút Thư viện Media Đẳng cấp Quốc tế -->
-    <div class="h-10 w-px bg-white/10 mx-2"></div>
-    <button
-        class="flex flex-col items-center gap-2 group transition-all"
-        onclick={() => showMediaModal = true}
-    >
-        <div class="w-10 h-10 rounded-full flex items-center justify-center bg-blue-500/10 text-blue-400 border border-blue-500/20 group-hover:bg-blue-500/20 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-        </div>
-        <span class="text-[10px] uppercase tracking-wider font-bold text-blue-400/80 group-hover:text-blue-400">Library</span>
-    </button>
+    </div>
 </div>
 
 {#if showModal}
@@ -115,8 +203,34 @@
     .animate-spin-slow {
         animation: spin 3s linear infinite;
     }
+    
     @keyframes spin {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
     }
+
+    .glow-conduit {
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+    }
+
+    .animate-data-stream {
+        animation: data-stream 1.5s linear infinite;
+    }
+
+    .animate-data-stream-slow {
+        animation: data-stream 3s linear infinite;
+    }
+
+    @keyframes data-stream {
+        0% { transform: translateX(-100%); opacity: 0; }
+        50% { opacity: 1; }
+        100% { transform: translateX(200%); opacity: 0; }
+    }
+
+    @keyframes hud-flicker {
+        0%, 100% { opacity: 1; filter: brightness(1); }
+        50% { opacity: 0.8; filter: brightness(1.2); }
+        52% { opacity: 1; filter: brightness(1.5); }
+    }
 </style>
+
