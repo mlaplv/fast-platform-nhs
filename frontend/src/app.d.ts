@@ -15,6 +15,10 @@ declare global {
     }
     // interface PageData {}
     // interface Platform {}
+    interface Error {
+      message: string;
+      stack?: string;
+    }
   }
 }
 

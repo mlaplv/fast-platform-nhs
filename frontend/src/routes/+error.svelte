@@ -35,6 +35,12 @@
         <p class="text-sm text-gray-400 max-w-[280px] mx-auto leading-relaxed font-mono uppercase tracking-widest">
            {message}
         </p>
+        
+        {#if $page.error?.stack}
+          <div class="mt-4 p-4 bg-black/50 border border-red-500/20 rounded text-left overflow-x-auto max-h-64 overflow-y-auto w-full">
+            <pre class="text-[10px] text-red-400 font-mono whitespace-pre-wrap">{$page.error.stack}</pre>
+          </div>
+        {/if}
       </div>
 
       <!-- Actions -->

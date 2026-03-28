@@ -1,11 +1,29 @@
 import os
 import logging
-from typing import Any
-from advanced_alchemy.extensions.litestar import SQLAlchemyAsyncConfig
+from typing import Any, cast, Optional, Callable
+from advanced_alchemy.extensions.litestar import SQLAlchemyAsyncConfig as BaseSQLAlchemyAsyncConfig, AsyncSessionConfig
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy import event
+from advanced_alchemy.extensions.litestar._utils import get_aa_scope_state, set_aa_scope_state
+from advanced_alchemy.routing.context import reset_routing_context
+from litestar.datastructures import State
+from litestar.types import Scope
 
 logger = logging.getLogger("api-gateway")
+
+class EliteSQLAlchemyAsyncConfig(BaseSQLAlchemyAsyncConfig):
+    """
+    R1.5 Elite Configuration: Resolves library deprecations at the root.
+    """
+    def provide_session(self, state: State, scope: Scope) -> AsyncSession:
+        # Override to remove deprecated 'advanced_alchemy._listeners.set_async_context' call thưa sếp!
+        session = cast("Optional[AsyncSession]", get_aa_scope_state(scope, self.session_scope_key))
+        if session is None:
+            reset_routing_context()
+            session_maker = cast("Callable[[], AsyncSession]", state[self.session_maker_app_state_key])
+            session = session_maker()
+            set_aa_scope_state(scope, self.session_scope_key, session)
+        return session
 
 class AlchemyConfig:
     """
@@ -21,8 +39,7 @@ class AlchemyConfig:
         self._url = self.db_url or "sqlite+aiosqlite:///:memory:"
         
         # Plugin Config for Litestar - R1.5: Pass the shared engine instance
-        from advanced_alchemy.extensions.litestar import SQLAlchemyAsyncConfig, AsyncSessionConfig
-        self.litestar_config = SQLAlchemyAsyncConfig(
+        self.litestar_config = EliteSQLAlchemyAsyncConfig(
             engine_instance=self.get_engine(),
             create_all=False,
             session_config=AsyncSessionConfig(expire_on_commit=False)

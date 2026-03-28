@@ -1,7 +1,17 @@
-import type { Handle } from "@sveltejs/kit";
+import type { Handle, HandleServerError } from "@sveltejs/kit";
 import type { JwtPayload } from "$lib/types";
 import { redirect } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
+
+export const handleError: HandleServerError = ({ error, event }) => {
+  const isDev = env.ENVIRONMENT === "development";
+  console.error('[SERVER HTTP ERROR]', error);
+  
+  return {
+    message: isDev && error instanceof Error ? error.message : "Lỗi hệ thống (Internal Error)",
+    stack: isDev && error instanceof Error ? error.stack : undefined
+  };
+};
 
 function parseJwt(token: string): JwtPayload | null {
   try {

@@ -26,10 +26,22 @@
   let themeMode = $state<'system' | 'light' | 'dark'>('system');
   let mouse = $state({ x: 0, y: 0 });
 
+  let currentImageIndex = $state(0);
+  
   const handleMouseMove = (e: MouseEvent) => {
     if (!browser) return;
     mouse.x = (e.clientX / window.innerWidth - 0.5) * 30;
     mouse.y = (e.clientY / window.innerHeight - 0.5) * 30;
+  };
+
+  const nextImage = () => {
+    if (images.length === 0) return;
+    currentImageIndex = (currentImageIndex + 1) % images.length;
+  };
+
+  const prevImage = () => {
+    if (images.length === 0) return;
+    currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
   };
 
   const productName: string = $derived(product?.name ?? 'Elite Formulation');
