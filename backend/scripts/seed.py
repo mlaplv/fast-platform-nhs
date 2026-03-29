@@ -1,5 +1,10 @@
-import asyncio
 import os
+import sys
+from pathlib import Path
+project_root = str(Path(__file__).parent.parent.parent)
+if project_root not in sys.path: sys.path.insert(0, project_root)
+
+import asyncio
 import bcrypt
 import hashlib
 import uuid
@@ -7,11 +12,6 @@ import random
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, delete
 from dotenv import load_dotenv
-
-import sys
-from pathlib import Path
-project_root = str(Path(__file__).parent.parent.parent)
-if project_root not in sys.path: sys.path.insert(0, project_root)
 
 load_dotenv(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../.env")))
 
@@ -90,7 +90,8 @@ async def seed_products(session):
             short_description=d.get("short_description", ""),
             description=d.get("description", ""),
             images=d.get("images", []),
-            tier_variations=d.get("tier_variations", [])
+            tier_variations=d.get("tier_variations", []),
+            product_metadata=d.get("product_metadata", {})
         )
         session.add(pb)
         

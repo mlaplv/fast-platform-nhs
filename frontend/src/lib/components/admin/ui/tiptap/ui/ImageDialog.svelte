@@ -3,7 +3,7 @@
   import FileManager from "$lib/components/media/FileManager.svelte";
 
   import { onMount } from "svelte";
-  import { portal } from "$lib/actions/portal";
+  import { portal } from "$lib/core/actions/portal";
 
   let {
     show = $bindable(),

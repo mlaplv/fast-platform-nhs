@@ -8,6 +8,34 @@ class TierVariation(BaseModel):
     options: List[str]
     images: Optional[List[str]] = None
 
+class ProductMetadata(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+    landing_type: Optional[str] = Field(None, alias="landing_type")
+    order_bump_price: Optional[float] = Field(None, alias="order_bump_price")
+    scarcity_seconds: Optional[int] = Field(None, alias="scarcity_seconds")
+    show_reviews: Optional[bool] = Field(None, alias="show_reviews")
+    video_url: Optional[str] = Field(None, alias="video_url")
+
+    # R00 Compliance: Externalized UI Labels
+    sync_loading_text: Optional[str] = Field(None, alias="sync_loading_text")
+    seo_site_name: Optional[str] = Field(None, alias="seo_site_name")
+
+    # Section: Reviews
+    reviews_headline: Optional[str] = Field(None, alias="reviews_headline")
+    reviews_trust_score: Optional[str] = Field(None, alias="reviews_trust_score")
+    reviews_count_text: Optional[str] = Field(None, alias="reviews_count_text")
+    reviews: List[Dict[str, Any]] = Field(default_factory=list, alias="reviews")
+
+    # Section: Diagnostics
+    diagnostics_headline: Optional[str] = Field(None, alias="diagnostics_headline")
+    diagnostics_subheadline: Optional[str] = Field(None, alias="diagnostics_subheadline")
+    diagnostics_disclaimer: Optional[str] = Field(None, alias="diagnostics_disclaimer")
+    quiz_questions: List[Dict[str, Any]] = Field(default_factory=list, alias="quiz_questions")
+
+    # Section: Science
+    science_headline: Optional[str] = Field(None, alias="science_headline")
+    science_subheadline: Optional[str] = Field(None, alias="science_subheadline")
+
 class ProductVariantSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True, strict=True)
     id: Optional[str] = None
@@ -45,7 +73,8 @@ class CreateProductRequest(BaseModel):
     seoKeywords: Optional[str] = Field(None, max_length=2000, alias="seo_keywords")
     images: List[str] = Field(default_factory=list)
     attributes: Dict[str, Union[str, int, float, bool, None]] = Field(default_factory=dict)
-    
+    metadata: ProductMetadata = Field(default_factory=ProductMetadata)
+
     # R102 Variants Matrix
     tierVariations: List[TierVariation] = Field(default_factory=list, alias="tier_variations")
     variants: List[ProductVariantSchema] = Field(default_factory=list)
@@ -77,7 +106,8 @@ class UpdateProductRequest(BaseModel):
     seoKeywords: Optional[str] = Field(None, max_length=2000, alias="seo_keywords")
     images: Optional[List[str]] = None
     attributes: Optional[Dict[str, Union[str, int, float, bool, None]]] = None
-    
+    metadata: Optional[ProductMetadata] = None
+
     # R102 Variants Matrix
     tierVariations: Optional[List[TierVariation]] = Field(None, alias="tier_variations")
     variants: Optional[List[ProductVariantSchema]] = None
@@ -113,7 +143,8 @@ class ProductResponse(BaseModel):
     seoKeywords: Optional[str] = Field(None, alias="seo_keywords")
     images: List[str] = Field(default_factory=list)
     attributes: Dict[str, Union[str, int, float, bool, None]] = Field(default_factory=dict)
-    
+    metadata: ProductMetadata = Field(default_factory=ProductMetadata)
+
     # R102 Variants Matrix
     tierVariations: List[TierVariation] = Field(default_factory=list, alias="tier_variations")
     variants: List[ProductVariantSchema] = Field(default_factory=list)
@@ -133,6 +164,11 @@ class ProductResponse(BaseModel):
     @field_validator("attributes", mode="before")
     @classmethod
     def validate_attributes(cls, v):
+        return v if v is not None else {}
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def validate_metadata(cls, v):
         return v if v is not None else {}
 
     @field_validator("tierVariations", "variants", mode="before")

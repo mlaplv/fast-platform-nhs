@@ -1,5 +1,6 @@
-import { env } from '$env/dynamic/public';
+import { apiClient, ApiError } from '$lib/utils/apiClient';
 import type { Product, ProductVariant } from '$lib/types';
+import type { GenericResponse } from '$lib/state/types';
 
 /**
  * ELITE V2.2: Nanobot Store for Funnel Shop
@@ -20,17 +21,16 @@ class ShopStore {
 
     // 2. Computed State ($derived)
     totalAmount = $derived.by((): number => {
-        if (!this.product) return 0;
-        const basePrice = this.variant?.discountPrice ?? this.variant?.price ?? 
-                         this.product.discountPrice ?? this.product.price ?? 0;
-        const orderBumpPrice = this.hasOrderBump ? 99000 : 0;
+        const basePrice = this.currentPrice;
+        // Gỡ bỏ hardcode: Lấy giá order bump từ metadata sản phẩm (mặc định 0 nếu không có)
+        const orderBumpPrice = this.hasOrderBump ? (this.product?.metadata?.order_bump_price || 0) : 0;
         return (basePrice * this.quantity) + orderBumpPrice;
     });
 
     currentPrice = $derived.by((): number => {
         if (!this.product) return 0;
-        return this.variant?.discountPrice ?? this.variant?.price ?? 
-               this.product.discountPrice ?? this.product.price ?? 0;
+        return this.variant?.discountPrice ?? this.product.discountPrice ??
+               this.variant?.price ?? this.product.price ?? 0;
     });
 
     originalPrice = $derived.by((): number => {
@@ -41,12 +41,18 @@ class ShopStore {
     // 3. Actions
     init(productData: Product): void {
         this.product = productData;
-        // Default to first variant if exists
+        // Mặc định chọn variant đầu tiên nếu có
         if (productData?.variants && productData.variants.length > 0) {
             this.variant = productData.variants[0];
-        } else {
-            this.variant = null;
         }
+    }
+
+    /**
+     * Đồng bộ với MobileBottomSheet: Thêm vào giỏ hàng và mở Checkout
+     */
+    addItem(productData: Product): void {
+        this.init(productData);
+        this.openCheckout();
     }
 
     selectVariant(v: ProductVariant): void {
@@ -89,33 +95,27 @@ class ShopStore {
         this.error = null;
 
         try {
-            const apiUrl = env.PUBLIC_API_URL || 'https://api.smartshop.test';
-            const res = await fetch(`${apiUrl}/api/v1/client/checkout/stealth`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    product_id: this.product.id,
-                    variant_id: this.variant?.id,
-                    customer_name: customer.name,
-                    customer_phone: customer.phone,
-                    customer_address: customer.address,
-                    has_order_bump: this.hasOrderBump,
-                    quantity: this.quantity
-                })
+            const res = await apiClient.post<GenericResponse<unknown>>('/api/v1/client/checkout/stealth', {
+                product_id: this.product.id,
+                variant_id: this.variant?.id,
+                customer_name: customer.name,
+                customer_phone: customer.phone,
+                customer_address: customer.address,
+                has_order_bump: this.hasOrderBump,
+                quantity: this.quantity
             });
 
-            const result: { message?: string } = await res.json();
-            if (res.ok) {
+            if (res.ok || res.status === 'success') {
                 this.orderSuccess = true;
                 // Auto-close after 3s on success
                 setTimeout(() => {
                     this.closeCheckout();
                 }, 3000);
             } else {
-                this.error = result.message ?? 'Có lỗi xảy ra, vui lòng thử lại';
+                this.error = res.message ?? 'Có lỗi xảy ra, vui lòng thử lại';
             }
         } catch (err: unknown) {
-            this.error = 'Không thể kết nối máy chủ';
+            this.error = err instanceof ApiError ? err.message : 'Không thể kết nối máy chủ';
             if (err instanceof Error) {
                 console.error('[ShopStore] Checkout Error:', err.message);
             }

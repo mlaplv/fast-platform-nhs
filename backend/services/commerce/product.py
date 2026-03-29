@@ -51,7 +51,7 @@ class ProductService:
             ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-            ProductBase.images, ProductBase.attributes, ProductBase.tier_variations,
+            ProductBase.images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
             ProductBase.created_at,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
@@ -74,7 +74,7 @@ class ProductService:
             ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-            ProductBase.images, ProductBase.attributes, ProductBase.tier_variations,
+            ProductBase.images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
             ProductBase.created_at,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
@@ -103,7 +103,7 @@ class ProductService:
             ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-            ProductBase.images, ProductBase.attributes, ProductBase.tier_variations,
+            ProductBase.images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
             ProductBase.created_at,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
@@ -152,6 +152,7 @@ class ProductService:
             images=data.images,
             attributes=data.attributes,
             tier_variations=[tv.model_dump() for tv in data.tierVariations] if data.tierVariations else [],
+            product_metadata=data.metadata.model_dump() if data.metadata else {},
         )
         db_session.add(product)
 
@@ -210,7 +211,8 @@ class ProductService:
         if data.images is not None: product.images = data.images
         if data.attributes is not None: product.attributes = data.attributes
         if data.tierVariations is not None: product.tier_variations = [tv.model_dump() for tv in data.tierVariations]
-        
+        if data.metadata is not None: product.product_metadata = data.metadata.model_dump()
+
         if data.variants is not None:
             # Delete old variants strictly (Hard delete to avoid PK conflicts if reusing IDs)
             await db_session.execute(delete(ProductVariant).where(ProductVariant.product_base_id == product_id))

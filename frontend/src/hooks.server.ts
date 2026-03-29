@@ -40,12 +40,15 @@ export const handle: Handle = async ({ event, resolve }) => {
   const adminDomain = env.ADMIN_DOMAIN || "admin.smartshop.test";
   const isAdminHost = host.includes(adminDomain);
 
+  // Detect device for initial layout resolution
+  // Minimal detection for <1s load target
+  event.locals.isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
+
   if (isAdminHost) {
     event.locals.tenant = "admin";
   } else {
     event.locals.tenant = "storefront";
-    // Force allow all storefront paths (R00: Zero-Barrier)
-    return await resolve(event);
+    // [Elite V2.2] Storefront continues to device detection and header setting
   }
 
   // Auth logic: Validate JWT
@@ -95,16 +98,19 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
   }
 
-  // Detect device for initial layout resolution
-  // Minimal detection for <1s load target
-  event.locals.isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
+  // [Elite V2.2] Standardized Device Detection (R00: Zero-Patch Policy)
+  const mobileRegex = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+  event.locals.isMobile = mobileRegex.test(userAgent);
 
   // Process the request
   const response = await resolve(event);
 
-  // R12 - Security defaults
+  // R12 - Security & Protocol Defaults
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
+  
+  // Elite V2.2: Ensure proxies (Caddy/CDN) vary cache by User-Agent for Adaptive Layouts
+  response.headers.set("Vary", "Origin, User-Agent");
 
   return response;
 };

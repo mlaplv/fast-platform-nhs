@@ -2,6 +2,7 @@ import { xohiImageStore } from "./xohiImage.svelte";
 import { resolveMediaUrl, processContentImages } from "./utils";
 import { untrack } from "svelte";
 import type { CampaignKeywords, MediaAsset } from "./types";
+import type { apiClient } from "$lib/utils/apiClient";
 
 export function createPublishController(config: {
     getCampaignId: () => string;
@@ -11,7 +12,7 @@ export function createPublishController(config: {
     getAssets: () => (MediaAsset | string)[];
     setSelectedAvatarUrl: (v: string | null) => void;
     setFinalHtml: (v: string) => void;
-    getApiClient: () => any;
+    getApiClient: () => typeof apiClient;
 }) {
     let editingField = $state<string | null>(null);
     let showAvatarPicker = $state(false);

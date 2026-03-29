@@ -1,13 +1,31 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
+  import type { Product } from '$lib/types';
 
   // Senior Architect Note: LiquidHeader uses Svelte 5 Runes for ultra-responsive local state
-  let { themeMode, applyTheme, scrollToQuiz } = $props<{
+  let { themeMode, applyTheme, scrollToQuiz, product } = $props<{
     themeMode: 'system' | 'light' | 'dark';
     applyTheme: (mode: 'system' | 'light' | 'dark') => void;
     scrollToQuiz?: () => void;
+    product?: Product;
   }>();
+
+  const labels = $derived({
+    home: (product?.metadata?.nav_label_home as string) || 'Trang chủ',
+    diagnostics: (product?.metadata?.nav_label_diagnostics as string) || 'Chẩn đoán',
+    science: (product?.metadata?.nav_label_science as string) || 'Cơ chế',
+    reviews: (product?.metadata?.nav_label_reviews as string) || 'Đánh giá',
+    offers: (product?.metadata?.nav_label_offers as string) || 'Ưu đãi'
+  });
+
+  const navLinks = $derived([
+    { id: 'hero', label: labels.home, href: '#hero' },
+    { id: 'diagnostics', label: labels.diagnostics, href: '#diagnostics' },
+    { id: 'science', label: labels.science, href: '#science' },
+    { id: 'reviews', label: labels.reviews, href: '#reviews' },
+    { id: 'offers', label: labels.offers, href: '#offers' }
+  ]);
 
   let scrolled = $state(false);
   let scrollY = $state(0);
@@ -40,7 +58,7 @@
         });
       }, observerOptions);
 
-      const sectionIds = ['hero', 'diagnostics', 'science', 'reviews', 'offers'];
+      const sectionIds = navLinks.map(link => link.id);
       sectionIds.forEach(id => {
         const el = document.getElementById(id);
         if (el) observer.observe(el);
@@ -61,13 +79,7 @@
     <div class="island-content">
       <!-- NAVIGATION SECTOR (Centered & Aligned) -->
       <nav class="island-nav">
-        {#each [
-          { id: 'hero', label: 'Trang chủ', href: '#hero' },
-          { id: 'diagnostics', label: 'Chẩn đoán', href: '#diagnostics' },
-          { id: 'science', label: 'Cơ chế', href: '#science' },
-          { id: 'reviews', label: 'Đánh giá', href: '#reviews' },
-          { id: 'offers', label: 'Ưu đãi', href: '#offers' }
-        ] as link}
+        {#each navLinks as link}
           <a
             href={link.href}
             class="island-link {activeSection === link.id ? 'is-active' : ''}"

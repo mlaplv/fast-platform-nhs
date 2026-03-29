@@ -5,16 +5,34 @@
   import "./OfferGrid.css";
   
   // ELITE V2.2: Centralized Marketing Strings for easier maintenance thưa Sếp!
-  const MARKETING = {
-    headline: "Chúng tôi không thể thay đổi <br/> cơ địa của bạn.",
-    sub: "Nhưng cam kết: <span class=\"bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent font-bold\">Khóa Mùi 48H.</span>",
-    timer_prefix: "Ưu đãi nội bộ kết thúc sau:",
-    shipping_prefix: "+ Phí vận chuyển:",
-    savings_prefix: "Tiết kiệm:",
-    booking_suffix: "người đã đặt trong 24h qua",
-    trust_verified_by: "Được kiểm định bởi",
-    compliance_note: "* Giao hàng tận nơi nhanh chóng, <br/> bảo mật thông tin khách hàng tuyệt đối."
-  };
+  const metadata = $derived(product?.metadata || {});
+
+  const mkt = $derived({
+    headline: metadata.offer_headline || "Chúng tôi không thể thay đổi <br/> cơ địa của bạn.",
+    sub: metadata.offer_subheadline || "Nhưng cam kết: <span class=\"bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent font-bold\">Khóa Mùi 48H.</span>",
+    timer_prefix: metadata.offer_timer_prefix || "Ưu đãi nội bộ kết thúc sau:",
+    shipping_prefix: metadata.offer_shipping_prefix || "+ Phí vận chuyển:",
+    savings_prefix: metadata.offer_savings_prefix || "Tiết kiệm:",
+    booking_suffix: metadata.offer_booking_suffix || "người đã đặt trong 24h qua",
+    trust_verified_by: metadata.offer_trust_verified_by || "Được kiểm định bởi",
+    compliance_note: metadata.offer_compliance_note || "* Giao hàng tận nơi nhanh chóng, <br/> bảo mật thông tin khách hàng tuyệt đối.",
+    label_activation: metadata.offer_label_activation || OFFER_CONSTANTS.labels.activation,
+    label_full_treatment: metadata.offer_label_full_treatment || OFFER_CONSTANTS.labels.full_treatment,
+    label_expert_choice: metadata.offer_label_expert_choice || OFFER_CONSTANTS.labels.expert_choice,
+    label_scarcity: metadata.offer_label_scarcity || OFFER_CONSTANTS.labels.scarcity,
+    cta_start: metadata.offer_cta_start || OFFER_CONSTANTS.labels.cta_start,
+    cta_full: metadata.offer_cta_full || OFFER_CONSTANTS.labels.cta_full,
+    label_distributor: (metadata.offer_label_distributor as string) || 'PHÂN PHỐI CHÍNH HÃNG',
+    pharmacy_name: (metadata.offer_pharmacy_name as string) || SHOP_CONFIG.pharmacy.name,
+    label_support: (metadata.offer_label_support as string) || 'HỖ TRỢ TRỰC TUYẾN',
+    label_commitment: (metadata.offer_label_commitment as string) || 'CAM KẾT DỊCH VỤ',
+    label_license: (metadata.offer_label_license as string) || SHOP_CONFIG.pharmacy.license,
+    pharmacy_address: (metadata.offer_pharmacy_address as string) || SHOP_CONFIG.pharmacy.address,
+    pharmacy_phone: (metadata.offer_pharmacy_phone as string) || SHOP_CONFIG.pharmacy.phone,
+    pharmacy_zalo: (metadata.offer_pharmacy_zalo as string) || SHOP_CONFIG.pharmacy.zalo,
+    trust_mark_2: (metadata.offer_trust_mark_2 as string) || SHOP_CONFIG.trust_marks[2],
+    trust_mark_3: (metadata.offer_trust_mark_3 as string) || SHOP_CONFIG.trust_marks[3]
+  });
 
   let { product, timeLeft = OFFER_CONSTANTS.timers.default_seconds } = $props<{ product: Product, timeLeft?: number }>();
   const variants = $derived(product?.variants || []);
@@ -76,68 +94,68 @@
     <div class="flex justify-center mb-10">
       <div class="timer-badge px-6 py-1.5 rounded-full text-[9px] uppercase tracking-[0.3em] flex items-center gap-3">
         <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_8px_#22d3ee]"></span>
-        {MARKETING.timer_prefix} <span class="font-bold tabular-nums">{formatTime(timeLeft)}</span>
+        {mkt.timer_prefix} <span class="font-bold tabular-nums">{formatTime(timeLeft)}</span>
       </div>
     </div>
 
     <!-- Professional Headline Hierarchy thưa sếp! -->
     <div class="max-w-4xl mx-auto text-center" style="margin-bottom: var(--headline-mb)">
       <h3 class="headline-title">
-        {@html MARKETING.headline}
+        {@html mkt.headline}
       </h3>
       <p class="headline-sub">
-        {@html MARKETING.sub}
+        {@html mkt.sub}
       </p>
-      
+
       <!-- Integrated Trust Proof thưa sếp! -->
       <div class="flex items-center justify-center gap-4 mt-12 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
-         <span class="text-[8px] uppercase tracking-[0.4em] font-bold text-slate-400">{MARKETING.trust_verified_by}</span>
+         <span class="text-[8px] uppercase tracking-[0.4em] font-bold text-slate-400">{mkt.trust_verified_by}</span>
          <div class="h-px w-8 bg-slate-800"></div>
-         <span class="text-[9px] uppercase tracking-[0.2em] font-black text-slate-300">{SHOP_CONFIG.trust_marks[2]}</span>
+         <span class="text-[9px] uppercase tracking-[0.2em] font-black text-slate-300">{mkt.trust_mark_2}</span>
          <div class="h-px w-8 bg-slate-800"></div>
-         <span class="text-[8px] uppercase tracking-[0.4em] font-bold text-slate-400">{SHOP_CONFIG.trust_marks[3]}</span>
+         <span class="text-[8px] uppercase tracking-[0.4em] font-bold text-slate-400">{mkt.trust_mark_3}</span>
       </div>
     </div>
 
     <!-- Package Architecture -->
     <div class="package-grid {gridClass} gap-5 items-stretch" style="--cols: {isSlider ? 3 : variants.length}">
-      
+
       {#each variants as variant, idx (variant.sku || idx)}
          <!-- Card thưa sếp! -->
           <div class="package-card p-8 md:p-10 text-left flex flex-col h-full border-white/5 relative {isSlider ? 'min-w-[300px] md:min-w-[340px] snap-center' : ''} {idx === 1 ? 'popular md:scale-[1.03]' : ''}">
            {#if idx === 1}
               <div class="absolute -top-3 right-8 px-4 py-1.5 bg-blue-600/90 text-white font-black text-[8px] uppercase tracking-[0.3em] rounded-md shadow-xl backdrop-blur-md">
-                {OFFER_CONSTANTS.labels.expert_choice}
+                {mkt.label_expert_choice}
               </div>
            {/if}
 
            <div class="mb-6">
              <div class="flex items-center justify-between mb-4">
                <p class="text-[8px] font-bold {idx === 1 ? 'text-cyan-400' : 'text-slate-500'} uppercase tracking-[0.4em]">
-                  {idx === 0 ? OFFER_CONSTANTS.labels.activation : OFFER_CONSTANTS.labels.full_treatment}
+                  {idx === 0 ? mkt.label_activation : mkt.label_full_treatment}
                </p>
                {#if idx > 0}
                  <div class="flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 border border-red-500/20 rounded text-[7px] font-black text-red-400 uppercase tracking-wider animate-pulse">
                    <span class="w-1 h-1 bg-red-400 rounded-full"></span>
-                   {OFFER_CONSTANTS.labels.scarcity}
+                   {mkt.label_scarcity}
                  </div>
                {/if}
              </div>
              <h5 class="text-xl font-bold text-white mb-4">{getVariantTitle(variant)}</h5>
-             
+
              <div class="flex items-baseline gap-3 mb-2">
                {#if variant.price > (variant.discountPrice || variant.price)}
                   <span class="text-xs text-slate-600 line-through">{(variant.price).toLocaleString()}đ</span>
                {/if}
                <span class="text-3xl font-black text-white">{(variant.discountPrice || variant.price).toLocaleString()}đ</span>
              </div>
-             
+
               {#if idx === 0}
-                 <p class="text-[9px] text-blue-400 font-bold uppercase tracking-widest">{MARKETING.shipping_prefix} {SHOP_CONFIG.shipping.fixed_cost.toLocaleString()}đ</p>
+                 <p class="text-[9px] text-blue-400 font-bold uppercase tracking-widest">{mkt.shipping_prefix} {SHOP_CONFIG.shipping.fixed_cost.toLocaleString()}đ</p>
               {:else}
                  <div class="flex flex-col gap-1">
-                   <p class="text-[9px] text-emerald-400 font-bold uppercase tracking-widest">{MARKETING.savings_prefix} {(variant.price - (variant.discountPrice || variant.price)).toLocaleString()}đ</p>
-                   <p class="text-[8px] text-slate-500 italic opacity-60">🔥 {bookingPoints[idx]} {MARKETING.booking_suffix}</p>
+                   <p class="text-[9px] text-emerald-400 font-bold uppercase tracking-widest">{mkt.savings_prefix} {(variant.price - (variant.discountPrice || variant.price)).toLocaleString()}đ</p>
+                   <p class="text-[8px] text-slate-500 italic opacity-60">🔥 {bookingPoints[idx]} {mkt.booking_suffix}</p>
                  </div>
               {/if}
            </div>
@@ -153,11 +171,11 @@
              {/each}
            </ul>
 
-           <button 
-             onclick={() => { shopStore.setQuantity(idx + 1); shopStore.openCheckout(); }} 
+           <button
+             onclick={() => { shopStore.setQuantity(idx + 1); shopStore.openCheckout(); }}
              class="btn-buy primary w-full text-[9px] uppercase tracking-[0.2em] {idx !== 1 ? 'opacity-90 hover:opacity-100' : 'shadow-[0_0_20px_rgba(59,130,246,0.3)]'}"
            >
-             {idx === 0 ? OFFER_CONSTANTS.labels.cta_start : OFFER_CONSTANTS.labels.cta_full}
+             {idx === 0 ? mkt.cta_start : mkt.cta_full}
            </button>
           </div>
       {/each}
@@ -175,42 +193,42 @@
         <div class="info-grid">
           <!-- Identity -->
           <div class="contact-item">
-            <span class="label">PHÂN PHỐI CHÍNH HÃNG</span>
-            <span class="value text-white font-bold text-lg block mb-2">{SHOP_CONFIG.pharmacy.name}</span>
+            <span class="label uppercase">{mkt.label_distributor}</span>
+            <span class="value text-white font-bold text-lg block mb-2">{mkt.pharmacy_name}</span>
             <div class="flex items-start gap-2">
               <svg class="w-3.5 h-3.5 text-slate-500 mt-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              <span class="value text-[11px] text-slate-400">{SHOP_CONFIG.pharmacy.address}</span>
+              <span class="value text-[11px] text-slate-400">{mkt.pharmacy_address}</span>
             </div>
           </div>
 
           <!-- Connectivity -->
           <div class="contact-item">
-            <span class="label">HỖ TRỢ TRỰC TUYẾN</span>
+            <span class="label uppercase">{mkt.label_support}</span>
             <div class="space-y-3">
-              <a href="tel:{SHOP_CONFIG.pharmacy.phone.replace(/\s/g, '')}" class="flex items-center gap-3 group/link">
+              <a href="tel:{mkt.pharmacy_phone.replace(/\s/g, '')}" class="flex items-center gap-3 group/link">
                 <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20 group-hover/link:bg-blue-500/20 transition-colors">
                   <svg class="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 005.47 5.47l.772-1.547a1 1 0 011.06-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/></svg>
                 </div>
-                <span class="value font-bold text-blue-400">{SHOP_CONFIG.pharmacy.phone}</span>
+                <span class="value font-bold text-blue-400">{mkt.pharmacy_phone}</span>
               </a>
               <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
                   <span class="text-[10px] font-black text-cyan-400">Zalo</span>
                 </div>
-                <span class="value text-slate-300">{SHOP_CONFIG.pharmacy.zalo}</span>
+                <span class="value text-slate-300">{mkt.pharmacy_zalo}</span>
               </div>
             </div>
           </div>
 
           <!-- Trust Markers -->
           <div class="contact-item">
-            <span class="label">CAM KẾT DỊCH VỤ</span>
+            <span class="label uppercase">{mkt.label_commitment}</span>
             <div class="flex flex-wrap gap-2 mb-4">
                <span class="px-3 py-1 bg-white/5 text-white text-[9px] font-bold rounded-lg border border-white/10 backdrop-blur-md">{SHOP_CONFIG.trust_marks[0]}</span>
                <span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[9px] font-bold rounded-lg border border-emerald-500/20 backdrop-blur-md">{SHOP_CONFIG.trust_marks[1]}</span>
             </div>
             <p class="text-[10px] text-slate-500 italic leading-relaxed">
-              {@html MARKETING.compliance_note}
+              {@html mkt.compliance_note}
             </p>
           </div>
         </div>
@@ -218,7 +236,7 @@
         <!-- Compliance Label -->
         <div class="license-tag">
           <span class="px-4 py-1.5 bg-black/40 rounded-full border border-white/5">
-            {SHOP_CONFIG.pharmacy.license}
+            {mkt.label_license}
           </span>
         </div>
       </div>

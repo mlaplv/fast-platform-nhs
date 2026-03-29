@@ -76,12 +76,15 @@ class CheckoutService:
         order_metadata: OrderMetadata = {"items": items}
 
         if payload.has_order_bump:
-            order_bump_price = 99000.0  # Fixed as per CTO instruction
+            # R00 Compliance: Get price from metadata (Dynamic), fallback to CTO base if missing
+            metadata = product.product_metadata or {}
+            order_bump_price = float(metadata.get("order_bump_price", 99000.0))
+
             total_amount += order_bump_price
             order_metadata["order_bump"] = OrderBumpMetadata(
-                name="Xịt Khử Mùi Giày Nano",
+                name=str(metadata.get("order_bump_name", "Xịt Khử Mùi Giày Nano")),
                 price=order_bump_price,
-                original_price=250000.0
+                original_price=float(metadata.get("order_bump_original_price", 250000.0))
             )
 
         # 5. Save Order

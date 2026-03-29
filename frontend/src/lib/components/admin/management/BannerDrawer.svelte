@@ -6,7 +6,7 @@
   } from "lucide-svelte";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
-  import { portal } from "$lib/actions/portal";
+  import { portal } from "$lib/core/actions/portal";
   import { Z_INDEX } from "$lib/core/constants/zIndex";
   import type { MediaAsset, BannerForm } from "$lib/types";
   import FileManager from "../../media/FileManager.svelte";

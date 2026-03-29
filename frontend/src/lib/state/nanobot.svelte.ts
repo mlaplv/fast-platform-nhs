@@ -39,7 +39,7 @@ export function createNanobotState() {
     showMobileSidebar: false,
     nanoBotStatus: "IDLE" as "IDLE" | "THINKING" | "ERROR" | "SUCCESS" | "VOICE" | "PROCESSING",
     modality: "text" as "text" | "voice",
-    currentData: null as Record<string, unknown> | null,
+    currentData: null as CampaignData | Record<string, unknown> | null,
     isBusy: false,
     godModeUser: undefined as string | undefined,
     wakeWords: ["xohi"] as string[],
@@ -216,11 +216,13 @@ export function createNanobotState() {
     },
 
     hardKill: async (campaignId?: string) => {
-      const cid = campaignId || (voice.vuiResponse?.data as unknown as {id?: string; campaign_id?: string})?.id || (voice.vuiResponse?.data as unknown as {id?: string; campaign_id?: string})?.campaign_id;
-      
+      // CNS V86.3: Type-safe campaign ID extraction
+      const vuiData = voice.vuiResponse?.data as CampaignData | undefined;
+      const cid = campaignId || vuiData?.campaign_id || vuiData?.id;
+
       // 1. Play tactical purge SFX immediately for instant feedback
       playTacticalPurge();
-      
+
       // 2. Hide UI
       voice.setVuiActive(false);
       ui.setUniversalModalOpen(false);
@@ -228,9 +230,9 @@ export function createNanobotState() {
       state.isBusy = false;
       state.nanoBotStatus = "IDLE";
       voice.clearVuiResponse();
-      
+
       // 3. Signal backend if we have a campaign ID
-      if (cid) {
+      if (typeof cid === 'string') {
         try {
           await apiClient.post(`/api/v1/content/campaigns/${cid}/cancel`);
           ui.showToast("Tiến trình đã được ngắt khẩn cấp.", "success");
@@ -238,7 +240,7 @@ export function createNanobotState() {
           console.error("[HardKill] Signal failed:", e);
         }
       }
-      
+
       // 4. Full Reset
       voice.clearVuiResponse();
       resetVui();
@@ -246,8 +248,10 @@ export function createNanobotState() {
 
     // 5. Total Disposal (CNS V82.11 Root Cause Fix)
     fullPurge: (campaignId?: string) => {
-      const activeCid = (state.currentData as unknown as {campaign_id?: string; id?: string})?.campaign_id || (state.currentData as unknown as {campaign_id?: string; id?: string})?.id;
-      
+      // CNS V86.3: Type-safe currentData extraction
+      const currentData = state.currentData;
+      const activeCid = (currentData as CampaignData)?.campaign_id || (currentData as CampaignData)?.id;
+
       // If a specific ID is provided and it doesn't match active, we just clear logs (handled by Pulse)
       // If no ID or it matches, we Wipe Everything.
       if (!campaignId || campaignId === activeCid) {
@@ -256,7 +260,7 @@ export function createNanobotState() {
         ui.setUniversalModalOpen(false);
         voice.clearVuiResponse();
         resetVui();
-        
+
         // CNS V82.11: Hard Purge Global Image Store
         import("$lib/state/xohiImage.svelte.ts").then(({ xohiImageStore }) => {
           if (xohiImageStore && typeof xohiImageStore.clearAll === 'function') {
@@ -344,7 +348,7 @@ export function createNanobotState() {
         current_route: typeof window !== "undefined" ? window.location.pathname : "/",
         active_widget: state.activeWidget,
         active_data: state.currentData
-      } as import("./types").ScreenContext & { active_data: Record<string, unknown> | null };
+      } as import("./types").ScreenContext & { active_data: CampaignData | Record<string, unknown> | null };
     },
     get heartbeatCollapsed() { return ui.heartbeatCollapsed; },
     toggleHeartbeat: () => {

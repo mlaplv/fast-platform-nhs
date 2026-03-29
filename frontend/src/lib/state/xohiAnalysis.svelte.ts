@@ -112,7 +112,7 @@ export function createAnalysisController(config: {
         if (currentText && config.campaign_id) {
             try {
                 await apiClient.patch(`/api/v1/content/campaigns/${config.campaign_id}`, { draft_content: currentText });
-            } catch (e) {
+            } catch (e: unknown) {
                 console.warn("[AnalysisController] Auto-save failed:", e);
             }
         }
@@ -132,21 +132,21 @@ export function createAnalysisController(config: {
                 : `/api/v1/content/campaigns/${config.campaign_id}/analyze/copyright?force=${force}`;
             const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)() } : undefined;
             const res = await apiClient.post<GenericResponse<CopyrightResult>>(url, body);
-            
+
             if (res?.data) {
                 // Phase 3.7: Premium Log Replay for Analysis
-                if (res.data.logs && res.data.logs.length > 0) {
-                    for (const log of res.data.logs) {
+                if (res.logs && res.logs.length > 0) {
+                    for (const log of res.logs) {
                         // Avoid duplicates if initial logs are also in backend logs
                         if (!bulkFixLogs.includes(log)) {
                             bulkFixLogs = [...bulkFixLogs, log];
-                            
+
                         }
                     }
                 }
                 copyrightResult = res.data;
             }
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("Copyright check failed:", e);
             bulkFixLogs = [...bulkFixLogs, "⚠️ Lỗi: Không thể hoàn tất thẩm định bản quyền."];
         } finally {
@@ -171,24 +171,24 @@ export function createAnalysisController(config: {
                 ? `/api/v1/content/analyze/seo?force=${force}`
                 : `/api/v1/content/campaigns/${config.campaign_id}/analyze/seo?force=${force}`;
             const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)(), topic: topicName } : undefined;
-            
+
             const res = await apiClient.post<GenericResponse<SEOResult>>(url, body);
             if (res?.data) {
-                if (res.data.logs && res.data.logs.length > 0) {
-                    for (const log of res.data.logs) {
+                if (res.logs && res.logs.length > 0) {
+                    for (const log of res.logs) {
                         if (!bulkFixLogs.includes(log)) {
                             bulkFixLogs = [...bulkFixLogs, log];
                         }
                     }
                 }
-                
+
                 // Salvage green highlights (fixed-area) as requested by user
                 const oldFixed = (seoResult?.seo_annotations || []).filter((a: AnalysisAnnotation) => a.type === 'fixed-area');
                 res.data.seo_annotations = [...oldFixed, ...(res.data.seo_annotations || [])];
-                
+
                 seoResult = res.data;
             }
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("SEO analysis failed:", e);
             bulkFixLogs = [...bulkFixLogs, "⚠️ Lỗi: Không thể hoàn tất thẩm định SEO."];
         } finally {
@@ -214,21 +214,21 @@ export function createAnalysisController(config: {
             const res = await apiClient.post<GenericResponse<AIInspectResult>>(url, body);
             if (res?.data) {
                 // Phase 4.0: Premium Log Replay
-                if (res.data.logs && res.data.logs.length > 0) {
-                    for (const log of res.data.logs) {
+                if (res.logs && res.logs.length > 0) {
+                    for (const log of res.logs) {
                         if (!bulkFixLogs.includes(log)) {
                             bulkFixLogs = [...bulkFixLogs, log];
-                            
+
                         }
                     }
                 }
                 // Salvage green highlights (fixed-area) as requested by user
                 const oldFixed = (aiReadyResult?.ai_annotations || []).filter((a: AnalysisAnnotation) => a.type === 'fixed-area');
                 res.data.ai_annotations = [...oldFixed, ...(res.data.ai_annotations || [])];
-                
+
                 aiReadyResult = res.data;
             }
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("AI Inspect failed:", e);
             bulkFixLogs = [...bulkFixLogs, "⚠️ Lỗi: Không thể hoàn tất thẩm định AI MOD."];
         } finally {
@@ -308,12 +308,12 @@ export function createAnalysisController(config: {
                 nanobot.showToast("Đã dọn dẹp & tối ưu cấu trúc thành công!", "success");
                 return cleaned;
             }
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("Neural Clean failed:", e);
             bulkFixLogs = [...bulkFixLogs, "⚠️ Lỗi: Không thể hoàn tất Neural Clean."];
         } finally {
             // CNS V82.9: Consistency in delay
-            setTimeout(() => { 
+            setTimeout(() => {
                 if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) {
                     isBulkFixing = false;
                 }
@@ -326,7 +326,7 @@ export function createAnalysisController(config: {
     async function runAutoFix(targetSnippet: string, annotationType: string, errorMessage: string): Promise<string | null> {
         if (!config.campaign_id) return null;
         try {
-            const res = await apiClient.post<{ status: string; data: { new_text: string } }>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/auto-fix`, {
+            const res = await apiClient.post<GenericResponse<{ new_text: string }>>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/auto-fix`, {
                 target_snippet: targetSnippet,
                 annotation_type: annotationType,
                 error_message: errorMessage,
@@ -353,7 +353,7 @@ export function createAnalysisController(config: {
                 }
                 return new_text;
             }
-        } catch (e) {
+        } catch (e: unknown) {
             console.error('Auto-Fix failed:', e);
         }
         return null;
@@ -401,12 +401,12 @@ export function createAnalysisController(config: {
             const bulkBody = isAdhoc
                 ? { content: (config.getContent ?? config.getEditedDraft)(), topic: config.topic ?? '', category, annotations: annotationsToSend }
                 : { category, annotations: annotationsToSend };
-            const res = await apiClient.post<{ status: string; data: { new_content: string, logs?: string[], replacements?: BulkFixReplacement[] } }>(bulkUrl, bulkBody);
+            const res = await apiClient.post<GenericResponse<{ new_content: string, logs?: string[], replacements?: BulkFixReplacement[] }>>(bulkUrl, bulkBody);
 
             if (res?.status === 'success' && res.data?.new_content) {
                 // Phase 82.80: Premium Log Replay (iPhone 18/Claude Style)
-                if (res.data.logs && res.data.logs.length > 0) {
-                    for (const log of res.data.logs) {
+                if (res.logs && res.logs.length > 0) {
+                    for (const log of res.logs) {
                         bulkFixLogs = [...bulkFixLogs, log];
                     }
                 }
@@ -415,7 +415,7 @@ export function createAnalysisController(config: {
                 bulkFixLogs = [...bulkFixLogs, "✅ Phẫu thuật hoàn tất!", "Đang đồng bộ bản thảo (Asset Fidelity)...", "Đang ghi đè dữ liệu AI chuẩn xác..."];
                 const newHtml = res.data.new_content;
                 const replacements = res.data.replacements || []; // Array of { old_text, new_text }
-                
+
                 // In campaign mode, also persist fixed content to DB
                 if (!isAdhoc && config.campaign_id) {
                     await apiClient.patch(`/api/v1/content/campaigns/${config.campaign_id}`, { draft_content: newHtml });
@@ -471,7 +471,7 @@ export function createAnalysisController(config: {
                     aiReadyResult = { ...aiReadyResult, ai_annotations: [...fixedAnnotations, ...remainingErrors] };
                 }
             }
-        } catch (e) {
+        } catch (e: unknown) {
             console.error('Bulk Fix failed:', e);
             bulkFixLogs = [...bulkFixLogs, "⚠️ Lỗi: Không thể hoàn tất phẫu thuật."];
         } finally {
@@ -490,15 +490,15 @@ export function createAnalysisController(config: {
         activeTab = 'enrich';
         try {
             await saveBeforeAnalysis();
-            const res = await apiClient.post<{ status: string; data: { new_content: string, logs?: string[] } }>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/enrich`);
+            const res = await apiClient.post<GenericResponse<{ new_content: string, logs?: string[] }>>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/enrich`);
             if (res?.status === 'success' && res.data?.new_content) {
                 // Phase 3.6: Premium Log Replay for Booster
-                if (res.data.logs && res.data.logs.length > 0) {
-                    for (const log of res.data.logs) {
+                if (res.logs && res.logs.length > 0) {
+                    for (const log of res.logs) {
                         bulkFixLogs = [...bulkFixLogs, log];
                     }
                 }
-                
+
                 bulkFixStatus = "Đang lưu...";
                 bulkFixLogs = [...bulkFixLogs, "✅ Đã tổng hợp dữ liệu thành công!", "Đang đồng bộ bản thảo tối ưu..."];
                 const newHtml = res.data.new_content;
@@ -506,7 +506,7 @@ export function createAnalysisController(config: {
                 else config.setDraftContent(newHtml);
                 await tick();
                 await new Promise(resolve => setTimeout(resolve, 300));
-                
+
                 bulkFixStatus = "Đang thẩm định...";
                 bulkFixLogs = [...bulkFixLogs, "Đang khởi động bộ máy thẩm định SEO...", "Đang đối chiếu điểm số mới..."];
                 activeTab = 'seo';
@@ -514,7 +514,7 @@ export function createAnalysisController(config: {
                 bulkFixLogs = [...bulkFixLogs, "🎯 AI Booster hoàn tất! Điểm SEO đã được cải thiện."];
                 setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; bulkFixLogs = []; }, 3500);
             }
-        } catch (e) {
+        } catch (e: unknown) {
             console.error('AI Booster failed:', e);
             bulkFixLogs = [...bulkFixLogs, "❌ Lỗi: " + (e instanceof Error ? e.message : "Không thể kết nối AI Booster.")];
             setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; bulkFixLogs = []; }, 4000);

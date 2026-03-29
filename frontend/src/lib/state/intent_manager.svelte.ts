@@ -84,8 +84,11 @@ export function createIntentManager(
 
     // Phase 82: Robust data isolation (Sếp's Request)
     if (data) {
-      const newCid = data.campaign_id || data.id || (data.data as any)?.campaign_id || (data.data as any)?.id;
-      const oldCid = (state.currentData as any)?.campaign_id || (state.currentData as any)?.id;
+      const dataPayload = (data.data || {}) as Record<string, unknown>;
+      const currentData = (state.currentData || {}) as Record<string, unknown>;
+
+      const newCid = (data.campaign_id || data.id || dataPayload.campaign_id || dataPayload.id) as string | undefined;
+      const oldCid = (currentData.campaign_id || currentData.id) as string | undefined;
 
       // Logic: If it's a NEW campaign ID, we MUST replace the entire data object to avoid leakage (e.g. Hôi nách nam -> Hôi nách nữ)
       if (newCid && oldCid && newCid !== oldCid) {
@@ -98,7 +101,7 @@ export function createIntentManager(
 
       // Flatten data.data if it exists (Smart Flattening Phase 60)
       if (data.data && typeof data.data === 'object') {
-        state.currentData = { ...state.currentData, ...data.data };
+        state.currentData = { ...state.currentData, ...(data.data as Record<string, unknown>) };
       }
     }
 

@@ -358,8 +358,9 @@ export interface GhostCompletionResponse {
   message?: string;
   token?: string;
 }
-export interface GenericResponse<T = any> {
-  status: 'success' | 'error';
+export interface GenericResponse<T = unknown> {
+  status?: 'success' | 'error';
+  ok?: boolean;
   message?: string;
   data: T;
   logs?: string[];

@@ -1,13 +1,13 @@
 import { xohiImageStore } from "./xohiImage.svelte";
 import { processContentImages, resolveMediaUrl } from "./utils";
 import { purifyAIContent } from "$lib/utils/purify";
-import type { MediaAsset, CampaignKeywords, CopyrightResult, SEOResult, AIInspectResult } from "./types";
+import type { MediaAsset, CampaignKeywords, CopyrightResult, SEOResult, AIInspectResult, AnalysisCache } from "./types";
 
 export function createPreviewController(config: {
     getDraftContent: () => string;
     getAssets: () => (MediaAsset | string)[];
     getKeywords: () => CampaignKeywords;
-    getAnalysisCache: () => any;
+    getAnalysisCache: () => AnalysisCache | undefined;
 }) {
     let previewMode = $state<'desktop' | 'mobile'>('desktop');
 

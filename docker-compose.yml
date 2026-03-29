@@ -121,11 +121,13 @@ services:
       options:
         max-size: "5m"
         max-file: "3"
+    env_file:
+      - .env
     environment:
       - VITE_API_URL=${API_DOMAIN}
       - VITE_API_PROXY_TARGET=http://api:8000
-      - INTERNAL_API_URL=http://api:8000
       - APP_DOMAIN=${APP_DOMAIN}
+      - ENVIRONMENT=${ENVIRONMENT}
     mem_limit: ${UI_MEM_LIMIT:-2G}
     deploy:
       resources:

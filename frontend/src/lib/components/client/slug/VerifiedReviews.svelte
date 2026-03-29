@@ -1,17 +1,8 @@
 <script lang="ts">
   import { fade, fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
+  import type { Review, ProductMetadata } from '$lib/types';
   import "./VerifiedReviews.css";
-
-  interface Review {
-    id: number;
-    name: string;
-    phone: string;
-    location: string;
-    rating: number;
-    content: string;
-    initial: string;
-  }
 
   interface ReviewForm {
     name: string;
@@ -23,35 +14,41 @@
     showSuccess: boolean;
   }
 
-  const reviews: Review[] = [
-    {
-      id: 1,
-      name: "K.H.",
-      phone: "098124",
-      location: "Hà Nội*",
-      rating: 5,
-      content: "Ám ảnh 5 năm không dám mặc sơ mi trắng vì ố vàng và ướt sũng. Hôm qua thử xịt đúng 1 lần buổi sáng, lúc lắc nhẹ thấy sương rất mịn mát. Đi làm cả ngày trời 40 độ mà tối về nách áo vẫn khô ron, không một mùi lạ. Thực sự là chân ái!",
-      initial: "H"
-    },
-    {
-      id: 2,
-      name: "T.M.",
-      phone: "090882",
-      location: "TP.HCM*",
-      rating: 5,
-      content: "Cơ địa nội tiết mình ra mồ hôi như tắm, dùng đủ loại lăn ngoại nhập đều bó tay. Bác sĩ da liễu khuyên dùng thử cái này vì cơ chế kép. Khó tin thật, 2 ngày chưa tắm lại mà vẫn không hề có mùi bục ra. Đáng từng xu.",
-      initial: "T"
-    },
-    {
-      id: 3,
-      name: "P.T.",
-      phone: "093441",
-      location: "Đà Nẵng*",
-      rating: 5,
-      content: "Mình ngại nhất khoản đi nhận hàng. Nhưng shop đóng hộp trơn bọc kín bưng, che tên sản phẩm hoàn toàn. Bạn shipper giao đến chỉ bảo 'có gói mỹ phẩm'. 10 điểm cho sự tế nhị và bảo mật thông tin.",
-      initial: "P"
-    }
-  ];
+  let {
+    reviews = [],
+    headline = '',
+    trustScore = '4.9/5',
+    countText = '2,140+ LƯỢT MUA',
+    metadata = {}
+  }: {
+    reviews: Review[];
+    headline: string;
+    trustScore?: string;
+    countText?: string;
+    metadata?: ProductMetadata;
+  } = $props();
+
+  const labels = $derived({
+    trust_score: (metadata.reviews_trust_score as string) || trustScore || '4.9/5',
+    count_text: (metadata.reviews_count_text as string) || countText || '2,140+ LƯỢT MUA',
+    hud_feedback: (metadata.reviews_hud_feedback as string) || 'CORE // VERIFIED_USER_FEEDBACK',
+    label_verified: (metadata.reviews_label_verified as string) || 'VERIFIED',
+    label_compliant: (metadata.reviews_label_compliant as string) || 'ELITE_COMPLIANT',
+    label_store_verified: (metadata.reviews_label_store_verified as string) || 'Store_Verified',
+    label_secure_encryption: (metadata.reviews_label_secure_encryption as string) || 'SECURE_ENCRYPTION_ACTIVE [AES-256]',
+    label_secure_gate: (metadata.reviews_label_secure_gate as string) || 'SECURE_GATE // V2.2',
+    cta_write: (metadata.reviews_cta_write as string) || 'Viết đánh giá của bạn',
+    form_title: (metadata.reviews_form_title as string) || 'MODULE // REAL_VOICE_ANALYSIS_V2',
+    form_name: (metadata.reviews_form_name_label as string) || 'Danh tính',
+    form_phone: (metadata.reviews_form_phone_label as string) || 'Liên hệ',
+    form_location: (metadata.reviews_form_location_label as string) || 'Vị trí',
+    form_rating: (metadata.reviews_form_rating_label as string) || 'Đánh giá sao',
+    form_content: (metadata.reviews_form_content_label as string) || 'Trải nghiệm thực tế',
+    form_placeholder: (metadata.reviews_form_placeholder_content as string) || 'Hãy cho chúng tôi biết cảm nhận của bạn... *',
+    form_cta: (metadata.reviews_form_cta_submit as string) || 'XÁC NHẬN GỬI ĐÁNH GIÁ',
+    success_title: (metadata.reviews_form_success_title as string) || 'Gửi thành công',
+    success_msg: (metadata.reviews_form_success_msg as string) || 'Hệ thống đã ghi nhận phản hồi của bạn.'
+  });
 
   let showFormModal = $state<boolean>(false);
   let isLocationOpen = $state<boolean>(false);
@@ -106,7 +103,7 @@
   <div class="reviews-container my-auto">
     <div class="mb-16 text-center">
       <h2 class="section-headline mb-8">
-        "99.8% Tìm lại sự tự do. <br class="hidden md:block"/> Không còn những khoảng cách ngập ngừng."
+        {@html headline}
       </h2>
       <div class="flex flex-col items-center gap-6">
         <div class="trust-indicator inline-flex items-center gap-6 px-6 py-3 bg-white/5 rounded-full border border-white/10 backdrop-blur-md">
@@ -118,11 +115,11 @@
             {/each}
           </div>
           <span class="text-white/60 text-[10px] font-black tracking-[0.2em] uppercase">
-            4.9/5 <span class="mx-3 opacity-20">|</span> 2,140+ LƯỢT MUA
+            {labels.trust_score} <span class="mx-3 opacity-20">|</span> {labels.count_text}
           </span>
         </div>
         <button onclick={() => showFormModal = true} class="px-8 py-3 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-emerald-500/20 transition-all active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
-          Viết đánh giá của bạn
+          {labels.cta_write}
         </button>
       </div>
     </div>
@@ -132,7 +129,7 @@
         <div class="flex items-center justify-between mb-10 px-2">
             <div class="hud-tag primary">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                CORE // VERIFIED_USER_FEEDBACK
+                {labels.hud_feedback}
             </div>
         </div>
 
@@ -149,7 +146,7 @@
                 </div>
                 <div class="verified-badge">
                   <span class="verified-dot w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                  <span class="text-[8px] font-black text-emerald-400 uppercase tracking-widest">VERIFIED</span>
+                  <span class="text-[8px] font-black text-emerald-400 uppercase tracking-widest">{labels.label_verified}</span>
                 </div>
               </div>
 
@@ -167,13 +164,13 @@
 
               <div class="clinical-verify mt-auto pt-8 flex items-center justify-between opacity-60">
                 <div class="compliance-tag flex items-center gap-2">
-                  <span class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] leading-none">ELITE_COMPLIANT</span>
+                  <span class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] leading-none">{labels.label_compliant}</span>
                 </div>
                 <div class="buy-check flex items-center gap-1.5">
                   <svg class="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                   </svg>
-                  <span class="text-[9px] font-black text-emerald-400/80 uppercase tracking-widest">Store_Verified</span>
+                  <span class="text-[9px] font-black text-emerald-400/80 uppercase tracking-widest">{labels.label_store_verified}</span>
                 </div>
               </div>
             </div>
@@ -230,17 +227,17 @@
               <div class="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mb-6 border border-emerald-500/30">
                 <svg class="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
               </div>
-              <h4 class="text-3xl font-black text-white uppercase tracking-tighter mb-4">Gửi thành công</h4>
-              <p class="text-white/40 text-sm max-w-xs font-medium uppercase tracking-widest">Hệ thống đã ghi nhận phản hồi của bạn.</p>
+              <h4 class="text-3xl font-black text-white uppercase tracking-tighter mb-4">{labels.success_title}</h4>
+              <p class="text-white/40 text-[11px] max-w-xs font-bold uppercase tracking-widest">{labels.success_msg}</p>
             </div>
           {/if}
 
           <div class="flex items-center justify-between mb-10 pb-6 border-b border-white/5 pr-12 lg:pr-16">
             <div class="hud-tag primary">
               <span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span>
-              MODULE // REAL_VOICE_ANALYSIS_V2
+              {labels.form_title}
             </div>
-            <div class="text-[9px] font-bold uppercase tracking-[0.2em] text-white/20 font-mono hidden sm:block">SECURE_ENCRYPTION_ACTIVE [AES-256]</div>
+            <div class="text-[9px] font-bold uppercase tracking-[0.2em] text-white/20 font-mono hidden sm:block">{labels.label_secure_encryption}</div>
           </div>
 
           <form onsubmit={submitReview} class="space-y-8">
@@ -249,19 +246,19 @@
               <div class="space-y-6">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div class="space-y-2">
-                    <label for="review-name" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">Danh tính</label>
+                    <label for="review-name" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_name}</label>
                     <input id="review-name" type="text" bind:value={newReview.name} placeholder="Họ và Tên *" class="input-liquid" />
                   </div>
                   <div class="space-y-2">
-                    <label for="review-phone" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">Liên hệ</label>
+                    <label for="review-phone" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_phone}</label>
                     <input id="review-phone" type="tel" bind:value={newReview.phone} placeholder="Số điện thoại *" class="input-liquid" />
                   </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div class="space-y-2 relative">
-                    <label for="review-location" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">Vị trí</label>
-                    <button 
+                    <label for="review-location" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_location}</label>
+                    <button
                       id="review-location"
                       type="button"
                       onclick={() => isLocationOpen = !isLocationOpen}
@@ -296,7 +293,7 @@
                     {/if}
                   </div>
                   <div class="space-y-2">
-                    <label id="rating-label" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">Đánh giá sao</label>
+                    <label id="rating-label" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_rating}</label>
                     <div role="group" aria-labelledby="rating-label" class="rating-picker flex items-center justify-center gap-3 h-[58px] rounded-2xl">
                       {#each Array(5) as _, i}
                         <button type="button" onclick={() => setRating(i + 1)} aria-label="Rate {i + 1} stars" class="star-picker-btn transition-all">
@@ -312,9 +309,9 @@
 
               <!-- Right Column: Message -->
               <div class="space-y-2">
-                <label for="review-content" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">Trải nghiệm thực tế</label>
+                <label for="review-content" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_content}</label>
                 <div class="relative h-full pb-6">
-                  <textarea id="review-content" bind:value={newReview.content} placeholder="Hãy cho chúng tôi biết cảm nhận của bạn... *" class="input-liquid resize-none h-[140px] lg:h-full pr-12 scrollbar-mission"></textarea>
+                  <textarea id="review-content" bind:value={newReview.content} placeholder="{labels.form_placeholder}" class="input-liquid resize-none h-[140px] lg:h-full pr-12 scrollbar-mission"></textarea>
                   <div class="char-counter absolute bottom-10 right-4 opacity-40">{newReview.content.length}/500</div>
                 </div>
               </div>
@@ -330,8 +327,8 @@
                 {#if newReview.isSubmitting}
                   <div class="text-xs font-black animate-pulse uppercase tracking-[0.2em]">Đang xử lý dữ liệu...</div>
                 {:else}
-                  <span class="text-base font-black tracking-[0.3em] uppercase group-hover/btn:scale-105 transition-transform">XÁC NHẬN GỬI ĐÁNH GIÁ</span>
-                  <div class="px-3 py-1 bg-white/10 rounded-md text-[8px] font-mono tracking-widest opacity-60">SECURE_GATE // V2.2</div>
+                  <span class="text-base font-black tracking-[0.3em] uppercase group-hover/btn:scale-105 transition-transform">{labels.form_cta}</span>
+                  <div class="px-3 py-1 bg-white/10 rounded-md text-[8px] font-mono tracking-widest opacity-60">{labels.label_secure_gate}</div>
                 {/if}
               </button>
             </div>

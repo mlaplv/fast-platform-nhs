@@ -86,7 +86,7 @@ export function createCampaignController(config: {
 
             vuiController.speak("Đã duyệt thành công!");
             return true;
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("Approve failed:", e);
             return false;
         } finally {
@@ -111,7 +111,7 @@ export function createCampaignController(config: {
             await apiClient.post(`/api/v1/content/campaigns/${config.campaign_id}/retry`);
             vuiController.speak("Đang chạy lại bước này.");
             return true;
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("Retry failed:", e);
             return false;
         } finally {
@@ -144,7 +144,7 @@ export function createCampaignController(config: {
 
             vuiController.speak("Đã lưu thành công.");
             return true;
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("Update failed:", e);
             return false;
         } finally {
@@ -165,7 +165,7 @@ export function createCampaignController(config: {
             await apiClient.post(`/api/v1/content/campaigns/${config.campaign_id}/publish`);
             vuiController.speak("Bài viết đã được xuất bản.");
             return true;
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("Publish failed:", e);
             return false;
         } finally {
@@ -193,7 +193,7 @@ export function createCampaignController(config: {
                 reserve_assets: config.reserve_assets
             });
             return true;
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("Sync failed:", e);
             return false;
         }

@@ -5,24 +5,14 @@
   import type { Product } from '$lib/types';
   import LiquidHeader from './LiquidHeader.svelte';
   import "./HeroBanner.css";
-  
+
   interface HeroBannerProps {
-    product: GenericProduct;
+    product: Product;
     scrollToQuiz?: () => void;
   }
 
-  // Senior Architect Note: Use a more flexible type for initial props while maintaining strict safety
-  type GenericProduct = Partial<Product> & {
-    attributes?: {
-      hero_headline?: string;
-      absorption_value?: string;
-      efficiency_value?: string;
-      origin_value?: string;
-      [key: string]: unknown;
-    };
-  };
-
   let { product, scrollToQuiz }: HeroBannerProps = $props();
+  const metadata = $derived(product?.metadata || {});
   let themeMode = $state<'system' | 'light' | 'dark'>('system');
   let mouse = $state({ x: 0, y: 0 });
 
@@ -44,12 +34,29 @@
     currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
   };
 
-  const productName: string = $derived(product?.name ?? 'Elite Formulation');
-  // Svelte 5 Runes: Optimized Derived Logic thưa sếp!
+  const labels = $derived({
+    product_name: product?.name || (metadata.hero_product_name_fallback as string) || 'Elite Formulation',
+    headline: metadata.hero_headline || 'CHẤM DỨT <br/> MÙI CƠ THỂ.',
+    video_url: metadata.hero_video_url || '/video/video-hn.mp4',
+    cta_text: metadata.hero_cta_text || 'Personalized Care AI',
+    aria_hero: (metadata.hero_aria_label as string) || 'Hero Spotlight Area',
+    aria_scroll: (metadata.hero_aria_scroll as string) || 'Scroll to diagnostics section',
+    metrics: metadata.hero_metrics || [
+      { label: '[Tốc độ]', value: 'THẨM THẤU TÀNG HÌNH 3S', desc: 'Hạt Nano siêu phân tử. Chạm là khô tắp lự, tuyệt đối không bết dính.', color: 'blue' },
+      { label: '[Hiệu quả]', value: 'PHONG TỎA MÙI 48H', desc: 'Khóa chặt tuyến bã nhờn và vi khuẩn sinh mùi. Áo sơ mi không một vệt ố vàng.', color: 'indigo' },
+      { label: '[Thành phần]', value: 'TINH CHẤT DƯỢC LIỆU SẠCH', desc: 'Chiết xuất sinh học thân thiện with da nhạy cảm. Không cồn, không gây thâm sạm.', color: 'emerald' }
+    ]
+  });
+
+  const productName = $derived(labels.product_name);
   const images = $derived(product?.images?.length ? product.images : []);
   const mainImage = $derived(images.length > 0 ? resolveMediaUrl(images[currentImageIndex]) : '');
-  const rawHeadline = $derived((product?.attributes?.hero_headline as string) || 'CHẤM DỨT <br/> MÙI CƠ THỂ.');
-  
+
+  const rawHeadline = $derived(labels.headline);
+  const videoUrl = $derived(labels.video_url);
+  const ctaText = $derived(labels.cta_text);
+  const metrics = $derived(labels.metrics);
+
   let displayText = $state("");
   let isTypingComplete = $state(false);
 
@@ -131,19 +138,19 @@
 <section
   id="hero"
   role="region"
-  aria-label="Hero Spotlight Area"
+  aria-label={labels.aria_hero}
   class="hero-center-layout content-hero snap-session relative w-full overflow-hidden flex flex-col items-center justify-start bg-[#020617] text-white"
   onmousemove={handleMouseMove}
   style="--mx: {mouse.x}px; --my: {mouse.y}px; --hero-accent: #3b82f6; --hero-glass-blur: 32px;"
 >
-  <LiquidHeader {themeMode} {applyTheme} scrollToQuiz={scrollToCare} />
+  <LiquidHeader {product} {themeMode} {applyTheme} scrollToQuiz={scrollToCare} />
 
 
   <!-- NUCLEAR VIDEO BACKGROUND (Standard Full Coverage: 100% Native) -->
   <div class="absolute inset-x-0 top-0 bottom-0 z-0 overflow-hidden pointer-events-none w-full h-full">
     <div class="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#020617] to-transparent w-full" style:z-index="var(--z-surface)"></div>
     <video autoplay muted loop playsinline class="elite-video-bg">
-      <source src="/video/video-hn.mp4" type="video/mp4" />
+      <source src={videoUrl} type="video/mp4" />
     </video>
   </div>
 
@@ -229,11 +236,7 @@
           </div>
 
           <div id="products" class="metrics-arc-container relative flex lg:justify-start w-full">
-             {#each [
-                { label: '[Tốc độ]', value: 'THẨM THẤU TÀNG HÌNH 3S', desc: 'Hạt Nano siêu phân tử. Chạm là khô tắp lự, tuyệt đối không bết dính.', color: 'blue' },
-                { label: '[Hiệu quả]', value: 'PHONG TỎA MÙI 48H', desc: 'Khóa chặt tuyến bã nhờn và vi khuẩn sinh mùi. Áo sơ mi không một vệt ố vàng.', color: 'indigo' },
-                { label: '[Thành phần]', value: 'TINH CHẤT DƯỢC LIỆU SẠCH', desc: 'Chiết xuất sinh học thân thiện với da nhạy cảm. Không cồn, không gây thâm sạm.', color: 'emerald' }
-             ] as metric, i}
+             {#each metrics as metric, i}
                 <div class="arc-item group flex flex-col max-w-[450px] md:max-w-none mb-6 lg:mb-8" style="--idx: {i}">
                    <div class="flex items-center gap-4 mb-2">
                       <div class="metric-dot bg-{metric.color}-500 shadow-[0_0_15px_rgba(var(--{metric.color}-rgb),1)]"></div>
@@ -255,7 +258,7 @@
      <div class="cta-gradient-overlay"></div>
      <div class="cta-content">
         <div class="cta-status-dot"></div>
-        <span class="cta-text">Personalized Care AI</span>
+        <span class="cta-text">{ctaText}</span>
         <svg class="cta-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
         </svg>
@@ -264,7 +267,7 @@
   </button>
 
   <!-- MOUSE SCROLL INDICATOR (Fixed to section bottom thưa sếp!) -->
-  <a href="#personalized-care" class="mouse-scroll-indicator" aria-label="Scroll to diagnostics section" onclick={(e) => { e.preventDefault(); scrollToCare(); }}>
+  <a href="#personalized-care" class="mouse-scroll-indicator" aria-label={labels.aria_scroll} onclick={(e) => { e.preventDefault(); scrollToCare(); }}>
      <div class="mouse-body">
         <div class="mouse-wheel"></div>
      </div>

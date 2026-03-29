@@ -21,16 +21,22 @@ export const load: PageServerLoad = async ({ params, fetch, getClientAddress, re
         });
     }
 
-    const product = await res.json();
+    const product = await res.json() as import('$lib/types').Product;
 
-    let ip = '127.0.0.1';
-    try { ip = getClientAddress(); } catch {
-        ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
-    }
+    // Tối ưu lấy IP thực tế (Elite V2.2 Protocol)
+    const effectiveIp = request.headers.get('cf-connecting-ip') ||
+                      request.headers.get('x-real-ip') ||
+                      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+                      '127.0.0.1';
 
-    return { 
-        product, 
-        location: { city: 'TP. Hồ Chí Minh', region: 'Miền Nam' }, 
-        effectiveIp: ip 
+    const userAgent = request.headers.get('user-agent') || '';
+
+    return {
+        product,
+        effectiveIp,
+        metadata: {
+            timestamp: new Date().toISOString(),
+            userAgent
+        }
     };
 };

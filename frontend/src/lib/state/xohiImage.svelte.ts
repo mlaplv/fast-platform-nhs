@@ -1,5 +1,5 @@
 import { untrack } from "svelte";
-import type { MediaAsset } from "./types";
+import type { MediaAsset, GenericResponse } from "./types";
 import { safeRandomUUID, extractIdFromUrl, sanitizeId, resolveMediaUrl } from "./utils";
 import { apiClient } from "$lib/utils/apiClient";
 
@@ -92,7 +92,7 @@ export class XohiImageStore {
                 const cleanCid = sanitizeId(this.campaignId);
                 if (cleanCid) formData.append('campaign_id', cleanCid);
 
-                const response = await apiClient.upload<{ data: MediaAsset }>(
+                const response = await apiClient.upload<GenericResponse<MediaAsset>>(
                     '/api/v1/media',
                     formData
                 );
@@ -108,11 +108,14 @@ export class XohiImageStore {
                     };
                     URL.revokeObjectURL(blobUrl);
                 }
-            } catch (error) {
+            } catch (error: unknown) {
                 console.error("Upload failed", error);
                 const idx = this.assets.findIndex(a => a.id === tempId);
                 if (idx !== -1) {
-                    this.assets[idx].media_metadata = { status: 'error', error: String(error) };
+                    this.assets[idx].media_metadata = {
+                        status: 'error',
+                        error: error instanceof Error ? error.message : String(error)
+                    };
                 }
             }
         });
@@ -143,7 +146,7 @@ export class XohiImageStore {
             try {
                 const url = permanent ? `/api/v1/media/${id}?permanent=true` : `/api/v1/media/${id}`;
                 await apiClient.delete(url);
-            } catch (error) {
+            } catch (error: unknown) {
                 console.warn("[XohiImageStore] Server deletion failed", error);
             }
         }
@@ -153,7 +156,7 @@ export class XohiImageStore {
         this.isUploading = true;
         try {
             const cleanCid = sanitizeId(this.campaignId);
-            const response = await apiClient.post<{ data: MediaAsset }>(
+            const response = await apiClient.post<GenericResponse<MediaAsset>>(
                 '/api/v1/media/fetch-remote',
                 { url, campaign_id: cleanCid }
             );
@@ -169,7 +172,7 @@ export class XohiImageStore {
                 };
                 this.assets = [...this.assets, newAsset].sort((a, b) => a.order_index - b.order_index);
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Fetch remote image failed", error);
         } finally {
             this.isUploading = false;
@@ -181,7 +184,7 @@ export class XohiImageStore {
         if (!asset) return;
 
         try {
-            const response = await apiClient.post<{ data: MediaAsset }>(
+            const response = await apiClient.post<GenericResponse<MediaAsset>>(
                 `/api/v1/media/${assetId}/edit`,
                 {
                     action: mode === 'ai' ? 'smart_crop' : 'crop',
@@ -201,7 +204,7 @@ export class XohiImageStore {
                     media_metadata: serverAsset.media_metadata
                 };
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Crop failed", error);
         }
     }

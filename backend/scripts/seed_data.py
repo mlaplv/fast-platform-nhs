@@ -26,6 +26,96 @@ PRODUCT_DEFS = [
         "short_description": "Sáng mai, cầm lọ tinh chất trên tay, hãy lắc nhẹ 2 nhịp. Một làn sương mát lạnh chạm vào da, khô tắp lự sau 3 giây. Giờ thì... thoải mái diện chiếc sơ mi trắng yêu thích và tự tin bước ra cửa.",
         "category_id": "cat_thuoc_dong_y",
         "description": "Thảo dược chữa trị hôi nách nặng mùi lâu năm, bị từ nhỏ (bẩm sinh), phụ nữ mang thai, sau sinh, tuổi dậy thì. Giúp giảm thâm & mồ hôi nách nhiều, se nhỏ lỗ chân lông, hiệu quả rõ rệt sau 1 liệu trình. Sản phẩm dạng xịt, thẩm thấu nhanh, không gây ố vàng áo và không kích ứng da.",
+        "product_metadata": {
+            "landing_type": "tiktok",
+            "quiz_questions": [
+                {
+                    "id": "q1",
+                    "title": "Mức độ mùi cơ thể?",
+                    "subtitle": "Hãy chọn mức độ biểu hiện gần nhất với bạn",
+                    "options": [
+                        {"label": "NHẸ (THOẢNG QUA)", "value": "light", "icon": "😊"},
+                        {"label": "TRUNG BÌNH (RÕ RỆT)", "value": "medium", "icon": "😐"},
+                        {"label": "NẶNG (LÂU NĂM)", "value": "heavy", "icon": "😰"}
+                    ]
+                },
+                {
+                    "id": "q2",
+                    "title": "Thời gian bị tình trạng này?",
+                    "subtitle": "Thông tin này giúp AI tính toán liều lượng",
+                    "options": [
+                        {"label": "DƯỚI 1 NĂM", "value": "recent", "icon": "🕒"},
+                        {"label": "TRÊN 1 NĂM", "value": "chronic", "icon": "📅"},
+                        {"label": "BẨM SINH", "value": "genetic", "icon": "🧬"}
+                    ]
+                },
+                {
+                    "id": "q3",
+                    "title": "Trải nghiệm trước đó?",
+                    "subtitle": "Bạn đã từng thử các phương pháp khác chưa?",
+                    "options": [
+                        {"label": "CHƯA TỪNG DÙNG", "value": "none", "icon": "🆕"},
+                        {"label": "DÙNG NHƯNG KHÔNG ĐỠ", "value": "failed", "icon": "❌"}
+                    ]
+                }
+            ],
+            "science_mechanism_image": "https://nhathuochongson.com/uploads/images/products/thuoc-tri-hoi-nach-hong-son-dam-dac.gif",
+            "science_mechanism_label": "QUY TRÌNH // PHÒNG NGỰ PHÂN TỬ",
+            "science_claims": [
+                {
+                    "label": "HỆ THỐNG // LÕI NANO-BẠC",
+                    "content": "Phá vỡ cấu trúc vi khuẩn gây mùi ngay lập tức bằng mạng lưới ion bạc tự kích hoạt.",
+                    "image": "https://nhathuochongson.com/uploads/images/products/thuoc-dac-tri-hoi-nach-hong-son-lo-lon-20ml.jpeg"
+                },
+                {
+                    "label": "KIỂM ĐỊNH // CHỨNG THỰC",
+                    "content": "\"Chúng tôi không thể thay đổi gen hay cơ địa đặc trưng của bạn. <br/> Nhưng chúng tôi cam kết: Khóa mùi tuyệt đối, giữ bạn khô thoáng và tự tin suốt 48H.\""
+                }
+            ],
+            "science_stats": {
+                "value": "48",
+                "unit": "H",
+                "label": "PHÒNG NGỰ CHỦ ĐỘNG",
+                "description": "3s khô thoáng – Chạm đúng chân ái.<br/> Khóa mùi tuyệt đối, tự tin suốt ngày dài."
+            },
+            "science_guarantee": {
+                "icon": "💎",
+                "label": "BẢO CHỨNG",
+                "description": "Hoàn 100% trong 3 ngày. <br/> <span class=\"text-cyan-400 font-bold tracking-widest\">KHÔNG CẦN TRẢ VỎ</span>."
+            },
+            "reviews_headline": "99.8% Tìm lại sự tự do. <br/> <span class=\"text-emerald-400 font-black italic\">KHÔNG CÒN NHỮNG KHOẢNG CÁCH NGẬP NGỪNG.</span>",
+            "reviews_trust_score": "4.9/5",
+            "reviews_count_text": "2,140+ LƯỢT MUA",
+            "reviews": [
+                {
+                    "id": 1,
+                    "name": "K.H. (098124) - Hà Nội*",
+                    "phone": "098****124",
+                    "location": "Hà Nội",
+                    "rating": 5,
+                    "content": "Ám ảnh 5 năm không dám mặc sơ mi trắng vì ố vàng và ướt sũng. Hôm qua thử xịt đúng 1 lần buổi sáng, lúc lắc nhẹ thấy sương rất mịn mát. Đi làm cả ngày trời 40 độ mà tối về nách áo vẫn khô ron, không một mùi lạ. Thực sự là chân ái!",
+                    "initial": "K"
+                },
+                {
+                    "id": 2,
+                    "name": "T.M. (090882) - TP.HCM*",
+                    "phone": "090****882",
+                    "location": "TP. Hồ Chí Minh",
+                    "rating": 5,
+                    "content": "Cơ địa nội tiết mình ra mồ hôi như tắm, dùng đủ loại lăn ngoại nhập đều bó tay. Bác sĩ da liễu khuyên dùng thử cái này vì cơ chế kép. Khó tin thật, 2 ngày chưa tắm lại mà vẫn không hề có mùi bục ra. Đáng từng xu.",
+                    "initial": "T"
+                },
+                {
+                    "id": 3,
+                    "name": "P.T. (093441) - Đà Nẵng*",
+                    "phone": "093****441",
+                    "location": "Đà Nẵng",
+                    "rating": 5,
+                    "content": "Mình ngại nhất khoản đi nhận hàng. Nhưng shop đóng hộp trơn bọc kín bưng, che tên sản phẩm hoàn toàn. Bạn shipper giao đến chỉ bảo 'có gói mỹ phẩm'. 10 điểm cho sự tế nhị và bảo mật thông tin.",
+                    "initial": "P"
+                }
+            ]
+        },
         "images": [
             "https://nhathuochongson.com/uploads/images/products/thuoc-dac-tri-hoi-nach-hong-son-lo-lon-20ml.jpeg",
             "https://nhathuochongson.com/uploads/images/products/thuoc-tri-hoi-nach-hong-son-dam-dac.gif",

@@ -19,7 +19,7 @@
   import History from "lucide-svelte/icons/history";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
-  import { portal } from "$lib/actions/portal";
+  import { portal } from "$lib/core/actions/portal";
   import { formatCurrency, formatDate } from "$lib/utils/format";
   import type { OrderDetail } from "$lib/types";
   import { Z_INDEX } from "$lib/core/constants/zIndex";

@@ -46,8 +46,8 @@ export function createOutlineController(config: {
         const sections: OutlineSection[] =
             isPlainObject(outline)
                 ? ((outline.sections as OutlineSection[]) ||
-                    (outline.outline as any)?.sections ||
-                    (outline.outline_data as any)?.sections || [])
+                    (outline as { outline?: { sections?: OutlineSection[] } }).outline?.sections ||
+                    (outline as { outline_data?: { sections?: OutlineSection[] } }).outline_data?.sections || [])
                 : (Array.isArray(outline) ? outline : []);
 
         if (sections.length > 0) {

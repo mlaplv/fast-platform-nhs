@@ -18,7 +18,7 @@
   import MinusIcon from 'lucide-svelte/icons/minus';
   import SparklesIcon from 'lucide-svelte/icons/sparkles';
   import MoreHorizontalIcon from 'lucide-svelte/icons/more-horizontal';
-  import { portal } from '$lib/actions/portal';
+  import { portal } from '$lib/core/actions/portal';
 
   let {
     editor,

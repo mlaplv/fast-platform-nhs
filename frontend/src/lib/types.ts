@@ -108,6 +108,162 @@ export interface Article {
   createdAt: string;
 }
 
+export interface ProductMetadata {
+    landing_type?: 'standard' | 'tiktok' | 'stealth';
+    order_bump_price?: number;
+    scarcity_seconds?: number;
+    show_reviews?: boolean;
+    video_url?: string;
+    reviews_headline?: string;
+    reviews_trust_score?: string;
+    reviews_count_text?: string;
+    reviews?: Review[];
+    quiz_questions?: QuizQuestion[];
+    science_headline?: string;
+    science_subheadline?: string;
+    science_claims?: ScienceClaim[];
+    science_mechanism_image?: string;
+    science_mechanism_image_alt?: string;
+    science_stats?: ScienceStat;
+    science_guarantee?: ScienceGuarantee;
+    offer_headline?: string;
+    offer_subheadline?: string;
+    offer_timer_prefix?: string;
+    offer_shipping_prefix?: string;
+    offer_savings_prefix?: string;
+    offer_booking_suffix?: string;
+    offer_trust_verified_by?: string;
+    offer_compliance_note?: string;
+    offer_label_activation?: string;
+    offer_label_full_treatment?: string;
+    offer_label_expert_choice?: string;
+    offer_label_scarcity?: string;
+    offer_cta_start?: string;
+    offer_cta_full?: string;
+    hero_headline?: string;
+    hero_video_url?: string;
+    hero_cta_text?: string;
+    hero_metrics?: HeroMetric[];
+    header_nav_links?: NavLink[];
+    checkout_phone_error?: string;
+    checkout_address_error?: string;
+    checkout_footer_text?: string;
+    mobile_handle?: string;
+    mobile_hashtags?: string;
+    mobile_music_label?: string;
+    mobile_shop_avatar?: string;
+    mobile_stats_likes?: number;
+    mobile_stats_comments?: number;
+    mobile_stats_shares?: number;
+    mobile_stats_saves?: number;
+    mobile_label_share?: string;
+    mobile_label_purchase?: string;
+    mobile_disk_image?: string;
+    mobile_bottom_sheet_title?: string;
+    mobile_bottom_sheet_cta?: string;
+    mobile_free_shipping_label?: string;
+    mobile_variant_selection_label?: string;
+    diagnostics_headline?: string;
+    diagnostics_subheadline?: string;
+    diagnostics_disclaimer?: string;
+    science_mechanism_label?: string;
+    science_scan_label?: string;
+    science_viewer_label?: string;
+    quiz_result_headline?: string;
+    quiz_result_subheadline?: string;
+    quiz_result_cta?: string;
+    quiz_restart_label?: string;
+    sync_loading_text?: string;
+    seo_site_name?: string;
+    reviews_cta_write?: string;
+    reviews_form_title?: string;
+    reviews_form_name_label?: string;
+    reviews_form_phone_label?: string;
+    reviews_form_location_label?: string;
+    reviews_form_rating_label?: string;
+    reviews_form_content_label?: string;
+    reviews_form_placeholder_content?: string;
+    reviews_form_cta_submit?: string;
+    reviews_form_success_title?: string;
+    reviews_form_success_msg?: string;
+    checkout_title?: string;
+    checkout_trust_active?: string;
+    checkout_reservation_msg?: string;
+    checkout_success_title?: string;
+    checkout_success_msg?: string;
+    checkout_label_summary?: string;
+    checkout_label_phone?: string;
+    checkout_label_address?: string;
+    checkout_label_total?: string;
+    checkout_label_cta?: string;
+    checkout_label_processing?: string;
+    checkout_placeholder_phone?: string;
+    checkout_placeholder_address?: string;
+    offer_label_distributor?: string;
+    offer_label_support?: string;
+    offer_label_commitment?: string;
+    offer_label_license?: string;
+    mobile_loading_text?: string;
+    [key: string]: unknown;
+}
+
+export interface NavLink {
+    id: string;
+    label: string;
+    href: string;
+}
+
+export interface HeroMetric {
+    label: string;
+    value: string;
+    desc: string;
+    color: string;
+}
+
+export interface Review {
+    id: string | number;
+    name: string;
+    phone?: string;
+    location: string;
+    rating: number;
+    content: string;
+    initial: string;
+    avatar?: string;
+}
+
+export interface QuizOption {
+    label: string;
+    desc: string;
+    value: string;
+    icon: string;
+}
+
+export interface QuizQuestion {
+    id: string | number;
+    title: string;
+    subtitle: string;
+    options: QuizOption[];
+}
+
+export interface ScienceClaim {
+    label: string;
+    content: string;
+    image?: string;
+}
+
+export interface ScienceStat {
+    value: string;
+    unit: string;
+    label: string;
+    description: string;
+}
+
+export interface ScienceGuarantee {
+    icon: string;
+    label: string;
+    description: string;
+}
+
 export interface Product {
     id: string;
     name: string;
@@ -126,6 +282,7 @@ export interface Product {
     seoDescription: string | null;
     images: string[];
     attributes: Record<string, unknown>;
+    metadata: ProductMetadata;
     tierVariations: TierVariation[];
     variants: ProductVariant[];
     createdAt: string;

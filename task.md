@@ -121,8 +121,16 @@ Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt th
 - [x] Backend: Resolve "Product Encoder not ready" warning by ensuring early initialization. <!-- id: 151 -->
 - [x] Backend: Clean up redundant service subscriptions and initializations in lifespan logic. <!-- id: 152 -->
 
-## 🎯 Giai đoạn 26: NoiseCleaner Toolbar Sync Fix (Elite V2.2) (COMPLETED)
-- [x] Frontend: Import `tick` and implement robust locking in `TiptapEditor.svelte`. <!-- id: 160 -->
-- [x] Frontend: Extend `isInternalUpdating` lock to prevent redundant `$effect` sync. <!-- id: 161 -->
-- [x] Logic: Ensure `onChange` is called after DOM has stabilized. <!-- id: 162 -->
-- [x] Final: Verify toolbar "NoiseCleaner" updates UI correctly. <!-- id: 163 -->
+## 🎯 Giai đoạn 29: Full R00 Compliance & Svelte 5 Migration (COMPLETED)
+- [x] Types: Expand `ProductMetadata` with 30+ new fields for full externalization. <!-- id: 190 -->
+- [x] UI: Refactor `VerifiedReviews.svelte` (Modal labels, success states). <!-- id: 191 -->
+- [x] UI: Refactor `DiagnosticsSection.svelte` & `ClinicalQuiz.svelte` (Result logic & labels). <!-- id: 192 -->
+- [x] UI: Refactor `ScienceBento.svelte` (Technical scan & mechanism labels). <!-- id: 193 -->
+- [x] Mobile: Refactor `MobileActionStack.svelte` & `MobileBottomSheet.svelte` (TikTok stats & labels). <!-- id: 194 -->
+- [x] Global: Verify R00 compliance across all 12 funnel components. <!-- id: 195 -->
+
+## 🎯 Giai đoạn 29.1: Elite Type Safety & R00 Polish (COMPLETED)
+- [x] Logic: Refine `nanobot.svelte.ts` type safety (Remove `unknown` casts). <!-- id: 196 -->
+- [x] UI: Final R00 audit for `ClinicalQuiz.svelte` labels. <!-- id: 197 -->
+- [x] Logic: Standardize `shop.svelte.ts` with `apiClient` & `GenericResponse`. <!-- id: 198 -->
+- [x] Doc: Finalize Phase 29 documentation in `walkthrough.md`. <!-- id: 199 -->

@@ -16,7 +16,7 @@ import type {
 
 interface PulseMessage {
   event: string;
-  payload: any; // Using any temporarily here but casting strictly in the handler
+  payload: unknown; // Replace any with unknown for safer casting
 }
 
 // CNS V70: Voice Discipline — maps server severity to frontend action
@@ -211,7 +211,7 @@ export function createPulseManager(
              voice.setVoiceResult("Neural Update", "Cập nhật từ hệ thống...", "CONTENT_CREATE", { campaign_id: completedPayload.campaign_id }, "text");
           }
 
-          if (voice.vuiResponse?.data && (voice.vuiResponse.data as any).campaign_id === completedPayload.campaign_id) {
+          if (voice.vuiResponse?.data && (voice.vuiResponse.data as unknown as { campaign_id: string }).campaign_id === completedPayload.campaign_id) {
             vuiState.setActive(true); vuiState.setPhase("idle");
             vuiState.setIsWaitingForAction(true);
           }

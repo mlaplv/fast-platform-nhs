@@ -54,6 +54,7 @@
   let formSeoKeywords = $state("");
   let formImages = $state<string[]>([]);
   let formAttributes = $state<Record<string, string | number | boolean | null>>({});
+  let formMetadata = $state<Product["metadata"]>({ landing_type: 'standard' });
   let formTierVariations = $state<Product["tierVariations"]>([]);
   let formVariants = $state<Product["variants"]>([]);
   let generateSlug = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -164,6 +165,7 @@
     formName = ""; formSku = ""; formPrice = 0; formDiscountPrice = 0; formStock = 0; formCategory = ""; formStatus = "draft";
     formShortDescription = ""; formDescription = ""; formSlug = ""; formSeoTitle = ""; formSeoDescription = ""; formSeoKeywords = "";
     formImages = []; formAttributes = {};
+    formMetadata = { landing_type: 'standard' };
     formTierVariations = []; formVariants = [];
     showForm = true;
   }
@@ -205,14 +207,22 @@
   async function openEdit(productOrId: Product | string) {
     let p: RawProduct;
     const id = typeof productOrId === "string" ? productOrId : productOrId.id;
-    
+
+    if (!id) {
+      nanobot.showToast("ID sản phẩm không hợp lệ", "error");
+      return;
+    }
+
     isSaving = true; // Show loading state briefly
     try {
+      console.log(`[Sync] Fetching product details for ${id}...`);
       // Force cache-busting to ensure we get the latest DB state after an update
-      p = await apiClient.get<Product>(`/api/v1/products/${id}`, { params: { _cb: Date.now().toString() } });
-      
+      p = await apiClient.get<RawProduct>(`/api/v1/products/${id}`, { params: { _cb: Date.now().toString() } });
+
+      if (!p) throw new Error("Không nhận được phản hồi từ máy chủ");
+
       console.log(`[Sync] Loaded product ${id} with ${p.variants?.length || 0} variants`);
-      
+
       editingId = p.id;
       formName = p.name || "";
       formSku = p.sku || "";
@@ -220,7 +230,7 @@
       formDiscountPrice = Number(p.discountPrice ?? p.discount_price ?? 0);
       formStock = Number(p.stock || 0);
       formCategory = p.categoryId ?? p.category_id ?? "";
-      formStatus = (p.status || "draft").toLowerCase();
+      formStatus = (p.status || "draft").toLowerCase() as any;
       if (formStatus === "archived") formStatus = "draft";
 
       formShortDescription = p.shortDescription ?? p.short_description ?? "";
@@ -231,15 +241,18 @@
       formSeoKeywords = p.seoKeywords ?? p.seo_keywords ?? "";
       formImages = p.images || [];
       formAttributes = p.attributes || {};
-      
-      // R102 Defense: map potential snake_case to camelCase
-      formTierVariations = (p.tierVariations ?? p.tier_variations ?? []).map((tv: RawTierVariation) => ({
-        name: tv.name,
-        options: tv.options || [],
-        images: tv.images || []
-      }));
+      formMetadata = p.metadata || { landing_type: 'standard' };
 
-      formVariants = (p.variants || []).map((v: RawVariant) => ({
+      // R102 Defense: map potential snake_case to camelCase
+      const rawTierVariations = p.tierVariations ?? p.tier_variations ?? [];
+      formTierVariations = Array.isArray(rawTierVariations) ? rawTierVariations.map((tv: any) => ({
+        name: tv.name || "",
+        options: Array.isArray(tv.options) ? tv.options : [],
+        images: Array.isArray(tv.images) ? tv.images : []
+      })) : [];
+
+      const rawVariants = p.variants ?? [];
+      formVariants = Array.isArray(rawVariants) ? rawVariants.map((v: any) => ({
         ...v,
         id: v.id,
         sku: v.sku || "",
@@ -247,12 +260,14 @@
         discountPrice: Number(v.discountPrice ?? v.discount_price ?? 0),
         stock: Number(v.stock || 0),
         tierIndex: v.tierIndex ?? v.tier_index ?? []
-      }));
+      })) : [];
 
       showForm = true;
+      console.log(`[Sync] Edit form opened for ${id}`);
     } catch (err) {
-      nanobot.showToast("Không thể tải thông tin sản phẩm đầy đủ", "error");
-      console.error(err);
+      const error = err as Error;
+      nanobot.showToast(`Lỗi tải chi tiết sản phẩm: ${error.message}`, "error");
+      console.error("[Sync] openEdit Error:", err);
     } finally {
       isSaving = false;
     }
@@ -297,6 +312,7 @@
       seoKeywords: formSeoKeywords,
       images: formImages || [],
       attributes: formAttributes || {},
+      metadata: formMetadata || {},
       tier_variations: (formTierVariations || []).map(tv => ({
         name: tv.name,
         options: tv.options,
@@ -379,7 +395,7 @@
     isOpen={showForm}
     bind:formName bind:formSku bind:formPrice bind:formDiscountPrice bind:formStock bind:formCategory bind:formStatus
     bind:formShortDescription bind:formDescription bind:formSlug bind:formSeoTitle bind:formSeoDescription bind:formSeoKeywords
-    bind:formImages bind:formAttributes bind:formTierVariations bind:formVariants
+    bind:formImages bind:formAttributes bind:formMetadata bind:formTierVariations bind:formVariants
     {categories}
     onSave={save}
     onClose={() => (showForm = false)}

@@ -9,6 +9,7 @@
   import NeuralEditor from "../ui/tiptap/NeuralEditor.svelte";
   import ProductFormBase from "./ProductFormBase.svelte";
   import ProductFormMedia from "./ProductFormMedia.svelte";
+  import ProductFormMetadata from "./ProductFormMetadata.svelte";
   import ProductFormSeo from "./ProductFormSeo.svelte";
   import ProductFormSpecs from "./ProductFormSpecs.svelte";
   import ProductFormVariants from "./ProductFormVariants.svelte";
@@ -33,6 +34,7 @@
     formSeoKeywords = $bindable(),
     formImages = $bindable(),
     formAttributes = $bindable(),
+    formMetadata = $bindable(),
     formTierVariations = $bindable(),
     formVariants = $bindable(),
     categories,
@@ -59,6 +61,7 @@
     formSeoKeywords: string;
     formImages: string[];
     formAttributes: Record<string, string | number | boolean | null>;
+    formMetadata: Product['metadata'];
     formTierVariations: Product['tierVariations'];
     formVariants: Product['variants'];
     categories: { id: string; name: string }[];
@@ -152,8 +155,8 @@
 </script>
 
 <MissionControlShell
-  title={editingId ? `Inventory_Registry // EDIT_${editingId.slice(0, 8)}` : "Inventory_Registry // NEW_ENTRY"}
-  variant="amber"
+  title={editingId ? `Inventory_Registry // EDIT_${String(editingId).slice(0, 8)}` : "Inventory_Registry // NEW_ENTRY"}
+  variant="cyan"
   {isOpen}
   {onClose}
   headerIcon={ShoppingCart}
@@ -230,6 +233,11 @@
             <span class="text-amber-500 ml-auto bg-amber-500/10 px-1.5 py-0.5 rounded text-[8px]">{formImages?.length || 0}</span>
           </div>
           <ProductFormMedia bind:formImages onOpenVault={openVaultForGeneral} />
+        </div>
+
+        <!-- Product Metadata (Contextual) -->
+        <div class="flex flex-col pt-2">
+          <ProductFormMetadata bind:formMetadata={formMetadata} />
         </div>
 
         <!-- Specs -->

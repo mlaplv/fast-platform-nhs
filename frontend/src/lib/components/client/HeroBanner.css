@@ -573,6 +573,10 @@ html {
 .typing-headline {
   position: relative;
   min-height: 1.1em;
+
+  @media (min-width: 1024px) {
+    margin-top: 15px;
+  }
 }
 
 .typing-cursor {
