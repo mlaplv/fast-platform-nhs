@@ -1,17 +1,21 @@
-# Task: Giai đoạn 27 - Silent Assassin Funnel (Elite V2.2) (COMPLETED)
+# TASK: SECURITY AUDIT - ORDER, CHECKOUT & TRACKING (ELITE V2.2)
 
-## 🎯 Mục tiêu
-Triển khai Landing Page "Silent Assassin Funnel" tối ưu CRO cho sản phẩm "Đặc trị hôi nách" với hiệu năng FCP < 500ms và Zero-Mock Data.
-
-## 📝 Check-list
-- [x] War Room: Cập nhật `task.md` và `walkthrough.md`. <!-- id: 170 -->
-- [x] Frontend: `frontend/src/routes/(client)/[slug]/+page.server.ts` - Dynamic Slug Fetch & IP/Geo detection. <!-- id: 171 -->
-- [x] Frontend: `frontend/src/routes/(client)/[slug]/+page.svelte` - UI 4 Block (Clinical Premium, CSS-only animations). <!-- id: 172 -->
-- [x] Frontend: `frontend/src/lib/state/shop.svelte.ts` - Nanobot Store (Cart & Order Bump logic). <!-- id: 173 -->
-- [x] Frontend Components: `ClinicalQuiz.svelte`, `StealthCheckout.svelte` (Order Bump UI, Portal Action). <!-- id: 174 -->
-- [x] Backend Schemas: `backend/schemas/client/checkout.py` - Pydantic V2 schema (`has_order_bump`). <!-- id: 175 -->
-- [x] Backend Controllers: `backend/controllers/client/checkout.py` & `product.py` (Public Slug API). <!-- id: 176 -->
-- [x] Backend Services: `backend/services/product_service.py` (get_product_by_slug) & `client_service.py`. <!-- id: 177 -->
+- [x] **Giai đoạn 1: Trinh sát (Scout)** <!-- id: 200 -->
+    - [x] Tìm kiếm các file liên quan đến Checkout, Order và Tracking.
+    - [x] Phân tích cấu trúc Schema Pydantic và Svelte Runes.
+    - [x] Phát hiện lỗ hổng IDOR và PII Leak tại Public Order Controller.
+- [x] **Giai đoạn 2: Hardening Backend (War Room)** <!-- id: 201 -->
+    - [x] Cập nhật `PublicOrderController` bắt buộc verify SĐT cho UUID.
+    - [x] Tích hợp `AntiSpamService` (Fortress Mode) vào `CheckoutService`.
+    - [x] Thêm cơ chế Rate Limiting cho tra cứu đơn hàng (Sẵn sàng trong logic verify).
+    - [x] Phân tách `PublicOrderResponse` để cô lập PII (IP, LTV, History) khỏi API công khai. <!-- id: 204 -->
+- [x] **Giai đoạn 3: Đồng bộ Frontend** <!-- id: 202 -->
+    - [x] Cập nhật `StealthCheckout.svelte` và `SuccessPage` gửi kèm SĐT trong mọi request.
+    - [x] Xử lý trạng thái `isLocked` chuyên nghiệp hơn khi sai SĐT.
+- [x] **Giai đoạn 4: Nghiệm thu (Verification)** <!-- id: 203 -->
+    - [x] Test chiếm quyền đơn hàng (Simulated IDOR Attack).
+    - [x] Test Spam đơn hàng (Simulated Bot Attack).
+    - [x] Syntax check (Backend & Frontend).
 
 ## 🛠️ Trạng thái: Completed (Fixed 404 & Dynamic Slug)
 - Toàn bộ funnel đã được triển khai và hỗ trợ slug động từ DB.

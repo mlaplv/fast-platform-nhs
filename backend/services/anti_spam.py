@@ -58,10 +58,10 @@ class AntiSpamService:
         return addr
 
     async def check_order_spam(
-        self, 
-        ip: str, 
-        user_agent: str, 
-        tenant_id: str, 
+        self,
+        ip: str,
+        user_agent: str,
+        tenant_id: str,
         order_data: dict,
         is_campaign_mode: bool = False
     ) -> Tuple[bool, str, float, str]:
@@ -69,11 +69,20 @@ class AntiSpamService:
         Fortress Mode: Weighed Multi-Vector Defense
         is_campaign_mode=True: Relaxes quantity checks, tightens identity rotation checks.
         """
-        if not self.redis:
-            return False, "Bypass: Redis Off", 0.0, "NONE"
-
         fingerprint = self.generate_fingerprint(ip, user_agent)
+
+        if not self.redis:
+            return False, "Bypass: Redis Off", 0.0, fingerprint
+
         phone = order_data.get("phone", "unspecified")
+
+        # R2026: Elite V2.2: Developer/Sếp Whitelist Bypass thưa sếp!
+        # Check if phone is in whitelist to prevent false positives during testing
+        if phone != "unspecified":
+            is_whitelisted = await self.redis.sismember("spam:whitelist:phones", phone)
+            if is_whitelisted:
+                logger.info(f"[AntiSpam] Whitelist Bypass for phone: {phone}")
+                return False, "Whitelist Bypass", 0.0, fingerprint
         address = self.normalize_address(order_data.get("address", ""))
         addr_hash = hashlib.sha256(address.encode()).hexdigest() if address else "no_addr"
         

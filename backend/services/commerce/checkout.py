@@ -1,5 +1,6 @@
 import uuid
 import hashlib
+import logging
 from typing import Optional, TypedDict, Dict, List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +9,8 @@ from backend.database.models.auth import User
 from backend.schemas.client.checkout import StealthCheckoutSchema
 from backend.database import current_tenant_id
 from litestar.exceptions import NotFoundException
+
+logger = logging.getLogger("api-gateway")
 
 class OrderBumpMetadata(TypedDict):
     name: str
@@ -39,18 +42,24 @@ class CheckoutService:
         customer_ip: str,
         user_agent: str
     ) -> CheckoutResult:
-        # 1. Anti-Fraud Logic (Simple Hash Device/IP)
-        fingerprint = hashlib.sha256(f"{customer_ip}|{user_agent}".encode()).hexdigest()
+        # 1. Fortress Mode: Real-time Anti-Spam Shield (Elite V2.2 thưa sếp!)
+        from backend.services.anti_spam import anti_spam_service
 
-        # Check for recent identical orders (Simple spam protection)
-        stmt = select(Order).where(
-            Order.customer_ip == customer_ip,
-            Order.fingerprint == fingerprint,
-            Order.status == "PENDING"
-        ).limit(1)
+        is_spam, reason, score, fingerprint = await anti_spam_service.check_order_spam(
+            ip=customer_ip,
+            user_agent=user_agent,
+            tenant_id=current_tenant_id.get() or "default",
+            order_data={
+                "phone": payload.customer_phone,
+                "address": payload.customer_address,
+                "items": [{"product_id": payload.product_id, "quantity": payload.quantity}]
+            },
+            is_campaign_mode=True # Assassin Funnel usually runs on Ads thưa sếp!
+        )
 
-        result = await db_session.execute(stmt)
-        existing_order = result.scalar_one_or_none()
+        if is_spam:
+            logger.warning(f"[STRIKE] Spam Order Detected: {reason} (Score: {score}) | IP: {customer_ip}")
+            # R2026: Elite V2.2: We proceed to save but mark as spam to prevent 404 and allow tracking thưa sếp!
 
         # 2. Auto-Registration / User Lookup (Elite V2.2)
         # Check if user exists by phone
@@ -68,14 +77,10 @@ class CheckoutService:
                 status="ACTIVE",
                 tenant_id=current_tenant_id.get() or "default",
                 # In 2026 Stealth flow, password is set via OTP later thưa sếp!
-                password="SHADOW_ACCOUNT_V2.2" 
+                password="SHADOW_ACCOUNT_V2.2"
             )
             db_session.add(user)
             # We don't commit yet, we want the order and user in the same transaction thưa sếp!
-
-        # 2b. Fake Success for Bot/Spam (Rule R03)
-        if existing_order:
-            return {"id": str(uuid.uuid4()), "ok": True, "message": "Order processed (Cached)"}
 
         # 3. Fetch Product Pricing (Elite V2.2: Zero-Hardcode)
         product_stmt = select(ProductBase).where(ProductBase.id == payload.product_id)
@@ -157,6 +162,9 @@ class CheckoutService:
             customer_ip=customer_ip,
             tenant_id=current_tenant_id.get() or "default",
             fingerprint=fingerprint,
+            is_spam=is_spam,
+            spam_score=score,
+            spam_reason=reason,
             order_metadata=order_metadata
         )
 

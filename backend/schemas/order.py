@@ -48,6 +48,12 @@ class CustomerInsight(BaseModel):
     last_order: Optional[str] = None
     previous_orders: List[Dict[str, object]] = Field(default_factory=list)
 
+
+class PublicCustomerInsight(BaseModel):
+    """Elite V2.2: Restricted Insight for Public Tracking Page thưa sếp!"""
+    total_orders: int = 0
+
+
 class OrderResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True, strict=True)
 
@@ -110,3 +116,55 @@ class OrderListResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     data: List[OrderResponse]
     total: int
+
+
+class PublicOrderResponse(BaseModel):
+    """Elite V2.2: Hardened Order Response for Public/Client access thưa sếp!"""
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True, strict=True)
+
+    id: str
+    customerName: Optional[str] = Field(None, alias="customer_name", validation_alias=AliasChoices("customer_name", "customerName"))
+    customerPhone: Optional[str] = Field(None, alias="customer_phone", validation_alias=AliasChoices("customer_phone", "customerPhone"))
+    customerAddress: Optional[str] = Field(None, alias="customer_address", validation_alias=AliasChoices("customer_address", "customerAddress"))
+    userName: Optional[str] = Field(None, alias="user_name", validation_alias=AliasChoices("user_name", "userName"))
+    status: str
+    total: float = Field(..., alias="total_amount", validation_alias=AliasChoices("total_amount", "total"))
+    items: Union[List[OrderItem], int, List[Dict[str, object]]]
+    createdAt: datetime = Field(alias="created_at", validation_alias=AliasChoices("created_at", "createdAt"))
+    cancellationReason: Optional[str] = Field(None, alias="cancellation_reason", validation_alias=AliasChoices("cancellation_reason", "cancellationReason"))
+    successfulOrdersCount: int = Field(0, alias="successful_count", validation_alias=AliasChoices("successful_count", "successfulOrdersCount"))
+    cancelledOrdersCount: int = Field(0, alias="cancelled_count", validation_alias=AliasChoices("cancelled_count", "cancelledOrdersCount"))
+    insight: Optional[PublicCustomerInsight] = None
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def stringify_id(cls, v):
+        return str(v) if v is not None else None
+
+    @computed_field
+    @property
+    def displayStatus(self) -> str:
+        return self.status.lower()
+
+    @computed_field
+    @property
+    def finalCustomerName(self) -> str:
+        return self.customerName or self.userName or "Guest Customer"
+
+    @computed_field
+    @property
+    def itemCount(self) -> int:
+        items = self.items
+        if isinstance(items, list):
+            total = 0
+            for item in items:
+                if isinstance(item, OrderItem):
+                    total += item.quantity
+                elif isinstance(item, dict):
+                    qty = item.get("quantity") or item.get("qty")
+                    if isinstance(qty, (int, float)):
+                        total += int(qty)
+            return total
+        if isinstance(items, int):
+            return items
+        return 0

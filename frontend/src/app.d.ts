@@ -17,6 +17,7 @@ declare global {
     // interface Platform {}
     interface Error {
       message: string;
+      details?: string;
       stack?: string;
     }
   }

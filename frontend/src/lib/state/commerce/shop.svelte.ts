@@ -171,7 +171,7 @@ export class ShopStore {
                 const orderId = (res as any).id;
                 this.closeCheckout();
                 if (orderId) {
-                    goto(`/checkout/success/${orderId}`);
+                    goto(`/checkout/success/${orderId}?phone=${encodeURIComponent(customer.phone)}`);
                 }
             } else {
                 this.error = res.message ?? 'Có lỗi xảy ra, vui lòng thử lại';

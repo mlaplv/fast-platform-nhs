@@ -4,8 +4,24 @@
   import { Z_INDEX } from '$lib/core/constants/zIndex.ts';
   import { onMount } from 'svelte';
   import { apiClient } from '$lib/utils/apiClient';
+  import { formatCurrency, formatDate } from '$lib/utils/format.ts';
 
   const orderId = page.params.id;
+
+  // Elite V2.2: Order Status Roadmap thưa sếp!
+  const STATUS_STEPS = [
+    { key: 'PENDING', label: 'Chờ duyệt', icon: '⏱' },
+    { key: 'PAID', label: 'Đã thanh toán', icon: '💳' },
+    { key: 'PROCESSING', label: 'Đang xử lý', icon: '⚙️' },
+    { key: 'SHIPPED', label: 'Đang giao', icon: '🚚' },
+    { key: 'COMPLETED', label: 'Thành công', icon: '🏆' }
+  ];
+
+  function getStepIndex(status: string) {
+    const idx = STATUS_STEPS.findIndex(s => s.key === status);
+    return idx === -1 ? 0 : idx;
+  }
+
   // Elite V2.2: Retrieve phone from URL or LocalStorage to persist unlock thưa sếp!
   const phoneParam = page.url.searchParams.get('phone') || (typeof localStorage !== 'undefined' ? localStorage.getItem(`order_verify_${orderId}`) : null);
   const isTrackingMode = !!phoneParam;
@@ -13,7 +29,7 @@
   let order = $state<any>(null);
   let isLoading = $state(true);
   let isSubmittingAction = $state(false);
-  
+
   // Security Gate State thưa sếp!
   let isLocked = $state(false);
   let verificationPhone = $state('');
@@ -30,6 +46,13 @@
         const idx = toasts.findIndex(t => t.id === id);
         if (idx !== -1) toasts.splice(idx, 1);
     }, 4000);
+  }
+
+  function copyOrderId() {
+    if (typeof navigator !== 'undefined') {
+        navigator.clipboard.writeText(orderId);
+        showToast("Đã sao chép mã đơn hàng thưa sếp!");
+    }
   }
 
   // Edit State
@@ -91,7 +114,7 @@
     isConfirmCancelOpen = false;
     isSubmittingAction = true;
     try {
-        await apiClient.post(`/api/v1/client/orders/${orderId}/cancel`, {});
+        await apiClient.post(`/api/v1/client/orders/${orderId}/cancel`, {}, { params: { phone: phoneParam || verificationPhone } });
         showToast("Đã hủy đơn hàng thành công thưa sếp!");
         await fetchOrder();
     } catch (e: any) {
@@ -108,7 +131,7 @@
             customer_name: editForm.name,
             customer_phone: editForm.phone,
             customer_address: editForm.address
-        });
+        }, { params: { phone: phoneParam || verificationPhone } });
         showToast("Đã cập nhật thông tin thành công thưa sếp!");
         isEditing = false;
         await fetchOrder();
@@ -170,12 +193,14 @@
     >
       <!-- Status Icon thưa sếp! -->
       {#if isTrackingMode}
-        <div class="w-24 h-24 bg-sky-500/20 text-sky-400 rounded-full flex items-center justify-center mx-auto mb-8 border border-sky-500/30 animate-in zoom-in duration-500 shadow-[0_0_40px_rgba(14,165,233,0.2)]">
-          <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+        <div class="w-24 h-24 bg-sky-500/10 text-sky-400 rounded-full flex items-center justify-center mx-auto mb-10 border border-sky-500/30 relative group">
+          <div class="absolute inset-0 bg-sky-400/20 rounded-full blur-2xl animate-pulse group-hover:blur-3xl transition-all duration-700"></div>
+          <svg class="w-12 h-12 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
         </div>
       {:else}
-        <div class="w-24 h-24 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-8 border border-emerald-500/30 animate-in zoom-in duration-500 shadow-[0_0_40px_rgba(16,185,129,0.2)]">
-          <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+        <div class="w-24 h-24 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-10 border border-emerald-500/30 relative group">
+          <div class="absolute inset-0 bg-emerald-400/20 rounded-full blur-2xl animate-pulse group-hover:blur-3xl transition-all duration-700"></div>
+          <svg class="w-12 h-12 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
         </div>
       {/if}
 
@@ -183,10 +208,41 @@
         <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-4 uppercase">
           {isTrackingMode ? 'TRẠNG THÁI ĐƠN HÀNG' : 'ĐẶT HÀNG THÀNH CÔNG!'}
         </h1>
-        <p class="text-slate-400 text-lg max-w-md mx-auto leading-relaxed">
-          Đơn hàng <span class="text-white font-bold">#{orderId.slice(-6).toUpperCase()}</span> 
-          {isTrackingMode ? 'đang được xử lý thưa sếp!' : 'đã được ghi nhận thưa sếp!'}
-        </p>
+        <div class="flex items-center justify-center gap-2 group cursor-pointer mb-6" onclick={copyOrderId}>
+          <p class="text-slate-400 text-lg leading-relaxed">
+            Đơn hàng <span class="text-white font-bold tracking-widest">#{orderId.slice(-6).toUpperCase()}</span>
+          </p>
+          <svg class="w-4 h-4 text-slate-600 group-hover:text-sky-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+        </div>
+
+        {#if order?.status !== 'CANCELLED'}
+          <!-- Elite Status Timeline thưa sếp! -->
+          <div class="max-w-md mx-auto mb-12 px-4 relative">
+             <div class="absolute top-1/2 left-0 w-full h-0.5 bg-white/5 -translate-y-1/2 rounded-full overflow-hidden">
+                <div
+                    class="h-full bg-gradient-to-r from-sky-500 to-emerald-500 transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(14,165,233,0.5)]"
+                    style="width: {(getStepIndex(order?.status) / (STATUS_STEPS.length - 1)) * 100}%"
+                ></div>
+             </div>
+             <div class="flex justify-between relative z-10">
+                {#each STATUS_STEPS as step, i}
+                   {@const isActive = getStepIndex(order?.status) >= i}
+                   <div class="flex flex-col items-center gap-3">
+                      <div
+                        class="w-10 h-10 rounded-full flex items-center justify-center text-xs transition-all duration-500 border-2
+                        {isActive ? 'bg-slate-900 border-sky-500 text-sky-400 scale-110 shadow-[0_0_15px_rgba(14,165,233,0.3)]' : 'bg-slate-950 border-white/10 text-slate-600'}"
+                      >
+                         {step.icon}
+                      </div>
+                      <span class="text-[8px] font-black uppercase tracking-tighter {isActive ? 'text-white' : 'text-slate-700'}">
+                        {step.label}
+                      </span>
+                   </div>
+                {/each}
+             </div>
+          </div>
+        {/if}
+
         {#if !isTrackingMode}
           <p class="text-slate-500 text-sm italic mt-2">
             Hệ thống đã tự động tạo tài khoản cho Quý khách bằng số điện thoại <span class="text-sky-400 font-bold">{order?.customerPhone || ''}</span> để tiện theo dõi đơn hàng.
@@ -243,18 +299,18 @@
         <div class="space-y-4 border-t md:border-t-0 md:border-l border-white/10 pt-4 md:pt-0 md:pl-6 text-right flex flex-col justify-between">
           <div class="flex flex-col">
             <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tổng thanh toán:</span>
-            <span class="text-3xl font-black text-sky-400 tabular-nums">{(order?.total || order?.total_amount || 0).toLocaleString()}đ</span>
+            <span class="text-3xl font-black text-sky-400 tabular-nums">{formatCurrency(order?.total || order?.total_amount || 0)}</span>
           </div>
           <div class="flex flex-col">
             <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Trạng thái:</span>
             <span class="text-xs font-bold uppercase {order?.status === 'CANCELLED' ? 'text-red-500' : 'text-amber-500'}">
-                {order?.status === 'CANCELLED' ? 'Đã hủy ❌' : 'Đang chờ xác nhận ⏱'}
+                {order?.status === 'CANCELLED' ? 'Đã hủy ❌' : (STATUS_STEPS.find(s => s.key === order?.status)?.label || 'Đang xử lý') + ' ⏱'}
             </span>
           </div>
           {#if !isEditing && (order?.insight?.total_orders || order?.successfulOrdersCount)}
             <div class="flex flex-col pt-2 border-t border-white/5 mt-2" in:fade>
-              <span class="text-[8px] font-black text-emerald-500 uppercase tracking-widest">BẠN LÀ KHÁCH QUEN:</span>
-              <span class="text-[10px] font-bold text-white">Đã có {order?.insight?.total_orders || order?.successfulOrdersCount} đơn hàng thành công 🌟</span>
+              <span class="text-[8px] font-black text-emerald-500 uppercase tracking-widest italic">THÀNH VIÊN ELITE V2.2:</span>
+              <span class="text-[10px] font-bold text-white uppercase italic tracking-tighter">Hệ thống ghi nhận {order?.insight?.total_orders || order?.successfulOrdersCount} đơn hàng thành công 🌟</span>
             </div>
           {/if}
           {#if isEditing}
@@ -288,14 +344,14 @@
             {#each order.items as item}
               <div class="flex items-center justify-between gap-4 p-3 bg-white/[0.02] rounded-xl border border-white/5">
                 <div class="flex items-center gap-3">
-                  <div class="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center text-xl">📦</div>
+                  <div class="w-12 h-12 bg-white/5 rounded-lg flex items-center justify-center text-xl border border-white/5">📦</div>
                   <div class="flex flex-col">
                     <span class="text-xs font-bold text-white uppercase tracking-tight">{item.name || 'Sản phẩm'}</span>
-                    <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest">x{item.quantity || item.qty || 1} • {((item.price || item.unit_price || 0)).toLocaleString()}đ</span>
+                    <span class="text-[10px] text-slate-500 font-black uppercase tracking-widest">x{item.quantity || item.qty || 1} • {formatCurrency(item.price || item.unit_price || 0)}</span>
                   </div>
                 </div>
                 <div class="text-right">
-                  <span class="text-sm font-black text-white italic">{(item.totalPrice || item.total_price || ((item.price || item.unit_price || 0) * (item.quantity || item.qty || 1))).toLocaleString()}đ</span>
+                  <span class="text-sm font-black text-white italic">{formatCurrency(item.totalPrice || item.total_price || ((item.price || item.unit_price || 0) * (item.quantity || item.qty || 1)))}</span>
                 </div>
               </div>
             {/each}
@@ -305,35 +361,37 @@
 
       {#if !isTrackingMode}
         <!-- Welcome Message for New Users thưa sếp! -->
-        <div class="p-6 bg-sky-500/10 border border-sky-500/20 rounded-[2rem] text-center mb-8" in:fade>
-          <h3 class="text-sky-400 font-black text-[10px] uppercase tracking-widest mb-2">🎁 ƯU ĐÃI THÀNH VIÊN MỚI</h3>
-          <p class="text-slate-400 text-[10px] leading-relaxed">
-            Quý khách hãy lưu lại Mã đơn hàng này. Có thể dùng Số điện thoại để <b>Tra cứu đơn hàng</b> tại link chân trang bất cứ lúc nào thưa sếp!
+        <div class="p-8 bg-sky-500/5 border border-sky-500/10 rounded-[2.5rem] text-center mb-8 relative overflow-hidden group" in:fade>
+          <div class="absolute -right-4 -top-4 w-24 h-24 bg-sky-500/10 rounded-full blur-2xl group-hover:bg-sky-500/20 transition-all duration-1000"></div>
+          <h3 class="text-sky-400 font-black text-[11px] uppercase tracking-[0.3em] mb-3 italic">🎁 ĐẶC QUYỀN THÀNH VIÊN</h3>
+          <p class="text-slate-400 text-xs leading-relaxed max-w-sm mx-auto">
+            Hệ thống đã tự động kích hoạt chế độ **Theo dõi ưu tiên** cho Sếp. Hãy lưu lại mã đơn hàng hoặc dùng SĐT để tra cứu bất cứ lúc nào!
           </p>
         </div>
       {/if}
 
-      <div class="flex flex-col md:flex-row gap-4 mb-2">
-        <button 
+      <div class="flex flex-col md:flex-row gap-4 mb-4">
+        <button
           onclick={() => isEditing = true}
           disabled={order?.status === 'CANCELLED' || isSubmittingAction || isEditing}
-          class="flex-1 py-4 bg-white/5 border border-white/10 text-white font-black text-center rounded-full hover:bg-white/10 transition-all active:scale-95 uppercase tracking-tight text-xs disabled:opacity-30 disabled:pointer-events-none"
+          class="flex-1 py-4 bg-white/[0.03] border border-white/10 text-slate-300 font-black text-center rounded-full hover:bg-white/[0.08] hover:text-white transition-all active:scale-95 uppercase tracking-widest text-[10px] italic disabled:opacity-20"
         >
-          {isEditing ? 'Đang chỉnh sửa...' : 'Chỉnh sửa đơn'}
+          {isEditing ? 'ĐANG CHỈNH SỬA...' : 'CHỈNH SỬA ĐƠN'}
         </button>
-        <button 
+        <button
           onclick={() => isConfirmCancelOpen = true}
           disabled={order?.status === 'CANCELLED' || isSubmittingAction}
-          class="flex-1 py-4 bg-red-500/10 border border-red-500/20 text-red-500 font-black text-center rounded-full hover:bg-red-500/20 transition-all active:scale-95 uppercase tracking-tight text-xs disabled:opacity-30 disabled:pointer-events-none"
+          class="flex-1 py-4 bg-red-500/5 border border-red-500/10 text-red-500/70 font-black text-center rounded-full hover:bg-red-500/10 hover:text-red-500 transition-all active:scale-95 uppercase tracking-widest text-[10px] italic disabled:opacity-20"
         >
-          {order?.status === 'CANCELLED' ? 'ĐÃ HỦY' : 'Hủy đơn hàng'}
+          {order?.status === 'CANCELLED' ? 'ĐÃ HỦY ❌' : 'HỦY ĐƠN HÀNG'}
         </button>
       </div>
-      <a 
+      <a
         href="/"
-        class="block w-full py-5 bg-sky-500 text-white font-black text-center rounded-full hover:bg-sky-400 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-sky-500/20 uppercase tracking-tighter italic text-lg"
+        class="group block w-full py-6 bg-sky-500 text-slate-950 font-black text-center rounded-full hover:bg-sky-400 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-2xl shadow-sky-500/20 uppercase tracking-[0.2em] italic text-xl relative overflow-hidden"
       >
-        Tiếp tục mua sắm →
+        <span class="relative z-10">TIẾP TỤC MUA SẮM →</span>
+        <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
       </a>
     </div>
   {/if}

@@ -8,16 +8,30 @@ export const load: PageServerLoad = async ({ params, fetch, getClientAddress, re
     // R00: NO MOCK, NO SILENT FALLBACK. Let it fail clearly if API is down.
     const apiUrl = env.INTERNAL_API_URL || 'http://api:8000';
     const tenantId = env.APP_DOMAIN?.split('.')[0] || 'default';
+    const targetUrl = `${apiUrl}/api/v1/client/products/slug/${slug}`;
     
-    const res = await fetch(`${apiUrl}/api/v1/client/products/slug/${slug}`, {
-        headers: { 'x-tenant': tenantId }
-    });
+    let res;
+    try {
+        res = await fetch(targetUrl, {
+            headers: { 'x-tenant': tenantId }
+        });
+    } catch (e: any) {
+        console.error(`[FETCH FAILED] Thưa Sếp, không thể kết nối tới Backend!`);
+        console.error(`URL: ${targetUrl}`);
+        console.error(`Error: ${e.message}`);
+        console.error(`Hint: Kiểm tra INTERNAL_API_URL (${apiUrl}) và trạng thái container 'api'`);
+        
+        throw error(503, {
+            message: "Dịch vụ tạm thời không khả dụng (Backend Connection Failed)",
+            details: `Failed to reach API at ${apiUrl}. Please check infra config.`
+        });
+    }
 
     if (!res.ok) {
         // Broad error exposure for development thưa Sếp!
         throw error(res.status, { 
             message: `API Error: ${res.statusText} (${res.status})`,
-            details: `Failed to fetch product with slug: ${slug}`
+            details: `Failed to fetch product with slug: ${slug} from ${targetUrl}`
         });
     }
 
