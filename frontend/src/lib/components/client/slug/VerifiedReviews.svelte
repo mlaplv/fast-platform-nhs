@@ -2,7 +2,10 @@
   import { fade, fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import type { Review, ProductMetadata } from '$lib/types';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import "./VerifiedReviews.css";
+
+  const shopStore = getShopStore();
 
   interface ReviewForm {
     name: string;
@@ -13,20 +16,13 @@
     isSubmitting: boolean;
     showSuccess: boolean;
   }
-
-  let {
-    reviews = [],
-    headline = '',
-    trustScore = '4.9/5',
-    countText = '2,140+ LƯỢT MUA',
-    metadata = {}
-  }: {
-    reviews: Review[];
-    headline: string;
-    trustScore?: string;
-    countText?: string;
-    metadata?: ProductMetadata;
-  } = $props();
+  
+  const product = $derived(shopStore.product);
+  const metadata = $derived(product?.metadata || {});
+  const reviews = $derived(metadata?.reviews || []);
+  const headline = $derived(metadata?.reviews_headline || '');
+  const trustScore = $derived(metadata?.reviews_trust_score || '4.9/5');
+  const countText = $derived(metadata?.reviews_count_text || '2,140+ LƯỢT MUA');
 
   const labels = $derived({
     trust_score: (metadata.reviews_trust_score as string) || trustScore || '4.9/5',
@@ -100,7 +96,7 @@
 </script>
 
 <section id="reviews" class="reviews-viewport snap-session relative">
-  <div class="reviews-container my-auto">
+  <div class="reviews-container container mx-auto px-6 max-w-6xl pt-[var(--standard-pt)]">
     <div class="mb-16 text-center">
       <h2 class="section-headline mb-8">
         {@html headline}

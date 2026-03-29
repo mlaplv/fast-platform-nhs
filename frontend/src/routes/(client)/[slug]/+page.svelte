@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { shopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { setShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import HeroBanner from '$lib/components/client/HeroBanner.svelte';
   import StealthCheckout from '$lib/components/client/StealthCheckout.svelte';
   
@@ -16,7 +16,10 @@
 
   let { data }: { data: PageData } = $props();
 
-  // Protection & Derived State thưa Sếp!
+  // 🚀 ELITE CONTEXT INJECTION (Elite V2.2)
+  const shopStore = setShopStore();
+
+  // Protection & Derived State
   const product = $derived(data?.product);
   const metadata = $derived(product?.metadata || {});
   const isMobile = $derived(data?.isMobile || false);
@@ -27,23 +30,20 @@
   // Loại bỏ hardcode slug, sử dụng metadata từ DB để quyết định layout
   const useMobileLayout = $derived(isMobile && metadata?.landing_type === 'tiktok');
 
-  // Scarcity Timer: Lấy từ metadata hoặc mặc định 1800s (30p)
-  let timeLeft = $state(product?.metadata?.scarcity_seconds ?? 1800);
+  // Quantum Sync: Init store immediately for SSR stability
+  if (product?.id) {
+     shopStore.init(product);
+  }
 
-  // Quantum Sync: Init store ngay khi có dữ liệu product, trước khi render
   $effect.pre(() => {
     if (product?.id) {
        shopStore.init(product);
-       // Reset timer khi đổi sản phẩm (nếu có)
-       timeLeft = product.metadata?.scarcity_seconds ?? 1800;
     }
   });
 
+  // Cleanup Timer on unmount
   onMount(() => {
-    const timer = setInterval(() => {
-        if (timeLeft > 0) timeLeft--;
-    }, 1000);
-    return () => clearInterval(timer);
+    return () => shopStore.dispose();
   });
 
   const scrollToQuiz = () => {
@@ -64,27 +64,19 @@
   <div class="client-page-root selection:bg-blue-600 selection:text-white h-screen overflow-y-scroll scroll-smooth">
 
   {#if product?.id}
-    <HeroBanner {product} {scrollToQuiz} />
+    <HeroBanner {scrollToQuiz} />
 
     <!-- DIAGNOSTICS: AI Analysis & Personalized Quiz -->
-    <DiagnosticsSection
-      questions={product.metadata.quiz_questions || []}
-      metadata={product.metadata}
-    />
+    <DiagnosticsSection />
 
     <!-- SCIENCE: Bento Grid with Technology Highlights -->
-    <ScienceBento {product} />
+    <ScienceBento />
 
     <!-- REVIEWS: Verified Stealth Reviews -->
-    <VerifiedReviews
-      reviews={product.metadata.reviews || []}
-      headline={product.metadata.reviews_headline || ''}
-      trustScore={product.metadata.reviews_trust_score}
-      countText={product.metadata.reviews_count_text}
-    />
+    <VerifiedReviews />
 
     <!-- OFFER: Pricing Packages & Scarcity Timer -->
-    <OfferGrid {product} {timeLeft} />
+    <OfferGrid />
 
     <StealthCheckout />
   {:else}
@@ -107,12 +99,20 @@
     color: var(--text-base);
   }
 
+  :root {
+    --standard-pt: 12vh;
+  }
+
   :global(.snap-session) {
     scroll-snap-align: start;
     scroll-snap-stop: always;
+    height: 100vh;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    justify-content: flex-start;
+    position: relative;
+    overflow: hidden;
   }
 
   /* Ensure smooth transitions inside snap sessions */

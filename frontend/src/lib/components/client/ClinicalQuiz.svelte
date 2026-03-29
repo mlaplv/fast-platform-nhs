@@ -1,17 +1,15 @@
 <script lang="ts">
-  import { shopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { fade, fly, scale } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import type { QuizQuestion, ProductMetadata } from '$lib/types';
   import "./slug/LiquidEffects.css";
 
-  let {
-    questions = [],
-    metadata = {}
-  }: {
-    questions: QuizQuestion[];
-    metadata: ProductMetadata;
-  } = $props();
+  const shopStore = getShopStore();
+
+  const product = $derived(shopStore.product);
+  const metadata = $derived(product?.metadata || {});
+  const questions = $derived(metadata.quiz_questions || []);
 
   const labels = $derived({
     result_headline: (metadata.quiz_result_headline as string) || 'PHÁC ĐỒ <br/><span class="text-blue-500/80">OPTIMAL.</span>',

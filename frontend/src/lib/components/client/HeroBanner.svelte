@@ -2,16 +2,18 @@
   import { onMount } from 'svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
   import { browser } from '$app/environment';
-  import type { Product } from '$lib/types';
   import LiquidHeader from './LiquidHeader.svelte';
   import "./HeroBanner.css";
+  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+
+  const shopStore = getShopStore();
 
   interface HeroBannerProps {
-    product: Product;
     scrollToQuiz?: () => void;
   }
 
-  let { product, scrollToQuiz }: HeroBannerProps = $props();
+  let { scrollToQuiz }: HeroBannerProps = $props();
+  const product = $derived(shopStore.product);
   const metadata = $derived(product?.metadata || {});
   let themeMode = $state<'system' | 'light' | 'dark'>('system');
   let mouse = $state({ x: 0, y: 0 });
@@ -128,7 +130,7 @@
 
   const scrollToCare = () => {
     if (!browser) return;
-    const element = document.getElementById('personalized-care');
+    const element = document.getElementById('diagnostics');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
@@ -154,7 +156,7 @@
     </video>
   </div>
 
-  <div class="container relative flex flex-col items-center pt-[clamp(1.5rem,5vh,3.5rem)] px-6" style:z-index="var(--z-surface)">
+  <div class="container mx-auto px-6 max-w-6xl relative flex flex-col items-center pt-[var(--standard-pt)]" style:z-index="var(--z-surface)">
 
     <h1 class="typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0">
        {@html displayText}
@@ -267,7 +269,7 @@
   </button>
 
   <!-- MOUSE SCROLL INDICATOR (Fixed to section bottom thưa sếp!) -->
-  <a href="#personalized-care" class="mouse-scroll-indicator" aria-label={labels.aria_scroll} onclick={(e) => { e.preventDefault(); scrollToCare(); }}>
+  <a href="#diagnostics" class="mouse-scroll-indicator" aria-label={labels.aria_scroll} onclick={(e) => { e.preventDefault(); scrollToCare(); }}>
      <div class="mouse-body">
         <div class="mouse-wheel"></div>
      </div>

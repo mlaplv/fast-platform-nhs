@@ -37,21 +37,21 @@ export const SHOP_CONFIG = {
     checkout: {
         title: "CHECKOUT ELITE",
         trust_active: "Neural Encryption Active",
-        reservation_msg: "Giữ ưu đãi cho Sếp trong:",
+        reservation_msg: "Giữ ưu đãi cho Quý khách trong:",
         reservation_time: 600, // 10 minutes
         labels: {
-            phone: "Số điện thoại của Sếp",
-            address: "Địa chỉ nhận hàng của Sếp",
+            phone: "Số điện thoại liên hệ",
+            address: "Địa chỉ nhận hàng",
             summary: "CHI TIẾT ĐƠN HÀNG",
             total: "TỔNG THANH TOÁN",
             cta: "CHỐT ĐƠN NGAY",
             processing: "NEURAL PROCESSING...",
             success_title: "SUCCESSFUL!",
-            success_msg: "Đơn hàng đã được chuyển tới trung tâm hậu cần. Nhân viên hỗ trợ sẽ gọi tới Sếp ngay thưa sếp!"
+            success_msg: "Đơn hàng đã được chuyển tới trung tâm hậu cần. Nhân viên hỗ trợ sẽ gọi tới Quý khách ngay!"
         },
         placeholders: {
             phone: "09xx xxx xxx",
-            address: "Số nhà, tên đường, khu vực sếp đang ở..."
+            address: "Số nhà, tên đường, phường/xã..."
         },
         trust_badges: [
             { icon: "📦", label: "FREE SHIPPING", color: "text-blue-400" },

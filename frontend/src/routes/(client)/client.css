@@ -5,14 +5,14 @@
   --wave-offset-reviews: 60px;
   --z-wave: 1;
 
-  /* Fluid Typography 2026 Viral Edition thưa sếp! */
+  /* Fluid Typography 2026 Viral Edition */
   --fs-hero: clamp(3rem, 12vw, 8.5rem);
   --fs-title: clamp(2rem, 6vw, 4rem);
   --fs-sub: clamp(1.125rem, 2vw + 1rem, 1.5rem);
   --fs-body: clamp(0.95rem, 0.5vw + 0.75rem, 1.125rem);
   --fs-ui: clamp(0.65rem, 0.2vw + 0.6rem, 0.8rem);
 
-  /* Centralized Layout Gaps thưa sếp! */
+  /* Centralized Layout Gaps */
   --gap-fluid: clamp(1.5rem, 4vw, 4rem);
   --container-max: 1400px;
 }

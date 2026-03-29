@@ -185,7 +185,7 @@ export function createNanobotState() {
     },
 
     // Auth & Identity
-    get userName() { return permissionState.userName || "Sếp"; },
+    get userName() { return permissionState.userName || "Khách hàng"; },
     get userEmail() { return permissionState.user; },
     setUserEmail: (val: string) => { permissionState.user = val; },
     setUserName: (val: string) => { permissionState.userName = val; },

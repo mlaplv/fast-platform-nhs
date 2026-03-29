@@ -10,7 +10,6 @@ class StealthCheckoutSchema(BaseModel):
     customer_name: str = Field(..., min_length=2, max_length=100, description="Tên khách hàng")
     customer_phone: str = Field(..., description="Số điện thoại khách hàng")
     customer_address: str = Field(..., min_length=5, max_length=500, description="Địa chỉ nhận hàng")
-    has_order_bump: bool = Field(default=False, description="Đồng ý thêm sản phẩm Order Bump")
     quantity: int = Field(default=1, ge=1, le=10, description="Số lượng sản phẩm")
 
     @field_validator("customer_phone")

@@ -1,9 +1,11 @@
 <script lang="ts">
   import type { Product } from '$lib/types';
   import { X } from 'lucide-svelte';
-  import { shopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { Z_INDEX } from '$lib/core/constants/zIndex';
   import { portal } from '$lib/core/actions/portal'; // Giả định portal action đã tồn tại
+
+  const shopStore = getShopStore();
 
   let { active = $bindable(), product }: { active: boolean, product: Product } = $props();
 

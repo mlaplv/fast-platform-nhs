@@ -2,12 +2,15 @@
   import { resolveMediaUrl } from '$lib/state/utils';
   import type { Product } from '$lib/types';
   import { SHOP_CONFIG } from '$lib/constants/shop';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import "./ScienceBento.css";
   
-  let { product }: { product: Product } = $props();
+  const shopStore = getShopStore();
+  
+  const product = $derived(shopStore.product);
   let isViewerOpen = $state(false);
 
-  const metadata = $derived(product.metadata);
+  const metadata = $derived(product?.metadata || {});
   const mechanismImage = $derived(resolveMediaUrl(metadata.science_mechanism_image || ''));
   const claim1 = $derived(metadata.science_claims?.[0] || { label: 'HỆ THỐNG // LÕI NANO-BẠC', content: 'Phá vỡ cấu trúc vi khuẩn gây mùi ngay lập tức bằng mạng lưới ion bạc tự kích hoạt.', image: '' });
   const claim2 = $derived(metadata.science_claims?.[1] || { label: 'KIỂM ĐỊNH // CHỨNG THỰC', content: '"Chúng tôi không thể thay đổi gen hay cơ địa đặc trưng của bạn. <br/> Nhưng chúng tôi cam kết: Khóa mùi tuyệt đối, giữ bạn khô thoáng và tự tin suốt 48H."' });
@@ -30,7 +33,7 @@
 
   <section id="science" class="science-viewport snap-session relative">
 
-    <div class="science-container pt-[var(--section-pt)] pb-20">
+    <div class="science-container container mx-auto px-6 max-w-6xl pt-[var(--standard-pt)]">
       <div class="mb-8 text-center">
         <h2 class="section-title text-center text-5xl font-black uppercase md:text-7xl">
           {labels.headline}

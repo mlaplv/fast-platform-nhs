@@ -1,8 +1,10 @@
 <script lang="ts">
-  import { shopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import type { Product, ProductVariant } from '$lib/types';
   import { SHOP_CONFIG, OFFER_CONSTANTS } from '$lib/constants/shop';
   import "./OfferGrid.css";
+  
+  const shopStore = getShopStore();
   
   // ELITE V2.2: Centralized Marketing Strings for easier maintenance thưa Sếp!
   const metadata = $derived(product?.metadata || {});
@@ -34,7 +36,8 @@
     trust_mark_3: (metadata.offer_trust_mark_3 as string) || SHOP_CONFIG.trust_marks[3]
   });
 
-  let { product, timeLeft = OFFER_CONSTANTS.timers.default_seconds } = $props<{ product: Product, timeLeft?: number }>();
+  const product = $derived(shopStore.product);
+  const timeLeft = $derived(shopStore.timeLeft);
   const variants = $derived(product?.variants || []);
 
   /**
@@ -82,13 +85,13 @@
   };
 </script>
 
-<section id="offers" class="offer-section snap-session pt-16 pb-0 relative overflow-hidden">
+<section id="offers" class="offer-section snap-session relative overflow-hidden">
   <!-- Dynamic Atmospheric Layers thưa Sếp! -->
   <div class="absolute inset-0 bg-radial-at-t from-blue-900/10 to-transparent pointer-events-none"></div>
-  <div class="liquid-orb top-[10%] left-[-10%] w-[800px] h-[800px] bg-blue-600/10"></div>
-  <div class="liquid-orb bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-cyan-400/5"></div>
+  <div class="liquid-orb top-[10%] left-[-10%] w-[800px] h-[800px]" style="background-color: var(--elite-blue); opacity: 0.1;"></div>
+  <div class="liquid-orb bottom-[-10%] right-[-10%] w-[600px] h-[600px]" style="background-color: var(--elite-cyan); opacity: 0.05;"></div>
 
-  <div class="container mx-auto px-6 max-w-5xl text-center relative z-10">
+  <div class="container mx-auto px-6 max-w-6xl text-center relative z-10 pt-[var(--standard-pt)]">
     
     <!-- Minimalist Status Bar -->
     <div class="flex justify-center mb-10">
@@ -172,7 +175,7 @@
            </ul>
 
            <button
-             onclick={() => { shopStore.setQuantity(idx + 1); shopStore.openCheckout(); }}
+             onclick={() => { shopStore.selectVariant(variant); shopStore.openCheckout(); }}
              class="btn-buy primary w-full text-[9px] uppercase tracking-[0.2em] {idx !== 1 ? 'opacity-90 hover:opacity-100' : 'shadow-[0_0_20px_rgba(59,130,246,0.3)]'}"
            >
              {idx === 0 ? mkt.cta_start : mkt.cta_full}
@@ -183,7 +186,7 @@
     </div>
 
     <!-- Pharmacy Trust Footer - Viral Liquid Glass thưa sếp! -->
-    <div class="w-full mb-[-1px]">
+    <div class="w-full">
       <div class="pharmacy-footer group">
         <!-- Specular Sheen Effect -->
         <div class="absolute inset-0 overflow-hidden rounded-[inherit] pointer-events-none">

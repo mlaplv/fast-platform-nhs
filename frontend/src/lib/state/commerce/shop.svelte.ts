@@ -1,30 +1,76 @@
+import { setContext, getContext } from 'svelte';
 import { apiClient, ApiError } from '$lib/utils/apiClient';
-import type { Product, ProductVariant } from '$lib/types';
+import { goto } from '$app/navigation';
+import type { Product, ProductVariant, PromotionDeal } from '$lib/types';
 import type { GenericResponse } from '$lib/state/types';
 
 /**
- * ELITE V2.2: Nanobot Store for Funnel Shop
+ * ELITE V2.2: Nanobot Store for Funnel Shop (Context-Safe Edition)
  * Handles cart state, order bump, and checkout flow.
  */
-class ShopStore {
+export class ShopStore {
     // 1. Core State ($state)
     product = $state<Product | null>(null);
     variant = $state<ProductVariant | null>(null);
     quantity = $state<number>(1);
-    hasOrderBump = $state<boolean>(false);
 
-    // UI State
+    // UI & Funnel State
     isCheckoutOpen = $state<boolean>(false);
     isSubmitting = $state<boolean>(false);
     orderSuccess = $state<boolean>(false);
     error = $state<string | null>(null);
 
+    // Scarcity Timer (Elite V2.2)
+    timeLeft = $state<number>(0);
+    private _timerId: any = null;
+
     // 2. Computed State ($derived)
+    // ... logic remains identical ...
     totalAmount = $derived.by((): number => {
-        const basePrice = this.currentPrice;
-        // Gỡ bỏ hardcode: Lấy giá order bump từ metadata sản phẩm (mặc định 0 nếu không có)
-        const orderBumpPrice = this.hasOrderBump ? (this.product?.metadata?.order_bump_price || 0) : 0;
-        return (basePrice * this.quantity) + orderBumpPrice;
+        let baseTotal = this.currentPrice * this.quantity;
+        const deals = this.product?.metadata?.active_deals;
+        if (deals && deals.length > 0) {
+            const sortedDeals = [...deals].sort((a, b) => (b.buy_qty + (b.get_qty || 0)) - (a.buy_qty + (a.get_qty || 0)));
+            for (const deal of sortedDeals) {
+                const totalInBundle = deal.buy_qty + (deal.get_qty || 0);
+                if (this.quantity >= totalInBundle) {
+                    const bundleCount = Math.floor(this.quantity / totalInBundle);
+                    const remainder = this.quantity % totalInBundle;
+                    baseTotal = (bundleCount * deal.fixed_price) + (remainder * this.currentPrice);
+                    break;
+                }
+            }
+        }
+        return baseTotal;
+    });
+
+    appliedDeal = $derived.by((): PromotionDeal | null => {
+        const deals = this.product?.metadata?.active_deals;
+        if (!deals) return null;
+        const sortedDeals = [...deals].sort((a, b) => (b.buy_qty + (b.get_qty || 0)) - (a.buy_qty + (a.get_qty || 0)));
+        for (const deal of sortedDeals) {
+            const totalInBundle = deal.buy_qty + (deal.get_qty || 0);
+            if (this.quantity >= totalInBundle) return deal;
+        }
+        return null;
+    });
+
+    nextDeal = $derived.by((): { deal: PromotionDeal; missing: number; priceDiff: number } | null => {
+        const deals = this.product?.metadata?.active_deals;
+        if (!deals || !this.product) return null;
+        const currentPriceTotal = this.currentPrice * this.quantity;
+        const sortedDeals = [...deals].sort((a, b) => (a.buy_qty + (a.get_qty || 0)) - (b.buy_qty + (b.get_qty || 0)));
+        for (const deal of sortedDeals) {
+            const totalInBundle = deal.buy_qty + (deal.get_qty || 0);
+            if (this.quantity < totalInBundle) {
+                return { 
+                    deal, 
+                    missing: totalInBundle - this.quantity,
+                    priceDiff: deal.fixed_price - currentPriceTotal
+                };
+            }
+        }
+        return null;
     });
 
     currentPrice = $derived.by((): number => {
@@ -41,15 +87,35 @@ class ShopStore {
     // 3. Actions
     init(productData: Product): void {
         this.product = productData;
-        // Mặc định chọn variant đầu tiên nếu có
-        if (productData?.variants && productData.variants.length > 0) {
+        this.timeLeft = productData.metadata?.scarcity_seconds ?? 1800;
+        this.startTimer();
+        if (!this.variant && productData?.variants && productData.variants.length > 0) {
             this.variant = productData.variants[0];
         }
     }
 
-    /**
-     * Đồng bộ với MobileBottomSheet: Thêm vào giỏ hàng và mở Checkout
-     */
+    startTimer(): void {
+        if (this._timerId) clearInterval(this._timerId);
+        this._timerId = setInterval(() => {
+            if (this.timeLeft > 0) {
+                this.timeLeft--;
+            } else {
+                this.stopTimer();
+            }
+        }, 1000);
+    }
+
+    stopTimer(): void {
+        if (this._timerId) {
+            clearInterval(this._timerId);
+            this._timerId = null;
+        }
+    }
+
+    dispose(): void {
+        this.stopTimer();
+    }
+
     addItem(productData: Product): void {
         this.init(productData);
         this.openCheckout();
@@ -61,22 +127,19 @@ class ShopStore {
 
     selectVariantByTier(indices: number[]): void {
         if (!this.product?.variants) return;
-        const found = this.product.variants.find(v => 
+        const found = this.product.variants.find((v: ProductVariant) => 
             v.tierIndex.length === indices.length && 
-            v.tierIndex.every((val, idx) => val === indices[idx])
+            v.tierIndex.every((val: number, idx: number) => val === indices[idx])
         );
         if (found) {
             this.variant = found;
+            this.quantity = 1; // Reset to 1 thưa sếp!
         }
     }
 
     setQuantity(q: number): void {
         if (q < 1) return;
         this.quantity = q;
-    }
-
-    toggleOrderBump(): void {
-        this.hasOrderBump = !this.hasOrderBump;
     }
 
     openCheckout(): void {
@@ -101,29 +164,36 @@ class ShopStore {
                 customer_name: customer.name,
                 customer_phone: customer.phone,
                 customer_address: customer.address,
-                has_order_bump: this.hasOrderBump,
                 quantity: this.quantity
             });
 
             if (res.ok || res.status === 'success') {
                 this.orderSuccess = true;
-                // Auto-close after 3s on success
+                const orderId = (res as any).id;
                 setTimeout(() => {
                     this.closeCheckout();
-                }, 3000);
+                    if (orderId) {
+                        goto(`/checkout/success/${orderId}`);
+                    }
+                }, 1500); // 1.5s to show local checkmark thưa sếp!
             } else {
                 this.error = res.message ?? 'Có lỗi xảy ra, vui lòng thử lại';
             }
         } catch (err: unknown) {
             this.error = err instanceof ApiError ? err.message : 'Không thể kết nối máy chủ';
-            if (err instanceof Error) {
-                console.error('[ShopStore] Checkout Error:', err.message);
-            }
         } finally {
             this.isSubmitting = false;
         }
     }
 }
 
-// Export singleton
-export const shopStore = new ShopStore();
+// 🚀 ELITE CONTEXT KEYS (Elite V2.2)
+const SHOP_KEY = Symbol('SHOP_STORE');
+
+export function setShopStore() {
+    return setContext(SHOP_KEY, new ShopStore());
+}
+
+export function getShopStore(): ShopStore {
+    return getContext(SHOP_KEY);
+}

@@ -5,6 +5,9 @@
   import MessageSquare from "lucide-svelte/icons/message-square";
   import Microscope from "lucide-svelte/icons/microscope";
   import HelpCircle from "lucide-svelte/icons/help-circle";
+  import Plus from "lucide-svelte/icons/plus";
+  import Trash2 from "lucide-svelte/icons/trash-2";
+  import Tag from "lucide-svelte/icons/tag";
   import type { ProductMetadata } from "$lib/types";
 
   let { formMetadata = $bindable() } = $props<{
@@ -36,7 +39,7 @@
       {#each landingTypes as type}
         <button
           type="button"
-          onclick={() => formMetadata.landing_type = type.value as any}
+          onclick={() => formMetadata.landing_type = type.value as ProductMetadata['landing_type']}
           class="flex flex-col gap-1 p-3 rounded-xl border transition-all text-left {formMetadata.landing_type === type.value ? 'bg-amber-500/10 border-amber-500/50' : 'bg-white/5 border-white/5 hover:border-white/10'}"
         >
           <span class="text-[10px] font-bold {formMetadata.landing_type === type.value ? 'text-amber-400' : 'text-white/60'}">{type.label}</span>
@@ -48,17 +51,6 @@
 
   <!-- CONTEXTUAL FIELDS -->
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-
-    <!-- Order Bump Price (Always visible) -->
-    <div class="flex flex-col gap-1.5">
-      <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Giá Order Bump (VNĐ)</label>
-      <input
-        type="number"
-        bind:value={formMetadata.order_bump_price}
-        placeholder="99000"
-        class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-amber-500/50 transition-colors"
-      />
-    </div>
 
     <!-- Scarcity Timer (Stealth/TikTok) -->
     {#if formMetadata.landing_type !== 'standard'}
@@ -116,48 +108,70 @@
     </div>
   </div>
 
-  <!-- Advanced Sections (Expandable or Tabs?) -->
-  <!-- For now, just render the main headlines to keep it lean as requested -->
-  <div class="flex flex-col gap-4 pt-4 border-t border-white/5">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <!-- Reviews Header -->
-      <div class="flex flex-col gap-3 p-4 rounded-2xl bg-white/[0.01] border border-white/5">
-        <div class="flex items-center gap-2 text-[8px] font-black text-white/20 uppercase">
-          <MessageSquare size={10} /> Đánh giá (Reviews)
-        </div>
-        <input
-          type="text"
-          bind:value={formMetadata.reviews_headline}
-          placeholder="Khách hàng nói gì về chúng tôi"
-          class="w-full bg-transparent border-b border-white/10 py-1 text-[10px] text-white focus:outline-none focus:border-amber-500"
-        />
+  <!-- ACTIVE DEALS (PROMOTIONS) -->
+  <div class="flex flex-col gap-4 pt-6 border-t border-white/10">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
+        <Tag size={11} class="text-sky-400/60" />
+        Chương trình Khuyến mãi (Combo Deals)
       </div>
+      <button 
+        type="button"
+        onclick={() => {
+          if (!formMetadata.active_deals) formMetadata.active_deals = [];
+          formMetadata.active_deals.push({ buy_qty: 2, get_qty: 1, fixed_price: 550000, label: 'Mua 2 Tặng 1', scope: 'global' });
+        }}
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-[9px] font-bold text-sky-400 hover:bg-sky-500/20 transition-all"
+      >
+        <Plus size={10} /> Thêm Deal mới
+      </button>
+    </div>
 
-      <!-- Science Header -->
-      <div class="flex flex-col gap-3 p-4 rounded-2xl bg-white/[0.01] border border-white/5">
-        <div class="flex items-center gap-2 text-[8px] font-black text-white/20 uppercase">
-          <Microscope size={10} /> Khoa học (Science)
-        </div>
-        <input
-          type="text"
-          bind:value={formMetadata.science_headline}
-          placeholder="Tại sao nó hiệu quả?"
-          class="w-full bg-transparent border-b border-white/10 py-1 text-[10px] text-white focus:outline-none focus:border-amber-500"
-        />
-      </div>
+    <div class="space-y-3">
+      {#if formMetadata.active_deals && formMetadata.active_deals.length > 0}
+        {#each formMetadata.active_deals as deal, i}
+          <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5 relative group/deal">
+            <button 
+              type="button"
+              onclick={() => formMetadata.active_deals = formMetadata.active_deals.filter((_, idx) => idx !== i)}
+              class="absolute top-3 right-3 p-1.5 rounded-md hover:bg-red-500/10 text-white/20 hover:text-red-400 transition-all opacity-0 group-hover/deal:opacity-100"
+            >
+              <Trash2 size={12} />
+            </button>
 
-      <!-- Diagnostics Header -->
-      <div class="flex flex-col gap-3 p-4 rounded-2xl bg-white/[0.01] border border-white/5">
-        <div class="flex items-center gap-2 text-[8px] font-black text-white/20 uppercase">
-          <HelpCircle size={10} /> Chẩn đoán (Diagnostics)
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+              <div class="flex flex-col gap-1">
+                <label class="text-[8px] font-bold text-white/30 uppercase">Số lượng Mua</label>
+                <input type="number" bind:value={deal.buy_qty} class="bg-black/40 border border-white/5 rounded-md px-2 py-1.5 text-[10px] text-white" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-[8px] font-bold text-white/30 uppercase">Số lượng Tặng</label>
+                <input type="number" bind:value={deal.get_qty} class="bg-black/40 border border-white/5 rounded-md px-2 py-1.5 text-[10px] text-white" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-[8px] font-bold text-white/30 uppercase">Giá trọn gói (VNĐ)</label>
+                <input type="number" bind:value={deal.fixed_price} class="bg-black/40 border border-white/5 rounded-md px-2 py-1.5 text-[10px] text-sky-400 font-bold" />
+              </div>
+              <div class="flex flex-col gap-1 lg:col-span-1">
+                <label class="text-[8px] font-bold text-white/30 uppercase">Phạm vi</label>
+                <select bind:value={deal.scope} class="bg-black/40 border border-white/5 rounded-md px-2 py-1.5 text-[10px] text-white outline-none">
+                  <option value="global">Toàn bộ (Global)</option>
+                  <option value="variant_only">Chỉ biến thể này</option>
+                </select>
+              </div>
+              <div class="flex flex-col gap-1 lg:col-span-1">
+                <label class="text-[8px] font-bold text-white/30 uppercase">Nhãn (Label)</label>
+                <input type="text" bind:value={deal.label} class="bg-black/40 border border-white/5 rounded-md px-2 py-1.5 text-[10px] text-white" placeholder="Mua 2 Tặng 1..." />
+              </div>
+            </div>
+          </div>
+        {/each}
+      {:else}
+        <div class="py-10 flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-white/10 text-white/20">
+          <Tag size={20} class="opacity-50" />
+          <span class="text-[9px] font-bold uppercase tracking-widest">Chưa có chương trình khuyến mãi nào</span>
         </div>
-        <input
-          type="text"
-          bind:value={formMetadata.diagnostics_headline}
-          placeholder="Lựa chọn dành cho bạn"
-          class="w-full bg-transparent border-b border-white/10 py-1 text-[10px] text-white focus:outline-none focus:border-amber-500"
-        />
-      </div>
+      {/if}
     </div>
   </div>
 </div>

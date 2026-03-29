@@ -114,6 +114,24 @@ PRODUCT_DEFS = [
                     "content": "Mình ngại nhất khoản đi nhận hàng. Nhưng shop đóng hộp trơn bọc kín bưng, che tên sản phẩm hoàn toàn. Bạn shipper giao đến chỉ bảo 'có gói mỹ phẩm'. 10 điểm cho sự tế nhị và bảo mật thông tin.",
                     "initial": "P"
                 }
+            ],
+            "active_deals": [
+                {
+                    "id": "deal_m2t1",
+                    "label": "Mua 2 Tặng 1",
+                    "buy_qty": 2,
+                    "get_qty": 1,
+                    "fixed_price": 498000,
+                    "description": "Tiết kiệm 249k thưa sếp!"
+                },
+                {
+                    "id": "deal_m3t2",
+                    "label": "Mua 3 Tặng 2",
+                    "buy_qty": 3,
+                    "get_qty": 2,
+                    "fixed_price": 747000,
+                    "description": "Ưu đãi lớn nhất thưa sếp!"
+                }
             ]
         },
         "images": [

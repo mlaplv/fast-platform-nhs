@@ -4,7 +4,7 @@
   container-type: inline-size;
   container-name: hero;
   min-height: 100vh;
-  padding-top: 3.5rem;
+  /* padding-top: 3.5rem; REMOVED thưa sếp! */
   /* Protection against fixed header */
   scroll-margin-top: 80px;
   /* Professional Standard */
@@ -672,8 +672,3 @@ html {
   box-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
 }
 
-/* Global Scroll Snapping (Optimized thưa sếp!) */
-html {
-  scroll-snap-type: y mandatory;
-  scroll-behavior: smooth;
-}

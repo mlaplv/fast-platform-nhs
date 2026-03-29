@@ -2,16 +2,15 @@
   import ClinicalQuiz from '$lib/components/client/ClinicalQuiz.svelte';
   import type { QuizQuestion, ProductMetadata } from '$lib/types';
   import { SHOP_CONFIG } from '$lib/constants/shop';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import "./DiagnosticsSection.css";
   import "./LiquidEffects.css";
 
-  let {
-    questions = [],
-    metadata = {}
-  }: {
-    questions: QuizQuestion[];
-    metadata: ProductMetadata;
-  } = $props();
+  const shopStore = getShopStore();
+  
+  const product = $derived(shopStore.product);
+  const metadata = $derived(product?.metadata || {});
+  const questions = $derived(metadata?.quiz_questions || []);
 
   const labels = $derived({
     headline: metadata.diagnostics_headline || 'CHẨN ĐOÁN CÁ NHÂN HÓA',
@@ -21,7 +20,7 @@
 </script>
 
 <section id="diagnostics" aria-labelledby="personalized-care" class="diagnostics-container snap-session relative overflow-x-hidden bg-[#020617]">
-  <div class="container mx-auto px-6 max-w-5xl text-center relative pt-[var(--section-pt)] pb-20" style:z-index="var(--z-surface)">
+  <div class="container mx-auto px-6 max-w-6xl text-center relative pt-[var(--standard-pt)]" style:z-index="var(--z-surface)">
     <h3 id="personalized-care" class="section-title text-neural font-black tracking-tight leading-none uppercase mb-4 text-4xl md:text-6xl">
       {@html labels.headline}
     </h3>

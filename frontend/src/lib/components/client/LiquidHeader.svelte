@@ -1,15 +1,18 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
-  import type { Product } from '$lib/types';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+
+  const shopStore = getShopStore();
 
   // Senior Architect Note: LiquidHeader uses Svelte 5 Runes for ultra-responsive local state
-  let { themeMode, applyTheme, scrollToQuiz, product } = $props<{
+  let { themeMode, applyTheme, scrollToQuiz } = $props<{
     themeMode: 'system' | 'light' | 'dark';
     applyTheme: (mode: 'system' | 'light' | 'dark') => void;
     scrollToQuiz?: () => void;
-    product?: Product;
   }>();
+
+  const product = $derived(shopStore.product);
 
   const labels = $derived({
     home: (product?.metadata?.nav_label_home as string) || 'Trang chủ',

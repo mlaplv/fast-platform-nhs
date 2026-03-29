@@ -8,10 +8,18 @@ class TierVariation(BaseModel):
     options: List[str]
     images: Optional[List[str]] = None
 
+class PromotionDeal(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    buy_qty: int = Field(..., alias="buy_qty")
+    get_qty: int = Field(..., alias="get_qty")
+    fixed_price: float = Field(..., alias="fixed_price")
+    label: str = Field(..., alias="label")
+    scope: str = Field("global", alias="scope") # "global" | "variant_only"
+
 class ProductMetadata(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
+    active_deals: List[PromotionDeal] = Field(default_factory=list, alias="active_deals")
     landing_type: Optional[str] = Field(None, alias="landing_type")
-    order_bump_price: Optional[float] = Field(None, alias="order_bump_price")
     scarcity_seconds: Optional[int] = Field(None, alias="scarcity_seconds")
     show_reviews: Optional[bool] = Field(None, alias="show_reviews")
     video_url: Optional[str] = Field(None, alias="video_url")
