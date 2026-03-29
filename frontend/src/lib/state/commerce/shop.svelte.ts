@@ -168,14 +168,11 @@ export class ShopStore {
             });
 
             if (res.ok || res.status === 'success') {
-                this.orderSuccess = true;
                 const orderId = (res as any).id;
-                setTimeout(() => {
-                    this.closeCheckout();
-                    if (orderId) {
-                        goto(`/checkout/success/${orderId}`);
-                    }
-                }, 1500); // 1.5s to show local checkmark thưa sếp!
+                this.closeCheckout();
+                if (orderId) {
+                    goto(`/checkout/success/${orderId}`);
+                }
             } else {
                 this.error = res.message ?? 'Có lỗi xảy ra, vui lòng thử lại';
             }

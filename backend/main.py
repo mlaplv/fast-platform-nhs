@@ -40,6 +40,7 @@ from backend.controllers.product import ProductController
 from backend.controllers.article import ArticleController
 from backend.controllers.order import OrderController
 from backend.controllers.client.checkout import CheckoutController
+from backend.controllers.client.order import PublicOrderController
 from backend.controllers.client.product import PublicProductController
 from backend.controllers.settings import SettingsController
 from backend.controllers.ai_management import AIController
@@ -94,7 +95,7 @@ app = Litestar(
         HealthController, MCPController, AuthController,
         NotificationController, AuditorController, UserController,
         CategoryController, ProductController, PublicProductController, ArticleController, OrderController,
-        CheckoutController, ChatController, SettingsController, AIController, ContentController, MediaController, ContentStreamController,
+        CheckoutController, PublicOrderController, ChatController, SettingsController, AIController, ContentController, MediaController, ContentStreamController,
         BannerController, stt_websocket, TTSController, IntentMapController, SchedulerController,
     ],
     middleware=[BodyLimitMiddleware, rate_limit_config.middleware, DomainGuardMiddleware(), AuthMiddleware()],

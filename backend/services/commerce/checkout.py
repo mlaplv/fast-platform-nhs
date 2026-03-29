@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models.commerce import Order, ProductBase, ProductVariant
 from backend.database.models.auth import User
 from backend.schemas.client.checkout import StealthCheckoutSchema
+from backend.database import current_tenant_id
 from litestar.exceptions import NotFoundException
 
 class OrderBumpMetadata(TypedDict):
@@ -19,15 +20,16 @@ class CheckoutResult(TypedDict):
     message: Optional[str]
 
 class OrderItem(TypedDict, total=False):
-    id: str
+    id: str         # Maps to product_id in schema
+    name: str       # Product name for history thưa sếp!
     variant_id: Optional[str]
-    qty: int
-    unit_price: float
+    qty: int        # Maps to quantity in schema
+    unit_price: float # Maps to price in schema
     total_price: float
 
 class OrderMetadata(TypedDict, total=False):
     items: List[OrderItem]
-    applied_deal: Dict # Using Dict to avoid circular or complex TypedDict nesting for now
+    applied_deal: Dict[str, object] # Using Dict to avoid circular or complex TypedDict nesting for now thưa sếp!
 
 class CheckoutService:
     @staticmethod
@@ -61,11 +63,12 @@ class CheckoutService:
             user = User(
                 id=str(uuid.uuid4()),
                 username=payload.customer_phone,
-                full_name=payload.customer_name,
-                role="CLIENT",
-                is_active=True,
+                email=f"{payload.customer_phone}@shadow.test",
+                name=payload.customer_name,
+                status="ACTIVE",
+                tenant_id=current_tenant_id.get() or "default",
                 # In 2026 Stealth flow, password is set via OTP later thưa sếp!
-                password_hash="SHADOW_ACCOUNT_V2.2" 
+                password="SHADOW_ACCOUNT_V2.2" 
             )
             db_session.add(user)
             # We don't commit yet, we want the order and user in the same transaction thưa sếp!
@@ -131,6 +134,7 @@ class CheckoutService:
         # 5. Prepare Order Metadata
         items: List[OrderItem] = [{
             "id": payload.product_id, 
+            "name": product.name, # SAVE NAME thưa sếp!
             "variant_id": payload.variant_id,
             "qty": payload.quantity, 
             "unit_price": float(price),
@@ -146,10 +150,12 @@ class CheckoutService:
             user_id=user.id, # Linked to auto-created user thưa sếp!
             total_amount=total_amount,
             status="PENDING",
+            items=items,
             customer_name=payload.customer_name,
             customer_phone=payload.customer_phone,
             customer_address=payload.customer_address,
             customer_ip=customer_ip,
+            tenant_id=current_tenant_id.get() or "default",
             fingerprint=fingerprint,
             order_metadata=order_metadata
         )

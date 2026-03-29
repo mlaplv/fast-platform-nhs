@@ -9,6 +9,7 @@
   const shopStore = getShopStore();
 
   // Optimized DOM refs (Native thưa sếp! KHÔNG dùng $state)
+  let nameRef: HTMLInputElement | undefined;
   let phoneRef: HTMLInputElement | undefined;
   let addressRef: HTMLTextAreaElement | undefined;
   
@@ -69,18 +70,19 @@
     validateInput();
     if (validationError) return;
     
+    const name = nameRef?.value || 'Khách lẻ';
     const phone = phoneRef?.value || '';
     const address = addressRef?.value || '';
 
     if (!phone || !address) {
-      validationError = "Vui lòng điền đầy đủ thông tin nhận hàng";
+      validationError = "Vui lòng điền đủ SĐT và Địa chỉ";
       return;
     }
 
     await shopStore.submitCheckout({ 
       phone, 
       address, 
-      name: "Khách hàng" 
+      name 
     });
   }
 </script>
@@ -108,17 +110,7 @@
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
     </button>
 
-    {#if orderSuccess}
-      <div class="flex-1 flex flex-col items-center justify-center py-12 text-center" in:scale={{ duration: 500 }}>
-         <div class="w-24 h-24 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl border border-emerald-500/30">
-            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-         </div>
-         <h2 class="text-3xl font-black text-white mb-2 uppercase italic tracking-tighter">Đặt hàng thành công!</h2>
-         <p class="text-slate-400 mb-8 max-w-xs mx-auto">Chuyên viên sẽ gọi điện xác thực và tư vấn cho Quý khách trong tích tắc!</p>
-         <button onclick={() => shopStore.closeCheckout()} class="px-12 py-4 bg-white text-black font-black rounded-full hover:bg-sky-400 transition-all active:scale-95 uppercase">Đã rõ!</button>
-      </div>
-    {:else}
-      <div class="relative z-10 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-1">
+    <div class="relative z-10 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-1">
         <header>
           <h2 class="text-4xl font-black text-white tracking-tighter uppercase italic leading-none mb-1">Xác nhận đơn</h2>
           <div class="flex items-center gap-2">
@@ -177,6 +169,15 @@
 
         <!-- Inputs (NATIVE ONLY thưa sếp!) -->
         <div class="space-y-4">
+          <div class="relative group/input">
+            <input 
+              type="text" 
+              bind:this={nameRef}
+              placeholder="HỌ TÊN NGƯỜI NHẬN (KHÔNG BẮT BUỘC)" 
+              class="w-full px-6 py-4 bg-white/[0.03] border-2 border-white/5 focus:border-sky-500/50 focus:bg-white/[0.05] rounded-[1.5rem] outline-none placeholder:text-slate-600 text-white font-black text-sm shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] uppercase tracking-wider" 
+            />
+          </div>
+
           <div class="relative group/input">
             <input 
               type="tel" 
@@ -268,7 +269,6 @@
           </div>
         </footer>
       </div>
-    {/if}
   </div>
 {/if}
 

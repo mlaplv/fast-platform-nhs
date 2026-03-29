@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException, ValidationException
 
 from backend.database.models import Order, User
+from backend.database import current_tenant_id
 from backend.services.event_bus import event_bus
 from backend.utils.sql import escape_like
 from backend.schemas.order import OrderResponse, OrderListResponse, OrderCreateRequest, OrderStatusUpdate, CancelOrderRequest
@@ -44,7 +45,6 @@ class OrderInsight(TypedDict):
     previous_orders: List[PreviousOrder]
 
 logger = logging.getLogger("api-gateway")
-TENANT_ID = "smartshop" # V2026 Native Tenant
 
 class OrderService:
     @staticmethod
@@ -67,6 +67,7 @@ class OrderService:
             customer_phone=data.customer_phone,
             customer_address=data.customer_address,
             customer_ip=ip,
+            tenant_id=current_tenant_id.get() or "default",
             order_metadata=OrderMetadata(
                 user_agent=ua,
                 fingerprint=data.items[0].get("fingerprint") if isinstance(data.items, list) and data.items else None 
@@ -100,7 +101,10 @@ class OrderService:
         search: Optional[str] = None
     ) -> OrderListResponse:
         """Moves logic from OrderController.list_orders. Uses Scalar Projection."""
-        conditions = [Order.deleted_at == None]
+        conditions = [
+            Order.deleted_at == None,
+            Order.tenant_id == (current_tenant_id.get() or "default")
+        ]
 
         if status and status != "all":
             conditions.append(Order.status == status.upper())
@@ -124,7 +128,7 @@ class OrderService:
             and_(
                 Order.customer_phone == sa.column("customer_phone"), # Reference outer column
                 Order.status == "COMPLETED",
-                Order.tenant_id == TENANT_ID
+                Order.tenant_id == (current_tenant_id.get() or "default")
             )
         ).scalar_subquery().label("successful_count")
         
@@ -132,7 +136,7 @@ class OrderService:
             and_(
                 Order.customer_phone == sa.column("customer_phone"),
                 Order.status == "CANCELLED",
-                Order.tenant_id == TENANT_ID
+                Order.tenant_id == (current_tenant_id.get() or "default")
             )
         ).scalar_subquery().label("cancelled_count")
 
@@ -158,7 +162,7 @@ class OrderService:
             and_(
                 Order.customer_phone == sa.column("customer_phone"),
                 Order.status == "COMPLETED",
-                Order.tenant_id == TENANT_ID
+                Order.tenant_id == (current_tenant_id.get() or "default")
             )
         ).scalar_subquery().label("successful_count")
         
@@ -166,7 +170,7 @@ class OrderService:
             and_(
                 Order.customer_phone == sa.column("customer_phone"),
                 Order.status == "CANCELLED",
-                Order.tenant_id == TENANT_ID
+                Order.tenant_id == (current_tenant_id.get() or "default")
             )
         ).scalar_subquery().label("cancelled_count")
 
@@ -180,8 +184,13 @@ class OrderService:
                 success_sq, cancel_sq
             )
             .outerjoin(User, Order.user_id == User.id)
-            .where(Order.id == order_id)
         )
+
+        # R2026: Elite Suffix Lookup Support thưa sếp!
+        if len(order_id) == 6:
+             stmt = stmt.where(Order.id.ilike(f"%{order_id}"))
+        else:
+             stmt = stmt.where(Order.id == order_id)
         result = await db_session.execute(stmt)
         row = result.first()
 
@@ -202,7 +211,7 @@ class OrderService:
             ).where(
                 and_(
                     Order.customer_phone == phone,
-                    Order.tenant_id == TENANT_ID
+                    Order.tenant_id == (current_tenant_id.get() or "default")
                 )
             )
             stats = (await db_session.execute(insight_stmt)).fetchone()
@@ -214,7 +223,7 @@ class OrderService:
                 and_(
                     Order.customer_phone == phone,
                     Order.id != order_id,
-                    Order.tenant_id == TENANT_ID
+                    Order.tenant_id == (current_tenant_id.get() or "default")
                 )
             ).order_by(Order.created_at.desc()).limit(10)
             
