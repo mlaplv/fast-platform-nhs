@@ -4,6 +4,23 @@ import { goto } from '$app/navigation';
 import type { Product, ProductVariant, PromotionDeal } from '$lib/types';
 import type { GenericResponse } from '$lib/state/types';
 
+/** Identity Shield API response types (must match backend schema) */
+interface CustomerLookupResponse {
+    is_recurring: boolean;
+    is_trusted_device: boolean;
+    name_masked: string | null;
+    address_masked: string | null;
+}
+/** Domain model for auto-fill state */
+interface CustomerData {
+    nameMasked?: string;
+    addressMasked?: string;
+    fullName?: string;
+    address?: string;
+    isRecurring: boolean;
+    isTrustedDevice: boolean;
+}
+
 /**
  * ELITE V2.2: Nanobot Store for Funnel Shop (Context-Safe Edition)
  * Handles cart state, order bump, and checkout flow.
@@ -19,10 +36,11 @@ export class ShopStore {
     isSubmitting = $state<boolean>(false);
     orderSuccess = $state<boolean>(false);
     error = $state<string | null>(null);
+    customerData = $state<CustomerData | null>(null);
 
     // Scarcity Timer (Elite V2.2)
     timeLeft = $state<number>(0);
-    private _timerId: any = null;
+    private _timerId: ReturnType<typeof setTimeout> | null = null;
 
     // 2. Computed State ($derived)
     // ... logic remains identical ...
@@ -150,7 +168,29 @@ export class ShopStore {
         this.isCheckoutOpen = false;
         this.orderSuccess = false;
         this.error = null;
+        this.customerData = null;
     }
+
+    async lookupCustomer(phone: string): Promise<void> {
+        if (phone.length < 10) return;
+        try {
+            const fingerprint = this.getFingerprint();
+            const res = await apiClient.post<CustomerLookupResponse>('/api/v1/client/checkout/lookup', { phone, fingerprint });
+            if (res?.is_recurring) {
+                this.customerData = {
+                    nameMasked: res.name_masked ?? undefined,
+                    addressMasked: res.address_masked ?? undefined,
+                    isRecurring: true,
+                    isTrustedDevice: res.is_trusted_device
+                };
+            } else {
+                this.customerData = null;
+            }
+        } catch (err: unknown) {
+            console.error('Identity lookup failed:', err instanceof ApiError ? err.message : err);
+        }
+    }
+
 
     async submitCheckout(customer: { name: string; phone: string; address: string }): Promise<void> {
         if (!this.product) return;
@@ -181,6 +221,21 @@ export class ShopStore {
         } finally {
             this.isSubmitting = false;
         }
+    }
+
+    private getFingerprint(): string {
+        if (typeof window === 'undefined') return 'server';
+        const nav = window.navigator;
+        const screen = window.screen;
+        const str = `${nav.userAgent}|${nav.language}|${screen.width}x${screen.height}|${screen.colorDepth}`;
+        // Simple hash (not cryptographic but enough for a "fingerprint" label in UI)
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return Math.abs(hash).toString(16);
     }
 }
 

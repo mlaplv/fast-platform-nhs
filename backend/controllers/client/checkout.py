@@ -2,7 +2,14 @@ from __future__ import annotations
 import logging
 from litestar import Controller, post, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.schemas.client.checkout import StealthCheckoutSchema
+from backend.schemas.client.checkout import (
+    StealthCheckoutSchema, 
+    CustomerLookupSchema,
+    CustomerLookupResponseSchema,
+    StealthCheckoutSchema, 
+    CustomerLookupSchema,
+    CustomerLookupResponseSchema
+)
 from backend.schemas.common import SuccessResponse
 from backend.services.commerce.checkout import CheckoutService
 
@@ -28,12 +35,16 @@ class CheckoutController(Controller):
 
         ua = request.headers.get("user-agent", "unknown")
 
-        # Process through CheckoutService
         res = await CheckoutService.create_stealth_order(db_session, data, ip, ua)
-
-        # db_session.commit() is handled within ClientService or here.
-        # Standard pattern in this repo seems to be committing in service or controller.
-        # I'll ensure commit is called if not done in service.
-        # In my ClientService I already called commit, so no need here.
-
         return SuccessResponse(id=res["id"], ok=res["ok"])
+
+    @post("/lookup", guards=[])  # PUBLIC: Identity Lookup
+    async def lookup_customer(
+        self,
+        db_session: AsyncSession,
+        data: CustomerLookupSchema
+    ) -> CustomerLookupResponseSchema:
+        """Lookup previous identity by phone. Returns ONLY recognition status (Identity Shield)."""
+        res = await CheckoutService.lookup_customer(db_session, data.phone, data.fingerprint)
+        return CustomerLookupResponseSchema(**res)
+

@@ -71,6 +71,7 @@ class AntiSpamService:
         is_campaign_mode=True: Relaxes quantity checks, tightens identity rotation checks.
         """
         fingerprint = self.generate_fingerprint(ip, user_agent)
+        phone = order_data.get("phone", "unspecified")
 
         # R2026: Dev-Mode Bypass — tránh false positive khi test/seed trong môi trường development
         if os.getenv("ENVIRONMENT", "production") == "development":
@@ -79,8 +80,6 @@ class AntiSpamService:
 
         if not self.redis:
             return False, "Bypass: Redis Off", 0.0, fingerprint
-
-        phone = order_data.get("phone", "unspecified")
 
         # R2026: Elite V2.2: Developer/Sếp Whitelist Bypass
         # Check if phone is in whitelist to prevent false positives during testing

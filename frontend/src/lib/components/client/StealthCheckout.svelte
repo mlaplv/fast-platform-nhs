@@ -60,6 +60,32 @@
     return shopStore.product?.images?.[0] || '';
   }
 
+  // Smart Lookup Logic (Elite V2.2)
+  let lookupTimer: any;
+  function handlePhoneInput() {
+    const phone = phoneRef?.value || '';
+    if (phone.length >= 10) {
+      if (lookupTimer) clearTimeout(lookupTimer);
+      lookupTimer = setTimeout(() => {
+        shopStore.lookupCustomer(phone);
+      }, 500);
+    }
+  }
+
+  function handleNameInput() {
+    validateInput();
+  }
+
+  // Elite Identity Shield v2.2: Masked Auto-fill
+  $effect(() => {
+    const data = shopStore.customerData;
+    if (data?.isRecurring) {
+      if (data.nameMasked && nameRef) nameRef.value = data.nameMasked;
+      if (data.addressMasked && addressRef) addressRef.value = data.addressMasked;
+      validateInput();
+    }
+  });
+
   async function handleSubmit() {
     validateInput();
     if (validationError) return;
@@ -109,6 +135,14 @@
             <h2 class="drawer-title">Xác nhận<br/>liệu trình</h2>
           </div>
           <div class="ssl-badge">
+            {#if shopStore.customerData?.isTrustedDevice}
+              <div class="flex items-center gap-1.5 text-emerald-400 mr-2 border-r border-white/10 pr-2">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A10.003 10.003 0 0012 21a10.003 10.003 0 008.139-4.187l.054.09A10.003 10.003 0 0112 21c-3.147 0-5.941-1.45-7.747-3.719zM12 7V3m0 0a3 3 0 013 3v1h-6V6a3 3 0 013-3z" />
+                </svg>
+                <span class="text-[9px] font-black uppercase tracking-tighter">Trusted Device</span>
+              </div>
+            {/if}
             <span class="ssl-dot"></span>
             <span>AES-256 SSL</span>
           </div>
@@ -167,40 +201,58 @@
 
       <!-- Form fields -->
       <div class="form-stack mb-6">
-        <!-- Name -->
+        <!-- 1. Phone (Now FIRST) -->
         <div class="field-wrap">
+          <input
+            type="tel"
+            bind:this={phoneRef}
+            oninput={handlePhoneInput}
+            onblur={validateInput}
+            placeholder=" "
+            class="field-input field-lg {validationError && validationError.includes('thoại') ? 'field-error' : ''}"
+            id="sc-phone"
+          />
+          <label for="sc-phone" class="field-label">Số điện thoại nhận tư vấn <span class="text-sky-500">*</span></label>
+          <span class="field-hint">10+ số · Bảo mật</span>
+          
+          {#if shopStore.customerData?.isRecurring}
+            <div class="absolute -bottom-5 left-2 flex items-center gap-1.5 text-[10px] font-extrabold text-[#38bdf8] animate-in fade-in slide-in-from-top-1">
+              <div class="w-1.5 h-1.5 {shopStore.customerData.isTrustedDevice ? 'bg-emerald-500' : 'bg-amber-500'} rounded-full animate-pulse"></div>
+              Chào mừng {shopStore.customerData.nameMasked || 'bạn'} quay trở lại!
+              <span class="ml-1 px-1.5 py-0.5 bg-sky-500/10 text-sky-500 text-[7px] uppercase tracking-tighter rounded">Dữ liệu đã được bảo mật (***)</span>
+            </div>
+          {/if}
+        </div>
+
+        <!-- 2. Name -->
+        <div class="field-wrap mt-2">
           <input
             type="text"
             bind:this={nameRef}
+            oninput={handleNameInput}
             placeholder=" "
             class="field-input"
             id="sc-name"
           />
           <label for="sc-name" class="field-label">Họ tên người nhận (không bắt buộc)</label>
+          
+          {#if shopStore.customerData?.isRecurring && nameRef?.value === shopStore.customerData.nameMasked}
+            <div class="absolute -right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 pr-4 text-emerald-400 animate-in zoom-in">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          {/if}
         </div>
 
-        <!-- Phone -->
-        <div class="field-wrap">
-          <input
-            type="tel"
-            bind:this={phoneRef}
-            onblur={validateInput}
-            placeholder=" "
-            class="field-input field-lg {validationError ? 'field-error' : ''}"
-            id="sc-phone"
-          />
-          <label for="sc-phone" class="field-label">Số điện thoại nhận tư vấn <span class="text-sky-500">*</span></label>
-          <span class="field-hint">10+ số · Bảo mật</span>
-        </div>
-
-        <!-- Address -->
+        <!-- 3. Address -->
         <div class="field-wrap">
           <textarea
             bind:this={addressRef}
             onblur={validateInput}
             rows="2"
             placeholder=" "
-            class="field-input field-textarea {validationError ? 'field-error' : ''}"
+            class="field-input field-textarea {validationError && validationError.includes('địa chỉ') ? 'field-error' : ''}"
             id="sc-address"
           ></textarea>
           <label for="sc-address" class="field-label">Địa chỉ giao hàng <span class="text-sky-500">*</span></label>
@@ -543,6 +595,16 @@
     border-color: rgba(14,165,233,0.5);
     background: rgba(14,165,233,0.04);
     box-shadow: inset 0 2px 8px rgba(0,0,0,0.4), 0 0 0 3px rgba(14,165,233,0.08);
+  }
+
+  /* ── Autofill Correction (Elite V2.2) ───────── */
+  .field-input:-webkit-autofill,
+  .field-input:-webkit-autofill:hover, 
+  .field-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: white !important;
+    -webkit-box-shadow: 0 0 0px 1000px #0a0c10 inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: white;
   }
   .field-input.field-error {
     border-color: rgba(239,68,68,0.4);

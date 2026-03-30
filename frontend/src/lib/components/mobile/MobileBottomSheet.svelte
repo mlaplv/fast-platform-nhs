@@ -70,6 +70,27 @@
     return null;
   }
 
+  // Smart Lookup Logic (Elite V2.2)
+  let lookupTimer: any;
+  function handlePhoneInput() {
+    if (phone.length >= 10) {
+      if (lookupTimer) clearTimeout(lookupTimer);
+      lookupTimer = setTimeout(() => {
+        shopStore.lookupCustomer(phone);
+      }, 500);
+    }
+  }
+
+
+  // Elite Identity Shield v2.2: Masked Auto-fill
+  $effect(() => {
+    const data = shopStore.customerData;
+    if (data?.isRecurring) {
+      if (data.nameMasked) name = data.nameMasked;
+      if (data.addressMasked) address = data.addressMasked;
+    }
+  });
+
   async function handleAction() {
     validationError = null;
     if (step === 'selection') {
@@ -246,17 +267,7 @@
             </p>
             
             <div class="space-y-4">
-              <div class="relative group">
-                <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-white/20 group-focus-within:text-blue-500 transition-colors">
-                  <User class="w-4 h-4" />
-                </div>
-                <input 
-                  bind:value={name}
-                  placeholder="HỌ VÀ TÊN (O)"
-                  class="w-full pl-12 pr-6 py-5 bg-white/[0.03] border-2 border-white/5 focus:border-blue-500/30 rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all"
-                />
-              </div>
-
+              <!-- 1. Phone FIRST (Mobile) -->
               <div class="relative group">
                 <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-white/20 group-focus-within:text-blue-500 transition-colors">
                   <Phone class="w-4 h-4" />
@@ -264,11 +275,39 @@
                 <input 
                   type="tel"
                   bind:value={phone}
+                  oninput={handlePhoneInput}
                   placeholder="SỐ ĐIỆN THOẠI *"
                   class="w-full pl-12 pr-6 py-5 bg-white/[0.03] border-2 {validationError?.includes('thoại') ? 'border-red-500/30' : 'border-white/5 focus:border-blue-500/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-lg uppercase transition-all"
                 />
+                
+                {#if shopStore.customerData?.isRecurring}
+                   <div class="absolute -bottom-5 left-2 flex items-center gap-1.5 text-[8px] font-black text-blue-400 uppercase tracking-widest animate-in fade-in slide-in-from-top-1">
+                      <div class="w-1.5 h-1.5 {shopStore.customerData.isTrustedDevice ? 'bg-emerald-500' : 'bg-amber-500'} rounded-full animate-pulse"></div>
+                      CHÀO MỪNG {shopStore.customerData.nameMasked || 'QUÝ KHÁCH'} QUAY TRỞ LẠI!
+                      <span class="ml-1 px-1 py-0.5 bg-sky-500/10 text-sky-500 text-[6px] rounded italic">BẢO MẬT (***)</span>
+                   </div>
+                {/if}
               </div>
 
+              <!-- 2. Name -->
+              <div class="relative group {shopStore.customerData?.isRecurring ? 'mt-3' : ''}">
+                <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-white/20 group-focus-within:text-blue-500 transition-colors">
+                  <User class="w-4 h-4" />
+                </div>
+                <input 
+                  bind:value={name}
+                  placeholder="HỌ VÀ TÊN *"
+                  class="w-full pl-12 pr-12 py-5 bg-white/[0.03] border-2 border-white/5 focus:border-blue-500/30 rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all"
+                />
+                
+                {#if shopStore.customerData?.isRecurring && name === shopStore.customerData.nameMasked}
+                   <div class="absolute right-5 inset-y-0 flex items-center text-emerald-400 animate-in zoom-in">
+                      <ShieldCheck class="w-5 h-5" />
+                   </div>
+                {/if}
+              </div>
+
+              <!-- 3. Address -->
               <div class="relative group">
                 <div class="absolute top-5 left-5 pointer-events-none text-white/20 group-focus-within:text-blue-500 transition-colors">
                   <MapPin class="w-4 h-4" />
@@ -357,5 +396,18 @@
   }
   .animate-shimmer {
     animation: shimmer 3s infinite cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ── Autofill Correction (Elite V2.2) ───────── */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover, 
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus {
+    -webkit-text-fill-color: white !important;
+    -webkit-box-shadow: 0 0 0px 1000px #0a0a0a inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: white;
   }
 </style>

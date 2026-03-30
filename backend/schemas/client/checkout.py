@@ -16,7 +16,33 @@ class StealthCheckoutSchema(BaseModel):
     @classmethod
     def validate_phone(cls, v: str) -> str:
         # Chuẩn hóa số điện thoại Việt Nam: (0|84) + [3|5|7|8|9] + 8 số
-        pattern = re.compile(r"^(0|84)(3|5|7|8|9)([0-9]{8})$")
+        pattern = re.compile(r"^(0|84|)(3|5|7|8|9)([0-9]{8})$")
         if not pattern.match(v):
             raise ValueError("Số điện thoại không hợp lệ (Chuẩn Việt Nam)")
         return v
+
+class CustomerLookupSchema(BaseModel):
+    phone: str = Field(..., description="Số điện thoại cần tra cứu")
+    fingerprint: Optional[str] = Field(None, description="Dấu vân tay trình duyệt (UA + IP hash)")
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        pattern = re.compile(r"^(0|84|)(3|5|7|8|9)([0-9]{8})$")
+        if not pattern.match(v):
+            raise ValueError("Số điện thoại không hợp lệ")
+        return v
+
+class CustomerLookupResponseSchema(BaseModel):
+    is_recurring: bool = Field(False, description="Khách hàng cũ hay mới")
+    is_trusted_device: bool = Field(False, description="Thiết bị có tin cậy (khớp fingerprint) không")
+    name_masked: Optional[str] = Field(None, description="Tên đã che (***)")
+    address_masked: Optional[str] = Field(None, description="Địa chỉ đã che (***)")
+
+class CustomerVerifySchema(BaseModel):
+    phone: str = Field(..., description="Số điện thoại")
+    name: str = Field(..., description="Tên khách hàng nhập vào để xác minh")
+
+class CustomerVerifyResponseSchema(BaseModel):
+    verified: bool = Field(False, description="Xác minh thành công hay không")
+    address: Optional[str] = Field(None, description="Địa chỉ nếu xác minh thành công")
