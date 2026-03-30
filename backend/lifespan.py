@@ -16,6 +16,7 @@ from backend.utils.security import GeminiSecurity
 from backend.utils.text import normalize_vn
 from backend.services.event_bus import event_bus
 from backend.services.xohi_responder import setup_subscriptions
+from backend.services.commerce import order_notifier
 from backend.services.xohi.creative_studio.orchestrator import content_factory
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.http_client import SharedHttpClient

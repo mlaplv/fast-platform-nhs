@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fade, fly, scale } from 'svelte/transition';
-  import { ShieldCheck, Copy, ShoppingCart, MessageSquare, CheckCircle2, Package, Truck, Award, Sparkles, Phone } from 'lucide-svelte';
+  import { FileText, ShieldCheck, Copy, ShoppingCart, MessageSquare, CheckCircle2, Package, Truck, Award, Sparkles, Phone, Gift } from 'lucide-svelte';
   import { formatCurrency, formatDate } from '$lib/utils/format.ts';
   import { goto } from '$app/navigation';
   import { SHOP_CONFIG } from '$lib/constants/shop.ts';
@@ -9,14 +9,14 @@
 
   import { page } from '$app/state';
 
-  let { order, orderId, isLookup } = $props<{ order: any, orderId: string, isLookup: boolean }>();
+  import type { OrderDetail } from '$lib/types';
+  let { order, orderId, isLookup } = $props<{ order: OrderDetail, orderId: string, isLookup: boolean }>();
 
   const STATUS_STEPS = [
-    { key: 'PENDING', label: 'Chờ duyệt', icon: CheckCircle2 },
-    { key: 'PAID', label: 'Đã thanh toán', icon: Award },
-    { key: 'PROCESSING', label: 'Đang xử lý', icon: Package },
-    { key: 'SHIPPED', label: 'Đang giao', icon: Truck },
-    { key: 'COMPLETED', label: 'Thành công', icon: ShieldCheck }
+    { key: 'PENDING', label: 'Tiếp nhận', icon: FileText },
+    { key: 'PACKED', label: 'Bảo mật', icon: ShieldCheck },
+    { key: 'SHIPPING', label: 'Vận chuyển', icon: Truck },
+    { key: 'DELIVERED', label: 'Thành công', icon: Gift }
   ];
 
   function getStepIndex(status: string) {
@@ -65,43 +65,53 @@
     </div>
 
     <h1 in:fly={{ y: 20, duration: 600, delay: 400 }} class="text-3xl font-black italic tracking-widest uppercase mb-2">
-      {isLookup ? 'CHI TIẾT ĐƠN HÀNG' : 'ĐẶT HÀNG THÀNH CÔNG!'}
+      {isLookup ? 'CHI TIẾT LIỆU TRÌNH' : 'ĐẶT LIỆU TRÌNH THÀNH CÔNG!'}
     </h1>
     <p in:fade={{ delay: 600 }} class="text-white/40 text-[10px] uppercase tracking-[0.3em] font-bold italic mb-10">
-      {isLookup ? 'Thông tin trạng thái xử lý đơn hàng' : 'Cảm ơn Quý khách đã tin tưởng lựa chọn'}
+      {isLookup ? 'Thông tin trạng thái xử lý liệu trình' : 'Cảm ơn Quý khách đã tin tưởng lựa chọn'}
     </p>
 
-    <!-- Status Timeline -->
-    <div in:fly={{ y: 20, duration: 800, delay: 500 }} class="w-full mb-8 px-4">
-      <div class="flex justify-between items-center relative">
-        <!-- Connecting Line -->
-        <div class="absolute top-1/2 left-0 w-full h-[2px] bg-white/5 -translate-y-1/2"></div>
-        <div 
-          class="absolute top-1/2 left-0 h-[2px] bg-emerald-500 transition-all duration-1000 -translate-y-1/2" 
-          style="width: {(currentStepIdx / (STATUS_STEPS.length - 1)) * 100}%"
-        ></div>
-
+    <!-- Status Timeline (Elite — Segmented Connectors) -->
+    <div in:fly={{ y: 20, duration: 800, delay: 500 }} class="w-full mb-10 px-2">
+      <div class="stepper-row">
         {#each STATUS_STEPS as step, i}
-          <div class="relative z-10 flex flex-col items-center">
-            <div 
-              class="w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-500 
-              {i <= currentStepIdx ? 'bg-emerald-500 border-emerald-500 text-white scale-110 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-[#0a0a0a] border-white/10 text-white/20'}"
-            >
-              <step.icon class="w-4 h-4" />
+          <!-- Node -->
+          <div class="stepper-node">
+            {#if i === currentStepIdx}
+              <div class="node-halo {isLookup ? 'halo-sky' : 'halo-emerald'}"></div>
+            {/if}
+            <div class="node-circle {
+              i < currentStepIdx  ? (isLookup ? 'done-sky'   : 'done-emerald')   :
+              i === currentStepIdx? (isLookup ? 'active-sky' : 'active-emerald') :
+              'node-idle'}">
+              <step.icon class="w-3.5 h-3.5" />
             </div>
-            <span class="text-[8px] font-black uppercase mt-2 tracking-tighter {i <= currentStepIdx ? 'text-emerald-400' : 'text-white/20'}">
+            <span class="node-label {i <= currentStepIdx ? (isLookup ? 'label-sky' : 'label-emerald') : 'label-idle'}">
               {step.label}
             </span>
           </div>
+
+          <!-- Connector segment (between nodes, not through them) -->
+          {#if i < STATUS_STEPS.length - 1}
+            <div class="connector">
+              <div class="connector-track"></div>
+              {#if i < currentStepIdx}
+                <div class="connector-fill {isLookup ? 'fill-sky' : 'fill-emerald'}"></div>
+              {:else if i === currentStepIdx}
+                <div class="connector-fill connector-fill-half {isLookup ? 'fill-sky' : 'fill-emerald'}"></div>
+              {/if}
+            </div>
+          {/if}
         {/each}
       </div>
     </div>
+
 
     <!-- Main Order Card -->
     <div in:fly={{ y: 30, duration: 800, delay: 600 }} class="w-full bg-white/[0.03] border border-white/10 backdrop-blur-xl rounded-[2.5rem] p-6 mb-6 text-left">
       <div class="flex justify-between items-start mb-6 border-b border-white/5 pb-4">
         <div>
-           <span class="text-[9px] font-black text-white/30 uppercase tracking-widest block mb-1">Mã đơn hàng</span>
+           <span class="text-[9px] font-black text-white/30 uppercase tracking-widest block mb-1">Mã liệu trình</span>
            <div class="flex items-center gap-2 group active:opacity-60 transition-opacity" onclick={copyOrderId} role="button" tabindex="0">
              <span class="text-sm font-black text-white tracking-widest uppercase italic">{copied ? 'ĐÃ COPPY!' : `#${orderId.slice(-6).toUpperCase()}`}</span>
              <Copy class="w-3 h-3 {copied ? 'text-emerald-400' : 'text-white/20'}" />
@@ -119,9 +129,9 @@
              <Package class="w-4 h-4 text-white/40" />
           </div>
           <div>
-            <span class="text-[9px] font-black text-white/30 uppercase tracking-widest block mb-1">Sản phẩm chi tiết</span>
+            <span class="text-[9px] font-black text-white/30 uppercase tracking-widest block mb-1">Chi tiết liệu trình</span>
             <p class="text-[11px] font-bold text-white/80 leading-snug">
-              {items.map((i: any) => `${i.quantity}x ${i.name}`).join(', ') || 'Đang cập nhật...'}
+              {items.map((i: { quantity: number, name: string }) => `${i.quantity}x ${i.name}`).join(', ') || 'Đang cập nhật...'}
             </p>
           </div>
         </div>
@@ -147,7 +157,7 @@
            <Sparkles class="w-3 h-3" /> TIẾP THEO LÀ GÌ?
          </span>
          <p class="text-[12px] font-medium text-white/70 leading-relaxed max-w-[260px] mx-auto mb-6">
-           Hệ thống đang xử lý đơn hàng. Chuyên gia sẽ gọi điện xác nhận cho Quý khách trong vòng **15 phút** tới!
+           Hệ thống đang xử lý liệu trình. Chuyên gia sẽ gọi điện xác nhận cho Quý khách trong vòng **15 phút** tới!
          </p>
          <div class="flex items-center justify-center gap-3 py-3 px-4 bg-white/5 rounded-2xl border border-white/5 mx-auto w-fit">
             <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
@@ -156,11 +166,11 @@
        </div>
     </div>
 
-    <!-- Spacer to ensure content clears the fixed Action Stack thưa sếp! -->
+    <!-- Spacer to ensure content clears the fixed Action Stack -->
     <div class="h-80 shrink-0 pointer-events-none"></div>
   </div>
 
-  <!-- Action Stack (Elite 1-Row Compact thưa sếp!) -->
+  <!-- Action Stack (Elite 1-Row Compact) -->
   <div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/95 to-transparent flex flex-row gap-3 items-center">
     <a 
       href="tel:{SHOP_CONFIG.pharmacy.phone.replace(/\s+/g, '')}"
@@ -184,8 +194,118 @@
   </div>
 </div>
 
+
 <style lang="postcss">
   :global(body) {
     background-color: #0a0a0a;
   }
+
+  /* ── Stepper Row (interleaved: node · connector · node) ── */
+  .stepper-row {
+    display: flex;
+    align-items: center;          /* vertically center icons + connectors */
+    justify-content: space-between;
+    padding: 16px 4px 44px;       /* bottom space for labels */
+  }
+
+  /* Connector lives BETWEEN two node circles */
+  .connector {
+    flex: 1;
+    position: relative;
+    height: 2px;
+    margin: 0 2px;                /* tiny gap so line doesn't touch icon border */
+  }
+  .connector-track {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.07);
+    border-radius: 99px;
+  }
+  .connector-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 100%;
+    border-radius: 99px;
+    transition: width 0.9s cubic-bezier(0.4,0,0.2,1);
+  }
+  .connector-fill-half { width: 50%; }
+  .fill-emerald { background: linear-gradient(90deg, #10b981, #34d399); box-shadow: 0 0 10px rgba(16,185,129,0.5); }
+  .fill-sky     { background: linear-gradient(90deg, #0ea5e9, #38bdf8); box-shadow: 0 0 10px rgba(14,165,233,0.5); }
+
+
+  /* ── Individual Node ─────────────────────────── */
+  .stepper-node {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Glow halo behind active node */
+  .node-halo {
+    position: absolute;
+    top: -8px; left: -8px; right: -8px; bottom: -8px;
+    border-radius: 50%;
+    filter: blur(14px);
+    pointer-events: none;
+    animation: halo-pulse 2.2s ease-in-out infinite;
+  }
+  .halo-emerald { background: rgba(16,185,129,0.4); }
+  .halo-sky     { background: rgba(14,165,233,0.4); }
+
+  /* Node circle 32×32 */
+  .node-circle {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid transparent;
+    transition: all 0.5s cubic-bezier(0.4,0,0.2,1);
+  }
+  .node-idle {
+    background: rgba(255,255,255,0.03);
+    border-color: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.2);
+  }
+  .done-emerald { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.7); color: #34d399; }
+  .done-sky     { background: rgba(14,165,233,0.15); border-color: rgba(14,165,233,0.7); color: #38bdf8; }
+  .active-emerald {
+    background: rgba(16,185,129,0.18);
+    border-color: #10b981;
+    color: #fff;
+    transform: scale(1.22);
+    box-shadow: 0 0 0 5px rgba(16,185,129,0.1), 0 0 28px rgba(16,185,129,0.38);
+  }
+  .active-sky {
+    background: rgba(14,165,233,0.18);
+    border-color: #0ea5e9;
+    color: #fff;
+    transform: scale(1.22);
+    box-shadow: 0 0 0 5px rgba(14,165,233,0.1), 0 0 28px rgba(14,165,233,0.38);
+  }
+
+  /* Labels — absolutely positioned under each node */
+  .node-label {
+    position: absolute;
+    top: 40px;
+    font-size: 7.5px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    white-space: nowrap;
+    transition: color 0.5s ease;
+  }
+  .label-idle    { color: rgba(255,255,255,0.2); }
+  .label-emerald { color: rgba(52,211,153,0.82); }
+  .label-sky     { color: rgba(56,189,248,0.82); }
+
+  @keyframes halo-pulse {
+    0%, 100% { opacity: 0.45; transform: scale(1); }
+    50%       { opacity: 0.9;  transform: scale(1.35); }
+  }
 </style>
+

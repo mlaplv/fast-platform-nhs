@@ -108,7 +108,13 @@
   }
 
   async function deleteUser(userId: string) {
-    if (!confirm("Are you sure you want to permanently revoke this access identity?")) return;
+    const confirmed = await nanobot.showConfirm({
+      title: "XÁC NHẬN THU HỒI QUYỀN TRUY CẬP",
+      message: "Bạn có chắc chắn muốn xóa vĩnh viễn định danh này khỏi hệ thống? Hành động này không thể hoàn tác.",
+      confirmLabel: "XÁC NHẬN",
+      cancelLabel: "HỦY",
+    });
+    if (!confirmed) return;
     try {
       await apiClient.patch(`/api/v1/users/${userId}/delete`, {});
       await loadUsers();

@@ -3,7 +3,10 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import Archive from "lucide-svelte/icons/archive";
   import X from "lucide-svelte/icons/x";
+  import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import StatusDropdown from "./StatusDropdown.svelte";
   import { fade, fly } from "svelte/transition";
+  import { ORDER_STATUS_MAP } from "$lib/constants/order";
 
   let { 
     selectedCount, 
@@ -15,6 +18,7 @@
     onClear: () => void;
     onDeleteBulk: () => void;
     onArchiveBulk: () => void;
+    onStatusBulk: (status: string) => void;
   }>();
 </script>
 
@@ -53,6 +57,18 @@
           <Trash2 size={14} class="opacity-70 group-hover:opacity-100" />
           Purge_Batch
         </button>
+
+        <div class="w-px h-8 bg-white/10 mx-2"></div>
+
+        <!-- Bulk Status Transition (Elite V2.2) -->
+        <div class="w-[200px]">
+          <StatusDropdown 
+            options={Object.keys(ORDER_STATUS_MAP)}
+            onSelect={onStatusBulk}
+            placeholder="BULK_UPDATE..."
+            variant="bulk"
+          />
+        </div>
       </div>
 
       <!-- Close Action -->

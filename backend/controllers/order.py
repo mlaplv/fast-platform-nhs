@@ -19,7 +19,7 @@ from backend.database.models import Order, User
 from backend.guards import PermissionGuard
 from backend.utils.sql import escape_like
 from backend.schemas.order import (
-    OrderCreateRequest, OrderStatusUpdate, CancelOrderRequest,
+    OrderCreateRequest, OrderStatusUpdate, CancelOrderRequest, OrderPlanningRequest,
     OrderResponse, OrderListResponse
 )
 from backend.schemas.common import SuccessResponse
@@ -87,5 +87,15 @@ class OrderController(Controller):
         user_email = user_state.get("sub", "System")
 
         res = await order_service.toggle_spam(db_session, order_id, user_email)
+        await db_session.commit()
+        return res
+
+    @patch("/{order_id:str}/planning", guards=[PermissionGuard("order:write")])
+    async def update_order_planning(self, request: Request, db_session: "AsyncSession", order_id: str, data: OrderPlanningRequest) -> SuccessResponse:
+        """Elite V2.2: Advanced Logistics Planning endpoint"""
+        user_state = request.scope.get("state", {}).get("user", {})
+        user_email = user_state.get("sub", "System")
+
+        res = await order_service.update_planning(db_session, order_id, data, user_email)
         await db_session.commit()
         return res

@@ -32,12 +32,21 @@ class OrderCreateRequest(BaseModel):
 
 class OrderStatusUpdate(BaseModel):
     model_config = ConfigDict(strict=True)
-    status: str = Field(..., pattern=r"^(PENDING|PAID|PROCESSING|SHIPPED|DELIVERED|COMPLETED|CANCELLED)$")
+    status: str = Field(..., pattern=r"^(PENDING|PACKED|SHIPPING|DELIVERED|CANCELLED)$")
 
 
 class CancelOrderRequest(BaseModel):
     model_config = ConfigDict(strict=True)
     reason: str = Field(..., min_length=1, max_length=1000)
+
+
+class OrderPlanningRequest(BaseModel):
+    """Elite V2.2: Professional Planning & Logistics Request"""
+    model_config = ConfigDict(strict=True)
+    assigned_to: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+    priority: str = Field("NORMAL", pattern="^(LOW|NORMAL|HIGH|URGENT)$")
+    planning_notes: Optional[str] = None
 
 
 class CustomerInsight(BaseModel):
@@ -50,7 +59,7 @@ class CustomerInsight(BaseModel):
 
 
 class PublicCustomerInsight(BaseModel):
-    """Elite V2.2: Restricted Insight for Public Tracking Page thưa sếp!"""
+    """Elite V2.2: Restricted Insight for Public Tracking Page"""
     total_orders: int = 0
 
 
@@ -111,6 +120,18 @@ class OrderResponse(BaseModel):
             return items
         return 0
 
+    @computed_field
+    @property
+    def planning(self) -> Dict[str, object]:
+        """Extract planning fields from metadata"""
+        meta = self.orderMetadata or {}
+        return {
+            "assigned_to": meta.get("assigned_to"),
+            "scheduled_at": meta.get("scheduled_at"),
+            "priority": meta.get("priority", "NORMAL"),
+            "planning_notes": meta.get("planning_notes")
+        }
+
 
 class OrderListResponse(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -119,7 +140,7 @@ class OrderListResponse(BaseModel):
 
 
 class PublicOrderResponse(BaseModel):
-    """Elite V2.2: Hardened Order Response for Public/Client access thưa sếp!"""
+    """Elite V2.2: Hardened Order Response for Public/Client access"""
     model_config = ConfigDict(from_attributes=True, populate_by_name=True, strict=True)
 
     id: str

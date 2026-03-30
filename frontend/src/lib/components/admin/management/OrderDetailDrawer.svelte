@@ -11,19 +11,27 @@
   import CheckCircle from "lucide-svelte/icons/check-circle";
   import Truck from "lucide-svelte/icons/truck";
   import Play from "lucide-svelte/icons/play";
+  import XCircle from "lucide-svelte/icons/x-circle";
+  import ShieldCheck from "lucide-svelte/icons/shield-check";
+  import PackageCheck from "lucide-svelte/icons/package-check";
   import ShieldAlert from "lucide-svelte/icons/shield-alert";
   import Phone from "lucide-svelte/icons/phone";
   import MapPin from "lucide-svelte/icons/map-pin";
   import TrendingUp from "lucide-svelte/icons/trending-up";
   import Target from "lucide-svelte/icons/target";
-  import History from "lucide-svelte/icons/history";
+  import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import HistoryIcon from "lucide-svelte/icons/history";
+  import MessageSquareIcon from "lucide-svelte/icons/message-square";
+  import StatusDropdown from "./StatusDropdown.svelte";
+  import StatusStepper from "./StatusStepper.svelte";
+  import { ORDER_STATUS_MAP, ORDER_TRANSITIONS } from "$lib/constants/order";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { portal } from "$lib/core/actions/portal";
   import { formatCurrency, formatDate } from "$lib/utils/format";
-  import type { OrderDetail } from "$lib/types";
+  import type { OrderDetail, User as UserType } from "$lib/types";
+  import { SHOP_CONFIG } from "$lib/constants/shop";
   import { Z_INDEX } from "$lib/core/constants/zIndex";
-  import { ORDER_STATUS_MAP } from "$lib/constants/order";
 
   let {
     isOpen = $bindable(),
@@ -39,17 +47,45 @@
 
   let orderData = $state<OrderDetail | null>(null);
   let isLoading = $state(false);
+  let isSavingPlanning = $state(false);
+  let staffList = $state<UserType[]>([]);
+
+  // Planning form state
+  let planningForm = $state({
+    assigned_to: "",
+    scheduled_at: "",
+    priority: "NORMAL",
+    planning_notes: ""
+  });
 
   $effect(() => {
     if (isOpen && orderId) {
       loadOrderDetails();
+      loadStaff();
     }
   });
+
+  async function loadStaff() {
+    try {
+      const res = await apiClient.get<{ data: UserType[] }>("/api/v1/users?limit=100");
+      staffList = res.data.filter(u => u.status === "ACTIVE");
+    } catch (err) {
+      console.error("Failed to load staff", err);
+    }
+  }
 
   async function loadOrderDetails() {
     isLoading = true;
     try {
       orderData = await apiClient.get<OrderDetail>(`/api/v1/orders/${orderId}`);
+      if (orderData?.planning) {
+        planningForm = {
+          assigned_to: orderData.planning.assigned_to || "",
+          scheduled_at: orderData.planning.scheduled_at?.split('.')[0].slice(0, 16) || "",
+          priority: orderData.planning.priority || "NORMAL",
+          planning_notes: orderData.planning.planning_notes || ""
+        };
+      }
     } catch (err: unknown) {
       console.error("Failed to load order details", err);
     } finally {
@@ -57,8 +93,29 @@
     }
   }
 
+  async function savePlanning() {
+    isSavingPlanning = true;
+    try {
+      await apiClient.patch(`/api/v1/orders/${orderId}/planning`, {
+        assigned_to: planningForm.assigned_to,
+        scheduled_at: planningForm.scheduled_at ? new Date(planningForm.scheduled_at).toISOString() : null,
+        priority: planningForm.priority,
+        planning_notes: planningForm.planning_notes
+      });
+      nanobot.showToast("Cập nhật kế hoạch thành công", "success");
+      await loadOrderDetails();
+      onReload?.();
+    } catch (err: unknown) {
+      const e = err as Error;
+      nanobot.showToast(e.message || "Lỗi cập nhật kế hoạch", "error");
+    } finally {
+      isSavingPlanning = false;
+    }
+  }
+
   async function handleAction(actionType: string) {
-    const label = ORDER_STATUS_MAP[actionType.toLowerCase()]?.label || actionType;
+    const statusType = actionType.toUpperCase();
+    const label = ORDER_STATUS_MAP[statusType.toLowerCase()]?.label || actionType;
 
     const confirm = await nanobot.showConfirm({
       title: "XÁC NHẬN CHUYỂN TRẠNG THÁI",
@@ -70,8 +127,8 @@
     if (confirm) {
       isLoading = true;
       try {
-        await apiClient.patch(`/api/v1/orders/${orderId}/status`, { status: actionType });
-        nanobot.addLog("Cập nhật trạng thái " + actionType, "Nanobot-System");
+        await apiClient.patch(`/api/v1/orders/${orderId}/status`, { status: statusType });
+        nanobot.addLog("Cập nhật trạng thái " + statusType, "Nanobot-System");
         await loadOrderDetails();
         onReload?.();
       } catch (err: unknown) {
@@ -108,7 +165,17 @@
     }
   }
 
-  // Removed local formatters (moved to centralized utils)
+  function openZalo() {
+    if (!orderData?.customerPhone) return;
+    const phone = orderData.customerPhone.replace(/\D/g, '');
+    const shopName = SHOP_CONFIG.pharmacy.name;
+    const orderIdShort = orderId.split('-')[0].toUpperCase();
+    const total = formatCurrency(orderData.total);
+
+    const message = `Chào bạn ${orderData.finalCustomerName}, ${shopName} xác nhận đơn hàng #${orderIdShort} của bạn. Tổng thanh toán: ${total}. Shop sẽ sớm giao hàng cho bạn nhé!`;
+    const encodedMsg = encodeURIComponent(message);
+    window.open(`https://zalo.me/${phone}?text=${encodedMsg}`, '_blank');
+  }
 </script>
 
 {#if isOpen}
@@ -165,17 +232,14 @@
         {:else if orderData}
           {@const statusInfo = ORDER_STATUS_MAP[orderData.status.toLowerCase()] || { label: orderData.status, color: "text-gray-400", border: "border-gray-400" }}
           
-          <!-- Status Banner -->
-          <div class="mb-8 relative overflow-hidden rounded-xl border {statusInfo.border}/30 bg-black p-5 flex items-center justify-between">
-            <div class="relative z-10">
-              <div class="text-[9px] font-mono text-gray-500 mb-1 tracking-widest uppercase">Current Status</div>
-              <div class="text-lg font-bold {statusInfo.color} tracking-wider">{statusInfo.label}</div>
-            </div>
-            <div class="w-12 h-12 rounded-full border {statusInfo.border}/20 flex items-center justify-center relative z-10 bg-white/5">
-              <Package size={20} class={statusInfo.color} />
-            </div>
-            <div class="absolute inset-0 opacity-10" style:background="linear-gradient(45deg, transparent, currentColor)" style:color={statusInfo.color.replace('text-', '')}></div>
+          <!-- V4 Status LifeCycle Stepper (Shopee-Elite Integrated) -->
+          <div class="mb-10" in:fly={{ y: -20, duration: 600 }}>
+            <StatusStepper 
+              currentStatus={orderData.status} 
+              onStatusChange={(newStatus) => handleAction(newStatus)}
+            />
           </div>
+
 
           <!-- Customer 360 Insights (Viral 2026 Dashboard) -->
           <div class="mb-8">
@@ -204,8 +268,19 @@
                         <Phone size={10} class="opacity-50" />
                         {orderData.customerPhone || "UNREGISTERED"}
                      </div>
+                     {#if orderData.customerPhone}
+                        {@const isZalo = orderData.order_metadata?.zalo_status === 'ACTIVE'}
+                        <button
+                          onclick={openZalo}
+                          class="flex items-center gap-1 px-1.5 py-0.5 rounded border {isZalo ? 'bg-blue-500/20 border-blue-400 text-blue-400' : 'bg-gray-500/10 border-white/10 text-gray-500'} hover:scale-105 transition-transform"
+                          title={isZalo ? "Phát hiện có Zalo - Bấm để nhắn tin" : "Chưa xác định Zalo - Bấm để thử nhắn"}
+                        >
+                          <span class="text-[8px] font-black tracking-tighter uppercase">ZALO</span>
+                          <MessageSquareIcon size={10} />
+                        </button>
+                     {/if}
+                     </div>
                   </div>
-                </div>
 
                 <!-- Row 2: Financials & History -->
                 <div>
@@ -284,7 +359,7 @@
           {#if orderData.insight?.previous_orders && orderData.insight.previous_orders.length > 0}
             <div class="mb-8 p-1 border border-neon-cyan/10 rounded-2xl bg-neon-cyan/[0.01]">
               <div class="flex items-center gap-2 mb-4 px-3 pt-3">
-                <History size={12} class="text-neon-cyan" />
+                <HistoryIcon size={12} class="text-neon-cyan" />
                 <h3 class="text-[10px] font-mono text-white/80 uppercase tracking-widest font-bold">Historical Purchase Timeline</h3>
               </div>
               
@@ -298,7 +373,7 @@
                            <span class="text-[9px] font-mono text-gray-400">{formatDate(prev.created_at)}</span>
                         </div>
                         <span class="text-[7px] px-1.5 py-0.5 rounded-sm font-black uppercase tracking-tighter
-                          {prev.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">
+                          {prev.status === 'DELIVERED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">
                           {prev.status}
                         </span>
                       </div>
@@ -327,6 +402,100 @@
               </div>
             </div>
           {/if}
+
+          <!-- Logistics & Planning (Elite V2.2) -->
+          <div class="mb-8 p-1 border border-orange-500/10 rounded-2xl bg-orange-500/[0.01]">
+            <div class="flex items-center justify-between mb-4 px-3 pt-3">
+              <div class="flex items-center gap-2">
+                <Truck size={12} class="text-orange-400" />
+                <h3 class="text-[10px] font-mono text-white/80 uppercase tracking-widest font-bold">Logistics & Planning</h3>
+              </div>
+              <span class="text-[7px] font-mono text-orange-500/50 uppercase tracking-widest animate-pulse">Live Tracking Enabled</span>
+            </div>
+
+            <div class="bg-black/40 border border-white/5 rounded-xl p-5 space-y-5">
+              <!-- Grid Layout for Inputs -->
+              <div class="grid grid-cols-2 gap-4">
+                <!-- Assigned To -->
+                <div class="col-span-2 sm:col-span-1">
+                  <label for="assigned" class="flex items-center gap-2 text-[8px] font-mono text-gray-500 uppercase mb-1.5 focus-within:text-orange-400 transition-colors">
+                    <User size={10} /> Responsible Personnel
+                  </label>
+                  <select 
+                    id="assigned"
+                    bind:value={planningForm.assigned_to}
+                    class="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500/50 transition-all font-mono"
+                  >
+                    <option value="" class="bg-[#111]">-- UNASSIGNED --</option>
+                    {#each staffList as staff}
+                      <option value={staff.name} class="bg-[#111]">{staff.name}</option>
+                    {/each}
+                  </select>
+                </div>
+
+                <!-- Priority -->
+                <div class="col-span-2 sm:col-span-1">
+                  <label for="priority" class="flex items-center gap-2 text-[8px] font-mono text-gray-500 uppercase mb-1.5 focus-within:text-orange-400 transition-colors">
+                    <TrendingUp size={10} /> Priority Scale
+                  </label>
+                  <select 
+                    id="priority"
+                    bind:value={planningForm.priority}
+                    class="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none transition-all font-mono
+                      {planningForm.priority === 'URGENT' ? 'text-rose-400 border-rose-500/30' : 
+                       planningForm.priority === 'HIGH' ? 'text-orange-400 border-orange-500/30' : 
+                       'text-white'}"
+                  >
+                    <option value="LOW" class="bg-[#111] text-gray-400">LOW</option>
+                    <option value="NORMAL" class="bg-[#111] text-white">NORMAL</option>
+                    <option value="HIGH" class="bg-[#111] text-orange-400">HIGH</option>
+                    <option value="URGENT" class="bg-[#111] text-rose-400">URGENT</option>
+                  </select>
+                </div>
+
+                <!-- Scheduled At -->
+                <div class="col-span-2">
+                  <label for="scheduled" class="flex items-center gap-2 text-[8px] font-mono text-gray-500 uppercase mb-1.5 focus-within:text-orange-400 transition-colors">
+                    <Calendar size={10} /> Deployment Schedule
+                  </label>
+                  <input 
+                    type="datetime-local"
+                    id="scheduled"
+                    bind:value={planningForm.scheduled_at}
+                    class="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500/50 transition-all font-mono"
+                  />
+                </div>
+
+                <!-- Planning Notes -->
+                <div class="col-span-2">
+                  <label for="notes" class="flex items-center gap-2 text-[8px] font-mono text-gray-500 uppercase mb-1.5 focus-within:text-orange-400 transition-colors">
+                    <MessageSquareIcon size={10} /> Logistics Intelligence Notes
+                  </label>
+                  <textarea 
+                    id="notes"
+                    bind:value={planningForm.planning_notes}
+                    rows="3"
+                    placeholder="Enter strategic notes for deployment team..."
+                    class="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500/50 transition-all font-mono resize-none placeholder:text-gray-700"
+                  ></textarea>
+                </div>
+              </div>
+
+              <!-- Save Action -->
+              <button 
+                onclick={savePlanning}
+                disabled={isSavingPlanning}
+                class="w-full py-2.5 rounded-lg bg-orange-500/10 hover:bg-orange-500 border border-orange-500/30 text-orange-400 hover:text-black text-[10px] font-mono uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {#if isSavingPlanning}
+                  <div class="w-3 h-3 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+                  Syncing Tactics...
+                {:else}
+                  <Target size={14} /> Update Logistics Plan
+                {/if}
+              </button>
+            </div>
+          </div>
 
           <!-- Order Items -->
           <div class="mb-8">
@@ -415,32 +584,26 @@
       {#if orderData && !isLoading}
         <div class="p-4 sm:p-6 border-t border-white/10 bg-[#050505] shrink-0">
           <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-            {#if orderData.status === 'pending' || orderData.status === 'paid'}
+            {#if orderData.status === 'pending' || orderData.status === 'packed'}
               <button onclick={handleCancel} class="w-full sm:w-auto px-4 py-2.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 text-[10px] font-mono uppercase tracking-widest transition-all text-center flex items-center justify-center gap-2">
-                <ShieldAlert size={14} /> Huỷ đơn
+                <XCircle size={14} /> Huỷ đơn
               </button>
             {/if}
             
             <div class="flex-1 flex flex-col sm:flex-row justify-end gap-3 w-full sm:w-auto">
+              <div class="w-px h-8 bg-white/10 hidden sm:block mx-1"></div>
+
               {#if orderData.status === 'pending'}
-                <button onclick={() => handleAction('PAID')} class="w-full sm:w-auto justify-center px-6 py-2.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(22,163,74,0.3)] hover:shadow-[0_0_20px_rgba(22,163,74,0.5)] flex items-center gap-2">
-                  <CheckCircle size={14} /> Đã thanh toán
+                <button onclick={() => handleAction('PACKED')} class="w-full sm:w-auto justify-center px-6 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:shadow-[0_0_20px_rgba(6,182,212,0.5)] flex items-center gap-2">
+                  <ShieldCheck size={14} /> Xác nhận & Đóng gói
                 </button>
-              {:else if orderData.status === 'paid'}
-                <button onclick={() => handleAction('PROCESSING')} class="w-full sm:w-auto justify-center px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_20px_rgba(37,99,235,0.5)] flex items-center gap-2">
-                  <Play size={14} /> Chuẩn bị hàng
+              {:else if orderData.status === 'packed'}
+                <button onclick={() => handleAction('SHIPPING')} class="w-full sm:w-auto justify-center px-6 py-2.5 rounded-lg bg-lime-600 hover:bg-lime-500 text-white text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(132,204,22,0.3)] hover:shadow-[0_0_20px_rgba(132,204,22,0.5)] flex items-center gap-2">
+                  <Truck size={14} /> Bàn giao vận tải
                 </button>
-              {:else if orderData.status === 'processing'}
-                <button onclick={() => handleAction('SHIPPED')} class="w-full sm:w-auto justify-center px-6 py-2.5 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(192,38,211,0.3)] hover:shadow-[0_0_20px_rgba(192,38,211,0.5)] flex items-center gap-2">
-                  <Truck size={14} /> Giao hàng
-                </button>
-              {:else if orderData.status === 'shipped'}
-                <button onclick={() => handleAction('DELIVERED')} class="w-full sm:w-auto justify-center px-6 py-2.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(22,163,74,0.3)] hover:shadow-[0_0_20px_rgba(22,163,74,0.5)] flex items-center gap-2">
-                  <CheckCircle size={14} /> Đã nhận hàng
-                </button>
-              {:else if orderData.status === 'delivered'}
-                <button onclick={() => handleAction('COMPLETED')} class="w-full sm:w-auto justify-center px-6 py-2.5 rounded-lg bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan hover:bg-neon-cyan hover:text-black text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,255,255,0.2)] flex items-center gap-2">
-                  <CheckCircle size={14} /> Hoàn thành
+              {:else if orderData.status === 'shipping'}
+                <button onclick={() => handleAction('DELIVERED')} class="w-full sm:w-auto justify-center px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-mono uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] flex items-center gap-2">
+                  <PackageCheck size={14} /> Giao hàng thành công
                 </button>
               {/if}
             </div>

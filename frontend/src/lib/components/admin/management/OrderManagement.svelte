@@ -12,6 +12,7 @@
   import OrderDetailDrawer from "./OrderDetailDrawer.svelte";
   import OrderListItem from "./OrderListItem.svelte";
   import OrderPagination from "./OrderPagination.svelte";
+  import BulkActionBar from "./BulkActionBar.svelte";
   import { ORDER_STATUS_MAP } from "$lib/constants/order";
 
   import OrderFilters from "./OrderFilters.svelte";
@@ -31,6 +32,7 @@
 
   let selectedOrderId = $state<string | null>(null);
   let isDrawerOpen = $state(false);
+  let selectedIds = $state<string[]>([]);
 
   async function loadOrders() {
     isLoading = true;
@@ -140,7 +142,8 @@
   }
 
   async function handleOrderAction(orderId: string, actionType: string) {
-    if (actionType === "CANCELLED") {
+    const statusType = actionType.toUpperCase();
+    if (statusType === "CANCELLED") {
       const reason = await nanobot.showConfirm({
         isPrompt: true,
         title: "XÁC NHẬN HUỶ ĐƠN",
@@ -202,9 +205,9 @@
       if (confirm) {
         try {
           await apiClient.patch(`/api/v1/orders/${orderId}/status`, {
-            status: actionType,
+            status: statusType,
           });
-          nanobot.addLog("Cập nhật trạng thái " + actionType, "Nanobot-System");
+          nanobot.addLog("Cập nhật trạng thái " + statusType, "Nanobot-System");
           loadOrders();
         } catch (e: unknown) {
           const err = e as Error;
@@ -214,7 +217,92 @@
     }
   }
 
+  function toggleSelect(id: string) {
+    if (selectedIds.includes(id)) {
+      selectedIds = selectedIds.filter(i => i !== id);
+    } else {
+      selectedIds = [...selectedIds, id];
+    }
+  }
+
+  function toggleSelectAll() {
+    const pageIds = orders.map(o => o.id);
+    const allSelected = pageIds.every(id => selectedIds.includes(id));
+    
+    if (allSelected) {
+      selectedIds = selectedIds.filter(id => !pageIds.includes(id));
+    } else {
+      const newIds = pageIds.filter(id => !selectedIds.includes(id));
+      selectedIds = [...selectedIds, ...newIds];
+    }
+  }
+
+  async function handleBulkAction(variant: "PURGE" | "ARCHIVE") {
+    const count = selectedIds.length;
+    const confirm = await nanobot.showConfirm({
+      title: variant === "PURGE" ? "XÁC NHẬN XOÁ HÀNG LOẠT" : "XÁC NHẬN LƯU TRỮ HÀNG LOẠT",
+      message: `${variant === "PURGE" ? "Xoá vĩnh viễn" : "Lưu trữ"} ${count} đơn hàng đã chọn? Hành động này không thể hoàn tác.`,
+      confirmLabel: "XÁC NHẬN",
+      cancelLabel: "HUỶ"
+    });
+
+    if (confirm) {
+      isLoading = true;
+      try {
+        // Execute batch operations via sequential API orchestration
+        for (const id of selectedIds) {
+          if (variant === "PURGE") {
+            await apiClient.delete(`/api/v1/orders/${id}`);
+          } else {
+            // Archive logic: move to DELIVERED status
+            await apiClient.patch(`/api/v1/orders/${id}/status`, { status: "DELIVERED" });
+          }
+        }
+        nanobot.showToast(`Đã ${variant === "PURGE" ? "xoá" : "lưu trữ"} ${count} đơn hàng`, "success");
+        selectedIds = [];
+        await loadOrders();
+      } catch (err: unknown) {
+        const e = err as Error;
+        nanobot.showToast(e.message || "Lỗi thao tác hàng loạt", "error");
+      } finally {
+        isLoading = false;
+      }
+    }
+  }
+
+  async function handleBulkStatusUpdate(newStatus: string) {
+    if (!newStatus) return;
+    const count = selectedIds.length;
+    const label = ORDER_STATUS_MAP[newStatus.toLowerCase()]?.label || newStatus;
+    
+    const confirm = await nanobot.showConfirm({
+      title: "XÁC NHẬN CẬP NHẬT HÀNG LOẠT",
+      message: `Chuyển trạng thái ${count} đơn hàng sang "${label.toUpperCase()}"?`,
+      confirmLabel: "XÁC NHẬN",
+      cancelLabel: "HỦY"
+    });
+
+    if (confirm) {
+      isLoading = true;
+      try {
+        const statusType = newStatus.toUpperCase();
+        for (const id of selectedIds) {
+          await apiClient.patch(`/api/v1/orders/${id}/status`, { status: statusType });
+        }
+        nanobot.showToast(`Đã cập nhật ${count} đơn hàng sang ${label}`, "success");
+        selectedIds = [];
+        await loadOrders();
+      } catch (err: unknown) {
+        const e = err as Error;
+        nanobot.showToast(e.message || "Lỗi cập nhật hàng loạt", "error");
+      } finally {
+        isLoading = false;
+      }
+    }
+  }
+
   let totalPages = $derived(Math.max(1, Math.ceil(totalOrders / pageSize)));
+  let isAllSelected = $derived(orders.length > 0 && orders.every(o => selectedIds.includes(o.id)));
 </script>
 
 <div class="w-full h-full flex flex-col relative bg-[#050505]">
@@ -224,8 +312,10 @@
     bind:pageSize
     {totalOrders}
     {isLoading}
+    {isAllSelected}
     onRefresh={loadOrders}
     onSearchInput={handleSearchInput}
+    onToggleSelectAll={toggleSelectAll}
   />
 
   <!-- Main Order Grid (Data Modules) -->
@@ -264,8 +354,10 @@
           <OrderListItem
             {order}
             {status}
+            isSelected={selectedIds.includes(order.id)}
             onOpenDetail={openDrawer}
             onAction={handleOrderAction}
+            onToggleSelect={toggleSelect}
           />
         {/each}
       </div>
@@ -278,6 +370,14 @@
     {totalPages}
     {pageSize}
     totalItems={totalOrders}
+  />
+
+  <BulkActionBar 
+    selectedCount={selectedIds.length}
+    onClear={() => selectedIds = []}
+    onDeleteBulk={() => handleBulkAction("PURGE")}
+    onArchiveBulk={() => handleBulkAction("ARCHIVE")}
+    onStatusBulk={handleBulkStatusUpdate}
   />
 </div>
 

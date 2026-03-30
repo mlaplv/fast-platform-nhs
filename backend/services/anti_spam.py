@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import os
 import time
 import re
 import unicodedata
@@ -71,12 +72,17 @@ class AntiSpamService:
         """
         fingerprint = self.generate_fingerprint(ip, user_agent)
 
+        # R2026: Dev-Mode Bypass — tránh false positive khi test/seed trong môi trường development
+        if os.getenv("ENVIRONMENT", "production") == "development":
+            logger.debug(f"[AntiSpam] DEV MODE BYPASS for order (phone={phone})")
+            return False, "Dev Mode Bypass", 0.0, fingerprint
+
         if not self.redis:
             return False, "Bypass: Redis Off", 0.0, fingerprint
 
         phone = order_data.get("phone", "unspecified")
 
-        # R2026: Elite V2.2: Developer/Sếp Whitelist Bypass thưa sếp!
+        # R2026: Elite V2.2: Developer/Sếp Whitelist Bypass
         # Check if phone is in whitelist to prevent false positives during testing
         if phone != "unspecified":
             is_whitelisted = await self.redis.sismember("spam:whitelist:phones", phone)

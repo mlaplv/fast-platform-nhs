@@ -8,6 +8,7 @@ from backend.database.models.commerce import Order, ProductBase, ProductVariant
 from backend.database.models.auth import User
 from backend.schemas.client.checkout import StealthCheckoutSchema
 from backend.database import current_tenant_id
+from backend.services.event_bus import event_bus
 from litestar.exceptions import NotFoundException
 
 logger = logging.getLogger("api-gateway")
@@ -24,7 +25,7 @@ class CheckoutResult(TypedDict):
 
 class OrderItem(TypedDict, total=False):
     id: str         # Maps to product_id in schema
-    name: str       # Product name for history thưa sếp!
+    name: str       # Product name for history
     variant_id: Optional[str]
     qty: int        # Maps to quantity in schema
     unit_price: float # Maps to price in schema
@@ -32,7 +33,7 @@ class OrderItem(TypedDict, total=False):
 
 class OrderMetadata(TypedDict, total=False):
     items: List[OrderItem]
-    applied_deal: Dict[str, object] # Using Dict to avoid circular or complex TypedDict nesting for now thưa sếp!
+    applied_deal: Dict[str, object] # Using Dict to avoid circular or complex TypedDict nesting for now
 
 class CheckoutService:
     @staticmethod
@@ -42,7 +43,7 @@ class CheckoutService:
         customer_ip: str,
         user_agent: str
     ) -> CheckoutResult:
-        # 1. Fortress Mode: Real-time Anti-Spam Shield (Elite V2.2 thưa sếp!)
+        # 1. Fortress Mode: Real-time Anti-Spam Shield (Elite V2.2)
         from backend.services.anti_spam import anti_spam_service
 
         is_spam, reason, score, fingerprint = await anti_spam_service.check_order_spam(
@@ -54,12 +55,12 @@ class CheckoutService:
                 "address": payload.customer_address,
                 "items": [{"product_id": payload.product_id, "quantity": payload.quantity}]
             },
-            is_campaign_mode=True # Assassin Funnel usually runs on Ads thưa sếp!
+            is_campaign_mode=True # Assassin Funnel usually runs on Ads
         )
 
         if is_spam:
             logger.warning(f"[STRIKE] Spam Order Detected: {reason} (Score: {score}) | IP: {customer_ip}")
-            # R2026: Elite V2.2: We proceed to save but mark as spam to prevent 404 and allow tracking thưa sếp!
+            # R2026: Elite V2.2: We proceed to save but mark as spam to prevent 404 and allow tracking
 
         # 2. Auto-Registration / User Lookup (Elite V2.2)
         # Check if user exists by phone
@@ -68,7 +69,7 @@ class CheckoutService:
         user = user_res.scalar_one_or_none()
 
         if not user:
-            # Create new shadow user thưa sếp!
+            # Create new shadow user
             user = User(
                 id=str(uuid.uuid4()),
                 username=payload.customer_phone,
@@ -76,11 +77,11 @@ class CheckoutService:
                 name=payload.customer_name,
                 status="ACTIVE",
                 tenant_id=current_tenant_id.get() or "default",
-                # In 2026 Stealth flow, password is set via OTP later thưa sếp!
+                # In 2026 Stealth flow, password is set via OTP later
                 password="SHADOW_ACCOUNT_V2.2"
             )
             db_session.add(user)
-            # We don't commit yet, we want the order and user in the same transaction thưa sếp!
+            # We don't commit yet, we want the order and user in the same transaction
 
         # 3. Fetch Product Pricing (Elite V2.2: Zero-Hardcode)
         product_stmt = select(ProductBase).where(ProductBase.id == payload.product_id)
@@ -99,7 +100,7 @@ class CheckoutService:
             if variant:
                 price = variant.discount_price or variant.price
 
-        # 4. Calculate Total with Promotion Engine (ELITE V2.2 thưa sếp!)
+        # 4. Calculate Total with Promotion Engine (ELITE V2.2)
         metadata = product.product_metadata or {}
         active_deals = metadata.get("active_deals", [])
         
@@ -139,7 +140,7 @@ class CheckoutService:
         # 5. Prepare Order Metadata
         items: List[OrderItem] = [{
             "id": payload.product_id, 
-            "name": product.name, # SAVE NAME thưa sếp!
+            "name": product.name, # SAVE NAME
             "variant_id": payload.variant_id,
             "qty": payload.quantity, 
             "unit_price": float(price),
@@ -152,7 +153,7 @@ class CheckoutService:
         # 5. Save Order
         new_order = Order(
             id=str(uuid.uuid4()),
-            user_id=user.id, # Linked to auto-created user thưa sếp!
+            user_id=user.id, # Linked to auto-created user
             total_amount=total_amount,
             status="PENDING",
             items=items,
@@ -170,5 +171,18 @@ class CheckoutService:
 
         db_session.add(new_order)
         await db_session.commit()
+
+        # 6. Proactive Nerve System: Notify Zalo Intelligence (Elite V2.2)
+        await event_bus.emit("ORDER_CREATED", {
+            "id": new_order.id,
+            "phone": payload.customer_phone,
+            "customer": payload.customer_name,
+            "total_amount": total_amount,
+            "ip": customer_ip,
+            "user_agent": user_agent,
+            "tenant_id": current_tenant_id.get() or "default",
+            "address": payload.customer_address,
+            "items": items,
+        })
 
         return {"id": new_order.id, "ok": True, "message": None}

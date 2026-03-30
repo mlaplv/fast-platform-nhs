@@ -1,6 +1,7 @@
 <script lang="ts">
   import Search from "lucide-svelte/icons/search";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import Check from "lucide-svelte/icons/check";
   import { onMount } from "svelte";
   import { ORDER_STATUS_MAP } from "$lib/constants/order";
 
@@ -10,26 +11,28 @@
     pageSize = $bindable(),
     totalOrders,
     isLoading,
+    isAllSelected,
     onRefresh,
     onSearchInput,
-  } = $props<{
+    onToggleSelectAll,
+  }: {
     searchInput: string;
     activeFilter: string;
     pageSize: number;
     totalOrders: number;
     isLoading: boolean;
+    isAllSelected: boolean;
     onRefresh: () => void;
     onSearchInput: (e: Event) => void;
-  }>();
+    onToggleSelectAll: () => void;
+  } = $props();
 
   const filters = [
     "all",
     "pending",
-    "paid",
-    "processing",
-    "shipped",
+    "packed",
+    "shipping",
     "delivered",
-    "completed",
     "cancelled",
   ];
 </script>
@@ -41,22 +44,41 @@
   <div
     class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 justify-between"
   >
-    <div class="relative group w-full sm:w-[350px]">
-      <div
-        class="absolute inset-y-0 left-4 flex items-center pointer-events-none"
+    <div class="flex items-center gap-4 flex-1">
+      <!-- Select All Master Checkbox (Elite V2.2) -->
+      <div 
+        class="shrink-0 flex items-center justify-center w-8 h-8 cursor-pointer group/master"
+        onclick={onToggleSelectAll}
+        onkeydown={(e) => { if (e.key === ' ') onToggleSelectAll(); }}
+        role="checkbox"
+        aria-checked={isAllSelected}
+        tabindex="0"
+        title="Select All on this page"
       >
-        <Search
-          size={16}
-          class="text-gray-500 group-focus-within:text-neon-cyan group-focus-within:scale-110 transition-all"
+        <div class="w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center
+          {isAllSelected ? 'bg-neon-cyan border-neon-cyan' : 'bg-white/5 border-white/20 group-hover/master:border-white/40'}">
+          {#if isAllSelected}
+            <Check size={14} strokeWidth={4} class="text-black" />
+          {/if}
+        </div>
+      </div>
+      <div class="relative group w-full sm:w-[350px]">
+        <div
+          class="absolute inset-y-0 left-4 flex items-center pointer-events-none"
+        >
+          <Search
+            size={16}
+            class="text-gray-500 group-focus-within:text-neon-cyan group-focus-within:scale-110 transition-all"
+          />
+        </div>
+        <input
+          bind:value={searchInput}
+          oninput={onSearchInput}
+          type="text"
+          placeholder="SEARCH ID OR CUSTOMER..."
+          class="w-full bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 rounded-xl py-3 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-neon-cyan/50 focus:bg-black/50 transition-all uppercase tracking-widest"
         />
       </div>
-      <input
-        bind:value={searchInput}
-        oninput={onSearchInput}
-        type="text"
-        placeholder="SEARCH ID OR CUSTOMER..."
-        class="w-full bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 rounded-xl py-3 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-neon-cyan/50 focus:bg-black/50 transition-all uppercase tracking-widest"
-      />
     </div>
 
     <div class="flex items-center gap-2 w-full sm:w-auto justify-end">

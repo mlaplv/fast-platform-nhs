@@ -24,22 +24,22 @@ class PublicOrderController(Controller):
         phone: Optional[str] = None
     ) -> PublicOrderResponse:
         """PUBLIC: Get a single order by ID for the confirmation page.
-        Security: MUST verify phone for ALL lookups (UUID or Suffix) thưa sếp!
+        Security: MUST verify phone for ALL lookups (UUID or Suffix)
         """
         from litestar.exceptions import ValidationException
 
-        # R2026: Mandatory Phone Verification for Public Access thưa sếp!
+        # R2026: Mandatory Phone Verification
         if not phone:
-             raise ValidationException("Vui lòng cung cấp số điện thoại để tra cứu đơn hàng thưa sếp!")
+             raise ValidationException("Vui lòng cung cấp số điện thoại để tra cứu đơn hàng")
 
         order_res = await order_service.get_order(db_session, order_id)
 
-        # R2026: Elite Phone Normalization (Digits Only thưa sếp!)
+        # R2026: Elite Phone Normalization (Digits Only)
         clean_search = "".join(filter(str.isdigit, phone))
         clean_order = "".join(filter(str.isdigit, order_res.customerPhone or ""))
 
         if not clean_search or clean_search != clean_order:
-            raise ValidationException("Số điện thoại không khớp với hồ sơ đơn hàng thưa sếp!")
+            raise ValidationException("Số điện thoại không khớp với hồ sơ đơn hàng")
 
         return PublicOrderResponse.model_validate(order_res.model_dump())
 
@@ -49,7 +49,7 @@ class PublicOrderController(Controller):
         db_session: AsyncSession,
         order_id: str,
         data: OrderUpdateSchema,
-        phone: Optional[str] = None # REQUIRE PHONE thưa sếp!
+        phone: Optional[str] = None # REQUIRE PHONE
     ) -> PublicOrderResponse:
         """PUBLIC: Update shipping info for a pending order."""
         from backend.database.models.commerce import Order
@@ -57,7 +57,7 @@ class PublicOrderController(Controller):
         from sqlalchemy import select
 
         if not phone:
-            raise ValidationException("Vui lòng cung cấp số điện thoại để cập nhật đơn hàng thưa sếp!")
+            raise ValidationException("Vui lòng cung cấp số điện thoại để cập nhật đơn hàng")
 
         stmt = select(Order).where(Order.id == order_id)
         res = await db_session.execute(stmt)
@@ -66,11 +66,11 @@ class PublicOrderController(Controller):
         if not order:
             raise NotFoundException("Order not found")
 
-        # Verify Phone for Update thưa sếp!
+        # Verify Phone for Update
         clean_search = "".join(filter(str.isdigit, phone))
         clean_order = "".join(filter(str.isdigit, order.customer_phone or ""))
         if clean_search != clean_order:
-            raise ValidationException("Xác thực số điện thoại thất bại thưa sếp!")
+            raise ValidationException("Xác thực số điện thoại thất bại")
 
         if order.status != "PENDING":
             raise ValidationException("Only pending orders can be edited")
@@ -80,7 +80,7 @@ class PublicOrderController(Controller):
         if data.customer_address: order.customer_address = data.customer_address
 
         await db_session.commit()
-        # Return updated order via public schema thưa sếp!
+        # Return updated order via public schema
         updated_order = await order_service.get_order(db_session, order_id)
         return PublicOrderResponse.model_validate(updated_order.model_dump())
 
@@ -89,19 +89,19 @@ class PublicOrderController(Controller):
         self,
         db_session: AsyncSession,
         order_id: str,
-        phone: Optional[str] = None # REQUIRE PHONE thưa sếp!
+        phone: Optional[str] = None # REQUIRE PHONE
     ) -> dict:
         """PUBLIC: Cancel a pending order."""
         from litestar.exceptions import ValidationException
         if not phone:
-            raise ValidationException("Vui lòng cung cấp số điện thoại để hủy đơn hàng thưa sếp!")
+            raise ValidationException("Vui lòng cung cấp số điện thoại để hủy đơn hàng")
 
-        # Verify Phone via Service thưa sếp!
+        # Verify Phone via Service
         order_res = await order_service.get_order(db_session, order_id)
         clean_search = "".join(filter(str.isdigit, phone))
         clean_order = "".join(filter(str.isdigit, order_res.customerPhone or ""))
         if clean_search != clean_order:
-            raise ValidationException("Xác thực số điện thoại thất bại thưa sếp!")
+            raise ValidationException("Xác thực số điện thoại thất bại")
 
         await order_service.cancel_order(
             db_session,
@@ -110,4 +110,4 @@ class PublicOrderController(Controller):
             actor_email="customer@stealth.test"
         )
         await db_session.commit()
-        return {"ok": True, "message": "Đơn hàng đã được hủy thành công thưa sếp!"}
+        return {"ok": True, "message": "Đơn hàng đã được hủy thành công"}

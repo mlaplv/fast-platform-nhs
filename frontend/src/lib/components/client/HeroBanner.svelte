@@ -38,7 +38,7 @@
 
   const labels = $derived({
     product_name: product?.name || (metadata.hero_product_name_fallback as string) || 'Elite Formulation',
-    headline: metadata.hero_headline || 'CHẤM DỨT <br/> MÙI CƠ THỂ.',
+    headline: metadata.hero_headline || '<span>CHẤM DỨT</span> <br/> <span class="headline-shift">MÙI CƠ THỂ.</span>',
     video_url: metadata.hero_video_url || '/video/video-hn.mp4',
     cta_text: metadata.hero_cta_text || 'Personalized Care AI',
     aria_hero: (metadata.hero_aria_label as string) || 'Hero Spotlight Area',
@@ -65,14 +65,14 @@
   // Optimized Typewriter with cleanup signal
   const typeWriter = async (signal: AbortSignal) => {
     if (!browser) return;
-    const parts = rawHeadline.split(/(<br\s*\/?>)/i);
+    const parts = rawHeadline.split(/(<[^>]+>)/g);
     let currentText = "";
     
     await new Promise(r => setTimeout(r, 800));
     if (signal.aborted) return;
 
     for (const part of parts) {
-      if (part.toLowerCase().startsWith("<br")) {
+      if (part.startsWith("<")) {
         currentText += part;
         displayText = currentText;
       } else {
@@ -159,10 +159,7 @@
   <div class="container mx-auto px-6 max-w-6xl relative flex flex-col items-center pt-[var(--standard-pt)]" style:z-index="var(--z-surface)">
 
     <h1 class="typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0">
-       {@html displayText}
-       {#if !isTypingComplete}
-          <span class="typing-cursor">|</span>
-       {/if}
+       {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''}">|</span>
     </h1>
 
     {#if product?.shortDescription}

@@ -53,7 +53,7 @@ class XoHiResponder:
 
                 customer = payload.get("customer", "Khách lạ")
                 severity = "info"
-                msg = f"Đơn hàng mới từ {customer} (ID: {order_id[:8]})"
+                msg = f"Liệu trình mới từ {customer} (ID: {order_id[:8]})"
 
                 if is_spam:
                     if score >= 90:
@@ -100,7 +100,7 @@ class XoHiResponder:
         order_id = payload.get("id")
         reason = payload.get("reason", "Không rõ lý do")
         tenant_id = payload.get("tenant_id")
-        msg = f"Khách đã HỦY đơn {order_id[:8]}. Lý do: {reason}"
+        msg = f"Khách đã HỦY liệu trình {order_id[:8]}. Lý do: {reason}"
 
         async with self.session_maker() as session:
             await session.execute(

@@ -1,26 +1,62 @@
 <script lang="ts">
   import Package from "lucide-svelte/icons/package";
   import Clock from "lucide-svelte/icons/clock";
-  import CheckCircle from "lucide-svelte/icons/check-circle";
+  import Check from "lucide-svelte/icons/check";
   import Truck from "lucide-svelte/icons/truck";
-  import XCircle from "lucide-svelte/icons/x-circle";
-  import Play from "lucide-svelte/icons/play";
-  import Shield from "lucide-svelte/icons/shield";
+  import ShieldCheck from "lucide-svelte/icons/shield-check";
+  import PackageCheck from "lucide-svelte/icons/package-check";
+  import ShieldAlert from "lucide-svelte/icons/shield-alert";
   import Phone from "lucide-svelte/icons/phone";
   import MapPin from "lucide-svelte/icons/map-pin";
-  import { formatCurrency, timeAgo } from "$lib/utils/format";
+  import User from "lucide-svelte/icons/user";
+  import Calendar from "lucide-svelte/icons/calendar";
+  import Shield from "lucide-svelte/icons/shield";
+  import XCircle from "lucide-svelte/icons/x-circle";
+  import MessageSquare from "lucide-svelte/icons/message-square";
+  import StatusDropdown from "./StatusDropdown.svelte";
+  import { ORDER_TRANSITIONS } from "$lib/constants/order";
+  import { SHOP_CONFIG } from "$lib/constants/shop";
+  import { formatCurrency, formatDate, timeAgo } from "$lib/utils/format";
   import type { Order } from "$lib/types";
 
-  let { order, status, onOpenDetail, onAction } = $props<{
+  let { order, status, isSelected = false, onOpenDetail, onAction, onToggleSelect } = $props<{
     order: Order;
     status: { label: string; color: string; border: string };
+    isSelected?: boolean;
     onOpenDetail: (id: string) => void;
     onAction: (id: string, action: string) => void;
+    onToggleSelect: (id: string) => void;
   }>();
 
   function handleAction(e: Event, actionType: string) {
     e.stopPropagation();
     onAction(order.id, actionType);
+  }
+
+  async function openZalo(e: Event) {
+    e.stopPropagation();
+    if (!order.customerPhone) return;
+    
+    const phone = order.customerPhone.replace(/\D/g, '');
+    const shopName = SHOP_CONFIG.pharmacy.name;
+    const orderIdShort = order.id.split('-')[0].toUpperCase();
+    const total = formatCurrency(order.total);
+
+    const message = `Chào bạn ${order.finalCustomerName}, ${shopName} xác nhận đơn hàng #${orderIdShort} của bạn. Tổng thanh toán: ${total}. Shop sẽ sớm giao hàng cho bạn nhé!`;
+    
+    try {
+      // Elite Clipboard Integration
+      await navigator.clipboard.writeText(message);
+      nanobot.showToast("Đã copy tin nhắn mẫu! Hãy Dán (Paste) vào Zalo.", "success");
+      
+      // Delay slightly to ensure toast is seen before tab switch
+      setTimeout(() => {
+        window.open(`https://zalo.me/${phone}`, '_blank');
+      }, 300);
+    } catch (err) {
+      // Fallback if clipboard fails
+      window.open(`https://zalo.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    }
   }
 </script>
 
@@ -34,11 +70,28 @@
       onOpenDetail(order.id);
     }
   }}
-  class="order-item group flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6 w-full {order.isSpam
+  class="order-item group flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6 w-full {isSelected ? 'border-neon-cyan/50 bg-neon-cyan/[0.03]' : ''} {order.isSpam
     ? 'border-red-500/50 bg-red-500/[0.02]'
     : ''}"
 >
   <div class="flex items-start sm:items-center gap-4 w-full">
+    <!-- Selection Checkbox (Elite V2.2) -->
+    <div 
+      class="shrink-0 flex items-center justify-center w-6 h-6 grayscale hover:grayscale-0 transition-all"
+      onclick={(e) => { e.stopPropagation(); onToggleSelect(order.id); }}
+      onkeydown={(e) => { if (e.key === ' ') { e.stopPropagation(); onToggleSelect(order.id); } }}
+      role="checkbox"
+      aria-checked={isSelected}
+      tabindex="0"
+    >
+      <div class="w-4 h-4 rounded border-2 transition-all flex items-center justify-center
+        {isSelected ? 'bg-neon-cyan border-neon-cyan' : 'bg-transparent border-white/20 group-hover:border-white/40'}">
+        {#if isSelected}
+          <Check size={12} strokeWidth={4} class="text-black" />
+        {/if}
+      </div>
+    </div>
+
     <!-- Avatar / Icon -->
     <div
       class="w-10 h-10 sm:w-12 sm:h-12 rounded bg-black border {status.border}/20 flex items-center justify-center shrink-0"
@@ -90,6 +143,12 @@
               <div class="text-[10px] font-mono text-neon-cyan/80 flex items-center gap-1">
                 <Phone size={10} class="opacity-60" />
                 {order.customerPhone}
+                {#if order.order_metadata?.zalo_status === 'ACTIVE'}
+                  <div class="flex items-center gap-0.5 text-blue-400 bg-blue-400/10 px-1 rounded-[2px] ml-1">
+                    <MessageSquare size={8} />
+                    <span class="text-[7px] font-black tracking-tighter">ZALO</span>
+                  </div>
+                {/if}
               </div>
             {/if}
             
@@ -146,6 +205,37 @@
         </div>
       </div>
 
+      <!-- Desktop Planning (Elite V2.2) -->
+      <div class="hidden xl:flex flex-col gap-1.5 min-w-[150px] border-l border-white/5 pl-6">
+        {#if order.planning?.assigned_to}
+          <div class="flex items-center gap-2 text-[10px] text-white/90 font-mono">
+            <User size={10} class="text-orange-400" />
+            <span class="truncate max-w-[120px]">{order.planning.assigned_to}</span>
+          </div>
+        {:else}
+          <div class="flex items-center gap-2 text-[9px] text-gray-600 font-mono italic">
+            <User size={10} /> Unassigned
+          </div>
+        {/if}
+
+        {#if order.planning?.scheduled_at}
+          <div class="flex items-center gap-2 text-[9px] text-gray-500 font-mono">
+            <Calendar size={10} class="text-blue-400" />
+            <span>{formatDate(order.planning.scheduled_at)}</span>
+          </div>
+        {/if}
+
+        {#if order.planning?.priority && order.planning.priority !== 'NORMAL'}
+          <div class="flex items-center gap-1.5 mt-0.5">
+            <span class="text-[7px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-widest border
+              {order.planning.priority === 'URGENT' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 
+               'bg-orange-500/10 text-orange-400 border-orange-500/20'}">
+              {order.planning.priority}
+            </span>
+          </div>
+        {/if}
+      </div>
+
       <!-- Desktop Financials -->
       <div class="hidden sm:block min-w-[120px]">
         <div
@@ -161,21 +251,27 @@
 
     <!-- Status Badge (Mobile Top Right, Desktop inline) -->
     <div
-      class="flex items-center gap-2 shrink-0 mt-1 sm:mt-0 sm:ml-auto xl:ml-0"
+      class="flex items-center gap-2 shrink-0 mt-1 sm:mt-0 sm:ml-auto xl:ml-0 relative"
     >
       {#if order.isSpam}
         <div class="relative group/spam">
+          <!-- Primary Spam Indicator -->
           <div
-            class="px-2 py-1 rounded bg-red-500/20 border border-red-500/50 flex items-center gap-1.5 animate-pulse cursor-help"
+            class="px-2 py-1 rounded bg-red-500/20 border border-red-500/50 flex items-center gap-1.5 animate-pulse cursor-help relative"
           >
-            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
             <span
               class="text-[8px] sm:text-[9px] font-mono font-bold tracking-widest uppercase text-red-400"
               >SPAM ALERT</span
             >
+            
+            <!-- Mini Shield Indicator (Pinned stably to the badge) -->
+            <div class="absolute -top-1.5 -right-1.5 bg-red-500 rounded-full p-0.5 shadow-[0_0_10px_rgba(239,68,68,0.5)] border border-black/20 z-10">
+              <Shield size={8} class="text-white" fill="currentColor" />
+            </div>
           </div>
 
-          <!-- Viral 2026 Security Tooltip (Horizontal Scanner Design to avoid clipping) -->
+          <!-- Viral 2026 Security Tooltip (Horizontal Scanner Design) -->
           <div
             class="absolute top-1/2 -translate-y-1/2 right-full mr-4 w-[450px] h-[48px] bg-black/95 border border-red-500/40 rounded-lg backdrop-blur-xl opacity-0 invisible group-hover/spam:opacity-100 group-hover/spam:visible transition-all duration-300 pointer-events-none shadow-[0_0_30px_rgba(239,68,68,0.2)] flex items-center px-4 gap-6 overflow-hidden"
             style="z-index: var(--z-popover);"
@@ -246,94 +342,72 @@
           </div>
         </div>
       {/if}
-      <div
-        class="px-2 py-1 sm:px-3 sm:py-1.5 rounded bg-black border {status.border}/30 flex items-center gap-1.5 sm:gap-2 whitespace-nowrap"
-      >
-        <span
-          class="w-1.5 h-1.5 rounded-full"
-          style:background-color={status.color.replace("text-", "")}
-        ></span>
-        <span
-          class="text-[8px] sm:text-[9px] font-mono font-bold tracking-widest uppercase {status.color}"
-          >{status.label}</span
-        >
+
+      <!-- Status Hub -->
+      <div class="flex items-center gap-1.5 p-1 bg-white/[0.02] border border-white/5 rounded-lg shadow-inner group/hub">
+        <StatusDropdown 
+          variant="badge"
+          currentStatus={order.status}
+          label={status.label}
+          color={status.color}
+          border={status.border}
+          options={ORDER_TRANSITIONS[order.status.toLowerCase()] || []}
+          onSelect={(val) => onAction(order.id, val)}
+          actions={[
+            ...(order.status === 'pending' ? [
+              { label: 'XÁC NHẬN & ĐÓNG GÓI', value: 'PACKED', icon: ShieldCheck, color: 'text-cyan-400' },
+              { label: 'HỦY ĐƠN HÀNG', value: 'CANCELLED', icon: XCircle, color: 'text-red-400' }
+            ] : []),
+            ...(order.status === 'packed' ? [
+              { label: 'BÀN GIAO VẬN CHUYỂN', value: 'SHIPPING', icon: Truck, color: 'text-lime-400' },
+              { label: 'HỦY ĐƠN HÀNG', value: 'CANCELLED', icon: XCircle, color: 'text-red-400' }
+            ] : []),
+            ...(order.status === 'shipping' ? [
+              { label: 'XÁC NHẬN GIAO HÀNG', value: 'DELIVERED', icon: PackageCheck, color: 'text-emerald-400' }
+            ] : []),
+            { label: 'ĐÁNH DẤU SPAM', value: 'TOGGLE_SPAM', icon: ShieldAlert, color: order.isSpam ? 'text-red-500' : 'text-gray-500' }
+          ]}
+        />
+
+        <!-- High-Priority Quick-Fire Actions (V4 Elite) -->
+        <div class="flex items-center gap-1 opacity-0 group-hover/hub:opacity-100 transition-opacity border-l border-white/10 ml-1 pl-1">
+          {#if order.customerPhone}
+            <button
+              onclick={openZalo}
+              class="w-7 h-7 rounded {order.order_metadata?.zalo_status === 'ACTIVE' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-white/5 text-white/40 border-white/10'} border flex items-center justify-center hover:bg-blue-500 hover:text-black transition-all group/zalo"
+              title="Zalo Chat Elite"
+            >
+              <MessageSquare size={12} class="group-hover/zalo:scale-110 transition-transform" />
+            </button>
+          {/if}
+
+          {#if order.status === 'pending'}
+             <button 
+              onclick={(e) => { e.stopPropagation(); onAction(order.id, 'PACKED') }}
+              class="w-7 h-7 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center hover:bg-cyan-500 hover:text-black transition-all group/btn"
+              title="Confirm & Pack"
+             >
+               <ShieldCheck size={14} class="group-hover/btn:scale-110 transition-transform" />
+             </button>
+          {:else if order.status === 'packed'}
+             <button 
+              onclick={(e) => { e.stopPropagation(); onAction(order.id, 'SHIPPING') }}
+              class="w-7 h-7 rounded bg-lime-500/10 border border-lime-500/20 text-lime-400 flex items-center justify-center hover:bg-lime-500 hover:text-black transition-all group/btn"
+              title="Ship Order"
+             >
+               <Truck size={14} class="group-hover/btn:scale-110 transition-transform" />
+             </button>
+          {:else if order.status === 'shipping'}
+             <button 
+              onclick={(e) => { e.stopPropagation(); onAction(order.id, 'DELIVERED') }}
+              class="w-7 h-7 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center hover:bg-emerald-500 hover:text-black transition-all group/btn"
+              title="Mark Delivered"
+             >
+               <PackageCheck size={14} class="group-hover/btn:scale-110 transition-transform" />
+             </button>
+          {/if}
+        </div>
       </div>
-    </div>
-  </div>
-
-  <div
-    class="flex items-center justify-between sm:contents mt-2 sm:mt-0 pt-3 sm:pt-0 border-t border-white/5 sm:border-0 w-full sm:w-auto"
-  >
-    <!-- Quick Actions (Mobile: bottom left, Desktop: inline right) -->
-    <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-      {#if order.status === "pending"}
-        <button
-          onclick={(e) => handleAction(e, "PAID")}
-          class="action-btn bg-green-500/10 hover:bg-green-500/20 text-green-400 border-green-500/30"
-          title="Xác nhận thanh toán"
-        >
-          <CheckCircle size={18} />
-        </button>
-        <button
-          onclick={(e) => handleAction(e, "CANCELLED")}
-          class="action-btn bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30"
-          title="Huỷ đơn"
-        >
-          <XCircle size={18} />
-        </button>
-      {:else if order.status === "paid"}
-        <button
-          onclick={(e) => handleAction(e, "PROCESSING")}
-          class="action-btn bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/30"
-          title="Chuẩn bị hàng"
-        >
-          <Play size={18} />
-        </button>
-        <button
-          onclick={(e) => handleAction(e, "CANCELLED")}
-          class="action-btn bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30"
-          title="Huỷ đơn"
-        >
-          <XCircle size={18} />
-        </button>
-      {:else if order.status === "processing"}
-        <button
-          onclick={(e) => handleAction(e, "SHIPPED")}
-          class="action-btn bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-400 border-fuchsia-500/30"
-          title="Giao hàng"
-        >
-          <Truck size={18} />
-        </button>
-      {:else if order.status === "shipped"}
-        <button
-          onclick={(e) => handleAction(e, "DELIVERED")}
-          class="action-btn bg-green-500/10 hover:bg-green-500/20 text-green-400 border-green-500/30"
-          title="Đã nhận hàng"
-        >
-          <CheckCircle size={18} />
-        </button>
-      {:else if order.status === "delivered"}
-        <button
-          onclick={(e) => handleAction(e, "COMPLETED")}
-          class="action-btn bg-neon-cyan/10 hover:bg-neon-cyan/20 text-neon-cyan border-neon-cyan/30"
-          title="Hoàn thành đơn"
-        >
-          <CheckCircle size={18} />
-        </button>
-      {/if}
-
-      <!-- Manual Spam Toggle (Shield) -->
-      <button
-        onclick={(e) => handleAction(e, "TOGGLE_SPAM")}
-        class="action-btn {order.isSpam
-          ? 'bg-red-500/10 hover:bg-gray-500/20 text-red-500 border-red-500/30'
-          : 'bg-gray-500/10 hover:bg-red-500/20 text-gray-400 border-gray-500/20 hover:border-red-500/30'}"
-        title={order.isSpam
-          ? "Gỡ bỏ Spam (Whitelist)"
-          : "Đánh dấu là Spam (Blacklist)"}
-      >
-        <Shield size={18} fill={order.isSpam ? "currentColor" : "none"} />
-      </button>
     </div>
 
     <!-- Desktop Timestamp -->

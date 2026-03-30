@@ -16,7 +16,7 @@ class EliteSQLAlchemyAsyncConfig(BaseSQLAlchemyAsyncConfig):
     R1.5 Elite Configuration: Resolves library deprecations at the root.
     """
     def provide_session(self, state: State, scope: Scope) -> AsyncSession:
-        # Override to remove deprecated 'advanced_alchemy._listeners.set_async_context' call thưa sếp!
+        # Override to remove deprecated 'advanced_alchemy._listeners.set_async_context' call
         session = cast("Optional[AsyncSession]", get_aa_scope_state(scope, self.session_scope_key))
         if session is None:
             reset_routing_context()

@@ -7,7 +7,7 @@
   import ChevronUp from "lucide-svelte/icons/chevron-up";
   import ChevronDown from "lucide-svelte/icons/chevron-down";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import type { Product, BaseWidgetProps } from "$lib/types";
+  import type { Product, BaseWidgetProps, TierVariation, ProductVariant } from "$lib/types";
   import { formatCurrency } from "$lib/utils/format";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
@@ -230,8 +230,8 @@
       formDiscountPrice = Number(p.discountPrice ?? p.discount_price ?? 0);
       formStock = Number(p.stock || 0);
       formCategory = p.categoryId ?? p.category_id ?? "";
-      formStatus = (p.status || "draft").toLowerCase() as any;
-      if (formStatus === "archived") formStatus = "draft";
+      formStatus = (p.status || "draft").toLowerCase() as "active" | "draft";
+      if ((formStatus as string) === "archived") formStatus = "draft";
 
       formShortDescription = p.shortDescription ?? p.short_description ?? "";
       formDescription = p.description || "";
@@ -245,14 +245,14 @@
 
       // R102 Defense: map potential snake_case to camelCase
       const rawTierVariations = p.tierVariations ?? p.tier_variations ?? [];
-      formTierVariations = Array.isArray(rawTierVariations) ? rawTierVariations.map((tv: any) => ({
+      formTierVariations = Array.isArray(rawTierVariations) ? rawTierVariations.map((tv: TierVariation) => ({
         name: tv.name || "",
         options: Array.isArray(tv.options) ? tv.options : [],
         images: Array.isArray(tv.images) ? tv.images : []
       })) : [];
 
       const rawVariants = p.variants ?? [];
-      formVariants = Array.isArray(rawVariants) ? rawVariants.map((v: any) => ({
+      formVariants = Array.isArray(rawVariants) ? rawVariants.map((v: ProductVariant) => ({
         ...v,
         id: v.id,
         sku: v.sku || "",

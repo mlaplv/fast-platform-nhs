@@ -122,7 +122,7 @@ PRODUCT_DEFS = [
                     "buy_qty": 2,
                     "get_qty": 1,
                     "fixed_price": 498000,
-                    "description": "Tiết kiệm 249k thưa sếp!"
+                    "description": "Tiết kiệm 249k"
                 },
                 {
                     "id": "deal_m3t2",
@@ -130,7 +130,7 @@ PRODUCT_DEFS = [
                     "buy_qty": 3,
                     "get_qty": 2,
                     "fixed_price": 747000,
-                    "description": "Ưu đãi lớn nhất thưa sếp!"
+                    "description": "Ưu đãi lớn nhất"
                 }
             ]
         },

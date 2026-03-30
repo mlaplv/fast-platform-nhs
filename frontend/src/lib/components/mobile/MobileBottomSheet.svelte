@@ -25,7 +25,7 @@
     title_select: (metadata.mobile_bottom_sheet_title as string) || "Lựa chọn liệu trình",
     title_shipping: "Thông tin nhận hàng",
     cta_next: "TIẾP TỤC",
-    cta_submit: (metadata.mobile_bottom_sheet_cta as string) || "XÁC NHẬN",
+    cta_submit: (metadata.mobile_bottom_sheet_cta as string) || "XÁC NHẬN LIỆU TRÌNH",
     free_shipping: (metadata.mobile_free_shipping_label as string) || "Lightning Free Shipping",
     variant_label: (metadata.mobile_variant_selection_label as string) || "Phân loại đang chọn",
   });
@@ -297,7 +297,7 @@
       <div class="flex items-center gap-4 mt-auto pt-4 border-t border-white/5">
         <div class="flex-1 flex flex-col">
           <div class="flex items-center gap-2 mb-0.5">
-            <span class="text-[8px] font-black text-white/20 uppercase tracking-widest">Tổng giá trị đơn hàng</span>
+            <span class="text-[8px] font-black text-white/20 uppercase tracking-widest">Tổng giá trị liệu trình</span>
             {#if shopStore.originalPrice * shopStore.quantity > shopStore.totalAmount}
                <div class="px-1.5 py-0.5 bg-emerald-500/10 rounded text-[7px] font-black text-emerald-400">-{totalSaved.toLocaleString()}đ</div>
             {/if}

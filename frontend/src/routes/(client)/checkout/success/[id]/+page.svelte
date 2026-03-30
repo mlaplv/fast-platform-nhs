@@ -11,13 +11,13 @@
 
   const orderId = page.params.id;
 
-  // Elite V2.2: Order Status Roadmap!
+  // Elite V2.2: Order Status Roadmap
+  import type { OrderDetail } from '$lib/types';
   const STATUS_STEPS = [
-    { key: 'PENDING', label: 'Chờ duyệt', icon: '⏱' },
-    { key: 'PAID', label: 'Đã thanh toán', icon: '💳' },
-    { key: 'PROCESSING', label: 'Đang xử lý', icon: '⚙️' },
-    { key: 'SHIPPED', label: 'Đang giao', icon: '🚚' },
-    { key: 'COMPLETED', label: 'Thành công', icon: '🏆' }
+    { key: 'PENDING', label: 'Tiếp nhận', icon: '📝' },
+    { key: 'PACKED', label: 'Bảo mật', icon: '🛡️' },
+    { key: 'SHIPPING', label: 'Vận chuyển', icon: '🚚' },
+    { key: 'DELIVERED', label: 'Thành công', icon: '🎁' }
   ];
 
   function getStepIndex(status: string) {
@@ -29,7 +29,7 @@
   const phoneParam = page.url.searchParams.get('phone') || (typeof localStorage !== 'undefined' ? localStorage.getItem(`order_verify_${orderId}`) : null);
   const isTrackingMode = !!phoneParam;
 
-  let order = $state<any>(null);
+  let order = $state<OrderDetail | null>(null);
   let isLoading = $state(true);
   let isSubmittingAction = $state(false);
 
@@ -79,7 +79,7 @@
     const phoneToUse = overridePhone || phoneParam;
     
     try {
-      const res = await apiClient.get<any>(`/api/v1/client/orders/${orderId}`, {
+      const res = await apiClient.get<OrderDetail>(`/api/v1/client/orders/${orderId}`, {
         params: phoneToUse ? { phone: phoneToUse } : {}
       });
       if (res) {
@@ -95,7 +95,8 @@
             address: order.customerAddress || order.customer_address || ''
         };
       }
-    } catch (e: any) {
+    } catch (err: unknown) {
+      const e = err as any; // Temporary cast for status check, but better than pure any
       console.error("Failed to load order", e);
       // R2026: If it's a 400 validation error regarding phone, it's a "Lock"!
       if (e.status === 400 && e.message.toLowerCase().includes('số điện thoại')) {
@@ -120,7 +121,8 @@
         await apiClient.post(`/api/v1/client/orders/${orderId}/cancel`, {}, { params: { phone: phoneParam || verificationPhone } });
         showToast("Đã hủy đơn hàng thành công");
         await fetchOrder();
-    } catch (e: any) {
+    } catch (err: unknown) {
+      const e = err as any; // Temporary cast for status check, but better than pure any
         showToast(e.message || "Không thể hủy đơn hàng", "error");
     } finally {
         isSubmittingAction = false;
@@ -138,12 +140,15 @@
         showToast("Đã cập nhật thông tin thành công");
         isEditing = false;
         await fetchOrder();
-    } catch (e: any) {
+    } catch (err: unknown) {
+      const e = err as any; // Temporary cast for status check, but better than pure any
         showToast(e.message || "Lỗi cập nhật dữ liệu", "error");
     } finally {
         isSubmittingAction = false;
     }
   }
+
+  const stepIdx = $derived(getStepIndex(order?.status ?? ''));
 </script>
 
 <svelte:head>
@@ -155,7 +160,7 @@
 {:else}
   <div class="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
     <!-- Rest of existing desktop code... -->
-  <!-- Elite Glass Background! -->
+  <!-- Elite Glass Background -->
   <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-sky-500/10 rounded-full blur-[120px] pointer-events-none"></div>
   
   {#if isLoading}
@@ -222,33 +227,55 @@
           <svg class="w-4 h-4 text-slate-600 group-hover:text-sky-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
         </div>
 
-        {#if order?.status !== 'CANCELLED'}
-          <!-- Elite Status Timeline! -->
-          <div class="max-w-md mx-auto mb-12 px-4 relative">
-             <div class="absolute top-1/2 left-0 w-full h-0.5 bg-white/5 -translate-y-1/2 rounded-full overflow-hidden">
-                <div
-                    class="h-full bg-gradient-to-r from-sky-500 to-emerald-500 transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(14,165,233,0.5)]"
-                    style="width: {(getStepIndex(order?.status) / (STATUS_STEPS.length - 1)) * 100}%"
-                ></div>
-             </div>
-             <div class="flex justify-between relative z-10">
+          <!-- Status Timeline (Elite V4 — 2-Row Segmented Architecture) -->
+          <div class="max-w-md mx-auto mb-16 px-2 flex flex-col gap-4">
+             <!-- Row 1: Icons + Connectors -->
+             <div class="flex items-center">
                 {#each STATUS_STEPS as step, i}
-                   {@const isActive = getStepIndex(order?.status) >= i}
-                   <div class="flex flex-col items-center gap-3">
-                      <div
-                        class="w-10 h-10 rounded-full flex items-center justify-center text-xs transition-all duration-500 border-2
-                        {isActive ? 'bg-slate-900 border-sky-500 text-sky-400 scale-110 shadow-[0_0_15px_rgba(14,165,233,0.3)]' : 'bg-slate-950 border-white/10 text-slate-600'}"
-                      >
+                   <!-- Node Icon -->
+                   <div class="relative shrink-0 w-11 h-11">
+                      {#if stepIdx === i}
+                        <div class="node-halo absolute inset-0"></div>
+                      {/if}
+                      <div class="node-circle w-full h-full rounded-full flex items-center justify-center text-xl transition-all duration-500 border-2 z-10 relative
+                        {stepIdx > i ? 'done' : stepIdx === i ? 'active' : 'idle'}">
                          {step.icon}
                       </div>
-                      <span class="text-[8px] font-black uppercase tracking-tighter {isActive ? 'text-white' : 'text-slate-700'}">
-                        {step.label}
-                      </span>
                    </div>
+
+                   <!-- Connector segment -->
+                   {#if i < STATUS_STEPS.length - 1}
+                     <div class="flex-1 relative h-0.5 mx-2 pointer-events-none">
+                       <div class="absolute inset-0 bg-white/5 rounded-full"></div>
+                       {#if stepIdx > i}
+                         <div class="absolute inset-0 bg-gradient-to-r from-sky-500 to-emerald-500 rounded-full shadow-[0_0_10px_rgba(14,165,233,0.4)] transition-all duration-1000"></div>
+                       {:else if stepIdx === i}
+                         <div class="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-sky-500 to-sky-400 rounded-full shadow-[0_0_10px_rgba(14,165,233,0.4)] transition-all duration-1000"></div>
+                       {/if}
+                     </div>
+                   {/if}
                 {/each}
              </div>
+
+             <!-- Row 2: Labels (mirrored flex layout) -->
+             <div class="flex items-start">
+               {#each STATUS_STEPS as step, i}
+                  <div class="shrink-0 w-11 flex flex-col items-center">
+                    <span class="text-[9px] font-black uppercase tracking-widest text-center transition-colors duration-500 
+                      {stepIdx >= i ? 'text-white' : 'text-slate-700'}">
+                      {step.label}
+                    </span>
+                    {#if stepIdx === i}
+                      <div in:fade class="w-1 h-1 rounded-full bg-sky-400 mt-1.5 shadow-[0_0_8px_#0ea5e9]"></div>
+                    {/if}
+                  </div>
+                  {#if i < STATUS_STEPS.length - 1}
+                    <div class="flex-1 mx-2"></div>
+                  {/if}
+               {/each}
+             </div>
           </div>
-        {/if}
+
 
         {#if !isTrackingMode}
           <p class="text-slate-500 text-sm italic mt-2">
@@ -311,7 +338,7 @@
           <div class="flex flex-col">
             <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Trạng thái:</span>
             <span class="text-xs font-bold uppercase {order?.status === 'CANCELLED' ? 'text-red-500' : 'text-amber-500'}">
-                {order?.status === 'CANCELLED' ? 'Đã hủy ❌' : (STATUS_STEPS.find(s => s.key === order?.status)?.label || 'Đang xử lý') + ' ⏱'}
+                {order?.status === 'CANCELLED' ? 'Đã hủy ❌' : (STATUS_STEPS.find(s => s.key === order?.status)?.label || 'Tiếp nhận đơn') + ' ✨'}
             </span>
           </div>
           {#if !isEditing && (order?.insight?.total_orders || order?.successfulOrdersCount)}
@@ -455,3 +482,48 @@
   </div>
 {/if}
 {/if}
+
+<style>
+  .node-circle {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .node-circle.idle {
+    background: #0f172a; /* slate-900 */
+    border-color: rgba(255, 255, 255, 0.05);
+    color: #475569; /* slate-500 */
+  }
+
+  .node-circle.active {
+    background: #0f172a;
+    border-color: #0ea5e9; /* sky-500 */
+    color: #38bdf8; /* sky-400 */
+    transform: scale(1.15);
+    box-shadow: 0 0 25px rgba(14, 165, 233, 0.4);
+  }
+
+  .node-circle.done {
+    background: #0f172a;
+    border-color: #10b981; /* emerald-500 */
+    color: #34d399; /* emerald-400 */
+  }
+
+  .node-halo {
+    background: #0ea5e9;
+    border-radius: 99px;
+    filter: blur(20px);
+    opacity: 0.15;
+    animation: pulse-halo 2.5s infinite;
+  }
+
+  @keyframes pulse-halo {
+    0%, 100% { opacity: 0.1; transform: scale(1); }
+    50% { opacity: 0.25; transform: scale(1.4); }
+  }
+
+  /* Shimmer for progress lines */
+  @keyframes shimmer-flow {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+</style>

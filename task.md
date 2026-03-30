@@ -133,6 +133,13 @@ Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt th
 - [x] Mobile: Refactor `MobileActionStack.svelte` & `MobileBottomSheet.svelte` (TikTok stats & labels). <!-- id: 194 -->
 - [x] Global: Verify R00 compliance across all 12 funnel components. <!-- id: 195 -->
 
+## 🎯 Giai đoạn 30: Zalo Order Intelligence (Lite Free) (COMPLETED)
+- [x] Backend: Triển khai `ZaloService` với kỹ thuật Check Redirect (Free). <!-- id: 300 -->
+- [x] Backend: Tự động check Zalo khi có đơn hàng mới và lưu vào Metadata. <!-- id: 301 -->
+- [x] UI: Hiển thị icon Zalo và nút "Gửi thông báo nhanh" trong Order Detail. <!-- id: 302 -->
+- [x] UI: Tích hợp Deep Link tự động điền nội dung đơn hàng vào Zalo. <!-- id: 303 -->
+- [x] UI: Thêm Quick-Action Zalo vào Order List Item (Elite V4). <!-- id: 304 -->
+
 ## 🎯 Giai đoạn 29.1: Elite Type Safety & R00 Polish (COMPLETED)
 - [x] Logic: Refine `nanobot.svelte.ts` type safety (Remove `unknown` casts). <!-- id: 196 -->
 - [x] UI: Final R00 audit for `ClinicalQuiz.svelte` labels. <!-- id: 197 -->

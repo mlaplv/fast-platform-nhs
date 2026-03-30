@@ -3,6 +3,11 @@
   import { apiClient } from '$lib/utils/apiClient';
   import { goto } from '$app/navigation';
   import TrackMobile from '$lib/components/mobile/sections/TrackMobile.svelte';
+  import Search from 'lucide-svelte/icons/search';
+  import Hash from 'lucide-svelte/icons/hash';
+  import Phone from 'lucide-svelte/icons/phone';
+  import ArrowRight from 'lucide-svelte/icons/arrow-right';
+  import ArrowLeft from 'lucide-svelte/icons/arrow-left';
 
   let { data } = $props<{ data: { isMobile: boolean } }>();
 
@@ -47,68 +52,115 @@
 </script>
 
 <svelte:head>
-  <title>Tra cứu đơn hàng | Nhà Thuốc Hồng Sơn</title>
 </svelte:head>
 
 {#if data.isMobile}
   <TrackMobile bind:orderId bind:phone {isSubmitting} onTrack={handleTrack} />
 {:else}
-  <div class="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
-    <!-- Elite Glass Background! -->
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-sky-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+  <div class="min-h-screen bg-[#020617] text-white flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
+    <!-- Liquid Glass Ambient Background -->
+    <div class="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-sky-500/10 rounded-full blur-[100px] pointer-events-none animate-pulse" style="animation-delay: 2s"></div>
 
     <div 
-      in:fly={{ y: 20, duration: 800 }}
-      class="w-full max-w-md bg-white/5 border border-white/10 backdrop-blur-3xl rounded-[3rem] p-10 md:p-12 shadow-2xl relative z-10"
+      in:fly={{ y: 30, duration: 1000, easing: (t) => t * (2 - t) }}
+      class="w-full max-w-md bg-white/[0.03] border border-white/10 backdrop-blur-3xl rounded-[3rem] p-12 shadow-[0_30px_100px_rgba(0,0,0,0.6)] relative z-10 glass-card"
     >
-      <div class="text-center mb-10">
-        <div class="w-20 h-20 bg-sky-500/10 text-sky-400 rounded-full flex items-center justify-center mx-auto mb-6 border border-sky-500/20 shadow-[0_0_30px_rgba(14,165,233,0.1)]">
-          <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+      <!-- Header Section -->
+      <div class="text-center mb-12">
+        <div class="relative w-24 h-24 mx-auto mb-8">
+          <div class="absolute inset-0 bg-sky-500/20 rounded-full blur-2xl animate-pulse"></div>
+          <div class="relative w-full h-full bg-slate-900 border border-white/10 rounded-full flex items-center justify-center shadow-inner overflow-hidden">
+             <div class="absolute inset-0 bg-gradient-to-tr from-sky-500/10 to-transparent"></div>
+             <Search size={32} class="text-sky-400 relative z-10" />
+          </div>
         </div>
-        <h1 class="text-3xl font-black tracking-tighter uppercase italic leading-none mb-2">Tra cứu đơn</h1>
-        <p class="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] italic">Elite Order Tracking V2.2</p>
+        
+        <h1 class="text-4xl font-black tracking-tighter uppercase italic leading-none mb-3 text-white">
+          Tra cứu đơn
+        </h1>
+        <div class="flex items-center justify-center gap-2">
+           <div class="h-px w-8 bg-gradient-to-r from-transparent to-sky-500/50"></div>
+           <p class="text-[9px] font-black text-sky-500 uppercase tracking-[0.4em] italic">Elite Tracking Mode</p>
+           <div class="h-px w-8 bg-gradient-to-l from-transparent to-sky-500/50"></div>
+        </div>
       </div>
 
-      <div class="space-y-6">
-        <div class="space-y-2">
-          <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Mã đơn hàng (UUID):</label>
+      <!-- Tracking Form -->
+      <div class="space-y-8">
+        <!-- Input Group: Order ID -->
+        <div class="relative group">
+          <div class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 transition-colors group-focus-within:text-sky-400 z-20">
+             <Hash size={18} />
+          </div>
           <input 
             type="text" 
+            id="orderId"
             bind:value={orderId}
-            placeholder="Ví dụ: 6cc3ad08..."
-            class="w-full px-6 py-4 bg-white/[0.03] border-2 border-white/5 focus:border-sky-500/50 focus:bg-white/[0.05] rounded-[1.5rem] outline-none text-white font-bold text-sm uppercase placeholder:text-slate-700 transition-all"
+            placeholder=" "
+            class="peer w-full pl-14 pr-6 py-5 bg-white/[0.02] border border-white/10 focus:border-sky-500/50 rounded-2xl outline-none text-white font-bold text-sm uppercase transition-all focus:bg-white/[0.05] focus:shadow-[0_0_20px_rgba(14,165,233,0.1)]"
           />
+          <label 
+            for="orderId"
+            class="absolute left-14 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500 uppercase tracking-widest pointer-events-none transition-all duration-300 peer-focus:-top-2 peer-focus:left-6 peer-focus:text-sky-500 peer-[:not(:placeholder-shown)]:-top-2 peer-[:not(:placeholder-shown)]:left-6 peer-[:not(:placeholder-shown)]:text-sky-500 bg-[#020617] px-2 rounded-sm"
+          >
+            Mã đơn hàng (6CC...)
+          </label>
         </div>
 
-        <div class="space-y-2">
-          <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Số điện thoại:</label>
+        <!-- Input Group: Phone -->
+        <div class="relative group">
+          <div class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 transition-colors group-focus-within:text-sky-400 z-20">
+             <Phone size={18} />
+          </div>
           <input 
             type="tel" 
+            id="phone"
             bind:value={phone}
-            placeholder="Nhập Số điện thoại..."
-            class="w-full px-6 py-4 bg-white/[0.03] border-2 border-white/5 focus:border-sky-500/50 focus:bg-white/[0.05] rounded-[1.5rem] outline-none text-white font-black text-lg placeholder:text-slate-700 tracking-wider transition-all"
+            placeholder=" "
+            class="peer w-full pl-14 pr-6 py-5 bg-white/[0.02] border border-white/10 focus:border-sky-500/50 rounded-2xl outline-none text-white font-black text-lg transition-all focus:bg-white/[0.05] focus:shadow-[0_0_20px_rgba(14,165,233,0.1)]"
           />
+          <label 
+            for="phone"
+            class="absolute left-14 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500 uppercase tracking-widest pointer-events-none transition-all duration-300 peer-focus:-top-2 peer-focus:left-6 peer-focus:text-sky-500 peer-[:not(:placeholder-shown)]:-top-2 peer-[:not(:placeholder-shown)]:left-6 peer-[:not(:placeholder-shown)]:text-sky-500 bg-[#020617] px-2 rounded-sm"
+          >
+            Số điện thoại nhận hàng
+          </label>
         </div>
 
+        <!-- Action Button -->
         <button 
           onclick={handleTrack}
           disabled={isSubmitting}
-          class="w-full py-5 bg-sky-500 hover:bg-sky-400 text-white font-black rounded-full transition-all active:scale-95 shadow-xl shadow-sky-500/20 uppercase tracking-tighter italic text-lg mt-4 disabled:opacity-50 disabled:pointer-events-none"
+          class="group relative w-full py-5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-black rounded-2xl transition-all active:scale-[0.98] shadow-2xl shadow-blue-500/20 uppercase tracking-widest italic text-sm mt-4 disabled:opacity-50 overflow-hidden"
         >
-          {isSubmitting ? 'ĐANG TRA CỨU...' : 'KIỂM TRA TRẠNG THÁI →'}
+          <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div class="relative z-10 flex items-center justify-center gap-3">
+            {#if isSubmitting}
+              <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <span>Đang giải mã...</span>
+            {:else}
+              <span>Kiểm tra trạng thái</span>
+              <ArrowRight size={18} class="group-hover:translate-x-1 transition-transform" />
+            {/if}
+          </div>
         </button>
       </div>
 
-      <p class="mt-10 text-[9px] text-slate-600 text-center font-bold uppercase tracking-widest leading-relaxed">
-        Quý khách vui lòng nhập đúng thông tin để bảo mật dữ liệu đơn hàng
-      </p>
+      <div class="mt-12 text-center">
+         <p class="text-[8px] text-slate-600 font-bold uppercase tracking-[0.3em] leading-relaxed max-w-[200px] mx-auto italic">
+           Dữ liệu được bảo mật bởi<br/>hệ thống Elite Security V2.2
+         </p>
+      </div>
     </div>
 
+    <!-- Footer Action -->
     <a 
       href="/" 
-      class="mt-8 text-[10px] font-black text-slate-500 hover:text-white transition-colors uppercase tracking-[0.3em]"
+      class="mt-12 group flex items-center gap-3 text-[10px] font-black text-slate-600 hover:text-sky-400 transition-all uppercase tracking-[0.4em]"
     >
-      ← QUAY LẠI CỬA HÀNG
+      <ArrowLeft size={14} class="group-hover:-translate-x-1 transition-transform" />
+      <span>Quay lại cửa hàng</span>
     </a>
   </div>
 {/if}
@@ -126,3 +178,38 @@
     </div>
   {/each}
 </div>
+
+<style>
+  .glass-card {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    backdrop-filter: blur(40px);
+    animation: glass-reveal 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  @keyframes glass-reveal {
+    from { opacity: 0; transform: translateY(20px); filter: blur(10px); }
+    to { opacity: 1; transform: translateY(0); filter: blur(0); }
+  }
+
+  /* Smooth Label Transition (Zero-JS) */
+  input:focus + label,
+  input:not(:placeholder-shown) + label {
+    transform: translateY(-2.8rem) scale(0.9);
+    padding: 0 0.5rem;
+    color: #38bdf8; /* sky-400 */
+    background: #020617; /* Matches body bg */
+    border-radius: 4px;
+    z-index: 30;
+  }
+
+  input {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Premium Button Lift */
+  button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 40px rgba(37, 99, 235, 0.4);
+  }
+</style>

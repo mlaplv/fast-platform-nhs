@@ -80,6 +80,18 @@ export interface Order {
   createdAt: string;
   successfulOrdersCount: number;
   cancelledOrdersCount: number;
+  planning?: OrderPlanning;
+  order_metadata?: {
+    zalo_status?: 'ACTIVE' | 'NOT_FOUND' | 'PENDING';
+    [key: string]: unknown;
+  };
+}
+
+export interface OrderPlanning {
+  assigned_to?: string;
+  scheduled_at?: string;
+  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  planning_notes?: string;
 }
 
 export interface OrderDetail extends Order {

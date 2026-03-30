@@ -12,7 +12,7 @@ from backend.database.models import Order, User
 from backend.database import current_tenant_id
 from backend.services.event_bus import event_bus
 from backend.utils.sql import escape_like
-from backend.schemas.order import OrderResponse, OrderListResponse, OrderCreateRequest, OrderStatusUpdate, CancelOrderRequest
+from backend.schemas.order import OrderResponse, OrderListResponse, OrderCreateRequest, OrderStatusUpdate, CancelOrderRequest, OrderPlanningRequest
 from backend.schemas.common import SuccessResponse
 
 # Phase 85: Strict JSON Typography
@@ -87,7 +87,8 @@ class OrderService:
             "phone": data.customer_phone,
             "address": data.customer_address,
             "total_amount": data.total_amount,
-            "tenant_id": None
+            "tenant_id": current_tenant_id.get() or "default",
+            "items": data.items if isinstance(data.items, list) else [],
         })
 
         return SuccessResponse(ok=True, id=new_id)
@@ -127,7 +128,7 @@ class OrderService:
         success_sq = select(sa.func.count(Order.id)).where(
             and_(
                 Order.customer_phone == sa.column("customer_phone"), # Reference outer column
-                Order.status == "COMPLETED",
+                Order.status == "DELIVERED",
                 Order.tenant_id == (current_tenant_id.get() or "default")
             )
         ).scalar_subquery().label("successful_count")
@@ -161,7 +162,7 @@ class OrderService:
         success_sq = select(sa.func.count(Order.id)).where(
             and_(
                 Order.customer_phone == sa.column("customer_phone"),
-                Order.status == "COMPLETED",
+                Order.status == "DELIVERED",
                 Order.tenant_id == (current_tenant_id.get() or "default")
             )
         ).scalar_subquery().label("successful_count")
@@ -186,7 +187,7 @@ class OrderService:
             .outerjoin(User, Order.user_id == User.id)
         )
 
-        # R2026: Elite Suffix Lookup Support thưa sếp!
+        # R2026: Elite Suffix Lookup Support
         if len(order_id) == 6:
              stmt = stmt.where(Order.id.ilike(f"%{order_id}"))
         else:
@@ -202,10 +203,10 @@ class OrderService:
         insight: Optional[OrderInsight] = None
         if phone:
             insight_stmt = select(
-                sa.func.sum(Order.total_amount).filter(Order.status == "COMPLETED").label("ltv"),
+                sa.func.sum(Order.total_amount).filter(Order.status == "DELIVERED").label("ltv"),
                 sa.func.count(Order.id).label("total_orders"),
                 # Success rate calculation
-                (sa.func.count(Order.id).filter(Order.status == "COMPLETED") * 100.0 / sa.func.count(Order.id)).label("trust_score"),
+                (sa.func.count(Order.id).filter(Order.status == "DELIVERED") * 100.0 / sa.func.count(Order.id)).label("trust_score"),
                 sa.func.min(Order.created_at).label("first_order"),
                 sa.func.max(Order.created_at).label("last_order")
             ).where(
@@ -273,13 +274,11 @@ class OrderService:
         new_status = new_status.upper()
 
         VALID_TRANSITIONS = {
-            "PENDING": ["PAID", "CANCELLED"],
-            "PAID": ["PROCESSING", "CANCELLED"],
-            "PROCESSING": ["SHIPPED"],
-            "SHIPPED": ["DELIVERED"],
-            "DELIVERED": ["COMPLETED"],
-            "COMPLETED": [],
-            "CANCELLED": []
+            "PENDING": ["PACKED", "CANCELLED"],
+            "PACKED": ["SHIPPING", "CANCELLED"],
+            "SHIPPING": ["DELIVERED"],
+            "DELIVERED": [],
+            "CANCELLED": ["PENDING"] # Allow reopening
         }
 
         if new_status not in VALID_TRANSITIONS.get(current_status, []):
@@ -323,8 +322,8 @@ class OrderService:
 
         current_status = order.status.upper()
 
-        if current_status not in ["PENDING", "PAID"]:
-            raise ValidationException("Only PENDING or PAID orders can be cancelled")
+        if current_status not in ["PENDING", "PACKED"]:
+            raise ValidationException("Only PENDING or PACKED orders can be cancelled")
 
         order.status = "CANCELLED"
         order.cancellation_reason = reason
@@ -390,5 +389,49 @@ class OrderService:
                 "spamReason": order.spam_reason
             }
         )
+
+    @staticmethod
+    async def update_planning(
+        db_session: AsyncSession,
+        order_id: str,
+        data: OrderPlanningRequest,
+        actor_email: str
+    ) -> SuccessResponse:
+        """Elite V2.2: Professional Logistics Planning Logic"""
+        stmt = select(Order).where(Order.id == order_id)
+        res = await db_session.execute(stmt)
+        order = res.scalar_one_or_none()
+
+        if not order:
+            raise NotFoundException(f"Order {order_id} not found")
+
+        # Update order_metadata with planning fields
+        meta = dict(order.order_metadata or {})
+        meta.update({
+            "assigned_to": data.assigned_to,
+            "scheduled_at": data.scheduled_at.isoformat() if data.scheduled_at else None,
+            "priority": data.priority,
+            "planning_notes": data.planning_notes
+        })
+        order.order_metadata = meta
+
+        # Add trace log to history
+        history = list(order.history or [])
+        history.append({
+            "status": order.status, # Keep current status
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "actor": actor_email,
+            "note": f"Planning Updated: Assigned={data.assigned_to}, Priority={data.priority}"
+        })
+        order.history = history
+
+        await event_bus.emit("ORDER_PLANNING_UPDATED", {
+            "id": order_id,
+            "assigned_to": data.assigned_to,
+            "priority": data.priority,
+            "tenant_id": order.user_id
+        })
+
+        return SuccessResponse(ok=True, id=order_id, message="Planning details updated")
 
 order_service = OrderService()

@@ -3,6 +3,7 @@
   import { quintOut } from 'svelte/easing';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import type { QuizQuestion, ProductMetadata } from '$lib/types';
+  import QuizIcon from './QuizIcon.svelte';
   import "./slug/LiquidEffects.css";
 
   const shopStore = getShopStore();
@@ -88,8 +89,8 @@
               class="group p-6 text-left glass-liquid border-white/5 rounded-[2rem] hover:border-blue-500/30 transition-all duration-500 flex items-center gap-6 relative overflow-hidden liquid-bubble"
               in:fly={{ x: 15, duration: 800, delay: idx * 50, easing: quintOut }}
             >
-              <div class="w-16 h-16 bg-white/5 rounded-[1.5rem] flex items-center justify-center text-3xl group-hover:scale-105 transition-all duration-500 border border-white/5 relative" style:z-index="var(--z-surface)">
-                {option.icon}
+              <div class="w-16 h-16 bg-white/5 rounded-[1.5rem] flex items-center justify-center group-hover:scale-105 transition-all duration-500 border border-white/5 relative" style:z-index="var(--z-surface)">
+                <QuizIcon icon={option.icon} />
               </div>
               <div class="flex-1 relative" style:z-index="var(--z-surface)">
                 <span class="block text-xl font-bold text-white/90 group-hover:text-blue-400 transition-colors uppercase tracking-tight">{option.label}</span>
