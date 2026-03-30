@@ -167,7 +167,7 @@
         </div>
       </div>
     {/if}
-    <!-- Dynamic Line Wave Divider - Technical Science thưa Sếp! -->
+    <!-- Dynamic Line Wave Divider - Technical Science! -->
   <div class="wave-container">
     <svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
       <defs>

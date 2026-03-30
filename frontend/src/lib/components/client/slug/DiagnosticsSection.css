@@ -14,13 +14,13 @@
 
   & .section-title {
     color: #fff;
-    font-size: var(--fs-title); /* Fluid thưa sếp! */
+    font-size: var(--fs-title); /* Fluid! */
     transition: font-size 0.3s ease-in-out;
   }
 }
 
 /* Container-Aware Scaling */
-/* Container queries kept for specific structural logic if needed thưa sếp! */
+/* Container queries kept for specific structural logic if needed! */
 @container diagnostics (min-width: 768px) {
   .section-title {
     line-height: 1;
@@ -33,14 +33,14 @@
   }
 }
 
-/* Exclusive footer wave thưa sếp! */
+/* Exclusive footer wave! */
 .diagnostics-container {
   & .wave-container {
     position: absolute;
-    bottom: var(--wave-offset-diag); /* Centralized thưa sếp! */
+    bottom: var(--wave-offset-diag); /* Centralized! */
     left: 0;
     width: 100%;
-    height: 20%; /* Cân bằng lại thưa sếp! */
+    height: 20%; /* Cân bằng lại! */
     line-height: 0;
     z-index: 1;
     pointer-events: none;

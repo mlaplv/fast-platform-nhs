@@ -133,7 +133,7 @@ export class ShopStore {
         );
         if (found) {
             this.variant = found;
-            this.quantity = 1; // Reset to 1 thưa sếp!
+            this.quantity = 1; // Reset to 1!
         }
     }
 

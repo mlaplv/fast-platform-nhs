@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({ params, fetch, getClientAddress, re
             headers: { 'x-tenant': tenantId }
         });
     } catch (e: any) {
-        console.error(`[FETCH FAILED] Thưa Sếp, không thể kết nối tới Backend!`);
+        console.error(`[FETCH FAILED], không thể kết nối tới Backend!`);
         console.error(`URL: ${targetUrl}`);
         console.error(`Error: ${e.message}`);
         console.error(`Hint: Kiểm tra INTERNAL_API_URL (${apiUrl}) và trạng thái container 'api'`);
@@ -28,7 +28,7 @@ export const load: PageServerLoad = async ({ params, fetch, getClientAddress, re
     }
 
     if (!res.ok) {
-        // Broad error exposure for development thưa Sếp!
+        // Broad error exposure for development!
         throw error(res.status, { 
             message: `API Error: ${res.statusText} (${res.status})`,
             details: `Failed to fetch product with slug: ${slug} from ${targetUrl}`

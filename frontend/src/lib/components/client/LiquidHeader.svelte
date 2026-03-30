@@ -48,7 +48,7 @@
       // IntersectionObserver for Active Section
       const observerOptions = {
         root: null,
-        rootMargin: '-30% 0px -30% 0px', // Wider 40% band for robust snapping thưa Sếp!
+        rootMargin: '-30% 0px -30% 0px', // Wider 40% band for robust snapping!
         threshold: 0
       };
 

@@ -175,7 +175,7 @@
       </div>
     </div>
   </div>
-  <!-- Dynamic Line Wave Divider - Calming Reviews thưa Sếp! -->
+  <!-- Dynamic Line Wave Divider - Calming Reviews! -->
   <div class="wave-container">
     <svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
       <defs>

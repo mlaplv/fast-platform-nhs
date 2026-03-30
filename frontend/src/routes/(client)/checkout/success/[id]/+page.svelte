@@ -5,10 +5,13 @@
   import { onMount } from 'svelte';
   import { apiClient } from '$lib/utils/apiClient';
   import { formatCurrency, formatDate } from '$lib/utils/format.ts';
+  import SuccessMobile from '$lib/components/mobile/sections/SuccessMobile.svelte';
+
+  let { data } = $props<{ data: { isMobile: boolean } }>();
 
   const orderId = page.params.id;
 
-  // Elite V2.2: Order Status Roadmap thưa sếp!
+  // Elite V2.2: Order Status Roadmap!
   const STATUS_STEPS = [
     { key: 'PENDING', label: 'Chờ duyệt', icon: '⏱' },
     { key: 'PAID', label: 'Đã thanh toán', icon: '💳' },
@@ -22,7 +25,7 @@
     return idx === -1 ? 0 : idx;
   }
 
-  // Elite V2.2: Retrieve phone from URL or LocalStorage to persist unlock thưa sếp!
+  // Elite V2.2: Retrieve phone from URL or LocalStorage to persist unlock!
   const phoneParam = page.url.searchParams.get('phone') || (typeof localStorage !== 'undefined' ? localStorage.getItem(`order_verify_${orderId}`) : null);
   const isTrackingMode = !!phoneParam;
 
@@ -30,12 +33,12 @@
   let isLoading = $state(true);
   let isSubmittingAction = $state(false);
 
-  // Security Gate State thưa sếp!
+  // Security Gate State!
   let isLocked = $state(false);
   let verificationPhone = $state('');
   let authError = $state('');
 
-  // Elite V2.2 Toast System thưa sếp!
+  // Elite V2.2 Toast System!
   let toasts = $state<{id: number, type: 'success' | 'error', message: string}[]>([]);
   let toastId = 0;
 
@@ -51,7 +54,7 @@
   function copyOrderId() {
     if (typeof navigator !== 'undefined') {
         navigator.clipboard.writeText(orderId);
-        showToast("Đã sao chép mã đơn hàng thưa sếp!");
+        showToast("Đã sao chép mã đơn hàng");
     }
   }
 
@@ -82,7 +85,7 @@
       if (res) {
         order = res;
         isLocked = false;
-        // Persist the unlock thưa sếp!
+        // Persist the unlock!
         if (phoneToUse && typeof localStorage !== 'undefined') {
           localStorage.setItem(`order_verify_${orderId}`, phoneToUse);
         }
@@ -93,8 +96,8 @@
         };
       }
     } catch (e: any) {
-      console.error("Failed to load order thưa sếp", e);
-      // R2026: If it's a 400 validation error regarding phone, it's a "Lock" thưa sếp!
+      console.error("Failed to load order", e);
+      // R2026: If it's a 400 validation error regarding phone, it's a "Lock"!
       if (e.status === 400 && e.message.toLowerCase().includes('số điện thoại')) {
         isLocked = true;
       } else {
@@ -115,7 +118,7 @@
     isSubmittingAction = true;
     try {
         await apiClient.post(`/api/v1/client/orders/${orderId}/cancel`, {}, { params: { phone: phoneParam || verificationPhone } });
-        showToast("Đã hủy đơn hàng thành công thưa sếp!");
+        showToast("Đã hủy đơn hàng thành công");
         await fetchOrder();
     } catch (e: any) {
         showToast(e.message || "Không thể hủy đơn hàng", "error");
@@ -132,7 +135,7 @@
             customer_phone: editForm.phone,
             customer_address: editForm.address
         }, { params: { phone: phoneParam || verificationPhone } });
-        showToast("Đã cập nhật thông tin thành công thưa sếp!");
+        showToast("Đã cập nhật thông tin thành công");
         isEditing = false;
         await fetchOrder();
     } catch (e: any) {
@@ -147,8 +150,12 @@
   <title>{isTrackingMode ? 'Tra cứu đơn hàng' : 'Đặt hàng thành công'} | Nhà Thuốc Hồng Sơn</title>
 </svelte:head>
 
-<div class="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
-  <!-- Elite Glass Background thưa sếp! -->
+{#if data.isMobile && order}
+  <SuccessMobile {order} {orderId} isLookup={isTrackingMode} />
+{:else}
+  <div class="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <!-- Rest of existing desktop code... -->
+  <!-- Elite Glass Background! -->
   <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-sky-500/10 rounded-full blur-[120px] pointer-events-none"></div>
   
   {#if isLoading}
@@ -157,7 +164,7 @@
       <p class="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Đang tải dữ liệu đơn hàng...</p>
     </div>
   {:else if isLocked}
-    <!-- Elite Security Gate (Soft Wall thưa sếp!) -->
+    <!-- Elite Security Gate (Soft Wall!) -->
     <div 
       in:fly={{ y: 20, duration: 800 }}
       class="w-full max-w-md bg-white/5 border border-white/10 backdrop-blur-3xl rounded-[3rem] p-12 shadow-2xl relative z-10 text-center"
@@ -172,7 +179,7 @@
         <input 
           type="tel" 
           bind:value={verificationPhone}
-          placeholder="Nhập SĐT của Sếp..."
+          placeholder="Nhập Số điện thoại..."
           class="w-full px-8 py-4 bg-white/[0.03] border-2 border-white/5 focus:border-amber-500/50 focus:bg-white/[0.05] rounded-full outline-none text-white font-black text-center text-lg placeholder:text-slate-700 transition-all"
           onkeydown={(e) => e.key === 'Enter' && handleVerify()}
         />
@@ -191,7 +198,7 @@
       in:fly={{ y: 30, duration: 800 }}
       class="w-full max-w-2xl bg-white/5 border border-white/10 backdrop-blur-2xl rounded-[3rem] p-8 md:p-12 shadow-2xl relative z-10"
     >
-      <!-- Status Icon thưa sếp! -->
+      <!-- Status Icon! -->
       {#if isTrackingMode}
         <div class="w-24 h-24 bg-sky-500/10 text-sky-400 rounded-full flex items-center justify-center mx-auto mb-10 border border-sky-500/30 relative group">
           <div class="absolute inset-0 bg-sky-400/20 rounded-full blur-2xl animate-pulse group-hover:blur-3xl transition-all duration-700"></div>
@@ -216,7 +223,7 @@
         </div>
 
         {#if order?.status !== 'CANCELLED'}
-          <!-- Elite Status Timeline thưa sếp! -->
+          <!-- Elite Status Timeline! -->
           <div class="max-w-md mx-auto mb-12 px-4 relative">
              <div class="absolute top-1/2 left-0 w-full h-0.5 bg-white/5 -translate-y-1/2 rounded-full overflow-hidden">
                 <div
@@ -250,7 +257,7 @@
         {/if}
       </div>
 
-      <!-- Order Details Summary thưa sếp! -->
+      <!-- Order Details Summary! -->
       <div class="grid md:grid-cols-2 gap-6 p-6 bg-white/5 border border-white/10 rounded-[2rem] mb-8 relative group">
         {#if !isEditing}
           <div class="space-y-4" in:fade>
@@ -333,7 +340,7 @@
         </div>
       </div>
 
-      <!-- Cargo Manifest (Danh sách hàng thưa sếp!) -->
+      <!-- Cargo Manifest (Danh sách hàng!) -->
       <div class="bg-white/[0.03] border border-white/5 rounded-[2rem] p-6 mb-8">
         <h3 class="text-xs font-black text-white uppercase tracking-widest mb-6 border-b border-white/5 pb-3 flex justify-between">
           <span>HÀNG HÓA TRONG ĐƠN</span>
@@ -360,12 +367,12 @@
       </div>
 
       {#if !isTrackingMode}
-        <!-- Welcome Message for New Users thưa sếp! -->
+        <!-- Welcome Message for New Users! -->
         <div class="p-8 bg-sky-500/5 border border-sky-500/10 rounded-[2.5rem] text-center mb-8 relative overflow-hidden group" in:fade>
           <div class="absolute -right-4 -top-4 w-24 h-24 bg-sky-500/10 rounded-full blur-2xl group-hover:bg-sky-500/20 transition-all duration-1000"></div>
           <h3 class="text-sky-400 font-black text-[11px] uppercase tracking-[0.3em] mb-3 italic">🎁 ĐẶC QUYỀN THÀNH VIÊN</h3>
           <p class="text-slate-400 text-xs leading-relaxed max-w-sm mx-auto">
-            Hệ thống đã tự động kích hoạt chế độ **Theo dõi ưu tiên** cho Sếp. Hãy lưu lại mã đơn hàng hoặc dùng SĐT để tra cứu bất cứ lúc nào!
+            Hệ thống đã tự động kích hoạt chế độ **Theo dõi ưu tiên** cho Quý khách. Hãy lưu lại mã đơn hàng hoặc dùng SĐT để tra cứu bất cứ lúc nào!
           </p>
         </div>
       {/if}
@@ -399,7 +406,7 @@
   <p class="mt-12 text-[10px] text-slate-700 font-black uppercase tracking-[0.3em]">Nhà Thuốc Hồng Sơn - Tận Tâm 2026</p>
 </div>
 
-<!-- Elite Toast System thưa sếp! -->
+<!-- Elite Toast System! -->
 <div class="fixed bottom-8 right-8 z-[2000] flex flex-col gap-3 pointer-events-none">
   {#each toasts as toast (toast.id)}
     <div 
@@ -414,7 +421,7 @@
 </div>
 
 
-<!-- Confirm Cancel Modal thưa sếp! -->
+<!-- Confirm Cancel Modal! -->
 {#if isConfirmCancelOpen}
   <div 
     class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-[2100] flex items-center justify-center p-6"
@@ -428,7 +435,7 @@
         <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
       </div>
       <h2 class="text-2xl font-black text-white uppercase italic mb-4">Xác nhận hủy đơn?</h2>
-      <p class="text-slate-400 text-sm leading-relaxed mb-8">Dạ thưa Sếp, Sếp có chắc chắn muốn hủy đơn hàng này không ạ? Hành động này không thể hoàn tác.</p>
+      <p class="text-slate-400 text-sm leading-relaxed mb-8">Quý khách có chắc chắn muốn hủy đơn hàng này không ạ? Hành động này không thể hoàn tác.</p>
       
       <div class="flex flex-col gap-3">
         <button 
@@ -446,4 +453,5 @@
       </div>
     </div>
   </div>
+{/if}
 {/if}

@@ -4,7 +4,7 @@
   container-type: inline-size;
   container-name: hero;
   min-height: 100vh;
-  /* padding-top: 3.5rem; REMOVED thưa sếp! */
+  /* padding-top: 3.5rem; REMOVED! */
   /* Protection against fixed header */
   scroll-margin-top: 80px;
   /* Professional Standard */
@@ -13,7 +13,7 @@
   --emerald-rgb: 16, 185, 129;
   --headline-mb: 3rem;
 
-  /* Z-INDEX REGISTRY (Standardization thưa sếp!) */
+  /* Z-INDEX REGISTRY (Standardization!) */
   --z-bg: 0;
   --z-beam: 5;
   --z-product: 10;
@@ -56,7 +56,7 @@
   & .hero-product-display {
     @media (min-width: 1024px) {
       margin-top: 60px;
-      /* Allow cinematic spill to breathe without clipping thưa sếp! */
+      /* Allow cinematic spill to breathe without clipping! */
       position: relative;
     }
   }
@@ -115,7 +115,7 @@
     text-align: center;
     line-height: 1.8;
     letter-spacing: 0.05em;
-    font-size: var(--fs-body); /* Fluid thưa sếp! */
+    font-size: var(--fs-body); /* Fluid! */
 
     @media (min-width: 1024px) {
       margin-top: 15px;
@@ -131,7 +131,7 @@
   & .flashlight-beam {
     position: absolute;
     top: 50%;
-    left: 40px; /* Moved INSIDE the product area to overlap thưa sếp! */
+    left: 40px; /* Moved INSIDE the product area to overlap! */
     width: 160%;
     height: clamp(500px, 60vh, 850px);
     transform: translateY(-50%);
@@ -152,12 +152,12 @@
 
     & .beam-dot {
       position: absolute;
-      width: 1.5px; /* Miniaturized from 4px thưa sếp! */
+      width: 1.5px; /* Miniaturized from 4px! */
       height: 1.5px;
       background: white;
       border-radius: 50%;
-      filter: blur(2px); /* Higher blur thưa sếp! */
-      opacity: 0.25; /* Stealth dots thưa sếp! */
+      filter: blur(2px); /* Higher blur! */
+      opacity: 0.25; /* Stealth dots! */
       animation: dot-float-in-beam 12s infinite linear;
       left: calc(5% + (var(--d-idx) * 8%));
       top: calc(15% + (var(--d-idx) * 6%) + (sin(var(--d-idx)) * 25%));
@@ -244,11 +244,11 @@
 
     & .metric-value {
       font-family: 'Inter', sans-serif;
-      font-size: var(--fs-sub) !important; /* Reduced from fs-title thưa sếp! */
+      font-size: var(--fs-sub) !important; /* Reduced from fs-title! */
       font-weight: 950;
       color: #f1f5f9;
       line-height: 1.1;
-      white-space: normal; /* Allow wrapping for long titles thưa sếp! */
+      white-space: normal; /* Allow wrapping for long titles! */
     }
 
     & .metric-desc {
@@ -297,7 +297,7 @@
     -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1);
     color: #ffffff;
     text-shadow: 0 10px 30px rgba(8, 51, 68, 0.3);
-    font-size: var(--fs-hero) !important; /* Fluid thưa sếp! */
+    font-size: var(--fs-hero) !important; /* Fluid! */
     line-height: 0.9 !important;
     margin-bottom: 0.5rem !important;
 
@@ -310,10 +310,10 @@
   /* PREMIUM CTA BUTTON SYSTEM */
   & .hero-cta-button {
     position: absolute;
-    bottom: 100px; /* More space from the mouse indicator thưa sếp! */
+    bottom: 100px; /* More space from the mouse indicator! */
     left: 50%;
     transform: translateX(-50%);
-    padding: var(--fs-ui) calc(var(--fs-ui) * 4); /* Consistent ratio thưa sếp! */
+    padding: var(--fs-ui) calc(var(--fs-ui) * 4); /* Consistent ratio! */
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(148, 163, 184, 0.2);

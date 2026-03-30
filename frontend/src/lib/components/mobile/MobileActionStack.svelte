@@ -109,11 +109,16 @@
 
   <!-- Animated Record / Purchase Button -->
   <button
-    class="mt-4 relative w-12 h-12 flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-white rounded-full"
+    class="mt-4 relative w-12 h-12 flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-white rounded-full group/buy"
     onclick={onPurchase}
     aria-label={labels.label_purchase}
   >
-    <div class="vinyl-spin w-full h-full bg-gradient-to-tr from-gray-900 to-gray-700 rounded-full flex items-center justify-center border-2 border-white/20 shadow-xl overflow-hidden will-change-transform">
+    <!-- Freeship Tag -->
+    <div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-lg animate-bounce whitespace-nowrap z-20">
+      FREESHIP
+    </div>
+    
+    <div class="vinyl-spin w-full h-full bg-gradient-to-tr from-gray-900 to-gray-700 rounded-full flex items-center justify-center border-2 border-white/20 shadow-xl overflow-hidden will-change-transform group-hover/buy:scale-110 transition-transform">
       <div
         class="w-full h-full animate-spin-slow bg-cover opacity-60 absolute inset-0"
         style="background-image: url('{labels.disk_image}')"

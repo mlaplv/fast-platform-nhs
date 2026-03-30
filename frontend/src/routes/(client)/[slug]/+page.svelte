@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { setShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { nanobot } from '$lib/state/nanobot.svelte';
   import HeroBanner from '$lib/components/client/HeroBanner.svelte';
   import StealthCheckout from '$lib/components/client/StealthCheckout.svelte';
   
@@ -39,6 +40,12 @@
     if (product?.id) {
        shopStore.init(product);
     }
+  });
+
+  // Footer Control!
+  $effect(() => {
+    nanobot.ui.hideFooter = useMobileLayout;
+    return () => { nanobot.ui.hideFooter = false; };
   });
 
   // Cleanup Timer on unmount

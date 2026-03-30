@@ -8,7 +8,7 @@
 
   const shopStore = getShopStore();
 
-  // Optimized DOM refs (Native thưa sếp! KHÔNG dùng $state)
+  // Optimized DOM refs (Native! KHÔNG dùng $state)
   let nameRef: HTMLInputElement | undefined;
   let phoneRef: HTMLInputElement | undefined;
   let addressRef: HTMLTextAreaElement | undefined;
@@ -16,7 +16,7 @@
   let validationError = $state<string | null>(null);
   let reservationTime = $state(501); 
 
-  // Derived (These stay reactive thưa sếp!)
+  // Derived (These stay reactive!)
   const totalPrice = $derived(shopStore.totalAmount);
   const isSubmitting = $derived(shopStore.isSubmitting);
   const orderSuccess = $derived(shopStore.orderSuccess);
@@ -99,7 +99,7 @@
   <div
     class="fixed bottom-0 left-0 right-0 md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:bottom-auto w-full md:max-w-xl bg-slate-900 border border-white/10 rounded-t-[2.5rem] md:rounded-[2.5rem] p-6 md:p-10 shadow-2xl flex flex-col overflow-hidden max-h-[95vh] z-[1001]"
   >
-    <!-- Optimized BG Decorations thưa sếp! -->
+    <!-- Optimized BG Decorations! -->
     <div class="absolute -top-32 -right-32 w-80 h-80 bg-sky-500/10 rounded-full blur-[100px] pointer-events-none animate-pulse"></div>
     <div class="absolute -bottom-32 -left-32 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none animate-pulse"></div>
 
@@ -119,7 +119,7 @@
           </div>
         </header>
 
-        <!-- Variant Selection thưa sếp! -->
+        <!-- Variant Selection! -->
         {#if hasVariants}
           <div class="space-y-4">
              <div class="flex items-baseline justify-between mb-1">
@@ -151,7 +151,7 @@
         {/if}
 
         <div class="grid grid-cols-2 gap-4">
-           <!-- Quantity (Static thưa sếp!) -->
+           <!-- Quantity (Static!) -->
            <div class="bg-white/5 border border-white/5 p-2 rounded-2xl flex items-center justify-between">
               <span class="text-[10px] font-black text-slate-500 uppercase tracking-tight ml-2">Số lượng:</span>
               <div class="flex items-center gap-4 bg-slate-950 px-3 py-1.5 rounded-xl border border-white/5 shadow-inner">
@@ -160,14 +160,14 @@
                  <button onclick={() => shopStore.setQuantity(shopStore.quantity + 1)} class="w-6 h-6 text-slate-500 hover:text-white font-black">+</button>
               </div>
            </div>
-           <!-- Time (Static thưa sếp!) -->
+           <!-- Time (Static!) -->
            <div class="bg-white/5 border border-white/5 p-2 rounded-2xl flex items-center justify-between">
               <span class="text-[10px] font-black text-slate-500 uppercase tracking-tight ml-2">Giữ hàng:</span>
               <span class="text-sm font-black text-white tabular-nums mr-2">{formatTime(reservationTime)}</span>
            </div>
         </div>
 
-        <!-- Inputs (NATIVE ONLY thưa sếp!) -->
+        <!-- Inputs (NATIVE ONLY!) -->
         <div class="space-y-4">
           <div class="relative group/input">
             <input 
@@ -202,7 +202,7 @@
           {/if}
         </div>
 
-        <!-- Promotion (Static thưa sếp!) -->
+        <!-- Promotion (Static!) -->
         {#if shopStore.appliedDeal}
           <div class="flex items-center justify-between bg-sky-500/10 border border-sky-500/20 px-5 py-4 rounded-2xl">
              <div class="flex flex-col">

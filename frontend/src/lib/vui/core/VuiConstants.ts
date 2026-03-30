@@ -42,7 +42,7 @@ export const VUI_CONFIG = {
     POST_SPEECH_DELAY_MS: 1000, // V87.0: Nghỉ 1s cho sếp "thở" trước khi nghe tiếp
     POST_ACTION_DELAY_MS: 100, // C.T.O Fix: Chuyển trang/Thực thi lệnh tức thời 
     ACTION_WAIT_TIMEOUT_MS: 1000, 
-    POLITE_FALLBACK: "Dạ vâng Sếp, em đã sẵn sàng thưa Sếp.",
+    POLITE_FALLBACK: "Dạ vâng Sếp, em đã sẵn sàng.",
     PHASE_LABELS: {
       listening: "Start talking",
       thinking: "Đang xử lý...",

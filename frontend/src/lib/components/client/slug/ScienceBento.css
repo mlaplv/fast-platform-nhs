@@ -98,7 +98,7 @@
 
 .science-layout {
   display: flex;
-  gap: var(--gap-fluid); /* Fluid gap thưa sếp! */
+  gap: var(--gap-fluid); /* Fluid gap! */
   width: 100%;
   min-height: 700px;
 }
@@ -320,7 +320,7 @@
 
 .title-master {
   font-family: 'Outfit', sans-serif;
-  font-size: var(--fs-title); /* Fluid thưa sếp! */
+  font-size: var(--fs-title); /* Fluid! */
   font-weight: 800;
   line-height: 0.95;
   letter-spacing: -0.02em;
@@ -355,7 +355,7 @@
 
 .stats-value-giant { 
   font-family: 'Outfit', sans-serif; 
-  font-size: clamp(4rem, 15vw, 8rem); /* Ultra Fluid thưa sếp! */
+  font-size: clamp(4rem, 15vw, 8rem); /* Ultra Fluid! */
   font-weight: 950; 
   line-height: 0.8; 
   color: white; 
@@ -410,14 +410,14 @@
   }
 }
 
-@media (max-width: 1100px) { /* Smoother transition thưa sếp! */
+@media (max-width: 1100px) { /* Smoother transition! */
   .science-container { padding: 0 1rem; }
   .science-layout { flex-direction: column; gap: 2rem; }
   .column-left, .column-right { width: 100%; }
   .glass-chamfer, .glass-organic, .glass-horizon, .glass-gem { clip-path: none !important; border-radius: 2.5rem !important; }
 }
 
-/* Exclusive footer wave thưa sếp! */
+/* Exclusive footer wave! */
 .science-viewport {
   & .wave-container {
     position: absolute;

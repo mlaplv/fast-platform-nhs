@@ -33,7 +33,7 @@
       <ClinicalQuiz {questions} {metadata} />
     </div>
 
-    <!-- Security & Privacy Disclaimer thưa Sếp! -->
+    <!-- Security & Privacy Disclaimer! -->
     <div class="mt-16 flex items-center justify-center gap-3 text-[10px] font-black tracking-[0.2em] text-white/20 uppercase bg-white/5 py-4 px-8 rounded-full border border-white/5 w-fit mx-auto backdrop-blur-md">
       <svg class="w-4 h-4 text-emerald-500/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -41,7 +41,7 @@
       {labels.disclaimer}
     </div>
   </div>
-  <!-- Dynamic Line Wave Divider - Refined Analytical Diag thưa Sếp! -->
+  <!-- Dynamic Line Wave Divider - Refined Analytical Diag! -->
   <div class="wave-container">
     <svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
       <defs>
@@ -51,7 +51,7 @@
           <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
         </linearGradient>
       </defs>
-      <!-- Premium Digital Flow: Shifted higher for visibility thưa Sếp! -->
+      <!-- Premium Digital Flow: Shifted higher for visibility! -->
       <path class="wave-line opacity-30" d="M0,180 Q180,160 360,180 T720,180 T1080,180 T1440,180" />
       <path class="wave-line" d="M0,200 C150,190 200,100 300,200 C450,210 500,120 600,200 C750,190 800,100 900,200 C1050,210 1100,120 1200,200 C1350,190 1400,100 1440,200" />
       <path class="wave-line secondary" d="M0,210 C200,200 300,180 400,210 C500,220 600,190 700,210 C800,230 900,180 1000,210 C1100,240 1200,190 1440,210" />

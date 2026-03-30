@@ -238,7 +238,7 @@ class VuiOrchestrator {
       this.mic?.stop();
       this.vadEngine?.pause();
       vuiState.setPhase("idle");
-      vuiState.setLiveText("Sẵn sàng thưa sếp...");
+      vuiState.setLiveText("Sẵn sàng...");
     }
 
     if (vuiState.phase !== "idle") {

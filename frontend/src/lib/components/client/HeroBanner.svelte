@@ -178,7 +178,7 @@
              <div class="elite-product-card relative hud-frame">
                 <!-- FLASH LIGHT BEAM (Cinematic Highlight) -->
                 <div class="flashlight-beam hidden lg:block">
-                   <!-- Cinematic Dots thưa sếp! -->
+                   <!-- Cinematic Dots! -->
                    <div class="beam-dots absolute inset-0">
                       {#each Array(12) as _, i}
                          <div class="beam-dot" style="--d-idx: {i}"></div>
@@ -202,7 +202,7 @@
                      {/each}
                    </div>
 
-                   <!-- Slider Controls thưa sếp! -->
+                   <!-- Slider Controls! -->
                    {#if images.length > 1}
                       <div class="absolute inset-x-0 bottom-8 flex justify-center gap-2" style:z-index="var(--z-hud-service)">
                          {#each images as _, i}
@@ -255,7 +255,7 @@
     </div>
   </div>
 
-  <!-- PREMIUM CTA BUTTON (Fixed to section bottom thưa sếp!) -->
+  <!-- PREMIUM CTA BUTTON (Fixed to section bottom!) -->
   <button class="hero-cta-button" onclick={scrollToCare}>
      <div class="cta-gradient-overlay"></div>
      <div class="cta-content">
@@ -268,7 +268,7 @@
      <div class="cta-shimmer"></div>
   </button>
 
-  <!-- MOUSE SCROLL INDICATOR (Fixed to section bottom thưa sếp!) -->
+  <!-- MOUSE SCROLL INDICATOR (Fixed to section bottom!) -->
   <a href="#diagnostics" class="mouse-scroll-indicator" aria-label={labels.aria_scroll} onclick={(e) => { e.preventDefault(); scrollToCare(); }}>
      <div class="mouse-body">
         <div class="mouse-wheel"></div>

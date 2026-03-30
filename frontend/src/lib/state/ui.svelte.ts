@@ -8,6 +8,7 @@ export function createUiState() {
     universalModalOpen: false,
     activeHudPopup: null as string | null,
     showQuickTips: false,
+    hideFooter: false,
     heartbeatCollapsed: typeof window !== "undefined" 
       ? (localStorage.getItem("xohi_heartbeat_collapsed") !== null 
           ? localStorage.getItem("xohi_heartbeat_collapsed") === "true" 
@@ -114,6 +115,12 @@ export function createUiState() {
           localStorage.setItem("xohi_heartbeat_collapsed", String(val));
         }
       }
+    },
+    get hideFooter() {
+      return state.hideFooter;
+    },
+    set hideFooter(val: boolean) {
+      state.hideFooter = val;
     },
     showConfirm,
     showToast,

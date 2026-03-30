@@ -6,7 +6,7 @@
   
   const shopStore = getShopStore();
   
-  // ELITE V2.2: Centralized Marketing Strings for easier maintenance thưa Sếp!
+  // ELITE V2.2: Centralized Marketing Strings for easier maintenance!
   const metadata = $derived(product?.metadata || {});
 
   const mkt = $derived({
@@ -41,12 +41,12 @@
   const variants = $derived(product?.variants || []);
 
   /**
-   * ELITE V2.2: Deterministic Social Proof thưa sếp!
+   * ELITE V2.2: Deterministic Social Proof!
    * Generating 'random-looking' but stable numbers based on product ID to avoid hydration mismatch.
    */
   function getDeterministicPoints(seed: string, index: number): number {
     if (!seed) return 40 + index;
-    // Simple fast hash thưa Sếp!
+    // Simple fast hash!
     let hash = 0;
     for (let i = 0; i < seed.length; i++) {
       hash = ((hash << 5) - hash) + seed.charCodeAt(i);
@@ -57,7 +57,7 @@
 
   const bookingPoints = $derived(variants.map((_, i) => getDeterministicPoints(product.id || 'default', i)));
 
-  // Layout logic refined for Elite V2.2 Responsive thưa Sếp!
+  // Layout logic refined for Elite V2.2 Responsive!
   // Force slider on mobile for 3+ variants, but keep grid on desktop
   const isSlider = $derived(variants.length >= 3); 
   const gridClass = $derived(
@@ -86,7 +86,7 @@
 </script>
 
 <section id="offers" class="offer-section snap-session relative overflow-hidden">
-  <!-- Dynamic Atmospheric Layers thưa Sếp! -->
+  <!-- Dynamic Atmospheric Layers! -->
   <div class="absolute inset-0 bg-radial-at-t from-blue-900/10 to-transparent pointer-events-none"></div>
   <div class="liquid-orb top-[10%] left-[-10%] w-[800px] h-[800px]" style="background-color: var(--elite-blue); opacity: 0.1;"></div>
   <div class="liquid-orb bottom-[-10%] right-[-10%] w-[600px] h-[600px]" style="background-color: var(--elite-cyan); opacity: 0.05;"></div>
@@ -101,7 +101,7 @@
       </div>
     </div>
 
-    <!-- Professional Headline Hierarchy thưa sếp! -->
+    <!-- Professional Headline Hierarchy! -->
     <div class="max-w-4xl mx-auto text-center" style="margin-bottom: var(--headline-mb)">
       <h3 class="headline-title">
         {@html mkt.headline}
@@ -110,7 +110,7 @@
         {@html mkt.sub}
       </p>
 
-      <!-- Integrated Trust Proof thưa sếp! -->
+      <!-- Integrated Trust Proof! -->
       <div class="flex items-center justify-center gap-4 mt-12 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
          <span class="text-[8px] uppercase tracking-[0.4em] font-bold text-slate-400">{mkt.trust_verified_by}</span>
          <div class="h-px w-8 bg-slate-800"></div>
@@ -124,7 +124,7 @@
     <div class="package-grid {gridClass} gap-5 items-stretch" style="--cols: {isSlider ? 3 : variants.length}">
 
       {#each variants as variant, idx (variant.sku || idx)}
-         <!-- Card thưa sếp! -->
+         <!-- Card! -->
           <div class="package-card p-8 md:p-10 text-left flex flex-col h-full border-white/5 relative {isSlider ? 'min-w-[300px] md:min-w-[340px] snap-center' : ''} {idx === 1 ? 'popular md:scale-[1.03]' : ''}">
            {#if idx === 1}
               <div class="absolute -top-3 right-8 px-4 py-1.5 bg-blue-600/90 text-white font-black text-[8px] uppercase tracking-[0.3em] rounded-md shadow-xl backdrop-blur-md">
@@ -185,7 +185,7 @@
 
     </div>
 
-    <!-- Pharmacy Trust Footer - Viral Liquid Glass thưa sếp! -->
+    <!-- Pharmacy Trust Footer - Viral Liquid Glass! -->
     <div class="w-full">
       <div class="pharmacy-footer group">
         <!-- Specular Sheen Effect -->
@@ -246,7 +246,7 @@
     </div>
   </div>
 
-  <!-- Dynamic Line Wave Divider - High Impact Edition thưa Sếp! -->
+  <!-- Dynamic Line Wave Divider - High Impact Edition! -->
   <div class="wave-container">
     <svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
       <defs>

@@ -1,5 +1,5 @@
 /**
- * ELITE V2.2 - Global Shop Configuration thưa sếp!
+ * ELITE V2.2 - Global Shop Configuration!
  * This follows Rule R00: NO Hardcoded logic/data.
  */
 
