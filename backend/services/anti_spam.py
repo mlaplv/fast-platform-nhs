@@ -4,14 +4,11 @@ import os
 import time
 import re
 import unicodedata
-from typing import Optional, Dict, Tuple, List, Union, TypedDict, Any, cast # type: ignore
+from typing import Optional, Dict, Tuple, List, Union, TypedDict, cast # type: ignore
 import redis.asyncio as _redis # type: ignore
 from pydantic_ai import Agent # type: ignore
-from pydantic_ai.models.google import GoogleModel # type: ignore
-from pydantic_ai.providers.google import GoogleProvider # type: ignore
 from pydantic import BaseModel, Field
-import litellm # type: ignore
-from backend.services.ai_engine.core.key_loader import KeyLoaderMixin # type: ignore
+from backend.services.ai_engine.core.trinity_bridge import trinity_bridge # type: ignore
 
 logger = logging.getLogger("api-gateway")
 
@@ -26,15 +23,10 @@ class OrderSpamData(TypedDict, total=False):
     total: float
     items: List[OrderItemSpamData]
 
-class AntiSpamService(KeyLoaderMixin):
+class AntiSpamService:
     def __init__(self, redis_client: Optional[_redis.Redis] = None):
         self.redis = redis_client
-        self.keys: List[str] = []
-        self.index: int = 0
-        self._use_redis: bool = redis_client is not None
         self.client = redis_client
-        self.DISCOVERED_MODELS_KEY = "system:discovered_models"
-        self.MAX_COOLDOWN = 3600
         
         self.PRO_THRESHOLD_SCORE = 90.0
         self.AUDIT_THRESHOLD_SCORE = 70.0
@@ -101,38 +93,13 @@ class AntiSpamService(KeyLoaderMixin):
                 return True
         return False
 
-    async def get_fast_model(self) -> str:
-        """Viral 2026: Auto-select best 'flash' model from discovery."""
-        discovered = await self.get_discovered_models()
-        if not discovered: return "gemini-2.0-flash"
-        
-        # Filter for flash models and prioritize newest (e.g. 2.0-flash > 1.5-flash)
-        flash_models = [m for m in discovered if "flash" in m.lower()]
-        if not flash_models: return "gemini-2.0-flash"
-        
-        flash_models.sort(reverse=True)
-        return str(flash_models[0])
-
     async def agentic_address_review(self, name: str, address: str) -> float:
-        """Viral 2026: Agentic NLP Analysis for Address & Name (Auto-Key Rotation)."""
+        """Viral 2026: Agentic NLP Analysis for Address & Name via TrinityBridge."""
         try:
             if len(address) < 5: return 50.0 
             
-            # 1. Ensure keys are loaded from DB/ENV
-            if not self.keys:
-                await self.load_keys()
-            
-            api_key = self.get_next_key()
-            if not api_key:
-                logger.warning("[AntiSpam] No Gemini API Key available for Agentic Review")
-                return 0.0
-
-            # 2. Dynamic Agent Initialization with Discovery & Key Rotation
-            model_name = await self.get_fast_model()
-            provider = GoogleProvider(api_key=api_key)
-            model = GoogleModel(model_name, provider=provider)
+            # 1. Dynamic Agent via TrinityBridge (Elite V2.2 Unity)
             agent = Agent(
-                model,
                 system_prompt=(
                     "You are an expert Vietnamese Fraud Analyst. Review the provided Name and Address. "
                     "Determine if they look like a real customer in Vietnam or keyboard mashing/spam/insults. "
@@ -140,13 +107,22 @@ class AntiSpamService(KeyLoaderMixin):
                 )
             )
 
-            result = await agent.run(f"Name: {name}, Address: {address}")
-            raw_score = str(result.output).strip()
-            # Robust extraction of the first number found in the response
-            match = re.search(r"(\d+\.?\d*)", raw_score)
-            return float(match.group(1)) if match else 0.0
+            # Utilize the centralized bridge for military-grade stability
+            result = await trinity_bridge.run(
+                agent=agent,
+                prompt=f"Name: {name}, Address: {address}",
+                role="fast",
+                timeout=30.0
+            )
+
+            if result:
+                raw_score = str(getattr(result, "data", getattr(result, "output", result))).strip()
+                match = re.search(r"(\d+\.?\d*)", raw_score)
+                return float(match.group(1)) if match else 0.0
+            
+            return 0.0
         except Exception as e:
-            logger.error(f"[AntiSpam] Agentic AI Error (Key Rotation might be needed): {e}")
+            logger.error(f"[AntiSpam] Fatal Agentic Error: {e}")
             return 0.0 
 
     async def check_order_spam(

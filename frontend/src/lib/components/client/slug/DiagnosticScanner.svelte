@@ -6,7 +6,7 @@
   let { status = "Đang phân tích tập dữ liệu lâm sàng..." } = $props<{ status?: string }>();
 
   let binaryData = $state("");
-  let interval: any;
+  let interval: ReturnType<typeof setInterval> | undefined = $state(undefined);
 
   onMount(() => {
     interval = setInterval(() => {

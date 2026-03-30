@@ -20,10 +20,9 @@ class CheckoutController(Controller):
     async def create_stealth_order(
         self,
         request: Request,
-        response: Response,
         db_session: AsyncSession,
         data: StealthCheckoutSchema
-    ) -> SuccessResponse:
+    ) -> Response:
         """Handle stealth checkout with anti-fraud integration."""
         ip = request.client.host if request.client else "unknown"
         if forwarded_for := request.headers.get("x-forwarded-for"):
@@ -33,6 +32,10 @@ class CheckoutController(Controller):
 
         res = await CheckoutService.create_stealth_order(db_session, data, ip, ua)
         
+        response = Response(
+            content=SuccessResponse(id=res["id"], ok=res["ok"])
+        )
+
         if res["ok"] and res["id"]:
             cookie = Cookie(
                 key="__ox",
@@ -45,7 +48,7 @@ class CheckoutController(Controller):
             )
             response.set_cookie(cookie)
 
-        return SuccessResponse(id=res["id"], ok=res["ok"])
+        return response
 
     @post("/lookup", guards=[])
     async def lookup_customer(

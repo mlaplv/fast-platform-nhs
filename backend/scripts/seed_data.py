@@ -125,12 +125,12 @@ PRODUCT_DEFS = [
                     "description": "Tiết kiệm 249k"
                 },
                 {
-                    "id": "deal_m3t2",
-                    "label": "Mua 3 Tặng 2",
-                    "buy_qty": 3,
+                    "id": "deal_m4t2",
+                    "label": "Mua 4 Tặng 2",
+                    "buy_qty": 4,
                     "get_qty": 2,
-                    "fixed_price": 747000,
-                    "description": "Ưu đãi lớn nhất"
+                    "fixed_price": 996000,
+                    "description": "Tiết kiệm 498k - Phác đồ Nặng"
                 }
             ]
         },

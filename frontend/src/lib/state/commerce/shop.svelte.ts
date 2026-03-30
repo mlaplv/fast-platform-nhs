@@ -34,6 +34,7 @@ export interface DiagnosticReport {
     recommendation: string;
     suggested_products: Array<{ id: string; name: string; reason: string }>;
     quantity: number;
+    promotion_label?: string;
 }
 
 /**
@@ -260,24 +261,43 @@ export class ShopStore {
                 await new Promise(resolve => setTimeout(resolve, minDuration - elapsed));
             }
 
+            if (!res) throw new Error('AI analysis returned empty');
+            
             this.diagnosticResult = res;
             if (res.quantity) {
-                this.setQuantity(res.quantity);
+                // 🎁 Viral 2026: Auto-apply deals if AI recommends a 'buy' threshold
+                const deals = this.product?.metadata?.active_deals;
+                const matchingDeal = deals?.find((d: PromotionDeal) => d.buy_qty === res.quantity);
+                
+                if (matchingDeal) {
+                    this.setQuantity(matchingDeal.buy_qty + (matchingDeal.get_qty || 0));
+                } else {
+                    this.setQuantity(res.quantity);
+                }
             }
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : String(err);
             console.error('Diagnostic analysis failed:', message);
             
-            // 🛡️ Fail-safe Fallback: Always show a professional course form
+            // 🛡️ Fail-safe Fallback: Apply "Mua 2 Tặng 1" by default if AI fails
+            const fallbackQty = 2;
+            const deals = this.product?.metadata?.active_deals;
+            const matchingDeal = deals?.find((d: PromotionDeal) => d.buy_qty === fallbackQty);
+            
             this.diagnosticResult = {
                 severity: "Trung bình",
                 analysis: "Dựa trên các dấu hiệu bạn cung cấp, hệ thống ghi nhận tình trạng cần được xử lý sớm để tránh chuyển biến nặng.",
                 reasoning: "Các biểu hiện lâm sàng cho thấy tuyến mồ hôi đang hoạt động quá mức do thay đổi nội tiết hoặc môi trường.",
                 recommendation: "Sử dụng đều đặn theo phác đồ 2 lọ để đạt hiệu quả dứt điểm tốt nhất.",
                 suggested_products: [],
-                quantity: 2
+                quantity: fallbackQty
             };
-            this.setQuantity(2);
+            
+            if (matchingDeal) {
+                this.setQuantity(matchingDeal.buy_qty + (matchingDeal.get_qty || 0));
+            } else {
+                this.setQuantity(fallbackQty);
+            }
         } finally {
             this.isAnalyzing = false;
         }

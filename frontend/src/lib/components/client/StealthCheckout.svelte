@@ -297,7 +297,7 @@
         <!-- Price row -->
         <div class="price-row">
           <div class="flex flex-col">
-            <span class="section-eyebrow mb-1">Tổng thanh toán (Miễn phí ship)</span>
+            <span class="section-eyebrow mb-1">Tổng thanh toán</span>
             <div class="flex items-baseline gap-2">
               <span class="price-main">{(totalPrice || 0).toLocaleString()}đ</span>
               {#if shopStore.originalPrice * shopStore.quantity > totalPrice}
@@ -310,7 +310,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/>
               <path stroke-linecap="round" stroke-linejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l1.5 1M13 16H9m4-10h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V15a1 1 0 01-1 1h-1.5"/>
             </svg>
-            <span>MIỄN PHÍ<br/>SHIP</span>
+            <span class="whitespace-nowrap">MIỄN PHÍ SHIP</span>
           </div>
         </div>
 
@@ -723,6 +723,7 @@
     color: #34d399;
     font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em;
     text-align: center;
+    white-space: nowrap;
     transform: rotate(2deg);
   }
   .api-error {
