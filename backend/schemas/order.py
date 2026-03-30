@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validat
 from typing import Optional, List, Union, Dict
 from datetime import datetime
 
+JSONType = Union[str, int, float, bool, None]
+
 
 class OrderItem(BaseModel):
     model_config = ConfigDict(strict=True, populate_by_name=True)
@@ -55,7 +57,7 @@ class CustomerInsight(BaseModel):
     trust_score: float = 0.0
     first_order: Optional[str] = None
     last_order: Optional[str] = None
-    previous_orders: List[Dict[str, object]] = Field(default_factory=list)
+    previous_orders: List[Dict[str, JSONType]] = Field(default_factory=list)
 
 
 class PublicCustomerInsight(BaseModel):
@@ -74,17 +76,16 @@ class OrderResponse(BaseModel):
     userName: Optional[str] = Field(None, alias="user_name", validation_alias=AliasChoices("user_name", "userName"))
     status: str
     total: float = Field(..., alias="total_amount", validation_alias=AliasChoices("total_amount", "total"))
-    items: Union[List[OrderItem], int, List[Dict[str, object]]] 
+    items: Union[List[OrderItem], int, List[Dict[str, JSONType]]]
     createdAt: datetime = Field(alias="created_at", validation_alias=AliasChoices("created_at", "createdAt"))
     cancellationReason: Optional[str] = Field(None, alias="cancellation_reason", validation_alias=AliasChoices("cancellation_reason", "cancellationReason"))
     isSpam: bool = Field(False, alias="is_spam", validation_alias=AliasChoices("is_spam", "isSpam"))
     spamScore: float = Field(0.0, alias="spam_score", validation_alias=AliasChoices("spam_score", "spamScore"))
     spamReason: Optional[str] = Field(None, alias="spam_reason", validation_alias=AliasChoices("spam_reason", "spamReason"))
-    fingerprint: Optional[str] = None
-    orderMetadata: Dict[str, object] = Field(default_factory=dict, alias="order_metadata", validation_alias=AliasChoices("order_metadata", "orderMetadata"))
+    orderMetadata: Dict[str, JSONType] = Field(default_factory=dict, alias="order_metadata", validation_alias=AliasChoices("order_metadata", "orderMetadata"))
     successfulOrdersCount: int = Field(0, alias="successful_count", validation_alias=AliasChoices("successful_count", "successfulOrdersCount"))
     cancelledOrdersCount: int = Field(0, alias="cancelled_count", validation_alias=AliasChoices("cancelled_count", "cancelledOrdersCount"))
-    history: List[Dict[str, Union[str, int, float, bool, None]]] = Field(default_factory=list)
+    history: List[Dict[str, JSONType]] = Field(default_factory=list)
     insight: Optional[CustomerInsight] = None
     is_trusted_device: bool = False
     name_masked: Optional[str] = None
@@ -92,8 +93,8 @@ class OrderResponse(BaseModel):
 
     @field_validator("id", mode="before")
     @classmethod
-    def stringify_id(cls, v):
-        return str(v) if v is not None else None
+    def stringify_id(cls, v: object) -> str:
+        return str(v) if v is not None else ""
 
     @computed_field
     @property
@@ -153,7 +154,7 @@ class PublicOrderResponse(BaseModel):
     userName: Optional[str] = Field(None, alias="user_name", validation_alias=AliasChoices("user_name", "userName"))
     status: str
     total: float = Field(..., alias="total_amount", validation_alias=AliasChoices("total_amount", "total"))
-    items: Union[List[OrderItem], int, List[Dict[str, object]]]
+    items: Union[List[OrderItem], int, List[Dict[str, JSONType]]]
     createdAt: datetime = Field(alias="created_at", validation_alias=AliasChoices("created_at", "createdAt"))
     cancellationReason: Optional[str] = Field(None, alias="cancellation_reason", validation_alias=AliasChoices("cancellation_reason", "cancellationReason"))
     successfulOrdersCount: int = Field(0, alias="successful_count", validation_alias=AliasChoices("successful_count", "successfulOrdersCount"))
@@ -165,8 +166,8 @@ class PublicOrderResponse(BaseModel):
 
     @field_validator("id", mode="before")
     @classmethod
-    def stringify_id(cls, v):
-        return str(v) if v is not None else None
+    def stringify_id(cls, v: object) -> str:
+        return str(v) if v is not None else ""
 
     @computed_field
     @property

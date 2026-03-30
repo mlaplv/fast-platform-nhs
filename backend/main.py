@@ -37,6 +37,7 @@ from backend.controllers.auditor import AuditorController
 from backend.controllers.user import UserController
 from backend.controllers.category import CategoryController
 from backend.controllers.product import ProductController
+from backend.controllers.client.diagnostics import DiagnosticController
 from backend.controllers.article import ArticleController
 from backend.controllers.order import OrderController
 from backend.controllers.client.checkout import CheckoutController
@@ -96,7 +97,7 @@ app = Litestar(
         NotificationController, AuditorController, UserController,
         CategoryController, ProductController, PublicProductController, ArticleController, OrderController,
         CheckoutController, PublicOrderController, ChatController, SettingsController, AIController, ContentController, MediaController, ContentStreamController,
-        BannerController, stt_websocket, TTSController, IntentMapController, SchedulerController,
+        BannerController, stt_websocket, TTSController, IntentMapController, SchedulerController, DiagnosticController,
     ],
     middleware=[BodyLimitMiddleware, rate_limit_config.middleware, DomainGuardMiddleware(), AuthMiddleware()],
     cors_config=cors_config,

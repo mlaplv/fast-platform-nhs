@@ -1,5 +1,5 @@
 from typing import Optional, List
-from litestar import Controller, get, patch, post
+from litestar import Controller, get, patch, post, Request
 from litestar.params import Body
 from litestar.status_codes import HTTP_200_OK
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,13 +19,13 @@ class PublicOrderController(Controller):
     @get("/{order_id:str}", guards=[])  # PUBLIC access for success page
     async def get_public_order(
         self,
+        request: Request,
         db_session: AsyncSession,
         order_id: str,
-        phone: Optional[str] = None,
-        fingerprint: Optional[str] = None
+        phone: Optional[str] = None
     ) -> PublicOrderResponse:
         """PUBLIC: Get a single order by ID for the confirmation page.
-        Security: MUST verify phone for ALL lookups (UUID or Suffix)
+        Security: MUST verify phone and Identity Shield Cookie (__ox).
         """
         from litestar.exceptions import ValidationException
 
@@ -33,7 +33,11 @@ class PublicOrderController(Controller):
         if not phone:
              raise ValidationException("Vui lòng cung cấp số điện thoại để tra cứu đơn hàng")
 
-        order_res = await order_service.get_order(db_session, order_id, fingerprint=fingerprint)
+        # Identity Shield V3.0: Read HttpOnly Cookie
+        ox_cookie = request.cookies.get("__ox")
+
+        # Pass cookie down to service for trust evaluation
+        order_res = await order_service.get_order(db_session, order_id, ox_cookie=ox_cookie)
 
         # R2026: Elite Phone Normalization (Digits Only)
         clean_search = "".join(filter(str.isdigit, phone))
@@ -42,7 +46,7 @@ class PublicOrderController(Controller):
         if not clean_search or clean_search != clean_order:
             raise ValidationException("Số điện thoại không khớp với hồ sơ đơn hàng")
 
-        # Elite V2.2: Redact sensitive data if device is NOT trusted
+        # Elite V3.0: Redact sensitive data if device is NOT trusted by Cookie
         if not order_res.is_trusted_device:
             order_res.customerName = order_res.name_masked
             order_res.customerAddress = order_res.address_masked

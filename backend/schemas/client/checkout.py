@@ -23,7 +23,6 @@ class StealthCheckoutSchema(BaseModel):
 
 class CustomerLookupSchema(BaseModel):
     phone: str = Field(..., description="Số điện thoại cần tra cứu")
-    fingerprint: Optional[str] = Field(None, description="Dấu vân tay trình duyệt (UA + IP hash)")
 
     @field_validator("phone")
     @classmethod
@@ -35,7 +34,7 @@ class CustomerLookupSchema(BaseModel):
 
 class CustomerLookupResponseSchema(BaseModel):
     is_recurring: bool = Field(False, description="Khách hàng cũ hay mới")
-    is_trusted_device: bool = Field(False, description="Thiết bị có tin cậy (khớp fingerprint) không")
+    is_trusted_device: bool = Field(False, description="Thiết bị có tin cậy (khớp session) không")
     name_masked: Optional[str] = Field(None, description="Tên đã che (***)")
     address_masked: Optional[str] = Field(None, description="Địa chỉ đã che (***)")
 

@@ -82,15 +82,15 @@ class CheckoutService:
         customer_ip: str,
         user_agent: str
     ) -> CheckoutResult:
-        # 1. Fortress Mode: Real-time Anti-Spam Shield (Elite V2.2)
         from backend.services.anti_spam import anti_spam_service
 
-        is_spam, reason, score, fingerprint = await anti_spam_service.check_order_spam(
+        is_spam, reason, score, device_hash = await anti_spam_service.check_order_spam(
             ip=customer_ip,
             user_agent=user_agent,
             tenant_id=current_tenant_id.get() or "default",
             order_data={
                 "phone": payload.customer_phone,
+                "name": payload.customer_name,
                 "address": payload.customer_address,
                 "items": [{"product_id": payload.product_id, "quantity": payload.quantity}]
             },
@@ -101,14 +101,11 @@ class CheckoutService:
             logger.warning(f"[STRIKE] Spam Order Detected: {reason} (Score: {score}) | IP: {customer_ip}")
             # R2026: Elite V2.2: We proceed to save but mark as spam to prevent 404 and allow tracking
 
-        # 2. Auto-Registration / User Lookup (Elite V2.2)
-        # Check if user exists by phone
         user_stmt = select(User).where(User.username == payload.customer_phone).limit(1)
         user_res = await db_session.execute(user_stmt)
         user = user_res.scalar_one_or_none()
 
         if not user:
-            # Create new shadow user
             user = User(
                 id=str(uuid.uuid4()),
                 username=payload.customer_phone,
@@ -116,20 +113,16 @@ class CheckoutService:
                 name=payload.customer_name,
                 status="ACTIVE",
                 tenant_id=current_tenant_id.get() or "default",
-                # In 2026 Stealth flow, password is set via OTP later
-                password="SHADOW_ACCOUNT_V2.2"
+                password="SHADOW_ACCOUNT"
             )
             db_session.add(user)
-            # We don't commit yet, we want the order and user in the same transaction
 
-        # 3. Fetch Product Pricing (Elite V2.2: Zero-Hardcode)
         product_stmt = select(ProductBase).where(ProductBase.id == payload.product_id)
         product_res = await db_session.execute(product_stmt)
         product = product_res.scalar_one_or_none()
         if not product:
             raise NotFoundException(f"Sản phẩm {payload.product_id} không tồn tại")
 
-        # Determine base unit price: Priority to Variant Discount -> Variant Price -> Product Discount -> Product Price
         price = product.discount_price or product.price
 
         if payload.variant_id:
@@ -217,7 +210,7 @@ class CheckoutService:
             customer_address=final_address,
             customer_ip=customer_ip,
             tenant_id=current_tenant_id.get() or "default",
-            fingerprint=fingerprint,
+            device_hash=device_hash,
             is_spam=is_spam,
             spam_score=score,
             spam_reason=reason,
@@ -246,9 +239,9 @@ class CheckoutService:
     async def lookup_customer(
         db_session: AsyncSession,
         phone: str,
-        fingerprint: Optional[str] = None
+        ox_cookie: Optional[str] = None
     ) -> LookupResult:
-        """Recognition with Fingerprint trust & Masking (Elite V2.2)."""
+        """Recognition with Identity Shield Cookie V3.0."""
         stmt = (
             select(Order)
             .where(Order.customer_phone == phone)
@@ -259,7 +252,8 @@ class CheckoutService:
         last_order = res.scalar_one_or_none()
 
         if last_order:
-            is_trusted = (last_order.fingerprint == fingerprint) if fingerprint else False
+            # Identity Shield V3.0: Trust via secure HttpOnly Cookie __ox
+            is_trusted = (last_order.id == ox_cookie) if ox_cookie else False
             return LookupResult(
                 is_recurring=True,
                 is_trusted_device=is_trusted,

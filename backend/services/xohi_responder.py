@@ -6,17 +6,12 @@ from typing import Dict, Union, Optional
 from sqlalchemy import text
 from backend.services.event_bus import event_bus
 from backend.database import alchemy_config
-# R105: Top-level imports for high-frequency responders
 from backend.services.anti_spam import anti_spam_service as anti_spam
 from backend.services.xohi_memory import xohi_memory
 
 logger = logging.getLogger("api-gateway")
 
 class XoHiResponder:
-    """
-    R23: Proactive Nerve System Responder.
-    Listens to the EventBus and reacts instantly to critical system events.
-    """
     def __init__(self):
         self.session_maker = alchemy_config.create_session_maker()
 
@@ -30,25 +25,22 @@ class XoHiResponder:
         phone = payload.get("phone", "unspecified")
         address = payload.get("address", "")
 
-        # 1. Anti-Spam Check (Proactive Defense)
-        # Read Campaign Mode from Redis
         campaign_flag = await xohi_memory.client.get("system:campaign_mode")
         is_campaign_mode = (campaign_flag == b"1")
 
-        is_spam, reason, score, fingerprint = await anti_spam.check_order_spam(
+        is_spam, reason, score, device_hash = await anti_spam.check_order_spam(
             ip, ua, tenant_id,
             {"total": total_amount, "phone": phone, "address": address, "items": payload.get("items", [])},
             is_campaign_mode=is_campaign_mode
         )
 
-        # 2. Immediate Notification & Logging (Atomic Session V76)
         async with self.session_maker() as session:
             try:
                 if is_spam:
                     logger.warning(f"[Anti-Spam Shield] Detect SPAM order {order_id}: {reason}")
                     await session.execute(
-                        text("UPDATE orders SET is_spam = true, spam_score = :score, fingerprint = :fp, spam_reason = :reason WHERE id = :id"),
-                        {"score": score, "id": order_id, "fp": fingerprint, "reason": reason}
+                        text("UPDATE orders SET is_spam = true, spam_score = :score, device_hash = :fp, spam_reason = :reason WHERE id = :id"),
+                        {"score": score, "id": order_id, "fp": device_hash, "reason": reason}
                     )
 
                 customer = payload.get("customer", "Khách lạ")

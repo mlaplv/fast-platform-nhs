@@ -6,7 +6,6 @@
   import { apiClient } from '$lib/utils/apiClient';
   import { formatCurrency, formatDate } from '$lib/utils/format.ts';
   import SuccessMobile from '$lib/components/mobile/sections/SuccessMobile.svelte';
-  import { getFingerprint } from '$lib/state/commerce/shop.svelte.ts';
 
   let { data } = $props<{ data: { isMobile: boolean } }>();
 
@@ -81,7 +80,7 @@
     
     try {
       const res = await apiClient.get<OrderDetail>(`/api/v1/client/orders/${orderId}`, {
-        params: phoneToUse ? { phone: phoneToUse, fingerprint: getFingerprint() } : { fingerprint: getFingerprint() }
+        params: phoneToUse ? { phone: phoneToUse } : undefined
       });
       if (res) {
         order = res;

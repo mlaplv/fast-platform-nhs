@@ -2,7 +2,6 @@ import { setContext, getContext } from 'svelte';
 import { apiClient, ApiError } from '$lib/utils/apiClient';
 import { goto } from '$app/navigation';
 import type { Product, ProductVariant, PromotionDeal } from '$lib/types';
-import type { GenericResponse } from '$lib/state/types';
 
 /** Identity Shield API response types (must match backend schema) */
 interface CustomerLookupResponse {
@@ -11,14 +10,30 @@ interface CustomerLookupResponse {
     name_masked: string | null;
     address_masked: string | null;
 }
+
 /** Domain model for auto-fill state */
 interface CustomerData {
     nameMasked?: string;
     addressMasked?: string;
-    fullName?: string;
-    address?: string;
     isRecurring: boolean;
     isTrustedDevice: boolean;
+}
+
+/** Checkout success response from stealth endpoint */
+interface CheckoutSuccessResponse {
+    ok: boolean;
+    status?: string;
+    id?: string;
+    message?: string;
+}
+
+export interface DiagnosticReport {
+    severity: string;
+    analysis: string;
+    reasoning: string;
+    recommendation: string;
+    suggested_products: Array<{ id: string; name: string; reason: string }>;
+    quantity: number;
 }
 
 /**
@@ -26,7 +41,7 @@ interface CustomerData {
  * Handles cart state, order bump, and checkout flow.
  */
 export class ShopStore {
-    // 1. Core State ($state)
+    // Core State
     product = $state<Product | null>(null);
     variant = $state<ProductVariant | null>(null);
     quantity = $state<number>(1);
@@ -37,13 +52,16 @@ export class ShopStore {
     orderSuccess = $state<boolean>(false);
     error = $state<string | null>(null);
     customerData = $state<CustomerData | null>(null);
+    
+    // Diagnostic State
+    diagnosticResult = $state<DiagnosticReport | null>(null);
+    isAnalyzing = $state<boolean>(false);
 
-    // Scarcity Timer (Elite V2.2)
+    // Scarcity Timer
     timeLeft = $state<number>(0);
     private _timerId: ReturnType<typeof setTimeout> | null = null;
 
-    // 2. Computed State ($derived)
-    // ... logic remains identical ...
+    // Computed State
     totalAmount = $derived.by((): number => {
         let baseTotal = this.currentPrice * this.quantity;
         const deals = this.product?.metadata?.active_deals;
@@ -174,8 +192,7 @@ export class ShopStore {
     async lookupCustomer(phone: string): Promise<void> {
         if (phone.length < 10) return;
         try {
-            const fingerprint = this.getFingerprint();
-            const res = await apiClient.post<CustomerLookupResponse>('/api/v1/client/checkout/lookup', { phone, fingerprint });
+            const res = await apiClient.post<CustomerLookupResponse>('/api/v1/client/checkout/lookup', { phone });
             if (res?.is_recurring) {
                 this.customerData = {
                     nameMasked: res.name_masked ?? undefined,
@@ -187,7 +204,8 @@ export class ShopStore {
                 this.customerData = null;
             }
         } catch (err: unknown) {
-            console.error('Identity lookup failed:', err instanceof ApiError ? err.message : err);
+            const message = err instanceof Error ? err.message : String(err);
+            console.error('Identity lookup failed:', message);
         }
     }
 
@@ -198,7 +216,7 @@ export class ShopStore {
         this.error = null;
 
         try {
-            const res = await apiClient.post<GenericResponse<unknown>>('/api/v1/client/checkout/stealth', {
+            const res = await apiClient.post<CheckoutSuccessResponse>('/api/v1/client/checkout/stealth', {
                 product_id: this.product.id,
                 variant_id: this.variant?.id,
                 customer_name: customer.name,
@@ -208,7 +226,7 @@ export class ShopStore {
             });
 
             if (res.ok || res.status === 'success') {
-                const orderId = (res as any).id;
+                const orderId = res.id;
                 this.closeCheckout();
                 if (orderId) {
                     goto(`/checkout/success/${orderId}?phone=${encodeURIComponent(customer.phone)}`);
@@ -217,34 +235,56 @@ export class ShopStore {
                 this.error = res.message ?? 'Có lỗi xảy ra, vui lòng thử lại';
             }
         } catch (err: unknown) {
-            this.error = err instanceof ApiError ? err.message : 'Không thể kết nối máy chủ';
+            this.error = err instanceof Error ? err.message : 'Không thể kết nối máy chủ';
         } finally {
             this.isSubmitting = false;
         }
     }
 
-    private getFingerprint(): string {
-        return getFingerprint();
+    async analyzeDiagnostics(quizData: Array<{q: string, a: string}>): Promise<void> {
+        if (!this.product) return;
+        this.isAnalyzing = true;
+        this.error = null;
+
+        const startTime = Date.now();
+        try {
+            const res = await apiClient.post<DiagnosticReport>('/api/v1/client/diagnostics/analyze', {
+                product_name: this.product.name,
+                quiz_data: quizData
+            });
+
+            // 🚀 Cinematic Experience: Min-scan duration < 15s (Elite V2.2)
+            const minDuration = 12000;
+            const elapsed = Date.now() - startTime;
+            if (elapsed < minDuration) {
+                await new Promise(resolve => setTimeout(resolve, minDuration - elapsed));
+            }
+
+            this.diagnosticResult = res;
+            if (res.quantity) {
+                this.setQuantity(res.quantity);
+            }
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            console.error('Diagnostic analysis failed:', message);
+            
+            // 🛡️ Fail-safe Fallback: Always show a professional course form
+            this.diagnosticResult = {
+                severity: "Trung bình",
+                analysis: "Dựa trên các dấu hiệu bạn cung cấp, hệ thống ghi nhận tình trạng cần được xử lý sớm để tránh chuyển biến nặng.",
+                reasoning: "Các biểu hiện lâm sàng cho thấy tuyến mồ hôi đang hoạt động quá mức do thay đổi nội tiết hoặc môi trường.",
+                recommendation: "Sử dụng đều đặn theo phác đồ 2 lọ để đạt hiệu quả dứt điểm tốt nhất.",
+                suggested_products: [],
+                quantity: 2
+            };
+            this.setQuantity(2);
+        } finally {
+            this.isAnalyzing = false;
+        }
     }
 }
 
-/** ELITE V2.2: Device Fingerprinting Utility */
-export function getFingerprint(): string {
-    if (typeof window === 'undefined') return 'server';
-    const nav = window.navigator;
-    const screen = window.screen;
-    const str = `${nav.userAgent}|${nav.language}|${screen.width}x${screen.height}|${screen.colorDepth}`;
-    // Simple hash (not cryptographic but enough for a "fingerprint" label in UI)
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16);
-}
-
-// 🚀 ELITE CONTEXT KEYS (Elite V2.2)
+// 🚀 ELITE CONTEXT KEYS
 const SHOP_KEY = Symbol('SHOP_STORE');
 
 export function setShopStore() {
@@ -254,12 +294,3 @@ export function setShopStore() {
 export function getShopStore(): ShopStore {
     return getContext(SHOP_KEY);
 }
-
-/** 
- * 🛡️ ELITE V2.2: Safety Export (Legacy Patch)
- * This is a dummy export to prevent ESM SyntaxErrors in case of cached imports 
- * or legacy components still referencing 'shopStore' directly.
- */
-export const shopStore = {
-    getFingerprint: () => getFingerprint()
-};

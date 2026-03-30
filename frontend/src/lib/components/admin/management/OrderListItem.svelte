@@ -115,12 +115,7 @@
               <span class="text-[8px] text-neon-cyan font-mono">{order.customerIp}</span>
             </div>
           {/if}
-          {#if order.fingerprint}
-            <div class="flex items-center gap-1 bg-fuchsia-500/10 border border-fuchsia-500/30 px-1.5 py-0.5 rounded-sm">
-              <span class="text-[7px] text-fuchsia-400/60 uppercase font-bold">FP</span>
-              <span class="text-[8px] text-fuchsia-400 font-mono">{order.fingerprint.substring(0, 8)}...</span>
-            </div>
-          {/if}
+
           {#if order.status === "pending"}
             <span class="w-1.5 h-1.5 rounded-full bg-[#FFB800] animate-pulse ml-auto"
             ></span>
@@ -316,9 +311,7 @@
                   >Target_Lock</span
                 >
                 <span class="text-[9px] font-mono text-gray-300 truncate">
-                  {order.fingerprint
-                    ? order.fingerprint.substring(0, 12)
-                    : "UNKNOWN"}
+                  {order.id.split('-')[0]}
                 </span>
               </div>
 

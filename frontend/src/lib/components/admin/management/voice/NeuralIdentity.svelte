@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Fingerprint } from "lucide-svelte";
+  import { ScanFace } from "lucide-svelte";
   import { onMount } from "svelte";
 
   let {
@@ -22,7 +22,7 @@
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-12">
     <div class="flex items-center gap-4 text-purple-400">
       <div class="p-3 bg-purple-500/10 rounded-2xl ring-1 ring-purple-500/20">
-        <Fingerprint size={24} />
+        <ScanFace size={24} />
       </div>
       <h2 class="text-lg font-bold tracking-tight uppercase">Neural Identity Protocols</h2>
     </div>

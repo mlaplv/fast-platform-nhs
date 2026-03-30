@@ -4,24 +4,50 @@ import os
 import time
 import re
 import unicodedata
-from typing import Optional, Dict, Tuple
-import redis.asyncio as _redis
+from typing import Optional, Dict, Tuple, List, Union, TypedDict, Any, cast # type: ignore
+import redis.asyncio as _redis # type: ignore
+from pydantic_ai import Agent # type: ignore
+from pydantic_ai.models.google import GoogleModel # type: ignore
+from pydantic_ai.providers.google import GoogleProvider # type: ignore
+from pydantic import BaseModel, Field
+import litellm # type: ignore
+from backend.services.ai_engine.core.key_loader import KeyLoaderMixin # type: ignore
 
 logger = logging.getLogger("api-gateway")
 
-class AntiSpamService:
-    """
-    R23: Real-time Anti-Spam Shield (V56.6 - FORTRESS MODE).
-    Optimized for High-Volume Ad Campaigns with Atomic Lua Scripts & Smart Weighting.
-    """
+class OrderItemSpamData(TypedDict):
+    id: str
+    quantity: int
+
+class OrderSpamData(TypedDict, total=False):
+    phone: str
+    name: str
+    address: str
+    total: float
+    items: List[OrderItemSpamData]
+
+class AntiSpamService(KeyLoaderMixin):
     def __init__(self, redis_client: Optional[_redis.Redis] = None):
         self.redis = redis_client
-        # Fortress Mode Thresholds
+        self.keys: List[str] = []
+        self.index: int = 0
+        self._use_redis: bool = redis_client is not None
+        self.client = redis_client
+        self.DISCOVERED_MODELS_KEY = "system:discovered_models"
+        self.MAX_COOLDOWN = 3600
+        
         self.PRO_THRESHOLD_SCORE = 90.0
         self.AUDIT_THRESHOLD_SCORE = 70.0
         self.MAX_ORDERS_24H = 3
         self.RAPID_FIRE_SECONDS = 5
-        self.BLACKLIST_DURATION = 86400  # 24h
+        self.BLACKLIST_DURATION = 86400
+        
+        # Viral 2026: Troll Keywords (VN Context)
+        self.TROLL_KEYWORDS: List[str] = [
+            "test", "abc", "asdf", "qwer", "zxcv",
+            "cho", "mẹ mày", "me may", "lua dao", "lừa đảo",
+            "bố mày", "bo may", "concac", "clmm", "dmm"
+        ]
         
         # LUA Script: Atomic Velocity Tracking & Rapid Fire Prevention
         # Guarantees thread-safe execution against parallel Botnet attacks
@@ -46,7 +72,8 @@ class AntiSpamService:
             return {count, last_ts}
         """
 
-    def generate_fingerprint(self, ip: str, user_agent: str, extra: str = "") -> str:
+
+    def generate_device_hash(self, ip: str, user_agent: str, extra: str = "") -> str:
         raw = f"{ip}|{user_agent}|{extra}"
         return hashlib.sha256(raw.encode()).hexdigest()
 
@@ -58,51 +85,128 @@ class AntiSpamService:
         addr = addr.replace('đ', 'd').replace('Đ', 'd')
         return addr
 
+    def is_valid_vn_phone(self, phone: str) -> bool:
+        """Viral 2026: Strict VN Phone Validator."""
+        clean_phone: str = re.sub(r'[^0-9]', '', phone)
+        # Convert +84 or 84 prefix to 0
+        clean_phone = re.sub(r'^84', '0', clean_phone)
+        return bool(re.match(r'^0(3|5|7|8|9)[0-9]{8}$', clean_phone))
+
+    def has_troll_content(self, *texts: str) -> bool:
+        """Viral 2026: Detect competitor/spam keyboard mashing or insults."""
+        for text in texts:
+            if not text: continue
+            norm_text = self.normalize_address(text)
+            if any(kw in norm_text for kw in self.TROLL_KEYWORDS):
+                return True
+        return False
+
+    async def get_fast_model(self) -> str:
+        """Viral 2026: Auto-select best 'flash' model from discovery."""
+        discovered = await self.get_discovered_models()
+        if not discovered: return "gemini-2.0-flash"
+        
+        # Filter for flash models and prioritize newest (e.g. 2.0-flash > 1.5-flash)
+        flash_models = [m for m in discovered if "flash" in m.lower()]
+        if not flash_models: return "gemini-2.0-flash"
+        
+        flash_models.sort(reverse=True)
+        return str(flash_models[0])
+
+    async def agentic_address_review(self, name: str, address: str) -> float:
+        """Viral 2026: Agentic NLP Analysis for Address & Name (Auto-Key Rotation)."""
+        try:
+            if len(address) < 5: return 50.0 
+            
+            # 1. Ensure keys are loaded from DB/ENV
+            if not self.keys:
+                await self.load_keys()
+            
+            api_key = self.get_next_key()
+            if not api_key:
+                logger.warning("[AntiSpam] No Gemini API Key available for Agentic Review")
+                return 0.0
+
+            # 2. Dynamic Agent Initialization with Discovery & Key Rotation
+            model_name = await self.get_fast_model()
+            provider = GoogleProvider(api_key=api_key)
+            model = GoogleModel(model_name, provider=provider)
+            agent = Agent(
+                model,
+                system_prompt=(
+                    "You are an expert Vietnamese Fraud Analyst. Review the provided Name and Address. "
+                    "Determine if they look like a real customer in Vietnam or keyboard mashing/spam/insults. "
+                    "Be very strict. Reply ONLY with a float score from 0.0 (Legit) to 100.0 (Spam/Troll)."
+                )
+            )
+
+            result = await agent.run(f"Name: {name}, Address: {address}")
+            raw_score = str(result.output).strip()
+            # Robust extraction of the first number found in the response
+            match = re.search(r"(\d+\.?\d*)", raw_score)
+            return float(match.group(1)) if match else 0.0
+        except Exception as e:
+            logger.error(f"[AntiSpam] Agentic AI Error (Key Rotation might be needed): {e}")
+            return 0.0 
+
     async def check_order_spam(
         self,
         ip: str,
         user_agent: str,
         tenant_id: str,
-        order_data: dict,
+        order_data: OrderSpamData,
         is_campaign_mode: bool = False
     ) -> Tuple[bool, str, float, str]:
-        """
-        Fortress Mode: Weighed Multi-Vector Defense
-        is_campaign_mode=True: Relaxes quantity checks, tightens identity rotation checks.
-        """
-        fingerprint = self.generate_fingerprint(ip, user_agent)
-        phone = order_data.get("phone", "unspecified")
+        device_hash: str = self.generate_device_hash(ip, user_agent)
+        phone_val = order_data.get("phone", "unspecified")
+        phone: str = str(phone_val) if phone_val else "unspecified"
 
-        # R2026: Dev-Mode Bypass — tránh false positive khi test/seed trong môi trường development
         if os.getenv("ENVIRONMENT", "production") == "development":
             logger.debug(f"[AntiSpam] DEV MODE BYPASS for order (phone={phone})")
-            return False, "Dev Mode Bypass", 0.0, fingerprint
+            return False, "Dev Mode Bypass", 0.0, device_hash
 
         if not self.redis:
-            return False, "Bypass: Redis Off", 0.0, fingerprint
+            return False, "Bypass: Redis Off", 0.0, device_hash
 
-        # R2026: Elite V2.2: Developer/Sếp Whitelist Bypass
-        # Check if phone is in whitelist to prevent false positives during testing
-        if phone != "unspecified":
-            is_whitelisted = await self.redis.sismember("spam:whitelist:phones", phone)
-            if is_whitelisted:
+        if phone != "unspecified" and self.redis is not None:
+            redis_inst = cast(_redis.Redis, self.redis)
+            # 1. VIP Customer Recognition (Direct Pass)
+            if await redis_inst.sismember("spam:vip:phones", phone):
+                logger.info(f"[AntiSpam] VIP Pass for phone: {phone}")
+                return False, "VIP Customer Trust", 0.0, device_hash
+
+            # 2. Whitelist Bypass
+            if await redis_inst.sismember("spam:whitelist:phones", phone):
                 logger.info(f"[AntiSpam] Whitelist Bypass for phone: {phone}")
-                return False, "Whitelist Bypass", 0.0, fingerprint
-        address = self.normalize_address(order_data.get("address", ""))
+                return False, "Whitelist Bypass", 0.0, device_hash
+        
+        # 3. Viral 2026: Identity & Content Validation
+        address_val = order_data.get("address", "")
+        address = self.normalize_address(str(address_val))
         addr_hash = hashlib.sha256(address.encode()).hexdigest() if address else "no_addr"
         
-        score = 0.0
-        reasons = []
+        score: float = 0.0
+        reasons: List[str] = []
         now = int(time.time())
 
-        # Sub-routine: Evaluate PII completeness (Prevent silent bypasses)
+        name = str(order_data.get("name", ""))
+        raw_phone = str(order_data.get("phone", ""))
+        
+        if self.has_troll_content(name, address):
+            return True, "Competitor Troll Detected", 100.0, device_hash
+            
+        if not self.is_valid_vn_phone(raw_phone):
+            score += 80.0
+            reasons.append("Invalid Vietnam Phone Format")
+
+        # Sub-routine: Evaluate PII completeness
         if phone == "unspecified" or not phone.strip():
             score += 40.0
             reasons.append("Incomplete PII (Missing Phone)")
         
         # Sub-routine: Vector Tracking with Atomic Lua (24h Window)
         vectors = [
-            ("fp", fingerprint),
+            ("fp", device_hash),
             ("phone", phone),
             ("addr", addr_hash)
         ]
@@ -110,42 +214,48 @@ class AntiSpamService:
         for v_type, v_val in vectors:
             if v_val == "unspecified" or v_val == "no_addr": continue
             
-            key = f"spam:v2026:{v_type}:{v_val}"
-            last_key = f"spam:last:{v_type}:{v_val}"
+            key: str = f"spam:v2026:{v_type}:{v_val}"
+            last_key: str = f"spam:last:{v_type}:{v_val}"
             
             # ATOMIC Lua Execution
-            try:
-                res = await self.redis.eval(
-                    self.LUA_VELOCITY_SCRIPT,
-                    2, # num_keys
-                    key,
-                    last_key,
-                    self.BLACKLIST_DURATION,
-                    now
-                )
-                count = int(res[0])
-                last_ts = res[1]
-                
-                # Volume Logic
-                if count > self.MAX_ORDERS_24H:
-                    score += 60.0
-                    reasons.append(f"Professional Cluster Detect ({v_type.upper()}:{count})")
-                
-                # Rapid Fire Logic
-                if last_ts and (now - int(last_ts)) < self.RAPID_FIRE_SECONDS:
-                    score += 50.0 # High penalty for Rapid Fire
-                    reasons.append(f"Rapid Fire Burst ({v_type.upper()})")
+            if self.redis is not None:
+                redis_inst = cast(_redis.Redis, self.redis)
+                try:
+                    res_raw = await redis_inst.eval(
+                        self.LUA_VELOCITY_SCRIPT,
+                        2, # num_keys
+                        key,
+                        last_key,
+                        self.BLACKLIST_DURATION,
+                        now
+                    )
+                    # Force cast to list for indexing
+                    res_list: List[Union[str, int, float, None]] = list(res_raw) if isinstance(res_raw, (list, tuple)) else []
                     
-            except Exception as e:
-                logger.error(f"[AntiSpam] Lua Script Error: {e}")
+                    count: int = int(res_list[0]) if len(res_list) > 0 and res_list[0] is not None else 0
+                    last_ts_val = res_list[1] if len(res_list) > 1 else None
+                    
+                    # Volume Logic
+                    if count > self.MAX_ORDERS_24H:
+                        score = cast(float, score) + 60.0
+                        reasons.append(f"Professional Cluster Detect ({v_type.upper()}:{count})")
+                    
+                    # Rapid Fire Logic
+                    if last_ts_val is not None:
+                        ts_int: int = int(str(last_ts_val))
+                        if (now - ts_int) < self.RAPID_FIRE_SECONDS:
+                            score = cast(float, score) + 50.0
+                            reasons.append(f"Rapid Fire Burst ({v_type.upper()})")
+                except Exception as e:
+                    logger.error(f"[AntiSpam] Lua Script Error: {e}")
 
-        # Sub-routine: Cross-vector Correlation (Identity Rotation vs Office/Dorm False Positives)
         phone_cluster_key = f"spam:sync:phone:{phone}"
         addr_cluster_key = f"spam:sync:addr:{addr_hash}"
-        
-        if phone != "unspecified" and addr_hash != "no_addr":
-            async with self.redis.pipeline(transaction=True) as pipe:
-                pipe.sadd(phone_cluster_key, fingerprint)
+
+        if phone != "unspecified" and addr_hash != "no_addr" and self.redis is not None:
+            redis_inst = cast(_redis.Redis, self.redis)
+            async with redis_inst.pipeline(transaction=True) as pipe:
+                pipe.sadd(phone_cluster_key, device_hash)
                 pipe.expire(phone_cluster_key, self.BLACKLIST_DURATION)
                 pipe.scard(phone_cluster_key)
                 
@@ -153,39 +263,43 @@ class AntiSpamService:
                 pipe.expire(addr_cluster_key, self.BLACKLIST_DURATION)
                 pipe.scard(addr_cluster_key)
                 
-                res = await pipe.execute()
-                fp_count = res[2]
-                addr_phones_count = res[5]
+                # Redis execute returns a list of results from the pipeline (int/bool)
+                res_raw_pipe = await pipe.execute()
+                res_pipe: List[int] = [int(v) if isinstance(v, (int, bool)) else 0 for v in res_raw_pipe]
                 
-                # Clone Farm: 1 Phone shared across many device fingerprints
+                fp_count: int = res_pipe[2] if len(res_pipe) > 2 else 0
+                addr_phones_count: int = res_pipe[5] if len(res_pipe) > 5 else 0
+                
                 if fp_count > 1:
-                    penalty = 80.0 if is_campaign_mode else 50.0  # Stricter in Campaign Mode
-                    score += penalty
-                    reasons.append(f"Identity Rotation (Phone used by {fp_count} dev fingerprints)")
+                    score = cast(float, score) + (80.0 if is_campaign_mode else 50.0)
+                    reasons.append(f"Identity Rotation (Phone used by {fp_count} dev hashes)")
                 
-                # Office/Dorm False Positive Mitigation
-                # If same address has many phones, but FP count per phone is 1 -> Valid Cluster
                 if addr_phones_count > 2 and fp_count == 1:
-                    score -= 30.0  # Trust bonus
-                    score = max(0.0, score) # Floor at 0
+                    score -= 30.0
+                    score = 0.0 if score < 0.0 else score
                     reasons.append("Office/Dorm Cluster Detected (Trust +)")
 
-        # Sub-routine: Heuristics based on Mode
-        items = order_data.get("items", [])
+        items_val = order_data.get("items", [])
+        items = list(items_val) if isinstance(items_val, list) else []
+        
         if not is_campaign_mode:
-            # Standard Strict Mode
             if len(items) > 10:
                 score += 30.0
                 reasons.append("Bulk Order Anomaly")
             for item in items:
-                if item.get("quantity", 0) > 20:
-                    score += 50.0
+                qty_val = item.get("quantity", 0)
+                if int(qty_val) > 20:
+                    score = cast(float, score) + 50.0
                     reasons.append("Stock Drain Attempt")
-        else:
-            # Campaign Mode: Loose Quantity check, assuming Flash Sale
-            pass
 
         # Result Evaluation
+        # 4. Viral 2026: Final Agentic Review for ambiguous cases
+        if self.AUDIT_THRESHOLD_SCORE > score >= 40.0:
+            ai_penalty: float = await self.agentic_address_review(name, address)
+            if ai_penalty > 50.0:
+                score = cast(float, score) + ai_penalty
+                reasons.append(f"Agentic AI Detection (Spam Score: {ai_penalty})")
+
         is_spam = score >= self.PRO_THRESHOLD_SCORE
         final_reason = " | ".join(reasons) if reasons else "Legitimate"
         
@@ -193,8 +307,8 @@ class AntiSpamService:
             final_reason = f"PENDING_AUDIT: {final_reason}"
             is_spam = True 
 
-        return is_spam, final_reason, min(score, 100.0), fingerprint
+        return is_spam, final_reason, min(score, 100.0), device_hash
 
 # apps/api-gateway/src/services/anti_spam.py
-from backend.services.xohi_memory import xohi_memory
+from backend.services.xohi_memory import xohi_memory # type: ignore
 anti_spam_service = AntiSpamService(redis_client=xohi_memory.client)

@@ -8309,13 +8309,6 @@ export interface components {
              * @example null
              * @constant
              */
-            fingerprint: Record<string, never>;
-            /**
-             * @description null
-             * @default null
-             * @example null
-             * @constant
-             */
             history: Record<string, never>[];
             /**
              * @description null

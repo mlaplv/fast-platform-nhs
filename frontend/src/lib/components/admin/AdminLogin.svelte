@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fade, fly, scale } from "svelte/transition";
-  import { ShieldCheck, Lock, Mail, ArrowRight, Fingerprint, Phone, Chrome, Facebook, MessageCircle, Eye, EyeOff } from "lucide-svelte";
+  import { ShieldCheck, Lock, Mail, ArrowRight, ScanFace, Phone, Chrome, Facebook, MessageCircle, Eye, EyeOff } from "lucide-svelte";
   import { permissionState } from "$lib/state/permissions.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { fallbackSha256 } from "$lib/utils/cryptoFallback";
@@ -384,7 +384,7 @@
               <div
                 class="absolute inset-0 border border-cyan-400/20 rounded-full group-hover:border-cyan-400/50 transition-colors"
               ></div>
-              <Fingerprint
+              <ScanFace
                 size={32}
                 class="text-gray-600 group-hover:text-cyan-400 transition-colors"
               />

@@ -4,6 +4,7 @@
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import type { QuizQuestion, ProductMetadata } from '$lib/types';
   import QuizIcon from './QuizIcon.svelte';
+  import DiagnosticScanner from './slug/DiagnosticScanner.svelte';
   import "./slug/LiquidEffects.css";
 
   const shopStore = getShopStore();
@@ -21,27 +22,26 @@
   });
 
   let currentStep = $state(0);
-  let answers = $state<string[]>([]);
+  let answers = $state<Array<{q: string, a: string}>>([]);
   let progress = $derived(questions.length > 0 ? (currentStep / questions.length) * 100 : 0);
 
   let quizContainer = $state<HTMLElement | null>(null);
 
-  function nextStep(value: string) {
-    answers.push(value);
+  function nextStep(value: string, label: string) {
+    answers.push({ q: questions[currentStep].title, a: label });
     if (currentStep < questions.length - 1) {
       currentStep++;
     } else {
       currentStep++;
-      // Logic for quantity recommendation
-      if (answers.includes('heavy') || answers.includes('failed')) {
-        shopStore.setQuantity(2);
-      }
+      // Trigger AI Agentic Analysis
+      shopStore.analyzeDiagnostics(answers);
     }
   }
 
   function restart() {
     currentStep = 0;
     answers = [];
+    shopStore.diagnosticResult = null;
     shopStore.setQuantity(1);
   }
 </script>
@@ -57,7 +57,7 @@
   </defs>
 </svg>
 
-<div bind:this={quizContainer} class="clinical-quiz glass-liquid p-8 md:p-12 rounded-[3.5rem] relative overflow-hidden max-w-4xl mx-auto border-white/5 shadow-2xl">
+<div bind:this={quizContainer} class="clinical-quiz glass-liquid p-8 md:p-12 rounded-[3.5rem] relative overflow-hidden max-w-4xl mx-auto border-white/5 shadow-2xl min-h-[550px]">
   <!-- Subdued Neural Orbs -->
   <div class="neural-orb -top-20 -right-20 opacity-20" style="background: radial-gradient(circle, #3b82f6 0%, transparent 70%); transform: scale(1.5);"></div>
   <div class="neural-orb -bottom-40 -left-20 opacity-10" style="background: radial-gradient(circle, #818cf8 0%, transparent 70%);"></div>
@@ -83,8 +83,8 @@
         <div class="grid grid-cols-1 gap-4">
           {#each questions[currentStep].options as option, idx}
             <button
-              onclick={() => nextStep(option.value)}
-              onkeydown={(e) => e.key === 'Enter' && nextStep(option.value)}
+              onclick={() => nextStep(option.value, option.label)}
+              onkeydown={(e) => e.key === 'Enter' && nextStep(option.value, option.label)}
               aria-label="Select {option.label}"
               class="group p-6 text-left glass-liquid border-white/5 rounded-[2rem] hover:border-blue-500/30 transition-all duration-500 flex items-center gap-6 relative overflow-hidden liquid-bubble"
               in:fly={{ x: 15, duration: 800, delay: idx * 50, easing: quintOut }}
@@ -106,39 +106,72 @@
         </div>
       </div>
     {:else}
-      <div class="result-container text-center py-12 relative" style:z-index="var(--z-surface)" in:fade={{ duration: 1000 }}>
-        <div class="relative inline-block mb-12">
-          <div class="absolute inset-0 bg-blue-500 blur-[50px] opacity-10 animate-pulse"></div>
-          <div class="relative w-32 h-32 glass-liquid rounded-[2.5rem] flex items-center justify-center shadow-2xl border-white/10" in:scale={{ duration: 800, delay: 100 }}>
-            <svg class="w-16 h-16 text-blue-400/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
+      {#if shopStore.isAnalyzing}
+        <DiagnosticScanner status="Hệ thống AI đang phân tích và thiết kế liệu trình..." />
+      {:else if shopStore.diagnosticResult}
+        <div class="result-container text-center py-12 relative" style:z-index="var(--z-surface)" in:fade={{ duration: 1000 }}>
+          <div class="mb-10 text-left glass-liquid p-8 md:p-12 rounded-[3.5rem] border-white/10 backdrop-blur-3xl relative overflow-hidden shadow-[0_0_80px_rgba(30,58,138,0.3)]">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 border-b border-white/10 pb-8">
+              <div>
+                <h3 class="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase mb-2">KẾT QUẢ PHÂN TÍCH</h3>
+                <p class="text-blue-400/60 font-black text-[10px] tracking-[0.4em] uppercase">Phác đồ cá nhân hóa bởi AI Agent 2026</p>
+              </div>
+              <div class="flex items-center gap-4">
+                <div class="text-right hidden md:block">
+                  <div class="text-[10px] font-black text-white/30 uppercase tracking-widest">Hiệu lực</div>
+                  <div class="text-emerald-400 font-bold text-sm tracking-tighter uppercase">Chứng thực an toàn</div>
+                </div>
+                <div class="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                  <svg class="w-8 h-8 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            <div class="space-y-8">
+              <div>
+                <h4 class="text-xs font-black text-blue-400/60 mb-2 uppercase tracking-[0.3em]">Hệ thống phân tích</h4>
+                <p class="text-white text-2xl font-bold leading-tight tracking-tight">"{shopStore.diagnosticResult.analysis}"</p>
+              </div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-white/5">
+                <div>
+                  <h4 class="text-[10px] font-black text-white/30 mb-3 uppercase tracking-[0.3em]">Lập luận y khoa</h4>
+                  <p class="text-white/50 text-sm leading-relaxed">{shopStore.diagnosticResult.reasoning}</p>
+                </div>
+                <div>
+                  <div class="flex items-center gap-3 mb-3">
+                    <h4 class="text-[10px] font-black text-emerald-400/60 uppercase tracking-[0.3em]">Phác đồ tối ưu</h4>
+                    {#if shopStore.diagnosticResult.promotion_label}
+                      <span class="px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-black rounded-full animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                        🎁 {shopStore.diagnosticResult.promotion_label}
+                      </span>
+                    {/if}
+                  </div>
+                  <p class="text-emerald-500/80 text-sm font-bold leading-relaxed">{shopStore.diagnosticResult.recommendation}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-6 max-w-sm mx-auto">
+            <button
+              onclick={() => shopStore.openCheckout()}
+              class="group relative w-full py-8 bg-blue-600 text-white rounded-[2.5rem] font-black text-3xl shadow-[0_30px_70px_rgba(59,130,246,0.5)] overflow-hidden active:scale-[0.98] transition-all duration-500"
+            >
+              <span class="relative" style:z-index="var(--z-surface)">XEM LIỆU TRÌNH</span>
+              <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+            </button>
+            <button
+              onclick={restart}
+              class="text-[10px] font-black text-white/10 hover:text-blue-400/50 transition-colors uppercase tracking-[0.4em] py-2"
+            >
+              Làm lại chẩn đoán
+            </button>
           </div>
         </div>
-        
-        <h3 class="text-5xl md:text-6xl font-black text-white mb-6 tracking-[-0.05em] leading-[0.9] uppercase">
-          {@html labels.result_headline}
-        </h3>
-        <p class="text-xl text-blue-100/40 mb-12 max-w-lg mx-auto leading-relaxed font-medium">
-          {@html labels.result_subheadline.replace('{quantity}', shopStore.quantity.toString())}
-        </p>
-
-        <div class="flex flex-col gap-6 max-w-sm mx-auto">
-          <button
-            onclick={() => shopStore.openCheckout()}
-            class="group relative w-full py-6 bg-blue-600/90 text-white rounded-[2rem] font-black text-2xl shadow-xl overflow-hidden active:scale-[0.98] transition-all duration-500"
-          >
-            <span class="relative" style:z-index="var(--z-surface)">{labels.result_cta}</span>
-            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-          </button>
-          <button
-            onclick={restart}
-            class="text-xs font-black text-white/10 hover:text-blue-400/50 transition-colors uppercase tracking-[0.3em] py-2"
-          >
-            {labels.restart_label}
-          </button>
-        </div>
-      </div>
+      {/if}
     {/if}
   {:else}
     <div class="py-20 text-center" in:fade>

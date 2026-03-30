@@ -75,7 +75,6 @@ export interface Order {
   itemCount: number;
   isSpam: boolean;
   spamScore?: number;
-  fingerprint?: string;
   spamReason?: string;
   createdAt: string;
   successfulOrdersCount: number;

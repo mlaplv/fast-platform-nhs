@@ -1,6 +1,6 @@
 <script lang="ts">
     import { fade, slide, scale } from 'svelte/transition';
-    import { X, Trash2, RotateCcw, Edit3, Link, Wand2, Maximize2, ShieldCheck, Tag, Fingerprint, Activity, Clock, HardDrive, Image as ImageIcon } from 'lucide-svelte';
+    import { X, Trash2, RotateCcw, Edit3, Link, Wand2, Maximize2, ShieldCheck, Tag, Hash, Activity, Clock, HardDrive, Image as ImageIcon } from 'lucide-svelte';
     import type { MediaAsset } from '$lib/state/types';
     import { mediaStore } from '$lib/state/media.svelte';
     import { resolveMediaUrl } from '$lib/state/utils';
@@ -118,7 +118,7 @@
             <div class="space-y-5 px-1">
                 <div class="flex flex-col gap-1.5">
                     <div class="flex items-center gap-2 opacity-40">
-                        <Fingerprint size={12} />
+                        <Hash size={12} />
                         <label class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Original Filename</label>
                     </div>
                     <span class="text-[12px] font-bold text-zinc-800 dark:text-zinc-200 break-all leading-tight">{asset.filename || 'unknown_payload'}</span>

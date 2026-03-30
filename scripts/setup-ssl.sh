@@ -55,7 +55,7 @@ if [ "$OS_TYPE" == "Linux" ]; then
 elif [ "$OS_TYPE" == "Darwin" ]; then
     echo -e "${YELLOW}Đang kiểm tra chứng chỉ cũ trên macOS...${NC}"
     # SMART SSL TRUST: Chỉ cập nhật nếu cần thiết
-    LOCAL_HASH=$(openssl x509 -noout -fingerprint -sha1 -in "$CERT_PATH" | awk -F'=' '{print $2}' | tr -d ':')
+    LOCAL_HASH=$(openssl x509 -in "$CERT_PATH" -outform DER | openssl sha1 | awk '{print toupper($NF)}')
     ALREADY_TRUSTED=false
 
     echo -e "${YELLOW}Đang kiểm tra chứng chỉ trong Keychain...${NC}"

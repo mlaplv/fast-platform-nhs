@@ -1,7 +1,7 @@
 import uuid
 import logging
 from datetime import datetime, timezone
-from typing import List, Dict, Optional, TypedDict, Union, Any
+from typing import List, Dict, Optional, TypedDict, Union
 
 from sqlalchemy import select, func, or_, and_
 import sqlalchemy as sa
@@ -20,7 +20,6 @@ JSONType = Union[str, int, float, bool, None, List["JSONType"], Dict[str, "JSONT
 
 class OrderMetadata(TypedDict, total=False):
     user_agent: str
-    fingerprint: Optional[str]
     client_notes: Optional[str]
 
 class OrderHistoryItem(TypedDict):
@@ -44,11 +43,10 @@ class OrderInsight(TypedDict):
     last_order: Optional[str]
     previous_orders: List[PreviousOrder]
 
-def mask_string(s: Any, visible_prefix: int = 1, visible_suffix: int = 1) -> str:
-    if not s or len(str(s)) < (visible_prefix + visible_suffix):
+def mask_string(s: str, visible_prefix: int = 1, visible_suffix: int = 1) -> str:
+    if not s or len(s) < (visible_prefix + visible_suffix):
         return "***"
-    s_str = str(s)
-    return f"{s_str[:visible_prefix]}{'*' * (len(s_str) - visible_prefix - visible_suffix)}{s_str[len(s_str)-visible_suffix:]}"
+    return f"{s[:visible_prefix]}{'*' * (len(s) - visible_prefix - visible_suffix)}{s[len(s)-visible_suffix:]}"
 
 logger = logging.getLogger("api-gateway")
 
@@ -75,8 +73,7 @@ class OrderService:
             customer_ip=ip,
             tenant_id=current_tenant_id.get() or "default",
             order_metadata=OrderMetadata(
-                user_agent=ua,
-                fingerprint=data.items[0].get("fingerprint") if isinstance(data.items, list) and data.items else None 
+                user_agent=ua
             ),
             history=history
         )
@@ -128,7 +125,7 @@ class OrderService:
         total = await db_session.scalar(count_stmt) or 0
 
         # 2. R76: Scalar Projection Fetch with Aggregate History
-        # Identity match: customer_phone (if exists) OR user_id OR fingerprint
+        # Identity match: customer_phone (if exists) OR user_id
         
         # Subqueries for stats (Performance Optimized Viral 2026)
         success_sq = select(sa.func.count(Order.id)).where(
@@ -149,7 +146,7 @@ class OrderService:
 
         stmt = select(
             Order.id, Order.status, Order.total_amount, Order.items, Order.created_at,
-            Order.is_spam, Order.spam_score, Order.spam_reason, Order.fingerprint,
+            Order.is_spam, Order.spam_score, Order.spam_reason,
             Order.customer_name, Order.customer_phone, Order.customer_address, Order.customer_ip,
             Order.order_metadata,
             User.name.label("user_name"),
@@ -164,8 +161,8 @@ class OrderService:
         return OrderListResponse(data=data, total=total)
 
     @staticmethod
-    async def get_order(db_session: AsyncSession, order_id: str, fingerprint: Optional[str] = None) -> OrderResponse:
-        """Moves logic from OrderController.get_order. Uses Scalar Projection."""
+    async def get_order(db_session: AsyncSession, order_id: str, ox_cookie: Optional[str] = None) -> OrderResponse:
+        """Moves logic from OrderController.get_order. Identity Shield V3.0."""
         success_sq = select(sa.func.count(Order.id)).where(
             and_(
                 Order.customer_phone == sa.column("customer_phone"),
@@ -185,7 +182,7 @@ class OrderService:
         stmt = (
             select(
                 Order.id, Order.status, Order.total_amount, Order.items, Order.created_at,
-                Order.is_spam, Order.spam_score, Order.spam_reason, Order.fingerprint,
+                Order.is_spam, Order.spam_score, Order.spam_reason,
                 Order.customer_name, Order.customer_phone, Order.customer_address, Order.customer_ip,
                 Order.history, Order.cancellation_reason, Order.order_metadata,
                 User.name.label("user_name"),
@@ -256,22 +253,16 @@ class OrderService:
                     previous_orders=previous_orders
                 )
 
-        # Validate with custom insight field
-        res_dict: Dict[str, Any] = dict(row._asdict())
+        res_dict: Dict[str, object] = dict(row._asdict())
         res_dict["insight"] = insight
 
-        # Elite V2.2: Fingerprint Security Gate
-        order_fingerprint = (row.order_metadata or {}).get("fingerprint") or row.fingerprint
-        is_trusted = bool(fingerprint and order_fingerprint and fingerprint == order_fingerprint)
-        
+        # Elite V3.0: Cookie Session Gate
+        is_trusted: bool = bool(ox_cookie and ox_cookie == row.id)
+
         res_dict["is_trusted_device"] = is_trusted
         res_dict["name_masked"] = mask_string(row.customer_name or "")
         res_dict["address_masked"] = mask_string(row.customer_address or "", visible_prefix=4, visible_suffix=0)
 
-        # If NOT trusted, wipe sensitive clear-text for the response model if mapping to PublicOrderResponse
-        # However, OrderResponse (the return type here) is used by Admin too.
-        # The Controller will handle the final schema mapping.
-        
         return OrderResponse.model_validate(res_dict)
 
     @staticmethod
