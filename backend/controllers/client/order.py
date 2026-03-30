@@ -21,7 +21,8 @@ class PublicOrderController(Controller):
         self,
         db_session: AsyncSession,
         order_id: str,
-        phone: Optional[str] = None
+        phone: Optional[str] = None,
+        fingerprint: Optional[str] = None
     ) -> PublicOrderResponse:
         """PUBLIC: Get a single order by ID for the confirmation page.
         Security: MUST verify phone for ALL lookups (UUID or Suffix)
@@ -32,7 +33,7 @@ class PublicOrderController(Controller):
         if not phone:
              raise ValidationException("Vui lòng cung cấp số điện thoại để tra cứu đơn hàng")
 
-        order_res = await order_service.get_order(db_session, order_id)
+        order_res = await order_service.get_order(db_session, order_id, fingerprint=fingerprint)
 
         # R2026: Elite Phone Normalization (Digits Only)
         clean_search = "".join(filter(str.isdigit, phone))
@@ -40,6 +41,11 @@ class PublicOrderController(Controller):
 
         if not clean_search or clean_search != clean_order:
             raise ValidationException("Số điện thoại không khớp với hồ sơ đơn hàng")
+
+        # Elite V2.2: Redact sensitive data if device is NOT trusted
+        if not order_res.is_trusted_device:
+            order_res.customerName = order_res.name_masked
+            order_res.customerAddress = order_res.address_masked
 
         return PublicOrderResponse.model_validate(order_res.model_dump())
 

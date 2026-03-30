@@ -86,6 +86,9 @@ class OrderResponse(BaseModel):
     cancelledOrdersCount: int = Field(0, alias="cancelled_count", validation_alias=AliasChoices("cancelled_count", "cancelledOrdersCount"))
     history: List[Dict[str, Union[str, int, float, bool, None]]] = Field(default_factory=list)
     insight: Optional[CustomerInsight] = None
+    is_trusted_device: bool = False
+    name_masked: Optional[str] = None
+    address_masked: Optional[str] = None
 
     @field_validator("id", mode="before")
     @classmethod
@@ -155,6 +158,9 @@ class PublicOrderResponse(BaseModel):
     cancellationReason: Optional[str] = Field(None, alias="cancellation_reason", validation_alias=AliasChoices("cancellation_reason", "cancellationReason"))
     successfulOrdersCount: int = Field(0, alias="successful_count", validation_alias=AliasChoices("successful_count", "successfulOrdersCount"))
     cancelledOrdersCount: int = Field(0, alias="cancelled_count", validation_alias=AliasChoices("cancelled_count", "cancelledOrdersCount"))
+    is_trusted_device: bool = False
+    name_masked: Optional[str] = None
+    address_masked: Optional[str] = None
     insight: Optional[PublicCustomerInsight] = None
 
     @field_validator("id", mode="before")

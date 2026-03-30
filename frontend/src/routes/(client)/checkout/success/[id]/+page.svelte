@@ -6,6 +6,7 @@
   import { apiClient } from '$lib/utils/apiClient';
   import { formatCurrency, formatDate } from '$lib/utils/format.ts';
   import SuccessMobile from '$lib/components/mobile/sections/SuccessMobile.svelte';
+  import { getFingerprint } from '$lib/state/commerce/shop.svelte.ts';
 
   let { data } = $props<{ data: { isMobile: boolean } }>();
 
@@ -80,7 +81,7 @@
     
     try {
       const res = await apiClient.get<OrderDetail>(`/api/v1/client/orders/${orderId}`, {
-        params: phoneToUse ? { phone: phoneToUse } : {}
+        params: phoneToUse ? { phone: phoneToUse, fingerprint: getFingerprint() } : { fingerprint: getFingerprint() }
       });
       if (res) {
         order = res;
@@ -290,11 +291,11 @@
           <div class="space-y-4" in:fade>
             <div class="flex flex-col">
               <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Người nhận:</span>
-              <span class="text-lg font-bold uppercase">{order?.customerName || order?.customer_name || 'Khách hàng'}</span>
+              <span class="text-lg font-bold uppercase">{order?.customerName || order?.name_masked || 'Khách hàng'}</span>
             </div>
             <div class="flex flex-col">
               <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Địa chỉ:</span>
-              <span class="text-xs text-slate-300 leading-snug uppercase">{order?.customerAddress || order?.customer_address || 'Địa chỉ bảo mật'}</span>
+              <span class="text-xs text-slate-300 leading-snug uppercase">{order?.customerAddress || order?.address_masked || 'Địa chỉ bảo mật'}</span>
             </div>
             <div class="flex flex-col">
               <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Số điện thoại:</span>
@@ -407,10 +408,14 @@
       <div class="flex flex-col md:flex-row gap-4 mb-4">
         <button
           onclick={() => isEditing = true}
-          disabled={order?.status === 'CANCELLED' || isSubmittingAction || isEditing}
+          disabled={order?.status === 'CANCELLED' || isSubmittingAction || isEditing || !order?.is_trusted_device}
           class="flex-1 py-4 bg-white/[0.03] border border-white/10 text-slate-300 font-black text-center rounded-full hover:bg-white/[0.08] hover:text-white transition-all active:scale-95 uppercase tracking-widest text-[10px] italic disabled:opacity-20"
         >
-          {isEditing ? 'ĐANG CHỈNH SỬA...' : 'CHỈNH SỬA ĐƠN'}
+          {#if !order?.is_trusted_device}
+            THIẾT BỊ KHÔNG TIN CẬY 🛡️
+          {:else}
+            {isEditing ? 'ĐANG CHỈNH SỬA...' : 'CHỈNH SỬA ĐƠN'}
+          {/if}
         </button>
         <button
           onclick={() => isConfirmCancelOpen = true}

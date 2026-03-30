@@ -80,6 +80,9 @@ export interface Order {
   createdAt: string;
   successfulOrdersCount: number;
   cancelledOrdersCount: number;
+  is_trusted_device?: boolean;
+  name_masked?: string;
+  address_masked?: string;
   planning?: OrderPlanning;
   order_metadata?: {
     zalo_status?: 'ACTIVE' | 'NOT_FOUND' | 'PENDING';

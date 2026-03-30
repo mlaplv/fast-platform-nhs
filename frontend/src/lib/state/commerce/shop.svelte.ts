@@ -224,19 +224,24 @@ export class ShopStore {
     }
 
     private getFingerprint(): string {
-        if (typeof window === 'undefined') return 'server';
-        const nav = window.navigator;
-        const screen = window.screen;
-        const str = `${nav.userAgent}|${nav.language}|${screen.width}x${screen.height}|${screen.colorDepth}`;
-        // Simple hash (not cryptographic but enough for a "fingerprint" label in UI)
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        return Math.abs(hash).toString(16);
+        return getFingerprint();
     }
+}
+
+/** ELITE V2.2: Device Fingerprinting Utility */
+export function getFingerprint(): string {
+    if (typeof window === 'undefined') return 'server';
+    const nav = window.navigator;
+    const screen = window.screen;
+    const str = `${nav.userAgent}|${nav.language}|${screen.width}x${screen.height}|${screen.colorDepth}`;
+    // Simple hash (not cryptographic but enough for a "fingerprint" label in UI)
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return Math.abs(hash).toString(16);
 }
 
 // 🚀 ELITE CONTEXT KEYS (Elite V2.2)
@@ -249,3 +254,12 @@ export function setShopStore() {
 export function getShopStore(): ShopStore {
     return getContext(SHOP_KEY);
 }
+
+/** 
+ * 🛡️ ELITE V2.2: Safety Export (Legacy Patch)
+ * This is a dummy export to prevent ESM SyntaxErrors in case of cached imports 
+ * or legacy components still referencing 'shopStore' directly.
+ */
+export const shopStore = {
+    getFingerprint: () => getFingerprint()
+};

@@ -1,7 +1,7 @@
 import uuid
 import logging
 from datetime import datetime, timezone
-from typing import List, Dict, Optional, TypedDict, Union
+from typing import List, Dict, Optional, TypedDict, Union, Any
 
 from sqlalchemy import select, func, or_, and_
 import sqlalchemy as sa
@@ -43,6 +43,12 @@ class OrderInsight(TypedDict):
     first_order: Optional[str]
     last_order: Optional[str]
     previous_orders: List[PreviousOrder]
+
+def mask_string(s: Any, visible_prefix: int = 1, visible_suffix: int = 1) -> str:
+    if not s or len(str(s)) < (visible_prefix + visible_suffix):
+        return "***"
+    s_str = str(s)
+    return f"{s_str[:visible_prefix]}{'*' * (len(s_str) - visible_prefix - visible_suffix)}{s_str[len(s_str)-visible_suffix:]}"
 
 logger = logging.getLogger("api-gateway")
 
@@ -145,6 +151,7 @@ class OrderService:
             Order.id, Order.status, Order.total_amount, Order.items, Order.created_at,
             Order.is_spam, Order.spam_score, Order.spam_reason, Order.fingerprint,
             Order.customer_name, Order.customer_phone, Order.customer_address, Order.customer_ip,
+            Order.order_metadata,
             User.name.label("user_name"),
             success_sq, cancel_sq
         ).outerjoin(User, Order.user_id == User.id).where(
@@ -157,7 +164,7 @@ class OrderService:
         return OrderListResponse(data=data, total=total)
 
     @staticmethod
-    async def get_order(db_session: AsyncSession, order_id: str) -> OrderResponse:
+    async def get_order(db_session: AsyncSession, order_id: str, fingerprint: Optional[str] = None) -> OrderResponse:
         """Moves logic from OrderController.get_order. Uses Scalar Projection."""
         success_sq = select(sa.func.count(Order.id)).where(
             and_(
@@ -180,7 +187,7 @@ class OrderService:
                 Order.id, Order.status, Order.total_amount, Order.items, Order.created_at,
                 Order.is_spam, Order.spam_score, Order.spam_reason, Order.fingerprint,
                 Order.customer_name, Order.customer_phone, Order.customer_address, Order.customer_ip,
-                Order.history, Order.cancellation_reason,
+                Order.history, Order.cancellation_reason, Order.order_metadata,
                 User.name.label("user_name"),
                 success_sq, cancel_sq
             )
@@ -250,8 +257,21 @@ class OrderService:
                 )
 
         # Validate with custom insight field
-        res_dict = dict(row._asdict())
+        res_dict: Dict[str, Any] = dict(row._asdict())
         res_dict["insight"] = insight
+
+        # Elite V2.2: Fingerprint Security Gate
+        order_fingerprint = (row.order_metadata or {}).get("fingerprint") or row.fingerprint
+        is_trusted = bool(fingerprint and order_fingerprint and fingerprint == order_fingerprint)
+        
+        res_dict["is_trusted_device"] = is_trusted
+        res_dict["name_masked"] = mask_string(row.customer_name or "")
+        res_dict["address_masked"] = mask_string(row.customer_address or "", visible_prefix=4, visible_suffix=0)
+
+        # If NOT trusted, wipe sensitive clear-text for the response model if mapping to PublicOrderResponse
+        # However, OrderResponse (the return type here) is used by Admin too.
+        # The Controller will handle the final schema mapping.
+        
         return OrderResponse.model_validate(res_dict)
 
     @staticmethod

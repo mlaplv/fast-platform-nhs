@@ -45,8 +45,8 @@
   }
 
   const items = $derived(order?.items || []);
-  const customerName = $derived(order?.customerName || order?.customer_name || 'Khách hàng');
-  const customerAddress = $derived(order?.customerAddress || order?.customer_address || 'Địa chỉ bảo mật');
+  const customerName = $derived(order?.customerName || order?.name_masked || 'Khách hàng');
+  const customerAddress = $derived(order?.customerAddress || order?.address_masked || 'Địa chỉ bảo mật');
 </script>
 
 <div class="fixed inset-0 bg-[#0a0a0a] text-white overflow-y-auto custom-scrollbar flex flex-col">
