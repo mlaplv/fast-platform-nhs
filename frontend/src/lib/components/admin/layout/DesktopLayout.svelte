@@ -21,7 +21,7 @@
 </script>
 
 <div
-  class="flex h-screen overflow-hidden bg-[#000000] text-gray-100 font-sans selection:bg-[#00FFFF]/30 relative"
+  class="admin-layout flex h-screen overflow-hidden bg-[#000000] text-gray-100 font-sans selection:bg-[#00FFFF]/30 relative"
 >
   <!-- Base Background Layer: Elite Pure Black -->
   <div

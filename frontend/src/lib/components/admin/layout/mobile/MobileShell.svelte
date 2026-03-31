@@ -12,7 +12,7 @@
   let { children } = $props();
 </script>
 
-<div class="fixed inset-0 flex flex-col overflow-hidden bg-[#020202] text-gray-100 font-sans">
+<div class="admin-layout fixed inset-0 flex flex-col overflow-hidden bg-[#020202] text-gray-100 font-sans">
   
   <!-- Main Content Area -->
   <main class="relative flex-1 z-10 overflow-hidden flex flex-col w-full h-full">

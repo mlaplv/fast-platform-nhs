@@ -4,13 +4,13 @@ from sqlalchemy import (
     String, ForeignKey, Integer, JSON, Boolean, Float, Enum as SQLEnum, Text, Index
 )
 import enum
+import uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database.models.base import Base, AuditMixin, SoftDeleteMixin, TenantMixin
 
 class Draft(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'drafts'
-
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     proposed_by: Mapped[str] = mapped_column(String)
     target_model: Mapped[str] = mapped_column(String)
     target_id: Mapped[Optional[str]] = mapped_column(String)
@@ -22,8 +22,7 @@ class Draft(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 
 class AgentTelemetryLog(Base, AuditMixin, TenantMixin):
     __tablename__ = 'agent_telemetry_logs'
-
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     session_id: Mapped[str] = mapped_column(String)
     agent_name: Mapped[str] = mapped_column(String)
     intent_hash: Mapped[str] = mapped_column(String)
@@ -34,8 +33,7 @@ class AgentTelemetryLog(Base, AuditMixin, TenantMixin):
 
 class ChatMessage(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'chat_messages'
-
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     session_id: Mapped[str] = mapped_column(String)
     user_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('users.id'))
     user: Mapped[Optional["User"]] = relationship("User", back_populates="chat_messages")
@@ -45,8 +43,7 @@ class ChatMessage(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 
 class Notification(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'notifications'
-
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('users.id'))
     user: Mapped[Optional["User"]] = relationship("User", back_populates="notifications")
     type: Mapped[str] = mapped_column(String, default="INFO")
@@ -65,8 +62,7 @@ class ReviewEntityType(str, enum.Enum):
 
 class SystemReview(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'system_reviews'
-
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     
     # Polymorphic Router
     entity_type: Mapped[ReviewEntityType] = mapped_column(SQLEnum(ReviewEntityType), index=True)

@@ -4,6 +4,7 @@
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { vuiController } from "$lib/vui";
   import XohiLogo from "$lib/components/admin/XohiLogo.svelte";
+  import "../../../../routes/(admin)/admin.css";
 
   let { children, userEmail, isMobile } = $props<{
     children?: import("svelte").Snippet;
