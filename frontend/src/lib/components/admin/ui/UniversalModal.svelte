@@ -23,6 +23,7 @@
   import SystemSettings from "../management/SystemSettings.svelte";
 import BannerManagement from "../management/BannerManagement.svelte";
 import AppointmentManagement from "../management/AppointmentManagement.svelte";
+import ReviewManagement from "../management/ReviewManagement.svelte";
 
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
@@ -47,6 +48,7 @@ import AppointmentManagement from "../management/AppointmentManagement.svelte";
     SYSTEM_SETTINGS: SystemSettings,
     BANNER_MANAGEMENT: BannerManagement,
     APPOINTMENTS: AppointmentManagement,
+    REVIEW_MANAGEMENT: ReviewManagement,
   };
 
   const WIDGET_LABEL: Record<string, string> = {
@@ -66,6 +68,7 @@ import AppointmentManagement from "../management/AppointmentManagement.svelte";
     SYSTEM_SETTINGS: "SYSTEM CONFIGURATION",
     BANNER_MANAGEMENT: "BANNER MANAGEMENT",
     APPOINTMENTS: "LỊCH HẸN NEURAL",
+    REVIEW_MANAGEMENT: "QUẢN TRỊ ĐÁNH GIÁ",
   };
 
   let open = $derived(nanobot.universalModalOpen);

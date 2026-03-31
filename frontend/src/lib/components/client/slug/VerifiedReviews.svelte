@@ -1,25 +1,19 @@
 <script lang="ts">
-  import { fade, fly } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
+  import { onMount, tick } from 'svelte';
+  import { fade, fly, scale, blur } from 'svelte/transition';
+  import { cubicOut, elasticOut, backOut } from 'svelte/easing';
   import type { Review, ProductMetadata } from '$lib/types';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import "./VerifiedReviews.css";
 
   const shopStore = getShopStore();
 
-  interface ReviewForm {
-    name: string;
-    location: string;
-    rating: number;
-    content: string;
-    phone: string;
-    isSubmitting: boolean;
-    showSuccess: boolean;
-  }
-  
   const product = $derived(shopStore.product);
   const metadata = $derived(product?.metadata || {});
-  const reviews = $derived(metadata?.reviews || []);
+  
+  let realReviews = $state<any[]>([]);
+  let isLoading = $state(true);
+
   const headline = $derived(metadata?.reviews_headline || '');
   const trustScore = $derived(metadata?.reviews_trust_score || '4.9/5');
   const countText = $derived(metadata?.reviews_count_text || '2,140+ LƯỢT MUA');
@@ -42,244 +36,348 @@
     form_content: (metadata.reviews_form_content_label as string) || 'Trải nghiệm thực tế',
     form_placeholder: (metadata.reviews_form_placeholder_content as string) || 'Hãy cho chúng tôi biết cảm nhận của bạn... *',
     form_cta: (metadata.reviews_form_cta_submit as string) || 'XÁC NHẬN GỬI ĐÁNH GIÁ',
-    success_title: (metadata.reviews_form_success_title as string) || 'Gửi thành công',
-    success_msg: (metadata.reviews_form_success_msg as string) || 'Hệ thống đã ghi nhận phản hồi của bạn.'
+    success_title: (metadata.reviews_form_success_title as string) || 'GỬI ĐÁNH GIÁ THÀNH CÔNG!',
+    success_msg: (metadata.reviews_form_success_msg || 'Hệ thống đã ghi nhận phản hồi của bạn. Đánh giá sẽ hiển thị sau khi được quản trị viên kiểm duyệt.') as string
   });
 
   let showFormModal = $state<boolean>(false);
   let isLocationOpen = $state<boolean>(false);
-  let newReview = $state<ReviewForm>({
-    name: '',
-    location: '',
-    rating: 5,
-    content: '',
-    phone: '',
-    isSubmitting: false,
-    showSuccess: false
-  });
+  
+  let nameRef = $state<HTMLInputElement>();
+  let phoneRef = $state<HTMLInputElement>();
+  let contentRef = $state<HTMLTextAreaElement>();
+  
+  let locationSelected = $state<string>('');
+  let ratingSelected = $state<number>(5);
+  let isSubmitting = $state<boolean>(false);
+  let showSuccess = $state<boolean>(false);
+  let contentLen = $state<number>(0);
 
-  const isValid: boolean = $derived(
-    newReview.name.length >= 2 && 
-    newReview.phone.length >= 10 && 
-    newReview.content.length >= 10 &&
-    newReview.location !== ''
-  );
+  // Elite Toast System
+  let toastMessage = $state<string>('');
+  let toastType = $state<'success' | 'error' | 'info'>('info');
+  let showToast = $state(false);
+
+  function triggerToast(msg: string, type: 'success' | 'error' | 'info' = 'info') {
+    toastMessage = msg;
+    toastType = type;
+    showToast = true;
+    setTimeout(() => { showToast = false; }, 4000);
+  }
 
   const locations = [
     "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ", 
     "Bình Dương", "Đồng Nai", "Khánh Hòa", "Lâm Đồng", "Quảng Ninh"
   ];
 
+  async function fetchRealReviews() {
+    if (!product?.id) return;
+    isLoading = true;
+    try {
+      const res = await fetch(`/api/v1/reviews?entity_type=PRODUCT&entity_id=${product.id}&status=APPROVED`);
+      if (res.ok) {
+        const data = await res.json();
+        realReviews = (data.items || []).map((r: any) => ({
+          id: r.id,
+          name: r.customer_name,
+          phone: r.customer_phone ? r.customer_phone.slice(0, 3) + '****' + r.customer_phone.slice(-3) : 'Ẩn danh',
+          location: r.customer_location || 'Việt Nam',
+          rating: r.rating,
+          content: r.content,
+          initial: r.customer_name ? r.customer_name.charAt(0).toUpperCase() : '?',
+          created_at: r.created_at
+        }));
+      }
+    } catch (e) {
+      console.error("Lỗi fetch reviews:", e);
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  $effect(() => {
+    if (product?.id) {
+       fetchRealReviews();
+    }
+  });
+
   const setRating = (r: number) => {
-    newReview.rating = r;
+    ratingSelected = r;
   };
 
   const submitReview = async (e: Event) => {
     e.preventDefault();
-    if (!isValid || newReview.isSubmitting) return;
+    if (isSubmitting) return;
     
-    newReview.isSubmitting = true;
-    await new Promise(r => setTimeout(r, 2000));
-    newReview.isSubmitting = false;
-    newReview.showSuccess = true;
+    const name = nameRef?.value || '';
+    const phone = phoneRef?.value || '';
+    const content = contentRef?.value || '';
+
+    if (name.length < 2 || phone.length < 10 || content.length < 10 || !locationSelected) {
+      triggerToast("Vui lòng nhập đầy đủ Danh tính, Số điện thoại và Nội dung.", "error");
+      return;
+    }
     
-    setTimeout(() => {
-      showFormModal = false;
-      newReview.showSuccess = false;
-      newReview.content = '';
-      newReview.phone = '';
-      newReview.name = '';
-      newReview.location = '';
-      newReview.rating = 5;
-    }, 2000);
+    isSubmitting = true;
+    try {
+      const res = await fetch('/api/v1/client/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entity_type: 'PRODUCT',
+          entity_id: product?.id || '',
+          customer_name: name,
+          customer_phone: phone,
+          customer_location: locationSelected,
+          rating: ratingSelected,
+          content: content
+        })
+      });
+
+      if (res.ok) {
+        showSuccess = true;
+        // Confetti start here
+        setTimeout(() => {
+          showFormModal = false;
+          showSuccess = false;
+          if (nameRef) nameRef.value = '';
+          if (phoneRef) phoneRef.value = '';
+          if (contentRef) contentRef.value = '';
+          contentLen = 0;
+          locationSelected = '';
+          ratingSelected = 5;
+        }, 5000);
+      } else {
+        triggerToast("Hệ thống bận, vui lòng thử lại sau.", "error");
+      }
+    } catch (error) {
+      triggerToast("Không thể kết nối máy chủ.", "error");
+    } finally {
+      isSubmitting = false;
+    }
   };
 </script>
 
-<section id="reviews" class="reviews-viewport snap-session relative">
-  <div class="reviews-container container mx-auto px-6 max-w-6xl pt-[var(--standard-pt)]">
-    <div class="mb-16 text-center">
-      <h2 class="section-headline mb-8">
+<section id="reviews" class="reviews-viewport snap-session relative overflow-hidden">
+  <div class="reviews-container container mx-auto px-6 max-w-6xl pt-[var(--standard-pt)] pb-24">
+    <!-- Header Section -->
+    <div class="mb-20 text-center" in:fade>
+      <h2 class="section-headline mb-8 text-4xl md:text-5xl font-black tracking-tighter uppercase italic">
         {@html headline}
       </h2>
-      <div class="flex flex-col items-center gap-6">
-        <div class="trust-indicator inline-flex items-center gap-6 px-6 py-3 bg-white/5 rounded-full border border-white/10 backdrop-blur-md">
-          <div class="flex items-center gap-1.5">
+      <div class="flex flex-col items-center gap-8">
+        <div class="trust-indicator inline-flex items-center gap-6 px-8 py-4 bg-white/5 rounded-full border border-white/10 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+          <div class="flex items-center gap-2">
             {#each Array(5) as _, i}
-              <svg class="w-5 h-5 {i < 4.9 ? 'text-amber-400' : 'text-white/10'}" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="w-6 h-6 {i < 4.9 ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]' : 'text-white/10'}" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
               </svg>
             {/each}
           </div>
-          <span class="text-white/60 text-[10px] font-black tracking-[0.2em] uppercase">
-            {labels.trust_score} <span class="mx-3 opacity-20">|</span> {labels.count_text}
+          <span class="text-white/80 text-[11px] font-black tracking-[0.25em] uppercase font-mono">
+            {labels.trust_score} <span class="mx-4 text-white/10">|</span> {labels.count_text}
           </span>
         </div>
-        <button onclick={() => showFormModal = true} class="px-8 py-3 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-emerald-500/20 transition-all active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
-          {labels.cta_write}
+        <button 
+          onclick={() => showFormModal = true} 
+          class="pulse-btn px-10 py-5 bg-emerald-500/10 border border-emerald-500/40 rounded-full text-emerald-400 text-xs font-black uppercase tracking-[0.3em] hover:bg-emerald-500/20 hover:border-emerald-500/60 transition-all active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.2)] group"
+        >
+          <span class="relative z-10">{labels.cta_write}</span>
+          <div class="absolute inset-0 bg-emerald-500/10 blur-xl group-hover:blur-2xl transition-all"></div>
         </button>
       </div>
     </div>
 
+    <!-- Reviews Grid -->
     <div class="bento-hub-frame relative group">
       <div class="reviews-layout relative" style:z-index="var(--z-surface)">
-        <div class="flex items-center justify-between mb-10 px-2">
-            <div class="hud-tag primary">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        <div class="flex items-center justify-between mb-12 px-2">
+            <div class="hud-tag primary bg-emerald-500/5 text-emerald-400 border-emerald-500/20 animate-fade-in">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></span>
                 {labels.hud_feedback}
             </div>
         </div>
 
-        <div class="reviews-scroll-wrapper">
-          {#each reviews as review}
-            <div class="review-card">
-              <div class="review-header flex items-center justify-between mb-8">
-                <div class="flex items-center gap-4">
-                  <div class="avatar-circle">{review.initial}</div>
-                  <div class="user-meta">
-                    <div class="user-name font-bold text-base text-white/90">{review.name} ({review.phone})</div>
-                    <div class="user-location text-[9px] text-white/30 uppercase tracking-[0.15em] font-black">{review.location}</div>
+        <div class="reviews-scroll-wrapper scrollbar-hide">
+          {#if isLoading && realReviews.length === 0}
+            <div class="flex flex-col items-center justify-center p-24 gap-6">
+              <div class="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+              <span class="text-emerald-500/40 font-mono text-[10px] tracking-[0.4em] uppercase">Encrypting_Voices...</span>
+            </div>
+          {:else if realReviews.length === 0}
+            <div class="flex flex-col items-center justify-center p-24 gap-4 opacity-30">
+               <svg class="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+               <span class="text-[10px] font-mono tracking-widest uppercase">No_Signal_Detected</span>
+            </div>
+          {:else}
+            {#each realReviews as review, i}
+              <div class="review-card group/card" in:fly={{ y: 20, delay: i * 100, duration: 800 }}>
+                <div class="review-header flex items-center justify-between mb-8">
+                  <div class="flex items-center gap-5">
+                    <div class="avatar-circle relative group-hover/card:scale-110 transition-transform duration-500">
+                      {review.initial}
+                      <div class="absolute inset-0 bg-emerald-400/20 blur-lg rounded-full opacity-0 group-hover/card:opacity-100 transition-opacity"></div>
+                    </div>
+                    <div class="user-meta">
+                      <div class="user-name font-bold text-lg text-white/95 tracking-tight">{review.name}</div>
+                      <div class="flex items-center gap-2 mt-1">
+                        <span class="text-[9px] text-white/30 uppercase tracking-[0.2em] font-black font-mono">{review.location}</span>
+                        <span class="w-1 h-1 rounded-full bg-white/10"></span>
+                        <span class="text-[9px] text-white/30 uppercase tracking-[0.1em] font-mono">{review.phone}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="verified-badge bg-emerald-500/10 border-emerald-500/20 px-3 py-1 rounded-full">
+                    <span class="text-[8px] font-black text-emerald-400 uppercase tracking-widest">{labels.label_verified}</span>
                   </div>
                 </div>
-                <div class="verified-badge">
-                  <span class="verified-dot w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                  <span class="text-[8px] font-black text-emerald-400 uppercase tracking-widest">{labels.label_verified}</span>
+
+                <div class="rating-stars flex gap-2 mb-8">
+                  {#each Array(5) as _, s}
+                    <svg class="w-4 h-4 {s < review.rating ? 'text-emerald-400 shadow-sm' : 'text-white/5'}" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  {/each}
+                </div>
+
+                <div class="review-content relative">
+                  <p class="text-slate-200 leading-relaxed text-base italic font-medium tracking-tight">"{review.content}"</p>
+                </div>
+
+                <div class="clinical-verify mt-auto pt-10 flex items-center justify-between border-t border-white/5 mt-8">
+                  <div class="compliance-tag flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full border border-white/20"></div>
+                    <span class="text-[8px] font-black text-white/20 uppercase tracking-[0.3em]">{labels.label_compliant}</span>
+                  </div>
+                  <div class="buy-check flex items-center gap-2 px-3 py-1.5 bg-emerald-500/5 rounded-lg border border-emerald-500/10">
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span class="text-[9px] font-black text-emerald-400 uppercase tracking-widest">{labels.label_store_verified}</span>
+                  </div>
                 </div>
               </div>
-
-              <div class="rating-stars flex gap-1 mb-6">
-                {#each Array(review.rating) as _}
-                  <svg class="w-3.5 h-3.5 text-emerald-400/80" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                {/each}
-              </div>
-
-              <div class="review-content relative">
-                <p class="text-slate-300 leading-relaxed text-sm italic font-medium">"{review.content}"</p>
-              </div>
-
-              <div class="clinical-verify mt-auto pt-8 flex items-center justify-between opacity-60">
-                <div class="compliance-tag flex items-center gap-2">
-                  <span class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] leading-none">{labels.label_compliant}</span>
-                </div>
-                <div class="buy-check flex items-center gap-1.5">
-                  <svg class="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span class="text-[9px] font-black text-emerald-400/80 uppercase tracking-widest">{labels.label_store_verified}</span>
-                </div>
-              </div>
-            </div>
-          {/each}
+            {/each}
+          {/if}
         </div>
       </div>
     </div>
   </div>
-  <!-- Dynamic Line Wave Divider - Calming Reviews! -->
-  <div class="wave-container">
-    <svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="wave-gradient-reviews" x1="0%" y1="0%" x2="100%" y2="50%">
-          <stop offset="0%" stop-color="#10b981" stop-opacity="0" />
-          <stop offset="50%" stop-color="#14b8a6" stop-opacity="0.6" />
-          <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
-        </linearGradient>
-      </defs>
-      <!-- Very slow, gentle breathing waves -->
-      <path class="wave-line opacity-10" d="M0,200 C400,100 800,300 1440,200" />
-      <path class="wave-line" d="M0,220 C420,150 780,280 1440,220" />
-    </svg>
-  </div>
+
+  <!-- Decorative Background Elements -->
+  <div class="absolute -top-64 -right-64 w-[600px] h-[600px] bg-emerald-500/10 blur-[150px] rounded-full mix-blend-overlay animate-pulse"></div>
+  <div class="absolute -bottom-64 -left-64 w-[600px] h-[600px] bg-cyan-500/10 blur-[150px] rounded-full mix-blend-overlay animate-pulse" style:animation-delay="2s"></div>
 </section>
 
 {#if showFormModal}
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="modal-overlay fixed inset-0 flex items-center justify-center p-4 backdrop-blur-3xl"
-    style:z-index="var(--z-sticky-header)"
-    transition:fade={{ duration: 300 }}
-    onclick={(e) => { if(e.target === e.currentTarget) showFormModal = false }}
+    class="modal-overlay fixed inset-0 flex items-center justify-center p-4 backdrop-blur-2xl"
+    style:z-index="1100"
+    transition:fade={{ duration: 400 }}
+    onclick={(e) => { if(e.target === e.currentTarget && !isSubmitting) showFormModal = false }}
   >
     <div 
-      class="modal-content-frame w-full max-w-[1200px] bg-slate-900/40 border border-white/10 rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.8)] relative"
-      transition:fly={{ y: 30, duration: 600, easing: cubicOut }}
+      class="modal-content-frame w-full max-w-[1000px] bg-slate-950/80 border border-white/10 rounded-[3.5rem] shadow-[0_0_120px_rgba(0,0,0,0.9)] overflow-hidden relative"
+      transition:fly={{ y: 50, duration: 800, easing: cubicOut }}
     >
+      <!-- Confetti Effect Layer -->
+      {#if showSuccess}
+        <div class="absolute inset-0 pointer-events-none z-[100]">
+          {#each Array(40) as _, i}
+            <div 
+              class="confetti-particle absolute"
+              style="
+                --left: {Math.random() * 100}%;
+                --delay: {Math.random() * 2}s;
+                --duration: {2 + Math.random() * 3}s;
+                --color: {['#10b981', '#34d399', '#6ee7b7', '#fff'][Math.floor(Math.random() * 4)]};
+                --size: {4 + Math.random() * 6}px;
+                --x: {(Math.random() - 0.5) * 400}px;
+              "
+            ></div>
+          {/each}
+        </div>
+      {/if}
+
       <button 
         onclick={() => showFormModal = false}
-        aria-label="Close review modal"
-        class="absolute top-8 right-8 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-90"
-        style:z-index="var(--z-vui-caption)"
+        disabled={isSubmitting}
+        class="absolute top-10 right-10 w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-90 z-20"
       >
-        <svg class="w-5 h-5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-6 h-6 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
 
-      <div class="p-8 md:p-12">
+      <div class="p-10 md:p-16">
         <div class="form-truth-layout relative">
-          {#if newReview.showSuccess}
-            <div class="success-overlay absolute inset-0 bg-[#020617]/95 backdrop-blur-2xl flex flex-col items-center justify-center text-center p-8 rounded-[3rem]" style:z-index="var(--z-vui-caption)" transition:fade>
-              <div class="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mb-6 border border-emerald-500/30">
-                <svg class="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+          {#if showSuccess}
+            <div class="success-overlay absolute inset-0 bg-slate-950/95 backdrop-blur-3xl flex flex-col items-center justify-center text-center p-12 z-50 rounded-[3.5rem]" transition:fade>
+              <div 
+                class="w-32 h-32 bg-emerald-500/20 rounded-full flex items-center justify-center mb-10 border-2 border-emerald-500/40 shadow-[0_0_60px_rgba(16,185,129,0.3)]"
+                transition:scale={{ duration: 1000, easing: elasticOut }}
+              >
+                <svg class="w-16 h-16 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4" transition:fly={{ y: 20, duration: 600 }}><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
               </div>
-              <h4 class="text-3xl font-black text-white uppercase tracking-tighter mb-4">{labels.success_title}</h4>
-              <p class="text-white/40 text-[11px] max-w-xs font-bold uppercase tracking-widest">{labels.success_msg}</p>
+              <h4 class="text-5xl font-black text-white uppercase tracking-tighter mb-6 italic" in:fly={{ y: 20, duration: 800 }}>{labels.success_title}</h4>
+              <p class="text-white/60 text-sm max-w-md font-bold uppercase tracking-[0.2em] leading-relaxed" in:fly={{ y: 20, delay: 200, duration: 800 }}>{labels.success_msg}</p>
+              
+              <div class="mt-12 w-full max-w-xs h-1 bg-white/5 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-500 animate-progress"></div>
+              </div>
             </div>
           {/if}
 
-          <div class="flex items-center justify-between mb-10 pb-6 border-b border-white/5 pr-12 lg:pr-16">
-            <div class="hud-tag primary">
-              <span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span>
-              {labels.form_title}
+          <div class="flex items-center justify-between mb-16 pb-8 border-b border-white/5 pr-20">
+            <div class="hud-tag primary px-6 py-2.5">
+              <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_10px_rgba(6,182,212,0.8)]"></span>
+              <span class="text-xs font-black tracking-[0.3em]">{labels.form_title}</span>
             </div>
-            <div class="text-[9px] font-bold uppercase tracking-[0.2em] text-white/20 font-mono hidden sm:block">{labels.label_secure_encryption}</div>
+            <div class="text-[10px] font-black uppercase tracking-[0.35em] text-white/30 font-mono hidden sm:block">{labels.label_secure_encryption}</div>
           </div>
 
-          <form onsubmit={submitReview} class="space-y-8">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <!-- Left Column: Identity & Context -->
-              <div class="space-y-6">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div class="space-y-2">
-                    <label for="review-name" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_name}</label>
-                    <input id="review-name" type="text" bind:value={newReview.name} placeholder="Họ và Tên *" class="input-liquid" />
+          <form onsubmit={submitReview} class="space-y-12">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              <div class="space-y-8">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div class="space-y-3">
+                    <label for="review-name" class="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] ml-4">{labels.form_name}</label>
+                    <input id="review-name" type="text" bind:this={nameRef} placeholder="Họ và Tên *" class="input-liquid px-6 py-5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/10 focus:border-emerald-500/50 transition-all outline-none" />
                   </div>
-                  <div class="space-y-2">
-                    <label for="review-phone" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_phone}</label>
-                    <input id="review-phone" type="tel" bind:value={newReview.phone} placeholder="Số điện thoại *" class="input-liquid" />
+                  <div class="space-y-3">
+                    <label for="review-phone" class="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] ml-4">{labels.form_phone}</label>
+                    <input id="review-phone" type="tel" bind:this={phoneRef} placeholder="Số điện thoại *" class="input-liquid px-6 py-5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/10 focus:border-emerald-500/50 transition-all outline-none" />
                   </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div class="space-y-2 relative">
-                    <label for="review-location" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_location}</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div class="space-y-3 relative">
+                    <label for="review-location" class="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] ml-4">{labels.form_location}</label>
                     <button
                       id="review-location"
                       type="button"
                       onclick={() => isLocationOpen = !isLocationOpen}
-                      class="input-liquid flex items-center justify-between h-[58px] text-left"
+                      class="input-liquid flex items-center justify-between px-6 py-5 rounded-2xl bg-white/5 border border-white/10 text-white transition-all outline-none {isLocationOpen ? 'border-emerald-500/50' : ''}"
                     >
-                      <span class={newReview.location ? 'text-white' : 'text-white/20 uppercase text-[11px] font-bold tracking-[0.1em]'}>
-                        {newReview.location || 'Chọn Tỉnh/Thành'}
+                      <span class={locationSelected ? 'text-white font-bold' : 'text-white/20 uppercase text-[11px] font-bold tracking-[0.1em]'}>
+                        {locationSelected || 'Chọn Tỉnh/Thành'}
                       </span>
-                      <svg class="w-4 h-4 text-white/30 transition-transform {isLocationOpen ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg class="w-5 h-5 text-white/30 transition-transform {isLocationOpen ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
 
                     {#if isLocationOpen}
                       <div
-                        class="absolute top-[calc(100%+8px)] left-0 w-full bg-[#0f172a]/95 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
-                        style:z-index="var(--z-vui-caption)"
-                        transition:fly={{ y: -10, duration: 200 }}
+                        class="absolute top-[calc(100%+8px)] left-0 w-full bg-slate-900 border border-white/10 rounded-2xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] z-50"
+                        transition:fly={{ y: -10, duration: 300, easing: cubicOut }}
                       >
-                        <div class="max-h-[240px] overflow-y-auto scrollbar-mission">
+                        <div class="max-h-[300px] overflow-y-auto custom-scrollbar">
                           {#each locations as loc}
                             <button 
                               type="button"
-                              onclick={() => { newReview.location = loc; isLocationOpen = false; }}
-                              class="w-full px-6 py-3.5 text-left text-sm text-white/70 hover:text-white hover:bg-white/5 transition-all border-b border-white/5 last:border-0"
+                              onclick={() => { locationSelected = loc; isLocationOpen = false; }}
+                              class="w-full px-8 py-4 text-left text-sm text-white/70 hover:text-white hover:bg-emerald-500/10 transition-all border-b border-white/5 last:border-0 font-bold uppercase tracking-widest"
                             >
                               {loc}
                             </button>
@@ -288,12 +386,12 @@
                       </div>
                     {/if}
                   </div>
-                  <div class="space-y-2">
-                    <label id="rating-label" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_rating}</label>
-                    <div role="group" aria-labelledby="rating-label" class="rating-picker flex items-center justify-center gap-3 h-[58px] rounded-2xl">
+                  <div class="space-y-3">
+                    <label id="rating-label" class="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] ml-4">{labels.form_rating}</label>
+                    <div role="group" aria-labelledby="rating-label" class="rating-picker flex items-center justify-center gap-4 py-5 rounded-2xl bg-white/5 border border-white/10 h-[64px]">
                       {#each Array(5) as _, i}
-                        <button type="button" onclick={() => setRating(i + 1)} aria-label="Rate {i + 1} stars" class="star-picker-btn transition-all">
-                          <svg class="w-6 h-6 {i < newReview.rating ? 'text-amber-400' : 'text-white/5'}" fill="currentColor" viewBox="0 0 20 20">
+                        <button type="button" onclick={() => setRating(i + 1)} aria-label="Rate {i + 1} stars" class="star-picker-btn transition-all hover:scale-125 {i < ratingSelected ? 'text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]' : 'text-white/5'}">
+                          <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                           </svg>
                         </button>
@@ -303,28 +401,29 @@
                 </div>
               </div>
 
-              <!-- Right Column: Message -->
-              <div class="space-y-2">
-                <label for="review-content" class="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_content}</label>
-                <div class="relative h-full pb-6">
-                  <textarea id="review-content" bind:value={newReview.content} placeholder="{labels.form_placeholder}" class="input-liquid resize-none h-[140px] lg:h-full pr-12 scrollbar-mission"></textarea>
-                  <div class="char-counter absolute bottom-10 right-4 opacity-40">{newReview.content.length}/500</div>
+              <div class="space-y-4">
+                <label for="review-content" class="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] ml-4">{labels.form_content}</label>
+                <div class="relative h-full pb-8">
+                  <textarea id="review-content" bind:this={contentRef} oninput={() => contentLen = contentRef?.value.length || 0} placeholder="{labels.form_placeholder}" class="input-liquid resize-none h-[220px] lg:h-[calc(100%-40px)] w-full px-8 py-6 rounded-3xl bg-white/5 border border-white/10 text-white placeholder:text-white/10 focus:border-emerald-500/50 transition-all outline-none scrollbar-hide"></textarea>
+                  <div class="char-counter absolute bottom-12 right-8 font-mono text-[10px] text-white/20 tracking-widest">{contentLen}/5000</div>
                 </div>
               </div>
             </div>
 
-            <!-- Bottom: Action Button -->
-            <div class="pt-4">
+            <div class="pt-8">
               <button 
                 type="submit" 
-                disabled={newReview.isSubmitting || !isValid} 
-                class="submit-glow-btn w-full py-6 flex items-center justify-center gap-4 group/btn"
+                disabled={isSubmitting} 
+                class="submit-glow-btn w-full py-8 flex flex-col items-center justify-center gap-2 group/btn relative overflow-hidden rounded-[2rem] bg-emerald-500 text-slate-950 transition-all hover:bg-emerald-400 active:scale-[0.98]"
               >
-                {#if newReview.isSubmitting}
-                  <div class="text-xs font-black animate-pulse uppercase tracking-[0.2em]">Đang xử lý dữ liệu...</div>
+                {#if isSubmitting}
+                  <div class="flex items-center gap-3">
+                    <div class="w-5 h-5 border-2 border-slate-950/20 border-t-slate-950 rounded-full animate-spin"></div>
+                    <span class="text-sm font-black uppercase tracking-[0.4em]">PROCESSING_DATA...</span>
+                  </div>
                 {:else}
-                  <span class="text-base font-black tracking-[0.3em] uppercase group-hover/btn:scale-105 transition-transform">{labels.form_cta}</span>
-                  <div class="px-3 py-1 bg-white/10 rounded-md text-[8px] font-mono tracking-widest opacity-60">{labels.label_secure_gate}</div>
+                  <span class="text-xl font-black tracking-[0.5em] uppercase transition-transform group-hover/btn:scale-105 duration-700">{labels.form_cta}</span>
+                  <div class="text-[9px] font-black tracking-[0.2em] opacity-40 uppercase">{labels.label_secure_gate}</div>
                 {/if}
               </button>
             </div>
@@ -334,3 +433,65 @@
     </div>
   </div>
 {/if}
+
+<!-- Premium Toast Notification -->
+{#if showToast}
+  <div 
+    class="fixed top-12 left-1/2 -translate-x-1/2 z-[2000]"
+    transition:fly={{ y: -50, duration: 600, easing: cubicOut }}
+  >
+    <div class="px-8 py-4 {toastType === 'error' ? 'bg-red-500/20 text-red-400 border-red-500/40' : 'bg-white/10 text-white border-white/20'} backdrop-blur-3xl border rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-4">
+      {#if toastType === 'error'}
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+      {/if}
+      <span class="text-xs font-black uppercase tracking-widest">{toastMessage}</span>
+    </div>
+  </div>
+{/if}
+
+<style>
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  @keyframes progress {
+    from { width: 0%; }
+    to { width: 100%; }
+  }
+  .animate-progress {
+    animation: progress 5s linear forwards;
+  }
+
+  .confetti-particle {
+    width: var(--size);
+    height: var(--size);
+    background: var(--color);
+    left: var(--left);
+    top: -20px;
+    border-radius: 2px;
+    animation: fall var(--duration) var(--delay) linear forwards;
+  }
+
+  @keyframes fall {
+    to {
+      transform: translateY(800px) translateX(var(--x)) rotate(720deg);
+      opacity: 0;
+    }
+  }
+
+  .pulse-btn {
+    position: relative;
+    overflow: hidden;
+  }
+  .pulse-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+    animation: pulse-ring 2s infinite;
+  }
+
+  @keyframes pulse-ring {
+    to { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
+  }
+</style>

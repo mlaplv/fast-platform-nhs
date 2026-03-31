@@ -64,8 +64,13 @@ class MediaRegistryRepository(SQLAlchemyAsyncRepository[MediaRegistry]):
 class AppointmentRepository(SQLAlchemyAsyncRepository[Appointment]):
     model_type = Appointment
 
+from backend.database.models.system import SystemReview
+
 class ContentScoutRepository(SQLAlchemyAsyncRepository[ContentScout]):
     model_type = ContentScout
+
+class SystemReviewRepository(SQLAlchemyAsyncRepository[SystemReview]):
+    model_type = SystemReview
 
 # ==========================================
 # REPOSITORY PROVIDERS (V55.0 DI PATTERN)
@@ -126,3 +131,6 @@ async def provide_appointment_repo(db_session: AsyncSession) -> AppointmentRepos
 
 async def provide_scout_repo(db_session: AsyncSession) -> ContentScoutRepository:
     return ContentScoutRepository(session=db_session)
+
+async def provide_system_review_repo(db_session: AsyncSession) -> SystemReviewRepository:
+    return SystemReviewRepository(session=db_session)

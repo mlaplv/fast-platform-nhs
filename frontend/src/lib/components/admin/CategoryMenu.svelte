@@ -1,6 +1,7 @@
 <script lang="ts">
   import { nanobot, type WidgetType } from "$lib/state/nanobot.svelte";
   import { onMount, type Component } from "svelte";
+  import { goto } from "$app/navigation";
   import Package from "lucide-svelte/icons/package";
   import Users from "lucide-svelte/icons/users";
   import Newspaper from "lucide-svelte/icons/newspaper";
@@ -17,6 +18,7 @@
   import Globe from "lucide-svelte/icons/globe";
   import Calendar from "lucide-svelte/icons/calendar";
   import Layout from "lucide-svelte/icons/layout";
+  import Star from "lucide-svelte/icons/star";
   import { fade, fly } from "svelte/transition";
 
   let { open = $bindable() } = $props();
@@ -37,6 +39,7 @@
     sublabel?: string;
     color: string;
     widget?: WidgetType;
+    href?: string;
     children?: SubItem[];
   }
 
@@ -114,6 +117,14 @@
       widget: "BANNER_MANAGEMENT",
     },
     {
+      id: "reviews",
+      label: "Đánh giá",
+      sublabel: "Quản duyệt Đánh giá Đa hình",
+      icon: Star,
+      color: "#39FF14",
+      widget: "REVIEW_MANAGEMENT",
+    },
+    {
       id: "system",
       label: "Cấu hình hệ thống",
       sublabel: "Node Config & Rules",
@@ -149,6 +160,9 @@
   function handleSelect(item: CategoryItem, index: number) {
     if (item.children && item.children.length > 0) {
       expandedIndex = expandedIndex === index ? -1 : index;
+    } else if (item.href) {
+      open = false;
+      goto(item.href);
     } else if (item.widget) {
       open = false;
       nanobot.openWidget(item.widget);

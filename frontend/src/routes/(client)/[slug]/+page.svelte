@@ -7,11 +7,8 @@
   import StealthCheckout from '$lib/components/client/StealthCheckout.svelte';
   import { browser } from '$app/environment';
   
-  // New Modular Components
-  import DiagnosticsSection from '$lib/components/client/slug/DiagnosticsSection.svelte';
-  import ScienceBento from '$lib/components/client/slug/ScienceBento.svelte';
-  import VerifiedReviews from '$lib/components/client/slug/VerifiedReviews.svelte';
-  import OfferGrid from '$lib/components/client/slug/OfferGrid.svelte';
+  // JIT Component Flags
+  let loadJIT = $state(false);
   
   import MobileLandingLayout from '$lib/components/mobile/MobileLandingLayout.svelte';
   
@@ -31,8 +28,8 @@
   const loadingText = $derived(metadata.sync_loading_text || 'SYNCHRONIZING ELITE ASSETS...');
   const siteName = $derived(metadata.seo_site_name || 'Elite Storefront');
 
-  // Loại bỏ hardcode slug, sử dụng metadata từ DB để quyết định layout
-  const useMobileLayout = $derived(isMobile && metadata?.landing_type === 'tiktok');
+  // Phân nhánh Component tối thượng: Áp dụng riêng cho Mobile
+  const useMobileLayout = $derived(isMobile);
 
   // Quantum Sync: Init store immediately for SSR stability
   if (product?.id) {
@@ -88,9 +85,22 @@
       };
       
       mq.addEventListener('change', h);
+
+      // JIT Intersection Observer
+      const jitObserver = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          loadJIT = true;
+          jitObserver.disconnect();
+        }
+      }, { rootMargin: '400px' });
+      
+      const trigger = document.getElementById('jit-trigger');
+      if (trigger) jitObserver.observe(trigger);
+
       return () => {
         shopStore.dispose();
         mq.removeEventListener('change', h);
+        jitObserver.disconnect();
       };
     }
   });
@@ -116,17 +126,29 @@
     <LiquidHeader {product} {themeMode} {applyTheme} scrollToQuiz={scrollToQuiz} />
     <HeroBanner {scrollToQuiz} />
 
-    <!-- DIAGNOSTICS: AI Analysis & Personalized Quiz -->
-    <DiagnosticsSection />
+    <!-- JIT TRIGGER ANCHOR -->
+    <div id="jit-trigger"></div>
 
-    <!-- SCIENCE: Bento Grid with Technology Highlights -->
-    <ScienceBento />
+    {#if loadJIT}
+      {#await import('$lib/components/client/slug/DiagnosticsSection.svelte') then { default: DiagnosticsSection }}
+        <DiagnosticsSection />
+      {/await}
 
-    <!-- REVIEWS: Verified Stealth Reviews -->
-    <VerifiedReviews />
+      {#await import('$lib/components/client/slug/ScienceBento.svelte') then { default: ScienceBento }}
+        <ScienceBento />
+      {/await}
 
-    <!-- OFFER: Pricing Packages & Scarcity Timer -->
-    <OfferGrid />
+      {#await import('$lib/components/client/slug/VerifiedReviews.svelte') then { default: VerifiedReviews }}
+        <VerifiedReviews />
+      {/await}
+
+      {#await import('$lib/components/client/slug/OfferGrid.svelte') then { default: OfferGrid }}
+        <OfferGrid />
+      {/await}
+    {:else}
+      <!-- Skeleton UI (Chống Layout Shift) -->
+      <section class="snap-session w-full h-[150vh] bg-[#050505] animate-pulse rounded-t-3xl border-t border-[#111]"></section>
+    {/if}
 
     <StealthCheckout />
   {:else}

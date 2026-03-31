@@ -1,8 +1,9 @@
 from typing import Optional
 import sqlalchemy as sa
 from sqlalchemy import (
-    String, ForeignKey, Integer, JSON, Boolean, Float
+    String, ForeignKey, Integer, JSON, Boolean, Float, Enum as SQLEnum, Text, Index
 )
+import enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database.models.base import Base, AuditMixin, SoftDeleteMixin, TenantMixin
 
@@ -57,3 +58,30 @@ class SystemSetting(Base, AuditMixin):
 
     key: Mapped[str] = mapped_column(String, primary_key=True)
     value: Mapped[dict] = mapped_column(JSON, default=dict)
+
+class ReviewEntityType(str, enum.Enum):
+    PRODUCT = "PRODUCT"
+    NEWS = "NEWS"
+
+class SystemReview(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
+    __tablename__ = 'system_reviews'
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    
+    # Polymorphic Router
+    entity_type: Mapped[ReviewEntityType] = mapped_column(SQLEnum(ReviewEntityType), index=True)
+    entity_id: Mapped[str] = mapped_column(String, index=True) # ID của Product hoặc News
+    
+    # Review Data
+    customer_name: Mapped[str] = mapped_column(String(255))
+    customer_phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    customer_location: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    rating: Mapped[int] = mapped_column(Integer) # 1-5
+    content: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="PENDING", index=True)
+    
+    __table_args__ = (
+        Index("ix_sys_reviews_tenant_deleted", "tenant_id", "deleted_at"),
+        Index("ix_sys_reviews_entity", "entity_type", "entity_id"),
+        Index("ix_sys_reviews_created_at_status", "created_at", "status"),
+    )

@@ -44,13 +44,15 @@ export const load: PageServerLoad = async ({ params, fetch, getClientAddress, re
                       '127.0.0.1';
 
     const userAgent = request.headers.get('user-agent') || '';
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(userAgent);
 
     return {
         product,
         effectiveIp,
         metadata: {
             timestamp: new Date().toISOString(),
-            userAgent
+            userAgent,
+            isMobile
         }
     };
 };
