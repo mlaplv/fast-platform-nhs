@@ -5,7 +5,7 @@
   import ExternalLink from "lucide-svelte/icons/external-link";
   import Shield from "lucide-svelte/icons/shield";
   import Type from "lucide-svelte/icons/type";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 
   interface LinkData {
     url: string;
@@ -60,7 +60,7 @@
   headerIcon={Globe}
   maxWidth="max-w-xl"
   height="h-auto"
-  zIndex={Z_INDEX.MODAL}
+  zIndex={Z_INDEX_ADMIN.MODAL}
   backdropClass="bg-black/90 backdrop-blur-xl"
 >
   <div class="px-8 py-8 flex flex-col gap-6">

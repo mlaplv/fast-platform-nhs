@@ -5,12 +5,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.services.banner_service import banner_service
 from backend.schemas.banner import CreateBannerRequest, UpdateBannerRequest, BannerResponse, BannerListResponse
 from backend.schemas.common import SuccessResponse
+from backend.database.models import Banner
+from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 
 logger = logging.getLogger("api-gateway")
 
 class BannerController(Controller):
     path = "/api/v1/banners"
     tags = ["Banners"]
+    guards = [PermissionGuard(PermissionEnum.CONTENT_WRITE)]
 
     @get("/")
     async def list_banners(self, db_session: AsyncSession, position: Optional[str] = None, active_only: bool = False, limit: int = 100, offset: int = 0) -> BannerListResponse:

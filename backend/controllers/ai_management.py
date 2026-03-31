@@ -15,15 +15,16 @@ from backend.schemas.ai import (
 )
 
 from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 
 logger = logging.getLogger("api-gateway")
 
-class AIController(Controller):
+class AIManagementController(Controller):
     """
     [ADMIN ONLY] AI Engine Configuration & Monitoring.
     """
     path = "/api/v1/admin/ai"
-    guards = [PermissionGuard("sys:admin")]
+    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
     tags = ["AI Management"]
 
     @get("/keys")

@@ -1,5 +1,5 @@
 import { normalizeAssets } from "./utils";
-import { isDev } from "./env";
+import { isDev, isAdminDomain } from "./env";
 import type { 
   CampaignData, 
   PulseSignal, 
@@ -94,9 +94,9 @@ export function createPulseManager(
   };
 
   const connectPulse = () => {
-    if (typeof window === "undefined" || eventSource) return;
+    if (typeof window === "undefined" || eventSource || !isAdminDomain()) return;
 
-    eventSource = new EventSource("/api/v1/pulse/stream");
+    eventSource = new EventSource("/api/v1/pulse/stream", { withCredentials: true });
 
     if (typeof window !== "undefined") {
       window.removeEventListener("visibilitychange", handleVisibilityChange);

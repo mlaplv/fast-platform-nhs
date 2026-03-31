@@ -3,10 +3,14 @@ from backend.services.xohi_memory import xohi_memory
 from typing import Dict
 import logging
 
+from backend.constants.permissions import PermissionEnum
+from backend.guards import PermissionGuard
+
 logger = logging.getLogger("api-gateway")
 
 class IntentMapController(Controller):
     path = "/api/v1/intent/map"
+    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
 
     @get("/")
     async def get_intent_map(self) -> Dict[str, str]:

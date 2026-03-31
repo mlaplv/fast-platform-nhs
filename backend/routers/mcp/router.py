@@ -4,6 +4,8 @@ from backend.mcp.protocol import mcp_registry
 from pydantic import BaseModel, ConfigDict
 from typing import Dict, Union, Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
+from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 
 class ToolCallRequest(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -12,6 +14,7 @@ class ToolCallRequest(BaseModel):
 
 class MCPController(Controller):
     path = "/api/v1/mcp"
+    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
 
     @get("/tools")
     async def list_tools(self) -> List[Dict[str, object]]:

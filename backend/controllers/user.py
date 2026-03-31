@@ -4,7 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Dict, Optional
 import logging
 
+from backend.database.models import User
 from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 from backend.schemas.user import UserResponse, UserListResponse, RoleResponse, PermissionResponse
 from backend.schemas.common import SuccessResponse
 from backend.services.user_service import user_service
@@ -13,9 +15,9 @@ logger = logging.getLogger("api-gateway")
 
 class UserController(Controller):
     path = "/api/v1/users"
-    guards = [PermissionGuard("system:all")]
+    guards = [PermissionGuard(PermissionEnum.USER_MANAGE)]
 
-    @get("/", guards=[PermissionGuard("system:all")])
+    @get("/", guards=[PermissionGuard(PermissionEnum.USER_MANAGE)])
     async def list_users(
         self, db_session: "AsyncSession",
         limit: int = 10, offset: int = 0,

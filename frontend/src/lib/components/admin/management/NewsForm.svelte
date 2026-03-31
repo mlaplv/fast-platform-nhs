@@ -14,7 +14,7 @@
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
   import NeuralEditor from "../ui/tiptap/NeuralEditor.svelte";
   import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import type { MediaAsset } from "$lib/types";
   
   let {
@@ -128,11 +128,11 @@
   {onClose}
   headerIcon={Newspaper}
   fullScreen={true}
-  zIndex={Z_INDEX.MODAL}
+  zIndex={Z_INDEX_ADMIN.MODAL}
 >
   <div class="w-full flex flex-col gap-0 pb-10">
 
-  <section class="relative px-5 pt-5 pb-0" style="z-index: {Z_INDEX.SURFACE}">
+  <section class="relative px-5 pt-5 pb-0" style="z-index: {Z_INDEX_ADMIN.SURFACE}">
     <div class="section-label">
       <Settings size={11} />
       Thông tin cơ bản
@@ -299,7 +299,7 @@
   </section>
 
   <!-- ── SECTION 2: Nội Dung Chính ──────────────────── -->
-  <section class="relative px-5 pt-4 pb-0" style="z-index: {Z_INDEX.SURFACE}">
+  <section class="relative px-5 pt-4 pb-0" style="z-index: {Z_INDEX_ADMIN.SURFACE}">
     <div class="section-label">
       <FileText size={11} />
       Nội dung bài viết
@@ -316,7 +316,7 @@
   </section>
 
   <!-- ── SECTION 3: SEO ──────────────────── -->
-  <section class="relative px-5 pt-4 pb-0" style="z-index: {Z_INDEX.SURFACE}">
+  <section class="relative px-5 pt-4 pb-0" style="z-index: {Z_INDEX_ADMIN.SURFACE}">
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
       <!-- 3B: SEO -->
       <div>
@@ -467,7 +467,7 @@
   </section>
 
   <!-- ── ACTION BAR ─────────────────── -->
-  <section class="relative px-5 pt-3" style="z-index: {Z_INDEX.LAYOUT_HEADER}">
+  <section class="relative px-5 pt-3" style="z-index: {Z_INDEX_ADMIN.LAYOUT_HEADER}">
     <div class="flex items-center justify-between gap-4 py-2">
       <div class="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-white/20">
         <div class="w-1.5 h-1.5 rounded-full bg-cyan-400"></div>

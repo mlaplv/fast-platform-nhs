@@ -3,7 +3,7 @@
   import { nanobot } from "$lib/state/nanobot.svelte";
   import OmniCommand from "$lib/components/admin/OmniCommand.svelte";
   import { fade } from "svelte/transition";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import LoaderCircle from "lucide-svelte/icons/loader-circle";
 
   let scrollContainer = $state<HTMLDivElement>();

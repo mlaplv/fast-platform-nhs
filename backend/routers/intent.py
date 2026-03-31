@@ -16,6 +16,8 @@ from backend.database.repositories import (
     provide_campaign_repo
 )
 from backend.database.models import User, ChatMessage, AgentTelemetryLog
+from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 
 logger = logging.getLogger("api-gateway")
 
@@ -36,6 +38,7 @@ COUNT_KEYWORDS = ["bao nhiêu", "mấy", "tổng số", "dân số", "doanh thu"
 
 
 class IntentController(Controller):
+    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
     """
     Phễu Lọc 3 Tầng — API Gateway Entry Point
     Tier 1 (Heuristic) → Tier 2 (Semantic SLM) → Tier 3 (Cloud LLM)

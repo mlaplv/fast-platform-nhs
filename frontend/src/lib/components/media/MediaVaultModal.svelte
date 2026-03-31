@@ -6,7 +6,7 @@
   import { resolveMediaUrl } from "$lib/state/utils";
   import MissionControlShell from "$lib/components/admin/ui/MissionControlShell.svelte";
   import ImagePlus from "lucide-svelte/icons/image-plus";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 
   let {
     isOpen,
@@ -171,7 +171,7 @@
   onClose={onClose}
   headerIcon={ImagePlus}
   fullScreen={true}
-  zIndex={Z_INDEX.MEDIA_OVERLAY}
+  zIndex={Z_INDEX_ADMIN.MEDIA_OVERLAY}
 >
   <div class="w-full h-full flex flex-col">
     {#if activeTab === 'current'}

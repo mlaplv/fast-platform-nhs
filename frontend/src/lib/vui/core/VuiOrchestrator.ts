@@ -7,7 +7,7 @@ import { nanobot } from "$lib/state/nanobot.svelte";
 import { VuiStreamManager } from "./VuiStreamManager";
 import { VuiVadEngine } from "./VuiVadEngine";
 import { VuiSpeechEngine } from "./VuiSpeechEngine";
-import { isDev } from "$lib/state/nanobot/env";
+import { isDev, isAdminDomain } from "$lib/state/nanobot/env";
 
 /**
  * VuiOrchestrator 2026: The "Neural Conductor"
@@ -48,7 +48,7 @@ class VuiOrchestrator {
   }
 
   constructor() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !isAdminDomain()) return;
 
     this.mic = new MicrophoneEngine();
     this.ws = new WebSocketStream(VUI_CONFIG.ENDPOINTS.STT_WS);
@@ -324,4 +324,4 @@ class VuiOrchestrator {
   }
 }
 
-export const vuiController = (typeof window !== 'undefined') ? new VuiOrchestrator() : {} as unknown as VuiOrchestrator;
+export const vuiController = (typeof window !== 'undefined' && isAdminDomain()) ? new VuiOrchestrator() : {} as unknown as VuiOrchestrator;

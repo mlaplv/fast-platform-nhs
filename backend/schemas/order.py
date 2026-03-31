@@ -1,8 +1,8 @@
 from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validator, AliasChoices
-from typing import Optional, List, Union, Dict
+from typing import Optional, List, Union, Dict, Any
 from datetime import datetime
 
-JSONType = Union[str, int, float, bool, None]
+JSONType = Any
 
 
 class OrderItem(BaseModel):

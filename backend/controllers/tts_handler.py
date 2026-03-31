@@ -1,9 +1,12 @@
 from litestar import Controller, get
 from litestar.response import Stream
 from backend.services.tts_engine import stream_tts
+from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 
 class TTSController(Controller):
     path = "/api/v1/tts"
+    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
 
     @get("/stream")
     async def get_tts_stream(self, text: str) -> Stream:

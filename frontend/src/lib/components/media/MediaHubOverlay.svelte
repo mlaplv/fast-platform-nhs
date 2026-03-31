@@ -1,6 +1,6 @@
 <script lang="ts">
     import { nanobot } from "$lib/state/nanobot.svelte";
-    import { Z_INDEX } from "$lib/core/constants/zIndex";
+    import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
     import FileManager from "./FileManager.svelte";
     import { fade } from "svelte/transition";
     import type { BaseWidgetProps } from "$lib/types";
@@ -14,7 +14,7 @@
 
 <div
     class="fixed inset-0 flex flex-col pointer-events-auto overflow-hidden bg-[#0a0c12]/98 backdrop-blur-2xl"
-    style="z-index: {Z_INDEX.MEDIA_OVERLAY};"
+    style="z-index: {Z_INDEX_ADMIN.MEDIA_OVERLAY};"
     transition:fade={{ duration: 250 }}
 >
     <!-- Liquid Glass ambient glow -->

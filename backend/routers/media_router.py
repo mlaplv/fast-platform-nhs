@@ -11,11 +11,14 @@ from backend.database.repositories import MediaRegistryRepository, provide_media
 from backend.services.media.media_service import media_service
 from backend.services.media.schemas import *
 from backend.models.schemas import GenericResponse
+from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 
 logger = logging.getLogger("media-api")
 
 class MediaController(Controller):
     path = "/api/v1/media"
+    guards = [PermissionGuard(PermissionEnum.CONTENT_WRITE)]
     dependencies = {"media_repo": Provide(provide_media_repo)}
 
     @get("/")

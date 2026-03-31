@@ -9,11 +9,14 @@ from sqlalchemy import select, or_, update, func
 from backend.services.notification_service import notification_service
 from backend.schemas.notification import NotificationResponse, NotificationListResponse
 from backend.schemas.common import SuccessResponse
+from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 
 logger = logging.getLogger("api-gateway")
 
 class NotificationController(Controller):
     path = "/api/v1/notifications"
+    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
 
     @get("/")
     async def get_notifications(self, db_session: "AsyncSession", request: Request) -> NotificationListResponse:

@@ -4,7 +4,7 @@
   import { apiClient } from "$lib/utils/apiClient";
   import type { AuditorAnalysis } from "$lib/state/types";
   import MissionControlShell from "./ui/MissionControlShell.svelte";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import ShieldAlert from "lucide-svelte/icons/shield-alert";
   import Check from "lucide-svelte/icons/check";
   import X from "lucide-svelte/icons/x";
@@ -43,7 +43,7 @@
     headerIcon={ShieldAlert}
     maxWidth="max-w-2xl"
     height="h-auto"
-    zIndex={Z_INDEX.MODAL_CONFIRM}
+    zIndex={Z_INDEX_ADMIN.MODAL_CONFIRM}
   >
     <div class="p-10 relative">
       <!-- Intent Origin -->

@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
   import { browser } from '$app/environment';
-  import LiquidHeader from './LiquidHeader.svelte';
   import "./HeroBanner.css";
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
 
@@ -15,7 +14,6 @@
   let { scrollToQuiz }: HeroBannerProps = $props();
   const product = $derived(shopStore.product);
   const metadata = $derived(product?.metadata || {});
-  let themeMode = $state<'system' | 'light' | 'dark'>('system');
   let mouse = $state({ x: 0, y: 0 });
 
   let currentImageIndex = $state(0);
@@ -88,53 +86,18 @@
     isTypingComplete = true;
   };
 
-  const updateDOM = (theme: 'light' | 'dark') => {
-    if (!browser) return;
-    document.documentElement.setAttribute('data-theme', theme);
-    document.body.setAttribute('data-theme', theme);
-  };
-
-  const applyTheme = (mode: 'system' | 'light' | 'dark') => {
-    themeMode = mode;
-    if (!browser) return;
-    localStorage.setItem('hero-theme-mode', mode);
-    if (mode === 'system') {
-      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      updateDOM(isDark ? 'dark' : 'light');
-    } else {
-      updateDOM(mode as 'light' | 'dark');
-    }
-  };
 
   onMount(() => {
     if (browser) {
       const controller = new AbortController();
       typeWriter(controller.signal);
 
-      const savedTheme = localStorage.getItem('hero-theme-mode');
-      const validTheme = (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') ? savedTheme : 'system';
-      applyTheme(validTheme);
-      
-      const mq = window.matchMedia('(prefers-color-scheme: dark)');
-      const h = (e: MediaQueryListEvent): void => {
-        if (themeMode === 'system') updateDOM(e.matches ? 'dark' : 'light');
-      };
-      
-      mq.addEventListener('change', h);
       return () => {
         controller.abort();
-        mq.removeEventListener('change', h);
       };
     }
   });
 
-  const scrollToCare = () => {
-    if (!browser) return;
-    const element = document.getElementById('diagnostics');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
 </script>
 
 <section
@@ -145,7 +108,6 @@
   onmousemove={handleMouseMove}
   style="--mx: {mouse.x}px; --my: {mouse.y}px; --hero-accent: #3b82f6; --hero-glass-blur: 32px;"
 >
-  <LiquidHeader {product} {themeMode} {applyTheme} scrollToQuiz={scrollToCare} />
 
 
   <!-- NUCLEAR VIDEO BACKGROUND (Standard Full Coverage: 100% Native) -->
@@ -253,7 +215,7 @@
   </div>
 
   <!-- PREMIUM CTA BUTTON (Fixed to section bottom!) -->
-  <button class="hero-cta-button" onclick={scrollToCare}>
+  <button class="hero-cta-button" onclick={scrollToQuiz}>
      <div class="cta-gradient-overlay"></div>
      <div class="cta-content">
         <div class="cta-status-dot"></div>
@@ -266,7 +228,7 @@
   </button>
 
   <!-- MOUSE SCROLL INDICATOR (Fixed to section bottom!) -->
-  <a href="#diagnostics" class="mouse-scroll-indicator" aria-label={labels.aria_scroll} onclick={(e) => { e.preventDefault(); scrollToCare(); }}>
+  <a href="#diagnostics" class="mouse-scroll-indicator" aria-label={labels.aria_scroll} onclick={(e) => { e.preventDefault(); scrollToQuiz?.(); }}>
      <div class="mouse-body">
         <div class="mouse-wheel"></div>
      </div>

@@ -1,40 +1,12 @@
-@import "tailwindcss";
-
 /* 
   ELITE V2.2: GLOBAL SANITIZATION 
   Only truly shared variables and base resets belong here.
   NO Tailwind Engine loaded here to protect LCP/Latency.
 */
 
-@layer base {
-  :root {
-    --bg-canvas: #020617;
-    --text-base: #ffffff;
-    --color-primary: #3b82f6;
-    --color-secondary: #94a3b8;
-
-    /* Z-INDEX NEXUS: GLOBAL TOKENS (ELITE V2.2) */
-    --z-base: 0;
-    --z-surface: 10;
-    --z-layout-header: 30;
-    --z-sticky-header: 100;
-    --z-sidebar: 100;
-    --z-overlay: 500;
-    --z-modal: 1000;
-    --z-modal-confirm: 1500;
-    --z-hud-dropdown: 1050;
-    --z-hud-floating: 1060;
-    --z-hud-service: 1100;
-    --z-popover: 1100;
-    --z-omni-command: 1100;
-    --z-toast: 2000;
-    --z-vui-caption: 50;
-    --z-vui-caption-expanded: 5;
-    --z-media-overlay: 99999;
-    --z-system: 100000;
-    --z-vui-exit: 110000;
-    --z-supreme-power: 999999;
-  }
+:root {
+  --bg-canvas: #020617;
+  --text-base: #ffffff;
 }
 
 .root-loading-container {

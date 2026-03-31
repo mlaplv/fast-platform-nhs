@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import List, Optional
 from litestar import Controller, get, post, patch, delete, Request
 from litestar.di import Provide
+from litestar.exceptions import NotFoundException
 from advanced_alchemy.filters import FilterTypes
 
 from backend.database.models import Appointment
@@ -15,10 +16,14 @@ from backend.schemas.scheduler import (
     AppointmentListResponse
 )
 
+from backend.constants.permissions import PermissionEnum
+from backend.guards import PermissionGuard
+
 logger = logging.getLogger("api-gateway")
 
 class SchedulerController(Controller):
     path = "/api/v1/appointments"
+    guards = [PermissionGuard(PermissionEnum.SCHEDULE_READ)]
     dependencies = {"appointment_repo": Provide(provide_appointment_repo)}
 
     @get("/")
@@ -50,7 +55,7 @@ class SchedulerController(Controller):
             logger.error(f"Error listing appointments: {e}", exc_info=True)
             raise e
 
-    @post("/")
+    @post("/", guards=[PermissionGuard(PermissionEnum.SCHEDULE_MANAGE)])
     async def create_appointment(
         self, 
         data: AppointmentCreate, 
@@ -79,7 +84,7 @@ class SchedulerController(Controller):
             raise NotFoundException(f"Không tìm thấy lịch hẹn {appointment_id}")
         return AppointmentResponse.model_validate(appointment)
 
-    @patch("/{appointment_id:uuid}")
+    @patch("/{appointment_id:uuid}", guards=[PermissionGuard(PermissionEnum.SCHEDULE_MANAGE)])
     async def update_appointment(
         self, 
         appointment_id: UUID, 
@@ -100,7 +105,7 @@ class SchedulerController(Controller):
         await appointment_repo.session.commit()
         return AppointmentResponse.model_validate(updated)
 
-    @delete("/{appointment_id:uuid}")
+    @delete("/{appointment_id:uuid}", guards=[PermissionGuard(PermissionEnum.SCHEDULE_MANAGE)])
     async def delete_appointment(
         self, 
         appointment_id: UUID, 

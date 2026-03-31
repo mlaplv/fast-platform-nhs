@@ -44,7 +44,7 @@ from backend.controllers.client.checkout import CheckoutController
 from backend.controllers.client.order import PublicOrderController
 from backend.controllers.client.product import PublicProductController
 from backend.controllers.settings import SettingsController
-from backend.controllers.ai_management import AIController
+from backend.controllers.ai_management import AIManagementController
 from backend.controllers.chat import ChatController
 from backend.routers.content_router import ContentController
 from backend.routers.media_router import MediaController
@@ -58,6 +58,7 @@ from backend.routers.scheduler_router import SchedulerController
 from backend.middleware import AuthMiddleware
 from backend.body_limit import BodyLimitMiddleware
 from backend.domain_guard import DomainGuardMiddleware
+from backend.audit_middleware import AuditMiddleware
 
 load_dotenv(".env")
 
@@ -96,7 +97,7 @@ app = Litestar(
         HealthController, MCPController, AuthController,
         NotificationController, AuditorController, UserController,
         CategoryController, ProductController, PublicProductController, ArticleController, OrderController,
-        CheckoutController, PublicOrderController, ChatController, SettingsController, AIController, ContentController, MediaController, ContentStreamController,
+        CheckoutController, PublicOrderController, ChatController, SettingsController, AIManagementController, ContentController, MediaController, ContentStreamController,
         BannerController, stt_websocket, TTSController, IntentMapController, SchedulerController, DiagnosticController,
     ],
     middleware=[BodyLimitMiddleware, rate_limit_config.middleware, DomainGuardMiddleware(), AuthMiddleware()],

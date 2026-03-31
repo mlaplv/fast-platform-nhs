@@ -17,6 +17,7 @@ from sqlalchemy.orm import selectinload
 from backend.database.repositories import OrderRepository, provide_order_repo
 from backend.database.models import Order, User
 from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 from backend.utils.sql import escape_like
 from backend.schemas.order import (
     OrderCreateRequest, OrderStatusUpdate, CancelOrderRequest, OrderPlanningRequest,
@@ -30,7 +31,7 @@ logger = logging.getLogger("api-gateway")
 class OrderController(Controller):
     """R2: Class-based Litestar Controller for Order operations."""
     path = "/api/v1/orders"
-    guards = [PermissionGuard("order:read")]
+    guards = [PermissionGuard(PermissionEnum.ORDER_READ)]
     dependencies = {"order_repo": Provide(provide_order_repo)}
 
     @post("/", guards=[])  # PUBLIC: Storefront Checkout
@@ -60,7 +61,7 @@ class OrderController(Controller):
         """Get a single order (R76: Scalar Projection)."""
         return await order_service.get_order(db_session, order_id)
 
-    @patch("/{order_id:str}/status", guards=[PermissionGuard("order:write")])
+    @patch("/{order_id:str}/status", guards=[PermissionGuard(PermissionEnum.ORDER_WRITE)])
     async def update_order_status(self, request: Request, db_session: "AsyncSession", order_id: str, data: OrderStatusUpdate) -> SuccessResponse:
         """UPDATE order status with strict state machine validation and history."""
         user_state = request.scope.get("state", {}).get("user", {})
@@ -70,7 +71,7 @@ class OrderController(Controller):
         await db_session.commit()
         return res
 
-    @patch("/{order_id:str}/cancel", guards=[PermissionGuard("order:write")])
+    @patch("/{order_id:str}/cancel", guards=[PermissionGuard(PermissionEnum.ORDER_WRITE)])
     async def cancel_order(self, request: Request, db_session: "AsyncSession", order_id: str, data: CancelOrderRequest) -> SuccessResponse:
         """Cancel an order with a reason."""
         user_state = request.scope.get("state", {}).get("user", {})
@@ -80,7 +81,7 @@ class OrderController(Controller):
         await db_session.commit()
         return res
 
-    @patch("/{order_id:str}/spam", guards=[PermissionGuard("order:write")])
+    @patch("/{order_id:str}/spam", guards=[PermissionGuard(PermissionEnum.ORDER_WRITE)])
     async def toggle_order_spam(self, request: Request, db_session: "AsyncSession", order_id: str) -> SuccessResponse:
         """Manually toggle the spam status of an order."""
         user_state = request.scope.get("state", {}).get("user", {})
@@ -90,7 +91,7 @@ class OrderController(Controller):
         await db_session.commit()
         return res
 
-    @patch("/{order_id:str}/planning", guards=[PermissionGuard("order:write")])
+    @patch("/{order_id:str}/planning", guards=[PermissionGuard(PermissionEnum.ORDER_WRITE)])
     async def update_order_planning(self, request: Request, db_session: "AsyncSession", order_id: str, data: OrderPlanningRequest) -> SuccessResponse:
         """Elite V2.2: Advanced Logistics Planning endpoint"""
         user_state = request.scope.get("state", {}).get("user", {})

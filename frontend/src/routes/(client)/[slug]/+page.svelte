@@ -1,9 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { setShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import { nanobot } from '$lib/state/nanobot.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import HeroBanner from '$lib/components/client/HeroBanner.svelte';
+  import LiquidHeader from '$lib/components/client/LiquidHeader.svelte';
   import StealthCheckout from '$lib/components/client/StealthCheckout.svelte';
+  import { browser } from '$app/environment';
   
   // New Modular Components
   import DiagnosticsSection from '$lib/components/client/slug/DiagnosticsSection.svelte';
@@ -16,6 +18,7 @@
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
+  let themeMode = $state<'system' | 'light' | 'dark'>('system');
 
   // 🚀 ELITE CONTEXT INJECTION (Elite V2.2)
   const shopStore = setShopStore();
@@ -42,15 +45,54 @@
     }
   });
 
+  const clientUi = getClientUi();
+
+  const updateDOM = (theme: 'light' | 'dark') => {
+    if (!browser) return;
+    document.documentElement.setAttribute('data-theme', theme);
+    document.body.setAttribute('data-theme', theme);
+  };
+
+  const applyTheme = (mode: 'system' | 'light' | 'dark') => {
+    themeMode = mode;
+    if (!browser) return;
+    localStorage.setItem('hero-theme-mode', mode);
+    if (mode === 'system') {
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      updateDOM(isDark ? 'dark' : 'light');
+    } else {
+      updateDOM(mode as 'light' | 'dark');
+    }
+  };
+
   // Footer Control!
   $effect(() => {
-    nanobot.ui.hideFooter = useMobileLayout;
-    return () => { nanobot.ui.hideFooter = false; };
+    if (clientUi) {
+      clientUi.isFooterHidden = useMobileLayout;
+    }
+    return () => { 
+      if (clientUi) clientUi.isFooterHidden = false; 
+    };
   });
 
   // Cleanup Timer on unmount
   onMount(() => {
-    return () => shopStore.dispose();
+    if (browser) {
+      const savedTheme = localStorage.getItem('hero-theme-mode');
+      const validTheme = (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') ? savedTheme : 'system';
+      applyTheme(validTheme);
+      
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      const h = (e: MediaQueryListEvent): void => {
+        if (themeMode === 'system') updateDOM(e.matches ? 'dark' : 'light');
+      };
+      
+      mq.addEventListener('change', h);
+      return () => {
+        shopStore.dispose();
+        mq.removeEventListener('change', h);
+      };
+    }
   });
 
   const scrollToQuiz = () => {
@@ -71,6 +113,7 @@
   <div class="client-page-root selection:bg-blue-600 selection:text-white h-screen overflow-y-scroll scroll-smooth">
 
   {#if product?.id}
+    <LiquidHeader {product} {themeMode} {applyTheme} scrollToQuiz={scrollToQuiz} />
     <HeroBanner {scrollToQuiz} />
 
     <!-- DIAGNOSTICS: AI Analysis & Personalized Quiz -->
@@ -101,13 +144,14 @@
     overflow-x: hidden;
     scroll-snap-type: y mandatory;
     height: 100vh;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Outfit', sans-serif;
     background-color: var(--bg-canvas);
     color: var(--text-base);
   }
 
   :root {
     --standard-pt: 12vh;
+    --z-sticky-header: 9999;
   }
 
   :global(.snap-session) {

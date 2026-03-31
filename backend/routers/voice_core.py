@@ -9,10 +9,12 @@ from .voice_utils import (
     MIN_AUDIO_BYTES, MAX_AUDIO_BYTES,
     send_partial, transcribe, background_save_telemetry
 )
+from backend.constants.permissions import PermissionEnum
+from backend.guards import PermissionGuard
 
 logger = logging.getLogger("api-gateway")
 
-@websocket("/ws/stt", guards=[])
+@websocket("/ws/stt", guards=[PermissionGuard(PermissionEnum.SYS_ADMIN)])
 async def stt_websocket(socket: WebSocket) -> None:
     """WebSocket endpoint: receive audio chunks, transcribe via Groq Whisper."""
     await socket.accept()

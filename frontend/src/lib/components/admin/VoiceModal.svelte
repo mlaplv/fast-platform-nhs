@@ -3,7 +3,7 @@
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { fade, fly } from "svelte/transition";
   import { playSciFiBeep, playSiriDing } from "$lib/utils/sfx";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import VoiceStatusCaption from "./vui/VoiceStatusCaption.svelte";
   import ContentReviewCard from "./ui/ContentReviewCard.svelte";
   import X from "lucide-svelte/icons/x";
@@ -88,7 +88,7 @@
 {#if nanobot.isVuiActive && !nanobot.isTraining}
   <div
     class="absolute inset-0 flex flex-col pointer-events-none transition-all duration-300"
-    style="z-index: {Z_INDEX.OVERLAY};"
+    style="z-index: {Z_INDEX_ADMIN.OVERLAY};"
     transition:fade={{ duration: 300 }}
   >
     <!-- Main Container (Purely Transparent Overlay) -->
@@ -122,7 +122,7 @@
           window.addEventListener('mouseup', endHold);
         }}
         class="absolute top-1 right-1 group pointer-events-auto transition-all duration-300 active:scale-90"
-        style="z-index: {Z_INDEX.VUI_EXIT}"
+        style="z-index: {Z_INDEX_ADMIN.VUI_EXIT}"
         title="Short: Hide UI | Long: Kill Process (Hard Kill)"
       >
         <div class="relative w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/10 transition-all duration-200">
@@ -151,7 +151,7 @@
       <!-- VUI Content (Centered GPT-style) -->
       <div class="{nanobot.isExpanded ? 'absolute inset-0 block overflow-hidden' : 'absolute inset-0 flex justify-center items-center overflow-hidden p-4'}">
         <!-- Voice Caption Layer (GPT-style Background/Overlay) -->
-        <div class="absolute inset-0 left-0 w-full flex justify-center pointer-events-none" style="z-index: {nanobot.isExpanded ? Z_INDEX.VUI_CAPTION_EXPANDED : Z_INDEX.VUI_CAPTION}">
+        <div class="absolute inset-0 left-0 w-full flex justify-center pointer-events-none" style="z-index: {nanobot.isExpanded ? Z_INDEX_ADMIN.VUI_CAPTION_EXPANDED : Z_INDEX_ADMIN.VUI_CAPTION}">
           <VoiceStatusCaption {phase} />
         </div>
 

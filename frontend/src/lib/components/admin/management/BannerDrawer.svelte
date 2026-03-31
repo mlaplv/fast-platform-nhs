@@ -7,7 +7,7 @@
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { portal } from "$lib/core/actions/portal";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import type { MediaAsset, BannerForm } from "$lib/types";
   import FileManager from "../../media/FileManager.svelte";
 
@@ -72,11 +72,11 @@
 </script>
 
 {#if isOpen}
-  <div use:portal class="relative" style="z-index: {Z_INDEX.MODAL};">
+  <div use:portal class="relative" style="z-index: {Z_INDEX_ADMIN.MODAL};">
     <!-- Backdrop -->
     <div
       class="fixed inset-0 bg-black/95 md:bg-black/90 md:backdrop-blur-sm"
-      style="z-index: {Z_INDEX.OVERLAY};"
+      style="z-index: {Z_INDEX_ADMIN.OVERLAY};"
       transition:fade={{ duration: 300 }}
       onclick={onClose}
       aria-label="Close drawer"
@@ -89,7 +89,7 @@
     <div
       class="fixed top-0 right-0 h-full w-[500px] max-w-full bg-[#050505] border-l border-white/10 shadow-[-30px_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden"
       transition:fly={{ x: 500, duration: 300, opacity: 1 }}
-      style="z-index: {Z_INDEX.MODAL + 10};"
+      style="z-index: {Z_INDEX_ADMIN.MODAL + 10};"
     >
       <!-- Header -->
       <div class="h-16 flex items-center justify-between px-6 border-b border-white/10 relative bg-black/40">
@@ -252,7 +252,7 @@
   <div 
     use:portal
     class="fixed inset-0 bg-black/90 backdrop-blur-xl flex flex-col" 
-    style="z-index: {Z_INDEX.MEDIA_OVERLAY};"
+    style="z-index: {Z_INDEX_ADMIN.MEDIA_OVERLAY};"
     transition:fade
   >
     <div class="flex-1 overflow-hidden">

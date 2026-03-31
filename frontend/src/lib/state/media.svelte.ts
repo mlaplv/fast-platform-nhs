@@ -267,7 +267,7 @@ class MediaStore {
         this.eventSource = new EventSource(`/api/v1/content/stream/${campaignId}`);
     } else {
         console.log(`[MediaStore] Subscribing to Global Pulse stream for media events`);
-        this.eventSource = new EventSource(`/api/v1/pulse/stream`);
+        this.eventSource = new EventSource(`/api/v1/pulse/stream`, { withCredentials: true });
     }
 
     this.eventSource.onmessage = (event) => {

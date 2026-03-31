@@ -12,7 +12,7 @@
   import VaultModal from "../VaultModal.svelte";
   import ConfirmationModal from "../ui/ConfirmationModal.svelte";
   import UniversalModal from "../ui/UniversalModal.svelte";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { permissionState } from "$lib/state/permissions.svelte";
   import CurrentSessionStatus from "./HUD/CurrentSessionStatus.svelte";
   import TechStackFooter from "./TechStackFooter.svelte";
@@ -26,7 +26,7 @@
   <!-- Base Background Layer: Elite Pure Black -->
   <div
     class="absolute inset-0 pointer-events-none overflow-hidden bg-black"
-    style="z-index: {Z_INDEX.BASE};"
+    style="z-index: {Z_INDEX_ADMIN.BASE};"
   >
   </div>
 
@@ -35,7 +35,7 @@
     <!-- Header/Status Bar -->
     <header
       class="h-12 border-b border-white/5 flex items-center justify-between px-5 bg-[#010101]"
-      style="z-index: {Z_INDEX.LAYOUT_HEADER};"
+      style="z-index: {Z_INDEX_ADMIN.LAYOUT_HEADER};"
       class:hidden={nanobot.isVuiActive && !nanobot.isTraining}
     >
       <div class="flex items-center gap-3">
@@ -83,11 +83,11 @@
     </header>
 
     <!-- Canvas Area -->
-    <div class="flex-1 relative overflow-hidden" style="z-index: {Z_INDEX.SURFACE};">
+    <div class="flex-1 relative overflow-hidden" style="z-index: {Z_INDEX_ADMIN.SURFACE};">
       <!-- CENTRAL BRANDING WATERMARK -->
       <XohiWatermark />
 
-      <div class="relative w-full h-full p-6" style="z-index: {Z_INDEX.SURFACE};">
+      <div class="relative w-full h-full p-6" style="z-index: {Z_INDEX_ADMIN.SURFACE};">
         <div class:hidden={nanobot.isVuiActive && !nanobot.isTraining}>
           <DynamicCanvas />
         </div>
@@ -100,7 +100,7 @@
     <!-- OmniCommand: Floats over everything, persistent for VUI control -->
     <div
       class="relative pt-3 pb-6 pointer-events-none"
-      style="z-index: {Z_INDEX.OMNI_COMMAND};"
+      style="z-index: {Z_INDEX_ADMIN.OMNI_COMMAND};"
       class:omni-waterdrop={nanobot.universalModalOpen}
     >
       <div class="pointer-events-auto max-w-4xl mx-auto px-4 sm:px-6">
@@ -109,7 +109,7 @@
     </div>
     <div
       class="absolute inset-0 pointer-events-none"
-      style="z-index: {Z_INDEX.MODAL};"
+      style="z-index: {Z_INDEX_ADMIN.MODAL};"
     >
       <div
         class="{nanobot.universalModalOpen
@@ -128,7 +128,7 @@
   <!-- Right Sidebar: Heartbeat -->
   <aside
     class="relative h-full shadow-[-20px_0_30px_rgba(0,0,0,0.5)] border-l border-white/5 bg-[#010101] transition-all duration-300 ease-in-out group/sidebar overflow-visible"
-    style="z-index: {Z_INDEX.SIDEBAR};"
+    style="z-index: {Z_INDEX_ADMIN.SIDEBAR};"
     class:heartbeat-manual-collapse={nanobot.heartbeatCollapsed === true}
     class:heartbeat-manual-expand={nanobot.heartbeatCollapsed === false}
     id="heartbeat-sidebar"

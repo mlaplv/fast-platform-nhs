@@ -1,15 +1,23 @@
 <script lang="ts">
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { setClientUi } from "$lib/state/commerce/ui.svelte";
   import "./client.css";
   let { children } = $props();
+
+  const ui = setClientUi();
 </script>
+
+<svelte:head>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet" />
+</svelte:head>
 
 <div class="client-layout min-h-screen flex flex-col">
   <main class="flex-grow">
     {@render children()}
   </main>
   
-  {#if !nanobot.ui.hideFooter}
+  {#if !ui.isFooterHidden}
     <footer class="bg-slate-950/80 backdrop-blur-md border-t border-white/5 py-8 text-center mt-auto relative z-20">
       <div class="flex flex-col items-center gap-4">
         <a 

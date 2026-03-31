@@ -15,7 +15,7 @@ class DomainGuardMiddleware(ASGIMiddleware):
         self.debug = os.getenv("DEBUG", "false").lower() == "true"
 
     async def handle(self, scope: Scope, receive: Receive, send: Send, next_app: ASGIApp) -> None:
-        if scope["type"] != "http":
+        if scope["type"] not in ["http", "websocket"]:
             await next_app(scope, receive, send)
             return
 
@@ -43,12 +43,15 @@ class DomainGuardMiddleware(ASGIMiddleware):
         path = scope["path"]
         method = scope["method"]
 
-        # 3. Định nghĩa các vùng cấm (Restricted Zones)
-        # Các controller/đường dẫn chỉ dành cho Admin
+        # 3. Định nghĩa các vùng cấm (Restricted Zones) - Elite V2.2
+        # Các controller/đường dẫn chỉ dành cho Admin, tuyệt đối không cho phép từ Client domain.
         admin_only_prefixes = [
-            "/users", "/settings", "/notifications",
-            "/auditor", "/ai", "/mcp", "/scheduler",
-            "/banner", "/chat/management"
+            "/api/v1/users", "/api/v1/settings", "/api/v1/notifications",
+            "/api/v1/auditor", "/api/v1/ai", "/api/v1/mcp", "/api/v1/scheduler",
+            "/api/v1/banner", "/api/v1/chat", "/api/v1/auth",
+            "/api/v1/pulse", "/api/v1/intent", "/api/v1/voice", "/api/v1/content", "/api/v1/media",
+            "/api/v1/orders",    # Chặn prefix order chung của Admin (Dùng CheckoutController cho Client)
+            "/ws/stt",           # WebSocket voice
         ]
 
         # 4. Logic chặn (Elite Blocking Rules)
@@ -57,18 +60,15 @@ class DomainGuardMiddleware(ASGIMiddleware):
         # Quy tắc 1: Nếu gọi vào Admin Zone mà không phải từ Admin Domain -> CHẶN
         if any(path.startswith(prefix) for prefix in admin_only_prefixes):
             if not is_admin_domain:
-                raise PermissionDeniedException(f"Domain '{current_host}' is not authorized to access Admin Zone: {path}")
+                raise PermissionDeniedException(f"Domain '{current_host}' is NOT authorized to access Admin API: {path}")
 
-        # Quy tắc 2: Đối với các tài nguyên chung (Sản phẩm, Bài viết, Đơn hàng):
+        # Quy tắc 2: Đối với các tài nguyên chung (Sản phẩm, Bài viết, Danh mục):
         # Chỉ Admin Domain mới được phép Mutation (POST, PATCH, PUT, DELETE)
         mutation_methods = ["POST", "PATCH", "PUT", "DELETE"]
-        shared_resource_prefixes = ["/product", "/category", "/article", "/order"]
+        shared_resource_prefixes = ["/api/v1/products", "/api/v1/categories", "/api/v1/articles"]
 
         if method in mutation_methods and any(path.startswith(prefix) for prefix in shared_resource_prefixes):
-            # Ngoại lệ: Cho phép Client tạo đơn hàng (Checkout)
-            if path.startswith("/order") and method == "POST":
-                pass # Client được phép tạo đơn
-            elif not is_admin_domain:
-                raise PermissionDeniedException(f"Domain '{current_host}' is restricted from mutation on {path}")
+            if not is_admin_domain:
+                raise PermissionDeniedException(f"Domain '{current_host}' is RESTRICTED from mutation on {path}")
 
         await next_app(scope, receive, send)

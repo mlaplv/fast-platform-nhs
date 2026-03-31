@@ -4,7 +4,7 @@
     import { nanobot } from '$lib/state/nanobot.svelte';
     import { vuiController } from '$lib/vui';
     import { fade, slide, scale } from 'svelte/transition';
-    import { Z_INDEX } from '$lib/core/constants/zIndex';
+    import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
     import type { MediaAsset } from '$lib/state/types';
     import FileToolbar from './FileToolbar.svelte';
     import FileGrid from './FileGrid.svelte';
@@ -383,7 +383,7 @@
 
     <!-- [Bulk SEO Modal] -->
     {#if showBulkSeo}
-        <div class="fixed inset-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md" style="z-index: {Z_INDEX.POPOVER};" transition:fade>
+        <div class="fixed inset-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md" style="z-index: {Z_INDEX_ADMIN.POPOVER};" transition:fade>
             <div class="bg-white dark:bg-zinc-900 w-full max-w-4xl max-h-[80vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/10" transition:scale>
                 <div class="p-6 border-b flex justify-between items-center bg-zinc-50 dark:bg-zinc-800/50">
                     <div class="flex items-center gap-4">

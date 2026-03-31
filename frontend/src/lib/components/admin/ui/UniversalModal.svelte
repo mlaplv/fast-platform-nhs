@@ -1,7 +1,7 @@
 <script lang="ts">
   // Force HMR Update for Widget Registry Integration
   import { nanobot } from "$lib/state/nanobot.svelte";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { fade } from "svelte/transition";
   import X from "lucide-svelte/icons/x";
   import SupremeCloseButton from "./SupremeCloseButton.svelte";
@@ -97,7 +97,7 @@ import AppointmentManagement from "../management/AppointmentManagement.svelte";
     <div
       class="xohi-widget-overlay"
       transition:fade={{ duration: 300 }}
-      style="z-index: {Z_INDEX.MODAL};"
+      style="z-index: {Z_INDEX_ADMIN.MODAL};"
     >
     <!-- Backdrop (scoped to main content) -->
     <div
@@ -110,7 +110,7 @@ import AppointmentManagement from "../management/AppointmentManagement.svelte";
     <!-- Widget Container -->
     <div
       class="relative w-full h-full flex flex-col max-h-full overflow-hidden"
-      style="z-index: {Z_INDEX.SURFACE};"
+      style="z-index: {Z_INDEX_ADMIN.SURFACE};"
     >
       <!-- Header -->
       {#if nanobot.activeWidget !== 'CONTENT_REVIEW'}

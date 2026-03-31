@@ -1,6 +1,6 @@
 <script lang="ts">
   import { nanobot } from "$lib/state/nanobot.svelte";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { fade, fly, slide } from "svelte/transition";
   import { flip } from "svelte/animate";
   import CheckCircle from "lucide-svelte/icons/check-circle";
@@ -47,7 +47,7 @@
   };
 </script>
 
-<div class="fixed top-8 right-8 flex flex-col gap-3 w-80 pointer-events-none" style:z-index={Z_INDEX.TOAST}>
+<div class="fixed top-8 right-8 flex flex-col gap-3 w-80 pointer-events-none" style:z-index={Z_INDEX_ADMIN.TOAST}>
   {#each toasts as toast (toast.id)}
     {@const config = TYPE_CONFIG[toast.type]}
     <div

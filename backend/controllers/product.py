@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database.repositories import ProductBaseRepository, provide_product_repo
 from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 from backend.schemas.product import CreateProductRequest, UpdateProductRequest, ProductResponse, ProductListResponse
 from backend.schemas.common import SuccessResponse, BulkActionResponse, BulkIdsRequest
 from backend.services.commerce.product import ProductService, provide_product_service
@@ -17,13 +18,14 @@ logger = logging.getLogger("api-gateway")
 class ProductController(Controller):
     """R2: Class-based Litestar Controller for Product CRUD."""
     path = "/api/v1/products"
+    guards = [PermissionGuard(PermissionEnum.PRODUCT_READ)]
     dependencies = {
         "prod_repo": Provide(provide_product_repo),
         "vector_service": Provide(provide_product_vector_service),
         "product_service": Provide(provide_product_service),
     }
 
-    @get("/", guards=[PermissionGuard("product:read")])
+    @get("/", guards=[PermissionGuard(PermissionEnum.PRODUCT_READ)])
     async def list_products(
         self, 
         db_session: AsyncSession,
@@ -36,7 +38,7 @@ class ProductController(Controller):
         """List products (R76: Scalar Projection). R41: N+1 Safe."""
         return await product_service.list_products(db_session=db_session, limit=limit, offset=offset, status=status, search=search)
 
-    @get("/{product_id:str}", guards=[PermissionGuard("product:read")])
+    @get("/{product_id:str}", guards=[PermissionGuard(PermissionEnum.PRODUCT_READ)])
     async def get_product(
         self, 
         db_session: AsyncSession, 
@@ -46,7 +48,7 @@ class ProductController(Controller):
         """Get a single product (R76: Scalar Projection)."""
         return await product_service.get_product(db_session, product_id)
 
-    @post("/", guards=[PermissionGuard("product:write")])
+    @post("/", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)])
     async def create_product(
         self, 
         db_session: AsyncSession, 
@@ -58,7 +60,7 @@ class ProductController(Controller):
         await db_session.commit()
         return res
 
-    @patch("/{product_id:str}", guards=[PermissionGuard("product:write")])
+    @patch("/{product_id:str}", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)])
     async def update_product(
         self, 
         db_session: AsyncSession, 
@@ -72,7 +74,7 @@ class ProductController(Controller):
         await db_session.commit()
         return res
 
-    @delete("/{product_id:str}", status_code=200, guards=[PermissionGuard("product:write")])
+    @delete("/{product_id:str}", status_code=200, guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)])
     async def delete_product(
         self, 
         db_session: AsyncSession, 
@@ -84,7 +86,7 @@ class ProductController(Controller):
         await db_session.commit()
         return res
 
-    @post("/bulk-delete", guards=[PermissionGuard("product:write")])
+    @post("/bulk-delete", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)])
     async def bulk_delete(
         self, 
         db_session: AsyncSession, 
@@ -96,7 +98,7 @@ class ProductController(Controller):
         await db_session.commit()
         return res
 
-    @post("/bulk-activate", guards=[PermissionGuard("product:write")])
+    @post("/bulk-activate", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)])
     async def bulk_activate(
         self, 
         db_session: AsyncSession, 

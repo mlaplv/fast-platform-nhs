@@ -189,6 +189,12 @@ class OrderService:
                 success_sq, cancel_sq
             )
             .outerjoin(User, Order.user_id == User.id)
+            .where(
+                and_(
+                    Order.tenant_id == (current_tenant_id.get() or "default"),
+                    Order.deleted_at == None
+                )
+            )
         )
 
         # R2026: Elite Suffix Lookup Support
@@ -209,8 +215,12 @@ class OrderService:
             insight_stmt = select(
                 sa.func.sum(Order.total_amount).filter(Order.status == "DELIVERED").label("ltv"),
                 sa.func.count(Order.id).label("total_orders"),
-                # Success rate calculation
-                (sa.func.count(Order.id).filter(Order.status == "DELIVERED") * 100.0 / sa.func.count(Order.id)).label("trust_score"),
+                # Success rate calculation (R2026: Safe Division)
+                sa.func.coalesce(
+                    sa.func.count(Order.id).filter(Order.status == "DELIVERED") * 100.0 / 
+                    sa.func.nullif(sa.func.count(Order.id), 0),
+                    0.0
+                ).label("trust_score"),
                 sa.func.min(Order.created_at).label("first_order"),
                 sa.func.max(Order.created_at).label("last_order")
             ).where(

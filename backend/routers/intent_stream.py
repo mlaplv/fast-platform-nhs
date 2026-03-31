@@ -4,6 +4,7 @@ Rule 01 compliance: Moved implementation to .intent.core
 """
 import logging
 from litestar import Controller, post, Request
+from backend.routers.intent_core import IntentStreamCore
 from litestar.di import Provide
 from litestar.response import Stream
 
@@ -16,11 +17,13 @@ from backend.database.repositories import (
     provide_telemetry_repo, provide_order_repo, provide_product_repo,
     provide_campaign_repo
 )
-from .intent_core import IntentStreamCore
+from backend.constants.permissions import PermissionEnum
+from backend.guards import PermissionGuard
 
 logger = logging.getLogger("api-gateway")
 
 class IntentStreamController(Controller):
+    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
     """SSE streaming version of IntentController — phased real-time response."""
     path = "/api/v1/intent"
     dependencies = {

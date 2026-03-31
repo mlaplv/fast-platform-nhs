@@ -1,7 +1,7 @@
 <script lang="ts">
   import { X, Zap } from "lucide-svelte";
   import { nanobot } from "$lib/state/nanobot.svelte";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { playTacticalPurge } from "$lib/utils/sfx";
 
   interface Props {
@@ -61,7 +61,7 @@
   }
 </script>
 
-<div class="relative pointer-events-auto {className}" style="z-index: {Z_INDEX.SUPREME_POWER};">
+<div class="relative pointer-events-auto {className}" style="z-index: {Z_INDEX_ADMIN.SUPREME_POWER};">
   <button
     oncontextmenu={(e) => e.preventDefault()}
     onmousedown={startHold}

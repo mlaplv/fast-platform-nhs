@@ -6,9 +6,12 @@ from datetime import datetime, timezone
 from litestar import Controller, get, post, delete, Request
 from litestar.exceptions import NotFoundException, HTTPException
 from litestar.middleware.rate_limit import RateLimitConfig
+from litestar.di import Provide
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete as sqlalchemy_delete, func
 
+from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 from backend.schemas.chat import ChatHistoryResponse, ChatMessageSchema, CreateChatMessageRequest
 from backend.schemas.common import SuccessResponse
 from backend.services.chat_service import chat_service
@@ -22,6 +25,7 @@ chat_clear_limit = RateLimitConfig(rate_limit=("minute", 50), store="memory_stor
 
 class ChatController(Controller):
     path = "/api/v1/chat"
+    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
 
     @post(
         "/sessions/{session_id:str}/messages",

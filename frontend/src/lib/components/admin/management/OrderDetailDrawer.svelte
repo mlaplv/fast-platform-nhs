@@ -31,7 +31,7 @@
   import { formatCurrency, formatDate } from "$lib/utils/format";
   import type { OrderDetail, User as UserType } from "$lib/types";
   import { SHOP_CONFIG } from "$lib/constants/shop";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 
   let {
     isOpen = $bindable(),
@@ -179,11 +179,11 @@
 </script>
 
 {#if isOpen}
-  <div use:portal class="relative" style="z-index: {Z_INDEX.MODAL};">
+  <div use:portal class="relative" style="z-index: {Z_INDEX_ADMIN.MODAL};">
     <!-- Backdrop -->
     <div
       class="fixed inset-0 bg-black/95 md:bg-black/90 md:backdrop-blur-sm"
-      style="z-index: {Z_INDEX.OVERLAY};"
+      style="z-index: {Z_INDEX_ADMIN.OVERLAY};"
       transition:fade={{ duration: 200 }}
       onclick={onClose}
       aria-label="Close drawer"
@@ -195,7 +195,7 @@
     <!-- Drawer Panel -->
     <div
       class="fixed top-0 right-0 h-full w-[500px] max-w-full bg-[#050505] border-l border-white/10 shadow-[-30px_0_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden"
-      style="z-index: {Z_INDEX.MODAL + 10};"
+      style="z-index: {Z_INDEX_ADMIN.MODAL + 10};"
       transition:fly={{ x: 500, duration: 300, opacity: 1 }}
     >
       <!-- Header -->

@@ -21,6 +21,7 @@ from backend.schemas.system_settings import SystemSettingsPayload, SystemSetting
 from backend.schemas.common import SuccessResponse
 from backend.services.settings_service import settings_service
 from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 
 
 logger = logging.getLogger("api-gateway")
@@ -32,7 +33,7 @@ class SettingsController(Controller):
     Manages per-user configurations for Voice Identity and Cognitive Capabilities.
     """
     path = "/api/v1/settings"
-    guards = [PermissionGuard("system:all")]
+    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
 
     @get("/voice")
     async def get_voice_settings(self, db_session: "AsyncSession", request: Request) -> VoiceSettingsResponse:

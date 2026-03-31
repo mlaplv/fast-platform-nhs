@@ -1,6 +1,6 @@
 <script lang="ts">
   import { nanobot } from "$lib/state/nanobot.svelte";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import type { FormField } from "$lib/state/types";
   import Check from "lucide-svelte/icons/check";
   import MissionControlShell from "./MissionControlShell.svelte";
@@ -82,7 +82,7 @@
     headerIcon={AlertTriangle}
     maxWidth={dialog.fields && dialog.fields.length > 0 ? "max-w-xl" : "max-w-lg"}
     height="h-auto"
-    zIndex={Z_INDEX.MODAL_CONFIRM}
+    zIndex={Z_INDEX_ADMIN.MODAL_CONFIRM}
     backdropClass="bg-[#050505]/95 md:bg-black/40 md:backdrop-blur-sm"
   >
     <div class="px-8 py-6 relative">

@@ -15,6 +15,7 @@ import { normalizeVn } from "$lib/utils/text";
 import { normalizeAssets, SIGNAL_THROTTLE_MS, THINKING_TIMEOUT_MS } from "./nanobot/utils";
 import { sanitizeId } from "./utils";
 import { createAudioThrottle } from "./nanobot/audio_throttle";
+import { isAdminDomain } from "./nanobot/env";
 import { createResumeManager } from "./nanobot/resume";
 import { createPulseManager } from "./nanobot/pulse";
 
@@ -117,6 +118,8 @@ export function createNanobotState() {
     }, { once: true });
 
     $effect.root(() => {
+      if (!isAdminDomain()) return;
+
       $effect(() => {
         if (permissionState.isInitialized) untrack(() => {
           if (window.location.pathname.includes("/login") || (state.isHydrated && log.activityLogs.length > 0)) return;

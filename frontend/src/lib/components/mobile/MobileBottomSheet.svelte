@@ -2,7 +2,7 @@
   import type { Product } from '$lib/types';
   import { X, ShoppingCart, ShieldCheck, ArrowRight, ArrowLeft, Phone, MapPin, User, Loader2 } from 'lucide-svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import { Z_INDEX } from '$lib/core/constants/zIndex';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
   import { portal } from '$lib/core/actions/portal';
   import { fade, fly } from 'svelte/transition';
 
@@ -119,7 +119,7 @@
   <button
     type="button"
     class="mobile-bottom-sheet-bg border-none outline-none"
-    style="z-index: {Z_INDEX.OVERLAY}; opacity: {active ? 1 - Math.min(dragY / 400, 0.5) : 0}; transition: {isDragging ? 'none' : 'opacity 0.4s fade'}"
+    style="z-index: {Z_INDEX_CLIENT.OVERLAY}; opacity: {active ? 1 - Math.min(dragY / 400, 0.5) : 0}; transition: {isDragging ? 'none' : 'opacity 0.4s fade'}"
     class:active
     onclick={close}
   ></button>
@@ -127,7 +127,7 @@
   <div
     class="mobile-bottom-sheet bg-[#0a0a0a] text-white border-t border-white/10 flex flex-col shadow-[0_-20px_80px_rgba(0,0,0,0.9)]"
     class:active
-    style="z-index: {Z_INDEX.MODAL}; padding-bottom: env(safe-area-inset-bottom, 24px); transform: translateY({active ? dragY + 'px' : '100%'}); transition: {isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)'}"
+    style="z-index: {Z_INDEX_CLIENT.MODAL}; padding-bottom: env(safe-area-inset-bottom, 24px); transform: translateY({active ? dragY + 'px' : '100%'}); transition: {isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)'}"
     role="dialog"
     aria-modal="true"
   >

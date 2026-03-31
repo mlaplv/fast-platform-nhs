@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { fade, scale, fly } from "svelte/transition";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { Sparkles, Cpu, Zap, Activity } from "lucide-svelte";
 
   interface Props {
@@ -56,7 +56,7 @@
   }
 </script>
 
-<div class="relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-slate-950/90 backdrop-blur-xl p-12" style="z-index: {Z_INDEX.SYSTEM};" in:fade>
+<div class="relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-slate-950/90 backdrop-blur-xl p-12" style="z-index: {Z_INDEX_ADMIN.SYSTEM};" in:fade>
   <!-- 1. Mesh Gradient Background - Simplified for Performance -->
   <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-60">
     <div class="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-purple-600/10 blur-[80px] animate-mesh-1"></div>

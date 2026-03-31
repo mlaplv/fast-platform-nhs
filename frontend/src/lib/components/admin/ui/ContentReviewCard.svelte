@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import { fade } from "svelte/transition";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { apiClient } from "$lib/utils/apiClient";
   import { nanobot } from "$lib/state/nanobot.svelte";
   import { vuiController } from "$lib/vui";
@@ -258,7 +258,7 @@
   const handleMouseMove = (e: MouseEvent) => { const el = e.currentTarget as HTMLElement, r = el.getBoundingClientRect(); el.style.setProperty('--mouse-x', `${((e.clientX - r.left) / r.width) * 100}%`); el.style.setProperty('--mouse-y', `${((e.clientY - r.top) / r.height) * 100}%`); };
 </script>
 
-<div class="content-review-card w-full h-full flex flex-col transition-all duration-700 overflow-hidden bg-slate-950/95 backdrop-blur-xl" style="z-index: {Z_INDEX.SYSTEM};" in:fade={{ duration: 600 }}>
+<div class="content-review-card w-full h-full flex flex-col transition-all duration-700 overflow-hidden bg-slate-950/95 backdrop-blur-xl" style="z-index: {Z_INDEX_ADMIN.SYSTEM};" in:fade={{ duration: 600 }}>
   <Header bind:viewingStep {step} {status} {progress_msg} {campaign_id} bind:isEditing toggleExpand={() => nanobot.toggleExpand()} isExpanded={nanobot.isExpanded} creation_config={isEditing ? editedConfig : creation_config} />
   <div class="flex-1 {(viewingStep === 3 || viewingStep === 4 || viewingStep === 6) ? 'overflow-hidden pb-0' : 'overflow-y-auto custom-scrollbar pb-24'} relative flex flex-col min-h-0">
     {#if shouldShowOverlay}

@@ -8,7 +8,7 @@
   import Play from "lucide-svelte/icons/play";
 
   import MissionControlShell from "./MissionControlShell.svelte";
-  import { Z_INDEX } from "$lib/core/constants/zIndex";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 
   let log = $derived(nanobot.expandedLog);
   let visible = $state(false);
@@ -77,7 +77,7 @@
     isOpen={visible}
     onClose={close}
     maxWidth="max-w-5xl"
-    zIndex={Z_INDEX.MODAL_CONFIRM}
+    zIndex={Z_INDEX_ADMIN.MODAL_CONFIRM}
   >
     <div class="p-12 md:p-20 relative">
       <div class="max-w-4xl mx-auto relative z-10">

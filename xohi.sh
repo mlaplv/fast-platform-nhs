@@ -445,41 +445,46 @@ while true; do
     echo -e "${NC}"
 
     echo -e "${YELLOW}>>> LÊNH TỔNG LỰC:${NC}"
-    echo "1) BẢO TRÌ DOCKER (Làm sạch 100% + Cập nhật Engine)"
-    echo "2) FULL INIT (Dọn + Build + Migration + Seed + SSL)"
+    echo "1) LÀM SẠCH CODE (Xóa Cache, Node_modules, Python Venv)"
+    echo "2) BẢO TRÌ DOCKER (Làm sạch 100% + Cập nhật Engine)"
+    echo "3) FULL INIT (Dọn + Build + Migration + Seed + SSL)"
     echo ""
     echo -e "${CYAN}>>> CÔNG CỤ HỖ TRỢ:${NC}"
-    echo "3) XEM LOG BACKEND"
-    echo "4) SAO LƯU DỮ LIỆU (DB + Images)"
-    echo "5) KHÔI PHỤC DỮ LIỆU"
-    echo "6) DỌN DẸP BẢN SAO LƯU (Xóa sạch)"
-    echo "7) RESTART API (Kèm theo dõi Log lỗi)"
-    echo "8) CẬP NHẬT MODEL AI (~250MB)"
-    echo "9) CẤP SSL (HTTPS) - FULL 3 DOMAINS"
+    echo "4) XEM LOG BACKEND"
+    echo "5) SAO LƯU DỮ LIỆU (DB + Images)"
+    echo "6) KHÔI PHỤC DỮ LIỆU"
+    echo "7) DỌN DẸP BẢN SAO LƯU (Xóa sạch)"
+    echo "8) RESTART API (Kèm theo dõi Log lỗi)"
+    echo "9) CẬP NHẬT MODEL AI (~250MB)"
+    echo "10) CẤP SSL (HTTPS) - FULL 3 DOMAINS"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
 
     case $choice in
         1)
-            update_docker
+            deep_clean
+            read -p "Nhấn Enter để quay lại menu..."
             ;;
         2)
-            init_deploy
+            update_docker
             ;;
         3)
-            view_logs
+            init_deploy
             ;;
         4)
-            backup_data
+            view_logs
             ;;
         5)
-            restore_data
+            backup_data
             ;;
         6)
-            clean_backups
+            restore_data
             ;;
         7)
+            clean_backups
+            ;;
+        8)
             echo -e "${CYAN}[RESTART] Đang làm sạch Log và khởi động lại Backend (api)...${NC}"
             docker compose stop api
             docker compose rm -f api
@@ -490,10 +495,10 @@ while true; do
             # Lọc log lỗi cho Sếp thấy thực trạng hệ thống
             docker compose logs -f api --tail 50 --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION|WARNING"
             ;;
-        8)
+        9)
             update_ai_model
             ;;
-        9)
+        10)
             echo -e "${CYAN}[SSL] Đang khởi động quy trình cấp and tin cậy SSL (HTTPS)...${NC}"
             chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
             read -p "Nhấn Enter để quay lại menu..."

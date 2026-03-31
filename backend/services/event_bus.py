@@ -15,8 +15,14 @@ class SystemEvent:
 
 class InternalBus:
     """
-    R23: Zero-latency internal event bus for Proactive Nerve System (V56.5).
-    Uses a non-blocking queue for asynchronous event processing.
+    R23: Zero-latency    R82: Internal Event Bus — High-performance Pub/Sub for system synchronization.
+    
+    [SECURITY WARNING]
+    ================
+    Events emitted via .emit() ARE BROADCAST to the Pulse SSE stream and potentially
+    exposed to the Admin UI. NEVER emit raw PII (Phone, Address, Full Name) in the 
+    payload unless you intend for it to be visible in the broadcast layer.
+    Use mask_pii() at the consumer level (PulseStreamController) or emit lean IDs only.
     """
     _instance = None
 

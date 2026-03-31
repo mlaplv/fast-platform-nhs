@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ShoppingCart, Share2, Heart, MessageCircle, Bookmark } from 'lucide-svelte';
-  import { Z_INDEX } from '$lib/core/constants/zIndex';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
   import type { Product } from '$lib/types';
 
   interface Props {
@@ -45,7 +45,7 @@
 
 <div
   class="fixed right-2 flex flex-col items-center gap-4 pb-4 transition-all duration-300"
-  style="z-index: {Z_INDEX.SURFACE}; bottom: calc(1.5rem + env(safe-area-inset-bottom))"
+  style="z-index: {Z_INDEX_CLIENT.SURFACE}; bottom: calc(1.5rem + env(safe-area-inset-bottom))"
 >
   <!-- Profile Avatar -->
   <div class="relative mb-2 group cursor-pointer">

@@ -3,18 +3,18 @@ import asyncio
 import logging
 from typing import AsyncGenerator
 from uuid import UUID
-from litestar import Controller, get
+from litestar import Controller, get, Request
 from litestar.response import Stream
 from backend.services.event_bus import event_bus
+
+from backend.guards import PermissionGuard
+from backend.constants.permissions import PermissionEnum
 
 logger = logging.getLogger("api-gateway")
 
 class ContentStreamController(Controller):
-    """
-    V76.5: Neural Streaming Waterfall for Content Campaigns.
-    Provides sub-second real-time updates for a specific campaign.
-    """
     path = "/api/v1/content/stream"
+    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
 
     @get("/{campaign_id:uuid}")
     async def stream_campaign(self, campaign_id: UUID) -> Stream:
