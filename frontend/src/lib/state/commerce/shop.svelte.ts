@@ -288,7 +288,7 @@ export class ShopStore {
                 severity: "Trung bình",
                 analysis: "Dựa trên các dấu hiệu bạn cung cấp, hệ thống ghi nhận tình trạng cần được xử lý sớm để tránh chuyển biến nặng.",
                 reasoning: "Các biểu hiện lâm sàng cho thấy tuyến mồ hôi đang hoạt động quá mức do thay đổi nội tiết hoặc môi trường.",
-                recommendation: "Sử dụng đều đặn theo phác đồ 2 lọ để đạt hiệu quả dứt điểm tốt nhất.",
+                recommendation: "Sử dụng đều đặn theo liệu trình 2 lọ để đạt hiệu quả dứt điểm tốt nhất.",
                 suggested_products: [],
                 quantity: fallbackQty
             };

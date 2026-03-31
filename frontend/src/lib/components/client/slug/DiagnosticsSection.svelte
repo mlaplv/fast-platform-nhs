@@ -14,8 +14,8 @@
 
   const labels = $derived({
     headline: metadata.diagnostics_headline || 'CHẨN ĐOÁN CÁ NHÂN HÓA',
-    subheadline: metadata.diagnostics_subheadline || `Để hệ thống chẩn đoán của <span class="text-white/60">${SHOP_CONFIG.pharmacy.name}</span> thiết lập phác đồ liều lượng chính xác nhất, vui lòng chọn mức độ biểu hiện hiện tại của bạn.`,
-    disclaimer: metadata.diagnostics_disclaimer || `Mọi thông tin được bảo mật tuyệt đối bởi ${SHOP_CONFIG.pharmacy.name}`
+    subheadline: metadata.diagnostics_subheadline || `Để hệ thống chẩn đoán của <span class="text-white/60">${SHOP_CONFIG.pharmacy.name}</span> thiết lập liệu trình liều lượng chính xác nhất, vui lòng chọn mức độ biểu hiện hiện tại của bạn.`,
+    disclaimer: metadata.diagnostics_disclaimer || `Gemini - Nhathuochongson.com là AI tư vấn và có thể mắc sai sót.`
   });
 </script>
 

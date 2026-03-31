@@ -3,7 +3,7 @@
 .hero-center-layout {
   container-type: inline-size;
   container-name: hero;
-  min-height: 100vh;
+  height: 100vh;
   /* padding-top: 3.5rem; REMOVED! */
   /* Protection against fixed header */
   scroll-margin-top: 80px;
@@ -603,7 +603,7 @@ html {
 
   & .headline-shift {
     display: inline-block;
-    margin-left: 55px;
+    margin-left: 35px;
   }
 }
 
@@ -639,10 +639,12 @@ html {
   position: relative;
   width: fit-content !important;
   height: 3.25rem;
-  background: rgba(255, 255, 255, 0.05); /* Slightly more visible base */
+  background: rgba(255, 255, 255, 0.05);
+  /* Slightly more visible base */
   backdrop-filter: blur(var(--liquid-blur)) saturate(180%);
   -webkit-backdrop-filter: blur(var(--liquid-blur)) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.15); /* More defined border */
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  /* More defined border */
   border-radius: 9999px;
   box-shadow: var(--liquid-shadow);
   transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
@@ -656,7 +658,8 @@ html {
 .is-collapsed .liquid-island {
   width: max-content !important;
   height: 2.85rem;
-  background: rgba(15, 23, 42, 0.1); /* Super transparent glass! */
+  background: rgba(15, 23, 42, 0.1);
+  /* Super transparent glass! */
   backdrop-filter: blur(40px) saturate(200%);
   border-color: rgba(255, 255, 255, 0.2);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
@@ -664,12 +667,15 @@ html {
 
 .island-link {
   font-size: 0.65rem;
-  font-weight: 700; /* Increased from 500 */
+  font-weight: 700;
+  /* Increased from 500 */
   white-space: nowrap !important;
-  color: rgba(255, 255, 255, 0.8); /* Higher contrast (0.5 -> 0.8) */
+  color: rgba(255, 255, 255, 0.8);
+  /* Higher contrast (0.5 -> 0.8) */
   text-decoration: none;
   text-transform: uppercase;
-  letter-spacing: 0.15em; /* Cleaner tracking */
+  letter-spacing: 0.15em;
+  /* Cleaner tracking */
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   background: none;
   border: none;
@@ -679,7 +685,8 @@ html {
 
 .island-link:hover,
 .island-link.is-active {
-  color: #60a5fa; /* Vibrant Blue-400 */
+  color: #60a5fa;
+  /* Vibrant Blue-400 */
   text-shadow: 0 0 15px rgba(96, 165, 250, 0.6);
   font-weight: 900;
   scale: 1.1;

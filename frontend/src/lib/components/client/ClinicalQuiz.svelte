@@ -14,9 +14,9 @@
   const questions = $derived(metadata.quiz_questions || []);
 
   const labels = $derived({
-    result_headline: (metadata.quiz_result_headline as string) || 'PHÁC ĐỒ <br/><span class="text-blue-500/80">OPTIMAL.</span>',
+    result_headline: (metadata.quiz_result_headline as string) || 'LIỆU TRÌNH <br/><span class="text-blue-500/80">OPTIMAL.</span>',
     result_subheadline: (metadata.quiz_result_subheadline as string) || 'Hệ thống AI đề xuất: Bạn cần liệu trình <span class="text-blue-400 font-black">{quantity} lọ</span> để đạt hiệu quả tối ưu.',
-    result_cta: (metadata.quiz_result_cta as string) || 'KÍCH HOẠT PHÁC ĐỒ',
+    result_cta: (metadata.quiz_result_cta as string) || 'KÍCH HOẠT LIỆU TRÌNH',
     restart_label: (metadata.quiz_restart_label as string) || 'Thiết lập lại',
     loading_label: (metadata.quiz_loading_label as string) || 'Đang xử lý dữ liệu...'
   });
@@ -114,7 +114,7 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 border-b border-white/10 pb-8">
               <div>
                 <h3 class="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase mb-2">KẾT QUẢ PHÂN TÍCH</h3>
-                <p class="text-blue-400/60 font-black text-[10px] tracking-[0.4em] uppercase">Phác đồ cá nhân hóa bởi AI Agent 2026</p>
+                <p class="text-blue-400/60 font-black text-[10px] tracking-[0.4em] uppercase">Liệu trình cá nhân hóa bởi AI Agent 2026</p>
               </div>
               <div class="flex items-center gap-4">
                 <div class="text-right hidden md:block">
@@ -137,12 +137,12 @@
               
               <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-white/5">
                 <div>
-                  <h4 class="text-[10px] font-black text-white/30 mb-3 uppercase tracking-[0.3em]">Lập luận y khoa</h4>
+                  <h4 class="text-[10px] font-black text-white/30 mb-3 uppercase tracking-[0.3em]">Tổng quan</h4>
                   <p class="text-white/50 text-sm leading-relaxed">{shopStore.diagnosticResult.reasoning}</p>
                 </div>
                 <div>
                   <div class="flex items-center gap-3 mb-3">
-                    <h4 class="text-[10px] font-black text-emerald-400/60 uppercase tracking-[0.3em]">Phác đồ tối ưu</h4>
+                    <h4 class="text-[10px] font-black text-emerald-400/60 uppercase tracking-[0.3em]">Liệu trình tối ưu</h4>
                     {#if shopStore.diagnosticResult.promotion_label}
                       <span class="px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-black rounded-full animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.2)]">
                         🎁 {shopStore.diagnosticResult.promotion_label}

@@ -12,10 +12,10 @@
   
   const labels = $derived({
     headline: metadata.diagnostics_headline || 'CHẨN ĐOÁN CÁ NHÂN HÓA',
-    subheadline: metadata.diagnostics_subheadline || `Để hệ thống chẩn đoán của ${SHOP_CONFIG.pharmacy.name} thiết lập phác đồ liều lượng chính xác nhất.`,
-    result_headline: (metadata.quiz_result_headline as string) || 'PHÁC ĐỒ OPTIMAL.',
+    subheadline: metadata.diagnostics_subheadline || `Để hệ thống chẩn đoán của ${SHOP_CONFIG.pharmacy.name} thiết lập liệu trình liều lượng chính xác nhất.`,
+    result_headline: (metadata.quiz_result_headline as string) || 'LIỆU TRÌNH OPTIMAL.',
     result_subheadline: (metadata.quiz_result_subheadline as string) || 'Hệ thống AI đề xuất: Bạn cần liệu trình {quantity} lọ để đạt hiệu quả tối ưu.',
-    result_cta: (metadata.quiz_result_cta as string) || 'KÍCH HOẠT PHÁC ĐỒ',
+    result_cta: (metadata.quiz_result_cta as string) || 'KÍCH HOẠT LIỆU TRÌNH',
     restart_label: (metadata.quiz_restart_label as string) || 'Thiết lập lại'
   });
 

@@ -126,29 +126,50 @@
     <LiquidHeader {product} {themeMode} {applyTheme} scrollToQuiz={scrollToQuiz} />
     <HeroBanner {scrollToQuiz} />
 
-    <!-- JIT TRIGGER ANCHOR -->
+    <!-- SECTIONS WITH INDEPENDENT JIT LOADING (Elite V2.2 Optimization) -->
+    <!-- This preserves snap points while components are loading -->
+    
     <div id="jit-trigger"></div>
 
-    {#if loadJIT}
-      {#await import('$lib/components/client/slug/DiagnosticsSection.svelte') then { default: DiagnosticsSection }}
-        <DiagnosticsSection />
-      {/await}
+    <section id="diagnostics" class="snap-session">
+      {#if loadJIT}
+        {#await import('$lib/components/client/slug/DiagnosticsSection.svelte') then { default: DiagnosticsSection }}
+          <DiagnosticsSection />
+        {/await}
+      {:else}
+        <div class="w-full h-full bg-[#050505] animate-pulse rounded-t-3xl border-t border-[#111]"></div>
+      {/if}
+    </section>
 
-      {#await import('$lib/components/client/slug/ScienceBento.svelte') then { default: ScienceBento }}
-        <ScienceBento />
-      {/await}
+    <section id="science" class="snap-session">
+      {#if loadJIT}
+        {#await import('$lib/components/client/slug/ScienceBento.svelte') then { default: ScienceBento }}
+          <ScienceBento />
+        {/await}
+      {:else}
+        <div class="w-full h-full bg-[#050505] animate-pulse"></div>
+      {/if}
+    </section>
 
-      {#await import('$lib/components/client/slug/VerifiedReviews.svelte') then { default: VerifiedReviews }}
-        <VerifiedReviews />
-      {/await}
+    <section id="reviews" class="snap-session">
+      {#if loadJIT}
+        {#await import('$lib/components/client/slug/VerifiedReviews.svelte') then { default: VerifiedReviews }}
+          <VerifiedReviews />
+        {/await}
+      {:else}
+        <div class="w-full h-full bg-[#050505] animate-pulse"></div>
+      {/if}
+    </section>
 
-      {#await import('$lib/components/client/slug/OfferGrid.svelte') then { default: OfferGrid }}
-        <OfferGrid />
-      {/await}
-    {:else}
-      <!-- Skeleton UI (Chống Layout Shift) -->
-      <section class="snap-session w-full h-[150vh] bg-[#050505] animate-pulse rounded-t-3xl border-t border-[#111]"></section>
-    {/if}
+    <section id="offers" class="snap-session">
+      {#if loadJIT}
+        {#await import('$lib/components/client/slug/OfferGrid.svelte') then { default: OfferGrid }}
+          <OfferGrid />
+        {/await}
+      {:else}
+        <div class="w-full h-full bg-[#050505] animate-pulse"></div>
+      {/if}
+    </section>
 
     <StealthCheckout />
   {:else}

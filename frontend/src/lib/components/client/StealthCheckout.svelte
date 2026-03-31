@@ -140,7 +140,7 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A10.003 10.003 0 0012 21a10.003 10.003 0 008.139-4.187l.054.09A10.003 10.003 0 0112 21c-3.147 0-5.941-1.45-7.747-3.719zM12 7V3m0 0a3 3 0 013 3v1h-6V6a3 3 0 013-3z" />
                 </svg>
-                <span class="text-[9px] font-black uppercase tracking-tighter">Trusted Device</span>
+                <span class="text-[9px] font-black uppercase tracking-tighter">Thiết bị tin cậy</span>
               </div>
             {/if}
             <span class="ssl-dot"></span>

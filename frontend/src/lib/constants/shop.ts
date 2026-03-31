@@ -16,9 +16,9 @@ export const SHOP_CONFIG = {
         free_threshold: 0 // In this funnel, we might have specific rules
     },
     trust_marks: [
-        "COD TOÀN QUỐC",
-        "FREE SHIPPING",
-        "Clinical Labs VN",
+        "GIAO HÀNG COD",
+        "MIỄN PHÍ VẬN CHUYỂN",
+        "Kiểm định lâm sàng",
         "Tiêu chuẩn Dược phẩm"
     ],
     default_features: [
@@ -35,8 +35,8 @@ export const SHOP_CONFIG = {
         ]
     ],
     checkout: {
-        title: "CHECKOUT ELITE",
-        trust_active: "Neural Encryption Active",
+        title: "THANH TOÁN AN TOÀN",
+        trust_active: "Mã hóa Neural đang hoạt động",
         reservation_msg: "Giữ ưu đãi cho Quý khách trong:",
         reservation_time: 600, // 10 minutes
         labels: {
@@ -45,8 +45,8 @@ export const SHOP_CONFIG = {
             summary: "CHI TIẾT ĐƠN HÀNG",
             total: "TỔNG THANH TOÁN",
             cta: "CHỐT ĐƠN NGAY",
-            processing: "NEURAL PROCESSING...",
-            success_title: "SUCCESSFUL!",
+            processing: "HỆ THỐNG ĐANG XỬ LÝ...",
+            success_title: "ĐẶT HÀNG THÀNH CÔNG!",
             success_msg: "Đơn hàng đã được chuyển tới trung tâm hậu cần. Nhân viên hỗ trợ sẽ gọi tới Quý khách ngay!"
         },
         placeholders: {
@@ -54,9 +54,9 @@ export const SHOP_CONFIG = {
             address: "Số nhà, tên đường, phường/xã..."
         },
         trust_badges: [
-            { icon: "📦", label: "FREE SHIPPING", color: "text-blue-400" },
-            { icon: "🛡️", label: "ELITE PRIVACY", color: "text-cyan-400" },
-            { icon: "🚚", label: "COD PAYMENT", color: "text-emerald-400" }
+            { icon: "📦", label: "MIỄN PHÍ GIAO HÀNG", color: "text-blue-400" },
+            { icon: "🛡️", label: "BẢO MẬT TUYỆT ĐỐI", color: "text-cyan-400" },
+            { icon: "🚚", label: "THANH TOÁN KHI NHẬN", color: "text-emerald-400" }
         ]
     }
 };
@@ -67,10 +67,10 @@ export const OFFER_CONSTANTS = {
     },
     labels: {
         activation: "Giai đoạn kích hoạt",
-        full_treatment: "Phác đồ tối đa",
+        full_treatment: "Liệu trình tối đa",
         expert_choice: "Chuyên gia khuyên dùng",
         scarcity: "Sắp cháy hàng",
         cta_start: "Bắt đầu trải nghiệm",
-        cta_full: "Chọn phác đồ tự tin"
+        cta_full: "Chọn liệu trình tự tin"
     }
 };

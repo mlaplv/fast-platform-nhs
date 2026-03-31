@@ -42,9 +42,9 @@
 
   <!-- Binary Data Flow Overlay! -->
   <div class="data-stream absolute bottom-12 left-12 opacity-40 text-sm">
-    <div class="mb-2">SYSTEM_PULSE: OK</div>
-    <div class="mb-2">NEURAL_SYNC: {binaryData}</div>
-    <div class="mb-2">AGENTIC_REASONING: ACTIVE</div>
+    <div class="mb-2">HỆ THỐNG: ỔN ĐỊNH</div>
+    <div class="mb-2">ĐỒNG BỘ: {binaryData}</div>
+    <div class="mb-2">TRÍ TUỆ NHÂN TẠO: ĐANG HOẠT ĐỘNG</div>
   </div>
 
   <div class="absolute inset-0 bg-blue-500/5 pointer-events-none"></div>

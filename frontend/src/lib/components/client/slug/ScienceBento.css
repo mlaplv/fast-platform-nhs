@@ -13,7 +13,7 @@
   --blue-active: #3b82f6;
   --bg-deep: #020617;
   
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -22,8 +22,7 @@
   padding-right: 2rem;
   background: #020617;
   position: relative;
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: hidden;
 }
 
 /* All orbs and connections removed for Maximum Clarity as requested */
@@ -170,25 +169,31 @@
   border-radius: 0.5rem;
   z-index: 30;
   box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.3),
-    inset 0 0 10px rgba(255, 255, 255, 0.02);
-  overflow: hidden; /* For blobs */
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    inset 0 0 10px rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  transition: all 0.5s ease;
+}
+
+.bento-tile:hover .text-shield {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(var(--orb-cyan-rgb), 0.3);
 }
 
 /* INTERNAL LIQUID BLOBS FOR THAT PHOTO-REALISTIC LOOK */
 .shield-blob {
   position: absolute;
-  width: 15rem;
-  height: 15rem;
+  width: 12rem;
+  height: 12rem;
   border-radius: 50%;
-  filter: blur(40px);
+  filter: blur(50px);
   z-index: -1;
-  opacity: 0.2;
+  opacity: 0.15;
   animation: blob-move 10s infinite alternate ease-in-out;
 }
 
-.blob-1 { background: #10b981; top: -20%; left: -20%; }
-.blob-2 { background: #059669; bottom: -20%; right: -20%; animation-delay: -5s; }
+.blob-1 { background: #10b981; top: -30%; left: -30%; }
+.blob-2 { background: #3b82f6; bottom: -30%; right: -30%; animation-delay: -5s; }
 
 @keyframes blob-move {
   0% { transform: translate(0, 0) scale(1); }

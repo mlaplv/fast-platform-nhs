@@ -12,7 +12,7 @@
   --elite-cyan: #22d3ee;
   --gap-fluid: clamp(0.75rem, 1.5vw, 1rem);
   /* Ultra-Tactical! */
-  --headline-mb: rem;
+  --headline-mb: 4rem;
   /* mb-16 equivalent! */
   --footer-mt: 4rem;
   /* mt-16 equivalent! */

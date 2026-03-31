@@ -7,6 +7,9 @@
   --diag-accent-glow: color-mix(in srgb, #3b82f6, transparent 92%);
   --diag-accent-text: #3b82f6;
 
+  height: 100vh;
+  overflow: hidden;
+  
   & .badge-accent {
     background-color: var(--diag-accent-glow);
     color: var(--diag-accent-text);

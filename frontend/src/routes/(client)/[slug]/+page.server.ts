@@ -15,10 +15,11 @@ export const load: PageServerLoad = async ({ params, fetch, getClientAddress, re
         res = await fetch(targetUrl, {
             headers: { 'x-tenant': tenantId }
         });
-    } catch (e: any) {
+    } catch (e: unknown) {
+        const err = e as Error;
         console.error(`[FETCH FAILED], không thể kết nối tới Backend!`);
         console.error(`URL: ${targetUrl}`);
-        console.error(`Error: ${e.message}`);
+        console.error(`Error: ${err.message}`);
         console.error(`Hint: Kiểm tra INTERNAL_API_URL (${apiUrl}) và trạng thái container 'api'`);
         
         throw error(503, {
