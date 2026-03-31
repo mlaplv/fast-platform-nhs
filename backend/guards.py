@@ -18,11 +18,29 @@ def PermissionGuard(permissions: Union[PermissionEnum, str, List[Union[Permissio
         from enum import Enum
         required_perms = [str(p.value) if isinstance(p, Enum) else str(p) for p in permissions]
 
-    def guard(connection: ASGIConnection, _: BaseRouteHandler) -> None:
+    async def guard(connection: ASGIConnection, _: BaseRouteHandler) -> None:
         user = connection.scope.get("state", {}).get("user")
         
         if not user:
             raise NotAuthorizedException("Session Expired or Identity Not Found")
+
+        # [Elite V3] Stateless Revocation Check (Chỉ áp dụng cho Write/Mutation)
+        if connection.method in ("POST", "PUT", "PATCH", "DELETE"):
+            token_stamp = user.get("stamp")
+            user_id = user.get("id")
+            
+            if not token_stamp or token_stamp == "MISSING" or not user_id:
+                raise NotAuthorizedException("Legacy token detected. Please login again to obtain a V3 Security Stamp.")
+
+            from backend.database import async_session_maker
+            from backend.database.models import User
+            from sqlalchemy import select
+            async with async_session_maker() as session:
+                stmt = select(User.security_stamp).where(User.id == user_id)
+                result = await session.execute(stmt)
+                db_stamp = result.scalar_one_or_none()
+                if not db_stamp or db_stamp != token_stamp:
+                    raise NotAuthorizedException("Security stamp revoked or invalid. Please login again.")
 
         from backend.services.policy_evaluator import PolicyEvaluator, PolicyContext
         

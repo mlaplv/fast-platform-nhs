@@ -117,6 +117,7 @@ class AuthService:
             "roles": roles,
             "perms": permissions,
             "tenant_id": getattr(user, 'tenant_id', 'default'),
+            "stamp": getattr(user, "security_stamp", "MISSING"),
             "name": user.name
         }
 

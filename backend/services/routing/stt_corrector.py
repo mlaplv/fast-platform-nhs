@@ -49,7 +49,7 @@ class STTCorrector:
         if len(words) <= 2: return transcript, None
         
         # Fast Bypass for High-Intent Context (Elite V62.5 Upgrade: 12-word limit)
-        if len(words) <= 12 and any(kw in transcript.lower() for kw in ["bài viết", "sản phẩm", "đơn hàng", "doanh thu", "biểu đồ"]):
+        if len(words) <= 12 and any(kw in transcript.lower() for kw in ["bài viết", "sản phẩm", "đơn hàng", "doanh thu", "doanh số", "biểu đồ"]):
             return transcript, None
 
         if any(kw in transcript.lower() for kw in ["học lệnh", "dạy lệnh", "hoc lenh", "day lenh"]):
@@ -77,6 +77,8 @@ class STTCorrector:
         suspected, applied = {}, False
         lower_t = transcript.lower()
         for wrong, right in SOUND_ALIKES.items():
+            if right.lower() in lower_t:
+                continue
             if re.search(re.escape(wrong), lower_t, re.I) or get_norm(wrong) in norm_q:
                 suspected[wrong.lower()] = right; applied = True
         if applied: return transcript, suspected

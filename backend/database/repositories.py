@@ -86,7 +86,18 @@ async def provide_product_repo(db_session: AsyncSession) -> ProductBaseRepositor
 async def provide_order_repo(db_session: AsyncSession) -> OrderRepository:
     return OrderRepository(session=db_session)
 
-async def provide_article_repo(db_session: AsyncSession) -> ArticleRepository:
+from litestar import Request
+from sqlalchemy import select
+
+async def provide_article_repo(db_session: AsyncSession, request: Request) -> ArticleRepository:
+    user = getattr(request.state, "user", None)
+    
+    # [Elite V3 ABAC] Global Row-Level Security
+    # Nếu không phải SUPER_ADMIN, chỉ thấy bài của mình
+    if user and "SUPER_ADMIN" not in user.get("roles", []):
+        stmt = select(Article).where(Article.author_id == user.get("id"))
+        return ArticleRepository(session=db_session, statement=stmt)
+        
     return ArticleRepository(session=db_session)
 
 async def provide_voice_repo(db_session: AsyncSession) -> VoiceProfileRepository:
@@ -98,7 +109,13 @@ async def provide_chat_repo(db_session: AsyncSession) -> ChatMessageRepository:
 async def provide_telemetry_repo(db_session: AsyncSession) -> AgentTelemetryLogRepository:
     return AgentTelemetryLogRepository(session=db_session)
 
-async def provide_campaign_repo(db_session: AsyncSession) -> ContentCampaignRepository:
+async def provide_campaign_repo(db_session: AsyncSession, request: Request) -> ContentCampaignRepository:
+    user = getattr(request.state, "user", None)
+    
+    if user and "SUPER_ADMIN" not in user.get("roles", []):
+        stmt = select(ContentCampaign).where(ContentCampaign.user_id == user.get("id"))
+        return ContentCampaignRepository(session=db_session, statement=stmt)
+
     return ContentCampaignRepository(session=db_session)
 
 async def provide_media_repo(db_session: AsyncSession) -> MediaRegistryRepository:

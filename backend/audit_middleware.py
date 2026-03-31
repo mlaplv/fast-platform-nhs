@@ -1,17 +1,16 @@
 import time
-import asyncio
+import json
+import logging
 from litestar.middleware import ASGIMiddleware
 from litestar.types import ASGIApp, Receive, Scope, Send
-from backend.services.event_bus import event_bus
-import logging
 
-logger = logging.getLogger("api-gateway")
+logger = logging.getLogger("audit-trail")
 
 class AuditMiddleware(ASGIMiddleware):
     """
-    R00/Elite V2.2: Centralized Audit Middleware.
-    Ghi nhận log bất đồng bộ qua EventBus cho các action mutation (POST, PATCH, PUT, DELETE).
-    Không chặn luồng chính (Async write), đảm nhiệm Audit cross-cutting.
+    Elite V3: Zero-DB Forensic Audit Trail.
+    Ghi nhận log bất đồng bộ ra stdout ở định dạng JSON cho các Write Action.
+    Tối đa tốc độ, 0 memory leak, 0 DB bloat.
     """
     async def handle(self, scope: Scope, receive: Receive, send: Send, next_app: ASGIApp) -> None:
         if scope["type"] not in ["http", "websocket"]:
@@ -19,29 +18,46 @@ class AuditMiddleware(ASGIMiddleware):
             return
 
         method = scope.get("method", "")
-        # Chỉ Audit các action mutation để tránh memory leak từ Read GET requests
+        # Chỉ Audit các action mutation để tối ưu I/O (Read GET requests không thay đổi state)
         if method in ["POST", "PUT", "PATCH", "DELETE"]:
-            # Trích xuất Actor (User ID) từ scope.state
-            user = scope.get("state", {}).get("user", {}) if "state" in scope else {}
-            actor_id = user.get("sub", user.get("id", "ANONYMOUS"))
-            
-            path = scope.get("path", "")
-            
-            # Gửi Audit Event lên Event Bus không chờ (Async Fire and Forget)
-            headers = {k.decode("utf-8").lower(): v.decode("utf-8") for k, v in scope.get("headers", [])}
-            payload = {
-                "actor_id": actor_id,
-                "action_type": f"{method} {path}",
-                "timestamp": time.time(),
-                "domain": headers.get("host", "")
-            }
-            # Phát tín hiệu lên EventBus. Ở đầu cuối sẽ có logic bulk insert.
-            asyncio.create_task(self._emit_audit(payload))
+            start_time = time.perf_counter()
+            status_code = 500  # Default fallback
 
-        await next_app(scope, receive, send)
-        
-    async def _emit_audit(self, payload: dict) -> None:
-        try:
-            await event_bus.emit(name="USER_ACTION_AUDIT", payload=payload)
-        except Exception as e:
-            logger.error(f"[AuditMiddleware] Lỗi gửi log: {e}")
+            async def send_wrapper(message: "Send") -> None:
+                nonlocal status_code
+                if message["type"] == "http.response.start":
+                    status_code = message.get("status", 500)
+                await send(message)
+
+            try:
+                await next_app(scope, receive, send_wrapper)
+            finally:
+                duration_ms = float((time.perf_counter() - start_time) * 1000.0)
+                
+                state_dict = scope.get("state", {})
+                user_dict = state_dict.get("user", {}) if isinstance(state_dict, dict) else {}
+                actor_id = str(user_dict.get("sub", user_dict.get("id", "ANONYMOUS"))) if isinstance(user_dict, dict) else "ANONYMOUS"
+                
+                domain = ""
+                headers_list = scope.get("headers", [])
+                if isinstance(headers_list, list):
+                    for k, v in headers_list:
+                        if k == b"host":
+                            domain = v.decode("utf-8")
+                            break
+                
+                path = str(scope.get("path", ""))
+                
+                # Phóng log JSON chuẩn Forensic
+                audit_event = {
+                    "audit": True,
+                    "actor": actor_id,
+                    "action": f"{method} {path}",
+                    "status": int(status_code),
+                    "ms": round(duration_ms, 2),
+                    "domain": domain
+                }
+                logger.info(json.dumps(audit_event))
+        else:
+            await next_app(scope, receive, send)
+

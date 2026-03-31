@@ -22,6 +22,8 @@ role_permissions = Table(
     Column("permission_id", String, ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True),
 )
 
+import uuid
+
 class User(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'users'
 
@@ -31,6 +33,7 @@ class User(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     name: Mapped[Optional[str]] = mapped_column(String)
     password: Mapped[Optional[str]] = mapped_column(String)
     status: Mapped[str] = mapped_column(String, default="ACTIVE")
+    security_stamp: Mapped[str] = mapped_column(String, default=lambda: str(uuid.uuid4()))
     
     # Relationships
     orders: Mapped[List["Order"]] = relationship("Order", back_populates="user")
