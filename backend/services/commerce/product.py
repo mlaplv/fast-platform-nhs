@@ -7,12 +7,14 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
 
-from backend.database.models import ProductBase, Category, ProductVariant
+from backend.database.models import ProductBase, Category, ProductVariant, Order
 from backend.schemas.product import CreateProductRequest, UpdateProductRequest, ProductResponse, ProductListResponse
 from backend.schemas.common import SuccessResponse, BulkActionResponse
 from backend.services.commerce.product_vector import ProductVectorService
 from backend.utils.sql import escape_like
 from backend.utils.noise_cleaner import noise_cleaner
+from sqlalchemy.dialects.postgresql import JSONB
+import re
 
 logger = logging.getLogger("api-gateway")
 
@@ -21,6 +23,35 @@ class ProductService:
 
     def __init__(self, vector_service: ProductVectorService):
         self.vector_service = vector_service
+
+    async def _get_real_order_count(self, db_session: AsyncSession, product_id: str) -> int:
+        """Count actual orders containing this product (Elite V2.2 JSONB Query)."""
+        stmt = select(func.count(Order.id)).where(
+            Order.items.cast(JSONB).contains([{"id": product_id}]),
+            Order.deleted_at == None
+        )
+        return await db_session.scalar(stmt) or 0
+
+    async def _inject_dynamic_counting(self, db_session: AsyncSession, product_id: str, row_dict: dict) -> None:
+        """Inject elite dynamic order counting into the product response dictionary."""
+        actual_orders = await self._get_real_order_count(db_session, product_id)
+        row_dict["order_count"] = actual_orders
+        row_dict["order_count_text"] = self._get_display_order_count_text(row_dict.get("metadata", {}), actual_orders)
+
+    def _get_display_order_count_text(self, metadata: dict, actual_count: int) -> str:
+        """Combine real orders with social proof base from metadata (Vietnamese Format)."""
+        base_text = metadata.get("reviews_count_text", "2,140+ LƯỢT MUA")
+        match = re.search(r"([\d,.]+)", base_text)
+        
+        base_num = 0
+        if match:
+            # Normalize: strip all thousands separators before parsing
+            clean_num = match.group(1).replace(",", "").replace(".", "")
+            base_num = int(clean_num) if clean_num.isdigit() else 0
+        
+        display_total = base_num + actual_count
+        # format with comma, then swap to dots for VN standard
+        return f"{display_total:,}+ LƯỢT MUA".replace(",", ".")
 
     async def list_products(
         self,
@@ -94,6 +125,10 @@ class ProductService:
         
         row_dict = dict(row._mapping)
         row_dict["variants"] = variants
+        
+        # Elite Dynamic Counting
+        await self._inject_dynamic_counting(db_session, product_id, row_dict)
+
         return ProductResponse.model_validate(row_dict)
 
     async def get_product_by_slug(self, db_session: AsyncSession, slug: str) -> ProductResponse:
@@ -124,6 +159,10 @@ class ProductService:
 
         row_dict = dict(row._mapping)
         row_dict["variants"] = variants
+        
+        # Elite Dynamic Counting
+        await self._inject_dynamic_counting(db_session, product_id, row_dict)
+
         return ProductResponse.model_validate(row_dict)
 
     async def create_product(self, db_session: AsyncSession, data: CreateProductRequest) -> SuccessResponse:

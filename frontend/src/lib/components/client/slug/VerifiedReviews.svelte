@@ -16,7 +16,7 @@
 
   const headline = $derived(metadata?.reviews_headline || '');
   const trustScore = $derived(metadata?.reviews_trust_score || '4.9/5');
-  const countText = $derived(metadata?.reviews_count_text || '2,140+ LƯỢT MUA');
+  const countText = $derived(product?.orderCountText || metadata?.reviews_count_text || '2,140+ LƯỢT MUA');
 
   const labels = $derived({
     trust_score: (metadata.reviews_trust_score as string) || trustScore || '4.9/5',
@@ -49,9 +49,11 @@
   
   let locationSelected = $state<string>('');
   let ratingSelected = $state<number>(5);
+  let hoverRating = $state<number>(0);
   let isSubmitting = $state<boolean>(false);
   let showSuccess = $state<boolean>(false);
   let contentLen = $state<number>(0);
+  let websiteUrl = $state<string>(''); // BOT_HONEYPOT
 
   // Elite Toast System
   let toastMessage = $state<string>('');
@@ -74,7 +76,7 @@
     if (!product?.id) return;
     isLoading = true;
     try {
-      const res = await fetch(`/api/v1/reviews?entity_type=PRODUCT&entity_id=${product.id}&status=APPROVED`);
+      const res = await fetch(`/api/v1/client/reviews?entity_type=PRODUCT&entity_id=${product.id}&status=APPROVED`);
       if (res.ok) {
         const data = await res.json();
         realReviews = (data.items || []).map((r: any) => ({
@@ -115,6 +117,12 @@
 
     if (name.length < 2 || phone.length < 10 || content.length < 10 || !locationSelected) {
       triggerToast("Vui lòng nhập đầy đủ Danh tính, Số điện thoại và Nội dung.", "error");
+      return;
+    }
+
+    if (websiteUrl) {
+      // SILENT_REJECT: Likely a bot
+      console.warn("Security Error: Honeypot triggered.");
       return;
     }
     
@@ -350,7 +358,7 @@
                   </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="space-y-8">
                   <div class="space-y-3 relative">
                     <label for="review-location" class="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] ml-4">{labels.form_location}</label>
                     <button
@@ -386,18 +394,51 @@
                       </div>
                     {/if}
                   </div>
-                  <div class="space-y-3">
-                    <label id="rating-label" class="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] ml-4">{labels.form_rating}</label>
-                    <div role="group" aria-labelledby="rating-label" class="rating-picker flex items-center justify-center gap-4 py-5 rounded-2xl bg-white/5 border border-white/10 h-[64px]">
+
+                  <div class="space-y-4">
+                    <div class="px-4">
+                      <label id="rating-label" class="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] whitespace-nowrap">{labels.form_rating}</label>
+                    </div>
+                    <div 
+                      role="group" 
+                      aria-labelledby="rating-label" 
+                      class="rating-picker-viral flex items-center justify-center gap-4 sm:gap-8 py-6 rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-xl relative group/picker shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]"
+                      onmouseleave={() => hoverRating = 0}
+                    >
                       {#each Array(5) as _, i}
-                        <button type="button" onclick={() => setRating(i + 1)} aria-label="Rate {i + 1} stars" class="star-picker-btn transition-all hover:scale-125 {i < ratingSelected ? 'text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]' : 'text-white/5'}">
-                          <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        {@const active = (hoverRating || ratingSelected) > i}
+                        {@const selected = ratingSelected > i}
+                        <button 
+                          type="button" 
+                          onclick={() => setRating(i + 1)} 
+                          onmouseenter={() => hoverRating = i + 1}
+                          aria-label="Rate {i + 1} stars" 
+                          class="star-viral-btn relative z-10 transition-all duration-500 {active ? 'scale-125' : 'scale-100 opacity-20'}"
+                        >
+                          <svg class="w-10 h-10 transition-all duration-700 {active ? 'drop-shadow-[0_0_20px_rgba(16,185,129,0.8)]' : ''}" viewBox="0 0 24 24" fill="none">
+                            <defs>
+                              <linearGradient id="star-grad-viral-{i}" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#fbbf24" />
+                                <stop offset="100%" stop-color="#10b981" />
+                              </linearGradient>
+                            </defs>
+                            <path 
+                              d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" 
+                              fill={active ? `url(#star-grad-viral-${i})` : 'currentColor'}
+                            />
+                            {#if selected}
+                              <circle cx="12" cy="12" r="11" stroke="#34d399" stroke-width="0.5" class="animate-ping opacity-30" />
+                            {/if}
                           </svg>
                         </button>
                       {/each}
                     </div>
                   </div>
+                </div>
+
+                <!-- BOT_HONEYPOT: HIDDEN FIELD (R82) -->
+                <div class="hidden" aria-hidden="true">
+                  <input type="text" name="website_url" bind:value={websiteUrl} tabindex="-1" autocomplete="off" />
                 </div>
               </div>
 

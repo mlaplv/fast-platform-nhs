@@ -10,7 +10,11 @@ class ReviewService:
         self.review_repo = review_repo
 
     async def create_review(self, data: CreateReviewRequest) -> SystemReview:
-        # Create a new review with PENDING status automatically
+        # 1. Anti-Spam: Duplicate Check (R67)
+        if await self.is_duplicate(data):
+            raise ValueError("Hệ thống phát hiện đánh giá trùng lặp. Vui lòng thử lại sau 24h.")
+
+        # 2. Create review with PENDING status
         review = SystemReview(
             entity_type=data.entity_type,
             entity_id=data.entity_id,
@@ -22,6 +26,28 @@ class ReviewService:
             status="PENDING"
         )
         return await self.review_repo.add(review)
+
+    async def is_duplicate(self, data: CreateReviewRequest) -> bool:
+        """Check if same user recently reviewed this entity (24h window)."""
+        from datetime import datetime, timedelta
+        from sqlalchemy import and_, select, func
+        
+        since = datetime.now() - timedelta(hours=24)
+        
+        # We check both name and phone if provided
+        filters = [
+            SystemReview.entity_id == data.entity_id,
+            SystemReview.created_at >= since
+        ]
+        
+        if data.customer_phone:
+            filters.append(SystemReview.customer_phone == data.customer_phone)
+        elif data.customer_name:
+            filters.append(SystemReview.customer_name == data.customer_name)
+            
+        stmt = select(func.count()).select_from(SystemReview).where(and_(*filters))
+        count = await self.review_repo.session.scalar(stmt)
+        return count > 0
 
     async def get_reviews(self, limit: int = 20, offset: int = 0, entity_type: str | None = None, entity_id: str | None = None, status: str | None = None):
         filters = []

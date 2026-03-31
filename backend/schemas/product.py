@@ -157,6 +157,9 @@ class ProductResponse(BaseModel):
     tierVariations: List[TierVariation] = Field(default_factory=list, alias="tier_variations")
     variants: List[ProductVariantSchema] = Field(default_factory=list)
     
+    orderCount: int = Field(0, alias="order_count")
+    orderCountText: str = Field("2,140+ LƯỢT MUA", alias="order_count_text")
+
     createdAt: datetime = Field(alias="created_at")
 
     @field_validator("id", "categoryId", mode="before")

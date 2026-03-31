@@ -89,30 +89,30 @@ PRODUCT_DEFS = [
             "reviews": [
                 {
                     "id": 1,
-                    "name": "K.H. (098124) - Hà Nội*",
-                    "phone": "098****124",
-                    "location": "Hà Nội",
-                    "rating": 5,
-                    "content": "Ám ảnh 5 năm không dám mặc sơ mi trắng vì ố vàng và ướt sũng. Hôm qua thử xịt đúng 1 lần buổi sáng, lúc lắc nhẹ thấy sương rất mịn mát. Đi làm cả ngày trời 40 độ mà tối về nách áo vẫn khô ron, không một mùi lạ. Thực sự là chân ái!",
-                    "initial": "K"
-                },
-                {
-                    "id": 2,
                     "name": "T.M. (090882) - TP.HCM*",
                     "phone": "090****882",
                     "location": "TP. Hồ Chí Minh",
                     "rating": 5,
-                    "content": "Cơ địa nội tiết mình ra mồ hôi như tắm, dùng đủ loại lăn ngoại nhập đều bó tay. Bác sĩ da liễu khuyên dùng thử cái này vì cơ chế kép. Khó tin thật, 2 ngày chưa tắm lại mà vẫn không hề có mùi bục ra. Đáng từng xu.",
+                    "content": "Ám ảnh 5 năm không dám mặc sơ mi trắng vì ố vàng và ướt sũng. Hôm qua thử xịt đúng 1 lần buổi sáng, lúc lắc nhẹ thấy sương rất mịn mát. Đi làm cả ngày trời 40 độ mà tối về nách áo vẫn khô ron, không một mùi lạ. Thực sự là chân ái!",
                     "initial": "T"
                 },
                 {
-                    "id": 3,
+                    "id": 2,
                     "name": "P.T. (093441) - Đà Nẵng*",
                     "phone": "093****441",
                     "location": "Đà Nẵng",
                     "rating": 5,
-                    "content": "Mình ngại nhất khoản đi nhận hàng. Nhưng shop đóng hộp trơn bọc kín bưng, che tên sản phẩm hoàn toàn. Bạn shipper giao đến chỉ bảo 'có gói mỹ phẩm'. 10 điểm cho sự tế nhị và bảo mật thông tin.",
+                    "content": "Cơ địa nội tiết mình ra mồ hôi như tắm, dùng đủ loại lăn ngoại nhập đều bó tay. Bác sĩ da liễu khuyên dùng thử cái này vì cơ chế kép. Khó tin thật, 2 ngày chưa tắm lại mà vẫn không hề có mùi bục ra. Đáng từng xu.",
                     "initial": "P"
+                },
+                {
+                    "id": 3,
+                    "name": "H.A. (091215) - Hà Nội*",
+                    "phone": "091****215",
+                    "location": "Hà Nội",
+                    "rating": 5,
+                    "content": "Mình ngại nhất khoản đi nhận hàng. Nhưng shop đóng hộp trơn bọc kín bưng, che tên sản phẩm hoàn toàn. Bạn shipper giao đến chỉ bảo 'có gói mỹ phẩm'. 10 điểm cho sự tế nhị và bảo mật thông tin.",
+                    "initial": "H"
                 }
             ],
             "active_deals": [

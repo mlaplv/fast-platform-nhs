@@ -3,7 +3,7 @@ from backend.database.models.auth import User, VoiceProfile, Role, Permission, u
 from backend.database.models.content import Category, Article, ArticleEmbedding, ContentCampaign, CampaignEvent, Appointment, ContentScout
 from backend.database.models.media import MediaRegistry
 from backend.database.models.commerce import Order, ProductBase, ProductVariant, RentalContract, ProductEmbedding
-from backend.database.models.system import Draft, Notification, AgentTelemetryLog, ChatMessage, SystemSetting
+from backend.database.models.system import Draft, Notification, AgentTelemetryLog, ChatMessage, SystemSetting, SystemReview
 from backend.database.models.promotion import Banner
 
 __all__ = [
@@ -36,4 +36,5 @@ __all__ = [
     "Banner",
     "Appointment",
     "ContentScout",
+    "SystemReview",
 ]

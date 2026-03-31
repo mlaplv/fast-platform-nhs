@@ -14,6 +14,7 @@ class CreateReviewRequest(BaseModel):
     customer_location: Optional[str] = Field(None, max_length=255)
     rating: int = Field(..., ge=1, le=5)
     content: str = Field(..., min_length=5, max_length=5000)
+    website_url: Optional[str] = Field(None, description="Honeypot field for bot detection")
 
 class UpdateReviewStatusRequest(BaseModel):
     """Payload Admin cập nhật trạng thái Review."""

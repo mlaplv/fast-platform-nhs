@@ -20,7 +20,7 @@ from backend.database.models import (
     User, VoiceProfile, Role, Permission, Category, Article, Order, 
     ProductBase, ProductVariant, ProductEmbedding, Draft, Notification, 
     AgentTelemetryLog, ChatMessage, SystemSetting, Appointment, ContentCampaign, 
-    CampaignEvent
+    CampaignEvent, SystemReview
 )
 from backend.utils.security import GeminiSecurity
 from backend.scripts.seed_data import GEMINI_KEYS, CATEGORY_DEFS, SUB_CATEGORY_DEFS, PRODUCT_DEFS, PRODUCT_NAMES, ARTICLE_TITLES
@@ -35,7 +35,7 @@ async def clear_data(session):
     await session.execute(delete(ProductVariant))
     # Clear internal dependencies first
     await session.execute(delete(ProductEmbedding).where(ProductEmbedding.product_base_id.in_(select(ProductBase.id).where(ProductBase.tenant_id == TENANT_ID))))
-    for model in [Order, Article, Notification, Draft, ChatMessage, AgentTelemetryLog, CampaignEvent, ContentCampaign, ProductBase, Category, Appointment]:
+    for model in [Order, Article, Notification, Draft, ChatMessage, AgentTelemetryLog, CampaignEvent, ContentCampaign, ProductBase, Category, Appointment, SystemReview]:
         await session.execute(delete(model).where(model.tenant_id == TENANT_ID))
     if user_ids:
         for model in [Notification, Draft, CampaignEvent, ContentCampaign, ChatMessage, Order, VoiceProfile]:
@@ -208,12 +208,32 @@ async def seed_appointments(session):
     session.add_all(apps)
     await session.flush()
 
+async def seed_reviews(session):
+    print("🌟 Seeding product reviews...")
+    for d in PRODUCT_DEFS:
+        reviews = d.get("product_metadata", {}).get("reviews", [])
+        for r in reviews:
+            session.add(SystemReview(
+                id=str(uuid.uuid4()),
+                entity_type="PRODUCT",
+                entity_id=d["id"],
+                customer_name=r.get("name", "Khách hàng"),
+                customer_phone=r.get("phone", ""),
+                customer_location=r.get("location", ""),
+                rating=r.get("rating", 5),
+                content=r.get("content", ""),
+                status="APPROVED",
+                tenant_id=TENANT_ID
+            ))
+    await session.flush()
+
 async def main():
     print("🚀 Starting Refactored Seed Process...")
     async with async_session_maker() as session:
         try:
             await clear_data(session); r = await seed_rbac(session); u = await seed_users(session, r)
             await seed_categories(session); p = await seed_products(session); await seed_articles(session, u.id)
+            await seed_reviews(session)
             await seed_appointments(session)
             await seed_system_settings(session)
             await session.commit(); print("✨ Successful!")
