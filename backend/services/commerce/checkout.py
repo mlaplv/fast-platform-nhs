@@ -10,6 +10,7 @@ from backend.database.models.auth import User
 from backend.schemas.client.checkout import StealthCheckoutSchema
 from backend.database import current_tenant_id
 from backend.services.event_bus import event_bus
+from backend.utils.device import is_mobile_device
 from litestar.exceptions import NotFoundException
 
 logger = logging.getLogger("api-gateway")
@@ -72,7 +73,8 @@ class OrderItem(TypedDict, total=False):
 
 class OrderMetadata(TypedDict, total=False):
     items: List[OrderItem]
-    applied_deal: Dict[str, object] # Using Dict to avoid circular or complex TypedDict nesting for now
+    applied_deal: Dict[str, object]
+    is_mobile: bool
 
 class CheckoutService:
     @staticmethod
@@ -178,7 +180,10 @@ class CheckoutService:
             "unit_price": float(price),
             "total_price": total_amount
         }]
-        order_metadata: OrderMetadata = {"items": items}
+        order_metadata: OrderMetadata = {
+            "items": items,
+            "is_mobile": is_mobile_device(user_agent)
+        }
         if applied_deal_info:
             order_metadata["applied_deal"] = applied_deal_info
 

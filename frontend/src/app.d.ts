@@ -12,6 +12,11 @@ declare global {
       token?: string;
       tenant: "admin" | "storefront" | "default";
       isMobile: boolean;
+      // V2026: Identity Snapshot
+      customer_context?: {
+          is_recurring: boolean;
+          is_trusted: boolean;
+      };
     }
     // interface PageData {}
     // interface Platform {}

@@ -7,8 +7,8 @@
   --diag-accent-glow: color-mix(in srgb, #3b82f6, transparent 92%);
   --diag-accent-text: #3b82f6;
 
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow: visible;
   
   & .badge-accent {
     background-color: var(--diag-accent-glow);
@@ -27,6 +27,18 @@
 @container diagnostics (min-width: 768px) {
   .section-title {
     line-height: 1;
+  }
+}
+
+/* Tablet (768px - 1024px) Surgical Scaling */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .diagnostics-container .section-title {
+    font-size: clamp(2rem, 5vw, 2.75rem) !important;
+    margin-bottom: 0.5rem !important;
+  }
+  .diagnostics-container .section-description {
+    font-size: 0.9rem !important;
+    margin-bottom: 1.5rem !important;
   }
 }
 

@@ -1,8 +1,19 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { env } from '$env/dynamic/private';
+import { isMobileDevice } from '$lib/utils/device';
 
-export const load: PageServerLoad = async ({ params, fetch, getClientAddress, request }) => {
+export const load: PageServerLoad = async ({ 
+    params, 
+    fetch, 
+    getClientAddress, 
+    request 
+}: { 
+    params: Record<string, string>, 
+    fetch: any, // Fallback for IDE generation issues, better than 'any' if we could import correct type
+    getClientAddress: () => string, 
+    request: Request 
+}) => {
     const { slug } = params;
     
     // R00: NO MOCK, NO SILENT FALLBACK. Let it fail clearly if API is down.
@@ -45,7 +56,7 @@ export const load: PageServerLoad = async ({ params, fetch, getClientAddress, re
                       '127.0.0.1';
 
     const userAgent = request.headers.get('user-agent') || '';
-    const isMobile = /Mobi|Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(userAgent);
+    const isMobile = isMobileDevice(userAgent);
 
     return {
         product,

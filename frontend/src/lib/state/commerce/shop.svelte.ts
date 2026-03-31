@@ -254,11 +254,11 @@ export class ShopStore {
                 quiz_data: quizData
             });
 
-            // 🚀 Cinematic Experience: Min-scan duration < 15s (Elite V2.2)
-            const minDuration = 12000;
+            // 🚀 Cinematic Experience: Min-scan duration (Elite V2.2)
+            const MIN_SCAN_DURATION = 12000;
             const elapsed = Date.now() - startTime;
-            if (elapsed < minDuration) {
-                await new Promise(resolve => setTimeout(resolve, minDuration - elapsed));
+            if (elapsed < MIN_SCAN_DURATION) {
+                await new Promise(resolve => setTimeout(resolve, MIN_SCAN_DURATION - elapsed));
             }
 
             if (!res) throw new Error('AI analysis returned empty');

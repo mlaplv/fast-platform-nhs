@@ -459,3 +459,19 @@ export interface BannerForm {
   is_active: boolean;
   device_type: string;
 }
+
+// Elite V2.2: Layout & Screen Types
+export interface ScreenState {
+  screenWidth: number;
+  screenHeight: number;
+  isMobile: boolean;
+  isTablet: boolean;
+  isDesktop: boolean;
+  isPortrait: boolean;
+  isHydrated: boolean;
+}
+
+export interface ClientUiState extends ScreenState {
+  isFooterHidden: boolean;
+  initObservers(): (() => void) | undefined;
+}

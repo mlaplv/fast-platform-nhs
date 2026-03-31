@@ -13,7 +13,8 @@
   --blue-active: #3b82f6;
   --bg-deep: #020617;
   
-  height: 100vh;
+  min-height: 90vh;
+  padding: 10vh 0; /* Breathable spacing! */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -22,7 +23,7 @@
   padding-right: 2rem;
   background: #020617;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* All orbs and connections removed for Maximum Clarity as requested */
@@ -132,6 +133,10 @@
     calc(100% - 40px) 0, 100% 40px, 
     100% 100%, 0 100%
   );
+
+  @media (min-width: 768px) and (max-width: 1100px) {
+    padding: 2rem !important;
+  }
 }
 
 .glass-chamfer .capsule-visual {
@@ -173,6 +178,21 @@
     inset 0 0 10px rgba(255, 255, 255, 0.05);
   overflow: hidden;
   transition: all 0.5s ease;
+}
+@media (min-width: 768px) and (max-width: 1100px) {
+  .text-shield {
+    position: absolute !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    max-width: none !important;
+    backdrop-filter: blur(20px) !important;
+    background: rgba(15, 23, 42, 0.7) !important;
+    border: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 0 !important;
+    padding: 1.5rem 2rem !important;
+  }
 }
 
 .bento-tile:hover .text-shield {
@@ -415,11 +435,74 @@
   }
 }
 
-@media (max-width: 1100px) { /* Smoother transition! */
+@media (max-width: 1100px) { /* Smoother liquid transition */
   .science-container { padding: 0 1rem; }
   .science-layout { flex-direction: column; gap: 2rem; }
   .column-left, .column-right { width: 100%; }
   .glass-chamfer, .glass-organic, .glass-horizon, .glass-gem { clip-path: none !important; border-radius: 2.5rem !important; }
+  
+  /* SURGICAL RE-OPTIMIZATION FOR IPAD MINI (768px - 1024px) */
+  @media (min-width: 768px) {
+    .science-viewport {
+      padding: 6rem 1.5rem;
+      min-height: auto;
+    }
+    
+    .science-layout { 
+      flex-direction: row !important; 
+      gap: 1.5rem; 
+      min-height: 800px;
+    }
+    
+    .column-left { flex: 1.1; width: auto; }
+    .column-right { flex: 1; width: auto; }
+    
+    .glass-chamfer, .glass-organic, .glass-horizon, .glass-gem { 
+      clip-path: revert !important; 
+      border-radius: revert !important; 
+    }
+
+    .glass-chamfer {
+      padding: 2.5rem !important;
+      clip-path: polygon(0 30px, 30px 0, calc(100% - 30px) 0, 100% 30px, 100% 100%, 0 100%) !important;
+      border-radius: 0.5rem !important;
+    }
+
+    .text-shield {
+      position: absolute !important;
+      bottom: 1.2rem !important;
+      right: 1.2rem !important;
+      left: auto !important;
+      max-width: 14rem !important;
+      padding: 1rem !important;
+      background: rgba(15, 23, 42, 0.5) !important;
+      backdrop-filter: blur(20px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      border-radius: 0.5rem !important;
+    }
+
+    .glass-horizon {
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 0 90%) !important;
+      border-radius: 0.5rem !important;
+    }
+
+    .glass-organic {
+      padding: 2.5rem !important;
+      border-radius: 30% 70% 70% 30% / 30% 30% 70% 70% !important;
+    }
+
+    .glass-island { padding: 2rem !important; }
+
+    .glass-gem {
+      padding: 2.5rem !important;
+      clip-path: polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%) !important;
+      border-radius: 0 !important;
+    }
+
+    .stats-value-giant { font-size: 5.5rem; }
+    .stats-unit-cyan { font-size: 1.5rem; }
+    .quote-master { font-size: 1.15rem; }
+  }
 }
 
 /* Exclusive footer wave! */

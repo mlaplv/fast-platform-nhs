@@ -57,7 +57,10 @@
   </defs>
 </svg>
 
-<div bind:this={quizContainer} class="clinical-quiz glass-liquid p-8 md:p-12 rounded-[3.5rem] relative overflow-hidden max-w-4xl mx-auto border-white/5 shadow-2xl min-h-[550px]">
+<div 
+  bind:this={quizContainer} 
+  class="clinical-quiz {!shopStore.diagnosticResult ? 'glass-liquid border-white/5' : ''} {shopStore.diagnosticResult ? 'p-0 md:p-0 lg:p-12' : 'p-6 md:p-8 lg:p-12'} rounded-[3.5rem] relative overflow-hidden max-w-4xl mx-auto shadow-2xl min-h-[500px]"
+>
   <!-- Subdued Neural Orbs -->
   <div class="neural-orb -top-20 -right-20 opacity-20" style="background: radial-gradient(circle, #3b82f6 0%, transparent 70%); transform: scale(1.5);"></div>
   <div class="neural-orb -bottom-40 -left-20 opacity-10" style="background: radial-gradient(circle, #818cf8 0%, transparent 70%);"></div>
@@ -73,7 +76,7 @@
   {#if questions.length > 0}
     {#if currentStep < questions.length}
       <div id="s{currentStep + 1}" class="step-container relative" style:z-index="var(--z-surface)" in:fly={{ y: 30, duration: 800, easing: quintOut }}>
-        <div class="mb-12 text-left">
+        <div class="mb-8 md:mb-10 text-left">
           <h3 class="text-4xl md:text-5xl font-black text-white mb-3 tracking-[-0.04em] leading-tight">
             {questions[currentStep].title}
           </h3>
@@ -109,11 +112,11 @@
       {#if shopStore.isAnalyzing}
         <DiagnosticScanner status="Hệ thống AI đang phân tích và thiết kế liệu trình..." />
       {:else if shopStore.diagnosticResult}
-        <div class="result-container text-center py-12 relative" style:z-index="var(--z-surface)" in:fade={{ duration: 1000 }}>
-          <div class="mb-10 text-left glass-liquid p-8 md:p-12 rounded-[3.5rem] border-white/10 backdrop-blur-3xl relative overflow-hidden shadow-[0_0_80px_rgba(30,58,138,0.3)]">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 border-b border-white/10 pb-8">
+        <div class="result-container text-center py-0 md:py-0 lg:py-10 relative" style:z-index="var(--z-surface)" in:fade={{ duration: 1000 }}>
+          <div class="mb-0 md:mb-0 lg:mb-12 text-left glass-liquid p-6 md:p-8 lg:p-12 rounded-[2.5rem] border-white/10 backdrop-blur-3xl relative overflow-hidden shadow-[0_0_80px_rgba(30,58,138,0.3)]">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-white/10 pb-6">
               <div>
-                <h3 class="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase mb-2">KẾT QUẢ PHÂN TÍCH</h3>
+                <h3 class="text-3xl md:text-[2.25rem] lg:text-5xl font-black text-white tracking-tighter uppercase mb-2 whitespace-nowrap">KẾT QUẢ PHÂN TÍCH</h3>
                 <p class="text-blue-400/60 font-black text-[10px] tracking-[0.4em] uppercase">Liệu trình cá nhân hóa bởi AI Agent 2026</p>
               </div>
               <div class="flex items-center gap-4">
@@ -129,13 +132,13 @@
               </div>
             </div>
             
-            <div class="space-y-8">
+            <div class="space-y-6">
               <div>
                 <h4 class="text-xs font-black text-blue-400/60 mb-2 uppercase tracking-[0.3em]">Hệ thống phân tích</h4>
                 <p class="text-white text-2xl font-bold leading-tight tracking-tight">"{shopStore.diagnosticResult.analysis}"</p>
               </div>
               
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-white/5">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/5">
                 <div>
                   <h4 class="text-[10px] font-black text-white/30 mb-3 uppercase tracking-[0.3em]">Tổng quan</h4>
                   <p class="text-white/50 text-sm leading-relaxed">{shopStore.diagnosticResult.reasoning}</p>
@@ -155,10 +158,10 @@
             </div>
           </div>
 
-          <div class="flex flex-col gap-6 max-w-sm mx-auto">
+          <div class="flex flex-col gap-4 max-w-sm mx-auto mt-8 md:mt-10 lg:mt-12">
             <button
               onclick={() => shopStore.openCheckout()}
-              class="group relative w-full py-8 bg-blue-600 text-white rounded-[2.5rem] font-black text-3xl shadow-[0_30px_70px_rgba(59,130,246,0.5)] overflow-hidden active:scale-[0.98] transition-all duration-500"
+              class="group relative w-full py-5 md:py-6 bg-blue-600 text-white rounded-[2rem] font-black text-2xl md:text-2xl lg:text-3xl shadow-[0_20px_50px_rgba(59,130,246,0.4)] overflow-hidden active:scale-[0.98] transition-all duration-500"
             >
               <span class="relative" style:z-index="var(--z-surface)">XEM LIỆU TRÌNH</span>
               <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>

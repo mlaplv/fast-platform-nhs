@@ -30,6 +30,8 @@ function parseJwt(token: string): JwtPayload | null {
   }
 }
 
+import { isMobileDevice } from "$lib/utils/device";
+
 export const handle: Handle = async ({ event, resolve }) => {
   const host = event.request.headers.get("host") || "";
   const userAgent = event.request.headers.get("user-agent") || "";
@@ -41,8 +43,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   const isAdminHost = host.includes(adminDomain);
 
   // Detect device for initial layout resolution
-  // Minimal detection for <1s load target
-  event.locals.isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
+  // [Elite V2.2] Standardized Device Detection (R00: Zero-Patch Policy)
+  event.locals.isMobile = isMobileDevice(userAgent);
 
   if (isAdminHost) {
     event.locals.tenant = "admin";
@@ -99,8 +101,10 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
 
   // [Elite V2.2] Standardized Device Detection (R00: Zero-Patch Policy)
-  const mobileRegex = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
-  event.locals.isMobile = mobileRegex.test(userAgent);
+  const mobileRegex = /Mobi|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i;
+  event.locals.isMobile = mobileRegex.test(userAgent) && 
+                          !/iPad/i.test(userAgent) && 
+                          !(/Android/i.test(userAgent) && !/Mobi/i.test(userAgent));
 
   // Process the request
   const response = await resolve(event);

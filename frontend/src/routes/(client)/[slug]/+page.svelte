@@ -28,8 +28,9 @@
   const loadingText = $derived(metadata.sync_loading_text || 'SYNCHRONIZING ELITE ASSETS...');
   const siteName = $derived(metadata.seo_site_name || 'Elite Storefront');
 
-  // Phân nhánh Component tối thượng: Áp dụng riêng cho Mobile
-  const useMobileLayout = $derived(isMobile);
+  // Elite Smart-Adaptive: Reactive Layout Switching
+  const clientUi = getClientUi();
+  const useMobileLayout = $derived(clientUi?.isHydrated ? clientUi.isMobile : isMobile);
 
   // Quantum Sync: Init store immediately for SSR stability
   if (product?.id) {
@@ -42,7 +43,7 @@
     }
   });
 
-  const clientUi = getClientUi();
+  // Removed duplicate getClientUi call
 
   const updateDOM = (theme: 'light' | 'dark') => {
     if (!browser) return;
@@ -97,10 +98,14 @@
       const trigger = document.getElementById('jit-trigger');
       if (trigger) jitObserver.observe(trigger);
 
+      // Elite Smart-Adaptive Init
+      const cleanupObservers = clientUi.initObservers();
+      
       return () => {
         shopStore.dispose();
         mq.removeEventListener('change', h);
         jitObserver.disconnect();
+        if (cleanupObservers) cleanupObservers();
       };
     }
   });
@@ -200,13 +205,13 @@
   :global(.snap-session) {
     scroll-snap-align: start;
     scroll-snap-stop: always;
-    height: 100vh;
     min-height: 100vh;
+    height: auto;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
   }
 
   /* Ensure smooth transitions inside snap sessions */

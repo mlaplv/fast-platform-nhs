@@ -131,9 +131,9 @@
     {/if}
 
     <div class="hero-product-display relative w-full max-w-6xl py-4 md:py-6 flex items-center justify-center bg-transparent">
-    <div class="relative flex flex-col lg:grid lg:grid-cols-2 items-center justify-center gap-8 lg:gap-12 w-full px-4 lg:px-12" style:z-index="var(--z-surface)">
+    <div class="relative flex flex-col md:grid md:grid-cols-2 items-center justify-center gap-8 md:gap-12 w-full px-4 md:px-8 lg:px-12" style:z-index="var(--z-surface)">
           
-          <div class="relative float-anim parallax-layer flex lg:justify-end w-full">
+          <div class="relative float-anim parallax-layer flex md:justify-end w-full">
              <div class="elite-product-card relative hud-frame">
                 <!-- FLASH LIGHT BEAM (Cinematic Highlight) -->
                 <div class="flashlight-beam hidden lg:block">
@@ -145,7 +145,7 @@
                    </div>
                 </div>
                 
-                <div class="product-glass-container group relative flex items-center justify-center overflow-hidden rounded-[3.5rem] aspect-square w-64 md:w-80 lg:w-96 bg-[#020617]">
+                <div class="product-glass-container group relative flex items-center justify-center overflow-hidden rounded-[3.5rem] aspect-square w-64 md:w-72 lg:w-96 bg-[#020617]">
                    <div 
                      class="flex h-full w-full transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]"
                      style="transform: translateX(-{currentImageIndex * 100}%);"
@@ -196,7 +196,7 @@
              </div>
           </div>
 
-          <div id="products" class="metrics-arc-container relative flex lg:justify-start w-full">
+          <div id="products" class="metrics-arc-container relative flex md:justify-start w-full">
              {#each metrics as metric, i}
                 <div class="arc-item group flex flex-col max-w-[450px] md:max-w-none mb-6 lg:mb-8" style="--idx: {i}">
                    <div class="flex items-center gap-4 mb-2">
