@@ -105,6 +105,16 @@
     }
   }
 
+  // Clear error reactively when inputs change (Elite UX)
+  $effect(() => {
+    if (validationError) {
+      // Manual trigger for reactivity on $state
+      phone; name; address; 
+      const err = validate();
+      if (!err) validationError = null;
+    }
+  });
+
   function getVariantTitle(variant: any): string {
     if (!product.tierVariations?.length || !variant.tierIndex?.length) return variant.sku || 'Combo';
     return variant.tierIndex.map((optIdx: number, tierIdx: number) => {
@@ -125,31 +135,33 @@
   ></button>
 
   <div
-    class="mobile-bottom-sheet bg-[#0a0a0a] text-white border-t border-white/10 flex flex-col shadow-[0_-20px_80px_rgba(0,0,0,0.9)]"
+    class="mobile-bottom-sheet bg-[#0a0a0a] text-white border-t border-white/10 flex flex-col shadow-[0_-20px_80px_rgba(0,0,0,0.9)] rounded-t-[40px] h-fit max-h-[98dvh] overflow-hidden"
     class:active
     style="z-index: {Z_INDEX_CLIENT.MODAL}; padding-bottom: env(safe-area-inset-bottom, 24px); transform: translateY({active ? dragY + 'px' : '100%'}); transition: {isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)'}"
     role="dialog"
     aria-modal="true"
   >
     <div 
-      class="w-full flex justify-center pt-3 pb-2 relative touch-none cursor-grab active:cursor-grabbing"
+      class="w-full flex justify-center pt-3 pb-2 relative touch-none cursor-grab active:cursor-grabbing border-b border-white/5"
       onpointerdown={onPointerDown}
       onpointermove={onPointerMove}
       onpointerup={onPointerUp}
       onpointercancel={onPointerUp}
     >
       <div class="w-10 h-1 bg-white/10 rounded-full"></div>
-      
-      <!-- Close Button: Absolute Top Right -->
-      <button 
-        onclick={close} 
-        class="absolute right-2 top-1 text-white/20 hover:text-white transition-colors p-3 active:scale-90"
-      >
-        <X class="w-5 h-5" strokeWidth={1} />
-      </button>
     </div>
 
-    <div class="relative flex items-center justify-center px-6 pb-4 pt-1">
+    <!-- Close Button: Decoupled from Drag Area with 48px Hitbox -->
+    <button 
+      onclick={close} 
+      class="absolute right-0 top-0 w-12 h-12 flex items-center justify-center text-white/20 hover:text-white transition-all z-20 active:scale-90 active:bg-white/5 rounded-tr-[inherit]"
+      aria-label="Đóng"
+    >
+      <X class="w-5 h-5" strokeWidth={1.5} />
+    </button>
+
+    <!-- Header: Sticky at the top -->
+    <div class="relative flex items-center justify-center px-6 pb-2 pt-1 border-b border-white/5 bg-[#0a0a0a]">
       {#if step === 'shipping'}
         <button 
           onclick={() => step = 'selection'} 
@@ -159,12 +171,13 @@
         </button>
       {/if}
 
-      <h2 class="text-[13px] font-black uppercase tracking-[0.2em] italic text-white/90">
+      <h2 class="text-[12px] font-black uppercase tracking-[0.2em] italic text-white/90 py-2">
         {step === 'selection' ? labels.title_select : labels.title_shipping}
       </h2>
     </div>
 
-    <div class="px-6 pb-6 overflow-y-auto max-h-[70dvh] custom-scrollbar">
+    <!-- Scrollable content area -->
+    <div class="px-6 py-4 overflow-y-auto custom-scrollbar flex flex-col h-auto max-h-[75dvh] flex-initial">
       {#if step === 'selection'}
         <div in:fade={{ duration: 200 }}>
           <div class="flex items-center gap-4 mb-6 p-4 bg-white/[0.02] rounded-3xl border border-white/5">
@@ -319,73 +332,81 @@
                   class="w-full pl-12 pr-6 py-5 bg-white/[0.03] border-2 {validationError?.includes('Địa chỉ') ? 'border-red-500/30' : 'border-white/5 focus:border-blue-500/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all resize-none"
                 ></textarea>
               </div>
-
-              {#if validationError}
-                <p class="text-[10px] text-red-500 font-bold uppercase tracking-widest text-center animate-pulse">{validationError}</p>
-              {/if}
-              
-              {#if shopStore.error}
-                 <p class="text-[10px] text-red-500 font-bold uppercase tracking-widest text-center">{shopStore.error}</p>
-              {/if}
             </div>
           </div>
         </div>
       {/if}
+    </div>
 
-      <!-- Horizontal Pinned Action Bar -->
-      <div class="flex items-center gap-4 mt-auto pt-4 border-t border-white/5">
-        <div class="flex-1 flex flex-col">
-          <div class="flex items-center gap-2 mb-0.5">
-            <span class="text-[8px] font-black text-white/20 uppercase tracking-widest">Tổng giá trị liệu trình</span>
-            {#if shopStore.originalPrice * shopStore.quantity > shopStore.totalAmount}
-               <div class="px-1.5 py-0.5 bg-emerald-500/10 rounded text-[7px] font-black text-emerald-400">-{totalSaved.toLocaleString()}đ</div>
+    {#if validationError || shopStore.error}
+      <div class="px-6 py-2 bg-red-500/10 border-t border-red-500/20 text-[10px] text-red-500 font-bold uppercase tracking-widest text-center animate-pulse">
+        {validationError || shopStore.error}
+      </div>
+    {/if}
+
+    <!-- Horizontal Pinned Action Bar: Stick to bottom -->
+    <div class="flex items-center gap-3 px-6 py-4 border-t border-white/5 bg-[#0a0a0a]">
+      <div class="flex-1 flex flex-col min-w-0">
+        <div class="flex items-baseline gap-1 mb-0.5 whitespace-nowrap">
+          <span class="text-[8px] font-black text-white/20 uppercase tracking-widest">Tổng giá trị liệu trình</span>
+          {#if shopStore.originalPrice * shopStore.quantity > shopStore.totalAmount}
+             <div class="px-1 py-0.5 bg-emerald-500/10 rounded-[4px] text-[6px] font-black text-emerald-400">-{totalSaved.toLocaleString()}đ</div>
+          {/if}
+        </div>
+        <span class="text-xl font-black text-white italic tabular-nums leading-none">
+          {(shopStore.totalAmount).toLocaleString()}đ
+        </span>
+      </div>
+
+      <button
+        class="flex-[1.2] py-[14px] px-3 text-white font-black text-[12px] leading-none uppercase tracking-wider rounded-full shadow-[0_10px_40px_rgba(254,44,85,0.4)] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 overflow-hidden relative group shrink-0"
+        style="background: linear-gradient(90deg, #fe2c55 0%, #ff4b6b 100%);"
+        onclick={handleAction}
+        disabled={shopStore.isSubmitting}
+      >
+        <!-- Shimmer Effect -->
+        <div class="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 animate-shimmer pointer-events-none"></div>
+        
+        {#if shopStore.isSubmitting}
+          <Loader2 class="w-4 h-4 animate-spin shrink-0" />
+        {:else}
+          <div class="flex flex-col items-center leading-none relative z-10">
+            <span class="text-[12px] font-black tracking-widest whitespace-nowrap">{step === 'selection' ? labels.cta_next : labels.cta_submit}</span>
+            {#if step === 'shipping' && totalSaved > 0}
+              <span class="text-[9px] font-bold text-white/80 tracking-tighter mt-1.5 whitespace-nowrap drop-shadow-sm">
+                TIẾT KIỆM {totalSaved.toLocaleString()}đ | FREESHIP
+              </span>
+            {:else if step === 'selection'}
+              <span class="text-[9px] font-bold text-white/70 tracking-tighter mt-1.5 uppercase whitespace-nowrap">Xác nhận thông tin</span>
             {/if}
           </div>
-          <span class="text-2xl font-black text-white italic tabular-nums leading-none">
-            {(shopStore.totalAmount).toLocaleString()}đ
-          </span>
-        </div>
-
-        <button
-          class="flex-1 py-4 text-white font-black text-[13px] uppercase tracking-wider rounded-full shadow-[0_10px_30px_rgba(254,44,85,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 overflow-hidden relative group"
-          style="background: linear-gradient(90deg, #fe2c55 0%, #ff4b6b 100%);"
-          onclick={handleAction}
-          disabled={shopStore.isSubmitting}
-        >
-          <!-- Shimmer Effect -->
-          <div class="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 animate-shimmer pointer-events-none"></div>
           
-          {#if shopStore.isSubmitting}
-            <Loader2 class="w-4 h-4 animate-spin" />
+          {#if step === 'selection'}
+            <ArrowRight class="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform shrink-0" />
           {:else}
-            <span class="relative z-10">{step === 'selection' ? labels.cta_next : labels.cta_submit}</span>
-            {#if step === 'selection'}
-              <ArrowRight class="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
-            {:else}
-              <ShoppingCart class="w-4 h-4 relative z-10 group-hover:scale-110 transition-transform" />
-            {/if}
+            <ShoppingCart class="w-4 h-4 relative z-10 group-hover:scale-110 transition-transform shrink-0" />
           {/if}
-        </button>
-      </div>
+        {/if}
+      </button>
+    </div>
 
-      <!-- FOMO Indicator -->
-      <div class="mt-4 flex items-center justify-center gap-2">
-        <div class="flex -space-x-1.5">
-          {#each Array(3) as _, i}
-            <div class="w-4 h-4 rounded-full border border-black bg-gray-800 flex items-center justify-center overflow-hidden">
-               <div class="w-full h-full bg-gradient-to-br from-gray-600 to-gray-800"></div>
-            </div>
-          {/each}
-        </div>
-        <p class="text-[8px] font-bold text-white/20 uppercase tracking-widest">
-           🔥 <span class="text-amber-500/50">32 người</span> đang chọn phân loại này
-        </p>
+    <!-- FOMO Indicator -->
+    <div class="mt-4 flex items-center justify-center gap-2">
+      <div class="flex -space-x-1.5">
+        {#each Array(3) as _, i}
+          <div class="w-4 h-4 rounded-full border border-black bg-gray-800 flex items-center justify-center overflow-hidden">
+             <div class="w-full h-full bg-gradient-to-br from-gray-600 to-gray-800"></div>
+          </div>
+        {/each}
       </div>
-      
-      <p class="mt-6 text-[9px] text-white/10 text-center uppercase tracking-[0.3em] font-medium italic">
-        🔒 Bảo mật AES-256 mã hóa quân sự
+      <p class="text-[8px] font-bold text-white/20 uppercase tracking-widest">
+         🔥 <span class="text-amber-500/50">32 người</span> đang chọn phân loại này
       </p>
     </div>
+    
+    <p class="mt-6 mb-4 text-[9px] text-white/10 text-center uppercase tracking-[0.3em] font-medium italic">
+      🔒 Bảo mật AES-256 mã hóa quân sự
+    </p>
   </div>
 </div>
 

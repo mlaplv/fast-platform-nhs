@@ -127,33 +127,35 @@
   }
 </script>
 
-<div class="reviews-mobile-viewport h-full flex flex-col justify-center px-6 py-20 bg-[#050505] snap-session relative overflow-hidden" id="reviews">
+<div class="reviews-mobile-viewport h-full flex flex-col px-6 pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] bg-[#030303] relative overflow-hidden" id="reviews">
   <!-- HUD Header -->
-  <div class="mb-10">
-    <div class="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
-      <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+  <div class="mt-8 mb-8">
+    <div class="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6 backdrop-blur-md">
+      <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
       <span class="text-[9px] uppercase tracking-[0.2em] text-emerald-400 font-black italic">{labels.hud_feedback}</span>
     </div>
     
-    <h2 class="text-3xl font-black text-white leading-tight uppercase tracking-tighter italic mb-4">
+    <h2 class="text-4xl font-black text-white leading-none uppercase tracking-tighter italic mb-6">
       {@html labels.headline}
     </h2>
 
-    <div class="flex items-center gap-4 bg-white/[0.03] w-fit px-4 py-2 rounded-2xl border border-white/5">
-      <div class="flex items-center gap-0.5">
+    <div class="flex items-center gap-4 bg-white/[0.03] w-full px-5 py-4 rounded-3xl border border-white/10 backdrop-blur-xl">
+      <div class="flex items-center gap-1">
         {#each Array(5) as _, i}
-          <Star class="w-3 h-3 {i < 5 ? 'text-amber-400 fill-amber-400' : 'text-white/10'}" />
+          <Star class="w-3.5 h-3.5 {i < 5 ? 'text-amber-400 fill-amber-400' : 'text-white/10'} drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]" />
         {/each}
       </div>
-      <div class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40">
-        <span>{labels.trust_score}</span>
-        <span class="opacity-20">|</span>
-        <span class="text-emerald-400/60">{labels.count_text}</span>
+      <div class="h-4 w-px bg-white/10"></div>
+      <div class="flex flex-col">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-black text-white italic">{labels.trust_score}</span>
+          <span class="text-[9px] text-emerald-400 font-black uppercase tracking-widest">{labels.count_text}</span>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="space-y-4 overflow-y-auto max-h-[50vh] pr-1 scrollbar-hide">
+  <div class="flex-1 space-y-4 overflow-y-auto pr-1 scrollbar-hide pb-10">
     {#if isLoading && realReviews.length === 0}
       <div class="py-20 text-center">
         <div class="w-10 h-10 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4"></div>
@@ -164,58 +166,59 @@
         <p class="text-[10px] font-black uppercase tracking-widest">No Feedback Detected</p>
       </div>
     {:else}
-      {#each realReviews.slice(0, 6) as review, i}
-        <div class="review-card-mobile p-5 bg-white/[0.03] border border-white/10 rounded-[2.5rem] backdrop-blur-3xl relative overflow-hidden" in:fly={{ y: 20, delay: i * 100 }}>
+      {#each realReviews.slice(0, 8) as review, i}
+        <div class="review-card-mobile p-6 bg-white/[0.03] border border-white/10 rounded-[2.5rem] backdrop-blur-3xl relative overflow-hidden" in:fly={{ y: 20, delay: i * 100 }}>
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-black text-lg">
+              <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400 font-black text-xl italic shadow-inner">
                 {review.initial}
               </div>
               <div>
-                <h4 class="text-white font-black text-sm tracking-tight">{review.name}</h4>
+                <h4 class="text-white font-black text-sm tracking-tight uppercase italic">{review.name}</h4>
                 <div class="flex items-center gap-2">
-                  <span class="text-[8px] text-white/30 font-bold uppercase tracking-widest">{review.location}</span>
+                  <span class="text-[8px] text-white/30 font-black uppercase tracking-[0.2em]">{review.location}</span>
                   <div class="w-1 h-1 rounded-full bg-emerald-500/40"></div>
                   <span class="text-[8px] text-emerald-400 font-black uppercase tracking-widest">{labels.label_verified}</span>
                 </div>
               </div>
             </div>
+            <div class="p-2 bg-white/5 rounded-xl border border-white/5">
+               <ShieldCheck class="w-4 h-4 text-emerald-500/40" />
+            </div>
           </div>
           
-          <div class="rating-row flex gap-1 mb-3">
+          <div class="rating-row flex gap-1 mb-4">
             {#each Array(5) as _, s}
               <Star 
-                class="w-2.5 h-2.5 {s < review.rating ? 'text-amber-400 fill-amber-400' : 'text-white/5'}" 
-                style={s < review.rating ? 'filter: drop-shadow(0 0 4px rgba(251,191,36,0.5))' : ''}
+                class="w-3 h-3 {s < review.rating ? 'text-amber-400 fill-amber-400' : 'text-white/5'}" 
+                style={s < review.rating ? 'filter: drop-shadow(0 0 6px rgba(251,191,36,0.3))' : ''}
               />
             {/each}
           </div>
 
-          <p class="text-white/80 text-xs leading-relaxed italic font-medium">
+          <p class="text-white/80 text-xs leading-relaxed italic font-medium tracking-tight">
             "{review.content}"
           </p>
-          
-          <div class="absolute top-0 right-0 p-4 opacity-10">
-            <ShieldCheck class="w-8 h-8 text-white" />
-          </div>
         </div>
       {/each}
     {/if}
   </div>
 
-  <div class="mt-8 flex flex-col gap-4">
+  <div class="mt-4 pb-6">
     <button 
       onclick={() => showFormModal = true}
-      class="w-full py-5 bg-emerald-500 rounded-3xl font-black text-slate-950 text-sm tracking-[0.2em] flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(16,185,129,0.3)] active:scale-95 transition-transform"
+      class="w-full py-6 bg-white text-black rounded-[2.5rem] font-black text-[13px] tracking-[0.3em] flex items-center justify-center gap-3 active:scale-95 transition-all uppercase italic shadow-[0_10px_30px_rgba(255,255,255,0.1)]"
     >
       <MessageSquarePlus class="w-5 h-5" /> {labels.cta_write}
     </button>
   </div>
 
+  <div class="absolute -top-32 -right-32 w-80 h-80 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none"></div>
+</div>
+
   <!-- Design Flourish -->
   <div class="absolute -top-32 -right-32 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none"></div>
   <div class="absolute -bottom-32 -left-32 w-64 h-64 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none"></div>
-</div>
 
 <!-- Mobile Form Modal -->
 {#if showFormModal}

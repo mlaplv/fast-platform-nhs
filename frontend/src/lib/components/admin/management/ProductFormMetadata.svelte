@@ -65,18 +65,19 @@
       </div>
     {/if}
 
-    <!-- Video URL (Stealth/TikTok) -->
-    {#if formMetadata.landing_type !== 'standard'}
-      <div class="flex flex-col gap-1.5 md:col-span-2">
-        <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Video URL (TikTok/YouTube)</label>
-        <input
-          type="text"
-          bind:value={formMetadata.video_url}
-          placeholder="https://..."
-          class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-amber-500/50 transition-colors"
-        />
-      </div>
-    {/if}
+    <!-- Video URL – luôn hiển thị, dùng cho cả desktop hero lẫn mobile banner -->
+    <div class="flex flex-col gap-1.5 md:col-span-2">
+      <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Video URL (TikTok/YouTube hoặc đường dẫn nội bộ, ví dụ: /static/video/HN_TikTok.mp4)</label>
+      <input
+        type="text"
+        bind:value={formMetadata.video_url}
+        placeholder="/static/video/HN_TikTok.mp4  hoặc  https://youtu.be/xxxx"
+        class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-amber-500/50 transition-colors"
+      />
+      <p class="text-[8px] text-white/25 leading-relaxed">
+        Hỗ trợ: đường dẫn nội bộ (.mp4/.webm), YouTube (youtube.com/watch, youtu.be, /shorts/), TikTok (tiktok.com/@.../video/ID)
+      </p>
+    </div>
   </div>
 
   <!-- R00 Compliance: UI Labels (Dynamic) -->

@@ -1,11 +1,9 @@
 <script lang="ts">
   import { fade, fly, scale } from 'svelte/transition';
-  import { FileText, ShieldCheck, Copy, ShoppingCart, MessageSquare, CheckCircle2, Package, Truck, Award, Sparkles, Phone, Gift } from 'lucide-svelte';
+  import { FileText, ShieldCheck, Copy, ShoppingCart, MessageSquare, CheckCircle2, Package, Truck, Award, Sparkles, Phone, Gift, Home } from 'lucide-svelte';
   import { formatCurrency, formatDate } from '$lib/utils/format.ts';
   import { goto } from '$app/navigation';
   import { SHOP_CONFIG } from '$lib/constants/shop.ts';
-  import { onMount } from 'svelte';
-  import { nanobot } from '$lib/state/nanobot.svelte';
 
   import { page } from '$app/state';
 
@@ -26,13 +24,6 @@
 
   const currentStepIdx = $derived(getStepIndex(order?.status || 'PENDING'));
 
-  onMount(() => {
-    const originalHideFooter = nanobot.ui.hideFooter;
-    nanobot.ui.hideFooter = true;
-    return () => {
-      nanobot.ui.hideFooter = originalHideFooter;
-    };
-  });
 
   let copied = $state(false);
   function copyOrderId() {
@@ -50,25 +41,39 @@
 </script>
 
 <div class="fixed inset-0 bg-[#0a0a0a] text-white overflow-y-auto custom-scrollbar flex flex-col">
+  <!-- Top Navigation -->
+  <button 
+    onclick={() => goto('/')}
+    class="fixed top-4 right-6 z-[100] w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-xl active:scale-95 transition-all text-white/40 ring-1 ring-white/5 shadow-2xl"
+    aria-label="Home"
+  >
+    <Home class="w-4 h-4" />
+  </button>
+
   <!-- Celebration Glow -->
   <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[300px] {isLookup ? 'bg-sky-500/10' : 'bg-emerald-500/10'} blur-[100px] pointer-events-none"></div>
 
-  <div class="relative px-6 pt-16 flex flex-col items-center text-center">
-    <!-- Animated Icon -->
-    <div in:scale={{ duration: 600, delay: 200, start: 0.5 }} class="w-24 h-24 {isLookup ? 'bg-sky-500/20 text-sky-400 border-sky-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'} rounded-full flex items-center justify-center mb-8 border relative">
-      <div class="absolute inset-0 {isLookup ? 'bg-sky-400/20' : 'bg-emerald-400/20'} rounded-full blur-2xl {isLookup ? '' : 'animate-pulse'}"></div>
+  <div class="relative px-6 pt-[10px] flex flex-col items-center text-center">
+    <!-- Status Badge (Ultra-Refined) -->
+    <div in:scale={{ duration: 600, delay: 200, start: 0.9 }} 
+         class="px-4 py-1 rounded-full border border-white/5 bg-white/5 backdrop-blur-2xl mb-6 flex items-center gap-2 relative shadow-2xl">
+      <div class="absolute inset-0 {isLookup ? 'bg-sky-400/5' : 'bg-emerald-400/5'} rounded-full blur-2xl"></div>
       {#if isLookup}
-        <ShieldCheck class="w-12 h-12 relative z-10" strokeWidth={2.5} />
+        <ShieldCheck class="w-3 h-3 text-sky-400 relative z-10" strokeWidth={2.5} />
+        <span class="text-[9px] font-bold text-white/60 uppercase tracking-[0.2em] relative z-10">Status: Tracking</span>
       {:else}
-        <CheckCircle2 class="w-12 h-12 relative z-10" strokeWidth={2.5} />
+        <CheckCircle2 class="w-3 h-3 text-emerald-400 relative z-10" strokeWidth={2.5} />
+        <span class="text-[9px] font-bold text-white/60 uppercase tracking-[0.2em] relative z-10">Status: Success</span>
       {/if}
     </div>
 
-    <h1 in:fly={{ y: 20, duration: 600, delay: 400 }} class="text-3xl font-black italic tracking-widest uppercase mb-2">
-      {isLookup ? 'CHI TIẾT LIỆU TRÌNH' : 'ĐẶT LIỆU TRÌNH THÀNH CÔNG!'}
+    <h1 in:fly={{ y: 20, duration: 600, delay: 400 }} 
+        class="text-3xl font-black italic tracking-tight uppercase mb-2 text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+      {isLookup ? 'Chi tiết liệu trình' : 'Đặt liệu trình thành công'}
     </h1>
-    <p in:fade={{ delay: 600 }} class="text-white/40 text-[10px] uppercase tracking-[0.3em] font-bold italic mb-10">
-      {isLookup ? 'Thông tin trạng thái xử lý liệu trình' : 'Cảm ơn Quý khách đã tin tưởng lựa chọn'}
+    
+    <p in:fade={{ delay: 600 }} class="text-white/30 text-[10px] uppercase tracking-[0.3em] font-medium mb-12">
+      {isLookup ? 'Cập nhật trạng thái xử lý mới nhất' : 'Cảm ơn Quý khách đã tin tưởng Elite'}
     </p>
 
     <!-- Status Timeline (Elite — Segmented Connectors) -->
@@ -108,7 +113,7 @@
 
 
     <!-- Main Order Card -->
-    <div in:fly={{ y: 30, duration: 800, delay: 600 }} class="w-full bg-white/[0.03] border border-white/10 backdrop-blur-xl rounded-[2.5rem] p-6 mb-6 text-left">
+    <div in:fly={{ y: 30, duration: 800, delay: 600 }} class="w-full bg-white/[0.03] border border-white/10 backdrop-blur-xl rounded-[2.5rem] p-6 mb-6 text-left shadow-2xl">
       <div class="flex justify-between items-start mb-6 border-b border-white/5 pb-4">
         <div>
            <span class="text-[9px] font-black text-white/30 uppercase tracking-widest block mb-1">Mã liệu trình</span>
@@ -150,7 +155,7 @@
     </div>
 
     <!-- What's Next Card (Elite V2.2 Refined) -->
-    <div in:fly={{ y: 30, duration: 800, delay: 800 }} class="w-full bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-8 text-center relative overflow-hidden group">
+    <div in:fly={{ y: 30, duration: 800, delay: 800 }} class="w-full bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-8 text-center relative overflow-hidden group shadow-xl">
        <div class="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-purple-500/10 opacity-50"></div>
        <div class="relative z-10">
          <span class="text-[10px] font-black text-blue-400 uppercase tracking-[0.4em] block mb-4 italic flex items-center justify-center gap-2">
@@ -167,7 +172,7 @@
     </div>
 
     <!-- Spacer to ensure content clears the fixed Action Stack -->
-    <div class="h-80 shrink-0 pointer-events-none"></div>
+    <div class="h-40 shrink-0 pointer-events-none"></div>
   </div>
 
   <!-- Action Stack (Elite 1-Row Compact) -->

@@ -1,129 +1,157 @@
 <script lang="ts">
-  import { ShoppingCart, Share2, Heart, MessageCircle, Bookmark } from 'lucide-svelte';
+  import { ShoppingCart, Star, Info, MessageSquare, ShieldCheck } from 'lucide-svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
   import type { Product } from '$lib/types';
 
   interface Props {
     product: Product;
     onPurchase: () => void;
+    isTikTokActive?: boolean;
+    isScrollingDown?: boolean;
   }
 
   let {
     product,
-    onPurchase
+    onPurchase,
+    isTikTokActive = false,
+    isScrollingDown = false
   }: Props = $props();
 
   const metadata = $derived(product?.metadata || {});
 
   const labels = $derived({
-    shop_avatar: (metadata.mobile_shop_avatar as string) || "/favicon.png",
-    likes: (metadata.mobile_stats_likes as number) || 1200,
-    comments: (metadata.mobile_stats_comments as number) || 128,
-    saves: (metadata.mobile_stats_saves as number) || 45,
-    label_share: (metadata.mobile_label_share as string) || "Chia sẻ",
+    disk_image: (metadata.mobile_disk_image as string) || (metadata.mobile_shop_avatar as string) || "/favicon.svg",
     label_purchase: (metadata.mobile_label_purchase as string) || "Mở giỏ hàng",
-    disk_image: (metadata.mobile_disk_image as string) || "https://ui-avatars.com/api/?name=E&background=000&color=fff",
-    label_liked: (metadata.mobile_label_liked as string) || "Đã thích",
-    label_saved: (metadata.mobile_label_saved as string) || "Đã lưu",
-    aria_like: (metadata.mobile_aria_like as string) || "Thích sản phẩm",
-    aria_unlike: (metadata.mobile_aria_unlike as string) || "Bỏ thích",
-    aria_comments: (metadata.mobile_aria_comments as string) || "Xem bình luận",
-    aria_save: (metadata.mobile_aria_save as string) || "Lưu sản phẩm",
-    aria_unsave: (metadata.mobile_aria_unsave as string) || "Bỏ lưu",
-    aria_share: (metadata.mobile_aria_share as string) || "Chia sẻ sản phẩm"
+    zalo_link: (metadata.mobile_zalo_link as string) || "https://zalo.me/0981515545"
   });
 
-  let liked = $state(false);
-  let saved = $state(false);
-
-  // Format số lượng (Ví dụ: 1200 -> 1.2k)
-  const formatCount = (num: number) => {
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
-    return num.toString();
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 </script>
 
 <div
-  class="fixed right-2 flex flex-col items-center gap-4 pb-4 transition-all duration-300"
-  style="z-index: {Z_INDEX_CLIENT.SURFACE}; bottom: calc(1.5rem + env(safe-area-inset-bottom))"
+  class="fixed right-2 flex flex-col items-center gap-7 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] pb-8"
+  class:HUD-hidden={isScrollingDown}
+  style="z-index: {Z_INDEX_CLIENT.SURFACE}; bottom: calc(var(--mobile-bottom-space) + env(safe-area-inset-bottom, 20px))"
 >
-  <!-- Profile Avatar -->
-  <div class="relative mb-2 group cursor-pointer">
-    <div class="w-12 h-12 rounded-full border-[1.5px] border-white/80 overflow-hidden bg-gray-900 shadow-lg">
-      <img src={labels.shop_avatar} alt="Avatar" class="w-full h-full object-cover" loading="lazy" />
-    </div>
-    <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-red-600 rounded-full w-5 h-5 flex items-center justify-center border-2 border-white shadow-sm">
-      <span class="text-white text-[10px] font-bold leading-none">+</span>
-    </div>
+  <!-- 6. Tra cứu (Top-most utility) -->
+  <a
+    href="/track"
+    class="action-btn-mini group"
+    aria-label="Tra cứu đơn hàng"
+  >
+    <ShieldCheck class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" />
+    <span class="btn-label-mini">Tra cứu</span>
+  </a>
+
+  <!-- 5. Chat -->
+  <a
+    href={labels.zalo_link}
+    target="_blank"
+    class="action-btn-mini group"
+    aria-label="Chat Zalo"
+  >
+    <MessageSquare class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" />
+    <span class="btn-label-mini">Chat</span>
+  </a>
+
+  <!-- 4. Chi tiết sản phẩm -->
+  <button
+    class="action-btn-mini group"
+    onclick={() => scrollToSection('science')}
+    aria-label="Chi tiết sản phẩm"
+  >
+    <Info class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" />
+    <span class="btn-label-mini">Chi tiết</span>
+  </button>
+
+  <!-- 3. Đánh giá -->
+  <button
+    class="action-btn-mini group"
+    onclick={() => scrollToSection('reviews')}
+    aria-label="Đánh giá"
+  >
+    <Star class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" fill="white" />
+    <span class="btn-label-mini">Đánh giá</span>
+  </button>
+
+  <!-- MIỄN PHÍ SHIP Badge (Centered between Star and Cart) -->
+  <div class="bg-emerald-500 text-white text-[7px] font-black px-2 py-0.5 rounded shadow-lg animate-bounce whitespace-nowrap z-30 uppercase tracking-wider relative translate-y-[10px]">
+    FREESHIP
   </div>
 
+  <!-- 1. Giỏ hàng (Mini Stack) -->
   <button
-    class="flex flex-col items-center group outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-full p-1"
-    onclick={() => liked = !liked}
-    aria-label={liked ? labels.aria_unlike : labels.aria_like}
-  >
-    <Heart
-      class="w-9 h-9 tiktok-shadow transition-all duration-200 active:scale-50 hover:scale-110"
-      fill={liked ? '#ef4444' : 'transparent'}
-      color={liked ? '#ef4444' : 'white'}
-      strokeWidth={1.5}
-    />
-    <span class="text-white text-[11px] font-bold mt-0.5 tiktok-shadow tracking-tight">
-      {liked ? formatCount(labels.likes + 1) : formatCount(labels.likes)}
-    </span>
-  </button>
-
-  <button
-    class="flex flex-col items-center group outline-none focus-visible:ring-2 focus-visible:ring-white rounded-full p-1 mt-1"
-    aria-label={labels.aria_comments}
-  >
-    <MessageCircle class="w-9 h-9 text-white tiktok-shadow transition-transform hover:scale-110" fill="transparent" strokeWidth={1.5} />
-    <span class="text-white text-[11px] font-bold mt-0.5 tiktok-shadow tracking-tight">
-      {formatCount(labels.comments)}
-    </span>
-  </button>
-
-  <button
-    class="flex flex-col items-center group outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 rounded-full p-1 mt-1"
-    onclick={() => saved = !saved}
-    aria-label={saved ? labels.aria_unsave : labels.aria_save}
-  >
-    <Bookmark
-      class="w-9 h-9 tiktok-shadow transition-all duration-200 active:scale-50 hover:scale-110"
-      fill={saved ? '#eab308' : 'transparent'}
-      color={saved ? '#eab308' : 'white'}
-      strokeWidth={1.5}
-    />
-    <span class="text-white text-[11px] font-bold mt-0.5 tiktok-shadow tracking-tight">
-      {saved ? labels.label_saved : formatCount(labels.saves)}
-    </span>
-  </button>
-
-  <button
-    class="flex flex-col items-center group outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-full p-1 mt-1"
-    aria-label={labels.aria_share}
-  >
-    <Share2 class="w-9 h-9 text-white tiktok-shadow transition-transform hover:scale-110" strokeWidth={1.5} />
-    <span class="text-white text-[11px] font-bold mt-0.5 tiktok-shadow tracking-tight">{labels.label_share}</span>
-  </button>
-
-  <!-- Animated Record / Purchase Button -->
-  <button
-    class="mt-4 relative w-12 h-12 flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-white rounded-full group/buy"
+    class="relative group/buy active:scale-90 transition-all outline-none"
     onclick={onPurchase}
     aria-label={labels.label_purchase}
   >
-    <!-- Freeship Tag -->
-    <div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-lg animate-bounce whitespace-nowrap z-20">
-      FREESHIP
-    </div>
-    
-    <div class="vinyl-spin w-full h-full bg-gradient-to-tr from-gray-900 to-gray-700 rounded-full flex items-center justify-center border-2 border-white/20 shadow-xl overflow-hidden will-change-transform group-hover/buy:scale-110 transition-transform">
+    <div class="w-12 h-12 vinyl-spin bg-black rounded-full flex items-center justify-center border border-white/20 shadow-2xl overflow-hidden relative">
       <div
-        class="w-full h-full animate-spin-slow bg-cover opacity-60 absolute inset-0"
+        class="w-full h-full animate-spin-slow bg-cover opacity-80 absolute inset-0"
         style="background-image: url('{labels.disk_image}')"
       ></div>
-      <ShoppingCart class="w-5 h-5 text-white relative z-10 drop-shadow-md" />
+      <div class="absolute inset-0 bg-black/20"></div>
+      <ShoppingCart class="w-6 h-6 text-white relative z-10 drop-shadow-lg" />
     </div>
   </button>
 </div>
+
+<style lang="postcss">
+  .action-btn-mini {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    transition: all 0.4s ease;
+  }
+
+  .btn-label-mini {
+    position: absolute;
+    bottom: -1rem;
+    font-size: 8px;
+    font-weight: 800;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+    text-shadow: 0 2px 8px rgba(0,0,0,1);
+    white-space: nowrap;
+  }
+
+  /* Scroll Reactive State (Mini Mode) */
+  .HUD-hidden {
+    transform: translateX(100%) scale(0.6);
+    opacity: 0.3;
+    pointer-events: none;
+    filter: blur(2px);
+  }
+
+  .HUD-hidden:hover {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+    filter: none;
+  }
+
+  @keyframes vinyl-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .animate-spin-slow {
+    animation: vinyl-spin 4s linear infinite;
+  }
+
+  /* Tiktok-style Shadow for icons */
+  :global(.action-btn-mini svg) {
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,1));
+  }
+</style>

@@ -29,40 +29,47 @@
   ]);
 </script>
 
-<div class="h-full flex flex-col justify-center px-6 py-20 bg-[#020617]">
-  <div class="mb-10">
-    <h2 class="text-3xl font-black text-white leading-tight uppercase tracking-tighter italic">
+<div class="h-full flex flex-col px-6 pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] bg-[#01030a] relative overflow-hidden">
+  <div class="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/3"></div>
+  <div class="absolute bottom-0 left-0 w-48 h-48 bg-indigo-600/5 blur-[100px] rounded-full translate-y-1/2 -translate-x-1/4"></div>
+
+  <div class="mt-10 mb-8">
+    <h2 class="text-4xl font-black text-white leading-[1.1] uppercase tracking-tighter italic">
       {metadata.science_headline || 'TẠI SAO LẠI HIỆU QUẢ?'}
     </h2>
-    <p class="mt-4 text-white/40 text-[10px] uppercase tracking-[0.3em] font-medium leading-relaxed max-w-[90%]">
+    <p class="mt-4 text-white/40 text-[9px] uppercase tracking-[0.4em] font-black leading-relaxed max-w-[85%] italic">
       {metadata.science_subheadline || `Công nghệ Nano Bạc Tự Thân độc bản.`}
     </p>
   </div>
 
-  <div class="space-y-4">
+  <div class="space-y-4 flex-1 overflow-y-auto pr-1">
     {#each tech as item}
       {@const Icon = item.icon}
-      <div class="p-5 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-md flex gap-4">
-        <div class="w-10 h-10 rounded-2xl bg-blue-500/20 flex items-center justify-center shrink-0 border border-blue-500/20">
-          <Icon class="w-5 h-5 text-blue-400" />
+      <div class="p-6 bg-white/[0.03] border border-white/10 rounded-[2.5rem] backdrop-blur-2xl flex gap-5 group hover:bg-white/[0.05] transition-all duration-300">
+        <div class="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0 border border-blue-500/20 relative">
+          <div class="absolute inset-0 bg-blue-400/20 blur-md rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <Icon class="w-6 h-6 text-blue-400 relative z-10" />
         </div>
         <div>
-          <h4 class="text-white font-black mb-1 uppercase tracking-wider text-[11px] leading-tight">{@html item.title}</h4>
-          <p class="text-white/50 text-[10px] leading-relaxed">{@html item.desc}</p>
+          <h4 class="text-white font-black mb-1.5 uppercase tracking-[0.1em] text-xs leading-tight">{item.title}</h4>
+          <p class="text-white/40 text-[10px] leading-relaxed font-medium">{@html item.desc}</p>
         </div>
       </div>
     {/each}
   </div>
 
-  <div class="mt-12 p-1 bg-gradient-to-r from-blue-500/20 to-transparent rounded-2xl">
-    <div class="px-5 py-3 bg-black/40 rounded-[inherit] flex items-center justify-between">
-      <span class="text-[10px] text-white/60 font-medium tracking-[0.2em] uppercase">Clinical Verification</span>
-      <div class="flex gap-2">
-        <div class="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
-          <ShieldCheck class="w-2.5 h-2.5 text-emerald-400" />
+  <div class="mt-8 mb-4 p-[1px] bg-gradient-to-r from-blue-500/30 to-white/5 rounded-3xl">
+    <div class="px-6 py-4 bg-[#050510]/80 backdrop-blur-3xl rounded-[inherit] flex items-center justify-between">
+      <div class="flex flex-col">
+        <span class="text-[8px] text-white/20 font-black tracking-[0.3em] uppercase mb-0.5">Safety & Protocol</span>
+        <span class="text-[10px] text-white/80 font-black tracking-widest uppercase italic">Clinical Verification</span>
+      </div>
+      <div class="flex -space-x-2">
+        <div class="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center backdrop-blur-md">
+          <ShieldCheck class="w-4 h-4 text-emerald-400" />
         </div>
-        <div class="w-4 h-4 rounded-full bg-blue-500/20 flex items-center justify-center">
-          <Zap class="w-2.5 h-2.5 text-blue-400" />
+        <div class="w-8 h-8 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center backdrop-blur-md relative z-10">
+          <Zap class="w-4 h-4 text-blue-400" />
         </div>
       </div>
     </div>

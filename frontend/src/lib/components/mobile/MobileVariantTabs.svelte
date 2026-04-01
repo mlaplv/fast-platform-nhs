@@ -3,6 +3,12 @@
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { SHOP_CONFIG } from '$lib/constants/shop';
 
+  interface MobileVariantTabsProps {
+    hidden?: boolean;
+  }
+
+  let { hidden = false }: MobileVariantTabsProps = $props();
+
   const shopStore = getShopStore();
   const product = $derived(shopStore.product);
   const currentVariant = $derived(shopStore.variant);
@@ -16,7 +22,10 @@
   }
 </script>
 
-<div class="fixed top-0 left-0 right-0 z-[100] flex justify-center pt-safe-top">
+<div
+  class="fixed top-0 left-0 right-0 z-[100] flex justify-center pt-safe-top tabs-container"
+  class:tabs-hidden={hidden}
+>
   <div class="flex items-center gap-6 px-6 py-4">
     {#each variants as variant, i}
       <button
@@ -42,5 +51,17 @@
 <style lang="postcss">
   .pt-safe-top {
     padding-top: env(safe-area-inset-top, 20px);
+  }
+
+  .tabs-container {
+    opacity: 1;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    visibility: visible;
+  }
+
+  .tabs-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
   }
 </style>

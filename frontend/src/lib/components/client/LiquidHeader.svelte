@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
+  import { ShieldCheck } from 'lucide-svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
 
   const shopStore = getShopStore();
@@ -27,7 +28,8 @@
     { id: 'diagnostics', label: labels.diagnostics, href: '#diagnostics' },
     { id: 'science', label: labels.science, href: '#science' },
     { id: 'reviews', label: labels.reviews, href: '#reviews' },
-    { id: 'offers', label: labels.offers, href: '#offers' }
+    { id: 'offers', label: labels.offers, href: '#offers' },
+    { id: 'track', label: 'Tra cứu!', href: '/track' }
   ]);
 
   let scrolled = $state(false);
@@ -85,12 +87,17 @@
         {#each navLinks as link}
           <a
             href={link.href}
-            class="island-link {activeSection === link.id ? 'is-active' : ''} {link.id === 'offers' ? 'fomo-nav-item' : ''}"
+            class="island-link {activeSection === link.id ? 'is-active' : ''} {link.id === 'offers' ? 'fomo-nav-item' : ''} {link.id === 'track' ? 'track-nav-item' : ''}"
             onclick={(e) => {
-              e.preventDefault();
-              document.getElementById(link.id)?.scrollIntoView({ behavior: 'smooth' });
+              if (link.href.startsWith('#')) {
+                e.preventDefault();
+                document.getElementById(link.id)?.scrollIntoView({ behavior: 'smooth' });
+              }
             }}
           >
+            {#if link.id === 'track'}
+              <ShieldCheck class="w-3.5 h-3.5 mr-1.5 inline-block opacity-70 group-hover:opacity-100" />
+            {/if}
             {link.label}
             {#if link.id === 'offers'}
               <span class="fomo-nav-badge">HOT</span>

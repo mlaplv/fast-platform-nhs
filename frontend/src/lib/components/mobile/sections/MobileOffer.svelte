@@ -40,62 +40,64 @@
   }
 </script>
 
-<div class="h-full flex flex-col justify-center px-6 py-20 bg-[#020617] relative">
+<div class="h-full flex flex-col px-6 pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] bg-[#030303] relative overflow-hidden">
+  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-80 bg-blue-600/10 blur-[100px] pointer-events-none"></div>
+
   <!-- Scarcity Floating Header -->
-  <div class="absolute top-10 left-0 right-0 flex justify-center z-10">
-    <div class="bg-red-600/20 border border-red-500/30 px-6 py-2 rounded-full backdrop-blur-md flex items-center gap-3">
-      <Clock class="w-4 h-4 text-red-400 animate-pulse" />
-      <span class="text-[10px] text-red-200 font-black uppercase tracking-[0.2em]">{mkt.timer_prefix} <span class="tabular-nums ml-1">{formatTime(timeLeft)}</span></span>
+  <div class="mt-6 flex justify-center z-10">
+    <div class="bg-black/40 border border-white/10 px-6 py-2.5 rounded-2xl backdrop-blur-3xl flex items-center gap-3 shadow-2xl">
+      <Clock class="w-4 h-4 text-red-500 animate-pulse" />
+      <div class="flex flex-col">
+        <span class="text-[7px] text-white/30 font-black uppercase tracking-[0.3em]">{mkt.timer_prefix}</span>
+        <span class="text-[11px] text-white font-black tabular-nums tracking-widest italic">{formatTime(timeLeft)}</span>
+      </div>
     </div>
   </div>
 
-  <div class="mb-10 mt-12 text-center">
-    <h2 class="text-3xl font-black text-white leading-tight uppercase tracking-tighter italic mb-4">
+  <div class="mt-8 mb-8 text-center">
+    <h2 class="text-4xl font-black text-white leading-none uppercase tracking-tighter italic mb-4">
       {@html mkt.headline}
     </h2>
-    <p class="text-white/40 text-[10px] uppercase tracking-[0.3em] font-medium italic">{@html mkt.sub}</p>
+    <p class="text-white/30 text-[9px] uppercase tracking-[0.5em] font-black italic">{@html mkt.sub}</p>
   </div>
 
-  <div class="grid gap-4">
+  <div class="flex-1 space-y-6 overflow-y-auto pr-1 pb-10">
     {#each variants as variant, i}
       <div 
-        class="package-card p-6 rounded-[32px] border transition-all duration-300 relative overflow-hidden group {i === 1 ? 'bg-blue-600 border-blue-500 shadow-[0_20px_40px_rgba(37,99,235,0.25)]' : 'bg-white/5 border-white/10'}"
+        class="package-card p-6 rounded-[3rem] border transition-all duration-500 relative overflow-hidden group {i === 1 ? 'bg-blue-600 border-white/20 shadow-[0_20px_50px_rgba(37,99,235,0.3)] scale-[1.02]' : 'bg-white/[0.03] border-white/10 backdrop-blur-2xl'}"
       >
         {#if i === 1}
-          <div class="absolute top-0 right-0 bg-yellow-400 text-black px-4 py-1.5 rounded-bl-2xl font-black text-[9px] uppercase tracking-widest shadow-lg">{mkt.label_expert_choice}</div>
+          <div class="absolute top-0 right-0 bg-yellow-400 text-black px-5 py-2 rounded-bl-3xl font-black text-[9px] uppercase tracking-widest shadow-xl animate-pulse z-20">
+            {mkt.label_expert_choice}
+          </div>
         {/if}
 
-        <div class="flex justify-between items-start mb-4">
+        <div class="flex justify-between items-start mb-6">
           <div>
-            <h4 class="text-white font-black text-lg uppercase tracking-tight">{getVariantTitle(variant)}</h4>
-            <div class="flex items-center gap-2 mt-1">
-              <p class="text-[10px] uppercase tracking-widest {i === 1 ? 'text-white/80' : 'text-white/40'} font-bold">
+            <h4 class="text-white font-black text-xl uppercase tracking-tighter italic drop-shadow-md">{getVariantTitle(variant)}</h4>
+            <div class="flex items-center gap-2 mt-2">
+              <span class="px-2.5 py-1 bg-white/10 rounded-full text-[8px] font-black uppercase tracking-widest text-white/80 backdrop-blur-md">
                  {i === 0 ? mkt.label_activation : mkt.label_full_treatment}
-              </p>
+              </span>
               {#if i === 1}
-                <span class="px-2 py-0.5 bg-red-500 text-white text-[8px] font-black rounded-lg animate-bounce">MUA 2 TẶNG 1</span>
+                <span class="px-2.5 py-1 bg-red-500 text-white text-[8px] font-black rounded-full shadow-lg border border-white/20">MUA 2 TẶNG 1</span>
               {/if}
             </div>
           </div>
-          <div class="text-right">
-             <p class="text-[10px] text-white/40 line-through">{(variant.price).toLocaleString()}đ</p>
-             <p class="text-2xl font-black text-white italic">{(variant.discountPrice || variant.price).toLocaleString()}đ</p>
-             {#if i === 1}
-               <p class="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full inline-block mt-1 uppercase tracking-tighter">TIẾT KIỆM KHỦNG</p>
-             {/if}
+          <div class="text-right flex flex-col items-end">
+             <span class="text-xs text-white/40 line-through font-bold opacity-50">{(variant.price).toLocaleString()}đ</span>
+             <span class="text-3xl font-black text-white italic tracking-tighter">{(variant.discountPrice || variant.price).toLocaleString()}đ</span>
           </div>
         </div>
 
-        <div class="space-y-3 mb-6">
-           {#if i > 0 || variant.discountPrice}
-             <div class="flex items-center gap-2 text-[9px] font-black text-emerald-400/90 uppercase tracking-widest">
-                <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.5)]"></span>
-                MIỄN PHÍ VẬN CHUYỂN TOÀN QUỐC 🚚
-             </div>
-           {/if}
-           <div class="flex items-center gap-2 text-[9px] font-black text-white/60 uppercase tracking-widest">
-              <span class="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
-              Kiểm hàng trước khi thanh toán
+        <div class="grid grid-cols-2 gap-3 mb-8">
+           <div class="flex items-center gap-2 bg-white/5 p-3 rounded-2xl border border-white/5">
+              <div class="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.6)]"></div>
+              <span class="text-[7px] font-black text-white/60 uppercase tracking-widest leading-tight">Freeship <br/>Toàn quốc</span>
+           </div>
+           <div class="flex items-center gap-2 bg-white/5 p-3 rounded-2xl border border-white/5">
+              <div class="w-1.5 h-1.5 bg-blue-400 rounded-full shadow-[0_0_8px_rgba(96,165,250,0.6)]"></div>
+              <span class="text-[7px] font-black text-white/60 uppercase tracking-widest leading-tight">Kiểm hàng <br/>Thanh toán</span>
            </div>
         </div>
 
@@ -105,15 +107,15 @@
             if (i === 1) shopStore.setQuantity(3); // Mua 2 tặng 1
             shopStore.openCheckout(); 
           }}
-          class="w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all duration-300 {i === 1 ? 'bg-white text-blue-600 hover:scale-[1.02]' : 'bg-blue-600 text-white hover:bg-blue-500'}"
+          class="w-full py-6 rounded-[2rem] font-black text-[14px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all duration-300 italic {i === 1 ? 'bg-white text-blue-600 shadow-2xl hover:scale-[1.03] active:scale-95' : 'bg-white/10 text-white border border-white/10 hover:bg-white/20'}"
         >
-          {i === 0 ? mkt.cta_start : mkt.cta_full} <ShoppingCart class="w-4 h-4" />
+          {i === 0 ? mkt.cta_start : mkt.cta_full} <ShoppingCart class="w-5 h-5" />
         </button>
       </div>
     {/each}
   </div>
 
-  <div class="mt-12 flex justify-center gap-6 opacity-30 grayscale invert">
+  <div class="mt-4 flex justify-center gap-6 opacity-30 invert pb-10">
     <div class="text-[9px] uppercase tracking-widest font-black text-white">{SHOP_CONFIG.trust_marks[2]}</div>
     <div class="text-[9px] uppercase tracking-widest font-black text-white">{SHOP_CONFIG.trust_marks[3]}</div>
   </div>
