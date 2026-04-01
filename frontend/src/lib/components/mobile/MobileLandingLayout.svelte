@@ -14,6 +14,7 @@
   import MobileScience from './sections/MobileScience.svelte';
   import MobileReviews from './sections/MobileReviews.svelte';
   import MobileOffer from './sections/MobileOffer.svelte';
+  import MobileProductDetailsModal from './MobileProductDetailsModal.svelte';
 
   import './mobile.css';
 
@@ -27,6 +28,7 @@
 
   // Active section index tracked via IntersectionObserver (O(1) – no scroll listeners)
   let activeSectionIndex = $state(0);
+  let isDetailsModalOpen = $state(false);
 
   // Variant tabs should be hidden when user is on the video banner (section 0)
   // Check both `video_url` (admin field) and `hero_video_url` (desktop fallback) for compatibility
@@ -132,6 +134,7 @@
     {isTikTokActive}
     {isScrollingDown}
     onPurchase={() => shopStore.openCheckout()} 
+    onOpenDetails={() => isDetailsModalOpen = true}
   />
 
   <!-- SECTION 0: VIDEO BANNER (conditional – only renders if hero_video_url is set) -->
@@ -167,6 +170,7 @@
   </section>
 
   <MobileBottomSheet bind:active={shopStore.isCheckoutOpen} {product} />
+  <MobileProductDetailsModal bind:active={isDetailsModalOpen} {product} />
 </div>
 
 <style lang="postcss">

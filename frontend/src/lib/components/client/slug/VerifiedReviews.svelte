@@ -183,7 +183,7 @@
   <div class="reviews-container container mx-auto px-6 max-w-6xl pt-[var(--standard-pt)] pb-24">
     <!-- Header Section -->
     <div class="text-center" in:fade>
-      <h2 class="section-headline mb-8 text-4xl md:text-5xl font-black tracking-tighter uppercase italic">
+      <h2 class="section-headline mb-8 text-[28px] xs:text-3xl sm:text-4xl md:text-5xl leading-[1.1] md:leading-tight break-words font-black tracking-tighter uppercase italic">
         {@html headline}
       </h2>
       <div class="flex flex-col items-center gap-4">
@@ -244,7 +244,7 @@
             </div>
         </div>
 
-        <div class="reviews-scroll-wrapper scrollbar-hide" bind:this={scrollContainer}>
+        <div class="reviews-scroll-wrapper scrollbar-hide flex overflow-x-auto snap-x snap-mandatory gap-4 lg:grid lg:grid-cols-3 lg:gap-8 w-full" bind:this={scrollContainer}>
           {#if isLoading && realReviews.length === 0}
             <div class="flex flex-col items-center justify-center p-24 gap-6">
               <div class="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
@@ -257,7 +257,7 @@
             </div>
           {:else}
             {#each realReviews as review, i}
-              <div class="review-card group/card" in:fly={{ y: 20, delay: i * 100, duration: 800 }}>
+              <div class="review-card group/card flex-none w-[85vw] max-w-[400px] lg:w-auto snap-center" in:fly={{ y: 20, delay: i * 100, duration: 800 }}>
                 <div class="review-header flex items-center justify-between mb-8">
                   <div class="flex items-center gap-5">
                     <div class="avatar-circle relative group-hover/card:scale-110 transition-transform duration-500">

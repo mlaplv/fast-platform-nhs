@@ -135,7 +135,7 @@
       <span class="text-[9px] uppercase tracking-[0.2em] text-emerald-400 font-black italic">{labels.hud_feedback}</span>
     </div>
     
-    <h2 class="text-4xl font-black text-white leading-none uppercase tracking-tighter italic mb-6">
+    <h2 class="text-[28px] xs:text-3xl sm:text-4xl font-black text-white leading-[1.1] break-words uppercase tracking-tighter italic mb-6">
       {@html labels.headline}
     </h2>
 
@@ -155,7 +155,7 @@
     </div>
   </div>
 
-  <div class="flex-1 space-y-4 overflow-y-auto pr-1 scrollbar-hide pb-10">
+  <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 scrollbar-hide pb-10">
     {#if isLoading && realReviews.length === 0}
       <div class="py-20 text-center">
         <div class="w-10 h-10 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4"></div>
@@ -167,7 +167,7 @@
       </div>
     {:else}
       {#each realReviews.slice(0, 8) as review, i}
-        <div class="review-card-mobile p-6 bg-white/[0.03] border border-white/10 rounded-[2.5rem] backdrop-blur-3xl relative overflow-hidden" in:fly={{ y: 20, delay: i * 100 }}>
+        <div class="review-card-mobile flex-none snap-center p-6 bg-white/[0.03] border border-white/10 rounded-[2.5rem] backdrop-blur-3xl relative overflow-hidden" in:fly={{ y: 20, delay: i * 100 }}>
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-4">
               <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400 font-black text-xl italic shadow-inner">
@@ -207,7 +207,7 @@
   <div class="mt-4 pb-6">
     <button 
       onclick={() => showFormModal = true}
-      class="w-full py-6 bg-white text-black rounded-[2.5rem] font-black text-[13px] tracking-[0.3em] flex items-center justify-center gap-3 active:scale-95 transition-all uppercase italic shadow-[0_10px_30px_rgba(255,255,255,0.1)]"
+      class="w-full py-6 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-[2.5rem] font-black text-[13px] tracking-[0.3em] flex items-center justify-center gap-3 active:scale-95 transition-all uppercase italic shadow-[0_0_30px_rgba(16,185,129,0.15)]"
     >
       <MessageSquarePlus class="w-5 h-5" /> {labels.cta_write}
     </button>
@@ -349,6 +349,8 @@
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
   
   .review-card-mobile {
+    width: 92vw;
+    max-width: 440px;
     transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
   }
 </style>

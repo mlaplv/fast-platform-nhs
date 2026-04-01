@@ -6,6 +6,7 @@
   interface Props {
     product: Product;
     onPurchase: () => void;
+    onOpenDetails?: () => void;
     isTikTokActive?: boolean;
     isScrollingDown?: boolean;
   }
@@ -13,6 +14,7 @@
   let {
     product,
     onPurchase,
+    onOpenDetails,
     isTikTokActive = false,
     isScrollingDown = false
   }: Props = $props();
@@ -62,7 +64,7 @@
   <!-- 4. Chi tiết sản phẩm -->
   <button
     class="action-btn-mini group"
-    onclick={() => scrollToSection('science')}
+    onclick={() => onOpenDetails ? onOpenDetails() : scrollToSection('science')}
     aria-label="Chi tiết sản phẩm"
   >
     <Info class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" />
