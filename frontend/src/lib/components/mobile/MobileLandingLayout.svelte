@@ -20,6 +20,11 @@
   const shopStore = getShopStore();
   const product = $derived(shopStore.product);
 
+  // ── SEO Derived State (Elite V2.2 – Mobile Parity) ──────────────────────────
+  const seoMeta = $derived(product?.seoMeta ?? product?.seo_meta ?? null);
+  const siteName = $derived(product?.metadata?.seo_site_name ?? 'Elite Storefront');
+  const ogImage = $derived(product?.images?.[0] ?? '');
+
   // Active section index tracked via IntersectionObserver (O(1) – no scroll listeners)
   let activeSectionIndex = $state(0);
 
@@ -79,6 +84,45 @@
     return () => observer.disconnect();
   });
 </script>
+
+<svelte:head>
+  {#if seoMeta}
+    <title>{seoMeta.title} | {siteName}</title>
+    <meta name="description" content={seoMeta.description} />
+    <meta name="keywords" content={seoMeta.keywords} />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href={seoMeta.canonical_url} />
+
+    <!-- Open Graph (Facebook, Zalo, Threads) -->
+    <meta property="og:type" content="product" />
+    <meta property="og:title" content={seoMeta.title} />
+    <meta property="og:description" content={seoMeta.description} />
+    <meta property="og:url" content={seoMeta.canonical_url} />
+    {#if ogImage}
+      <meta property="og:image" content={ogImage} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content={seoMeta.title} />
+    {/if}
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={seoMeta.title} />
+    <meta name="twitter:description" content={seoMeta.description} />
+    {#if ogImage}<meta name="twitter:image" content={ogImage} />{/if}
+
+    <!-- JSON-LD Structured Data -->
+    {#if seoMeta.json_ld_string}
+      <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+      {@html `<script type="application/ld+json">${seoMeta.json_ld_string}</script>`}
+    {/if}
+  {:else if product}
+    <title>{product.name} | {siteName}</title>
+    <meta name="robots" content="noindex" />
+  {/if}
+</svelte:head>
 
 <div class="mobile-snap-container relative h-screen overflow-y-auto" onscroll={handleScroll}>
   <!-- PERSISTENT OVERLAYS -->
