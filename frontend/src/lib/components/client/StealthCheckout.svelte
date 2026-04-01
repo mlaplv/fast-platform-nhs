@@ -75,16 +75,24 @@
     }
   }
 
-  function getVariantName(v: any) {
-    if (!shopStore.product?.tierVariations) return v.sku || 'Sản phẩm';
+  interface CheckoutVariant {
+    id: string;
+    sku?: string;
+    price?: number;
+    discountPrice?: number;
+    tierIndex?: number[];
+  }
+
+  function getVariantName(v: CheckoutVariant) {
+    if (!shopStore.product?.tierVariations || !v.tierIndex) return v.sku || 'Sản phẩm';
     return v.tierIndex
       .map((idx: number, tierIdx: number) => shopStore.product!.tierVariations[tierIdx]?.options[idx] || '')
-      .filter(Boolean)
+      .filter((val: string) => Boolean(val))
       .join(' – ');
   }
 
-  function getVariantImage(v: any) {
-    if (!shopStore.product?.tierVariations) return shopStore.product?.images?.[0] || '';
+  function getVariantImage(v: CheckoutVariant) {
+    if (!shopStore.product?.tierVariations || !v.tierIndex) return shopStore.product?.images?.[0] || '';
     for (let i = 0; i < v.tierIndex.length; i++) {
       const img = shopStore.product!.tierVariations[i]?.images[v.tierIndex[i]];
       if (img) return img;
@@ -93,7 +101,7 @@
   }
 
   // Smart Lookup Logic (Elite V2.2)
-  let lookupTimer: any;
+  let lookupTimer: ReturnType<typeof setTimeout> | undefined;
   function handlePhoneInput() {
     const phone = phoneRef?.value || '';
     if (phone.length >= 10) {

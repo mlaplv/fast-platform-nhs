@@ -47,7 +47,7 @@
 </script>
 
 <!-- SVG Filter for Liquid/Gooey Effect -->
-<svg style="visibility: hidden; position: absolute;" width="0" height="0" xmlns="http://www.w3.org/2000/svg" version="1.1">
+<svg class="invisible absolute" width="0" height="0" xmlns="http://www.w3.org/2000/svg" version="1.1">
   <defs>
     <filter id="liquid-goo">
       <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
@@ -62,20 +62,20 @@
   class="clinical-quiz {!shopStore.diagnosticResult ? 'glass-liquid border-white/5' : ''} {shopStore.diagnosticResult ? 'p-0 md:p-0 lg:p-12' : 'p-6 md:p-8 lg:p-12'} rounded-[3.5rem] relative overflow-hidden max-w-4xl mx-auto shadow-2xl min-h-[500px]"
 >
   <!-- Subdued Neural Orbs -->
-  <div class="neural-orb -top-20 -right-20 opacity-20" style="background: radial-gradient(circle, #3b82f6 0%, transparent 70%); transform: scale(1.5);"></div>
-  <div class="neural-orb -bottom-40 -left-20 opacity-10" style="background: radial-gradient(circle, #818cf8 0%, transparent 70%);"></div>
+  <div class="neural-orb -top-20 -right-20 opacity-20" style:background="radial-gradient(circle, #3b82f6 0%, transparent 70%)" style:transform="scale(1.5)"></div>
+  <div class="neural-orb -bottom-40 -left-20 opacity-10" style:background="radial-gradient(circle, #818cf8 0%, transparent 70%)"></div>
   
   <!-- Neural Progress Track -->
   <div class="absolute top-0 left-0 right-0 h-1 bg-white/5">
     <div 
       class="h-full bg-blue-500 transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] shadow-[0_0_15px_rgba(59,130,246,0.3)]" 
-      style="width: {progress}%"
+      style:width="{progress}%"
     ></div>
   </div>
 
   {#if questions.length > 0}
     {#if currentStep < questions.length}
-      <div id="s{currentStep + 1}" class="step-container relative" style:z-index="var(--z-surface)" in:fly={{ y: 30, duration: 800, easing: quintOut }}>
+      <div id="s{currentStep + 1}" class="step-container relative z-surface" in:fly={{ y: 30, duration: 800, easing: quintOut }}>
         <div class="mb-8 md:mb-10 text-left">
           <h3 class="text-4xl md:text-5xl font-black text-white mb-3 tracking-[-0.04em] leading-tight">
             {questions[currentStep].title}
@@ -92,14 +92,14 @@
               class="group p-6 text-left glass-liquid border-white/5 rounded-[2rem] hover:border-blue-500/30 transition-all duration-500 flex items-center gap-6 relative overflow-hidden liquid-bubble"
               in:fly={{ x: 15, duration: 800, delay: idx * 50, easing: quintOut }}
             >
-              <div class="w-16 h-16 bg-white/5 rounded-[1.5rem] flex items-center justify-center group-hover:scale-105 transition-all duration-500 border border-white/5 relative" style:z-index="var(--z-surface)">
+              <div class="w-16 h-16 bg-white/5 rounded-[1.5rem] flex items-center justify-center group-hover:scale-105 transition-all duration-500 border border-white/5 relative z-surface">
                 <QuizIcon icon={option.icon} />
               </div>
-              <div class="flex-1 relative" style:z-index="var(--z-surface)">
+              <div class="flex-1 relative z-surface">
                 <span class="block text-xl font-bold text-white/90 group-hover:text-blue-400 transition-colors uppercase tracking-tight">{option.label}</span>
               </div>
               
-              <div class="w-10 h-10 rounded-full border border-white/5 group-hover:border-blue-500/50 group-hover:bg-blue-500/20 flex items-center justify-center transition-all duration-500 relative" style:z-index="var(--z-surface)">
+              <div class="w-10 h-10 rounded-full border border-white/5 group-hover:border-blue-500/50 group-hover:bg-blue-500/20 flex items-center justify-center transition-all duration-500 relative z-surface">
                 <svg class="w-5 h-5 text-white scale-0 group-hover:scale-100 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" />
                 </svg>
@@ -112,7 +112,7 @@
       {#if shopStore.isAnalyzing}
         <DiagnosticScanner status="Hệ thống AI đang phân tích và thiết kế liệu trình..." />
       {:else if shopStore.diagnosticResult}
-        <div class="result-container text-center py-0 md:py-0 lg:py-10 relative" style:z-index="var(--z-surface)" in:fade={{ duration: 1000 }}>
+        <div class="result-container text-center py-0 md:py-0 lg:py-10 relative z-surface" in:fade={{ duration: 1000 }}>
           <div class="mb-0 md:mb-0 lg:mb-12 text-left glass-liquid p-6 md:p-8 lg:p-12 rounded-[2.5rem] border-white/10 backdrop-blur-3xl relative overflow-hidden shadow-[0_0_80px_rgba(30,58,138,0.3)]">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-white/10 pb-6">
               <div>
@@ -163,7 +163,7 @@
               onclick={() => shopStore.openCheckout()}
               class="group relative w-full py-5 md:py-6 bg-blue-600 text-white rounded-[2rem] font-black text-2xl md:text-2xl lg:text-3xl shadow-[0_20px_50px_rgba(59,130,246,0.4)] overflow-hidden active:scale-[0.98] transition-all duration-500"
             >
-              <span class="relative" style:z-index="var(--z-surface)">XEM LIỆU TRÌNH</span>
+              <span class="relative z-surface">XEM LIỆU TRÌNH</span>
               <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
             </button>
             <button
@@ -187,6 +187,9 @@
 <style>
   :global(.clinical-quiz) {
     transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .z-surface {
+    z-index: var(--z-surface);
   }
 </style>
 

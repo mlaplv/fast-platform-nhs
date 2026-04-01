@@ -5,8 +5,8 @@
   import HeroBanner from '$lib/components/client/HeroBanner.svelte';
   import LiquidHeader from '$lib/components/client/LiquidHeader.svelte';
   import StealthCheckout from '$lib/components/client/StealthCheckout.svelte';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client.ts';
   import { browser } from '$app/environment';
+  import type { Action } from 'svelte/action';
   
   // JIT Component Flags
   let loadJIT = $state(false);
@@ -114,7 +114,57 @@
 
   const scrollToQuiz = () => {
     const el = document.getElementById('diagnostics');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    if (el) {
+      currentSessionIdx = 1; // Sync programmatic tracker
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  // Elite 2026 Programmatic Scroll Coordinator (O(1) Speed/Memory)
+  const sectionIds = ['hero', 'diagnostics', 'science', 'reviews', 'offers'];
+  let currentSessionIdx = 0;
+  let isWheelLocked = false;
+
+  const onWheelObserver = (e: WheelEvent) => {
+    // Escape limiters: Mobile layout, Server, or interacting with Checkout
+    if (useMobileLayout || !browser || shopStore.isCheckoutOpen) return;
+    
+    // Ignore micro-scrolls (e.g., trackpad resting)
+    if (Math.abs(e.deltaY) < 15) return;
+    
+    // 100% Native Intercept - Bypass default DOM scrolling
+    e.preventDefault();
+    if (isWheelLocked) return;
+
+    const direction = e.deltaY > 0 ? 1 : -1;
+    let nextIdx = currentSessionIdx + direction;
+
+    // Clamp boundaries
+    if (nextIdx >= 0 && nextIdx < sectionIds.length) {
+      isWheelLocked = true;
+      currentSessionIdx = nextIdx;
+      
+      // O(1) Native C++ lookup
+      const target = document.getElementById(sectionIds[currentSessionIdx]);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // Memory-efficient cooling lock to prevent scroll-looping (800ms)
+      setTimeout(() => {
+        isWheelLocked = false;
+      }, 800);
+    }
+  };
+
+  // Svelte 5 Native Action: Forced non-passive listener
+  const initScrollObserver: Action<HTMLElement> = (node) => {
+    node.addEventListener('wheel', onWheelObserver, { passive: false });
+    return {
+      destroy() {
+        node.removeEventListener('wheel', onWheelObserver);
+      }
+    };
   };
 </script>
 
@@ -138,7 +188,7 @@
     <MobileLandingLayout {product} />
   {/if}
 {:else}
-  <div class="client-page-root selection:bg-blue-600 selection:text-white h-screen overflow-y-scroll scroll-smooth">
+  <div class="client-page-root selection:bg-blue-600 selection:text-white h-screen overflow-y-scroll" use:initScrollObserver>
 
   {#if product?.id}
     <LiquidHeader {product} {themeMode} {applyTheme} scrollToQuiz={scrollToQuiz} />
@@ -203,7 +253,6 @@
   .client-page-root {
     antialiased: true;
     overflow-x: hidden;
-    scroll-snap-type: y mandatory;
     height: 100vh;
     font-family: 'Plus Jakarta Sans', sans-serif;
     background-color: var(--bg-canvas);
@@ -216,15 +265,14 @@
   }
 
   :global(.snap-session) {
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-    min-height: 100vh;
+    min-height: 100dvh;
     height: auto;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
     position: relative;
-    overflow: visible;
+    transform: translateZ(0); /* Hardware Acceleration */
+    will-change: transform;
   }
 
   /* Ensure smooth transitions inside snap sessions */

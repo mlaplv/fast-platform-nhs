@@ -179,7 +179,7 @@
   };
 </script>
 
-<section id="reviews" class="reviews-viewport snap-session relative overflow-hidden">
+<section class="reviews-viewport relative overflow-hidden">
   <div class="reviews-container container mx-auto px-6 max-w-6xl pt-[var(--standard-pt)] pb-24">
     <!-- Header Section -->
     <div class="text-center" in:fade>
@@ -211,7 +211,7 @@
 
     <!-- Reviews Grid -->
     <div class="bento-hub-frame relative group">
-      <div class="reviews-layout relative" style:z-index="var(--z-surface)">
+      <div class="reviews-layout relative z-surface">
         <div class="flex items-center justify-between mt-6 mb-10 px-2">
             <div class="hud-tag primary bg-emerald-500/5 text-emerald-400 border-emerald-500/20 animate-fade-in">
                 <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></span>
@@ -317,8 +317,7 @@
 
 {#if showFormModal}
   <div
-    class="modal-overlay fixed inset-0 flex items-center justify-center p-4 backdrop-blur-2xl"
-    style:z-index={Z_INDEX_CLIENT.MODAL}
+    class="modal-overlay fixed inset-0 flex items-center justify-center p-4 backdrop-blur-2xl z-modal"
     transition:fade={{ duration: 400 }}
     onclick={(e) => { if(e.target === e.currentTarget && !isSubmitting) showFormModal = false }}
   >
@@ -332,14 +331,12 @@
           {#each Array(40) as _, i}
             <div 
               class="confetti-particle absolute"
-              style="
-                --left: {Math.random() * 100}%;
-                --delay: {Math.random() * 2}s;
-                --duration: {2 + Math.random() * 3}s;
-                --color: {['#10b981', '#34d399', '#6ee7b7', '#fff'][Math.floor(Math.random() * 4)]};
-                --size: {4 + Math.random() * 6}px;
-                --x: {(Math.random() - 0.5) * 400}px;
-              "
+              style:--left="{Math.random() * 100}%"
+              style:--delay="{Math.random() * 2}s"
+              style:--duration="{2 + Math.random() * 3}s"
+              style:--color="{['#10b981', '#34d399', '#6ee7b7', '#fff'][Math.floor(Math.random() * 4)]}"
+              style:--size="{4 + Math.random() * 6}px"
+              style:--x="{(Math.random() - 0.5) * 400}px"
             ></div>
           {/each}
         </div>
@@ -516,8 +513,7 @@
 <!-- Premium Toast Notification -->
 {#if showToast}
   <div 
-    class="fixed top-12 left-1/2 -translate-x-1/2"
-    style:z-index={Z_INDEX_CLIENT.TOAST}
+    class="fixed top-12 left-1/2 -translate-x-1/2 z-toast"
     transition:fly={{ y: -50, duration: 600, easing: cubicOut }}
   >
     <div class="px-8 py-4 {toastType === 'error' ? 'bg-red-500/20 text-red-400 border-red-500/40' : 'bg-white/10 text-white border-white/20'} backdrop-blur-3xl border rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-4">
@@ -574,4 +570,8 @@
   @keyframes pulse-ring {
     to { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
   }
+
+  .z-surface { z-index: var(--z-surface); }
+  .z-modal { z-index: var(--z-modal, 100); }
+  .z-toast { z-index: var(--z-toast, 999); }
 </style>

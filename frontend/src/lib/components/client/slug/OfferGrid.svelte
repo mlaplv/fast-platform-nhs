@@ -85,24 +85,18 @@
   };
 </script>
 
-<section id="offers" class="offer-section snap-session relative overflow-hidden">
+<section class="offer-section relative overflow-hidden">
   <!-- Dynamic Atmospheric Layers! -->
   <div class="absolute inset-0 bg-radial-at-t from-blue-900/10 to-transparent pointer-events-none"></div>
-  <div class="liquid-orb top-[10%] left-[-10%] w-[800px] h-[800px]" style="background-color: var(--elite-blue); opacity: 0.1;"></div>
-  <div class="liquid-orb bottom-[-10%] right-[-10%] w-[600px] h-[600px]" style="background-color: var(--elite-cyan); opacity: 0.05;"></div>
+  <div class="liquid-orb top-[10%] left-[-10%] w-[800px] h-[800px]" style:background-color="var(--elite-blue)" style:opacity="0.1"></div>
+  <div class="liquid-orb bottom-[-10%] right-[-10%] w-[600px] h-[600px]" style:background-color="var(--elite-cyan)" style:opacity="0.05"></div>
 
   <div class="container mx-auto px-4 md:px-6 max-w-6xl text-center relative z-10 pt-[var(--standard-pt)]">
     
-    <!-- Minimalist Status Bar -->
-    <div class="flex justify-center mb-10">
-      <div class="timer-badge px-6 py-1.5 rounded-full text-[9px] uppercase tracking-[0.3em] flex items-center gap-3">
-        <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_8px_#22d3ee]"></span>
-        {mkt.timer_prefix} <span class="font-bold tabular-nums">{formatTime(timeLeft)}</span>
-      </div>
-    </div>
+    
 
     <!-- Professional Headline Hierarchy! -->
-    <div class="max-w-4xl mx-auto text-center" style="margin-bottom: var(--headline-mb)">
+    <div class="max-w-4xl mx-auto text-center" style:margin-bottom="var(--headline-mb)">
       <h3 class="headline-title">
         {@html mkt.headline}
       </h3>
@@ -120,8 +114,16 @@
       </div>
     </div>
 
+    <!-- Minimalist Status Bar -->
+    <div class="flex justify-center mb-10">
+      <div class="timer-badge px-6 py-1.5 rounded-full text-[9px] uppercase tracking-[0.3em] flex items-center gap-3">
+        <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_8px_#22d3ee]"></span>
+        {mkt.timer_prefix} <span class="font-bold tabular-nums">{formatTime(timeLeft)}</span>
+      </div>
+    </div>
+
     <!-- Package Architecture -->
-    <div class="package-grid {gridClass} gap-5 items-stretch" style="--cols: {isSlider ? 3 : variants.length}">
+    <div class="package-grid {gridClass} gap-5 items-stretch" style:--cols={isSlider ? 3 : variants.length}>
 
       {#each variants as variant, idx (variant.sku || idx)}
          <!-- Card! -->

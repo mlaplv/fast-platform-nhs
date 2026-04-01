@@ -30,7 +30,7 @@
   <div class="laser-line"></div>
 
   <!-- Central Analysis HUD! -->
-  <div class="hud-center relative px-6 text-center" style:z-index="20">
+  <div class="hud-center relative px-6 text-center">
     <div class="analysis-text text-3xl md:text-6xl font-black mb-6 tracking-[0.2em]">
       ĐANG PHÂN TÍCH...
     </div>
@@ -53,5 +53,6 @@
 <style>
   .hud-center {
     filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.5));
+    z-index: var(--z-surface);
   }
 </style>

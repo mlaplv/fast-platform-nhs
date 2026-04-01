@@ -106,19 +106,19 @@
   aria-label={labels.aria_hero}
   class="hero-center-layout content-hero snap-session relative w-full overflow-hidden flex flex-col items-center justify-start bg-[#020617] text-white"
   onmousemove={handleMouseMove}
-  style="--mx: {mouse.x}px; --my: {mouse.y}px; --hero-accent: #3b82f6; --hero-glass-blur: 32px;"
+  style:--mx="{mouse.x}px" style:--my="{mouse.y}px" style:--hero-accent="#3b82f6" style:--hero-glass-blur="32px"
 >
 
 
   <!-- NUCLEAR VIDEO BACKGROUND (Standard Full Coverage: 100% Native) -->
   <div class="absolute inset-x-0 top-0 bottom-0 z-0 overflow-hidden pointer-events-none w-full h-full">
-    <div class="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#020617] to-transparent w-full" style:z-index="var(--z-surface)"></div>
+    <div class="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#020617] to-transparent w-full z-surface"></div>
     <video autoplay muted loop playsinline class="elite-video-bg">
       <source src={videoUrl} type="video/mp4" />
     </video>
   </div>
 
-  <div class="container mx-auto px-6 max-w-6xl relative flex flex-col items-center pt-[var(--standard-pt)]" style:z-index="var(--z-surface)">
+  <div class="container mx-auto px-6 max-w-6xl relative flex flex-col items-center pt-[var(--standard-pt)] z-surface">
 
     <h1 class="typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0">
        {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''}">|</span>
@@ -131,7 +131,7 @@
     {/if}
 
     <div class="hero-product-display relative w-full max-w-6xl py-4 md:py-6 flex items-center justify-center bg-transparent">
-    <div class="relative flex flex-col md:grid md:grid-cols-2 items-center justify-center gap-8 md:gap-12 w-full px-4 md:px-8 lg:px-12" style:z-index="var(--z-surface)">
+    <div class="relative flex flex-col md:grid md:grid-cols-2 items-center justify-center gap-8 md:gap-12 w-full px-4 md:px-8 lg:px-12 z-surface">
           
           <div class="relative float-anim parallax-layer flex md:justify-end w-full">
              <div class="elite-product-card relative hud-frame">
@@ -140,7 +140,7 @@
                    <!-- Cinematic Dots! -->
                    <div class="beam-dots absolute inset-0">
                       {#each Array(12) as _, i}
-                         <div class="beam-dot" style="--d-idx: {i}"></div>
+                         <div class="beam-dot" style:--d-idx={i}></div>
                       {/each}
                    </div>
                 </div>
@@ -148,7 +148,7 @@
                 <div class="product-glass-container group relative flex items-center justify-center overflow-hidden rounded-[3.5rem] aspect-square w-64 md:w-72 lg:w-96 bg-[#020617]">
                    <div 
                      class="flex h-full w-full transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]"
-                     style="transform: translateX(-{currentImageIndex * 100}%);"
+                     style:transform="translateX(-{currentImageIndex * 100}%)"
                    >
                      {#each images as img, i}
                         <div class="min-w-full h-full relative bg-[#020617]">
@@ -163,7 +163,7 @@
 
                    <!-- Slider Controls! -->
                    {#if images.length > 1}
-                      <div class="absolute inset-x-0 bottom-8 flex justify-center gap-2" style:z-index="var(--z-hud-service)">
+                      <div class="absolute inset-x-0 bottom-8 flex justify-center gap-2 z-hud-service">
                          {#each images as _, i}
                             <button 
                                class="w-2 h-2 rounded-full transition-all duration-500 {i === currentImageIndex ? 'bg-blue-400 w-6' : 'bg-white/20 hover:bg-white/40'}"
@@ -198,7 +198,7 @@
 
           <div id="products" class="metrics-arc-container relative flex md:justify-start w-full">
              {#each metrics as metric, i}
-                <div class="arc-item group flex flex-col max-w-[450px] md:max-w-none mb-6 lg:mb-8" style="--idx: {i}">
+                <div class="arc-item group flex flex-col max-w-[450px] md:max-w-none mb-6 lg:mb-8" style:--idx={i}>
                    <div class="flex items-center gap-4 mb-2">
                       <div class="metric-dot bg-{metric.color}-500 shadow-[0_0_15px_rgba(var(--{metric.color}-rgb),1)]"></div>
                       <span class="text-[10px] font-black text-{metric.color}-500 uppercase tracking-[0.2em] drop-shadow-sm">{metric.label}</span>
@@ -234,3 +234,8 @@
      </div>
   </a>
 </section>
+
+<style>
+  .z-surface { z-index: var(--z-surface); }
+  .z-hud-service { z-index: var(--z-hud-service); }
+</style>

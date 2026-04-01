@@ -19,8 +19,8 @@
   });
 </script>
 
-<section id="diagnostics" aria-labelledby="personalized-care" class="diagnostics-container snap-session relative overflow-x-hidden bg-[#020617]">
-  <div class="container mx-auto px-6 max-w-6xl text-center relative pt-16 md:pt-28 lg:pt-[var(--standard-pt)] pb-20 md:pb-32" style:z-index="var(--z-surface)">
+<section aria-labelledby="personalized-care" class="diagnostics-container relative overflow-x-hidden bg-[#020617]">
+  <div class="container mx-auto px-6 max-w-6xl text-center relative pt-[var(--standard-pt)] pb-20 md:pb-32 z-surface">
     <h3 id="personalized-care" class="section-title text-neural font-black tracking-tight leading-none uppercase mb-4 text-4xl md:text-6xl">
       {@html labels.headline}
     </h3>
@@ -58,3 +58,7 @@
     </svg>
   </div>
 </section>
+
+<style>
+  .z-surface { z-index: var(--z-surface); }
+</style>

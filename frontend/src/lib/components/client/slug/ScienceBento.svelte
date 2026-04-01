@@ -31,9 +31,9 @@
   };
 </script>
 
-  <section id="science" class="science-viewport snap-session relative">
+  <section class="science-viewport relative">
 
-    <div class="science-container container mx-auto px-6 max-w-6xl pt-8 md:pt-12">
+    <div class="science-container container mx-auto px-6 max-w-6xl pt-[var(--standard-pt)]">
       <div class="mb-8 text-center">
         <h2 class="section-title text-center text-5xl font-black uppercase lg:text-7xl">
           {labels.headline}
@@ -50,7 +50,7 @@
 
           <!-- 1. NANO CORE (Chamfered Glass) -->
           <div class="bento-tile glass-chamfer group">
-            <div class="tile-content relative h-full" style:z-index="var(--z-surface)">
+            <div class="tile-content relative h-full z-surface">
               <div class="hud-mono-label">{claim1.label || 'HỆ THỐNG // LÕI NANO-BẠC'}</div>
               <div class="text-shield">
                 <div class="shield-blob blob-1"></div>
@@ -61,7 +61,7 @@
               </div>
             </div>
             <div class="capsule-visual"
-                 style="background-image: url('{resolveMediaUrl(claim1.image)}');">
+                 style:background-image="url('{resolveMediaUrl(claim1.image)}')">
             </div>
             <div class="laser-line"></div>
           </div>
@@ -76,7 +76,7 @@
             </div>
 
             <!-- MINIMALIST SCAN BUTTON -->
-            <div class="absolute inset-x-0 bottom-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-700 translate-y-4 group-hover:translate-y-0" style:z-index="var(--z-layout-header)">
+            <div class="absolute inset-x-0 bottom-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-700 translate-y-4 group-hover:translate-y-0 z-layout-header">
                <div class="hud-view-dot flex flex-col items-center gap-2">
                   <div class="w-12 h-12 rounded-full border border-white/20 backdrop-blur-xl flex items-center justify-center group/btn active:scale-95 transition-transform">
                      <svg class="w-5 h-5 text-emerald-400 group-hover/btn:scale-125 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,7 +87,7 @@
                </div>
             </div>
 
-            <div class="tile-content absolute bottom-12 left-12" style:z-index="var(--z-surface)">
+            <div class="tile-content absolute bottom-12 left-12 z-surface">
               <div class="hud-mono-label mb-0 opacity-50">{labels.mechanism}</div>
             </div>
           </div>
@@ -142,13 +142,11 @@
     {#if isViewerOpen}
       <div
         role="presentation"
-        class="fixed inset-0 flex items-center justify-center p-8 bg-[#020617]/90 backdrop-blur-3xl animate-in fade-in duration-700"
-        style:z-index="var(--z-sticky-header)"
+        class="fixed inset-0 flex items-center justify-center p-8 bg-[#020617]/90 backdrop-blur-3xl animate-in fade-in duration-700 z-sticky-header"
         onclick={() => isViewerOpen = false}
       >
         <button
-          class="absolute top-12 right-12 text-white/40 hover:text-white transition-colors"
-          style:z-index="var(--z-hud-service)"
+          class="absolute top-12 right-12 text-white/40 hover:text-white transition-colors z-hud-service"
           onclick={() => isViewerOpen = false}
           aria-label="Close image viewer"
         >
@@ -185,3 +183,10 @@
     </svg>
   </div>
 </section>
+
+<style>
+  .z-surface { z-index: var(--z-surface); }
+  .z-layout-header { z-index: var(--z-layout-header); }
+  .z-sticky-header { z-index: var(--z-sticky-header); }
+  .z-hud-service { z-index: var(--z-hud-service); }
+</style>
