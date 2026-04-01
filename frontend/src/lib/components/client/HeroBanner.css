@@ -711,6 +711,44 @@ html {
   scale: 1.1;
 }
 
+/* FOMO NAV ITEM (Premium 2026 Style) */
+.island-link.fomo-nav-item {
+  color: #fcd34d; /* Golden */
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  animation: fomo-nav-glow 2s infinite ease-in-out;
+}
+
+.island-link.fomo-nav-item:hover,
+.island-link.fomo-nav-item.is-active {
+  color: #fbbf24;
+  text-shadow: 0 0 20px rgba(251, 191, 36, 0.9);
+  scale: 1.12;
+}
+
+.fomo-nav-badge {
+  background: linear-gradient(135deg, #ef4444, #991b1b);
+  color: white;
+  font-size: 0.5rem;
+  font-weight: 900;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+  letter-spacing: 0.05em;
+  animation: fomo-badge-flash 1.5s infinite alternate;
+}
+
+@keyframes fomo-nav-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(252, 211, 77, 0.4)); }
+  50% { filter: drop-shadow(0 0 12px rgba(252, 211, 77, 0.8)); }
+}
+
+@keyframes fomo-badge-flash {
+  from { opacity: 0.85; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1.05); }
+}
+
 .island-cta {
   padding: 0.35rem 0.75rem;
   border-radius: 9999px;

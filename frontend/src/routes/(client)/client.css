@@ -37,7 +37,7 @@ body { margin: 0; padding: 0; overflow-x: hidden; }
 .client-layout {
   background-color: var(--bg-canvas);
   color: var(--text-base);
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 /* --- HERO COMPONENT --- */

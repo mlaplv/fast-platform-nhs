@@ -205,7 +205,7 @@
     overflow-x: hidden;
     scroll-snap-type: y mandatory;
     height: 100vh;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
     background-color: var(--bg-canvas);
     color: var(--text-base);
   }

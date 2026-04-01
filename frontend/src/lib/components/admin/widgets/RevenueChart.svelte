@@ -319,7 +319,7 @@
 
 <style>
   .font-sans {
-    font-family: "Outfit", "Inter", sans-serif;
+    font-family: "Plus Jakarta Sans", "Inter", sans-serif;
   }
   .scrollbar-none::-webkit-scrollbar {
     display: none;

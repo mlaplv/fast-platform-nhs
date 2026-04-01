@@ -85,13 +85,16 @@
         {#each navLinks as link}
           <a
             href={link.href}
-            class="island-link {activeSection === link.id ? 'is-active' : ''}"
+            class="island-link {activeSection === link.id ? 'is-active' : ''} {link.id === 'offers' ? 'fomo-nav-item' : ''}"
             onclick={(e) => {
               e.preventDefault();
               document.getElementById(link.id)?.scrollIntoView({ behavior: 'smooth' });
             }}
           >
             {link.label}
+            {#if link.id === 'offers'}
+              <span class="fomo-nav-badge">HOT</span>
+            {/if}
           </a>
         {/each}
       </nav>
