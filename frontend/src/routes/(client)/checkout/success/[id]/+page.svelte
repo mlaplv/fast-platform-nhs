@@ -434,7 +434,7 @@
     </div>
   {/if}
 
-  <p class="mt-12 text-[10px] text-slate-700 font-black uppercase tracking-[0.3em]">Nhà Thuốc Hồng Sơn - Tận Tâm 2026</p>
+  <p class="mt-12 text-[10px] text-slate-700 font-black uppercase tracking-[0.3em]">Nhà Thuốc Hồng Sơn - Chân Ái Khóa Mùi 48H.</p>
 </div>
 
 <!-- Elite Toast System! -->

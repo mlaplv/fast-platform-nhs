@@ -5,6 +5,7 @@
   import HeroBanner from '$lib/components/client/HeroBanner.svelte';
   import LiquidHeader from '$lib/components/client/LiquidHeader.svelte';
   import StealthCheckout from '$lib/components/client/StealthCheckout.svelte';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client.ts';
   import { browser } from '$app/environment';
   
   // JIT Component Flags
@@ -199,7 +200,7 @@
 
   :root {
     --standard-pt: 12vh;
-    --z-sticky-header: 9999;
+    --z-sticky-header: 100;
   }
 
   :global(.snap-session) {

@@ -11,7 +11,11 @@
   let addressRef: HTMLTextAreaElement | undefined;
 
   let validationError = $state<string | null>(null);
-  let reservationTime = $state(501);
+  let reservationTime = $state(480); // Elite: Slightly shorter for more urgency
+
+  // ELITE FOMO: Deterministic Social Proof
+  const viewingCount = $derived(Math.floor(((shopStore.product?.id?.length || 10) * 7) % 15) + 12);
+  const recentOrdersCount = $derived(Math.floor(((shopStore.product?.id?.length || 10) * 3) % 20) + 40);
 
   const totalPrice    = $derived(shopStore.totalAmount);
   const isSubmitting  = $derived(shopStore.isSubmitting);
@@ -106,7 +110,8 @@
 {#if shopStore.isCheckoutOpen}
   <!-- Backdrop -->
   <div
-    class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[1000]"
+    class="fixed inset-0 bg-slate-950/85 backdrop-blur-md"
+    style:z-index={Z_INDEX_CLIENT.MODAL}
     role="presentation"
     aria-hidden="true"
   ></div>
@@ -131,8 +136,8 @@
       <header class="mb-6">
         <div class="flex items-end justify-between">
           <div>
-            <p class="section-eyebrow mb-1">Bước cuối cùng</p>
-            <h2 class="drawer-title">Xác nhận<br/>liệu trình</h2>
+            <p class="section-eyebrow mb-1">Chỉ còn 1 bước cuối để dứt điểm...</p>
+            <h2 class="drawer-title">Ưu tiên kích hoạt liệu trình</h2>
           </div>
           <div class="ssl-badge">
             {#if shopStore.customerData?.isTrustedDevice}
@@ -140,7 +145,7 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A10.003 10.003 0 0012 21a10.003 10.003 0 008.139-4.187l.054.09A10.003 10.003 0 0112 21c-3.147 0-5.941-1.45-7.747-3.719zM12 7V3m0 0a3 3 0 013 3v1h-6V6a3 3 0 013-3z" />
                 </svg>
-                <span class="text-[9px] font-black uppercase tracking-tighter">Thiết bị tin cậy</span>
+                <span class="text-[9px] font-black uppercase tracking-tighter">Bảo mật ưu tiên</span>
               </div>
             {/if}
             <span class="ssl-dot"></span>
@@ -153,16 +158,25 @@
       {#if hasVariants}
         <section class="mb-6">
           <div class="section-header mb-3">
-            <span class="section-eyebrow">Phân loại liệu trình</span>
+            <div class="flex items-center gap-2">
+              <span class="section-eyebrow">Dành riêng cho bạn</span>
+              <div class="h-1 w-1 bg-white/20 rounded-full"></div>
+              <span class="text-[8px] font-bold text-emerald-400 animate-pulse">● {viewingCount} người đang xem</span>
+            </div>
             <span class="elite-chip">ELITE CHOICE</span>
           </div>
           <div class="variant-grid">
-            {#each variants as v}
+            {#each variants as v, idx}
               {@const active = shopStore.variant?.id === v.id}
               <button
                 onclick={() => shopStore.selectVariant(v)}
-                class="variant-card {active ? 'variant-active' : 'variant-idle'}"
+                class="variant-card {active ? 'variant-active' : 'variant-idle'} relative"
               >
+                {#if idx === 1}
+                  <div class="absolute -top-1.5 -right-1 z-10 px-1.5 py-0.5 bg-red-500 text-white text-[6.5px] font-black rounded uppercase tracking-tighter shadow-lg animate-bounce">
+                    Sắp cháy hàng
+                  </div>
+                {/if}
                 <div class="variant-img-wrap">
                   <img src={getVariantImage(v)} alt={getVariantName(v)} class="variant-img" />
                   {#if active}
@@ -193,8 +207,8 @@
             <button onclick={() => shopStore.setQuantity(shopStore.quantity + 1)} class="qty-btn">+</button>
           </div>
         </div>
-        <div class="info-pill">
-          <span class="pill-label">Giữ hàng</span>
+        <div class="info-pill highlight-timer">
+          <span class="pill-label">Ưu đãi giữ chỗ hết hạn</span>
           <span class="timer-val">{formatTime(reservationTime)}</span>
         </div>
       </div>
@@ -212,8 +226,8 @@
             class="field-input field-lg {validationError && validationError.includes('thoại') ? 'field-error' : ''}"
             id="sc-phone"
           />
-          <label for="sc-phone" class="field-label">Số điện thoại nhận tư vấn <span class="text-sky-500">*</span></label>
-          <span class="field-hint">10+ số · Bảo mật</span>
+          <label for="sc-phone" class="field-label">Số điện thoại nhận Ưu đãi & Phác đồ <span class="text-sky-500">*</span></label>
+          <span class="field-hint">10+ số · Bảo mật 256-bit</span>
           
           {#if shopStore.customerData?.isRecurring}
             <div class="absolute -bottom-5 left-2 flex items-center gap-1.5 text-[10px] font-extrabold text-[#38bdf8] animate-in fade-in slide-in-from-top-1">
@@ -297,7 +311,7 @@
         <!-- Price row -->
         <div class="price-row">
           <div class="flex flex-col">
-            <span class="section-eyebrow mb-1">Tổng thanh toán</span>
+            <span class="section-eyebrow mb-1">Kết quả đầu tư cho sức khỏe</span>
             <div class="flex items-baseline gap-2">
               <span class="price-main">{(totalPrice || 0).toLocaleString()}đ</span>
               {#if shopStore.originalPrice * shopStore.quantity > totalPrice}
@@ -326,12 +340,17 @@
         >
           {#if isSubmitting}
             <div class="spinner"></div>
-            <span>Hệ thống đang xử lý...</span>
+            <span>Hệ thống đang ưu tiên xử lý...</span>
           {:else}
-            <span>Xác nhận liệu trình</span>
+            <span>KÍCH HOẠT & NHẬN ƯU ĐÃI</span>
             <span class="btn-arrow">→</span>
           {/if}
         </button>
+
+        <!-- Future Pacing / Trust Note -->
+        <p class="text-[9px] text-slate-500 italic text-center mb-1 opacity-60">
+          * Liệu trình được đóng gói kín đáo. <br/> Cảm nhận sự thay đổi tích cực ngay sau lần đầu sử dụng.
+        </p>
 
         <!-- Security badges -->
         <div class="security-row">
@@ -426,13 +445,14 @@
     color: rgba(255,255,255,0.35);
   }
   .drawer-title {
-    font-size: 2.4rem;
+    font-size: clamp(1.6rem, 6.5vw, 2.2rem);
     font-weight: 900;
     color: white;
     letter-spacing: -0.035em;
     line-height: 1.05;
     font-style: italic;
     text-transform: uppercase;
+    word-break: break-word; /* Ensure it wraps nicely instead of jumping a single letter */
   }
 
   /* SSL badge */
@@ -609,6 +629,13 @@
   .field-input.field-error {
     border-color: rgba(239,68,68,0.4);
     box-shadow: inset 0 2px 8px rgba(0,0,0,0.4), 0 0 0 3px rgba(239,68,68,0.07);
+  }
+  .highlight-timer {
+    border-color: rgba(245, 158, 11, 0.3) !important;
+    background: rgba(245, 158, 11, 0.05) !important;
+  }
+  .highlight-timer .timer-val {
+    color: #f59e0b !important;
   }
   .field-lg { font-size: 17px; padding: 22px 18px 10px; }
   .field-textarea { padding-top: 22px; }

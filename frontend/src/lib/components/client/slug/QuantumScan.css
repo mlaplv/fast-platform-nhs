@@ -139,3 +139,12 @@
     max-width: 250px;
   }
 }
+
+/* Tablet / iPad Mini Optimization: Reduce font by 3px from 14px to 11px */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .analysis-status {
+    font-size: 11px !important;
+    line-height: 1.6;
+    padding: 0 1rem;
+  }
+}

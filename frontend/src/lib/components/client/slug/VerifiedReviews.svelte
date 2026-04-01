@@ -4,6 +4,7 @@
   import { cubicOut, elasticOut, backOut } from 'svelte/easing';
   import type { Review, ProductMetadata } from '$lib/types';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client.ts';
   import "./VerifiedReviews.css";
 
   const shopStore = getShopStore();
@@ -164,16 +165,28 @@
       isSubmitting = false;
     }
   };
+
+  let scrollContainer = $state<HTMLElement>();
+  const scrollNext = () => {
+    if (scrollContainer) {
+      scrollContainer.scrollBy({ left: scrollContainer.clientWidth, behavior: 'smooth' });
+    }
+  };
+  const scrollPrev = () => {
+    if (scrollContainer) {
+      scrollContainer.scrollBy({ left: -scrollContainer.clientWidth, behavior: 'smooth' });
+    }
+  };
 </script>
 
 <section id="reviews" class="reviews-viewport snap-session relative overflow-hidden">
   <div class="reviews-container container mx-auto px-6 max-w-6xl pt-[var(--standard-pt)] pb-24">
     <!-- Header Section -->
-    <div class="mb-20 text-center" in:fade>
+    <div class="text-center" in:fade>
       <h2 class="section-headline mb-8 text-4xl md:text-5xl font-black tracking-tighter uppercase italic">
         {@html headline}
       </h2>
-      <div class="flex flex-col items-center gap-8">
+      <div class="flex flex-col items-center gap-4">
         <div class="trust-indicator inline-flex items-center gap-6 px-8 py-4 bg-white/5 rounded-full border border-white/10 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
           <div class="flex items-center gap-2">
             {#each Array(5) as _, i}
@@ -199,14 +212,39 @@
     <!-- Reviews Grid -->
     <div class="bento-hub-frame relative group">
       <div class="reviews-layout relative" style:z-index="var(--z-surface)">
-        <div class="flex items-center justify-between mb-12 px-2">
+        <div class="flex items-center justify-between mt-6 mb-10 px-2">
             <div class="hud-tag primary bg-emerald-500/5 text-emerald-400 border-emerald-500/20 animate-fade-in">
                 <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></span>
                 {labels.hud_feedback}
             </div>
+
+            <!-- iPad Mini / Tablet Navigation Controls (Elite Delicate) -->
+            <div class="tablet-nav-controls flex items-center gap-2">
+              <button 
+                onclick={scrollPrev}
+                class="nav-delicate group/nav p-2 transition-all active:scale-90"
+                aria-label="Previous"
+              >
+                <svg class="w-6 h-6 text-white/10 group-hover/nav:text-emerald-400/80 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              
+              <div class="w-px h-3 bg-white/5 mx-1"></div>
+
+              <button 
+                onclick={scrollNext}
+                class="nav-delicate group/nav p-2 transition-all active:scale-90"
+                aria-label="Next"
+              >
+                <svg class="w-6 h-6 text-white/10 group-hover/nav:text-emerald-400/80 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
         </div>
 
-        <div class="reviews-scroll-wrapper scrollbar-hide">
+        <div class="reviews-scroll-wrapper scrollbar-hide" bind:this={scrollContainer}>
           {#if isLoading && realReviews.length === 0}
             <div class="flex flex-col items-center justify-center p-24 gap-6">
               <div class="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
@@ -280,12 +318,12 @@
 {#if showFormModal}
   <div
     class="modal-overlay fixed inset-0 flex items-center justify-center p-4 backdrop-blur-2xl"
-    style:z-index="1100"
+    style:z-index={Z_INDEX_CLIENT.MODAL}
     transition:fade={{ duration: 400 }}
     onclick={(e) => { if(e.target === e.currentTarget && !isSubmitting) showFormModal = false }}
   >
     <div 
-      class="modal-content-frame w-full max-w-[1000px] bg-slate-950/80 border border-white/10 rounded-[3.5rem] shadow-[0_0_120px_rgba(0,0,0,0.9)] overflow-hidden relative"
+      class="modal-content-frame w-full max-w-[900px] mt-20 sm:mt-0 bg-slate-950/95 border border-white/10 rounded-3xl sm:rounded-[3.5rem] shadow-[0_0_120px_rgba(0,0,0,0.9)] overflow-hidden relative"
       transition:fly={{ y: 50, duration: 800, easing: cubicOut }}
     >
       <!-- Confetti Effect Layer -->
@@ -310,14 +348,14 @@
       <button 
         onclick={() => showFormModal = false}
         disabled={isSubmitting}
-        class="absolute top-10 right-10 w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-90 z-20"
+        class="absolute top-4 right-4 sm:top-8 sm:right-8 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-90 z-20"
       >
-        <svg class="w-6 h-6 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-5 h-5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
 
-      <div class="p-10 md:p-16">
+      <div class="review-form-container p-5 sm:p-10 md:p-12">
         <div class="form-truth-layout relative">
           {#if showSuccess}
             <div class="success-overlay absolute inset-0 bg-slate-950/95 backdrop-blur-3xl flex flex-col items-center justify-center text-center p-12 z-50 rounded-[3.5rem]" transition:fade>
@@ -336,25 +374,25 @@
             </div>
           {/if}
 
-          <div class="flex items-center justify-between mb-16 pb-8 border-b border-white/5 pr-20">
-            <div class="hud-tag primary px-6 py-2.5">
-              <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_10px_rgba(6,182,212,0.8)]"></span>
-              <span class="text-xs font-black tracking-[0.3em]">{labels.form_title}</span>
+          <div class="flex flex-col sm:flex-row items-center justify-between mb-4 sm:mb-8 pb-3 sm:pb-6 border-b border-white/5 sm:pr-10 gap-2 sm:gap-4">
+            <div class="hud-tag primary px-4 py-1.5 bg-emerald-500/5 text-emerald-400 border-emerald-500/10">
+              <span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_10px_rgba(6,182,212,0.8)]"></span>
+              <span class="text-[10px] font-black tracking-[0.2em] uppercase whitespace-nowrap">{labels.form_title}</span>
             </div>
-            <div class="text-[10px] font-black uppercase tracking-[0.35em] text-white/30 font-mono hidden sm:block">{labels.label_secure_encryption}</div>
+            <div class="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] text-white/20 font-mono italic">{labels.label_secure_encryption}</div>
           </div>
 
-          <form onsubmit={submitReview} class="space-y-12">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-              <div class="space-y-8">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div class="space-y-3">
-                    <label for="review-name" class="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] ml-4">{labels.form_name}</label>
-                    <input id="review-name" type="text" bind:this={nameRef} placeholder="Họ và Tên *" class="input-liquid px-6 py-5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/10 focus:border-emerald-500/50 transition-all outline-none" />
+          <form onsubmit={submitReview} class="space-y-4 sm:space-y-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
+              <div class="space-y-4 sm:space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div class="space-y-1.5">
+                    <label for="review-name" class="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_name}</label>
+                    <input id="review-name" type="text" bind:this={nameRef} placeholder="Họ và Tên *" class="input-liquid px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/10 focus:border-emerald-500/50 transition-all outline-none" />
                   </div>
-                  <div class="space-y-3">
-                    <label for="review-phone" class="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] ml-4">{labels.form_phone}</label>
-                    <input id="review-phone" type="tel" bind:this={phoneRef} placeholder="Số điện thoại *" class="input-liquid px-6 py-5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/10 focus:border-emerald-500/50 transition-all outline-none" />
+                  <div class="space-y-1.5">
+                    <label for="review-phone" class="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_phone}</label>
+                    <input id="review-phone" type="tel" bind:this={phoneRef} placeholder="Số điện thoại *" class="input-liquid px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/10 focus:border-emerald-500/50 transition-all outline-none" />
                   </div>
                 </div>
 
@@ -402,7 +440,7 @@
                     <div 
                       role="group" 
                       aria-labelledby="rating-label" 
-                      class="rating-picker-viral flex items-center justify-center gap-4 sm:gap-8 py-6 rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-xl relative group/picker shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]"
+                      class="rating-picker-viral flex items-center justify-center gap-4 sm:gap-6 py-3 sm:py-4 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl relative group/picker shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]"
                       onmouseleave={() => hoverRating = 0}
                     >
                       {#each Array(5) as _, i}
@@ -413,9 +451,9 @@
                           onclick={() => setRating(i + 1)} 
                           onmouseenter={() => hoverRating = i + 1}
                           aria-label="Rate {i + 1} stars" 
-                          class="star-viral-btn relative z-10 transition-all duration-500 {active ? 'scale-125' : 'scale-100 opacity-20'}"
+                          class="star-viral-btn relative z-10 transition-all duration-500 {active ? 'scale-110' : 'scale-100 opacity-20'}"
                         >
-                          <svg class="w-10 h-10 transition-all duration-700 {active ? 'drop-shadow-[0_0_20px_rgba(16,185,129,0.8)]' : ''}" viewBox="0 0 24 24" fill="none">
+                          <svg class="w-6 h-6 sm:w-8 sm:h-8 transition-all duration-700 {active ? 'drop-shadow-[0_0_20px_rgba(16,185,129,0.8)]' : ''}" viewBox="0 0 24 24" fill="none">
                             <defs>
                               <linearGradient id="star-grad-viral-{i}" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" stop-color="#fbbf24" />
@@ -444,18 +482,18 @@
 
               <div class="space-y-4">
                 <label for="review-content" class="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] ml-4">{labels.form_content}</label>
-                <div class="relative h-full pb-8">
-                  <textarea id="review-content" bind:this={contentRef} oninput={() => contentLen = contentRef?.value.length || 0} placeholder="{labels.form_placeholder}" class="input-liquid resize-none h-[220px] lg:h-[calc(100%-40px)] w-full px-8 py-6 rounded-3xl bg-white/5 border border-white/10 text-white placeholder:text-white/10 focus:border-emerald-500/50 transition-all outline-none scrollbar-hide"></textarea>
-                  <div class="char-counter absolute bottom-12 right-8 font-mono text-[10px] text-white/20 tracking-widest">{contentLen}/5000</div>
+                <div class="relative h-full pb-0 sm:pb-4">
+                  <textarea id="review-content" bind:this={contentRef} oninput={() => contentLen = contentRef?.value.length || 0} placeholder="{labels.form_placeholder}" class="input-liquid resize-none h-[120px] sm:h-[180px] lg:h-[calc(100%-40px)] w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/10 focus:border-emerald-500/50 transition-all outline-none scrollbar-hide"></textarea>
+                  <div class="char-counter absolute bottom-3 right-5 sm:bottom-8 sm:right-6 font-mono text-[8px] text-white/15 tracking-widest">{contentLen}/5000</div>
                 </div>
               </div>
             </div>
 
-            <div class="pt-8">
+            <div class="pt-2 sm:pt-6">
               <button 
                 type="submit" 
                 disabled={isSubmitting} 
-                class="submit-glow-btn w-full py-8 flex flex-col items-center justify-center gap-2 group/btn relative overflow-hidden rounded-[2rem] bg-emerald-500 text-slate-950 transition-all hover:bg-emerald-400 active:scale-[0.98]"
+                class="submit-glow-btn w-full py-4 sm:py-6 flex flex-col items-center justify-center gap-1 group/btn relative overflow-hidden rounded-2xl sm:rounded-[2rem] bg-emerald-500 text-slate-950 transition-all hover:bg-emerald-400 active:scale-[0.98]"
               >
                 {#if isSubmitting}
                   <div class="flex items-center gap-3">
@@ -478,7 +516,8 @@
 <!-- Premium Toast Notification -->
 {#if showToast}
   <div 
-    class="fixed top-12 left-1/2 -translate-x-1/2 z-[2000]"
+    class="fixed top-12 left-1/2 -translate-x-1/2"
+    style:z-index={Z_INDEX_CLIENT.TOAST}
     transition:fly={{ y: -50, duration: 600, easing: cubicOut }}
   >
     <div class="px-8 py-4 {toastType === 'error' ? 'bg-red-500/20 text-red-400 border-red-500/40' : 'bg-white/10 text-white border-white/20'} backdrop-blur-3xl border rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-4">

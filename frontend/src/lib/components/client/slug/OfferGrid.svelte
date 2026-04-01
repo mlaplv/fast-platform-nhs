@@ -62,7 +62,7 @@
   const isSlider = $derived(variants.length >= 3); 
   const gridClass = $derived(
     isSlider 
-      ? 'slider-track overflow-x-auto scrollbar-hide snap-x snap-mandatory flex lg:grid lg:grid-cols-3' 
+      ? 'slider-track overflow-x-auto scrollbar-hide snap-x snap-mandatory flex md:grid md:grid-cols-3' 
       : `grid grid-cols-1 ${variants.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`
   );
 
@@ -91,7 +91,7 @@
   <div class="liquid-orb top-[10%] left-[-10%] w-[800px] h-[800px]" style="background-color: var(--elite-blue); opacity: 0.1;"></div>
   <div class="liquid-orb bottom-[-10%] right-[-10%] w-[600px] h-[600px]" style="background-color: var(--elite-cyan); opacity: 0.05;"></div>
 
-  <div class="container mx-auto px-6 max-w-6xl text-center relative z-10 pt-[var(--standard-pt)]">
+  <div class="container mx-auto px-4 md:px-6 max-w-6xl text-center relative z-10 pt-[var(--standard-pt)]">
     
     <!-- Minimalist Status Bar -->
     <div class="flex justify-center mb-10">
