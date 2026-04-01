@@ -14,7 +14,7 @@
   /* Ultra-Tactical! */
   --headline-mb: 4rem;
   --footer-mt: 4rem;
-  
+
   /* Elite Tablet Optimization */
   @media (min-width: 768px) and (max-width: 1024px) {
     --headline-mb: 2.5rem;
@@ -169,8 +169,8 @@
     position: relative;
     width: 100%;
     margin: var(--footer-mt) 0 0;
-    padding: 3rem 2rem 5px;
-    /* Flush to bottom as requested (5px)! */
+    padding: 4rem 3rem 1.5rem;
+    /* Increased padding */
 
     /* Organic Blob Shape! */
     background: rgba(255, 255, 255, 0.02);
@@ -220,12 +220,81 @@
     & .license-tag {
       font-size: 0.7rem;
       color: #64748b;
-      margin-top: 3.5rem;
-      padding-top: 2rem;
+      margin-top: 10px;
+      padding-top: 10px;
+      /* Space between line and badge */
+      /* Precise adjustment */
       border-top: 1px solid rgba(255, 255, 255, 0.03);
       text-align: center;
       letter-spacing: 0.02em;
     }
+  }
+
+  /* ELITE V2.2: Liquid Glass iPhone 18 Promotion Bar */
+  & .liquid-glass-deal {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+
+    &.active {
+      background: rgba(59, 130, 246, 0.08);
+      border-color: rgba(59, 130, 246, 0.4);
+      box-shadow: 0 20px 40px -15px rgba(59, 130, 246, 0.2);
+
+      &::before {
+        opacity: 1;
+      }
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+  }
+
+  & .liquid-orb {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #3b82f6;
+    box-shadow: 0 0 15px #3b82f6;
+    transition: all 0.4s ease;
+    flex-shrink: 0;
+
+    &.inactive {
+      background: rgba(255, 255, 255, 0.2);
+      box-shadow: none;
+      filter: grayscale(1);
+    }
+  }
+
+  & .glare-effect {
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    transform: skewX(-25deg);
+    transition: 0.8s ease-in-out;
+    pointer-events: none;
+  }
+
+  & .liquid-glass-deal:hover .glare-effect {
+    left: 150%;
   }
 }
 
@@ -253,6 +322,16 @@
   }
 }
 
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 @container offer (min-width: 768px) {
   .package-grid:not(.slider-track) {
     grid-template-columns: repeat(var(--cols, 2), minmax(240px, 1fr));
@@ -270,14 +349,16 @@
   }
 
   .package-card {
-    padding: 1.5rem !important; /* Compact on tablet */
-    
+    padding: 1.5rem !important;
+    /* Compact on tablet */
+
     &.snap-center {
       min-width: 0 !important;
     }
 
     &.popular {
-      transform: scale(1.02) !important; /* Subtle scale to prevent overflow */
+      transform: scale(1.02) !important;
+      /* Subtle scale to prevent overflow */
     }
   }
 
@@ -297,7 +378,7 @@
 
   .package-card {
     padding: 2.5rem !important;
-    
+
     &.popular {
       transform: scale(1.03) !important;
     }

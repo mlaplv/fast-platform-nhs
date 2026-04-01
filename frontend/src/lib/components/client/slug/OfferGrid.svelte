@@ -2,6 +2,8 @@
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import type { Product, ProductVariant } from '$lib/types';
   import { SHOP_CONFIG, OFFER_CONSTANTS } from '$lib/constants/shop';
+  import { ShoppingCart, CheckCircle2, Info } from 'lucide-svelte';
+  import DesktopProductDetailsModal from './DesktopProductDetailsModal.svelte';
   import "./OfferGrid.css";
   
   const shopStore = getShopStore();
@@ -39,6 +41,7 @@
   const product = $derived(shopStore.product);
   const timeLeft = $derived(shopStore.timeLeft);
   const variants = $derived(product?.variants || []);
+  let isDetailsOpen = $state(false);
 
   /**
    * ELITE V2.2: Deterministic Social Proof!
@@ -122,17 +125,56 @@
       </div>
     </div>
 
+    <!-- ELITE V2.2: Liquid Glass Multi-Deal Bar (iPhone 18 Aesthetic) -->
+    <div class="mt-2 mb-12 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 px-4">
+      {#each (metadata.active_deals || []) as deal}
+        {@const isActive = shopStore.quantity === (deal.buy_qty + (deal.get_qty || 0))}
+        <button 
+           onclick={() => shopStore.setQuantity(deal.buy_qty + (deal.get_qty || 0))}
+           class="liquid-glass-deal rounded-3xl px-8 py-5 flex items-center justify-between group active:scale-[0.98] {isActive ? 'active' : ''}"
+        >
+           <div class="glare-effect"></div>
+           
+           <div class="flex items-center gap-5 relative z-10">
+              <div class="liquid-orb {isActive ? 'animate-pulse' : 'inactive'}"></div>
+              <div class="flex flex-col text-left">
+                 <span class="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1 opacity-80 group-hover:opacity-100 transition-opacity">Ưu đãi: {deal.label.replace('🎁', '')}</span>
+                 <span class="text-white text-lg font-black italic tracking-tight uppercase leading-none">
+                    CHỈ CÒN <span class="text-2xl not-italic ml-1">{(deal.fixed_price).toLocaleString()}đ</span>
+                 </span>
+              </div>
+           </div>
+
+           <div class="flex items-center gap-3 relative z-10">
+              {#if isActive}
+                 <div class="flex flex-col items-end">
+                    <CheckCircle2 class="w-6 h-6 text-blue-400 mb-1" strokeWidth={3} />
+                    <span class="text-[8px] font-black text-blue-400 tracking-widest uppercase">ĐÃ ÁP DỤNG</span>
+                 </div>
+              {:else}
+                 <span class="text-[9px] font-black text-white/30 group-hover:text-white transition-all uppercase tracking-[0.2em] flex items-center gap-2">
+                    ÁP DỤNG NGAY
+                    <span class="text-lg leading-none transition-transform group-hover:translate-x-1">→</span>
+                 </span>
+              {/if}
+           </div>
+        </button>
+      {/each}
+    </div>
+
     <!-- Package Architecture -->
     <div class="package-grid {gridClass} gap-5 items-stretch" style:--cols={isSlider ? 3 : variants.length}>
 
       {#each variants as variant, idx (variant.sku || idx)}
          <!-- Card! -->
           <div class="package-card p-8 md:p-10 text-left flex flex-col h-full border-white/5 relative {isSlider ? 'min-w-[300px] md:min-w-[340px] snap-center' : ''} {idx === 1 ? 'popular md:scale-[1.03]' : ''}">
-           {#if idx === 1}
-              <div class="absolute -top-3 right-8 px-4 py-1.5 bg-blue-600/90 text-white font-black text-[8px] uppercase tracking-[0.3em] rounded-md shadow-xl backdrop-blur-md">
-                {mkt.label_expert_choice}
-              </div>
-           {/if}
+           <div class="absolute -top-3 right-8 flex flex-wrap gap-2 justify-end">
+              {#if idx === 1}
+                 <div class="px-4 py-1.5 bg-blue-600/90 text-white font-black text-[8px] uppercase tracking-[0.3em] rounded-md shadow-xl backdrop-blur-md">
+                   {mkt.label_expert_choice}
+                 </div>
+              {/if}
+           </div>
 
            <div class="mb-6">
              <div class="flex items-center justify-between mb-4">
@@ -149,10 +191,14 @@
              <h5 class="text-xl font-bold text-white mb-4">{getVariantTitle(variant)}</h5>
 
              <div class="flex items-baseline gap-3 mb-2">
-               {#if variant.price > (variant.discountPrice || variant.price)}
+               {#if (shopStore.originalPrice * shopStore.quantity) > shopStore.totalAmount && shopStore.selectedVariant?.sku === variant.sku}
+                  <span class="text-xs text-slate-600 line-through">{(shopStore.originalPrice * shopStore.quantity).toLocaleString()}đ</span>
+               {:else if variant.price > (variant.discountPrice || variant.price)}
                   <span class="text-xs text-slate-600 line-through">{(variant.price).toLocaleString()}đ</span>
                {/if}
-               <span class="text-3xl font-black text-white">{(variant.discountPrice || variant.price).toLocaleString()}đ</span>
+               <span class="text-3xl font-black text-white">
+                 {shopStore.selectedVariant?.sku === variant.sku ? shopStore.totalAmount.toLocaleString() : (variant.discountPrice || variant.price).toLocaleString()}đ
+               </span>
              </div>
 
               {#if idx === 0}
@@ -176,16 +222,33 @@
              {/each}
            </ul>
 
-           <button
-             onclick={() => { shopStore.selectVariant(variant); shopStore.openCheckout(); }}
-             class="btn-buy primary w-full text-[9px] uppercase tracking-[0.2em] {idx !== 1 ? 'opacity-90 hover:opacity-100' : 'shadow-[0_0_20px_rgba(59,130,246,0.3)]'}"
-           >
-             {idx === 0 ? mkt.cta_start : mkt.cta_full}
-           </button>
+           <div class="flex gap-2 items-stretch mt-auto">
+             <button
+               onclick={() => { shopStore.selectVariant(variant); shopStore.openCheckout(); }}
+               class="flex-[1.8] bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white h-[52px] rounded-xl font-black text-[9px] uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(37,99,235,0.2)] hover:shadow-[0_15px_40px_rgba(37,99,235,0.4)] transition-all active:scale-[0.98] group relative overflow-hidden flex items-center justify-center px-4"
+             >
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none"></div>
+                <div class="flex items-center gap-2">
+                  <ShoppingCart class="w-3.5 h-3.5 mb-0.5" strokeWidth={3} />
+                  <span>{idx === 0 ? mkt.cta_start : mkt.cta_full}</span>
+                </div>
+             </button>
+
+             <button 
+               onclick={() => isDetailsOpen = true}
+               class="flex-1 bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-3xl border border-white/10 rounded-xl h-[52px] flex items-center justify-center transition-all active:scale-[0.98] group gap-2 px-2"
+             >
+               <Info class="w-3.5 h-3.5 text-white/40 group-hover:text-blue-400 transition-colors" />
+               <span class="text-[8px] font-black text-white/40 group-hover:text-white uppercase tracking-[0.1em] leading-tight text-left">XEM<br/>CHI TIẾT</span>
+             </button>
+           </div>
           </div>
       {/each}
 
     </div>
+
+
+    <DesktopProductDetailsModal bind:active={isDetailsOpen} {product} />
 
     <!-- Pharmacy Trust Footer - Viral Liquid Glass! -->
     <div class="w-full">
@@ -238,11 +301,13 @@
           </div>
         </div>
 
-        <!-- Compliance Label -->
+        <!-- Compliance Label (Liquid Glass Edition) -->
         <div class="license-tag">
-          <span class="px-4 py-1.5 bg-black/40 rounded-full border border-white/5">
-            {mkt.label_license}
-          </span>
+          <div class="inline-block px-6 py-2 bg-white/[0.03] backdrop-blur-2xl rounded-full border border-white/10 shadow-[0_5px_15px_rgba(0,0,0,0.3)]">
+            <span class="text-[10px] font-medium text-slate-400 tracking-wide">
+              {mkt.label_license}
+            </span>
+          </div>
         </div>
       </div>
     </div>
