@@ -23,6 +23,32 @@
 
   let socialPreviewTab = $state<'facebook' | 'twitter'>('facebook');
   
+  let isAiLoading = $state(false);
+
+  async function handleAiSuggest() {
+    if (!formName) return;
+    isAiLoading = true;
+    try {
+      // Elite V2.2: R00 AI Suggest Call
+      const res = await fetch('/api/v1/products/seo-suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: formName, description: formSeoDescription || '' })
+      });
+      const json = (await res.json()) as { data?: { title?: string; description?: string; keywords?: string; } };
+      if (json && json.data) {
+        // Fallback or explicit overwrite
+        formSeoTitle = json.data.title || formSeoTitle;
+        formSeoDescription = json.data.description || formSeoDescription;
+        formSeoKeywords = json.data.keywords || formSeoKeywords;
+      }
+    } catch (e) {
+      console.error('AI Suggest failed:', e);
+    } finally {
+      isAiLoading = false;
+    }
+  }
+
   const seoTitleLen = $derived(formSeoTitle?.length ?? 0);
   const seoDescLen = $derived(formSeoDescription?.length ?? 0);
   const ogTitle = $derived(formSeoTitle || formName || 'Tên sản phẩm');
@@ -34,9 +60,20 @@
 <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
   <!-- SEO Config -->
   <div>
-    <div class="section-label mb-3">
-      <Globe size={11} />
-      SEO Search Engine
+    <div class="flex items-center justify-between mb-3">
+      <div class="section-label mb-0">
+        <Globe size={11} />
+        SEO Search Engine
+      </div>
+      <button type="button" onclick={handleAiSuggest} disabled={isAiLoading} class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-600 hover:text-white transition-colors disabled:opacity-50">
+        {#if isAiLoading}
+          <RefreshCw size={10} class="animate-spin" />
+          Đang phân tích...
+        {:else}
+          <Globe size={10} />
+          AI Suggest
+        {/if}
+      </button>
     </div>
 
     <div class="flex flex-col gap-4">
@@ -97,9 +134,10 @@
           SEO Meta Description
           <span class="ml-auto {seoDescLen > 160 ? 'text-red-400' : 'text-amber-500/60'}">{seoDescLen}/160</span>
         </label>
-        <textarea bind:value={formSeoDescription} rows="2"
+        <textarea bind:value={formSeoDescription} rows="4"
           placeholder="Mô tả chuẩn SEO (150-160 ký tự)..."
-          class="w-full bg-white/[0.02] border border-white/8 rounded-xl p-3 text-sm text-white/60 placeholder:text-white/15 outline-none focus:border-amber-500/30 resize-none shadow-inner"
+          class="w-full bg-white/[0.02] border border-white/8 rounded-xl p-3 text-sm text-white/60 placeholder:text-white/15 outline-none focus:border-amber-500/30 resize-y min-h-[100px] shadow-inner"
+          style="field-sizing: content;"
         ></textarea>
       </div>
     </div>

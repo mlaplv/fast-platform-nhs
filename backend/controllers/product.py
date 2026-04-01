@@ -109,3 +109,43 @@ class ProductController(Controller):
         res = await product_service.bulk_activate(db_session, data.ids)
         await db_session.commit()
         return res
+
+    @post("/seo-suggest", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)])
+    async def suggest_seo(
+        self,
+        data: Dict[str, str]
+    ) -> SuccessResponse:
+        """
+        AI Suggestion for SEO metadata.
+        Payload expects: {"name": "...", "description": "..."}
+        """
+        # In a real app we'd inject ai_service properly, but here we can just mock or use the service if it exists.
+        # Let's import pydantic_ai and trinity_bridge to generate content
+        try:
+            from pydantic_ai import Agent
+            from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+            
+            agent = Agent(
+                system_prompt="You are an SEO Expert. Optimize SEO metadata for a product. Return ONLY concise valid JSON without markdown wrapping: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\"}"
+            )
+            prompt = f"Product Name: {data.get('name', '')}\nProduct Desc: {data.get('description', '')}"
+            
+            result = await trinity_bridge.run(
+                agent=agent,
+                prompt=prompt,
+                role="fast",
+                timeout=30.0
+            )
+            
+            if result:
+                suggested_json_str = str(getattr(result, "data", getattr(result, "output", result))).strip()
+                import json
+                import re
+                match = re.search(r'\{.*\}', suggested_json_str, re.DOTALL)
+                parsed = json.loads(match.group(0)) if match else {"title": "", "description": "", "keywords": ""}
+                return SuccessResponse(message="Thành công", data=parsed)
+            else:
+                return SuccessResponse(message="AI không phản hồi", data={"title": f"{data.get('name')} Chính Hãng", "description": "Sản phẩm chính hãng", "keywords": ""})
+                
+        except Exception as e:
+            return SuccessResponse(message=f"Lỗi kết nối AI: {str(e)}", data={"title": f"{data.get('name', '')} Chính Hãng", "description": "Mua sản phẩm chính hãng với nhiều ưu đãi", "keywords": ""})

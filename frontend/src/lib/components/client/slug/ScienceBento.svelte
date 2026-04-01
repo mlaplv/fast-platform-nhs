@@ -33,7 +33,7 @@
 
   <section id="science" class="science-viewport snap-session relative">
 
-    <div class="science-container container mx-auto px-6 max-w-6xl pt-16 md:pt-20 lg:pt-[var(--standard-pt)]">
+    <div class="science-container container mx-auto px-6 max-w-6xl pt-8 md:pt-12">
       <div class="mb-8 text-center">
         <h2 class="section-title text-center text-5xl font-black uppercase lg:text-7xl">
           {labels.headline}

@@ -222,13 +222,18 @@
         gap: clamp(1.75rem, 5vh, 4rem);
       }
     }
+
+    /* TABLET ONLY: tighter vertical spacing */
+    @media (min-width: 768px) and (max-width: 1024px) {
+      gap: 0.75rem;
+    }
   }
 
   & .arc-item {
     position: relative;
     width: 100%;
     max-width: none;
-    white-space: nowrap;
+    white-space: nowrap; /* Restored: desktop keeps nowrap */
     pointer-events: auto;
     transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
     text-align: center;
@@ -241,6 +246,11 @@
       text-align: left;
       align-items: flex-start;
       transform: none !important;
+    }
+
+    /* TABLET ONLY: fix overflow on metric-desc */
+    @media (min-width: 768px) and (max-width: 1024px) {
+      white-space: normal;
     }
 
     & .metric-dot {
@@ -263,11 +273,10 @@
     & .metric-value {
       font-family: 'Inter', sans-serif;
       font-size: var(--fs-sub) !important;
-      /* Reduced from fs-title! */
       font-weight: 950;
       color: #f1f5f9;
       line-height: 1.1;
-      white-space: nowrap; /* Prevent wrapping on tablets! */
+      white-space: nowrap; /* Prevent wrapping on title only! */
 
       @media (min-width: 768px) and (max-width: 1024px) {
         font-size: clamp(1rem, 2.5vw, 1.25rem) !important;
@@ -281,6 +290,13 @@
       line-height: 1.6;
       opacity: 0.7;
       transition: opacity 0.4s ease;
+
+      /* TABLET ONLY: constrain and allow wrap */
+      @media (min-width: 768px) and (max-width: 1024px) {
+        white-space: normal;
+        max-width: 280px;
+        overflow-wrap: break-word;
+      }
     }
   }
 

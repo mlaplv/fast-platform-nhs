@@ -24,6 +24,7 @@
   // Protection & Derived State
   const product = $derived(data?.product);
   const metadata = $derived(product?.metadata || {});
+  const seoMeta = $derived(product?.seoMeta || product?.seo_meta || null);
   const isMobile = $derived(data?.isMobile || false);
 
   const loadingText = $derived(metadata.sync_loading_text || 'SYNCHRONIZING ELITE ASSETS...');
@@ -118,7 +119,18 @@
 </script>
 
 <svelte:head>
-  <title>{product?.name || 'Loading...'} | {siteName}</title>
+  {#if seoMeta}
+    <title>{seoMeta.title} | {siteName}</title>
+    <meta name="description" content={seoMeta.description} />
+    <meta name="keywords" content={seoMeta.keywords} />
+    <link rel="canonical" href={seoMeta.canonical_url} />
+    {#if seoMeta.json_ld_string}
+      <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+      {@html `<script type="application/ld+json">${seoMeta.json_ld_string}</script>`}
+    {/if}
+  {:else}
+    <title>{product?.name || 'Loading...'} | {siteName}</title>
+  {/if}
 </svelte:head>
 
 {#if useMobileLayout}

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.schemas.product import ProductResponse
 from backend.services.commerce.product import ProductService, provide_product_service
 from backend.services.commerce.product_vector import provide_product_vector_service
+from backend.services.commerce.seo_service import SeoService
 
 logger = logging.getLogger("api-gateway")
 
@@ -26,4 +27,6 @@ class PublicProductController(Controller):
         slug: str
     ) -> ProductResponse:
         """PUBLIC: Get a single product by slug (Scalar Projection)."""
-        return await product_service.get_product_by_slug(db_session, slug)
+        product = await product_service.get_product_by_slug(db_session, slug)
+        product.seoMeta = SeoService.generate_seo_meta(product)
+        return product

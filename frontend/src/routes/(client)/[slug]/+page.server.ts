@@ -6,12 +6,10 @@ import { isMobileDevice } from '$lib/utils/device';
 export const load: PageServerLoad = async ({ 
     params, 
     fetch, 
-    getClientAddress, 
     request 
 }: { 
     params: Record<string, string>, 
-    fetch: any, // Fallback for IDE generation issues, better than 'any' if we could import correct type
-    getClientAddress: () => string, 
+    fetch: typeof globalThis.fetch, 
     request: Request 
 }) => {
     const { slug } = params;

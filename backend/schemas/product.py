@@ -2,6 +2,14 @@ from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validat
 from typing import Optional, List, Dict, Union, Any
 from datetime import datetime
 
+class SeoMetaSchema(BaseModel):
+    model_config = ConfigDict(strict=True)
+    title: str
+    description: str
+    keywords: str
+    canonical_url: str
+    json_ld_string: str
+
 
 class TierVariation(BaseModel):
     name: str
@@ -152,6 +160,7 @@ class ProductResponse(BaseModel):
     images: List[str] = Field(default_factory=list)
     attributes: Dict[str, Union[str, int, float, bool, None]] = Field(default_factory=dict)
     metadata: ProductMetadata = Field(default_factory=ProductMetadata)
+    seoMeta: Optional[SeoMetaSchema] = Field(None, alias="seo_meta")
 
     # R102 Variants Matrix
     tierVariations: List[TierVariation] = Field(default_factory=list, alias="tier_variations")
