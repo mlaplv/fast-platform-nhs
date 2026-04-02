@@ -81,3 +81,16 @@ class SystemReview(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
         Index("ix_sys_reviews_entity", "entity_type", "entity_id"),
         Index("ix_sys_reviews_created_at_status", "created_at", "status"),
     )
+
+class SupportChatHistory(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
+    __tablename__ = 'support_chat_history'
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    session_id: Mapped[str] = mapped_column(String, index=True)
+    role: Mapped[str] = mapped_column(String) # user, assistant
+    content: Mapped[str] = mapped_column(Text)
+    intent: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    product_slug: Mapped[Optional[str]] = mapped_column(String, index=True, nullable=True)
+
+    __table_args__ = (
+        Index("ix_support_chat_session_created", "session_id", "created_at"),
+    )

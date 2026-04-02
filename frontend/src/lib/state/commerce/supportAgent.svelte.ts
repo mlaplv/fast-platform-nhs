@@ -1,13 +1,21 @@
-// Support Agent State — Svelte 5 Runes (Zero-Barrier Client Strategy)
+// Support Agent State — Svelte 5 Runes (Elite V2.2 Persistent Memory)
 import { apiClient } from "$lib/utils/apiClient";
+import { browser } from "$app/environment";
 
-// Helper để render UUID native, tránh lỗi "Cannot find module 'uuid'" trên SSR/Docker
+// Helper để render UUID native
 function randomId() {
     if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
         return crypto.randomUUID();
     }
-    // Fallback cho môi trường cũ
     return Math.random().toString(36).substring(2, 15);
+}
+
+export interface SupportProductInfo {
+    id: string;
+    name: string;
+    price: number;
+    price_display: string;
+    slug: string;
 }
 
 export interface SupportMessage {
@@ -16,6 +24,7 @@ export interface SupportMessage {
     content: string;
     timestamp: Date;
     intent?: string;
+    productInfo?: SupportProductInfo; // Elite V2.2: Explicit typing
 }
 
 export interface SupportConfig {
@@ -23,14 +32,19 @@ export interface SupportConfig {
     welcomeMessage: string;
 }
 
+const STORAGE_KEY = "fp_helen_sid";
+
 class SupportAgentState {
     // Reactive State Variables (Svelte 5 Runes)
     isOpen = $state(false);
     isTyping = $state(false);
+    isHistoryLoading = $state(false);
+    hasMoreHistory = $state(true);
     messages = $state<SupportMessage[]>([]);
     
-    // Persistent Session UUID for Rate Limiting & Telemetry
-    private sessionId: string;
+    // Persistent Session UUID
+    private _sessionId: string = "";
+
     // Config initialized once
     public config: SupportConfig = {
         agentName: "Chuyên viên Tư vấn",
@@ -38,27 +52,94 @@ class SupportAgentState {
     };
 
     constructor() {
-        // Generate stateless session ID on load
-        this.sessionId = randomId();
+        if (browser) {
+            const savedSid = localStorage.getItem(STORAGE_KEY);
+            if (savedSid) {
+                this._sessionId = savedSid;
+            } else {
+                this._sessionId = randomId();
+                localStorage.setItem(STORAGE_KEY, this._sessionId);
+            }
+        } else {
+            this._sessionId = randomId();
+        }
+    }
+
+    get sessionId() {
+        return this._sessionId;
     }
 
     /**
-     * Call this inside a root +layout.svelte or onMount to initialize config
+     * Call this inside a root +layout.svelte or onMount to initialize config and load history
      */
-    init(envAgentName?: string) {
+    async init(envAgentName?: string) {
         if (envAgentName) {
             this.config.agentName = envAgentName;
             this.config.welcomeMessage = `Dạ chào bạn, mình là ${envAgentName}. Bạn cần hỗ trợ thông tin gì về sản phẩm hay chính sách ạ?`;
         }
+
+        // Only load history once or if empty
         if (this.messages.length === 0) {
-            this.messages = [
-                {
-                    id: randomId(),
-                    role: "assistant",
-                    content: this.config.welcomeMessage,
-                    timestamp: new Date()
+            await this.loadHistory(20);
+            
+            // If still no messages after loading history, add welcome message
+            if (this.messages.length === 0) {
+                this.messages = [
+                    {
+                        id: randomId(),
+                        role: "assistant",
+                        content: this.config.welcomeMessage,
+                        timestamp: new Date()
+                    }
+                ];
+            }
+        }
+    }
+
+    /**
+     * Paginated history loader (Zalo-style)
+     */
+    async loadHistory(limit: number = 20) {
+        if (this.isHistoryLoading || !this.hasMoreHistory) return;
+
+        this.isHistoryLoading = true;
+        try {
+            const firstMsgId = this.messages[0]?.id;
+            const params: Record<string, any> = {
+                session_id: this._sessionId,
+                limit
+            };
+            
+            // Only attach cursor if we actually have messages
+            if (firstMsgId) {
+                params.before_id = firstMsgId;
+            }
+
+            const res = await apiClient.get(`/api/v1/client/support/history`, { params });
+
+            if (Array.isArray(res)) {
+                const history = res.map((m: any) => ({
+                    id: m.id,
+                    role: m.role,
+                    content: m.content,
+                    intent: m.intent,
+                    timestamp: new Date(m.timestamp)
+                }));
+
+                if (history.length < limit) {
+                    this.hasMoreHistory = false;
                 }
-            ];
+
+                if (history.length > 0) {
+                    // Prepend history to current thread
+                    this.messages = [...history, ...this.messages];
+                }
+            }
+        } catch (error) {
+            console.error("[SupportAgent] History load error:", error);
+            this.hasMoreHistory = false; // Stop trying on error
+        } finally {
+            this.isHistoryLoading = false;
         }
     }
 
@@ -73,29 +154,23 @@ class SupportAgentState {
     async sendMessage(text: string, productSlug?: string) {
         if (!text.trim() || this.isTyping) return;
 
-        // 1. Append user message optimistically
-        const userMsgId = randomId();
-        this.messages = [
-            ...this.messages,
-            {
-                id: userMsgId,
-                role: "user",
-                content: text.trim(),
-                timestamp: new Date()
-            }
-        ];
+        const userMsg: SupportMessage = {
+            id: randomId(),
+            role: "user",
+            content: text.trim(),
+            timestamp: new Date()
+        };
 
+        this.messages = [...this.messages, userMsg];
         this.isTyping = true;
 
         try {
-            // 2. Call secure backend endpoint (Zero-Auth mode)
             const res = await apiClient.post("/api/v1/client/support/chat", {
                 message: text.trim(),
-                session_id: this.sessionId,
+                session_id: this._sessionId,
                 product_slug: productSlug || null
             });
 
-            // 3. Append assistant reply
             if (res && typeof (res as any).reply === "string") {
                 const data = res as any;
                 this.messages = [
@@ -105,6 +180,7 @@ class SupportAgentState {
                         role: "assistant",
                         content: data.reply || "Xin lỗi, mình tạm thời không phản hồi được ạ.",
                         intent: data.intent,
+                        productInfo: data.product_info,
                         timestamp: new Date()
                     }
                 ];

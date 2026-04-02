@@ -24,8 +24,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database.models.commerce import ProductBase
 from backend.database.models.content import Category
-from backend.database.models.system import AgentTelemetryLog
-from backend.schemas.support import SupportIntent, SupportRequest, SupportResponse
+from backend.database.models.system import AgentTelemetryLog, SupportChatHistory
+from backend.schemas.support import SupportIntent, SupportRequest, SupportResponse, SupportProductInfo
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.commerce.constants.support_config import support_cfg
 from backend.services.commerce.security.input_guard import input_guard
@@ -68,17 +68,17 @@ def _classify_intent(message: str) -> SupportIntent:
 # PRODUCT CONTEXT FETCHER — Read-only, Scalar Projection only
 # ══════════════════════════════════════════════════════════════
 
-async def _fetch_product_context(db: AsyncSession, slug: Optional[str]) -> str:
+async def _fetch_product_context(db: AsyncSession, slug: Optional[str]) -> tuple[str, Optional[SupportProductInfo]]:
     """
-    Fetch product info for RAG context injection into the support prompt.
-    Returns empty string if no slug or product not found.
+    Fetch product info for RAG context injection and UI metadata.
     SELECT only — no INSERT/UPDATE/DELETE permitted.
     """
     if not slug:
-        return ""
+        return "", None
     try:
         stmt = (
             select(
+                ProductBase.id,
                 ProductBase.name,
                 ProductBase.short_description,
                 ProductBase.description,
@@ -101,9 +101,11 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str]) -> str:
         result = await db.execute(stmt)
         row = result.first()
         if not row:
-            return ""
+            return "", None
 
-        price_display = f"{row.discount_price:,.0f}đ" if row.discount_price else f"{row.price:,.0f}đ"
+        price_val = row.discount_price if row.discount_price else row.price
+        price_display = f"{price_val:,.0f}đ"
+        
         deals_raw: list[dict] = (row.product_metadata or {}).get("active_deals", [])
         deals_text = ""
         if deals_raw:
@@ -113,16 +115,26 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str]) -> str:
             ]
             deals_text = f"\nCHƯƠNG TRÌNH ƯU ĐÃI: {'; '.join(parts)}" if parts else ""
 
-        return (
+        context = (
             f"[THÔNG TIN SẢN PHẨM HIỆN TẠI]\n"
             f"Tên: {row.name}\n"
             f"Danh mục: {row.category_name or 'Chưa phân loại'}\n"
             f"Giá: {price_display}{deals_text}\n"
             f"Mô tả: {(row.short_description or row.description or '')[:600]}\n"
         )
+        
+        metadata = SupportProductInfo(
+            id=str(row.id),
+            name=row.name,
+            price=float(price_val),
+            price_display=price_display,
+            slug=slug
+        )
+        
+        return context, metadata
     except Exception as exc:
         logger.warning("[SupportAgent] Could not fetch product context: %s", exc)
-        return ""
+        return "", None
 
 
 # ══════════════════════════════════════════════════════════════
@@ -148,9 +160,9 @@ def _sanitize_response(raw: str) -> str:
 
     # Soft word-count cap (not token, but safe approximation)
     words = raw.split()
-    limit = int(support_cfg.max_response_tokens)
-    if len(words) > limit:
-        raw = " ".join(words[:limit]) + "..."
+    limit_idx: int = int(support_cfg.max_response_tokens)
+    if len(words) > limit_idx:
+        raw = " ".join(words[:limit_idx]) + "..."
 
     return raw.strip()
 
@@ -197,7 +209,7 @@ class SupportAgentOperative:
             return scripted
 
         # Build RAG context from product (read-only DB)
-        product_ctx = await _fetch_product_context(db, request.product_slug)
+        product_ctx, product_info = await _fetch_product_context(db, request.product_slug)
 
         # Construct prompt with system directive from env
         prompt = self._build_prompt(request.message, product_ctx, intent)
@@ -210,10 +222,13 @@ class SupportAgentOperative:
                 role=support_cfg.model_role,
                 system_prompt=support_cfg.system_directive,
             )
-            if hasattr(result, "data") and result.data:
-                raw_reply = str(result.data)
+            # ELITE: Safe attribute access for PydanticAI Result objects
+            res_data = getattr(result, "data", None)
+            if res_data:
+                raw_reply = str(res_data)
             elif hasattr(result, "all_messages"):
-                msgs = result.all_messages()
+                # Fallback to message history if structured data is missing
+                msgs = getattr(result, "all_messages")() 
                 if msgs:
                     last_msg = msgs[-1]
                     if hasattr(last_msg, "parts") and last_msg.parts:
@@ -244,11 +259,14 @@ class SupportAgentOperative:
             "duration_ms": duration_ms,
         })
 
-        # Persist telemetry (fire-and-forget via DB session's lazy flush)
-        await self._log_telemetry(
+        # Persist messages to history (Zalo-style persistence)
+        await self._save_history(
             db,
             session_id=session_id,
-            duration_ms=duration_ms,
+            user_msg=request.message,
+            assistant_reply=safe_reply,
+            intent=intent,
+            product_slug=request.product_slug
         )
 
         return SupportResponse(
@@ -256,7 +274,41 @@ class SupportAgentOperative:
             reply=safe_reply,
             intent=intent,
             session_id=session_id,
+            product_info=product_info
         )
+
+    async def _save_history(
+        self,
+        db: AsyncSession,
+        session_id: str,
+        user_msg: str,
+        assistant_reply: str,
+        intent: SupportIntent,
+        product_slug: Optional[str]
+    ) -> None:
+        """Saves both user and assistant messages to the persistent history table."""
+        try:
+            # 1. Save User Message
+            user_hist = SupportChatHistory(
+                session_id=session_id,
+                role="user",
+                content=user_msg,
+                intent=intent.value,
+                product_slug=product_slug
+            )
+            # 2. Save Assistant Message
+            assistant_hist = SupportChatHistory(
+                session_id=session_id,
+                role="assistant",
+                content=assistant_reply,
+                intent=intent.value,
+                product_slug=product_slug
+            )
+            db.add_all([user_hist, assistant_hist])
+            await db.commit() # Forced commit for history persistence
+        except Exception as exc:
+            logger.warning("[SupportAgent] Failed to save chat history: %s", exc)
+            await db.rollback()
 
     def _get_scripted_response(
         self, intent: SupportIntent, session_id: str

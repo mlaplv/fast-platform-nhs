@@ -7,8 +7,19 @@ All models use strict mode and explicit types (CẤM 'any').
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
+from typing import Optional, Dict, Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+class SupportProductInfo(BaseModel):
+    """Metadata for product-related chat responses (Elite V2.2)"""
+    id: str = Field(..., description="Product UUID")
+    name: str = Field(..., description="Product display name")
+    price: float = Field(..., description="Current price")
+    price_display: str = Field(..., description="Formatted price string")
+    slug: str = Field(..., description="Product URL slug")
+
+    model_config = ConfigDict(frozen=True)
 
 
 class SupportIntent(str, Enum):
@@ -61,3 +72,4 @@ class SupportResponse(BaseModel):
     reply: str = Field(..., description="AI-generated reply, sanitized and bounded.")
     intent: SupportIntent = Field(default=SupportIntent.UNKNOWN)
     session_id: Optional[str] = Field(default=None)
+    product_info: Optional[Dict[str, object]] = Field(default=None, description="Metadata for UI components (ordering, etc.)")

@@ -14,11 +14,13 @@ from __future__ import annotations
 import logging
 import time
 
-from litestar import Controller, post, Request
-from litestar.exceptions import TooManyRequestsException
+from litestar import Controller, get, post, Request
+from litestar.exceptions import TooManyRequestsException, NotFoundException
+import sqlalchemy as sa
+from sqlalchemy import select, desc, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.database.read_session import provide_read_only_db
+from backend.database.models.system import SupportChatHistory
 from backend.schemas.support import SupportRequest, SupportResponse
 from backend.services.commerce.constants.support_config import support_cfg
 from backend.services.commerce.operatives.support_agent import support_agent
@@ -68,23 +70,76 @@ class SupportController(Controller):
         except Exception as exc:
             logger.warning("[SupportController] Rate limit check failed (skipping): %s", exc)
 
+    @get("/history", guards=[])
+    async def get_history(
+        self,
+        db_session: AsyncSession,
+        session_id: str,
+        limit: int = 20,
+        before_id: str | None = None,
+    ) -> list[dict]:
+        """
+        Retrieves paginated chat history for a session.
+        Zalo-style: Loads recent segments first.
+        """
+        try:
+            stmt = (
+                select(SupportChatHistory)
+                .where(SupportChatHistory.session_id == session_id)
+                .order_by(desc(SupportChatHistory.created_at), desc(SupportChatHistory.id))
+                .limit(limit)
+            )
+
+            if before_id and before_id != "undefined":
+                # Subquery to find the timestamp of the before_id message
+                # Elite V2.2: Guard against invalid or missing cursor IDs
+                cursor_stmt = select(SupportChatHistory.created_at).where(SupportChatHistory.id == before_id)
+                cursor_res = await db_session.execute(cursor_stmt)
+                cursor_time = cursor_res.scalar()
+                
+                if cursor_time:
+                    stmt = stmt.where(
+                        sa.or_(
+                            SupportChatHistory.created_at < cursor_time,
+                            sa.and_(
+                                SupportChatHistory.created_at == cursor_time,
+                                SupportChatHistory.id < before_id
+                            )
+                        )
+                    )
+
+            result = await db_session.execute(stmt)
+            rows = result.scalars().all()
+            
+            # Return in chronological order for the client (reversed from our DESC fetch)
+            return [
+                {
+                    "id": r.id,
+                    "role": r.role,
+                    "content": r.content,
+                    "intent": r.intent,
+                    "timestamp": r.created_at.isoformat() if r.created_at else None
+                }
+                for r in reversed(rows)
+            ]
+        except Exception as exc:
+            # R2: Silent fail for non-critical history lookup to protect availability
+            logger.error("[SupportController] History lookup failed: %s", exc)
+            return []
+
     @post("/chat", guards=[])
     async def chat(
         self,
         request: Request,
+        db_session: AsyncSession,
         data: SupportRequest,
     ) -> SupportResponse:
         """
         Handles a single client support message.
         - Zero-Auth public endpoint (guards=[])
         - Rate limited per IP and session_id
-        - Delegates all AI + security logic to SupportAgentOperative
+        - Uses writeable session for history persistence
         """
         await self._check_rate_limit(request, data.session_id)
 
-        # Instantiate read-only session manually (not via DI to avoid write-capable session)
-        async for db in provide_read_only_db():
-            return await support_agent.chat(request=data, db=db)
-
-        # Fallback (unreachable but makes type checker happy)
-        raise RuntimeError("Support agent could not obtain a database session.")
+        return await support_agent.chat(request=data, db=db_session)

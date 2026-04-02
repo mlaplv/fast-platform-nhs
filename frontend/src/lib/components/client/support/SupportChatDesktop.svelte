@@ -7,18 +7,19 @@
     Maximize2, Minimize2 
   } from 'lucide-svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
   
   const { productSlug = '' } = $props<{ productSlug?: string }>();
+  const shopStore = getShopStore();
   
   let chatContainer: HTMLDivElement;
   let userInput = $state('');
   let isExpanded = $state(false);
 
   const quickActions = [
-    { label: 'Tình trạng đơn', icon: PackageSearch, prompt: 'Tôi cần kiểm tra đơn hàng' },
-    { label: 'Chính sách', icon: ShieldCheck, prompt: 'Quy định bảo hành và đổi trả' },
-    { label: 'Dược sĩ tư vấn', icon: PhoneCall, prompt: 'Gặp chuyên gia hỗ trợ' }
+    { label: 'Đơn hàng', icon: PackageSearch, prompt: 'Tôi cần kiểm tra đơn hàng' },
+    { label: 'Chính sách', icon: ShieldCheck, prompt: 'Quy định bảo hành và đổi trả' }
   ];
 
   function closeChat() {
@@ -68,7 +69,7 @@
 {#if supportAgent.isOpen}
   <!-- Hyper Drop Container (Viral 2026 Aggressive Asymmetric Shape) -->
   <div 
-    class="fixed transform-gpu origin-bottom-right transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] {isExpanded ? 'bottom-8 right-8 w-[90vw] h-[85vh] rounded-[48px]' : 'bottom-[110px] right-8 w-[440px] h-[680px] max-h-[85vh] hyper-drop-shape'}"
+    class="support-chat-container fixed transform-gpu origin-bottom-right transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] {isExpanded ? 'bottom-8 right-8 w-[90vw] h-[85vh] rounded-[48px]' : 'bottom-[110px] right-8 w-[440px] h-[680px] max-h-[85vh] hyper-drop-shape'}"
     style="z-index: {Z_INDEX_CLIENT.MODAL};"
     transition:scale={{ start: 0.8, opacity: 0, duration: 500, easing: (t) => 1 - Math.pow(1 - t, 5) }}
   >
@@ -122,7 +123,7 @@
       <!-- Thread: Zero-Background Floating Text Aesthetic -->
       <div 
         bind:this={chatContainer}
-        class="flex-1 overflow-y-auto px-10 py-4 space-y-12 hide-scrollbar relative"
+        class="flex-1 overflow-y-auto px-6 py-4 space-y-12 hide-scrollbar relative"
       >
         <div class="flex flex-col items-center justify-center mb-10 opacity-30 hover:opacity-100 transition-opacity">
           <div class="flex items-center gap-2.5 px-5 py-2 bg-white/5 border border-white/10 rounded-full backdrop-blur-xl">
@@ -130,10 +131,23 @@
              <span class="text-[10px] text-white/60 tracking-[0.2em] uppercase font-black italic">SmartShop Neural Link v2.2</span>
           </div>
         </div>
+
+        <!-- Viral Lazy Memory: Zalo-style pagination -->
+        {#if supportAgent.hasMoreHistory}
+          <div class="flex justify-center pb-8">
+            <button 
+              onclick={() => supportAgent.loadHistory()}
+              disabled={supportAgent.isHistoryLoading}
+              class="px-8 py-2.5 bg-white/5 hover:bg-[#00A3FF]/10 border border-white/5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-[#00A3FF] transition-all active:scale-95 disabled:opacity-30"
+            >
+              {supportAgent.isHistoryLoading ? 'Đang đồng bộ dữ liệu...' : 'Tải thêm tin nhắn cũ'}
+            </button>
+          </div>
+        {/if}
   
         {#each supportAgent.messages as msg (msg.id)}
           <div class="flex {msg.role === 'user' ? 'justify-end text-right' : 'justify-start text-left'} w-full group animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div class="max-w-[85%] relative flex flex-col {msg.role === 'user' ? 'items-end' : 'items-start'}">
+            <div class="max-w-full relative flex flex-col {msg.role === 'user' ? 'items-end' : 'items-start'}">
               
               <div class="px-2 py-1 text-[17px] leading-[1.8] break-words transition-all
                 {msg.role === 'user' 
@@ -157,8 +171,12 @@
                 {:else if msg.role === 'assistant' && msg.intent === 'PRICE_QUERY'}
                   <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                   <div class="text-[17px]">{@html msg.content.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-black">$1</strong>').replace(/\n/g, '<br/>')}</div>
-                  <button class="mt-6 px-10 py-4 bg-gradient-to-r from-[#00A3FF] to-[#005B99] text-white text-[15px] font-black rounded-full shadow-[0_12px_32px_rgba(0,163,255,0.4)] hover:shadow-[0_16px_40px_rgba(0,163,255,0.5)] transition-all active:scale-95">
-                     ƯU ĐÃI RIÊNG CHO BẠN →
+                  
+                  <button 
+                    onclick={() => shopStore.openCheckout()}
+                    class="mt-6 px-10 py-4 bg-gradient-to-r from-[#00A3FF] to-[#005B99] text-white text-[16px] font-black rounded-full shadow-[0_12px_32px_rgba(0,163,255,0.4)] hover:shadow-[0_16px_40px_rgba(0,163,255,0.5)] transition-all active:scale-[0.98] uppercase tracking-wider animate-pulse-subtle"
+                  >
+                     NHẬN ƯU ĐÃI NGAY →
                   </button>
                 {:else if msg.role === 'assistant'}
                   <!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -190,17 +208,17 @@
         <div class="h-20"></div>
       </div>
   
-      <!-- Input Area: Floating Capsule -->
-      <div class="p-8 px-10 pb-12 flex flex-col gap-8">
-        <!-- Quick Actions: Ghost Pills -->
-        <div class="flex flex-wrap gap-3 overflow-x-auto hide-scrollbar">
+      <!-- Input Area: Optimized Padding -->
+      <div class="p-6 px-10 pb-8 flex flex-col gap-5">
+        <!-- Quick Actions (Optimized: Right Aligned & Tiny) -->
+        <div class="flex justify-end gap-2 px-1">
           {#each quickActions as action}
             {@const Icon = action.icon}
             <button 
-              class="flex-shrink-0 flex items-center gap-2.5 px-6 py-3.5 bg-white/5 hover:bg-[#00A3FF]/10 border border-white/10 text-white/70 hover:text-white rounded-full text-[13px] font-black transition-all active:scale-95 group/action"
+              class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-white rounded-full text-[11px] font-bold transition-all active:scale-95 group/action"
               onclick={() => handleQuickAction(action.prompt)}
             >
-              <Icon size={14} class="text-[#00A3FF] opacity-40 group-hover/action:opacity-100 transition-opacity" /> {action.label}
+              <Icon size={12} class="text-[#00A3FF] opacity-30 group-hover/action:opacity-100 transition-opacity" /> {action.label}
             </button>
           {/each}
         </div>
@@ -252,5 +270,13 @@
     -ms-overflow-style: none;  
     scrollbar-width: none;  
     scroll-behavior: smooth;
+  }
+  @keyframes pulse-subtle {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.02); opacity: 0.95; }
+  }
+
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2s infinite ease-in-out;
   }
 </style>

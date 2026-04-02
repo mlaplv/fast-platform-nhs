@@ -87,6 +87,9 @@
       const validTheme = (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') ? savedTheme : 'system';
       applyTheme(validTheme);
       
+      // Helen V2.2: Persistent Memory & Context Injection
+      supportAgent.init(metadata.agent_name || 'Helen');
+      
       const mq = window.matchMedia('(prefers-color-scheme: dark)');
       const h = (e: MediaQueryListEvent): void => {
         if (themeMode === 'system') updateDOM(e.matches ? 'dark' : 'light');
@@ -131,8 +134,12 @@
   let isWheelLocked = false;
 
   const onWheelObserver = (e: WheelEvent) => {
-    // Escape limiters: Mobile layout, Server, or interacting with Checkout/Support
-    if (useMobileLayout || !browser || shopStore.isCheckoutOpen || supportAgent.isOpen) return;
+    // Escape limiters: Mobile layout, Server, or interacting with Checkout
+    if (useMobileLayout || !browser || shopStore.isCheckoutOpen) return;
+
+    // Viral 2026: Chat Interception - Only return if scrolling INSIDE the chat modal
+    const target = e.target as HTMLElement;
+    if (supportAgent.isOpen && target?.closest?.('.support-chat-container')) return;
     
     // Ignore micro-scrolls (e.g., trackpad resting)
     if (Math.abs(e.deltaY) < 15) return;

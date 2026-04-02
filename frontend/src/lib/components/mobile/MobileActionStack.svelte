@@ -7,6 +7,7 @@
     product: Product;
     onPurchase: () => void;
     onOpenDetails?: () => void;
+    onChat?: () => void;
     isTikTokActive?: boolean;
     isScrollingDown?: boolean;
   }
@@ -15,6 +16,7 @@
     product,
     onPurchase,
     onOpenDetails,
+    onChat,
     isTikTokActive = false,
     isScrollingDown = false
   }: Props = $props();
@@ -51,16 +53,31 @@
     <span class="btn-label-mini">Tra cứu</span>
   </a>
 
-  <!-- 5. Chat -->
-  <a
-    href={labels.zalo_link}
-    target="_blank"
-    class="action-btn-mini group"
-    aria-label="Chat Zalo"
-  >
-    <MessageSquare class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" />
-    <span class="btn-label-mini">Chat</span>
-  </a>
+  <!-- 5. Chat (Viral AI Helen Integration) -->
+  {#if onChat}
+    <button
+      class="action-btn-mini group"
+      onclick={onChat}
+      aria-label="Tư vấn AI Helen"
+    >
+      <div class="relative">
+        <MessageSquare class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" />
+        <span class="absolute -top-1 -right-1 w-2 h-2 bg-[#00A3FF] rounded-full animate-ping"></span>
+        <span class="absolute -top-1 -right-1 w-2 h-2 bg-[#00A3FF] rounded-full"></span>
+      </div>
+      <span class="btn-label-mini">AI HELEN</span>
+    </button>
+  {:else}
+    <a
+      href={labels.zalo_link}
+      target="_blank"
+      class="action-btn-mini group"
+      aria-label="Chat Zalo"
+    >
+      <MessageSquare class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" />
+      <span class="btn-label-mini">Chat</span>
+    </a>
+  {/if}
 
   <!-- 4. Chi tiết sản phẩm -->
   <button

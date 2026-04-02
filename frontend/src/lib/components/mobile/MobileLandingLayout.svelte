@@ -17,8 +17,8 @@
   import MobileProductDetailsModal from './MobileProductDetailsModal.svelte';
 
   // Support Agent
-  import SupportAgentFAB from '../client/support/SupportAgentFAB.svelte';
   import SupportChatMobile from '../client/support/SupportChatMobile.svelte';
+  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
 
   import './mobile.css';
 
@@ -139,6 +139,7 @@
     {isScrollingDown}
     onPurchase={() => shopStore.openCheckout()} 
     onOpenDetails={() => isDetailsModalOpen = true}
+    onChat={() => supportAgent.toggle()}
   />
 
   <!-- SECTION 0: VIDEO BANNER (conditional – only renders if hero_video_url is set) -->
@@ -177,6 +178,5 @@
   <MobileProductDetailsModal bind:active={isDetailsModalOpen} {product} />
 
   <!-- AI Medical Assistant (Viral 2026 - TikTok Style) -->
-  <SupportAgentFAB isMobile={true} />
   <SupportChatMobile productSlug={product?.slug} />
 </div>
