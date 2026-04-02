@@ -13,6 +13,11 @@
   
   import MobileLandingLayout from '$lib/components/mobile/MobileLandingLayout.svelte';
   
+  // Support Agent
+  import SupportAgentFAB from '$lib/components/client/support/SupportAgentFAB.svelte';
+  import SupportChatDesktop from '$lib/components/client/support/SupportChatDesktop.svelte';
+  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
+  
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
@@ -126,8 +131,8 @@
   let isWheelLocked = false;
 
   const onWheelObserver = (e: WheelEvent) => {
-    // Escape limiters: Mobile layout, Server, or interacting with Checkout
-    if (useMobileLayout || !browser || shopStore.isCheckoutOpen) return;
+    // Escape limiters: Mobile layout, Server, or interacting with Checkout/Support
+    if (useMobileLayout || !browser || shopStore.isCheckoutOpen || supportAgent.isOpen) return;
     
     // Ignore micro-scrolls (e.g., trackpad resting)
     if (Math.abs(e.deltaY) < 15) return;
@@ -264,6 +269,10 @@
     </section>
 
     <StealthCheckout />
+    
+    <!-- AI Medical Assistant (Viral 2026 - Desktop Float Card) -->
+    <SupportAgentFAB isMobile={false} />
+    <SupportChatDesktop productSlug={product.slug} />
   {:else}
     <div class="flex flex-col items-center justify-center min-h-screen bg-[#050505] text-white">
        <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>

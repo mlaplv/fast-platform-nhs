@@ -16,6 +16,10 @@
   import MobileOffer from './sections/MobileOffer.svelte';
   import MobileProductDetailsModal from './MobileProductDetailsModal.svelte';
 
+  // Support Agent
+  import SupportAgentFAB from '../client/support/SupportAgentFAB.svelte';
+  import SupportChatMobile from '../client/support/SupportChatMobile.svelte';
+
   import './mobile.css';
 
   const shopStore = getShopStore();
@@ -171,4 +175,8 @@
 
   <MobileBottomSheet bind:active={shopStore.isCheckoutOpen} {product} />
   <MobileProductDetailsModal bind:active={isDetailsModalOpen} {product} />
+
+  <!-- AI Medical Assistant (Viral 2026 - TikTok Style) -->
+  <SupportAgentFAB isMobile={true} />
+  <SupportChatMobile productSlug={product?.slug} />
 </div>
