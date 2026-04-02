@@ -33,6 +33,15 @@ class SupportIntent(str, Enum):
     UNKNOWN        = "UNKNOWN"
 
 
+class SupportKnowledgeCategory(str, Enum):
+    """Enum for knowledge base categorization (Elite V2.2)"""
+    GENERAL  = "GENERAL"
+    POLICY   = "POLICY"
+    SHIPPING = "SHIPPING"
+    PRODUCT  = "PRODUCT"
+    PROMO    = "PROMO"
+
+
 class SupportRequest(BaseModel):
     """Inbound chat message from the client (Zero-Auth)."""
     model_config = ConfigDict(strict=True)
@@ -74,7 +83,7 @@ class SupportResponse(BaseModel):
     reply: str = Field(..., description="AI-generated reply, sanitized and bounded.")
     intent: SupportIntent = Field(default=SupportIntent.UNKNOWN)
     session_id: Optional[str] = Field(default=None)
-    product_info: Optional[Dict[str, object]] = Field(default=None, description="Metadata for UI components (ordering, etc.)")
+    product_info: Optional[SupportProductInfo] = Field(default=None, description="Metadata for UI components (ordering, etc.)")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -82,7 +91,7 @@ class SupportResponse(BaseModel):
 # ══════════════════════════════════════════════════════════════
 
 class SupportKnowledgeBase(BaseModel):
-    category: str = Field(..., max_length=100)
+    category: SupportKnowledgeCategory = Field(default=SupportKnowledgeCategory.GENERAL)
     question: str = Field(..., min_length=1)
     answer: str = Field(..., min_length=1)
     is_active: bool = True
@@ -93,7 +102,7 @@ class CreateSupportKnowledgeRequest(SupportKnowledgeBase):
     pass
 
 class UpdateSupportKnowledgeRequest(BaseModel):
-    category: Optional[str] = None
+    category: Optional[SupportKnowledgeCategory] = None
     question: Optional[str] = None
     answer: Optional[str] = None
     is_active: Optional[bool] = None

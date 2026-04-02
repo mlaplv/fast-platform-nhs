@@ -149,10 +149,12 @@ class SupportKnowledgeService:
         ]
         
         # Simple ilike search for relevance (can be expanded with full-text search)
+        # Elite V2.2: Dual-direction matching for short keywords/long queries
         stmt = select(SupportKnowledge.question, SupportKnowledge.answer).where(
             and_(*conditions),
             or_(
                 SupportKnowledge.question.ilike(f"%{query}%"),
+                sa.literal(query).ilike(sa.func.concat('%', SupportKnowledge.question, '%')),
                 SupportKnowledge.tags.cast(sa.String).ilike(f"%{query}%")
             )
         ).order_by(SupportKnowledge.priority.desc()).limit(limit)
