@@ -4,7 +4,7 @@
   import { 
     Send, X, ShieldCheck, PhoneCall, 
     PackageSearch, Sparkles, UserRound,
-    Maximize2, Minimize2 
+    Maximize2, Minimize2, ScanSearch 
   } from 'lucide-svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
@@ -18,9 +18,22 @@
   let isExpanded = $state(false);
 
   const quickActions = [
+    { label: 'Chẩn đoán', icon: ScanSearch, action: scrollToDiagnostics },
     { label: 'Đơn hàng', icon: PackageSearch, prompt: 'Tôi cần kiểm tra đơn hàng' },
     { label: 'Chính sách', icon: ShieldCheck, prompt: 'Quy định bảo hành và đổi trả' }
   ];
+
+  function scrollToDiagnostics() {
+    const el = document.getElementById('diagnostics-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+      // Logic optionally close chat or keep it open
+    } else {
+       // Fallback for mobile landing if any
+       const mobileEl = document.querySelector('[data-section-idx="2"]');
+       if (mobileEl) mobileEl.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
 
   function closeChat() {
     supportAgent.isOpen = false;
@@ -44,9 +57,13 @@
     scrollToBottom();
   }
 
-  async function handleQuickAction(prompt: string) {
+  async function handleQuickAction(action: any) {
+    if (action.action) {
+      action.action();
+      return;
+    }
     if (supportAgent.isTyping) return;
-    await supportAgent.sendMessage(prompt, productSlug);
+    await supportAgent.sendMessage(action.prompt, productSlug);
     scrollToBottom();
   }
 
@@ -107,6 +124,13 @@
         </div>
         
         <div class="flex items-center gap-3">
+          <button 
+            onclick={scrollToDiagnostics}
+            class="w-11 h-11 flex items-center justify-center rounded-full bg-[#00A3FF]/10 hover:bg-[#00A3FF]/20 text-[#00A3FF] transition-all border border-[#00A3FF]/20 group/scan"
+            title="Bắt đầu chẩn đoán"
+          >
+            <ScanSearch size={20} class="group-hover/scan:scale-110 transition-transform" />
+          </button>
           <button 
             onclick={toggleExpand}
             class="w-11 h-11 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white transition-all border border-white/5 group/expand"
@@ -223,7 +247,7 @@
             {@const Icon = action.icon}
             <button 
               class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-white rounded-full text-[11px] font-bold transition-all active:scale-95 group/action"
-              onclick={() => handleQuickAction(action.prompt)}
+              onclick={() => handleQuickAction(action)}
             >
               <Icon size={12} class="text-[#00A3FF] opacity-30 group-hover/action:opacity-100 transition-opacity" /> {action.label}
             </button>

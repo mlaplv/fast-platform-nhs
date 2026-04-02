@@ -99,6 +99,14 @@ class SupportChatHistory(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
         Index("ix_support_chat_session_created", "session_id", "created_at"),
     )
 
+class SupportKnowledgeCategory(str, enum.Enum):
+    """Enum for knowledge base categorization (Elite V2.2)"""
+    GENERAL  = "GENERAL"
+    POLICY   = "POLICY"
+    SHIPPING = "SHIPPING"
+    PRODUCT  = "PRODUCT"
+    PROMO    = "PROMO"
+
 class SupportKnowledge(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     """
     Elite V2.2: RAG Knowledge Base for Support Agent.
@@ -107,7 +115,7 @@ class SupportKnowledge(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'support_knowledge'
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     
-    category: Mapped[str] = mapped_column(String(100), default="GENERAL", index=True)
+    category: Mapped[SupportKnowledgeCategory] = mapped_column(SQLEnum(SupportKnowledgeCategory), default=SupportKnowledgeCategory.GENERAL, index=True)
     question: Mapped[str] = mapped_column(Text)
     answer: Mapped[str] = mapped_column(Text)
     

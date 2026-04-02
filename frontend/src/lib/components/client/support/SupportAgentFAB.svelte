@@ -1,6 +1,6 @@
 <script lang="ts">
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
-  import { Sparkles } from 'lucide-svelte';
+  import { Sparkles, ScanSearch } from 'lucide-svelte';
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
@@ -12,6 +12,13 @@
 
   function toggleAgent() {
     supportAgent.toggle();
+  }
+
+  function scrollToDiagnostics() {
+    const el = document.getElementById('diagnostics-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
   }
 
   // Scroll detection for shrinking
@@ -32,6 +39,30 @@
     if (browser) window.removeEventListener('scroll', handleScroll);
   });
 </script>
+
+<!-- Diagnostic Quick Access Mini-FAB -->
+{#if !supportAgent.isOpen}
+  <button
+    class="diagnostic-mini-fab fixed flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] z-[100]"
+    style="
+      bottom: {isMobile ? '185px' : '95px'};
+      right: {isMobile ? '28px' : '40px'};
+      width: 44px;
+      height: 44px;
+      opacity: {isScrolled ? '1' : '0'};
+      transform: {isScrolled ? 'scale(1)' : 'scale(0) rotate(-45deg)'};
+      pointer-events: {isScrolled ? 'auto' : 'none'};
+    "
+    onclick={scrollToDiagnostics}
+    aria-label="Chẩn đoán nhanh"
+    title="Chẩn đoán nhanh"
+  >
+    <div class="absolute inset-0 rounded-full bg-[#00A3FF] blur-[15px] opacity-20"></div>
+    <div class="relative w-full h-full rounded-full flex items-center justify-center bg-black/40 backdrop-blur-xl border border-white/10 shadow-lg hover:border-[#00A3FF]/40 hover:bg-black/60 transition-all active:scale-90 group">
+      <ScanSearch size={20} class="text-[#00A3FF] group-hover:scale-110 transition-transform" />
+    </div>
+  </button>
+{/if}
 
 <button
   class="agent-fab flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] 

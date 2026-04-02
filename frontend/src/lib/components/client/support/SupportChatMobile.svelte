@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { fade, fly } from 'svelte/transition';
-  import { Send, X, ShieldCheck, PhoneCall, PackageSearch, Sparkles, UserRound } from 'lucide-svelte';
+  import { Send, X, ShieldCheck, PhoneCall, PackageSearch, Sparkles, UserRound, ScanSearch } from 'lucide-svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
@@ -13,9 +13,19 @@
   let userInput = $state('');
   
   const quickActions = [
+    { label: 'Chẩn đoán', icon: ScanSearch, action: scrollToDiagnostics },
     { label: 'Tình trạng đơn', icon: PackageSearch, prompt: 'Tôi muốn kiểm tra đơn hàng' },
     { label: 'Chính sách', icon: ShieldCheck, prompt: 'Cam kết bảo hành và đổi trả' }
   ];
+
+  function scrollToDiagnostics() {
+    const el = document.getElementById('diagnostics-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+      // On mobile, we might want to close the chat to let the user see the scanner
+      supportAgent.isOpen = false;
+    }
+  }
 
   function closeChat() {
     supportAgent.isOpen = false;
@@ -34,9 +44,13 @@
     scrollToBottom();
   }
 
-  async function handleQuickAction(prompt: string) {
+  async function handleQuickAction(action: any) {
+    if (action.action) {
+      action.action();
+      return;
+    }
     if (supportAgent.isTyping) return;
-    await supportAgent.sendMessage(prompt, productSlug);
+    await supportAgent.sendMessage(action.prompt, productSlug);
     scrollToBottom();
   }
 
@@ -104,8 +118,15 @@
           </div>
         </div>
       </div>
-      <button 
-        onclick={closeChat}
+      <div class="flex items-center gap-3">
+        <button 
+          onclick={scrollToDiagnostics}
+          class="w-11 h-11 flex items-center justify-center rounded-full bg-[#00A3FF]/10 text-[#00A3FF] border border-[#00A3FF]/20 backdrop-blur-3xl"
+        >
+          <ScanSearch size={22} />
+        </button>
+        <button 
+          onclick={closeChat}
         class="w-11 h-11 flex items-center justify-center rounded-full bg-white/5 active:bg-white/15 text-white/80 transition-all border border-white/5 backdrop-blur-3xl"
       >
         <X size={24} />
@@ -208,7 +229,7 @@
           {@const Icon = action.icon}
           <button 
             class="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 active:bg-white/10 text-white/60 border border-white/5 rounded-full text-[11px] font-bold transition-all active:scale-95"
-            onclick={() => handleQuickAction(action.prompt)}
+            onclick={() => handleQuickAction(action)}
           >
             <Icon size={12} class="text-[#00A3FF] opacity-50" /> {action.label}
           </button>

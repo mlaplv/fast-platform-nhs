@@ -15,22 +15,24 @@ logger = logging.getLogger("api-gateway")
 
 # Injection pattern library — extensible, no hardcoded business logic
 _INJECTION_PATTERNS: Final[list[re.Pattern[str]]] = [
-    # Prompt injection classics
-    re.compile(r"ignore\s+.{0,40}(previous|above|prior|system|instruction)", re.IGNORECASE),
-    re.compile(r"(forget|disregard|override)\s+.{0,30}(instruction|rule|prompt|directive)", re.IGNORECASE),
-    re.compile(r"(act|pretend|roleplay|simulate)\s+.{0,30}(as|like)\s+.{0,30}(admin|root|dev|gpt|system)", re.IGNORECASE),
+    # Prompt injection classics (EN + VI)
+    re.compile(r"(ignore|forget|disregard|override|bỏ qua|quên|lờ đi|ghi đè)\s+.{0,40}(previous|above|prior|system|instruction|chỉ dẫn|lệnh|quy tắc|hệ thống)", re.IGNORECASE),
+    re.compile(r"(act|pretend|roleplay|simulate|đóng vai|giả vờ|mô phỏng)\s+.{0,30}(as|like|là|như)\s+.{0,30}(admin|root|dev|gpt|system|quản trị|nhân viên|phát triển)", re.IGNORECASE),
 
-    # Data fishing
-    re.compile(r"(reveal|show|print|output|display|dump)\s+.{0,30}(prompt|system|secret|key|token|order|database|schema)", re.IGNORECASE),
-    re.compile(r"(list|get|fetch|query)\s+.{0,30}(all\s+)?(order|user|customer|phone|password|address)", re.IGNORECASE),
+    # Data fishing (EN + VI)
+    re.compile(r"(reveal|show|print|output|display|dump|tiết lộ|hiện|in|xuất|cho biết)\s+.{0,30}(prompt|system|secret|key|token|order|database|schema|bí mật|mật khẩu|hệ thống)", re.IGNORECASE),
+    re.compile(r"(list|get|fetch|query|liệt kê|lấy|truy xuất)\s+.{0,30}(all\s+)?(order|user|customer|password|đơn hàng|khách hàng|mật khẩu)", re.IGNORECASE),
 
-    # SQL injection
+    # SQL injection & Special chars
     re.compile(r"\b(union\s+select|drop\s+table|insert\s+into|delete\s+from|update\s+.+set)\b", re.IGNORECASE),
     re.compile(r"(--|;|/\*|\*/|xp_|exec\s*\()", re.IGNORECASE),
 
     # Internal path / code fishing
     re.compile(r"(api[_\s-]?key|secret|bearer|sk-|gemini[_\s]?key)", re.IGNORECASE),
     re.compile(r"(/backend|/services|/database|/models|\.py|\.env)", re.IGNORECASE),
+
+    # Vietnamese Profanity (Văng tục, tục tĩu) — Hygiene Layer ②
+    re.compile(r"\b(địt|đụ|lồn|cặc|vcl|vkl|đm|dmm|đcm|cc|cl|đéo|mẹ\s*mày|chó\s*đẻ|ngu\s*lồn)\b", re.IGNORECASE),
 ]
 
 _MAX_INPUT_LENGTH: Final[int] = 2000  # Hard cap — prevents token overflow attacks
@@ -58,8 +60,8 @@ class InputGuard:
         for pattern in _INJECTION_PATTERNS:
             if pattern.search(message):
                 logger.warning(
-                    "[InputGuard] Injection attempt detected. Pattern: %s | Input (truncated): %.80s",
-                    pattern.pattern[:40],
+                    "[InputGuard] Injection attempt detected. Pattern: %.40s | Input (truncated): %.80s",
+                    str(pattern.pattern),
                     message,
                 )
                 return False, "injection_detected"

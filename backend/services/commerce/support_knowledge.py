@@ -138,36 +138,56 @@ class SupportKnowledgeService:
         await db_session.execute(stmt)
         return SuccessResponse(ok=True)
 
-    async def search_relevant_knowledge(self, db_session: AsyncSession, query: str, limit: int = 3) -> str:
+    async def search_relevant_knowledge(self, db_session: AsyncSession, query: str, limit: int = 5) -> str:
         """
-        RAG Core: Semantic/Keyword search for relevant knowledge to inject into prompt.
+        RAG Core: Flexible keyword matching for support knowledge.
+        Splits prompts by comma/newline to match against user query.
         """
-        # Elite V2.2: Start with keyword search, upgrade to Vector if available
-        conditions = [
-            SupportKnowledge.deleted_at == None,
-            SupportKnowledge.is_active == True
-        ]
-        
-        # Simple ilike search for relevance (can be expanded with full-text search)
-        # Elite V2.2: Dual-direction matching for short keywords/long queries
+        # Fetch only active, non-deleted entries
         stmt = select(SupportKnowledge.question, SupportKnowledge.answer).where(
-            and_(*conditions),
-            or_(
-                SupportKnowledge.question.ilike(f"%{query}%"),
-                sa.literal(query).ilike(sa.func.concat('%', SupportKnowledge.question, '%')),
-                SupportKnowledge.tags.cast(sa.String).ilike(f"%{query}%")
+            and_(
+                SupportKnowledge.deleted_at == None,
+                SupportKnowledge.is_active == True
             )
-        ).order_by(SupportKnowledge.priority.desc()).limit(limit)
+        ).order_by(SupportKnowledge.priority.desc())
         
         result = await db_session.execute(stmt)
-        matches = result.all()
+        all_items = result.all()
+        
+        if not all_items:
+            return ""
+            
+        matches = []
+        q_lower = query.lower()
+        
+        for q_text, a_text in all_items:
+            # Split triggers by comma, semicolon or newline (Elite V2.2)
+            import re
+            triggers = re.split(r'[,;\n]+', q_text.lower())
+            triggers = [t.strip() for t in triggers if t.strip()]
+            
+            # Check if any trigger is contained in the query
+            # OR if the query is contained in the whole prompt
+            found = False
+            if q_text.lower() in q_lower:
+                found = True
+            else:
+                for t in triggers:
+                    if t in q_lower:
+                        found = True
+                        break
+            
+            if found:
+                matches.append((q_text, a_text))
+                if len(matches) >= limit:
+                    break
         
         if not matches:
             return ""
             
-        context = "[THÔNG TIN BỔ TRỢ ĐƯỢC DUYỆT]\n"
+        context = "[THÔNG TIN TRÍ THỨC HỆ THỐNG PHÊ DUYỆT]\n"
         for q, a in matches:
-            context += f"Hỏi: {q}\nĐáp: {a}\n---\n"
+            context += f"Q: {q}\nA: {a}\n---\n"
         return context
 
 # ==========================================

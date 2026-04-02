@@ -155,7 +155,7 @@
   </section>
 
   <!-- SECTION 2: NATIVE DIAGNOSTICS -->
-  <section class="mobile-snap-section" data-section-idx={hasVideo ? 2 : 1}>
+  <section id="diagnostics-section" class="mobile-snap-section" data-section-idx={hasVideo ? 2 : 1}>
     <MobileDiagnostics {product} />
   </section>
 
