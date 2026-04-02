@@ -127,6 +127,21 @@ class SupportController(Controller):
             logger.error("[SupportController] History lookup failed: %s", exc)
             return []
 
+    @get("/status", guards=[])
+    async def get_status(self) -> dict:
+        """
+        Public endpoint to check if Helen AI is enabled.
+        Used by the client FAB for dynamic tooltips.
+        """
+        from backend.services.xohi_memory import xohi_memory
+        helen_on = await xohi_memory.client.get("system:helen_enabled")
+        offline_msg = await xohi_memory.client.get("system:helen_offline_msg")
+        
+        return {
+            "helen_enabled": helen_on != "0",
+            "offline_message": offline_msg or "Dược sĩ tư vấn sẽ sớm phản hồi sếp. Vui lòng để lại lời nhắn ạ."
+        }
+
     @post("/chat", guards=[])
     async def chat(
         self,

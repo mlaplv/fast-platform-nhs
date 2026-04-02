@@ -98,6 +98,10 @@
   gap: 0.75rem;
 }
 
+.metric-item.blue { --metric-color: var(--blue-400, #60a5fa); }
+.metric-item.indigo { --metric-color: var(--indigo-400, #818cf8); }
+.metric-item.emerald { --metric-color: var(--emerald-400, #34d399); }
+
 .metric-dot {
   width: 6px;
   height: 6px;

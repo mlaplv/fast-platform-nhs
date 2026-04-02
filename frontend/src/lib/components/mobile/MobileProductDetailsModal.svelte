@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { Product } from '$lib/types';
   import { X, ShieldCheck, Info } from 'lucide-svelte';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
   import { portal } from '$lib/core/actions/portal';
   
   let { active = $bindable(), product }: { active: boolean, product: Product } = $props();
@@ -41,26 +40,19 @@
 <div use:portal class="mobile-product-details-modal">
   <button
     type="button"
-    class="mobile-bottom-sheet-bg border-none outline-none"
-    style:z-index={Z_INDEX_CLIENT.OVERLAY}
-    style:opacity={active ? 1 - Math.min(dragY / 400, 0.5) : 0}
-    style:transition={isDragging ? 'none' : 'opacity 0.4s fade'}
-    style:pointer-events={active ? 'auto' : 'none'}
-    style:position="fixed"
-    style:inset="0"
-    style:background="rgba(0,0,0,0.6)"
-    style:backdrop-filter="blur(8px)"
+    class="mobile-overlay border-none outline-none"
+    style:--drag-opacity-reduce={active ? Math.min(dragY / 400, 0.5) : 0}
+    class:active
+    class:dragging={isDragging}
     onclick={close}
     aria-label="Đóng overlay"
   ></button>
 
   <div
-    class="mobile-bottom-sheet bg-[#0a0a0a] text-white border-t border-white/10 flex flex-col shadow-[0_-20px_80px_rgba(0,0,0,0.9)] rounded-t-[32px] h-[85dvh] overflow-hidden fixed bottom-0 left-0 right-0 w-full"
-    style:z-index={Z_INDEX_CLIENT.MODAL}
-    style:padding-bottom="env(safe-area-inset-bottom, 24px)"
-    style:transform="translateY({active ? dragY + 'px' : '100%'})"
-    style:transition={isDragging ? 'none' : 'transform 0.5s cubic-bezier(0.23, 1, 0.32, 1)'}
-    style:pointer-events={active ? 'auto' : 'none'}
+    class="mobile-modal-base"
+    class:active
+    class:dragging={isDragging}
+    style:--drag-y={active ? dragY + 'px' : '100%'}
     role="dialog"
     aria-modal="true"
   >

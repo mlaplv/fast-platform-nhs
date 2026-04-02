@@ -1,7 +1,7 @@
 <script lang="ts">
   import { ShoppingCart, Star, Info, MessageSquare, ShieldCheck } from 'lucide-svelte';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
   import type { Product } from '$lib/types';
+  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
 
   interface Props {
     product: Product;
@@ -38,10 +38,8 @@
 </script>
 
 <div
-  class="fixed right-2 flex flex-col items-center gap-7 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] pb-8"
+  class="mobile-action-stack"
   class:HUD-hidden={isScrollingDown}
-  style:z-index={Z_INDEX_CLIENT.SURFACE}
-  style:bottom="calc(var(--mobile-bottom-space) + env(safe-area-inset-bottom, 20px))"
 >
   <!-- 6. Tra cứu (Top-most utility) -->
   <a
@@ -62,10 +60,8 @@
     >
       <div class="relative">
         <MessageSquare class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" />
-        <span class="absolute -top-1 -right-1 w-2 h-2 bg-[#00A3FF] rounded-full animate-ping"></span>
-        <span class="absolute -top-1 -right-1 w-2 h-2 bg-[#00A3FF] rounded-full"></span>
       </div>
-      <span class="btn-label-mini">AI HELEN</span>
+      <span class="btn-label-mini">{supportAgent.helenEnabled ? 'AI HELEN' : 'HỖ TRỢ'}</span>
     </button>
   {:else}
     <a
@@ -146,32 +142,11 @@
     white-space: nowrap;
   }
 
-  /* Scroll Reactive State (Mini Mode) */
-  .HUD-hidden {
-    transform: translateX(100%) scale(0.6);
-    opacity: 0.3;
-    pointer-events: none;
-    filter: blur(2px);
-  }
-
-  .HUD-hidden:hover {
-    transform: translateX(0) scale(1);
-    opacity: 1;
-    pointer-events: auto;
-    filter: none;
-  }
-
-  @keyframes vinyl-spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
-  .animate-spin-slow {
-    animation: vinyl-spin 4s linear infinite;
-  }
-
   /* Tiktok-style Shadow for icons */
   :global(.action-btn-mini svg) {
     filter: drop-shadow(0 2px 8px rgba(0,0,0,1));
+  }
+  .disk-image {
+    background-image: var(--disk-url);
   }
 </style>

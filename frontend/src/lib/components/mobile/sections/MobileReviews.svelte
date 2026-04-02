@@ -5,7 +5,6 @@
   import { Star, ShieldCheck, MessageSquarePlus, X, MapPin, Phone, User, Send, CheckCircle2 } from 'lucide-svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { SHOP_CONFIG } from '$lib/constants/shop';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
 
   let { product } = $props();
   const shopStore = getShopStore();
@@ -200,8 +199,7 @@
           <div class="rating-row flex gap-1 mb-4">
             {#each Array(5) as _, s}
               <Star 
-                class="w-3 h-3 {s < review.rating ? 'text-amber-400 fill-amber-400' : 'text-white/5'}" 
-                style={s < review.rating ? 'filter: drop-shadow(0 0 6px rgba(251,191,36,0.3))' : ''}
+                class="w-3 h-3 {s < review.rating ? 'text-amber-400 fill-amber-400 star-shimmer' : 'text-white/5'}" 
               />
             {/each}
           </div>
@@ -233,8 +231,7 @@
 <!-- Mobile Form Modal -->
 {#if showFormModal}
   <div 
-    class="fixed inset-0 bg-black/90 backdrop-blur-2xl flex flex-col pt-12"
-    style:z-index={Z_INDEX_CLIENT.MOBILE_REVIEW_OVERLAY}
+    class="fixed inset-0 bg-black/90 backdrop-blur-2xl flex flex-col pt-12 reviews-form-modal"
     transition:fade={{ duration: 300 }}
   >
     <div class="p-6 flex items-center justify-between border-b border-white/10">
@@ -307,7 +304,7 @@
                     onclick={() => ratingSelected = i + 1}
                     class="transition-transform active:scale-95"
                   >
-                    <Star class="w-8 h-8 {i < ratingSelected ? 'text-amber-400 fill-amber-400' : 'text-white/5'}" style={i < ratingSelected ? 'filter: drop-shadow(0 0 10px rgba(251,191,36,0.6))' : ''} />
+                    <Star class="w-8 h-8 {i < ratingSelected ? 'text-amber-400 fill-amber-400 star-shimmer-large' : 'text-white/5'}" />
                   </button>
                 {/each}
               </div>
@@ -345,8 +342,7 @@
 <!-- Toast -->
 {#if showToast}
   <div
-    class="fixed top-8 left-6 right-6"
-    style:z-index={Z_INDEX_CLIENT.MOBILE_REVIEW_HEADER}
+    class="fixed top-8 left-6 right-6 reviews-toast"
     transition:fly={{ y: -50 }}
   >
     <div class="bg-red-500/20 border border-red-500/40 backdrop-blur-2xl px-6 py-4 rounded-2xl flex items-center gap-3">
@@ -364,5 +360,21 @@
     width: 92vw;
     max-width: 440px;
     transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .star-shimmer {
+    filter: drop-shadow(0 0 6px rgba(251,191,36,0.3));
+  }
+
+  .star-shimmer-large {
+    filter: drop-shadow(0 0 10px rgba(251,191,36,0.6));
+  }
+
+  .reviews-form-modal {
+    z-index: 1200; /* Z_INDEX_CLIENT.MOBILE_REVIEW_OVERLAY */
+  }
+
+  .reviews-toast {
+    z-index: 2000; /* Z_INDEX_CLIENT.MOBILE_REVIEW_HEADER */
   }
 </style>

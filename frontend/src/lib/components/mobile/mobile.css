@@ -153,6 +153,88 @@
   color: white;
   pointer-events: none;
 }
+
+/* Viral 2026 Mobile Action Stack */
+.mobile-action-stack {
+  position: fixed;
+  right: 8px; /* 0.5rem */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px; /* 1.75rem */
+  transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+  padding-bottom: 32px; /* 2rem */
+  z-index: 10; /* Z_INDEX_CLIENT.SURFACE */
+  bottom: calc(var(--mobile-bottom-space) + env(safe-area-inset-bottom, 20px));
+}
+
+.mobile-action-stack.HUD-hidden {
+  transform: translateX(100%) scale(0.6);
+  opacity: 0.3;
+  pointer-events: none;
+  filter: blur(2px);
+}
+
+.mobile-action-stack.HUD-hidden:hover {
+  transform: translateX(0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+  filter: none;
+}
+
+/* Liquid Glass Overlay */
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  z-index: 500; /* Z_INDEX_CLIENT.OVERLAY */
+}
+
+.mobile-overlay.active {
+  opacity: calc(1 - var(--drag-opacity-reduce, 0));
+  pointer-events: auto;
+}
+
+/* Modal Base (Bottom Sheet Style) */
+.mobile-modal-base {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: #0a0a0a;
+  color: white;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 -20px 80px rgba(0, 0, 0, 0.9);
+  border-top-left-radius: 40px;
+  border-top-right-radius: 40px;
+  z-index: 1000; /* Z_INDEX_CLIENT.MODAL */
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  padding-bottom: env(safe-area-inset-bottom, 24px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-modal-base.active {
+  transform: translateY(var(--drag-y, 0px));
+}
+
+.mobile-modal-base.dragging {
+  transition: none !important;
+}
+
+/* Viral Primary Button */
+.btn-primary-viral {
+  background: linear-gradient(90deg, #fe2c55 0%, #ff4b6b 100%);
+  box-shadow: 0 10px 40px rgba(254, 44, 85, 0.4);
+}
+
 /* Snap Section Global Overrides */
 .mobile-snap-section .section-title {
   font-size: 2.5rem !important;

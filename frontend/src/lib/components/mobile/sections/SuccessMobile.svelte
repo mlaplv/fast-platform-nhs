@@ -3,8 +3,7 @@
   import { FileText, ShieldCheck, Copy, ShoppingCart, MessageSquare, CheckCircle2, Package, Truck, Award, Sparkles, Phone, Gift, Home } from 'lucide-svelte';
   import { formatCurrency, formatDate } from '$lib/utils/format.ts';
   import { goto } from '$app/navigation';
-  import { SHOP_CONFIG } from '$lib/constants/shop.ts';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
+  import { SHOP_CONFIG } from '$lib/constants/shop';
 
   import { page } from '$app/state';
 
@@ -45,8 +44,7 @@
   <!-- Top Navigation -->
   <button
     onclick={() => goto('/')}
-    style:z-index={Z_INDEX_CLIENT.MOBILE_REVIEW_HEADER}
-    class="fixed top-4 right-6 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-xl active:scale-95 transition-all text-white/40 ring-1 ring-white/5 shadow-2xl"
+    class="fixed top-4 right-6 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-xl active:scale-95 transition-all text-white/40 ring-1 ring-white/5 shadow-2xl z-[2000]"
     aria-label="Home"
   >
     <Home class="w-4 h-4" />
@@ -181,8 +179,7 @@
   <div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/95 to-transparent flex flex-row gap-3 items-center">
     <a 
       href="tel:{SHOP_CONFIG.pharmacy.phone.replace(/\s+/g, '')}"
-      class="flex-[1.5] py-4 text-white font-black text-[12px] uppercase tracking-wider rounded-full shadow-[0_10px_30px_rgba(254,44,85,0.2)] active:scale-95 transition-all overflow-hidden relative group text-center"
-      style:background="linear-gradient(90deg, #fe2c55 0%, #ff4b6b 100%) !important"
+      class="flex-[1.5] py-4 text-white font-black text-[12px] uppercase tracking-wider rounded-full btn-primary-viral active:scale-95 transition-all overflow-hidden relative group text-center"
     >
         <span class="relative z-10 flex items-center justify-center gap-1.5">GỌI TƯ VẤN <Phone class="w-3.5 h-3.5" /></span>
         <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>

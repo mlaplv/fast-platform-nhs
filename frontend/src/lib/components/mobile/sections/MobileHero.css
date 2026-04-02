@@ -24,3 +24,14 @@
   scroll-snap-align: center;
   position: relative;
 }
+
+.hero-info-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding-left: 9px;
+  padding-right: 24px; /* 1.5rem */
+  pointer-events: none;
+  bottom: calc(var(--mobile-bottom-space) + env(safe-area-inset-bottom) + 5px);
+}

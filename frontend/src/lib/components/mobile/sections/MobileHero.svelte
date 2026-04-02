@@ -94,11 +94,8 @@
          <!-- Cinematic Smooth Gradient (Ultra-Clear Elite 2026) -->
          <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none"></div>
 
-         <!-- Product Info Overlay -->
-         <div 
-            class="absolute left-0 right-0 z-20 pl-[9px] pr-6 pointer-events-none"
-            style:bottom="calc(var(--mobile-bottom-space) + env(safe-area-inset-bottom) + 5px)"
-         >
+          <!-- Product Info Overlay -->
+          <div class="hero-info-overlay">
             <!-- Live & Scarcity Indicator (Viral 2026) -->
             <div class="inline-flex items-center gap-2.5 px-3 py-1 bg-black/40 backdrop-blur-[25px] rounded-full border border-white/10 shadow-[0_4px_15px_rgba(0,0,0,0.2)] mb-1 w-max">
                <div class="relative flex h-1.5 w-1.5 align-middle">

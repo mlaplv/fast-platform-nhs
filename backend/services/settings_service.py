@@ -255,8 +255,10 @@ class SettingsService:
         else:
             setting.value = data_dict
 
-        # Cache important values in Redis (e.g., maintenance mode)
+        # Cache important values in Redis (e.g., maintenance mode, helen bot)
         await xohi_memory.client.set("system:maintenance_mode", "1" if data.maintenance.is_enabled else "0")
+        await xohi_memory.client.set("system:helen_enabled", "1" if data.support_bot.helen_enabled else "0")
+        await xohi_memory.client.set("system:helen_offline_msg", data.support_bot.offline_message)
         
         return SuccessResponse(
             ok=True,

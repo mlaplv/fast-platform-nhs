@@ -120,7 +120,7 @@
         
         <div class="metrics-grid">
           {#each metrics as metric}
-            <div class="metric-item" style:--metric-color="var(--{metric.color}-400, {metric.color === 'blue' ? '#60a5fa' : metric.color === 'indigo' ? '#818cf8' : '#34d399'})">
+            <div class="metric-item {metric.color}">
               <div class="metric-dot"></div>
               <span class="metric-label">{metric.label}</span>
               <span class="metric-value">{metric.value}</span>

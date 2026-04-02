@@ -90,6 +90,10 @@ class SupportChatHistory(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     content: Mapped[str] = mapped_column(Text)
     intent: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     product_slug: Mapped[Optional[str]] = mapped_column(String, index=True, nullable=True)
+    
+    # Elite V2.2: Identify customer in history for Zalo/Staff Bridge
+    customer_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    customer_phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
 
     __table_args__ = (
         Index("ix_support_chat_session_created", "session_id", "created_at"),

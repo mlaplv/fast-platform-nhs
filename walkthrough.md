@@ -27,3 +27,17 @@
     - **Bug Fix**: Xử lý triệt để lỗi cú pháp Svelte (unbalanced tag) và đồng bộ logic `finalCustomerName` cho toàn bộ funnel.
 
 *Hoàn thành bởi Antigravity (Elite V2.2 Protocol).*
+
+# Walkthrough - Giai đoạn 31: Zalo OA Support Bridge (Elite 2026) (COMPLETED)
+- **Action**: Thiết lập cầu nối trực tiếp tới Admin qua Zalo OA khi Helen AI tạm nghỉ.
+- **Kỹ thuật**:
+    - **Backend Upgrade**: `ZaloService` nâng cấp lên OA API v2.0, hỗ trợ tự động refresh `access_token` và đẩy thông báo định danh khách hàng.
+    - **Database Migration**: Thêm trường `customer_name` và `customer_phone` vào `SupportChatHistory` để nhân viên dễ dàng nhận diện khách hàng.
+    - **Frontend State**: `SupportAgentState` tự động gửi metadata khách hàng từ `ShopStore`.
+- **Kết quả**:
+    - Khi Sếp tắt Helen, mọi tin nhắn từ khách sẽ được đẩy tức thì về Zalo OA của Sếp kèm tên và SĐT (nếu có).
+    - Toàn bộ lịch sử trao đổi được lưu trữ đồng bộ trong Admin Panel.
+    - **Migration Code**: `8563cdd22c16` (Add customer identification).
+    - **Tài liệu hướng dẫn**: [Zalo OA Setup Guide](file:///home/lv/.gemini/antigravity/brain/9cf9da1c-4e8c-41d0-ba4c-fb147115980b/zalo_oa_setup_guide.md) (Dành cho Sếp).
+
+*Hoàn thành bởi Antigravity (Elite V2.2 Protocol).*

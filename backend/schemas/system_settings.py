@@ -35,6 +35,10 @@ class MaintenanceMode(BaseModel):
     is_enabled: bool = False
     message: str = "Website is under maintenance."
 
+class SupportBotSettings(BaseModel):
+    helen_enabled: bool = True
+    offline_message: str = "Dược sĩ tư vấn sẽ sớm phản hồi sếp. Vui lòng để lại lời nhắn ạ."
+
 class SystemSettingsPayload(BaseModel):
     basic_info: BasicInfo = Field(default_factory=BasicInfo)
     contact_info: ContactInfo = Field(default_factory=ContactInfo)
@@ -42,6 +46,7 @@ class SystemSettingsPayload(BaseModel):
     seo_analytics: SeoAnalytics = Field(default_factory=SeoAnalytics)
     google_maps: GoogleMaps = Field(default_factory=GoogleMaps)
     maintenance: MaintenanceMode = Field(default_factory=MaintenanceMode)
+    support_bot: SupportBotSettings = Field(default_factory=SupportBotSettings)
 
 class SystemSettingsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

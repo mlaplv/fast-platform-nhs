@@ -48,6 +48,8 @@ class SupportRequest(BaseModel):
         max_length=120,
         description="Optional: slug of the product being viewed. Used for RAG context."
     )
+    customer_name: Optional[str] = Field(default="Khách ẩn danh", max_length=100)
+    customer_phone: Optional[str] = Field(default=None, max_length=20)
 
     @field_validator("message", mode="before")
     @classmethod

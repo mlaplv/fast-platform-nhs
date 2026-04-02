@@ -30,6 +30,8 @@ from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.commerce.constants.support_config import support_cfg
 from backend.services.commerce.security.input_guard import input_guard
 from backend.services.event_bus import event_bus
+from backend.services.xohi_memory import xohi_memory
+from backend.services.core.zalo_service import zalo_service
 
 logger = logging.getLogger("api-gateway")
 
@@ -188,6 +190,37 @@ class SupportAgentOperative:
         """
         t0 = time.monotonic()
         session_id = request.session_id or str(uuid.uuid4())
+
+        # ELITE V2.2: Global Helen Toggle Check (Redis-cached)
+        helen_on = await xohi_memory.client.get("system:helen_enabled")
+        if helen_on == "0":
+            offline_msg = await xohi_memory.client.get("system:helen_offline_msg")
+            reply = offline_msg or "Hiện tại em Helen đang được bảo trì, tư vấn viên sẽ hỗ trợ sếp ngay ạ!"
+            
+            # 🚀 QUANTUM BRIDGE: Push to Zalo OA when Helen is OFF
+            customer_name = request.customer_name or "Khách ẩn danh"
+            await zalo_service.push_support_notification(
+                customer_name=customer_name,
+                message=request.message,
+                session_id=session_id
+            )
+
+            # Vẫn lưu lịch sử để nhân viên vào xem được thưa sếp!
+            await self._save_history(
+                db,
+                session_id=session_id,
+                user_msg=request.message,
+                assistant_reply=reply,
+                intent=SupportIntent.GENERAL_ADVICE,
+                product_slug=request.product_slug
+            )
+
+            return SupportResponse(
+                ok=True,
+                reply=reply,
+                intent=SupportIntent.GENERAL_ADVICE,
+                session_id=session_id,
+            )
 
         # Security Layer ①: Input validation
         is_safe, _reason = input_guard.validate(request.message)

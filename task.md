@@ -145,3 +145,10 @@ Nâng cấp khả năng xử lý ảnh động và tải xuống hàng loạt th
 - [x] UI: Final R00 audit for `ClinicalQuiz.svelte` labels. <!-- id: 197 -->
 - [x] Logic: Standardize `shop.svelte.ts` with `apiClient` & `GenericResponse`. <!-- id: 198 -->
 - [x] Doc: Finalize Phase 29 documentation in `walkthrough.md`. <!-- id: 199 -->
+
+## 🎯 Giai đoạn 31: Zalo OA Support Bridge (Elite 2026) (COMPLETED)
+- [x] Backend: Nâng cấp `ZaloService` (OA API v2.0 + Token Refresh). <!-- id: 310 -->
+- [x] Backend: Tích hợp Zalo Bridge vào `SupportAgentOperative`. <!-- id: 311 -->
+- [x] Database: Migrate `SupportChatHistory` (Identification fields). <!-- id: 312 -->
+- [x] Frontend: Đồng bộ `SendMessage` metadata (Identified notify). <!-- id: 313 -->
+- [x] Config: Cập nhật `.env` placeholders. <!-- id: 314 -->

@@ -81,8 +81,7 @@
     <button 
       onclick={onTrack}
       disabled={isSubmitting}
-      class="w-full py-5 text-white font-black text-base uppercase tracking-widest rounded-full shadow-[0_15px_40px_rgba(254,44,85,0.2)] active:scale-95 transition-all overflow-hidden relative group disabled:opacity-50"
-      style:background="linear-gradient(90deg, #fe2c55 0%, #ff4b6b 100%) !important"
+      class="w-full py-5 text-white font-black text-base uppercase tracking-widest rounded-full btn-primary-viral active:scale-95 transition-all overflow-hidden relative group disabled:opacity-50"
     >
         <span class="relative z-10 flex items-center justify-center gap-3">
           {#if isSubmitting}

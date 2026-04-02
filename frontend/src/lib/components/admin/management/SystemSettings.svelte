@@ -15,6 +15,7 @@
   import Plus from "lucide-svelte/icons/plus";
   import Trash2 from "lucide-svelte/icons/trash-2";
   import Upload from "lucide-svelte/icons/upload";
+  import Sparkles from "lucide-svelte/icons/sparkles";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
   import type { MediaAsset } from "$lib/state/types";
 
@@ -60,6 +61,11 @@
     message: string;
   }
 
+  interface SupportBotSettings {
+    helen_enabled: boolean;
+    offline_message: string;
+  }
+
   interface SystemSettings {
     basic_info: BasicInfo;
     contact_info: ContactInfo;
@@ -67,6 +73,7 @@
     seo_analytics: SeoAnalytics;
     google_maps: GoogleMaps;
     maintenance: MaintenanceMode;
+    support_bot: SupportBotSettings;
   }
 
   let settings = $state<SystemSettings>({
@@ -75,7 +82,8 @@
     social_media: [],
     seo_analytics: { meta_title: "", meta_description: "", meta_keywords: "", google_analytics_id: "", facebook_pixel_id: "" },
     google_maps: { map_iframe: "", api_key: "" },
-    maintenance: { is_enabled: false, message: "" }
+    maintenance: { is_enabled: false, message: "" },
+    support_bot: { helen_enabled: true, offline_message: "" }
   });
 
   let activeTab = $state("basic");
@@ -88,7 +96,7 @@
   let currentPickType = $state<'basic' | 'social'>('basic');
   let currentSocialIndex = $state<number | null>(null);
 
-  type TabId = "basic" | "contact" | "social" | "seo" | "maps" | "maintenance";
+  type TabId = "basic" | "contact" | "social" | "seo" | "maps" | "maintenance" | "helen";
 
   interface TabDefinition {
     id: TabId;
@@ -102,7 +110,8 @@
     { id: "social", label: "Mạng xã hội", icon: Share2 },
     { id: "seo", label: "SEO & Analytics", icon: Search },
     { id: "maps", label: "Google Maps", icon: MapPin },
-    { id: "maintenance", label: "Bảo trì", icon: Tool }
+    { id: "maintenance", label: "Bảo trì", icon: Tool },
+    { id: "helen", label: "Helen AI", icon: Sparkles }
   ];
 
   onMount(async () => {
@@ -463,6 +472,56 @@
                   <div class="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-4 animate-pulse">
                     <div class="w-2 h-2 rounded-full bg-red-500"></div>
                     <span class="text-[10px] font-black text-red-500 uppercase tracking-[0.2em]">System Isolated: Maintenance Protocol Active</span>
+                  </div>
+                {/if}
+              </div>
+            </div>
+          {:else if activeTab === 'helen'}
+            <div class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <h3 class="text-sm font-black text-cyan-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                <Sparkles size={16} /> Helen AI Configuration
+              </h3>
+              
+              <div class="grid grid-cols-1 gap-6 bg-zinc-950/40 border border-white/5 rounded-2xl p-8 items-center">
+                <div class="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 class="text-base font-black text-white uppercase italic tracking-tighter">Helen AI Control</h4>
+                    <p class="text-[10px] text-zinc-500 font-mono tracking-widest mt-1">ENABLE OR DISABLE THE AI SUPPORT BOT GLOBALLY</p>
+                  </div>
+                  
+                  <button 
+                    onclick={() => settings.support_bot.helen_enabled = !settings.support_bot.helen_enabled}
+                    aria-label="Toggle Helen AI"
+                    class="relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none 
+                      {settings.support_bot.helen_enabled ? 'bg-cyan-500' : 'bg-zinc-800'}"
+                  >
+                    <div class="absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-lg transition-transform duration-300
+                      {settings.support_bot.helen_enabled ? 'translate-x-7' : 'translate-x-0'}">
+                    </div>
+                  </button>
+                </div>
+
+                <div class="space-y-1">
+                  <label for="helen_offline_msg" class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Thông báo khi Helen OFF</label>
+                  <textarea 
+                    id="helen_offline_msg"
+                    bind:value={settings.support_bot.offline_message} 
+                    rows="4" 
+                    autocomplete="off"
+                    class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-cyan-500/50 outline-none transition-colors resize-none" 
+                    placeholder="Dược sĩ tư vấn sẽ hỗ trợ sếp ngay ạ..."
+                  ></textarea>
+                </div>
+                
+                {#if settings.support_bot.helen_enabled}
+                  <div class="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-xl flex items-center gap-4">
+                    <div class="w-2 h-2 rounded-full bg-cyan-500 animate-ping"></div>
+                    <span class="text-[10px] font-black text-cyan-500 uppercase tracking-[0.2em]">Helen AI is Online & Active</span>
+                  </div>
+                {:else}
+                  <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-4">
+                    <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                    <span class="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">Manual Support Mode Active</span>
                   </div>
                 {/if}
               </div>

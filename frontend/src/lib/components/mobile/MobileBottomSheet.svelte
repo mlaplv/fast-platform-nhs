@@ -2,7 +2,6 @@
   import type { Product, ProductVariant } from '$lib/types';
   import { X, ShoppingCart, ShieldCheck, ArrowRight, ArrowLeft, Phone, MapPin, User, Loader2 } from 'lucide-svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
   import { portal } from '$lib/core/actions/portal';
   import { fade, fly } from 'svelte/transition';
 
@@ -128,21 +127,18 @@
 <div use:portal class="mobile-bottom-sheet-root">
   <button
     type="button"
-    class="mobile-bottom-sheet-bg border-none outline-none"
-    style:z-index={Z_INDEX_CLIENT.OVERLAY}
-    style:opacity={active ? 1 - Math.min(dragY / 400, 0.5) : 0}
-    style:transition={isDragging ? 'none' : 'opacity 0.4s fade'}
+    class="mobile-overlay border-none outline-none"
+    style:--drag-opacity-reduce={active ? Math.min(dragY / 400, 0.5) : 0}
     class:active
+    class:dragging={isDragging}
     onclick={close}
   ></button>
 
   <div
-    class="mobile-bottom-sheet bg-[#0a0a0a] text-white border-t border-white/15 flex flex-col shadow-[0_-20px_80px_rgba(0,0,0,0.9)] rounded-t-[40px] h-fit max-h-[98dvh] overflow-hidden"
+    class="mobile-modal-base"
     class:active
-    style:z-index={Z_INDEX_CLIENT.MODAL}
-    style:padding-bottom="env(safe-area-inset-bottom, 24px)"
-    style:transform="translateY({active ? dragY + 'px' : '100%'})"
-    style:transition={isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)'}
+    class:dragging={isDragging}
+    style:--drag-y={active ? dragY + 'px' : '100%'}
     role="dialog"
     aria-modal="true"
   >
@@ -159,8 +155,7 @@
     <!-- Close Button: Decoupled from Drag Area with 48px Hitbox -->
     <button
       onclick={close}
-      class="absolute right-0 top-0 w-12 h-12 flex items-center justify-center text-white/45 hover:text-white transition-all active:scale-90 active:bg-white/5 rounded-tr-[inherit]"
-      style:z-index={Z_INDEX_CLIENT.MOBILE_BOTTOM_SHEET_OVERLAY}
+      class="absolute right-0 top-0 w-12 h-12 flex items-center justify-center text-white/45 hover:text-white transition-all active:scale-90 active:bg-white/5 rounded-tr-[inherit] z-20"
       aria-label="Đóng"
     >
       <X class="w-5 h-5" strokeWidth={1.5} />
@@ -365,8 +360,7 @@
       </div>
 
       <button
-        class="flex-[1.2] py-[14px] px-3 text-white font-black text-[12px] leading-none uppercase tracking-wider rounded-full shadow-[0_10px_40px_rgba(254,44,85,0.4)] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 overflow-hidden relative group shrink-0"
-        style:background="linear-gradient(90deg, #fe2c55 0%, #ff4b6b 100%)"
+        class="flex-[1.2] py-[14px] px-3 text-white font-black text-[12px] leading-none uppercase tracking-wider rounded-full btn-primary-viral active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 overflow-hidden relative group shrink-0"
         onclick={handleAction}
         disabled={shopStore.isSubmitting}
       >

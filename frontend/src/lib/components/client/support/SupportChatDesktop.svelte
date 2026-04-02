@@ -35,7 +35,12 @@
     if (!userInput.trim() || supportAgent.isTyping) return;
     const text = userInput;
     userInput = ''; 
-    await supportAgent.sendMessage(text, productSlug);
+    
+    // Elite V2.2: Pass customer info for Zalo OA Bridge
+    const customer = shopStore.customerData;
+    const name = customer?.nameMasked || 'Khách ẩn danh';
+    
+    await supportAgent.sendMessage(text, productSlug, name);
     scrollToBottom();
   }
 
@@ -91,10 +96,12 @@
             <h3 class="font-black text-white tracking-tight text-[19px] leading-tight">{supportAgent.config.agentName}</h3>
             <div class="flex items-center gap-2 mt-1">
                <span class="relative flex h-2 w-2">
-                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00A3FF] opacity-75"></span>
-                 <span class="relative inline-flex rounded-full h-2 w-2 bg-[#00A3FF]"></span>
+                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full {supportAgent.helenEnabled ? 'bg-[#00A3FF]' : 'bg-[#34C759]'} opacity-75"></span>
+                 <span class="relative inline-flex rounded-full h-2 w-2 {supportAgent.helenEnabled ? 'bg-[#00A3FF]' : 'bg-[#34C759]'}"></span>
                </span>
-               <p class="text-[11px] text-[#00A3FF] font-black uppercase tracking-[0.2em] opacity-90">Chuyên gia trực tuyến</p>
+               <p class="text-[11px] {supportAgent.helenEnabled ? 'text-[#00A3FF]' : 'text-[#34C759]'} font-black uppercase tracking-[0.2em] opacity-90">
+                 {supportAgent.helenEnabled ? 'Chuyên gia trực tuyến' : 'Nhân viên trực'}
+               </p>
             </div>
           </div>
         </div>

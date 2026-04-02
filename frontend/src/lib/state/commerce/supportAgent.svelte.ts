@@ -41,6 +41,10 @@ class SupportAgentState {
     isHistoryLoading = $state(false);
     hasMoreHistory = $state(true);
     messages = $state<SupportMessage[]>([]);
+
+    // Elite V2.2: AI Toggle State
+    helenEnabled = $state(true);
+    offlineMessage = $state("");
     
     // Persistent Session UUID
     private _sessionId: string = "";
@@ -70,12 +74,33 @@ class SupportAgentState {
     }
 
     /**
+     * Fetch Helen AI global status & offline message
+     */
+    async fetchStatus() {
+        try {
+            const res = await apiClient.get<any>("/api/v1/client/support/status");
+            if (res) {
+                this.helenEnabled = res.helen_enabled ?? true;
+                this.offlineMessage = res.offline_message || "";
+            }
+        } catch (error) {
+            console.warn("[SupportAgent] Failed to fetch status:", error);
+        }
+    }
+
+    /**
      * Call this inside a root +layout.svelte or onMount to initialize config and load history
      */
     async init(envAgentName?: string) {
-        if (envAgentName) {
+        // Elite V2.2: Fetch global AI toggle state first
+        await this.fetchStatus();
+
+        if (this.helenEnabled && envAgentName) {
             this.config.agentName = envAgentName;
             this.config.welcomeMessage = `Dạ chào bạn, mình là ${envAgentName}. Bạn cần hỗ trợ thông tin gì về sản phẩm hay chính sách ạ?`;
+        } else if (!this.helenEnabled) {
+            this.config.agentName = "Chuyên viên Tư vấn";
+            this.config.welcomeMessage = this.offlineMessage || "Chào bạn! Hiện tại em đang tạm nghỉ, chuyên viên trực sẽ sớm hỗ trợ bạn qua Zalo OA ạ.";
         }
 
         // Only load history once or if empty
@@ -143,15 +168,31 @@ class SupportAgentState {
         }
     }
 
-    toggle() {
+    async toggle() {
         this.isOpen = !this.isOpen;
+        if (this.isOpen) {
+            // Re-sync with backend to catch Admin changes without refresh
+            await this.fetchStatus();
+            
+            // Sync config if it changed
+            if (!this.helenEnabled) {
+                this.config.agentName = "Chuyên viên Tư vấn";
+                // Only update welcome message if no history (avoid weird jumps)
+                if (this.messages.length <= 1) {
+                    this.config.welcomeMessage = this.offlineMessage || "Chào bạn! Hiện tại em đang tạm nghỉ, chuyên viên trực sẽ sớm hỗ trợ bạn qua Zalo OA ạ.";
+                    if (this.messages.length === 1 && this.messages[0].role === "assistant") {
+                        this.messages[0].content = this.config.welcomeMessage;
+                    }
+                }
+            }
+        }
     }
 
     close() {
         this.isOpen = false;
     }
 
-    async sendMessage(text: string, productSlug?: string) {
+    async sendMessage(text: string, productSlug?: string, customerName?: string, customerPhone?: string) {
         if (!text.trim() || this.isTyping) return;
 
         const userMsg: SupportMessage = {
@@ -168,7 +209,9 @@ class SupportAgentState {
             const res = await apiClient.post("/api/v1/client/support/chat", {
                 message: text.trim(),
                 session_id: this._sessionId,
-                product_slug: productSlug || null
+                product_slug: productSlug || null,
+                customer_name: customerName || "Khách ẩn danh",
+                customer_phone: customerPhone || null
             });
 
             if (res && typeof (res as any).reply === "string") {

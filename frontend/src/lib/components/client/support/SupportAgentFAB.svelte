@@ -81,7 +81,9 @@
         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00A3FF] opacity-75"></span>
         <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#00A3FF] shadow-[0_0_8px_#00A3FF]"></span>
       </div>
-      <span class="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">Chuyên gia AI đang trực tuyến</span>
+      <span class="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+        {supportAgent.helenEnabled ? 'Chuyên gia AI đang trực tuyến' : 'Nhân viên đang trực tuyến'}
+      </span>
     </div>
   {/if}
 </button>
