@@ -15,7 +15,7 @@
 
   let { icon } = $props<{ icon: string }>();
 
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, import('svelte').Component> = {
     // Body Odor Levels
     '😊': Sparkles,
     '😐': Waves,

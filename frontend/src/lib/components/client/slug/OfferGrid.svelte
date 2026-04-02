@@ -191,22 +191,22 @@
              <h5 class="text-xl font-bold text-white mb-4">{getVariantTitle(variant)}</h5>
 
              <div class="flex items-baseline gap-3 mb-2">
-               {#if (shopStore.originalPrice * shopStore.quantity) > shopStore.totalAmount && shopStore.selectedVariant?.sku === variant.sku}
-                  <span class="text-xs text-slate-600 line-through">{(shopStore.originalPrice * shopStore.quantity).toLocaleString()}đ</span>
+               {#if (shopStore.originalPrice * shopStore.quantity) > shopStore.totalAmount && shopStore.variant?.sku === variant.sku}
+                  <span class="original-price text-xs text-slate-600 line-through">{(shopStore.originalPrice * shopStore.quantity).toLocaleString()}đ</span>
                {:else if variant.price > (variant.discountPrice || variant.price)}
-                  <span class="text-xs text-slate-600 line-through">{(variant.price).toLocaleString()}đ</span>
+                  <span class="original-price text-xs text-slate-600 line-through">{(variant.price).toLocaleString()}đ</span>
                {/if}
-               <span class="text-3xl font-black text-white">
-                 {shopStore.selectedVariant?.sku === variant.sku ? shopStore.totalAmount.toLocaleString() : (variant.discountPrice || variant.price).toLocaleString()}đ
+               <span class="price-value font-black text-white">
+                 {shopStore.variant?.sku === variant.sku ? shopStore.totalAmount.toLocaleString() : (variant.discountPrice || variant.price).toLocaleString()}đ
                </span>
              </div>
 
               {#if idx === 0}
-                 <p class="text-[9px] text-blue-400 font-bold uppercase tracking-widest">{mkt.shipping_prefix} {SHOP_CONFIG.shipping.fixed_cost.toLocaleString()}đ</p>
+                 <p class="shipping-label text-[9px] text-blue-400 font-bold uppercase tracking-widest">{mkt.shipping_prefix} {SHOP_CONFIG.shipping.fixed_cost.toLocaleString()}đ</p>
               {:else}
                  <div class="flex flex-col gap-1">
                    <p class="text-[9px] text-emerald-400 font-bold uppercase tracking-widest">{mkt.savings_prefix} {(variant.price - (variant.discountPrice || variant.price)).toLocaleString()}đ</p>
-                   <p class="text-[8px] text-slate-500 italic opacity-60">🔥 {bookingPoints[idx]} {mkt.booking_suffix}</p>
+                   <p class="booking-suffix text-[8px] text-slate-500 italic opacity-60">🔥 {bookingPoints[idx]} {mkt.booking_suffix}</p>
                  </div>
               {/if}
            </div>

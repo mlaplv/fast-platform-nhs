@@ -611,13 +611,15 @@ html {
   }
 }
 
-/* TYPING CURSOR EFFECT */
+/* TYPING CURSOR EFFECT (Elite V2.2 - Antigravity Style) */
 .typing-headline {
   position: relative;
   min-height: 1.1em;
-
+  /* Multi-line safety - remove flex to keep cursor inline */
+  
   @media (min-width: 1024px) {
     margin-top: 15px;
+    min-height: 2.2em;
   }
 
   & .headline-shift {
@@ -628,28 +630,38 @@ html {
 
 .typing-cursor {
   display: inline-block;
-  width: clamp(2px, 0.2vw, 4px);
-  height: 0.8em;
-  background-color: #38bdf8;
-  margin-left: clamp(2px, 0.4vw, 8px);
-  animation: cursor-blink 1s step-end infinite;
-  vertical-align: baseline;
-  box-shadow: 0 0 15px #38bdf8;
+  width: clamp(3px, 0.25vw, 5px);
+  height: 1em;
+  /* Premium Gradient Beam: Blue -> Emerald -> Gold -> Red */
+  background: linear-gradient(
+    to bottom,
+    #3b82f6 0%,   /* Blue */
+    #10b981 40%,  /* Emerald */
+    #fcd34d 70%,  /* Gold/Yellow */
+    #ef4444 100%  /* Red */
+  );
+  margin-left: 8px;
+  vertical-align: middle;
+  border-radius: 99px;
+  /* Cinematic Glow */
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)) 
+          drop-shadow(0 0 12px rgba(239, 68, 68, 0.4));
+  animation: cursor-smooth-pulse 1.2s ease-in-out infinite;
+  will-change: opacity, transform;
 
   &.is-complete {
-    visibility: hidden;
+    display: none; /* Fully remove when done */
   }
 }
 
-@keyframes cursor-blink {
-
-  from,
-  to {
+@keyframes cursor-smooth-pulse {
+  0%, 100% {
     opacity: 1;
+    transform: scaleY(1);
   }
-
   50% {
-    opacity: 0;
+    opacity: 0;   /* High contrast blink */
+    transform: scaleY(0.85);
   }
 }
 

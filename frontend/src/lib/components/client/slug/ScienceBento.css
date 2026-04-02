@@ -116,7 +116,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Center content to prevent top-heavy layout */
+  justify-content: flex-start; /* ELITE V2.2: Align to top for stable grid */
 }
 
 .bento-tile:hover {
@@ -448,7 +448,7 @@
       padding-bottom: 6rem;
       padding-left: 1.5rem;
       padding-right: 1.5rem;
-      padding-top: 0;
+      padding-top: 6rem; /* ELITE V2.2: Clear Floating Header Pill */
       min-height: auto;
     }
     
@@ -458,7 +458,7 @@
       min-height: 800px;
     }
     
-    .column-left { flex: 1.1; width: auto; }
+    .column-left { flex: 1; width: auto; }
     .column-right { flex: 1; width: auto; }
     
     .glass-chamfer, .glass-organic, .glass-horizon, .glass-gem { 
@@ -467,7 +467,7 @@
     }
 
     .glass-chamfer {
-      padding: 2.5rem !important;
+      padding: 2.5rem !important; /* Standardized Elite padding */
       clip-path: polygon(0 30px, 30px 0, calc(100% - 30px) 0, 100% 30px, 100% 100%, 0 100%) !important;
       border-radius: 0.5rem !important;
     }
@@ -491,7 +491,7 @@
     }
 
     .glass-organic {
-      padding: 1.5rem 2.5rem 2.5rem 2.5rem !important; /* Push everything up */
+      padding: 2.5rem !important; /* ELITE V2.2: Standardized vs Column Left */
       border-radius: 30% 70% 70% 30% / 30% 30% 70% 70% !important; /* Organic shape restored */
     }
 
@@ -502,7 +502,7 @@
     .glass-island { padding: 2rem !important; }
 
     .glass-gem {
-      padding: 2rem !important;
+      padding: 2.5rem !important; /* Consistent with other tiles */
       clip-path: polygon(15% 0%, 85% 0%, 100% 15%, 100% 85%, 85% 100%, 15% 100%, 0% 85%, 0% 15%) !important;
       border-radius: 0 !important;
     }

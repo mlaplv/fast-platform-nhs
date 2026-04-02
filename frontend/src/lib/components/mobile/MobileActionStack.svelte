@@ -38,7 +38,8 @@
 <div
   class="fixed right-2 flex flex-col items-center gap-7 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] pb-8"
   class:HUD-hidden={isScrollingDown}
-  style="z-index: {Z_INDEX_CLIENT.SURFACE}; bottom: calc(var(--mobile-bottom-space) + env(safe-area-inset-bottom, 20px))"
+  style:z-index={Z_INDEX_CLIENT.SURFACE}
+  style:bottom="calc(var(--mobile-bottom-space) + env(safe-area-inset-bottom, 20px))"
 >
   <!-- 6. Tra cứu (Top-most utility) -->
   <a
@@ -95,7 +96,7 @@
     <div class="w-12 h-12 vinyl-spin bg-black rounded-full flex items-center justify-center border border-white/20 shadow-2xl overflow-hidden relative">
       <div
         class="w-full h-full animate-spin-slow bg-cover opacity-80 absolute inset-0"
-        style="background-image: url('{labels.disk_image}')"
+        style:background-image="url('{labels.disk_image}')"
       ></div>
       <div class="absolute inset-0 bg-black/20"></div>
       <ShoppingCart class="w-6 h-6 text-white relative z-10 drop-shadow-lg" />

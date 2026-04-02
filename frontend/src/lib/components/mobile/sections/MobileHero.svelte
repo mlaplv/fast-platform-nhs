@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Music, Zap, ShieldCheck, Droplets, Eye, Clock, Flame, ArrowRight, Star, StarHalf } from 'lucide-svelte';
+  import './MobileHero.css';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import type { ProductVariant } from '$lib/types';
 
@@ -39,7 +40,6 @@
   
   const metadata = $derived(product?.metadata || {});
   const variantOptions = $derived(product?.tierVariations?.[0]?.options || []);
-  const musicLabel = $derived(metadata.mobile_music_label || 'Nhạc nền gốc - Elite Storefront');
   
   const metrics = $derived(metadata.hero_metrics || [
     { label: '[Tốc độ]', value: 'THẨM THẤU TÀNG HÌNH 3S', color: 'blue' },
@@ -70,7 +70,7 @@
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
-  const iconMap: Record<string, any> = { blue: Zap, indigo: ShieldCheck, emerald: Droplets };
+  const iconMap: Record<string, import('svelte').Component> = { blue: Zap, indigo: ShieldCheck, emerald: Droplets };
 </script>
 
 <div class="h-full w-full relative group">
@@ -86,16 +86,18 @@
          <img
            src={product?.tierVariations[0]?.images[i] || product?.images[0]}
            alt="{product?.name} - {opt}"
-           class="w-full h-full object-cover select-none"
+           class="w-full h-full object-cover select-none brightness-[1.10] saturate-[1.10]"
+           loading="eager"
+           fetchpriority="high"
          />
 
-         <!-- Cinematic Smooth Gradient (Elite 2026) -->
-         <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/10 pointer-events-none"></div>
+         <!-- Cinematic Smooth Gradient (Ultra-Clear Elite 2026) -->
+         <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none"></div>
 
          <!-- Product Info Overlay -->
          <div 
-           class="absolute left-5 right-5 tiktok-shadow flex flex-col gap-2.5"
-           style="bottom: calc(var(--mobile-bottom-space) + env(safe-area-inset-bottom) + 15px)"
+            class="absolute left-0 right-0 z-20 pl-[9px] pr-6 pointer-events-none"
+            style:bottom="calc(var(--mobile-bottom-space) + env(safe-area-inset-bottom) + 5px)"
          >
             <!-- Live & Scarcity Indicator (Viral 2026) -->
             <div class="inline-flex items-center gap-2.5 px-3 py-1 bg-black/40 backdrop-blur-[25px] rounded-full border border-white/10 shadow-[0_4px_15px_rgba(0,0,0,0.2)] mb-1 w-max">
@@ -196,41 +198,8 @@
                   </div>
                </button>
             </div>
-
-            <!-- Music Info -->
-            <div class="flex items-center gap-2 text-white/40 mt-3">
-              <Music class="w-3.5 h-3.5 animate-pulse text-white/60" />
-              <div class="music-marquee-container max-w-[150px]">
-                 <span class="music-ticker text-[10px] font-bold tracking-widest uppercase">{musicLabel}</span>
-              </div>
-            </div>
          </div>
       </div>
     {/each}
   </div>
 </div>
-
-<style lang="postcss">
-  @keyframes shimmer-custom {
-     0% { transform: translateX(-150%) skewX(-20deg); }
-     100% { transform: translateX(350%) skewX(-20deg); }
-  }
-  .animate-shimmer {
-     animation: shimmer-custom 3s infinite;
-  }
-  .variant-slider-container {
-    display: flex;
-    overflow-x: scroll;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .variant-slider-container::-webkit-scrollbar { display: none; }
-  .variant-slide {
-    flex: none;
-    width: 100vw;
-    height: 100dvh;
-    scroll-snap-align: center;
-    position: relative;
-  }
-</style>

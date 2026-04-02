@@ -83,13 +83,14 @@
         <div class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#030303] overflow-hidden" in:fade={{ duration: 400 }}>
           <!-- Sci-fi Technical Grid -->
           <div class="absolute inset-0 opacity-[0.07]" 
-               style="background-image: linear-gradient(#3b82f6 1px, transparent 1px), linear-gradient(90deg, #3b82f6 1px, transparent 1px); background-size: 20px 20px;">
+               style:background-image="linear-gradient(#3b82f6 1px, transparent 1px), linear-gradient(90deg, #3b82f6 1px, transparent 1px)"
+               style:background-size="20px 20px">
           </div>
           
           <!-- Biometric Pulses -->
           <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div class="w-64 h-64 border border-blue-500/20 rounded-full animate-ping opacity-20"></div>
-            <div class="w-96 h-96 border border-blue-500/10 rounded-full animate-ping opacity-10" style="animation-delay: 1s"></div>
+            <div class="w-96 h-96 border border-blue-500/10 rounded-full animate-ping opacity-10" style:animation-delay="1s"></div>
           </div>
           
           <div class="relative z-10 text-center px-4">
@@ -187,7 +188,7 @@
                 </div>
                 <div class="relative w-16 h-1 bg-white/5 rounded-full overflow-hidden">
                   <div class="absolute inset-0 bg-blue-500/20 animate-pulse"></div>
-                  <div class="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-700 ease-out" style="width: {((currentStep + 1) / questions.length) * 100}%"></div>
+                  <div class="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-700 ease-out" style:width="{((currentStep + 1) / questions.length) * 100}%"></div>
                 </div>
               </div>
               
@@ -238,10 +239,4 @@
   <div class="absolute top-40 right-0 w-48 h-48 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none"></div>
 </div>
 
-<style>
-  @keyframes scan {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
-</style>
 

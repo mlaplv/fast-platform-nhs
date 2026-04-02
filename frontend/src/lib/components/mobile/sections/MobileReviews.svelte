@@ -5,12 +5,22 @@
   import { Star, ShieldCheck, MessageSquarePlus, X, MapPin, Phone, User, Send, CheckCircle2 } from 'lucide-svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { SHOP_CONFIG } from '$lib/constants/shop';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
 
   let { product } = $props();
   const shopStore = getShopStore();
   const metadata = $derived(product?.metadata || {});
   
-  let realReviews = $state<any[]>([]);
+  interface ReviewApiResponse {
+    id: string | number;
+    customer_name: string;
+    customer_phone?: string;
+    customer_location?: string;
+    rating: number;
+    content: string;
+    created_at: string;
+  }
+  let realReviews = $state<Review[]>([]);
   let isLoading = $state(true);
 
   const labels = $derived({
@@ -61,7 +71,7 @@
       const res = await fetch(`/api/v1/client/reviews?entity_type=PRODUCT&entity_id=${product.id}&status=APPROVED`);
       if (res.ok) {
         const data = await res.json();
-        realReviews = (data.items || []).map((r: any) => ({
+        realReviews = (data.items as ReviewApiResponse[] || []).map((r: ReviewApiResponse) => ({
           id: r.id,
           name: r.customer_name,
           phone: r.customer_phone ? r.customer_phone.slice(0, 3) + '****' + r.customer_phone.slice(-3) : 'Ẩn danh',
@@ -223,14 +233,15 @@
 <!-- Mobile Form Modal -->
 {#if showFormModal}
   <div 
-    class="fixed inset-0 z-[1200] bg-black/90 backdrop-blur-2xl flex flex-col pt-12"
+    class="fixed inset-0 bg-black/90 backdrop-blur-2xl flex flex-col pt-12"
+    style:z-index={Z_INDEX_CLIENT.MOBILE_REVIEW_OVERLAY}
     transition:fade={{ duration: 300 }}
   >
     <div class="p-6 flex items-center justify-between border-b border-white/10">
       <div class="text-xs font-black text-white/40 uppercase tracking-[0.3em] font-mono">
         {labels.label_store_verified}
       </div>
-      <button 
+      <button
         onclick={() => showFormModal = false}
         class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 active:scale-90"
       >
@@ -252,30 +263,30 @@
       {:else}
         <div in:fly={{ y: 20 }}>
           <h3 class="text-2xl font-black text-white uppercase italic tracking-tighter mb-8">{labels.form_title}</h3>
-          
+
           <form onsubmit={handleSubmit} class="space-y-6 pb-12">
             <div class="space-y-4">
               <div class="relative">
                 <User class="absolute left-4 top-5 w-4 h-4 text-white/20" />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   bind:value={name}
-                  placeholder="Danh tính của bạn" 
+                  placeholder="Danh tính của bạn"
                   class="w-full bg-white/[0.03] border border-white/10 px-12 py-5 rounded-2xl text-white outline-none focus:border-emerald-500/50 transition-colors uppercase font-black text-xs tracking-widest placeholder:text-white/10"
                 />
               </div>
               <div class="relative">
                 <Phone class="absolute left-4 top-5 w-4 h-4 text-white/20" />
-                <input 
-                  type="tel" 
+                <input
+                  type="tel"
                   bind:value={phone}
-                  placeholder="Số điện thoại bảo mật" 
+                  placeholder="Số điện thoại bảo mật"
                   class="w-full bg-white/[0.03] border border-white/10 px-12 py-5 rounded-2xl text-white outline-none focus:border-emerald-500/50 transition-colors font-mono tracking-[0.2em] text-xs placeholder:text-white/10"
                 />
               </div>
               <div class="relative">
                 <MapPin class="absolute left-4 top-5 w-4 h-4 text-white/20" />
-                <select 
+                <select
                   bind:value={locationSelected}
                   class="w-full bg-white/[0.03] border border-white/10 px-12 py-5 rounded-2xl text-white outline-none focus:border-emerald-500/50 transition-colors appearance-none uppercase font-black text-xs tracking-widest {locationSelected ? 'text-white' : 'text-white/20'}"
                 >
@@ -291,8 +302,8 @@
               <p class="text-center text-[10px] font-black text-white/20 uppercase tracking-[0.4em] mb-4">Đánh giá hệ thống</p>
               <div class="flex justify-center gap-4">
                 {#each Array(5) as _, i}
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onclick={() => ratingSelected = i + 1}
                     class="transition-transform active:scale-95"
                   >
@@ -303,9 +314,9 @@
             </div>
 
             <div class="space-y-4">
-              <textarea 
+              <textarea
                 bind:value={content}
-                placeholder="Nhập trải nghiệm thực tế tại đây..." 
+                placeholder="Nhập trải nghiệm thực tế tại đây..."
                 class="w-full h-40 bg-white/[0.03] border border-white/10 p-6 rounded-3xl text-white focus:border-emerald-500/50 transition-colors text-sm leading-relaxed placeholder:text-white/10 outline-none"
               ></textarea>
             </div>
@@ -313,8 +324,8 @@
             <!-- Honeypot -->
             <input type="text" bind:value={websiteUrl} class="hidden" tabindex="-1" />
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isSubmitting}
               class="w-full py-6 bg-emerald-500 rounded-3xl font-black text-slate-950 text-base tracking-[0.4em] uppercase flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98] transition-all"
             >
@@ -333,8 +344,9 @@
 
 <!-- Toast -->
 {#if showToast}
-  <div 
-    class="fixed top-8 left-6 right-6 z-[2000]"
+  <div
+    class="fixed top-8 left-6 right-6"
+    style:z-index={Z_INDEX_CLIENT.MOBILE_REVIEW_HEADER}
     transition:fly={{ y: -50 }}
   >
     <div class="bg-red-500/20 border border-red-500/40 backdrop-blur-2xl px-6 py-4 rounded-2xl flex items-center gap-3">

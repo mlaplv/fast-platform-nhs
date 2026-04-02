@@ -1,0 +1,26 @@
+@keyframes shimmer-custom {
+   0% { transform: translateX(-150%) skewX(-20deg); }
+   100% { transform: translateX(350%) skewX(-20deg); }
+}
+
+.animate-shimmer {
+   animation: shimmer-custom 3s infinite;
+}
+
+.variant-slider-container {
+  display: flex;
+  overflow-x: scroll;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.variant-slider-container::-webkit-scrollbar { display: none; }
+
+.variant-slide {
+  flex: none;
+  width: 100vw;
+  height: 100dvh;
+  scroll-snap-align: center;
+  position: relative;
+}

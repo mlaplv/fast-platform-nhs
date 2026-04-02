@@ -12,7 +12,17 @@
   const product = $derived(shopStore.product);
   const metadata = $derived(product?.metadata || {});
   
-  let realReviews = $state<any[]>([]);
+  interface ReviewApiResponse {
+    id: string | number;
+    customer_name: string;
+    customer_phone?: string;
+    customer_location?: string;
+    rating: number;
+    content: string;
+    created_at: string;
+  }
+
+  let realReviews = $state<Review[]>([]);
   let isLoading = $state(true);
 
   const headline = $derived(metadata?.reviews_headline || '');
@@ -80,16 +90,23 @@
       const res = await fetch(`/api/v1/client/reviews?entity_type=PRODUCT&entity_id=${product.id}&status=APPROVED`);
       if (res.ok) {
         const data = await res.json();
-        realReviews = (data.items || []).map((r: any) => ({
-          id: r.id,
-          name: r.customer_name,
-          phone: r.customer_phone ? r.customer_phone.slice(0, 3) + '****' + r.customer_phone.slice(-3) : 'Ẩn danh',
-          location: r.customer_location || 'Việt Nam',
-          rating: r.rating,
-          content: r.content,
-          initial: r.customer_name ? r.customer_name.charAt(0).toUpperCase() : '?',
-          created_at: r.created_at
-        }));
+        realReviews = (data.items as ReviewApiResponse[] || []).map((r: ReviewApiResponse) => {
+          // Elite 2026: Strip legacy suffixes "(09...)" or "- TP..." from name to prevent redundancy
+          const cleanName = r.customer_name 
+            ? r.customer_name.split('(')[0].split('-')[0].trim() 
+            : 'Ẩn danh';
+
+          return {
+            id: r.id,
+            name: cleanName,
+            phone: r.customer_phone ? '0' + r.customer_phone.slice(-9, -3) + '***' : '09x****xxx',
+            location: r.customer_location || 'Việt Nam',
+            rating: r.rating,
+            content: r.content,
+            initial: cleanName.charAt(0).toUpperCase(),
+            created_at: r.created_at
+          };
+        });
       }
     } catch (e) {
       console.error("Lỗi fetch reviews:", e);
@@ -258,32 +275,34 @@
           {:else}
             {#each realReviews as review, i}
               <div class="review-card group/card flex-none w-[85vw] max-w-[400px] lg:w-auto snap-center" in:fly={{ y: 20, delay: i * 100, duration: 800 }}>
-                <div class="review-header flex items-center justify-between mb-8">
-                  <div class="flex items-center gap-5">
+                <div class="review-header flex items-start justify-between gap-4 mb-6">
+                  <div class="flex items-center gap-4">
                     <div class="avatar-circle relative group-hover/card:scale-110 transition-transform duration-500">
-                      {review.initial}
-                      <div class="absolute inset-0 bg-emerald-400/20 blur-lg rounded-full opacity-0 group-hover/card:opacity-100 transition-opacity"></div>
+                       {review.initial}
+                       <div class="absolute inset-0 bg-emerald-400/20 blur-lg rounded-full opacity-0 group-hover/card:opacity-100 transition-opacity"></div>
                     </div>
-                    <div class="user-meta">
-                      <div class="user-name font-bold text-lg text-white/95 tracking-tight">{review.name}</div>
-                      <div class="flex items-center gap-2 mt-1">
-                        <span class="text-[9px] text-white/30 uppercase tracking-[0.2em] font-black font-mono">{review.location}</span>
-                        <span class="w-1 h-1 rounded-full bg-white/10"></span>
-                        <span class="text-[9px] text-white/30 uppercase tracking-[0.1em] font-mono">{review.phone}</span>
+                    <div class="user-meta flex flex-col min-w-0">
+                      <div class="flex items-center gap-2 mb-0.5">
+                        <span class="user-name font-black text-base text-white/95 tracking-tight truncate">{review.name}</span>
+                        <span class="text-[10px] text-white/20 font-mono italic shrink-0 leading-none">{review.phone}</span>
+                        <div class="verified-badge-mini text-emerald-400 shrink-0">
+                           <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                           </svg>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-[8px] text-white/30 uppercase tracking-[0.2em] font-black font-mono leading-none">{review.location}</span>
+                      </div>
+                      <div class="flex items-center gap-0.5 mt-1.5">
+                        {#each Array(5) as _, i}
+                          <svg class="w-3 h-3 {i < review.rating ? 'text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.4)]' : 'text-white/5'}" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        {/each}
                       </div>
                     </div>
                   </div>
-                  <div class="verified-badge bg-emerald-500/10 border-emerald-500/20 px-3 py-1 rounded-full">
-                    <span class="text-[8px] font-black text-emerald-400 uppercase tracking-widest">{labels.label_verified}</span>
-                  </div>
-                </div>
-
-                <div class="rating-stars flex gap-2 mb-8">
-                  {#each Array(5) as _, s}
-                    <svg class="w-4 h-4 {s < review.rating ? 'text-emerald-400 shadow-sm' : 'text-white/5'}" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  {/each}
                 </div>
 
                 <div class="review-content relative">

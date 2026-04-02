@@ -33,7 +33,7 @@
   // Variant tabs should be hidden when user is on the video banner (section 0)
   // Check both `video_url` (admin field) and `hero_video_url` (desktop fallback) for compatibility
   const hasVideo = $derived(
-    !!(product?.metadata?.video_url || product?.metadata?.hero_video_url)
+    !!(product?.metadata?.video_url || product?.metadata?.hero_video_url || product?.metadata?.hero_video)
   );
 
   const isTikTokVideo = $derived.by(() => {
@@ -139,7 +139,7 @@
 
   <!-- SECTION 0: VIDEO BANNER (conditional – only renders if hero_video_url is set) -->
   {#if hasVideo}
-    <section class="mobile-snap-section" data-section-idx="0">
+    <section class="mobile-snap-section video-section" data-section-idx="0">
       <MobileVideoBanner {product} />
     </section>
   {/if}
@@ -172,24 +172,3 @@
   <MobileBottomSheet bind:active={shopStore.isCheckoutOpen} {product} />
   <MobileProductDetailsModal bind:active={isDetailsModalOpen} {product} />
 </div>
-
-<style lang="postcss">
-  /* Override section internal padding for mobile snap */
-  :global(.mobile-snap-section section) {
-    padding-top: var(--mobile-top-space, 10px) !important;
-    padding-bottom: calc(var(--mobile-bottom-space) + 20px + env(safe-area-inset-bottom)) !important;
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  :global(.mobile-snap-section .section-title) {
-    font-size: 2.5rem !important;
-    line-height: 1;
-  }
-
-  :global(.mobile-snap-section .container) {
-    padding-left: 1.5rem !important;
-    padding-right: 1.5rem !important;
-  }
-</style>

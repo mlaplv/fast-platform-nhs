@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { SHOP_CONFIG, OFFER_CONSTANTS } from '$lib/constants/shop';
+  import type { ProductVariant } from '$lib/types';
   import { ShoppingCart, Clock, CheckCircle2, Lock, Users, Zap } from 'lucide-svelte';
   
   let { product } = $props();
@@ -34,7 +35,7 @@
     return `${mins}:${secs}`;
   };
 
-  function getVariantTitle(variant: any): string {
+  function getVariantTitle(variant: ProductVariant): string {
     if (!product.tierVariations?.length || !variant.tierIndex?.length) return variant.sku || 'Combo';
     return variant.tierIndex.map((optIdx: number, tierIdx: number) => {
       const option = product.tierVariations![tierIdx]?.options[optIdx];

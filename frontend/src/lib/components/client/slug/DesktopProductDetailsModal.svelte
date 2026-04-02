@@ -13,7 +13,7 @@
 </script>
 
 {#if active}
-<div use:portal class="desktop-product-details-modal fixed inset-0 flex items-center justify-center p-6 md:p-12" style="z-index: {Z_INDEX_CLIENT.MODAL};">
+<div use:portal class="desktop-product-details-modal fixed inset-0 flex items-center justify-center p-6 md:p-12" style:z-index={Z_INDEX_CLIENT.MODAL}>
   <!-- Backdrop -->
   <button
     transition:fade={{ duration: 300 }}

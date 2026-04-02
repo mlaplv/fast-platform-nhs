@@ -60,13 +60,16 @@
   let displayText = $state("");
   let isTypingComplete = $state(false);
 
-  // Optimized Typewriter with cleanup signal
+  // Optimized Typewriter with Elite V2.2 Performance (Antigravity Style)
   const typeWriter = async (signal: AbortSignal) => {
     if (!browser) return;
+    
+    // Split by tags to keep HTML intact
     const parts = rawHeadline.split(/(<[^>]+>)/g);
     let currentText = "";
     
-    await new Promise(r => setTimeout(r, 800));
+    // Initial cinematic pause
+    await new Promise(r => setTimeout(r, 600));
     if (signal.aborted) return;
 
     for (const part of parts) {
@@ -74,11 +77,15 @@
         currentText += part;
         displayText = currentText;
       } else {
+        // Character by character with variable "human-like" delay
         for (const char of part) {
           if (signal.aborted) return;
           currentText += char;
           displayText = currentText;
-          const delay = char === '.' || char === ',' ? 500 : 120 + Math.random() * 80;
+          
+          // Smooth timing: punctuation gets longer pause, normal chars are snappy
+          const isPunctuation = ['.', ',', '!', '?'].includes(char);
+          const delay = isPunctuation ? 500 : 45 + Math.random() * 55;
           await new Promise(r => setTimeout(r, delay));
         }
       }
@@ -87,9 +94,15 @@
   };
 
 
-  onMount(() => {
-    if (browser) {
+  // Reactively trigger typewriter when headline data is ready
+  $effect(() => {
+    if (browser && rawHeadline) {
       const controller = new AbortController();
+      
+      // Reset state for new typewriter sequence
+      displayText = "";
+      isTypingComplete = false;
+      
       typeWriter(controller.signal);
 
       return () => {
@@ -121,7 +134,7 @@
   <div class="container mx-auto px-6 max-w-6xl relative flex flex-col items-center pt-[var(--standard-pt)] z-surface">
 
     <h1 class="typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0">
-       {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''}">|</span>
+       {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''}">&nbsp;</span>
     </h1>
 
     {#if product?.shortDescription}

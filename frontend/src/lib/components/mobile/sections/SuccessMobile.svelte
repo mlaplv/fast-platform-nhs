@@ -4,6 +4,7 @@
   import { formatCurrency, formatDate } from '$lib/utils/format.ts';
   import { goto } from '$app/navigation';
   import { SHOP_CONFIG } from '$lib/constants/shop.ts';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
 
   import { page } from '$app/state';
 
@@ -42,9 +43,10 @@
 
 <div class="fixed inset-0 bg-[#0a0a0a] text-white overflow-y-auto custom-scrollbar flex flex-col">
   <!-- Top Navigation -->
-  <button 
+  <button
     onclick={() => goto('/')}
-    class="fixed top-4 right-6 z-[100] w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-xl active:scale-95 transition-all text-white/40 ring-1 ring-white/5 shadow-2xl"
+    style:z-index={Z_INDEX_CLIENT.MOBILE_REVIEW_HEADER}
+    class="fixed top-4 right-6 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-xl active:scale-95 transition-all text-white/40 ring-1 ring-white/5 shadow-2xl"
     aria-label="Home"
   >
     <Home class="w-4 h-4" />
@@ -180,7 +182,7 @@
     <a 
       href="tel:{SHOP_CONFIG.pharmacy.phone.replace(/\s+/g, '')}"
       class="flex-[1.5] py-4 text-white font-black text-[12px] uppercase tracking-wider rounded-full shadow-[0_10px_30px_rgba(254,44,85,0.2)] active:scale-95 transition-all overflow-hidden relative group text-center"
-      style="background: linear-gradient(90deg, #fe2c55 0%, #ff4b6b 100%) !important;"
+      style:background="linear-gradient(90deg, #fe2c55 0%, #ff4b6b 100%) !important"
     >
         <span class="relative z-10 flex items-center justify-center gap-1.5">GỌI TƯ VẤN <Phone class="w-3.5 h-3.5" /></span>
         <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>

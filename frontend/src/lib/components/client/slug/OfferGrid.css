@@ -15,11 +15,10 @@
   --headline-mb: 4rem;
   --footer-mt: 4rem;
 
-  /* Elite Tablet Optimization */
-  @media (min-width: 768px) and (max-width: 1024px) {
+  @media (min-width: 768px) and (max-width: 1100px) { /* ELITE V2.2: Synced with ScienceBento */
     --headline-mb: 2.5rem;
     --footer-mt: 2.5rem;
-    --standard-pt: 3rem;
+    --standard-pt: 6rem;
   }
 
   background-color: var(--deep-bg);
@@ -90,6 +89,11 @@
         box-shadow: 0 40px 80px -20px rgba(59, 130, 246, 0.1);
       }
     }
+  }
+
+  & .price-value {
+    font-size: 1.875rem; /* 30px - equivalent to text-3xl */
+    line-height: 1;
   }
 
   & .bullet-list {
@@ -364,6 +368,19 @@
 
   .headline-title {
     font-size: 2rem !important;
+  }
+
+  /* ELITE V2.2: Price Scaling for cramped tablet columns */
+  .price-value {
+    font-size: 1.25rem !important; /* Scale down to prevent overflow */
+  }
+
+  .original-price {
+    font-size: 0.65rem !important;
+  }
+
+  .booking-suffix, .shipping-label {
+    font-size: 0.55rem !important;
   }
 }
 

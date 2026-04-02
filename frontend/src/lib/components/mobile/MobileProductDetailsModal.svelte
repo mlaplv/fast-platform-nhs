@@ -42,14 +42,25 @@
   <button
     type="button"
     class="mobile-bottom-sheet-bg border-none outline-none"
-    style="z-index: {Z_INDEX_CLIENT.OVERLAY}; opacity: {active ? 1 - Math.min(dragY / 400, 0.5) : 0}; transition: {isDragging ? 'none' : 'opacity 0.4s fade'}; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); pointer-events: {active ? 'auto' : 'none'};"
+    style:z-index={Z_INDEX_CLIENT.OVERLAY}
+    style:opacity={active ? 1 - Math.min(dragY / 400, 0.5) : 0}
+    style:transition={isDragging ? 'none' : 'opacity 0.4s fade'}
+    style:pointer-events={active ? 'auto' : 'none'}
+    style:position="fixed"
+    style:inset="0"
+    style:background="rgba(0,0,0,0.6)"
+    style:backdrop-filter="blur(8px)"
     onclick={close}
     aria-label="Đóng overlay"
   ></button>
 
   <div
     class="mobile-bottom-sheet bg-[#0a0a0a] text-white border-t border-white/10 flex flex-col shadow-[0_-20px_80px_rgba(0,0,0,0.9)] rounded-t-[32px] h-[85dvh] overflow-hidden fixed bottom-0 left-0 right-0 w-full"
-    style="z-index: {Z_INDEX_CLIENT.MODAL}; padding-bottom: env(safe-area-inset-bottom, 24px); transform: translateY({active ? dragY + 'px' : '100%'}); transition: {isDragging ? 'none' : 'transform 0.5s cubic-bezier(0.23, 1, 0.32, 1)'}; pointer-events: {active ? 'auto' : 'none'};"
+    style:z-index={Z_INDEX_CLIENT.MODAL}
+    style:padding-bottom="env(safe-area-inset-bottom, 24px)"
+    style:transform="translateY({active ? dragY + 'px' : '100%'})"
+    style:transition={isDragging ? 'none' : 'transform 0.5s cubic-bezier(0.23, 1, 0.32, 1)'}
+    style:pointer-events={active ? 'auto' : 'none'}
     role="dialog"
     aria-modal="true"
   >

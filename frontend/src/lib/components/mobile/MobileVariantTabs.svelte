@@ -2,6 +2,7 @@
   import { scale } from 'svelte/transition';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { SHOP_CONFIG } from '$lib/constants/shop';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
 
   interface MobileVariantTabsProps {
     hidden?: boolean;
@@ -23,7 +24,8 @@
 </script>
 
 <div
-  class="fixed top-0 left-0 right-0 z-[100] flex justify-center pt-safe-top tabs-container"
+  class="fixed top-0 left-0 right-0 flex justify-center pt-safe-top tabs-container"
+  style:z-index={Z_INDEX_CLIENT.MOBILE_TAB_BAR}
   class:tabs-hidden={hidden}
 >
   <div class="flex items-center gap-6 px-6 py-4">

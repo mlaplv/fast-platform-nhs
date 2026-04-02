@@ -28,6 +28,7 @@ PRODUCT_DEFS = [
         "description": "Thảo dược chữa trị hôi nách nặng mùi lâu năm, bị từ nhỏ (bẩm sinh), phụ nữ mang thai, sau sinh, tuổi dậy thì. Giúp giảm thâm & mồ hôi nách nhiều, se nhỏ lỗ chân lông, hiệu quả rõ rệt sau 1 liệu trình. Sản phẩm dạng xịt, thẩm thấu nhanh, không gây ố vàng áo và không kích ứng da.",
         "product_metadata": {
             "landing_type": "tiktok",
+            "video_url": "/static/video/HN_TikTok.mp4",
             "quiz_questions": [
                 {
                     "id": "q1",
@@ -63,20 +64,20 @@ PRODUCT_DEFS = [
             "science_mechanism_label": "QUY TRÌNH // PHÒNG NGỰ PHÂN TỬ",
             "science_claims": [
                 {
-                    "label": "HỆ THỐNG // LÕI NANO-BẠC",
-                    "content": "Phá vỡ cấu trúc vi khuẩn gây mùi ngay lập tức bằng mạng lưới ion bạc tự kích hoạt.",
+                    "label": "PHỨC HỢP DƯỢC LIỆU SINH HỌC",
+                    "content": "Vô hiệu hóa quá trình phân hủy axit béo của vi khuẩn, sát trùng triệt để và ngăn chặn mùi hôi ngay từ gốc.",
                     "image": "https://nhathuochongson.com/uploads/images/products/thuoc-dac-tri-hoi-nach-hong-son-lo-lon-20ml.jpeg"
                 },
                 {
-                    "label": "KIỂM ĐỊNH // CHỨNG THỰC",
-                    "content": "\"Chúng tôi không thể thay đổi gen hay cơ địa đặc trưng của bạn. <br/> Nhưng chúng tôi cam kết: Khóa mùi tuyệt đối, giữ bạn khô thoáng và tự tin suốt 48H.\""
+                    "label": "AN TOÀN // LÀNH TÍNH",
+                    "content": "100% thảo dược tự nhiên, cam kết không thâm nách, không ố vàng áo, an toàn cho cả mẹ bầu và trẻ nhỏ."
                 }
             ],
             "science_stats": {
-                "value": "48",
+                "value": "72",
                 "unit": "H",
-                "label": "PHÒNG NGỰ CHỦ ĐỘNG",
-                "description": "3s khô thoáng – Chạm đúng chân ái.<br/> Khóa mùi tuyệt đối, tự tin suốt ngày dài."
+                "label": "KHÔ THOÁNG TUYỆT ĐỐI",
+                "description": "Ức chế Acetylcholine để điều tiết tuyến mồ hôi chủ động. Sạch mùi, tự tin suốt 3 ngày dài."
             },
             "science_guarantee": {
                 "icon": "💎",
