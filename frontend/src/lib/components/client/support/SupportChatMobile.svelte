@@ -237,7 +237,7 @@
       </div>
 
       <!-- Capsule Dynamic Island Input -->
-      <div class="relative bg-black/60 border border-white/5 rounded-[40px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all backdrop-blur-[100px]">
+      <div class="relative bg-black/60 border border-white/5 rounded-[40px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all backdrop-blur-xl">
         <textarea
           bind:value={userInput}
           onkeydown={handleKeyDown}
@@ -262,8 +262,9 @@
 <style>
   .apple-glass-dark-mobile {
     background: linear-gradient(165deg, rgba(8, 12, 21, 0.8) 0%, rgba(2, 4, 10, 0.99) 100%);
-    backdrop-filter: blur(100px) saturate(210%);
-    -webkit-backdrop-filter: blur(100px) saturate(210%);
+    backdrop-filter: blur(20px) saturate(210%);
+    -webkit-backdrop-filter: blur(20px) saturate(210%);
+    will-change: transform, opacity;
     box-shadow: 
       0 -40px 120px rgba(0,0,0,0.8),
       inset 0 1px 1px rgba(255, 255, 255, 0.1),

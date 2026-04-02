@@ -106,7 +106,7 @@
 
   {#if !supportAgent.isOpen && supportAgent.messages.length <= 1 && !isMobile && !isScrolled}
     <div 
-      class="absolute right-[calc(100%+24px)] whitespace-nowrap bg-black/60 backdrop-blur-[40px] shadow-[0_12px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.1)] border border-white/10 text-gray-200 px-6 py-3.5 rounded-full font-semibold text-[14px] tracking-tight tooltip-float flex items-center gap-3 transition-all animate-in fade-in slide-in-from-right-4"
+      class="absolute right-[calc(100%+24px)] whitespace-nowrap bg-black/60 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.1)] border border-white/10 text-gray-200 px-6 py-3.5 rounded-full font-semibold text-[14px] tracking-tight tooltip-float flex items-center gap-3 transition-all animate-in fade-in slide-in-from-right-4"
     >
       <div class="relative flex h-2.5 w-2.5">
         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00A3FF] opacity-75"></span>

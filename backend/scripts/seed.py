@@ -20,10 +20,13 @@ from backend.database.models import (
     User, VoiceProfile, Role, Permission, Category, Article, Order, 
     ProductBase, ProductVariant, ProductEmbedding, Draft, Notification, 
     AgentTelemetryLog, ChatMessage, SystemSetting, Appointment, ContentCampaign, 
-    CampaignEvent, SystemReview
+    CampaignEvent, SystemReview, SupportKnowledge, SupportKnowledgeCategory
 )
 from backend.utils.security import GeminiSecurity
-from backend.scripts.seed_data import GEMINI_KEYS, CATEGORY_DEFS, SUB_CATEGORY_DEFS, PRODUCT_DEFS, PRODUCT_NAMES, ARTICLE_TITLES
+from backend.scripts.seed_data import (
+    GEMINI_KEYS, CATEGORY_DEFS, SUB_CATEGORY_DEFS, PRODUCT_DEFS, 
+    PRODUCT_NAMES, ARTICLE_TITLES, SUPPORT_KNOWLEDGE_DEFS
+)
 from backend.services.xohi.creative_studio.models.schemas import CategoryEnum
 
 TENANT_ID = "smartshop"
@@ -35,7 +38,7 @@ async def clear_data(session):
     await session.execute(delete(ProductVariant))
     # Clear internal dependencies first
     await session.execute(delete(ProductEmbedding).where(ProductEmbedding.product_base_id.in_(select(ProductBase.id).where(ProductBase.tenant_id == TENANT_ID))))
-    for model in [Order, Article, Notification, Draft, ChatMessage, AgentTelemetryLog, CampaignEvent, ContentCampaign, ProductBase, Category, Appointment, SystemReview]:
+    for model in [Order, Article, Notification, Draft, ChatMessage, AgentTelemetryLog, CampaignEvent, ContentCampaign, ProductBase, Category, Appointment, SystemReview, SupportKnowledge]:
         await session.execute(delete(model).where(model.tenant_id == TENANT_ID))
     if user_ids:
         for model in [Notification, Draft, CampaignEvent, ContentCampaign, ChatMessage, Order, VoiceProfile]:
@@ -227,6 +230,20 @@ async def seed_reviews(session):
             ))
     await session.flush()
 
+async def seed_support_knowledge(session):
+    print(f"🧠 Seeding {len(SUPPORT_KNOWLEDGE_DEFS)} support knowledge entries...")
+    for d in SUPPORT_KNOWLEDGE_DEFS:
+        session.add(SupportKnowledge(
+            id=str(uuid.uuid4()),
+            category=SupportKnowledgeCategory[d["category"]],
+            question=d["question"],
+            answer=d["answer"],
+            priority=d.get("priority", 0),
+            is_active=True,
+            tenant_id=TENANT_ID
+        ))
+    await session.flush()
+
 async def main():
     print("🚀 Starting Refactored Seed Process...")
     async with async_session_maker() as session:
@@ -234,6 +251,7 @@ async def main():
             await clear_data(session); r = await seed_rbac(session); u = await seed_users(session, r)
             await seed_categories(session); p = await seed_products(session); await seed_articles(session, u.id)
             await seed_reviews(session)
+            await seed_support_knowledge(session)
             await seed_appointments(session)
             await seed_system_settings(session)
             await session.commit(); print("✨ Successful!")

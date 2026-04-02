@@ -254,7 +254,7 @@
           {/each}
         </div>
 
-        <div class="relative bg-white/5 border border-white/10 rounded-[44px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all backdrop-blur-[80px]">
+        <div class="relative bg-white/5 border border-white/10 rounded-[44px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all backdrop-blur-xl">
           <textarea
             bind:value={userInput}
             onkeydown={handleKeyDown}
@@ -280,8 +280,9 @@
 <style>
   .apple-glass-dark-modal {
     background: linear-gradient(165deg, rgba(16, 24, 39, 0.8) 0%, rgba(3, 7, 18, 0.98) 100%);
-    backdrop-filter: blur(100px) saturate(210%);
-    -webkit-backdrop-filter: blur(100px) saturate(210%);
+    backdrop-filter: blur(20px) saturate(210%);
+    -webkit-backdrop-filter: blur(20px) saturate(210%);
+    will-change: transform, opacity;
     box-shadow: 
       0 60px 120px rgba(0, 0, 0, 0.9),
       inset 0 1px 1px rgba(255, 255, 255, 0.1),

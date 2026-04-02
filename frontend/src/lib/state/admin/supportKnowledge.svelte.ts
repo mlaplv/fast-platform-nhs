@@ -34,7 +34,9 @@ class SupportKnowledgeState {
 
     // Multi-select state
 
-    async fetchItems(category?: string, search?: string) {
+    // Multi-select state
+
+    fetchItems = async (category?: string, search?: string) => {
         this.loading = true;
         try {
             if (category) this.params.category = category;
@@ -54,9 +56,9 @@ class SupportKnowledgeState {
         } finally {
             this.loading = false;
         }
-    }
+    };
 
-    async saveItem(data: Partial<KnowledgeItem>) {
+    saveItem = async (data: Partial<KnowledgeItem>) => {
         try {
             if (data.id) {
                 // Update
@@ -72,9 +74,9 @@ class SupportKnowledgeState {
             console.error("[SupportKB] Save error:", error);
             throw error;
         }
-    }
+    };
 
-    async deleteItem(id: string) {
+    deleteItem = async (id: string) => {
         if (!confirm("Sếp chắc chắn muốn xóa tri thức này chứ?")) return;
         try {
             await apiClient.delete(`/api/v1/admin/support/knowledge/${id}`);
@@ -82,9 +84,9 @@ class SupportKnowledgeState {
         } catch (error) {
             console.error("[SupportKB] Delete error:", error);
         }
-    }
+    };
 
-    async toggleActive(id: string, is_active: boolean) {
+    toggleActive = async (id: string, is_active: boolean) => {
         try {
             await apiClient.patch(`/api/v1/admin/support/knowledge/${id}`, { is_active });
             const item = this.items.find((i: KnowledgeItem) => i.id === id);
@@ -92,9 +94,9 @@ class SupportKnowledgeState {
         } catch (error) {
             console.error("[SupportKB] Toggle error:", error);
         }
-    }
+    };
 
-    async bulkDelete() {
+    bulkDelete = async () => {
         if (this.selectedIds.length === 0) return;
         if (!confirm(`Sếp chắc chắn muốn xóa ${this.selectedIds.length} tri thức đã chọn?`)) return;
         this.loading = true;
@@ -107,9 +109,9 @@ class SupportKnowledgeState {
         } finally {
             this.loading = false;
         }
-    }
+    };
 
-    async bulkToggleActive(is_active: boolean) {
+    bulkToggleActive = async (is_active: boolean) => {
         if (this.selectedIds.length === 0) return;
         this.loading = true;
         try {
@@ -124,25 +126,33 @@ class SupportKnowledgeState {
         } finally {
             this.loading = false;
         }
-    }
+    };
 
-    toggleSelect(id: string) {
+    toggleSelect = (id: string) => {
         if (this.selectedIds.includes(id)) {
             this.selectedIds = this.selectedIds.filter((i: string) => i !== id);
         } else {
             this.selectedIds = [...this.selectedIds, id];
         }
-    }
+    };
 
-    toggleSelectAll() {
-        if (this.selectedIds.length === this.items.length) {
-            this.selectedIds = [];
+    toggleSelectAll = () => {
+        const itemIds = this.items.map(i => i.id);
+        if (itemIds.length === 0) return;
+        
+        const allSelected = itemIds.every(id => this.selectedIds.includes(id));
+        
+        if (allSelected) {
+            // Deselect only current page items
+            this.selectedIds = this.selectedIds.filter(id => !itemIds.includes(id));
         } else {
-            this.selectedIds = this.items.map((i: KnowledgeItem) => i.id);
+            // Select all current page items (merge with existing)
+            const nextSet = new Set([...this.selectedIds, ...itemIds]);
+            this.selectedIds = Array.from(nextSet);
         }
-    }
+    };
 
-    openEdit(item: KnowledgeItem | null = null) {
+    openEdit = (item: KnowledgeItem | null = null) => {
         this.editingItem = item ? { ...item } : {
             category: "GENERAL",
             question: "",
@@ -152,7 +162,7 @@ class SupportKnowledgeState {
             tags: []
         };
         this.showModal = true;
-    }
+    };
 }
 
 export const supportKbAdmin = new SupportKnowledgeState();

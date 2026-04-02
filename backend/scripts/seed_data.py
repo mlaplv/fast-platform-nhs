@@ -187,3 +187,25 @@ ARTICLE_TITLES = [
     "Review thuốc trị hôi nách Hồng Sơn",
     "Nguyên nhân gây mùi cơ thể và cách khắc phục",
 ]
+
+# Support Knowledge Base (Elite V2.2)
+SUPPORT_KNOWLEDGE_DEFS = [
+    {
+        "category": "GENERAL",
+        "question": "Địa chỉ, số điện thoại, sđt, sdt",
+        "answer": "Địa chỉ thăm khám: 33 Ngô Thị Nhậm, Trung Sơn, Tam Điệp, Ninh Bình\nĐiện thoại: 097 8785 079\nWebsite: nhathuochongson.com",
+        "priority": 10
+    },
+    {
+        "category": "PRODUCT",
+        "question": "Kiêng kị, kiêng kỵ, kiêng cử",
+        "answer": "Hạn chế hút thuốc lá, thuốc lào,.. ăn các đồ ăn cay nóng (tiêu, tỏi, hành, ớt,..) trong quá trình điều trị để đạt hiệu quả tốt nhất.",
+        "priority": 10
+    },
+    {
+        "category": "PRODUCT",
+        "question": "Thành phần, công thức, thành phần thuốc",
+        "answer": "Xuyên khung, hoài sơn, huyết giác, lá lốt, phèn chua, võ hàu, thạch cao, tá dược vừa đủ",
+        "priority": 10
+    }
+]
