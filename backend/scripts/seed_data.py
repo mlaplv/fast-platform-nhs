@@ -60,13 +60,13 @@ PRODUCT_DEFS = [
                     ]
                 }
             ],
-            "science_mechanism_image": "https://nhathuochongson.com/uploads/images/products/thuoc-tri-hoi-nach-hong-son-dam-dac.gif",
+            "science_mechanism_image": "/uploads/2026/04/81a1dedc-cc87-457b-8fc5-a8037ae76921.webp",
             "science_mechanism_label": "QUY TRÌNH // PHÒNG NGỰ PHÂN TỬ",
             "science_claims": [
                 {
                     "label": "PHỨC HỢP DƯỢC LIỆU SINH HỌC",
                     "content": "Vô hiệu hóa quá trình phân hủy axit béo của vi khuẩn, sát trùng triệt để và ngăn chặn mùi hôi ngay từ gốc.",
-                    "image": "https://nhathuochongson.com/uploads/images/products/thuoc-dac-tri-hoi-nach-hong-son-lo-lon-20ml.jpeg"
+                    "image": "/uploads/2026/04/7e019c82-cc72-4e43-8753-54e85a3c6e90.webp"
                 },
                 {
                     "label": "AN TOÀN // LÀNH TÍNH",
@@ -136,18 +136,18 @@ PRODUCT_DEFS = [
             ]
         },
         "images": [
-            "https://nhathuochongson.com/uploads/images/products/thuoc-dac-tri-hoi-nach-hong-son-lo-lon-20ml.jpeg",
-            "https://nhathuochongson.com/uploads/images/products/thuoc-tri-hoi-nach-hong-son-dam-dac.gif",
-            "https://nhathuochongson.com/uploads/images/products/thuoc-tri-hoi-nach-hoi-chan-hong-sonlo-lon-20ml.jpg"
+            "/uploads/2026/04/7e019c82-cc72-4e43-8753-54e85a3c6e90.webp",
+            "/uploads/2026/04/81a1dedc-cc87-457b-8fc5-a8037ae76921.webp",
+            "/uploads/2026/04/d880a1f5-1be1-4a6a-9542-c705f0b1890a.webp"
         ],
         "tier_variations": [
             {
                 "name": "Loại thuốc",
                 "options": ["Thường", "Đậm đặc", "Hôi chân"],
                 "images": [
-                    "https://nhathuochongson.com/uploads/images/products/thuoc-dac-tri-hoi-nach-hong-son-lo-lon-20ml.jpeg",
-                    "https://nhathuochongson.com/uploads/images/products/thuoc-tri-hoi-nach-hong-son-dam-dac.gif",
-                    "https://nhathuochongson.com/uploads/images/products/thuoc-tri-hoi-nach-hoi-chan-hong-sonlo-lon-20ml.jpg"
+                    "/uploads/2026/04/7e019c82-cc72-4e43-8753-54e85a3c6e90.webp",
+                    "/uploads/2026/04/81a1dedc-cc87-457b-8fc5-a8037ae76921.webp",
+                    "/uploads/2026/04/d880a1f5-1be1-4a6a-9542-c705f0b1890a.webp"
                 ]
             }
         ],
