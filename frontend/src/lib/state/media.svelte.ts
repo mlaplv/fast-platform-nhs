@@ -265,34 +265,31 @@ class MediaStore {
     if (campaignId && campaignId !== 'undefined' && campaignId !== 'null') {
         console.log(`[MediaStore] Subscribing to AI updates for campaign: ${campaignId}`);
         this.eventSource = new EventSource(`/api/v1/content/stream/${campaignId}`);
-    } else {
-        console.log(`[MediaStore] Subscribing to Global Pulse stream for media events`);
-        this.eventSource = new EventSource(`/api/v1/pulse/stream`, { withCredentials: true });
+        
+        this.eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            
+            // Handle standard SSE (MediaSseEvent payload structure)
+            let payload = data;
+            
+            // Handle Pulse Stream wrapper structure
+            if (data.event && data.payload) {
+                if (data.event !== "MEDIA_ANALYZED") return;
+                payload = data.payload;
+            }
+
+            if (payload.type === 'MEDIA_ANALYZED' || (payload.metadata && payload.metadata.source === 'MediaAnalyst')) {
+              this.handleMediaAnalyzed(payload);
+            }
+          } catch (e) {
+            // Probably a ping or non-JSON data
+          }
+        };
     }
-
-    this.eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        // Handle standard SSE (MediaSseEvent payload structure)
-        let payload = data;
-        
-        // Handle Pulse Stream wrapper structure
-        if (data.event && data.payload) {
-            if (data.event !== "MEDIA_ANALYZED") return;
-            payload = data.payload;
-        }
-
-        if (payload.type === 'MEDIA_ANALYZED' || (payload.metadata && payload.metadata.source === 'MediaAnalyst')) {
-          this.handleMediaAnalyzed(payload);
-        }
-      } catch (e) {
-        // Probably a ping or non-JSON data
-      }
-    };
   }
 
-  private handleMediaAnalyzed(payload: MediaSseEvent) {
+  public handleMediaAnalyzed(payload: MediaSseEvent) {
     const assetId = payload.id || payload.asset_id;
     if (!assetId) return;
 

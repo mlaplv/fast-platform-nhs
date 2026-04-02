@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import Brain from "lucide-svelte/icons/brain";
   import ShieldCheck from "lucide-svelte/icons/shield-check";
   import BarChart2 from "lucide-svelte/icons/bar-chart-2";
@@ -12,6 +12,7 @@
   import { processContentImages } from "$lib/state/utils";
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
   import { createAnalysisController } from "$lib/state/xohiAnalysis.svelte";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import type { MediaAsset, CampaignOutline, CampaignSection, CampaignMetrics, AnalysisCache } from "$lib/state/types";
 
   interface Props {
@@ -55,7 +56,18 @@
     return processContentImages(base, xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets);
   });
 
-  $effect(() => { copyrightScore = analysis.copyrightScore; seoScore = analysis.seoScore; aiScore = analysis.aiScore; });
+  // CNS V85.20: Sử dụng untrack để ngắt vòng phản hồi reactive (Reactive Feedback Loop).
+  // Đọc analysis.scores (reactive) nhưng ghi lên bindable parent props mà KHÔNG tạo dependency mới.
+  $effect(() => {
+    const cs = analysis.copyrightScore;
+    const ss = analysis.seoScore;
+    const as = analysis.aiScore;
+    untrack(() => {
+      copyrightScore = cs;
+      seoScore = ss;
+      aiScore = as;
+    });
+  });
 
   let lastAnalyzedTime = $derived.by(() => {
     if (!analysis_metrics?.last_analyzed) return null;
@@ -80,10 +92,12 @@
   let isFullResults = $state(false); // CNS V85: Detailed view for IDE-like progress
   
   function scrollToPanel() { setTimeout(() => resultPanelEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50); }
-  const handleAction = async <T extends (...args: never[]) => Promise<void> | void>(fn: T, ...args: Parameters<T>) => { 
-    await fn(...args); 
+  // CNS V85.23: Fully typed action dispatcher — no `Function` or `any[]` per CLAUDE.md
+  type AnalysisActionFn = (force?: boolean, skipSave?: boolean) => Promise<string | null | undefined | void>;
+  async function handleAction(actionFn: AnalysisActionFn, force?: boolean, skipSave?: boolean) { 
+    await actionFn(force, skipSave); 
     scrollToPanel(); 
-  };
+  }
 </script>
 
 
@@ -124,7 +138,7 @@
         class="flex items-center gap-1.5 text-[10px] sm:text-xs font-black uppercase px-3 py-1.5 rounded-lg border {analysis.activeTab === 'seo' ? 'border-blue-500/50 bg-blue-500/10 text-blue-400' : 'border-white/10 bg-white/5 text-white/40 hover:text-white/60'} {analysis.seoLocked ? 'opacity-30 cursor-not-allowed' : ''} {analysis.isSeoLoading ? 'opacity-70' : ''} transition-all active:scale-95"
       >
         {#if analysis.isSeoLoading}<span class="w-3 h-3 border-2 border-white/20 border-t-blue-400 rounded-full animate-spin"></span>{/if}
-        SEO {analysis.seoResult ? analysis.seoResult.grade : ''}
+        SEO {analysis.seoResult ? `${analysis.seoResult.total_score}%` : ''}
       </button>
 
       <button
@@ -167,7 +181,7 @@
 
   <div class="flex flex-col relative flex-1 min-h-0 transition-all duration-500 {isEditing ? 'border border-white/5 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] bg-[#09090b]/40 backdrop-blur-2xl' : 'bg-transparent'}">
     {#if isProcessing}
-      <div class="absolute inset-0 z-[100]">
+      <div class="absolute inset-0" style="z-index: {Z_INDEX_ADMIN.STICKY_HEADER}">
         <UltraPremiumLoading 
           progress_msg="AI đang chấp bút bản thảo..." 
           viewingStep={4} 

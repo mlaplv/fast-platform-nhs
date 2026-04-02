@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Sparkles, CheckCircle2 } from "lucide-svelte";
+  import Sparkles from "lucide-svelte/icons/sparkles";
+  import CheckCircle2 from "lucide-svelte/icons/check-circle-2";
   import type { CopyrightResult } from "$lib/state/types";
 
   interface Props {

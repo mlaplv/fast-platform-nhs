@@ -15,6 +15,7 @@ from backend.services.xohi.creative_studio.models.schemas import SeoReport, SeoS
 from backend.database.repositories import ContentCampaignRepository
 from backend.database.models.content import ContentCampaign
 from backend.services.event_bus import event_bus
+from backend.services.xohi.creative_studio.operatives.content_enricher import ContentEnricher
 
 logger = logging.getLogger("api-gateway")
 
@@ -136,7 +137,7 @@ class SeoAnalyzer:
             logger.error(f"[SEO] Search API error: {e}")
             return ["(Lỗi khi kết nối Google Search API)"]
 
-    async def analyze(self, campaign) -> SeoReport:
+    async def analyze(self, campaign, force: bool = False) -> SeoReport:
         """
         Performs full SEO analysis against top 5 competitor snippets.
         CNS Phase 82.35: Enforce GLOBAL serial processing for SEO.
@@ -156,11 +157,10 @@ class SeoAnalyzer:
             if raw_topic:
                 topic = raw_topic
             else:
-                import re as _re
                 # Try H1 first
-                h1_match = _re.search(r'<h1[^>]*>(.*?)</h1>', draft, _re.IGNORECASE | _re.DOTALL)
+                h1_match = re.search(r'<h1[^>]*>(.*?)</h1>', draft, re.IGNORECASE | re.DOTALL)
                 if h1_match:
-                    topic = _re.sub(r'<[^>]+>', '', h1_match.group(1)).strip()
+                    topic = re.sub(r'<[^>]+>', '', h1_match.group(1)).strip()
                 else:
                     # Fall back to first 8 words of pure text
                     words = pure_text.split()
@@ -195,6 +195,13 @@ DRAFT:
             
             # Phase 73.20: Deterministic Override for Keyword Density (Must use pure_text!)
             primary_kw = campaign.get_gold_val("topic")
+            enrich_annotations = ContentEnricher.detect_annotations(draft)
+            
+            if hasattr(report, 'seo_annotations'):
+                report.seo_annotations.extend(enrich_annotations)
+            elif isinstance(report, dict) and 'seo_annotations' in report:
+                report['seo_annotations'].extend(enrich_annotations)
+
             if primary_kw:
                 extra_annotations = self._audit_keyword_density(pure_text, primary_kw)
                 if hasattr(report, 'seo_annotations'):

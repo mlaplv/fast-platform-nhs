@@ -130,7 +130,14 @@ export function createNanobotState() {
 
       $effect(() => {
         const isBusy = state.isBusy || state.nanoBotStatus !== "IDLE" || state.isCampaignMode || voice.isVuiActive;
-        untrack(() => pulseManager.handleBusyState(isBusy));
+        const hasAuth = !!permissionState.user;
+        untrack(() => {
+          if (hasAuth) {
+            pulseManager.handleBusyState(isBusy);
+          } else {
+            pulseManager.disconnectPulse();
+          }
+        });
       });
     });
   }

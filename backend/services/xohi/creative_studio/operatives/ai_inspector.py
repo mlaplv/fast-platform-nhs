@@ -38,7 +38,7 @@ class AiInspector:
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
 
-    async def analyze(self, campaign: ContentCampaign) -> AiReadyReport:
+    async def analyze(self, campaign: ContentCampaign, force: bool = False) -> AiReadyReport:
         logs = ["🚀 Khởi động Neural AI-Ready Engine (XoHi 2026)..."]
         await self._emit_log(campaign, logs[-1])
         

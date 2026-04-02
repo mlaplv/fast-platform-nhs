@@ -117,24 +117,6 @@ class ScoutReport(BaseModel):
 # ANALYSIS & ENRICHMENT SCHEMAS — 2026 Edition
 # ══════════════════════════════════════════════════════════════
 
-class EnrichmentItem(BaseModel):
-    model_config = ConfigDict(strict=False)
-    type: str       # "stat" | "quote" | "table"
-    location: str   # Where it was injected
-    content: str    # The actual HTML injected
-
-class EnrichAIPayload(BaseModel):
-    model_config = ConfigDict(strict=False)
-    new_content: str
-    items: List[EnrichmentItem]
-    stats_added: int
-    quotes_added: int
-    tables_added: int
-    seo_boost_estimate: int
-
-class EnrichResponse(EnrichAIPayload):
-    logs: List[str] = Field(default_factory=list, description="Detailed progress logs for the UI")
-
 class CopyrightAnnotation(BaseModel):
     model_config = ConfigDict(strict=True)
     text: str           # Exact text fragment from the article
@@ -159,6 +141,25 @@ class SeoAnnotation(BaseModel):
     text: str
     message: str
     severity: str
+
+class EnrichmentItem(BaseModel):
+    model_config = ConfigDict(strict=False)
+    type: str       # "stat" | "quote" | "table"
+    location: str   # Where it was injected
+    content: str    # The actual HTML injected
+
+class EnrichAIPayload(BaseModel):
+    model_config = ConfigDict(strict=False)
+    new_content: str
+    items: List[EnrichmentItem]
+    stats_added: int
+    quotes_added: int
+    tables_added: int
+    seo_boost_estimate: int
+
+class EnrichResponse(EnrichAIPayload):
+    annotations: List[SeoAnnotation] = Field(default_factory=list)
+    logs: List[str] = Field(default_factory=list, description="Detailed progress logs for the UI")
 
 class SeoSignal(BaseModel):
     model_config = ConfigDict(strict=True)

@@ -68,7 +68,7 @@
     }
   };
 
-  let editor = $state<Editor | null>(null);
+  let editor = $state.raw<Editor | null>(null);
   let element: HTMLElement;
   let isFocused = $state(false);
   let wordCount = $state(0);
@@ -338,7 +338,15 @@
   });
 
   $effect(() => {
-    if (editor && !editor.isDestroyed) editor.setEditable(editable);
+    if (editor && !editor.isDestroyed) {
+      if (editor.isEditable !== editable) {
+        untrack(() => {
+          isInternalUpdating = true;
+          editor!.setEditable(editable);
+          setTimeout(() => { isInternalUpdating = false; }, 0);
+        });
+      }
+    }
   });
 
   $effect(() => {
@@ -861,6 +869,24 @@
     0%   { background: rgba(16, 185, 129, 0.10); box-shadow: none; }
     50%  { background: rgba(16, 185, 129, 0.30); box-shadow: 0 0 8px rgba(16, 185, 129, 0.35); }
     100% { background: rgba(16, 185, 129, 0.10); box-shadow: none; }
+  }
+  
+  /* Enrich: AI Booster™ segment — liquid magenta glass */
+  :global(.xohi-annotation.type-enrich) {
+    background: rgba(236, 72, 153, 0.10);
+    border-bottom: 2px solid rgba(236, 72, 153, 0.5);
+    color: rgba(254, 215, 226, 0.95);
+    cursor: help;
+    animation: enrich-pulse 1.8s ease-in-out infinite;
+  }
+  :global(.xohi-annotation.type-enrich:hover) {
+    background: rgba(236, 72, 153, 0.20);
+    border-bottom-color: rgba(244, 114, 182, 0.8);
+  }
+  @keyframes enrich-pulse {
+    0%   { background: rgba(236, 72, 153, 0.10); box-shadow: none; }
+    50%  { background: rgba(236, 72, 153, 0.25); box-shadow: 0 0 12px rgba(236, 72, 153, 0.3); }
+    100% { background: rgba(236, 72, 153, 0.10); box-shadow: none; }
   }
 
   @keyframes annotation-pulse {

@@ -134,6 +134,9 @@
     
     // Hide overlay for Steps 5 & 6 to allow user interaction even if PROCESSING (e.g. background check)
     if (viewingStep >= 5) return false;
+
+    // Phase 85.16: Hide overlay in Step 4 if it's a Neural Analysis/Fix session
+    if (viewingStep === 4 && analysisSession) return false;
     
     return true;
   });
@@ -289,7 +292,7 @@
       {/if}
     </div>
   </div>
-  <ActionButtons isLoading={campaign.isLoading} {status} bind:viewingStep {step} bind:isEditing {isProcessing} isPublishing={campaign.isPublishing} {handleRetry} {handleUpdateMetadata} {handlePublish} {handleApprove} />
+  <ActionButtons isLoading={campaign.isLoading} {status} bind:viewingStep {step} bind:isEditing isProcessing={isProcessing && !analysisSession} isPublishing={campaign.isPublishing} {handleRetry} {handleUpdateMetadata} {handlePublish} {handleApprove} />
 </div>
 
 {#if showGateModal}<GateBlockModal blockers={gateBlockers} onClose={() => showGateModal = false} onViewDetails={(tab) => { showGateModal = false; focusTabFromModal = tab; }} />{/if}

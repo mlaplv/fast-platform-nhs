@@ -19,6 +19,7 @@
   import SparklesIcon from 'lucide-svelte/icons/sparkles';
   import MoreHorizontalIcon from 'lucide-svelte/icons/more-horizontal';
   import { portal } from '$lib/core/actions/portal';
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 
   let {
     editor,
@@ -86,7 +87,8 @@
 <div 
   bind:this={containerRef}
   bind:clientWidth={containerWidth}
-  class="sticky top-0 z-[100] w-full flex flex-nowrap items-center gap-2 md:gap-3 px-4 py-1.5 bg-[#0a0a0a]/90 backdrop-blur-[80px] border-b border-white/5 shadow-2xl transition-all duration-300"
+  class="sticky top-0 w-full flex flex-nowrap items-center gap-2 md:gap-3 px-4 py-1.5 bg-[#0a0a0a]/90 backdrop-blur-[80px] border-b border-white/5 shadow-2xl transition-all duration-300"
+  style="z-index: {Z_INDEX_ADMIN.STICKY_HEADER}"
 >
   
   <!-- Group 1: Navigation -->
@@ -224,19 +226,22 @@
           </div>
         {/if}
 
-        {#if isThin}
-          <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
-             <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Typography</span>
-             <div class="flex gap-2">
-                <select class="tb-select !bg-black/60 border border-white/5 !flex-1 !h-9 !text-[8px]" onchange={handleParagraphChange}>
-                  <option value="p">Body Text</option>
-                  <option value="h1">Heading 1</option>
-                  <option value="h2">Heading 2</option>
-                  <option value="h3">Heading 3</option>
-                </select>
-                <select class="tb-select !bg-black/60 border border-white/5 !flex-1 !h-9 !text-[8px]" onchange={handleFontChange}>
-                   {#each FONTS as font} <option value={font}>{font}</option> {/each}
-                </select>
+        
+        <!-- CNS V85.23: AI Booster & Extra Actions Overflow -->
+        {#if toolbarActions.length > 0}
+          <div class="flex flex-col gap-2 p-2 bg-pink-500/5 rounded-lg border border-pink-500/10">
+             <span class="text-[7px] font-black uppercase tracking-widest text-pink-400/40 px-1 italic">Intelligence Actions</span>
+             <div class="flex flex-wrap gap-2">
+                {#each toolbarActions as action}
+                  <button 
+                    onclick={() => { action.onclick(); showMore = false; }}
+                    disabled={action.loading || action.disabled}
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all {action.loading ? 'opacity-50' : action.disabled ? 'opacity-30 cursor-not-allowed' : 'bg-pink-500/10 text-pink-400 hover:bg-pink-500 hover:text-white border border-pink-500/20'}"
+                  >
+                    {#if action.loading}<div class="w-2 h-2 border border-white/20 border-t-white rounded-full animate-spin"></div>{/if}
+                    {action.label}
+                  </button>
+                {/each}
              </div>
           </div>
         {/if}

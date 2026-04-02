@@ -7,6 +7,8 @@
   import CheckCircle2 from "lucide-svelte/icons/check-circle-2";
   import Zap from "lucide-svelte/icons/zap";
   import { tick } from 'svelte';
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
+  import { portal } from "$lib/core/actions/portal";
 
   interface Props {
     active: boolean;
@@ -41,11 +43,14 @@
 </script>
 
 {#if active}
-  <div 
-    class="fixed bottom-24 right-8 z-[200000] w-80 md:w-96 flex flex-col pointer-events-auto"
-    in:fly={{ y: 20, duration: 800, opacity: 0 }}
-    out:fade={{ duration: 300 }}
-  >
+  <!-- CNS V85.25: use:portal teleports HUD to <body> to escape ALL parent stacking/containing block contexts -->
+  <div use:portal class="pointer-events-none">
+    <div 
+      class="fixed bottom-24 right-8 w-80 md:w-96 flex flex-col pointer-events-auto"
+      style="z-index: {Z_INDEX_ADMIN.NEURAL_HUD}"
+      in:fly={{ y: 20, duration: 800, opacity: 0 }}
+      out:fade={{ duration: 300 }}
+    >
     <!-- iOS Style Card -->
     <div class="bg-slate-900/80 backdrop-blur-3xl border border-white/10 rounded-[28px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col">
       
@@ -121,6 +126,7 @@
     
     <!-- Glossy reflection effect -->
     <div class="absolute inset-0 rounded-[28px] border border-white/20 pointer-events-none opacity-20 bg-gradient-to-tr from-transparent via-white/5 to-white/10"></div>
+  </div>
   </div>
 {/if}
 

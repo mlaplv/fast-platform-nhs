@@ -120,6 +120,19 @@ export function createPulseManager(
           console.log(`[Pulse] CID Match: ${match}`);
         }
 
+        if (eventName === "MEDIA_ANALYZED") {
+          // @ts-ignore
+          import("$lib/state/media.svelte.ts").then((module) => {
+            if (module && module.mediaStore) {
+                // @ts-ignore
+                module.mediaStore.handleMediaAnalyzed(payload);
+            }
+          }).catch((err) => {
+             console.error("[Pulse] Media Analyzed forward error:", err);
+          });
+          return;
+        }
+
         if (eventName === "CONTENT_PROGRESS") {
           const contentPayload = payload as CampaignData & { message: string; data?: Record<string, unknown> };
           const newData = (contentPayload.data || {}) as Record<string, unknown>;
@@ -349,8 +362,23 @@ export function createPulseManager(
     }
   };
 
+  let idleDisconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+
   const handleBusyState = (isBusy: boolean) => {
-    connectPulse();
+    if (isBusy) {
+      if (idleDisconnectTimeout) {
+        clearTimeout(idleDisconnectTimeout);
+        idleDisconnectTimeout = null;
+      }
+      connectPulse();
+    } else {
+      if (!idleDisconnectTimeout) {
+        idleDisconnectTimeout = setTimeout(() => {
+          disconnectPulse();
+          idleDisconnectTimeout = null;
+        }, 5000);
+      }
+    }
   };
 
   const shouldSkipSync = (campaign_id: string): boolean => {

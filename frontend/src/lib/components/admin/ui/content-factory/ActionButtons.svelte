@@ -1,17 +1,15 @@
 <script lang="ts">
-  import {
-    RotateCcw,
-    Save,
-    Check,
-    ArrowLeft,
-    ArrowRight,
-    ChevronRight,
-    Loader2,
-    Play
-  } from "lucide-svelte";
-
+  import RotateCcw from "lucide-svelte/icons/rotate-ccw";
+  import Save from "lucide-svelte/icons/save";
+  import Check from "lucide-svelte/icons/check";
+  import ArrowLeft from "lucide-svelte/icons/arrow-left";
+  import ArrowRight from "lucide-svelte/icons/arrow-right";
+  import ChevronRight from "lucide-svelte/icons/chevron-right";
+  import Loader2 from "lucide-svelte/icons/loader-2";
+  import Play from "lucide-svelte/icons/play";
   import { onMount } from "svelte";
   import type { CampaignStatus } from "$lib/state/types";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 
   interface Props {
     isLoading: boolean;
@@ -47,7 +45,7 @@
   });
 </script>
 
-<div class="fixed bottom-6 right-6 z-[250000] flex flex-col items-end pointer-events-none">
+<div class="fixed bottom-6 right-6 flex flex-col items-end pointer-events-none" style="z-index: {Z_INDEX_ADMIN.SUPREME_POWER}">
   <!-- iPhone 18 "Water Droplet" Liquid Dock -->
   <div 
     class="pointer-events-auto flex items-center gap-1 p-1 rounded-full bg-white/[0.01] backdrop-blur-[80px] saturate-[2.5] contrast-[1.1] border border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.5),inset_0_1px_3px_rgba(255,255,255,0.05)] transition-all duration-700 hover:scale-[1.08] active:scale-100 group"

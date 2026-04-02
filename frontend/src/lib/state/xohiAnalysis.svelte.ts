@@ -10,7 +10,8 @@ import type {
     AnalysisAnnotation,
     EditorAnnotation,
     GenericResponse,
-    CampaignData
+    CampaignData,
+    EnrichmentItem
 } from "$lib/state/types";
 
 interface BulkFixReplacement {
@@ -48,24 +49,28 @@ export function createAnalysisController(config: {
     let activeTab = $state<'copyright' | 'seo' | 'ai' | 'enrich' | null>(null);
 
     // Phase 82.90: Live HUD Sync — Syncs real-time messages from global Pulse stream into local HUD logs
+    // CNS V85.21: Read reactive value OUTSIDE untrack so the $effect tracks it, but write inside untrack
+    // to avoid cascading log appends causing infinite re-renders.
     $effect(() => {
         const data = nanobot.currentData as CampaignData;
-        if (!data || !config.campaign_id || (data.campaign_id !== config.campaign_id && data.id !== config.campaign_id)) return;
-        
-        const msg = data.progress_msg;
-        if (msg) {
-            untrack(() => {
-                // CNS V85.12: Dứt điểm logic - Only collect logs if it's a MAJOR creation step (1-6) or a BULK action (Fix/Clean)
-                const isCreationRunning = config.getIsProcessing?.() || false;
-                const isManualAction = isBulkFixing; // excludes copyright, seo, ai, and booster
-                
-                if ((isCreationRunning || isManualAction) && !bulkFixLogs.includes(msg)) {
+        const campaignId = config.campaign_id;
+        const msg = (data as CampaignData & { progress_msg?: string })?.progress_msg ?? '';
+        if (!data || !campaignId || (data.campaign_id !== campaignId && data.id !== campaignId) || !msg) return;
 
+        untrack(() => {
+            // CNS V85.27: Log Throttle & Deduplication — prevents UI freeze during event storms
+            const isCreationRunning = config.getIsProcessing?.() || false;
+            const isManualAction = isBulkFixing;
+            
+            if (isCreationRunning || isManualAction) {
+                // Ensure we don't spam identical logs or flood the state too fast
+                const alreadyExists = bulkFixLogs.some(l => l.includes(msg) || msg.includes(l));
+                if (!alreadyExists) {
                     bulkFixLogs = [...bulkFixLogs, msg];
                     if (!bulkFixStatus) bulkFixStatus = "Đang xử lý...";
                 }
-            });
-        }
+            }
+        });
     });
 
     // Derived scores
@@ -122,6 +127,7 @@ export function createAnalysisController(config: {
         if (isCopyrightLoading) return;
         if (!isAdhoc && !config.campaign_id) return;
         isCopyrightLoading = true;
+        isBulkFixing = true;
         bulkFixStatus = "Đang quét...";
         bulkFixLogs = ["🔍 Đang khởi động hệ thống tầm soát bản quyền...", "🧠 Đang phân tích cấu trúc bài viết..."];
         activeTab = 'copyright';
@@ -161,6 +167,7 @@ export function createAnalysisController(config: {
         if (isSeoLoading) return;
         if (!isAdhoc && !config.campaign_id) return;
         isSeoLoading = true;
+        isBulkFixing = true;
         bulkFixStatus = "Đang quét SEO...";
         bulkFixLogs = ["🔍 Đang khởi động máy quét SEO (Phase 82.8)...", "🧠 Đang phân tích mật độ từ khóa & cấu trúc HTML..."];
         const topicName = config.topic ?? '';
@@ -182,10 +189,8 @@ export function createAnalysisController(config: {
                     }
                 }
 
-                // Salvage green highlights (fixed-area) as requested by user
-                const oldFixed = (seoResult?.seo_annotations || []).filter((a: AnalysisAnnotation) => a.type === 'fixed-area');
-                res.data.seo_annotations = [...oldFixed, ...(res.data.seo_annotations || [])];
-
+                // CNS V85.25: Root implementation — annotations are now unified from backend.
+                // No more manual salvaging needed.
                 seoResult = res.data;
             }
         } catch (e: unknown) {
@@ -202,6 +207,7 @@ export function createAnalysisController(config: {
         if (isAiLoading || aiLocked) return;
         if (!isAdhoc && !config.campaign_id) return;
         isAiLoading = true;
+        isBulkFixing = true;
         bulkFixStatus = "Đang quét AI MOD...";
         bulkFixLogs = ["🔍 Đang khởi động AI MOD (Phase 82.8)...", "🧠 Đang rà soát dấu vân tay AI & phong cách viết..."];
         activeTab = 'ai';
@@ -485,14 +491,28 @@ export function createAnalysisController(config: {
         // AI Booster requires a persistent campaign context (enrich endpoint needs campaign record in DB)
         if (isAdhoc || !config.campaign_id || isBoosting || !seoResult) return;
         isBoosting = true;
+        isBulkFixing = true; // CNS V85.21: Also lock bulkFixing to prevent concurrent actions
         bulkFixStatus = "Đang Booster...";
         bulkFixLogs = ["🚀 Đang khởi động Neural Booster™ (Phase 82.85)...", "🧠 Đang phân tích chiến lược trinh sát dữ liệu..."];
+        const htmlContent = config.isEditing ? config.getEditedDraft() : config.getDraftContent();
+        const textContent = htmlContent.replace(/<[^>]*>/g, ''); // Strip tags for real length
+        
+        console.log("🚀 [AI Booster] Trình khởi động kích hoạt. Phân tích bài viết:", { 
+            html_length: htmlContent.length,
+            text_length: textContent.length,
+            word_count: textContent.split(/\s+/).filter(w => w.length > 0).length,
+            isEditing: config.isEditing 
+        });
         activeTab = 'enrich';
         try {
             await saveBeforeAnalysis();
-            const res = await apiClient.post<GenericResponse<{ new_content: string, logs?: string[] }>>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/enrich`);
+            const res = await apiClient.post<GenericResponse<{ 
+                new_content: string, 
+                logs?: string[], 
+                items?: EnrichmentItem[],
+                annotations?: AnalysisAnnotation[]
+            }>>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/enrich`);
             if (res?.status === 'success' && res.data?.new_content) {
-                // Phase 3.6: Premium Log Replay for Booster
                 if (res.logs && res.logs.length > 0) {
                     for (const log of res.logs) {
                         bulkFixLogs = [...bulkFixLogs, log];
@@ -503,23 +523,41 @@ export function createAnalysisController(config: {
                 bulkFixLogs = [...bulkFixLogs, "✅ Đã tổng hợp dữ liệu thành công!", "Đang đồng bộ bản thảo tối ưu..."];
                 const newHtml = res.data.new_content;
                 if (config.isEditing) config.setEditedDraft(newHtml);
-                else config.setDraftContent(newHtml);
-                await tick();
-                await new Promise(resolve => setTimeout(resolve, 300));
+                console.log("✅ [AI Booster] Hoàn tất nhận diện vùng tối ưu!", {
+                    items_found: res.data.items?.length || 0,
+                    annotations_received: res.data.annotations?.length || 0,
+                    boost_estimate: res.data.seo_boost_estimate,
+                    new_content_preview: res.data.new_content.substring(0, 200) + "..."
+                });
 
-                bulkFixStatus = "Đang thẩm định...";
-                bulkFixLogs = [...bulkFixLogs, "Đang khởi động bộ máy thẩm định SEO...", "Đang đối chiếu điểm số mới..."];
+                // CNS V85.22: Root Implementation — Highlights are now backend-driven via res.data.annotations
+                bulkFixStatus = "Đang thẩm định bài viết...";
+                bulkFixLogs = [...bulkFixLogs, "✅ Đã nhận diện vùng tối ưu mới!", "Đang khởi động bộ máy thẩm định SEO...", "Đang đối chiếu điểm số mới..."];
+
+                // CNS V85.26: Inject annotations immediately so user sees highlights while SEO check is running
+                if (res.data.annotations && res.data.annotations.length > 0) {
+                    if (!seoResult) {
+                        seoResult = { total_score: 0, grade: 'N/A', signals: [], summary: '', quick_wins: [], seo_annotations: res.data.annotations, logs: [] };
+                    } else {
+                        // Merge annotations, avoiding duplicates
+                        const existing = seoResult.seo_annotations || [];
+                        const newAnns = res.data.annotations.filter((a: AnalysisAnnotation) => !existing.some((ea: AnalysisAnnotation) => ea.text === a.text && ea.type === a.type));
+                        seoResult.seo_annotations = [...existing, ...newAnns];
+                    }
+                }
+
                 activeTab = 'seo';
-                await runSeoAnalysis(true);
-                bulkFixLogs = [...bulkFixLogs, "🎯 AI Booster hoàn tất! Điểm SEO đã được cải thiện."];
-                setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; bulkFixLogs = []; }, 3500);
+                // CNS V85.21: Await SEO re-check BEFORE finally releases isBoosting to prevent race condition
+                await runSeoAnalysis(true, true); // skipSave=true since we just saved above
+                bulkFixLogs = [...bulkFixLogs, "🎯 AI Booster hoàn tất! Đã chèn dữ liệu và đánh dấu vùng màu Hồng (Enrich)."];
             }
         } catch (e: unknown) {
             console.error('AI Booster failed:', e);
             bulkFixLogs = [...bulkFixLogs, "❌ Lỗi: " + (e instanceof Error ? e.message : "Không thể kết nối AI Booster.")];
-            setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; bulkFixLogs = []; }, 4000);
         } finally {
+            // CNS V85.21: Always release both locks in finally with clean delay
             isBoosting = false;
+            setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; bulkFixLogs = []; }, 3500);
         }
     }
 
