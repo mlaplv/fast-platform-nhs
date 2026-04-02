@@ -14,7 +14,8 @@ from backend.schemas.support import (
     SupportKnowledgeResponse, 
     SupportKnowledgeListResponse,
     BulkDeleteRequest,
-    BulkToggleRequest
+    BulkToggleRequest,
+    SupportKnowledgeCategory
 )
 from backend.schemas.common import SuccessResponse
 from backend.services.commerce.support_knowledge import SupportKnowledgeService, provide_support_kb_service
@@ -37,7 +38,7 @@ class AdminSupportController(Controller):
         kb_service: SupportKnowledgeService,
         limit: int = 20,
         offset: int = 0,
-        category: Optional[str] = None,
+        category: Optional[SupportKnowledgeCategory] = None,
         search: Optional[str] = None,
     ) -> SupportKnowledgeListResponse:
         return await kb_service.list_knowledge(

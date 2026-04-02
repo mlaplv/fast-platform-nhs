@@ -8,7 +8,7 @@ from sqlalchemy import select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
 
-from backend.database.models import SupportKnowledge
+from backend.database.models.system import SupportKnowledge, SupportKnowledgeCategory
 from backend.database.repositories import SupportKnowledgeRepository
 from backend.schemas.support import (
     CreateSupportKnowledgeRequest, 
@@ -33,7 +33,7 @@ class SupportKnowledgeService:
         db_session: AsyncSession,
         limit: int = 20,
         offset: int = 0,
-        category: Optional[str] = None,
+        category: Optional[SupportKnowledgeCategory] = None,
         search: Optional[str] = None,
     ) -> SupportKnowledgeListResponse:
         """List knowledge entries with filtering."""

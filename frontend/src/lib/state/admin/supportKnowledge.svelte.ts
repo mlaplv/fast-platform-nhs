@@ -19,19 +19,33 @@ class SupportKnowledgeState {
     // For editing/creating
     showModal = $state(false);
     editingItem = $state<Partial<KnowledgeItem> | null>(null);
+    selectedIds = $state<string[]>([]);
+    
+    // Type-safe params
+    params = $state<{
+        category?: string;
+        search?: string;
+        limit: number;
+        offset: number;
+    }>({
+        limit: 20,
+        offset: 0
+    });
 
     // Multi-select state
-    selectedIds = $state<string[]>([]);
 
     async fetchItems(category?: string, search?: string) {
         this.loading = true;
         try {
-            const params: any = {};
-            if (category) params.category = category;
-            if (search) params.search = search;
+            if (category) this.params.category = category;
+            if (search) this.params.search = search;
             
-            const res = await apiClient.get<any>("/api/v1/admin/support/knowledge", { params });
-            if (res && res.data) {
+            const res = await apiClient.get<{
+                data: KnowledgeItem[];
+                total: number;
+            }>("/api/v1/admin/support/knowledge", { params: this.params });
+            
+            if (res) {
                 this.items = res.data;
                 this.total = res.total;
             }
@@ -73,7 +87,7 @@ class SupportKnowledgeState {
     async toggleActive(id: string, is_active: boolean) {
         try {
             await apiClient.patch(`/api/v1/admin/support/knowledge/${id}`, { is_active });
-            const item = this.items.find(i => i.id === id);
+            const item = this.items.find((i: KnowledgeItem) => i.id === id);
             if (item) item.is_active = is_active;
         } catch (error) {
             console.error("[SupportKB] Toggle error:", error);
@@ -114,7 +128,7 @@ class SupportKnowledgeState {
 
     toggleSelect(id: string) {
         if (this.selectedIds.includes(id)) {
-            this.selectedIds = this.selectedIds.filter(i => i !== id);
+            this.selectedIds = this.selectedIds.filter((i: string) => i !== id);
         } else {
             this.selectedIds = [...this.selectedIds, id];
         }
@@ -124,7 +138,7 @@ class SupportKnowledgeState {
         if (this.selectedIds.length === this.items.length) {
             this.selectedIds = [];
         } else {
-            this.selectedIds = this.items.map(i => i.id);
+            this.selectedIds = this.items.map((i: KnowledgeItem) => i.id);
         }
     }
 
