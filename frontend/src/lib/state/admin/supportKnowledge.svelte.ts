@@ -20,6 +20,7 @@ class SupportKnowledgeState {
     showModal = $state(false);
     editingItem = $state<Partial<KnowledgeItem> | null>(null);
     selectedIds = $state<string[]>([]);
+    viewMode = $state<'grid' | 'list'>('grid');
     
     // Type-safe params
     params = $state<{

@@ -19,9 +19,27 @@ export const COMMAND_WIDGET_MAP: Record<string, WidgetType> = {
   "manage news": "NEWS_MANAGEMENT",
   "mở tin tức": "NEWS_MANAGEMENT",
   "tin tức": "NEWS_MANAGEMENT",
+  "manage banners": "BANNER_MANAGEMENT",
+  "mở banner": "BANNER_MANAGEMENT",
+  "banner": "BANNER_MANAGEMENT",
+  "manage reviews": "REVIEW_MANAGEMENT",
+  "mở đánh giá": "REVIEW_MANAGEMENT",
+  "đánh giá": "REVIEW_MANAGEMENT",
+  "manage appointments": "APPOINTMENTS",
+  "mở lịch hẹn": "APPOINTMENTS",
+  "lịch hẹn": "APPOINTMENTS",
+  "manage media": "MEDIA_MANAGER",
+  "mở thư viện": "MEDIA_MANAGER",
+  "thư viện ảnh": "MEDIA_MANAGER",
+  "biểu đồ": "REVENUE_CHART",
+  "mở biểu đồ": "REVENUE_CHART",
+  "doanh thu": "REVENUE_CHART",
   skill: "VOICE_SETTINGS",
   "voice settings": "VOICE_SETTINGS",
   "mở cài đặt giọng": "VOICE_SETTINGS",
+  "mở cài đặt": "SYSTEM_SETTINGS",
+  "mở cấu hình": "SYSTEM_SETTINGS",
+  "cấu hình hệ thống": "SYSTEM_SETTINGS",
   "manage skills": "VOICE_SETTINGS",
   "skills": "VOICE_SETTINGS",
   "campaigns": "CAMPAIGNS",
@@ -35,6 +53,7 @@ export const COMMAND_WIDGET_MAP: Record<string, WidgetType> = {
   "helen brain": "SUPPORT_KNOWLEDGE",
   "đào tạo helen": "SUPPORT_KNOWLEDGE",
   "mở tri thức helen": "SUPPORT_KNOWLEDGE",
+  "mở helen": "SUPPORT_KNOWLEDGE",
 };
 
 export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
@@ -54,6 +73,11 @@ export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
   show_campaigns: "CAMPAIGNS",
   show_content_factory: "CAMPAIGNS",
   show_support_knowledge: "SUPPORT_KNOWLEDGE",
+  show_system_settings: "SYSTEM_SETTINGS",
+  show_banner_management: "BANNER_MANAGEMENT",
+  show_review_management: "REVIEW_MANAGEMENT",
+  show_appointment_management: "APPOINTMENTS",
+  show_media_manager: "MEDIA_MANAGER",
 };
 
 export const WIDGET_VI_LABEL: Record<string, string> = {
@@ -67,4 +91,10 @@ export const WIDGET_VI_LABEL: Record<string, string> = {
   CAMPAIGNS: "Content Factory",
   CONTENT_REVIEW: "Trình Duyệt Bài Viết",
   SUPPORT_KNOWLEDGE: "Đào tạo Helen AI",
+  SYSTEM_SETTINGS: "Cấu hình Hệ thống",
+  BANNER_MANAGEMENT: "Quản lý Banner",
+  REVIEW_MANAGEMENT: "Quản lý Đánh giá",
+  APPOINTMENTS: "Quản lý Lịch hẹn",
+  MEDIA_MANAGER: "Thư viện Ảnh",
+  REVENUE_CHART: "Biểu đồ Doanh thu",
 };

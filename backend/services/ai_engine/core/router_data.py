@@ -15,7 +15,12 @@ SEMANTIC_ANCHORS = {
     "order_query": ["có bao nhiêu đơn hàng", "kiểm tra đơn mới", "hóa đơn", "vận chuyển", "bill hôm nay"],
     "product_query": ["hàng trong kho", "sản phẩm bán chạy", "tồn kho", "danh sách sản phẩm"],
     "news_create": ["viết bài báo", "sáng tác nội dung", "tạo bài viết mới", "lên content", "viết bài facebook"],
-    "ui_navigation": ["mở cài đặt", "vào trang chủ", "xem danh mục", "đi tới quản trị", "vào phần báo cáo"],
+    "ui_navigation": [
+        "mở cài đặt", "vào trang chủ", "xem danh mục", "đi tới quản trị", "vào phần báo cáo", 
+        "mở helen", "cấu hình hệ thống", "mở cấu hình", "mở lịch hẹn", "mở banner", 
+        "mở đánh giá", "mở thư viện ảnh", "biểu đồ doanh thu", "quản lý đơn hàng",
+        "quản lý sản phẩm", "quản lý người dùng", "quản lý tin tức"
+    ],
     "session_sleep": ["cút đi", "ngủ đi", "tạm biệt", "hẹn gặp lại", "tắt máy"],
     "session_wake": ["xohi ơi", "dậy đi", "alo xohi", "nghe này", "làm việc"],
     "learn_command": ["học lệnh", "dạy em khi nói", "nhớ nhé sếp bảo", "dạy xohi học lệnh"]
