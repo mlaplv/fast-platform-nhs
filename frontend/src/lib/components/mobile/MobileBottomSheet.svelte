@@ -137,7 +137,7 @@
   ></button>
 
   <div
-    class="mobile-bottom-sheet bg-[#0a0a0a] text-white border-t border-white/10 flex flex-col shadow-[0_-20px_80px_rgba(0,0,0,0.9)] rounded-t-[40px] h-fit max-h-[98dvh] overflow-hidden"
+    class="mobile-bottom-sheet bg-[#0a0a0a] text-white border-t border-white/15 flex flex-col shadow-[0_-20px_80px_rgba(0,0,0,0.9)] rounded-t-[40px] h-fit max-h-[98dvh] overflow-hidden"
     class:active
     style:z-index={Z_INDEX_CLIENT.MODAL}
     style:padding-bottom="env(safe-area-inset-bottom, 24px)"
@@ -147,27 +147,27 @@
     aria-modal="true"
   >
     <div 
-      class="w-full flex justify-center pt-3 pb-2 relative touch-none cursor-grab active:cursor-grabbing border-b border-white/5"
+      class="w-full flex justify-center pt-4 pb-2 relative touch-none cursor-grab active:cursor-grabbing"
       onpointerdown={onPointerDown}
       onpointermove={onPointerMove}
       onpointerup={onPointerUp}
       onpointercancel={onPointerUp}
     >
-      <div class="w-10 h-1 bg-white/10 rounded-full"></div>
+      <div class="w-12 h-1.5 bg-white/30 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.05)]"></div>
     </div>
 
     <!-- Close Button: Decoupled from Drag Area with 48px Hitbox -->
     <button
       onclick={close}
-      class="absolute right-0 top-0 w-12 h-12 flex items-center justify-center text-white/20 hover:text-white transition-all active:scale-90 active:bg-white/5 rounded-tr-[inherit]"
+      class="absolute right-0 top-0 w-12 h-12 flex items-center justify-center text-white/45 hover:text-white transition-all active:scale-90 active:bg-white/5 rounded-tr-[inherit]"
       style:z-index={Z_INDEX_CLIENT.MOBILE_BOTTOM_SHEET_OVERLAY}
       aria-label="Đóng"
     >
       <X class="w-5 h-5" strokeWidth={1.5} />
     </button>
 
-    <!-- Header: Sticky at the top -->
-    <div class="relative flex items-center justify-center px-6 pb-2 pt-1 border-b border-white/5 bg-[#0a0a0a]">
+    <!-- Header: Optimized Spacing -->
+    <div class="relative flex items-center justify-center px-6 pt-2 pb-4 border-b border-white/5">
       {#if step === 'shipping'}
         <button 
           onclick={() => step = 'selection'} 
@@ -177,7 +177,7 @@
         </button>
       {/if}
 
-      <h2 class="text-[12px] font-black uppercase tracking-[0.2em] italic text-white/90 py-2">
+      <h2 class="text-[13px] font-black uppercase tracking-[0.25em] italic text-white/90">
         {step === 'selection' ? labels.title_select : labels.title_shipping}
       </h2>
     </div>

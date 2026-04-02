@@ -47,8 +47,20 @@
         clearInterval(interval);
         isAnalyzing = false;
         showResult = true;
+        
+        let recommendedQty = 1;
         if (answers.includes('heavy') || answers.includes('failed')) {
-          shopStore.setQuantity(2);
+          recommendedQty = 2;
+        }
+
+        // Auto-apply promo if exists for the recommended quantity
+        const deals = shopStore.product?.metadata?.active_deals;
+        const matchingDeal = deals?.find((d: any) => d.buy_qty === recommendedQty);
+        
+        if (matchingDeal) {
+          shopStore.setQuantity(matchingDeal.buy_qty + (matchingDeal.get_qty || 0));
+        } else {
+          shopStore.setQuantity(recommendedQty);
         }
       }, 6500);
     }
@@ -80,7 +92,7 @@
   <div class="relative flex-1 flex flex-col">
     {#if questions.length > 0}
       {#if isAnalyzing}
-        <div class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#030303] overflow-hidden" in:fade={{ duration: 400 }}>
+        <div class="absolute -inset-x-6 inset-y-0 z-50 flex flex-col items-center justify-center bg-[#030303] overflow-hidden" in:fade={{ duration: 400 }}>
           <!-- Sci-fi Technical Grid -->
           <div class="absolute inset-0 opacity-[0.07]" 
                style:background-image="linear-gradient(#3b82f6 1px, transparent 1px), linear-gradient(90deg, #3b82f6 1px, transparent 1px)"
@@ -93,7 +105,7 @@
             <div class="w-96 h-96 border border-blue-500/10 rounded-full animate-ping opacity-10" style:animation-delay="1s"></div>
           </div>
           
-          <div class="relative z-10 text-center px-4">
+          <div class="relative z-10 text-center px-4 -mt-20">
             <div class="mb-10 relative">
               <div class="absolute inset-0 bg-blue-500/30 blur-[60px] rounded-full animate-pulse"></div>
               <div class="w-20 h-20 bg-blue-500/10 rounded-full border border-blue-500/40 flex items-center justify-center backdrop-blur-3xl shadow-[0_0_50px_rgba(59,130,246,0.3)] mx-auto relative group">
