@@ -19,30 +19,31 @@
   let {
     isOpen = false,
     editingId,
-    formName = $bindable(),
-    formSku = $bindable(),
-    formPrice = $bindable(),
-    formDiscountPrice = $bindable(),
-    formStock = $bindable(),
-    formCategory = $bindable(),
-    formStatus = $bindable(),
-    formShortDescription = $bindable(),
-    formDescription = $bindable(),
-    formSlug = $bindable(),
-    formSeoTitle = $bindable(),
-    formSeoDescription = $bindable(),
-    formSeoKeywords = $bindable(),
-    formImages = $bindable(),
-    formAttributes = $bindable(),
-    formMetadata = $bindable(),
-    formTierVariations = $bindable(),
-    formVariants = $bindable(),
-    categories,
+    formName = $bindable(""),
+    formSku = $bindable(""),
+    formPrice = $bindable(0),
+    formDiscountPrice = $bindable(0),
+    formStock = $bindable(0),
+    formCategory = $bindable(""),
+    formStatus = $bindable("draft"),
+    formShortDescription = $bindable(""),
+    formDescription = $bindable(""),
+    formSlug = $bindable(""),
+    formSeoTitle = $bindable(""),
+    formSeoDescription = $bindable(""),
+    formSeoKeywords = $bindable(""),
+    formImages = $bindable([]),
+    formMobileImages = $bindable([]),
+    formAttributes = $bindable({}),
+    formMetadata = $bindable({}),
+    formTierVariations = $bindable([]),
+    formVariants = $bindable([]),
+    categories = [],
     onSave,
     onClose,
     generateSlug,
-    isSaving,
-    errors,
+    isSaving = false,
+    errors = {},
   } = $props<{
     isOpen?: boolean;
     editingId: string | null;
@@ -60,6 +61,7 @@
     formSeoDescription: string;
     formSeoKeywords: string;
     formImages: string[];
+    formMobileImages: string[];
     formAttributes: Record<string, string | number | boolean | null>;
     formMetadata: Product['metadata'];
     formTierVariations: Product['tierVariations'];
@@ -77,6 +79,7 @@
   // Tracking which variant image is being edited
   let variantEditTierIndex = $state<number | null>(null);
   let variantEditOptionIndex = $state<number | null>(null);
+  let variantEditIsMobile = $state(false);
 
   let reserve_assets = $state<string[]>([]);
   let selectedAvatarUrl = $state<string | null>(null);
@@ -104,50 +107,37 @@
       }
       if (found.length > 0) contentAssets = found;
     }
-
-    if (formName === undefined) formName = "";
-    if (formSku === undefined) formSku = "";
-    if (formPrice === undefined) formPrice = 0;
-    if (formDiscountPrice === undefined) formDiscountPrice = 0;
-    if (formStock === undefined) formStock = 0;
-    if (formCategory === undefined) formCategory = "";
-    if (formStatus === undefined) formStatus = "draft";
-    if (formShortDescription === undefined) formShortDescription = "";
-    if (formDescription === undefined) formDescription = "";
-    if (formSeoTitle === undefined) formSeoTitle = "";
-    if (formSeoDescription === undefined) formSeoDescription = "";
-    if (formSeoKeywords === undefined) formSeoKeywords = "";
-    if (formImages === undefined) formImages = [];
-    if (formAttributes === undefined) formAttributes = {};
-    if (formVariants === undefined) formVariants = [];
   });
 
   function handleVariantImageSelect(url: string) {
     if (variantEditTierIndex !== null && variantEditOptionIndex !== null) {
-      if (formTierVariations[variantEditTierIndex]) {
-        // Ensure images array exists
-        if (!formTierVariations[variantEditTierIndex].images) {
-          formTierVariations[variantEditTierIndex].images = [];
-        }
-        formTierVariations[variantEditTierIndex].images[variantEditOptionIndex] = url;
-        // Trigger reactivity
+      const tier = formTierVariations[variantEditTierIndex];
+      if (tier) {
+        const key = variantEditIsMobile ? 'mobile_images' : 'images';
+        if (!tier[key]) tier[key] = [];
+        tier[key][variantEditOptionIndex] = url;
         formTierVariations = [...formTierVariations];
       }
     }
     variantEditTierIndex = null;
     variantEditOptionIndex = null;
+    variantEditIsMobile = false;
     showMediaModal = false;
   }
 
-  function openVaultForGeneral() {
+  let isVaultForMobile = $state(false);
+
+  function openVaultForGeneral(isMobile = false) {
     variantEditTierIndex = null;
     variantEditOptionIndex = null;
+    isVaultForMobile = isMobile;
     showMediaModal = true;
   }
 
-  function openVaultForVariant(tIdx: number, oIdx: number) {
+  function openVaultForVariant(tIdx: number, oIdx: number, isMobile = false) {
     variantEditTierIndex = tIdx;
     variantEditOptionIndex = oIdx;
+    variantEditIsMobile = isMobile;
     reserve_assets = []; // clear previous selection
     showMediaModal = true;
   }
@@ -232,7 +222,7 @@
             Album hiển thị
             <span class="text-amber-500 ml-auto bg-amber-500/10 px-1.5 py-0.5 rounded text-[8px]">{formImages?.length || 0}</span>
           </div>
-          <ProductFormMedia bind:formImages onOpenVault={openVaultForGeneral} />
+          <ProductFormMedia bind:formImages bind:formMobileImages onOpenVault={openVaultForGeneral} />
         </div>
 
         <!-- Product Metadata (Contextual) -->
@@ -280,15 +270,27 @@
   </div>
 </MissionControlShell>
 
-<MediaVaultModal
-  isOpen={showMediaModal}
-  onClose={() => { showMediaModal = false; variantEditTierIndex = null; variantEditOptionIndex = null; }}
-  onSelect={variantEditOptionIndex !== null ? handleVariantImageSelect : undefined}
-  bind:assets={formImages}
-  bind:reserve_assets
-  bind:selectedAvatarUrl
-  bind:selectedAssetIndex
-/>
+{#if isVaultForMobile}
+  <MediaVaultModal
+    isOpen={showMediaModal}
+    onClose={() => { showMediaModal = false; variantEditTierIndex = null; variantEditOptionIndex = null; isVaultForMobile = false; variantEditIsMobile = false; }}
+    onSelect={variantEditOptionIndex !== null ? handleVariantImageSelect : undefined}
+    bind:assets={formMobileImages}
+    bind:reserve_assets
+    bind:selectedAvatarUrl
+    bind:selectedAssetIndex
+  />
+{:else}
+  <MediaVaultModal
+    isOpen={showMediaModal}
+    onClose={() => { showMediaModal = false; variantEditTierIndex = null; variantEditOptionIndex = null; isVaultForMobile = false; variantEditIsMobile = false; }}
+    onSelect={variantEditOptionIndex !== null ? handleVariantImageSelect : undefined}
+    bind:assets={formImages}
+    bind:reserve_assets
+    bind:selectedAvatarUrl
+    bind:selectedAssetIndex
+  />
+{/if}
 
 <style>
   @reference "tailwindcss";

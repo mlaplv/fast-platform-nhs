@@ -303,6 +303,7 @@ export interface Product {
   seoTitle: string | null;
   seoDescription: string | null;
   images: string[];
+  mobileImages?: string[];
   attributes: Record<string, unknown>;
   metadata: ProductMetadata;
   tierVariations: TierVariation[];
@@ -314,6 +315,7 @@ export interface TierVariation {
   name: string;
   options: string[];
   images: (string | null)[];
+  mobile_images?: (string | null)[];
 }
 
 export interface ProductVariant {

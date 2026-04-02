@@ -1,9 +1,8 @@
 import uuid
 import logging
 from datetime import datetime, timezone
-from typing import List, Dict, Optional
-from sqlalchemy import text, update, select, func, and_, or_, delete
 import sqlalchemy as sa
+from typing import List, Dict, Optional, TypedDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
 
@@ -17,6 +16,35 @@ from sqlalchemy.dialects.postgresql import JSONB
 import re
 
 logger = logging.getLogger("api-gateway")
+RE_ORDER_COUNT = re.compile(r"([\d,.]+)")
+
+class ProductRowDict(TypedDict):
+    """Elite Structural Definition for Product Project Result."""
+    id: str
+    name: str
+    sku: str
+    price: float
+    discount_price: Optional[float]
+    stock: int
+    status: str
+    category_id: Optional[str]
+    category_name: Optional[str]
+    short_description: Optional[str]
+    description: Optional[str]
+    type: str
+    slug: str
+    seo_title: Optional[str]
+    seo_description: Optional[str]
+    seo_keywords: Optional[str]
+    images: List[str]
+    mobile_images: List[str]
+    attributes: Dict[str, object]
+    tier_variations: List[Dict[str, object]]
+    metadata: Dict[str, object]
+    created_at: datetime
+    order_count: Optional[int]
+    order_count_text: Optional[str]
+    variants: Optional[List[object]]
 
 class ProductService:
     """Business Logic for Products (Elite V2.2)."""
@@ -32,16 +60,16 @@ class ProductService:
         )
         return await db_session.scalar(stmt) or 0
 
-    async def _inject_dynamic_counting(self, db_session: AsyncSession, product_id: str, row_dict: dict) -> None:
+    async def _inject_dynamic_counting(self, db_session: AsyncSession, product_id: str, row_dict: ProductRowDict) -> None:
         """Inject elite dynamic order counting into the product response dictionary."""
         actual_orders = await self._get_real_order_count(db_session, product_id)
         row_dict["order_count"] = actual_orders
         row_dict["order_count_text"] = self._get_display_order_count_text(row_dict.get("metadata", {}), actual_orders)
 
-    def _get_display_order_count_text(self, metadata: dict, actual_count: int) -> str:
+    def _get_display_order_count_text(self, metadata: Dict[str, object], actual_count: int) -> str:
         """Combine real orders with social proof base from metadata (Vietnamese Format)."""
-        base_text = metadata.get("reviews_count_text", "2,140+ LƯỢT MUA")
-        match = re.search(r"([\d,.]+)", base_text)
+        base_text = str(metadata.get("reviews_count_text", "2.140+ LƯỢT MUA"))
+        match = RE_ORDER_COUNT.search(base_text)
         
         base_num = 0
         if match:
@@ -82,7 +110,7 @@ class ProductService:
             ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-            ProductBase.images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
+            ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
             ProductBase.created_at,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
@@ -90,9 +118,9 @@ class ProductService:
         ).limit(limit).offset(offset).order_by(ProductBase.created_at.desc())
 
         result = await db_session.execute(stmt)
-        data = []
+        data: List[ProductResponse] = []
         for row in result:
-            row_dict = dict(row._mapping)
+            row_dict: ProductRowDict = dict(row._mapping)  # type: ignore
             row_dict["variants"] = [] # Optimize: don't load variants in list view
             data.append(ProductResponse.model_validate(row_dict))
             
@@ -105,7 +133,7 @@ class ProductService:
             ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-            ProductBase.images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
+            ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
             ProductBase.created_at,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
@@ -123,8 +151,8 @@ class ProductService:
         v_stmt = select(ProductVariant).where(ProductVariant.product_base_id == product_id, ProductVariant.deleted_at == None)
         variants = (await db_session.execute(v_stmt)).scalars().all()
         
-        row_dict = dict(row._mapping)
-        row_dict["variants"] = variants
+        row_dict: ProductRowDict = dict(row._mapping) # type: ignore
+        row_dict["variants"] = list(variants)
         
         # Elite Dynamic Counting
         await self._inject_dynamic_counting(db_session, product_id, row_dict)
@@ -138,7 +166,7 @@ class ProductService:
             ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-            ProductBase.images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
+            ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
             ProductBase.created_at,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
@@ -156,9 +184,9 @@ class ProductService:
         # Fetch variants
         v_stmt = select(ProductVariant).where(ProductVariant.product_base_id == product_id, ProductVariant.deleted_at == None)
         variants = (await db_session.execute(v_stmt)).scalars().all()
-
-        row_dict = dict(row._mapping)
-        row_dict["variants"] = variants
+        
+        row_dict: ProductRowDict = dict(row._mapping) # type: ignore
+        row_dict["variants"] = list(variants)
         
         # Elite Dynamic Counting
         await self._inject_dynamic_counting(db_session, product_id, row_dict)
@@ -189,6 +217,7 @@ class ProductService:
             seo_description=data.seoDescription,
             seo_keywords=data.seoKeywords,
             images=data.images,
+            mobile_images=data.mobileImages,
             attributes=data.attributes,
             tier_variations=[tv.model_dump() for tv in data.tierVariations] if data.tierVariations else [],
             product_metadata=data.metadata.model_dump() if data.metadata else {},
@@ -248,6 +277,7 @@ class ProductService:
         if data.seoDescription is not None: product.seo_description = data.seoDescription
         if data.seoKeywords is not None: product.seo_keywords = data.seoKeywords
         if data.images is not None: product.images = data.images
+        if data.mobileImages is not None: product.mobile_images = data.mobileImages
         if data.attributes is not None: product.attributes = data.attributes
         if data.tierVariations is not None: product.tier_variations = [tv.model_dump() for tv in data.tierVariations]
         if data.metadata is not None: product.product_metadata = data.metadata.model_dump()

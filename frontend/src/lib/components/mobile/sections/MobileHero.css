@@ -13,6 +13,7 @@
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  background-color: #030303; /* Elite 2026 Black Base */
 }
 
 .variant-slider-container::-webkit-scrollbar { display: none; }
@@ -20,7 +21,7 @@
 .variant-slide {
   flex: none;
   width: 100vw;
-  height: 100dvh;
+  height: 88dvh; /* Giảm để chống vỡ ảnh và tăng độ thoáng */
   scroll-snap-align: center;
   position: relative;
 }
@@ -31,7 +32,7 @@
   right: 0;
   z-index: 20;
   padding-left: 9px;
-  padding-right: 24px; /* 1.5rem */
+  padding-right: 24px; 
   pointer-events: none;
-  bottom: calc(var(--mobile-bottom-space) + env(safe-area-inset-bottom) + 5px);
+  bottom: calc(var(--mobile-bottom-space) + env(safe-area-inset-bottom, 20px) + 2px); /* Tối ưu Safe Zone */
 }

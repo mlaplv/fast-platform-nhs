@@ -93,7 +93,8 @@ async def seed_products(session):
             short_description=d.get("short_description", ""),
             description=d.get("description", ""),
             images=d.get("images", []),
-            tier_variations=d.get("tier_variations", []),
+            mobile_images=d.get("mobile_images", []),
+            tier_variations=[{**tv, "mobile_images": tv.get("mobile_images", [None] * len(tv["options"]))} for tv in d.get("tier_variations", [])],
             product_metadata=d.get("product_metadata", {})
         )
         session.add(pb)

@@ -140,6 +140,10 @@ PRODUCT_DEFS = [
             "/uploads/2026/04/d880a1f5-1be1-4a6a-9542-c705f0b1890a.webp",
             "/uploads/2026/04/7e019c82-cc72-4e43-8753-54e85a3c6e90.webp"
         ],
+        "mobile_images": [
+            "/uploads/2026/04/81a1dedc-cc87-457b-8fc5-a8037ae76921.webp",
+            "/uploads/2026/04/d880a1f5-1be1-4a6a-9542-c705f0b1890a.webp"
+        ],
         "tier_variations": [
             {
                 "name": "Loại thuốc",

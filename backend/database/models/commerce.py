@@ -57,6 +57,7 @@ class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     seo_description: Mapped[Optional[str]] = mapped_column(String)
     seo_keywords: Mapped[Optional[str]] = mapped_column(String)
     images: Mapped[Optional[list]] = mapped_column(JSONB, default=list) # List of image URLs
+    mobile_images: Mapped[Optional[list]] = mapped_column(JSONB, default=list) # R102: Mobile-specific images (9:16)
     attributes: Mapped[Optional[dict]] = mapped_column(JSONB, default=dict) # {"size": ["S", "M"], "color": ["Black"]}
     tier_variations: Mapped[Optional[list]] = mapped_column(JSONB, default=list) # R102 Matrix: [{"name": "Màu", "options": ["Đỏ", "Xanh"], "images": ["url1", "url2"]}, {"name": "Size", "options": ["S", "M"]}]
     product_metadata: Mapped[Optional[dict]] = mapped_column(JSONB, default=dict) # R00: Zero-Hardcode Elite Metadata

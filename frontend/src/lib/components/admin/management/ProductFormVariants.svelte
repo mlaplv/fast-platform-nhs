@@ -10,7 +10,7 @@
   } = $props<{
     formTierVariations: Product['tierVariations'];
     formVariants: Product['variants'];
-    onOpenVault: (tierIndex: number, optionIndex: number) => void;
+    onOpenVault: (tierIndex: number, optionIndex: number, isMobile?: boolean) => void;
   }>();
 
   let hasCustomImages = $state(false);
@@ -42,7 +42,8 @@
     formTierVariations = [...formTierVariations, { 
       name: formTierVariations.length === 0 ? "Màu sắc" : "Kích cỡ", 
       options: [], 
-      images: [] 
+      images: [],
+      mobile_images: []
     }];
     rebuildMatrix();
   }
@@ -65,6 +66,8 @@
     
     formTierVariations[tIndex].options.push(value.trim());
     formTierVariations[tIndex].images.push(null);
+    if (!formTierVariations[tIndex].mobile_images) formTierVariations[tIndex].mobile_images = [];
+    formTierVariations[tIndex].mobile_images.push(null);
     formTierVariations = [...formTierVariations];
     rebuildMatrix();
   }
@@ -72,6 +75,7 @@
   function removeOption(tIndex: number, oIndex: number) {
     formTierVariations[tIndex].options.splice(oIndex, 1);
     formTierVariations[tIndex].images.splice(oIndex, 1);
+    if (formTierVariations[tIndex].mobile_images) formTierVariations[tIndex].mobile_images.splice(oIndex, 1);
     formTierVariations = [...formTierVariations];
     
     // Cleanup empty tiers
@@ -86,6 +90,7 @@
     hasCustomImages = !hasCustomImages;
     if (!hasCustomImages && formTierVariations.length > 0) {
       formTierVariations[0].images = formTierVariations[0].options.map(() => null);
+      formTierVariations[0].mobile_images = formTierVariations[0].options.map(() => null);
     }
   }
 
@@ -164,9 +169,14 @@
     }
   }
 
-  function removeImage(oIndex: number) {
+  function removeImage(oIndex: number, isMobile = false) {
     if (formTierVariations.length > 0) {
-      formTierVariations[0].images[oIndex] = null;
+      if (isMobile) {
+        if (!formTierVariations[0].mobile_images) formTierVariations[0].mobile_images = [];
+        formTierVariations[0].mobile_images[oIndex] = null;
+      } else {
+        formTierVariations[0].images[oIndex] = null;
+      }
     }
   }
 </script>
@@ -270,20 +280,40 @@
                     </div>
                   {/if}
                   
-                  <!-- IMAGE SELECTOR FOR TIER 1 -->
+                  <!-- IMAGE SELECTORS FOR TIER 1 -->
                   {#if tIndex === 0 && hasCustomImages}
-                    <div class="w-14 h-14 border-2 border-dashed border-white/10 rounded-lg bg-black/40 flex items-center justify-center relative group/img cursor-pointer hover:border-amber-500/30 transition-colors mx-auto"
-                         onclick={() => !tier.images[oIndex] && onOpenVault(tIndex, oIndex)}>
-                      
-                      {#if tier.images[oIndex]}
-                         <img src={resolveMediaUrl(tier.images[oIndex])} alt={opt} class="w-full h-full object-cover rounded-md" />
-                         <div class="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 flex items-center justify-center gap-1.5 transition-opacity rounded-md">
-                           <button class="p-1 bg-white/20 hover:bg-white/40 rounded text-white" onclick={(e) => { e.stopPropagation(); onOpenVault(tIndex, oIndex); }}><ImagePlus size={10}/></button>
-                           <button class="p-1 bg-red-500/40 hover:bg-red-500/80 rounded text-white" onclick={(e) => { e.stopPropagation(); removeImage(oIndex); }}><Trash2 size={10}/></button>
-                         </div>
-                      {:else}
-                         <ImagePlus size={12} class="text-white/20 group-hover/img:text-amber-500/50" />
-                      {/if}
+                    <div class="flex items-center gap-2 mx-auto">
+                      <!-- Desktop Image -->
+                      <div class="w-12 h-12 border border-dashed border-white/10 rounded-lg bg-black/40 flex items-center justify-center relative group/img cursor-pointer hover:border-amber-500/30 transition-colors"
+                           onclick={() => !tier.images[oIndex] && onOpenVault(tIndex, oIndex, false)}>
+                        <div class="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 rounded bg-amber-500 text-black text-[7px] font-black flex items-center justify-center shadow-lg border border-black/20 z-10">D</div>
+                        
+                        {#if tier.images[oIndex]}
+                           <img src={resolveMediaUrl(tier.images[oIndex])} alt={opt} class="w-full h-full object-cover rounded-md" />
+                           <div class="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 flex items-center justify-center gap-1.5 transition-opacity rounded-md z-20">
+                             <button class="p-1 bg-white/20 hover:bg-white/40 rounded text-white" onclick={(e) => { e.stopPropagation(); onOpenVault(tIndex, oIndex, false); }}><ImagePlus size={10}/></button>
+                             <button class="p-1 bg-red-500/40 hover:bg-red-500/80 rounded text-white" onclick={(e) => { e.stopPropagation(); removeImage(oIndex, false); }}><Trash2 size={10}/></button>
+                           </div>
+                        {:else}
+                           <ImagePlus size={10} class="text-white/10 group-hover/img:text-amber-500/50" />
+                        {/if}
+                      </div>
+
+                      <!-- Mobile Image (9:16) -->
+                      <div class="w-12 h-12 border border-dashed border-white/10 rounded-lg bg-black/40 flex items-center justify-center relative group/img-mob cursor-pointer hover:border-cyan-500/30 transition-colors"
+                           onclick={() => (!tier.mobile_images?.[oIndex]) && onOpenVault(tIndex, oIndex, true)}>
+                        <div class="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 rounded bg-cyan-500 text-black text-[7px] font-black flex items-center justify-center shadow-lg border border-black/20 z-10">M</div>
+                        
+                        {#if tier.mobile_images?.[oIndex]}
+                           <img src={resolveMediaUrl(tier.mobile_images[oIndex])} alt={opt} class="w-full h-full object-cover rounded-md" />
+                           <div class="absolute inset-0 bg-black/60 opacity-0 group-hover/img-mob:opacity-100 flex items-center justify-center gap-1.5 transition-opacity rounded-md z-20">
+                             <button class="p-1 bg-white/20 hover:bg-white/40 rounded text-white" onclick={(e) => { e.stopPropagation(); onOpenVault(tIndex, oIndex, true); }}><ImagePlus size={10}/></button>
+                             <button class="p-1 bg-red-500/40 hover:bg-red-500/80 rounded text-white" onclick={(e) => { e.stopPropagation(); removeImage(oIndex, true); }}><Trash2 size={10}/></button>
+                           </div>
+                        {:else}
+                           <ImagePlus size={10} class="text-white/10 group-hover/img-mob:text-cyan-500/50" />
+                        {/if}
+                      </div>
                     </div>
                   {/if}
 

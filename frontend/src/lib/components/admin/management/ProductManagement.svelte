@@ -53,6 +53,7 @@
   let formSeoDescription = $state("");
   let formSeoKeywords = $state("");
   let formImages = $state<string[]>([]);
+  let formMobileImages = $state<string[]>([]);
   let formAttributes = $state<Record<string, string | number | boolean | null>>({});
   let formMetadata = $state<Product["metadata"]>({ landing_type: 'standard' });
   let formTierVariations = $state<Product["tierVariations"]>([]);
@@ -164,7 +165,7 @@
     editingId = null;
     formName = ""; formSku = ""; formPrice = 0; formDiscountPrice = 0; formStock = 0; formCategory = ""; formStatus = "draft";
     formShortDescription = ""; formDescription = ""; formSlug = ""; formSeoTitle = ""; formSeoDescription = ""; formSeoKeywords = "";
-    formImages = []; formAttributes = {};
+    formImages = []; formMobileImages = []; formAttributes = {};
     formMetadata = { landing_type: 'standard' };
     formTierVariations = []; formVariants = [];
     showForm = true;
@@ -240,6 +241,7 @@
       formSeoDescription = p.seoDescription ?? p.seo_description ?? "";
       formSeoKeywords = p.seoKeywords ?? p.seo_keywords ?? "";
       formImages = p.images || [];
+      formMobileImages = p.mobileImages ?? (p as any).mobile_images ?? [];
       formAttributes = p.attributes || {};
       formMetadata = p.metadata || { landing_type: 'standard' };
 
@@ -311,6 +313,7 @@
       seoDescription: formSeoDescription,
       seoKeywords: formSeoKeywords,
       images: formImages || [],
+      mobile_images: formMobileImages || [],
       attributes: formAttributes || {},
       metadata: formMetadata || {},
       tier_variations: (formTierVariations || []).map(tv => ({
@@ -395,7 +398,7 @@
     isOpen={showForm}
     bind:formName bind:formSku bind:formPrice bind:formDiscountPrice bind:formStock bind:formCategory bind:formStatus
     bind:formShortDescription bind:formDescription bind:formSlug bind:formSeoTitle bind:formSeoDescription bind:formSeoKeywords
-    bind:formImages bind:formAttributes bind:formMetadata bind:formTierVariations bind:formVariants
+    bind:formImages bind:formMobileImages bind:formAttributes bind:formMetadata bind:formTierVariations bind:formVariants
     {categories}
     onSave={save}
     onClose={() => (showForm = false)}

@@ -81,18 +81,19 @@
   >
     {#each variantOptions as opt, i}
       {@const v = product?.variants?.find((varItem: ProductVariant) => varItem.tierIndex[0] === i)}
+      {@const mobileImg = (product?.tierVariations?.[0]?.mobile_images?.[i]) || (product?.mobile_images?.[i])}
       <div class="variant-slide relative">
-         <!-- Main Content Image -->
+         <!-- Main Content Image (Elite Adaptive Rendering) -->
          <img
-           src={product?.tierVariations[0]?.images[i] || product?.images[0]}
+           src={mobileImg || product?.tierVariations[0]?.images[i] || product?.images[0]}
            alt="{product?.name} - {opt}"
-           class="w-full h-full object-cover select-none brightness-[1.10] saturate-[1.10]"
-           loading="eager"
-           fetchpriority="high"
+           class="w-full h-full object-cover select-none"
+           loading={i === 0 ? "eager" : "lazy"}
+           fetchpriority={i === 0 ? "high" : "low"}
          />
 
-         <!-- Cinematic Smooth Gradient (Ultra-Clear Elite 2026) -->
-         <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none"></div>
+         <!-- Cinematic Smooth Gradient (Elite 2026 Black-Bottom) -->
+         <div class="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent pointer-events-none"></div>
 
           <!-- Product Info Overlay -->
           <div class="hero-info-overlay">

@@ -15,6 +15,7 @@ class TierVariation(BaseModel):
     name: str
     options: List[str]
     images: Optional[List[str]] = None
+    mobile_images: Optional[List[str]] = None
 
 class PromotionDeal(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -88,6 +89,7 @@ class CreateProductRequest(BaseModel):
     seoDescription: Optional[str] = Field(None, max_length=2000, alias="seo_description")
     seoKeywords: Optional[str] = Field(None, max_length=2000, alias="seo_keywords")
     images: List[str] = Field(default_factory=list)
+    mobileImages: List[str] = Field(default_factory=list, alias="mobile_images")
     attributes: Dict[str, Union[str, int, float, bool, None]] = Field(default_factory=dict)
     metadata: ProductMetadata = Field(default_factory=ProductMetadata)
 
@@ -121,6 +123,7 @@ class UpdateProductRequest(BaseModel):
     seoDescription: Optional[str] = Field(None, max_length=2000, alias="seo_description")
     seoKeywords: Optional[str] = Field(None, max_length=2000, alias="seo_keywords")
     images: Optional[List[str]] = None
+    mobileImages: Optional[List[str]] = Field(None, alias="mobile_images")
     attributes: Optional[Dict[str, Union[str, int, float, bool, None]]] = None
     metadata: Optional[ProductMetadata] = None
 
@@ -158,6 +161,7 @@ class ProductResponse(BaseModel):
     seoDescription: Optional[str] = Field(None, alias="seo_description")
     seoKeywords: Optional[str] = Field(None, alias="seo_keywords")
     images: List[str] = Field(default_factory=list)
+    mobileImages: List[str] = Field(default_factory=list, alias="mobile_images")
     attributes: Dict[str, Union[str, int, float, bool, None]] = Field(default_factory=dict)
     metadata: ProductMetadata = Field(default_factory=ProductMetadata)
     seoMeta: Optional[SeoMetaSchema] = Field(None, alias="seo_meta")
