@@ -31,6 +31,10 @@ export const COMMAND_WIDGET_MAP: Record<string, WidgetType> = {
   "chiến dịch": "CAMPAIGNS",
   "quản lý chiến dịch": "CAMPAIGNS",
   "open campaign": "CAMPAIGNS",
+  "support knowledge": "SUPPORT_KNOWLEDGE",
+  "helen brain": "SUPPORT_KNOWLEDGE",
+  "đào tạo helen": "SUPPORT_KNOWLEDGE",
+  "mở tri thức helen": "SUPPORT_KNOWLEDGE",
 };
 
 export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
@@ -49,6 +53,7 @@ export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
   show_skills: "VOICE_SETTINGS",
   show_campaigns: "CAMPAIGNS",
   show_content_factory: "CAMPAIGNS",
+  show_support_knowledge: "SUPPORT_KNOWLEDGE",
 };
 
 export const WIDGET_VI_LABEL: Record<string, string> = {
@@ -61,4 +66,5 @@ export const WIDGET_VI_LABEL: Record<string, string> = {
   VOICE_SETTINGS: "Cài đặt Giọng nói",
   CAMPAIGNS: "Content Factory",
   CONTENT_REVIEW: "Trình Duyệt Bài Viết",
+  SUPPORT_KNOWLEDGE: "Đào tạo Helen AI",
 };

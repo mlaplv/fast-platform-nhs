@@ -75,3 +75,42 @@ class SupportResponse(BaseModel):
     intent: SupportIntent = Field(default=SupportIntent.UNKNOWN)
     session_id: Optional[str] = Field(default=None)
     product_info: Optional[Dict[str, object]] = Field(default=None, description="Metadata for UI components (ordering, etc.)")
+
+
+# ══════════════════════════════════════════════════════════════
+# ADMIN KNOWLEDGE MANAGEMENT SCHEMAS
+# ══════════════════════════════════════════════════════════════
+
+class SupportKnowledgeBase(BaseModel):
+    category: str = Field(..., max_length=100)
+    question: str = Field(..., min_length=1)
+    answer: str = Field(..., min_length=1)
+    is_active: bool = True
+    priority: int = 0
+    tags: Optional[list[str]] = None
+
+class CreateSupportKnowledgeRequest(SupportKnowledgeBase):
+    pass
+
+class UpdateSupportKnowledgeRequest(BaseModel):
+    category: Optional[str] = None
+    question: Optional[str] = None
+    answer: Optional[str] = None
+    is_active: Optional[bool] = None
+    priority: Optional[int] = None
+    tags: Optional[list[str]] = None
+
+class SupportKnowledgeResponse(SupportKnowledgeBase):
+    id: str
+    created_at: str # ISO string
+
+class SupportKnowledgeListResponse(BaseModel):
+    data: list[SupportKnowledgeResponse]
+    total: int
+
+class BulkDeleteRequest(BaseModel):
+    ids: list[str]
+
+class BulkToggleRequest(BaseModel):
+    ids: list[str]
+    is_active: bool

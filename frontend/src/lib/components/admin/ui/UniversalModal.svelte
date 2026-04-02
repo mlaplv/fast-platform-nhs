@@ -24,6 +24,7 @@
 import BannerManagement from "../management/BannerManagement.svelte";
 import AppointmentManagement from "../management/AppointmentManagement.svelte";
 import ReviewManagement from "../management/ReviewManagement.svelte";
+import SupportKnowledgeManagement from "../management/SupportKnowledgeManagement.svelte";
 
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
@@ -49,6 +50,7 @@ import ReviewManagement from "../management/ReviewManagement.svelte";
     BANNER_MANAGEMENT: BannerManagement,
     APPOINTMENTS: AppointmentManagement,
     REVIEW_MANAGEMENT: ReviewManagement,
+    SUPPORT_KNOWLEDGE: SupportKnowledgeManagement,
   };
 
   const WIDGET_LABEL: Record<string, string> = {
@@ -69,6 +71,7 @@ import ReviewManagement from "../management/ReviewManagement.svelte";
     BANNER_MANAGEMENT: "BANNER MANAGEMENT",
     APPOINTMENTS: "LỊCH HẸN NEURAL",
     REVIEW_MANAGEMENT: "QUẢN TRỊ ĐÁNH GIÁ",
+    SUPPORT_KNOWLEDGE: "HELEN BRAIN — TRI THỨC AI",
   };
 
   let open = $derived(nanobot.universalModalOpen);

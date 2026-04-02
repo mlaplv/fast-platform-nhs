@@ -32,6 +32,8 @@ from backend.services.commerce.security.input_guard import input_guard
 from backend.services.event_bus import event_bus
 from backend.services.xohi_memory import xohi_memory
 from backend.services.core.zalo_service import zalo_service
+from backend.services.commerce.support_knowledge import SupportKnowledgeService
+from backend.database.repositories import SupportKnowledgeRepository
 
 logger = logging.getLogger("api-gateway")
 
@@ -241,11 +243,16 @@ class SupportAgentOperative:
         if scripted:
             return scripted
 
+        # Build RAG context from knowledge base (Elite V2.2: Structured Tri thức)
+        kb_repo = SupportKnowledgeRepository(session=db)
+        kb_service = SupportKnowledgeService(repo=kb_repo)
+        kb_ctx = await kb_service.search_relevant_knowledge(db, request.message)
+
         # Build RAG context from product (read-only DB)
         product_ctx, product_info = await _fetch_product_context(db, request.product_slug)
 
         # Construct prompt with system directive from env
-        prompt = self._build_prompt(request.message, product_ctx, intent)
+        prompt = self._build_prompt(request.message, product_ctx, kb_ctx, intent)
 
         # Run AI via TrinityBridge (role="fast" → flash models)
         try:
@@ -372,10 +379,10 @@ class SupportAgentOperative:
         return None
 
     def _build_prompt(
-        self, message: str, product_ctx: str, intent: SupportIntent
+        self, message: str, product_ctx: str, kb_ctx: str, intent: SupportIntent
     ) -> str:
         """Construct AI prompt with optional RAG context injection."""
-        ctx_block = f"\n{product_ctx}\n" if product_ctx else ""
+        ctx_block = f"\n{kb_ctx}\n{product_ctx}\n" if (product_ctx or kb_ctx) else ""
         intent_hint = f"[Phân loại câu hỏi: {intent.value}]\n" if intent else ""
         return f"{intent_hint}{ctx_block}Câu hỏi của khách: {message}"
 

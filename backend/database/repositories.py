@@ -4,7 +4,8 @@ from backend.database.models import (
     User, VoiceProfile, Role, Permission, Category, Article, Order,
     ProductBase, ProductVariant, RentalContract, ProductEmbedding,
     ArticleEmbedding, Draft, AgentTelemetryLog, ChatMessage, Notification,
-    ContentCampaign, MediaRegistry, Appointment, ContentScout
+    ContentCampaign, MediaRegistry, Appointment, ContentScout,
+    SupportKnowledge
 )
 
 class UserRepository(SQLAlchemyAsyncRepository[User]):
@@ -72,6 +73,9 @@ class ContentScoutRepository(SQLAlchemyAsyncRepository[ContentScout]):
 class SystemReviewRepository(SQLAlchemyAsyncRepository[SystemReview]):
     model_type = SystemReview
 
+class SupportKnowledgeRepository(SQLAlchemyAsyncRepository[SupportKnowledge]):
+    model_type = SupportKnowledge
+
 # ==========================================
 # REPOSITORY PROVIDERS (V55.0 DI PATTERN)
 # ==========================================
@@ -134,3 +138,6 @@ async def provide_scout_repo(db_session: AsyncSession) -> ContentScoutRepository
 
 async def provide_system_review_repo(db_session: AsyncSession) -> SystemReviewRepository:
     return SystemReviewRepository(session=db_session)
+
+async def provide_support_kb_repo(db_session: AsyncSession) -> SupportKnowledgeRepository:
+    return SupportKnowledgeRepository(session=db_session)

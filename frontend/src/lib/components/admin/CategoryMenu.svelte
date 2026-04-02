@@ -131,6 +131,14 @@
       icon: Globe,
       color: "#00F3FF",
       widget: "SYSTEM_SETTINGS",
+    },
+    {
+      id: "support-kb",
+      label: "Hỗ trợ Helen",
+      sublabel: "Đào tạo AI & Tri thức",
+      icon: Sparkles,
+      color: "#FF33FF",
+      widget: "SUPPORT_KNOWLEDGE",
     }
   ];
 

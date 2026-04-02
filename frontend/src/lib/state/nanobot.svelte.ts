@@ -1,6 +1,7 @@
 import { untrack } from "svelte";
 import { apiClient } from "$lib/utils/apiClient";
 import { createChatState } from "./chat.svelte";
+import { goto } from "$app/navigation";
 import { createNotificationState } from "./notification.svelte";
 import { createVaultState } from "./vault.svelte";
 import { createVoiceState } from "./voice.svelte";
@@ -61,6 +62,7 @@ export function createNanobotState() {
       { label: "Thêm danh mục", command: "thêm danh mục" },
       { label: "Xem đơn hàng", command: "mở đơn hàng" },
       { label: "Viết tin tức", command: "tạo tin tức" },
+      { label: "Đào tạo Helen", command: "mở tri thức helen" },
     ] as Suggestion[],
     mobileScrollPosition: 0,
     isExpanded: false,
@@ -302,7 +304,11 @@ export function createNanobotState() {
     setUniversalModalOpen: ui.setUniversalModalOpen,
     showUniversalModal: () => ui.setUniversalModalOpen(true),
     closeUniversalModal: () => { ui.setUniversalModalOpen(false); state.activeWidget = "NONE"; },
-    openWidget: (widget: WidgetType, data?: Record<string, unknown>) => { state.activeWidget = widget; if (data) state.currentData = data; ui.setUniversalModalOpen(true); },
+    openWidget: (widget: WidgetType, data?: Record<string, unknown>) => { 
+      state.activeWidget = widget; 
+      if (data) state.currentData = data; 
+      ui.setUniversalModalOpen(true); 
+    },
 
     // HUD & Tips
     get activeHudPopup() { return ui.activeHudPopup; },
