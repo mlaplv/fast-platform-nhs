@@ -17,6 +17,14 @@ class TierVariation(BaseModel):
     images: Optional[List[str]] = None
     mobile_images: Optional[List[str]] = None
 
+    @field_validator("images", "mobile_images", mode="before")
+    @classmethod
+    def filter_null_images(cls, v: Any) -> Any:
+        if v is None: return []
+        if isinstance(v, list):
+            return [str(x) for x in v if x is not None]
+        return v
+
 class PromotionDeal(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     buy_qty: int = Field(..., alias="buy_qty")
@@ -61,6 +69,14 @@ class ProductVariantSchema(BaseModel):
     price: float
     discountPrice: Optional[float] = Field(None, alias="discount_price")
     stock: int
+
+    @field_validator("tierIndex", mode="before")
+    @classmethod
+    def validate_tier_index(cls, v: Any) -> Any:
+        if v is None: return []
+        if isinstance(v, list):
+            return [int(x) for x in v if x is not None]
+        return v
 
     @model_validator(mode="after")
     def validate_variant_price(self) -> "ProductVariantSchema":
@@ -180,10 +196,13 @@ class ProductResponse(BaseModel):
     def stringify_ids(cls, v):
         return str(v) if v is not None else None
 
-    @field_validator("images", mode="before")
+    @field_validator("images", "mobileImages", mode="before")
     @classmethod
     def validate_images(cls, v):
-        return v if v is not None else []
+        if v is None: return []
+        if isinstance(v, list):
+            return [str(x) for x in v if x is not None]
+        return v
 
     @field_validator("attributes", mode="before")
     @classmethod
@@ -198,7 +217,15 @@ class ProductResponse(BaseModel):
     @field_validator("tierVariations", "variants", mode="before")
     @classmethod
     def validate_matrix_fields(cls, v):
-        return v if v is not None else []
+        if v is None: return []
+        if isinstance(v, list):
+            return [x for x in v if x is not None]
+        return v
+
+    @field_validator("sku", mode="before")
+    @classmethod
+    def validate_sku(cls, v):
+        return str(v) if v is not None else ""
 
     @computed_field
     @property
