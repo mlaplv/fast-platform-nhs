@@ -80,7 +80,7 @@ class AdminSupportController(Controller):
         await db_session.commit()
         return res
 
-    @delete("/{item_id:str}")
+    @delete("/{item_id:str}", status_code=200)
     async def delete_knowledge(
         self,
         db_session: AsyncSession,
