@@ -273,7 +273,7 @@
             class="w-full text-left p-4 border-b border-white/5 hover:bg-white/5 transition-all relative {selectedSessionId === session.session_id ? 'bg-cyan-500/10 border-l-2 border-l-cyan-500' : ''} {isHighIntent(session) ? 'high-intent-glow' : ''}"
           >
             {#if isHighIntent(session)}
-              <div class="absolute top-2 right-2 flex gap-1">
+              <div class="absolute top-2 right-2 flex items-center gap-1.5 p-1 rounded-md bg-cyan-500/10 border border-cyan-500/20 anim-pulse-cyan">
                 {#if session.is_takeover}
                   <span class="text-[7px] font-bold px-1 py-0.5 bg-yellow-500/20 text-yellow-500 rounded border border-yellow-500/30 uppercase tracking-tighter mr-1 anim-pulse">AI SILENCED</span>
                 {/if}
@@ -281,7 +281,7 @@
                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                   <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
                 </span>
-                <span class="text-[7px] font-bold text-cyan-400 uppercase tracking-tighter">High Intent</span>
+                <span class="text-[8px] font-black text-cyan-400 uppercase tracking-widest leading-none">High Intent</span>
               </div>
             {:else if session.is_takeover}
               <div class="absolute top-2 right-2">
@@ -448,11 +448,24 @@
   }
 
   .high-intent-glow {
-    background: linear-gradient(90deg, rgba(6, 182, 212, 0.05) 0%, transparent 100%);
-    box-shadow: inset 0 0 10px rgba(6, 182, 212, 0.05);
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.1) 0%, transparent 100%);
+    box-shadow: inset 0 0 15px rgba(6, 182, 212, 0.15), 0 0 10px rgba(6, 182, 212, 0.1);
+    border-right: 2px solid rgba(6, 182, 212, 0.5);
+    z-index: 1;
   }
 
   .high-intent-glow:hover {
-    background: linear-gradient(90deg, rgba(6, 182, 212, 0.1) 0%, transparent 100%);
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.15) 0%, transparent 100%);
+    box-shadow: inset 0 0 20px rgba(6, 182, 212, 0.2);
+  }
+
+  @keyframes pulse-cyan {
+    0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(6, 182, 212, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); }
+  }
+
+  .anim-pulse-cyan {
+    animation: pulse-cyan 2s infinite;
   }
 </style>
