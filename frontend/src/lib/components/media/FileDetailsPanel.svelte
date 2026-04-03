@@ -12,6 +12,7 @@
         onRestore: (id: string) => void;
         onSelect?: (assets: MediaAsset[]) => void;
         onQuickEdit: (action: string, params: Record<string, unknown> | null) => void;
+        mode?: 'manage' | 'pick';
     }
 
     let { 
@@ -20,7 +21,8 @@
         onDelete, 
         onRestore, 
         onSelect, 
-        onQuickEdit 
+        onQuickEdit,
+        mode = 'manage'
     } = $props<Props>();
 
     let isEditingAlt = $state(false);
@@ -35,8 +37,6 @@
 
     async function saveAlt() {
         if (!asset) return;
-        // Surge V105: Direct state update for zero-latency feel
-        asset.alt_text = editedAlt;
         await mediaStore.bulkUpdateMetadata([{ 
             id: asset.id, 
             metadata: { alt_text: editedAlt } 
@@ -213,13 +213,13 @@
 
             <!-- Logic Actions Control -->
             <div class="space-y-4 pt-6 mt-4 border-t border-zinc-100 dark:border-zinc-800 relative z-10">
-                {#if onSelect}
+                {#if mode === 'pick' || onSelect}
                     <button 
                         onclick={() => onSelect?.([asset])} 
-                        class="w-full py-5 bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-zinc-100 dark:to-white text-white dark:text-zinc-900 rounded-[1.5rem] text-[12px] font-black uppercase tracking-[0.2em] shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 border border-white/10"
+                        class="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-[1.5rem] text-[12px] font-black uppercase tracking-[0.2em] shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 border border-white/10"
                     >
                         <Link size={16} />
-                        ATTACH_TO_AGENT
+                        {mode === 'pick' ? 'CHỌN TÀI NGUYÊN NÀY' : 'GẮN VÀO AGENT'}
                     </button>
                 {/if}
 

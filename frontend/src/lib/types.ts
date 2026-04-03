@@ -350,6 +350,7 @@ export interface MediaAsset {
   campaign_id: string | null;
   owner_id: string | null;
   created_at: string;
+  is_linked: boolean;
   media_metadata: MediaMetadata;
   _updatedAt?: number; // Internal cache buster
 }

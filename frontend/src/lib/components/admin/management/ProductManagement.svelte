@@ -246,11 +246,12 @@
       formMetadata = p.metadata || { landing_type: 'standard' };
 
       // R102 Defense: map potential snake_case to camelCase
-      const rawTierVariations = p.tierVariations ?? p.tier_variations ?? [];
-      formTierVariations = Array.isArray(rawTierVariations) ? rawTierVariations.map((tv: TierVariation) => ({
+      const rawTierVariations = (p.tierVariations ?? p.tier_variations ?? []) as any[];
+      formTierVariations = Array.isArray(rawTierVariations) ? rawTierVariations.map((tv: any) => ({
         name: tv.name || "",
         options: Array.isArray(tv.options) ? tv.options : [],
-        images: Array.isArray(tv.images) ? tv.images : []
+        images: Array.isArray(tv.images) ? tv.images : [],
+        mobile_images: Array.isArray(tv.mobile_images) ? tv.mobile_images : (Array.isArray(tv.mobileImages) ? tv.mobileImages : [])
       })) : [];
 
       const rawVariants = p.variants ?? [];
@@ -319,7 +320,8 @@
       tier_variations: (formTierVariations || []).map(tv => ({
         name: tv.name,
         options: tv.options,
-        images: tv.images || null
+        images: tv.images || null,
+        mobile_images: tv.mobile_images || null
       })),
       variants: (formVariants || []).map(v => ({
         id: v.id || null, // Ensure id is null if missing

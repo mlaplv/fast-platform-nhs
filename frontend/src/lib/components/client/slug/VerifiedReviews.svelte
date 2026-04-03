@@ -121,6 +121,17 @@
     }
   });
 
+  // Elite V2.2: Body Scroll Lock System
+  $effect(() => {
+    if (showFormModal) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  });
+
   const setRating = (r: number) => {
     ratingSelected = r;
   };
@@ -261,7 +272,7 @@
             </div>
         </div>
 
-        <div class="reviews-scroll-wrapper scrollbar-hide flex overflow-x-auto snap-x snap-mandatory gap-4 lg:grid lg:grid-cols-3 lg:gap-8 w-full" bind:this={scrollContainer}>
+        <div class="reviews-scroll-wrapper scrollbar-hide flex overflow-x-auto snap-x snap-mandatory gap-4 xl:grid xl:grid-cols-3 xl:gap-8 w-full" bind:this={scrollContainer}>
           {#if isLoading && realReviews.length === 0}
             <div class="flex flex-col items-center justify-center p-24 gap-6">
               <div class="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
@@ -274,8 +285,8 @@
             </div>
           {:else}
             {#each realReviews as review, i}
-              <div class="review-card group/card flex-none w-[85vw] max-w-[400px] lg:w-auto snap-center" in:fly={{ y: 20, delay: i * 100, duration: 800 }}>
-                <div class="review-header flex items-start justify-between gap-4 mb-6">
+              <div class="review-card group/card flex-none w-[85vw] max-w-[400px] xl:w-auto snap-center" in:fly={{ y: 20, delay: i * 100, duration: 800 }}>
+                <div class="review-header flex items-start justify-between gap-4 mb-4">
                   <div class="flex items-center gap-4">
                     <div class="avatar-circle relative group-hover/card:scale-110 transition-transform duration-500">
                        {review.initial}
@@ -309,7 +320,7 @@
                   <p class="text-slate-200 leading-relaxed text-base italic font-medium tracking-tight">"{review.content}"</p>
                 </div>
 
-                <div class="clinical-verify mt-auto pt-10 flex items-center justify-between border-t border-white/5 mt-8">
+                <div class="clinical-verify mt-auto pt-4 flex items-center justify-between border-t border-white/5 mt-5">
                   <div class="compliance-tag flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full border border-white/20"></div>
                     <span class="text-[8px] font-black text-white/20 uppercase tracking-[0.3em]">{labels.label_compliant}</span>
@@ -434,7 +445,11 @@
                         class="absolute top-[calc(100%+8px)] left-0 w-full bg-slate-900 border border-white/10 rounded-2xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] z-50"
                         transition:fly={{ y: -10, duration: 300, easing: cubicOut }}
                       >
-                        <div class="max-h-[300px] overflow-y-auto custom-scrollbar">
+                        <div 
+                          class="max-h-[300px] overflow-y-auto custom-scrollbar"
+                          onwheel={(e) => e.stopPropagation()}
+                          ontouchmove={(e) => e.stopPropagation()}
+                        >
                           {#each locations as loc}
                             <button 
                               type="button"

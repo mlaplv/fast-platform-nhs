@@ -14,6 +14,7 @@ from backend.utils.noise_cleaner import noise_cleaner
 from backend.services.xohi.creative_studio.models.schemas import SeoReport, SeoSignal, SeoAnnotation
 from backend.database.repositories import ContentCampaignRepository
 from backend.database.models.content import ContentCampaign
+from backend.utils.config import get_env_json
 from backend.services.event_bus import event_bus
 from backend.services.xohi.creative_studio.operatives.content_enricher import ContentEnricher
 
@@ -86,13 +87,23 @@ class SeoAnalyzer:
     _key_idx = 0
 
     def __init__(self):
-        # Load Google Search keys for competitor fetch
-        self.search_keys = []
-        for i in ["", "_1", "_2"]:
-            k = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}")
-            cx = os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
-            if k and cx:
+        # Elite V2.2: Standardized JSON Array (Keys + CXs rotation)
+        env_keys = get_env_json("GOOGLE_SEARCH_KEYS")
+        env_cxs = get_env_json("GOOGLE_SEARCH_CXS")
+        
+        # Priority 1: Paired JSON Arrays (V82.36 Standard)
+        if env_keys and env_cxs:
+            for i, k in enumerate(env_keys):
+                cx = env_cxs[i] if i < len(env_cxs) else env_cxs[0]
                 self.search_keys.append({"key": k, "cx": cx})
+                
+        # Priority 2: Backwards Compatibility (Individual numbered keys)
+        if not self.search_keys:
+            for i in ["", "_1", "_2"]:
+                k = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}")
+                cx = os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
+                if k and cx:
+                    self.search_keys.append({"key": k, "cx": cx})
         self._key_lock = asyncio.Lock()
         
         # BUG-07 fix: Cache Agent at class scope — R1.6 prohibits per-request Agent creation

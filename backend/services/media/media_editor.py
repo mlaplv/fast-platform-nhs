@@ -20,9 +20,28 @@ class MediaEditorMixin:
         if metadata.alt_text is not None: asset.alt_text = metadata.alt_text
         if metadata.is_public is not None: asset.is_public = metadata.is_public
         if metadata.media_metadata is not None:
+            from backend.services.media.schemas import MediaMetadata
             curr = MediaMetadata.model_validate(asset.media_metadata or {})
             asset.media_metadata = {**curr.model_dump(), **metadata.media_metadata.model_dump(exclude_unset=True)}
         await repo.update(asset); await repo.session.commit(); return asset
+
+    async def bulk_update(self, repo: MediaRegistryRepository, data: "BulkUpdateRequest", owner_id: Optional[str] = None) -> bool:
+        """Cập nhật metadata hàng loạt tài nguyên."""
+        try:
+            from backend.services.media.schemas import MediaMetadata
+            for item in data.updates:
+                asset = await repo.get_one_or_none(id=item.id)
+                if not asset or (owner_id and asset.owner_id and asset.owner_id != owner_id): continue
+                if item.metadata.alt_text is not None: asset.alt_text = item.metadata.alt_text
+                if item.metadata.is_public is not None: asset.is_public = item.metadata.is_public
+                if item.metadata.media_metadata is not None:
+                    curr = MediaMetadata.model_validate(asset.media_metadata or {})
+                    asset.media_metadata = {**curr.model_dump(), **item.metadata.media_metadata.model_dump(exclude_unset=True)}
+                repo.session.add(asset)
+            await repo.session.commit(); return True
+        except Exception as e:
+            logger.error(f"[MediaEditor] Bulk update failed: {e}")
+            await repo.session.rollback(); return False
 
     async def link_to_post(self, repo: MediaRegistryRepository, asset_ids: list[str], post_id: str, post_type: str, owner_id: Optional[str] = None) -> int:
         """Gắn nhãn bài viết/sản phẩm cho danh sách ảnh."""
@@ -34,11 +53,28 @@ class MediaEditorMixin:
         await repo.session.commit(); return len(assets)
 
     async def quick_edit(self, repo: MediaRegistryRepository, asset_id: str, action: str, params: Optional[QuickEditParams] = None, owner_id: Optional[str] = None, source_url: Optional[str] = None, campaign_id: Optional[str] = None) -> Optional[MediaRegistry]:
-        """Thực hiện xử lý nhanh (Xoay/Lật/Crop/Watermark)."""
+        """Thực hiện xử lý nhanh (Xoay/Lật/Crop/Watermark/SEO)."""
         asset = await repo.get_one_or_none(id=asset_id)
         if not asset and source_url: asset = await self.fetch_remote_asset(repo, source_url, owner_id=owner_id, campaign_id=campaign_id)
         if not asset or (owner_id and asset.owner_id and asset.owner_id != owner_id): return None
         
+        # Elite V2.2: Neural SEO Sync Action
+        if action == "optimize-seo":
+            from backend.services.xohi.creative_studio.operatives.media_analyst import MediaAnalyst
+            import asyncio
+            from backend.services.xohi_memory import xohi_memory
+            
+            analyst = MediaAnalyst()
+            flag = await xohi_memory.client.get("ai:vision:enabled") if xohi_memory._use_redis else b"0"
+            # Redis returns bytes or string depending on client, usually bytes here
+            ai_vision = flag.decode() if isinstance(flag, bytes) else str(flag)
+            
+            if ai_vision == "1":
+                asyncio.create_task(analyst.process_registry_entry(str(asset.id)))
+            else:
+                asyncio.create_task(analyst.heuristic_analysis(str(asset.id)))
+            return asset
+
         is_remote = asset.file_path.startswith("http")
         t_p = f"/tmp/edit_{uuid.uuid4()}"
         try:

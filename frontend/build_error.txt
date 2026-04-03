@@ -1,5 +1,5 @@
 
-> fast-platform@1.0.0 build
+> fast-platform@1.0.0 build /home/lv/Desktop/fast-platform-core/frontend
 > NODE_OPTIONS='--max-old-space-size=512' vite build
 
 error during build:
@@ -14,3 +14,4 @@ Error: EACCES: permission denied, open '/home/lv/Desktop/fast-platform-core/fron
     at runConfigHook (file:///home/lv/Desktop/fast-platform-core/frontend/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0/node_modules/vite/dist/node/chunks/config.js:35936:42)
     at async resolveConfig (file:///home/lv/Desktop/fast-platform-core/frontend/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0/node_modules/vite/dist/node/chunks/config.js:35438:13)
     at async createBuilder (file:///home/lv/Desktop/fast-platform-core/frontend/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0/node_modules/vite/dist/node/chunks/config.js:33875:19)
+ ELIFECYCLE  Command failed with exit code 1.

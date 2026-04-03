@@ -21,6 +21,7 @@ from backend.utils.noise_cleaner import noise_cleaner
 from backend.utils.text import normalize_vn
 from .plagiarism_prompts import PLAGIARISM_PROMPT
 from .plagiarism_surgeon import PlagiarismSurgeon
+from backend.utils.config import get_env_json
 
 logger = logging.getLogger("api-gateway")
 
@@ -35,21 +36,25 @@ class PlagiarismCop:
 
     def __init__(self, threshold: float = 0.75):
         self.threshold = threshold
-        self.search_keys = []
-
-        # Priority 1: Comma-separated keys (V82.36 Standard)
-        env_keys = os.getenv("GOOGLE_SEARCH_KEYS")
-        env_cx = os.getenv("GOOGLE_SEARCH_CX") or os.getenv("GOOGLE_SEARCH_ENGINE_ID")
-        if env_keys and env_cx:
-            for k in env_keys.split(","):
-                k = k.strip()
-                if k: self.search_keys.append({"key": k, "cx": env_cx})
-
-        # Priority 2: Individual keys (Backwards Compatibility)
+        self.search_keys: List[Dict[str, str]] = []
+        # Elite V2.2: Standardized JSON Array (Keys + CXs rotation)
+        env_keys = get_env_json("GOOGLE_SEARCH_KEYS")
+        env_cxs = get_env_json("GOOGLE_SEARCH_CXS")
+        
+        # Priority 1: Paired JSON Arrays (V82.36 Standard)
+        if env_keys and env_cxs:
+            # Zip them together if they match in length, or use first CX for all
+            for i, k in enumerate(env_keys):
+                cx = env_cxs[i] if i < len(env_cxs) else env_cxs[0]
+                self.search_keys.append({"key": k, "cx": cx})
+        
+        # Priority 2: Backwards Compatibility (Individual numbered keys)
         if not self.search_keys:
             for i in ["", "_1", "_2"]:
-                k, cx = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}"), os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
-                if k and cx: self.search_keys.append({"key": k, "cx": cx})
+                k = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}")
+                cx = os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
+                if k and cx:
+                    self.search_keys.append({"key": k, "cx": cx})
 
         self._agent = Agent(output_type=PlagiarismResult, system_prompt=PLAGIARISM_PROMPT, retries=3)
         self._surgeon = PlagiarismSurgeon()

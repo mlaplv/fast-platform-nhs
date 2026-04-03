@@ -24,6 +24,7 @@ from backend.services.xohi.creative_studio.handlers.engine import ExecutionEngin
 from backend.services.xohi.creative_studio.handlers.analyst import AnalystHandler
 from backend.services.xohi.creative_studio.handlers.management import ManagementHandler
 from backend.services.xohi.creative_studio.operatives.discovery_hunter import DiscoveryHunter
+from backend.utils.config import get_env_json
 
 logger = logging.getLogger("api-gateway")
 
@@ -33,30 +34,38 @@ class ContentOrchestrator:
     Coaches specialized agents and delegates request handling to domain handlers.
     """
     def __init__(self, vision=None, hunter=None, pen=None, cop=None, media=None):
-        # Search Keys for Hunters (V82.36: Supporting both separate and comma-separated keys)
         keys = []
+        # Elite V2.2: Standardized JSON Array (Keys + CXs rotation)
+        env_keys = get_env_json("GOOGLE_SEARCH_KEYS")
+        env_cxs = get_env_json("GOOGLE_SEARCH_CXS")
         
-        # Priority 1: Comma-separated keys (from .env.example format)
-        env_keys = os.getenv("GOOGLE_SEARCH_KEYS") or ""
-        env_cxs = os.getenv("GOOGLE_SEARCH_ENGINE_IDS") or ""
+        # Priority 1: Paired JSON Arrays (V82.36 Standard)
+        if env_keys and env_cxs:
+            for i, k in enumerate(env_keys):
+                cx = env_cxs[i] if i < len(env_cxs) else env_cxs[0]
+                keys.append({"key": k, "cx": cx})
         
-        # Parse comma-separated lists
-        keys_list = [k.strip() for k in env_keys.split(",") if k.strip()]
-        cxs_list = [c.strip() for c in env_cxs.split(",") if c.strip()]
-        
-        if keys_list:
-            # Match keys with cxs (fallback to the first cx if list too short)
-            default_cx = env_cxs.split(",")[0].strip() or os.getenv("GOOGLE_SEARCH_ENGINE_ID")
-            for i, k in enumerate(keys_list):
-                cx = cxs_list[i] if i < len(cxs_list) else default_cx
-                if k and cx: keys.append({"key": k, "cx": cx})
-        
-        # Priority 2: Individual suffixed keys (up to _10 for robustness)
+        # Priority 2: Backwards Compatibility (Individual suffixed keys & CSV)
         if not keys:
-            suffixes = [""] + [f"_{i}" for i in range(1, 11)]
-            for s in suffixes:
-                k, cx = os.getenv(f"GOOGLE_SEARCH_API_KEY{s}"), os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{s}")
-                if k and cx: keys.append({"key": k, "cx": cx})
+            # Try comma-separated legacy fallback
+            legacy_keys = os.getenv("GOOGLE_SEARCH_KEYS") or ""
+            legacy_cxs = os.getenv("GOOGLE_SEARCH_CXS") or os.getenv("GOOGLE_SEARCH_ENGINE_IDS") or ""
+            
+            keys_list = [k.strip() for k in legacy_keys.split(",") if k.strip()]
+            cxs_list = [c.strip() for c in legacy_cxs.split(",") if c.strip()]
+            
+            if keys_list:
+                default_cx = cxs_list[0] if cxs_list else os.getenv("GOOGLE_SEARCH_ENGINE_ID")
+                for i, k in enumerate(keys_list):
+                    cx = cxs_list[i] if i < len(cxs_list) else default_cx
+                    if k and cx: keys.append({"key": k, "cx": cx})
+            
+            # Try individual keys
+            if not keys:
+                suffixes = [""] + [f"_{i}" for i in range(1, 11)]
+                for s in suffixes:
+                    k, cx = os.getenv(f"GOOGLE_SEARCH_API_KEY{s}"), os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{s}")
+                    if k and cx: keys.append({"key": k, "cx": cx})
 
         if not keys:
             logger.warning("⚠️ [ContentOrchestrator] No Google Search Keys configured in .env!")

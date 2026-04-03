@@ -1,15 +1,17 @@
 import type { Handle, HandleServerError } from "@sveltejs/kit";
 import type { JwtPayload } from "$lib/types";
 import { redirect } from "@sveltejs/kit";
-import { env } from "$env/dynamic/private";
+import { ServerEnv } from "$lib/server/env";
+import { isMobileDevice } from "$lib/utils/device";
 
-export const handleError: HandleServerError = ({ error, event }) => {
-  const isDev = env.ENVIRONMENT === "development";
-  console.error('[SERVER HTTP ERROR]', error);
-  
+export const handleError: HandleServerError = ({ error }) => {
+  const isDev = ServerEnv.isDev;
+  const err = error instanceof Error ? error : new Error(String(error));
+  console.error('[SERVER HTTP ERROR]', err);
+
   return {
-    message: isDev && error instanceof Error ? error.message : "Lỗi hệ thống (Internal Error)",
-    stack: isDev && error instanceof Error ? error.stack : undefined
+    message: isDev ? err.message : "Lỗi hệ thống (Internal Error)",
+    stack: isDev ? err.stack : undefined
   };
 };
 
@@ -30,81 +32,57 @@ function parseJwt(token: string): JwtPayload | null {
   }
 }
 
-import { isMobileDevice } from "$lib/utils/device";
-
 export const handle: Handle = async ({ event, resolve }) => {
-  const host = event.request.headers.get("host") || "";
   const userAgent = event.request.headers.get("user-agent") || "";
-  const token = event.cookies.get("admin_token");
-
-  // Determine the tenant based on the requested subdomain (Rules map)
-  // R32: Admin domain separately. Minimal, hardened detection via ENV.
-  const adminDomain = env.ADMIN_DOMAIN || "admin.smartshop.test";
+  const host = event.request.headers.get("host") || "";
+  const adminDomain = ServerEnv.ADMIN_DOMAIN;
   const isAdminHost = host.includes(adminDomain);
 
-  // Detect device for initial layout resolution
-  // [Elite V2.2] Standardized Device Detection (R00: Zero-Patch Policy)
+  // 1. Identify Tenant (Atomic Early-Exit for Elite V2.2)
+  event.locals.tenant = isAdminHost ? "admin" : "storefront";
+
+  // 2. Optimized Device Snapshot (R00: Zero-Patch Policy)
+  // Only detect at start or use cached value if possible (TBD Phase 2)
   event.locals.isMobile = isMobileDevice(userAgent);
 
+  // 3. Selective Auth Logic (Resource Protection)
+  // Storefront visitors NEVER need admin_token parsing (CPU/RAM Save)
   if (isAdminHost) {
-    event.locals.tenant = "admin";
-  } else {
-    event.locals.tenant = "storefront";
-    // [Elite V2.2] Storefront continues to device detection and header setting
-  }
-
-  // Auth logic: Validate JWT
-  if (token) {
-    const payload = parseJwt(token);
-    if (payload && payload.exp * 1000 > Date.now()) {
-      event.locals.user = {
-        email: payload.sub,
-        role: payload.role || (payload.roles ? payload.roles[0] : null),
-        roles: payload.roles || [],
-        perms: payload.perms || [],
-      };
-      event.locals.token = token;
+    const token = event.cookies.get("admin_token");
+    if (token) {
+      const payload = parseJwt(token);
+      if (payload && payload.exp * 1000 > Date.now()) {
+        event.locals.user = {
+          email: payload.sub,
+          role: payload.role || (payload.roles ? payload.roles[0] : null),
+          roles: payload.roles || [],
+          perms: payload.perms || [],
+        };
+        event.locals.token = token;
+      }
     }
   }
 
   // Handle Redundant /admin prefix (Phase Clean URLs)
-  if (
-    event.locals.tenant === "admin" &&
-    event.url.pathname.startsWith("/admin")
-  ) {
+  if (event.locals.tenant === "admin" && event.url.pathname.startsWith("/admin")) {
     const newPath = event.url.pathname.replace("/admin", "") || "/";
     throw redirect(301, newPath);
   }
 
   // R31 & R33: Route Isolation & Protection
   const adminOnlyPaths = ["/chat", "/settings", "/analytics"];
-  const isTargetingAdminRoute = adminOnlyPaths.some((p: string) =>
-    event.url.pathname.startsWith(p),
-  );
+  const isTargetingAdminRoute = adminOnlyPaths.some(p => event.url.pathname.startsWith(p));
 
-  // If trying to access admin route from storefront domain -> 404 or Redirect to Admin
   if (isTargetingAdminRoute && event.locals.tenant !== "admin") {
-    const adminDomain = env.ADMIN_DOMAIN || "admin.smartshop.test";
-    throw redirect(303, `https://${adminDomain}` + event.url.pathname);
+    throw redirect(303, `https://${adminDomain}${event.url.pathname}`);
   }
 
   // Protection logic: Admin tenant ONLY (Storefront is ALWAYS PUBLIC)
   if (event.locals.tenant === "admin" && event.url.pathname !== "/login") {
-    const isAdmin =
-      event.locals.user?.roles?.some((r: string) =>
-        ["ADMIN", "SUPER_ADMIN"].includes(r),
-      ) || event.locals.user?.role === "ADMIN";
-
-    if (!isAdmin) {
-      throw redirect(303, "/login");
-    }
+    const isAdmin = event.locals.user?.roles?.some((r: string) => ["ADMIN", "SUPER_ADMIN"].includes(r)) || 
+                    event.locals.user?.role === "ADMIN";
+    if (!isAdmin) throw redirect(303, "/login");
   }
-
-  // [Elite V2.2] Standardized Device Detection (R00: Zero-Patch Policy)
-  const mobileRegex = /Mobi|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i;
-  event.locals.isMobile = mobileRegex.test(userAgent) && 
-                          !/iPad/i.test(userAgent) && 
-                          !(/Android/i.test(userAgent) && !/Mobi/i.test(userAgent));
 
   // Process the request
   const response = await resolve(event);
@@ -113,7 +91,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
   
-  // Elite V2.2: Ensure proxies (Caddy/CDN) vary cache by User-Agent for Adaptive Layouts
+  // Elite V2.2: Vary cache by User-Agent for Adaptive Layouts
   response.headers.set("Vary", "Origin, User-Agent");
 
   return response;

@@ -38,8 +38,12 @@ class MediaAssetResponse(BaseModel):
     campaign_id: Optional[str] = None
     owner_id: Optional[str] = None
     created_at: Optional[str] = None
+    is_linked: bool = False
+    
+    # Legacy - maintained for compatibility
     linked_post_id: Optional[str] = None
     linked_post_type: Optional[str] = None
+    
     media_metadata: MediaMetadata = Field(default_factory=MediaMetadata)
 
     @field_validator("id", "campaign_id", "owner_id", mode="before")
@@ -136,6 +140,15 @@ class BulkDeleteRequest(BaseModel):
 class BulkDownloadRequest(BaseModel):
     model_config = ConfigDict(strict=True)
     ids: List[str]
+
+class BulkUpdateItem(BaseModel):
+    model_config = ConfigDict(strict=True)
+    id: str
+    metadata: MediaUpdateMetadata
+
+class BulkUpdateRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    updates: List[BulkUpdateItem]
 
 class FetchRemoteRequest(BaseModel):
     model_config = ConfigDict(strict=True)

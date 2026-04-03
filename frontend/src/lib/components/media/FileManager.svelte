@@ -60,6 +60,15 @@
         return () => clearTimeout(timeout);
     });
 
+    // Neural Sync: Handle Unlinked Only Filter
+    $effect(() => {
+        if (showUnlinkedOnly) {
+            mediaStore.setUnlinkedFilter(false); // Lọc các ảnh CÓ is_linked = false (Mồ côi)
+        } else if (mediaStore.isLinkedFilter !== null) {
+            mediaStore.setUnlinkedFilter(null); // Tắt lọc mồ côi
+        }
+    });
+
     // Voice Mutation Injection
     $effect(() => {
         const action = nanobot.commandAction;
@@ -92,7 +101,10 @@
                 const vibeMatch = asset.media_metadata?.ai_sentiment?.toLowerCase().includes(query);
                 pass = !!(basicMatch || tagMatch || vibeMatch);
             }
-            if (showUnlinkedOnly && asset.linked_post_id) pass = false;
+            // Elite V2.2: Lọc "Mồ côi" dựa trên flag is_linked tập trung
+            if (showUnlinkedOnly && asset.is_linked) pass = false;
+            
+            // Legacy filters (fallback if needed)
             if (!showUnlinkedOnly && filterPostType && asset.linked_post_type !== filterPostType) pass = false;
             if (!showUnlinkedOnly && filterPostId && asset.linked_post_id !== filterPostId) pass = false;
             return pass;
@@ -318,6 +330,7 @@
             onDelete={handleDelete}
             onRestore={handleRestore}
             {onSelect}
+            {mode}
             onQuickEdit={handleQuickEdit}
         />
     </div>

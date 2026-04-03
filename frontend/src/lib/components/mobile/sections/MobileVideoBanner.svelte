@@ -1,5 +1,6 @@
 <script lang="ts">
   import './MobileVideoBanner.css';
+  import { resolveMediaUrl } from '$lib/state/utils';
   import type { Product } from '$lib/types';
 
   interface MobileVideoBannerProps {
@@ -16,10 +17,12 @@
   const rawUrl = $derived.by((): string => {
     const v = (metadata.video_url as string | undefined)?.trim() ?? '';
     const hv = (metadata.hero_video_url as string | undefined)?.trim() ?? '';
-    const url = v || hv;
+    const hvr = (metadata.hero_video as string | undefined)?.trim() ?? '';
+    const url = v || hv || hvr;
     // Auto-strip erroneous paths like /frontend/static/ or ./static/
     // SvelteKit serves static/ at root (no /static prefix).
-    return url.replace(/^(\.\/)?(\/)?(frontend\/)?static\//, '/');
+    const sanitized = url.replace(/^(\.\/)?(\/)?(frontend\/)?static\//, '/');
+    return resolveMediaUrl(sanitized);
   });
 
   type VideoMode = 'youtube' | 'tiktok' | 'local' | null;

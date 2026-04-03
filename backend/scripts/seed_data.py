@@ -75,7 +75,7 @@ PRODUCT_DEFS = [
             "science_guarantee": {
                 "icon": "💎",
                 "label": "BẢO CHỨNG",
-                "description": "Hoàn 100% trong 3 ngày. <br/> <span class=\"text-cyan-400 font-bold tracking-widest\">KHÔNG CẦN TRẢ VỎ</span>."
+                "description": "Phức hợp Dược liệu SẠCH TỰ NHIÊN. <br/> <span class=\"text-cyan-400 font-bold tracking-widest\">Không can thiệp biến đổi gen, thay đổi cơ địa.</span>."
             },
             "reviews_headline": "99.8% Tìm lại sự tự do. <br/> <span class=\"text-emerald-400 font-black italic\">KHÔNG CÒN NHỮNG KHOẢNG CÁCH NGẬP NGỪNG.</span>",
             "reviews_trust_score": "4.9/5",

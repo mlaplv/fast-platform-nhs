@@ -25,8 +25,7 @@
 
   const labels = $derived({
     disk_image: (metadata.mobile_disk_image as string) || (metadata.mobile_shop_avatar as string) || "/favicon.svg",
-    label_purchase: (metadata.mobile_label_purchase as string) || "Mở giỏ hàng",
-    zalo_link: (metadata.mobile_zalo_link as string) || "https://zalo.me/0981515545"
+    label_purchase: (metadata.mobile_label_purchase as string) || "Mở giỏ hàng"
   });
 
   const scrollToSection = (id: string) => {
@@ -52,28 +51,16 @@
   </a>
 
   <!-- 5. Chat (Viral AI Helen Integration) -->
-  {#if onChat}
-    <button
-      class="action-btn-mini group"
-      onclick={onChat}
-      aria-label="Tư vấn AI Helen"
-    >
-      <div class="relative">
-        <MessageSquare class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" />
-      </div>
-      <span class="btn-label-mini">{supportAgent.helenEnabled ? 'AI HELEN' : 'HỖ TRỢ'}</span>
-    </button>
-  {:else}
-    <a
-      href={labels.zalo_link}
-      target="_blank"
-      class="action-btn-mini group"
-      aria-label="Chat Zalo"
-    >
+  <button
+    class="action-btn-mini group"
+    onclick={() => onChat ? onChat() : supportAgent.toggle()}
+    aria-label="Tư vấn AI Helen"
+  >
+    <div class="relative">
       <MessageSquare class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" />
-      <span class="btn-label-mini">Chat</span>
-    </a>
-  {/if}
+    </div>
+    <span class="btn-label-mini">{supportAgent.helenEnabled ? 'AI HELEN' : 'HỖ TRỢ'}</span>
+  </button>
 
   <!-- 4. Chi tiết sản phẩm -->
   <button

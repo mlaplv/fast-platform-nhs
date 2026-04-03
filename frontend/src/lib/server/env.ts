@@ -1,0 +1,26 @@
+import { dev } from '$app/environment';
+import { env } from '$env/dynamic/private';
+
+const APP_DOMAIN = env.APP_DOMAIN || 'smartshop.test';
+
+/**
+ * ServerEnv (Elite V2.2)
+ * Centralized, type-safe environment configuration for server-side logic.
+ * Consolidated from $env/dynamic/private with sensible infrastructure defaults.
+ */
+export const ServerEnv = {
+    /** environment: development | production */
+    isDev: dev,
+
+    /** Domain for Admin Portal detection (e.g. admin.smartshop.test) */
+    ADMIN_DOMAIN: env.ADMIN_DOMAIN || 'admin.smartshop.test',
+
+    /** Internal URL for Backend API communication (Container-to-Container) */
+    INTERNAL_API_URL: env.INTERNAL_API_URL || 'http://api:8000',
+
+    /** Main App Domain for tenant resolution */
+    APP_DOMAIN,
+
+    /** Pre-calculated Tenant ID for performance (extracted from APP_DOMAIN) */
+    TENANT_ID: APP_DOMAIN.split('.')[0] || 'default'
+} as const;

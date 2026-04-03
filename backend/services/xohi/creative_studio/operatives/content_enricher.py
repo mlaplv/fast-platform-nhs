@@ -13,6 +13,7 @@ from backend.services.xohi.creative_studio.models.schemas import (
     EnrichAIPayload, EnrichmentItem, EnrichResponse, SeoAnnotation
 )
 from backend.database.repositories import ContentCampaignRepository
+from backend.utils.config import get_env_json
 
 logger = logging.getLogger("api-gateway")
 
@@ -69,18 +70,24 @@ class ContentEnricher:
         })
 
     def _ensure_keys(self):
-        if self.search_keys is not None:
-            return
-            
-        logger.info("[Enricher] Loading search keys from environment...")
-        self.search_keys = []
-        # Support both underscore and non-underscore patterns for maximum compatibility
-        patterns = ["", "_1", "_2", "1", "2", "3"]
-        for i in patterns:
-            k = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}")
-            cx = os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
-            if k and cx:
+        # Elite V2.2: Standardized JSON Array (Keys + CXs rotation)
+        env_keys = get_env_json("GOOGLE_SEARCH_KEYS")
+        env_cxs = get_env_json("GOOGLE_SEARCH_CXS")
+        
+        # Priority 1: Paired JSON Arrays (V82.36 Standard)
+        if env_keys and env_cxs:
+            for i, k in enumerate(env_keys):
+                cx = env_cxs[i] if i < len(env_cxs) else env_cxs[0]
                 self.search_keys.append({"key": k, "cx": cx})
+                
+        # Priority 2: Backwards Compatibility (Individual numbered keys)
+        if not self.search_keys:
+            patterns = ["", "_1", "_2", "1", "2", "3"]
+            for i in patterns:
+                k = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}")
+                cx = os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
+                if k and cx:
+                    self.search_keys.append({"key": k, "cx": cx})
         
         logger.info(f"[Enricher] Loaded {len(self.search_keys)} search keys.")
 

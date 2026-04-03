@@ -1,6 +1,7 @@
-from typing import Optional
+import uuid
+from typing import Optional, List
 import sqlalchemy as sa
-from sqlalchemy import String, ForeignKey, Integer, JSON, Index
+from sqlalchemy import String, ForeignKey, Integer, JSON, Index, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database.models.base import Base, AuditMixin, SoftDeleteMixin, TenantMixin
 
@@ -26,12 +27,11 @@ class MediaRegistry(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     campaign_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('content_campaigns.id', ondelete='SET NULL'), index=True)
     owner_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('users.id', ondelete='SET NULL'), index=True)
 
-    # Post tracking: type = 'news' | 'product' | 'campaign' | ...
-    linked_post_id: Mapped[Optional[str]] = mapped_column(String, index=True)
-    linked_post_type: Mapped[Optional[str]] = mapped_column(String(30), index=True)
+    # Elite V2.2: Many-to-Many Tracking Optimization
+    # Flag này giúp File Manager liệt kê ảnh "Mồ côi" cực nhanh mà không cần JOIN.
+    is_linked: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.text('false'), index=True)
 
     # AI & Professional Metadata (Extensible)
-    # Lưu: { "ai_tags": ["laptop", "office"], "original_url": "...", "compression_level": 85 }
     media_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
 
     provider: Mapped[str] = mapped_column(String(20), default="local") # local, s3, r2
@@ -39,9 +39,33 @@ class MediaRegistry(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 
     # Inverse relationships
     campaign: Mapped[Optional["ContentCampaign"]] = relationship("ContentCampaign", backref="media_assets")
+    usages: Mapped[List["MediaUsage"]] = relationship("MediaUsage", back_populates="asset", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_media_tenant_deleted", "tenant_id", "deleted_at"),
         Index("ix_media_campaign_provider", "campaign_id", "provider"),
-        Index("ix_media_linked_post", "linked_post_type", "linked_post_id"),
+        Index("ix_media_is_linked", "tenant_id", "is_linked"),
+    )
+
+class MediaUsage(Base, AuditMixin, TenantMixin):
+    """
+    Elite V2.2: Junction table for many-to-many media tracking.
+    Cho phép một ảnh được sử dụng tại nhiều Sản phẩm, Bài viết, Banner khác nhau.
+    """
+    __tablename__ = 'media_usage'
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    asset_id: Mapped[str] = mapped_column(String, ForeignKey('media_registry.id', ondelete='CASCADE'), index=True)
+    
+    # Định danh đối tượng sử dụng (e.g. Product ID, News ID)
+    entity_id: Mapped[str] = mapped_column(String, index=True)
+    # Loại đối tượng (e.g. 'product', 'news', 'banner', 'category')
+    entity_type: Mapped[str] = mapped_column(String(30), index=True)
+
+    # Relationships
+    asset: Mapped["MediaRegistry"] = relationship("MediaRegistry", back_populates="usages")
+
+    __table_args__ = (
+        Index("ix_media_usage_lookup", "entity_type", "entity_id"),
+        Index("ix_media_usage_asset_entity", "asset_id", "entity_type", "entity_id", unique=True),
     )

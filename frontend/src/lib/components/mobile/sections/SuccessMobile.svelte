@@ -179,21 +179,10 @@
   <div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/95 to-transparent flex flex-row gap-3 items-center">
     <a 
       href="tel:{SHOP_CONFIG.pharmacy.phone.replace(/\s+/g, '')}"
-      class="flex-[1.5] py-4 text-white font-black text-[12px] uppercase tracking-wider rounded-full btn-primary-viral active:scale-95 transition-all overflow-hidden relative group text-center"
+      class="w-full py-4 text-white font-black text-[13px] uppercase tracking-[0.25em] rounded-full btn-primary-viral active:scale-95 transition-all overflow-hidden relative group text-center shadow-[0_10px_30px_rgba(254,44,85,0.4)]"
     >
-        <span class="relative z-10 flex items-center justify-center gap-1.5">GỌI TƯ VẤN <Phone class="w-3.5 h-3.5" /></span>
+        <span class="relative z-10 flex items-center justify-center gap-2">GỌI XÁC NHẬN NGAY <Phone class="w-4 h-4" /></span>
         <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-    </a>
-    
-    <a 
-      href="https://zalo.me/{SHOP_CONFIG.pharmacy.phone.replace(/\s+/g, '')}"
-      target="_blank"
-      class="flex-1 py-4 bg-white/5 border border-white/10 text-white/70 font-black text-[10px] uppercase tracking-widest rounded-full active:bg-white/10 transition-all flex items-center justify-center gap-1.5 text-center"
-    >
-       <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
-         <path d="M12.003 2c-5.523 0-10 4.03-10 9 0 2.877 1.517 5.414 3.864 7.073l-.49 2.508c-.06.31.28.528.535.357l3.074-2.049A11.02 11.02 0 0 0 12.003 20c5.522 0 10-4.03 10-9s-4.478-9-10-9zM15.534 15.11H8.468v-1.12l2.67-3.328H8.468V9.167h6.732v1.12l-2.67 3.328h2.67v1.495z"/>
-       </svg>
-       CHAT ZALO
     </a>
   </div>
 </div>

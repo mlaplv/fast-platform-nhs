@@ -14,10 +14,12 @@ Architecture:
 from __future__ import annotations
 
 import logging
+import re
 import time
 import uuid
 from typing import Optional
 
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic_ai import Agent
 from sqlalchemy import select, and_, desc
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,34 +41,21 @@ from backend.utils.security import GeminiSecurity
 logger = logging.getLogger("api-gateway")
 
 # ══════════════════════════════════════════════════════════════
+# AGENTIC STRUCTURED RESPONSE (Viral 2026 - Elite V2.2)
+# ══════════════════════════════════════════════════════════════
+class AgenticSupportResponse(BaseModel):
+    model_config = ConfigDict(strict=False)
+    reply: str = Field(..., description="Văn bản phản hồi tự nhiên, mượt mà và thuyết phục theo chỉ thị bán hàng.")
+    intent: str = Field(..., description="MỘT trong các chuỗi sau: 'ORDER_STATUS', 'ESCALATE', 'POLICY_QUERY', 'PRICE_QUERY', 'GENERAL_ADVICE', 'PRODUCT_QUERY', 'UNKNOWN'")
+
+# ══════════════════════════════════════════════════════════════
 # PYDANTIC AI AGENT — Singleton, initialized once at module load
 # ══════════════════════════════════════════════════════════════
-_support_ai_agent: Agent[None, str] = Agent(
-    output_type=str,
-    retries=2,
+_support_ai_agent: Agent[None, AgenticSupportResponse] = Agent(
+    output_type=AgenticSupportResponse,
+    retries=0, # ELITE V2.2: Disable internal retries to avoid extreme delays on ValidationError
 )
 
-# ══════════════════════════════════════════════════════════════
-# INTENT CLASSIFIER — Heuristic, zero AI cost for simple cases
-# ══════════════════════════════════════════════════════════════
-_ESCALATE_SIGNALS = ("khiếu nại", "complaint", "tức", "bực", "hoàn tiền", "refund", "tệ", "tồi")
-_ORDER_SIGNALS    = ("đơn hàng", "đơn của tôi", "vận chuyển", "giao hàng", "tracking", "ship", "order")
-_POLICY_SIGNALS   = ("chính sách", "bảo hành", "đổi trả", "hoàn hàng", "warranty", "return")
-_PRICE_SIGNALS    = ("giá", "price", "bao nhiêu", "combo", "ưu đãi", "khuyến mãi", "discount")
-
-
-def _classify_intent(message: str) -> SupportIntent:
-    """Fast heuristic intent classifier — O(n) keyword scan, no AI required."""
-    msg = message.lower()
-    if any(k in msg for k in _ESCALATE_SIGNALS):
-        return SupportIntent.ESCALATE
-    if any(k in msg for k in _ORDER_SIGNALS):
-        return SupportIntent.ORDER_STATUS
-    if any(k in msg for k in _POLICY_SIGNALS):
-        return SupportIntent.POLICY_QUERY
-    if any(k in msg for k in _PRICE_SIGNALS):
-        return SupportIntent.PRICE_QUERY
-    return SupportIntent.GENERAL_ADVICE
 
 
 # ══════════════════════════════════════════════════════════════
@@ -157,9 +146,8 @@ def _sanitize_response(raw: str) -> str:
     Security Layer ④: Strip any internal path, token fragment, or stack trace
     from AI output before returning to client. Caps at SUPPORT_MAX_TOKENS words.
     """
-    import re
     # Strip any SUPPORT_SYSTEM_DIRECTIVE fragments that may have leaked
-    dangerous_patterns = [
+    dangerous_patterns: list[str] = [
         r"TUYỆT ĐỐI không tiết lộ",
         r"/backend[/\w]*",
         r"api[_-]?key\s*[:=]\s*\S+",
@@ -170,7 +158,7 @@ def _sanitize_response(raw: str) -> str:
         raw = re.sub(pat, "", raw, flags=re.IGNORECASE)
 
     # Soft word-count cap (not token, but safe approximation)
-    words = raw.split()
+    words: list[str] = raw.split()
     limit_idx: int = int(support_cfg.max_response_tokens)
     if len(words) > limit_idx:
         raw = " ".join(words[:limit_idx]) + "..."
@@ -242,15 +230,8 @@ class SupportAgentOperative:
                 session_id=session_id,
             )
 
-        # Heuristic intent classification (no AI cost)
-        intent = _classify_intent(request.message)
-
-        # Hard-scripted responses for non-AI intents (fast path)
-        scripted = self._get_scripted_response(intent, session_id)
-        if scripted:
-            return scripted
-
-        # Build RAG context from knowledge base (Elite V2.2: Structured Tri thức)
+        # ELITE V2.2: 100% Agentic Intent Orchestration
+        # Fetch RAG context from knowledge base (Elite V2.2: Structured Tri thức)
         kb_repo = SupportKnowledgeRepository(session=db)
         kb_service = SupportKnowledgeService(repo=kb_repo)
         kb_ctx = await kb_service.search_relevant_knowledge(db, request.message)
@@ -261,35 +242,43 @@ class SupportAgentOperative:
         # Build RAG context from product (read-only DB)
         product_ctx, product_info = await _fetch_product_context(db, request.product_slug)
 
-        # Construct prompt with system directive from env
-        prompt = self._build_prompt(request.message, product_ctx, kb_ctx, intent, history_text)
+        # Construct prompt with Agentic system directive
+        prompt = self._build_prompt(request.message, product_ctx, kb_ctx, history_text)
 
         # Run AI via TrinityBridge (role="fast" → flash models)
+        intent = SupportIntent.UNKNOWN
+        raw_reply: str = ""
         try:
             result = await trinity_bridge.run(
                 _support_ai_agent,
                 prompt,
                 role=support_cfg.model_role,
                 system_prompt=support_cfg.system_directive,
+                timeout=15.0  # Force fail-fast để sang key khác ngay lỡ kẹt
             )
-            # ELITE: Handle PydanticAI Result without explicit import to avoid version mismatch
-            res_data = getattr(result, "data", None)
-            if res_data:
-                raw_reply = str(res_data)
-            elif hasattr(result, "all_messages"):
-                # Fallback to message history if structured data is missing
-                msgs = getattr(result, "all_messages")() 
-                if msgs:
-                    last_msg = msgs[-1]
-                    if hasattr(last_msg, "parts") and last_msg.parts:
-                        part = last_msg.parts[0]
-                        raw_reply = str(getattr(part, "content", part))
-                    else:
-                        raw_reply = str(getattr(last_msg, "content", last_msg))
-                else:
-                    raw_reply = ""
-            else:
-                raw_reply = ""
+            ai_data: object = getattr(result, "data", None)
+            # 🚀 Universal PydanticAI Data Extraction (Bulletproof V2.2)
+            ai_dict: dict[str, object] = {}
+            if hasattr(ai_data, "model_dump"):
+                ai_dict = ai_data.model_dump()
+            elif hasattr(ai_data, "dict"):
+                ai_dict = ai_data.dict()
+            elif isinstance(ai_data, dict):
+                ai_dict = ai_data
+            elif isinstance(ai_data, str):
+                import json
+                try:
+                    clean_str = ai_data.replace('```json', '').replace('```', '').strip()
+                    ai_dict = json.loads(clean_str)
+                except Exception:
+                    ai_dict = {"reply": ai_data, "intent": "UNKNOWN"}
+            
+            raw_reply = str(ai_dict.get("reply", "") or "")
+            raw_i = str(ai_dict.get("intent", "UNKNOWN")).upper()
+            intent = SupportIntent(raw_i) if raw_i in [i.value for i in SupportIntent] else SupportIntent.UNKNOWN
+
+            if not raw_reply or raw_reply.strip() == "None":
+                raw_reply = "Xin lỗi, em chưa nắm rõ ý của bạn. Bạn vui lòng liên hệ hotline nhé!"
         except Exception as exc:
             logger.error("[SupportAgent] AI call failed: %s", exc)
             raw_reply = (
@@ -365,34 +354,6 @@ class SupportAgentOperative:
             logger.warning("[SupportAgent] Failed to save chat history: %s", exc)
             await db.rollback()
 
-    def _get_scripted_response(
-        self, intent: SupportIntent, session_id: str
-    ) -> Optional[SupportResponse]:
-        """Return pre-scripted response for high-certainty intents (no AI needed)."""
-        if intent == SupportIntent.ORDER_STATUS:
-            return SupportResponse(
-                ok=True,
-                reply=(
-                    "Để kiểm tra đơn hàng, bạn vui lòng liên hệ hotline hoặc "
-                    "nhắn tin Zalo của shop để được hỗ trợ nhanh nhất nhé! "
-                    "Em không có quyền truy cập thông tin đơn hàng riêng tư của bạn."
-                ),
-                intent=intent,
-                session_id=session_id,
-            )
-        if intent == SupportIntent.ESCALATE:
-            return SupportResponse(
-                ok=True,
-                reply=(
-                    "Em rất tiếc về trải nghiệm của bạn. Để được giải quyết nhanh nhất, "
-                    "vui lòng liên hệ trực tiếp qua hotline hoặc Zalo shop. "
-                    "Đội ngũ chăm sóc khách hàng sẽ hỗ trợ bạn trong thời gian sớm nhất!"
-                ),
-                intent=intent,
-                session_id=session_id,
-            )
-        return None
-
     async def _fetch_chat_context(self, db: AsyncSession, session_id: str) -> str:
         """Retrieves recent chat history to provide reasoning context (Elite V2.2)."""
         history_text = ""
@@ -417,24 +378,28 @@ class SupportAgentOperative:
         return history_text
 
     def _build_prompt(
-        self, message: str, product_ctx: str, kb_ctx: str, intent: SupportIntent, history_text: str = ""
+        self, message: str, product_ctx: str, kb_ctx: str, history_text: str = ""
     ) -> str:
-        """Construct AI prompt with conversion-focused directives."""
+        """Construct AI prompt with Agentic Analysis strictly demanding Structured JSON Response."""
         ctx_block = f"\n{kb_ctx}\n{product_ctx}\n" if (product_ctx or kb_ctx) else ""
-        intent_hint = f"[Phân loại câu hỏi: {intent.value}]\n" if intent else ""
         
-        # Elite V2.2: Conversion/FOMO Upgrades
-        fomo_directive = ""
-        if intent in (SupportIntent.PRICE_QUERY, SupportIntent.PRODUCT_QUERY):
-            fomo_directive = (
-                "\n[CHỈ THỊ BÁN HÀNG]: "
-                "Nếu khách hỏi về giá/ưu đãi, BẮT BUỘC đề cập MIỄN PHÍ VẬN CHUYỂN TOÀN QUỐC. "
-                "Dùng ngôn ngữ tạo sự khan hiếm (FOMO) như 'Ưu đãi chỉ còn vài suất', 'Duy nhất hôm nay'. "
-                "Trình bày bảng giá/ưu đãi theo dạng liệt kê dấu sao (*) rõ ràng. "
-                "Kết thúc bằng một câu hỏi gợi mở chốt đơn (ví dụ: 'Bạn có muốn nhận ưu đãi và đặt hàng ngay bây giờ không ạ?').\n"
-            )
+        # Elite V2.2: Conversion/FOMO/Intent Upgrades
+        agentic_directive = (
+            "\n[AGENTIC COGNITIVE DIRECTIVE - VIRAL 2026]\n"
+            "Bạn là Não bộ Trung tâm (Agentic AI). Hãy phân tích ngữ cảnh (Semantic Analysis) "
+            "về câu hỏi của khách hàng và phân loại vào đúng 'intent'.\n"
+            "- Nếu hỏi 'có ship không', 'tiền ship': Đây là hỏi chính sách/giá cả, KHÔNG phải tra cứu đơn.\n"
+            "- Nếu hỏi để MUA ('ship cho tôi 1 lọ'): Là phản hồi tư vấn chung giúp chốt đơn.\n"
+            "- CHỈ phân loại ORDER_STATUS khi khách muốn tra cứu, kiểm tra một đơn họ đã đặt từ trước.\n"
+            "- CHỈ phân loại ESCALATE khi khách khiếu nại, chửi bới, muốn hoàn lại tiền.\n\n"
+            "[CHỈ THỊ PHẢN HỒI]\n"
+            "- Nếu intent là ORDER_STATUS: Trả lời thật ngắn gọn 1 câu (VD: Dạ để em kiểm tra đơn ngay, bạn điền mã/SĐT xuống ô dưới nhé!)\n"
+            "- Nếu intent là ESCALATE: Xin lỗi lịch sự và nhẹ nhàng nhờ liên hệ qua Hotline.\n"
+            "- Với câu hỏi khác mang tính quan tâm sản phẩm/giá: BẮT BUỘC đề cập 'MIỄN PHÍ VẬN CHUYỂN TOÀN QUỐC' và chèn FOMO "
+            "(Ưu đãi có hạn). Kết thúc bằng câu gợi mở chốt đơn.\n"
+        )
 
-        return f"{intent_hint}{fomo_directive}{history_text}{ctx_block}Câu hỏi của khách: {message}"
+        return f"{agentic_directive}{history_text}{ctx_block}Câu hỏi của khách: {message}"
 
     async def _log_telemetry(
         self,

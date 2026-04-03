@@ -61,34 +61,41 @@
   /* 3 Columns on Desktop to avoid "CUT" */
   gap: 2rem;
   padding-bottom: 2rem;
+  align-items: stretch; /* All cards in row have same height */
 }
 
-/* Mobile/Tablet Swiper Override */
-@media (max-width: 1200px) {
+/* Mobile/Tablet Swiper Override (Elite Delicate) */
+@media (max-width: 1280px) {
   .reviews-scroll-wrapper {
     display: flex;
     overflow-x: auto;
-    padding: 0 0 2rem;
+    padding: 0 0 3rem;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
+    gap: 1.5rem;
+    align-items: stretch; /* Keep slides same height */
   }
 
   .reviews-scroll-wrapper::-webkit-scrollbar {
     display: none;
   }
+
+  .tablet-nav-controls {
+    display: flex !important;
+  }
 }
 
 .review-card {
   scroll-snap-align: center;
-  padding: 2.5rem;
-  border-radius: 2.5rem;
+  padding: 1.75rem; /* Tighter padding (from 2.5rem) */
+  border-radius: 2rem;
   background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(40px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: auto; /* Dynamic height, but stretched by parent flex */
   position: relative;
   overflow: hidden;
 }
@@ -104,48 +111,43 @@
   pointer-events: none;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1280px) {
   .review-card {
-    flex: 0 0 380px;
+    flex: 0 0 calc(45% - 1rem); /* Show ~2.2 cards to indicate scroll */
+    min-width: 320px;
+    padding: 2.5rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .review-card {
+    flex: 0 0 calc(85% - 1rem); /* Show ~1.2 cards for standard iPad */
   }
 }
 
 @media (max-width: 768px) {
   .review-card {
-    flex: 0 0 88vw;
+    flex: 0 0 85vw;
     padding: 2rem;
     border-radius: 2rem;
   }
 }
 
-/* iPad Mini (768px - 1024px) Optimization */
+/* iPad Mini / Specific Tablet Optimization (REFINED) */
 @media (min-width: 768px) and (max-width: 1024px) {
   .reviews-container {
-    gap: 0 !important;
-    /* Eliminate large vertical gaps */
+    gap: 2rem !important;
   }
 
   .reviews-scroll-wrapper {
-    display: flex !important;
-    overflow-x: auto !important;
-    scroll-snap-type: x mandatory;
-    gap: 0 !important;
-    padding: 0 !important;
+    padding: 0 1rem 3rem !important;
+    gap: 1.5rem !important;
   }
 
   .review-card {
-    flex: 0 0 100% !important;
     scroll-snap-align: center;
-    border-radius: 0;
-    /* Flush to edges to avoid "leaking" */
-    padding: 4.5rem 3rem !important;
-  }
-
-  .tablet-nav-controls {
-    display: flex !important;
-    position: static !important;
-    transform: none !important;
-    pointer-events: auto !important;
+    border-radius: 2rem;
+    padding: 2rem 1.75rem !important; /* Optimizing vertical padding for iPad */
   }
 
   .nav-delicate {
@@ -207,18 +209,18 @@
   z-index: 20;
 }
 
-/* Modal UI - Liquid Glass */
+/* Modal UI - Liquid Glass (HARDENED V2.2) */
 .modal-overlay {
-  background: rgba(2, 6, 23, 0.7);
+  background: rgba(2, 6, 23, 0.9); /* Darker backdrop */
   -webkit-backdrop-filter: blur(40px) saturate(180%);
   backdrop-filter: blur(40px) saturate(180%);
 }
 
 .modal-content-frame {
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(15, 23, 42, 0.98); /* Near-solid to prevent 'see-through' */
   backdrop-filter: blur(60px) saturate(220%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 100px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15); /* Slightly brighter border */
+  box-shadow: 0 0 120px rgba(0, 0, 0, 1), inset 0 0 30px rgba(255, 255, 255, 0.05);
   border-radius: 3rem;
 }
 
@@ -433,11 +435,32 @@
 }
 
 @keyframes wave-motion-reviews {
-  0% {
-    transform: translateY(0) scaleX(1);
-  }
-
   100% {
     transform: translateY(18px) scaleX(1.05);
   }
 }
+
+.custom-scrollbar {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

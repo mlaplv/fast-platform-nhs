@@ -1,21 +1,38 @@
 <script lang="ts">
   import { Music, Zap, ShieldCheck, Droplets, Eye, Clock, Flame, ArrowRight, Star, StarHalf } from 'lucide-svelte';
   import './MobileHero.css';
+  import { resolveMediaUrl } from '$lib/state/utils';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import type { ProductVariant } from '$lib/types';
 
-  // Thao túng cảm xúc (FOMO States)
-  let viewers = $state(Math.floor(Math.random() * (256 - 134) + 134));
-  let stockLeft = $state(Math.floor(Math.random() * (7 - 2) + 2));
+  let { product } = $props();
+  const shopStore = getShopStore();
+  const currentVariant = $derived(shopStore.variant);
+  
+  const metadata = $derived(product?.metadata || {});
+  const variantOptions = $derived(product?.tierVariations?.[0]?.options || []);
+
+  // Elite V2.2: Deterministic FOMO (No more Math.random() per Rule R00)
+  function getSeedValue(min: number, max: number, offset = 0) {
+    const seed = product?.slug || 'default';
+    let hash = offset;
+    for (let i = 0; i < seed.length; i++) {
+      hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return min + (Math.abs(hash) % (max - min + 1));
+  }
+
+  let viewers = $state(getSeedValue(134, 256, 1));
+  let stockLeft = $state(getSeedValue(2, 7, 2));
   let timerSeconds = $state(2 * 3600 + 45 * 60 + 12); // Flash sale count
-  let totalSales = $state(Math.floor(Math.random() * 5000 + 12000));
+  let totalSales = $state(getSeedValue(12000, 17000, 3));
   const formattedSales = $derived((totalSales / 1000).toFixed(1) + 'k');
 
   $effect(() => {
     const viewerInterval = setInterval(() => {
-      viewers += Math.floor(Math.random() * 5) - 2;
-      if (viewers < 80) viewers = 80;
-    }, 4500);
+      // Subtle pulse within deterministic range
+      viewers = getSeedValue(134, 256, Math.floor(Date.now() / 10000));
+    }, 10000);
 
     const countdown = setInterval(() => {
       if (timerSeconds > 0) timerSeconds--;
@@ -33,13 +50,6 @@
     const s = (timerSeconds % 60).toString().padStart(2, '0');
     return `${h}:${m}:${s}`;
   });
-
-  let { product } = $props();
-  const shopStore = getShopStore();
-  const currentVariant = $derived(shopStore.variant);
-  
-  const metadata = $derived(product?.metadata || {});
-  const variantOptions = $derived(product?.tierVariations?.[0]?.options || []);
   
   const metrics = $derived(metadata.hero_metrics || [
     { label: '[Tốc độ]', value: 'THẨM THẤU TÀNG HÌNH 3S', color: 'blue' },
@@ -81,11 +91,11 @@
   >
     {#each variantOptions as opt, i}
       {@const v = product?.variants?.find((varItem: ProductVariant) => varItem.tierIndex[0] === i)}
-      {@const mobileImg = (product?.tierVariations?.[0]?.mobile_images?.[i]) || (product?.mobile_images?.[i])}
+      {@const mobileImg = (product?.tierVariations?.[0]?.mobile_images?.[i]) || (product?.mobileImages?.[i])}
       <div class="variant-slide relative">
          <!-- Main Content Image (Elite Adaptive Rendering) -->
          <img
-           src={mobileImg || product?.tierVariations[0]?.images[i] || product?.images[0]}
+           src={resolveMediaUrl(mobileImg || product?.tierVariations?.[0]?.images?.[i] || (product?.images?.length ? product.images[0] : ''))}
            alt="{product?.name} - {opt}"
            class="w-full h-full object-cover select-none"
            loading={i === 0 ? "eager" : "lazy"}

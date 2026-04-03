@@ -41,7 +41,7 @@
   );
 
   const isTikTokVideo = $derived.by(() => {
-    const url = (product?.metadata?.video_url || product?.metadata?.hero_video_url || '') as string;
+    const url = (product?.metadata?.video_url || product?.metadata?.hero_video_url || product?.metadata?.hero_video || '') as string;
     return url.includes('tiktok.com');
   });
 
@@ -99,7 +99,7 @@
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <link rel="canonical" href={seoMeta.canonical_url} />
 
-    <!-- Open Graph (Facebook, Zalo, Threads) -->
+    <!-- Open Graph (Facebook, Threads, Telegram) -->
     <meta property="og:type" content="product" />
     <meta property="og:title" content={seoMeta.title} />
     <meta property="og:description" content={seoMeta.description} />

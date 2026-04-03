@@ -123,11 +123,21 @@ async def _auto_purge_loop():
 async def _media_cleanup_loop():
     """V76: Media Cleanup Cycle - Chạy mỗi 12h."""
     from backend.services.media.media_service import media_service
+    from backend.database.repositories import MediaRegistryRepository
+    from backend.database import alchemy_config
+
     # Chờ 10p sau khi khởi động để tránh làm nặng hệ thống lúc boot
     await _aio.sleep(600)
     while True:
         try:
+            # 1. Dọn dẹp file tạm (ZIP/Cache) và tài nguyên đã xóa mềm > 30 ngày
             await media_service.cleanup_temp_files()
+
+            # 2. Elite V2.2: Dọn dẹp tài nguyên mồ côi (không có liên kết) > 24h
+            async with alchemy_config.create_session_maker()() as session:
+                repo = MediaRegistryRepository(session=session)
+                await media_service.cleanup_orphaned_assets(repo)
+
         except Exception as e:
             logger.warning(f"[MediaCleanup] Cycle failed: {e}")
         # 12 giờ = 43200 giây

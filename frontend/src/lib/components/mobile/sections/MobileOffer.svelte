@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { SHOP_CONFIG, OFFER_CONSTANTS } from '$lib/constants/shop';
+  import { resolveMediaUrl } from '$lib/state/utils';
   import type { ProductVariant } from '$lib/types';
   import { ShoppingCart, Clock, CheckCircle2, Lock, Users, Zap } from 'lucide-svelte';
   
@@ -124,7 +125,7 @@
                  <div class="w-28 h-28 rounded-[2px] overflow-hidden flex items-center justify-center shrink-0 shadow-inner relative transition-all duration-700 {selectedIndex === i ? 'bg-white/10 scale-105 shadow-2xl ring-1 ring-white/20' : 'bg-white/5 border border-white/5 opacity-40'}">
                     {#if (product.tierVariations?.[0]?.images?.[variant.tierIndex?.[0]]) || variant.image_url || variant.imageUrl || variant.image || (product.images && product.images[i]?.url) || (product.images && product.images[0]?.url)}
                       <img 
-                        src={product.tierVariations?.[0]?.images?.[variant.tierIndex?.[0]] || variant.image_url || variant.imageUrl || variant.image || (product.images && product.images[i]?.url) || (product.images && product.images[0]?.url) || (product.images && product.images[0])} 
+                        src={resolveMediaUrl(product.tierVariations?.[0]?.images?.[variant.tierIndex?.[0]] || variant.image_url || variant.imageUrl || variant.image || (product.images && product.images[i]) || (product.images && product.images[0]))} 
                         alt={variant.sku} 
                         class="w-full h-full object-cover transition-all duration-1000 {selectedIndex === i ? 'scale-110 rotate-1 brightness-110' : 'grayscale brightness-50'}" 
                         loading="lazy"

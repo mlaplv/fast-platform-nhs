@@ -16,9 +16,9 @@ class MediaStore {
     // Buffer for ultra-fast SSE events that arrive before upload API returns
     private pendingMetadataUpdates = new Map<string, MediaSseEvent>();
 
-    // Post-tracking filter state
     linkedPostId = $state<string | null>(null);
     linkedPostType = $state<string | null>(null);
+    isLinkedFilter = $state<boolean | null>(null);
 
     // Selection State (V65.0 Bulk Ops)
     selectedIds = $state<Set<string>>(new Set());
@@ -63,25 +63,46 @@ class MediaStore {
 
     async bulkUpdateMetadata(updates: Array<{ id: string, metadata: Record<string, unknown> }>) {
         if (updates.length === 0) return;
+        
+        // Optimistic UI: Save current state for potential rollback
+        const backup = new Map<string, MediaAsset>();
+        updates.forEach(({ id }) => {
+            const asset = this.assets.find(a => a.id === id);
+            if (asset) backup.set(id, { ...asset });
+        });
+
+        const applyUpdates = (data: Array<{ id: string, metadata: Record<string, unknown> }>) => {
+            data.forEach(({ id, metadata }) => {
+                const index = this.assets.findIndex(a => a.id === id);
+                if (index !== -1) {
+                    this.assets[index] = {
+                        ...this.assets[index],
+                        ...metadata,
+                        media_metadata: {
+                            ...this.assets[index].media_metadata,
+                            ...((metadata.media_metadata as Record<string, unknown>) || (metadata.metadata as Record<string, unknown>) || {})
+                        }
+                    } as MediaAsset;
+                }
+            });
+        };
+
+        // Apply immediately for zero-latency feel
+        applyUpdates(updates);
+
         try {
             const response = await apiClient.patch<{ status: string }>('/api/v1/media/bulk-update', { updates });
-            if (response.status === 'success') {
-                updates.forEach(({ id, metadata }) => {
-                    const index = this.assets.findIndex(a => a.id === id);
-                    if (index !== -1) {
-                        this.assets[index] = {
-                            ...this.assets[index],
-                            ...metadata,
-                            media_metadata: {
-                                ...this.assets[index].media_metadata,
-                                ...((metadata.media_metadata as Record<string, unknown>) || (metadata.metadata as Record<string, unknown>) || {})
-                            }
-                        } as MediaAsset;
-                    }
-                });
+            if (response.status !== 'success') {
+                throw new Error("Server update failed");
             }
         } catch (error) {
-            console.error('[MediaStore] Bulk update failed:', error);
+            console.error('[MediaStore] Bulk update failed, rolling back:', error);
+            // Rollback optimistic changes
+            backup.forEach((oldAsset, id) => {
+                const index = this.assets.findIndex(a => a.id === id);
+                if (index !== -1) this.assets[index] = oldAsset;
+            });
+            nanobot.showToast("Lỗi: Không thể lưu thay đổi SEO", "error");
         }
     }
 
@@ -184,6 +205,10 @@ class MediaStore {
                 params.trash = 'true';
             }
 
+            if (this.isLinkedFilter !== null) {
+                params.is_linked = this.isLinkedFilter.toString();
+            }
+
             if (this.linkedPostId) {
                 params.linked_post_id = this.linkedPostId;
             }
@@ -225,6 +250,17 @@ class MediaStore {
     setPostFilter(postId: string | null, postType: string | null) {
         this.linkedPostId = postId;
         this.linkedPostType = postType;
+        this.isLinkedFilter = null; // Tắt lọc mồ côi nếu chọn post cụ thể
+        this.offset = 0;
+        this.loadAssets(this.currentCampaignId || undefined, true);
+    }
+
+    setUnlinkedFilter(val: boolean | null) {
+        this.isLinkedFilter = val;
+        if (val !== null) {
+            this.linkedPostId = null;
+            this.linkedPostType = null;
+        }
         this.offset = 0;
         this.loadAssets(this.currentCampaignId || undefined, true);
     }

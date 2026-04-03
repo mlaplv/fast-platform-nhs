@@ -231,19 +231,34 @@
 <!-- Mobile Form Modal -->
 {#if showFormModal}
   <div 
-    class="fixed inset-0 bg-black/90 backdrop-blur-2xl flex flex-col pt-12 reviews-form-modal"
+    class="fixed inset-0 bg-black/98 flex flex-col pt-12 reviews-form-modal"
     transition:fade={{ duration: 300 }}
   >
-    <div class="p-6 flex items-center justify-between border-b border-white/10">
-      <div class="text-xs font-black text-white/40 uppercase tracking-[0.3em] font-mono">
-        {labels.label_store_verified}
+    <!-- Tactical Header -->
+    <div class="px-6 py-4 flex items-center justify-between border-b border-white/5 bg-white/[0.01] overflow-hidden relative">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+          <ShieldCheck class="w-4 h-4 text-emerald-400" />
+        </div>
+        <div class="flex flex-col">
+          <div class="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em] font-mono leading-none mb-1">
+            {labels.label_store_verified}
+          </div>
+          <div class="text-[7px] font-bold text-white/20 uppercase tracking-[0.5em] font-mono">
+            SECURE_SYNC // VERIFIED_NODE
+          </div>
+        </div>
       </div>
+
       <button
         onclick={() => showFormModal = false}
-        class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 active:scale-90"
+        class="w-8 h-8 rounded-full bg-white/[0.03] flex items-center justify-center text-white/20 hover:text-white/60 active:scale-90 transition-all group"
       >
-        <X class="w-6 h-6" />
+        <X class="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
       </button>
+
+      <!-- HUD Decoration Line -->
+      <div class="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"></div>
     </div>
 
     <div class="flex-1 overflow-y-auto px-6 py-8">
@@ -282,16 +297,37 @@
                 />
               </div>
               <div class="relative">
-                <MapPin class="absolute left-4 top-5 w-4 h-4 text-white/20" />
-                <select
-                  bind:value={locationSelected}
-                  class="w-full bg-white/[0.03] border border-white/10 px-12 py-5 rounded-2xl text-white outline-none focus:border-emerald-500/50 transition-colors appearance-none uppercase font-black text-xs tracking-widest {locationSelected ? 'text-white' : 'text-white/20'}"
+                <MapPin class="absolute left-4 top-5 w-4 h-4 text-white/20 {isLocationOpen ? 'text-emerald-500/60' : ''} transition-colors" />
+                <button
+                  type="button"
+                  onclick={() => isLocationOpen = !isLocationOpen}
+                  class="w-full bg-white/[0.03] border border-white/10 px-12 py-5 rounded-2xl text-left outline-none transition-all uppercase font-black text-xs tracking-widest {locationSelected ? 'text-white' : 'text-white/20'} {isLocationOpen ? 'border-emerald-500/50 bg-emerald-500/5 shadow-[0_0_20px_rgba(16,185,129,0.05)]' : ''}"
                 >
-                  <option value="" disabled>Chọn Vị trí</option>
-                  {#each locations as loc}
-                    <option value={loc}>{loc}</option>
-                  {/each}
-                </select>
+                  {locationSelected || 'Chọn Vị trí'}
+                </button>
+
+                {#if isLocationOpen}
+                  <div 
+                    class="absolute top-full left-0 right-0 mt-2 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[1500] overflow-hidden"
+                    in:fly={{ y: -10, duration: 200 }}
+                    out:fade={{ duration: 150 }}
+                  >
+                    <div class="max-h-56 overflow-y-auto scrollbar-hide">
+                      {#each locations as loc}
+                        <button
+                          type="button"
+                          onclick={() => { locationSelected = loc; isLocationOpen = false; }}
+                          class="w-full px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] transition-all border-b border-white/5 last:border-none flex items-center justify-between group {locationSelected === loc ? 'bg-emerald-500/10 text-emerald-400' : 'text-white/40 hover:bg-white/[0.03] hover:text-white'}"
+                        >
+                          {loc}
+                          {#if locationSelected === loc}
+                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                          {/if}
+                        </button>
+                      {/each}
+                    </div>
+                  </div>
+                {/if}
               </div>
             </div>
 
@@ -372,6 +408,7 @@
 
   .reviews-form-modal {
     z-index: 1200; /* Z_INDEX_CLIENT.MOBILE_REVIEW_OVERLAY */
+    background-color: #030303; /* Hardcoded solid fallback for VPS Mode */
   }
 
   .reviews-toast {

@@ -37,7 +37,7 @@
   const labels = $derived({
     product_name: product?.name || (metadata.hero_product_name_fallback as string) || 'Elite Formulation',
     headline: metadata.hero_headline || '<span>CHẤM DỨT</span> <br/> <span class="headline-shift">MÙI CƠ THỂ.</span>',
-    video_url: metadata.hero_video_url || '/video/video-hn.mp4',
+    video_url: metadata.hero_video_url || 'video/video-hn.mp4',
     cta_text: metadata.hero_cta_text || 'Chẩn đoán cá nhân hoá',
     aria_hero: (metadata.hero_aria_label as string) || 'Hero Spotlight Area',
     aria_scroll: (metadata.hero_aria_scroll as string) || 'Scroll to diagnostics section',
@@ -53,7 +53,7 @@
   const mainImage = $derived(images.length > 0 ? resolveMediaUrl(images[currentImageIndex]) : '');
 
   const rawHeadline = $derived(labels.headline);
-  const videoUrl = $derived(labels.video_url);
+  const videoUrl = $derived(resolveMediaUrl(labels.video_url));
   const ctaText = $derived(labels.cta_text);
   const metrics = $derived(labels.metrics);
 

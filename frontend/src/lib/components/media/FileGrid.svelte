@@ -70,6 +70,12 @@
                     <Star size={10} class="fill-amber-400 text-amber-400" />
                     <span class="text-[8px] font-black text-white uppercase tracking-tighter">Primary</span>
                 </div>
+            {:else if !asset.is_linked && !asset.id?.startsWith('tmp_') && !mediaStore.isTrashMode}
+                <!-- Orphaned Marker (Elite V2.2) -->
+                <div class="absolute top-3 right-3 z-20 px-2 py-1 bg-amber-500/10 backdrop-blur-md border border-amber-500/20 rounded-lg flex items-center gap-1 shadow-xl" transition:fade>
+                    <Info size={10} class="text-amber-500" />
+                    <span class="text-[8px] font-black text-amber-500 uppercase tracking-tighter">Mồ côi</span>
+                </div>
             {/if}
 
             <!-- Bottom Info Strip -->

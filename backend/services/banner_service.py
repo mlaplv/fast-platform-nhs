@@ -10,6 +10,8 @@ from litestar.exceptions import NotFoundException
 from backend.database.models import Banner
 from backend.schemas.banner import CreateBannerRequest, UpdateBannerRequest, BannerResponse, BannerListResponse
 from backend.schemas.common import SuccessResponse
+from backend.services.event_bus import event_bus
+from backend.utils.media import extract_media_urls
 
 logger = logging.getLogger("api-gateway")
 
@@ -60,6 +62,10 @@ class BannerService:
         )
         db_session.add(banner)
         await db_session.commit()
+        
+        # Elite V2.2: Sync Media
+        await BannerService._sync_media_links(new_id, data.image_url)
+        
         return SuccessResponse(ok=True, id=new_id)
 
     @staticmethod
@@ -83,6 +89,10 @@ class BannerService:
 
         banner.updated_at = datetime.now(timezone.utc)
         await db_session.commit()
+
+        # Elite V2.2: Sync Media
+        await BannerService._sync_media_links(banner_id, banner.image_url)
+
         return SuccessResponse(ok=True, id=banner_id)
 
     @staticmethod
@@ -98,5 +108,23 @@ class BannerService:
         banner.deleted_at = datetime.now(timezone.utc)
         await db_session.commit()
         return SuccessResponse(ok=True, id=banner_id)
+
+    @staticmethod
+    async def _sync_media_links(banner_id: str, image_url: Optional[str]) -> None:
+        """
+        Elite V2.2: Neural Media Sync for Banners.
+        Đảm bảo ảnh Banner được bảo vệ.
+        """
+        try:
+            urls = extract_media_urls(image_url)
+            if urls:
+                await event_bus.emit("MEDIA_SYNC_REQUIRED", {
+                    "entity_id": str(banner_id),
+                    "entity_type": "banner",
+                    "urls": list(urls)
+                })
+                logger.info(f"[BannerService] Emitted MEDIA_SYNC_REQUIRED for banner {banner_id} with {len(urls)} URLs")
+        except Exception as e:
+            logger.error(f"[BannerService] Failed to emit media sync: {e}")
 
 banner_service = BannerService()

@@ -19,6 +19,7 @@
   let inputElement: HTMLTextAreaElement;
   let userInput = $state('');
   let isExpanded = $state(false);
+  let isInputFocused = $state(false);
 
   interface QuickAction {
     label: string;
@@ -52,6 +53,14 @@
 
   function toggleExpand() {
     isExpanded = !isExpanded;
+  }
+
+  function handleInputFocus() {
+    isInputFocused = true;
+  }
+
+  function handleInputBlur() {
+    isInputFocused = false;
   }
 
   async function handleSend() {
@@ -131,12 +140,12 @@
 {#if supportAgent.isOpen}
   <!-- Hyper Drop Container (Viral 2026 Aggressive Asymmetric Shape) -->
   <div 
-    class="support-chat-container fixed transform-gpu origin-bottom-right transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] {isExpanded ? 'bottom-8 right-8 w-[90vw] h-[85vh] rounded-[48px]' : 'bottom-[110px] right-8 w-[450px] h-[740px] max-h-[85vh] hyper-drop-v2 animate-liquid-float'}"
-    style="z-index: {Z_INDEX_CLIENT.MODAL};"
+    class="support-chat-container fixed transform-gpu origin-bottom-right transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] {isExpanded ? 'bottom-8 right-8 w-[90vw] h-[85vh] rounded-[48px]' : 'bottom-[110px] right-8 w-[450px] h-[740px] max-h-[85vh] hyper-drop-v2 animate-liquid-float'} {isInputFocused ? 'pause-animations' : ''}"
+    style="z-index: {Z_INDEX_CLIENT.MODAL}; will-change: transform, opacity;"
     transition:scale={{ start: 0.7, opacity: 0, duration: 600, easing: (t) => 1 - Math.pow(1 - t, 5) }}
   >
-    <!-- Liquid Neural Border (The 'Glow' Upgrade) -->
-    <div class="absolute inset-[-2px] bg-gradient-to-br from-[#00A3FF] via-transparent to-[#005B99] opacity-30 blur-[4px] {isExpanded ? 'rounded-[48px]' : 'hyper-drop-v2'} pointer-events-none"></div>
+    <!-- Liquid Neural Border (Optimized for No-GPU CPU-only VPS) -->
+    <div class="absolute inset-[-1px] bg-gradient-to-br from-[#00A3FF] via-transparent to-[#005B99] opacity-20 {isExpanded ? 'rounded-[48px]' : 'hyper-drop-v2'} pointer-events-none"></div>
 
     <!-- Ultra-Glass Background Layer -->
     <div class="absolute inset-0 apple-glass-dark-modal pointer-events-none transition-all duration-700 {isExpanded ? 'rounded-[48px]' : 'hyper-drop-v2'} border border-white/10 shadow-[0_45px_100px_rgba(0,0,0,0.9)]"></div>
@@ -148,7 +157,7 @@
         <div class="flex items-center gap-4">
           <div class="relative group/avatar">
             <div class="w-14 h-14 rounded-full bg-black/40 flex items-center justify-center shadow-[0_8px_24px_rgba(0,163,255,0.4)] border border-white/20 transition-transform group-hover/avatar:scale-105 overflow-hidden">
-              <HelenIcon size={56} color="#00A3FF" />
+              <HelenIcon size={56} color="#00A3FF" isPaused={isInputFocused} />
             </div>
             <div class="absolute bottom-0 right-0 w-4 h-4 bg-[#34C759] rounded-full ring-[3px] ring-[#0a0a0a] shadow-[0_0_12px_#34C759]"></div>
           </div>
@@ -195,7 +204,7 @@
         class="flex-1 overflow-y-auto px-6 py-4 flex flex-col justify-start space-y-12 hide-scrollbar relative"
       >
         <div class="flex flex-col items-center justify-center mb-10 opacity-30 hover:opacity-100 transition-opacity">
-          <div class="flex items-center gap-2.5 px-5 py-2 bg-white/5 border border-white/10 rounded-full backdrop-blur-xl">
+          <div class="flex items-center gap-2.5 px-5 py-2 bg-black/40 border border-white/10 rounded-full">
              <ShieldCheck size={14} class="text-[#00A3FF]" />
              <span class="text-[10px] text-white/60 tracking-[0.2em] uppercase font-black italic">SmartShop Neural Link v2.2</span>
           </div>
@@ -231,7 +240,7 @@
               <div class="flex-shrink-0 mt-1">
                 {#if msg.role === 'assistant'}
                   <div class="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center border border-white/10 shadow-lg overflow-hidden">
-                    <HelenIcon size={28} color="#00A3FF" />
+                    <HelenIcon size={28} color="#00A3FF" isPaused={isInputFocused} />
                   </div>
                 {:else}
                   <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/5 shadow-md">
@@ -253,7 +262,7 @@
                   </div>
                   <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                   <div class="text-[16px] mb-6">{@html msg.content.replace(/\n/g, '<br/>')}</div>
-                  <div class="w-full max-w-[340px] p-1 bg-white/5 rounded-[32px] border border-white/10 shadow-2xl backdrop-blur-3xl overflow-hidden focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all">
+                  <div class="w-full max-w-[340px] p-1 bg-black/40 rounded-[32px] border border-white/10 shadow-2xl overflow-hidden focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all">
                     <div class="flex items-center">
                         <input type="tel" placeholder="Số điện thoại / Mã đơn" class="flex-1 px-6 py-4 bg-transparent text-white placeholder-gray-600 outline-none text-[15px]" />
                         <button class="mr-1 w-12 h-12 bg-[#00A3FF] text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all">
@@ -290,7 +299,7 @@
   
         {#if supportAgent.isTyping}
           <div class="flex justify-start w-full">
-            <div class="flex items-center gap-3 px-5 py-2.5 bg-white/5 rounded-full border border-white/5 backdrop-blur-xl">
+            <div class="flex items-center gap-3 px-5 py-2.5 bg-black/40 rounded-full border border-white/5">
               <div class="w-1.5 h-1.5 bg-[#00A3FF] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
               <div class="w-1.5 h-1.5 bg-[#00A3FF] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
               <div class="w-1.5 h-1.5 bg-[#00A3FF] rounded-full animate-bounce"></div>
@@ -315,12 +324,14 @@
           {/each}
         </div>
 
-        <div class="relative bg-white/5 border border-white/10 rounded-[44px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all backdrop-blur-xl">
+        <div class="relative bg-black/60 border border-white/10 rounded-[44px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all">
           <textarea
             bind:this={inputElement}
             bind:value={userInput}
             onkeydown={handleKeyDown}
             placeholder="Nói chuyện với chuyên gia..."
+            onfocus={handleInputFocus}
+            onblur={handleInputBlur}
             class="block w-full bg-transparent border-0 py-7 pl-14 pr-24 text-white placeholder-gray-600 focus:ring-0 resize-none outline-none text-[16px] max-h-[220px] font-medium"
             style="min-height: 80px;"
             disabled={supportAgent.isTyping}
@@ -346,13 +357,20 @@
 <style>
   .apple-glass-dark-modal {
     background: linear-gradient(165deg, rgba(16, 24, 39, 0.8) 0%, rgba(3, 7, 18, 0.98) 100%);
-    backdrop-filter: blur(20px) saturate(210%);
-    -webkit-backdrop-filter: blur(20px) saturate(210%);
+    backdrop-filter: blur(8px) saturate(210%);
+    -webkit-backdrop-filter: blur(8px) saturate(210%);
+    transition: backdrop-filter 0.3s ease;
     will-change: transform, opacity;
     box-shadow: 
       0 60px 120px rgba(0, 0, 0, 0.9),
       inset 0 1px 1px rgba(255, 255, 255, 0.1),
       inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .pause-animations .apple-glass-dark-modal {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(8, 12, 21, 0.98) !important;
   }
 
   /* Liquid Hyper-Drop Shape V2 (Organic & Balanced) */
@@ -386,12 +404,11 @@
     scrollbar-width: none;  
     scroll-behavior: smooth;
   }
-  @keyframes pulse-subtle {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.02); opacity: 0.95; }
-  }
-
   .animate-pulse-subtle {
     animation: pulse-subtle 2s infinite ease-in-out;
+  }
+
+  .pause-animations, .pause-animations * {
+    animation-play-state: paused !important;
   }
 </style>

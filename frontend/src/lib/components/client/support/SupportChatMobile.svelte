@@ -14,6 +14,7 @@
   let chatContainer: HTMLDivElement;
   let inputElement: HTMLTextAreaElement;
   let userInput = $state('');
+  let isInputFocused = $state(false);
   
   interface QuickAction {
     label: string;
@@ -39,6 +40,15 @@
 
   function closeChat() {
     supportAgent.isOpen = false;
+    isInputFocused = false;
+  }
+
+  function handleInputFocus() {
+    isInputFocused = true;
+  }
+
+  function handleInputBlur() {
+    isInputFocused = false;
   }
 
   async function handleSend() {
@@ -124,8 +134,8 @@
 
   <!-- Bottom Sheet (Liquid Glass - Viral 2026) -->
   <div 
-    class="support-chat-container fixed inset-x-0 bottom-0 flex flex-col apple-glass-dark-mobile liquid-sheet-mobile overflow-hidden shadow-[0_-32px_100px_rgba(0,0,0,0.8)]"
-    style="z-index: {Z_INDEX_CLIENT.MOBILE_BOTTOM_SHEET}; height: 95svh;"
+    class="support-chat-container fixed inset-x-0 bottom-0 flex flex-col apple-glass-dark-mobile liquid-sheet-mobile overflow-hidden shadow-[0_-32px_100px_rgba(0,0,0,0.8)] {isInputFocused ? 'pause-animations' : ''}"
+    style="z-index: {Z_INDEX_CLIENT.MOBILE_BOTTOM_SHEET}; height: 95svh; will-change: transform, opacity;"
     transition:fly={{ y: '100%', duration: 500, easing: (t) => 1 - Math.pow(1 - t, 5) }}
   >
     <!-- iOS Style Drag Handle -->
@@ -138,7 +148,7 @@
       <div class="flex items-center gap-4">
         <div class="relative">
           <div class="w-14 h-14 rounded-full bg-black/40 flex items-center justify-center shadow-[0_4px_16px_rgba(0,163,255,0.4)] border border-white/20 overflow-hidden">
-            <HelenIcon size={56} color="#00A3FF" />
+            <HelenIcon size={56} color="#00A3FF" isPaused={isInputFocused} />
           </div>
           <div class="absolute bottom-0 right-0 w-4 h-4 bg-[#34C759] rounded-full ring-[3px] ring-[#0a0a0a] shadow-[0_0_12px_#34C759]"></div>
         </div>
@@ -172,7 +182,7 @@
       class="flex-1 overflow-y-auto px-5 py-6 flex flex-col justify-start space-y-10 hide-scrollbar relative z-10"
     >
       <div class="flex flex-col items-center justify-center mb-10 opacity-30">
-        <div class="flex items-center gap-2.5 px-5 py-2 bg-white/5 border border-white/10 rounded-full backdrop-blur-xl">
+        <div class="flex items-center gap-2.5 px-5 py-2 bg-black/40 border border-white/10 rounded-full">
            <ShieldCheck size={14} class="text-[#00A3FF]" />
            <span class="text-[10px] text-white/60 tracking-[0.2em] uppercase font-black">Secure Neural Link Established</span>
         </div>
@@ -209,7 +219,7 @@
             <div class="flex-shrink-0 mt-1">
               {#if msg.role === 'assistant'}
                 <div class="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center border border-white/10 shadow-lg overflow-hidden">
-                  <HelenIcon size={28} color="#00A3FF" />
+                  <HelenIcon size={28} color="#00A3FF" isPaused={isInputFocused} />
                 </div>
               {:else}
                 <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/5 shadow-md">
@@ -231,7 +241,7 @@
                 </div>
                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 <div class="opacity-90 mb-6">{@html msg.content.replace(/\n/g, '<br/>')}</div>
-                <div class="w-full p-1 bg-white/5 rounded-[28px] border border-white/10 shadow-2xl backdrop-blur-3xl overflow-hidden focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all">
+                <div class="w-full p-1 bg-black/40 rounded-[28px] border border-white/10 shadow-2xl overflow-hidden focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all">
                   <div class="flex items-center">
                       <input type="tel" placeholder="Số điện thoại / Mã đơn" class="flex-1 px-6 py-4 bg-transparent text-white placeholder-gray-600 outline-none text-[16px]" />
                       <button class="mr-1 w-12 h-12 bg-[#00A3FF] text-white rounded-full flex items-center justify-center shadow-lg active:scale-92 transition-all">
@@ -267,7 +277,7 @@
 
       {#if supportAgent.isTyping}
         <div class="flex justify-start w-full">
-          <div class="flex items-center gap-3 px-5 py-3 bg-white/5 rounded-full border border-white/5 backdrop-blur-xl">
+          <div class="flex items-center gap-3 px-5 py-3 bg-black/40 rounded-full border border-white/5">
             <div class="w-1.5 h-1.5 bg-[#00A3FF] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
             <div class="w-1.5 h-1.5 bg-[#00A3FF] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
             <div class="w-1.5 h-1.5 bg-[#00A3FF] rounded-full animate-bounce"></div>
@@ -293,12 +303,14 @@
       </div>
 
       <!-- Capsule Dynamic Island Input -->
-      <div class="relative bg-black/60 border border-white/5 rounded-[40px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all backdrop-blur-xl">
+      <div class="relative bg-black/80 border border-white/5 rounded-[40px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all">
         <textarea
           bind:this={inputElement}
           bind:value={userInput}
           onkeydown={handleKeyDown}
           placeholder="Nói chuyện với chuyên gia..."
+          onfocus={handleInputFocus}
+          onblur={handleInputBlur}
           class="block w-full bg-transparent border-0 py-[22px] pl-[60px] pr-20 text-white placeholder-gray-600 focus:ring-0 resize-none outline-none text-[17px] max-h-[160px] rounded-[40px] font-medium"
           style="min-height: 72px;"
           disabled={supportAgent.isTyping}
@@ -323,13 +335,20 @@
 <style>
   .apple-glass-dark-mobile {
     background: linear-gradient(165deg, rgba(8, 12, 21, 0.8) 0%, rgba(2, 4, 10, 0.99) 100%);
-    backdrop-filter: blur(20px) saturate(210%);
-    -webkit-backdrop-filter: blur(20px) saturate(210%);
+    backdrop-filter: blur(8px) saturate(210%);
+    -webkit-backdrop-filter: blur(8px) saturate(210%);
+    transition: backdrop-filter 0.3s ease;
     will-change: transform, opacity;
     box-shadow: 
       0 -40px 120px rgba(0,0,0,0.8),
       inset 0 1px 1px rgba(255, 255, 255, 0.1),
       inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .pause-animations .apple-glass-dark-mobile {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(8, 12, 21, 0.99) !important;
   }
 
   .hide-scrollbar::-webkit-scrollbar {
@@ -363,5 +382,9 @@
 
   .animate-pulse-subtle {
     animation: pulse-subtle 2s infinite ease-in-out;
+  }
+
+  .pause-animations, .pause-animations * {
+    animation-play-state: paused !important;
   }
 </style>

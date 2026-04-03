@@ -1,7 +1,6 @@
 <script lang="ts">
   import { scale } from 'svelte/transition';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import { SHOP_CONFIG } from '$lib/constants/shop';
 
   interface MobileVariantTabsProps {
     hidden?: boolean;
@@ -33,13 +32,14 @@
         onclick={() => selectVariant(i)}
       >
         <span
-          class="text-[17px] font-bold tracking-tight transition-all duration-300 {activeIndex === i ? 'text-white scale-110' : 'text-white/60 hover:text-white/80'}"
+          class="text-[11px] font-black tracking-widest transition-all duration-300 uppercase {activeIndex === i ? 'text-white scale-110 shadow-glow-text' : 'text-white/30'}"
         >
           {variant}
         </span>
+        
         {#if activeIndex === i}
           <div
-            class="absolute -bottom-1 w-6 h-[3px] bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)]"
+            class="absolute -bottom-2 w-4 h-[3px] bg-white rounded-full shadow-[0_0_12px_rgba(255,255,255,1)]"
             transition:scale={{ duration: 300, start: 0 }}
           ></div>
         {/if}
@@ -64,5 +64,12 @@
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
+  }
+
+  .shadow-glow-text {
+    /* Adaptive shadow: visible on white, transparent on black */
+    text-shadow: 
+      0 1px 2px rgba(0, 0, 0, 0.8),
+      0 0 15px rgba(0, 0, 0, 0.4);
   }
 </style>

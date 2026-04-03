@@ -31,6 +31,45 @@
   /* Centralized Layout Gaps */
   --gap-fluid: clamp(1.5rem, 4vw, 4rem);
   --container-max: 1400px;
+
+  /* NO-GPU VPS PERFORMANCE OVERRIDE (Total Cleansing) */
+  --liquid-blur: 0px !important;
+  --glass-blur: 0px !important;
+}
+
+/* GLOBAL PERFORMANCE HARDENING: VPS Mode */
+* {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  --liquid-blur: 0px !important;
+  --glass-blur: 0px !important;
+}
+
+.animate-v-zoom, 
+.animate-float, 
+.morph-blob, 
+.liquid-float, 
+.mobile-morph,
+.neural-orb,
+.liquid-orb,
+.peeking-orb,
+.linewave-path,
+.shield-blob,
+.laser-line,
+.wave-line,
+.animate-liquid-fuzz,
+.flashlight-beam,
+.liquid-reflection {
+  animation: none !important;
+  animation-play-state: paused !important;
+  display: none !important; /* Stop painting these on CPU */
+  filter: none !important;
+}
+
+/* Surgical Parallax Block (Disable mouse movement without breaking slider) */
+.parallax-layer {
+  --mx: 0px !important;
+  --my: 0px !important;
 }
 
 body { margin: 0; padding: 0; overflow-x: hidden; }

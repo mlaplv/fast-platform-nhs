@@ -12,6 +12,8 @@ from litestar.exceptions import NotFoundException
 from backend.database.models import Category
 from backend.schemas.category import CreateCategoryRequest, UpdateCategoryRequest, CategoryResponse, CategoryListResponse
 from backend.schemas.common import SuccessResponse, BulkActionResponse, BulkIdsRequest
+from backend.services.event_bus import event_bus
+from backend.utils.media import extract_media_urls
 
 class CategoryNode(TypedDict, total=False):
     id: str
@@ -114,6 +116,11 @@ class CategoryService:
             image=data.image,
         )
         db_session.add(category)
+        await db_session.commit()
+        
+        # Elite V2.2: Sync Media
+        await self._sync_media_links(new_id, data.image)
+        
         return SuccessResponse(ok=True, id=new_id)
 
     @staticmethod
@@ -133,6 +140,12 @@ class CategoryService:
         if data.seoTitle is not None: category.seo_title = data.seoTitle
         if data.seoDescription is not None: category.seo_description = data.seoDescription
         if data.image is not None: category.image = data.image
+
+        category.updated_at = datetime.now(timezone.utc)
+        await db_session.commit()
+        
+        # Elite V2.2: Sync Media
+        await self._sync_media_links(category_id, category.image)
 
         return SuccessResponse(ok=True, id=category_id)
 
@@ -155,5 +168,20 @@ class CategoryService:
         stmt = update(Category).where(Category.id.in_(ids)).values(deleted_at=datetime.now(timezone.utc))
         await db_session.execute(stmt)
         return BulkActionResponse(ok=True, count=len(ids))
+
+    @staticmethod
+    async def _sync_media_links(category_id: str, image_url: Optional[str]) -> None:
+        """Phát sự kiện đồng bộ Media cho Category."""
+        try:
+            urls = extract_media_urls(image_url)
+            if urls:
+                await event_bus.emit("MEDIA_SYNC_REQUIRED", {
+                    "entity_id": category_id,
+                    "entity_type": "category",
+                    "urls": list(urls)
+                })
+                logger.info(f"[CategoryService] Emitted MEDIA_SYNC_REQUIRED for category {category_id}")
+        except Exception as e:
+            logger.error(f"[CategoryService] Failed to emit media sync: {e}")
 
 category_service = CategoryService()

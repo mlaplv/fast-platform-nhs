@@ -115,6 +115,9 @@
                                 {#if asset.is_primary}
                                     <span class="text-[8px] font-black text-white bg-indigo-500 px-1.5 py-0.5 rounded uppercase tracking-tighter">Primary</span>
                                 {/if}
+                                {#if !asset.is_linked && !asset.id?.startsWith('tmp_') && !mediaStore.isTrashMode}
+                                    <span class="text-[8px] font-black text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded uppercase tracking-tighter">Mồ côi</span>
+                                {/if}
                             </div>
                         </div>
                     </td>

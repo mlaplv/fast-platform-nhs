@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { env } from '$env/dynamic/private';
+import { ServerEnv } from '$lib/server/env';
 import { isMobileDevice } from '$lib/utils/device';
 
 export const load: PageServerLoad = async ({ 
@@ -15,8 +15,8 @@ export const load: PageServerLoad = async ({
     const { slug } = params;
     
     // R00: NO MOCK, NO SILENT FALLBACK. Let it fail clearly if API is down.
-    const apiUrl = env.INTERNAL_API_URL || 'http://api:8000';
-    const tenantId = env.APP_DOMAIN?.split('.')[0] || 'default';
+    const apiUrl = ServerEnv.INTERNAL_API_URL;
+    const tenantId = ServerEnv.TENANT_ID;
     const targetUrl = `${apiUrl}/api/v1/client/products/slug/${slug}`;
     
     let res;

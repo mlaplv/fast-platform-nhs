@@ -13,6 +13,8 @@ from backend.schemas.common import SuccessResponse, BulkActionResponse
 from backend.services.commerce.product_vector import ProductVectorService
 from backend.utils.sql import escape_like
 from backend.utils.noise_cleaner import noise_cleaner
+from backend.services.event_bus import event_bus
+from backend.utils.media import extract_media_urls
 from sqlalchemy.dialects.postgresql import JSONB
 import re
 
@@ -248,6 +250,9 @@ class ProductService:
             db_session, new_id, data.name, cleaned_description
         )
 
+        # Elite V2.2: Sync Media Links
+        await self._sync_media_links(db_session, new_id, product)
+
         return SuccessResponse(ok=True, id=new_id)
 
     async def update_product(self, db_session: AsyncSession, product_id: str, data: UpdateProductRequest) -> SuccessResponse:
@@ -305,7 +310,40 @@ class ProductService:
                 db_session, product_id, product.name, product.description
             )
 
+        # Elite V2.2: Sync Media Links
+        await self._sync_media_links(db_session, product_id, product)
+
         return SuccessResponse(ok=True, id=product_id)
+
+    async def _sync_media_links(self, db_session: AsyncSession, product_id: str, product: ProductBase) -> None:
+        """
+        Elite V2.2: Neural Media Sync.
+        Phát sự kiện để MediaResponder xử lý việc đồng bộ liên kết N-N trong background.
+        SỬ DỤNG: Recursive Scan trên toàn bộ dữ liệu thực thể.
+        """
+        try:
+            # Chuyển đổi sang dict để extract_media_urls quét đệ quy
+            # Bao gồm cả images, mobile_images, tier_variations và product_metadata
+            product_data = {
+                "images": product.images,
+                "mobile_images": product.mobile_images,
+                "tier_variations": product.tier_variations,
+                "metadata": product.product_metadata,
+                "description": product.description # Tìm ảnh trong Tiptap HTML
+            }
+            
+            urls = extract_media_urls(product_data)
+            
+            # 3. Phát sự kiện (Decoupled Flow)
+            if urls:
+                await event_bus.emit("MEDIA_SYNC_REQUIRED", {
+                    "entity_id": str(product_id),
+                    "entity_type": "product",
+                    "urls": list(urls)
+                })
+                logger.info(f"[ProductService] Emitted MEDIA_SYNC_REQUIRED for product {product_id} with {len(urls)} URLs")
+        except Exception as e:
+            logger.error(f"[ProductService] Failed to emit media sync: {e}")
 
     async def delete_product(self, db_session: AsyncSession, product_id: str) -> SuccessResponse:
         stmt = update(ProductBase).where(ProductBase.id == product_id).values(deleted_at=datetime.now(timezone.utc))

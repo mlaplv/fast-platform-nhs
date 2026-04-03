@@ -25,6 +25,7 @@ class MediaListingMixin:
         search_query: Optional[str] = None,
         include_deleted: bool = False,
         owner_id: Optional[dict] = None,
+        is_linked: Optional[bool] = None,
         linked_post_id: Optional[str] = None,
         linked_post_type: Optional[str] = None
     ) -> MediaListResult:
@@ -53,7 +54,10 @@ class MediaListingMixin:
 
         if campaign_id:
             stmt = stmt.where(MediaRegistry.campaign_id == campaign_id)
+        if is_linked is not None:
+            stmt = stmt.where(MediaRegistry.is_linked == is_linked)
         if linked_post_id:
+            # Legacy filter - only for 1-1 backwards compatibility if needed
             stmt = stmt.where(MediaRegistry.linked_post_id == linked_post_id)
         if linked_post_type:
             stmt = stmt.where(MediaRegistry.linked_post_type == linked_post_type)

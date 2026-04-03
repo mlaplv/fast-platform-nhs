@@ -18,6 +18,8 @@ from backend.services.article_vector_service import ArticleVectorService
 from backend.services.xohi_memory import xohi_memory
 from backend.utils.sql import escape_like
 from backend.utils.noise_cleaner import noise_cleaner
+from backend.services.event_bus import event_bus
+from backend.utils.media import extract_media_urls
 
 logger = logging.getLogger("api-gateway")
 
@@ -150,6 +152,10 @@ class ArticleService:
 
         # Invalidate Count Cache
         await xohi_memory.clear_article_cache()
+        
+        # Elite V2.2: Sync Media Links
+        await self._sync_media_links(db_session, new_id, article)
+        
         return SuccessResponse(ok=True, id=new_id)
 
     async def update_article(self, db_session: AsyncSession, article_id: str, data: UpdateArticleRequest) -> SuccessResponse:
@@ -186,7 +192,36 @@ class ArticleService:
 
         # Invalidate Count Cache
         await xohi_memory.clear_article_cache()
+
+        # Elite V2.2: Sync Media Links
+        await self._sync_media_links(db_session, article_id, article)
+
         return SuccessResponse(ok=True, id=article_id)
+
+    async def _sync_media_links(self, db_session: AsyncSession, article_id: str, article: Article) -> None:
+        """
+        Elite V2.2: Neural Media Sync for News/Articles.
+        Trích xuất và đồng bộ toàn bộ liên kết hình ảnh thông qua Recursive Scan.
+        Bao gồm: Featured Image, SEO OG Image, Content (HTML).
+        """
+        try:
+            article_data = {
+                "featured_image": article.featured_image,
+                "seo_og_image": article.seo_og_image,
+                "content": article.content
+            }
+            urls = extract_media_urls(article_data)
+
+            # 3. Phát sự kiện (Decoupled Flow)
+            if urls:
+                await event_bus.emit("MEDIA_SYNC_REQUIRED", {
+                    "entity_id": str(article_id),
+                    "entity_type": "news",
+                    "urls": list(urls)
+                })
+                logger.info(f"[ArticleService] Emitted MEDIA_SYNC_REQUIRED for news {article_id} with {len(urls)} URLs")
+        except Exception as e:
+            logger.error(f"[ArticleService] Failed to emit media sync: {e}")
 
     async def delete_article(self, db_session: AsyncSession, article_id: str) -> SuccessResponse:
         stmt = update(Article).where(Article.id == article_id).values(deleted_at=datetime.now(timezone.utc))

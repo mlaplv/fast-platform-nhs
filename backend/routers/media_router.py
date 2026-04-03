@@ -22,9 +22,9 @@ class MediaController(Controller):
     dependencies = {"media_repo": Provide(provide_media_repo)}
 
     @get("/")
-    async def list_media(self, request: Request, media_repo: MediaRegistryRepository, campaign_id: Optional[str] = None, q: Optional[str] = None, limit: int = 50, offset: int = 0, trash: bool = False, linked_post_id: Optional[str] = None, linked_post_type: Optional[str] = None) -> MediaListResponse:
+    async def list_media(self, request: Request, media_repo: MediaRegistryRepository, campaign_id: Optional[str] = None, q: Optional[str] = None, limit: int = 50, offset: int = 0, trash: bool = False, is_linked: Optional[bool] = None, linked_post_id: Optional[str] = None, linked_post_type: Optional[str] = None) -> MediaListResponse:
         """FileManager: Liệt kê tài nguyên (AI Search & Trash hỗ trợ)."""
-        res = await media_service.list_assets(repo=media_repo, campaign_id=campaign_id, search_query=q, limit=limit, offset=offset, include_deleted=trash, owner_id=request.state.get("user"), linked_post_id=linked_post_id, linked_post_type=linked_post_type)
+        res = await media_service.list_assets(repo=media_repo, campaign_id=campaign_id, search_query=q, limit=limit, offset=offset, include_deleted=trash, owner_id=request.state.get("user"), is_linked=is_linked, linked_post_id=linked_post_id, linked_post_type=linked_post_type)
         return MediaListResponse(status="success", data=MediaListResponseData(items=res.items, total=res.total, limit=res.limit, offset=res.offset))
 
     @get("/settings/ai-vision")
@@ -74,6 +74,11 @@ class MediaController(Controller):
     async def bulk_delete_media(self, request: Request, media_repo: MediaRegistryRepository, data: BulkDeleteRequest) -> GenericResponse:
         ok = await media_service.bulk_delete(media_repo, data.ids, permanent=data.permanent, owner_id=request.state.get("user", {}).get("sub"))
         return GenericResponse(status="success" if ok else "error", message=f"Processed {len(data.ids)} assets")
+
+    @patch("/bulk-update")
+    async def bulk_update_media(self, request: Request, media_repo: MediaRegistryRepository, data: BulkUpdateRequest) -> GenericResponse:
+        ok = await media_service.bulk_update(media_repo, data, owner_id=request.state.get("user", {}).get("sub"))
+        return GenericResponse(status="success" if ok else "error", message=f"Processed {len(data.updates)} metadata updates")
 
     @get("/{asset_id:str}/thumb")
     async def get_media_thumbnail(self, asset_id: str, request: Request, media_repo: MediaRegistryRepository, w: int = 300, q: int = 75) -> Redirect:

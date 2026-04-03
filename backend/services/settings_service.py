@@ -260,10 +260,30 @@ class SettingsService:
         await xohi_memory.client.set("system:helen_enabled", "1" if data.support_bot.helen_enabled else "0")
         await xohi_memory.client.set("system:helen_offline_msg", data.support_bot.offline_message)
         
+        # Elite V2.2: Sync Media
+        await SettingsService._sync_media_links(data_dict)
+
         return SuccessResponse(
             ok=True,
             message="Đã cập nhật cấu hình hệ thống.",
             data=SystemSettingsResponse(settings=data).model_dump()
         )
+
+    @staticmethod
+    async def _sync_media_links(settings_dict: Dict) -> None:
+        """Đồng bộ Media cho cấu hình hệ thống (Recursive Scan)."""
+        try:
+            from backend.utils.media import extract_media_urls
+            from backend.services.event_bus import event_bus
+            urls = extract_media_urls(settings_dict)
+            if urls:
+                await event_bus.emit("MEDIA_SYNC_REQUIRED", {
+                    "entity_id": "primary_config",
+                    "entity_type": "system_settings",
+                    "urls": list(urls)
+                })
+                logger.info(f"[SettingsService] Emitted MEDIA_SYNC_REQUIRED for system settings with {len(urls)} URLs")
+        except Exception as e:
+            logger.error(f"[SettingsService] Failed to emit media sync: {e}")
 
 settings_service = SettingsService()

@@ -8,6 +8,7 @@ from backend.services.event_bus import event_bus
 from backend.database import alchemy_config
 from backend.services.anti_spam import anti_spam_service as anti_spam
 from backend.services.xohi_memory import xohi_memory
+from backend.services.media.media_responder import media_responder
 
 logger = logging.getLogger("api-gateway")
 
@@ -220,4 +221,5 @@ def setup_subscriptions():
     event_bus.subscribe("CONTENT_STEP_COMPLETED", xohi_responder.handle_content_step_completed)
     event_bus.subscribe("CONTENT_PROGRESS", xohi_responder.handle_content_progress)
     event_bus.subscribe("MEDIA_UPLOADED", xohi_responder.handle_media_uploaded)
+    event_bus.subscribe("MEDIA_SYNC_REQUIRED", media_responder.handle_media_sync)
     logger.info("[XoHiResponder] Subscriptions initialized.")

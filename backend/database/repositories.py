@@ -4,7 +4,7 @@ from backend.database.models import (
     User, VoiceProfile, Role, Permission, Category, Article, Order,
     ProductBase, ProductVariant, RentalContract, ProductEmbedding,
     ArticleEmbedding, Draft, AgentTelemetryLog, ChatMessage, Notification,
-    ContentCampaign, MediaRegistry, Appointment, ContentScout,
+    ContentCampaign, MediaRegistry, MediaUsage, Appointment, ContentScout,
     SupportKnowledge
 )
 
@@ -61,6 +61,9 @@ class ContentCampaignRepository(SQLAlchemyAsyncRepository[ContentCampaign]):
 
 class MediaRegistryRepository(SQLAlchemyAsyncRepository[MediaRegistry]):
     model_type = MediaRegistry
+
+class MediaUsageRepository(SQLAlchemyAsyncRepository[MediaUsage]):
+    model_type = MediaUsage
 
 class AppointmentRepository(SQLAlchemyAsyncRepository[Appointment]):
     model_type = Appointment
@@ -129,6 +132,9 @@ async def provide_campaign_repo(db_session: AsyncSession, request: Request) -> C
 
 async def provide_media_repo(db_session: AsyncSession) -> MediaRegistryRepository:
     return MediaRegistryRepository(session=db_session)
+
+async def provide_media_usage_repo(db_session: AsyncSession) -> MediaUsageRepository:
+    return MediaUsageRepository(session=db_session)
 
 async def provide_appointment_repo(db_session: AsyncSession) -> AppointmentRepository:
     return AppointmentRepository(session=db_session)

@@ -30,7 +30,7 @@ class SupportConfig:
 
 def _load_config() -> SupportConfig:
     return SupportConfig(
-        agent_name=os.getenv("SUPORT_NAME_CLIENT", "Trợ lý"),
+        agent_name=os.getenv("SUPPORT_NAME_CLIENT", "Trợ lý"),
         model_role=os.getenv("SUPPORT_MODEL_ROLE", "fast"),
         max_response_tokens=int(os.getenv("SUPPORT_MAX_TOKENS", "800")),
         rate_limit_per_ip=int(os.getenv("SUPPORT_RATE_LIMIT_IP", "20")),

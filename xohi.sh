@@ -6,6 +6,8 @@ export PYTHONPATH="${PWD}"
 # No PNPM, No Turbo.
 
 set -e
+set -o pipefail
+
 
 # Colors
 RED='\033[0;31m'
@@ -250,9 +252,26 @@ function init_deploy() {
     # [CTO ELITE] Chạy migration như một container tạm, tránh chiếm RAM lâu dài
     docker compose run --rm api /opt/venv/bin/alembic -c backend/alembic.ini upgrade head
     
-    echo -e "${CYAN}[6/6] Gieo mầm dữ liệu (Seeding Database)...${NC}"
-    # [CTO ELITE] Chạy seeding xong là xóa container ngay để giải phóng RAM
-    docker compose run --rm api /opt/venv/bin/python3 -m backend.scripts.seed
+    echo -e "${CYAN}[6/6] Khởi tạo dữ liệu (Data Injection)...${NC}"
+    echo -e "Sếp muốn làm gì với Database?"
+    echo "1) Cháy Seed DB Test (Dữ liệu mẫu)"
+    echo "2) Khôi phục từ bản sao lưu (Restore Backup)"
+    echo "3) Bỏ qua (Giữ DB trắng)"
+    read -p "Lựa chọn của Sếp: " db_choice
+    
+    case $db_choice in
+        1)
+            echo -e "${YELLOW}-> Đang chạy Seeding (Dữ liệu mẫu Test)...${NC}"
+            docker compose run --rm api /opt/venv/bin/python3 -m backend.scripts.seed
+            ;;
+        2)
+            echo -e "${YELLOW}-> Đang chuyển sang quy trình Khôi phục (Restore)...${NC}"
+            restore_data
+            ;;
+        *)
+            echo -e "${YELLOW}[SKIP] Không gieo mầm dữ liệu.${NC}"
+            ;;
+    esac
     
     echo -e "${YELLOW}Đang khởi động toàn bộ dịch vụ (API & UI)...${NC}"
     docker compose build api
@@ -385,6 +404,8 @@ function restore_data() {
     echo ""
     
     TEMP_RESTORE="temp_restore"
+    # [ELITE 2.2] Đảm bảo dọn sạch thư mục tạm trước khi giải mã để tránh 'lẫn folder' cũ
+    rm -rf "$TEMP_RESTORE"
     mkdir -p "$TEMP_RESTORE"
     
     if ! openssl enc -aes-256-cbc -d -pbkdf2 -in "$ARCHIVE" -pass pass:"$BKP_PASS" | tar -xzf - -C "$TEMP_RESTORE" 2>/dev/null; then
@@ -394,12 +415,24 @@ function restore_data() {
         return 1
     fi
     
-    BKP_FOLDER=$(ls "$TEMP_RESTORE")
+    # [ELITE 2.2] Chỉ lấy thư mục đầu tiên để tránh lỗi khi có nhiều folder rác trong temp_restore
+    BKP_FOLDER=$(ls -1 "$TEMP_RESTORE" | head -n 1)
+
+    if [ -z "$BKP_FOLDER" ]; then
+        echo -e "${RED}[ERROR] Không tìm thấy dữ liệu sau khi giải mã!${NC}"
+        rm -rf "$TEMP_RESTORE"
+        read -p "Nhấn Enter để quay lại..."
+        return 1
+    fi
     
     # Restore DB
     echo -e "${YELLOW}-> 1. Đang khôi phục Database (Dọn sạch Schema cũ)...${NC}"
-    docker exec -t fast_platform_db psql -U postgres -d fast_platform -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" > /dev/null
-    cat "$TEMP_RESTORE/$BKP_FOLDER/db.sql" | docker exec -i fast_platform_db psql -U postgres fast_platform > /dev/null
+    if [ -f "$TEMP_RESTORE/$BKP_FOLDER/db.sql" ]; then
+        docker exec -t fast_platform_db psql -U postgres -d fast_platform -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" > /dev/null
+        cat "$TEMP_RESTORE/$BKP_FOLDER/db.sql" | docker exec -i fast_platform_db psql -U postgres fast_platform > /dev/null
+    else
+        echo -e "${YELLOW}[SKIP] Không tìm thấy file db.sql trong bản sao lưu.${NC}"
+    fi
     
     # Restore Media
     echo -e "${YELLOW}-> 2. Đang khôi phục hình ảnh (Media/Uploads)...${NC}"
@@ -436,6 +469,155 @@ function clean_backups() {
     read -p "Nhấn Enter để quay lại menu..."
 }
 
+function setup_vps() {
+    echo -e "${YELLOW}=== [LOCKDOWN] THIẾT LẬP VPS TRẮNG (PROVISIONING - ELITE V2.2) ===${NC}"
+    echo -e "${RED}[WARNING] Thao tác này sẽ thiết lập Tường lửa, Fail2Ban và cài đặt Docker/UV/PNPM.${NC}"
+    echo -e "${CYAN}Thông số phát hiện: CPU Xeon 4-Cores | RAM 4GB | SSD 60GB + SAS 120GB${NC}"
+    read -p "Sếp muốn tiến hành thiết lập VPS? (y/n): " confirm
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then return 1; fi
+
+    # Phase 1: OS Update & Security
+    echo -e "${CYAN}-> [1/5] Cập nhật OS & Cài đặt Bảo mật (UFW + Fail2Ban)...${NC}"
+    sudo apt-get update -y && sudo apt-get upgrade -y
+    sudo apt-get install -y ufw fail2ban unattended-upgrades curl git htop
+    
+    echo -e "${CYAN}-> Thiết lập Tường lửa (Chỉ mở 22, 80, 443)...${NC}"
+    sudo ufw default deny incoming
+    sudo ufw default allow outgoing
+    sudo ufw allow 22/tcp
+    sudo ufw allow 80/tcp
+    sudo ufw allow 443/tcp
+    echo "y" | sudo ufw enable
+
+    # Phase 2: Performance Tuning (Swap + Limits)
+    echo -e "${CYAN}-> [2/5] Tối ưu hiệu năng cho Xeon/4GB RAM (Adaptive Swap 4GB)...${NC}"
+    # Tạo Swap 4GB nếu chưa có
+    if [ ! -f /swapfile ] && [ "$(free -m | grep Swap | awk '{print $2}')" -lt 1000 ]; then
+        sudo fallocate -l 4G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=4096
+        sudo chmod 600 /swapfile
+        sudo mkswap /swapfile
+        sudo swapon /swapfile
+        echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    fi
+    
+    echo -e "${CYAN}-> Tăng giới hạn File Descriptors (uLimit 65535)...${NC}"
+    if ! grep -q "65535" /etc/security/limits.conf; then
+        echo "* soft nofile 65535" | sudo tee -a /etc/security/limits.conf
+        echo "* hard nofile 65535" | sudo tee -a /etc/security/limits.conf
+    fi
+
+    # Phase 3: Docker Elite (Latest Engine)
+    echo -e "${CYAN}-> [3/5] Cài đặt Docker Elite (Engine + Compose Plugin)...${NC}"
+    if ! command -v docker &> /dev/null; then
+        curl -fsSL https://get.docker.com -o get-docker.sh
+        sudo sh get-docker.sh
+        sudo usermod -aG docker $USER || true
+    fi
+    sudo apt-get install -y docker-compose-plugin
+
+    # Phase 4: Binary Injection (UV + PNPM)
+    echo -e "${CYAN}-> [4/5] Cài đặt Đồ nghề Build (UV 3.13 + Node 22 PNPM)...${NC}"
+    if ! command -v uv &> /dev/null; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    
+    if ! command -v pnpm &> /dev/null; then
+        sudo apt-get install -y nodejs npm
+        sudo npm install -g pnpm
+    fi
+
+    # Phase 5: Final Lockdown check
+    echo -e "${CYAN}-> [5/5] Kích hoạt Pháo đài tuần tra...${NC}"
+    sudo systemctl enable fail2ban
+    sudo systemctl restart fail2ban
+    
+    echo -e "${GREEN}[SUCCESS] VPS đã được khóa bảo vệ và sẵn sàng chạy Mục 3 (FULL INIT)!${NC}"
+    echo -e "${YELLOW}[TIP] Sếp nên mount ổ SAS 120GB vào thư mục 'backups/' để lưu trữ lâu dài.${NC}"
+    echo -e "${YELLOW}[TIP] Sếp hãy Logout và Login lại để quyền truy cập Docker có hiệu lực.${NC}"
+    read -p "Nhấn Enter để quay lại menu..."
+}
+
+function mount_sas() {
+    echo -e "${YELLOW}=== [STORAGE] MOUNT Ổ CỨNG SAS (120GB - ELITE V2.2) ===${NC}"
+    echo -e "${RED}[SECURITY] Yêu cầu mã xác thực để tiếp tục...${NC}"
+    read -s -p "Nhập mã khóa (Lockdown Key): " lockdown_key
+    echo ""
+    
+    if [[ "$lockdown_key" != "ELITE_V22" ]]; then
+        echo -e "${RED}[ERROR] Sai mã khóa! Thao tác bị từ chối để bảo vệ dữ liệu.${NC}"
+        read -p "Nhấn Enter để quay lại..."
+        return 1
+    fi
+
+    echo -e "${CYAN}Đang quét danh sách phân vùng khả dụng...${NC}"
+    echo ""
+    
+    # Hiển thị danh sách ổ đĩa để sếp nhận diện
+    lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,FSTYPE | grep -E "disk|part" | grep -v "loop"
+    echo ""
+    
+    echo -e "${YELLOW}[TIP] Sếp tìm phân vùng khoảng 110G-120G (ví dụ: sda1).${NC}"
+    echo -e "${RED}[WARNING] CẨN THẬN: Nhập sai có thể làm mất dữ liệu OS!${NC}"
+    read -p "Nhập TÊN phân vùng Sếp chọn (ví dụ: sda1): " disk_name
+    
+    if [ -z "$disk_name" ]; then
+        echo -e "${RED}[ERROR] Không có phân vùng nào được chọn.${NC}"
+        read -p "Nhấn Enter để quay lại..."
+        return 1
+    fi
+
+    DEVICE="/dev/$disk_name"
+    if [ ! -b "$DEVICE" ]; then
+        echo -e "${RED}[ERROR] Phân vùng $DEVICE không tồn tại.${NC}"
+        read -p "Nhấn Enter để quay lại..."
+        return 1
+    fi
+
+    # Kiểm tra xem phân vùng đã được mount chưa
+    if grep -q "$DEVICE" /proc/mounts; then
+        echo -e "${RED}[ERROR] Phân vùng $DEVICE đang được sử dụng ở nơi khác!${NC}"
+        read -p "Nhấn Enter để quay lại..."
+        return 1
+    fi
+
+    # Kiểm tra định dạng (FSTYPE)
+    FSTYPE=$(lsblk -no FSTYPE "$DEVICE")
+    if [ -z "$FSTYPE" ]; then
+        echo -e "${RED}[WARNING] Phân vùng $DEVICE chưa có định dạng (Trắng).${NC}"
+        read -p "Sếp muốn Format sang EXT4 (Xóa sạch dữ liệu)? (y/n): " confirm_format
+        if [[ "$confirm_format" =~ ^[Yy]$ ]]; then
+            echo -e "${CYAN}-> Đang định dạng $DEVICE sang EXT4...${NC}"
+            sudo mkfs.ext4 "$DEVICE"
+        else
+            echo -e "${YELLOW}-> Đã hủy thao tác.${NC}"
+            return 1
+        fi
+    fi
+
+    # Tiến hành Mount vào thư mục backups/ của dự án
+    BACKUP_PATH="$(pwd)/backups"
+    echo -e "${CYAN}-> Đang tiến hành Mount $DEVICE vào $BACKUP_PATH...${NC}"
+    mkdir -p "$BACKUP_PATH"
+    sudo mount "$DEVICE" "$BACKUP_PATH"
+    sudo chown -R $USER:$USER "$BACKUP_PATH"
+
+    # Thiết lập Persistence (fstab) bằng UUID để tránh lỗi khi đổi tên thiết bị
+    UUID=$(lsblk -no UUID "$DEVICE")
+    if [ -n "$UUID" ]; then
+        echo -e "${CYAN}-> Ghi danh vào hệ thống (fstab) bằng UUID: $UUID...${NC}"
+        if ! grep -q "$UUID" /etc/fstab; then
+            # Sử dụng nofail để VPS vẫn khởi động được nếu ổ cứng có vấn đề
+            echo "UUID=$UUID  $BACKUP_PATH  ext4  defaults,nofail,user  0  2" | sudo tee -a /etc/fstab
+        fi
+    fi
+
+    echo -e "${GREEN}[SUCCESS] Đã liên kết ổ SAS 120GB thành công vào: $BACKUP_PATH${NC}"
+    df -h | grep backups
+    read -p "Nhấn Enter để quay lại menu..."
+}
+
+
+
 while true; do
     clear
     echo -e "${CYAN}"
@@ -457,6 +639,8 @@ while true; do
     echo "8) RESTART API (Kèm theo dõi Log lỗi)"
     echo "9) CẬP NHẬT MODEL AI (~250MB)"
     echo "10) CẤP SSL (HTTPS) - FULL 3 DOMAINS"
+    echo "11) CÀI ĐẶT VPS (LOCKDOWN - Dành cho máy mới)"
+    echo "12) MOUNT Ổ SAS 120GB (Vào backups/)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -502,6 +686,12 @@ while true; do
             echo -e "${CYAN}[SSL] Đang khởi động quy trình cấp and tin cậy SSL (HTTPS)...${NC}"
             chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
             read -p "Nhấn Enter để quay lại menu..."
+            ;;
+        11)
+            setup_vps
+            ;;
+        12)
+            mount_sas
             ;;
         0)
             exit 0
