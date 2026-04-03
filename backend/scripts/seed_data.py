@@ -1,13 +1,6 @@
 # SSOT Seed Data (V72.0)
-GEMINI_KEYS = [
-    "AIzaSyCmplBB4YGaQRUF0dDm_C_10JEf-Ih2T3Y",
-    "AIzaSyBUDTtODvWg1vUL2gjsHM8UDBU9228r8ew",
-    "AIzaSyAsl3t1zInuOo8tskrz1_FzO9o8GOPrk4A",
-    "AIzaSyAdWxvdliDJCdRTRc3wDjPqMbBuQWTpRmI",
-    "AIzaSyBUwokbBFhIcaZR9PQ0mlb7W9awGN0odsk",
-    "AIzaSyAMEVZrNziQi1zPINg09iURV5LEtqcI7bo",
-    "AIzaSyBYYrrjd61yL98W61owDVbkH6MCchXLHj8"
-]
+# AI Keys are NOW managed in .env via SUPPORT_GEMINI_KEYS.
+GEMINI_KEYS = []
 
 CATEGORY_DEFS = [
     {"name": "Thuốc đông y", "slug": "thuoc-dong-y", "id": "cat_thuoc_dong_y"},

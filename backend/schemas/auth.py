@@ -6,6 +6,7 @@ class LoginRequest(BaseModel):
     # R25: Use strict Regex instead of EmailStr to allow internal '.test' domains while preventing injection
     identifier: str = Field(..., pattern=r"^[a-zA-Z0-9_.@+-]+$", max_length=254)
     password: str = Field(..., min_length=64, max_length=64)  # SHA-256 hex = exactly 64 chars
+    remember_me: bool = Field(default=False)
 
 class TokenResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, strict=True)

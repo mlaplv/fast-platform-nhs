@@ -7,14 +7,39 @@ from typing import List, Optional
 logger = logging.getLogger("key-loader")
 
 class KeyLoaderMixin:
-    async def load_keys(self):
+    def _parse_keys(self, raw: str | None) -> list[str]:
+        if not raw:
+            return []
+        try:
+            # 1. Try JSON (V2026 Standard)
+            decoded = json.loads(raw)
+            if isinstance(decoded, list):
+                return [str(k).strip() for k in decoded if k]
+            return [str(decoded).strip()]
+        except:
+            # 2. Fallback to comma-separated
+            return [k.strip() for k in raw.split(",") if k.strip()]
+
+    async def load_keys(self) -> None:
         """Standardized Key Loading: Merges ENV and DB keys."""
-        env_keys = [k.strip() for k in os.getenv("GEMINI_API_KEY", "").split(",") if k.strip()]
-        db_keys = []
-        try: db_keys = await self._recover_from_db()
-        except: pass
-        self.keys, self.index = list(dict.fromkeys(env_keys + db_keys)), 0
-        if not self.keys: logger.warning("[KeyRotator] NO Gemini keys found in ENV or DB!")
+        # Elite 2026: Priority order: Legacy ENV -> Support ENV -> DB
+        legacy_keys: list[str] = self._parse_keys(os.getenv("GEMINI_API_KEY"))
+        support_keys: list[str] = self._parse_keys(os.getenv("SUPPORT_GEMINI_KEYS"))
+        
+        db_keys: list[str] = []
+        try:
+            db_keys = await self._recover_from_db()
+        except Exception as e:
+            logger.error(f"[KeyLoader] DB Recovery failed: {e}")
+
+        # Unique merge
+        all_keys: list[str] = list(dict.fromkeys(legacy_keys + support_keys + db_keys))
+        self.keys, self.index = all_keys, 0
+        
+        if not self.keys:
+            logger.warning("[KeyRotator] NO Gemini keys found in ENV or DB!")
+        else:
+            logger.info(f"[KeyRotator] Successfully loaded {len(self.keys)} Gemini keys.")
 
     async def _recover_from_db(self) -> List[str]:
         from backend.database.alchemy_config import alchemy_config
@@ -23,7 +48,7 @@ class KeyLoaderMixin:
         from sqlalchemy import select
         async with alchemy_config.create_session_maker()() as session:
             profiles = (await session.execute(select(VoiceProfile).where(VoiceProfile.gemini_keys_enc != None))).scalars().all()
-            recovered = [k for p in profiles for k in GeminiSecurity.decrypt_keys(p.gemini_keys_enc)]
+            recovered = [k for p in profiles for k in (GeminiSecurity.decrypt(p.gemini_keys_enc) or [])]
             return list(set(recovered))
 
     def _get_key_id(self, key: Optional[str]) -> str:

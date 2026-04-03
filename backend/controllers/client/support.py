@@ -117,7 +117,7 @@ class SupportController(Controller):
                 SupportHistoryItem(
                     id=r.id,
                     role=r.role,
-                    content=(GeminiSecurity.decrypt_keys(r.content) or [""])[0] if r.content else "",
+                    content=GeminiSecurity.decrypt(r.content) if r.content else "",
                     intent=r.intent,
                     timestamp=r.created_at.isoformat() if r.created_at else None
                 )

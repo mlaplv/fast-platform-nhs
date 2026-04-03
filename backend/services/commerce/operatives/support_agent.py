@@ -340,8 +340,8 @@ class SupportAgentOperative:
         try:
             # Elite V2.2: End-to-End Persistence Security (Kế thừa GeminiSecurity)
             # Mã hóa nội dung trước khi lưu vào Database để đảm bảo Zero-Knowledge
-            enc_user_msg = GeminiSecurity.encrypt_keys([user_msg])
-            enc_assistant_reply = GeminiSecurity.encrypt_keys([assistant_reply])
+            enc_user_msg = GeminiSecurity.encrypt(user_msg)
+            enc_assistant_reply = GeminiSecurity.encrypt(assistant_reply)
 
             # 1. Save User Message
             user_hist = SupportChatHistory(
@@ -408,7 +408,7 @@ class SupportAgentOperative:
             if history_rows:
                 h_parts = []
                 for r in reversed(history_rows):
-                    h_content = (GeminiSecurity.decrypt_keys(r.content) or [""])[0] if r.content else ""
+                    h_content = GeminiSecurity.decrypt(r.content) if r.content else ""
                     h_role = "Khách" if r.role == "user" else "Helen"
                     h_parts.append(f"{h_role}: {h_content}")
                 history_text = "\n[LỊCH SỬ GẦN ĐÂY]\n" + "\n".join(h_parts) + "\n"

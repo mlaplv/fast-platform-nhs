@@ -58,6 +58,7 @@
       }>("/api/v1/auth/login", {
         identifier: email,
         password: hashedPassword,
+        remember_me: rememberMe,
       });
 
       if (!access_token) {

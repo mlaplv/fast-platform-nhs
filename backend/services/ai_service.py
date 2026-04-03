@@ -74,12 +74,25 @@ class AIService:
     @staticmethod
     async def sync_bulk_keys(db_session: AsyncSession, user_id: str, data: BulkKeyInput) -> SuccessResponse:
         """Bulk upload and save Gemini keys."""
-        new_keys = [k.strip() for k in data.keys.replace(",", "\n").split("\n") if k.strip()]
-        if not new_keys:
-             return SuccessResponse(ok=False, message="No valid keys found")
+        raw_input: str = data.keys.strip()
+        new_keys: list[str] = []
 
         try:
-            encrypted_blob = GeminiSecurity.encrypt_keys(new_keys)
+            # 1. Try JSON (Sếp copy từ .env)
+            decoded = json.loads(raw_input)
+            if isinstance(decoded, list):
+                new_keys = [str(k).strip() for k in decoded if k]
+            else:
+                new_keys = [str(decoded).strip()]
+        except:
+            # 2. Fallback to Legacy CSV/Newline
+            new_keys = [k.strip() for k in raw_input.replace(",", "\n").split("\n") if k.strip()]
+
+        if not new_keys:
+             return SuccessResponse(ok=False, message="No valid keys detected in pool.")
+
+        try:
+            encrypted_blob = GeminiSecurity.encrypt(new_keys)
 
             stmt = select(VoiceProfile).where(VoiceProfile.user_id == user_id)
             result = await db_session.execute(stmt)

@@ -24,10 +24,24 @@ from backend.database.models import (
 )
 from backend.utils.security import GeminiSecurity
 from backend.scripts.seed_data import (
-    GEMINI_KEYS, CATEGORY_DEFS, SUB_CATEGORY_DEFS, PRODUCT_DEFS, 
+    CATEGORY_DEFS, SUB_CATEGORY_DEFS, PRODUCT_DEFS, 
     PRODUCT_NAMES, ARTICLE_TITLES, SUPPORT_KNOWLEDGE_DEFS
 )
 from backend.services.xohi.creative_studio.models.schemas import CategoryEnum
+
+# Elite 2026: Dynamic Key Seeding from Environment
+def get_env_gemini_keys() -> list[str]:
+    raw = os.getenv("SUPPORT_GEMINI_KEYS", "[]")
+    try:
+        # Try JSON first (Standard)
+        import json
+        keys = json.loads(raw)
+        return [k.strip() for k in keys if k.strip()]
+    except:
+        # Fallback to comma-separated
+        return [k.strip() for k in raw.split(",") if k.strip()]
+
+GEMINI_KEYS = get_env_gemini_keys()
 
 TENANT_ID = "smartshop"
 def utcnow(): return datetime.now(timezone.utc)
@@ -65,7 +79,7 @@ async def seed_users(session, admin_role):
     hpwd = bcrypt.hashpw(hashlib.sha256(pwd.encode()).hexdigest().encode(), bcrypt.gensalt()).decode()
     admin = User(id="user_admin", email=os.getenv("ADMIN_EMAIL", "admin@smartshop.test"), username=os.getenv("ADMIN_USERNAME", "admin"), name="Xohi", password=hpwd, status="ACTIVE", tenant_id=TENANT_ID)
     admin.roles.append(admin_role); session.add(admin)
-    vp = VoiceProfile(id=str(uuid.uuid4()), user_id=admin.id, wake_words=["hey so hi"], sleep_words=["cút"], greeting_template="Bố đây.", capabilities={"READ":True,"COUNT":True,"MUTATE":True,"ANALYZE":True}, gemini_keys_enc=GeminiSecurity.encrypt_keys(GEMINI_KEYS), primary_model="gemini-2.5-flash", ai_models=["gemini-2.5-flash","gemini-1.5-pro","gemini-1.5-flash"])
+    vp = VoiceProfile(id=str(uuid.uuid4()), user_id=admin.id, wake_words=["hey so hi"], sleep_words=["cút"], greeting_template="Bố đây.", capabilities={"READ":True,"COUNT":True,"MUTATE":True,"ANALYZE":True}, gemini_keys_enc=GeminiSecurity.encrypt(GEMINI_KEYS), primary_model="gemini-2.5-flash", ai_models=["gemini-2.5-flash","gemini-1.5-pro","gemini-1.5-flash"])
     session.add(vp); await session.flush(); return admin
 
 async def seed_categories(session):

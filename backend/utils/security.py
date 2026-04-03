@@ -2,101 +2,97 @@ import os
 import base64
 import logging
 import secrets
+import json
+import hashlib
+from typing import Union, TypeAlias
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-logger = logging.getLogger("api-gateway")
+# Elite 2026: Clear Type Definitions to avoid 'Any' (Rule R00)
+EncryptedData: TypeAlias = Union[str, list[str]]
+
+logger: logging.Logger = logging.getLogger("api-gateway")
 
 class GeminiSecurity:
     """
-    R55.1: Hardened AES-GCM Encryption for 2026 Standards.
-    Uses AES-GCM with PBKDF2-SHA256 (600k iterations).
+    R55.4: Unified Elite 2026 Security Standard.
+    Uses AES-GCM with PBKDF2-SHA256 (600k iterations) and JSON serialization.
     """
-    _key = None
+    _key: bytes | None = None
 
     @classmethod
     def _get_encryption_key(cls) -> bytes:
-        if cls._key:
+        """Standard Primary Key from SECURITY_SALT."""
+        if cls._key is not None:
             return cls._key
 
-        secret = os.getenv("SECRET_KEY", "XOHI_UNSAFE_DEV_SECRET_2026")
-        if secret == "XOHI_UNSAFE_DEV_SECRET_2026":
-            logger.warning("[Security] Using default SECRET_KEY. Keys are NOT secure in production!")
+        secret: str = os.getenv("SECRET_KEY", "XOHI_UNSAFE_DEV_SECRET_2026")
+        salt_env: str | None = os.getenv("SECURITY_SALT")
+        
+        # Elite 2026: SECURITY_SALT is MANDATORY for production stability.
+        # Fallback for dev only (deterministic based on secret)
+        effective_salt: str = salt_env if salt_env else hashlib.sha256(secret.encode()).hexdigest()[:16]
 
-        # R55.1: Derived dynamic salt to avoid hardcoded constants
-        # If SECURITY_SALT is missing, we use a hash of the secret to keep it deterministic but not hardcoded
-        salt_env = os.getenv("SECURITY_SALT")
-        if salt_env:
-            salt = salt_env.encode()
-        else:
-            # Fallback: Deterministic salt derived from secret (better than hardcoded string)
-            salt = hashes.Hash(hashes.SHA256())
-            salt.update(secret.encode() + b"_xohi_pepper_2026")
-            salt = salt.finalize()[:16]
+        if not salt_env and os.getenv("ENV") == "production":
+            logger.error("[Security] CRITICAL: SECURITY_SALT is missing in production!")
 
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
-            salt=salt,
-            iterations=600000, # 2026 Standard (Hardened)
+            salt=effective_salt.encode(),
+            iterations=600000, 
         )
         cls._key = kdf.derive(secret.encode())
         return cls._key
 
     @classmethod
-    def encrypt_keys(cls, keys_list: list[str]) -> str:
-        """Encrypts a list of keys using AES-GCM."""
-        if not keys_list:
+    def encrypt(cls, data: EncryptedData | None) -> str:
+        """
+        Unified Encryption: Serializes to JSON -> AES-GCM.
+        Handles both single strings and lists of keys naturally.
+        """
+        if data is None:
             return ""
 
         try:
-            raw_data = ",".join(keys_list).encode()
-            key = cls._get_encryption_key()
+            # Standardize on JSON to avoid comma-split bugs
+            raw_data: bytes = json.dumps(data).encode()
+            key: bytes = cls._get_encryption_key()
             aesgcm = AESGCM(key)
-            nonce = secrets.token_bytes(12) # GCM standard nonce size
-            ciphertext = aesgcm.encrypt(nonce, raw_data, None)
+            nonce: bytes = secrets.token_bytes(12)
+            ciphertext: bytes = aesgcm.encrypt(nonce, raw_data, None)
 
-            # Combine nonce + ciphertext for storage
             return base64.urlsafe_b64encode(nonce + ciphertext).decode()
         except Exception as e:
-            logger.error(f"[Security] Encryption Failed: {e}")
+            logger.error(f"[Security] Unified Encryption Failed: {e}")
             return ""
 
     @classmethod
-    def decrypt_keys(cls, encrypted_str: str) -> list[str]:
-        """Decrypts the AES-GCM secure string with Legacy Fernet Fallback."""
+    def decrypt(cls, encrypted_str: str) -> EncryptedData | None:
+        """
+        Unified Decryption: AES-GCM -> JSON Parse.
+        """
         if not encrypted_str:
-            return []
+            return None
 
-        # 1. Try modern AES-GCM
         try:
-            data = base64.urlsafe_b64decode(encrypted_str.encode())
-            nonce = data[:12]
-            ciphertext = data[12:]
+            raw_input: bytes = encrypted_str.encode()
+            data: bytes = base64.urlsafe_b64decode(raw_input)
+            nonce: bytes = data[:12]
+            ciphertext: bytes = data[12:]
 
-            key = cls._get_encryption_key()
-            aesgcm = AESGCM(key)
-            decrypted = aesgcm.decrypt(nonce, ciphertext, None).decode()
-
-            return [k.strip() for k in decrypted.split(",") if k.strip()]
-        except Exception:
-            # 2. Legacy Fallback (Fernet, 100k iterations, hardcoded salt)
+            aesgcm = AESGCM(cls._get_encryption_key())
+            decrypted: str = aesgcm.decrypt(nonce, ciphertext, None).decode()
+            
             try:
-                secret = os.getenv("SECRET_KEY", "XOHI_UNSAFE_DEV_SECRET_2026")
-                kdf = PBKDF2HMAC(
-                    algorithm=hashes.SHA256(),
-                    length=32,
-                    salt=b'xohi_salt_2026',
-                    iterations=100000,
-                )
-                legacy_key = base64.urlsafe_b64encode(kdf.derive(secret.encode()))
-                from cryptography.fernet import Fernet
-                f = Fernet(legacy_key)
-                decrypted = f.decrypt(encrypted_str.encode()).decode()
+                # V2026: Try JSON decoding (Standard)
+                return json.loads(decrypted)
+            except:
+                # Fallback for Legacy Era: Return raw string (Comma-separated)
+                logger.info("[GeminiSecurity] Legacy key cluster detected. Fallback to raw string.")
+                return decrypted
+        except Exception as e:
+            logger.error(f"[Security] AES-GCM Decryption Failed (Wrong Salt?): {e}")
+            return None
 
-                logger.warning("[Security] Legacy Fernet key decrypted successfully. Please re-save settings to upgrade to AES-GCM 2026.")
-                return [k.strip() for k in decrypted.split(",") if k.strip()]
-            except Exception as e:
-                logger.error(f"[Security] Decryption Failed (All Methods): {e}")
-                return []

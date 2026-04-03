@@ -108,8 +108,12 @@ class AuthService:
             db_session=db_session
         )
 
-        # THIẾT QUÂN LUẬT: Giới hạn phiên 2 giờ
-        expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "120"))
+        # THIẾT QUÂN LUẬT: Phân tách thời lượng phiên bản (Duy trì cảnh giới)
+        if data.remember_me:
+            expire_minutes = 7 * 24 * 60  # 7 Days (10080 mins)
+            logger.info(f"[AuthService] Long-term surveillance established for {user.email} (7 days).")
+        else:
+            expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "120"))
 
         token_data = {
             "id": str(user.id),
@@ -118,7 +122,8 @@ class AuthService:
             "perms": permissions,
             "tenant_id": getattr(user, 'tenant_id', 'default'),
             "stamp": getattr(user, "security_stamp", "MISSING"),
-            "name": user.name
+            "name": user.name,
+            "rem": data.remember_me  # Mark for potential downstream logic
         }
 
         access_token = AuthService.create_access_token(
