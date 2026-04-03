@@ -7,7 +7,7 @@ All models use strict mode and explicit types (CẤM 'any').
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Optional, Dict
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -84,6 +84,23 @@ class SupportResponse(BaseModel):
     intent: SupportIntent = Field(default=SupportIntent.UNKNOWN)
     session_id: Optional[str] = Field(default=None)
     product_info: Optional[SupportProductInfo] = Field(default=None, description="Metadata for UI components (ordering, etc.)")
+
+
+class SupportStatusResponse(BaseModel):
+    """Outbound status response for Helen AI."""
+    model_config = ConfigDict(strict=True)
+    helen_enabled: bool
+    offline_message: str
+
+
+class SupportHistoryItem(BaseModel):
+    """Individual chat history record (GCM Encrypted or Plaintext)."""
+    model_config = ConfigDict(strict=True)
+    id: str
+    role: str # user | assistant
+    content: str # Decrypted text
+    intent: Optional[str] = None
+    timestamp: Optional[str] = None
 
 
 # ══════════════════════════════════════════════════════════════

@@ -32,6 +32,26 @@ export interface SupportConfig {
     welcomeMessage: string;
 }
 
+// Elite V2.2: Explicit API Interface definitions (Constitutional Standard)
+export interface SupportStatusResponse {
+    helen_enabled: boolean;
+    offline_message?: string;
+}
+
+export interface SupportHistoryItem {
+    id: string;
+    role: "user" | "assistant";
+    content: string;
+    intent?: string;
+    timestamp: string;
+}
+
+export interface SupportChatResponse {
+    reply: string;
+    intent?: string;
+    product_info?: SupportProductInfo;
+}
+
 const STORAGE_KEY = "fp_helen_sid";
 
 class SupportAgentState {
@@ -45,6 +65,20 @@ class SupportAgentState {
     // Elite V2.2: AI Toggle State
     helenEnabled = $state(true);
     offlineMessage = $state("");
+    
+    // Elite V2.2: Context & Pulse Intelligence
+    currentPath = $state("");
+    aiPulse = $state(false);
+
+    // Derived context computed from path
+    currentContext = $derived.by(() => {
+        if (!this.currentPath) return "default";
+        if (this.currentPath === "/" || this.currentPath === "") return "home";
+        if (this.currentPath.startsWith("/p/")) return "product";
+        if (this.currentPath.startsWith("/cart")) return "cart";
+        if (this.currentPath.startsWith("/checkout")) return "checkout";
+        return "default";
+    });
     
     // Persistent Session UUID
     private _sessionId: string = "";
@@ -74,16 +108,53 @@ class SupportAgentState {
     }
 
     /**
+     * Elite V2.2: Haptic Feedback (Vibration API)
+     */
+    vibrate(pattern: number | number[] = 10) {
+        if (browser && "vibrate" in navigator) {
+            try {
+                navigator.vibrate(pattern);
+            } catch (e) {
+                // Ignore if blocked or not supported
+            }
+        }
+    }
+
+    /**
+     * Trigger a neural pulse for attention
+     */
+    triggerPulse() {
+        this.aiPulse = true;
+        this.vibrate([20, 30, 20]);
+        setTimeout(() => {
+            this.aiPulse = false;
+        }, 3000);
+    }
+
+    /**
+     * Update current navigation path for context awareness
+     */
+    setPath(path: string) {
+        if (this.currentPath !== path) {
+            this.currentPath = path;
+            // Optionally trigger a subtle pulse on significant context changes (e.g. checkout)
+            if (path.includes("/checkout")) {
+                this.triggerPulse();
+            }
+        }
+    }
+
+    /**
      * Fetch Helen AI global status & offline message
      */
-    async fetchStatus() {
+    async fetchStatus(): Promise<void> {
         try {
-            const res = await apiClient.get<any>("/api/v1/client/support/status");
+            const res = await apiClient.get<SupportStatusResponse>("/api/v1/client/support/status");
             if (res) {
                 this.helenEnabled = res.helen_enabled ?? true;
                 this.offlineMessage = res.offline_message || "";
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.warn("[SupportAgent] Failed to fetch status:", error);
         }
     }
@@ -130,7 +201,7 @@ class SupportAgentState {
         this.isHistoryLoading = true;
         try {
             const firstMsgId = this.messages[0]?.id;
-            const params: Record<string, any> = {
+            const params: { session_id: string; limit: number; before_id?: string } = {
                 session_id: this._sessionId,
                 limit
             };
@@ -140,10 +211,10 @@ class SupportAgentState {
                 params.before_id = firstMsgId;
             }
 
-            const res = await apiClient.get(`/api/v1/client/support/history`, { params });
+            const res = await apiClient.get<SupportHistoryItem[]>("/api/v1/client/support/history", { params });
 
             if (Array.isArray(res)) {
-                const history = res.map((m: any) => ({
+                const history: SupportMessage[] = res.map((m: SupportHistoryItem) => ({
                     id: m.id,
                     role: m.role,
                     content: m.content,
@@ -206,7 +277,7 @@ class SupportAgentState {
         this.isTyping = true;
 
         try {
-            const res = await apiClient.post("/api/v1/client/support/chat", {
+            const res = await apiClient.post<SupportChatResponse>("/api/v1/client/support/chat", {
                 message: text.trim(),
                 session_id: this._sessionId,
                 product_slug: productSlug || null,
@@ -214,25 +285,25 @@ class SupportAgentState {
                 customer_phone: customerPhone || null
             });
 
-            if (res && typeof (res as any).reply === "string") {
-                const data = res as any;
+            if (res && typeof res.reply === "string") {
                 this.messages = [
                     ...this.messages,
                     {
                         id: randomId(),
                         role: "assistant",
-                        content: data.reply || "Xin lỗi, mình tạm thời không phản hồi được ạ.",
-                        intent: data.intent,
-                        productInfo: data.product_info,
+                        content: res.reply || "Xin lỗi, mình tạm thời không phản hồi được ạ.",
+                        intent: res.intent,
+                        productInfo: res.product_info,
                         timestamp: new Date()
                     }
                 ];
             } else {
                 throw new Error("Empty response or missing reply field");
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("[SupportAgent] Chat error:", error);
-            const userFriendlyMsg = error?.status === 429 
+            const status = (error as { status?: number })?.status;
+            const userFriendlyMsg = status === 429 
                 ? "Hệ thống đang xử lý nhiều luồng, bạn vui lòng đợi một lát rồi thử lại nhé!" 
                 : "Xin lỗi bạn, hệ thống kết nối đang bị gián đoạn. Bạn vui lòng thử lại sau nhé.";
                 

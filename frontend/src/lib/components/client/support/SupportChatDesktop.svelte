@@ -4,16 +4,18 @@
   import { 
     Send, X, ShieldCheck, PhoneCall, 
     PackageSearch, Sparkles, UserRound,
-    Maximize2, Minimize2, ScanSearch 
+    Maximize2, Minimize2, ScanSearch, Lock
   } from 'lucide-svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
+  import HelenIcon from './HelenIcon.svelte';
   
   const { productSlug = '' } = $props<{ productSlug?: string }>();
   const shopStore = getShopStore();
   
   let chatContainer: HTMLDivElement;
+  let inputElement: HTMLTextAreaElement;
   let userInput = $state('');
   let isExpanded = $state(false);
 
@@ -54,7 +56,7 @@
     const name = customer?.nameMasked || 'Khách ẩn danh';
     
     await supportAgent.sendMessage(text, productSlug, name);
-    scrollToBottom();
+    scrollToNewestMessage();
   }
 
   async function handleQuickAction(action: any) {
@@ -64,7 +66,7 @@
     }
     if (supportAgent.isTyping) return;
     await supportAgent.sendMessage(action.prompt, productSlug);
-    scrollToBottom();
+    scrollToNewestMessage();
   }
 
   function handleKeyDown(e: KeyboardEvent) {
@@ -76,14 +78,46 @@
 
   $effect(() => {
     if (supportAgent.messages.length > 0) {
-      scrollToBottom();
+      scrollToNewestMessage();
     }
   });
 
-  async function scrollToBottom() {
+  // Elite UX: Auto-focus and Initial Scroll on open
+  $effect(() => {
+    if (supportAgent.isOpen && inputElement) {
+      setTimeout(() => {
+        inputElement.focus();
+        // Force absolute scroll to bottom on first open to see latest messages
+        if (chatContainer) {
+          chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'instant' });
+        }
+      }, 150); 
+    }
+  });
+
+  // Elite V2.2: Focus input after AI finishes typing
+  $effect(() => {
+    if (!supportAgent.isTyping && supportAgent.isOpen && inputElement) {
+      inputElement.focus();
+    }
+  });
+
+  async function scrollToNewestMessage() {
     await tick();
-    if (chatContainer) {
-      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+    if (!chatContainer) return;
+    
+    const messageElements = chatContainer.querySelectorAll('.message-bubble-container');
+    const lastMessageEl = messageElements[messageElements.length - 1];
+    
+    if (lastMessageEl) {
+      const role = lastMessageEl.getAttribute('data-role');
+      if (role === 'assistant') {
+        // Align to top of message if it's long, ensuring 'Helen' is visible
+        lastMessageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        // Scroll to bottom for user's own message
+        chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+      }
     }
   }
 </script>
@@ -91,12 +125,15 @@
 {#if supportAgent.isOpen}
   <!-- Hyper Drop Container (Viral 2026 Aggressive Asymmetric Shape) -->
   <div 
-    class="support-chat-container fixed transform-gpu origin-bottom-right transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] {isExpanded ? 'bottom-8 right-8 w-[90vw] h-[85vh] rounded-[48px]' : 'bottom-[110px] right-8 w-[440px] h-[680px] max-h-[85vh] hyper-drop-shape'}"
+    class="support-chat-container fixed transform-gpu origin-bottom-right transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] {isExpanded ? 'bottom-8 right-8 w-[90vw] h-[85vh] rounded-[48px]' : 'bottom-[110px] right-8 w-[450px] h-[740px] max-h-[85vh] hyper-drop-v2 animate-liquid-float'}"
     style="z-index: {Z_INDEX_CLIENT.MODAL};"
-    transition:scale={{ start: 0.8, opacity: 0, duration: 500, easing: (t) => 1 - Math.pow(1 - t, 5) }}
+    transition:scale={{ start: 0.7, opacity: 0, duration: 600, easing: (t) => 1 - Math.pow(1 - t, 5) }}
   >
+    <!-- Liquid Neural Border (The 'Glow' Upgrade) -->
+    <div class="absolute inset-[-2px] bg-gradient-to-br from-[#00A3FF] via-transparent to-[#005B99] opacity-30 blur-[4px] {isExpanded ? 'rounded-[48px]' : 'hyper-drop-v2'} pointer-events-none"></div>
+
     <!-- Ultra-Glass Background Layer -->
-    <div class="absolute inset-0 apple-glass-dark-modal pointer-events-none transition-all duration-500 {isExpanded ? 'rounded-[48px]' : 'hyper-drop-shape'}"></div>
+    <div class="absolute inset-0 apple-glass-dark-modal pointer-events-none transition-all duration-700 {isExpanded ? 'rounded-[48px]' : 'hyper-drop-v2'} border border-white/10 shadow-[0_45px_100px_rgba(0,0,0,0.9)]"></div>
 
     <!-- Interface Contents -->
     <div class="relative z-10 flex flex-col h-full">
@@ -104,33 +141,28 @@
       <header class="flex-shrink-0 pt-8 px-10 pb-6 flex items-center justify-between">
         <div class="flex items-center gap-4">
           <div class="relative group/avatar">
-            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-[#00A3FF] to-[#005B99] flex items-center justify-center shadow-[0_8px_24px_rgba(0,163,255,0.4)] border border-white/20 transition-transform group-hover/avatar:scale-105">
-              <UserRound class="text-white w-7 h-7 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+            <div class="w-14 h-14 rounded-full bg-black/40 flex items-center justify-center shadow-[0_8px_24px_rgba(0,163,255,0.4)] border border-white/20 transition-transform group-hover/avatar:scale-105 overflow-hidden">
+              <HelenIcon size={56} color="#00A3FF" />
             </div>
             <div class="absolute bottom-0 right-0 w-4 h-4 bg-[#34C759] rounded-full ring-[3px] ring-[#0a0a0a] shadow-[0_0_12px_#34C759]"></div>
           </div>
           <div>
-            <h3 class="font-black text-white tracking-tight text-[19px] leading-tight">{supportAgent.config.agentName}</h3>
-            <div class="flex items-center gap-2 mt-1">
-               <span class="relative flex h-2 w-2">
-                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full {supportAgent.helenEnabled ? 'bg-[#00A3FF]' : 'bg-[#34C759]'} opacity-75"></span>
-                 <span class="relative inline-flex rounded-full h-2 w-2 {supportAgent.helenEnabled ? 'bg-[#00A3FF]' : 'bg-[#34C759]'}"></span>
-               </span>
-               <p class="text-[11px] {supportAgent.helenEnabled ? 'text-[#00A3FF]' : 'text-[#34C759]'} font-black uppercase tracking-[0.2em] opacity-90">
-                 {supportAgent.helenEnabled ? 'Chuyên gia trực tuyến' : 'Nhân viên trực'}
-               </p>
-            </div>
+            <h3 class="font-black text-white tracking-tight text-[19px] leading-tight flex items-center gap-2">
+              {supportAgent.config.agentName}
+              <div class="flex items-center gap-1 px-2 py-0.5 bg-[#00A3FF]/10 border border-[#00A3FF]/20 rounded-md">
+                <Lock size={10} class="text-[#00A3FF]" />
+                <span class="text-[9px] text-[#00A3FF] font-black uppercase tracking-wider">AES-256</span>
+              </div>
+            </h3>
+          <div class="flex items-center gap-2 mt-1.5">
+             <p class="text-[11px] {supportAgent.helenEnabled ? 'text-[#00A3FF]' : 'text-[#34C759]'} font-black uppercase tracking-[0.2em] opacity-90">
+               {supportAgent.helenEnabled ? 'Chuyên gia trực tuyến' : 'Nhân viên trực'}
+             </p>
+          </div>
           </div>
         </div>
         
         <div class="flex items-center gap-3">
-          <button 
-            onclick={scrollToDiagnostics}
-            class="w-11 h-11 flex items-center justify-center rounded-full bg-[#00A3FF]/10 hover:bg-[#00A3FF]/20 text-[#00A3FF] transition-all border border-[#00A3FF]/20 group/scan"
-            title="Bắt đầu chẩn đoán"
-          >
-            <ScanSearch size={20} class="group-hover/scan:scale-110 transition-transform" />
-          </button>
           <button 
             onclick={toggleExpand}
             class="w-11 h-11 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white transition-all border border-white/5 group/expand"
@@ -154,7 +186,7 @@
       <!-- Thread: Zero-Background Floating Text Aesthetic -->
       <div 
         bind:this={chatContainer}
-        class="flex-1 overflow-y-auto px-6 py-4 space-y-12 hide-scrollbar relative"
+        class="flex-1 overflow-y-auto px-6 py-4 flex flex-col justify-start space-y-12 hide-scrollbar relative"
       >
         <div class="flex flex-col items-center justify-center mb-10 opacity-30 hover:opacity-100 transition-opacity">
           <div class="flex items-center gap-2.5 px-5 py-2 bg-white/5 border border-white/10 rounded-full backdrop-blur-xl">
@@ -177,13 +209,31 @@
         {/if}
   
         {#each supportAgent.messages as msg (msg.id)}
-          <div class="flex {msg.role === 'user' ? 'justify-end text-right' : 'justify-start text-left'} w-full group animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div class="max-w-full relative flex flex-col {msg.role === 'user' ? 'items-end' : 'items-start'}">
+          <div 
+            class="flex flex-col w-full group animate-in fade-in slide-in-from-bottom-4 duration-500 message-bubble-container"
+            data-role={msg.role}
+          >
+            <div class="flex items-start gap-4 w-full {msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}">
               
-              <div class="px-2 py-1 text-[17px] leading-[1.8] break-words transition-all
-                {msg.role === 'user' 
-                  ? 'text-white font-bold drop-shadow-[0_2px_12px_rgba(255,255,255,0.25)]' 
-                  : 'text-gray-200 font-medium'}">
+              <!-- Identity Icon -->
+              <div class="flex-shrink-0 mt-1">
+                {#if msg.role === 'assistant'}
+                  <div class="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center border border-white/10 shadow-lg overflow-hidden">
+                    <HelenIcon size={28} color="#00A3FF" />
+                  </div>
+                {:else}
+                  <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/5 shadow-md">
+                    <UserRound size={16} class="text-white/60" />
+                  </div>
+                {/if}
+              </div>
+
+              <!-- Message Content (Minimalist Floating Text) -->
+              <div class="flex-1 max-w-[85%] {msg.role === 'user' ? 'text-right' : 'text-left'}">
+                <div class="text-[17px] leading-[1.7] break-words transition-all
+                  {msg.role === 'user' 
+                    ? 'text-white font-bold drop-shadow-[0_2px_8px_rgba(255,255,255,0.1)]' 
+                    : 'text-gray-200 font-medium'}">
                 
                 {#if msg.role === 'assistant' && msg.intent === 'ORDER_STATUS'}
                   <div class="inline-flex items-center gap-3 px-4 py-2 mb-4 bg-[#00A3FF]/10 text-[#00A3FF] rounded-2xl border border-[#00A3FF]/20 font-black text-[15px] uppercase tracking-wider">
@@ -213,19 +263,18 @@
                   <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                   <div class="text-[17px]">{@html msg.content.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-black">$1</strong>').replace(/\n/g, '<br/>')}</div>
                 {:else}
-                  <span class="inline-block relative">
-                    {msg.content}
-                    <span class="absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A3FF]/40 to-transparent"></span>
-                  </span>
+                  {msg.content}
                 {/if}
               </div>
-              
-              <div class="text-[9px] text-white/20 mt-4 px-2 font-black uppercase tracking-[0.3em] opacity-0 group-hover:opacity-100 transition-all duration-300">
+
+              <!-- Timestamp -->
+              <div class="text-[9px] text-white/10 mt-3 font-black uppercase tracking-[0.3em] opacity-0 group-hover:opacity-100 transition-all duration-300">
                 {msg.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-              </div>
             </div>
           </div>
-        {/each}
+        </div>
+      </div>
+      {/each}
   
         {#if supportAgent.isTyping}
           <div class="flex justify-start w-full">
@@ -256,13 +305,18 @@
 
         <div class="relative bg-white/5 border border-white/10 rounded-[44px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all backdrop-blur-xl">
           <textarea
+            bind:this={inputElement}
             bind:value={userInput}
             onkeydown={handleKeyDown}
             placeholder="Nói chuyện với chuyên gia..."
-            class="block w-full bg-transparent border-0 py-7 pl-9 pr-24 text-white placeholder-gray-600 focus:ring-0 resize-none outline-none text-[16px] max-h-[220px] font-medium"
+            class="block w-full bg-transparent border-0 py-7 pl-14 pr-24 text-white placeholder-gray-600 focus:ring-0 resize-none outline-none text-[16px] max-h-[220px] font-medium"
             style="min-height: 80px;"
             disabled={supportAgent.isTyping}
           ></textarea>
+          
+          <div class="absolute left-6 top-7 pointer-events-none opacity-20 group-focus-within:opacity-50 transition-opacity">
+            <Lock size={18} class="text-white" />
+          </div>
           
           <button 
             onclick={handleSend}
@@ -289,9 +343,26 @@
       inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   }
 
-  /* Dramatic Asymmetric Water Drop Shape */
-  .hyper-drop-shape {
-      border-radius: 85% 15% 45% 55% / 65% 35% 65% 35%;
+  /* Liquid Hyper-Drop Shape V2 (Organic & Balanced) */
+  .hyper-drop-v2 {
+      border-radius: 30% 70% 50% 50% / 30% 30% 70% 70%;
+      animation: morph-blob 8s infinite alternate ease-in-out;
+  }
+
+  @keyframes morph-blob {
+    0% { border-radius: 30% 70% 50% 50% / 30% 30% 70% 70%; }
+    50% { border-radius: 50% 50% 30% 70% / 50% 30% 70% 50%; }
+    100% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; }
+  }
+
+  @keyframes liquid-float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    33% { transform: translateY(-8px) rotate(0.5deg); }
+    66% { transform: translateY(4px) rotate(-0.5deg); }
+  }
+
+  .animate-liquid-float {
+    animation: liquid-float 12s infinite ease-in-out;
   }
 
   .hide-scrollbar::-webkit-scrollbar {

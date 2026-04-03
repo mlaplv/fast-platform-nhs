@@ -21,9 +21,10 @@ from sqlalchemy import select, desc, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database.models.system import SupportChatHistory
-from backend.schemas.support import SupportRequest, SupportResponse
+from backend.schemas.support import SupportRequest, SupportResponse, SupportHistoryItem, SupportStatusResponse
 from backend.services.commerce.constants.support_config import support_cfg
 from backend.services.commerce.operatives.support_agent import support_agent
+from backend.utils.security import GeminiSecurity
 
 logger = logging.getLogger("api-gateway")
 
@@ -77,7 +78,7 @@ class SupportController(Controller):
         session_id: str,
         limit: int = 20,
         before_id: str | None = None,
-    ) -> list[dict]:
+    ) -> list[SupportHistoryItem]:
         """
         Retrieves paginated chat history for a session.
         Zalo-style: Loads recent segments first.
@@ -113,13 +114,13 @@ class SupportController(Controller):
             
             # Return in chronological order for the client (reversed from our DESC fetch)
             return [
-                {
-                    "id": r.id,
-                    "role": r.role,
-                    "content": r.content,
-                    "intent": r.intent,
-                    "timestamp": r.created_at.isoformat() if r.created_at else None
-                }
+                SupportHistoryItem(
+                    id=r.id,
+                    role=r.role,
+                    content=(GeminiSecurity.decrypt_keys(r.content) or [""])[0] if r.content else "",
+                    intent=r.intent,
+                    timestamp=r.created_at.isoformat() if r.created_at else None
+                )
                 for r in reversed(rows)
             ]
         except Exception as exc:
@@ -128,7 +129,7 @@ class SupportController(Controller):
             return []
 
     @get("/status", guards=[])
-    async def get_status(self) -> dict:
+    async def get_status(self) -> SupportStatusResponse:
         """
         Public endpoint to check if Helen AI is enabled.
         Used by the client FAB for dynamic tooltips.
@@ -137,10 +138,10 @@ class SupportController(Controller):
         helen_on = await xohi_memory.client.get("system:helen_enabled")
         offline_msg = await xohi_memory.client.get("system:helen_offline_msg")
         
-        return {
-            "helen_enabled": helen_on != "0",
-            "offline_message": offline_msg or "Dược sĩ tư vấn sẽ sớm phản hồi sếp. Vui lòng để lại lời nhắn ạ."
-        }
+        return SupportStatusResponse(
+            helen_enabled=helen_on != "0",
+            offline_message=offline_msg or "Dược sĩ tư vấn sẽ sớm phản hồi sếp. Vui lòng để lại lời nhắn ạ."
+        )
 
     @post("/chat", guards=[])
     async def chat(

@@ -34,6 +34,7 @@ from backend.services.xohi_memory import xohi_memory
 from backend.services.core.zalo_service import zalo_service
 from backend.services.commerce.support_knowledge import SupportKnowledgeService
 from backend.database.repositories import SupportKnowledgeRepository
+from backend.utils.security import GeminiSecurity
 
 logger = logging.getLogger("api-gateway")
 
@@ -110,7 +111,7 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str]) -> tuple
         price_val = row.discount_price if row.discount_price else row.price
         price_display = f"{price_val:,.0f}đ"
         
-        deals_raw: list[dict] = (row.product_metadata or {}).get("active_deals", [])
+        deals_raw: list[dict[str, object]] = (row.product_metadata or {}).get("active_deals", [])
         deals_text = ""
         if deals_raw:
             parts = [
@@ -248,11 +249,33 @@ class SupportAgentOperative:
         kb_service = SupportKnowledgeService(repo=kb_repo)
         kb_ctx = await kb_service.search_relevant_knowledge(db, request.message)
 
+        # Fetch history for context restoration (Elite V2.2: Context Pulse)
+        from sqlalchemy import desc
+        history_text = ""
+        try:
+            stmt = (
+                select(SupportChatHistory)
+                .where(SupportChatHistory.session_id == session_id)
+                .order_by(desc(SupportChatHistory.created_at), desc(SupportChatHistory.id))
+                .limit(4)
+            )
+            history_res = await db.execute(stmt)
+            history_rows = history_res.scalars().all()
+            if history_rows:
+                h_parts = []
+                for r in reversed(history_rows):
+                    h_content = (GeminiSecurity.decrypt_keys(r.content) or [""])[0] if r.content else ""
+                    h_role = "Khách" if r.role == "user" else "Helen"
+                    h_parts.append(f"{h_role}: {h_content}")
+                history_text = "\n[LỊCH SỬ GẦN ĐÂY]\n" + "\n".join(h_parts) + "\n"
+        except Exception as h_exc:
+            logger.warning("[SupportAgent] Context retrieval failed: %s", h_exc)
+
         # Build RAG context from product (read-only DB)
         product_ctx, product_info = await _fetch_product_context(db, request.product_slug)
 
         # Construct prompt with system directive from env
-        prompt = self._build_prompt(request.message, product_ctx, kb_ctx, intent)
+        prompt = self._build_prompt(request.message, product_ctx, kb_ctx, intent, history_text)
 
         # Run AI via TrinityBridge (role="fast" → flash models)
         try:
@@ -262,7 +285,7 @@ class SupportAgentOperative:
                 role=support_cfg.model_role,
                 system_prompt=support_cfg.system_directive,
             )
-            # ELITE: Safe attribute access for PydanticAI Result objects
+            # ELITE: Handle PydanticAI Result without explicit import to avoid version mismatch
             res_data = getattr(result, "data", None)
             if res_data:
                 raw_reply = str(res_data)
@@ -328,11 +351,16 @@ class SupportAgentOperative:
     ) -> None:
         """Saves both user and assistant messages to the persistent history table."""
         try:
+            # Elite V2.2: End-to-End Persistence Security (Kế thừa GeminiSecurity)
+            # Mã hóa nội dung trước khi lưu vào Database để đảm bảo Zero-Knowledge
+            enc_user_msg = GeminiSecurity.encrypt_keys([user_msg])
+            enc_assistant_reply = GeminiSecurity.encrypt_keys([assistant_reply])
+
             # 1. Save User Message
             user_hist = SupportChatHistory(
                 session_id=session_id,
                 role="user",
-                content=user_msg,
+                content=enc_user_msg, # Strictly encrypted, NO fallback to cleartext
                 intent=intent.value,
                 product_slug=product_slug
             )
@@ -340,7 +368,7 @@ class SupportAgentOperative:
             assistant_hist = SupportChatHistory(
                 session_id=session_id,
                 role="assistant",
-                content=assistant_reply,
+                content=enc_assistant_reply, # Strictly encrypted
                 intent=intent.value,
                 product_slug=product_slug
             )
@@ -379,12 +407,12 @@ class SupportAgentOperative:
         return None
 
     def _build_prompt(
-        self, message: str, product_ctx: str, kb_ctx: str, intent: SupportIntent
+        self, message: str, product_ctx: str, kb_ctx: str, intent: SupportIntent, history_text: str = ""
     ) -> str:
         """Construct AI prompt with optional RAG context injection."""
         ctx_block = f"\n{kb_ctx}\n{product_ctx}\n" if (product_ctx or kb_ctx) else ""
         intent_hint = f"[Phân loại câu hỏi: {intent.value}]\n" if intent else ""
-        return f"{intent_hint}{ctx_block}Câu hỏi của khách: {message}"
+        return f"{intent_hint}{history_text}{ctx_block}Câu hỏi của khách: {message}"
 
     async def _log_telemetry(
         self,

@@ -1,15 +1,17 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { fade, fly } from 'svelte/transition';
-  import { Send, X, ShieldCheck, PhoneCall, PackageSearch, Sparkles, UserRound, ScanSearch } from 'lucide-svelte';
+  import { Send, X, ShieldCheck, PhoneCall, PackageSearch, Sparkles, UserRound, ScanSearch, Lock } from 'lucide-svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
+  import HelenIcon from './HelenIcon.svelte';
   
   const { productSlug = '' } = $props<{ productSlug?: string }>();
   const shopStore = getShopStore();
   
   let chatContainer: HTMLDivElement;
+  let inputElement: HTMLTextAreaElement;
   let userInput = $state('');
   
   const quickActions = [
@@ -41,7 +43,7 @@
     const name = customer?.nameMasked || 'Khách ẩn danh';
 
     await supportAgent.sendMessage(text, productSlug, name);
-    scrollToBottom();
+    scrollToNewestMessage();
   }
 
   async function handleQuickAction(action: any) {
@@ -51,7 +53,7 @@
     }
     if (supportAgent.isTyping) return;
     await supportAgent.sendMessage(action.prompt, productSlug);
-    scrollToBottom();
+    scrollToNewestMessage();
   }
 
   function handleKeyDown(e: KeyboardEvent) {
@@ -63,14 +65,46 @@
 
   $effect(() => {
     if (supportAgent.messages.length > 0) {
-      scrollToBottom();
+      scrollToNewestMessage();
     }
   });
 
-  async function scrollToBottom() {
+  // Elite UX: Auto-focus and Initial Scroll on open
+  $effect(() => {
+    if (supportAgent.isOpen && inputElement) {
+      setTimeout(() => {
+        inputElement.focus();
+        // Mobile: Immediate anchor to bottom
+        if (chatContainer) {
+          chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'instant' });
+        }
+      }, 150); 
+    }
+  });
+
+  // Elite V2.2: Focus input after AI finishes typing
+  $effect(() => {
+    if (!supportAgent.isTyping && supportAgent.isOpen && inputElement) {
+      inputElement.focus();
+    }
+  });
+
+  async function scrollToNewestMessage() {
     await tick();
-    if (chatContainer) {
-      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+    if (!chatContainer) return;
+    
+    const messageElements = chatContainer.querySelectorAll('.message-bubble-container');
+    const lastMessageEl = messageElements[messageElements.length - 1];
+    
+    if (lastMessageEl) {
+      const role = lastMessageEl.getAttribute('data-role');
+      if (role === 'assistant') {
+        // Align to top of message if it's long, ensuring 'Helen' is visible
+        lastMessageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        // Scroll to bottom for user's own message
+        chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+      }
     }
   }
 </script>
@@ -87,7 +121,7 @@
 
   <!-- Bottom Sheet (Liquid Glass - Viral 2026) -->
   <div 
-    class="support-chat-container fixed inset-x-0 bottom-0 flex flex-col apple-glass-dark-mobile rounded-t-[48px] overflow-hidden shadow-[0_-32px_100px_rgba(0,0,0,0.8)]"
+    class="support-chat-container fixed inset-x-0 bottom-0 flex flex-col apple-glass-dark-mobile liquid-sheet-mobile overflow-hidden shadow-[0_-32px_100px_rgba(0,0,0,0.8)]"
     style="z-index: {Z_INDEX_CLIENT.MOBILE_BOTTOM_SHEET}; height: 95svh;"
     transition:fly={{ y: '100%', duration: 500, easing: (t) => 1 - Math.pow(1 - t, 5) }}
   >
@@ -100,18 +134,20 @@
     <header class="flex-shrink-0 pt-[40px] px-8 pb-6 flex items-center justify-between relative z-10 border-b border-white/5 bg-transparent">
       <div class="flex items-center gap-4">
         <div class="relative">
-          <div class="w-14 h-14 rounded-full bg-gradient-to-br from-[#00A3FF] to-[#005B99] flex items-center justify-center shadow-[0_4px_16px_rgba(0,163,255,0.4)] border border-white/20">
-            <UserRound class="text-white w-7 h-7 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+          <div class="w-14 h-14 rounded-full bg-black/40 flex items-center justify-center shadow-[0_4px_16px_rgba(0,163,255,0.4)] border border-white/20 overflow-hidden">
+            <HelenIcon size={56} color="#00A3FF" />
           </div>
           <div class="absolute bottom-0 right-0 w-4 h-4 bg-[#34C759] rounded-full ring-[3px] ring-[#0a0a0a] shadow-[0_0_12px_#34C759]"></div>
         </div>
         <div>
-          <h3 class="font-black text-white tracking-tight leading-tight text-[19px]">{supportAgent.config.agentName}</h3>
-          <div class="flex items-center gap-2 mt-1">
-             <span class="relative flex h-2 w-2">
-               <span class="animate-ping absolute inline-flex h-full w-full rounded-full {supportAgent.helenEnabled ? 'bg-[#00A3FF]' : 'bg-[#34C759]'} opacity-75"></span>
-               <span class="relative inline-flex rounded-full h-2 w-2 {supportAgent.helenEnabled ? 'bg-[#00A3FF]' : 'bg-[#34C759]'}"></span>
-             </span>
+          <h3 class="font-black text-white tracking-tight leading-tight text-[19px] flex items-center gap-2">
+            {supportAgent.config.agentName}
+            <div class="flex items-center gap-1 px-2 py-0.5 bg-[#00A3FF]/10 border border-[#00A3FF]/20 rounded-md">
+              <Lock size={10} class="text-[#00A3FF]" />
+              <span class="text-[9px] text-[#00A3FF] font-black uppercase tracking-wider">AES-256</span>
+            </div>
+          </h3>
+          <div class="flex items-center gap-2 mt-1.5">
              <p class="text-[11px] {supportAgent.helenEnabled ? 'text-[#00A3FF]' : 'text-[#34C759]'} font-black uppercase tracking-[0.2em] opacity-90">
                {supportAgent.helenEnabled ? 'Chuyên gia trực tuyến' : 'Nhân viên trực'}
              </p>
@@ -119,12 +155,6 @@
         </div>
       </div>
       <div class="flex items-center gap-3">
-        <button 
-          onclick={scrollToDiagnostics}
-          class="w-11 h-11 flex items-center justify-center rounded-full bg-[#00A3FF]/10 text-[#00A3FF] border border-[#00A3FF]/20 backdrop-blur-3xl"
-        >
-          <ScanSearch size={22} />
-        </button>
         <button 
           onclick={closeChat}
         class="w-11 h-11 flex items-center justify-center rounded-full bg-white/5 active:bg-white/15 text-white/80 transition-all border border-white/5 backdrop-blur-3xl"
@@ -136,7 +166,7 @@
     <!-- Chat Thread: Zero-Background Floating Text -->
     <div 
       bind:this={chatContainer}
-      class="flex-1 overflow-y-auto px-5 py-6 space-y-10 hide-scrollbar relative z-10"
+      class="flex-1 overflow-y-auto px-5 py-6 flex flex-col justify-start space-y-10 hide-scrollbar relative z-10"
     >
       <div class="flex flex-col items-center justify-center mb-10 opacity-30">
         <div class="flex items-center gap-2.5 px-5 py-2 bg-white/5 border border-white/10 rounded-full backdrop-blur-xl">
@@ -159,13 +189,31 @@
       {/if}
 
       {#each supportAgent.messages as msg (msg.id)}
-        <div class="flex {msg.role === 'user' ? 'justify-end text-right' : 'justify-start text-left'} w-full group animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div class="max-w-full relative flex flex-col {msg.role === 'user' ? 'items-end' : 'items-start'}">
+        <div 
+          class="flex flex-col w-full group animate-in fade-in slide-in-from-bottom-4 duration-500 message-bubble-container"
+          data-role={msg.role}
+        >
+          <div class="flex items-start gap-4 w-full {msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}">
             
-            <div class="px-2 py-1 text-[17px] leading-[1.8] break-words transition-all
-              {msg.role === 'user' 
-                ? 'text-white font-bold drop-shadow-[0_2px_8px_rgba(255,255,255,0.2)]' 
-                : 'text-gray-100 font-medium'}">
+            <!-- Identity Icon -->
+            <div class="flex-shrink-0 mt-1">
+              {#if msg.role === 'assistant'}
+                <div class="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center border border-white/10 shadow-lg overflow-hidden">
+                  <HelenIcon size={28} color="#00A3FF" />
+                </div>
+              {:else}
+                <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/5 shadow-md">
+                  <UserRound size={16} class="text-white/60" />
+                </div>
+              {/if}
+            </div>
+
+            <!-- Message Content -->
+            <div class="flex-1 max-w-[85%] {msg.role === 'user' ? 'text-right' : 'text-left'}">
+              <div class="px-2 py-1 text-[17px] leading-[1.7] break-words transition-all
+                {msg.role === 'user' 
+                  ? 'text-white font-bold drop-shadow-[0_2px_8px_rgba(255,255,255,0.1)]' 
+                  : 'text-gray-100 font-medium'}">
               
               {#if msg.role === 'assistant' && msg.intent === 'ORDER_STATUS'}
                 <div class="inline-flex items-center gap-3 px-4 py-2 mb-4 bg-[#00A3FF]/10 text-[#00A3FF] rounded-2xl border border-[#00A3FF]/20 font-black text-[15px] uppercase tracking-wider">
@@ -195,18 +243,16 @@
                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 <div class="text-[17px]">{@html msg.content.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-black">$1</strong>').replace(/\n/g, '<br/>')}</div>
               {:else}
-                <span class="inline-block relative">
-                  {msg.content}
-                  <span class="absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00A3FF]/40 to-transparent"></span>
-                </span>
+                {msg.content}
               {/if}
             </div>
             
-            <div class="text-[10px] text-white/20 mt-4 px-2 font-black uppercase tracking-[0.3em] opacity-0 group-hover:opacity-100 transition-all duration-300">
+            <div class="text-[10px] text-white/10 mt-3 px-2 font-black uppercase tracking-[0.3em] opacity-0 group-hover:opacity-100 transition-all duration-300">
               {msg.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
         </div>
+      </div>
       {/each}
 
       {#if supportAgent.isTyping}
@@ -239,13 +285,18 @@
       <!-- Capsule Dynamic Island Input -->
       <div class="relative bg-black/60 border border-white/5 rounded-[40px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all backdrop-blur-xl">
         <textarea
+          bind:this={inputElement}
           bind:value={userInput}
           onkeydown={handleKeyDown}
           placeholder="Nói chuyện với chuyên gia..."
-          class="block w-full bg-transparent border-0 py-[22px] pl-[30px] pr-20 text-white placeholder-gray-600 focus:ring-0 resize-none outline-none text-[17px] max-h-[160px] rounded-[40px] font-medium"
+          class="block w-full bg-transparent border-0 py-[22px] pl-[60px] pr-20 text-white placeholder-gray-600 focus:ring-0 resize-none outline-none text-[17px] max-h-[160px] rounded-[40px] font-medium"
           style="min-height: 72px;"
           disabled={supportAgent.isTyping}
         ></textarea>
+
+        <div class="absolute left-7 top-[22px] pointer-events-none opacity-20 group-focus-within:opacity-50 transition-opacity">
+          <Lock size={20} class="text-white" />
+        </div>
         
         <button 
           onclick={handleSend}
@@ -279,6 +330,17 @@
     -ms-overflow-style: none;  
     scrollbar-width: none;  
     scroll-behavior: smooth;
+  }
+
+  .liquid-sheet-mobile {
+    border-radius: 40px 40px 0 0;
+    animation: mobile-morph 10s infinite alternate ease-in-out;
+  }
+
+  @keyframes mobile-morph {
+    0% { border-radius: 48px 48px 0 0; }
+    50% { border-radius: 64px 32px 0 0; }
+    100% { border-radius: 32px 64px 0 0; }
   }
   
   .safe-area-bottom {
