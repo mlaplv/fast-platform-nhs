@@ -19,7 +19,7 @@ import uuid
 from typing import Optional
 
 from pydantic_ai import Agent
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database.models.commerce import ProductBase
@@ -114,17 +114,23 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str]) -> tuple
         deals_raw: list[dict[str, object]] = (row.product_metadata or {}).get("active_deals", [])
         deals_text = ""
         if deals_raw:
+            # Elite V2.2: Premium Bullet-pointed Deals for FOMO
             parts = [
-                f"Mua {d.get('buy_qty', 0)} tặng {d.get('get_qty', 0)}: {float(d.get('fixed_price', 0)):,.0f}đ"
+                f"* Mua {d.get('buy_qty', 0)} tặng {d.get('get_qty', 0)}: {float(d.get('fixed_price', 0)):,.0f}đ"
                 for d in deals_raw if d.get("buy_qty")
             ]
-            deals_text = f"\nCHƯƠNG TRÌNH ƯU ĐÃI: {'; '.join(parts)}" if parts else ""
+            deals_text = f"\nCHƯƠNG TRÌNH ƯU ĐÃI ĐANG DIỄN RA:\n" + "\n".join(parts) + "\n" if parts else ""
+
+        # Global Sales Fact: ALL products include free shipping
+        freeship_info = "\nCHÍNH SÁCH: MIỄN PHÍ VẬN CHUYỂN TOÀN QUỐC (FREESHIP).\n"
 
         context = (
             f"[THÔNG TIN SẢN PHẨM HIỆN TẠI]\n"
             f"Tên: {row.name}\n"
             f"Danh mục: {row.category_name or 'Chưa phân loại'}\n"
-            f"Giá: {price_display}{deals_text}\n"
+            f"Giá: {price_display}\n"
+            f"{deals_text}"
+            f"{freeship_info}"
             f"Mô tả: {(row.short_description or row.description or '')[:600]}\n"
         )
         
@@ -198,7 +204,7 @@ class SupportAgentOperative:
         helen_on = await xohi_memory.client.get("system:helen_enabled")
         if helen_on == "0":
             offline_msg = await xohi_memory.client.get("system:helen_offline_msg")
-            reply = offline_msg or "Hiện tại em Helen đang được bảo trì, tư vấn viên sẽ hỗ trợ sếp ngay ạ!"
+            reply = offline_msg or "Hiện tại em Helen đang được bảo trì, tư vấn viên sẽ hỗ trợ bạn ngay ạ!"
             
             # 🚀 QUANTUM BRIDGE: Push to Zalo OA when Helen is OFF
             customer_name = request.customer_name or "Khách ẩn danh"
@@ -208,7 +214,7 @@ class SupportAgentOperative:
                 session_id=session_id
             )
 
-            # Vẫn lưu lịch sử để nhân viên vào xem được thưa sếp!
+            # Vẫn lưu lịch sử để nhân viên vào xem
             await self._save_history(
                 db,
                 session_id=session_id,
@@ -250,26 +256,7 @@ class SupportAgentOperative:
         kb_ctx = await kb_service.search_relevant_knowledge(db, request.message)
 
         # Fetch history for context restoration (Elite V2.2: Context Pulse)
-        from sqlalchemy import desc
-        history_text = ""
-        try:
-            stmt = (
-                select(SupportChatHistory)
-                .where(SupportChatHistory.session_id == session_id)
-                .order_by(desc(SupportChatHistory.created_at), desc(SupportChatHistory.id))
-                .limit(4)
-            )
-            history_res = await db.execute(stmt)
-            history_rows = history_res.scalars().all()
-            if history_rows:
-                h_parts = []
-                for r in reversed(history_rows):
-                    h_content = (GeminiSecurity.decrypt_keys(r.content) or [""])[0] if r.content else ""
-                    h_role = "Khách" if r.role == "user" else "Helen"
-                    h_parts.append(f"{h_role}: {h_content}")
-                history_text = "\n[LỊCH SỬ GẦN ĐÂY]\n" + "\n".join(h_parts) + "\n"
-        except Exception as h_exc:
-            logger.warning("[SupportAgent] Context retrieval failed: %s", h_exc)
+        history_text = await self._fetch_chat_context(db, session_id)
 
         # Build RAG context from product (read-only DB)
         product_ctx, product_info = await _fetch_product_context(db, request.product_slug)
@@ -406,13 +393,48 @@ class SupportAgentOperative:
             )
         return None
 
+    async def _fetch_chat_context(self, db: AsyncSession, session_id: str) -> str:
+        """Retrieves recent chat history to provide reasoning context (Elite V2.2)."""
+        history_text = ""
+        try:
+            stmt = (
+                select(SupportChatHistory)
+                .where(SupportChatHistory.session_id == session_id)
+                .order_by(desc(SupportChatHistory.created_at), desc(SupportChatHistory.id))
+                .limit(4)
+            )
+            history_res = await db.execute(stmt)
+            history_rows = history_res.scalars().all()
+            if history_rows:
+                h_parts = []
+                for r in reversed(history_rows):
+                    h_content = (GeminiSecurity.decrypt_keys(r.content) or [""])[0] if r.content else ""
+                    h_role = "Khách" if r.role == "user" else "Helen"
+                    h_parts.append(f"{h_role}: {h_content}")
+                history_text = "\n[LỊCH SỬ GẦN ĐÂY]\n" + "\n".join(h_parts) + "\n"
+        except Exception as h_exc:
+            logger.warning("[SupportAgent] Context retrieval failed: %s", h_exc)
+        return history_text
+
     def _build_prompt(
         self, message: str, product_ctx: str, kb_ctx: str, intent: SupportIntent, history_text: str = ""
     ) -> str:
-        """Construct AI prompt with optional RAG context injection."""
+        """Construct AI prompt with conversion-focused directives."""
         ctx_block = f"\n{kb_ctx}\n{product_ctx}\n" if (product_ctx or kb_ctx) else ""
         intent_hint = f"[Phân loại câu hỏi: {intent.value}]\n" if intent else ""
-        return f"{intent_hint}{history_text}{ctx_block}Câu hỏi của khách: {message}"
+        
+        # Elite V2.2: Conversion/FOMO Upgrades
+        fomo_directive = ""
+        if intent in (SupportIntent.PRICE_QUERY, SupportIntent.PRODUCT_QUERY):
+            fomo_directive = (
+                "\n[CHỈ THỊ BÁN HÀNG]: "
+                "Nếu khách hỏi về giá/ưu đãi, BẮT BUỘC đề cập MIỄN PHÍ VẬN CHUYỂN TOÀN QUỐC. "
+                "Dùng ngôn ngữ tạo sự khan hiếm (FOMO) như 'Ưu đãi chỉ còn vài suất', 'Duy nhất hôm nay'. "
+                "Trình bày bảng giá/ưu đãi theo dạng liệt kê dấu sao (*) rõ ràng. "
+                "Kết thúc bằng một câu hỏi gợi mở chốt đơn (ví dụ: 'Bạn có muốn nhận ưu đãi và đặt hàng ngay bây giờ không ạ?').\n"
+            )
+
+        return f"{intent_hint}{fomo_directive}{history_text}{ctx_block}Câu hỏi của khách: {message}"
 
     async def _log_telemetry(
         self,

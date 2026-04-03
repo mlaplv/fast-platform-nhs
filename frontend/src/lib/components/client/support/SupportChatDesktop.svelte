@@ -19,7 +19,14 @@
   let userInput = $state('');
   let isExpanded = $state(false);
 
-  const quickActions = [
+  interface QuickAction {
+    label: string;
+    icon: any; // Lucide icon component type
+    prompt?: string;
+    action?: () => void;
+  }
+
+  const quickActions: QuickAction[] = [
     { label: 'Chẩn đoán', icon: ScanSearch, action: scrollToDiagnostics },
     { label: 'Đơn hàng', icon: PackageSearch, prompt: 'Tôi cần kiểm tra đơn hàng' },
     { label: 'Chính sách', icon: ShieldCheck, prompt: 'Quy định bảo hành và đổi trả' }
@@ -59,12 +66,12 @@
     scrollToNewestMessage();
   }
 
-  async function handleQuickAction(action: any) {
+  async function handleQuickAction(action: QuickAction) {
     if (action.action) {
       action.action();
       return;
     }
-    if (supportAgent.isTyping) return;
+    if (supportAgent.isTyping || !action.prompt) return;
     await supportAgent.sendMessage(action.prompt, productSlug);
     scrollToNewestMessage();
   }
@@ -76,29 +83,27 @@
     }
   }
 
+  // Elite V2.2: Unified UX State Monitor (Focus & Scroll Manager)
   $effect(() => {
-    if (supportAgent.messages.length > 0) {
-      scrollToNewestMessage();
-    }
-  });
-
-  // Elite UX: Auto-focus and Initial Scroll on open
-  $effect(() => {
-    if (supportAgent.isOpen && inputElement) {
-      setTimeout(() => {
+    const { isOpen, isTyping, messages } = supportAgent;
+    
+    if (isOpen && inputElement) {
+      // 1. Handle auto-focus
+      if (!isTyping) {
         inputElement.focus();
-        // Force absolute scroll to bottom on first open to see latest messages
-        if (chatContainer) {
-          chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'instant' });
-        }
-      }, 150); 
-    }
-  });
+      }
 
-  // Elite V2.2: Focus input after AI finishes typing
-  $effect(() => {
-    if (!supportAgent.isTyping && supportAgent.isOpen && inputElement) {
-      inputElement.focus();
+      // 2. Handle scrolling
+      if (messages.length > 0) {
+        scrollToNewestMessage();
+      } else {
+        // Initial open: Immediate anchor to bottom
+        setTimeout(() => {
+          if (chatContainer) {
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'instant' });
+          }
+        }, 150);
+      }
     }
   });
 

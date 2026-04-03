@@ -14,7 +14,14 @@
   let inputElement: HTMLTextAreaElement;
   let userInput = $state('');
   
-  const quickActions = [
+  interface QuickAction {
+    label: string;
+    icon: any;
+    prompt?: string;
+    action?: () => void;
+  }
+
+  const quickActions: QuickAction[] = [
     { label: 'Chẩn đoán', icon: ScanSearch, action: scrollToDiagnostics },
     { label: 'Tình trạng đơn', icon: PackageSearch, prompt: 'Tôi muốn kiểm tra đơn hàng' },
     { label: 'Chính sách', icon: ShieldCheck, prompt: 'Cam kết bảo hành và đổi trả' }
@@ -46,12 +53,12 @@
     scrollToNewestMessage();
   }
 
-  async function handleQuickAction(action: any) {
+  async function handleQuickAction(action: QuickAction) {
     if (action.action) {
       action.action();
       return;
     }
-    if (supportAgent.isTyping) return;
+    if (supportAgent.isTyping || !action.prompt) return;
     await supportAgent.sendMessage(action.prompt, productSlug);
     scrollToNewestMessage();
   }
@@ -63,29 +70,24 @@
     }
   }
 
+  // Elite V2.2: Unified UX State Monitor (Focus & Scroll Manager)
   $effect(() => {
-    if (supportAgent.messages.length > 0) {
-      scrollToNewestMessage();
-    }
-  });
-
-  // Elite UX: Auto-focus and Initial Scroll on open
-  $effect(() => {
-    if (supportAgent.isOpen && inputElement) {
-      setTimeout(() => {
+    const { isOpen, isTyping, messages } = supportAgent;
+    
+    if (isOpen && inputElement) {
+      if (!isTyping) {
         inputElement.focus();
-        // Mobile: Immediate anchor to bottom
-        if (chatContainer) {
-          chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'instant' });
-        }
-      }, 150); 
-    }
-  });
+      }
 
-  // Elite V2.2: Focus input after AI finishes typing
-  $effect(() => {
-    if (!supportAgent.isTyping && supportAgent.isOpen && inputElement) {
-      inputElement.focus();
+      if (messages.length > 0) {
+        scrollToNewestMessage();
+      } else {
+        setTimeout(() => {
+          if (chatContainer) {
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'instant' });
+          }
+        }, 150);
+      }
     }
   });
 
