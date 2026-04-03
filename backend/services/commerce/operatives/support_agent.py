@@ -193,6 +193,33 @@ class SupportAgentOperative:
             )
         return None
 
+    def _extract_heuristic_metadata(self, message: str) -> dict[str, str | bool]:
+        """
+        Elite V2.2: Real-time Heuristic Scanner.
+        Extracts VN phone numbers and detects purchase intent via keywords.
+        Returns: {brand_new_phone: str|None, is_high_intent: bool}
+        """
+        # 1. Phone Scanning (Vietnamese Formats: 09, 03, 07, 08, 05 + 8 digits)
+        # Supports dots, spaces, dashes: 0949.901.122, 0949 901 122, etc.
+        phone_pattern = r"(?:0|\+84)(?:[1-9])(?:\d{8,9}|(?:\.\d{3}){2}\.\d{2,3}|(?:\s\d{3}){2,3})"
+        match = re.search(phone_pattern, message)
+        phone = None
+        if match:
+            # Normalize to 10-digit standard
+            phone = match.group(0).replace(".", "").replace(" ", "").replace("-", "")
+            if phone.startswith("+84"):
+                phone = "0" + phone[3:]
+
+        # 2. Keyword/Intent Overlays (The "Kèo thơm" Scanner)
+        high_intent_kws = ("ship", "mua", "đặt", "chốt", "địa chỉ", "lọ", "chai", "hộp", "combo", "gửi", "thanh toán")
+        msg_lower = message.lower()
+        is_high_intent = phone is not None or any(kw in msg_lower for kw in high_intent_kws)
+
+        return {
+            "extracted_phone": phone,
+            "is_high_intent": is_high_intent
+        }
+
     def _mask_sensitive_medical_terms(self, text: str) -> str:
         """
         [Bypass Filter]: Semantic Masking. Translate slangs into academic medical terms.
@@ -218,9 +245,46 @@ class SupportAgentOperative:
         """
         t0 = time.monotonic()
         session_id = request.session_id or str(uuid.uuid4())
+        customer_name = request.customer_name or "Khách ẩn danh"
+        
+        # 🚀 ELITE V2.2: HEURISTIC PRIORITY SCANNER (Before AI or Takeover)
+        scan = self._extract_heuristic_metadata(request.message)
+        extracted_phone = scan.get("extracted_phone")
+        is_heuristic_high = scan.get("is_high_intent")
+        
+        # Auto-enrich request metadata if missing but found in text
+        if extracted_phone and not request.customer_phone:
+            request.customer_phone = str(extracted_phone)
 
         # ELITE V2.2: Global Helen Toggle Check (Redis-cached)
         helen_on = await xohi_memory.client.get("system:helen_enabled")
+        
+        # 🛡️ HUMAN TAKEOVER GUARD: Check if an Admin has muzzled Helen for this session
+        is_takeover = await xohi_memory.client.get(f"support:takeover:{session_id}")
+        
+        if is_takeover == "1":
+            takeover_msg = "Tư vấn viên đang trực tiếp hỗ trợ sếp. Vui lòng đợi trong giây lát ạ! 🌸"
+            # Log the message so admin can see it, but don't let AI reply
+            await self._save_history(
+                db,
+                session_id=session_id,
+                user_msg=request.message,
+                assistant_reply=takeover_msg, # Placeholder to keep UI flow
+                intent=SupportIntent.GENERAL_ADVICE,
+                product_slug=request.product_slug,
+                customer_name=request.customer_name,
+                customer_phone=request.customer_phone
+            )
+            # Emit pulse so admin inbox refreshes to show the new customer message
+            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            
+            return SupportResponse(
+                ok=True,
+                reply=takeover_msg,
+                intent=SupportIntent.GENERAL_ADVICE,
+                session_id=session_id,
+            )
+
         if helen_on == "0":
             offline_msg = await xohi_memory.client.get("system:helen_offline_msg")
             reply = offline_msg or "Hiện tại em Helen đang được bảo trì, tư vấn viên sẽ hỗ trợ bạn ngay ạ!"
@@ -315,6 +379,7 @@ class SupportAgentOperative:
                 timeout=15.0  # Force fail-fast để sang key khác ngay lỡ kẹt
             )
             ai_data: object = getattr(result, "data", None)
+            ai_data_str = str(ai_data) # Elite V2.2: Fix NameError for log fallback
             
             # Universal PydanticAI Data Extraction (Bulletproof V2.2)
             ai_dict: dict[str, object] = {}
@@ -346,6 +411,11 @@ class SupportAgentOperative:
                     intent = SupportIntent.GENERAL_ADVICE
                 else:
                     raw_reply = "Dạ câu hỏi của bạn chứa một số từ ngữ mà hệ thống lọc tự động của bên em đang tạm che mờ. Bạn có thể nói rõ hơn hoặc liên hệ trực tiếp hotline để em hỗ trợ nhé!"
+            
+            # ELITE V2.2: Intent Override (Heuristic Boost)
+            if is_heuristic_high and intent == SupportIntent.UNKNOWN:
+                intent = SupportIntent.GENERAL_ADVICE # Default to advice/closing if heuristic found it spicy
+                
         except Exception as exc:
             logger.error("[SupportAgent] AI call failed: %s", exc)
             raw_reply = (
@@ -363,6 +433,15 @@ class SupportAgentOperative:
             "session_id": session_id,
             "intent": intent.value,
             "duration_ms": duration_ms,
+        })
+
+        # 🚀 REAL-TIME PULSE: Notify all active admin dashboards (Elite V2.2)
+        await event_bus.emit("SUPPORT_INBOX_UPDATE", {
+            "session_id": session_id,
+            "intent": intent.value,
+            "customer_name": customer_name,
+            "customer_phone": request.customer_phone,
+            "is_high_intent": is_heuristic_high
         })
 
         # Persist messages to history (Zalo-style persistence)

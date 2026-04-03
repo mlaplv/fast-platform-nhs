@@ -11,6 +11,10 @@
   import ChevronRight from "lucide-svelte/icons/chevron-right";
   import Tag from "lucide-svelte/icons/tag";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import Lock from "lucide-svelte/icons/lock";
+  import Unlock from "lucide-svelte/icons/unlock";
+  import Send from "lucide-svelte/icons/send";
+  import ShieldAlert from "lucide-svelte/icons/shield-alert";
 
   interface SessionSummary {
     session_id: string;
@@ -20,6 +24,7 @@
     message_count: number;
     last_intent: string | null;
     last_message_at: string | null;
+    is_takeover?: boolean;
   }
 
   interface MessageView {
@@ -46,6 +51,9 @@
   let selectedSessionId = $state<string | null>(null);
   let selectedSessionDetail = $state<SessionDetail | null>(null);
   let isDetailLoading = $state(false);
+  let isTakeover = $state(false);
+  let manualMessage = $state("");
+  let isSending = $state(false);
   let searchInput = $state("");
   let searchTerm = $state("");
   let sidebarWidth = $state(320);
@@ -77,6 +85,10 @@
   $effect(() => {
     if (nanobot.supportRefreshToggle > 0) {
       loadSessions();
+      // V86.2: Auto-refresh current chat messages if active
+      if (selectedSessionId) {
+        selectSession(selectedSessionId);
+      }
     }
   });
 
@@ -126,8 +138,9 @@
     selectedSessionId = id;
     isDetailLoading = true;
     try {
-      const res = await apiClient.get<SessionDetail>(`/api/v1/admin/support/inbox/sessions/${id}`);
+      const res = await apiClient.get<SessionDetail & { is_takeover: boolean }>(`/api/v1/admin/support/inbox/sessions/${id}`);
       selectedSessionDetail = res;
+      isTakeover = res.is_takeover;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       nanobot.addLog(`[ADMIN] Load session detail failed: ${msg}`, "SYS", "error");
@@ -149,6 +162,42 @@
   }
 
   let searchTimer: any;
+  async function toggleTakeover() {
+    if (!selectedSessionId) return;
+    try {
+      const res = await apiClient.post<{ is_takeover: boolean }>(`/api/v1/admin/support/inbox/sessions/${selectedSessionId}/takeover`);
+      isTakeover = res.is_takeover;
+      nanobot.showToast(isTakeover ? "Đã chặn mồm Helen. Sếp toàn quyền điều khiển!" : "Đã trả quyền cho Helen AI.", "success");
+    } catch (err: unknown) {
+      nanobot.showToast("Không thể thay đổi trạng thái AI", "error");
+    }
+  }
+
+  async function sendManualMessage() {
+    if (!selectedSessionId || !manualMessage.trim() || isSending) return;
+    
+    isSending = true;
+    try {
+      await apiClient.post(`/api/v1/admin/support/inbox/sessions/${selectedSessionId}/message`, {
+        message: manualMessage
+      });
+      manualMessage = "";
+      // Refresh will be triggered by Pulse, but we fetch immediately for speed
+      await selectSession(selectedSessionId);
+    } catch (err: unknown) {
+      nanobot.showToast("Gửi tin nhắn thất bại", "error");
+    } finally {
+      isSending = false;
+    }
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendManualMessage();
+    }
+  }
+
   function handleSearch(e: Event) {
     const val = (e.target as HTMLInputElement).value;
     searchInput = val;
@@ -225,11 +274,18 @@
           >
             {#if isHighIntent(session)}
               <div class="absolute top-2 right-2 flex gap-1">
+                {#if session.is_takeover}
+                  <span class="text-[7px] font-bold px-1 py-0.5 bg-yellow-500/20 text-yellow-500 rounded border border-yellow-500/30 uppercase tracking-tighter mr-1 anim-pulse">AI SILENCED</span>
+                {/if}
                 <span class="flex h-2 w-2">
                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                   <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
                 </span>
                 <span class="text-[7px] font-bold text-cyan-400 uppercase tracking-tighter">High Intent</span>
+              </div>
+            {:else if session.is_takeover}
+              <div class="absolute top-2 right-2">
+                <span class="text-[7px] font-bold px-1 py-0.5 bg-yellow-500/20 text-yellow-500 rounded border border-yellow-500/30 uppercase tracking-tighter">AI SILENCED</span>
               </div>
             {/if}
             <div class="flex justify-between items-start mb-1">
@@ -292,6 +348,20 @@
                 {/if}
               </div>
             </div>
+            
+            <div class="flex items-center gap-4">
+              <button 
+                onclick={toggleTakeover}
+                class="flex items-center gap-2 px-3 py-1.5 {isTakeover ? 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30' : 'bg-white/5 text-white/40 border-white/10'} border rounded-lg text-xs font-bold transition-all hover:scale-105 active:scale-95"
+              >
+                {#if isTakeover}
+                  <Lock class="w-3.5 h-3.5" /> Chặn mồm Helen
+                {:else}
+                  <Unlock class="w-3.5 h-3.5" /> Thả xích Helen
+                {/if}
+              </button>
+              <div class="text-[10px] text-white/20 font-mono">ID: {selectedSessionDetail.session_id.slice(0,8)}</div>
+            </div>
           </div>
         </div>
 
@@ -314,6 +384,37 @@
               </div>
             </div>
           {/each}
+        </div>
+
+        <!-- Chat Input (Elite V2.2 Takeover) -->
+        <div class="p-4 bg-black/40 border-t border-white/10 backdrop-blur-xl shrink-0">
+          {#if isTakeover}
+            <div class="mb-2 flex items-center gap-2 text-[10px] text-yellow-500 font-bold uppercase tracking-widest animate-pulse">
+              <ShieldAlert class="w-3 h-3" /> Chế độ chỉ huy: Toàn quyền điều khiển thủ công
+            </div>
+          {/if}
+          <div class="relative group">
+            <textarea
+              bind:value={manualMessage}
+              onkeydown={handleKeydown}
+              placeholder={isTakeover ? "Nhấn Enter để gửi tin nhắn trực tiếp cho khách..." : "Bật 'Chặn mồm' để chát trực tiếp với khách..."}
+              disabled={!isTakeover}
+              class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-cyan-500/40 transition-all resize-none min-h-[50px] max-h-[150px] {isTakeover ? 'opacity-100' : 'opacity-40 cursor-not-allowed'}"
+            ></textarea>
+            <button 
+              onclick={sendManualMessage}
+              disabled={!isTakeover || !manualMessage.trim() || isSending}
+              class="absolute right-4 bottom-4 p-2 bg-cyan-500/20 text-cyan-400 rounded-lg border border-cyan-500/30 hover:bg-cyan-500/40 transition-all disabled:opacity-0 active:scale-95"
+            >
+              <Send class="w-4 h-4" />
+            </button>
+          </div>
+          <div class="mt-2 text-[9px] text-white/20 flex justify-between">
+            <span>Shift + Enter để xuống dòng</span>
+            {#if isSending}
+              <span class="text-cyan-400 animate-pulse">Đang gửi...</span>
+            {/if}
+          </div>
         </div>
       {:else if isDetailLoading}
         <div class="flex-1 flex flex-col items-center justify-center text-white/20">

@@ -10,12 +10,15 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from litestar import Controller, get
+from litestar import Controller, get, post
 from litestar.exceptions import NotFoundException
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime
 
 from backend.database.models.system import SupportChatHistory
+from backend.services.xohi_memory import xohi_memory
+from backend.services.event_bus import event_bus
 from backend.guards import PermissionGuard
 from backend.constants.permissions import PermissionEnum
 from backend.schemas.support_inbox import (
@@ -23,7 +26,9 @@ from backend.schemas.support_inbox import (
     SupportSessionListResponse,
     SupportChatMessageView,
     SupportSessionDetailResponse,
+    SupportManualMessageRequest,
 )
+from backend.schemas.support import SupportIntent
 from backend.utils.security import GeminiSecurity
 
 logger = logging.getLogger("api-gateway")
@@ -88,18 +93,22 @@ class AdminSupportInboxController(Controller):
             r.session_id: str(r.last_message_at) for r in count_rows
         }
 
-        summaries: list[SupportSessionSummary] = [
-            SupportSessionSummary(
-                session_id=row.session_id,
-                customer_name=row.customer_name or "Khách ẩn danh",
-                customer_phone=row.customer_phone,
-                product_slug=row.product_slug,
-                message_count=count_map.get(row.session_id, 0),
-                last_intent=row.intent,
-                last_message_at=time_map.get(row.session_id),
+        summaries: list[SupportSessionSummary] = []
+        for row in rows:
+            sid = row.session_id
+            is_takeover = await xohi_memory.client.get(f"support:takeover:{sid}") == "1"
+            summaries.append(
+                SupportSessionSummary(
+                    session_id=sid,
+                    customer_name=row.customer_name or "Khách ẩn danh",
+                    customer_phone=row.customer_phone,
+                    product_slug=row.product_slug,
+                    message_count=count_map.get(sid, 0),
+                    last_intent=row.intent,
+                    last_message_at=time_map.get(sid),
+                    is_takeover=is_takeover
+                )
             )
-            for row in rows
-        ]
 
         return SupportSessionListResponse(data=summaries, total=total)
 
@@ -142,10 +151,75 @@ class AdminSupportInboxController(Controller):
                 )
             )
 
+        is_takeover = await xohi_memory.client.get(f"support:takeover:{session_id}") == "1"
+
         return SupportSessionDetailResponse(
             session_id=session_id,
             customer_name=first.customer_name or "Khách ẩn danh",
             customer_phone=first.customer_phone,
             product_slug=first.product_slug,
             messages=messages,
+            is_takeover=is_takeover
+        )
+
+    @post("/sessions/{session_id:str}/takeover", summary="Toggle AI Takeover for a session")
+    async def toggle_takeover(self, session_id: str) -> dict[str, bool]:
+        """Enable or disable AI for a specific session via Redis."""
+        key = f"support:takeover:{session_id}"
+        current = await xohi_memory.client.get(key)
+        new_state = "1" if current != "1" else "0"
+        await xohi_memory.client.set(key, new_state, ex=86400 * 3) # 3 days TTL
+        
+        return {"is_takeover": new_state == "1"}
+
+    @post("/sessions/{session_id:str}/message", summary="Send a manual message as high-level representative")
+    async def send_manual_message(
+        self,
+        db_session: AsyncSession,
+        session_id: str,
+        data: SupportManualMessageRequest,
+    ) -> SupportChatMessageView:
+        """
+        Manually send a message to the customer.
+        Saves to history as 'assistant' but with 'MANUAL' intent.
+        Emits Pulse signal to trigger real-time UI updates on client & admin side.
+        """
+        # Fetch session metadata to maintain customer context
+        meta_stmt = select(SupportChatHistory).where(SupportChatHistory.session_id == session_id).limit(1)
+        meta_res = await db_session.execute(meta_stmt)
+        meta = meta_res.scalar_one_or_none()
+        
+        if not meta:
+            raise NotFoundException(detail="Session not found.")
+
+        # Encrypt and save
+        msg_id = f"manual_{datetime.now().timestamp()}"
+        enc_content = GeminiSecurity.encrypt(data.message)
+        
+        new_msg = SupportChatHistory(
+            session_id=session_id,
+            role="assistant",
+            content=enc_content,
+            intent="MANUAL",
+            customer_name=meta.customer_name,
+            customer_phone=meta.customer_phone,
+            product_slug=meta.product_slug
+        )
+        db_session.add(new_msg)
+        await db_session.commit()
+        await db_session.refresh(new_msg)
+
+        # 🚀 Pulse Broadcaster: Zero-Latency Sync + "Ting" Sound
+        await event_bus.emit("SUPPORT_INBOX_UPDATE", {
+            "session_id": session_id,
+            "message": data.message,
+            "role": "assistant"
+        })
+
+        return SupportChatMessageView(
+            id=str(new_msg.id),
+            role="assistant",
+            content=data.message,
+            intent="MANUAL",
+            created_at=str(new_msg.created_at)
         )

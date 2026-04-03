@@ -337,6 +337,21 @@ export function createPulseManager(
              state.currentData = null;
           }
           ui.showToast("Chiến dịch đã được quét sạch khỏi hệ thống.", "success");
+        } else if (eventName === "SUPPORT_INBOX_UPDATE") {
+          // CNS V86.1: Neural Refresh Pulse (Elite V2.2)
+          // Increment toggle to trigger re-fetch in SupportInbox.svelte
+          // @ts-ignore
+          if (state && typeof state.supportRefreshToggle !== 'undefined') {
+            // @ts-ignore
+            state.supportRefreshToggle++;
+            // Signal a silent, premium successful update
+            ui.showToast("Hộp thư Helen vừa được cập nhật 🟢", "info", 2000);
+            
+            // 🔈 REAL-TIME TACTICAL AUDIO: "Ting" sound for the Boss (Elite V2.2)
+            import("$lib/vui").then(({ vuiController }) => {
+              vuiController.playNotificationPing();
+            }).catch(() => {});
+          }
         }
       } catch (err) {
         // Fallback error

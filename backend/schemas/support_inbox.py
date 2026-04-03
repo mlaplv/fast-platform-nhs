@@ -18,6 +18,7 @@ class SupportSessionSummary(BaseModel):
     message_count: int
     last_intent: Optional[str]
     last_message_at: Optional[str]  # ISO string
+    is_takeover: bool = False
 
 
 class SupportSessionListResponse(BaseModel):
@@ -40,3 +41,7 @@ class SupportSessionDetailResponse(BaseModel):
     customer_phone: Optional[str]
     product_slug: Optional[str]
     messages: list[SupportChatMessageView]
+    is_takeover: bool = False
+
+class SupportManualMessageRequest(BaseModel):
+    message: str
