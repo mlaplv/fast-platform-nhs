@@ -160,6 +160,38 @@ class SupportAgentState {
     }
 
     /**
+     * Elite V2.2: Proactive Rehydration & Synchronization
+     * Ensures history is loaded if missing, avoiding the "welcome message only" trap.
+     */
+    async ensureHistoryLoaded(limit: number = 20) {
+        // If we already have a real conversation (more than just the welcome message), skip
+        if (this.messages.some((m: SupportMessage) => m.role === "user")) {
+            return;
+        }
+
+        // Avoid double loading
+        if (this.isHistoryLoading) return;
+
+        // Try to fetch history from backend
+        await this.loadHistory(limit);
+
+        // If after fetch, we still have NO messages, then we inject the welcome message
+        if (this.messages.length === 0) {
+            this.messages = [
+                {
+                    id: randomId(),
+                    role: "assistant",
+                    content: this.config.welcomeMessage,
+                    timestamp: new Date()
+                }
+            ];
+        } else {
+            // We have history, but maybe it only contains old messages. 
+            // If the last message is very old, we could optionally add a nudge, but for now just keep as is.
+        }
+    }
+
+    /**
      * Call this inside a root +layout.svelte or onMount to initialize config and load history
      */
     async init(envAgentName?: string) {
@@ -174,22 +206,8 @@ class SupportAgentState {
             this.config.welcomeMessage = this.offlineMessage || "Chào bạn! Hiện tại em đang tạm nghỉ, chuyên viên trực sẽ sớm hỗ trợ bạn qua Zalo OA ạ.";
         }
 
-        // Only load history once or if empty
-        if (this.messages.length === 0) {
-            await this.loadHistory(20);
-            
-            // If still no messages after loading history, add welcome message
-            if (this.messages.length === 0) {
-                this.messages = [
-                    {
-                        id: randomId(),
-                        role: "assistant",
-                        content: this.config.welcomeMessage,
-                        timestamp: new Date()
-                    }
-                ];
-            }
-        }
+        // Proactive Rehydration
+        await this.ensureHistoryLoaded(20);
     }
 
     /**
@@ -245,6 +263,9 @@ class SupportAgentState {
             // Re-sync with backend to catch Admin changes without refresh
             await this.fetchStatus();
             
+            // Proactive rehydration on open (The Fix)
+            await this.ensureHistoryLoaded();
+
             // Sync config if it changed
             if (!this.helenEnabled) {
                 this.config.agentName = "Chuyên viên Tư vấn";

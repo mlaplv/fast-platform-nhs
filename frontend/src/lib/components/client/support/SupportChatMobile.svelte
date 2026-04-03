@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { ComponentType, SvelteComponent } from 'svelte';
   import { onMount, tick } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import { Send, X, ShieldCheck, PhoneCall, PackageSearch, Sparkles, UserRound, ScanSearch, Lock } from 'lucide-svelte';
@@ -16,7 +17,7 @@
   
   interface QuickAction {
     label: string;
-    icon: any;
+    icon: ComponentType<SvelteComponent>;
     prompt?: string;
     action?: () => void;
   }
@@ -187,6 +188,13 @@
           >
             {supportAgent.isHistoryLoading ? 'ĐANG TẢI...' : 'TẢI THÊM TIN NHẮN CŨ'}
           </button>
+        </div>
+      {/if}
+
+      {#if supportAgent.messages.length === 0 && supportAgent.isHistoryLoading}
+        <div class="flex flex-col items-center justify-center py-20 opacity-40 animate-pulse">
+          <div class="w-12 h-12 rounded-full border-2 border-t-[#00A3FF] border-white/5 animate-spin"></div>
+          <p class="text-[11px] font-black uppercase tracking-[0.2em] text-white mt-6">Đang đồng bộ dữ liệu...</p>
         </div>
       {/if}
 
