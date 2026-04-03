@@ -6,6 +6,8 @@
   import X from "lucide-svelte/icons/x";
   import SupremeCloseButton from "./SupremeCloseButton.svelte";
   import Terminal from "lucide-svelte/icons/terminal";
+  import Search from "lucide-svelte/icons/search";
+  import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import RevenueChart from "../widgets/RevenueChart.svelte";
   import ConfirmModal from "../widgets/ConfirmModal.svelte";
   import UserTable from "../widgets/UserTable.svelte";
@@ -25,6 +27,7 @@ import BannerManagement from "../management/BannerManagement.svelte";
 import AppointmentManagement from "../management/AppointmentManagement.svelte";
 import ReviewManagement from "../management/ReviewManagement.svelte";
 import SupportKnowledgeManagement from "../management/SupportKnowledgeManagement.svelte";
+import SupportInbox from "../management/SupportInbox.svelte";
 
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
@@ -51,6 +54,7 @@ import SupportKnowledgeManagement from "../management/SupportKnowledgeManagement
     APPOINTMENTS: AppointmentManagement,
     REVIEW_MANAGEMENT: ReviewManagement,
     SUPPORT_KNOWLEDGE: SupportKnowledgeManagement,
+    SUPPORT_INBOX: SupportInbox,
   };
 
   const WIDGET_LABEL: Record<string, string> = {
@@ -72,6 +76,7 @@ import SupportKnowledgeManagement from "../management/SupportKnowledgeManagement
     APPOINTMENTS: "LỊCH HẸN NEURAL",
     REVIEW_MANAGEMENT: "QUẢN TRỊ ĐÁNH GIÁ",
     SUPPORT_KNOWLEDGE: "HELEN BRAIN — TRI THỨC AI",
+    SUPPORT_INBOX: "HELEN INBOX — GIÁM SÁT HỘI THOẠI",
   };
 
   let open = $derived(nanobot.universalModalOpen);
@@ -136,6 +141,35 @@ import SupportKnowledgeManagement from "../management/SupportKnowledgeManagement
         </div>
 
         <div class="flex items-center gap-4">
+          {#if nanobot.activeWidget === 'SUPPORT_INBOX'}
+            <div class="flex items-center gap-3 mr-4 h-8 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div class="relative w-48 md:w-64 group">
+                <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-cyan-400/40 group-focus-within:text-cyan-400 transition-colors" />
+                <input 
+                  type="text" 
+                  placeholder="Tìm khách, SĐT..." 
+                  class="w-full bg-white/5 border border-white/10 rounded-md pl-8 pr-4 py-1 text-[10px] font-mono text-cyan-100 placeholder:text-gray-600 focus:outline-none focus:border-cyan-500/40 focus:bg-white/[0.08] transition-all"
+                  value={nanobot.supportSearchTerm}
+                  oninput={(e) => nanobot.setSupportSearchTerm(e.currentTarget.value)}
+                />
+              </div>
+              
+              <div class="flex items-center gap-2 px-2 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-md">
+                <span class="text-[9px] font-mono text-cyan-400 uppercase tracking-tighter">
+                  {nanobot.activeSupportSessionCount} Sessions
+                </span>
+              </div>
+
+              <button 
+                onclick={() => nanobot.triggerSupportRefresh()}
+                class="p-1.5 hover:bg-white/10 rounded-md transition-colors group/refresh"
+                title="Refresh Inbox"
+              >
+                <RefreshCw class="w-3 h-3 text-cyan-400/60 group-hover/refresh:text-cyan-400 transition-colors " />
+              </button>
+            </div>
+          {/if}
+
           <SupremeCloseButton 
             campaign_id={nanobot.activeWidget === 'CONTENT_REVIEW' ? WidgetData.campaign_id : undefined} 
             onClose={close}
@@ -145,7 +179,7 @@ import SupportKnowledgeManagement from "../management/SupportKnowledgeManagement
       {/if}
 
       <!-- Widget Content (scrollable container managed by widget internally for CONTENT_REVIEW) -->
-      <div class="flex-1 {nanobot.activeWidget === 'CONTENT_REVIEW' || nanobot.activeWidget === 'APPOINTMENTS' ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
+      <div class="flex-1 {nanobot.activeWidget === 'CONTENT_REVIEW' || nanobot.activeWidget === 'APPOINTMENTS' || nanobot.activeWidget === 'SUPPORT_INBOX' ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
         <ActiveWidget data={WidgetData} isWidget={true} />
       </div>
 

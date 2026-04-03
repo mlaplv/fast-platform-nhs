@@ -81,6 +81,10 @@ export function createNanobotState() {
     lastSpokenTime: 0,
     commandEpoch: 0,
     lastSuggestedWidget: undefined as WidgetType | undefined,
+    // Support Inbox Sync State (Elite V2.2)
+    supportSearchTerm: "",
+    supportRefreshToggle: 0,
+    activeSupportSessionCount: 0,
   });
 
   const audioThrottle = createAudioThrottle(state);
@@ -163,6 +167,12 @@ export function createNanobotState() {
     get chatPagination() { return chat.pagination; },
     get commandAction() { return state.commandAction; },
     get dynamicIntentMap() { return state.dynamicIntentMap; },
+    get supportSearchTerm() { return state.supportSearchTerm; },
+    setSupportSearchTerm: (val: string) => { state.supportSearchTerm = val; },
+    get supportRefreshToggle() { return state.supportRefreshToggle; },
+    triggerSupportRefresh: () => { state.supportRefreshToggle++; },
+    get activeSupportSessionCount() { return state.activeSupportSessionCount; },
+    setActiveSupportSessionCount: (val: number) => { state.activeSupportSessionCount = val; },
 
     processCommand: (command: string, source: "text" | "voice" = "text", intentData?: Record<string, unknown>) => intent.processCommand(command, source, intentData),
     setVoiceResult: intent.setVoiceResult,

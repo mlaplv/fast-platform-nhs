@@ -54,6 +54,10 @@ export const COMMAND_WIDGET_MAP: Record<string, WidgetType> = {
   "đào tạo helen": "SUPPORT_KNOWLEDGE",
   "mở tri thức helen": "SUPPORT_KNOWLEDGE",
   "mở helen": "SUPPORT_KNOWLEDGE",
+  "manage support": "SUPPORT_INBOX",
+  "mở inbox": "SUPPORT_INBOX",
+  "hộp thư": "SUPPORT_INBOX",
+  "hàng đợi": "SUPPORT_INBOX",
 };
 
 export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
@@ -78,6 +82,7 @@ export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
   show_review_management: "REVIEW_MANAGEMENT",
   show_appointment_management: "APPOINTMENTS",
   show_media_manager: "MEDIA_MANAGER",
+  show_support_inbox: "SUPPORT_INBOX",
 };
 
 export const WIDGET_VI_LABEL: Record<string, string> = {
@@ -97,4 +102,5 @@ export const WIDGET_VI_LABEL: Record<string, string> = {
   APPOINTMENTS: "Quản lý Lịch hẹn",
   MEDIA_MANAGER: "Thư viện Ảnh",
   REVENUE_CHART: "Biểu đồ Doanh thu",
+  SUPPORT_INBOX: "Hộp thư Helen AI",
 };

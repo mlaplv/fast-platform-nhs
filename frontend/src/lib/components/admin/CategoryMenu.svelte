@@ -125,21 +125,24 @@
       widget: "REVIEW_MANAGEMENT",
     },
     {
+      id: "support-kb",
+      label: "Hỗ trợ Helen",
+      sublabel: "Đào tạo AI & Inbox",
+      icon: Sparkles,
+      color: "#FF33FF", // vibrant-purple
+      children: [
+        { label: "Tri thức (RAG)", widget: "SUPPORT_KNOWLEDGE" },
+        { label: "Hộp thư AI", widget: "SUPPORT_INBOX" },
+      ]
+    },
+    {
       id: "system",
-      label: "Cấu hình hệ thống",
-      sublabel: "Node Config & Rules",
+      label: "Cấu hình",
+      sublabel: "Node Config & Control",
       icon: Globe,
       color: "#00F3FF",
       widget: "SYSTEM_SETTINGS",
     },
-    {
-      id: "support-kb",
-      label: "Hỗ trợ Helen",
-      sublabel: "Đào tạo AI & Tri thức",
-      icon: Sparkles,
-      color: "#FF33FF",
-      widget: "SUPPORT_KNOWLEDGE",
-    }
   ];
 
   let itemsRevealed = $state(0);

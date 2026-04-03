@@ -14,6 +14,8 @@
   import VoiceSettings from "./management/VoiceSettings.svelte";
   import SystemSettings from "./management/SystemSettings.svelte";
   import ReviewManagement from "./management/ReviewManagement.svelte";
+  import SupportKnowledgeManagement from "./management/SupportKnowledgeManagement.svelte";
+  import SupportInbox from "./management/SupportInbox.svelte";
 
   const WIDGET_REGISTRY: Record<string, Component<BaseWidgetProps>> = {
     RevenueChart: RevenueChart as Component<BaseWidgetProps>,
@@ -32,6 +34,8 @@
     VOICE_SETTINGS: VoiceSettings as Component<BaseWidgetProps>,
     SYSTEM_SETTINGS: SystemSettings as Component<BaseWidgetProps>,
     REVIEW_MANAGEMENT: ReviewManagement as Component<BaseWidgetProps>,
+    SUPPORT_KNOWLEDGE: SupportKnowledgeManagement as Component<BaseWidgetProps>,
+    SUPPORT_INBOX: SupportInbox as Component<BaseWidgetProps>,
   };
 
   let ActiveWidget = $derived(

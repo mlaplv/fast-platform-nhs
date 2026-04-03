@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import ReviewGates from '$lib/components/admin/management/ReviewGates.svelte';
+    import SupportQuickWidget from '$lib/components/admin/widgets/SupportQuickWidget.svelte';
     import XohiLogo from '$lib/components/admin/XohiLogo.svelte';
     import { fade } from 'svelte/transition';
 
@@ -86,6 +87,9 @@
             <XohiLogo variant="simple" size={80} />
         </div>
     {:else}
+        <div class="mb-8">
+            <SupportQuickWidget />
+        </div>
         <div class="grid gap-6">
             {#each campaigns as _, i (campaigns[i].id)}
                 <div class="campaign-card bg-gray-900/40 border border-white/5 rounded-2xl p-6 hover:border-white/10 transition-all duration-500 group" in:fade>

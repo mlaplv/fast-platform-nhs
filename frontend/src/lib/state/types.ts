@@ -36,7 +36,8 @@ export type WidgetType =
   | "BANNER_MANAGEMENT"
   | "APPOINTMENTS"
   | "REVIEW_MANAGEMENT"
-  | "SUPPORT_KNOWLEDGE";
+  | "SUPPORT_KNOWLEDGE"
+  | "SUPPORT_INBOX";
 
 export type NanoBotState =
   | "IDLE"
