@@ -40,7 +40,7 @@ class ClientPulseController(Controller):
             from backend.services.xohi_memory import xohi_memory
             
             # Initial keep-alive to establish connection
-            yield f": link-success for session {session_id}\n\n".encode("utf-8")
+            yield b": link-success\n\n"
             
             if not xohi_memory._use_redis or not xohi_memory.client:
                 logger.error("[ClientPulse] Redis is offline. Cannot stream events.")
@@ -50,48 +50,45 @@ class ClientPulseController(Controller):
             channel: str = f"pulse:{session_id}"
             cache_key: str = f"pulse:{session_id}:cache"
             
-            # --- PHASE 1: CATCH-UP (STATEFUL PULSE - Elite V2.2) ---
-            # Check if a fast-processing worker already finished before the connection was ready.
+            # --- PHASE 1: ACTIVE LISTENING (Elite V2.2 Resilience) ---
+            # R82.31: We SUBSCRIBE FIRST to ensure we catch the wave while checking the history.
+            await pubsub.subscribe(channel)
+            logger.info(f"[ClientPulse] Session {session_id} linked to Redis channel {channel} (Pre-emptive).")
+
+            # --- PHASE 2: CATCH-UP (Stateful Pulse) ---
             try:
                 cached_data: Union[str, None] = await xohi_memory.client.get(cache_key)
                 if cached_data:
                     payload: dict[str, object] = json.loads(cached_data)
-                    data: dict[str, object] = {
-                        "event": "SUPPORT_RESPONSE_READY",
-                        "payload": payload,
-                    }
-                    logger.info(f"[ClientPulse] Cache hit for session {session_id}. Delivering immediately.")
-                    yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n".encode("utf-8")
+                    logger.info(f"[ClientPulse] Cache hit for session {session_id}. Delivering missed event.")
+                    
+                    # Elite V2.6: Standard Named SSE Format
+                    yield b"event: SUPPORT_RESPONSE_READY\n"
+                    yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
                     
                     if payload.get("status") == "DONE":
                         logger.info(f"[ClientPulse] Session {session_id} stateful delivery complete. Closing.")
                         return
             except Exception as ce:
                 logger.warning(f"[ClientPulse] Cache catch-up failed: {ce}")
-
-            # --- PHASE 2: REAL-TIME (PUB/SUB) ---
-            await pubsub.subscribe(channel)
-            logger.info(f"[ClientPulse] Session {session_id} linked to Redis channel {channel}.")
             
+            # --- PHASE 3: REAL-TIME STREAMING ---
             try:
                 while True:
                     try:
-                        # Wait for message with a heartbeat timeout
-                        # pubsub.get_message returns None if no message, so we use loop with sleep
+                        # R88: Heartbeat/Listen Loop with SSE Protocol logic
                         message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=15.0)
                         
                         if message and message['type'] == 'message':
                             payload = json.loads(message['data'])
                             
-                            data = {
-                                "event": "SUPPORT_RESPONSE_READY",
-                                "payload": payload,
-                            }
-                            yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n".encode("utf-8")
+                            # Elite V2.6: Standard Named SSE Format (Mandatory for Frontend Listeners)
+                            yield b"event: SUPPORT_RESPONSE_READY\n"
+                            yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
                             
-                            # For Elite V2.2, we close after completion to save RAM (2GB limit).
+                            # Elite V2.2: Dispose Resource immediately on DONE status (RAM 2GB target)
                             if payload.get("status") == "DONE":
-                                logger.info(f"[ClientPulse] Session {session_id} response delivered. Closing.")
+                                logger.info(f"[ClientPulse] Session {session_id} real-time response delivered. Closing.")
                                 break
                         elif message is None:
                             # Standard Heartbeat

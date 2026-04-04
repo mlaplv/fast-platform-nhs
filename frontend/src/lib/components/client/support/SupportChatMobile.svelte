@@ -261,7 +261,13 @@
                 </button>
               {:else if msg.role === 'assistant'}
                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                <div class="text-[17px]">{@html msg.content.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-black">$1</strong>').replace(/\n/g, '<br/>')}</div>
+                <div class="text-[17px]">
+                  {@html msg.content
+                    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-black">$1</strong>')
+                    .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" class="helen-cta-btn">$1</a>')
+                    .replace(/\n/g, '<br/>')
+                  }
+                </div>
               {:else}
                 {msg.content}
               {/if}
@@ -386,5 +392,36 @@
 
   .pause-animations, .pause-animations * {
     animation-play-state: paused !important;
+  }
+
+  /* Elite V2.2: Helen CTA Button (Viral 2026 Aesthetic) */
+  :global(.helen-cta-btn) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1.5rem;
+    padding: 1.25rem 2.5rem;
+    background: linear-gradient(135deg, #00A3FF 0%, #005B99 100%);
+    color: white !important;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-radius: 9999px;
+    box-shadow: 0 10px 25px rgba(0, 163, 255, 0.3);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-decoration: none !important;
+    width: 100%;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  :global(.helen-cta-btn:hover) {
+    transform: scale(1.03) translateY(-2px);
+    box-shadow: 0 15px 35px rgba(0, 163, 255, 0.4);
+    filter: brightness(1.1);
+  }
+
+  :global(.helen-cta-btn:active) {
+    transform: scale(0.98);
   }
 </style>

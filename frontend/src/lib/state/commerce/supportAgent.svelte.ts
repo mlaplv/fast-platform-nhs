@@ -50,6 +50,9 @@ export interface SupportChatResponse {
     reply: string;
     intent?: string;
     product_info?: SupportProductInfo;
+    status: "DONE" | "PROCESSING" | "FAILED";
+    task_id?: string;
+    session_id?: string;
 }
 
 const STORAGE_KEY = "fp_helen_sid";
@@ -79,6 +82,10 @@ class SupportAgentState {
         if (this.currentPath.startsWith("/checkout")) return "checkout";
         return "default";
     });
+    
+    // Pulse Lifecycle Manager
+    private _pulseSource: EventSource | null = null;
+
     
     // Persistent Session UUID
     private _sessionId: string = "";
@@ -282,6 +289,67 @@ class SupportAgentState {
 
     close() {
         this.isOpen = false;
+        if (this._pulseSource) {
+            this._pulseSource.close();
+            this._pulseSource = null;
+        }
+    }
+
+    /**
+     * Elite V2.2: Unified Pulse Listener (The Neuro-Link)
+     * Listens for background task completion via SSE and updates UI in real-time.
+     */
+    private _connectPulse(sessionId: string) {
+        if (!browser || this._pulseSource) return;
+
+        console.log(`[Pulse] Connecting to Helen Neural Link: ${sessionId}`);
+        this._pulseSource = new EventSource(`/api/v1/client/support/pulse/${sessionId}`);
+
+        this._pulseSource.addEventListener("SUPPORT_RESPONSE_READY", (event: MessageEvent) => {
+            try {
+                const data = JSON.parse(event.data);
+                console.log("[Pulse] Received support response:", data);
+
+                if (data.status === "DONE" && data.reply) {
+                    // Update the 'Processing' placeholder message with real AI content
+                    const messages = [...this.messages];
+                    const lastAssistantIdx = messages.findLastIndex(m => m.role === "assistant");
+                    
+                    if (lastAssistantIdx !== -1) {
+                        messages[lastAssistantIdx] = {
+                            ...messages[lastAssistantIdx],
+                            content: data.reply,
+                            intent: data.intent || messages[lastAssistantIdx].intent,
+                            timestamp: new Date() // Final timestamp
+                        };
+                        this.messages = messages;
+                    }
+                    
+                    this.vibrate([10, 50, 10]); // Subtle neural pulse feedback
+                    this.isTyping = false;
+                    this._disconnectPulse();
+                }
+            } catch (e) {
+                console.error("[Pulse] Error parsing pulse data:", e);
+            }
+        });
+
+        this._pulseSource.onerror = (err) => {
+            console.error("[Pulse] SSE connection error:", err);
+            this._disconnectPulse();
+            this.isTyping = false;
+        };
+
+        // Auto-kill pulse if it hangs for more than 60s
+        setTimeout(() => this._disconnectPulse(), 60000);
+    }
+
+    private _disconnectPulse() {
+        if (this._pulseSource) {
+            this._pulseSource.close();
+            this._pulseSource = null;
+            console.log("[Pulse] Helen Neural Link closed.");
+        }
     }
 
     async sendMessage(text: string, productSlug?: string, customerName?: string, customerPhone?: string) {
@@ -318,6 +386,14 @@ class SupportAgentState {
                         timestamp: new Date()
                     }
                 ];
+
+                // Check for Async Protocol (Elite V2.2)
+                if (res.status === "PROCESSING") {
+                    this.isTyping = true;
+                    this._connectPulse(this._sessionId);
+                } else {
+                    this.isTyping = false;
+                }
             } else {
                 throw new Error("Empty response or missing reply field");
             }
