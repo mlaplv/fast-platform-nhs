@@ -9,10 +9,13 @@ from litestar.di import Provide
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.services.ai_service import ai_service
 from backend.schemas.common import SuccessResponse
+from sqlalchemy import func, select
+from backend.services.ai_engine.core.brain_manager import brain_manager
 from backend.schemas.ai import (
     KeyStats, BulkKeyInput, ModelConfig, AIModelStatusResponse,
-    ModelDiscoveryResponse
+    ModelDiscoveryResponse, BrainStatus, BrainAuditItem
 )
+from backend.database.models import ProductBase, ProductEmbedding
 
 from backend.guards import PermissionGuard
 from backend.constants.permissions import PermissionEnum
@@ -26,6 +29,9 @@ class AIManagementController(Controller):
     path = "/api/v1/admin/ai"
     guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
     tags = ["AI Management"]
+    
+    _start_time = time.time()
+    _last_sync = 0.0
 
     @get("/keys")
     async def get_all_key_stats(self) -> List[KeyStats]:
@@ -83,3 +89,33 @@ class AIManagementController(Controller):
     async def test_key(self, index: int) -> SuccessResponse:
         """Manually trigger a health check for a specific key."""
         return await ai_service.test_key(index)
+
+    @get("/brain/status")
+    async def get_brain_status(self, db_session: "AsyncSession") -> BrainStatus:
+        """Elite V2.2: Real-time Brain Audit."""
+        analytics = await brain_manager.get_node_analytics(db_session)
+        duplicates = await brain_manager.get_semantic_duplicates(db_session)
+        
+        return BrainStatus(
+            total_nodes=analytics["total_entities"],
+            vector_health=analytics["health"],
+            coverage=analytics["coverage"],
+            duplicates=[BrainAuditItem(**d) for d in duplicates],
+            uptime=round(time.time() - self._start_time, 1),
+            last_sync=self._last_sync,
+            stability_score=analytics["health"],
+            vector_engine="trinity_core_v2.2"
+        )
+
+    @post("/brain/sync")
+    async def sync_brain(self, db_session: "AsyncSession") -> SuccessResponse:
+        """Re-calculate all knowledge embeddings."""
+        await brain_manager.sync_all_embeddings(db_session)
+        AIManagementController._last_sync = time.time()
+        return SuccessResponse(ok=True)
+
+    @post("/brain/purge")
+    async def purge_brain(self, db_session: "AsyncSession") -> SuccessResponse:
+        """Remove orphan embeddings and redundant nodes."""
+        await brain_manager.purge_orphans(db_session)
+        return SuccessResponse(ok=True)

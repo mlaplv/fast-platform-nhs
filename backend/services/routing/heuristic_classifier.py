@@ -81,6 +81,16 @@ async def heuristic_classify(combined_lower: str, user_id: str, context: Optiona
     if any(kw in norm_query for kw in ["gia bao nhieu", "con hang khong", "con ko", "gia sao"]): target = "product"
     if target == "none" and (timeframe != "none" or any(kw in norm_query for kw in ["the con", "con", "va"])):
         target = (context or {}).get("last_target", "none")
+    
+    # --- Greeting Logic (Elite V2.2) ---
+    if target == "none" and any(kw in norm_query for kw in NORM_GREETING_KEYWORDS):
+        return IntentResponse(
+            status="success", action=IntentAction.READ, 
+            message=(context or {}).get("profile", {}).get("greeting_template", "Dạ?"),
+            router_tier=RouterTier.TIER_1_HEURISTIC,
+            data={"intent_type": "SESSION_CTRL", "category": "SESSION_CTRL", "action": "WAKE_ROUTINE"}
+        )
+
     if target == "none": return None
     if timeframe == "none" and target in ["revenue", "order"]: timeframe = (context or {}).get("last_timeframe", "none")
     if context is not None: context["last_target"], context["last_timeframe"] = target, timeframe
@@ -120,7 +130,7 @@ async def heuristic_classify(combined_lower: str, user_id: str, context: Optiona
     if intent_type == "MUTATE":
         response_msg = f"Sếp muốn {VI_VERB_MAP.get(verb, verb)} {VI_TARGET_MAP.get(target, target)}" + (f' "{extracted_entities["name"]}"' if "name" in extracted_entities else "") + ". Xác nhận thông tin bên dưới ạ."
     elif intent_type == "UI_NAV":
-        response_msg = {"revenue": "Dạ sếp, em mở biểu đồ doanh thu cho sếp ngay đây ạ.", "order": "Dạ sếp, em mở quản lý đơn hàng cho sếp ngay đây ạ.", "product": "Dạ sếp, em mở quản lý sản phẩm cho sếp ngay đây ạ.", "user": "Dạ sếp, em mở danh sách nhân viên cho sếp ngay đây ạ.", "category": "Dạ sếp, em mở quản lý danh mục cho sếp ngay đây ạ.", "news": "Dạ sếp, em mở quản lý bài viết cho sếp ngay đây ạ.", "settings": "Dạ sếp, em mở cài đặt giọng nói cho sếp ngay đây ạ.", "campaign": "Dạ sếp, em mở Content Factory cho sếp ngay đây ạ."}.get(target, "")
+        response_msg = {"revenue": "Dạ sếp, em mở biểu đồ doanh thu cho sếp ngay đây ạ.", "order": "Dạ sếp, em mở quản lý đơn hàng cho sếp ngay đây ạ.", "product": "Dạ sếp, em mở quản lý sản phẩm cho sếp ngay đây ạ.", "user": "Dạ sếp, em mở danh sách nhân viên cho sếp ngay đây ạ.", "category": "Dạ sếp, em mở quản lý danh mục cho sếp ngay đây ạ.", "news": "Dạ sếp, em mở quản lý bài viết cho sếp ngay đây ạ.", "settings": "Dạ sếp, em mở cài đặt giọng nói cho sếp ngay đây ạ.", "campaign": "Dạ sếp, em mở Content Factory cho sếp ngay đây ạ.", "brain": "Dạ sếp, em mở Helen Brain — Quản trị tri thức cho sếp ngay đây ạ."}.get(target, "")
 
     res_data = {"intent_type": intent_type, "target": target, "verb": verb, "timeframe": timeframe, "content_mode": content_mode, "ui_action": widget_id, "entities": extracted_entities}
     if intent_type == "UI_NAV": res_data["category"], res_data["action"] = "SESSION_CTRL", "HARDWARE_SLEEP"

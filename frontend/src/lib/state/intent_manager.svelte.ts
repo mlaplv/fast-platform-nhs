@@ -37,7 +37,7 @@ interface IntentDeps {
   };
   ui: {
     setUniversalModalOpen: (val: boolean) => void;
-    showToast: (msg: string, type: ToastType) => void;
+    showToast: (msg: string, type?: string, duration?: number) => void;
   };
   chat: {
     history: import("./chat.svelte").ChatMessage[];
@@ -68,7 +68,7 @@ export function createIntentManager(
     transcript: string,
     responseText: string,
     uiAction: string,
-    data: Record<string, unknown>,
+    data?: Record<string, unknown>,
     source: "text" | "voice" = "text",
     routerTier?: number
   ) {
@@ -100,8 +100,8 @@ export function createIntentManager(
       }
 
       // Flatten data.data if it exists (Smart Flattening Phase 60)
-      if (data.data && typeof data.data === 'object') {
-        state.currentData = { ...state.currentData, ...(data.data as Record<string, unknown>) };
+      if (data?.data && typeof data?.data === 'object') {
+        state.currentData = { ...state.currentData, ...(data?.data as Record<string, unknown>) };
       }
     }
 
@@ -121,15 +121,15 @@ export function createIntentManager(
       const targetWidget = ACTION_WIDGET_MAP[actualUiAction];
 
       if (targetWidget) {
-        const mergedData = { ...state.currentData, ...data };
-        if (data.data && typeof data.data === 'object') {
-          Object.assign(mergedData, data.data);
+        const mergedData = { ...state.currentData, ...(data || {}) };
+        if (data?.data && typeof data?.data === 'object') {
+          Object.assign(mergedData, data?.data);
         }
         state.currentData = mergedData;
         const intentType = (data?.intent_type as string) || "";
         console.log("[DEBUG TRACE] processAction -> action:", actualUiAction, "intentType:", intentType, "target:", targetWidget);
 
-        const requiresConfirmationForVoice = (d: Record<string, unknown>) => {
+        const requiresConfirmationForVoice = (d?: Record<string, unknown>) => {
           return (
             source === "voice" &&
             (d?.action === "MUTATE" || d?.requires_confirmation === true || d?.intent_type === "MUTATE")

@@ -2,6 +2,7 @@
     import { onMount, onDestroy } from 'svelte';
     import ReviewGates from '$lib/components/admin/management/ReviewGates.svelte';
     import SupportQuickWidget from '$lib/components/admin/widgets/SupportQuickWidget.svelte';
+    import BrainHealthWidget from '$lib/components/admin/widgets/BrainHealthWidget.svelte';
     import XohiLogo from '$lib/components/admin/XohiLogo.svelte';
     import { fade } from 'svelte/transition';
 
@@ -87,8 +88,9 @@
             <XohiLogo variant="simple" size={80} />
         </div>
     {:else}
-        <div class="mb-8">
+        <div class="space-y-8 mb-8">
             <SupportQuickWidget />
+            <BrainHealthWidget />
         </div>
         <div class="grid gap-6">
             {#each campaigns as _, i (campaigns[i].id)}

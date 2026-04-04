@@ -8,6 +8,9 @@
   import Terminal from "lucide-svelte/icons/terminal";
   import Search from "lucide-svelte/icons/search";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import Trash2 from "lucide-svelte/icons/trash-2";
+  import Activity from "lucide-svelte/icons/activity";
+  import BookOpen from "lucide-svelte/icons/book-open";
   import RevenueChart from "../widgets/RevenueChart.svelte";
   import ConfirmModal from "../widgets/ConfirmModal.svelte";
   import UserTable from "../widgets/UserTable.svelte";
@@ -28,6 +31,7 @@ import AppointmentManagement from "../management/AppointmentManagement.svelte";
 import ReviewManagement from "../management/ReviewManagement.svelte";
 import SupportKnowledgeManagement from "../management/SupportKnowledgeManagement.svelte";
 import SupportInbox from "../management/SupportInbox.svelte";
+import BrainManagerWidget from "../management/BrainManagerWidget.svelte";
 
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
@@ -55,6 +59,7 @@ import SupportInbox from "../management/SupportInbox.svelte";
     REVIEW_MANAGEMENT: ReviewManagement,
     SUPPORT_KNOWLEDGE: SupportKnowledgeManagement,
     SUPPORT_INBOX: SupportInbox,
+    BRAIN_MANAGEMENT: BrainManagerWidget,
   };
 
   const WIDGET_LABEL: Record<string, string> = {
@@ -77,6 +82,7 @@ import SupportInbox from "../management/SupportInbox.svelte";
     REVIEW_MANAGEMENT: "QUẢN TRỊ ĐÁNH GIÁ",
     SUPPORT_KNOWLEDGE: "HELEN BRAIN — TRI THỨC AI",
     SUPPORT_INBOX: "HELEN INBOX — GIÁM SÁT HỘI THOẠI",
+    BRAIN_MANAGEMENT: "HELEN BRAIN — QUẢN TRỊ TRI THỨC",
   };
 
   let open = $derived(nanobot.universalModalOpen);
@@ -168,6 +174,46 @@ import SupportInbox from "../management/SupportInbox.svelte";
                 <RefreshCw class="w-3 h-3 text-cyan-400/60 group-hover/refresh:text-cyan-400 transition-colors " />
               </button>
             </div>
+          {:else if nanobot.activeWidget === 'BRAIN_MANAGEMENT'}
+            <div class="flex items-center gap-2 mr-4 animate-in fade-in slide-in-from-right-4 duration-500">
+               <!-- Health Pillar -->
+               <div class="hidden md:flex items-center gap-3 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg mr-2">
+                 <div class="flex items-center gap-1.5">
+                   <Activity class="w-3 h-3 text-emerald-400" />
+                   <span class="text-[9px] font-mono text-gray-400 uppercase">Health</span>
+                   <span class="text-[10px] font-mono font-bold text-emerald-400">{nanobot.brainVectorHealth}%</span>
+                 </div>
+                 <div class="w-px h-3 bg-white/10"></div>
+                 <div class="flex items-center gap-1.5">
+                   <span class="text-[9px] font-mono text-gray-400 uppercase">Nodes</span>
+                   <span class="text-[10px] font-mono font-bold text-white">{nanobot.brainTotalNodes}</span>
+                 </div>
+               </div>
+
+               <button 
+                onclick={() => { nanobot.brainActionTrigger = 'SYNC'; }}
+                disabled={nanobot.isBrainSyncing}
+                class="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-indigo-400 hover:bg-indigo-500/20 transition-all disabled:opacity-50"
+              >
+                <RefreshCw class="w-3 h-3 {nanobot.isBrainSyncing ? 'animate-spin' : ''}" />
+                {nanobot.isBrainSyncing ? 'Sync' : 'Sync'}
+              </button>
+               <button 
+                onclick={() => { nanobot.brainActionTrigger = 'PURGE'; }}
+                class="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/20 transition-all"
+              >
+                <Trash2 class="w-3 h-3" />
+                Purge
+              </button>
+
+              <button 
+                onclick={() => { nanobot.setBrainManualOpen(true); }}
+                class="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/10 border border-cyan-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-cyan-400 hover:bg-cyan-500/20 transition-all"
+              >
+                <BookOpen class="w-3 h-3" />
+                Manual
+              </button>
+            </div>
           {/if}
 
           <SupremeCloseButton 
@@ -179,7 +225,7 @@ import SupportInbox from "../management/SupportInbox.svelte";
       {/if}
 
       <!-- Widget Content (scrollable container managed by widget internally for CONTENT_REVIEW) -->
-      <div class="flex-1 {nanobot.activeWidget === 'CONTENT_REVIEW' || nanobot.activeWidget === 'APPOINTMENTS' || nanobot.activeWidget === 'SUPPORT_INBOX' ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
+      <div class="flex-1 {nanobot.activeWidget === 'CONTENT_REVIEW' || nanobot.activeWidget === 'APPOINTMENTS' || nanobot.activeWidget === 'SUPPORT_INBOX' || nanobot.activeWidget === 'BRAIN_MANAGEMENT' ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
         <ActiveWidget data={WidgetData} isWidget={true} />
       </div>
 

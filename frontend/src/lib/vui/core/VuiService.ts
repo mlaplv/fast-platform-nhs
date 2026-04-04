@@ -49,34 +49,46 @@ export class VuiService {
       const decoder = new TextDecoder();
       let buffer = "";
 
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split("\n");
+              buffer = lines.pop() || "";
 
-          for (const line of lines) {
-            const trimmedLine = line.trim();
-            if (trimmedLine.startsWith("data:")) {
-              const jsonStr = trimmedLine.substring(5).trim();
-              if (!jsonStr) continue;
-              try {
-                yield JSON.parse(jsonStr);
-              } catch (e) {
-                console.warn("[VuiService] JSON Parse Error", jsonStr);
+              for (const line of lines) {
+                const trimmedLine = line.trim();
+                // Phase 22.1: Ignore comments and empty lines
+                if (!trimmedLine || trimmedLine.startsWith(":")) continue;
+
+                if (trimmedLine.startsWith("data:")) {
+                  const jsonStr = trimmedLine.substring(5).trim();
+                  if (!jsonStr) continue;
+                  try {
+                    const event = JSON.parse(jsonStr);
+                    // R04: Ignore sync events in UI but keep connection alive
+                    if (event.phase === "sync") continue;
+                    yield event;
+                  } catch (e) {
+                    console.warn("[VuiService] JSON Parse Error", jsonStr);
+                  }
+                }
               }
             }
+          } catch (e: any) {
+            // R02: Silent Protocol Recovery for HTTP/2 issues
+            if (e.name === 'AbortError' || e.message?.includes('network error')) {
+                console.debug("[VUI] Connection closed normally by browser/proxy.");
+                return;
+            }
+            console.error("[VUI] Stream Read Error:", e);
+            yield { phase: "error", message: "Kết nối gián đoạn, Sếp thử lại nhé." };
+          } finally {
+            reader.releaseLock();
+            await reader.cancel().catch(() => {});
           }
-        }
-      } catch (e) {
-        console.error("[VUI] Stream Read Error:", e);
-        yield { phase: "error", message: "Kết nối gián đoạn, Sếp thử lại nhé." };
-      } finally {
-        reader.releaseLock();
-      }
     } catch (e) {
       console.error("[VUI] Network Error:", e);
       yield { phase: "error", message: "Lỗi mạng hoặc máy chủ bận, Sếp thử lại nhé." };

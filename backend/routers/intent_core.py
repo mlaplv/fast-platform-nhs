@@ -70,7 +70,7 @@ class IntentStreamCore:
 
                 try:
                     # ── Yield initial protocol signal ──
-                    yield b": initial-sync\n\n"
+                    yield sse("sync", {"status": "connected"})
                     yield sse("status", {"step": "stt", "msg": "listening"})
 
                     # Phase 76.3.2: Immediate Transcript Feedback
@@ -292,4 +292,4 @@ class IntentStreamCore:
             "X-Accel-Buffering": "no",
             "X-Content-Type-Options": "nosniff",
         }
-        return Stream(generate(), headers=headers)
+        return Stream(generate(), media_type="text/event-stream", headers=headers)

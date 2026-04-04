@@ -4,6 +4,7 @@
   import Inbox from "lucide-svelte/icons/inbox";
   import Settings from "lucide-svelte/icons/settings";
   import Sparkles from "lucide-svelte/icons/sparkles";
+import Brain from "lucide-svelte/icons/brain";
   import ArrowUpRight from "lucide-svelte/icons/arrow-up-right";
   import { fade, fly } from "svelte/transition";
 
@@ -23,6 +24,14 @@
       icon: Inbox,
       color: "from-purple-500 to-pink-600",
       widget: "SUPPORT_INBOX"
+    },
+    {
+      id: "brain",
+      label: "Brain Hub",
+      sub: "Audit & Đồng bộ",
+      icon: Brain,
+      color: "from-indigo-500 to-purple-600",
+      widget: "BRAIN_MANAGEMENT"
     },
     {
       id: "settings",
@@ -63,7 +72,7 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {#each actions as action, i}
         <button
           onclick={() => openAction(action.widget)}

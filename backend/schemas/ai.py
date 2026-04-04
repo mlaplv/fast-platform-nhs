@@ -29,3 +29,24 @@ class ModelDiscoveryResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     status: str
     models: List[str]
+
+class BrainAuditItem(BaseModel):
+    model_config = ConfigDict(strict=True)
+    type: str
+    original_id: Optional[str] = None
+    duplicate_id: Optional[str] = None
+    name: str
+    reason: str
+
+class BrainStatus(BaseModel):
+    model_config = ConfigDict(strict=True, populate_by_name=True)
+    total_nodes: int = Field(alias="total_nodes")
+    vector_health: float = Field(alias="vector_health")
+    coverage: float = Field(default=0.0)
+    duplicates: List[BrainAuditItem]
+    
+    # Elite V2.2 Telemetry
+    uptime: float = Field(default=0.0)
+    last_sync: float = Field(default=0.0)
+    vector_engine: str = Field(default="trinity_core_v2.2")
+    stability_score: float = Field(default=100.0)

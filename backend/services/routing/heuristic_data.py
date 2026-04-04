@@ -20,6 +20,7 @@ TARGET_KEYWORDS = {
     "news":    ["tin tuc", "bai viet", "viet bai", "sang tac", "content", "bai dang"],
     "settings": ["cai dat", "setting", "cau hinh", "voice", "giong noi", "am thanh", "skills", "ky nang"],
     "campaign": ["campaign", "chien dich", "chien dichh", "chien dichx", "camp", "canh pain", "cam pain"],
+    "brain":    ["brain", "nao", "tri thuc", "quan tri nao", "helen brain", "bo nao"],
 }
 
 MODE_KEYWORDS = {
@@ -40,6 +41,7 @@ QUESTION_KEYWORDS = ["co khong", "chua", "roi"]
 MUTATE_KEYWORDS = ["them", "tao", "xoa", "sua", "update", "create", "delete"]
 DELETE_KEYWORDS = ["xóa", "xoa", "delete", "bỏ", "bo", "hủy", "huy"]
 EDIT_KEYWORDS = ["sửa", "sua", "edit", "update", "cập nhật", "cap nhat", "đổi", "doi"]
+GREETING_KEYWORDS = ["ban oi", "oi", "hello", "hi", "xin chao", "chao ban", "em oi", "xohi", "xo hi", "so hi"]
 
 NAME_MARKERS = ["tên là ", "ten la ", "tên ", "ten "]
 NAME_STOP_WORDS = ["email", "mật khẩu", "vai trò", "giá", "mô tả"]
@@ -53,10 +55,11 @@ TARGET_TO_WIDGET = {
     "news":     "show_news_management",
     "settings": "show_voice_settings",
     "campaign": "show_campaigns",
+    "brain":    "show_brain",
 }
 
 VI_VERB_MAP = {"create": "tạo", "edit": "sửa", "delete": "xóa"}
-VI_TARGET_MAP = {"user": "nhân viên", "product": "sản phẩm", "category": "danh mục", "order": "đơn hàng", "news": "bài viết", "campaign": "chiến dịch"}
+VI_TARGET_MAP = {"user": "nhân viên", "product": "sản phẩm", "category": "danh mục", "order": "đơn hàng", "news": "bài viết", "campaign": "chiến dịch", "brain": "brain"}
 
 # --- Phase 76.3: Pre-Normalized Keywords ---
 NORM_TARGET_KEYWORDS = {tgt: [normalize_vn(kw) for kw in kws] for tgt, kws in TARGET_KEYWORDS.items()}
@@ -68,3 +71,4 @@ NORM_LEARN_KEYWORDS = [normalize_vn(kw) for kw in LEARN_KEYWORDS]
 NORM_MUTATE_KEYWORDS = [normalize_vn(kw) for kw in MUTATE_KEYWORDS]
 NORM_NAV_EXPLICIT = {normalize_vn(kw) for kw in ["bieu do", "mo", "xem", "vao", "show"]}
 NORM_CONTENT_FACTORY = {normalize_vn(kw) for kw in ["viet bai", "sang tac", "content", "tao san pham"]}
+NORM_GREETING_KEYWORDS = {normalize_vn(kw) for kw in GREETING_KEYWORDS}

@@ -37,7 +37,8 @@ export type WidgetType =
   | "APPOINTMENTS"
   | "REVIEW_MANAGEMENT"
   | "SUPPORT_KNOWLEDGE"
-  | "SUPPORT_INBOX";
+  | "SUPPORT_INBOX"
+  | "BRAIN_MANAGEMENT";
 
 export type NanoBotState =
   | "IDLE"
@@ -309,6 +310,7 @@ export interface CampaignData {
     analysis_cache?: AnalysisCache;
     analysis_metrics?: CampaignMetrics;
   };
+  [key: string]: any;
 }
 
 export interface PulsePayload {

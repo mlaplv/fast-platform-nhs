@@ -133,6 +133,7 @@
       children: [
         { label: "Tri thức (RAG)", widget: "SUPPORT_KNOWLEDGE" },
         { label: "Hộp thư AI", widget: "SUPPORT_INBOX" },
+        { label: "Brain Manager", widget: "BRAIN_MANAGEMENT" },
       ]
     },
     {

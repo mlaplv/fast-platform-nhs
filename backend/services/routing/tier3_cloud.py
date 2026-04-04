@@ -148,17 +148,27 @@ class Tier3CloudRouter:
             ) as result:
                 # [V81.2] Use stream_structured for agents with output_type
                 last_len = 0
-                async for structured, _ in result.stream_structured(debounce_by=None):
-                    msg = structured.message or ""
-                    if len(msg) > last_len:
-                        chunk = msg[last_len:]
-                        yield chunk
-                        last_len = len(msg)
+                try:
+                    async for structured, _ in result.stream_structured(debounce_by=None):
+                        # Safety: structured could be None or message field could be missing during early frames
+                        if not structured: continue
+                        msg = getattr(structured, "message", "") or ""
+                        if len(msg) > last_len:
+                            chunk = msg[last_len:]
+                            yield chunk
+                            last_len = len(msg)
+                except (asyncio.CancelledError, GeneratorExit):
+                    logger.debug("[T3 Stream] Loop interrupted by client.")
+                    raise # Propagate to exit async with cleanly
+                except Exception as e:
+                    logger.error(f"[T3 Stream] Inner loop failure: {e}")
+                    # Phase 22.2: Do not re-yield here to avoid corrupting stream framing
                     
         except (asyncio.CancelledError, GeneratorExit):
             # Normal exit/cancellation — strictly do not yield or await here
             logger.debug("[T3 Stream] Connection closed by client.")
-            raise # Re-raise to let the stream close properly
+            return # Exit generator gracefully
         except Exception as e:
+            # Check if generator is still valid before yielding
             logger.error(f"[T3 Stream] Critical failure: {e}")
-            yield "Dạ, hệ thống đang gặp lỗi xử lý dòng dữ liệu ạ."
+            return
