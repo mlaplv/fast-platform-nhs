@@ -138,14 +138,20 @@ class SupportAgentOperative(BaseAgentOperative):
             return "\n[LỊCH SỬ GẦN ĐÂY]\n" + "\n".join(h_parts) + "\n"
         except: return ""
 
-    def _calculate_delivery_time(self, address: str) -> str:
-        """Elite V2.5 High-Fidelity Shipping Estimator."""
+    def _calculate_delivery_time(self, address: str, shipping_days: Optional[str] = None) -> str:
+        """Elite V2.5: Logistics-Integrated Shipping Estimator."""
+        # 1. Use high-fidelity data from Resolver if available
+        if shipping_days: return shipping_days
+        
+        # 2. Fallback to heuristic keyword matching (R0.3 Heritage)
         if not address: return "2-3 ngày"
         addr: str = address.lower()
-        hcm_keys: List[str] = ["hồ chí minh", "tp.hcm", "hcm", "sài gòn", "phú lâm", "quận 1", "quận 2", "quận 3", "quận 4", "quận 5", "quận 6", "quận 7", "quận 8", "quận 9", "quận 10", "quận 11", "quận 12", "bình tân", "bình thạnh", "gò vấp", "phú nhuận", "tân bình", "tân phú", "thủ đức", "hóc môn", "củ chi", "nhà bè", "bình chánh", "cần giờ"]
-        if any(key in addr for key in hcm_keys): return "1-2 ngày"
-        south_keys: List[str] = ["bình phước", "bình dương", "đồng nai", "tây ninh", "vũng tàu", "long an", "tiền giang", "vĩnh long", "bến tre", "kiên giang", "cần thơ", "hậu giang", "trà vinh", "sóc trăng", "bạc liêu", "cà mau"]
-        if any(key in addr for key in south_keys): return "2-3 ngày"
+        hcm_keys = ["hồ chí minh", "tp.hcm", "hcm", "sài gòn", "phú lâm", "quận 1", "quận 2", "quận 3", "quận 4", "quận 5", "quận 6", "quận 7", "quận 8", "quận 9", "quận 10", "quận 11", "quận 12", "bình tân", "bình thạnh", "gò vấp", "phú nhuận", "tân bình", "tân phú", "thủ đức", "hóc môn", "củ chi", "nhà bè", "bình chánh", "cần giờ"]
+        if any(key in addr for key in hcm_keys): return "1 ngày"
+        
+        south_keys = ["bình phước", "bình dương", "đồng nai", "tây ninh", "vũng tàu", "long an", "tiền giang", "vĩnh long", "bến tre", "kiên giang", "cần thơ", "hậu giang", "trà vinh", "sóc trăng", "bạc liêu", "cà mau"]
+        if any(key in addr for key in south_keys): return "1-2 ngày"
+        
         return "3-5 ngày"
 
     async def _build_prompt_directive(self, product_ctx: str, history_text: str = "", lead_metadata: Optional[Dict[str, object]] = None) -> str:
@@ -195,7 +201,7 @@ class SupportAgentOperative(BaseAgentOperative):
                         if isinstance(it, dict): total_qty += int(it.get("quantity", 1))
                 
                 formatted_price: str = "{:,.0f}".format(float(order_obj.total_amount or 0)).replace(",", ".")
-                delivery_info: str = self._calculate_delivery_time(order_obj.customer_address or "")
+                delivery_info: str = self._calculate_delivery_time(order_obj.customer_address or "", getattr(lead_data, "shipping_days", None))
                 
                 reply = (
                     f"Dạ Helen xin cảm ơn quý khách! 🌸\nĐơn hàng thành công:\n- Mã đơn: **{order_id[-8:].upper()}**\n"

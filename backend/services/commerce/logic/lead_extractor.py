@@ -14,6 +14,7 @@ from sqlalchemy import select, or_
 
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.commerce.order import order_service
+from backend.services.commerce.logic.location_resolver import location_resolver, ResolvedLocation
 from backend.services.user_service import user_service
 from backend.schemas.order import OrderCreateRequest
 from backend.database.models import ProductBase
@@ -46,6 +47,7 @@ class ExtractedLead(BaseModel):
     previous_address: Optional[str] = Field(None, description="Địa chỉ cũ của khách nếu có")
     processed_order_id: Optional[str] = Field(None, description="ID đơn hàng đã tạo (nếu có)")
     needs_price_quote: bool = Field(False, description="True nếu số lượng quá lớn (>6) cần báo giá riêng")
+    shipping_days: Optional[str] = Field(None, description="Thời gian giao hàng dự kiến")
 
 _lead_extraction_agent = Agent(
     output_type=ExtractedLead,
@@ -128,6 +130,22 @@ class LeadExtractor:
 
             # 2. DATA HYGIENE
             lead.customer_phone = validate_vietnam_phone(lead.customer_phone or "")
+            
+            # 2.1 ADDRESS RESOLUTION (Elite V2.2)
+            if lead.customer_address:
+                resolved = location_resolver.resolve(lead.customer_address)
+                if resolved.is_valid:
+                    # Construct a professional standardized address
+                    std_addr = f"{resolved.house_number or ''} {resolved.street or ''}".strip()
+                    if resolved.ward: std_addr += f", {resolved.ward}"
+                    if resolved.district: std_addr += f", {resolved.district}"
+                    if resolved.province: std_addr += f", {resolved.province}"
+                    
+                    lead.customer_address = std_addr
+                    lead.shipping_days = resolved.shipping_days
+                    logger.info(f"[LeadExtractor] Address Resolved: {lead.customer_address} (Score: {resolved.score}, Days: {lead.shipping_days})")
+                else:
+                    logger.warning(f"[LeadExtractor] Address Resolution Low Confidence for: {lead.customer_address}")
 
             # 3. IDENTITY RESOLUTION (Elite V2.2)
             from backend.database import current_tenant_id
