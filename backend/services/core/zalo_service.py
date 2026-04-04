@@ -1,6 +1,6 @@
 import logging
 import asyncio
-import requests
+import httpx
 import os
 from typing import Optional, Dict
 
@@ -10,15 +10,18 @@ class ZaloService:
     """
     Elite V2.2: Zalo Intelligence (Business OA Edition) thưa sếp!
     Hỗ trợ đồng bộ tin nhắn khách hàng trực tiếp về Zalo OA của Admin.
+    Native Async I/O (Rule R01) implementation using httpx.
     """
 
     def __init__(self):
         self.api_base = "https://openapi.zalo.me/v2.0/oa"
         self.token_url = "https://oauth.zaloapp.com/v4/oa/access_token"
 
-    @staticmethod
-    def _check_sync(phone: str) -> bool:
-        """Worker function chạy trong thread riêng để không block Event Loop."""
+    async def check_existence(self, phone: str) -> bool:
+        """Kiểm tra sự tồn tại của Zalo user (Native Async - R00)."""
+        if not phone:
+            return False
+            
         try:
             # Format phone chuẩn Việt Nam (Bỏ dấu cách, dấu +)
             clean_phone = "".join(filter(str.isdigit, phone))
@@ -26,29 +29,25 @@ class ZaloService:
                 clean_phone = "0" + clean_phone[2:]
 
             url = f"https://zalo.me/{clean_phone}"
-            # Giả lập Mobile Browser để Zalo không chặn bot thưa sếp!
+            # Giả lập Mobile Browser để Zalo không chặn bot
             headers = {
                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1"
             }
 
-            response = requests.get(url, headers=headers, timeout=5, allow_redirects=True)
-            content = response.text.lower()
+            async with httpx.AsyncClient(follow_redirects=True, timeout=5.0) as client:
+                response = await client.get(url, headers=headers)
+                content = response.text.lower()
+                final_url = str(response.url)
 
-            # Dấu hiệu nhận diện tài khoản tồn tại thưa sếp!
-            if "nhắn tin cho" in content or "zalo -" in content or "zalo.me/" in response.url:
-                if response.url.strip("/") != "https://zalo.me":
-                    return True
+                # Dấu hiệu nhận diện tài khoản tồn tại
+                if "nhắn tin cho" in content or "zalo -" in content or "zalo.me/" in final_url:
+                    if final_url.strip("/") != "https://zalo.me":
+                        return True
 
             return False
         except Exception as e:
             logger.error(f"[ZaloService] Check failed for {phone}: {e}")
             return False
-
-    async def check_existence(self, phone: str) -> bool:
-        """Async wrapper cho hàm check đồng bộ thưa sếp!"""
-        if not phone:
-            return False
-        return await asyncio.to_thread(self._check_sync, phone)
 
     def generate_deep_link(self, phone: str, message: str) -> str:
         """Tạo link mở Zalo và điền sẵn tin nhắn thưa sếp!"""
@@ -60,14 +59,14 @@ class ZaloService:
     async def _get_access_token(self) -> Optional[str]:
         """
         Lấy Access Token từ Redis hoặc Refresh từ Zalo API thưa sếp!
-        Sử dụng cơ chế Singleton Cache để tối ưu Performance.
+        Native Async via httpx (Rule R102).
         """
         from backend.services.xohi_memory import xohi_memory
         
         # 1. Thử lấy từ Redis trước
         token = await xohi_memory.client.get("system:zalo_oa_access_token")
         if token:
-            return token
+            return token if isinstance(token, str) else token.decode("utf-8")
 
         # 2. Nếu không có, thực hiện Refresh
         refresh_token = os.getenv("ZALO_OA_REFRESH_TOKEN")
@@ -89,23 +88,20 @@ class ZaloService:
                 "secret_key": client_secret
             }
             
-            # Sử dụng to_thread để tránh block Loop khi gọi requests.post
-            response = await asyncio.to_thread(
-                requests.post, self.token_url, data=payload, headers=headers, timeout=10
-            )
-            data = response.json()
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(self.token_url, data=payload, headers=headers)
+                data = response.json()
 
             if "access_token" in data:
                 new_token = data["access_token"]
                 new_refresh = data.get("refresh_token")
-                expires_in = int(data.get("expires_in", 3600)) - 60 # Trừ 1 phút cho an toàn
+                expires_in = int(data.get("expires_in", 3600)) - 60
 
                 # Lưu Access Token vào Redis
                 await xohi_memory.client.set("system:zalo_oa_access_token", new_token, ex=expires_in)
                 
                 # CẬP NHẬT REFRESH TOKEN MỚI (Zalo 2.0 xoay vòng refresh token)
                 if new_refresh:
-                    # Lưu vào Redis để dùng cho lần sau, sếp cần update lại .env định kỳ nếu VPS restart
                     await xohi_memory.client.set("system:zalo_oa_refresh_token", new_refresh)
                     logger.info("[ZaloService] Zalo OA Refresh Token rotated successfully.")
                 
@@ -120,7 +116,7 @@ class ZaloService:
     async def push_support_notification(self, customer_name: str, message: str, session_id: str):
         """
         Đẩy thông báo chat khách hàng vào Zalo OA của Admin thưa sếp!
-        Địa chỉ đích: ZALO_ADMIN_ID trong .env
+        Native Async (Elite R03 - Full I/O Safety).
         """
         admin_id = os.getenv("ZALO_ADMIN_ID")
         if not admin_id:
@@ -150,10 +146,10 @@ class ZaloService:
 
         try:
             url = f"{self.api_base}/message"
-            response = await asyncio.to_thread(
-                requests.post, url, json=payload, headers=headers, timeout=10
-            )
-            res_data = response.json()
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(url, json=payload, headers=headers)
+                res_data = response.json()
+                
             if res_data.get("error") != 0:
                 logger.error(f"[ZaloService] Push Failed: {res_data}")
             else:

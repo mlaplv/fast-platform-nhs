@@ -6,7 +6,7 @@ from unstructured chat messages.
 """
 from __future__ import annotations
 import logging
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic_ai import Agent
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,12 +17,19 @@ from backend.schemas.order import OrderCreateRequest, OrderItem
 
 logger = logging.getLogger("api-gateway")
 
+class LeadOrderItem(BaseModel):
+    model_config = ConfigDict(strict=False)
+    name: str = Field(..., description="Tên sản phẩm")
+    quantity: int = Field(1, description="Số lượng")
+    price: Optional[float] = Field(0.0, description="Giá sản phẩm nếu có")
+    id: Optional[str] = Field(None, description="Mã định danh sản phẩm (slug/uuid)")
+
 class ExtractedLead(BaseModel):
     model_config = ConfigDict(strict=False)
     customer_name: Optional[str] = Field(None, description="Tên khách hàng nếu có")
     customer_phone: Optional[str] = Field(None, description="Số điện thoại Việt Nam (10 số)")
     customer_address: Optional[str] = Field(None, description="Địa chỉ giao hàng chi tiết")
-    items: List[Dict[str, Any]] = Field(default_factory=list, description="Danh sách sản phẩm: [{name, quantity, price}]")
+    items: List[LeadOrderItem] = Field(default_factory=list, description="Danh sách sản phẩm trích xuất được")
     is_definite_purchase: bool = Field(False, description="True nếu khách hàng đã xác nhận chốt đơn hoặc đồng ý mua")
 
 import re
@@ -77,9 +84,22 @@ class LeadExtractor:
         Runs the extraction and if a definite purchase is detected, creates a Draft Order.
         """
         try:
-            # 1. AI Extraction (Elite V2.2: Pass model explicitly at runtime)
-            result = await _lead_extraction_agent.run(message, model='google-gla:gemini-1.5-flash')
-            lead: ExtractedLead = result.data
+            # 1. AI Extraction (Elite V2.2: Using TrinityBridge for Dynamic Model Selection)
+            result = await trinity_bridge.run(
+                _lead_extraction_agent, 
+                message, 
+                role="fast",
+                session_id=session_id
+            )
+            
+            # Robust data extraction (Supports multiple pydantic-ai versions)
+            lead = getattr(result, "data", result)
+            if not isinstance(lead, ExtractedLead) and hasattr(result, "output"):
+                lead = result.output
+            
+            if not isinstance(lead, ExtractedLead):
+                logger.error(f"[LeadExtractor] Unexpected result type: {type(result)}. Attrs: {dir(result)}")
+                return None
 
 
             # 2. Refined Validation (Elite V2.2)
@@ -93,17 +113,17 @@ class LeadExtractor:
                 return lead
 
             # 3. Convert to OrderItems (Elite V2.2: Must be dicts for OrderCreateRequest)
-            order_items: List[Dict[str, Any]] = []
+            order_items: List[Dict[str, object]] = []
             total_amount = 0.0
             
             for item in lead.items:
-                p_id = str(item.get("id", current_product_slug or "unknown"))
-                qty = int(item.get("quantity", 1))
-                price = float(item.get("price", 0))
+                p_id = str(item.id or current_product_slug or "unknown")
+                qty = int(item.quantity)
+                price = float(item.price or 0.0)
                 
                 order_items.append({
                     "product_id": p_id,
-                    "name": item.get("name", "Sản phẩm"),
+                    "name": item.name or "Sản phẩm",
                     "quantity": qty,
                     "price": price
                 })

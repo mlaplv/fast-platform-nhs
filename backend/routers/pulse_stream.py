@@ -51,35 +51,34 @@ class PulseStreamController(Controller):
 
     @get("/stream")
     async def stream_pulse(self, request: Request) -> Stream:
-        """Stream system events via Native SSE (Standardized V2.2)."""
+        """Stream system events via Native SSE (Standardized V2.2 - Hardened)."""
         
         async def event_generator(scope: dict) -> AsyncGenerator[bytes, None]:
-            # R76: Queue safety (Limit to 100 events to prevent memory bloat)
             queue = asyncio.Queue(maxsize=100)
             event_bus.subscribe_broadcast(queue)
             logger.info("[PulseStream] Client linked to Agent Pulse.")
             
             start_time = asyncio.get_event_loop().time()
-            max_age = 4 * 3600  # 4-hour hard cut-off to prevent "infinite" zombie leaks (User Rule)
+            max_age = 4 * 3600  # 4-hour hard cut-off
             
             try:
-                # Immediate keep-alive + protocol headers handled by return Stream()
-                yield b": initial-sync\n\n"
+                # Elite V2.2: Protocol handshake
+                yield b": connectivity-handshake\n\n"
                 
                 while True:
                     elapsed = asyncio.get_event_loop().time() - start_time
                     if elapsed > max_age:
-                        logger.info("[PulseStream] Reaching max age (4h). Closing for recycling.")
-                        yield b"event: recycle\ndata: {\"message\": \"Connection age limit reached. Please reconnect.\"}\n\n"
+                        yield b"event: recycle\ndata: {\"message\": \"Recycling connection.\"}\n\n"
                         break
 
                     try:
                         # R82: Standardized 15s Heartbeat (Proxy Friendly)
-                        event = await asyncio.wait_for(queue.get(), timeout=15.0)
+                        # We use a 10s timeout to be safer than the 15s standard
+                        event = await asyncio.wait_for(queue.get(), timeout=10.0)
                         
                         # R82.33: Security — Mask PII unless SUPER_ADMIN
                         user = scope.get("state", {}).get("user", {})
-                        is_super = "SUPER_ADMIN" in user.get("roles", [])
+                        is_super = "SUPER_ADMIN" in (user.get("roles") or [])
                         
                         payload = event.payload
                         if not is_super:
@@ -94,7 +93,9 @@ class PulseStreamController(Controller):
                         
                     except asyncio.TimeoutError:
                         # R82: Standardized Heartbeat Event (Frontend Observable)
+                        # This keeps the TCP connection 'hot' for proxies like Caddy
                         yield b"event: HEARTBEAT\ndata: {}\n\n"
+                        
             except (asyncio.CancelledError, GeneratorExit):
                 logger.info("[PulseStream] Client disconnected (Normal).")
             except Exception as e:
@@ -103,11 +104,13 @@ class PulseStreamController(Controller):
                 event_bus.unsubscribe_broadcast(queue)
                 logger.info("[PulseStream] Client unlinked.")
 
-        # R90: Explicit SSE Headers to bypass proxy buffering and protocol conflicts
+        # Elite V2.2: Hardened Headers for Enterprise Proxies
         headers = {
             "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache, no-transform",
-            "X-Accel-Buffering": "no",  # Critical for Nginx/Caddy
-            "X-Content-Type-Options": "nosniff", # Prevent MIME sniffing
+            "Cache-Control": "no-cache, no-transform, private, must-revalidate",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+            "X-Content-Type-Options": "nosniff",
+            "Transfer-Encoding": "chunked",
         }
         return Stream(event_generator(request.scope), headers=headers)

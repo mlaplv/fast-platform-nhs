@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
@@ -18,10 +18,10 @@ class CampaignSchema(BaseModel):
     status: str = "WAITING_FOR_REVIEW"
     category: str = "CREATIVE_CONTENT"
 
-    gold_metadata: Optional[Dict[str, Any]] = None
-    topic_data: Optional[Dict[str, Any]] = None
-    assets_data: Optional[Union[List[Any], Dict[str, Any]]] = None
-    outline_data: Optional[Dict[str, Any]] = None
+    gold_metadata: Optional[Dict[str, object]] = None
+    topic_data: Optional[Dict[str, object]] = None
+    assets_data: Optional[Union[List[object], Dict[str, object]]] = None
+    outline_data: Optional[Dict[str, object]] = None
     draft_content: Optional[str] = None
     search_count: int = 0
     unique_score: float = 1.0

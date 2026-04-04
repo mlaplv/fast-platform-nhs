@@ -10,6 +10,12 @@ class KeyLoaderMixin:
     def _parse_keys(self, raw: str | None) -> list[str]:
         if not raw:
             return []
+        
+        # Elite V2.2: Strip potential shell wrapping quotes
+        raw = raw.strip()
+        if (raw.startswith("'") and raw.endswith("'")) or (raw.startswith('"') and raw.endswith('"')):
+            raw = raw[1:-1].strip()
+
         try:
             # 1. Try JSON (V2026 Standard)
             decoded = json.loads(raw)
@@ -18,7 +24,9 @@ class KeyLoaderMixin:
             return [str(decoded).strip()]
         except:
             # 2. Fallback to comma-separated
-            return [k.strip() for k in raw.split(",") if k.strip()]
+            # Strip JSON-like brackets if they exist in the raw string before splitting
+            clean_raw = raw.strip("[]")
+            return [k.strip().strip('"').strip("'") for k in clean_raw.split(",") if k.strip()]
 
     async def load_keys(self) -> None:
         """Standardized Key Loading: Merges ENV and DB keys."""

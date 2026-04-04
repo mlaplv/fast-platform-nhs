@@ -42,7 +42,12 @@ class CreativePen:
                 logger.info(f"🖋️ [CreativePen] Writing Draft for {campaign_id}")
                 content = await self.write_draft(campaign)
                 campaign.draft_content = content
-                return AgentResponse(signal=AgentSignal.PROCEED_NEXT, message="Draft generated.", data={"content": content})
+                
+                # CNS V82.1: Immediate memory release for 2GB VPS safety
+                del content
+                gc.collect()
+                
+                return AgentResponse(signal=AgentSignal.PROCEED_NEXT, message="Draft generated.", data={"content": campaign.draft_content})
             return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message=f"Invalid step {step}")
 
     async def generate_outline(self, campaign: ContentCampaign) -> Union[ArticleOutline, Dict[str, object], None]:
@@ -110,6 +115,12 @@ class CreativePen:
                 final_content = self._extract_xohi_metadata(final_content, campaign)
                 
             yield {"type": "final", "content": final_content}
+            
+            # CNS V82.1: Clear massive streaming buffers
+            del full_raw
+            del final_content
+            gc.collect()
+            
         except Exception as e:
             logger.error(f"[CreativePen] Stream Error: {e}"); yield {"type": "error", "message": str(e)}; raise
 

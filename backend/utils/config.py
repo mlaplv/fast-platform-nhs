@@ -1,11 +1,11 @@
 import os
 import json
 import logging
-from typing import List, Any
+from typing import List
 
 logger = logging.getLogger("api-gateway")
 
-def get_env_json(key: str, default: List[Any] = None) -> List[Any]:
+def get_env_json(key: str, default: List[object] = None) -> List[object]:
     """
     Elite V2.2: Safe JSON parsing for Environment Variables (SSOT).
     Supports arrays of keys/CXs for rotation.

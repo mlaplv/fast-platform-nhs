@@ -232,11 +232,16 @@ class AnalystHandler:
 
             try:
                 # 2. PROCEED WITH RECON
-                logs.append("📡 Đang trinh sát Top 10 Google SERP & ADS fragments...")
+                msg = f"📡 Đang thực địa Top 10 Google cho chủ đề: '{topic}'..."
+                logs.append(msg)
+                if campaign_id: await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 1, "message": msg, "status": "PROCESSING"})
+                
                 search_context = await self.orchestrator.discovery.search(topic)
                 
                 # 3. AI STRATEGIC SYNTHESIS
-                logs.append("🧠 Đang giải mã chiến lược đối thủ bằng Neural Engine...")
+                msg = "🧠 Đang giải mã chiến lược đối thủ bằng Neural Engine..."
+                logs.append(msg)
+                if campaign_id: await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 1, "message": msg, "status": "PROCESSING"})
                 
                 scout_prompt = f"""[ROLE] SENIOR CONTENT STRATEGIST — XoHi Intelligence 2026
 Nhiệm vụ: Phân tích sâu 10 đối thủ hàng đầu và lập bản trình báo chiến thuật nội dung.
@@ -247,15 +252,9 @@ Nhiệm vụ: Phân tích sâu 10 đối thủ hàng đầu và lập bản trì
 [YÊU CẦU ĐẦU RA — JSON]
 Trả về một `ScoutReport` (Pydantic Model) bao gồm:
 1. `headlines`: Danh sách 6-10 tiêu đề gợi ý đa kênh.
-   - Phân loại rõ: ADS (Click-bait chất lượng cao), TOP_10 (SEO chuẩn), AI_AUGMENTED (Sáng tạo đột phá).
 2. `semantic_keywords`: 8-12 từ khóa Semantic/LSI quan trọng nhất để "đánh chặn" SEO.
-3. `strategic_analysis`: Bản TRÌNH BÁO CHIẾN LƯỢC (Markdown) cực kỳ chuyên sâu bao gồm:
-   - **Search Intent Decoding**: Giải mã mục đích thực sự và "nỗi đau" của người dùng.
-   - **Competitor Gap Analysis**: Chỉ ra những mảng nội dung/insight mà đối thủ đang bỏ trống hoặc làm hời hợt.
-   - **Elite Execution Roadmap**: Công thức cụ thể để bài viết đạt Information Gain cao nhất, vượt xa Top 1.
+3. `strategic_analysis`: Bản TRÌNH BÁO CHIẾN LƯỢC (Markdown) cực kỳ chuyên sâu.
 4. `ground_truth_summary`: Tóm tắt ngắn gọn bối cảnh thực tế trinh sát được.
-
-CHÚ Ý: Bản trình báo chiến lược phải mang tính THAM KHẢO CHIẾN THUẬT CAO (Actionable Intelligence), không được viết chung chung.
 """
                 agent = Agent(output_type=ScoutReport, system_prompt=scout_prompt)
                 response = await trinity_bridge.run(agent=agent, prompt=f"Tiến hành trình báo chiến lược cho chủ đề: {topic}", role="brain")
@@ -263,7 +262,10 @@ CHÚ Ý: Bản trình báo chiến lược phải mang tính THAM KHẢO CHIẾN
                 report = response.data if hasattr(response, 'data') else response.output
                 
                 # 4. PERSIST TO CACHE
-                logs.append("💾 Đang lưu trữ kết quả trinh sát vào Neural Vault (24h)...")
+                msg = "💾 Đang lưu trữ kết quả trinh sát vào Neural Vault..."
+                logs.append(msg)
+                if campaign_id: await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 1, "message": msg, "status": "PROCESSING"})
+                
                 try:
                     if existing:
                         await scout_repo.delete(existing.id)

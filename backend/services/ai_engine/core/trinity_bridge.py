@@ -43,7 +43,12 @@ class TrinityBridge:
         return self.db_primary_model or self.primary_model
 
     async def initialize(self):
-        if not self._initialized: await self.reload_models(); self._initialized = True
+        if not self._initialized:
+            # Elite V2.2: Ensure keys are loaded if not already done (for non-lifespan entry points)
+            if self.rotator.get_count() == 0:
+                await self.rotator.load_keys()
+            await self.reload_models()
+            self._initialized = True
 
     async def reload_models(self):
         from backend.database.alchemy_config import alchemy_config

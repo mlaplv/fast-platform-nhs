@@ -19,8 +19,21 @@ class TrinityModels:
         cached = await self.rotator.get_discovered_models()
         if cached: return cached
 
-        key = await self.rotator.get_key(model_name=self.default_model)
-        if not key: return []
+        # Elite V2.2: Try to get a key for the default model first
+        key = None
+        try:
+            key = await self.rotator.get_key(model_name=self.default_model)
+        except:
+            # Fallback: Get ANY healthy key just for discovery purposes
+            try:
+                # We try one of the known broad-quota models or just the default
+                key = await self.rotator.get_key(model_name="gemini-1.5-flash")
+            except:
+                pass
+        
+        if not key:
+            logger.warning("[TrinityModels] No keys available for discovery. AI services may be degraded.")
+            return []
 
         url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
         try:
