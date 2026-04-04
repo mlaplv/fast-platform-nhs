@@ -1,13 +1,18 @@
+from __future__ import annotations
 import logging
 import asyncio
 import os
-from typing import Optional, List, Dict
+from typing import Optional, Union, cast, TYPE_CHECKING
 from contextlib import asynccontextmanager
 from pydantic_ai import Agent
 from pydantic_ai.models.google import GoogleModel
 from pydantic_ai.providers.google import GoogleProvider
+from pydantic_ai.settings import ModelSettings
 from backend.services.ai_engine.core.key_rotator import key_rotator
 from .trinity_models import TrinityModels
+
+if TYPE_CHECKING:
+    from pydantic import BaseModel
 
 logger = logging.getLogger("api-gateway")
 
@@ -15,6 +20,13 @@ class AIConfigurationError(Exception):
     def __init__(self, message: str, model: Optional[str] = None, key_index: Optional[int] = None):
         super().__init__(message)
         self.model, self.key_index = model, (key_index + 1) if key_index is not None else None
+
+_G_SAFETY_NONE = [
+    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+]
 
 class TrinityBridge:
     """V65.0: Centralized AI Bridge. Modularized for Martial Law (<300 lines)."""
@@ -75,11 +87,15 @@ class TrinityBridge:
                     
                     logger.info(f"[TrinityBridge] {m_name} (Att {att+1}/{max_k}) (S: {s_id})")
                     system_prompt = kwargs.pop("system_prompt", None)
+                    
+                    # Elite V2.2: Unified Model Provisioning (Pass-by-Reference for 1.77.0 Safety)
+                    model_instance, ms = self._provision_model(m_name, key, kwargs)
+                    
                     if system_prompt:
                         with agent.override(instructions=str(system_prompt)):
-                            res = await asyncio.wait_for(agent.run(prompt, model=GoogleModel(m_name, provider=GoogleProvider(api_key=key)), **kwargs), timeout=t)
+                            res = await asyncio.wait_for(agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), **kwargs), timeout=t)
                     else:
-                        res = await asyncio.wait_for(agent.run(prompt, model=GoogleModel(m_name, provider=GoogleProvider(api_key=key)), **kwargs), timeout=t)
+                        res = await asyncio.wait_for(agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), **kwargs), timeout=t)
                     
                     if hasattr(res, 'usage'): await self.rotator.track_tokens(key, getattr(res.usage, 'total_tokens', 0))
                     await self.rotator.set_success(key, session_id=s_id)
@@ -127,12 +143,16 @@ class TrinityBridge:
                     if not force and await self.rotator.is_model_daily_exhausted(key, m_name): continue
                     
                     system_prompt = kwargs.pop("system_prompt", None)
+                    
+                    # Elite V2.2: Unified Model Provisioning (Streaming)
+                    model_instance, ms = self._provision_model(m_name, key, kwargs)
+                    
                     if system_prompt:
                         with agent.override(instructions=str(system_prompt)):
-                            async with agent.run_stream(prompt, model=GoogleModel(m_name, provider=GoogleProvider(api_key=key)), **kwargs) as stream:
+                            async with agent.run_stream(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), **kwargs) as stream:
                                 yield stream
                     else:
-                        async with agent.run_stream(prompt, model=GoogleModel(m_name, provider=GoogleProvider(api_key=key)), **kwargs) as stream:
+                        async with agent.run_stream(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), **kwargs) as stream:
                             yield stream
                     await self.rotator.set_success(key, session_id=s_id); return
                 except Exception as e:
@@ -142,5 +162,23 @@ class TrinityBridge:
                     if cat in ["rate_limit", "auth"]: await self.rotator.mark_unhealthy(key, reason=cat, session_id=s_id); continue
                     if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break
         raise AIConfigurationError(f"Stream Overloaded: {last_err}")
+
+    def _provision_model(self, m_name: str, key: str, params: dict[str, object]) -> tuple[GoogleModel, dict[str, object]]:
+        """Elite V2.2: Centralized Model Provisioning Factory (Structural Repair)."""
+        # Pass-by-reference: Modifying 'params' removes custom keys from caller's kwargs
+        val_sn = params.pop("safety_none", False)
+        s_settings = _G_SAFETY_NONE if bool(val_sn) else None
+        
+        model = GoogleModel(
+            m_name, 
+            provider=GoogleProvider(api_key=key),
+        )
+        
+        # Pop model_settings to avoid double-passing to PydanticAI
+        ms = cast(dict[str, object], params.pop("model_settings", {}))
+        if s_settings: 
+            ms["google_safety_settings"] = s_settings
+            
+        return model, ms
 
 trinity_bridge = TrinityBridge()

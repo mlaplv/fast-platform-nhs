@@ -51,12 +51,13 @@ class AdminSupportInboxController(Controller):
         Returns one row per unique session_id with summary metadata.
         Groups by session, counts messages, shows last intent + timestamp.
         """
-        # Subquery: latest created_at per session
+        # Subquery: message count, latest time, and any-phone detected per session
         subq = (
             select(
                 SupportChatHistory.session_id,
                 func.count(SupportChatHistory.id).label("message_count"),
                 func.max(SupportChatHistory.created_at).label("last_message_at"),
+                func.max(SupportChatHistory.customer_phone).label("any_phone"),
             )
             .where(SupportChatHistory.deleted_at.is_(None))
             .group_by(SupportChatHistory.session_id)
@@ -86,27 +87,35 @@ class AdminSupportInboxController(Controller):
         paged = inner.limit(limit).offset(offset)
         rows = (await db_session.execute(paged)).scalars().all()
 
-        # Fetch message counts from subquery results
-        count_rows = (await db_session.execute(select(subq))).all()
-        count_map: dict[str, int] = {r.session_id: r.message_count for r in count_rows}
-        time_map: dict[str, str] = {
-            r.session_id: str(r.last_message_at) for r in count_rows
-        }
+        # Fetch aggregated results from subquery
+        agg_res = (await db_session.execute(select(subq))).all()
+        count_map: dict[str, int] = {r.session_id: r.message_count for r in agg_res}
+        time_map: dict[str, str] = {r.session_id: str(r.last_message_at) for r in agg_res}
+        phone_map: dict[str, str | None] = {r.session_id: r.any_phone for r in agg_res}
+
+        high_intent_codes = ["PURCHASE", "CLOSING", "PAYMENT", "ORDER_CONFIRM", "CHECKOUT", "DEPOSIT"]
 
         summaries: list[SupportSessionSummary] = []
         for row in rows:
             sid = row.session_id
             is_takeover = await xohi_memory.client.get(f"support:takeover:{sid}") == "1"
+            intent_str = (row.intent or "").upper()
+            has_phone = bool(phone_map.get(sid))
+            
+            # Elite V2.2 Emergency: Any Phone detected in session history forces High Intent status
+            is_high = has_phone or intent_str in high_intent_codes
+            
             summaries.append(
                 SupportSessionSummary(
                     session_id=sid,
                     customer_name=row.customer_name or "Khách ẩn danh",
-                    customer_phone=row.customer_phone,
+                    customer_phone=phone_map.get(sid) or row.customer_phone,
                     product_slug=row.product_slug,
                     message_count=count_map.get(sid, 0),
                     last_intent=row.intent,
                     last_message_at=time_map.get(sid),
-                    is_takeover=is_takeover
+                    is_takeover=is_takeover,
+                    is_high_intent=is_high
                 )
             )
 

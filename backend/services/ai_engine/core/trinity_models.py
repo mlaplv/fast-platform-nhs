@@ -1,20 +1,21 @@
+from __future__ import annotations
 import logging
 import httpx
-from typing import List, Optional
+from typing import Optional
 
 logger = logging.getLogger("api-gateway")
 
 class TrinityModels:
     """Helper for model discovery and chain building (V76)."""
     
-    def __init__(self, rotator, default_model: str, fallback_model: str):
+    def __init__(self, rotator: object, default_model: str, fallback_model: str):
         self.rotator = rotator
         self.default_model = default_model
         self.fallback_model = fallback_model
         self.ROLE_FAST = "fast"
         self.ROLE_BRAIN = "brain"
 
-    async def discover_available(self) -> List[str]:
+    async def discover_available(self) -> list[str]:
         cached = await self.rotator.get_discovered_models()
         if cached: return cached
 
@@ -34,14 +35,14 @@ class TrinityModels:
             logger.error(f"[TrinityModels] Discovery failed: {e}")
         return []
 
-    def get_role_models(self, role: str, discovered: List[str]) -> List[str]:
+    def get_role_models(self, role: str, discovered: list[str]) -> list[str]:
         if not discovered: return []
         potential = ["flash-lite", "flash-8b", "flash"] if role == self.ROLE_FAST else ["pro", "brain"]
         res = [m for p in potential for m in discovered if p in m.lower()]
         res.sort(reverse=True)
         return res
 
-    async def build_chain(self, role: Optional[str], db_primary: str, db_waterfall: List[str], discovered: List[str]) -> List[str]:
+    async def build_chain(self, role: Optional[str], db_primary: str, db_waterfall: list[str], discovered: list[str]) -> list[str]:
         raw = []
         if db_primary: raw.append(db_primary)
         for m in (db_waterfall + [self.default_model, self.fallback_model] + self.get_role_models(self.ROLE_BRAIN, discovered) + self.get_role_models(self.ROLE_FAST, discovered)):

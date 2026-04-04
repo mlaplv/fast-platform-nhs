@@ -11,10 +11,10 @@ logger = logging.getLogger("api-gateway")
 class SemanticRouter:
     """T1.5: Embedding-based Intent Classification (Phase 77)."""
     def __init__(self):
-        self._anchor_embeddings: Dict[str, np.ndarray] = {}
+        self._anchor_embeddings: dict[str, np.ndarray] = {}
         self._anchor_matrix: Optional[np.ndarray] = None
-        self._intent_labels: List[str] = []
-        self._extra_cache: Dict[str, np.ndarray] = {}
+        self._intent_labels: list[str] = []
+        self._extra_cache: dict[str, np.ndarray] = {}
         self._is_ready = False
 
     def _refresh_matrix(self):
@@ -72,7 +72,7 @@ class SemanticRouter:
                 self._refresh_matrix()
         except: pass
 
-    async def classify(self, text: str, extra_intents: Optional[Dict[str, List[str]]] = None) -> Tuple[str, float]:
+    async def classify(self, text: str, extra_intents: Optional[dict[str, list[str]]] = None) -> tuple[str, float]:
         if not self._is_ready: await self.warmup()
         encoder = get_shared_encoder()
         if encoder is None or not self._anchor_embeddings: return "UNKNOWN", 0.0

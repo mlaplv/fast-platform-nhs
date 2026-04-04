@@ -13,11 +13,18 @@ Architecture:
 """
 from __future__ import annotations
 
+import asyncio
+import json
+import os
 import logging
 import re
 import time
 import uuid
-from typing import Optional
+from typing import Optional, cast, Union, TYPE_CHECKING
+
+# Type Aliases for 100% Static Typing (CẤM 'any')
+JSONValue = Union[str, int, float, bool, None, dict[str, "JSONValue"], list["JSONValue"]]
+SupportAIDict = dict[str, Union[str, int, float, bool, None]]
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_ai import Agent
@@ -29,6 +36,7 @@ from backend.database.models.content import Category
 from backend.database.models.system import AgentTelemetryLog, SupportChatHistory
 from backend.schemas.support import SupportIntent, SupportRequest, SupportResponse, SupportProductInfo
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+from backend.services.ai_engine.core.agent_base import BaseAgentOperative
 from backend.services.commerce.constants.support_config import support_cfg
 from backend.services.commerce.security.input_guard import input_guard
 from backend.services.event_bus import event_bus
@@ -46,14 +54,14 @@ logger = logging.getLogger("api-gateway")
 class AgenticSupportResponse(BaseModel):
     model_config = ConfigDict(strict=False)
     reply: str = Field(..., description="Văn bản phản hồi tự nhiên, mượt mà và thuyết phục theo chỉ thị bán hàng. NẾU KHÁCH CHO BIẾT MUỐN MUA SỐ LƯỢNG LỌ CỤ THỂ, BẠN PHẢI TÍNH LUÔN SỐ COMBO VÀ BÁO TỔNG GIÁ + HOA HỒNG.")
-    intent: str = Field(..., description="MỘT trong các chuỗi sau: 'ORDER_STATUS', 'ESCALATE', 'POLICY_QUERY', 'PRICE_QUERY', 'GENERAL_ADVICE', 'UNKNOWN'")
+    intent: str = Field(..., description="MỘT trong các chuỗi sau: 'ORDER_STATUS', 'ESCALATE', 'POLICY_QUERY', 'PRICE_QUERY', 'PURCHASE', 'GENERAL_ADVICE', 'UNKNOWN'")
 
 # ══════════════════════════════════════════════════════════════
 # PYDANTIC AI AGENT — Singleton, initialized once at module load
 # ══════════════════════════════════════════════════════════════
 _support_ai_agent: Agent[None, AgenticSupportResponse] = Agent(
     output_type=AgenticSupportResponse,
-    retries=0, # ELITE V2.2: Disable internal retries to avoid extreme delays on ValidationError
+    retries=1, # ELITE V2.2: Limited retries to handle transient formatting errors (JSON)
 )
 
 
@@ -170,11 +178,13 @@ def _sanitize_response(raw: str) -> str:
 # MAIN OPERATIVE CLASS
 # ══════════════════════════════════════════════════════════════
 
-class SupportAgentOperative:
+class SupportAgentOperative(BaseAgentOperative):
     """
     Client-facing chat operative. Handles intent routing, product RAG,
     and safe AI response generation for SUPPORT_NAME_CLIENT.
     """
+    def __init__(self):
+        super().__init__(agent_id="support_agent")
 
     def _handle_layer_1(self, message: str, session_id: str) -> Optional[SupportResponse]:
         """Hybrid Tier 1 (The Butler): Intercepts quick greetings to block wasteful AI calls."""
@@ -193,25 +203,25 @@ class SupportAgentOperative:
             )
         return None
 
-    def _extract_heuristic_metadata(self, message: str) -> dict[str, str | bool]:
+    def _extract_heuristic_metadata(self, message: str) -> dict[str, Optional[Union[str, bool]]]:
         """
         Elite V2.2: Real-time Heuristic Scanner.
         Extracts VN phone numbers and detects purchase intent via keywords.
-        Returns: {brand_new_phone: str|None, is_high_intent: bool}
         """
-        # 1. Phone Scanning (Vietnamese Formats: 09, 03, 07, 08, 05 + 8 digits)
-        # Supports dots, spaces, dashes: 0949.901.122, 0949 901 122, etc.
+        # 1. Phone Scanning (Vietnamese Formats)
         phone_pattern = r"(?:0|\+84)(?:[1-9])(?:\d{8,9}|(?:\.\d{3}){2}\.\d{2,3}|(?:\s\d{3}){2,3})"
         match = re.search(phone_pattern, message)
-        phone = None
+        phone: Optional[str] = None
         if match:
-            # Normalize to 10-digit standard
             phone = match.group(0).replace(".", "").replace(" ", "").replace("-", "")
             if phone.startswith("+84"):
                 phone = "0" + phone[3:]
 
         # 2. Keyword/Intent Overlays (The "Kèo thơm" Scanner)
-        high_intent_kws = ("ship", "mua", "đặt", "chốt", "địa chỉ", "lọ", "chai", "hộp", "combo", "gửi", "thanh toán")
+        high_intent_kws = (
+            "ship", "mua", "đặt", "chốt", "địa chỉ", "lọ", "chai", "hộp", "combo", 
+            "gửi", "thanh toán", "cho tôi", "cho em", "giao cho", "lấy", "tới địa chỉ", "đặt hàng"
+        )
         msg_lower = message.lower()
         is_high_intent = phone is not None or any(kw in msg_lower for kw in high_intent_kws)
 
@@ -220,19 +230,7 @@ class SupportAgentOperative:
             "is_high_intent": is_high_intent
         }
 
-    def _mask_sensitive_medical_terms(self, text: str) -> str:
-        """
-        [Bypass Filter]: Semantic Masking. Translate slangs into academic medical terms.
-        Prevent Google AI Safety parameters from silently dropping the generation.
-        """
-        mask_map: dict[str, str] = {
-            "hôi nách": "xịt nách",
-            "hôi chân": "xịt chân",
-        }
-        res_text = text.lower()
-        for k, v in mask_map.items():
-            res_text = res_text.replace(k, v)
-        return res_text
+    # Heritage: MedicalShieldMixin provides _mask_sensitive_medical_terms
 
     async def chat(
         self,
@@ -362,10 +360,10 @@ class SupportAgentOperative:
         product_ctx, product_info = await _fetch_product_context(db, request.product_slug)
 
         # Trạm Lọc (Medical Mask) — Đổi từ lóng sang học thuật để VƯỢT RÀO hệ thống Safety của Gemini
-        safe_message: str = self._mask_sensitive_medical_terms(request.message)
+        safe_message: str = await self._mask_sensitive_medical_terms(request.message)
 
-        # Construct prompt with Agentic system directive
-        prompt = self._build_prompt(safe_message, product_ctx, kb_ctx, history_text)
+        # Construct prompt with Agentic system directive (REFACTORED for System Prompt Isolation)
+        full_directive = await self._build_prompt_directive(product_ctx, kb_ctx, history_text)
 
         # Run AI via TrinityBridge (role="fast" → flash models)
         intent = SupportIntent.UNKNOWN
@@ -373,28 +371,29 @@ class SupportAgentOperative:
         try:
             result = await trinity_bridge.run(
                 _support_ai_agent,
-                prompt,
+                safe_message, # Only pass ACTUAL user message here
                 role=support_cfg.model_role,
-                system_prompt=support_cfg.system_directive,
-                timeout=15.0  # Force fail-fast để sang key khác ngay lỡ kẹt
+                system_prompt=full_directive, # Complex instructions moved to System Prompt
+                safety_none=True, # Bypass aggressive safety filters for commerce queries
+                timeout=15.0
             )
-            ai_data: object = getattr(result, "data", None)
-            ai_data_str = str(ai_data) # Elite V2.2: Fix NameError for log fallback
+            # strictly typed AI output extraction
+            ai_data: Optional[AgenticSupportResponse] = getattr(result, "data", None)
+            ai_data_str: str = str(ai_data)
             
-            # Universal PydanticAI Data Extraction (Bulletproof V2.2)
-            ai_dict: dict[str, object] = {}
-            if hasattr(ai_data, "model_dump"):
-                ai_dict = ai_data.model_dump()
-            elif hasattr(ai_data, "dict"):
-                ai_dict = ai_data.dict()
+            # Universal PydanticAI Data Extraction (Refined for Elite V2.2 - NO 'any')
+            ai_dict: SupportAIDict = {}
+            if ai_data and hasattr(ai_data, "model_dump"):
+                ai_dict = cast(SupportAIDict, ai_data.model_dump())
+            elif ai_data and hasattr(ai_data, "dict"):
+                ai_dict = cast(SupportAIDict, ai_data.dict())
             elif isinstance(ai_data, dict):
-                ai_dict = ai_data
+                ai_dict = cast(SupportAIDict, ai_data)
             elif isinstance(ai_data, str):
-                import json
                 try:
                     clean_str = ai_data.replace('```json', '').replace('```', '').strip()
-                    ai_dict = json.loads(clean_str)
-                except Exception:
+                    ai_dict = cast(SupportAIDict, json.loads(clean_str))
+                except (json.JSONDecodeError, TypeError):
                     ai_dict = {"reply": ai_data, "intent": "UNKNOWN"}
 
             raw_reply = str(ai_dict.get("reply", "") or "")
@@ -402,19 +401,30 @@ class SupportAgentOperative:
             intent = SupportIntent(raw_i) if raw_i in [i.value for i in SupportIntent] else SupportIntent.UNKNOWN
 
             if not raw_reply or raw_reply.strip() == "None":
-                logger.warning(f"[SupportAgent] AI returned empty logic. Original content: {ai_data_str}")
-                # 🚀 Safety Fallback Recovery: Gemini filters often block words like 'hôi nách', returning empty.
-                # If so, we bypass AI and confidently close the sale based on heuristic purchase words.
+                # Detailed diagnostic logging
+                raw_text_debug = getattr(result, "formatted_answer", "N/A")
+                logger.warning(f"[SupportAgent] AI returned empty logic. AgenticResponse: {ai_data_str} | Raw: {raw_text_debug}")
+                # 🚀 Safety Fallback Recovery (Elite V2.2: KB-Driven)
                 msg_lower = request.message.lower()
-                if any(kw in msg_lower for kw in ("ship", "mua", "đặt", "giao", "lọ", "hộp", "chai", "combo")):
-                    raw_reply = "Dạ Helen đã ghi nhận ạ! Để Helen lên đơn nhanh nhất cho mình, bạn vui lòng để lại **Số điện thoại + Địa chỉ nhận hàng** xuống bên dưới nhé. Đơn này đang có ưu đãi MIỄN PHÍ VẬN CHUYỂN toàn quốc luôn ạ! 🌸"
-                    intent = SupportIntent.GENERAL_ADVICE
+                is_purchase = any(kw in msg_lower for kw in ("ship", "mua", "đặt", "giao", "lọ", "hộp", "chai", "combo"))
+                fallback_key = "HELEN_SAFETY_FALLBACK" if is_purchase else "HELEN_EMPTY_FALLBACK"
+                
+                kb_fallback = await kb_service.search_relevant_knowledge(db, fallback_key, limit=1)
+                if kb_fallback and "A: " in kb_fallback:
+                    raw_reply = kb_fallback.split("A: ")[1].split("\n---")[0].strip()
+                    intent = SupportIntent.GENERAL_ADVICE if is_purchase else SupportIntent.UNKNOWN
                 else:
-                    raw_reply = "Dạ câu hỏi của bạn chứa một số từ ngữ mà hệ thống lọc tự động của bên em đang tạm che mờ. Bạn có thể nói rõ hơn hoặc liên hệ trực tiếp hotline để em hỗ trợ nhé!"
+                    if is_purchase:
+                        raw_reply = "Dạ Helen đã ghi nhận ạ! Để Helen lên đơn nhanh nhất cho mình, bạn vui lòng để lại **Số điện thoại + Địa chỉ nhận hàng** xuống bên dưới nhé. Đơn này đang có ưu đãi MIỄN PHÍ VẬN CHUYỂN toàn quốc luôn ạ! 🌸"
+                        intent = SupportIntent.GENERAL_ADVICE
+                    else:
+                        raw_reply = "Dạ câu hỏi của bạn chứa một số từ ngữ mà hệ thống lọc tự động của bên em đang tạm che mờ. Bạn có thể nói rõ hơn hoặc liên hệ trực tiếp hotline để em hỗ trợ nhé!"
             
             # ELITE V2.2: Intent Override (Heuristic Boost)
-            if is_heuristic_high and intent == SupportIntent.UNKNOWN:
-                intent = SupportIntent.GENERAL_ADVICE # Default to advice/closing if heuristic found it spicy
+            if is_heuristic_high:
+                # If heuristic detected high intent, promote to PURCHASE regardless of AI doubt
+                if intent in (SupportIntent.UNKNOWN, SupportIntent.GENERAL_ADVICE):
+                    intent = SupportIntent.PURCHASE
                 
         except Exception as exc:
             logger.error("[SupportAgent] AI call failed: %s", exc)
@@ -531,60 +541,33 @@ class SupportAgentOperative:
             logger.warning("[SupportAgent] Context retrieval failed: %s", h_exc)
         return history_text
 
-    def _build_prompt(
-        self, message: str, product_ctx: str, kb_ctx: str, history_text: str = ""
+    async def _build_prompt_directive(
+        self, product_ctx: str, kb_ctx: str, history_text: str = ""
     ) -> str:
-        """Construct AI prompt with Agentic Analysis strictly demanding Structured JSON Response."""
-        ctx_block = f"\n{kb_ctx}\n{product_ctx}\n" if (product_ctx or kb_ctx) else ""
+        """Construct AI System Directive with structured knowledge and identity."""
+        ctx_block: str = f"\n{kb_ctx}\n{product_ctx}\n" if (product_ctx or kb_ctx) else ""
         
-        # Elite V2.2: Conversion/FOMO/Intent Upgrades (Tiki/Shopee 6-Technique Engine)
-        agentic_directive = (
-            "\n[HELEN AI — AGENTIC COGNITIVE DIRECTIVE V3.0 — VIRAL 2026]\n"
-            "Bạn là Helen, trợ lý bán hàng thông minh của shop. Phân tích ngữ nghĩa (Semantic NLU) "
-            "câu hỏi khách và chọn đúng intent.\n\n"
+        # Elite V2.2: Dynamic Prompt Loading
+        agentic_directive = await xohi_memory.client.get("support:agent:system_prompt")
+        
+        if not agentic_directive:
+            try:
+                if os.path.exists(support_cfg.prompt_template_path):
+                    def _read_file() -> str:
+                        with open(support_cfg.prompt_template_path, "r", encoding="utf-8") as f:
+                            return f.read()
+                    agentic_directive = await asyncio.to_thread(_read_file)
+                else:
+                    agentic_directive = support_cfg.system_directive # Fallback to generic
+            except Exception:
+                agentic_directive = support_cfg.system_directive
 
-            "[1. PHÂN LOẠI INTENT CHÍNH XÁC]\n"
-            "- Hỏi 'có ship không', 'tiền ship bao nhiêu': POLICY_QUERY (hỏi chính sách), KHÔNG phải tra đơn.\n"
-            "- Muốn MUA ('ship cho tôi 1 lọ', 'đặt 2 chai'): GENERAL_ADVICE — chốt đơn, hỏi địa chỉ.\n"
-            "- Tra cứu đơn đã đặt ('đơn của tôi đâu', 'đơn hàng sao chưa đến'): ORDER_STATUS.\n"
-            "- Khiếu nại/chửi/đòi hoàn tiền: ESCALATE.\n\n"
-
-            "[2. PHÁT HIỆN CẢM XÚC (SENTIMENT DETECTION)]\n"
-            "- NẾU khách tỏ ra lo lắng, nghi ngờ, hoặc dùng từ như 'lo', 'sợ', 'liệu có hiệu quả không'... "
-            "➔ ĐẦU TIÊN hãy đồng cảm: 'Dạ em hoàn toàn hiểu cảm giác của bạn...', rồi MỚI tư vấn.\n"
-            "- NẾU khách đang vui, hứng khởi, dùng từ 'hay quá', 'thích quá'... "
-            "➔ Hưởng ứng nhiệt tình và chốt ngay lập tức.\n\n"
-
-            "[3. XỬ LÝ PHẢN ĐỐI (OBJECTION HANDLING)]\n"
-            "- NẾU khách kêu 'đắt quá', 'mắc quá', 'giá cao': ĐỪNG giảm giá. Hãy anchoring giá trị: "
-            "'Dạ bạn ơi, so với {giá sản phẩm}/lọ dùng được 30 ngày thì chỉ tốn chưa đến {giá/30}đ/ngày thôi ạ. "
-            "Nhiều khách hàng phản hồi xịt xong không cần mua thêm loại khác nên tổng chi phí tiết kiệm hơn nhiều đó bạn!'\n"
-            "- NẾU khách hỏi 'có hiệu quả không', 'thật không': Inject social proof ngay: "
-            "'Dạ sản phẩm này đang có hàng nghìn đánh giá 5 sao, nhiều bạn dùng chỉ 3-5 ngày là thấy khác biệt rõ ràng ạ!'\n\n"
-
-            "[4. SMART COMBO (CHUYỂN ĐỔI SỐ LƯỢNG)]\n"
-            "NẾU phát hiện số lượng muốn mua (BẤT KỂ từ dùng: lọ, chai, hộp, tuýp, cái, sản phẩm...):\n"
-            "  + 1 sản phẩm ➔ Upsell nhẹ: 'Dạ bạn ơi thêm 1 lọ nữa là được tặng nguyên 1 lọ + tiết kiệm đáng kể với combo Mua 2 tặng 1 luôn ạ!'\n"
-            "  + 2 hoặc 3 sản phẩm ➔ Chốt combo 'Mua 2 tặng 1', báo CHÍNH XÁC tổng giá + tổng số lượng nhận.\n"
-            "  + 4, 5 hoặc 6 sản phẩm ➔ Chốt combo 'Mua 4 tặng 2', báo CHÍNH XÁC tổng giá + tổng số lượng nhận.\n"
-            "  + Trên 6 sản phẩm ➔ 'Dạ với số lượng lớn, bạn vui lòng liên hệ HOTLINE để được hỗ trợ giá sỉ tốt nhất nhé!'\n\n"
-
-            "[5. SOCIAL PROOF + KHAN HIẾM (FOMO ENGINE)]\n"
-            "- Với câu hỏi chung về sản phẩm: BẮT BUỘC kèm 1 trong các cụm: "
-            "'hơn 3,200 khách đã dùng', 'đánh giá 4.9/5 sao', 'hiện chỉ còn vài lọ'.\n"
-            "- Cuối mỗi phản hồi tư vấn sản phẩm: THÊM lời thúc đẩy hành động: "
-            "'Ưu đãi này chỉ áp dụng hôm nay thôi bạn nhé!' hoặc 'Số lượng có hạn, bạn mình đặt sớm để Helen giữ hàng cho nha!'\n"
-            "- BẮT BUỘC đề cập: 'MIỄN PHÍ VẬN CHUYỂN TOÀN QUỐC' trong mọi cuộc tư vấn.\n\n"
-
-            "[6. PHÂN TÍCH VẤN ĐỀ DA / NHU CẦU (NEED PROFILING)]\n"
-            "- NẾU khách chưa nói rõ vấn đề (VD: 'shop có cái gì không'): "
-            "HỎI NGƯỢC 1 câu ngắn để hiểu nhu cầu: 'Dạ bạn đang gặp vấn đề hôi nách hay hôi chân ạ? "
-            "Để Helen tư vấn sản phẩm phù hợp nhất cho bạn nhé!'\n"
-            "- NẾU khách mô tả vấn đề rõ: Tư vấn thẳng vào sản phẩm phù hợp từ RAG context.\n\n"
+        return (
+            f"{agentic_directive}\n"
+            f"{history_text}\n"
+            f"[KNOWLEDGE CONTEXT]\n{ctx_block}\n"
+            f"--- BẮT ĐẦU PHÂN TÍCH VÀ PHẢN HỒI ---"
         )
-
-        return f"{agentic_directive}{history_text}{ctx_block}Câu hỏi của khách: {message}"
-
     async def _log_telemetry(
         self,
         db: AsyncSession,

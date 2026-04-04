@@ -10,54 +10,40 @@ from pydantic_ai import Agent
 from sqlalchemy.orm.attributes import flag_modified
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
+from backend.services.ai_engine.core.agent_base import BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin
 from backend.services.xohi.creative_studio.models.schemas import (
     AgentResponse, AgentSignal, BulkFixRequest, BulkFixResponse,
     GoldMetadata, AnalysisMetrics, AnalysisCacheEntry,
     PlagiarismResult, CopyrightAnnotation
 )
-from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-from backend.utils.http_client import get_http_client
+from backend.database.repositories import ContentCampaignRepository
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.utils.text import normalize_vn
 from .plagiarism_prompts import PLAGIARISM_PROMPT
 from .plagiarism_surgeon import PlagiarismSurgeon
-from backend.utils.config import get_env_json
 
 logger = logging.getLogger("api-gateway")
 
-class PlagiarismCop:
+class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
     """
     Step 5 (Auto) + On-Demand (Step 4): AI-powered Semantic Copyright Check.
     Complying with Martial Law (<300 lines) by delegating to specialized surgeon.
     """
     _plagiarism_semaphore = asyncio.Semaphore(1)
-    _key_lock = asyncio.Lock()
-    _key_idx = 0
 
     def __init__(self, threshold: float = 0.75):
+        super().__init__(agent_id="plagiarism_cop")
         self.threshold = threshold
-        self.search_keys: List[Dict[str, str]] = []
-        # Elite V2.2: Standardized JSON Array (Keys + CXs rotation)
-        env_keys = get_env_json("GOOGLE_SEARCH_KEYS")
-        env_cxs = get_env_json("GOOGLE_SEARCH_CXS")
-        
-        # Priority 1: Paired JSON Arrays (V82.36 Standard)
-        if env_keys and env_cxs:
-            # Zip them together if they match in length, or use first CX for all
-            for i, k in enumerate(env_keys):
-                cx = env_cxs[i] if i < len(env_cxs) else env_cxs[0]
-                self.search_keys.append({"key": k, "cx": cx})
-        
-        # Priority 2: Backwards Compatibility (Individual numbered keys)
-        if not self.search_keys:
-            for i in ["", "_1", "_2"]:
-                k = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}")
-                cx = os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
-                if k and cx:
-                    self.search_keys.append({"key": k, "cx": cx})
-
         self._agent = Agent(output_type=PlagiarismResult, system_prompt=PLAGIARISM_PROMPT, retries=3)
         self._surgeon = PlagiarismSurgeon()
+
+    async def chat(self, request: object, **kwargs: object) -> object:
+        """Standardized Heritage Entry (V2.2). Maps to self.analyze."""
+        from backend.database.models import ContentCampaign
+        if isinstance(request, ContentCampaign):
+            return await self.analyze(request, force=bool(kwargs.get("force", False)))
+        # Fallback for generic calls (duck typing)
+        return await self.analyze(cast(ContentCampaign, request), **kwargs) # type: ignore
 
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
         return await self._surgeon.bulk_fix(campaign, req)
@@ -89,16 +75,7 @@ class PlagiarismCop:
             return AgentResponse(signal=AgentSignal.REDO_PREVIOUS, message="🚨 Nguy cơ đạo văn cao.", data={"score": result.uniqueness_score, "risk_level": result.risk_level, "gold_metadata": gold})
         return AgentResponse(signal=AgentSignal.PROCEED_NEXT, message=f"✅ Hoàn tất — {result.verdict}", data={"score": result.uniqueness_score, "risk_level": result.risk_level, "annotations": [a.model_dump() for a in result.annotations], "verdict": result.verdict, "gold_metadata": gold})
 
-    async def _emit_log(self, campaign: ContentCampaign, msg: str):
-        """Emit progress event to the system bus."""
-        from backend.services.event_bus import event_bus
-        await event_bus.emit("CONTENT_PROGRESS", {
-            "campaign_id": str(campaign.id),
-            "user_id": str(campaign.user_id),
-            "message": msg,
-            "status": "PROCESSING",
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+    # Heritage Mixin handles _emit_progress
 
     async def analyze(self, campaign: "ContentCampaign", force: bool = False) -> PlagiarismResult:
         logger.info(f"💓 [PlagiarismCop] Diving into copyright analysis for campaign {campaign.id}")
@@ -110,7 +87,7 @@ class PlagiarismCop:
         """
         async with self._plagiarism_semaphore:
             logs = ["🚀 Khởi động Neural Copyright Engine (XoHi 2026)..."]
-            await self._emit_log(campaign, logs[-1])
+            await self._emit_progress(campaign, logs[-1])
 
             draft = campaign.draft_content or ""
             kw = campaign.get_gold_val("primary_keyword", "")
@@ -118,11 +95,11 @@ class PlagiarismCop:
                 return PlagiarismResult(uniqueness_score=1.0, risk_level="LOW", flagged_sentences=[], annotations=[], similar_sources=[], verdict="Thiếu dữ liệu (Chưa có Topic/Keyword).", logs=logs)
 
             logs.append("🧹 Đang tiền xử lý & làm sạch dữ liệu nhiễu (Advanced Noise Cleaning)...")
-            await self._emit_log(campaign, logs[-1])
+            await self._emit_progress(campaign, logs[-1])
             plain = await noise_cleaner.clean(draft, mode="aggressive", strip_html=False)
 
             logs.append("🧠 Đang rà soát trùng lặp nội bộ (Cross-Paragraph Synthesis)...")
-            await self._emit_log(campaign, logs[-1])
+            await self._emit_progress(campaign, logs[-1])
             seen, deduped, i_annots = set(), [], []
             for para in self._surgeon._split_into_paragraphs(plain)[:200]:
                 norm = normalize_vn(para)
@@ -131,14 +108,14 @@ class PlagiarismCop:
                 else: i_annots.append(CopyrightAnnotation(text=para[:200], reason="Đoạn lặp lại trong bài", source_url="internal", severity="high", type="internal-dedup"))
 
             logs.append(f"📡 Đang trinh sát nguồn đối thủ (Google Recon) cho: '{kw}'...")
-            await self._emit_log(campaign, logs[-1])
+            await self._emit_progress(campaign, logs[-1])
             comps = await self._fetch_competitor_snippets(campaign, kw, logs=logs)
 
             logs.append("🧠 Đang nạp dữ liệu vào Neural Engine (Trinity Core)...")
             await self._emit_log(campaign, logs[-1])
             try:
                 prompt = f"[BÀI VIẾT]\n{('\n'.join(deduped))[:12000]}\n\n[ĐỐI THỦ]\n{'\n'.join(comps)}"
-                res = await trinity_bridge.run(self._agent, prompt, force=force, role="brain")
+                res = await self.bridge.run(self._agent, prompt, force=force, role="brain")
 
                 # Phase 3.1: Strict Typing & Result Extraction (V89.1 Fix: Use .data or .output)
                 raw = res.data if hasattr(res, "data") else (res.output if hasattr(res, "output") else res)
@@ -167,7 +144,7 @@ class PlagiarismCop:
                 h_res.verdict = f"Hệ thống bận ({str(e)[:40]}). Đã kích hoạt Heuristic Mode của Neural XoHi để đảm bảo tiến độ."
                 return h_res
 
-    def _heuristic_analyze(self, deduped: List[str], comps: List[str], i_annots: List[CopyrightAnnotation]) -> PlagiarismResult:
+    def _heuristic_analyze(self, deduped: list[str], comps: list[str], i_annots: list[CopyrightAnnotation]) -> PlagiarismResult:
         """R102: Heuristic Fallback — Phân tích cục bộ không dùng AI."""
         from difflib import SequenceMatcher
         h_annots = list(i_annots)
@@ -212,7 +189,7 @@ class PlagiarismCop:
             verdict="Kết quả sơ bộ (Local Heuristic)."
         )
 
-    async def _fetch_competitor_snippets(self, campaign: ContentCampaign, keyword: str, logs: Optional[List[str]] = None) -> List[str]:
+    async def _fetch_competitor_snippets(self, campaign: ContentCampaign, keyword: str, logs: Optional[list[str]] = None) -> list[str]:
         if not self.search_keys:
             if logs is not None: logs.append("❌ Thiếu API Key Search.")
             return ["(No API key)"]
@@ -232,31 +209,31 @@ class PlagiarismCop:
                         return ["(No results)"]
                     
                     # Success: start content fetching
-                    await self._emit_log(campaign, f"🕵️ Phát hiện {len(items)} nguồn dữ liệu khả nghi. Đang thẩm định...")
+                    await self._emit_progress(campaign, f"🕵️ Phát hiện {len(items)} nguồn dữ liệu khả nghi. Đang thẩm định...")
                     async def _c(it: dict, idx: int):
                         url = it.get("link", "")
                         if not url.startswith("http"): return it.get("snippet","")
                         try:
-                            await self._emit_log(campaign, f"🌐 Trinh sát [{idx+1}/5]: {url[:45]}...")
+                            await self._emit_progress(campaign, f"🌐 Trinh sát [{idx+1}/5]: {url[:45]}...")
                             # Use shorter timeout for competitor sites
                             r = await client.get(url, timeout=5.0)
                             if r.status_code == 200:
                                 b = re.sub(r'<(script|style)[^>]*>.*?</\1>', ' ', r.text, flags=re.IGNORECASE|re.DOTALL)
                                 b = re.sub(r'<[^>]+>', ' ', b)
                                 return f"URL: {url}\nContent: {re.sub(r'\s+', ' ', b).strip()[:3000]}"
-                        except Exception as e:
-                            logger.debug(f"[PlagiarismCop] Failed to fetch {url}: {e}")
+                        except Exception:
+                            pass
                         return f"URL: {url}\nSnippet: {it.get('snippet','')}"
 
                     rs = await asyncio.gather(*[_c(it, i) for i, it in enumerate(items[:5])], return_exceptions=True)
                     valid_rs = [r if isinstance(r, str) else "(Snippet only)" for r in rs]
                     msg = f"📡 Đã tải xong nội dung từ {len(valid_rs)} website đối thủ."
-                    await self._emit_log(campaign, msg)
+                    await self._emit_progress(campaign, msg)
                     if logs is not None: logs.append(msg)
                     return valid_rs
 
                 elif resp.status_code in [429, 403]:
-                    logger.warning(f"[PlagiarismCop] Search Key Outage ({resp.status_code}), rotating...")
+                    self.logger.warning(f"[PlagiarismCop] Search Key Outage ({resp.status_code}), rotating...")
                     continue # Try next key
                 else:
                     err_hint = f"Google Error {resp.status_code}"
@@ -264,15 +241,8 @@ class PlagiarismCop:
                     return [f"({err_hint})"]
 
             except Exception as e:
-                logger.error(f"[PlagiarismCop] Search connection error: {e}")
+                self.logger.error(f"[PlagiarismCop] Search connection error: {e}")
                 continue # Try next key
 
         if logs is not None: logs.append("❌ Cạn kiệt API Key Search (Tất cả đều lỗi/hết hạn).")
         return ["(All search keys failed)"]
-
-    async def _get_search_pair(self):
-        if not self.search_keys: return None
-        async with self._key_lock:
-            pair = self.search_keys[self.__class__._key_idx % len(self.search_keys)]
-            self.__class__._key_idx += 1
-        return pair

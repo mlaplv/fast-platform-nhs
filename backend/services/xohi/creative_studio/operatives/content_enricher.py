@@ -8,12 +8,11 @@ from datetime import datetime, timezone
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
 from backend.utils.http_client import get_http_client
-from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+from backend.services.ai_engine.core.agent_base import BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin
 from backend.services.xohi.creative_studio.models.schemas import (
     EnrichAIPayload, EnrichmentItem, EnrichResponse, SeoAnnotation
 )
 from backend.database.repositories import ContentCampaignRepository
-from backend.utils.config import get_env_json
 
 logger = logging.getLogger("api-gateway")
 
@@ -43,65 +42,25 @@ Nhiệm vụ: Nâng cấp bài viết bằng cách chèn Data Thật (Stats), Ý
 - Bạn PHẢI trả về toàn bộ bài viết qua công cụ `final_result`. Đây là yêu cầu BẮT BUỘC.
 """
 
-class ContentEnricher:
+class ContentEnricher(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
     """
     Auto-enriches articles with real stats, quotes, and comparison tables.
     Pushes SEO scores from 85 to 95+.
     """
     
     def __init__(self):
-        self._key_lock = asyncio.Lock()
-        self.search_keys = None # Lazy load
-        
-        if not hasattr(ContentEnricher, "_key_idx"):
-            ContentEnricher._key_idx = 0
-            
+        super().__init__(agent_id="content_enricher")
         self._agent = Agent(output_type=EnrichAIPayload, system_prompt=ENRICHER_PROMPT, retries=3)
 
-    async def _emit_log(self, campaign: ContentCampaign, msg: str):
-        """Emit progress event to the system bus."""
-        from backend.services.event_bus import event_bus
-        await event_bus.emit("CONTENT_PROGRESS", {
-            "campaign_id": str(campaign.id),
-            "user_id": str(campaign.user_id),
-            "message": msg,
-            "status": "PROCESSING",
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+    async def chat(self, request: object, **kwargs: object) -> object:
+        """Standardized Heritage Entry (V2.2). Maps to self.enrich."""
+        from backend.database.models import ContentCampaign
+        if isinstance(request, ContentCampaign):
+            return await self.enrich(request)
+        # Fallback for generic calls (duck typing)
+        return await self.enrich(cast(ContentCampaign, request))
 
-    def _ensure_keys(self):
-        # Elite V2.2: Standardized JSON Array (Keys + CXs rotation)
-        env_keys = get_env_json("GOOGLE_SEARCH_KEYS")
-        env_cxs = get_env_json("GOOGLE_SEARCH_CXS")
-        
-        # Priority 1: Paired JSON Arrays (V82.36 Standard)
-        if env_keys and env_cxs:
-            for i, k in enumerate(env_keys):
-                cx = env_cxs[i] if i < len(env_cxs) else env_cxs[0]
-                self.search_keys.append({"key": k, "cx": cx})
-                
-        # Priority 2: Backwards Compatibility (Individual numbered keys)
-        if not self.search_keys:
-            patterns = ["", "_1", "_2", "1", "2", "3"]
-            for i in patterns:
-                k = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}")
-                cx = os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
-                if k and cx:
-                    self.search_keys.append({"key": k, "cx": cx})
-        
-        logger.info(f"[Enricher] Loaded {len(self.search_keys)} search keys.")
-
-    async def _get_search_pair(self) -> Optional[Dict[str, str]]:
-        self._ensure_keys()
-        if not self.search_keys: 
-            logger.warning("[Enricher] No GOOGLE_SEARCH_API_KEY found in environment (patterns: '', '_1', '1', etc.)")
-            return None
-        async with self._key_lock:
-            pair = self.search_keys[self.__class__._key_idx % len(self.search_keys)]
-            self.__class__._key_idx += 1
-        return pair
-
-    async def _search_data(self, query: str) -> List[str]:
+    async def _search_data(self, query: str) -> list[str]:
         """Fetch search snippets for a query related to the topic."""
         pair = await self._get_search_pair()
         if not pair: return []
@@ -120,12 +79,12 @@ class ContentEnricher:
             items = data.get("items", [])
             return [f"{item['title']}: {item.get('snippet', '')} (Nguồn: {item.get('displayLink', 'Google')})" for item in items]
         except Exception as e:
-            logger.error(f"[Enricher] Search API error: {e}")
+            self.logger.error(f"[Enricher] Search API error: {e}")
             return []
 
     async def enrich(self, campaign) -> EnrichResponse:
         logs = ["🔍 Khởi động hệ thống AI Booster (Phase 82.8)..."]
-        await self._emit_log(campaign, logs[-1])
+        await self._emit_progress(campaign, logs[-1])
         draft = campaign.draft_content or ""
         if not draft:
             raise ValueError("Không có nội dung để enrich")
@@ -141,11 +100,11 @@ class ContentEnricher:
                 
         logger.info(f"[Enricher] Starting enrichment for topic: {topic}")
         logs.append(f"🧠 Đang phân tích chủ đề: '{topic}'...")
-        await self._emit_log(campaign, logs[-1])
+        await self._emit_progress(campaign, logs[-1])
 
         # Phase 1: Gather Real Data (Parallel)
         logs.append("📡 Đang trinh sát dữ liệu thực tế từ Google (Stats & Quotes)...")
-        await self._emit_log(campaign, logs[-1])
+        await self._emit_progress(campaign, logs[-1])
         year = datetime.now().year
         stats_query = f"{topic} statistics {year} số liệu thống kê"
         quotes_query = f"{topic} expert quotes ý kiến chuyên gia"
@@ -183,14 +142,14 @@ Hãy chọn số liệu/quote hay nhất từ DỮ LIỆU THỰC TẾ và TỰ T
         logger.info(f"[Enricher] Enrichment complete. Stats search found {len(stats_results)} results, Quotes search found {len(quotes_results)} results.")
         logger.info(f"[Enricher] Sending to Gemini for synthesis (Payload length: {len(user_input)})...")
         logs.append("🧠 Đang tổng hợp số liệu và chèn vào bản thảo...")
-        await self._emit_log(campaign, logs[-1])
+        await self._emit_progress(campaign, logs[-1])
         try:
             # Use role="brain" for complex synthesis tasks
-            result = await trinity_bridge.run(self._agent, user_input, role="brain")
+            result = await self.bridge.run(self._agent, user_input, role="brain")
         except Exception as ai_err:
-            logger.error(f"[Enricher] AI Synthesis Fail: {ai_err}")
+            self.logger.error(f"[Enricher] AI Synthesis Fail: {ai_err}")
             logs.append(f"❌ Lỗi xử lý AI: {str(ai_err)[:100]}...")
-            await self._emit_log(campaign, f"❌ Lỗi AI: {str(ai_err)[:50]}")
+            await self._emit_progress(campaign, f"❌ Lỗi AI: {str(ai_err)[:50]}", status="FAILED")
             raise
         
         if not result or not hasattr(result, "data") or result.data is None:
@@ -260,7 +219,7 @@ Hãy chọn số liệu/quote hay nhất từ DỮ LIỆU THỰC TẾ và TỰ T
         return None
 
     @staticmethod
-    def detect_items(html: str) -> List[EnrichmentItem]:
+    def detect_items(html: str) -> list[EnrichmentItem]:
         """CNS V85.26: Unified Detection Utility for AI Booster Segments."""
         items = []
         for m in re.finditer(r'<blockquote\s+class="xohi-stat">(.*?)</blockquote>', html, re.DOTALL):
@@ -272,7 +231,7 @@ Hãy chọn số liệu/quote hay nhất từ DỮ LIỆU THỰC TẾ và TỰ T
         return items
 
     @staticmethod
-    def detect_annotations(html: str) -> List[SeoAnnotation]:
+    def detect_annotations(html: str) -> list[SeoAnnotation]:
         """CNS V85.26: Detect AI Booster tags in HTML and return highlights."""
         annotations = []
         def _build_ann(m, label):

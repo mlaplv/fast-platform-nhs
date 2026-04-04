@@ -41,7 +41,7 @@ class KeyLoaderMixin:
         else:
             logger.info(f"[KeyRotator] Successfully loaded {len(self.keys)} Gemini keys.")
 
-    async def _recover_from_db(self) -> List[str]:
+    async def _recover_from_db(self) -> list[str]:
         from backend.database.alchemy_config import alchemy_config
         from backend.database.models import VoiceProfile
         from backend.utils.security import GeminiSecurity
@@ -55,12 +55,12 @@ class KeyLoaderMixin:
         if not key: return "no_key"
         return hashlib.sha256(key.encode()).hexdigest()[:16]
 
-    async def save_discovered_models(self, models: List[str]):
+    async def save_discovered_models(self, models: list[str]):
         if not self._use_redis or not self.client: return
         try: await self.client.set(self.DISCOVERED_MODELS_KEY, json.dumps(models), ex=self.MAX_COOLDOWN)
         except: pass
 
-    async def get_discovered_models(self) -> List[str]:
+    async def get_discovered_models(self) -> list[str]:
         if not self._use_redis or not self.client: return []
         try:
             val = await self.client.get(self.DISCOVERED_MODELS_KEY)

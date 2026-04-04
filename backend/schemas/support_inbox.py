@@ -19,6 +19,7 @@ class SupportSessionSummary(BaseModel):
     last_intent: Optional[str]
     last_message_at: Optional[str]  # ISO string
     is_takeover: bool = False
+    is_high_intent: bool = False
 
 
 class SupportSessionListResponse(BaseModel):

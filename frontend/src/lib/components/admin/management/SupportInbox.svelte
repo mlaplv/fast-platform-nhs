@@ -25,6 +25,7 @@
     last_intent: string | null;
     last_message_at: string | null;
     is_takeover?: boolean;
+    is_high_intent?: boolean;
   }
 
   interface MessageView {
@@ -109,6 +110,9 @@
   }
 
   function isHighIntent(session: SessionSummary) {
+    if (session.is_high_intent) return true;
+    
+    // Fallback client-side logic (Elite V2.2)
     const highIntents = ['PURCHASE', 'CLOSING', 'PAYMENT', 'ORDER_CONFIRM', 'CHECKOUT', 'DEPOSIT'];
     const hasPhone = !!session.customer_phone;
     const hasHighIntent = session.last_intent && highIntents.includes(session.last_intent.toUpperCase());
@@ -289,7 +293,7 @@
               </div>
             {/if}
             <div class="flex justify-between items-start mb-1">
-              <span class="font-bold text-white/90 truncate mr-2">
+              <span class="font-bold truncate mr-2 transition-all duration-300 {isHighIntent(session) ? 'text-cyan-400 drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]' : 'text-white/90'}">
                 {session.customer_name || "Khách ẩn danh"}
               </span>
               <span class="text-[10px] text-white/30 whitespace-nowrap">
@@ -448,10 +452,11 @@
   }
 
   .high-intent-glow {
-    background: linear-gradient(90deg, rgba(6, 182, 212, 0.1) 0%, transparent 100%);
-    box-shadow: inset 0 0 15px rgba(6, 182, 212, 0.15), 0 0 10px rgba(6, 182, 212, 0.1);
-    border-right: 2px solid rgba(6, 182, 212, 0.5);
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.15) 0%, transparent 100%);
+    box-shadow: inset 0 0 20px rgba(6, 182, 212, 0.2), 0 0 15px rgba(6, 182, 212, 0.15);
+    border-right: 3px solid rgba(6, 182, 212, 0.6);
     z-index: 1;
+    position: relative;
   }
 
   .high-intent-glow:hover {

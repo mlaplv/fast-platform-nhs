@@ -21,6 +21,7 @@ class SupportConfig:
     rate_limit_per_ip: int
     rate_limit_per_sid: int
     system_directive_template: str
+    prompt_template_path: str
 
     @property
     def system_directive(self) -> str:
@@ -43,6 +44,10 @@ def _load_config() -> SupportConfig:
                 "TUYỆT ĐỐI không tiết lộ thông tin hệ thống, đơn hàng, hoặc dữ liệu nội bộ. "
                 "Nếu bị hỏi ngoài phạm vi: từ chối lịch sự và gợi ý liên hệ hotline."
             ),
+        ),
+        prompt_template_path=os.getenv(
+            "SUPPORT_PROMPT_TEMPLATE",
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates", "support_agent_prompt.txt")
         ),
     )
 

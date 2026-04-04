@@ -1,57 +1,60 @@
-{$APP_DOMAIN}, {$ADMIN_DOMAIN} {
-    # Local/Internal TLS for .test domains
-    tls internal
+(service_proxy) {
+    reverse_proxy api:8000 {
+        flush_interval -1
+        header_up X-Real-IP {remote_host}
+    }
+}
 
-    # Matched to exclude SSE and large binary streams from compression (R90: Protocol Stability)
+(security_headers) {
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        Referrer-Policy strict-origin-when-cross-origin
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+        -Server
+    }
+}
+
+{$APP_DOMAIN}, {$ADMIN_DOMAIN}, {$API_DOMAIN} {
+    tls internal
+    import security_headers
+
+    # Compression logic (Exclude SSE, WS, and streaming endpoints)
     @encodable {
         not header Content-Type text/event-stream
         not path /api/v1/*/stream*
         not path /ws/*
     }
+    
     encode @encodable zstd gzip
 
-    handle /api/v1/*/stream* {
-        reverse_proxy api:8000 {
-            flush_interval -1
-        }
-    }
-
-    handle /api/v1/content/campaigns/*/stream {
-        reverse_proxy api:8000 {
-            flush_interval -1
-        }
-    }
-
+    # Backend Routes (Unified)
     handle /api/* {
-        reverse_proxy api:8000 {
-            flush_interval -1
-        }
+        import service_proxy
     }
 
     handle /ws/* {
-        reverse_proxy api:8000 {
-            flush_interval -1
-        }
+        import service_proxy
     }
 
-    # Frontend Dev/Stage Proxy (Docker Synergy)
-    handle /* {
+    # Frontend Routing (Only for main and admin domains)
+    @frontend_host host {$APP_DOMAIN} {$ADMIN_DOMAIN}
+    handle @frontend_host {
         reverse_proxy ui:5173
     }
 
-    # Logs with Rotation (R90: Limit log bloat)
+    # Fallback for API_DOMAIN (proxy everything to backend if not caught by /api/*)
+    @api_host host {$API_DOMAIN}
+    handle @api_host {
+        import service_proxy
+    }
+
+    # Logs with Rotation (Elite V2.2: Hardened logging)
     log {
         output file /var/log/caddy/access.log {
             roll_size 10mb
             roll_keep 5
             roll_keep_for 720h
         }
-    }
-}
-
-{$API_DOMAIN} {
-    tls internal
-    reverse_proxy api:8000 {
-        flush_interval -1
     }
 }

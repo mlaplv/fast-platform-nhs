@@ -28,6 +28,7 @@ class SupportIntent(str, Enum):
     PRICE_QUERY    = "PRICE_QUERY"
     POLICY_QUERY   = "POLICY_QUERY"
     ORDER_STATUS   = "ORDER_STATUS"
+    PURCHASE       = "PURCHASE"
     GENERAL_ADVICE = "GENERAL_ADVICE"
     ESCALATE       = "ESCALATE"
     UNKNOWN        = "UNKNOWN"
