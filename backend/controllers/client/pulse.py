@@ -37,44 +37,76 @@ class ClientPulseController(Controller):
         """
         
         async def event_generator() -> AsyncGenerator[bytes, None]:
-            # Subscribe to the event bus with a context-managed queue
-            async with event_bus.subscribe_context("SUPPORT_RESPONSE_READY") as queue:
-                logger.info("[ClientPulse] Session %s linked to Pulse.", session_id)
-                
-                # Initial keep-alive to establish connection
-                yield f": link-success for session {session_id}\n\n".encode("utf-8")
-                
-                try:
-                    while True:
-                        try:
-                            # Wait for event with a heartbeat timeout
-                            payload = await asyncio.wait_for(queue.get(), timeout=15.0)
+            from backend.services.xohi_memory import xohi_memory
+            
+            # Initial keep-alive to establish connection
+            yield f": link-success for session {session_id}\n\n".encode("utf-8")
+            
+            if not xohi_memory._use_redis or not xohi_memory.client:
+                logger.error("[ClientPulse] Redis is offline. Cannot stream events.")
+                return
+
+            pubsub = xohi_memory.client.pubsub()
+            channel: str = f"pulse:{session_id}"
+            cache_key: str = f"pulse:{session_id}:cache"
+            
+            # --- PHASE 1: CATCH-UP (STATEFUL PULSE - Elite V2.2) ---
+            # Check if a fast-processing worker already finished before the connection was ready.
+            try:
+                cached_data: Union[str, None] = await xohi_memory.client.get(cache_key)
+                if cached_data:
+                    payload: dict[str, object] = json.loads(cached_data)
+                    data: dict[str, object] = {
+                        "event": "SUPPORT_RESPONSE_READY",
+                        "payload": payload,
+                    }
+                    logger.info(f"[ClientPulse] Cache hit for session {session_id}. Delivering immediately.")
+                    yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n".encode("utf-8")
+                    
+                    if payload.get("status") == "DONE":
+                        logger.info(f"[ClientPulse] Session {session_id} stateful delivery complete. Closing.")
+                        return
+            except Exception as ce:
+                logger.warning(f"[ClientPulse] Cache catch-up failed: {ce}")
+
+            # --- PHASE 2: REAL-TIME (PUB/SUB) ---
+            await pubsub.subscribe(channel)
+            logger.info(f"[ClientPulse] Session {session_id} linked to Redis channel {channel}.")
+            
+            try:
+                while True:
+                    try:
+                        # Wait for message with a heartbeat timeout
+                        # pubsub.get_message returns None if no message, so we use loop with sleep
+                        message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=15.0)
+                        
+                        if message and message['type'] == 'message':
+                            payload = json.loads(message['data'])
                             
-                            # R82.31: Filter by session_id to ensure privacy
-                            if payload.get("session_id") == session_id:
-                                data = {
-                                    "event": "SUPPORT_RESPONSE_READY",
-                                    "payload": payload,
-                                }
-                                yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n".encode("utf-8")
-                                
-                                # Once DONE event is sent, we can technically close,
-                                # but usually we keep it open for follow-ups or multiple chunks.
-                                # For Elite V2.2, we close after completion to save RAM (2GB limit).
-                                if payload.get("status") == "DONE":
-                                    logger.info("[ClientPulse] Session %s response delivered. Closing.", session_id)
-                                    break
-                                    
-                        except asyncio.TimeoutError:
+                            data = {
+                                "event": "SUPPORT_RESPONSE_READY",
+                                "payload": payload,
+                            }
+                            yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n".encode("utf-8")
+                            
+                            # For Elite V2.2, we close after completion to save RAM (2GB limit).
+                            if payload.get("status") == "DONE":
+                                logger.info(f"[ClientPulse] Session {session_id} response delivered. Closing.")
+                                break
+                        elif message is None:
                             # Standard Heartbeat
                             yield b": ping\n\n"
-                            
-                except (asyncio.CancelledError, GeneratorExit):
-                    logger.debug("[ClientPulse] Client disconnected.")
-                except Exception as e:
-                    logger.error("[ClientPulse] Protocol error: %s", e)
-                finally:
-                    logger.info("[ClientPulse] Session %s unlinked.", session_id)
+                                
+                    except asyncio.TimeoutError:
+                        yield b": ping\n\n"
+                        
+            except (asyncio.CancelledError, GeneratorExit):
+                logger.debug(f"[ClientPulse] Client disconnected from {channel}.")
+            except Exception as e:
+                logger.error(f"[ClientPulse] Protocol error: {e}")
+            finally:
+                await pubsub.unsubscribe(channel)
+                logger.info(f"[ClientPulse] Session {session_id} unlinked.")
 
         # R90: Standardized Headers for Proxy/Cache-Bypass
         headers = {

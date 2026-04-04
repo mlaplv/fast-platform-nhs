@@ -25,37 +25,48 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
     Elite V2.2: Universal Agent Task Handler (The Brain Worker).
     Runs any registered agent operative in a background process with DB persistence.
     """
+    from sqlalchemy import select, update
+    from backend.database import current_tenant_id
+
     t0 = datetime.now(timezone.utc)
     logger.info(f"🧠 [Neural Worker] Starting task {task_id} for agent {agent_id} (S: {session_id})")
     
     session_maker = alchemy_config.create_session_maker()
-    
-    # 1. Update status to RUNNING in DB
-    async with session_maker() as db:
-        await db.execute(
-            update(UnifiedAgentTask)
-            .where(UnifiedAgentTask.task_id == task_id)
-            .values(status="RUNNING")
-        )
-        await db.commit()
+    token_ctx = None
 
-    # 2. Instantiate the correct operative from the Heritage Registry
-    agent_cls = AGENT_REGISTRY.get(agent_id)
-    if not agent_cls:
-        error_msg = f"Agent {agent_id} not found in registry."
-        logger.error(f"[Worker] {error_msg}")
+    try:
+        # 1. Update status to RUNNING in DB and RESTORE TENANT CONTEXT
         async with session_maker() as db:
-            await db.execute(
-                update(UnifiedAgentTask)
-                .where(UnifiedAgentTask.task_id == task_id)
-                .values(status="FAILED", error=error_msg, completed_at=datetime.now(timezone.utc))
-            )
-            await db.commit()
-        return
+            stmt = select(UnifiedAgentTask).where(UnifiedAgentTask.task_id == task_id)
+            res = await db.execute(stmt)
+            task_obj = res.scalar_one_or_none()
+            
+            if not task_obj:
+                logger.error(f"[Worker] Task {task_id} not found in DB.")
+                return
 
-    # 3. Create isolated resource lifecycle (R00 - Dispose Protocol)
-    async with session_maker() as db:
-        try:
+            # Standardize Multi-Tenancy (Elite V2.2)
+            token_ctx = current_tenant_id.set(task_obj.tenant_id or "default")
+            
+            task_obj.status = "RUNNING"
+            await db.commit()
+
+        # 2. Instantiate the correct operative from the Heritage Registry
+        agent_cls = AGENT_REGISTRY.get(agent_id)
+        if not agent_cls:
+            error_msg = f"Agent {agent_id} not found in registry."
+            logger.error(f"[Worker] {error_msg}")
+            async with session_maker() as db:
+                await db.execute(
+                    update(UnifiedAgentTask)
+                    .where(UnifiedAgentTask.task_id == task_id)
+                    .values(status="FAILED", error=error_msg, completed_at=datetime.now(timezone.utc))
+                )
+                await db.commit()
+            return
+
+        # 3. Create isolated resource lifecycle (R00 - Dispose Protocol)
+        async with session_maker() as db:
             agent = agent_cls(agent_id=agent_id)
             
             # Dynamic Schema Mapping (Elite V2.2 Rule R88)
@@ -63,15 +74,12 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
             if schema_cls:
                 request = schema_cls(**payload)
             else:
-                # Duck typing fallback if no schema provided
                 request = payload if isinstance(payload, dict) else payload
 
             # 4. Execute the heavy AI logic
             if hasattr(agent, "process_brain_logic"):
-                # Pass DB session so agent can persist results directly
                 result = await agent.process_brain_logic(request=request, db=db)
             else:
-                # Fallback for simple agents (Legacy or Minimal)
                 result = await agent.chat(request=request, db=db)
 
             # 5. Save results to DB
@@ -85,8 +93,6 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
             await db.commit()
 
             # 6. Universal Completion Signal (Central Nervous System)
-            # [ELITE BUGFIX] Syncing payload with Frontend (ChatProvider expectation)
-            # Ensuring atomic data availability before signaling.
             await event_bus.emit("AGENT_TASK_COMPLETED", {
                 "task_id": task_id,
                 "session_id": session_id,
@@ -106,43 +112,41 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
             duration = (datetime.now(timezone.utc) - t0).total_seconds()
             logger.info(f"✅ [Neural Worker] Task {task_id} completed successfully in {duration:.2f}s.")
             
-        except Exception as e:
-            logger.error(f"❌ [Worker] Task {task_id} failed during execution: {e}", exc_info=True)
-            # 1. Rollback the active session (already handled by 'async with' usually, but good to be explicit for hygiene)
-            try:
-                await db.rollback()
-            except:
-                pass # Already closed or invalid
-            
-            # 2. Update status to FAILED in a NEW isolated session
-            try:
-                async with session_maker() as fail_db:
-                    await fail_db.execute(
-                        update(UnifiedAgentTask)
-                        .where(UnifiedAgentTask.task_id == task_id)
-                        .values(
-                            status="FAILED", 
-                            error=str(e), 
-                            completed_at=datetime.now(timezone.utc)
-                        )
+    except Exception as e:
+        logger.error(f"❌ [Worker] Task {task_id} failed during execution: {e}", exc_info=True)
+        # Rollback is handled by session_maker's async context but we update status as FAILED
+        try:
+            async with session_maker() as fail_db:
+                await fail_db.execute(
+                    update(UnifiedAgentTask)
+                    .where(UnifiedAgentTask.task_id == task_id)
+                    .values(
+                        status="FAILED", 
+                        error=str(e), 
+                        completed_at=datetime.now(timezone.utc)
                     )
-                    await fail_db.commit()
-            except Exception as dbe:
-                logger.critical(f"💀 [Worker] CRITICAL: Could not update task {task_id} status to FAILED: {dbe}")
+                )
+                await fail_db.commit()
+        except Exception as dbe:
+            logger.critical(f"💀 [Worker] CRITICAL: Could not update task {task_id} status to FAILED: {dbe}")
 
-            # Emit failure signal
-            await event_bus.emit("AGENT_TASK_COMPLETED", {
-                "task_id": task_id,
-                "session_id": session_id,
-                "agent_id": agent_id,
-                "status": "FAILED",
-                "error": str(e)
-            })
-            
-            # Optional: Automatic retry for transient Network/API errors
-            # Only retry if it looks like a transient error (e.g. Rate Limit)
-            if "429" in str(e) or "timeout" in str(e).lower():
-                raise Retry(defer=10)
+        # Emit failure signal
+        await event_bus.emit("AGENT_TASK_COMPLETED", {
+            "task_id": task_id,
+            "session_id": session_id,
+            "agent_id": agent_id,
+            "status": "FAILED",
+            "error": str(e)
+        })
+        
+        # Automatic retry for transient Network/API errors
+        error_str = str(e).lower()
+        if any(trigger in error_str for trigger in ["429", "timeout", "overloaded"]):
+            logger.warning(f"🔄 [Worker] Retrying task {task_id} due to transient error: {e}")
+            raise Retry(defer=15)
+    finally:
+        if token_ctx:
+            current_tenant_id.reset(token_ctx)
 
 async def startup(ctx: Dict[str, object]) -> None:
     logger.info("🚀 [Neural Worker] Arq Worker starting up... Elite V2.2 Protocol Active.")

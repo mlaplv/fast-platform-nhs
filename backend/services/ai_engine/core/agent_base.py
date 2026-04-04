@@ -153,13 +153,20 @@ class BaseAgentOperative(ABC, MedicalShieldMixin):
         task_id = str(uuid.uuid4())
         
         # 1. DB Persistence (Elite V2.2 Rule: No orphaned tasks)
-        # We ensure the task is registered in the DB before pushing to Redis.
+        from backend.database import current_tenant_id
+        target_tenant = current_tenant_id.get()
+        
+        # Fallback to payload hint (e.g. from a previous session state)
+        if not target_tenant:
+            target_tenant = request_data.get("tenant_id") or "default"
+
         new_task = UnifiedAgentTask(
             agent_id=self.agent_id,
             task_id=task_id,
             session_id=session_id,
             status="PENDING",
-            payload=request_data
+            payload=request_data,
+            tenant_id=target_tenant
         )
 
         async def _persist():

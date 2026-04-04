@@ -3,18 +3,20 @@ import logging
 import asyncio
 from typing import List, Optional
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
 from backend.database.alchemy_config import alchemy_config
-from backend.database.models import ProductBase, ProductEmbedding, Article, ArticleEmbedding
+from backend.database.models import ProductBase, ProductEmbedding, Article, ArticleEmbedding, Category
 
 logger = logging.getLogger("api-gateway")
 
 class VectorMemory:
     @staticmethod
-    async def search(transcript: str, session=None, context_type: str = "product", limit: int = 3) -> str:
+    async def search(transcript: str, db: AsyncSession, category: Optional[str] = None, context_type: str = "product", limit: int = 3) -> str:
         """
         Phase 77: Semantic RAG Search.
         Calculates cosine similarity in-memory for speed and 2GB RAM safety.
+        Elite V2.2: Supports Category-based filtering (Layer 2).
         """
         encoder = get_shared_encoder()
         if not encoder:
@@ -33,21 +35,17 @@ class VectorMemory:
             logger.error(f"[VectorMemory] Embedding failed: {e}")
             return ""
 
-        # Handle session creation if not provided
-        own_session = False
-        if session is None:
-            session_maker = alchemy_config.create_session_maker()
-            session = session_maker()
-            own_session = True
-
         try:
             results_text = []
             if context_type == "product":
-                # Fetch all product embeddings
+                # Fetch product embeddings with optional category filter
                 stmt = select(ProductBase.name, ProductBase.price, ProductBase.stock, ProductEmbedding.embedding).join(
                     ProductEmbedding, ProductBase.id == ProductEmbedding.product_base_id
                 )
-                result = await session.execute(stmt)
+                if category:
+                    stmt = stmt.join(Category, ProductBase.category_id == Category.id).where(Category.name.ilike(f"%{category}%"))
+                
+                result = await db.execute(stmt)
                 rows = result.all()
                 if not rows: return ""
 
@@ -86,7 +84,10 @@ class VectorMemory:
                 stmt = select(Article.title, Article.category, ArticleEmbedding.embedding).join(
                     ArticleEmbedding, Article.id == ArticleEmbedding.article_id
                 )
-                result = await session.execute(stmt)
+                if category:
+                    stmt = stmt.where(Article.category.ilike(f"%{category}%"))
+                
+                result = await db.execute(stmt)
                 rows = result.all()
                 if not rows: return ""
 
@@ -122,6 +123,3 @@ class VectorMemory:
         except Exception as e:
             logger.error(f"[VectorMemory] Search failed: {e}")
             return ""
-        finally:
-            if own_session:
-                await session.close()

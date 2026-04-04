@@ -6,15 +6,18 @@ from unstructured chat messages.
 """
 from __future__ import annotations
 import logging
+import re
 from typing import List, Optional, Dict
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic_ai import Agent
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import select, or_
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.commerce.order import order_service
 from backend.services.user_service import user_service
 from backend.schemas.order import OrderCreateRequest, OrderItem
+from backend.database.models import ProductBase
 
 logger = logging.getLogger("api-gateway")
 
@@ -35,6 +38,7 @@ class ExtractedLead(BaseModel):
     is_new_customer: bool = Field(False, description="True nếu đây là khách hàng mới")
     address_status: str = Field("SAME", description="SAME, CHANGED, or NEW")
     previous_address: Optional[str] = Field(None, description="Địa chỉ cũ của khách nếu có")
+    processed_order_id: Optional[str] = Field(None, description="ID đơn hàng đã tạo (nếu có)")
 
 import re
 
@@ -78,6 +82,74 @@ def validate_vietnam_phone(phone: str) -> Optional[str]:
 class LeadExtractor:
 
     @staticmethod
+    async def _resolve_product(db: AsyncSession, name: Optional[str] = None, slug: Optional[str] = None, tenant_id: str = "default"):
+        """Fuzzy lookup product in DB by slug or name."""
+        try:
+            # 1. Exact slug match
+            if slug:
+                res = await db.execute(select(ProductBase).where(ProductBase.slug == slug, ProductBase.tenant_id == tenant_id))
+                p = res.scalar_one_or_none()
+                if p: return p
+
+            # 2. Partial slug match (e.g. 'hoi-nach-hong-son' inside 'thuoc-dac-tri-hoi-nach-hong-son')
+            if slug:
+                res = await db.execute(
+                    select(ProductBase).where(
+                        ProductBase.slug.ilike(f"%{slug}%"),
+                        ProductBase.tenant_id == tenant_id
+                    ).limit(1)
+                )
+                p = res.scalar_one_or_none()
+                if p: return p
+
+            # 3. Fuzzy name match
+            if name:
+                res = await db.execute(
+                    select(ProductBase).where(
+                        or_(
+                            ProductBase.name.ilike(f"%{name}%"),
+                            ProductBase.slug.ilike(f"%{name.replace(' ', '-')}%")
+                        ),
+                        ProductBase.tenant_id == tenant_id
+                    ).limit(1)
+                )
+                return res.scalar_one_or_none()
+        except Exception as e:
+            logger.warning(f"[LeadExtractor] _resolve_product error: {e}")
+        return None
+
+    @staticmethod
+    def _apply_combo_deals(product: ProductBase, quantity: int) -> tuple[Optional[dict], int]:
+        """
+        Apply the best matching combo deal from product_metadata.
+        Returns: (matched_deal_dict, final_quantity)
+        """
+        try:
+            metadata = product.product_metadata or {}
+            deals = metadata.get("active_deals", [])
+            if not deals: return None, quantity
+            
+            # Sort deals by quantity descending to match the largest possible combo
+            deals = sorted(deals, key=lambda d: (d.get("buy_qty", 0) + d.get("get_qty", 0)), reverse=True)
+            
+            for deal in deals:
+                buy_qty = deal.get("buy_qty", 0)
+                get_qty = deal.get("get_qty", 0)
+                total_combo_qty = buy_qty + get_qty
+                
+                # Rule 1: Exact match of total quantity (e.g. user asked for 3, and combo is buy 2 get 1)
+                if quantity == total_combo_qty:
+                    return deal, total_combo_qty
+                
+                # Rule 2: Semi-match (e.g. user asked for 2, and combo is buy 2 get 1)
+                # We AUTO-UPGRADE to the combo to be helpful (Elite V2.2 Sales Strategy)
+                if quantity == buy_qty and get_qty > 0:
+                    return deal, total_combo_qty
+        except:
+            pass
+        return None, quantity
+
+    @staticmethod
     async def extract_and_convert(
         db: AsyncSession, 
         message: str, 
@@ -114,12 +186,15 @@ class LeadExtractor:
                 lead.customer_phone = valid_phone
 
             # 3. IDENTITY RESOLUTION (Elite V2.2: User-First Protocol)
+            from backend.database import current_tenant_id
+            target_tenant = current_tenant_id.get() or "default"
+            
             user, is_new, prev_addr, addr_changed = await user_service.get_or_resolve_customer(
                 db=db,
                 phone=lead.customer_phone or "0000000000",
                 name=lead.customer_name,
                 current_address=lead.customer_address,
-                tenant_id="default"
+                tenant_id=target_tenant
             )
             
             lead.is_new_customer = is_new
@@ -129,54 +204,86 @@ class LeadExtractor:
             if not lead.is_definite_purchase or not lead.customer_phone:
                 return lead
 
-            # 3. Convert to OrderItems (Elite V2.2: Must be dicts for OrderCreateRequest)
+            # 3. Convert and Enrich OrderItems (Elite V2.2: The Sales Expert)
             order_items: List[Dict[str, object]] = []
             total_amount = 0.0
+            from backend.database import current_tenant_id
+            target_tenant = current_tenant_id.get() or "default"
             
             for item in lead.items:
-                p_id = str(item.id or current_product_slug or "unknown")
-                qty = int(item.quantity)
-                price = float(item.price or 0.0)
+                # 🛡️ PRODUCT ENRICHMENT (Elite Protocol)
+                # Try to resolve the actual product from DB
+                resolved_product = await LeadExtractor._resolve_product(
+                    db, 
+                    name=item.name, 
+                    slug=item.id or current_product_slug,
+                    tenant_id=target_tenant
+                )
                 
+                p_id = resolved_product.id if resolved_product else (item.id or current_product_slug or "unknown")
+                qty = int(item.quantity)
+                
+                # Default price: Use Discount Price if available, otherwise Base Price, otherwise fallback
+                base_price = (resolved_product.discount_price or resolved_product.price) if resolved_product else float(item.price or 0.0)
+                
+                # 🚀 COMBO MATCHING (Elite Sales Engine)
+                # Apply active deals (e.g., Mua 2 Tặng 1) based on quantity
+                final_item_price = base_price
+                matched_deal, upgraded_qty = LeadExtractor._apply_combo_deals(resolved_product, qty) if resolved_product else (None, qty)
+                
+                # Update quantity if upgraded by combo (Elite V2.2 Professional Upsell)
+                qty = upgraded_qty
+                
+                if matched_deal:
+                    # Calculate effective price per unit for the total amount
+                    # Total = fixed_price
+                    total_amount += float(matched_deal.get("fixed_price", base_price * qty))
+                    final_item_price = float(matched_deal.get("fixed_price", base_price * qty)) / qty
+                else:
+                    total_amount += base_price * qty
+
                 order_items.append({
                     "product_id": p_id,
-                    "name": item.name or "Sản phẩm",
+                    "name": resolved_product.name if resolved_product else (item.name or "Sản phẩm"),
                     "quantity": qty,
-                    "price": price
+                    "price": final_item_price
                 })
-                total_amount += price * qty
 
             if not order_items and current_product_slug:
-                # Fallback to current viewed product if no items extracted but purchase intent is clear
+                # Fallback to current viewed product
+                resolved_product = await LeadExtractor._resolve_product(db, slug=current_product_slug, tenant_id=target_tenant)
                 order_items.append({
                     "product_id": current_product_slug,
-                    "name": "Sản phẩm đang xem",
+                    "name": resolved_product.name if resolved_product else "Sản phẩm đang xem",
                     "quantity": 1,
-                    "price": 0.0
+                    "price": (resolved_product.discount_price or resolved_product.price) if resolved_product else 0.0
                 })
+                total_amount = order_items[0]["price"]
 
-            # 4. Create Draft Order (Initial status PENDING with a 'DRAFT' flag in metadata)
-            if order_items:
-                draft_data = OrderCreateRequest(
-                    customer_name=lead.customer_name or "Khách chốt từ Chat",
-                    customer_email="helen.ai.auto@smartshop.test", # Mandatory for Elite V2.2
-                    customer_phone=lead.customer_phone,
-                    customer_address=lead.customer_address or "Chưa cung cấp địa chỉ",
-                    items=order_items,
-                    total_amount=total_amount
-                )
+            # 4. FINAL ORDER CONVERSION
+            if not order_items:
+                return lead
 
-                
-                # Use order_service to persist with resolved user_id
-                await order_service.create_order(
-                    db_session=db,
-                    data=draft_data,
-                    ip="0.0.0.0",
-                    ua="Helen-AI-AutoDraft",
-                    user_id=user.id
-                )
-                logger.info(f"[LeadExtractor] Created Auto-Draft for user {user.id} (Session: {session_id})")
+            order_data = OrderCreateRequest(
+                customer_name=lead.customer_name or "Khách chốt từ Chat",
+                customer_email=getattr(user, "email", None) or "helen.ai.auto@smartshop.test",
+                customer_phone=lead.customer_phone,
+                customer_address=lead.customer_address or "Chưa cung cấp địa chỉ",
+                total_amount=total_amount,
+                items=order_items,
+            )
             
+            created_order = await order_service.create_order(
+                db_session=db,
+                data=order_data,
+                ip="0.0.0.0",  # Background process has no IP
+                ua="Helen-AI-Sales-Engine",
+                user_id=str(user.id)
+            )
+            # Atomic commit: ensure order is persisted before returning
+            await db.commit()
+            lead.processed_order_id = getattr(created_order, "id", None)
+            logger.info(f"[LeadExtractor] ✅ Order {lead.processed_order_id} created for tenant '{target_tenant}'")
             return lead
 
         except Exception as e:

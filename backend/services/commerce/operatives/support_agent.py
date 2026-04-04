@@ -31,10 +31,12 @@ from pydantic_ai import Agent
 from sqlalchemy import select, and_, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.database.models.commerce import ProductBase
+from backend.database.models.commerce import ProductBase, Order
 from backend.database.models.content import Category
 from backend.database.models.system import AgentTelemetryLog, SupportChatHistory
 from backend.schemas.support import SupportIntent, SupportRequest, SupportResponse, SupportProductInfo
+from backend.services.ai_engine.core.vector_memory import VectorMemory
+from backend.services.ai_engine.core.semantic_cache import semantic_cache
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.ai_engine.core.agent_base import BaseAgentOperative
 from backend.services.commerce.constants.support_config import support_cfg
@@ -96,7 +98,7 @@ async def fetch_topic_details(ctx: RunContext[SupportAgentDeps], topic_id: str) 
     deps = ctx.deps
     repo = SupportKnowledgeRepository(session=deps.db)
     service = SupportKnowledgeService(repo=repo)
-    return await service.get_topic_details(deps.db, topic_id)
+    return await service.fetch_topic_details(deps.db, topic_id)
 
 @_support_ai_agent.tool
 async def search_knowledge_base(ctx: RunContext[SupportAgentDeps], query: str) -> str:
@@ -155,8 +157,8 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str]) -> tuple
             id=str(row.id),
             name=row.name,
             price=float(row.price or 0),
-            discount_price=float(row.discount_price or 0) if row.discount_price else None,
-            category=row.category_name,
+            price_display=f"{int(row.discount_price or row.price or 0):,}đ".replace(",", "."),
+            slug=slug or "",
         )
 
         ctx = (
@@ -209,7 +211,7 @@ class SupportAgentOperative(BaseAgentOperative):
         if is_greeting:
             return SupportResponse(
                 ok=True,
-                reply="Dạ Helen đây ạ! Chúc bạn một ngày tốt lành 🌸\nBạn đang cần em hỗ trợ *kiểm tra thông tin Đơn Hàng* hay muốn nhận *Tư Vấn Ưu Đãi* sản phẩm ạ?",
+                reply="Dạ Helen đây ạ! Chúc quý khách một ngày tốt lành 🌸\nQuý khách đang cần em hỗ trợ *kiểm tra thông tin Đơn Hàng* hay muốn nhận *Tư Vấn Ưu Đãi* sản phẩm ạ?",
                 intent=SupportIntent.GENERAL_ADVICE,
                 session_id=session_id,
                 status="DONE"
@@ -242,8 +244,6 @@ class SupportAgentOperative(BaseAgentOperative):
             "extracted_phone": phone,
             "is_high_intent": is_high_intent
         }
-
-        return None
 
     def get_schema(self) -> Optional[Type[BaseModel]]:
         from backend.schemas.support import SupportRequest
@@ -281,8 +281,29 @@ class SupportAgentOperative(BaseAgentOperative):
         # 🛡️ HUMAN TAKEOVER GUARD
         is_takeover = await xohi_memory.client.get(f"support:takeover:{session_id}")
         if is_takeover == "1":
-            takeover_msg = "Tư vấn viên đang trực tiếp hỗ trợ sếp. Vui lòng đợi trong giây lát ạ! 🌸"
+            takeover_msg = "Chuyên viên tư vấn đang trực tiếp hỗ trợ quý khách. Vui lòng đợi trong giây lát ạ! 🌸"
             return SupportResponse(ok=True, reply=takeover_msg, intent=SupportIntent.GENERAL_ADVICE, session_id=session_id, status="DONE")
+
+        # 🛡️ SEMANTIC CACHE LAYER (Elite V2.2)
+        cached_reply = await semantic_cache.get(request.message)
+        if cached_reply:
+            await self._save_history(
+                db,
+                session_id=session_id,
+                user_msg=request.message,
+                assistant_reply=cached_reply,
+                intent=SupportIntent.GENERAL_ADVICE,
+                product_slug=request.product_slug,
+                customer_name=request.customer_name,
+                customer_phone=request.customer_phone
+            )
+            return SupportResponse(
+                ok=True,
+                reply=cached_reply,
+                intent=SupportIntent.GENERAL_ADVICE,
+                session_id=session_id,
+                status="DONE"
+            )
 
         # 🚀 TIER 2: THE BRAIN (Asynchronous - arq Worker)
         # Delegate to background worker via the inherited 'enqueue_chat' backdoor.
@@ -293,7 +314,7 @@ class SupportAgentOperative(BaseAgentOperative):
 
         return SupportResponse(
             ok=True,
-            reply="Dạ Helen đang xử lý yêu cầu của bạn, chờ em giây lát nhé! 🌸",
+            reply="Dạ Helen đang xử lý yêu cầu của quý khách, chờ em giây lát nhé! 🌸",
             intent=SupportIntent.UNKNOWN,
             session_id=session_id,
             task_id=task_id,
@@ -319,10 +340,97 @@ class SupportAgentOperative(BaseAgentOperative):
         if lead_data:
             request.customer_phone = lead_data.customer_phone or request.customer_phone
             request.customer_name = lead_data.customer_name or request.customer_name
-            lead_metadata = {
+            
+            order_id_val: object = getattr(lead_data, "processed_order_id", None)
+            order_id: Union[str, None] = str(order_id_val) if order_id_val else None
+
+            if order_id is not None:
+                # DETERMINISTIC SHORT-CIRCUIT: Bypass LLM entirely if order created
+                # Elite V2.5: Refined Confirmation with Dynamic Shipping & Caching (V-CTO)
+                
+                # Fetch full order for accurate details (totals, items, address)
+                # No 'any' rule (R2.2)
+                from sqlalchemy import select
+                order_stmt = select(Order).where(Order.id == order_id)
+                order_res = await db.execute(order_stmt)
+                order_obj: Union[Order, None] = order_res.scalar_one_or_none()
+                
+                if order_obj:
+                    # 1. Shorten Order ID (Shopee Style)
+                    short_id: str = order_id[-8:].upper()
+                    
+                    # 2. Calculate Item Count
+                    total_qty: int = 0
+                    if isinstance(order_obj.items, list):
+                        for it in order_obj.items:
+                            if isinstance(it, dict):
+                                total_qty += int(it.get("quantity", 1))
+                    
+                    # 3. Format Amount (VN Standard)
+                    formatted_total: str = "{:,.0f}".format(float(order_obj.total_amount or 0)).replace(",", ".")
+                    
+                    # 4. Dynamic Shipping Estimate (Helen Brain Protocol)
+                    delivery_days: str = self._calculate_delivery_time(order_obj.customer_address or "")
+                    
+                    # 5. Build Final Reply with Action Button (Elite V2.2 Markdown)
+                    safe_reply: str = (
+                        "Dạ Helen xin cảm ơn quý khách! 🌸\n"
+                        "Đơn hàng của quý khách đã được lên thành công:\n"
+                        f"- Mã đơn: **{short_id}**\n"
+                        f"- Số sản phẩm: {total_qty} lọ/combo\n"
+                        f"- Tổng tiền: **{formatted_total}đ** (đã free ship)\n"
+                        f"- Dự kiến nhận hàng: **{delivery_days}**\n\n"
+                        "Mời quý khách nhấn vào bên dưới để theo dõi:\n"
+                        f"[🔍 KIỂM TRA ĐƠN HÀNG](https://smartshop.test/account/orders/{order_id})\n\n"
+                        "Tổng đài viên sẽ sớm gọi điện xác nhận lại cho quý khách nhé ạ!"
+                    )
+                else:
+                    # Fallback if DB fetch fails
+                    safe_reply = f"Dạ Helen xin cảm ơn quý khách! Đơn hàng của quý khách (Mã đơn: {order_id[-8:].upper()}) đã được lên thành công. Tổng đài viên sẽ sớm gọi điện xác nhận lại nhé ạ! 🌸"
+
+                from backend.schemas.support import SupportIntent
+                intent: SupportIntent = SupportIntent.PURCHASE
+                duration_ms: int = int((time.monotonic() - t0) * 1000)
+                
+                # Fetch product info for the response metadata
+                _, product_info = await _fetch_product_context(db, request.product_slug)
+                
+                # Persist and Notify
+                await self._save_history(
+                    db,
+                    session_id=session_id,
+                    user_msg=request.message,
+                    assistant_reply=safe_reply,
+                    intent=intent,
+                    product_slug=request.product_slug,
+                    customer_name=request.customer_name,
+                    customer_phone=request.customer_phone
+                )
+                
+                await event_bus.emit("SUPPORT_QUERY_LOG", {"session_id": session_id, "intent": intent.value, "duration_ms": duration_ms})
+                await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+                
+                # Redis Broadcast to Admin (Elite V2.2 Cross-Container Sync)
+                try:
+                    if xohi_memory._use_redis and getattr(xohi_memory, "client", None):
+                        redis_payload: str = json.dumps({"event": "SUPPORT_INBOX_UPDATE", "payload": {"session_id": session_id}}, ensure_ascii=False)
+                        await xohi_memory.client.publish("admin:pulse", redis_payload)
+                except Exception as rb_exc:
+                    logger.warning("[SupportAgent] Redis broadcast to admin:pulse failed: %s", rb_exc)
+
+                return SupportResponse(
+                    ok=True,
+                    reply=safe_reply,
+                    intent=intent,
+                    session_id=session_id,
+                    product_info=product_info, # type: ignore
+                    status="DONE"
+                )
+
+            lead_metadata: Union[Dict[str, object], None] = {
                 "is_new_customer": lead_data.is_new_customer,
-                "address_status": lead_data.address_status,
-                "previous_address": lead_data.previous_address
+                "address_status": getattr(lead_data, "address_status", "UNKNOWN"),
+                "previous_address": getattr(lead_data, "previous_address", None)
             }
         else:
             lead_metadata = None
@@ -372,6 +480,10 @@ class SupportAgentOperative(BaseAgentOperative):
             logger.error("[SupportAgent] AI call failed: %s", exc)
             raw_reply = "Xin lỗi, hệ thống đang bận. Mời quý khách liên hệ hotline để được hỗ trợ ngay ạ!"
 
+        if not raw_reply.strip():
+            logger.warning("[SupportAgent] AI returned empty reply! Applying safety fallback.")
+            raw_reply = "Dạ hệ thống đã ghi nhận thông tin của quý khách. Quý khách có cần em hỗ trợ thêm gì không ạ?"
+
         safe_reply = _sanitize_response(raw_reply)
         duration_ms = int((time.monotonic() - t0) * 1000)
 
@@ -391,6 +503,18 @@ class SupportAgentOperative(BaseAgentOperative):
         await event_bus.emit("SUPPORT_QUERY_LOG", {"session_id": session_id, "intent": intent.value, "duration_ms": duration_ms})
         await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
         
+        # Redis Broadcast to Admin (Elite V2.2 Cross-Container Sync)
+        try:
+            if xohi_memory._use_redis and getattr(xohi_memory, "client", None):
+                redis_payload = json.dumps({
+                    "event": "SUPPORT_INBOX_UPDATE", 
+                    "payload": {"session_id": session_id}
+                }, ensure_ascii=False)
+                await xohi_memory.client.publish("admin:pulse", redis_payload)
+        except Exception as rb_exc:
+            logger.warning("[SupportAgent] Redis broadcast to admin:pulse failed: %s", rb_exc)
+
+        
         # [ELITE BUGFIX] Removing direct SUPPORT_RESPONSE_READY emission here.
         # The arq Worker (arq_worker.py) now handles this after the final atomic commit
         # to ensure the UI only receives data that is actually persisted in the DB.
@@ -404,6 +528,34 @@ class SupportAgentOperative(BaseAgentOperative):
             product_info=product_info,
             status="DONE"
         )
+
+    def _calculate_delivery_time(self, address: str) -> str:
+        """
+        Elite V2.5: Dynamic Shipping Estimation (Helen Brain Intelligence).
+        Refined logic based on regional keywords.
+        """
+        if not address:
+            return "2-3 ngày"
+            
+        addr: str = address.lower()
+        
+        # 1. HCM (1-2 days)
+        hcm_keys: list[str] = ["hồ chí minh", "tp.hcm", "hcm", "sài gòn", "phú lâm", "quận 1", "quận 2", "quận 3", "quận 4", "quận 5", "quận 6", "quận 7", "quận 8", "quận 9", "quận 10", "quận 11", "quận 12", "bình tân", "bình thạnh", "gò vấp", "phú nhuận", "tân bình", "tân phú", "thủ đức", "hóc môn", "củ chi", "nhà bè", "bình chánh", "cần giờ"]
+        if any(key in addr for key in hcm_keys):
+            return "1-2 ngày"
+            
+        # 2. Southern Provinces (2-3 days)
+        south_keys: list[str] = [
+            "bình phước", "bình dương", "đồng nai", "tây ninh", "vũng tàu", 
+            "long an", "đồng tháp", "an giang", "tiền giang", "vĩnh long", 
+            "bến tre", "kiên giang", "cần thơ", "hậu giang", "trà vinh", 
+            "sóc trăng", "bạc liêu", "cà mau"
+        ]
+        if any(key in addr for key in south_keys):
+            return "2-3 ngày"
+            
+        # 3. Other regions (3-5 days)
+        return "3-5 ngày"
 
     async def _save_history(self, db: AsyncSession, session_id: str, user_msg: str, assistant_reply: str, intent: SupportIntent, product_slug: Optional[str], customer_name: Optional[str] = None, customer_phone: Optional[str] = None) -> None:
         try:
@@ -458,14 +610,18 @@ class SupportAgentOperative(BaseAgentOperative):
                 f"previous_address: {lead_metadata.get('previous_address') or 'N/A'}\n"
                 "QUY TẮC: Dùng thông tin trên để cá nhân hóa lời chào và xác nhận địa chỉ nếu cần.\n"
             )
+            
             agentic_directive = id_ctx + agentic_directive
 
         return (
             f"{agentic_directive}\n{history_text}\n"
-            "[KNOWLEDGE CONTEXT]\n"
-            f"{ctx_block}\n"
-            "MẸO: Bạn hỗ trợ Kiến trúc bộ nhớ 3 lớp. Hãy dùng tool 'get_knowledge_index' để xem các chủ đề Helen đang biết, "
-            "sau đó dùng 'fetch_topic_details' để lấy kiến thức chi tiết nếu cần tư vấn sâu hơn.\n"
+            "[KIẾN TRÚC TRI THỨC 3 LỚP (ELITE V2.2)]\n"
+            "Bạn có quyền truy cập hệ thống tri thức phân tầng để trả lời chính xác nhất:\n"
+            "1. LỚP 1 (Mục lục): Dùng 'get_knowledge_index' để xem danh sách các chủ đề Helen đang biết.\n"
+            "2. LỚP 2 (Chi tiết): Dùng 'fetch_topic_details(topic_id)' để lấy nội dung chi tiết của một chủ đề cụ thể.\n"
+            "3. LỚP 3 (Tìm kiếm nâng cao): Dùng 'search_knowledge_base(query)' để tìm kiếm mờ khi lớp 1 & 2 không có câu trả lời trực tiếp.\n"
+            "--- THÔNG TIN SẢN PHẨM HIỆN TẠI ---\n"
+            f"{ctx_block or 'Không có sản phẩm cụ thể đang xem.'}\n"
             "--- BẮT ĐẦU PHÂN TÍCH VÀ PHẢN HỒI ---"
         )
 

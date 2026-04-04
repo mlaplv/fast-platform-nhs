@@ -26,22 +26,23 @@ class InternalBus:
     """
     _instance = None
 
-    def __new__(cls):
+    def __new__(cls) -> "InternalBus":
         if cls._instance is None:
             cls._instance = super(InternalBus, cls).__new__(cls)
             cls._instance.subscribers: Dict[str, List[Callable]] = {}
             cls._instance.broadcast_subscribers: List[asyncio.Queue] = []
-            cls._instance.queue = asyncio.Queue()
-            cls._instance._worker_task = None
+            cls._instance.queue: asyncio.Queue = asyncio.Queue()
+            cls._instance._worker_task: Union[asyncio.Task, None] = None
+            cls._instance._redis_task: Union[asyncio.Task, None] = None
         return cls._instance
 
-    def subscribe(self, event_name: str, callback: Callable):
+    def subscribe(self, event_name: str, callback: Callable) -> None:
         if event_name not in self.subscribers:
             self.subscribers[event_name] = []
         self.subscribers[event_name].append(callback)
         logger.debug(f"[EventBus] Subscribed to {event_name}")
 
-    def unsubscribe(self, event_name: str, callback: Callable):
+    def unsubscribe(self, event_name: str, callback: Callable) -> None:
         if event_name in self.subscribers and callback in self.subscribers[event_name]:
             self.subscribers[event_name].remove(callback)
             logger.debug(f"[EventBus] Unsubscribed from {event_name}")
@@ -80,6 +81,29 @@ class InternalBus:
     async def emit(self, event_name: str, payload: Dict[str, object]):
         """Emit event to queue for background processing (Non-blocking for Request)"""
         event = SystemEvent(name=event_name, payload=payload)
+        
+        # Elite V2.2: Cross-Container Redis PubSub Bridge & Stateful Pulse Caching
+        if event_name == "SUPPORT_RESPONSE_READY" and "session_id" in payload:
+            from backend.services.xohi_memory import xohi_memory
+            import json
+            try:
+                if xohi_memory._use_redis and xohi_memory.client:
+                    # Filter JSON serialization carefully
+                    str_payload: str = json.dumps(payload, ensure_ascii=False)
+                    
+                    # 1. Real-time Broadcast (Pub/Sub)
+                    await xohi_memory.client.publish(f"pulse:{payload['session_id']}", str_payload)
+                    
+                    # 2. Stateful Cache (Stateful Pulse - CTO Strategy)
+                    # Cache the result for 5 minutes (300s) to bridge the delivery gap (V6.5)
+                    # If the worker is faster than the client's SSE handshake, 
+                    # the client will pull this on sub-connection.
+                    cache_key: str = f"pulse:{payload['session_id']}:cache"
+                    await xohi_memory.client.set(cache_key, str_payload, ex=300)
+                    
+            except Exception as e:
+                logger.warning(f"[EventBus] Redis bridge/cache failed for {event_name}: {e}")
+
         try:
             self.queue.put_nowait(event)
         except asyncio.QueueFull:
@@ -91,17 +115,61 @@ class InternalBus:
             # Set global queue limit for VPS safety
             self.queue = asyncio.Queue(maxsize=1000)
             self._worker_task = asyncio.create_task(self._worker())
-            logger.info("[EventBus] Background worker started with safety limits.")
+            self._redis_task = asyncio.create_task(self._redis_listener())
+            logger.info("[EventBus] Background worker and Redis listener started.")
 
     async def stop(self):
         if self._worker_task:
             self._worker_task.cancel()
+            if hasattr(self, "_redis_task") and self._redis_task:
+                self._redis_task.cancel()
             try:
-                await self._worker_task
+                if hasattr(self, "_redis_task") and self._redis_task:
+                    await asyncio.gather(self._worker_task, self._redis_task, return_exceptions=True)
+                else:
+                    await self._worker_task
             except (asyncio.CancelledError, Exception):
                 pass
             self._worker_task = None
-            logger.info("[EventBus] Background worker stopped.")
+            if hasattr(self, "_redis_task"):
+                self._redis_task = None
+            logger.info("[EventBus] Background workers stopped.")
+
+    async def _redis_listener(self) -> None:
+        from backend.services.xohi_memory import xohi_memory
+        import json
+        
+        # Give xohi_memory a bit of time to initialize
+        await asyncio.sleep(2)
+        
+        # Explicit type check for client
+        if not xohi_memory._use_redis or getattr(xohi_memory, "client", None) is None:
+            return
+            
+        try:
+            pubsub = xohi_memory.client.pubsub()
+            await pubsub.subscribe("admin:pulse")
+            logger.info("[EventBus] Subscribed to Redis admin:pulse cross-container bridge.")
+            
+            while True:
+                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=15.0)
+                if message and message.get('type') == 'message':
+                    try:
+                        data: Dict[str, object] = json.loads(message['data'])
+                        event_name: str = str(data.get("event", ""))
+                        payload: Union[Dict[str, object], None] = data.get("payload") # type: ignore
+                        if event_name and payload is not None:
+                            local_event = SystemEvent(name=event_name, payload=payload)
+                            try:
+                                self.queue.put_nowait(local_event)
+                            except asyncio.QueueFull:
+                                logger.warning(f"[EventBus] Local Queue Full, dropped Redis event: {event_name}")
+                    except Exception as parse_e:
+                        logger.error(f"[EventBus] Failed to parse Redis message: {parse_e}")
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.error(f"[EventBus] Redis listener error: {e}")
 
     async def _worker(self):
         while True:

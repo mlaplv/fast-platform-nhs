@@ -186,7 +186,7 @@ class SupportKnowledgeService:
         return final_index
 
 
-    async def get_topic_details(self, db_session: AsyncSession, topic_id: str) -> str:
+    async def fetch_topic_details(self, db_session: AsyncSession, topic_id: str) -> str:
         """Layer 2: Topic Files (Detailed Subject Matter). Fetch on-demand."""
         item = await self.repo.get_one_or_none(id=topic_id)
         if not item or item.deleted_at or not item.is_active:

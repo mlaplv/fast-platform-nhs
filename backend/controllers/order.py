@@ -39,8 +39,10 @@ class OrderController(Controller):
         """PUBLIC: Handle storefront checkout with Anti-Spam Shield integration."""
         ip = request.client.host if request.client else "unknown"
         ua = request.headers.get("user-agent", "unknown")
+        user_state = request.scope.get("state", {}).get("user", {})
+        user_id: str = str(user_state.get("sub", "guest"))
 
-        res = await order_service.create_order(db_session, data, ip, ua)
+        res = await order_service.create_order(db_session, data, ip, ua, user_id)
         await db_session.commit()
         return res
 
