@@ -41,7 +41,7 @@ QUESTION_KEYWORDS = ["co khong", "chua", "roi"]
 MUTATE_KEYWORDS = ["them", "tao", "xoa", "sua", "update", "create", "delete"]
 DELETE_KEYWORDS = ["xóa", "xoa", "delete", "bỏ", "bo", "hủy", "huy"]
 EDIT_KEYWORDS = ["sửa", "sua", "edit", "update", "cập nhật", "cap nhat", "đổi", "doi"]
-GREETING_KEYWORDS = ["ban oi", "oi", "hello", "hi", "xin chao", "chao ban", "em oi", "xohi", "xo hi", "so hi"]
+GREETING_KEYWORDS = ["ban oi", "oi", "hello", "hi", "xin chao", "chao ban", "em oi", "xohi", "xo hi", "so hi", "ban", "anh oi", "chi oi", "hey"]
 
 NAME_MARKERS = ["tên là ", "ten la ", "tên ", "ten "]
 NAME_STOP_WORDS = ["email", "mật khẩu", "vai trò", "giá", "mô tả"]

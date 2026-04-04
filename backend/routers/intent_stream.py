@@ -23,7 +23,7 @@ from backend.guards import PermissionGuard
 logger = logging.getLogger("api-gateway")
 
 class IntentStreamController(Controller):
-    # guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
+    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
     """SSE streaming version of IntentController — phased real-time response."""
     path = "/api/v1/intent"
     dependencies = {
