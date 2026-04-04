@@ -119,7 +119,7 @@
                 <div class="flex flex-col gap-1.5">
                     <div class="flex items-center gap-2 opacity-40">
                         <Hash size={12} />
-                        <label class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Original Filename</label>
+                        <span class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Original Filename</span>
                     </div>
                     <span class="text-[12px] font-bold text-zinc-800 dark:text-zinc-200 break-all leading-tight">{asset.filename || 'unknown_payload'}</span>
                 </div>
@@ -128,14 +128,14 @@
                     <div class="flex flex-col gap-1.5">
                         <div class="flex items-center gap-2 opacity-40">
                             <HardDrive size={12} />
-                            <label class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Space Usage</label>
+                            <span class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Space Usage</span>
                         </div>
                         <span class="text-[11px] font-mono font-black text-zinc-600 dark:text-zinc-400">{formatBytes(asset.file_size)}</span>
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <div class="flex items-center gap-2 opacity-40">
                             <Clock size={12} />
-                            <label class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Ingested At</label>
+                            <span class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Ingested At</span>
                         </div>
                         <span class="text-[10px] font-bold text-zinc-600 dark:text-zinc-400 leading-none">{formatDate(asset.created_at)}</span>
                     </div>
@@ -165,7 +165,7 @@
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2 opacity-60">
                             <Tag size={12} class="text-blue-500" />
-                            <label class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Semantic Alt-Text</label>
+                            <span class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Semantic Alt-Text</span>
                         </div>
                         <button onclick={() => isEditingAlt = !isEditingAlt} class="p-1.5 hover:bg-blue-500/10 text-blue-500 rounded-lg transition-all">
                             <Edit3 size={14} />
@@ -198,7 +198,7 @@
                     <div class="space-y-3 relative z-10">
                         <div class="flex items-center gap-2 opacity-60">
                             <Activity size={12} class="text-indigo-500" />
-                            <label class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Detected Tags</label>
+                            <span class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Detected Tags</span>
                         </div>
                         <div class="flex flex-wrap gap-2">
                             {#each asset.media_metadata.ai_tags as tag}
@@ -286,7 +286,7 @@
         background: rgba(0, 0, 0, 0.05);
         border-radius: 10px;
     }
-    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    :global(.dark) .custom-scrollbar::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.05);
     }
 </style>

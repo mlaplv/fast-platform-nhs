@@ -7,6 +7,7 @@ from backend.services.ai_engine.core.trinity_bridge import trinity_bridge # type
 
 import redis.asyncio as _redis # type: ignore
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database import async_session_maker # type: ignore
 from backend.database.models.commerce import ProductBase # type: ignore
 

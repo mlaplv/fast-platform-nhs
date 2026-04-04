@@ -112,6 +112,9 @@ class SupportAgentOperative(BaseAgentOperative):
     def __init__(self, agent_id: str = "support_agent", **kwargs: object):
         super().__init__(agent_id=agent_id)
 
+    def get_schema(self) -> Optional[Type[BaseModel]]:
+        return SupportRequest
+
     async def _save_history(self, db: AsyncSession, session_id: str, user_msg: str, assistant_reply: str, intent: SupportIntent, product_slug: Optional[str], customer_name: Optional[str] = None, customer_phone: Optional[str] = None) -> None:
         """Encrypted transactional history persistence."""
         try:
@@ -156,23 +159,33 @@ class SupportAgentOperative(BaseAgentOperative):
 
     async def _build_prompt_directive(self, product_ctx: str, history_text: str = "", lead_metadata: Optional[Dict[str, object]] = None) -> str:
         """Strategic Sales Prompt Construction."""
-        agentic_directive = await xohi_memory.client.get("support:agent:system_prompt")
+        res = await xohi_memory.client.get("support:agent:system_prompt")
+        agentic_directive = res.decode("utf-8") if isinstance(res, bytes) else res
+
         if not agentic_directive:
             try:
                 if os.path.exists(support_cfg.prompt_template_path):
-                    async with asyncio.to_thread(open, support_cfg.prompt_template_path, "r", encoding="utf-8") as f:
-                        agentic_directive = f.read()
-                else: agentic_directive = support_cfg.system_directive
-            except: agentic_directive = support_cfg.system_directive
+                    def _read_file() -> str:
+                        with open(support_cfg.prompt_template_path, "r", encoding="utf-8") as f:
+                            return f.read()
+                    agentic_directive = await asyncio.to_thread(_read_file)
+                else:
+                    agentic_directive = support_cfg.system_directive
+            except Exception as e:
+                logger.warning("[SupportAgent] Prompt template read failure: %s", e)
+                agentic_directive = support_cfg.system_directive
 
-        # 🚀 MARTIAL COMBO PROTOCOL (R0.3 Evolution)
+        # 🚀 MARTIAL COMBO & MEMORY PROTOCOL (Elite V2.2)
         rules = (
+            "\n[MEMORY PROTOCOL: 3-LAYER]\n"
+            "1. LUÔN tra cứu Layer 1 (get_knowledge_index) để biết có chủ đề liên quan hông.\n"
+            "2. Nếu thấy ID phù hợp, BẮT BUỘC dùng fetch_topic_details để lấy tri thức chuyên sâu.\n"
+            "3. Chỉ dùng kiến thức được hệ thống phê duyệt (Layer 2) để trả lời về Cam kết, So sánh, HDSD.\n"
             "\n[SALES PROTOCOL: MARTIAL COMBO]\n"
             "1. 1 Lọ: 249k.\n"
             "2. 2-3 Lọ -> Combo 3: 498k (Mua 2 tặng 1).\n"
             "3. 4-6 Lọ -> Combo 6: 996k (Mua 4 tặng 2).\n"
-            "4. >6 Lọ: Block chốt đơn, báo đợi chuyên viên báo giá sỉ.\n"
-            "Khuyến khích khách mua Combo để tiết kiệm nhất.\n"
+            "4. >6 Lọ: Block chốt đơn, báo giá sỉ riêng.\n"
         )
         
         meta_str = ""
@@ -225,7 +238,7 @@ class SupportAgentOperative(BaseAgentOperative):
         
         try:
             res = await trinity_bridge.run(_support_ai_agent, request.message, role=support_cfg.model_role, system_prompt=prompt, deps=SupportAgentDeps(db=db), timeout=15.0)
-            data: AgenticSupportResponse = res.data # type: ignore
+            data: AgenticSupportResponse = res.output # type: ignore
             raw_reply = data.reply or "Dạ Helen đã ghi nhận thông tin ạ!"
             raw_intent = data.intent or "UNKNOWN"
         except Exception as e:

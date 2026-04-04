@@ -1,5 +1,8 @@
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
+# Elite 2026: Strict JSON Type (Rule R00)
+JSONPrimitive = Union[str, int, float, bool, None]
+JSONType = Union[JSONPrimitive, List[object], Dict[str, object]]
 from datetime import datetime
 from enum import Enum
 
@@ -23,9 +26,9 @@ class AppointmentBase(BaseModel):
     type: AppointmentType = AppointmentType.STRATEGY
     status: AppointmentStatus = AppointmentStatus.UPCOMING
     recurring_type: str = "none"
-    recurring_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    recurring_metadata: Optional[Dict[str, JSONType]] = Field(default_factory=dict)
     campaign_id: Optional[str] = None
-    metadata_json: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    metadata_json: Optional[Dict[str, JSONType]] = Field(default_factory=dict)
 
 class AppointmentCreate(AppointmentBase):
     pass
@@ -40,9 +43,9 @@ class AppointmentUpdate(BaseModel):
     type: Optional[AppointmentType] = None
     status: Optional[AppointmentStatus] = None
     recurring_type: Optional[str] = None
-    recurring_metadata: Optional[Dict[str, Any]] = None
+    recurring_metadata: Optional[Dict[str, JSONType]] = None
     campaign_id: Optional[str] = None
-    metadata_json: Optional[Dict[str, Any]] = None
+    metadata_json: Optional[Dict[str, JSONType]] = None
 
 class AppointmentResponse(AppointmentBase):
     id: str

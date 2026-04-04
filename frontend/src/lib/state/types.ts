@@ -310,7 +310,7 @@ export interface CampaignData {
     analysis_cache?: AnalysisCache;
     analysis_metrics?: CampaignMetrics;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface PulsePayload {

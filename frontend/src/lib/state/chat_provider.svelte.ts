@@ -10,6 +10,19 @@ export interface ChatMessage {
     timestamp: Date;
 }
 
+export interface ChatResponse {
+    session_id: string;
+    status: 'DONE' | 'PROCESSING' | 'FAILED';
+    reply: string;
+    task_id?: string;
+}
+
+export interface PulsePayload {
+    status: 'DONE' | 'PROCESSING' | 'FAILED';
+    reply: string;
+    task_id?: string;
+}
+
 export class ChatState {
     messages = $state<ChatMessage[]>([]);
     isTyping = $state(false);
@@ -38,7 +51,7 @@ export class ChatState {
 
         try {
             // 2. Call the Triage API (Sync)
-            const response = await apiClient.post<any>('/api/v1/client/support/chat', {
+            const response = await apiClient.post<ChatResponse>('/api/v1/client/support/chat', {
                 message: text,
                 session_id: this.sessionId,
                 product_slug: productSlug
@@ -103,7 +116,7 @@ export class ChatState {
             try {
                 const data = JSON.parse(event.data);
                 if (data.event === 'SUPPORT_RESPONSE_READY') {
-                    this.handlePulseUpdate(data.payload);
+                    this.handlePulseUpdate(data.payload as PulsePayload);
                 }
             } catch (error) {
                 console.error('[Pulse] Content parse error:', error);
@@ -129,7 +142,7 @@ export class ChatState {
         };
     }
 
-    handlePulseUpdate(payload: any) {
+    handlePulseUpdate(payload: PulsePayload) {
         if (payload.status === 'DONE') {
             // Find the placeholder message for this session
             const index = this.messages.findLastIndex(m => m.status === 'PROCESSING');

@@ -1,6 +1,7 @@
 import logging, time, unicodedata, re, json
 from rapidfuzz import fuzz
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
+from sqlalchemy.ext.asyncio import AsyncSession
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from backend.utils.text import normalize_vn, sanitize_id
 from backend.services.xohi_memory import xohi_memory
@@ -31,7 +32,16 @@ class RouterResolver:
         self.semantic_router = semantic_router
         self.t2_router = t2_router
 
-    async def classify(self, db: AsyncSession, transcript: str, user_id: str, app_state: dict, context=None, screen_context=None, modality="text") -> IntentResponse:
+    async def classify(
+        self, 
+        db: AsyncSession, 
+        transcript: str, 
+        user_id: str, 
+        app_state: Dict[str, Any], 
+        context: Optional[Dict[str, Any]] = None, 
+        screen_context: Optional[Dict[str, Any]] = None, 
+        modality: str = "text"
+    ) -> IntentResponse:
         t0 = time.monotonic()
         user_id = sanitize_id(user_id) or "default"
         transcript = unicodedata.normalize('NFC', transcript.strip())

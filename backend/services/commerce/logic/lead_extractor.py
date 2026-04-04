@@ -4,6 +4,7 @@ Lead Extractor Service — Elite V2.2 (Architect's Edition)
 Refined for 100% static typing, Martial Combo Protocol, and zero-leak logic.
 """
 from __future__ import annotations
+import asyncio
 import logging
 import re
 from typing import List, Optional, Dict, Union, TypedDict, Tuple
@@ -123,17 +124,26 @@ class LeadExtractor:
         try:
             # 1. AI EXTRACTION (TrinityBridge Fast Tier)
             result = await trinity_bridge.run(_lead_extraction_agent, message, role="fast", session_id=session_id)
-            lead = getattr(result, "data", result)
-            if not isinstance(lead, ExtractedLead) and hasattr(result, "output"):
-                lead = result.output
-            if not isinstance(lead, ExtractedLead): return None
+            
+            # Elite V2.2: Dual-Mode Compatibility (Object vs Dict Safety)
+            raw_data = getattr(result, "data", result)
+            if not isinstance(raw_data, ExtractedLead) and hasattr(result, "output"):
+                raw_data = result.output
+            
+            if isinstance(raw_data, dict):
+                lead = ExtractedLead.model_validate(raw_data)
+            elif isinstance(raw_data, ExtractedLead):
+                lead = raw_data
+            else:
+                logger.warning(f"[LeadExtractor] Unknown result type: {type(raw_data)}")
+                return None
 
             # 2. DATA HYGIENE
             lead.customer_phone = validate_vietnam_phone(lead.customer_phone or "")
             
             # 2.1 ADDRESS RESOLUTION (Elite V2.2)
             if lead.customer_address:
-                resolved = location_resolver.resolve(lead.customer_address)
+                resolved: ResolvedLocation = await asyncio.to_thread(location_resolver.resolve, lead.customer_address)
                 if resolved.is_valid:
                     # Construct a professional standardized address
                     std_addr = f"{resolved.house_number or ''} {resolved.street or ''}".strip()

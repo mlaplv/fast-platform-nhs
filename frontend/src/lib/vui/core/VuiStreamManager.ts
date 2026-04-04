@@ -1,7 +1,7 @@
 import { vuiState } from "../store/vui.state.svelte";
 import { vuiService, type IntentStreamEvent } from "./VuiService";
-import { useNanobot } from "$lib/state/nanobot.svelte";
-  const nanobot = useNanobot();
+import { getNanobot } from "$lib/state/nanobot.svelte";
+const getBot = () => getNanobot();
 import { VUI_CONFIG } from "./VuiConstants";
 import type { VuiAudioEngine } from "./VuiAudioEngine";
 
@@ -96,7 +96,7 @@ export class VuiStreamManager {
     vuiState.setLiveText(cleanedText);
     
     try {
-      await this.streamLLM(cleanedText, nanobot.currentData?.session_id || "");
+      await this.streamLLM(cleanedText, getBot().currentData?.session_id || "");
     } finally {
       this.isProcessingFinal = false;
     }
@@ -114,7 +114,7 @@ export class VuiStreamManager {
     let lastUpdateAt = 0;
 
     try {
-      const stream = vuiService.streamIntent(query, session_id, source, nanobot.screenContext as Record<string, unknown>, intentData);
+      const stream = vuiService.streamIntent(query, session_id, source, getBot().screenContext as Record<string, unknown>, intentData);
 
       for await (const parsed of stream) {
         receivedAny = true;
@@ -151,7 +151,7 @@ export class VuiStreamManager {
           const isSleep = (parsed.category === "SESSION_CTRL" && (parsed.type === "SLEEP" || parsed.action === "HARDWARE_SLEEP"));
           if (isSleep) {
              console.warn("[VUI] Hardware SLEEP signal received.");
-             nanobot.voice.hard_sleep();
+             getBot().voice.hard_sleep();
              return;
           }
         } else if (parsed.phase === "error") {
@@ -179,11 +179,11 @@ export class VuiStreamManager {
                          this.lastActionType !== "";
       
       if (shouldPopUp && source === "text") {
-        nanobot.setVuiActive(true);
+        getBot().setVuiActive(true);
         vuiState.setActive(true);
       }
 
-      nanobot.setVoiceResult(query, finalMsg, this.lastActionType, lastData || {}, source, lastData?.router_tier);
+      getBot().setVoiceResult(query, finalMsg, this.lastActionType, lastData || {}, source, lastData?.router_tier);
 
       if (source === "text") {
         setTimeout(() => {

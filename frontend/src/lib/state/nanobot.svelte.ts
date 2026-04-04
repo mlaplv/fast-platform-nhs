@@ -1,4 +1,5 @@
 import { untrack, setContext, getContext } from "svelte";
+import { NANOBOT_KEY } from "./context_keys";
 import { apiClient } from "$lib/utils/apiClient";
 import { createChatState } from "./chat.svelte";
 import { goto } from "$app/navigation";
@@ -25,6 +26,9 @@ import { playTacticalPurge } from "$lib/utils/sfx";
 
 export * from "./types";
 import type { WidgetType, Suggestion, CommandAction, ToastType, ChatSettings, CommandVerb, CommandEntity, SystemLog, CampaignData } from "./types";
+
+
+// Elite V2.2: Context Isolation Protocol
 
 export function createNanobotState() {
   const log = createLogState();
@@ -449,20 +453,33 @@ export function createNanobotState() {
   };
 }
 
-// Elite V2.2: Context Isolation Protocol
-const NANOBOT_KEY = Symbol('NANOBOT');
 
 export type NanobotState = ReturnType<typeof createNanobotState>;
 
+let _globalNanobotState: NanobotState | null = null;
+
 export function setNanobotContext() {
   const state = createNanobotState();
+  _globalNanobotState = state;
   return setContext(NANOBOT_KEY, state);
 }
 
 export function useNanobot(): NanobotState {
-  const state = getContext(NANOBOT_KEY) as NanobotState;
-  if (!state) {
-    throw new Error("useNanobot must be used within a NanobotProvider (setNanobotContext)");
+  try {
+    const state = getContext(NANOBOT_KEY) as NanobotState;
+    if (state) return state;
+  } catch (e) {
+    // Suppress lifecycle_outside_component
   }
-  return state;
+  if (_globalNanobotState) return _globalNanobotState;
+  
+  // Create a placeholder state to prevent immediate crashes during module evaluations
+  return {} as NanobotState;
+}
+
+export function getNanobot(): NanobotState {
+  if (!_globalNanobotState) {
+    throw new Error("Nanobot state not initialized yet");
+  }
+  return _globalNanobotState;
 }

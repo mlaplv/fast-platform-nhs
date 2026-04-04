@@ -77,13 +77,14 @@ export class VuiService {
                 }
               }
             }
-          } catch (e: any) {
+          } catch (e) {
+            const err = e instanceof Error ? e : new Error(String(e));
             // R02: Silent Protocol Recovery for HTTP/2 issues
-            if (e.name === 'AbortError' || e.message?.includes('network error')) {
+            if (err.name === 'AbortError' || err.message?.includes('network error')) {
                 console.debug("[VUI] Connection closed normally by browser/proxy.");
                 return;
             }
-            console.error("[VUI] Stream Read Error:", e);
+            console.error("[VUI] Stream Read Error:", err);
             yield { phase: "error", message: "Kết nối gián đoạn, Sếp thử lại nhé." };
           } finally {
             reader.releaseLock();

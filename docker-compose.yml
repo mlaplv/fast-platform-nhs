@@ -129,11 +129,11 @@ services:
       - INTERNAL_API_URL=http://api:8000
       - APP_DOMAIN=${APP_DOMAIN}
       - ENVIRONMENT=${ENVIRONMENT}
-    mem_limit: ${UI_MEM_LIMIT:-512M}
+    mem_limit: ${UI_MEM_LIMIT:-1G}
     deploy:
       resources:
         limits:
-          memory: ${UI_MEM_LIMIT:-512M}
+          memory: ${UI_MEM_LIMIT:-1G}
     command: pnpm dev --host 0.0.0.0
     links:
       - api

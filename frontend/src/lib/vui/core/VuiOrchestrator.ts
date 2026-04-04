@@ -3,8 +3,8 @@ import { MicrophoneEngine } from "./MicrophoneEngine";
 import { WebSocketStream } from "./WebSocketStream";
 import { VuiAudioEngine } from "./VuiAudioEngine";
 import { VUI_CONFIG } from "./VuiConstants";
-import { useNanobot } from "$lib/state/nanobot.svelte";
-  const nanobot = useNanobot();
+import { getNanobot } from "$lib/state/nanobot.svelte";
+const getBot = () => getNanobot();
 import { VuiStreamManager } from "./VuiStreamManager";
 import { VuiVadEngine } from "./VuiVadEngine";
 import { VuiSpeechEngine } from "./VuiSpeechEngine";
@@ -76,13 +76,13 @@ class VuiOrchestrator {
     // When starting from idle, we force clear any previous VUI response data
     // to ensure the microphone only focuses on the new conversation.
     if (vuiState.phase === 'idle') {
-      nanobot.clearVuiResponse();
-      nanobot.clearCommandAction();
+      getBot().clearVuiResponse();
+      getBot().clearCommandAction();
     }
     
     vuiState.setStartingLock(true);
     vuiState.setActive(true);
-    nanobot.setVuiActive(true);
+    getBot().setVuiActive(true);
     
     if (autoBypassAudio) this.audio?.abort();
     this.audio?.reset();
@@ -100,7 +100,7 @@ class VuiOrchestrator {
       await this.audio!.unlock();
       this.audio!.playSystemSound('start');
       
-      const sessionId = nanobot.currentData?.session_id || "";
+      const sessionId = getBot().currentData?.session_id || "";
       await this.ws!.connect(
         (data) => this.streamManager!.handleWsMessage(data),
         undefined, undefined, undefined,
@@ -196,7 +196,7 @@ class VuiOrchestrator {
     this.ws!.disconnect();
     vuiState.reset();
     vuiState.setStartingLock(false);
-    nanobot.setVuiActive(false);
+    getBot().setVuiActive(false);
     this.streamManager!.setLastAction("");
   }
 
@@ -257,7 +257,7 @@ class VuiOrchestrator {
       console.info("[VUI] AI requested listening. Re-opening mic.");
       const delay = VUI_CONFIG.UX.POST_SPEECH_DELAY_MS;
       this.setManagedTimer('resumption', () => {
-        if (vuiState.isActive && nanobot.isVuiActive) {
+        if (vuiState.isActive && getBot().isVuiActive) {
           vuiState.setLiveText("");
           this.startRecording(false);
           vuiState.requiresListening = false;
@@ -277,14 +277,14 @@ class VuiOrchestrator {
     this.ws!.disconnect();
 
     vuiState.setActive(true);
-    nanobot.setVuiActive(true);
+    getBot().setVuiActive(true);
 
     vuiState.setPhase("thinking");
     vuiState.setTranscript(query);
     vuiState.setLiveText(query);
     vuiState.setSystemMessage("");
 
-    await this.streamManager!.streamLLM(query, nanobot.currentData?.session_id || "", source, intentData);
+    await this.streamManager!.streamLLM(query, getBot().currentData?.session_id || "", source, intentData);
   }
 
   async speak(text: string): Promise<boolean> {

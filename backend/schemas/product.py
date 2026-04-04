@@ -1,5 +1,8 @@
 from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validator, model_validator
 from typing import Optional, List, Dict, Union, Any
+# Elite 2026: Strict JSON Type (Rule R00)
+JSONPrimitive = Union[str, int, float, bool, None]
+JSONType = Union[JSONPrimitive, List[object], Dict[str, object]]
 from datetime import datetime
 
 class SeoMetaSchema(BaseModel):
@@ -19,7 +22,7 @@ class TierVariation(BaseModel):
 
     @field_validator("images", "mobile_images", mode="before")
     @classmethod
-    def filter_null_images(cls, v: Any) -> Any:
+    def filter_null_images(cls, v: object) -> List[str]:
         if v is None: return []
         if isinstance(v, list):
             return [str(x) for x in v if x is not None]
@@ -49,13 +52,13 @@ class ProductMetadata(BaseModel):
     reviews_headline: Optional[str] = Field(None, alias="reviews_headline")
     reviews_trust_score: Optional[str] = Field(None, alias="reviews_trust_score")
     reviews_count_text: Optional[str] = Field(None, alias="reviews_count_text")
-    reviews: List[Dict[str, Any]] = Field(default_factory=list, alias="reviews")
+    reviews: List[Dict[str, JSONType]] = Field(default_factory=list, alias="reviews")
 
     # Section: Diagnostics
     diagnostics_headline: Optional[str] = Field(None, alias="diagnostics_headline")
     diagnostics_subheadline: Optional[str] = Field(None, alias="diagnostics_subheadline")
     diagnostics_disclaimer: Optional[str] = Field(None, alias="diagnostics_disclaimer")
-    quiz_questions: List[Dict[str, Any]] = Field(default_factory=list, alias="quiz_questions")
+    quiz_questions: List[Dict[str, JSONType]] = Field(default_factory=list, alias="quiz_questions")
 
     # Section: Science
     science_headline: Optional[str] = Field(None, alias="science_headline")
@@ -72,7 +75,7 @@ class ProductVariantSchema(BaseModel):
 
     @field_validator("tierIndex", mode="before")
     @classmethod
-    def validate_tier_index(cls, v: Any) -> Any:
+    def validate_tier_index(cls, v: object) -> List[int]:
         if v is None: return []
         if isinstance(v, list):
             return [int(x) for x in v if x is not None]

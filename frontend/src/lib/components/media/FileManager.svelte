@@ -410,7 +410,7 @@
                             {isAutoFilling ? 'ĐANG PHÂN TÍCH...' : 'MAGIC WAND (AI)'}
                         </button>
                     </div>
-                    <button onclick={() => showBulkSeo = false} class="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                    <button aria-label="Đóng" onclick={() => showBulkSeo = false} class="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                 </div>
                 <div class="flex-1 overflow-y-auto p-6 custom-scrollbar">
                     <div class="space-y-6">
@@ -443,7 +443,7 @@
             <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-700 w-full max-w-sm overflow-hidden" transition:slide>
                 <div class="p-4 border-b flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/50">
                     <h3 class="font-bold text-[10px] uppercase tracking-wider">GẮN ẢNH VÀO BÀI VIẾT / SẢN PHẨM</h3>
-                    <button onclick={() => showLinkModal = false} class="text-zinc-500 hover:text-zinc-700"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                    <button aria-label="Đóng" onclick={() => showLinkModal = false} class="text-zinc-500 hover:text-zinc-700"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                 </div>
                 <div class="p-5 space-y-4">
                     <div class="grid grid-cols-2 gap-2">

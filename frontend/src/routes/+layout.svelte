@@ -1,5 +1,10 @@
 <script lang="ts">
   import "./layout.css";
+  import { setNanobotContext } from "$lib/state/nanobot.svelte";
+  
+  // Elite V2.2: Ensure root initialization of context
+  setNanobotContext();
+
   let { children } = $props();
 
 </script>

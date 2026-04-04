@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { nanobot, type WidgetType } from "$lib/state/nanobot.svelte";
+  import { useNanobot, type WidgetType } from "$lib/state/nanobot.svelte";
   import { onMount, type Component } from "svelte";
   import { goto } from "$app/navigation";
+  
+  const nanobot = useNanobot();
   import Package from "lucide-svelte/icons/package";
   import Users from "lucide-svelte/icons/users";
   import Newspaper from "lucide-svelte/icons/newspaper";

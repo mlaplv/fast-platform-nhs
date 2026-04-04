@@ -247,8 +247,8 @@
       formMetadata = p.metadata || { landing_type: 'standard' };
 
       // R102 Defense: map potential snake_case to camelCase
-      const rawTierVariations = (p.tierVariations ?? p.tier_variations ?? []) as any[];
-      formTierVariations = Array.isArray(rawTierVariations) ? rawTierVariations.map((tv: any) => ({
+      const rawTierVariations = (p.tierVariations ?? p.tier_variations ?? []) as RawTierVariation[];
+      formTierVariations = Array.isArray(rawTierVariations) ? rawTierVariations.map((tv: RawTierVariation) => ({
         name: tv.name || "",
         options: Array.isArray(tv.options) ? tv.options : [],
         images: Array.isArray(tv.images) ? tv.images : [],
@@ -348,7 +348,7 @@
         showForm = false;
         await loadProducts();
       }
-    } catch (err: any) { 
+    } catch (err: unknown) { 
       const msg = err?.message || "Lưu sản phẩm thất bại";
       nanobot.showToast(msg, "error"); 
     } finally {

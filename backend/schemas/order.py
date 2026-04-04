@@ -2,7 +2,9 @@ from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validat
 from typing import Optional, List, Union, Dict, Any
 from datetime import datetime
 
-JSONType = Any
+# Elite 2026: Strict JSON Type (Rule R00)
+JSONPrimitive = Union[str, int, float, bool, None]
+JSONType = Union[JSONPrimitive, List[object], Dict[str, object]]
 
 
 class OrderItem(BaseModel):

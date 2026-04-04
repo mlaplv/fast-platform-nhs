@@ -1,5 +1,6 @@
 import logging
 from typing import List, Dict, Union, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
 from backend.database import async_session_maker
 

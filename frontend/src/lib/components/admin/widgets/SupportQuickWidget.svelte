@@ -5,7 +5,7 @@
   import Inbox from "lucide-svelte/icons/inbox";
   import Settings from "lucide-svelte/icons/settings";
   import Sparkles from "lucide-svelte/icons/sparkles";
-import Brain from "lucide-svelte/icons/brain";
+  import Brain from "lucide-svelte/icons/brain";
   import ArrowUpRight from "lucide-svelte/icons/arrow-up-right";
   import { fade, fly } from "svelte/transition";
 
