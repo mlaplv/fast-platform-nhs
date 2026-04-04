@@ -3,7 +3,7 @@ services:
     image: pgvector/pgvector:pg16
     container_name: fast_platform_db
     shm_size: 256mb
-    command: postgres -c shared_buffers=128MB -c max_connections=40 -c work_mem=4MB -c maintenance_work_mem=32MB
+    command: postgres -c shared_buffers=128MB -c max_connections=40 -c work_mem=4MB -c maintenance_work_mem=32MB -c random_page_cost=1.1 -c effective_cache_size=1GB -c max_worker_processes=4
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -92,11 +92,11 @@ services:
       - TZ=Asia/Ho_Chi_Minh
       - PYTHONWARNINGS=ignore:Core Pydantic V1 functionality:UserWarning
       - MALLOC_ARENA_MAX=2  # [GHOST MODE] Chống phân mảnh bộ nhớ glibc
-    mem_limit: ${API_MEM_LIMIT:-4G}
+    mem_limit: ${API_MEM_LIMIT:-1.2G}
     deploy:
       resources:
         limits:
-          memory: ${API_MEM_LIMIT:-4G}
+          memory: ${API_MEM_LIMIT:-1.2G}
     depends_on:
       db:
         condition: service_healthy
@@ -129,22 +129,22 @@ services:
       - INTERNAL_API_URL=http://api:8000
       - APP_DOMAIN=${APP_DOMAIN}
       - ENVIRONMENT=${ENVIRONMENT}
-    mem_limit: ${UI_MEM_LIMIT:-2G}
+    mem_limit: ${UI_MEM_LIMIT:-512M}
     deploy:
       resources:
         limits:
-          memory: ${UI_MEM_LIMIT:-2G}
+          memory: ${UI_MEM_LIMIT:-512M}
     command: pnpm dev --host 0.0.0.0
     links:
       - api
     depends_on:
       - api
 
-  worker:
+  worker_high:
     build:
       context: .
       dockerfile: backend/Dockerfile.dev
-    container_name: fast_platform_worker
+    container_name: fast_platform_worker_high
     volumes:
       - .:/app
     logging:
@@ -159,13 +159,44 @@ services:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/fast_platform
       - REDIS_URL=redis://redis:6379/0
       - TZ=Asia/Ho_Chi_Minh
-      - PYTHONWARNINGS=ignore:Core Pydantic V1 functionality:UserWarning
-    mem_limit: 1G  # [GHOST MODE] Efficient background processing
+    mem_limit: 768M
     deploy:
       resources:
         limits:
-          memory: 1G
-    command: /opt/venv/bin/arq backend.arq_worker.WorkerSettings
+          memory: 768M
+    command: /opt/venv/bin/arq backend.arq_worker.WorkerHighSettings
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: always
+
+  worker_default:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    container_name: fast_platform_worker_default
+    volumes:
+      - .:/app
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - .env
+    environment:
+      - UV_PROJECT_ENVIRONMENT=/opt/venv
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/fast_platform
+      - REDIS_URL=redis://redis:6379/0
+      - TZ=Asia/Ho_Chi_Minh
+    mem_limit: 512M
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    command: /opt/venv/bin/arq backend.arq_worker.WorkerDefaultSettings
     depends_on:
       db:
         condition: service_healthy

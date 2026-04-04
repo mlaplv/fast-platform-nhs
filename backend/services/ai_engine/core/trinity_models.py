@@ -68,12 +68,24 @@ class TrinityModels:
 
         healthy = []
         for m in raw:
-            if not await self.rotator.is_model_poisoned(m): healthy.append(m)
+            if not await self.rotator.is_model_poisoned(m):
+                healthy.append(m)
+        
+        # Elite V2.2: Fail-safe - ensure we have AT LEAST the defaults if everything else failed
+        if not healthy:
+            for m in [self.default_model, self.fallback_model]:
+                if not await self.rotator.is_model_poisoned(m):
+                    healthy.append(m)
+
         return healthy
 
     def classify_error(self, err: str) -> str:
         err = err.lower()
         if any(p in err for p in ["401", "403", "api key not valid", "invalid_key", "key_expired", "project disabled", "deleted"]): return "auth"
+        
+        # Elite V2.2: Deep Research models in preview might not support standard generateContent
+        if "interactions api" in err: return "rate_limit" # Force fallback to next model
+        
         if any(p in err for p in ["context_length_exceeded", "too many tokens", "safety", "blocked", "invalid_argument", "400"]): return "fail_fast"
         if "tool output is not supported" in err: return "tool_unsupported"
         if any(p in err for p in ["429", "quota", "rate limit", "limit reached", "resource_exhausted", "503", "unavailable", "500"]): return "rate_limit"

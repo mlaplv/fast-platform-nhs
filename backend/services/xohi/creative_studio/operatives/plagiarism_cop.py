@@ -4,10 +4,11 @@ import os
 import re
 import hashlib
 from datetime import datetime, timezone
-from typing import List, Dict, Optional, Union, cast
+from typing import List, Dict, Optional, Union, cast, Type
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_ai import Agent
 from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
 from backend.services.ai_engine.core.agent_base import BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin
@@ -22,6 +23,10 @@ from backend.utils.text import normalize_vn
 from .plagiarism_prompts import PLAGIARISM_PROMPT
 from .plagiarism_surgeon import PlagiarismSurgeon
 
+class PlagiarismTaskRequest(BaseModel):
+    campaign_id: str
+    force: bool = False
+
 logger = logging.getLogger("api-gateway")
 
 class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
@@ -32,8 +37,8 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
     agent_id_class = "plagiarism_cop"
     _plagiarism_semaphore = asyncio.Semaphore(1)
 
-    def __init__(self, threshold: float = 0.75):
-        super().__init__(agent_id="plagiarism_cop")
+    def __init__(self, agent_id: str = "plagiarism_cop", threshold: float = 0.75, **kwargs: object):
+        super().__init__(agent_id=agent_id)
         self.threshold = threshold
         self._agent = Agent(output_type=PlagiarismResult, system_prompt=PLAGIARISM_PROMPT, retries=3)
         self._surgeon = PlagiarismSurgeon()
@@ -45,6 +50,39 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
             return await self.analyze(request, force=bool(kwargs.get("force", False)))
         # Fallback for generic calls (duck typing)
         return await self.analyze(cast(ContentCampaign, request), **kwargs) # type: ignore
+
+    def get_schema(self) -> Optional[Type[BaseModel]]:
+        return PlagiarismTaskRequest
+
+    async def process_brain_logic(self, request: PlagiarismTaskRequest, db: AsyncSession) -> PlagiarismResult:
+        """
+        Elite V2.2: Async Execution logic for arq Worker.
+        Fetches campaign from DB and runs full analysis.
+        """
+        repo = ContentCampaignRepository(session=db)
+        campaign = await repo.get(request.campaign_id)
+        if not campaign:
+            raise ValueError(f"Campaign {request.campaign_id} not found")
+            
+        # Run the heavy analysis
+        result = await self.analyze(campaign, force=request.force)
+        
+        # Elite V2.2 Persistence: Strategy 6 - Persistent results in DB
+        # The worker handles the general status, but we update campaign-specific metrics here.
+        gold = dict(campaign.gold_metadata or {})
+        cache = dict(gold.get("analysis_cache", {}))
+        metrics = dict(gold.get("analysis_metrics", {}))
+
+        content_hash = hashlib.sha256((campaign.draft_content or "").encode('utf-8')).hexdigest()
+        cache["copyright"] = {"hash": content_hash, "data": result.model_dump(), "at": datetime.now(timezone.utc).isoformat()}
+        metrics["unique_score"], metrics["copyright_risk"] = result.uniqueness_score, result.risk_level
+        
+        gold["analysis_cache"], gold["analysis_metrics"] = cache, metrics
+        campaign.gold_metadata, campaign.unique_score = gold, result.uniqueness_score
+        flag_modified(campaign, "gold_metadata")
+        
+        await repo.update(campaign)
+        return result
 
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
         return await self._surgeon.bulk_fix(campaign, req)

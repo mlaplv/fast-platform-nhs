@@ -37,6 +37,10 @@ class TrinityBridge:
         self.models_helper = TrinityModels(self.rotator, self.primary_model, self.fallback_model)
         self.db_primary_model, self.db_waterfall, self.discovered, self._initialized = None, [], [], False
         self.ROLE_FAST, self.ROLE_BRAIN = "fast", "brain"
+        
+        # Elite V2.2: CPU Contention Guard (R4-Core Xeon Standard)
+        # Prevents more than N concurrent heavy AI tasks from saturating the 4-core VPS.
+        self.concurrency_guard = asyncio.Semaphore(4)
 
     @property
     def default_model_name(self) -> str:
@@ -44,11 +48,15 @@ class TrinityBridge:
 
     async def initialize(self):
         if not self._initialized:
+            logger.info("📡 [TrinityBridge] Periodic Neural Bridge Initialization...")
             # Elite V2.2: Ensure keys are loaded if not already done (for non-lifespan entry points)
             if self.rotator.get_count() == 0:
+                logger.info("🔑 [TrinityBridge] No keys detected in rotator. Initializing key loader...")
                 await self.rotator.load_keys()
+            
             await self.reload_models()
             self._initialized = True
+            logger.info(f"✅ [TrinityBridge] Neural Bridge ready. Models discovered: {len(self.discovered)}")
 
     async def reload_models(self):
         from backend.database.alchemy_config import alchemy_config
@@ -58,8 +66,12 @@ class TrinityBridge:
         try:
             async with maker() as s:
                 p = (await s.execute(select(VoiceProfile).limit(1))).scalar_one_or_none()
-                if p: self.db_primary_model, self.db_waterfall = p.primary_model, p.ai_models or []
-        except: pass
+                if p: 
+                    self.db_primary_model, self.db_waterfall = p.primary_model, p.ai_models or []
+                    logger.info(f"🧬 [TrinityBridge] Loaded VoiceProfile configuration: {self.db_primary_model}")
+        except Exception as e: 
+            logger.warning(f"⚠️ [TrinityBridge] Failed to load VoiceProfile: {e}")
+        
         self.discovered = await self.models_helper.discover_available()
 
     async def run(self, agent: Agent, prompt: str, **kwargs: object):
@@ -78,52 +90,65 @@ class TrinityBridge:
         val_force = kwargs.pop("force", False)
         force = bool(val_force)
         
+        # Elite V2.2: Mandatory Late-Initialization Guard (R45 - Cold Start Protection)
+        if not self._initialized:
+            await self.initialize()
+
         models = ([r_m] if r_m else []) + await self.models_helper.build_chain(role, self.db_primary_model, self.db_waterfall, self.discovered)
+        
+        # Elite V2.2: Final Fail-safe - If still empty, trigger urgent recovery
+        if not models:
+            logger.warning("🚨 [TrinityBridge] Zero models in chain. Triggering emergency re-discovery...")
+            await self.reload_models()
+            models = await self.models_helper.build_chain(role, self.db_primary_model, self.db_waterfall, self.discovered)
+
         max_k, last_err = max(1, self.rotator.get_count()), None
 
-        for m_name in models:
-            for att in range(max_k):
-                key = None
-                try:
-                    # R105: Key discovery with strict safety
-                    key = await self.rotator.get_key(model_name=m_name, session_id=s_id)
-                    if not key: continue
-                    if not force and await self.rotator.is_model_daily_exhausted(key, m_name): continue
-                    
-                    logger.info(f"[TrinityBridge] {m_name} (Att {att+1}/{max_k}) (S: {s_id})")
-                    system_prompt = kwargs.pop("system_prompt", None)
-                    
-                    # Elite V2.2: Unified Model Provisioning (Pass-by-Reference for 1.77.0 Safety)
-                    model_instance, ms = self._provision_model(m_name, key, kwargs)
-                    
-                    # Pass deps if provided in kwargs (R110: Dependency Injection Support)
-                    deps = kwargs.pop("deps", None)
-                    
-                    if system_prompt:
-                        with agent.override(instructions=str(system_prompt)):
+        # Elite V2.2: Xeon Per-Core Thread Locking
+        async with self.concurrency_guard:
+            for m_name in models:
+                for att in range(max_k):
+                    key = None
+                    try:
+                        # R105: Key discovery with strict safety
+                        key = await self.rotator.get_key(model_name=m_name, session_id=s_id)
+                        if not key: continue
+                        if not force and await self.rotator.is_model_daily_exhausted(key, m_name): continue
+                        
+                        logger.info(f"🧬 [Neural Bridge] {m_name} | Key {att+1}/{max_k} | S: {s_id or 'N/A'}")
+                        system_prompt = kwargs.pop("system_prompt", None)
+                        
+                        # Elite V2.2: Unified Model Provisioning (Pass-by-Reference for 1.77.0 Safety)
+                        model_instance, ms = self._provision_model(m_name, key, kwargs)
+                        
+                        # Pass deps if provided in kwargs (R110: Dependency Injection Support)
+                        deps = kwargs.pop("deps", None)
+                        
+                        if system_prompt:
+                            with agent.override(instructions=str(system_prompt)):
+                                res = await asyncio.wait_for(agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs), timeout=t)
+                        else:
                             res = await asyncio.wait_for(agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs), timeout=t)
-                    else:
-                        res = await asyncio.wait_for(agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs), timeout=t)
-                    
-                    if hasattr(res, 'usage'): await self.rotator.track_tokens(key, getattr(res.usage, 'total_tokens', 0))
-                    await self.rotator.set_success(key, session_id=s_id)
-                    return res
+                        
+                        if hasattr(res, 'usage'): await self.rotator.track_tokens(key, getattr(res.usage, 'total_tokens', 0))
+                        await self.rotator.set_success(key, session_id=s_id)
+                        return res
 
-                except (asyncio.TimeoutError, TimeoutError): last_err = "Timeout"; break
-                except Exception as e:
-                    last_err, cat = e, self.models_helper.classify_error(str(e))
-                    if cat == "fail_fast": raise AIConfigurationError(f"AI Fail-Fast: {e}", m_name, att)
-                    if cat == "tool_unsupported": break
-                    if not key: continue # Cannot mark unhealthy if we don't have a key
-                    if cat == "rate_limit":
-                        if "QUOTA/COOLDOWN" in str(e):
-                            logger.info(f"[TrinityBridge] Model '{m_name}' has NO keys available. Skipping model.")
-                            break # Move to next model immediately!
-                        if self.models_helper.is_daily_quota(str(e)) and key:
-                            await self.rotator.mark_model_daily(key, m_name)
-                        continue
-                    if cat == "auth": await self.rotator.mark_unhealthy(key, reason="auth", session_id=s_id); continue
-                    if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break
+                    except (asyncio.TimeoutError, TimeoutError): last_err = "Timeout"; break
+                    except Exception as e:
+                        last_err, cat = e, self.models_helper.classify_error(str(e))
+                        if cat == "fail_fast": raise AIConfigurationError(f"AI Fail-Fast: {e}", m_name, att)
+                        if cat == "tool_unsupported": break
+                        if not key: continue # Cannot mark unhealthy if we don't have a key
+                        if cat == "rate_limit":
+                            if "QUOTA/COOLDOWN" in str(e):
+                                logger.info(f"[TrinityBridge] Model '{m_name}' has NO keys available. Skipping model.")
+                                break # Move to next model immediately!
+                            if self.models_helper.is_daily_quota(str(e)) and key:
+                                await self.rotator.mark_model_daily(key, m_name)
+                            continue
+                        if cat == "auth": await self.rotator.mark_unhealthy(key, reason="auth", session_id=s_id); continue
+                        if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break
         raise AIConfigurationError(f"AI Overloaded: {last_err}", str(models[-1]) if models else "N/A", max_k-1)
 
     @asynccontextmanager
@@ -140,36 +165,49 @@ class TrinityBridge:
         val_force = kwargs.pop("force", False)
         force = bool(val_force)
         
+        # Elite V2.2: Mandatory Late-Initialization Guard (R45 - Cold Start Protection)
+        if not self._initialized:
+            await self.initialize()
+
         models = ([r_m] if r_m else []) + await self.models_helper.build_chain(role, self.db_primary_model, self.db_waterfall, self.discovered)
+        
+        # Elite V2.2: Final Fail-safe - If still empty, trigger urgent recovery
+        if not models:
+            logger.warning("🚨 [TrinityBridge] Zero models in stream chain. Triggering emergency re-discovery...")
+            await self.reload_models()
+            models = await self.models_helper.build_chain(role, self.db_primary_model, self.db_waterfall, self.discovered)
+
         max_k, last_err = max(1, self.rotator.get_count()), None
 
-        for m_name in models:
-            for att in range(max_k):
-                key = None
-                try:
-                    key = await self.rotator.get_key(model_name=m_name, session_id=s_id)
-                    if not key: continue
-                    if not force and await self.rotator.is_model_daily_exhausted(key, m_name): continue
-                    
-                    system_prompt = kwargs.pop("system_prompt", None)
-                    
-                    # Elite V2.2: Unified Model Provisioning (Streaming)
-                    model_instance, ms = self._provision_model(m_name, key, kwargs)
-                    
-                    if system_prompt:
-                        with agent.override(instructions=str(system_prompt)):
+        # Elite V2.2: Xeon Per-Core Thread Locking
+        async with self.concurrency_guard:
+            for m_name in models:
+                for att in range(max_k):
+                    key = None
+                    try:
+                        key = await self.rotator.get_key(model_name=m_name, session_id=s_id)
+                        if not key: continue
+                        if not force and await self.rotator.is_model_daily_exhausted(key, m_name): continue
+                        
+                        system_prompt = kwargs.pop("system_prompt", None)
+                        
+                        # Elite V2.2: Unified Model Provisioning (Streaming)
+                        model_instance, ms = self._provision_model(m_name, key, kwargs)
+                        
+                        if system_prompt:
+                            with agent.override(instructions=str(system_prompt)):
+                                async with agent.run_stream(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), **kwargs) as stream:
+                                    yield stream
+                        else:
                             async with agent.run_stream(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), **kwargs) as stream:
                                 yield stream
-                    else:
-                        async with agent.run_stream(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), **kwargs) as stream:
-                            yield stream
-                    await self.rotator.set_success(key, session_id=s_id); return
-                except Exception as e:
-                    last_err, cat = e, self.models_helper.classify_error(str(e))
-                    if not key: continue
-                    if cat == "rate_limit" and self.models_helper.is_daily_quota(str(e)): await self.rotator.mark_model_daily(key, m_name); continue
-                    if cat in ["rate_limit", "auth"]: await self.rotator.mark_unhealthy(key, reason=cat, session_id=s_id); continue
-                    if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break
+                        await self.rotator.set_success(key, session_id=s_id); return
+                    except Exception as e:
+                        last_err, cat = e, self.models_helper.classify_error(str(e))
+                        if not key: continue
+                        if cat == "rate_limit" and self.models_helper.is_daily_quota(str(e)): await self.rotator.mark_model_daily(key, m_name); continue
+                        if cat in ["rate_limit", "auth"]: await self.rotator.mark_unhealthy(key, reason=cat, session_id=s_id); continue
+                        if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break
         raise AIConfigurationError(f"Stream Overloaded: {last_err}")
 
     def _provision_model(self, m_name: str, key: str, params: dict[str, object]) -> tuple[GoogleModel, dict[str, object]]:

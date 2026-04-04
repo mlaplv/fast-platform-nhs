@@ -57,38 +57,38 @@ class AnalystHandler:
                 logger.info(f"🧬 [AnalystHandler] Detected legacy cache for {category}. Upgrading to Neural Engine...")
 
         try:
-            analyzer = analyzer_class()
-            # Pass force flag to analyzer if it supports it (to bypass AI exhaustion cache)
-            result = await analyzer.analyze(campaign, force=force)
-            result_data = result.model_dump()
+            # TIER 1: THE BUTLER (Sync Cache Retrieval)
+            # If we have a valid cache hit, return immediately (<100ms)
+            if campaign_id and not force and cached and cached.get("hash") == content_hash:
+                return GenericResponse(status="success", data=cached.get("data", {}))
 
-            # If it's a persistent campaign, update metrics and cache
+            # TIER 2: THE BRAIN (Async Execution)
+            # Rule R2.2: AI-heavy tasks MUST be offloaded to the background worker.
             if campaign_id and campaign_repo and not isinstance(campaign, AdHocContent):
-                cache[category] = {"hash": content_hash, "data": result_data, "at": datetime.now(timezone.utc).isoformat()}
-                metrics = gold.get("analysis_metrics", {})
+                analyzer = analyzer_class()
                 
-                if category == "copyright":
-                    metrics["unique_score"] = result.uniqueness_score
-                    metrics["copyright_risk"] = result.risk_level
-                    campaign.unique_score = result.uniqueness_score
-                elif category == "seo":
-                    metrics["seo_score"] = result.total_score
-                    metrics["seo_grade"] = result.grade
-                elif category == "ai_inspect":
-                    metrics["ai_ready_score"] = result.geo_score
+                # Payload construction for the worker
+                # We pass the dynamic request schema if defined
+                payload = {"campaign_id": campaign_id, "force": force}
                 
-                metrics["last_analyzed"] = datetime.now(timezone.utc).isoformat()
-                
-                new_gold = copy.deepcopy(gold)
-                new_gold["analysis_cache"] = cache
-                new_gold["analysis_metrics"] = metrics
-                campaign.gold_metadata = new_gold
-                flag_modified(campaign, "gold_metadata")
-                
-                await campaign_repo.update(campaign)
-                if hasattr(campaign_repo, "session"): await campaign_repo.session.commit()
+                # Use inherited Heritage Backdoor to enqueue task
+                task_id = await analyzer.enqueue_chat(
+                    request_data=payload,
+                    session_id=str(getattr(campaign, "id", "session"))
+                )
+
+                # Return 202 Accepted (Standard Elite V2.2 Protocol)
+                return GenericResponse(
+                    status="accepted", 
+                    message="Neural Engine đang xử lý yêu cầu. Kết quả sẽ được cập nhật tự động.",
+                    data={"task_id": task_id, "category": category}
+                )
             
-            return GenericResponse(status="success", data=result_data)
+            # Ad-hoc Fallback (Sync): Only for anonymous content analysis (No DB)
+            analyzer = analyzer_class()
+            result = await analyzer.analyze(campaign, force=force)
+            return GenericResponse(status="success", data=result.model_dump())
+
         except Exception as e:
             logger.error(f"[AnalystHandler] {category} analysis failed: {str(e)}", exc_info=True)
             return GenericResponse(status="error", message=str(e))

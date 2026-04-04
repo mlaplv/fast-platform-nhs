@@ -24,22 +24,27 @@ elif [[ -f /proc/meminfo ]]; then
     TOTAL_RAM_GB=$(grep MemTotal /proc/meminfo | awk '{print int($2/1024/1024)}')
 fi
 
-# Default Performance Settings (High RAM)
+# Default Performance Settings (High RAM > 12GB)
 export UV_CONCURRENCY=8
-export PNPM_OPTS=""
+export PNPM_CONCURRENCY=4
 export DOCKER_BUILDKIT=1
 export COMPOSE_PARALLEL_LIMIT=10
 export API_MEM_LIMIT="4G"
 export UI_MEM_LIMIT="2G"
+export WORKER_MEM_LIMIT="2G"
 
 if [ "$TOTAL_RAM_GB" -le 12 ]; then
-    echo -e "${YELLOW}[GHOST MODE] Hệ thống phát hiện RAM thấp (${TOTAL_RAM_GB}GB). Đang tối ưu khởi tạo...${NC}"
+    echo -e "${YELLOW}[GHOST MODE] Hệ thống phát hiện RAM thấp (${TOTAL_RAM_GB}GB). Đang tối ưu Pháo Đài...${NC}"
     export UV_CONCURRENCY=2
     export PNPM_CONCURRENCY=1
-    export PNPM_OPTS="--network-concurrency 1"
     export COMPOSE_PARALLEL_LIMIT=1
-    export API_MEM_LIMIT="1536M"
-    export UI_MEM_LIMIT="1024M"
+    # Elite V2.2: Hardened Limits for 4GB VPS (Strict Compliance)
+    export API_MEM_LIMIT="1.2G"
+    export UI_MEM_LIMIT="512M"
+    export WORKER_MEM_LIMIT="768M"
+    # Anti-Lag: Disable heavy source maps & Enable Glibc Fragment Protection
+    export NODE_OPTIONS="--max-old-space-size=448"
+    export MALLOC_ARENA_MAX=2
 else
     echo -e "${GREEN}[ELITE MODE] Hệ thống phát hiện RAM dồi dào (${TOTAL_RAM_GB}GB). Chạy tối đa tốc độ!${NC}"
 fi
@@ -491,9 +496,26 @@ function setup_vps() {
     echo "y" | sudo ufw enable
 
     # Phase 2: Performance Tuning (Swap + Limits)
-    echo -e "${CYAN}-> [2/5] Tối ưu hiệu năng cho Xeon/4GB RAM (Adaptive Swap 4GB)...${NC}"
-    # Tạo Swap 4GB nếu chưa có
+    echo -e "${CYAN}-> [2/5] Tối ưu hiệu năng cho Xeon/4GB RAM (Alpha Performance Suite)...${NC}"
+    # 2.1: Network Concurrency (TCP BBR for smooth AI streaming)
+    if ! grep -q "bbr" /etc/sysctl.conf; then
+        echo -e "${YELLOW}   ↳ Kích hoạt Google TCP BBR (Smooth Reaction)...${NC}"
+        echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
+        echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
+    fi
+
+    # 2.2: Memory & Swap (R4GB Standard)
+    # Swappiness=10: Ưu tiên RAM vật lý, chỉ lách sang Swap khi thực sự cần.
+    # overcommit_memory=1: Đảm bảo Redis không bị crash do thiếu RAM ảo.
+    echo -e "${YELLOW}   ↳ Thiết lập RAM Priority (Swappiness=10)...${NC}"
+    echo "vm.swappiness=10" | sudo tee -a /etc/sysctl.conf
+    echo "vm.overcommit_memory=1" | sudo tee -a /etc/sysctl.conf
+    
+    sudo sysctl -p
+
+    # 2.3: Adaptive Swap 4GB
     if [ ! -f /swapfile ] && [ "$(free -m | grep Swap | awk '{print $2}')" -lt 1000 ]; then
+        echo -e "${YELLOW}   ↳ Khởi tạo 4GB RAM Ảo (Emergency Safety Net)...${NC}"
         sudo fallocate -l 4G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=4096
         sudo chmod 600 /swapfile
         sudo mkswap /swapfile
@@ -501,6 +523,11 @@ function setup_vps() {
         echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
     fi
     
+    # 2.4: SSD TRIM (Health Protection)
+    echo -e "${YELLOW}   ↳ Kích hoạt SSD Maintenance (fstrim.timer)...${NC}"
+    sudo systemctl enable fstrim.timer || true
+    sudo systemctl start fstrim.timer || true
+
     echo -e "${CYAN}-> Tăng giới hạn File Descriptors (uLimit 65535)...${NC}"
     if ! grep -q "65535" /etc/security/limits.conf; then
         echo "* soft nofile 65535" | sudo tee -a /etc/security/limits.conf

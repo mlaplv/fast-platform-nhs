@@ -243,6 +243,12 @@ class SupportAgentOperative(BaseAgentOperative):
             "is_high_intent": is_high_intent
         }
 
+        return None
+
+    def get_schema(self) -> Optional[Type[BaseModel]]:
+        from backend.schemas.support import SupportRequest
+        return SupportRequest
+
     async def chat(
         self,
         request: SupportRequest,

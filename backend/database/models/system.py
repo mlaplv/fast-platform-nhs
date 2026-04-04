@@ -127,3 +127,28 @@ class SupportKnowledge(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __table_args__ = (
         Index("ix_support_knowledge_tenant_active", "tenant_id", "is_active"),
     )
+
+class UnifiedAgentTask(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
+    """
+    Elite V2.2: Universal Task Persistence for AI Operatives.
+    Stores metadata for background jobs (Helen & XoHi).
+    """
+    __tablename__ = 'unified_agent_tasks'
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    
+    agent_id: Mapped[str] = mapped_column(String, index=True)
+    task_id: Mapped[str] = mapped_column(String, unique=True, index=sa.Index("ix_unified_task_task_id"))
+    session_id: Mapped[Optional[str]] = mapped_column(String, index=True, nullable=True)
+    
+    status: Mapped[str] = mapped_column(String, default="PENDING", index=True) # PENDING, RUNNING, DONE, FAILED
+    payload: Mapped[dict] = mapped_column(JSON)
+    result: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    # Tracking for 3-day retention policy
+    completed_at: Mapped[Optional[sa.DateTime]] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index("ix_unified_task_tenant_status", "tenant_id", "status"),
+        Index("ix_unified_task_agent_status", "agent_id", "status"),
+    )

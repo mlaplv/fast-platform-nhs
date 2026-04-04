@@ -9,6 +9,10 @@ from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.database.models.system import UnifiedAgentTask
+from backend.database.alchemy_config import alchemy_config
 
 logger = logging.getLogger("api-gateway")
 
@@ -129,30 +133,67 @@ class BaseAgentOperative(ABC, MedicalShieldMixin):
         """Standardized entry point for all AI agents."""
         pass
 
-    async def enqueue_chat(self, request_data: dict, session_id: str) -> str:
+    def get_schema(self) -> Optional[Type[BaseModel]]:
         """
-        Elite V2.2: Async Deferred Execution (Arq Backdoor).
-        Pushes the agent task to the Redis Background Queue.
+        Elite V2.2: Optional Pydantic schema for task payload validation.
+        Subclasses should override this to provide type safety in the Worker.
+        """
+        return None
+
+    async def enqueue_chat(self, request_data: dict, session_id: str, db: Optional[AsyncSession] = None) -> str:
+        """
+        Elite V2.2: Async Deferred Execution (Arq Backdoor) with DB Persistence.
+        Pushes the agent task to the Redis Background Queue and tracks status in DB.
         """
         from backend.infra.arq_config import get_redis_settings
         from arq import create_pool
         import uuid
+        from datetime import datetime, timezone
 
         task_id = str(uuid.uuid4())
+        
+        # 1. DB Persistence (Elite V2.2 Rule: No orphaned tasks)
+        # We ensure the task is registered in the DB before pushing to Redis.
+        new_task = UnifiedAgentTask(
+            agent_id=self.agent_id,
+            task_id=task_id,
+            session_id=session_id,
+            status="PENDING",
+            payload=request_data
+        )
+
+        async def _persist():
+            if db:
+                db.add(new_task)
+                await db.commit()
+            else:
+                session_maker = alchemy_config.create_session_maker()
+                async with session_maker() as standalone_db:
+                    standalone_db.add(new_task)
+                    await standalone_db.commit()
+
         try:
+            await _persist()
+            
+            # 2. Redis Enqueue with Priority Support
+            # Rule R1.1: Helen (support_agent) gets the 'high' queue.
+            queue_name = "high" if self.agent_id == "support_agent" else "default"
+            
             redis = await create_pool(get_redis_settings())
-            # Rule R2.2: Task payloads must be JSON-serializable
             await redis.enqueue_job(
                 "run_agent_task",
                 agent_id=self.agent_id,
                 task_id=task_id,
                 session_id=session_id,
-                payload=request_data
+                payload=request_data,
+                _queue_name=queue_name
             )
-            self.logger.info(f"[{self.agent_id}] Task enqueued: {task_id}")
+            
+            self.logger.info(f"[{self.agent_id}] Task enqueued: {task_id} (Queue: {queue_name})")
             return task_id
         except Exception as e:
             self.logger.error(f"[{self.agent_id}] Failed to enqueue task: {e}")
+            # Optional: Mark task as FAILED in DB if possible
             raise
 
     async def _report_telemetry(self, task: str, duration: float, error: Optional[str] = None) -> None:
