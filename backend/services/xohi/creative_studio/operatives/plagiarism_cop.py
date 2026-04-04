@@ -29,6 +29,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
     Step 5 (Auto) + On-Demand (Step 4): AI-powered Semantic Copyright Check.
     Complying with Martial Law (<300 lines) by delegating to specialized surgeon.
     """
+    agent_id_class = "plagiarism_cop"
     _plagiarism_semaphore = asyncio.Semaphore(1)
 
     def __init__(self, threshold: float = 0.75):

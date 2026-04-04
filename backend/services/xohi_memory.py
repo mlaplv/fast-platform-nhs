@@ -130,5 +130,28 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
     async def clear_article_cache(self):
         await self.delete_pattern("articles:count:*")
 
+    # ═══════════════════════════════════════════════════════
+    # KNOWLEDGE BASE LAYER 1 (CACHE) — Elite V2.2
+    # ═══════════════════════════════════════════════════════
+    async def get_kb_layer1(self, key: str = "support:kb:layer1") -> Optional[str]:
+        """Elite V2.2: Fetch Layer 1 Knowledge Index from Redis."""
+        try:
+            if self._use_redis:
+                data = await self.client.get(key)
+                if data: return data
+        except Exception as e: logger.debug(f"[XoHiMemory] KB Layer 1 get failed: {e}")
+        return None
+
+    async def set_kb_layer1(self, content: str, key: str = "support:kb:layer1", ttl: int = 3600):
+        """Elite V2.2: Cache Layer 1 Knowledge Index (Default 1h)."""
+        try:
+            if self._use_redis:
+                await self.client.set(key, content, ex=ttl)
+        except Exception as e: logger.debug(f"[XoHiMemory] KB Layer 1 set failed: {e}")
+
+    async def clear_kb_cache(self):
+        """Elite V2.2: Purge all KB related cache."""
+        await self.delete_pattern("support:kb:*")
+
 # Singleton
 xohi_memory = XoHiMemory()

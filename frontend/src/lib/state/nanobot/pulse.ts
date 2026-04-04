@@ -83,6 +83,8 @@ export function createPulseManager(
   let eventSource: EventSource | null = null;
   let pulseRetryTimeout: ReturnType<typeof setTimeout> | null = null;
   let retryCount = 0;
+  let lastHeartbeat = Date.now();
+  let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
   
   // Phase 82: Sync Guard — Prevent DB sync from overwriting fresh SSE data
   let liveCampaigns = new Map<string, number>(); // campaign_id -> last_sse_completed_timestamp
@@ -104,8 +106,25 @@ export function createPulseManager(
     }
 
     eventSource.onopen = () => {
+      console.log("[Pulse] 🟢 Connection established.");
       retryCount = 0;
+      lastHeartbeat = Date.now();
+      
+      if (!heartbeatInterval) {
+        heartbeatInterval = setInterval(() => {
+          const sinceLast = Date.now() - lastHeartbeat;
+          if (sinceLast > 45000) { // 45s threshold (3 pulses + buffer)
+            console.warn(`[Pulse] ⚠️ Heartbeat lost (${sinceLast}ms). Force reconnecting...`);
+            connectPulse();
+          }
+        }, 10000);
+      }
     };
+
+    eventSource.addEventListener("HEARTBEAT", () => {
+      // console.debug("[Pulse] 💓 Heartbeat received.");
+      lastHeartbeat = Date.now();
+    });
 
     eventSource.onmessage = (event: MessageEvent) => {
       try {
@@ -359,10 +378,18 @@ export function createPulseManager(
     };
 
     eventSource.onerror = (err) => {
+      console.error("[Pulse] 🔴 SSE Connection Error:", err);
       if (eventSource) {
         eventSource.close();
         eventSource = null;
-        const delay = Math.min(30000, 5000 * Math.pow(1.5, retryCount));
+        
+        // CNS V82.15: Elite V2.2 Jittered Exponential Backoff
+        const baseDelay = 2000;
+        const maxDelay = 30000;
+        const delay = Math.min(maxDelay, baseDelay * Math.pow(2, retryCount)) + (Math.random() * 1000);
+        
+        console.log(`[Pulse] 🔄 Retrying connection in ${Math.round(delay)}ms (Attempt ${retryCount + 1})`);
+        
         retryCount++;
         pulseRetryTimeout = setTimeout(connectPulse, delay);
       }
@@ -371,6 +398,10 @@ export function createPulseManager(
 
   const disconnectPulse = () => {
     if (pulseRetryTimeout) clearTimeout(pulseRetryTimeout);
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+      heartbeatInterval = null;
+    }
     if (eventSource) {
       eventSource.close();
       eventSource = null;

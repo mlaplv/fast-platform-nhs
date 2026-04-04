@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 import time
 
-from litestar import Controller, get, post, Request
+from litestar import Controller, get, post, Request, Response
 from litestar.exceptions import TooManyRequestsException, NotFoundException
 import sqlalchemy as sa
 from sqlalchemy import select, desc, and_, or_
@@ -152,10 +152,15 @@ class SupportController(Controller):
     ) -> SupportResponse:
         """
         Handles a single client support message.
-        - Zero-Auth public endpoint (guards=[])
-        - Rate limited per IP and session_id
-        - Uses writeable session for history persistence
+        - Synchronous Tier-1 Butler (Greetings/FAQ)
+        - Asynchronous Tier-2/3 Brain (LLM/RAG via arq)
         """
         await self._check_rate_limit(request, data.session_id)
 
-        return await support_agent.chat(request=data, db=db_session)
+        response = await support_agent.chat(request=data, db=db_session)
+        
+        # Elite V2.2: Semantic HTTP logic
+        # If the task is still PROCESSING, return 202 Accepted (INTERNATIONAL STANDARD)
+        status_code = 202 if response.status == "PROCESSING" else 200
+            
+        return Response(content=response, status_code=status_code)

@@ -273,11 +273,12 @@ function init_deploy() {
             ;;
     esac
     
-    echo -e "${YELLOW}Đang khởi động toàn bộ dịch vụ (API & UI)...${NC}"
+    echo -e "${YELLOW}Đang khởi động toàn bộ dịch vụ (API, Worker & UI)...${NC}"
     docker compose build api
+    docker compose build worker
     docker compose build ui
     # [CTO ELITE] SKIP_MIGRATE=true vì đã chạy migrate tuần tự ở bước [5/6] rồi
-    SKIP_MIGRATE=true docker compose up -d api ui
+    SKIP_MIGRATE=true docker compose up -d api worker ui
     chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
     
     echo -e "${GREEN}=== HỆ THỐNG ĐÃ SẴN SÀNG! (Đã tối ưu RAM) ===${NC}"
@@ -312,12 +313,12 @@ function update_ai_model() {
 
 
 function view_logs() {
-    echo -e "${CYAN}[LOGS] Đang kiểm tra tín hiệu Backend (api)...${NC}"
+    echo -e "${CYAN}[LOGS] Đang kiểm tra tín hiệu Backend (api + worker)...${NC}"
     echo -e "${YELLOW}Nhấn Ctrl+C để quay lại menu.${NC}"
     # Hiện 10 dòng cuối bất kể loại log để Sếp biết hệ thống vẫn chạy
-    docker compose logs --tail 10 api
+    docker compose logs --tail 10 api worker
     echo -e "${YELLOW}--- Đang theo dõi lỗi mới (ERROR/CRITICAL/WARNING) ---${NC}"
-    docker compose logs -f api --tail 100 --since 5m --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION|WARNING"
+    docker compose logs -f api worker --tail 100 --since 5m --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION|WARNING"
 }
 
 function backup_data() {
@@ -669,15 +670,15 @@ while true; do
             clean_backups
             ;;
         8)
-            echo -e "${CYAN}[RESTART] Đang làm sạch Log và khởi động lại Backend (api)...${NC}"
-            docker compose stop api
-            docker compose rm -f api
-            docker compose up -d api
-            echo -e "${GREEN}[OK] Đã khởi động lại API với Log sạch sẽ!${NC}"
+            echo -e "${CYAN}[RESTART] Đang làm sạch Log và khởi động lại Backend (api + worker)...${NC}"
+            docker compose stop api worker
+            docker compose rm -f api worker
+            docker compose up -d api worker
+            echo -e "${GREEN}[OK] Đã khởi động lại API và Worker với Log sạch sẽ!${NC}"
             echo -e "${YELLOW}--- Đang theo dõi LỖI MỚI (ERROR/CRITICAL/WARNING) ---${NC}"
             echo -e "${YELLOW}Nhấn Ctrl+C để quay lại menu.${NC}"
             # Lọc log lỗi cho Sếp thấy thực trạng hệ thống
-            docker compose logs -f api --tail 50 --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION|WARNING"
+            docker compose logs -f api worker --tail 50 --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION|WARNING"
             ;;
         9)
             update_ai_model

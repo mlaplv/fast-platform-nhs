@@ -93,8 +93,8 @@ class PulseStreamController(Controller):
                         yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n".encode("utf-8")
                         
                     except asyncio.TimeoutError:
-                        # Keep-alive ping (Standardized)
-                        yield b": ping\n\n"
+                        # R82: Standardized Heartbeat Event (Frontend Observable)
+                        yield b"event: HEARTBEAT\ndata: {}\n\n"
             except (asyncio.CancelledError, GeneratorExit):
                 logger.info("[PulseStream] Client disconnected (Normal).")
             except Exception as e:

@@ -91,15 +91,19 @@ class TrinityBridge:
                     # Elite V2.2: Unified Model Provisioning (Pass-by-Reference for 1.77.0 Safety)
                     model_instance, ms = self._provision_model(m_name, key, kwargs)
                     
+                    # Pass deps if provided in kwargs (R110: Dependency Injection Support)
+                    deps = kwargs.pop("deps", None)
+                    
                     if system_prompt:
                         with agent.override(instructions=str(system_prompt)):
-                            res = await asyncio.wait_for(agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), **kwargs), timeout=t)
+                            res = await asyncio.wait_for(agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs), timeout=t)
                     else:
-                        res = await asyncio.wait_for(agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), **kwargs), timeout=t)
+                        res = await asyncio.wait_for(agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs), timeout=t)
                     
                     if hasattr(res, 'usage'): await self.rotator.track_tokens(key, getattr(res.usage, 'total_tokens', 0))
                     await self.rotator.set_success(key, session_id=s_id)
                     return res
+
                 except (asyncio.TimeoutError, TimeoutError): last_err = "Timeout"; break
                 except Exception as e:
                     last_err, cat = e, self.models_helper.classify_error(str(e))

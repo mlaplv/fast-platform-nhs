@@ -24,6 +24,8 @@ __pycache__/
 *.pyc
 *.pyo
 .Python
+.map
+.bash_history
 
 # 2.1 File Lock (Không lên Git - Để mỗi máy tự sinh)
 package-lock.json

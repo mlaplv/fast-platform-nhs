@@ -85,6 +85,10 @@ class SupportResponse(BaseModel):
     intent: SupportIntent = Field(default=SupportIntent.UNKNOWN)
     session_id: Optional[str] = Field(default=None)
     product_info: Optional[SupportProductInfo] = Field(default=None, description="Metadata for UI components (ordering, etc.)")
+    
+    # 🚀 Elite V2.2: Async Task Tracking
+    status: str = Field(default="DONE", description="State: DONE | PROCESSING | FAILED")
+    task_id: Optional[str] = Field(default=None, description="Arq Task UUID for frontend tracking")
 
 
 class SupportStatusResponse(BaseModel):
