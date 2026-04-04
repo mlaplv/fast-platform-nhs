@@ -8,7 +8,8 @@
   import CheckSquareIcon from "lucide-svelte/icons/check-square";
   import SquareIcon from "lucide-svelte/icons/square";
   import GlobeIcon from "lucide-svelte/icons/globe";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import type { Article } from "$lib/types";
   import { fade, fly } from "svelte/transition";
 

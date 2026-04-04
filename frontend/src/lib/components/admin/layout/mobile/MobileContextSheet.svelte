@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { fly } from "svelte/transition";
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";

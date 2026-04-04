@@ -2,7 +2,8 @@
   import { fade, fly, scale } from 'svelte/transition';
   import { Search, Phone, Hash, ArrowLeft, Loader2, Sparkles, Navigation } from 'lucide-svelte';
   import { onMount } from 'svelte';
-  import { nanobot } from '$lib/state/nanobot.svelte';
+  import { useNanobot } from '$lib/state/nanobot.svelte';
+  const nanobot = useNanobot();
 
   let { orderId = $bindable(''), phone = $bindable(''), isSubmitting, onTrack } = $props<{ 
     orderId: string, 

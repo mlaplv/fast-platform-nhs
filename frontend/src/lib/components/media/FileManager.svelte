@@ -1,7 +1,8 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import { mediaStore } from '$lib/state/media.svelte';
-    import { nanobot } from '$lib/state/nanobot.svelte';
+    import { useNanobot } from '$lib/state/nanobot.svelte';
+  const nanobot = useNanobot();
     import { vuiController } from '$lib/vui';
     import { fade, slide, scale } from 'svelte/transition';
     import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';

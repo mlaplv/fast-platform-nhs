@@ -13,7 +13,6 @@ from backend.database.repositories import ContentCampaignRepository
 from backend.services.ai_engine.core.vector_memory import VectorMemory
 
 logger = logging.getLogger("api-gateway")
-async_session_maker = alchemy_config.create_session_maker()
 
 # Constants moved from orchestrator
 WAKE_TRIGGERS = ["xohi", "so hi", "xo hi", "số hi", "xố hỉ", "số hỉ", "so huy", "số huy", "chao", "xin chao"]
@@ -32,7 +31,7 @@ class RouterResolver:
         self.semantic_router = semantic_router
         self.t2_router = t2_router
 
-    async def classify(self, transcript: str, user_id: str, app_state: dict, context=None, screen_context=None, modality="text") -> IntentResponse:
+    async def classify(self, db: AsyncSession, transcript: str, user_id: str, app_state: dict, context=None, screen_context=None, modality="text") -> IntentResponse:
         t0 = time.monotonic()
         user_id = sanitize_id(user_id) or "default"
         transcript = unicodedata.normalize('NFC', transcript.strip())
@@ -50,7 +49,7 @@ class RouterResolver:
         if is_wake:
             rem = await self._strip_wake(transcript, profile.get("wake_words", []) + WAKE_TRIGGERS)
             if rem: transcript, t_low, norm_t = rem, rem.lower(), normalize_vn(rem.lower())
-            else: return await self._handle_wake(user_id, profile.get("greeting_template", "Dạ?"))
+            else: return await self._handle_wake(db, user_id, profile.get("greeting_template", "Dạ?"))
 
         if is_sleep and len(transcript.split()) <= 2:
             return IntentResponse(status="success", action=IntentAction.READ, message="Hẹn gặp lại sếp.", router_tier=RouterTier.TIER_1_HEURISTIC, data={"category": "SESSION_CTRL", "action": "HARDWARE_SLEEP"})
@@ -104,12 +103,11 @@ class RouterResolver:
             if not loop: break
         return rem if matched and rem else None
 
-    async def _handle_wake(self, user_id: str, greeting: str) -> IntentResponse:
+    async def _handle_wake(self, db: AsyncSession, user_id: str, greeting: str) -> IntentResponse:
         from backend.services.xohi.creative_studio.orchestrator import content_factory
-        async with async_session_maker() as s:
-            repo = ContentCampaignRepository(session=s)
-            active = await content_factory.get_active_campaign(repo, user_id=user_id)
-            if active: return IntentResponse(status="success", action=IntentAction.READ, message=content_factory.format_resume_greeting(active), router_tier=RouterTier.TIER_1_HEURISTIC, data={"category": "CONTENT_CREATE", "action": "RESUME_ROUTINE", "campaign_id": active.id})
+        repo = ContentCampaignRepository(session=db)
+        active = await content_factory.get_active_campaign(repo, user_id=user_id)
+        if active: return IntentResponse(status="success", action=IntentAction.READ, message=content_factory.format_resume_greeting(active), router_tier=RouterTier.TIER_1_HEURISTIC, data={"category": "CONTENT_CREATE", "action": "RESUME_ROUTINE", "campaign_id": active.id})
         return IntentResponse(status="success", action=IntentAction.READ, message=greeting, router_tier=RouterTier.TIER_1_HEURISTIC, data={"category": "SESSION_CTRL", "action": "WAKE_ROUTINE"})
 
     async def _handle_stt_confirm(self, uid, ctx, norm_t, u_dict, profile, i_map) -> IntentResponse:

@@ -2,7 +2,8 @@
   import { fade, slide, scale } from "svelte/transition";
   import LucideBell from "lucide-svelte/icons/bell";
   import LucideActivity from "lucide-svelte/icons/activity";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
 
   function toggleDropdown() {
     nanobot.toggleHudPopup("NOTIFICATIONS");

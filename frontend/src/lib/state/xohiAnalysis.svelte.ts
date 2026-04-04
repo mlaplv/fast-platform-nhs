@@ -1,5 +1,5 @@
 import { apiClient } from "$lib/utils/apiClient";
-import { nanobot } from "./nanobot.svelte";
+import { useNanobot } from "./nanobot.svelte";
 import { tick, untrack } from "svelte";
 import type {
     CopyrightResult,
@@ -34,6 +34,7 @@ export function createAnalysisController(config: {
     analysis_metrics: CampaignMetrics;
     getIsProcessing?: () => boolean;
 }) {
+    const nanobot = useNanobot();
     /** Resolve whether we are operating in Campaign or Adhoc (stateless) mode */
     const isAdhoc = !config.campaign_id;
     let copyrightResult = $state<CopyrightResult | null>(null);

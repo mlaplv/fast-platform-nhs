@@ -120,6 +120,7 @@ class IntentStreamCore:
                     # R82: Heartbeat Wrapper for AI Wait
                     async def run_classify():
                         return await orchestrator.classify(
+                            db=session,
                             transcript=data.query,
                             user_id=user_id or "default",
                             app_state=cast(Dict[str, object], request.app.state),

@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import { apiClient } from "$lib/utils/apiClient";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import type { AIModelConfig, GenericAIResponse } from "$lib/state/types";
   import Cpu from "lucide-svelte/icons/cpu";
   import Activity from "lucide-svelte/icons/activity";

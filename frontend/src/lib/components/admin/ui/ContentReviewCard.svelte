@@ -3,7 +3,8 @@
   import { fade } from "svelte/transition";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { apiClient } from "$lib/utils/apiClient";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { vuiController } from "$lib/vui";
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
   import { processContentImages } from "$lib/state/utils";

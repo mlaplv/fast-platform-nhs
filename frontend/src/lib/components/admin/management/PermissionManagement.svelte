@@ -8,7 +8,8 @@
   import LayoutGrid from "lucide-svelte/icons/layout-grid";
   import List from "lucide-svelte/icons/list";
   import CircleCheck from "lucide-svelte/icons/circle-check";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
   import type { Permission, Role, BaseWidgetProps } from "$lib/types";
   import RoleCard from "./RoleCard.svelte";

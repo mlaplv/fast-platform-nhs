@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { permissionState } from "$lib/state/permissions.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import PanelRight from "lucide-svelte/icons/panel-right";

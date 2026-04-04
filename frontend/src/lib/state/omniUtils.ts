@@ -1,10 +1,11 @@
-import { nanobot } from "./nanobot.svelte";
+import { useNanobot } from "./nanobot.svelte";
 
 /**
  * OmniController Utilities
  * Extracted to comply with Rule 1.3 (300 LOC limit).
  */
 export function getVisibleDataIds(): string[] {
+  const nanobot = useNanobot();
   const ids: string[] = [];
   const pathParts = window.location.pathname.split("/");
   const lastPart = pathParts[pathParts.length - 1];

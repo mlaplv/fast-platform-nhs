@@ -5,7 +5,8 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import Plus from "lucide-svelte/icons/plus";
   import { apiClient } from "$lib/utils/apiClient";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { normalizeVn } from "$lib/utils/text";
 
   import { onMount } from "svelte";

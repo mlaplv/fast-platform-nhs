@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import SupportKnowledgeManagement from "$lib/components/admin/management/SupportKnowledgeManagement.svelte";
   import SupportInbox from "$lib/components/admin/management/SupportInbox.svelte";
   import Database from "lucide-svelte/icons/database";

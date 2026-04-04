@@ -1,6 +1,7 @@
 <script lang="ts">
   import { vuiState, vuiController } from "$lib/vui";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { spring } from "svelte/motion";
   import ArrowUp from "lucide-svelte/icons/arrow-up";
   import Mic from "lucide-svelte/icons/mic";

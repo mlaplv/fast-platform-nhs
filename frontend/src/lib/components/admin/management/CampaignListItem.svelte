@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import Sparkles from "lucide-svelte/icons/sparkles";
   import Image from "lucide-svelte/icons/image";
   import FileText from "lucide-svelte/icons/file-text";

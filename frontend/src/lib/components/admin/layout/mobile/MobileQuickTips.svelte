@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { vuiController } from "$lib/vui";
   import { fade, fly } from "svelte/transition";
   import Sparkles from "lucide-svelte/icons/sparkles";

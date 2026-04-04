@@ -131,19 +131,66 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
         await self.delete_pattern("articles:count:*")
 
     # ═══════════════════════════════════════════════════════
-    # KNOWLEDGE BASE LAYER 1 (CACHE) — Elite V2.2
+    # THREE-LAYER MEMORY ARCHITECTURE — Elite V2.2
     # ═══════════════════════════════════════════════════════
-    async def get_kb_layer1(self, key: str = "support:kb:layer1") -> Optional[str]:
-        """Elite V2.2: Fetch Layer 1 Knowledge Index from Redis."""
+    
+    async def get_kb_index(self) -> str:
+        """
+        Layer 1: Index (Mục lục).
+        Luôn được nạp vào context, chứa các con trỏ ngắn <150 ký tự.
+        """
         try:
             if self._use_redis:
-                data = await self.client.get(key)
+                data = await self.client.get("support:kb:index")
                 if data: return data
-        except Exception as e: logger.debug(f"[XoHiMemory] KB Layer 1 get failed: {e}")
+        except Exception as e: logger.debug(f"[XoHiMemory] KB Index get failed: {e}")
+        return "Hiện chưa có mục lục kiến thức. Sếp có thể dùng công cụ tìm kiếm bài viết để tra cứu dữ liệu thô."
+
+    async def get_kb_topic(self, topic_id: str) -> Optional[str]:
+        """
+        Layer 2: Topic Files (Chủ đề).
+        Chỉ được gọi (fetch) ra khi AI thực sự cần (thông qua tool).
+        """
+        try:
+            if self._use_redis:
+                data = await self.client.get(f"support:kb:topic:{topic_id}")
+                if data: return data
+        except Exception as e: logger.debug(f"[XoHiMemory] KB Topic {topic_id} get failed: {e}")
         return None
 
-    async def set_kb_layer1(self, content: str, key: str = "support:kb:layer1", ttl: int = 3600):
-        """Elite V2.2: Cache Layer 1 Knowledge Index (Default 1h)."""
+    async def list_kb_topics(self) -> List[Dict[str, str]]:
+        """Lấy danh sách các chủ đề hiện có để xây dựng mục lục Layer 1."""
+        try:
+            if self._use_redis:
+                keys = await self.client.keys("support:kb:topic:*")
+                topics = []
+                for k in keys:
+                    tid = k.split(":")[-1]
+                    # Lấy 100 ký tự đầu làm snippet cho Index
+                    content = await self.client.get(k)
+                    snippet = (content[:147] + "...") if content and len(content) > 150 else (content or "")
+                    topics.append({"id": tid, "summary": snippet})
+                return topics
+        except Exception as e: logger.debug(f"[XoHiMemory] List topics failed: {e}")
+        return []
+
+    async def refresh_kb_index(self):
+        """Tự động xây dựng lại Layer 1 từ các Topic Layer 2."""
+        topics = await self.list_kb_topics()
+        if not topics:
+            index_str = "Hệ thống kiến thức đang trống."
+        else:
+            index_str = "MỤC LỤC KIẾN THỨC CÓ SẴN:\n" + "\n".join([f"- {t['id']}: {t['summary']}" for t in topics])
+        
+        await self.set_kb_layer1(index_str, key="support:kb:index")
+        return index_str
+
+    async def get_kb_layer1(self, key: str = "support:kb:index") -> Optional[str]:
+        """Legacy compatibility wrapper for get_kb_index."""
+        return await self.get_kb_index()
+
+    async def set_kb_layer1(self, content: str, key: str = "support:kb:index", ttl: int = 86400):
+        """Elite V2.2: Cache Layer 1 Knowledge Index (Default 24h)."""
         try:
             if self._use_redis:
                 await self.client.set(key, content, ex=ttl)

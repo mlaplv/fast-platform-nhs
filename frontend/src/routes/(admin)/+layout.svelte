@@ -1,5 +1,10 @@
 <script lang="ts">
   import "./admin.css";
+  import { setNanobotContext } from "$lib/state/nanobot.svelte";
+  
+  // Elite V2.2: Initialize Isolated State Context
+  setNanobotContext();
+
   let { children } = $props();
 </script>
 

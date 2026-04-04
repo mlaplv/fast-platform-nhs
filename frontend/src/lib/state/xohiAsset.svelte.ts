@@ -1,5 +1,6 @@
 import { xohiImageStore } from "./xohiImage.svelte";
-import { nanobot } from "./nanobot.svelte";
+import { useNanobot } from "./nanobot.svelte";
+const nanobot = useNanobot();
 import { resolveMediaUrl } from "./utils";
 import { untrack, tick } from "svelte";
 import type { MediaAsset } from "./types";

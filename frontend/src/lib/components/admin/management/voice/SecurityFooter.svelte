@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ShieldAlert, RefreshCw } from "lucide-svelte";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
 
   async function toggleCampaignMode() {
     await nanobot.toggleCampaignMode();

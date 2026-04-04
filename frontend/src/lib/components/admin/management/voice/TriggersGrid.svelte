@@ -5,7 +5,8 @@
   import Plus from "lucide-svelte/icons/plus";
   import Trash2 from "lucide-svelte/icons/trash-2";
   import Moon from "lucide-svelte/icons/moon";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
 
   let {
     wakeTriggers = $bindable(),

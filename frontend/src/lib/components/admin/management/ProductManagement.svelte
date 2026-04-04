@@ -9,7 +9,8 @@
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import type { Product, BaseWidgetProps, TierVariation, ProductVariant } from "$lib/types";
   import { formatCurrency } from "$lib/utils/format";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
   import ProductStats from "./ProductStats.svelte";
   import ProductToolbar from "./ProductToolbar.svelte";

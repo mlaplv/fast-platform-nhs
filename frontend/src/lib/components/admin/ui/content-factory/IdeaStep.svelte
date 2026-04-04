@@ -16,7 +16,8 @@
   import { ChevronDown } from "lucide-svelte";
   import type { CampaignKeywords } from "$lib/state/types";
   import { createIdeaController } from "$lib/state/xohiIdea.svelte";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
   import NeuralScheduler from "./NeuralScheduler.svelte";
 

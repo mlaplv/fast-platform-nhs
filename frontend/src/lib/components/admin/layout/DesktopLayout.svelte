@@ -6,7 +6,8 @@
   import XohiWatermark from "../XohiWatermark.svelte";
   import VoiceModal from "../VoiceModal.svelte";
   import FullLogView from "../ui/FullLogView.svelte";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import NotificationHud from "../hud/NotificationHud.svelte";
   import UserHud from "../hud/UserHud.svelte";
   import VaultModal from "../VaultModal.svelte";

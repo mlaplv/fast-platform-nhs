@@ -1,5 +1,6 @@
 import { apiClient } from "$lib/utils/apiClient";
-import { nanobot } from "$lib/state/nanobot.svelte";
+import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
 import { vuiController } from "$lib/vui";
 import { xohiImageStore } from "$lib/state/xohiImage.svelte";
 import { processContentImages } from "$lib/state/utils";

@@ -2,9 +2,9 @@ import { apiClient } from "$lib/utils/apiClient";
 import { normalizeAssets } from "./utils";
 import { permissionState } from "../permissions.svelte";
 import { isDev } from "./env";
-import type { SystemLog, CampaignData } from "../types";
+import type { SystemLog, CampaignData, ToastType } from "../types";
 import { sanitizeId } from "../utils";
-import { nanobot } from "../nanobot.svelte";
+import { useNanobot } from "../nanobot.svelte";
 
 interface ResumeDeps {
   state: {
@@ -26,7 +26,7 @@ interface ResumeDeps {
     closeFullLog: () => void;
   };
   ui: {
-    showToast: (msg: string, type: string) => void;
+    showToast: (msg: string, type: ToastType) => void;
   };
 }
 
@@ -49,6 +49,7 @@ export function createResumeManager(
   };
 
   const internalResumeCampaign = async (logOrCampaign: SystemLog | CampaignData, isSilent = false) => {
+    const nanobot = useNanobot();
     cleanupGreeting();
     if (isSilent) greetingActive = true;
 
@@ -105,7 +106,7 @@ export function createResumeManager(
 
       const trySpeak = async () => {
          if (!greetingActive) return;
-         const currentUserName = (permissionState as Record<string, unknown>).userName as string || "Admin";
+         const currentUserName = permissionState.userName || "Admin";
 
          // V71.5: Rich Voice Notification
          const step = parseInt(String(campaignData?.step || 1));

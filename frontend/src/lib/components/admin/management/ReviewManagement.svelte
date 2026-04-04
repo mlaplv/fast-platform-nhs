@@ -11,7 +11,8 @@
   import LayoutGrid from "lucide-svelte/icons/layout-grid";
   import List from "lucide-svelte/icons/list";
   import type { BaseWidgetProps } from "$lib/types";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
 
   let { data = {} } = $props<BaseWidgetProps>();

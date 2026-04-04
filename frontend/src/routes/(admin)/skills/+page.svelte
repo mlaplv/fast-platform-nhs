@@ -1,6 +1,7 @@
 <script lang="ts">
   import PermissionManagement from "$lib/components/admin/management/PermissionManagement.svelte";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { onMount } from "svelte";
 
   onMount(() => {

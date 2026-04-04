@@ -31,18 +31,17 @@ class DiagnosticAgent:
     def __init__(self, redis_client: Optional[_redis.Redis] = None):
         self.redis = redis_client
 
-    async def analyze(self, product_name: str, quiz_data: List[Dict[str, str]]) -> Optional[DiagnosticReport]:
+    async def analyze(self, db_session: AsyncSession, product_name: str, quiz_data: List[Dict[str, str]]) -> Optional[DiagnosticReport]:
         """Viral 2026: Agentic Clinical Analysis via Centralized Bridge."""
         try:
             # 1. Fetch Dynamic Promotions from DB (Elite V2.2 Zero-Hardcode)
             promos_text = "Hiện chưa có chương trình quà tặng."
-            async with async_session_maker() as session:
-                query = select(ProductBase).where(ProductBase.name == product_name)
-                product = (await session.execute(query)).scalar_one_or_none()
-                if product and product.product_metadata:
-                    deals = product.product_metadata.get("active_deals", [])
-                    if deals:
-                        promos_text = "\n".join([f"- {d.get('label')}: Mua {d.get('buy_qty')} nhận thêm {d.get('get_qty')}" for d in deals])
+            query = select(ProductBase).where(ProductBase.name == product_name)
+            product = (await db_session.execute(query)).scalar_one_or_none()
+            if product and product.product_metadata:
+                deals = product.product_metadata.get("active_deals", [])
+                if deals:
+                    promos_text = "\n".join([f"- {d.get('label')}: Mua {d.get('buy_qty')} nhận thêm {d.get('get_qty')}" for d in deals])
 
             agent = Agent(
                 output_type=DiagnosticReport,

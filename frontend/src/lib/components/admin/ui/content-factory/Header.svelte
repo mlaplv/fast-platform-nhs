@@ -4,7 +4,8 @@
     RotateCcw, Pencil, X, Terminal, ChevronDown
   } from "lucide-svelte";
   import SupremeCloseButton from "../SupremeCloseButton.svelte";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { fade, scale } from "svelte/transition";
   import { vuiController } from "$lib/vui";

@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { fade } from "svelte/transition";
   import { apiClient } from "$lib/utils/apiClient";
   import type { AuditorAnalysis } from "$lib/state/types";

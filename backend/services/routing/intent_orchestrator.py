@@ -1,5 +1,6 @@
 import logging
 from typing import List, Dict, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from .tier2_cloud import Tier2CloudRouter
 from .tier3_cloud import Tier3CloudRouter
@@ -24,9 +25,9 @@ class RouterOrchestrator:
         self.resolver = RouterResolver(self.semantic_router, self.t2_router)
         self.executor = RouterExecutor(self.t3_router, self.t2_refiner)
 
-    async def classify(self, transcript: str, user_id: str, app_state: dict, context=None, screen_context=None, modality="text") -> IntentResponse:
+    async def classify(self, db: AsyncSession, transcript: str, user_id: str, app_state: dict, context=None, screen_context=None, modality="text") -> IntentResponse:
         """Phase 1: Intent Resolution (T1 -> T2 Dispatch)."""
-        return await self.resolver.classify(transcript, user_id, app_state, context, screen_context, modality)
+        return await self.resolver.classify(db, transcript, user_id, app_state, context, screen_context, modality)
 
     async def execute(self, classification: IntentResponse, transcript: str, context: Optional[List[Dict[str, object]]] = None, screen_context: Optional[Dict[str, object]] = None, **kwargs) -> IntentResponse:
         """Phase 2: Action Execution (Phase 3 of Trinity Loop)."""

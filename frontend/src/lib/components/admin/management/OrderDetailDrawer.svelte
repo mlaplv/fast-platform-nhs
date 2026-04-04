@@ -25,7 +25,8 @@
   import StatusDropdown from "./StatusDropdown.svelte";
   import StatusStepper from "./StatusStepper.svelte";
   import { ORDER_STATUS_MAP, ORDER_TRANSITIONS } from "$lib/constants/order";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
   import { portal } from "$lib/core/actions/portal";
   import { formatCurrency, formatDate } from "$lib/utils/format";

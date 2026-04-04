@@ -3,7 +3,8 @@
    * XohiLogo.svelte - DEFINITIVE BRAND UNIT 2026
    * One file. One size. One color. One vision.
    */
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { scale, fade } from "svelte/transition";
   import { vuiState } from "$lib/vui";
 

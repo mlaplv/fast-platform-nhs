@@ -1,6 +1,7 @@
 <script lang="ts">
   import { vuiState } from "$lib/vui";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { VUI_CONFIG } from "$lib/vui/core/VuiConstants";
   import { fade, scale } from "svelte/transition";
   import { typewriter } from "$lib/actions/typewriter";

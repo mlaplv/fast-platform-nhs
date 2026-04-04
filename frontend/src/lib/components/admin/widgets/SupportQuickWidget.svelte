@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import HelpCircle from "lucide-svelte/icons/help-circle";
   import Inbox from "lucide-svelte/icons/inbox";
   import Settings from "lucide-svelte/icons/settings";

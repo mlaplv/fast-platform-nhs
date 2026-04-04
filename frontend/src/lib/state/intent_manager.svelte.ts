@@ -37,7 +37,7 @@ interface IntentDeps {
   };
   ui: {
     setUniversalModalOpen: (val: boolean) => void;
-    showToast: (msg: string, type?: string, duration?: number) => void;
+    showToast: (message: string, type?: import("./types").ToastType, duration?: number) => void;
   };
   chat: {
     history: import("./chat.svelte").ChatMessage[];

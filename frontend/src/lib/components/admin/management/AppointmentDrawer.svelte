@@ -1,7 +1,8 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
   import { X, Calendar, Clock, Activity, ChevronRight, Target } from "lucide-svelte";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
   import { portal } from "$lib/core/actions/portal";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";

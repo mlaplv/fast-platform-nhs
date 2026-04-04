@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { vuiState } from "$lib/vui";
   import Plus from "lucide-svelte/icons/plus";
   import ArrowUp from "lucide-svelte/icons/arrow-up";

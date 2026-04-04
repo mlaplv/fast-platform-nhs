@@ -7,7 +7,8 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import CheckSquare from "lucide-svelte/icons/check-square";
   import Square from "lucide-svelte/icons/square";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
   import type { Category, BaseWidgetProps } from "$lib/types";
   import CategoryForm from "./CategoryForm.svelte";

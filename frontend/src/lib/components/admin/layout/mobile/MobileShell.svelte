@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import VoiceModal from "../../VoiceModal.svelte";
   import MobileNavDrawer from "./MobileNavDrawer.svelte";
   import MobileInputBar from "./MobileInputBar.svelte";

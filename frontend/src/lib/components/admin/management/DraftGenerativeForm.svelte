@@ -3,7 +3,8 @@
   import { get, set, del } from "idb-keyval";
   import { apiClient } from "$lib/utils/apiClient";
   import AIEditorField from "$lib/components/admin/ui/AIEditorField.svelte";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
 
   let { onClose, onSuccess, initialTitle = "", editingId = null } = $props<{ 
     onClose: () => void; 

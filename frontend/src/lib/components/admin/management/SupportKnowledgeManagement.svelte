@@ -2,7 +2,8 @@
     import { onMount } from 'svelte';
     import { fade, fly, scale } from 'svelte/transition';
     import { supportKbAdmin as kb } from '$lib/state/admin/supportKnowledge.svelte';
-    import { nanobot } from '$lib/state/nanobot.svelte';
+    import { useNanobot } from '$lib/state/nanobot.svelte';
+  const nanobot = useNanobot();
     import XohiLogo from '$lib/components/admin/XohiLogo.svelte';
     import Search from "lucide-svelte/icons/search";
     import Plus from "lucide-svelte/icons/plus";

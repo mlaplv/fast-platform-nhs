@@ -1,7 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { fade } from 'svelte/transition';
-    import { nanobot } from "$lib/state/nanobot.svelte";
+    import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
     import Activity from "lucide-svelte/icons/activity";
     import Zap from "lucide-svelte/icons/zap";
     import ShieldAlert from "lucide-svelte/icons/shield-alert";

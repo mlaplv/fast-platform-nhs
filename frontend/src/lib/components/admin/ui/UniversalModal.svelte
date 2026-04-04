@@ -1,6 +1,7 @@
 <script lang="ts">
   // Force HMR Update for Widget Registry Integration
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { fade } from "svelte/transition";
   import X from "lucide-svelte/icons/x";

@@ -1,51 +1,54 @@
-import logging
 import json
-from typing import Optional, Tuple
+import hashlib
+import logging
+from typing import Optional
 from backend.services.xohi_memory import xohi_memory
-from backend.services.ai_engine.core.semantic_router import SemanticRouter
-from backend.utils.text import normalize_vn
 
 logger = logging.getLogger("api-gateway")
 
-class SemanticCache:
+class SemanticCacheService:
     """
-    Elite V2.2: Semantic Caching Layer.
-    Stores prompt -> response mappings in Redis with a TTL.
-    Uses SemanticRouter to find 'near matches' for common queries.
+    Elite V2.2: Semantic Cache for AI Results.
+    Reduces LLM costs and latency by caching idempotent agent results.
     """
-    def __init__(self, threshold: float = 0.95):
-        self.threshold = threshold
-        self.router = SemanticRouter()
+    def __init__(self, ttl: int = 3600):
+        self.ttl = ttl
 
-    async def get(self, query: str, context_key: str = "support") -> Optional[str]:
-        """
-        Check if a semantically similar query exists in cache.
-        Returns the cached reply if similarity > threshold.
-        """
-        try:
-            norm_q = normalize_vn(query)
-            # 1. Try Exact Match first
-            cache_key = f"cache:{context_key}:exact:{hash(norm_q)}"
-            exact = await xohi_memory.client.get(cache_key)
-            if exact:
-                logger.info(f"[SemanticCache] Exact match hit for: {query[:30]}...")
-                return exact
+    def _generate_key(self, agent_id: str, payload: dict[str, object] | list[object] | str) -> str:
+        """Hàm băm tạo key duy nhất dựa trên agent_id và nội dung yêu cầu."""
+        payload_str = json.dumps(payload, sort_keys=True, ensure_ascii=False)
+        payload_hash = hashlib.sha256(payload_str.encode()).hexdigest()[:16]
+        return f"ai:cache:{agent_id}:{payload_hash}"
 
-            # 2. Semantic Match (Phase 2)
-            # This requires a 'Knowledge Base' of previously answered questions.
-            # For now, we'll focus on exact/near-exact matches to prevent hallucinations.
+    async def get_cached_result(self, agent_id: str, payload: dict[str, object] | list[object] | str) -> Optional[dict[str, object]]:
+        """Kiểm tra xem kết quả đã có trong cache chưa."""
+        if not xohi_memory._use_redis:
             return None
-        except Exception as e:
-            logger.warning(f"[SemanticCache] Cache lookup failed: {e}")
-            return None
-
-    async def set(self, query: str, response: str, context_key: str = "support", ttl: int = 3600):
-        """Cache a successful AI response."""
+            
+        key = self._generate_key(agent_id, payload)
         try:
-            norm_q = normalize_vn(query)
-            cache_key = f"cache:{context_key}:exact:{hash(norm_q)}"
-            await xohi_memory.client.set(cache_key, response, ex=ttl)
+            data = await xohi_memory.client.get(key)
+            if data:
+                logger.info(f"✨ [SemanticCache] Hit! Found cached result for {agent_id}")
+                return json.loads(data)
         except Exception as e:
-            logger.warning(f"[SemanticCache] Cache set failed: {e}")
+            logger.debug(f"[SemanticCache] Get failed: {e}")
+        return None
 
-semantic_cache = SemanticCache()
+    async def set_cached_result(self, agent_id: str, payload: dict[str, object] | list[object] | str, result: dict[str, object]):
+        """Lưu kết quả vào cache."""
+        if not xohi_memory._use_redis:
+            return
+            
+        key = self._generate_key(agent_id, payload)
+        try:
+            await xohi_memory.client.set(
+                key, 
+                json.dumps(result, ensure_ascii=False), 
+                ex=self.ttl
+            )
+            logger.debug(f"📥 [SemanticCache] Result cached for {agent_id}")
+        except Exception as e:
+            logger.debug(f"[SemanticCache] Set failed: {e}")
+
+semantic_cache = SemanticCacheService()

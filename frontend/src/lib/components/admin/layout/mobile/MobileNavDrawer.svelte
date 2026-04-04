@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import type { WidgetType } from "$lib/state/types";
   import { fade, fly } from "svelte/transition";
   import X from "lucide-svelte/icons/x";

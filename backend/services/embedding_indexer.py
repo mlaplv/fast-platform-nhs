@@ -14,8 +14,7 @@ Usage:
 import hashlib
 import logging
 import asyncio
-import uuid
-from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger("api-gateway")
 
@@ -40,17 +39,12 @@ class EmbeddingIndexer:
         """SHA256 hash of content to detect changes."""
         return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
-    async def run(self, session_factory=None):
+    async def run(self, session: AsyncSession):
         """
         Main entry: index all unembedded products and articles.
         """
-        if session_factory is None:
-            from backend.database import async_session_maker
-            session_factory = async_session_maker
-
-        async with session_factory() as session:
-            await self._index_products(session)
-            await self._index_articles(session)
+        await self._index_products(session)
+        await self._index_articles(session)
 
     async def _index_products(self, session):
         """Embed all products that don't have an embedding or whose content changed."""

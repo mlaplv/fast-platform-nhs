@@ -30,7 +30,7 @@ class ProductVectorService:
             self._embedding_model = get_shared_encoder()
         return self._embedding_model
 
-    async def search_semantic(self, query: str, tenant_id: str = "default", limit: int = 5) -> List[SemanticSearchResult]:
+    async def search_semantic(self, db_session: AsyncSession, query: str, tenant_id: str = "default", limit: int = 5) -> List[SemanticSearchResult]:
         try:
             model = self.embedding_model
             if not model:
@@ -58,10 +58,8 @@ class ProductVectorService:
 
             # Thực thi thông qua SQLAlchemy/Raw
             from sqlalchemy import text
-            from backend.database import async_session_maker
-            async with async_session_maker() as session:
-                res = await session.execute(text(raw_query), {"tid": tenant_id, "v": vector_str, "lim": limit})
-                results = res.mappings().all()
+            res = await db_session.execute(text(raw_query), {"tid": tenant_id, "v": vector_str, "lim": limit})
+            results = res.mappings().all()
 
             # Format Data
             clean_results: List[SemanticSearchResult] = [

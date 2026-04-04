@@ -1,7 +1,8 @@
 import { COMMAND_WIDGET_MAP, WIDGET_VI_LABEL } from "../constants";
 import { persistMessage } from "../chat.svelte";
-import { nanobot } from "../nanobot.svelte";
+import { useNanobot } from "../nanobot.svelte";
 import type { WidgetType, ToastType, CommandAction } from "../types";
+import type { NanobotState } from "../nanobot.svelte";
 
 export interface HandlerDeps {
   state: {
@@ -40,6 +41,7 @@ export async function handleFastAction(
   source: "text" | "voice" = "text"
 ): Promise<boolean> {
   const { state, voice, log, ui, resetVui, softReset } = deps;
+  const nanobot = useNanobot() as NanobotState;
   const cmd = command.toLowerCase().trim();
 
   // 1. Unified Mapping Lookup (Tier 1 - Dynamic Zen Path)
@@ -67,7 +69,7 @@ export async function handleFastAction(
     const xohiReply = `Dạ, em mở ${viLabel} cho ${nanobot.userName} đây ạ.`;
 
     log.addLog(xohiReply, "XOHI");
-    state.activeWidget = matchedWidget;
+    state.activeWidget = matchedWidget as WidgetType;
     ui.setUniversalModalOpen(true);
     
     persistMessage("account", "user", command, source);
@@ -90,10 +92,10 @@ export async function handleFastAction(
   }
 
   // 2. Fragment Match for "mở"
-  if (cmd === "mở" && state.lastSuggestedWidget !== "NONE") {
-    state.activeWidget = state.lastSuggestedWidget;
+  if (cmd === "mở" && state.lastSuggestedWidget && (state.lastSuggestedWidget as string) !== "NONE") {
+    state.activeWidget = state.lastSuggestedWidget as WidgetType;
     ui.setUniversalModalOpen(true);
-    state.lastSuggestedWidget = "NONE";
+    state.lastSuggestedWidget = "NONE" as unknown as WidgetType;
     state.nanoBotStatus = "SUCCESS";
     state.isBusy = false;
     softReset();

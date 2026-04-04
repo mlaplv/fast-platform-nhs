@@ -7,7 +7,8 @@
   import TrendingUp from "lucide-svelte/icons/trending-up";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import type { Order, BaseWidgetProps } from "$lib/types";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
   import OrderDetailDrawer from "./OrderDetailDrawer.svelte";
   import OrderListItem from "./OrderListItem.svelte";

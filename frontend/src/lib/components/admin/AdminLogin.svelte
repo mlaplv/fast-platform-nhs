@@ -4,7 +4,8 @@
   import { permissionState } from "$lib/state/permissions.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { fallbackSha256 } from "$lib/utils/cryptoFallback";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { goto } from "$app/navigation";
   import XohiLogo from "$lib/components/admin/XohiLogo.svelte";
 

@@ -2,7 +2,8 @@
   import { onMount } from "svelte";
   import { fade, slide } from "svelte/transition";
   import { apiClient } from "$lib/utils/apiClient";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import User from "lucide-svelte/icons/user";
   import Phone from "lucide-svelte/icons/phone";
   import Clock from "lucide-svelte/icons/clock";

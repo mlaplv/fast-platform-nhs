@@ -1,7 +1,8 @@
 <script lang="ts">
   import { type Component } from "svelte";
   import ToastNotification from "$lib/components/admin/ui/ToastNotification.svelte";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { vuiController } from "$lib/vui";
   import XohiLogo from "$lib/components/admin/XohiLogo.svelte";
   import "../../../../routes/(admin)/admin.css";

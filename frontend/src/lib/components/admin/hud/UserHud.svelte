@@ -6,7 +6,8 @@
   import LucideShield from "lucide-svelte/icons/shield";
   import LucideGlobe from "lucide-svelte/icons/globe";
 import LucideLayout from "lucide-svelte/icons/layout";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { permissionState } from "$lib/state/permissions.svelte";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 

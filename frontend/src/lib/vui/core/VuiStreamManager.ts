@@ -1,6 +1,7 @@
 import { vuiState } from "../store/vui.state.svelte";
 import { vuiService, type IntentStreamEvent } from "./VuiService";
-import { nanobot } from "$lib/state/nanobot.svelte";
+import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
 import { VUI_CONFIG } from "./VuiConstants";
 import type { VuiAudioEngine } from "./VuiAudioEngine";
 

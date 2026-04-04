@@ -1,6 +1,7 @@
 <script lang="ts">
   import HeartbeatStream from "../../HeartbeatStream.svelte";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { permissionState } from "$lib/state/permissions.svelte";
   import type { WidgetType } from "$lib/state/types";
   import { spring } from "svelte/motion";

@@ -27,14 +27,33 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
     """
     from sqlalchemy import select, update
     from backend.database import current_tenant_id
+    from backend.services.ai_engine.core.semantic_cache import semantic_cache
 
     t0 = datetime.now(timezone.utc)
-    logger.info(f"🧠 [Neural Worker] Starting task {task_id} for agent {agent_id} (S: {session_id})")
+    job_try = ctx.get('job_try', 1)
+    logger.info(f"🧠 [Neural Worker] Starting task {task_id} (Try {job_try}) for agent {agent_id} (S: {session_id})")
     
     session_maker = alchemy_config.create_session_maker()
     token_ctx = None
 
     try:
+        # [R00 - DISPOSE] Check Semantic Cache BEFORE touching heavy resources
+        cached_res = await semantic_cache.get_cached_result(agent_id, payload)
+        if cached_res:
+            async with session_maker() as cache_db:
+                await cache_db.execute(
+                    update(UnifiedAgentTask)
+                    .where(UnifiedAgentTask.task_id == task_id)
+                    .values(status="DONE", result=cached_res, completed_at=datetime.now(timezone.utc))
+                )
+                await cache_db.commit()
+            
+            # Emit signals for cached result
+            await event_bus.emit("AGENT_TASK_COMPLETED", {"task_id": task_id, "session_id": session_id, "agent_id": agent_id, "status": "DONE"})
+            if agent_id == "support_agent":
+                await event_bus.emit("SUPPORT_RESPONSE_READY", {"session_id": session_id, "task_id": task_id, "reply": cached_res.get("reply"), "intent": cached_res.get("intent"), "status": "DONE"})
+            return
+
         # 1. Update status to RUNNING in DB and RESTORE TENANT CONTEXT
         async with session_maker() as db:
             stmt = select(UnifiedAgentTask).where(UnifiedAgentTask.task_id == task_id)
@@ -90,6 +109,10 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
                 .where(UnifiedAgentTask.task_id == task_id)
                 .values(status="DONE", result=result_data, completed_at=datetime.now(timezone.utc))
             )
+
+            # [Elite 2026] Cache successful result
+            await semantic_cache.set_cached_result(agent_id, payload, result_data)
+
             await db.commit()
 
             # 6. Universal Completion Signal (Central Nervous System)
@@ -139,11 +162,13 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
             "error": str(e)
         })
         
-        # Automatic retry for transient Network/API errors
+        # [Elite V2.2] Exponential Backoff for transient Network/API errors
         error_str = str(e).lower()
-        if any(trigger in error_str for trigger in ["429", "timeout", "overloaded"]):
-            logger.warning(f"🔄 [Worker] Retrying task {task_id} due to transient error: {e}")
-            raise Retry(defer=15)
+        if any(trigger in error_str for trigger in ["429", "timeout", "overloaded", "limiter"]):
+            # Calc exponential backoff: 30s, 60s, 120s...
+            defer_time = 15 * (2 ** (job_try - 1))
+            logger.warning(f"🔄 [Worker] Retrying task {task_id} in {defer_time}s due to transient error: {e}")
+            raise Retry(defer=defer_time)
     finally:
         if token_ctx:
             current_tenant_id.reset(token_ctx)

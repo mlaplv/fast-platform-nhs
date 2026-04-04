@@ -1,7 +1,8 @@
 import { apiClient } from '$lib/utils/apiClient';
 import type { MediaAsset, MediaStats, MediaSseEvent, MediaMetadata } from '$lib/types';
 import { sanitizeId } from './utils';
-import { nanobot } from '$lib/state/nanobot.svelte';
+import { useNanobot } from '$lib/state/nanobot.svelte';
+  const nanobot = useNanobot();
 
 class MediaStore {
     // States using Runes

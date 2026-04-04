@@ -1,6 +1,7 @@
 <script lang="ts">
   import { vuiState } from "$lib/vui";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { fade, fly } from "svelte/transition";
   import { playSciFiBeep, playSiriDing } from "$lib/utils/sfx";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";

@@ -15,7 +15,8 @@
   } from "lucide-svelte";
   import { onMount } from "svelte";
   import { apiClient } from "$lib/utils/apiClient";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
 
   let { isWidget = false } = $props<{ isWidget?: boolean }>();
 

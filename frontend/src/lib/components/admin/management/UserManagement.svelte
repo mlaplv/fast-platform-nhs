@@ -13,7 +13,8 @@
   import Edit2 from "lucide-svelte/icons/edit-2";
   import Trash2 from "lucide-svelte/icons/trash-2";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import type { User, Role, BaseWidgetProps } from "$lib/types";
   import { apiClient, ApiError } from "$lib/utils/apiClient";
   import OrderPagination from "./OrderPagination.svelte";

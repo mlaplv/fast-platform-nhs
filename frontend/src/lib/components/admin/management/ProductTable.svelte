@@ -5,7 +5,8 @@
   import CheckSquare from "lucide-svelte/icons/check-square";
   import Square from "lucide-svelte/icons/square";
   import ExternalLink from "lucide-svelte/icons/external-link";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { formatCurrency } from "$lib/utils/format";
   import type { Product } from "$lib/types";
 

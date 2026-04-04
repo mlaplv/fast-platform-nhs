@@ -22,7 +22,8 @@
     import Terminal from "lucide-svelte/icons/terminal";
 
     let { isWidget = false } = $props();
-    import { nanobot } from "$lib/state/nanobot.svelte";
+    import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
 
     let brainStatus = $state(null);
     let loading = $state(true);

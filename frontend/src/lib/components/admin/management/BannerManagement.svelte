@@ -15,7 +15,8 @@
   import ExternalLink from "lucide-svelte/icons/external-link";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
 
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
   import type { BaseWidgetProps, MediaAsset, Banner, BannerForm } from "$lib/types";
   import BannerDrawer from "./BannerDrawer.svelte";

@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { apiClient } from "$lib/utils/apiClient";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import type { BaseWidgetProps } from "$lib/types";
 
   import Save from "lucide-svelte/icons/save";

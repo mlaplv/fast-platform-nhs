@@ -1,4 +1,4 @@
-import { untrack } from "svelte";
+import { untrack, setContext, getContext } from "svelte";
 import { apiClient } from "$lib/utils/apiClient";
 import { createChatState } from "./chat.svelte";
 import { goto } from "$app/navigation";
@@ -449,4 +449,20 @@ export function createNanobotState() {
   };
 }
 
-export const nanobot = createNanobotState();
+// Elite V2.2: Context Isolation Protocol
+const NANOBOT_KEY = Symbol('NANOBOT');
+
+export type NanobotState = ReturnType<typeof createNanobotState>;
+
+export function setNanobotContext() {
+  const state = createNanobotState();
+  return setContext(NANOBOT_KEY, state);
+}
+
+export function useNanobot(): NanobotState {
+  const state = getContext(NANOBOT_KEY) as NanobotState;
+  if (!state) {
+    throw new Error("useNanobot must be used within a NanobotProvider (setNanobotContext)");
+  }
+  return state;
+}

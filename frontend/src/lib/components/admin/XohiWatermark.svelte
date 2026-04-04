@@ -1,6 +1,7 @@
 <script lang="ts">
   import { vuiState } from "$lib/vui";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import XohiLogo from "$lib/components/admin/XohiLogo.svelte";
   import { fade } from "svelte/transition";
 

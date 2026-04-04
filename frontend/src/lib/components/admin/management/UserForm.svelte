@@ -4,7 +4,8 @@
   import UserCircle from "lucide-svelte/icons/user-circle";
   import Mail from "lucide-svelte/icons/mail";
   import { apiClient } from "$lib/utils/apiClient";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import type { User } from "$lib/types";
 
   let { editingId, initialData, onClose, onSuccess } = $props<{

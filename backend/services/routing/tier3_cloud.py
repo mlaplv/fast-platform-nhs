@@ -29,12 +29,16 @@ SYSTEM_CORE_DIRECTIVE = os.getenv("SYSTEM_CORE_DIRECTIVE", "")
 @dataclass
 class Tier3Deps:
     """Dependencies for Tier 3 Deep Reasoning (XoHi)."""
-    screen_context: Optional[dict] = None
+    screen_context: Optional[dict[str, object]] = None
     rotator: Optional[object] = None
     base_directive: str = ""
+    kb_index: str = ""
 
 T3_SYSTEM_PROMPT = """[ROLE] XO HI — TRỢ LÝ GIÁM ĐỐC ĐIỀU HÀNH (COO ASSISTANT) — admin.smartshop.test
 Bạn là Xô Hi, trợ lý cấp cao duy nhất của hệ thống quản trị SmartShop, phục vụ trực tiếp cho "Sếp" (Admin/Chủ cửa hàng).
+
+[PHẠM VI KIẾN THỨC - LAYER 1 INDEX]
+{{{{kb_index}}}}
 
 [ĐÌNH HÌNH NHÂN CÁCH]
 - Danh xưng: Gọi người dùng là "Sếp", xưng "em" hoặc "XoHi".
@@ -69,11 +73,31 @@ class Tier3CloudRouter:
         @self.agent.system_prompt
         def inject_context(ctx: RunContext[Tier3Deps]) -> str:
             parts = [ctx.deps.base_directive]
+            if ctx.deps.kb_index:
+                parts.append(f"\n[KNOWLEDGE_INDEX]\n{ctx.deps.kb_index}")
             if ctx.deps.screen_context:
                 parts.append(f"\n[SCREEN_CONTEXT]\n{json.dumps(ctx.deps.screen_context, ensure_ascii=False)}")
             return "\n".join(parts)
 
-    async def reason(self, transcript: str, context: list = None, screen_context: dict | None = None) -> IntentResponse:
+        @self.agent.tool
+        async def fetch_topic_knowledge(ctx: RunContext[Tier3Deps], topic_id: str) -> str:
+            """
+            Lấy kiến thức chi tiết về một chủ đề cụ thể (Layer 2 Topic Fetch).
+            Dùng khi sếp hỏi sâu về một mục trong [KNOWLEDGE_INDEX].
+            """
+            from backend.services.ai_engine.tools.kb_service import kb_service
+            return await kb_service.fetch_topic(topic_id)
+
+        @self.agent.tool
+        async def fuzzy_search_transcripts(ctx: RunContext[Tier3Deps], query: str) -> str:
+            """
+            Tìm kiếm dữ liệu thô từ hệ thống kiến thức (Layer 3 Raw Search).
+            Dùng khi không tìm thấy thông tin trong [KNOWLEDGE_INDEX] hoặc cần dẫn chứng chi tiết từ bài viết/hóa đơn cũ.
+            """
+            from backend.services.ai_engine.tools.kb_service import kb_service
+            return await kb_service.fuzzy_search_raw(query)
+
+    async def reason(self, transcript: str, context: list[dict[str, object]] | None = None, screen_context: dict[str, object] | None = None) -> IntentResponse:
         """
         C.O.R.E: Deep Reasoning — [THIẾT QUÂN LUẬT] Pro Mode.
         """
@@ -84,10 +108,14 @@ class Tier3CloudRouter:
                     history.append(msg)
 
         # [TRINITY DISPATCHER] Waterfall logic decoupled
+        from backend.services.xohi_memory import xohi_memory
+        kb_index = await xohi_memory.get_kb_index()
+
         deps = Tier3Deps(
             screen_context=screen_context,
             rotator=key_rotator,
-            base_directive=SYSTEM_CORE_DIRECTIVE
+            base_directive=SYSTEM_CORE_DIRECTIVE,
+            kb_index=kb_index
         )
 
         try:
@@ -125,7 +153,7 @@ class Tier3CloudRouter:
                 data={},
             )
 
-    async def stream_reason(self, transcript: str, context: list = None, screen_context: dict | None = None):
+    async def stream_reason(self, transcript: str, context: list[dict[str, object]] | None = None, screen_context: dict[str, object] | None = None):
         """Streaming version of deep reasoning."""
         history = []
         if context:
@@ -133,10 +161,14 @@ class Tier3CloudRouter:
                 if msg.get("role") != "system":
                     history.append(msg)
 
+        from backend.services.xohi_memory import xohi_memory
+        kb_index = await xohi_memory.get_kb_index()
+
         deps = Tier3Deps(
             screen_context=screen_context,
             rotator=key_rotator,
-            base_directive=SYSTEM_CORE_DIRECTIVE
+            base_directive=SYSTEM_CORE_DIRECTIVE,
+            kb_index=kb_index
         )
 
         try:

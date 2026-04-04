@@ -7,7 +7,8 @@
   import Newspaper from "lucide-svelte/icons/newspaper";
   import ChevronLeft from "lucide-svelte/icons/chevron-left";
   import type { Article, BaseWidgetProps } from "$lib/types";
-  import { nanobot } from "$lib/state/nanobot.svelte";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
   import { apiClient, ApiError } from "$lib/utils/apiClient";
   import { onMount, tick } from "svelte";
 

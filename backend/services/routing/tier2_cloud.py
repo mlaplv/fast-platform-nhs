@@ -54,10 +54,14 @@ class Tier2Deps:
     """Dependencies for Tier 2 Dispatcher."""
     screen_context: Optional[dict] = None
     rotator: Optional[object] = None
+    kb_index: str = ""
 
 T2_SYSTEM_PROMPT = f"""[ROLE] TRỢ LÝ ĐIỀU PHỐI CẤP CAO (CORE DISPATCHER) — {os.getenv('PUBLIC_SSOT_ADMIN_URL', 'admin.smartshop.test')}
 
 Ngươi là bộ não phân luồng đầu tiên của XoHi - Trợ lý quản trị viên.
+
+[KIẾN THỨC CÓ SẴN - LAYER 1 INDEX]
+{{{{kb_index}}}}
 
 [NHIỆM VỤ]
 Phân tích yêu cầu của sếp, đọc [SCREEN_CONTEXT] để hiểu ngữ cảnh, và trả về mã lệnh JSON chính xác.
@@ -114,9 +118,12 @@ class Tier2CloudRouter:
 
         @self.agent.system_prompt
         def add_context(ctx: RunContext[Tier2Deps]) -> str:
+            parts = []
+            if ctx.deps.kb_index:
+                parts.append(f"\n[KNOWLEDGE_INDEX]\n{ctx.deps.kb_index}")
             if ctx.deps.screen_context:
-                return f"\n[SCREEN_CONTEXT]\n{json.dumps(ctx.deps.screen_context, ensure_ascii=False)}"
-            return ""
+                parts.append(f"\n[SCREEN_CONTEXT]\n{json.dumps(ctx.deps.screen_context, ensure_ascii=False)}")
+            return "\n".join(parts)
 
     async def extract(self, transcript: str, context: list = None, screen_context: dict | None = None) -> Optional[IntentResponse]:
         # R1.8: Anti-Blocking — Truncate transcript to protect event loop
@@ -130,7 +137,10 @@ class Tier2CloudRouter:
                     history.append(msg)
         
         # [TRINITY DISPATCHER] Waterfall logic decoupled
-        deps = Tier2Deps(screen_context=screen_context, rotator=key_rotator)
+        from backend.services.xohi_memory import xohi_memory
+        kb_index = await xohi_memory.get_kb_index()
+
+        deps = Tier2Deps(screen_context=screen_context, rotator=key_rotator, kb_index=kb_index)
 
         try:
             result = await trinity_bridge.run(
