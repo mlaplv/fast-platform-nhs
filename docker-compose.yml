@@ -159,6 +159,7 @@ services:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/fast_platform
       - REDIS_URL=redis://redis:6379/0
       - TZ=Asia/Ho_Chi_Minh
+      - SKIP_MIGRATE=true
     mem_limit: 768M
     deploy:
       resources:
@@ -191,6 +192,7 @@ services:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/fast_platform
       - REDIS_URL=redis://redis:6379/0
       - TZ=Asia/Ho_Chi_Minh
+      - SKIP_MIGRATE=true
     mem_limit: 512M
     deploy:
       resources:

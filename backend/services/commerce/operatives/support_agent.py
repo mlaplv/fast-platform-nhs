@@ -20,7 +20,7 @@ import logging
 import re
 import time
 import uuid
-from typing import Optional, cast, Union, Any, TYPE_CHECKING, Dict, Type, List
+from typing import Optional, cast, Union, TYPE_CHECKING, Dict, Type, List
 
 # Type Aliases for 100% Static Typing (CẤM 'any')
 JSONValue = Union[str, int, float, bool, None, dict[str, "JSONValue"], list["JSONValue"]]
@@ -253,7 +253,7 @@ class SupportAgentOperative(BaseAgentOperative):
         self,
         request: SupportRequest,
         db: AsyncSession,
-        **kwargs: Any
+        **kwargs: object
     ) -> SupportResponse:
         """
         Elite V2.2: Dual-Tier Entry Point (Sync/Async).
@@ -316,9 +316,16 @@ class SupportAgentOperative(BaseAgentOperative):
             session_id, 
             current_product_slug=request.product_slug
         )
-        if lead_data and lead_data.customer_phone:
-            request.customer_phone = lead_data.customer_phone
+        if lead_data:
+            request.customer_phone = lead_data.customer_phone or request.customer_phone
             request.customer_name = lead_data.customer_name or request.customer_name
+            lead_metadata = {
+                "is_new_customer": lead_data.is_new_customer,
+                "address_status": lead_data.address_status,
+                "previous_address": lead_data.previous_address
+            }
+        else:
+            lead_metadata = None
 
 
         # Chat Context (History)
@@ -331,7 +338,7 @@ class SupportAgentOperative(BaseAgentOperative):
         safe_message: str = await self._mask_sensitive_medical_terms(request.message)
 
         # Prompt Construction (Elite V2.2: Dynamic Memory Architecture)
-        full_directive = await self._build_prompt_directive(product_ctx, history_text)
+        full_directive = await self._build_prompt_directive(product_ctx, history_text, lead_metadata=lead_metadata)
 
         # AI Execution via TrinityBridge
         intent = SupportIntent.UNKNOWN
@@ -380,17 +387,13 @@ class SupportAgentOperative(BaseAgentOperative):
             customer_phone=request.customer_phone
         )
         
-        # Emit Telemetry & Pulse
+        # Emit Telemetry & Pulse via Central Neural System (Worker handles binary commit)
         await event_bus.emit("SUPPORT_QUERY_LOG", {"session_id": session_id, "intent": intent.value, "duration_ms": duration_ms})
         await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
         
-        # R82.31: Client-side Pulse Delivery
-        await event_bus.emit("SUPPORT_RESPONSE_READY", {
-            "session_id": session_id,
-            "reply": safe_reply,
-            "intent": intent.value,
-            "status": "DONE"
-        })
+        # [ELITE BUGFIX] Removing direct SUPPORT_RESPONSE_READY emission here.
+        # The arq Worker (arq_worker.py) now handles this after the final atomic commit
+        # to ensure the UI only receives data that is actually persisted in the DB.
 
 
         return SupportResponse(
@@ -409,10 +412,12 @@ class SupportAgentOperative(BaseAgentOperative):
             user_hist = SupportChatHistory(session_id=session_id, role="user", content=enc_user_msg, intent=intent.value, product_slug=product_slug, customer_name=customer_name, customer_phone=customer_phone)
             assistant_hist = SupportChatHistory(session_id=session_id, role="assistant", content=enc_assistant_reply, intent=intent.value, product_slug=product_slug, customer_name=customer_name, customer_phone=customer_phone)
             db.add_all([user_hist, assistant_hist])
-            await db.commit()
+            # [ELITE R0.2] Using flush() instead of commit() to allow Atomic Transaction 
+            # management at the Worker/Controller level.
+            await db.flush()
         except Exception as exc:
             logger.warning("[SupportAgent] Failed to save chat history: %s", exc)
-            await db.rollback()
+            # No rollback() here - let the outer owner handle failure.
 
     async def _fetch_chat_context(self, db: AsyncSession, session_id: str) -> str:
         history_text = ""
@@ -431,7 +436,7 @@ class SupportAgentOperative(BaseAgentOperative):
             logger.warning("[SupportAgent] Context retrieval failed: %s", h_exc)
         return history_text
 
-    async def _build_prompt_directive(self, product_ctx: str, history_text: str = "") -> str:
+    async def _build_prompt_directive(self, product_ctx: str, history_text: str = "", lead_metadata: Optional[Dict[str, object]] = None) -> str:
         ctx_block: str = f"\n{product_ctx}\n" if (product_ctx) else ""
         agentic_directive = await xohi_memory.client.get("support:agent:system_prompt")
         if not agentic_directive:
@@ -443,6 +448,18 @@ class SupportAgentOperative(BaseAgentOperative):
                     agentic_directive = support_cfg.system_directive
             except Exception:
                 agentic_directive = support_cfg.system_directive
+        
+        # Inject Identity-First Metadata for Retention Engine (Elite V2.2)
+        if lead_metadata:
+            id_ctx = (
+                "\n[CUSTOMER IDENTITY CONTEXT]\n"
+                f"is_new_customer: {lead_metadata.get('is_new_customer')}\n"
+                f"address_status: {lead_metadata.get('address_status')}\n"
+                f"previous_address: {lead_metadata.get('previous_address') or 'N/A'}\n"
+                "QUY TẮC: Dùng thông tin trên để cá nhân hóa lời chào và xác nhận địa chỉ nếu cần.\n"
+            )
+            agentic_directive = id_ctx + agentic_directive
+
         return (
             f"{agentic_directive}\n{history_text}\n"
             "[KNOWLEDGE CONTEXT]\n"

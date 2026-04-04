@@ -7,6 +7,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from backend.database.repositories import ContentCampaignRepository
 from backend.models.schemas import GenericResponse
+from backend.services.event_bus import event_bus
 
 logger = logging.getLogger("api-gateway")
 

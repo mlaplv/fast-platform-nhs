@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.commerce.order import order_service
+from backend.services.user_service import user_service
 from backend.schemas.order import OrderCreateRequest, OrderItem
 
 logger = logging.getLogger("api-gateway")
@@ -31,6 +32,9 @@ class ExtractedLead(BaseModel):
     customer_address: Optional[str] = Field(None, description="Địa chỉ giao hàng chi tiết")
     items: List[LeadOrderItem] = Field(default_factory=list, description="Danh sách sản phẩm trích xuất được")
     is_definite_purchase: bool = Field(False, description="True nếu khách hàng đã xác nhận chốt đơn hoặc đồng ý mua")
+    is_new_customer: bool = Field(False, description="True nếu đây là khách hàng mới")
+    address_status: str = Field("SAME", description="SAME, CHANGED, or NEW")
+    previous_address: Optional[str] = Field(None, description="Địa chỉ cũ của khách nếu có")
 
 import re
 
@@ -109,6 +113,19 @@ class LeadExtractor:
             else:
                 lead.customer_phone = valid_phone
 
+            # 3. IDENTITY RESOLUTION (Elite V2.2: User-First Protocol)
+            user, is_new, prev_addr, addr_changed = await user_service.get_or_resolve_customer(
+                db=db,
+                phone=lead.customer_phone or "0000000000",
+                name=lead.customer_name,
+                current_address=lead.customer_address,
+                tenant_id="default"
+            )
+            
+            lead.is_new_customer = is_new
+            lead.previous_address = prev_addr
+            lead.address_status = "NEW" if is_new else ("CHANGED" if addr_changed else "SAME")
+
             if not lead.is_definite_purchase or not lead.customer_phone:
                 return lead
 
@@ -150,15 +167,15 @@ class LeadExtractor:
                 )
 
                 
-                # Use order_service to persist
-                # Note: IP and UA are placeholder for AI-triggered orders
+                # Use order_service to persist with resolved user_id
                 await order_service.create_order(
                     db_session=db,
                     data=draft_data,
                     ip="0.0.0.0",
-                    ua="Helen-AI-AutoDraft"
+                    ua="Helen-AI-AutoDraft",
+                    user_id=user.id
                 )
-                logger.info(f"[LeadExtractor] Created Auto-Draft for session {session_id}")
+                logger.info(f"[LeadExtractor] Created Auto-Draft for user {user.id} (Session: {session_id})")
             
             return lead
 

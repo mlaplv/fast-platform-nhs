@@ -1,14 +1,15 @@
 import logging
 from datetime import datetime, timezone
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Union, Optional, Tuple
 from collections import defaultdict
+import uuid
 
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
 
-from backend.database.models import User, Role, Permission
+from backend.database.models import User, Role, Permission, Order
 from backend.utils.sql import escape_like
 from backend.schemas.user import UserResponse, UserListResponse, RoleResponse, PermissionResponse
 from backend.schemas.common import SuccessResponse
@@ -189,5 +190,74 @@ class UserService:
 
         role.permissions = list(permissions)
         return SuccessResponse(ok=True, id=str(role.id), message=f"Permissions for role {role.code} updated")
+
+    @staticmethod
+    async def get_or_resolve_customer(
+        db: AsyncSession,
+        phone: str,
+        name: Optional[str] = None,
+        current_address: Optional[str] = None,
+        tenant_id: str = "default"
+    ) -> Tuple[User, bool, Optional[str], bool]:
+        """
+        Elite V2.2: Identify customer by phone and detect address changes.
+        Returns: (User, is_new, previous_address, address_changed)
+        """
+        # 1. Identity Lookup
+        stmt = select(User).where(
+            and_(
+                User.phone == phone,
+                User.tenant_id == tenant_id,
+                User.deleted_at == None
+            )
+        )
+        res = await db.execute(stmt)
+        user = res.scalar_one_or_none()
+
+        if user:
+            # 2. Returning Customer - Check Address History
+            last_order_stmt = (
+                select(Order.customer_address)
+                .where(Order.user_id == user.id)
+                .order_by(Order.created_at.desc())
+                .limit(1)
+            )
+            last_addr = await db.scalar(last_order_stmt)
+            
+            address_changed = False
+            if last_addr and current_address:
+                # Professional Normalization for comparison
+                address_changed = last_addr.strip().lower() != current_address.strip().lower()
+            
+            return user, False, last_addr, address_changed
+
+        # 3. New Customer - Auto-Creation (Identity-First Protocol)
+        new_id = str(uuid.uuid4())
+        # Use phone as username/email fallback to satisfy NOT NULL constraints
+        username = phone
+        email = f"{phone}@smartshop.test"
+        
+        new_user = User(
+            id=new_id,
+            username=username,
+            email=email,
+            name=name or "Quý khách",
+            phone=phone,
+            status="ACTIVE",
+            tenant_id=tenant_id
+        )
+        
+        # Assign CUSTOMER role if it exists in seed
+        role_stmt = select(Role).where(Role.code == "CUSTOMER")
+        role_res = await db.execute(role_stmt)
+        customer_role = role_res.scalar_one_or_none()
+        if customer_role:
+            new_user.roles.append(customer_role)
+            
+        db.add(new_user)
+        # Flush to persist for immediate Order linking in LeadExtractor
+        await db.flush() 
+        
+        return new_user, True, None, False
 
 user_service = UserService()

@@ -479,6 +479,84 @@ function clean_backups() {
     read -p "Nhấn Enter để quay lại menu..."
 }
 
+function manage_security_users() {
+    echo -e "${YELLOW}=== [SECURITY] QUẢN TRỊ USER & SSH LOCKDOWN (ELITE V2.2) ===${NC}"
+    echo "1) Tạo User quản trị mới (Sudoer)"
+    echo "2) Khóa đăng nhập ROOT (Lockdown SSH)"
+    echo "3) Mở lại đăng nhập ROOT (Unlock SSH)"
+    echo "0) Quay lại"
+    read -p "Sếp chọn lệnh nào: " sec_choice
+
+    case $sec_choice in
+        1)
+            read -p "Nhập tên User mới (ví dụ: troly_smartshop): " new_user
+            if id "$new_user" &>/dev/null; then
+                echo -e "${RED}[ERROR] User $new_user đã tồn tại!${NC}"
+            else
+                sudo adduser "$new_user"
+                sudo usermod -aG sudo "$new_user"
+                echo -e "${GREEN}[SUCCESS] Đã tạo User $new_user và cấp quyền Sudo.${NC}"
+                echo -e "${YELLOW}[TIP] Sếp hãy thử SSH bằng user này trước khi khóa Root!${NC}"
+            fi
+            ;;
+        2)
+            echo -e "${RED}[WARNING] THAO TÁC NGUY HIỂM: Khóa đăng nhập Root sẽ khiến Sếp không thể login bằng 'root'.${NC}"
+            read -p "Sếp chắc chắn đã có user sudo khác và muốn khóa Root? (y/n): " confirm
+            if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                echo -e "${CYAN}-> Đang cấu hình SSH Lockdown...${NC}"
+                # Update PermitRootLogin to no
+                sudo sed -i 's/^#*PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+                sudo sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+                
+                echo -e "${CYAN}-> Đang khởi động lại dịch vụ SSH...${NC}"
+                sudo systemctl restart ssh || sudo systemctl restart sshd
+                echo -e "${GREEN}[SUCCESS] Đã khóa đăng nhập Root! Kẻ xấu sẽ không thể 'dò' pass Root nữa.${NC}"
+            fi
+            ;;
+        3)
+            echo -e "${YELLOW}=== [REVERSAL] MỞ LẠI ĐĂNG NHẬP ROOT ===${NC}"
+            read -p "Sếp xác nhận muốn mở lại quyền login Root? (y/n): " confirm
+            if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                echo -e "${CYAN}-> Đang cấu hình SSH Unlock...${NC}"
+                sudo sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+                sudo systemctl restart ssh || sudo systemctl restart sshd
+                echo -e "${GREEN}[SUCCESS] Đã mở lại đăng nhập Root! Sếp có thể dùng 'root' để login.${NC}"
+            fi
+            ;;
+        0) return ;;
+    esac
+    read -p "Nhấn Enter để tiếp tục..."
+}
+
+function show_elite_guide() {
+    clear
+    echo -e "${CYAN}==================================================${NC}"
+    echo -e "${CYAN}   HƯỚNG DẪN VẬN HÀNH PHÁO ĐÀI (ELITE V2.2)      ${NC}"
+    echo -e "${CYAN}==================================================${NC}"
+    echo ""
+    echo -e "${YELLOW}1. BẢO MẬT & SSH (Mục 13):${NC}"
+    echo -e "   - BƯỚC 1: Tạo User mới (Mục 13.1). Nhớ kỹ mật khẩu!"
+    echo -e "   - BƯỚC 2: Thử SSH bằng User mới (Mở tab mới, gõ: ssh user@ip)."
+    echo -e "   - BƯỚC 3: Nếu vào được, mới chọn Khóa Root (Mục 13.2)."
+    echo -e "   - CẤP CỨU: Nếu quên pass hoặc muốn mở lại Root, dùng user mới gõ:"
+    echo -e "     sudo sed -i 's/PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config"
+    echo -e "     sudo systemctl restart ssh"
+    echo ""
+    echo -e "${YELLOW}2. BẢO TRÌ TỰ ĐỘNG (Mục 11):${NC}"
+    echo -e "   - Sau khi chạy Mục 11, VPS sẽ tự dọn rác lúc 04:00 sáng hàng ngày."
+    echo -e "   - Sếp không cần lo đầy ổ 60GB SSD."
+    echo ""
+    echo -e "${YELLOW}3. LƯU TRỮ SAS 120GB (Mục 12):${NC}"
+    echo -e "   - Luôn mount ổ SAS vào thư mục /backups để lưu dữ liệu an toàn."
+    echo -e "   - Password mặc định của Mục 12 là: ELITE_V22"
+    echo ""
+    echo -e "${YELLOW}4. KIỂM TRA SỨC KHỎE (Mục 4):${NC}"
+    echo -e "   - Xem log để biết AI có đang 'overloaded' hay không."
+    echo -e "   - Nếu thấy lag, hãy Restart API (Mục 8)."
+    echo ""
+    read -p "Nhấn Enter để quay lại menu..."
+}
+
 function setup_vps() {
     echo -e "${YELLOW}=== [LOCKDOWN] THIẾT LẬP VPS TRẮNG (PROVISIONING - ELITE V2.2) ===${NC}"
     echo -e "${RED}[WARNING] Thao tác này sẽ thiết lập Tường lửa, Fail2Ban và cài đặt Docker/UV/PNPM.${NC}"
@@ -531,6 +609,12 @@ function setup_vps() {
     echo -e "${YELLOW}   ↳ Kích hoạt SSD Maintenance (fstrim.timer)...${NC}"
     sudo systemctl enable fstrim.timer || true
     sudo systemctl start fstrim.timer || true
+
+    # 2.5: Elite Maintenance Cron (Automated Cleaning)
+    echo -e "${CYAN}-> [2.5] Thiết lập Cron tự động bảo trì (4:00 AM)...${NC}"
+    (crontab -l 2>/dev/null | grep -v "docker system prune"; echo "0 4 * * * /usr/bin/docker system prune -af --volumes --filter 'until=24h' > /dev/null 2>&1") | crontab -
+    (crontab -l 2>/dev/null | grep -v "fstrim"; echo "0 5 * * * /usr/bin/fstrim -v / > /dev/null 2>&1") | crontab -
+    echo -e "${GREEN}   ✔ Đã cài đặt lịch dọn dẹp Docker & Trim SSD hàng ngày.${NC}"
 
     echo -e "${CYAN}-> Tăng giới hạn File Descriptors (uLimit 65535)...${NC}"
     if ! grep -q "65535" /etc/security/limits.conf; then
@@ -673,6 +757,8 @@ while true; do
     echo "10) CẤP SSL (HTTPS) - FULL 3 DOMAINS"
     echo "11) CÀI ĐẶT VPS (LOCKDOWN - Dành cho máy mới)"
     echo "12) MOUNT Ổ SAS 120GB (Vào backups/)"
+    echo "13) QUẢN TRỊ USER & SSH (Lockdown Root)"
+    echo "14) HƯỚNG DẪN CHI TIẾT (Tránh Quên)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -724,6 +810,12 @@ while true; do
             ;;
         12)
             mount_sas
+            ;;
+        13)
+            manage_security_users
+            ;;
+        14)
+            show_elite_guide
             ;;
         0)
             exit 0

@@ -8,10 +8,13 @@
     - [x] Data: Xóa Key cứng trong . <!-- id: 412 -->
     - [x] Script: Cập nhật  nạp Key từ môi trường. <!-- id: 413 -->
 - [x] **Giai đoạn 3: Đồng bộ hệ thống (Callers)** <!-- id: 420 -->
-    - [x] Operative: Cập nhật . <!-- id: 421 -->
-    - [x] Controller: Cập nhật . <!-- id: 422 -->
-    - [x] Loader: Cập nhật . <!-- id: 423 -->
-    - [x] AI Service: Cập nhật . <!-- id: 424 -->
+    - [x] Fix Trinity Boot & Stabilize Deployment
+- [/] Fix Helen Support Agent Freeze (Root Cause - Elite V2.2)
+    - [ ] Refactor `SupportAgentOperative._save_history` (Replace commit with flush)
+    - [ ] Standardize `process_brain_logic` Response Protocol
+    - [ ] Update `arq_worker.py` (Unified Transaction & SSE Signal)
+    - [ ] Verify Atomic Lead + History Persistence
+    - [ ] Final UI/UX check for "Helen is typing" state
 - [x] **Giai đoạn 4: Nghiệm thu (Re-seed & Verify)** <!-- id: 430 -->
     - [x] Execute: Chạy . <!-- id: 431 -->
     - [x] Verify: Test Chat với dấu phẩy và kiểm tra log Gemini. <!-- id: 432 -->

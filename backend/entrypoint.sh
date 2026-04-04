@@ -25,7 +25,7 @@ if [ "$SKIP_MIGRATE" != "true" ]; then
     echo "🧬 [Trinity Boot] Synchronizing neural schema (Alembic)..."
     /opt/venv/bin/alembic -c backend/alembic.ini upgrade head || echo "⚠️ Migration failed, but proceeding..."
 else
-    echo "⏭️ [Trinity Boot] Skipping migration (Already synced by XOHI OS)."
+    echo "⏭️ [Trinity Boot] Skipping migration (Already synced by Master/XOHI OS)."
 fi
 
 # R82: Start Litestar Application via Uvicorn (CTO Elite Mode)

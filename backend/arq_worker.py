@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Any, Dict
+from typing import Dict
 from arq import Retry
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,7 +20,7 @@ from backend.infra.jobs import cleanup_old_tasks
 
 logger = logging.getLogger("neural-worker")
 
-async def run_agent_task(ctx: Dict[str, Any], agent_id: str, task_id: str, session_id: str, payload: Dict[str, Any]) -> None:
+async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, session_id: str, payload: Dict[str, object]) -> None:
     """
     Elite V2.2: Universal Agent Task Handler (The Brain Worker).
     Runs any registered agent operative in a background process with DB persistence.
@@ -85,20 +85,21 @@ async def run_agent_task(ctx: Dict[str, Any], agent_id: str, task_id: str, sessi
             await db.commit()
 
             # 6. Universal Completion Signal (Central Nervous System)
+            # [ELITE BUGFIX] Syncing payload with Frontend (ChatProvider expectation)
+            # Ensuring atomic data availability before signaling.
             await event_bus.emit("AGENT_TASK_COMPLETED", {
                 "task_id": task_id,
                 "session_id": session_id,
                 "agent_id": agent_id,
                 "status": "DONE"
             })
-
-            # 7. Agent-specific signals (Backwards Compatibility)
+            
             if agent_id == "support_agent":
                 await event_bus.emit("SUPPORT_RESPONSE_READY", {
-                    "task_id": task_id,
                     "session_id": session_id,
-                    "agent_id": agent_id,
-                    "result": result_data,
+                    "task_id": task_id,
+                    "reply": result_data.get("reply"),
+                    "intent": result_data.get("intent"),
                     "status": "DONE"
                 })
             
@@ -106,14 +107,28 @@ async def run_agent_task(ctx: Dict[str, Any], agent_id: str, task_id: str, sessi
             logger.info(f"✅ [Neural Worker] Task {task_id} completed successfully in {duration:.2f}s.")
             
         except Exception as e:
-            logger.error(f"[Worker] Task {task_id} failed: {e}", exc_info=True)
-            async with session_maker() as db:
-                await db.execute(
-                    update(UnifiedAgentTask)
-                    .where(UnifiedAgentTask.task_id == task_id)
-                    .values(status="FAILED", error=str(e), completed_at=datetime.now(timezone.utc))
-                )
-                await db.commit()
+            logger.error(f"❌ [Worker] Task {task_id} failed during execution: {e}", exc_info=True)
+            # 1. Rollback the active session (already handled by 'async with' usually, but good to be explicit for hygiene)
+            try:
+                await db.rollback()
+            except:
+                pass # Already closed or invalid
+            
+            # 2. Update status to FAILED in a NEW isolated session
+            try:
+                async with session_maker() as fail_db:
+                    await fail_db.execute(
+                        update(UnifiedAgentTask)
+                        .where(UnifiedAgentTask.task_id == task_id)
+                        .values(
+                            status="FAILED", 
+                            error=str(e), 
+                            completed_at=datetime.now(timezone.utc)
+                        )
+                    )
+                    await fail_db.commit()
+            except Exception as dbe:
+                logger.critical(f"💀 [Worker] CRITICAL: Could not update task {task_id} status to FAILED: {dbe}")
 
             # Emit failure signal
             await event_bus.emit("AGENT_TASK_COMPLETED", {
@@ -129,13 +144,13 @@ async def run_agent_task(ctx: Dict[str, Any], agent_id: str, task_id: str, sessi
             if "429" in str(e) or "timeout" in str(e).lower():
                 raise Retry(defer=10)
 
-async def startup(ctx: Dict[str, Any]) -> None:
+async def startup(ctx: Dict[str, object]) -> None:
     logger.info("🚀 [Neural Worker] Arq Worker starting up... Elite V2.2 Protocol Active.")
     # Initialize shared resources like TrinityBridge if needed
     from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
     await trinity_bridge.initialize()
 
-async def shutdown(ctx: Dict[str, Any]) -> None:
+async def shutdown(ctx: Dict[str, object]) -> None:
     logger.info("[Worker] Arq Worker shutting down.")
 
 from arq import cron

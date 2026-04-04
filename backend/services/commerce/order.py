@@ -52,7 +52,7 @@ logger = logging.getLogger("api-gateway")
 
 class OrderService:
     @staticmethod
-    async def create_order(db_session: AsyncSession, data: OrderCreateRequest, ip: str, ua: str) -> SuccessResponse:
+    async def create_order(db_session: AsyncSession, data: OrderCreateRequest, ip: str, ua: str, user_id: str) -> SuccessResponse:
         """Moves logic from OrderController.create_order. Emits ORDER_CREATED event via event_bus."""
         new_id = str(uuid.uuid4())
         history: List[OrderHistoryItem] = [{
@@ -64,6 +64,7 @@ class OrderService:
 
         order = Order(
             id=new_id,
+            user_id=user_id,
             items=data.items,
             total_amount=data.total_amount,
             status="PENDING",
@@ -79,11 +80,12 @@ class OrderService:
         )
 
         db_session.add(order)
-        # Flush to get it in the DB before emitting event if needed,
-        # but the controller will commit.
+        # Flush to get it in the DB before emitting event if needed
+        await db_session.flush()
 
         await event_bus.emit("ORDER_CREATED", {
             "id": new_id,
+            "user_id": user_id,
             "ip": ip,
             "user_agent": ua,
             "customer": data.customer_name,

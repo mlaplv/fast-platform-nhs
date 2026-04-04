@@ -31,6 +31,7 @@ class User(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     username: Mapped[str] = mapped_column(String, unique=True)
     email: Mapped[str] = mapped_column(String, unique=True)
     name: Mapped[Optional[str]] = mapped_column(String)
+    phone: Mapped[Optional[str]] = mapped_column(String, index=True) # Elite V2.2
     password: Mapped[Optional[str]] = mapped_column(String)
     status: Mapped[str] = mapped_column(String, default="ACTIVE")
     security_stamp: Mapped[str] = mapped_column(String, default=lambda: str(uuid.uuid4()))
@@ -49,6 +50,7 @@ class User(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 
     __table_args__ = (
         Index("ix_users_tenant_deleted", "tenant_id", "deleted_at"),
+        Index("ix_users_phone_tenant", "tenant_id", "phone", "deleted_at", unique=True),
     )
 
 class VoiceProfile(Base, AuditMixin):
