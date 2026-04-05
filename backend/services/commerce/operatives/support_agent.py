@@ -96,10 +96,12 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str]) -> Tuple
             price=float(p.price or 0), 
             price_display=f"{int(p.discount_price or p.price or 0):,}đ".replace(",", "."), 
             slug=slug or "",
-            image_url=img_url
+            image_url=img_url,
+            stock=p.stock
         )
         ctx = f"[SẢN PHẨM HIỆN TẠI]\nTên: {p.name}\nMô tả: {p.short_description}\nGiá niêm yết: {p.price} VND\n"
         if p.discount_price: ctx += f"Giá khuyến mãi: {p.discount_price} VND\n"
+        ctx += f"Tồn kho thực tế: {p.stock or 0} lọ\n"
         return ctx, p_info
     except Exception as e:
         logger.warning("[SupportAgent] Context sweep failure: %s", e)
@@ -221,6 +223,10 @@ class SupportAgentOperative(BaseAgentOperative):
         zalo_on = await xohi_memory.client.get("system:zalo_enabled") != "0"
         messenger_on = await xohi_memory.client.get("system:messenger_enabled") != "0"
 
+        # 🚀 1.2: Elite FOMO Sync
+        from backend.services.commerce.logic.fomo_service import fomo_service
+        active_visitors = await fomo_service.get_active_visitors_count()
+
         ctx = SupportContext(
             db=db,
             request=request,
@@ -231,7 +237,9 @@ class SupportAgentOperative(BaseAgentOperative):
             knowledge_index=kb_index,
             p_info=p_info,
             zalo_enabled=zalo_on,
-            messenger_enabled=messenger_on
+            messenger_enabled=messenger_on,
+            active_visitors=active_visitors,
+            product_stock=p_info.stock if p_info else 0
         )
         
         # 🚀 2. EXECUTE PIPELINE (The Specialists)
@@ -241,8 +249,8 @@ class SupportAgentOperative(BaseAgentOperative):
         
         # 🚀 3. POST-PROCESSING (Verification & Finalization)
         # We join all collected replies into one natural message
-        final_reply = " ".join(ctx.replies).strip() if ctx.replies else "Dạ Helen đã ghi nhận thông tin ạ!"
-        safe_reply = _sanitize_response(final_reply) or "Dạ Helen đã ghi nhận ạ!"
+        final_reply = " ".join(ctx.replies).strip() if ctx.replies else "[fallback] Dạ Helen xin lỗi, hiện tại em đang bận xử lý dữ liệu một chút. Anh/Chị vui lòng nhập câu hỏi rõ hơn hoặc chờ em giây lát nhé! 🌸"
+        safe_reply = _sanitize_response(final_reply) or "[fallback] Dạ em đang kết nối lại, Anh/Chị thông cảm nhé!"
         
         # Final Intent and Component Logic
         final_intent = ctx.intent or SupportIntent.UNKNOWN

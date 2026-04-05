@@ -41,7 +41,7 @@ class GuardrailHandler(BaseHandler):
         # 1. Micro-Heuristics (<2ms) - Keyword Match
         if any(kw in msg for kw in self.BLOCKED_KEYWORDS):
             reply = (
-                "Dạ Helen rất tiếc ạ! Hiện tại SmartShop chỉ tập trung chuyên sâu vào dòng sản phẩm **Đặc trị Mùi cơ thể (Nách, Chân)** "
+                "Dạ Helen rất tiếc ạ! [z0] Hiện tại SmartShop chỉ tập trung chuyên sâu vào dòng sản phẩm **Đặc trị Mùi cơ thể (Nách, Chân)** "
                 "và **Mồ hôi tay** để cam kết hiệu quả tốt nhất cho khách hàng. 🌸\n\n"
                 "Em chưa có liệu trình cho vấn đề này, mong Anh/Chị thông cảm và tiếp tục ủng hộ các dòng sản phẩm thế mạnh của bên em nhé!"
             )
@@ -54,7 +54,7 @@ class GuardrailHandler(BaseHandler):
         for pattern in all_defense:
             if re.search(pattern, msg, re.IGNORECASE):
                 logger.warning(f"[Guardrail] Security Breach Detected: {pattern}")
-                reply = "Dạ Helen xin lỗi, em chỉ có thể hỗ trợ các thông tin liên quan đến sản phẩm và đơn hàng của SmartShop. Rất mong Anh/Chị giữ thái độ lịch sự ạ! 🙏"
+                reply = "Dạ Helen xin lỗi, em chỉ có thể hỗ trợ các thông tin liên quan đến sản phẩm và đơn hàng của SmartShop. Rất mong Anh/Chị giữ thái độ lịch sự ạ! 🙏 [z0]"
                 ctx.replies.append(reply)
                 ctx.intent = SupportIntent.UNKNOWN
                 return True

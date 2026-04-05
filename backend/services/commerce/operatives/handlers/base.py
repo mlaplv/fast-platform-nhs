@@ -48,6 +48,10 @@ class SupportContext(BaseModel):
     # Integration Status (Elite V2.2)
     zalo_enabled: bool = True
     messenger_enabled: bool = True
+    
+    # FOMO Metrics (Elite V2.2 - Social Proof & Scarcity)
+    active_visitors: int = 1
+    product_stock: Optional[int] = 0
 
 # Late binding for Pydantic V2
 SupportContext.model_rebuild()

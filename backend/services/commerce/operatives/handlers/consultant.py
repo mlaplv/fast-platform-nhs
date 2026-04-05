@@ -2,6 +2,7 @@ import logging
 from typing import Optional, cast
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic_ai import Agent, RunContext
+from sqlalchemy.ext.asyncio import AsyncSession
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.commerce.operatives.handlers.base import BaseHandler, SupportContext
 from backend.schemas.support import SupportIntent
@@ -10,6 +11,8 @@ from backend.schemas.support import SupportIntent
 class ConsultantDeps(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     db: AsyncSession
+
+ConsultantDeps.model_rebuild()
 
 logger = logging.getLogger("api-gateway")
 
@@ -28,11 +31,15 @@ class ConsultantHandler(BaseHandler):
     # Elite V2.2: Isolated Prompt for Consultative Deep Brain
     SYSTEM_PROMPT = (
         "Bạn là Helen - Chuyên gia tư vấn cấp cao của SmartShop.\n"
-        "NHIỆM VỤ CHIẾN THUẬT:\n"
-        "1. TRA CỨU TRI THỨC: Nếu khách hỏi về địa chỉ, thành phần, giá cả hoặc chính sách, hãy dùng tool 'search_knowledge_base' để lấy dữ liệu chuẩn sòng phẳng.\n"
+        "NHIỆM VỤ CHIẾN THUẬT SIÊU CẤP (ELITE FOMO):\n"
+        "1. TRA CỨU TRI THỨC (BẮT BUỘC): Nếu khách hỏi về ĐỊA CHỈ, THÀNH PHẦN, GIÁ CẢ hoặc CHÍNH SÁCH, bạn BẮT BUỘC phải dùng tool 'search_knowledge_base' hoặc 'fetch_topic_details' để lấy dữ liệu. Tuyệt đối không được đoán.\n"
         "2. GIẢI THÍCH CHUYÊN SÂU: Dùng kiến thức về lỗ chân lông, axit béo để tư vấn trị hôi nách/chân/tay.\n"
         "3. TRÁNH SAI LỆCH: Không hứa hẹn 'dứt điểm vĩnh viễn', không dùng từ 'bác sĩ'.\n"
-        "4. CHUYÊN NGHIỆP: Luôn tế nhị, văn minh và định hướng khách tới Combo 3 Lọ (Mua 2 tặng 1).\n"
+        "4. CHỐT ĐƠN CHIẾN THUẬT: Luôn tế nhị, văn minh và định hướng khách tới Combo 3 Lọ (Mua 2 tặng 1).\n"
+        "5. TẠO SỨC ÉP (FOMO): Sử dụng dữ liệu [TỒN KHO] và [ĐANG XEM] để tạo sự khan hiếm thực tế. \n"
+        "   - Nếu [TỒN KHO] < 10: Nhắc nhẹ khách rằng hàng sắp hết.\n"
+        "   - Nếu [ĐANG XEM] > 3: Nhắc khách rằng sản phẩm đang cực hot, nên chốt sớm để giữ ưu đãi.\n"
+        "6. DEBUG PROTOCOL: Bạn PHẢI bắt đầu câu trả lời bằng tiền tố '[z2] '.\n"
     )
 
     async def handle(self, ctx: SupportContext) -> bool:
@@ -52,9 +59,13 @@ class ConsultantHandler(BaseHandler):
         if not ctx.messenger_enabled:
             integration_ctx += "LƯU Ý: Không nhắc tới Messenger trong hội thoại.\n"
 
+        # Elite FOMO Metrics (Social Proof & Scarcity)
+        fomo_ctx = f"\n[CHỈ SỐ THỰC TẾ]\n[ĐANG XEM]: {ctx.active_visitors} người\n[TỒN KHO]: {ctx.product_stock or 0} lọ\n"
+
         full_prompt = (
             f"{self.SYSTEM_PROMPT}\n"
             f"{integration_ctx}\n"
+            f"{fomo_ctx}\n"
             f"{lead_alert}\n"
             f"\n[MỤC LỤC TRI THỨC HỆ THỐNG - LAYER 1]\n{ctx.knowledge_index}\n"
             f"\n[LỊCH SỬ GẦN ĐÂY]\n{ctx.history_text}\n"

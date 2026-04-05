@@ -140,7 +140,7 @@
 {#if supportAgent.isOpen}
   <!-- Hyper Drop Container (Viral 2026 Aggressive Asymmetric Shape) -->
   <div 
-    class="support-chat-container fixed transform-gpu origin-bottom-right transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] {isExpanded ? 'bottom-8 right-8 w-[90vw] h-[85vh] rounded-[48px]' : 'bottom-[110px] right-8 w-[450px] h-[740px] max-h-[85vh] hyper-drop-v2 animate-liquid-float'} {isInputFocused ? 'pause-animations' : ''}"
+    class="support-chat-container fixed transform-gpu origin-bottom-right transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] {isExpanded ? 'bottom-8 right-8 w-[90vw] h-[85vh] rounded-[48px] overflow-hidden bg-[#030712]' : 'bottom-[110px] right-8 w-[450px] h-[740px] max-h-[85vh] hyper-drop-v2 animate-liquid-float'} {isInputFocused ? 'pause-animations' : ''}"
     style="z-index: {Z_INDEX_CLIENT.MODAL}; will-change: transform, opacity;"
     transition:scale={{ start: 0.7, opacity: 0, duration: 600, easing: (t) => 1 - Math.pow(1 - t, 5) }}
   >
@@ -148,7 +148,7 @@
     <div class="absolute inset-[-1px] bg-gradient-to-br from-[#00A3FF] via-transparent to-[#005B99] opacity-20 {isExpanded ? 'rounded-[48px]' : 'hyper-drop-v2'} pointer-events-none"></div>
 
     <!-- Ultra-Glass Background Layer -->
-    <div class="absolute inset-0 apple-glass-dark-modal pointer-events-none transition-all duration-700 {isExpanded ? 'rounded-[48px]' : 'hyper-drop-v2'} border border-white/10 shadow-[0_45px_100px_rgba(0,0,0,0.9)]"></div>
+    <div class="absolute inset-0 apple-glass-dark-modal pointer-events-none transition-all duration-700 {isExpanded ? 'rounded-[48px] is-expanded' : 'hyper-drop-v2'} border border-white/10 shadow-[0_45px_100px_rgba(0,0,0,0.9)]"></div>
 
     <!-- Interface Contents -->
     <div class="relative z-10 flex flex-col h-full">
@@ -366,15 +366,22 @@
 
 <style>
   .apple-glass-dark-modal {
-    background: linear-gradient(165deg, rgba(16, 24, 39, 0.8) 0%, rgba(3, 7, 18, 0.98) 100%);
-    backdrop-filter: blur(8px) saturate(210%);
-    -webkit-backdrop-filter: blur(8px) saturate(210%);
-    transition: backdrop-filter 0.3s ease;
-    will-change: transform, opacity;
+    background: linear-gradient(165deg, rgba(16, 24, 39, 0.85) 0%, rgba(3, 7, 18, 0.98) 100%);
+    backdrop-filter: blur(12px) saturate(210%);
+    -webkit-backdrop-filter: blur(12px) saturate(210%);
+    transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: backdrop-filter, background, opacity;
     box-shadow: 
       0 60px 120px rgba(0, 0, 0, 0.9),
       inset 0 1px 1px rgba(255, 255, 255, 0.1),
       inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  /* Full-View Optimization: Prevent background bleed-through with 100% opacity layer */
+  .apple-glass-dark-modal.is-expanded {
+    background: #030712 !important;
+    backdrop-filter: blur(60px) saturate(210%);
+    -webkit-backdrop-filter: blur(60px) saturate(210%);
   }
 
   .pause-animations .apple-glass-dark-modal {

@@ -55,7 +55,7 @@ class OrderHandler(BaseHandler):
                 
                 from backend.services.commerce.constants.support_config import support_cfg
                 reply = (
-                    f"Dạ Helen xin cảm ơn quý khách! 🌸\nĐơn hàng thành công:\n- Mã đơn: **{order_id[-8:].upper()}**\n"
+                    f"Dạ Helen xin cảm ơn quý khách! 🌸 [z3]\nĐơn hàng thành công:\n- Mã đơn: **{order_id[-8:].upper()}**\n"
                     f"- Số sản phẩm: {total_qty} lọ/combo\n- Tổng tiền: **{formatted_price}đ** (đã free ship)\n"
                     f"- Nhận hàng: **{delivery_info}**\n\n"
                     f"[🔍 KIỂM TRA ĐƠN HÀNG]({support_cfg.app_url}/account/orders/{order_id})"
@@ -68,6 +68,13 @@ class OrderHandler(BaseHandler):
         # We terminate to provide a focused confirmation/request.
         if lead_data and lead_data.customer_phone and lead_data.customer_address:
             ctx.intent = SupportIntent.PURCHASE
+            # Elite V2.2 Fix: Never enter a state with empty replies if consuming the pipeline
+            p_name = ctx.p_info.name if ctx.p_info else "sản phẩm"
+            reply = (
+                f"Dạ Helen đã ghi nhận SĐT **{lead_data.customer_phone}** và địa chỉ của mình tại **{lead_data.customer_address}** ạ. [z3-lead]\n\n"
+                f"Anh/Chị muốn đặt ngay liệu trình **{p_name}** này để em lên đơn và gửi đi cho mình luôn nhé? 🌸"
+            )
+            ctx.replies.append(reply)
             return True
             
         return False

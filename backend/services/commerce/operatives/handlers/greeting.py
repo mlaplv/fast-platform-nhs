@@ -21,7 +21,7 @@ class GreetingHandler(BaseHandler):
         ])
         
         if is_first_msg or has_greeting:
-            prefix = "Dạ Helen chào Anh/Chị! 🌸 "
+            prefix = "[z1] Dạ Helen chào Anh/Chị! 🌸 "
             if ctx.dna.segment == "VIP":
                 prefix = f"Dạ Helen thân chào khách quý! 🌟 Rất vui được gặp lại mình ạ. "
             elif ctx.dna.segment == "REGULAR":
@@ -29,6 +29,12 @@ class GreetingHandler(BaseHandler):
             
             if ctx.p_info:
                 prefix += f"Em rất hân hạnh được hỗ trợ mình về liệu trình **{ctx.p_info.name}** bên em ạ. "
+            
+            # 🚀 Elite V2.2: Social Proof Indicator
+            if ctx.active_visitors > 2:
+                prefix += f"Hiện đang có hơn {ctx.active_visitors} khách khác cũng đang quan tâm tới sản phẩm này, em sẽ hỗ trợ mình thật nhanh nhé! 🔥 "
+            elif ctx.active_visitors > 1:
+                prefix += "Sản phẩm này hiện được rất nhiều khách quan tâm hỏi thăm ạ. 🌸 "
 
             ctx.replies.insert(0, prefix)
             

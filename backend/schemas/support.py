@@ -24,6 +24,7 @@ class SupportProductInfo(BaseModel):
     price_display: str = Field(..., description="Formatted price string")
     slug: str = Field(..., description="Product URL slug")
     image_url: Optional[str] = Field(default=None, description="Product main image URL")
+    stock: Optional[int] = Field(default=0, description="Real-time stock level for FOMO")
 
     model_config = ConfigDict(frozen=True)
 
