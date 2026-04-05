@@ -14,8 +14,11 @@ class GreetingHandler(BaseHandler):
         has_greeting = any(kw in msg for kw in keywords)
         
         # Elite V2.2: Intent Analytics - Determine if further specialists are needed
-        # We search for clues of price/buying interest to avoid Early Exit when user asks "Chào, giá bao nhiêu?"
-        buying_intent = any(kw in msg for kw in ["giá", "bao nhiêu", "nhiêu", "mua", "đặt", "ship", "lấy", "tư vấn"])
+        # We search for clues of price/buying interest or KNOWLEDGE queries to avoid Early Exit.
+        buying_intent = any(kw in msg for kw in [
+            "giá", "bao nhiêu", "nhiêu", "mua", "đặt", "ship", "lấy", "tư vấn",
+            "thành phần", "công dụng", "tác dụng", "liệu trình", "cách dùng", "hiệu quả", "an toàn", "sử dụng"
+        ])
         
         if is_first_msg or has_greeting:
             prefix = "Dạ Helen chào Anh/Chị! 🌸 "
@@ -29,8 +32,9 @@ class GreetingHandler(BaseHandler):
 
             ctx.replies.insert(0, prefix)
             
-            # 🚀 EARLY EXIT: If it's JUST a greeting (short message without buying clues), terminate here.
+            # 🚀 EARLY EXIT: If it's JUST a greeting (short message without buying clues or knowledge curiosity), terminate here.
             # This saves LLM costs for pure rapport building.
+            # We enforce strict False if there's any sign of deeper intent.
             if has_greeting and not buying_intent and len(msg) < 15:
                 # Add a soft closing if it's an early exit to not sound abrupt
                 ctx.replies.append("Anh/Chị cần em tư vấn về liệu trình hay hỗ trợ thông tin gì không ạ?")
