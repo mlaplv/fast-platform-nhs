@@ -5,10 +5,11 @@
   import { Star, ShieldCheck, MessageSquarePlus, X, MapPin, Phone, User, Send, CheckCircle2 } from 'lucide-svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { SHOP_CONFIG } from '$lib/constants/shop';
+  import type { Review } from '$lib/types';
 
   let { product } = $props();
   const shopStore = getShopStore();
-  const metadata = $derived(product?.metadata || {});
+  const metadata = $derived(product?.metadata);
   
   interface ReviewApiResponse {
     id: string | number;
@@ -23,16 +24,16 @@
   let isLoading = $state(true);
 
   const labels = $derived({
-    headline: metadata.reviews_headline || 'KHÁCH HÀNG NÓI GÌ?',
-    trust_score: metadata.reviews_trust_score || '4.9/5',
-    count_text: product?.orderCountText || metadata.reviews_count_text || '2,140+ LƯỢT MUA',
-    hud_feedback: metadata.reviews_hud_feedback || 'HỆ THỐNG // PHẢN HỒI THỰC TẾ',
-    label_verified: metadata.reviews_label_verified || 'ĐÃ XÁC THỰC',
-    label_store_verified: metadata.reviews_label_store_verified || 'Xác thực bởi Cửa hàng',
-    cta_write: metadata.reviews_cta_write || 'Viết đánh giá',
-    form_title: metadata.reviews_form_title || 'GỬI ĐÁNH GIÁ MỚI',
-    success_title: metadata.reviews_form_success_title || 'THÀNH CÔNG!',
-    success_msg: metadata.reviews_form_success_msg || 'Đánh giá của bạn đã được ghi nhận và đang chờ duyệt.'
+    headline: metadata?.reviews_headline || 'KHÁCH HÀNG NÓI GÌ?',
+    trust_score: metadata?.reviews_trust_score || '4.9/5',
+    count_text: product?.orderCountText || metadata?.reviews_count_text || '2,140+ LƯỢT MUA',
+    hud_feedback: metadata?.reviews_hud_feedback || 'HỆ THỐNG // PHẢN HỒI THỰC TẾ',
+    label_verified: metadata?.reviews_label_verified || 'ĐÃ XÁC THỰC',
+    label_store_verified: metadata?.reviews_label_store_verified || 'Xác thực bởi Cửa hàng',
+    cta_write: metadata?.reviews_cta_write || 'Viết đánh giá',
+    form_title: metadata?.reviews_form_title || 'GỬI ĐÁNH GIÁ MỚI',
+    success_title: metadata?.reviews_form_success_title || 'THÀNH CÔNG!',
+    success_msg: metadata?.reviews_form_success_msg || 'Đánh giá của bạn đã được ghi nhận và đang chờ duyệt.'
   });
 
   let showFormModal = $state(false);

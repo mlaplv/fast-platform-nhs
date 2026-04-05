@@ -25,6 +25,7 @@ class SupportConfig:
     prompt_template_path: str
     greeting_keywords: List[str]
     default_greeting_reply: str
+    app_url: str = "https://smartshop.test"
     hong_son_slug: str = "thuoc-dac-tri-hoi-nach-hong-son"
 
     @property
@@ -55,6 +56,7 @@ def _load_config() -> SupportConfig:
         ),
         greeting_keywords=os.getenv("SUPPORT_GREETING_KEYWORDS", "hi,hello,chào,alo,helen,ơi,ad ơi,shop ơi").split(","),
         default_greeting_reply=os.getenv("SUPPORT_DEFAULT_GREETING", "Dạ có Helen đây ạ! Quý khách cần em hỗ trợ gì cho đơn hàng của mình không ạ? 🌸"),
+        app_url=os.getenv("APP_URL", "https://smartshop.test").rstrip("/"),
         hong_son_slug=os.getenv("SUPPORT_HONG_SON_SLUG", "thuoc-dac-tri-hoi-nach-hong-son"),
     )
 

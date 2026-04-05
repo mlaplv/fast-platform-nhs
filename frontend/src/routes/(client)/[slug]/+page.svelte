@@ -39,15 +39,11 @@
   const clientUi = getClientUi();
   const useMobileLayout = $derived(clientUi?.isHydrated ? clientUi.isMobile : isMobile);
 
-  // Quantum Sync: Init store immediately for SSR stability
-  if (product?.id) {
-     shopStore.init(product);
-  }
-
+  // 🚀 QUANTUM SYNC (Elite V2.2 Protocol)
+  // Inline init ensures SSR stability; $effect.pre handles client-side hydration & navigation
+  if (product?.id) shopStore.init(product);
   $effect.pre(() => {
-    if (product?.id) {
-       shopStore.init(product);
-    }
+    if (product?.id) shopStore.init(product);
   });
 
   // Removed duplicate getClientUi call

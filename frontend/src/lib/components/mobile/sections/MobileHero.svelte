@@ -4,6 +4,7 @@
   import { resolveMediaUrl } from '$lib/state/utils';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import type { ProductVariant } from '$lib/types';
+  import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
 
   let { product } = $props();
   const shopStore = getShopStore();
@@ -12,39 +13,24 @@
   const metadata = $derived(product?.metadata || {});
   const variantOptions = $derived(product?.tierVariations?.[0]?.options || []);
 
-  // Elite V2.2: Deterministic FOMO (No more Math.random() per Rule R00)
-  function getSeedValue(min: number, max: number, offset = 0) {
-    const seed = product?.slug || 'default';
-    let hash = offset;
-    for (let i = 0; i < seed.length; i++) {
-      hash = seed.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return min + (Math.abs(hash) % (max - min + 1));
-  }
-
-  let viewers = $state(getSeedValue(134, 256, 1));
-  let stockLeft = $state(getSeedValue(2, 7, 2));
+  const viewers = $derived(fomoStore.viewers);
+  const stockLeft = $derived(fomoStore.stockLeft);
+  const totalSales = $derived(fomoStore.totalSales);
+  
   let timerSeconds = $state(2 * 3600 + 45 * 60 + 12); // Flash sale count
-  let totalSales = $state(getSeedValue(12000, 17000, 3));
   const formattedSales = $derived((totalSales / 1000).toFixed(1) + 'k');
 
   $effect(() => {
-    const viewerInterval = setInterval(() => {
-      // Subtle pulse within deterministic range
-      viewers = getSeedValue(134, 256, Math.floor(Date.now() / 10000));
-    }, 10000);
-
     const countdown = setInterval(() => {
       if (timerSeconds > 0) timerSeconds--;
     }, 1000);
 
     return () => {
-      clearInterval(viewerInterval);
       clearInterval(countdown);
     };
   });
 
-  const formattedTime = $derived.by(() => {
+  const formattedTime = $derived.by((): string => {
     const h = Math.floor(timerSeconds / 3600).toString().padStart(2, '0');
     const m = Math.floor((timerSeconds % 3600) / 60).toString().padStart(2, '0');
     const s = (timerSeconds % 60).toString().padStart(2, '0');
@@ -159,7 +145,7 @@
 
             <!-- Description -->
             <p class="text-[12px] text-white/90 line-clamp-2 leading-relaxed italic font-medium max-w-[90%] pr-14 drop-shadow-sm">
-               {typeof product?.shortDescription === 'string' ? product.shortDescription.replace(/CHẤM DỨT/g, opt.toUpperCase()) : 'Phác đồ điều trị chuyên biệt cho tình trạng của bạn.'}
+               {product?.shortDescription?.replace(/CHẤM DỨT/g, opt.toUpperCase()) || 'Phác đồ điều trị chuyên biệt cho tình trạng của bạn.'}
             </p>
             
             <!-- Metrics / USP -->

@@ -80,7 +80,7 @@
 </script>
 
 <div
-  class="campaign-item group flex flex-col md:flex-row items-stretch md:items-center gap-6 p-5 bg-[#0a0a0a] border {isSelected ? 'border-neon-cyan/40 shadow-[0_0_20px_rgba(0,255,255,0.05)]' : 'border-white/5'} hover:border-white/10 rounded-2xl transition-all duration-300 relative overflow-hidden"
+  class="campaign-item group flex flex-col md:flex-row items-stretch md:items-center gap-6 p-5 bg-[#0a0a0a] border {isSelected ? 'border-neon-cyan/40 shadow-[0_0_20px_rgba(0,255,255,0.05)]' : 'border-white/5'} hover:border-white/10 rounded-2xl transition-all duration-300 relative"
 >
   <!-- Multi-select Checkbox (Phase 5) -->
   <div class="flex items-center pl-1 pr-1">

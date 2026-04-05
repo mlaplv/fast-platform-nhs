@@ -21,11 +21,11 @@
     isScrollingDown = false
   }: Props = $props();
 
-  const metadata = $derived(product?.metadata || {});
+  const metadata = $derived(product?.metadata);
 
   const labels = $derived({
-    disk_image: (metadata.mobile_disk_image as string) || (metadata.mobile_shop_avatar as string) || "/favicon.svg",
-    label_purchase: (metadata.mobile_label_purchase as string) || "Mở giỏ hàng"
+    disk_image: metadata?.mobile_disk_image || metadata?.mobile_shop_avatar || "/favicon.svg",
+    label_purchase: metadata?.mobile_label_purchase || "Mở giỏ hàng"
   });
 
   const scrollToSection = (id: string) => {

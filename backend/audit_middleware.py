@@ -1,20 +1,17 @@
 import time
 import json
 import logging
-from litestar.middleware import ASGIMiddleware
-from litestar.types import ASGIApp, Receive, Scope, Send
+from litestar.types import ASGIApp, Receive, Scope, Send, Message
 
 logger = logging.getLogger("audit-trail")
 
-class AuditMiddleware(ASGIMiddleware):
-    """
-    Elite V3: Zero-DB Forensic Audit Trail.
-    Ghi nhận log bất đồng bộ ra stdout ở định dạng JSON cho các Write Action.
-    Tối đa tốc độ, 0 memory leak, 0 DB bloat.
-    """
-    async def handle(self, scope: Scope, receive: Receive, send: Send, next_app: ASGIApp) -> None:
+class AuditMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] not in ["http", "websocket"]:
-            await next_app(scope, receive, send)
+            await self.app(scope, receive, send)
             return
 
         method = scope.get("method", "")
@@ -23,14 +20,14 @@ class AuditMiddleware(ASGIMiddleware):
             start_time = time.perf_counter()
             status_code = 500  # Default fallback
 
-            async def send_wrapper(message: "Send") -> None:
+            async def send_wrapper(message: Message) -> None:
                 nonlocal status_code
                 if message["type"] == "http.response.start":
-                    status_code = message.get("status", 500)
+                    status_code = int(message.get("status", 500))
                 await send(message)
 
             try:
-                await next_app(scope, receive, send_wrapper)
+                await self.app(scope, receive, send_wrapper)
             finally:
                 duration_ms = float((time.perf_counter() - start_time) * 1000.0)
                 
@@ -59,5 +56,5 @@ class AuditMiddleware(ASGIMiddleware):
                 }
                 logger.info(json.dumps(audit_event))
         else:
-            await next_app(scope, receive, send)
+            await self.app(scope, receive, send)
 

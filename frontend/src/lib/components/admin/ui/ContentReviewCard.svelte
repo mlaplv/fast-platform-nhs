@@ -74,7 +74,17 @@
   let isOverlaySticky = $state(false);
   let stickyTimer: ReturnType<typeof setTimeout> | null = null;
 
-  $effect(() => { if (status !== "PROCESSING") untrack(() => { campaign.isLoading = false; campaign.isStepProcessing = false; }); });
+  $effect(() => { 
+    if (status !== "PROCESSING") {
+      untrack(() => { 
+        campaign.isLoading = false; 
+        campaign.isStepProcessing = false; 
+        // CNS V86.5: Clear progress message when done to prevent stale flashes
+        if (progress_msg) progress_msg = "";
+      }); 
+    }
+  });
+
   // CNS V82.5: Auto-jump to new step when it arrives from pulse, but allow looking back
   $effect(() => { 
     if (step > maxStepSeen) {
@@ -141,8 +151,6 @@
     
     return true;
   });
-
-
 
   $effect(() => { if (viewingStep >= 6 && !finalHtml && draft_content) untrack(() => { finalHtml = processContentImages(draft_content, xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets); }); });
   $effect(() => {

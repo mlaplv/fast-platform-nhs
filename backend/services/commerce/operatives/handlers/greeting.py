@@ -7,28 +7,33 @@ class GreetingHandler(BaseHandler):
     """
 
     async def handle(self, ctx: SupportContext) -> bool:
-        # 1. Skip if conversation is too deep or no greeting detected in current message
-        # UNLESS it's the very first message of the session.
-        
+        """ZONE 1: Standard Greeting with Early Exit Strategy."""
+        msg = ctx.request.message.lower().strip()
         is_first_msg = not ctx.history_text
-        has_greeting = any(kw in ctx.request.message.lower() for kw in ["chào", "hi", "hello", "dạ", "alo"])
+        keywords = ["chào", "hi", "hello", "dạ", "alo", "helen"]
+        has_greeting = any(kw in msg for kw in keywords)
+        
+        # Elite V2.2: Intent Analytics - Determine if further specialists are needed
+        # We search for clues of price/buying interest to avoid Early Exit when user asks "Chào, giá bao nhiêu?"
+        buying_intent = any(kw in msg for kw in ["giá", "bao nhiêu", "nhiêu", "mua", "đặt", "ship", "lấy", "tư vấn"])
         
         if is_first_msg or has_greeting:
-            # Elite V2.2: Personality-Driven Greeting Based on Customer DNA
             prefix = "Dạ Helen chào Anh/Chị! 🌸 "
-            
             if ctx.dna.segment == "VIP":
-                prefix = f"Dạ Helen thân chào khách quý! 🌟 Em rất vui được gặp lại mình ạ. "
+                prefix = f"Dạ Helen thân chào khách quý! 🌟 Rất vui được gặp lại mình ạ. "
             elif ctx.dna.segment == "REGULAR":
-                prefix = f"Dạ Helen chào Anh/Chị, rất vui được gặp lại mình! "
-            elif ctx.dna.segment == "CHURN":
-                prefix = f"Dạ Helen chào Anh/Chị ạ! Em rất nhớ mình, hôm nay em có ưu đãi dành riêng cho mình đây... 🎁 "
+                prefix = f"Dạ Helen chào Anh/Chị, em rất vui được gặp lại mình! "
             
-            # Special case for products
-            if ctx.request.product_slug == "hong-son":
-                prefix += "Cảm ơn Anh/Chị đã quan tâm đến liệu trình Đặc trị Hôi nách Hồng Sơn của bên em. "
+            if ctx.p_info:
+                prefix += f"Em rất hân hạnh được hỗ trợ mình về liệu trình **{ctx.p_info.name}** bên em ạ. "
 
             ctx.replies.insert(0, prefix)
             
-        # Greeting never 'consumes' the intent, to allow Order/Consultant to run.
-        return False
+            # 🚀 EARLY EXIT: If it's JUST a greeting (short message without buying clues), terminate here.
+            # This saves LLM costs for pure rapport building.
+            if has_greeting and not buying_intent and len(msg) < 15:
+                # Add a soft closing if it's an early exit to not sound abrupt
+                ctx.replies.append("Anh/Chị cần em tư vấn về liệu trình hay hỗ trợ thông tin gì không ạ?")
+                return True # Terminate pipeline correctly
+            
+        return False # Continue to Order/Consultant for deep logic

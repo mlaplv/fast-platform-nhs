@@ -46,5 +46,5 @@ def setup_logging():
     
     logger.info("🎨 [System] Elite Logging System Initialized.")
 
-def get_logger(name: str):
+def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)

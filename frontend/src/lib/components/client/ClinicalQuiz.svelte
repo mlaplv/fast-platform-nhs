@@ -13,12 +13,20 @@
   const metadata = $derived(product?.metadata || {});
   const questions = $derived(metadata.quiz_questions || []);
 
+  const QUIZ_FALLBACKS = {
+    result_headline: 'LIỆU TRÌNH <br/><span class="text-blue-500/80">OPTIMAL.</span>',
+    result_subheadline: 'Hệ thống AI đề xuất: Bạn cần liệu trình <span class="text-blue-400 font-black">{quantity} lọ</span> để đạt hiệu quả tối ưu.',
+    result_cta: 'KÍCH HOẠT LIỆU TRÌNH',
+    restart_label: 'Thiết lập lại',
+    loading_label: 'Đang xử lý dữ liệu...'
+  };
+
   const labels = $derived({
-    result_headline: (metadata.quiz_result_headline as string) || 'LIỆU TRÌNH <br/><span class="text-blue-500/80">OPTIMAL.</span>',
-    result_subheadline: (metadata.quiz_result_subheadline as string) || 'Hệ thống AI đề xuất: Bạn cần liệu trình <span class="text-blue-400 font-black">{quantity} lọ</span> để đạt hiệu quả tối ưu.',
-    result_cta: (metadata.quiz_result_cta as string) || 'KÍCH HOẠT LIỆU TRÌNH',
-    restart_label: (metadata.quiz_restart_label as string) || 'Thiết lập lại',
-    loading_label: (metadata.quiz_loading_label as string) || 'Đang xử lý dữ liệu...'
+    result_headline: metadata.quiz_result_headline || QUIZ_FALLBACKS.result_headline,
+    result_subheadline: metadata.quiz_result_subheadline || QUIZ_FALLBACKS.result_subheadline,
+    result_cta: metadata.quiz_result_cta || QUIZ_FALLBACKS.result_cta,
+    restart_label: metadata.quiz_restart_label || QUIZ_FALLBACKS.restart_label,
+    loading_label: metadata.quiz_loading_label || QUIZ_FALLBACKS.loading_label
   });
 
   let currentStep = $state(0);

@@ -8,11 +8,16 @@ class GuardrailHandler(BaseHandler):
     Handles topics like 'hôi miệng', 'sinh lý', etc.
     """
     
-    # Elite V2.2: Hardcoded blocking for high-sensitivity topics
+    # Elite V2.2: Hardcoded blocking for high-sensitivity/out-of-scope topics
     BLOCKED_KEYWORDS = [
+        # Medical / Specialized topics (Out of scope)
         "hôi miệng", "sâu răng", "trắng răng", "viêm lợi", "nhiệt miệng",
         "bao quy đầu", "sinh lý", "phụ khoa", "nam khoa", "yếu sinh lý",
-        "hôi dái", "nấm ngứa vùng kín", "trĩ", "nội tiết"
+        "hôi dái", "nấm ngứa vùng kín", "trĩ", "nội tiết", "phẫu thuật",
+        # Competitors (Strategic blocking)
+        "perspirex", "etiaxil", "Certain Dri", "scion", "aquaselin",
+        # Policy & Ethics
+        "phản động", "biểu tình", "chính trị", "đảng cộng sản", "tôn giáo"
     ]
     
     async def handle(self, ctx: SupportContext) -> bool:

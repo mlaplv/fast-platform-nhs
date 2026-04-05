@@ -2,8 +2,12 @@ import asyncio
 import logging
 import traceback
 import sys
+import warnings
 
 # [CNS V8.5 NEURAL TRAP] - Elite Python 3.14 Compatibility Layer
+# Elite V2.2: Mandatory Pydantic V1 Warning filter
+warnings.filterwarnings("ignore", message="Core Pydantic V1 functionality")
+
 # This hook captures exactly which library or module calls get_event_loop()
 # during the boot sequence without a running loop.
 

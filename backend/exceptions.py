@@ -34,13 +34,14 @@ def global_exception_handler(request: Request, exc: Exception) -> Response:
                 "trace_id": trace_id,
             },
         )
-
-        # R82.35: Graceful Disconnection (Neural Hygiene) — Treat as Info, not Warning.
-        # This occurs normally when a browser closes or refresh happens during a response.
+    
+    # R82.35: Graceful Disconnection (Neural Hygiene)
+    # This occurs normally when a browser closes or refresh happens during a response.
+    if isinstance(exc, RuntimeError) and ("content_not_returned" in str(exc).lower() or "disconnected" in str(exc).lower()):
         logger.info(f"[TRACE:{trace_id}] Client disconnected prematurely (Browser side session end).")
         return Response(
             media_type=MediaType.JSON,
-            status_code=499, # Client Closed Request (standardized code)
+            status_code=499, # Client Closed Request
             content={"detail": "Client closed connection", "trace_id": trace_id},
         )
 

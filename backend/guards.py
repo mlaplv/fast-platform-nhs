@@ -3,6 +3,10 @@ from litestar.connection import ASGIConnection
 from litestar.handlers.base import BaseRouteHandler
 from litestar.exceptions import NotAuthorizedException, PermissionDeniedException
 from backend.constants.permissions import PermissionEnum
+from backend.database import async_session_maker
+from backend.database.models import User
+from sqlalchemy import select
+from backend.services.policy_evaluator import PolicyEvaluator, PolicyContext
 
 def PermissionGuard(permissions: Union[PermissionEnum, str, List[Union[PermissionEnum, str]]]) -> Callable:
     """
@@ -32,9 +36,6 @@ def PermissionGuard(permissions: Union[PermissionEnum, str, List[Union[Permissio
             if not token_stamp or token_stamp == "MISSING" or not user_id:
                 raise NotAuthorizedException("Legacy token detected. Please login again to obtain a V3 Security Stamp.")
 
-            from backend.database import async_session_maker
-            from backend.database.models import User
-            from sqlalchemy import select
             async with async_session_maker() as session:
                 stmt = select(User.security_stamp).where(User.id == user_id)
                 result = await session.execute(stmt)
@@ -42,8 +43,6 @@ def PermissionGuard(permissions: Union[PermissionEnum, str, List[Union[Permissio
                 if not db_stamp or db_stamp != token_stamp:
                     raise NotAuthorizedException("Security stamp revoked or invalid. Please login again.")
 
-        from backend.services.policy_evaluator import PolicyEvaluator, PolicyContext
-        
         # Build Context từ kết nối ASGI
         headers = dict(connection.headers)
         domain = headers.get("host", headers.get("x-forwarded-host", ""))

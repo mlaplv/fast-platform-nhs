@@ -37,14 +37,15 @@
     isSubmitting = true;
     try {
         // Try to fetch order with phone verification!
-        const res = await apiClient.get<any>(`/api/v1/client/orders/${orderId.trim()}`, { params: { phone: phone.trim() } });
+        const res = await apiClient.get<import('$lib/types').OrderDetail>(`/api/v1/client/orders/${orderId.trim()}`, { params: { phone: phone.trim() } });
         if (res) {
             showToast("Đã tìm thấy đơn hàng! Đang chuyển hướng...");
             const cleanPhone = phone.trim();
             setTimeout(() => goto(`/checkout/success/${orderId.trim()}?phone=${cleanPhone}&lookup=1`), 1000);
         }
-    } catch (e: any) {
-        showToast(e.message || "Không tìm thấy đơn hàng hoặc thông tin không khớp", "error");
+    } catch (e: unknown) {
+        const err = e as { message?: string };
+        showToast(err.message || "Không tìm thấy đơn hàng hoặc thông tin không khớp", "error");
     } finally {
         isSubmitting = false;
     }
@@ -52,6 +53,9 @@
 </script>
 
 <svelte:head>
+  <title>Tra cứu đơn hàng | SmartShop Elite</title>
+  <meta name="description" content="Theo dõi trạng thái đơn hàng của bạn tại SmartShop Elite Protocol V2.2" />
+  <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
 {#if data.isMobile}

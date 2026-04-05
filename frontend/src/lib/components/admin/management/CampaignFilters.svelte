@@ -5,6 +5,7 @@
   import PlusCircle from "lucide-svelte/icons/plus-circle";
   import BarChart3 from "lucide-svelte/icons/bar-chart-3";
   import Sparkles from "lucide-svelte/icons/sparkles";
+  import { CAMPAIGN_STATUS_MAP, CAMPAIGN_CATEGORY_MAP } from "$lib/constants/campaign";
 
   let {
     searchInput = $bindable(),
@@ -37,16 +38,16 @@
 
   const statusFilters = [
     { id: "all", label: "TOTAL_SCOPE" },
-    { id: "PROCESSING", label: "PROCESSING" },
-    { id: "WAITING_FOR_REVIEW", label: "REVIEW_GATE" },
-    { id: "COMPLETED", label: "STABILIZED" },
-    { id: "REJECTED", label: "REJECTED" }
+    ...Object.entries(CAMPAIGN_STATUS_MAP).map(([id, val]) => ({
+      id,
+      label: val.label
+    }))
   ];
 
   const categoryFilters = [
     { id: "all", label: "ALL_GENRES", icon: BarChart3 },
-    { id: "CREATIVE_CONTENT", label: "CREATIVE", icon: Sparkles },
-    { id: "AD_MANAGEMENT", label: "AD_OPS", icon: BarChart3 }
+    { id: "CREATIVE_CONTENT", label: CAMPAIGN_CATEGORY_MAP.CREATIVE_CONTENT.label, icon: Sparkles },
+    { id: "AD_MANAGEMENT", label: CAMPAIGN_CATEGORY_MAP.AD_MANAGEMENT.label, icon: BarChart3 }
   ];
 
   const stepFilters = [

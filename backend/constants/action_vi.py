@@ -1,5 +1,5 @@
 # Vietnamese labels for Intent Actions
-ACTION_VI = {
+ACTION_VI: dict[str, str] = {
     "READ":    "Truy xuất Dữ liệu",
     "COUNT":   "Truy xuất Số liệu",
     "MUTATE":  "Chỉnh sửa Hệ thống",

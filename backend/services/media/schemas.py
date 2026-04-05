@@ -170,6 +170,16 @@ class MediaStatsResult(BaseModel):
     breakdown: List[MimeTypeBreakdown]
     storage_provider: str
 
+class AIVisionStatusRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    enabled: bool
+
+class MediaLinkToPostRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    asset_ids: List[str]
+    post_id: str
+    post_type: str
+
 class CommandAction(TypedDict):
     """Phase 12: Unified Command Dispatch Schema"""
     verb: str  # 'open', 'create', 'edit', 'delete', 'select'
@@ -177,3 +187,4 @@ class CommandAction(TypedDict):
     args: Optional[str]
     metadata: Dict[str, object]
     consumed: Optional[bool]
+    

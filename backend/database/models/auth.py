@@ -63,8 +63,8 @@ class VoiceProfile(Base, AuditMixin):
     sleep_words: Mapped[list[str]] = mapped_column(JSON, default=list)
     greeting_template: Mapped[str] = mapped_column(String, default=DEFAULT_GREETING)
     farewell_template: Mapped[str] = mapped_column(String, default=DEFAULT_FAREWELL)
-    capabilities: Mapped[dict] = mapped_column(JSON, default=dict)
-    chat_settings: Mapped[dict] = mapped_column(JSON, default=lambda: {
+    capabilities: Mapped[dict[str, object]] = mapped_column(JSON, default=dict)
+    chat_settings: Mapped[dict[str, object]] = mapped_column(JSON, default=lambda: {
         "selective_persistence": True,
         "save_ai_responses": False,
         "auto_purge_days": 30,

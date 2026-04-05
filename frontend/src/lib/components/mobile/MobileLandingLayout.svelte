@@ -22,6 +22,8 @@
 
   import './mobile.css';
 
+  import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
+
   const shopStore = getShopStore();
   const product = $derived(shopStore.product);
 
@@ -40,9 +42,9 @@
     !!(product?.metadata?.video_url || product?.metadata?.hero_video_url || product?.metadata?.hero_video)
   );
 
-  const isTikTokVideo = $derived.by(() => {
-    const url = (product?.metadata?.video_url || product?.metadata?.hero_video_url || product?.metadata?.hero_video || '') as string;
-    return url.includes('tiktok.com');
+  const isTikTokVideo = $derived.by((): boolean => {
+    const url = product?.metadata?.video_url || product?.metadata?.hero_video_url || product?.metadata?.hero_video || '';
+    return typeof url === 'string' && url.includes('tiktok.com');
   });
 
   const isTikTokActive = $derived(activeSectionIndex === 0 && isTikTokVideo);
@@ -66,6 +68,8 @@
   }
 
   onMount(() => {
+    if (product?.slug) fomoStore.init(product.slug);
+    
     const sections = document.querySelectorAll<HTMLElement>('.mobile-snap-section');
     if (sections.length === 0) return;
 

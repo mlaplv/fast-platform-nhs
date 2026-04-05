@@ -7,7 +7,7 @@ import logging
 from backend.database.models import User
 from backend.guards import PermissionGuard
 from backend.constants.permissions import PermissionEnum
-from backend.schemas.user import UserResponse, UserListResponse, RoleResponse, PermissionResponse
+from backend.schemas.user import UserResponse, UserListResponse, RoleResponse, PermissionResponse, UserUpdatePayload
 from backend.schemas.common import SuccessResponse
 from backend.services.user_service import user_service
 
@@ -45,9 +45,9 @@ class UserController(Controller):
         return res
 
     @patch("/{user_id:str}")
-    async def update_user(self, db_session: "AsyncSession", user_id: str, data: Dict[str, object]) -> SuccessResponse:
-        """Update a user's status or name."""
-        res = await user_service.update_user(db_session, user_id, data)
+    async def update_user(self, db_session: "AsyncSession", user_id: str, data: UserUpdatePayload) -> SuccessResponse:
+        """Update a user's status or name (Elite V2.2: Typed)."""
+        res = await user_service.update_user(db_session, user_id, data.model_dump(exclude_unset=True))
         await db_session.commit()
         return res
 

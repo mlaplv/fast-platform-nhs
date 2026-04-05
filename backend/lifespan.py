@@ -47,6 +47,8 @@ async def lifespan(app: Litestar):
     heartbeat_task = None
     purge_task = None
     media_cleanup_task = None
+    resume_task = None
+    autopilot_task = None
 
     try:
         # 2. Pre-load Data into Hot Cache (R76: Scalar Projection Optimization)
@@ -87,8 +89,8 @@ async def lifespan(app: Litestar):
         heartbeat_task = _aio.create_task(_heartbeat_loop())
         purge_task = _aio.create_task(_auto_purge_loop())
         media_cleanup_task = _aio.create_task(_media_cleanup_loop())
-        _aio.create_task(content_factory.resume_all())
-        _aio.create_task(_autopilot_scheduler_loop()) # CNS V82.1: Neural Autopilot Engine
+        resume_task = _aio.create_task(content_factory.resume_all())
+        autopilot_task = _aio.create_task(_autopilot_scheduler_loop()) # CNS V82.1: Neural Autopilot Engine
 
         yield
     finally:
@@ -96,6 +98,8 @@ async def lifespan(app: Litestar):
         if heartbeat_task: heartbeat_task.cancel()
         if purge_task: purge_task.cancel()
         if media_cleanup_task: media_cleanup_task.cancel()
+        if resume_task: resume_task.cancel()
+        if autopilot_task: autopilot_task.cancel()
         await event_bus.stop()
         await SharedHttpClient.close()
         logger.info("[Trinity Core] Shutdown complete.")

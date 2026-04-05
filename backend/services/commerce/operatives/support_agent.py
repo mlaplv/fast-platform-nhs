@@ -166,21 +166,28 @@ class SupportAgentOperative(BaseAgentOperative):
             return "\n[LỊCH SỬ GẦN ĐÂY]\n" + "\n".join(h_parts) + "\n"
         except: return ""
 
-    async def _fetch_neural_dna(self, db: AsyncSession, session_id: str) -> NeuralDNA:
-        """Hydrate Neural DNA from memory and DB context."""
+    async def _fetch_neural_dna(self, db: AsyncSession, session_id: str, lead_phone: Optional[str] = None) -> NeuralDNA:
+        """Hydrate Neural DNA from memory or Order History (Elite V2.2: Lead-driven)."""
         try:
             mem = await xohi_memory.get_user_context(session_id)
             if mem and "dna" in mem:
                 return NeuralDNA.model_validate(mem["dna"])
             
-            stmt = select(Order).where(Order.session_id == session_id).order_by(desc(Order.created_at))
-            orders = (await db.execute(stmt)).scalars().all()
-            
+            # Elite V2.2: If we have a phone, we can look up order history to determine seniority.
+            total_spent = 0.0
+            order_count = 0
+            if lead_phone:
+                from backend.database.models.commerce import Order
+                stmt = select(Order).where(and_(Order.customer_phone == lead_phone, Order.status == "COMPLETED"))
+                orders = (await db.execute(stmt)).scalars().all()
+                order_count = len(orders)
+                total_spent = sum(float(o.total_amount or 0) for o in orders)
+
             dna = NeuralDNA(
-                segment="VIP" if len(orders) >= 5 else ("NEW" if not orders else "REGULAR"),
-                vibe="WARM" if len(orders) >= 3 else "PROFESSIONAL",
-                purchase_count=len(orders),
-                total_spent=sum(float(o.total_amount or 0) for o in orders)
+                segment="VIP" if order_count >= 3 else ("REGULAR" if order_count >= 1 else "NEW"),
+                vibe="WARM" if order_count >= 1 else "PROFESSIONAL",
+                purchase_count=order_count,
+                total_spent=total_spent
             )
             await xohi_memory.set_user_context(session_id, {"dna": dna.model_dump()})
             return dna
@@ -254,7 +261,8 @@ class SupportAgentOperative(BaseAgentOperative):
             session_id=session_id, 
             product_info=p_info, 
             status="DONE", 
-            ui_metadata=ctx.ui_metadata
+            ui_metadata=ctx.ui_metadata,
+            processed_order_id=ctx.processed_order_id
         )
 
     async def chat(self, request: SupportRequest, db: AsyncSession) -> SupportResponse:

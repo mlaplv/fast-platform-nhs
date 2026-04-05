@@ -1,17 +1,23 @@
 import os
 import jwt
-from litestar.middleware import ASGIMiddleware
-from litestar.datastructures import State
 from litestar.types import ASGIApp, Receive, Scope, Send
 from litestar.exceptions import NotAuthorizedException
 
+from urllib.parse import parse_qs
+import logging
+from backend.database import current_tenant_id
+
 SECRET_KEY = os.environ["ENCRYPTION_SALT"]  # MUST be set — crash on start if missing (CTO Audit V2 C2)
 ALGORITHM = "HS256"
+logger = logging.getLogger("api-gateway.auth")
 
-class AuthMiddleware(ASGIMiddleware):
-    async def handle(self, scope: Scope, receive: Receive, send: Send, next_app: ASGIApp) -> None:
+class AuthMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] not in ["http", "websocket"]:
-            await next_app(scope, receive, send)
+            await self.app(scope, receive, send)
             return
 
         headers = {k.decode("utf-8").lower(): v.decode("utf-8") for k, v in scope.get("headers", [])}
@@ -20,7 +26,6 @@ class AuthMiddleware(ASGIMiddleware):
         tenant_id = headers.get("x-tenant")
         
         # WebSocket query param support (V8.2)
-        from urllib.parse import parse_qs
         query_params = parse_qs(scope.get("query_string", b"").decode("utf-8"))
         if not tenant_id and "tenant" in query_params:
             tenant_id = query_params["tenant"][0]
@@ -37,7 +42,6 @@ class AuthMiddleware(ASGIMiddleware):
         if not tenant_id or tenant_id == "localhost":
             tenant_id = "default"
 
-        from backend.database import current_tenant_id
         token_ctx = current_tenant_id.set(tenant_id)
 
         # 2. Auth Logic
@@ -63,7 +67,8 @@ class AuthMiddleware(ASGIMiddleware):
                 jwt_tenant = payload.get("tenant_id")
                 if jwt_tenant:
                     current_tenant_id.set(jwt_tenant)
-            except Exception:
+            except Exception as e:
+                logger.warning(f"🔐 [Auth] JWT Decode failed: {e}")
                 pass
         
         async def send_wrapper(message: "Send") -> None:
@@ -95,7 +100,7 @@ class AuthMiddleware(ASGIMiddleware):
             await send(message)
 
         try:
-            await next_app(scope, receive, send_wrapper)
+            await self.app(scope, receive, send_wrapper)
         finally:
             # Clean up context to avoid bleed across requests
             current_tenant_id.reset(token_ctx)

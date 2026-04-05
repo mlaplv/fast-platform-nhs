@@ -7,6 +7,10 @@ from backend.database.models import (
     ContentCampaign, MediaRegistry, MediaUsage, Appointment, ContentScout,
     SupportKnowledge
 )
+from typing import TypedDict, List, Optional
+class UserDict(TypedDict):
+    id: str
+    roles: List[str]
 
 class UserRepository(SQLAlchemyAsyncRepository[User]):
     model_type = User
@@ -68,6 +72,18 @@ class MediaUsageRepository(SQLAlchemyAsyncRepository[MediaUsage]):
 class AppointmentRepository(SQLAlchemyAsyncRepository[Appointment]):
     model_type = Appointment
 
+    async def list_with_count(self, limit: int = 100, offset: int = 0) -> tuple[list[Appointment], int]:
+        """[R102] Core implementation for listing appointments with total count."""
+        from sqlalchemy import select, func
+        stmt = select(self.model_type).order_by(self.model_type.start_time).limit(limit).offset(offset)
+        result = await self.session.execute(stmt)
+        items = list(result.scalars().all())
+
+        count_stmt = select(func.count()).select_from(self.model_type)
+        count_result = await self.session.execute(count_stmt)
+        total = count_result.scalar() or 0
+        return items, total
+
 from backend.database.models.system import SystemReview
 
 class ContentScoutRepository(SQLAlchemyAsyncRepository[ContentScout]):
@@ -102,7 +118,7 @@ from litestar import Request
 from sqlalchemy import select
 
 async def provide_article_repo(db_session: AsyncSession, request: Request) -> ArticleRepository:
-    user = getattr(request.state, "user", None)
+    user: Optional[UserDict] = getattr(request.state, "user", None)
     
     # [Elite V3 ABAC] Global Row-Level Security
     # Nếu không phải SUPER_ADMIN, chỉ thấy bài của mình
@@ -122,7 +138,7 @@ async def provide_telemetry_repo(db_session: AsyncSession) -> AgentTelemetryLogR
     return AgentTelemetryLogRepository(session=db_session)
 
 async def provide_campaign_repo(db_session: AsyncSession, request: Request) -> ContentCampaignRepository:
-    user = getattr(request.state, "user", None)
+    user: Optional[UserDict] = getattr(request.state, "user", None)
     
     if user and "SUPER_ADMIN" not in user.get("roles", []):
         stmt = select(ContentCampaign).where(ContentCampaign.user_id == user.get("id"))

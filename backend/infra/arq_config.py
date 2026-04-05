@@ -36,13 +36,17 @@ def get_redis_settings() -> RedisSettings:
         logger = logging.getLogger("arq-worker")
         logger.info(f"[Arq Config] Targeting Redis node: {host}:{port} (db={database})")
 
+        from backend.constants.infra import ARQ_CONN_TIMEOUT
         return RedisSettings(
             host=host,
             port=port,
             password=password,
             database=database,
-            conn_timeout=10,
+            conn_timeout=ARQ_CONN_TIMEOUT,
         )
     except Exception as e:
-        # Emergency Fallback to Docker internal standard
+        import logging
+        logger = logging.getLogger("arq-worker")
+        # R1.1: Fix silent failure (Elite V2.2)
+        logger.error(f"[Arq Config] CRITICAL: Failed to parse Redis URL '{redis_url}': {e}. Falling back to default.")
         return RedisSettings(host="redis", port=6379)

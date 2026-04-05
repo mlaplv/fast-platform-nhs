@@ -8,7 +8,7 @@
   const shopStore = getShopStore();
   let { active = $bindable(), product }: { active: boolean, product: Product } = $props();
 
-  const metadata = $derived(product?.metadata || {});
+  const metadata = $derived(product?.metadata);
   const variants = $derived(product?.variants || []);
   const appliedDeal = $derived(shopStore.appliedDeal);
   const nextDeal = $derived(shopStore.nextDeal);
@@ -21,12 +21,12 @@
   let validationError = $state<string | null>(null);
 
   const labels = $derived({
-    title_select: (metadata.mobile_bottom_sheet_title as string) || "Lựa chọn liệu trình",
+    title_select: metadata?.mobile_bottom_sheet_title || "Lựa chọn liệu trình",
     title_shipping: "Thông tin nhận hàng",
     cta_next: "TIẾP TỤC",
-    cta_submit: (metadata.mobile_bottom_sheet_cta as string) || "XÁC NHẬN LIỆU TRÌNH",
-    free_shipping: (metadata.mobile_free_shipping_label as string) || "Lightning Free Shipping",
-    variant_label: (metadata.mobile_variant_selection_label as string) || "Phân loại đang chọn",
+    cta_submit: metadata?.mobile_bottom_sheet_cta || "XÁC NHẬN LIỆU TRÌNH",
+    free_shipping: metadata?.mobile_free_shipping_label || "Lightning Free Shipping",
+    variant_label: metadata?.mobile_variant_selection_label || "Phân loại đang chọn",
   });
 
   // Drag-to-Close Logic
@@ -85,8 +85,8 @@
   $effect(() => {
     const data = shopStore.customerData;
     if (data?.isRecurring) {
-      if (data.nameMasked) name = data.nameMasked;
-      if (data.addressMasked) address = data.addressMasked;
+      if (data.nameMasked && !name) name = data.nameMasked;
+      if (data.addressMasked && !address) address = data.addressMasked;
     }
   });
 
@@ -104,15 +104,12 @@
     }
   }
 
-  // Clear error reactively when inputs change (Elite UX)
-  $effect(() => {
+  function handleInputChange() {
     if (validationError) {
-      // Manual trigger for reactivity on $state
-      phone; name; address; 
       const err = validate();
       if (!err) validationError = null;
     }
-  });
+  }
 
   function getVariantTitle(variant: ProductVariant): string {
     if (!product.tierVariations?.length || !variant.tierIndex?.length) return variant.sku || 'Combo';
@@ -289,7 +286,7 @@
                 <input 
                   type="tel"
                   bind:value={phone}
-                  oninput={handlePhoneInput}
+                  oninput={() => { handlePhoneInput(); handleInputChange(); }}
                   placeholder="SỐ ĐIỆN THOẠI *"
                   class="w-full pl-12 pr-6 py-5 bg-white/[0.03] border-2 {validationError?.includes('thoại') ? 'border-red-500/30' : 'border-white/5 focus:border-blue-500/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-lg uppercase transition-all"
                 />
@@ -310,6 +307,7 @@
                 </div>
                 <input 
                   bind:value={name}
+                  oninput={handleInputChange}
                   placeholder="HỌ VÀ TÊN *"
                   class="w-full pl-12 pr-12 py-5 bg-white/[0.03] border-2 border-white/5 focus:border-blue-500/30 rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all"
                 />
@@ -328,6 +326,7 @@
                 </div>
                 <textarea 
                   bind:value={address}
+                  oninput={handleInputChange}
                   rows="3"
                   placeholder="ĐỊA CHỈ NHẬN HÀNG CHI TIẾT *"
                   class="w-full pl-12 pr-6 py-5 bg-white/[0.03] border-2 {validationError?.includes('Địa chỉ') ? 'border-red-500/30' : 'border-white/5 focus:border-blue-500/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all resize-none"

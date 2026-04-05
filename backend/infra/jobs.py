@@ -14,8 +14,9 @@ async def cleanup_old_tasks(ctx: Dict[str, object]) -> None:
     """
     logger.info("[Cleanup] Starting 3-day retention enforcement...")
     
-    # Calculate cutoff (3 days ago)
-    cutoff = datetime.now(timezone.utc) - timedelta(days=3)
+    from backend.constants.infra import INFRA_RETENTION_DAYS
+    # Calculate cutoff (Standard Elite Retention Policy)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=INFRA_RETENTION_DAYS)
     
     session_maker = alchemy_config.create_session_maker()
     async with session_maker() as db:
@@ -63,9 +64,10 @@ async def helen_follow_up_job(ctx: Dict[str, object], session_id: str) -> None:
                 from backend.services.commerce.operatives.support_agent import support_agent
                 from backend.schemas.support import SupportRequest
                 
-                # Special internal trigger message
+                from backend.constants.infra import HELEN_FOLLOW_UP_TRIGGER
+                # Special internal trigger message (Elite V2.2)
                 trigger_req = SupportRequest(
-                    message="[SYSTEM_FOLLOW_UP_TRIGGER]",
+                    message=HELEN_FOLLOW_UP_TRIGGER,
                     session_id=session_id,
                     product_slug=last_msg.product_slug
                 )

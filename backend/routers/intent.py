@@ -179,8 +179,8 @@ class IntentController(Controller):
                     )
                 )
                 await telemetry_repo.session.commit()
-            except Exception:
-                pass
+            except Exception as telemetry_error:
+                logger.error(f"[Telemetry Error] Failed to log agent performance: {telemetry_error}")
 
             # ── Message Persistence (Background) ──
             ui_action = (result.data or {}).get("ui_action")

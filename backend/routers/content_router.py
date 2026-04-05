@@ -16,7 +16,10 @@ from backend.database.repositories import (
 )
 
 # Schema Imports
-from backend.schemas.content import CampaignSchema, CampaignListResponse
+from backend.schemas.content import (
+    CampaignSchema, CampaignListResponse, ContentCleanRequest,
+    AdhocAnalysisRequest, BulkFixRequest, ScoutTopicRequest
+)
 from backend.schemas.common import SuccessResponse as GenericResponse
 
 logger = logging.getLogger("api-gateway")
@@ -57,24 +60,11 @@ class ContentController(Controller):
 
     @post("/campaigns/{campaign_id:uuid}/cancel", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
     async def cancel_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository) -> GenericResponse:
-        from backend.database.models import ContentCampaign as CampaignModel
-        campaign = await campaign_repo.get(str(campaign_id))
-        if not campaign: return GenericResponse(status="error", message="Campaign not found")
-        campaign.status = "REJECTED"; await campaign_repo.update(campaign)
-        from backend.services.event_bus import event_bus
-        await event_bus.emit("CAMPAIGN_PURGED", {"campaign_id": str(campaign_id), "type": "TERMINATE", "action": "CANCEL"})
-        await campaign_repo.session.commit()
-        return GenericResponse(status="success", message="Hệ thống đã ngắt và hủy tiến trình theo lệnh sếp.")
+        return await content_factory.management.cancel_campaign(str(campaign_id), campaign_repo)
 
     @post("/campaigns/{campaign_id:uuid}/publish", guards=[PermissionGuard(PermissionEnum.CONTENT_PUBLISH)])
     async def publish_campaign(self, campaign_id: UUID, campaign_repo: ContentCampaignRepository, media_repo: MediaRegistryRepository) -> GenericResponse:
-        from backend.services.xohi.creative_studio.formatters.media_compressor import MediaCompressor
-        campaign = await campaign_repo.get(str(campaign_id))
-        if not campaign: return GenericResponse(status="error", message="Campaign not found")
-        await MediaCompressor().execute(str(campaign_id), campaign_repo, media_repo=media_repo)
-        campaign.status = "COMPLETED"; await campaign_repo.update(campaign)
-        await campaign_repo.session.commit()
-        return GenericResponse(status="success", message="Campaign published and registered.")
+        return await content_factory.management.publish_campaign(str(campaign_id), campaign_repo, media_repo)
 
     @put("/campaigns/{campaign_id:uuid}/metadata", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
     async def update_metadata(self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository) -> GenericResponse:
@@ -117,45 +107,34 @@ class ContentController(Controller):
         return await content_factory.analyst.enrich(str(campaign_id), campaign_repo)
 
     @post("/clean", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
-    async def clean_content(self, request: Request) -> GenericResponse:
+    async def clean_content(self, data: ContentCleanRequest) -> GenericResponse:
         try:
             from backend.utils.noise_cleaner import noise_cleaner
-            data = await request.json(); content = data.get("content", "")
-            if not content: return GenericResponse(status="error", message="Không có nội dung để làm sạch")
-            cleaned = await noise_cleaner.clean(content, mode="aggressive")
+            cleaned = await noise_cleaner.clean(data.content, mode="aggressive")
             return GenericResponse(status="success", data={"content": cleaned})
         except Exception as e:
             logger.error(f"[ContentController] Viral Clean Error: {e}")
             return GenericResponse(status="error", message=str(e))
 
     @post("/analyze/copyright")
-    async def analyze_copyright_adhoc(self, request: Request) -> GenericResponse:
-        data = await request.json()
-        return await content_factory.analyst.analyze_copyright(None, None, force=data.get("force", False), raw_content=data.get("content"), raw_topic=data.get("topic"))
+    async def analyze_copyright_adhoc(self, data: AdhocAnalysisRequest) -> GenericResponse:
+        return await content_factory.analyst.analyze_copyright(None, None, force=data.force, raw_content=data.content, raw_topic=data.topic)
 
     @post("/analyze/seo")
-    async def analyze_seo_adhoc(self, request: Request) -> GenericResponse:
-        data = await request.json()
-        return await content_factory.analyst.analyze_seo(None, None, force=data.get("force", False), raw_content=data.get("content"), raw_topic=data.get("topic"))
+    async def analyze_seo_adhoc(self, data: AdhocAnalysisRequest) -> GenericResponse:
+        return await content_factory.analyst.analyze_seo(None, None, force=data.force, raw_content=data.content, raw_topic=data.topic)
 
     @post("/analyze/ai-inspect")
-    async def analyze_ai_inspect_adhoc(self, request: Request) -> GenericResponse:
-        data = await request.json()
-        return await content_factory.analyst.analyze_ai_inspect(None, None, force=data.get("force", False), raw_content=data.get("content"), raw_topic=data.get("topic"))
+    async def analyze_ai_inspect_adhoc(self, data: AdhocAnalysisRequest) -> GenericResponse:
+        return await content_factory.analyst.analyze_ai_inspect(None, None, force=data.force, raw_content=data.content, raw_topic=data.topic)
 
     @post("/analyze/bulk-fix")
-    async def analyze_bulk_fix_adhoc(self, request: Request) -> GenericResponse:
-        data = await request.json()
-        # Extract only the fields BulkFixRequest accepts (strict mode: category + annotations)
-        fix_payload = {"category": data.get("category", ""), "annotations": data.get("annotations", [])}
-        return await content_factory.analyst.bulk_fix(None, fix_payload, None, raw_content=data.get("content"))
+    async def analyze_bulk_fix_adhoc(self, data: BulkFixRequest) -> GenericResponse:
+        fix_payload = {"category": data.category, "annotations": data.annotations}
+        return await content_factory.analyst.bulk_fix(None, fix_payload, None, raw_content=data.content)
 
     @post("/scout")
-    async def scout_topic(self, request: Request) -> GenericResponse:
+    async def scout_topic(self, data: ScoutTopicRequest) -> GenericResponse:
         """[CNS V62.2] Perform high-IQ content scouting and strategic analysis."""
-        data = await request.json()
-        topic = data.get("topic")
-        campaign_id = data.get("campaign_id")
-        if not topic: return GenericResponse(status="error", message="Thiếu chủ đề (topic) để trinh sát.")
-        return await content_factory.analyst.scout(topic, campaign_id=campaign_id)
+        return await content_factory.analyst.scout(data.topic, campaign_id=data.campaign_id)
 

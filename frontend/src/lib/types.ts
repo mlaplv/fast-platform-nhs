@@ -226,6 +226,15 @@ export interface ProductMetadata {
   offer_label_commitment?: string;
   offer_label_license?: string;
   mobile_loading_text?: string;
+  hero_product_name_fallback?: string;
+  hero_aria_label?: string;
+  hero_aria_scroll?: string;
+  nav_label_home?: string;
+  nav_label_diagnostics?: string;
+  nav_label_science?: string;
+  nav_label_reviews?: string;
+  nav_label_offers?: string;
+  quiz_loading_label?: string;
   [key: string]: unknown;
 }
 

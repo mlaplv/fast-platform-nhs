@@ -14,6 +14,14 @@
   let { scrollToQuiz }: HeroBannerProps = $props();
   const product = $derived(shopStore.product);
   const metadata = $derived(product?.metadata || {});
+
+  // Elite V2.2: Standard Branding Fallbacks (Non-logic descriptors)
+  const FALLBACK_METRICS = [
+    { label: '[Tốc độ]', value: 'THẨM THẤU TÀNG HÌNH 3S', desc: 'Hạt Nano siêu phân tử. Chạm là khô tắp lự, tuyệt đối không bết dính.', color: 'blue' },
+    { label: '[Hiệu quả]', value: 'PHONG TỎA MÙI 48H', desc: 'Khóa chặt tuyến bã nhờn và vi khuẩn sinh mùi. Áo sơ mi không một vệt ố vàng.', color: 'indigo' },
+    { label: '[Thành phần]', value: 'TINH CHẤT DƯỢC LIỆU SẠCH', desc: 'Chiết xuất sinh học thân thiện với da nhạy cảm. Không cồn, không gây thâm sạm.', color: 'emerald' }
+  ];
+
   let mouse = $state({ x: 0, y: 0 });
 
   let currentImageIndex = $state(0);
@@ -35,17 +43,13 @@
   };
 
   const labels = $derived({
-    product_name: product?.name || (metadata.hero_product_name_fallback as string) || 'Elite Formulation',
+    product_name: product?.name || metadata.hero_product_name_fallback || 'Elite Formulation',
     headline: metadata.hero_headline || '<span>CHẤM DỨT</span> <br/> <span class="headline-shift">MÙI CƠ THỂ.</span>',
     video_url: metadata.hero_video_url || 'video/video-hn.mp4',
     cta_text: metadata.hero_cta_text || 'Chẩn đoán cá nhân hoá',
-    aria_hero: (metadata.hero_aria_label as string) || 'Hero Spotlight Area',
-    aria_scroll: (metadata.hero_aria_scroll as string) || 'Scroll to diagnostics section',
-    metrics: metadata.hero_metrics || [
-      { label: '[Tốc độ]', value: 'THẨM THẤU TÀNG HÌNH 3S', desc: 'Hạt Nano siêu phân tử. Chạm là khô tắp lự, tuyệt đối không bết dính.', color: 'blue' },
-      { label: '[Hiệu quả]', value: 'PHONG TỎA MÙI 48H', desc: 'Khóa chặt tuyến bã nhờn và vi khuẩn sinh mùi. Áo sơ mi không một vệt ố vàng.', color: 'indigo' },
-      { label: '[Thành phần]', value: 'TINH CHẤT DƯỢC LIỆU SẠCH', desc: 'Chiết xuất sinh học thân thiện with da nhạy cảm. Không cồn, không gây thâm sạm.', color: 'emerald' }
-    ]
+    aria_hero: metadata.hero_aria_label || 'Hero Spotlight Area',
+    aria_scroll: metadata.hero_aria_scroll || 'Scroll to diagnostics section',
+    metrics: metadata.hero_metrics || FALLBACK_METRICS
   });
 
   const productName = $derived(labels.product_name);

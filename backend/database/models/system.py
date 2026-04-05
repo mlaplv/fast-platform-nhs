@@ -15,7 +15,7 @@ class Draft(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     target_model: Mapped[str] = mapped_column(String)
     target_id: Mapped[Optional[str]] = mapped_column(String)
     action: Mapped[str] = mapped_column(String)
-    payload: Mapped[dict] = mapped_column(JSON)
+    payload: Mapped[dict[str, object]] = mapped_column(JSON)
     status: Mapped[str] = mapped_column(String, default="PENDING")
     
     reviewer_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('users.id'))
@@ -38,7 +38,7 @@ class ChatMessage(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     user_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('users.id'))
     user: Mapped[Optional["User"]] = relationship("User", back_populates="chat_messages")
     role: Mapped[str] = mapped_column(String)
-    content: Mapped[dict] = mapped_column(JSON)
+    content: Mapped[dict[str, object]] = mapped_column(JSON)
     modality: Mapped[str] = mapped_column(String, default="text")
 
 class Notification(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
@@ -54,7 +54,7 @@ class SystemSetting(Base, AuditMixin):
     __tablename__ = 'system_settings'
 
     key: Mapped[str] = mapped_column(String, primary_key=True)
-    value: Mapped[dict] = mapped_column(JSON, default=dict)
+    value: Mapped[dict[str, object]] = mapped_column(JSON, default=dict)
 
 class ReviewEntityType(str, enum.Enum):
     PRODUCT = "PRODUCT"
@@ -124,7 +124,7 @@ class SupportKnowledge(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     
     # Metadata for search & relevance
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
-    tags: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True) # list of tags
+    tags: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, nullable=True) # list of tags
     priority: Mapped[int] = mapped_column(Integer, default=0) # higher = more relevant
     
     __table_args__ = (
@@ -151,8 +151,8 @@ class UnifiedAgentTask(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     session_id: Mapped[Optional[str]] = mapped_column(String, index=True, nullable=True)
     
     status: Mapped[str] = mapped_column(String, default="PENDING", index=True) # PENDING, RUNNING, DONE, FAILED
-    payload: Mapped[dict] = mapped_column(JSON)
-    result: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    payload: Mapped[dict[str, object]] = mapped_column(JSON)
+    result: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, nullable=True)
     error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # Tracking for 3-day retention policy

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
   import { SHOP_CONFIG, OFFER_CONSTANTS } from '$lib/constants/shop';
   import { resolveMediaUrl } from '$lib/state/utils';
   import type { ProductVariant } from '$lib/types';
@@ -9,25 +10,25 @@
   const shopStore = getShopStore();
   const variants = $derived(product?.variants || []);
   const timeLeft = $derived(shopStore.timeLeft);
-  const metadata = $derived(product?.metadata || {});
+  const metadata = $derived(product?.metadata);
 
   let selectedIndex = $state(1);
   const selectedVariant = $derived(variants[selectedIndex] ?? variants[0]);
-  const mainDeal = $derived(metadata.active_deals?.[0]);
+  const mainDeal = $derived(metadata?.active_deals?.[0]);
 
 
   const mkt = $derived({
-    headline: metadata.offer_headline || "CHÚNG TÔI KHÔNG THỂ <br/> THAY ĐỔI CƠ ĐỊA CỦA BẠN.",
-    sub: metadata.offer_subheadline || "NHƯNG CAM KẾT: <span class=\"text-blue-400 font-black\">KHÓA MÙI 48H.</span>",
-    timer_prefix: metadata.offer_timer_prefix || "Ưu đãi nội bộ kết thúc sau:",
-    shipping_prefix: metadata.offer_shipping_prefix || "+ Phí vận chuyển:",
-    savings_prefix: metadata.offer_savings_prefix || "Tiết kiệm:",
-    label_activation: metadata.offer_label_activation || OFFER_CONSTANTS.labels.activation,
-    label_full_treatment: metadata.offer_label_full_treatment || OFFER_CONSTANTS.labels.full_treatment,
-    label_expert_choice: metadata.offer_label_expert_choice || OFFER_CONSTANTS.labels.expert_choice,
-    label_scarcity: metadata.offer_label_scarcity || OFFER_CONSTANTS.labels.scarcity,
-    cta_start: metadata.offer_cta_start || OFFER_CONSTANTS.labels.cta_start,
-    cta_full: metadata.offer_cta_full || OFFER_CONSTANTS.labels.cta_full,
+    headline: metadata?.offer_headline || "CHÚNG TÔI KHÔNG THỂ <br/> THAY ĐỔI CƠ ĐỊA CỦA BẠN.",
+    sub: metadata?.offer_subheadline || "NHƯNG CAM KẾT: <span class=\"text-blue-400 font-black\">KHÓA MÙI 48H.</span>",
+    timer_prefix: metadata?.offer_timer_prefix || "Ưu đãi nội bộ kết thúc sau:",
+    shipping_prefix: metadata?.offer_shipping_prefix || "+ Phí vận chuyển:",
+    savings_prefix: metadata?.offer_savings_prefix || "Tiết kiệm:",
+    label_activation: metadata?.offer_label_activation || OFFER_CONSTANTS.labels.activation,
+    label_full_treatment: metadata?.offer_label_full_treatment || OFFER_CONSTANTS.labels.full_treatment,
+    label_expert_choice: metadata?.offer_label_expert_choice || OFFER_CONSTANTS.labels.expert_choice,
+    label_scarcity: metadata?.offer_label_scarcity || OFFER_CONSTANTS.labels.scarcity,
+    cta_start: metadata?.offer_cta_start || OFFER_CONSTANTS.labels.cta_start,
+    cta_full: metadata?.offer_cta_full || OFFER_CONSTANTS.labels.cta_full,
   });
 
   const formatTime = (s: number): string => {
@@ -91,7 +92,7 @@
     <div class="flex items-center justify-center gap-2 mb-3">
        <div class="bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-full flex items-center gap-2 backdrop-blur-xl">
           <Users class="w-3 h-3 text-red-500 animate-pulse" />
-          <span class="text-[9px] font-black text-red-400 uppercase tracking-widest">289 người đang xem</span>
+          <span class="text-[9px] font-black text-red-400 uppercase tracking-widest">{fomoStore.viewers} người đang xem</span>
        </div>
        <div class="bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full flex items-center gap-2 backdrop-blur-xl">
           <Zap class="w-3 h-3 text-amber-500 animate-bounce" />

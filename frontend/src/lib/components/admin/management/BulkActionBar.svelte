@@ -4,16 +4,16 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import Archive from "lucide-svelte/icons/archive";
   import X from "lucide-svelte/icons/x";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
   import StatusDropdown from "./StatusDropdown.svelte";
   import { fade, fly } from "svelte/transition";
-  import { ORDER_STATUS_MAP } from "$lib/constants/order";
+  import { CAMPAIGN_STATUS_MAP } from "$lib/constants/campaign";
 
   let { 
     selectedCount, 
     onClear, 
     onDeleteBulk, 
-    onArchiveBulk 
+    onArchiveBulk,
+    onStatusBulk
   } = $props<{
     selectedCount: number;
     onClear: () => void;
@@ -64,8 +64,9 @@
         <!-- Bulk Status Transition (Elite V2.2) -->
         <div class="w-[200px]">
           <StatusDropdown 
-            options={Object.keys(ORDER_STATUS_MAP)}
+            options={Object.keys(CAMPAIGN_STATUS_MAP)}
             onSelect={onStatusBulk}
+            statusMap={CAMPAIGN_STATUS_MAP}
             placeholder="BULK_UPDATE..."
             variant="bulk"
           />

@@ -16,11 +16,11 @@
   const product = $derived(shopStore.product);
 
   const labels = $derived({
-    home: (product?.metadata?.nav_label_home as string) || 'Trang chủ',
-    diagnostics: (product?.metadata?.nav_label_diagnostics as string) || 'Chẩn đoán',
-    science: (product?.metadata?.nav_label_science as string) || 'Cơ chế',
-    reviews: (product?.metadata?.nav_label_reviews as string) || 'Đánh giá',
-    offers: (product?.metadata?.nav_label_offers as string) || 'Ưu đãi'
+    home: product?.metadata?.nav_label_home || 'Trang chủ',
+    diagnostics: product?.metadata?.nav_label_diagnostics || 'Chẩn đoán',
+    science: product?.metadata?.nav_label_science || 'Cơ chế',
+    reviews: product?.metadata?.nav_label_reviews || 'Đánh giá',
+    offers: product?.metadata?.nav_label_offers || 'Ưu đãi'
   });
 
   const navLinks = $derived([

@@ -5,6 +5,8 @@ import secrets
 import json
 import hashlib
 from typing import Union, TypeAlias
+
+# Elite 2026: Cryptography (Rule R00 compliance)
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -12,7 +14,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 # Elite 2026: Clear Type Definitions to avoid 'Any' (Rule R00)
 EncryptedData: TypeAlias = Union[str, list[str]]
 
-logger: logging.Logger = logging.getLogger("api-gateway")
+logger: logging.Logger = logging.getLogger("security-utility")
 
 class GeminiSecurity:
     """
@@ -87,12 +89,55 @@ class GeminiSecurity:
             
             try:
                 # V2026: Try JSON decoding (Standard)
-                return json.loads(decrypted)
-            except:
-                # Fallback for Legacy Era: Return raw string (Comma-separated)
+                result: object = json.loads(decrypted)
+                
+                # CNS V2.2: Explicit Type Safety — Ensure result is str or list[str]
+                if isinstance(result, str):
+                    return result
+                if isinstance(result, list):
+                    return [str(item) for item in result]
+                
+                return str(result)
+            except (json.JSONDecodeError, ValueError):
+                # Fallback for Legacy Era: Return raw string (Comma-separated or plain)
                 logger.info("[GeminiSecurity] Legacy key cluster detected. Fallback to raw string.")
                 return decrypted
         except Exception as e:
             logger.error(f"[Security] AES-GCM Decryption Failed (Wrong Salt?): {e}")
             return None
 
+
+def mask_pii(event_name: str, payload: dict[str, object]) -> dict[str, object]:
+    """
+    R82.33: Security Shield — Mask Personally Identifiable Information (PII) 
+    in broadcast events to protect user privacy.
+    (Elite V2.2: Fixed 'Any' to 'object' for strict typing).
+    """
+    if event_name == "ORDER_CREATED":
+        p = dict(payload)
+        
+        # Mask phone: 094***1122
+        phone = p.get("phone", "")
+        if isinstance(phone, str) and len(phone) > 6:
+            p["phone"] = f"{phone[:3]}***{phone[-4:]}"
+        
+        # Mask customer name: N*** A** Tuan
+        name = p.get("customer", "")
+        if isinstance(name, str) and name:
+            parts = name.split()
+            if len(parts) > 1:
+                p["customer"] = f"{parts[0][0]}*** {parts[-1]}"
+            else:
+                p["customer"] = f"{name[0]}***"
+        
+        # Mask address: 123 Street... -> 123...
+        addr = p.get("address", "")
+        if isinstance(addr, str) and addr:
+            p["address"] = f"{addr[:6]}..."
+            
+        # Remove IP and User Agent from broadcast
+        p.pop("ip", None)
+        p.pop("user_agent", None)
+        return p
+        
+    return payload

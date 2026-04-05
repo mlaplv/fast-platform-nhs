@@ -8,28 +8,29 @@ logger = logging.getLogger("api-gateway")
 class TrinityModels:
     """Helper for model discovery and chain building (V76)."""
     
-    def __init__(self, rotator: object, default_model: str, fallback_model: str):
-        self.rotator = rotator
-        self.default_model = default_model
-        self.fallback_model = fallback_model
-        self.ROLE_FAST = "fast"
-        self.ROLE_BRAIN = "brain"
+    def __init__(self, rotator: 'KeyRotator', default_model: str, fallback_model: str) -> None:
+        self.rotator: 'KeyRotator' = rotator
+        self.default_model: str = default_model
+        self.fallback_model: str = fallback_model
+        self.ROLE_FAST: str = "fast"
+        self.ROLE_BRAIN: str = "brain"
 
     async def discover_available(self) -> list[str]:
         cached = await self.rotator.get_discovered_models()
         if cached: return cached
 
         # Elite V2.2: Try to get a key for the default model first
-        key = None
+        key: Optional[str] = None
         try:
             key = await self.rotator.get_key(model_name=self.default_model)
-        except:
+        except Exception as e:
             # Fallback: Get ANY healthy key just for discovery purposes
+            logger.debug(f"[TrinityModels] Specific key discovery failed: {e}. Trying fallback model.")
             try:
                 # We try one of the known broad-quota models or just the default
                 key = await self.rotator.get_key(model_name="gemini-1.5-flash")
-            except:
-                pass
+            except Exception as e_inner:
+                logger.warning(f"[TrinityModels] Full key discovery failed: {e_inner}")
         
         if not key:
             logger.warning("[TrinityModels] No keys available for discovery. AI services may be degraded.")
@@ -82,14 +83,16 @@ class TrinityModels:
     def classify_error(self, err: str) -> str:
         err = err.lower()
         if any(p in err for p in ["api key not valid", "invalid_key", "key_expired", "project disabled", "deleted"]): return "auth_hard"
-        if any(p in err for p in ["401", "403", "unauthorized", "forbidden"]): return "auth_soft"
+        
+        # Elite V2.2: 403 Forbidden is often regional or model-specific, treat as SOFT unless repeated
+        if any(p in err for p in ["401", "403", "unauthorized", "forbidden", "permission_denied", "user_location_not_supported"]): return "auth_soft"
         
         # Elite V2.2: Deep Research models in preview might not support standard generateContent
         if "interactions api" in err: return "rate_limit" # Force fallback to next model
         
         if any(p in err for p in ["context_length_exceeded", "too many tokens", "safety", "blocked", "invalid_argument", "400"]): return "fail_fast"
         if "tool output is not supported" in err: return "tool_unsupported"
-        if any(p in err for p in ["429", "quota", "rate limit", "limit reached", "resource_exhausted", "503", "unavailable", "500"]): return "rate_limit"
+        if any(p in err for p in ["429", "quota", "rate limit", "limit reached", "resource_exhausted", "503", "unavailable", "500", "reset by peer", "deadline_exceeded"]): return "rate_limit"
         if "model not found" in err or "404" in err: return "model_not_found"
         return "unknown"
 

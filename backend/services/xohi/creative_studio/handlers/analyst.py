@@ -305,8 +305,10 @@ Trả về một `ScoutReport` (Pydantic Model) bao gồm:
                     logs.append("⚠️ Không thể lưu Cache vào DB, nhưng dữ liệu vẫn ổn.")
 
                 report.logs = logs + ["✅ Trinh sát hoàn tất. Báo cáo chiến lược 'Elite' đã sẵn sàng."]
+                if campaign_id: await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 1, "message": "✅ Đã trinh sát xong.", "status": "IDLE"})
                 return GenericResponse(status="success", data=report.model_dump())
                 
             except Exception as e:
                 logger.error(f"[AnalystHandler] Scout failed: {str(e)}", exc_info=True)
+                if campaign_id: await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 1, "message": f"❌ Lỗi trinh sát: {str(e)}", "status": "ERROR"})
                 return GenericResponse(status="error", message=f"Neural Scout Error: {str(e)}")

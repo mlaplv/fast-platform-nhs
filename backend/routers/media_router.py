@@ -32,8 +32,8 @@ class MediaController(Controller):
         return {"enabled": await media_service.get_ai_vision_status()}
 
     @patch("/settings/ai-vision")
-    async def toggle_ai_vision(self, data: dict) -> GenericResponse:
-        ok = await media_service.toggle_ai_vision(data.get("enabled", False))
+    async def toggle_ai_vision(self, data: AIVisionStatusRequest) -> GenericResponse:
+        ok = await media_service.toggle_ai_vision(data.enabled)
         return GenericResponse(status="success" if ok else "error", message="AI Vision state updated" if ok else "Redis error")
 
     @post("/", status_code=201)
@@ -52,7 +52,7 @@ class MediaController(Controller):
         asset = await media_repo.get(str(asset_id))
         user = request.state.get("user", {})
         if not asset or (not asset.is_public and asset.owner_id and asset.owner_id != user.get("sub", user.get("id"))):
-            raise Exception("Asset not found or access denied")
+            raise HTTPException(status_code=404, detail="Asset not found or access denied")
         return MediaDetailResponse(status="success", data=MediaAssetResponse.model_validate(asset))
 
     @patch("/{asset_id:str}")
@@ -90,22 +90,22 @@ class MediaController(Controller):
     @post("/{asset_id:str}/edit")
     async def quick_edit_media(self, asset_id: str, request: Request, media_repo: MediaRegistryRepository, data: QuickEditRequest) -> QuickEditResponse:
         asset = await media_service.quick_edit(media_repo, str(asset_id), data.action, params=data.params, owner_id=request.state.get("user", {}).get("sub"), source_url=data.source_url, campaign_id=data.campaign_id)
-        if not asset: raise Exception("Edit failed")
+        if not asset: raise HTTPException(status_code=500, detail="Edit failed")
         return QuickEditResponse(status="success", data=MediaAssetResponse.model_validate(asset))
 
     @post("/bulk-download")
     async def bulk_download_media(self, request: Request, media_repo: MediaRegistryRepository, data: BulkDownloadRequest) -> BulkDownloadResponse:
         url = await media_service.create_bulk_zip(media_repo, data.ids, owner_id=request.state.get("user", {}).get("sub"))
-        if not url: raise Exception("ZIP failed")
+        if not url: raise HTTPException(status_code=500, detail="ZIP creation failed")
         return BulkDownloadResponse(status="success", data=BulkDownloadResponseData(zip_url=url))
 
     @post("/fetch-remote")
     async def fetch_remote_media(self, request: Request, media_repo: MediaRegistryRepository, data: FetchRemoteRequest) -> MediaDetailResponse:
         asset = await media_service.fetch_remote_asset(repo=media_repo, url=data.url, campaign_id=data.campaign_id, owner_id=request.state.get("user", {}).get("sub"))
-        if not asset: raise Exception("Fetch failed")
+        if not asset: raise HTTPException(status_code=500, detail="Remote fetch failed")
         return MediaDetailResponse(status="success", data=MediaAssetResponse.model_validate(asset))
 
     @post("/link-to-post")
-    async def link_media_to_post(self, request: Request, media_repo: MediaRegistryRepository, data: dict) -> GenericResponse:
-        c = await media_service.link_to_post(repo=media_repo, asset_ids=data.get("asset_ids", []), post_id=data.get("post_id", ""), post_type=data.get("post_type", ""), owner_id=request.state.get("user", {}).get("sub"))
+    async def link_media_to_post(self, request: Request, media_repo: MediaRegistryRepository, data: MediaLinkToPostRequest) -> GenericResponse:
+        c = await media_service.link_to_post(repo=media_repo, asset_ids=data.asset_ids, post_id=data.post_id, post_type=data.post_type, owner_id=request.state.get("user", {}).get("sub"))
         return GenericResponse(status="success", message=f"Linked {c} assets")

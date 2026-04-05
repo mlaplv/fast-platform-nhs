@@ -212,6 +212,43 @@
     selectedIds = new Set();
   }
 
+  async function handleBulkStatusUpdate(newStatus: string) {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    const confirmed = await nanobot.showConfirm({
+      title: "PROTOCOL_MASS_MUTATION",
+      message: `You are about to transition ${ids.length} entities to state: [${newStatus}]. Proceed?`,
+      confirmLabel: "EXECUTE_TRANSITION",
+      cancelLabel: "ABORT"
+    });
+
+    if (!confirmed) return;
+
+    isLoading = true;
+    let successCount = 0;
+    try {
+      for (const id of ids) {
+        try {
+          const res = await apiClient.patch<{ status: string; message?: string }>(`/api/v1/content/campaigns/${id}`, {
+            status: newStatus
+          });
+          if (res.status !== "error") successCount++;
+        } catch (e) {
+          console.error(`[Bulk Status] Failed to update ${id}:`, e);
+        }
+      }
+
+      if (successCount > 0) {
+        selectedIds = new Set();
+        await loadCampaigns(false);
+        nanobot.showToast(`Đã cập nhật trạng thái cho ${successCount} chiến dịch.`, "success");
+      }
+    } finally {
+      isLoading = false;
+    }
+  }
+
   function resumeCampaign(campaign: CampaignData) {
     nanobot.resumeCampaign(campaign as unknown as Record<string, unknown>);
   }
@@ -370,6 +407,7 @@
     onClear={() => selectedIds = new Set()} 
     onDeleteBulk={handleBulkDelete}
     onArchiveBulk={handleBulkArchive}
+    onStatusBulk={handleBulkStatusUpdate}
   />
 </div>
 

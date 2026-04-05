@@ -150,7 +150,8 @@ class AdminSupportInboxController(Controller):
         for r in rows:
             try:
                 decrypted: str = GeminiSecurity.decrypt(r.content) if r.content else ""
-            except Exception:
+            except Exception as e:
+                logger.error(f"[AdminSupportInbox] Decryption failed for message {r.id}: {e}")
                 decrypted = "[Không thể giải mã nội dung]"
             messages.append(
                 SupportChatMessageView(

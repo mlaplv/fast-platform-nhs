@@ -33,12 +33,42 @@ class CampaignSchema(BaseModel):
     updated_at: Optional[datetime] = None
 
 
+class CampaignListItem(BaseModel):
+    """Minified campaign item for lists."""
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    topic_data: Optional[Dict[str, object]] = None
+    status: str
+    current_step: int
+    created_at: Optional[datetime] = None
+    user_id: Optional[str] = None
+
 class CampaignListResponse(BaseModel):
     """Paginated list of campaigns."""
-
     model_config = ConfigDict(strict=True)
-
-    items: List[CampaignSchema]
+    items: List[CampaignListItem]
     total: int
     limit: int
     offset: int
+    has_more: bool
+
+class ContentCleanRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    content: str
+
+class AdhocAnalysisRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    content: Optional[str] = None
+    topic: Optional[str] = None
+    force: bool = False
+
+class BulkFixRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    content: str
+    category: str
+    annotations: List[Dict[str, object]] = []
+
+class ScoutTopicRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    topic: str
+    campaign_id: Optional[str] = None

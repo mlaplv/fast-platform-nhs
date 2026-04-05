@@ -136,8 +136,10 @@ class InternalBus:
                     await asyncio.gather(self._worker_task, self._redis_task, return_exceptions=True)
                 else:
                     await self._worker_task
-            except (asyncio.CancelledError, Exception):
+            except asyncio.CancelledError:
                 pass
+            except Exception as e:
+                logger.error(f"[EventBus] Error during stop: {e}")
             self._worker_task = None
             if hasattr(self, "_redis_task"):
                 self._redis_task = None
@@ -165,8 +167,10 @@ class InternalBus:
                     try:
                         data: Dict[str, object] = json.loads(message['data'])
                         event_name: str = str(data.get("event", ""))
-                        payload: Union[Dict[str, object], None] = data.get("payload") # type: ignore
-                        if event_name and payload is not None:
+                        # Elite V2.2: Safe payload extraction without type: ignore
+                        raw_payload = data.get("payload")
+                        if event_name and isinstance(raw_payload, dict):
+                            payload: Dict[str, object] = raw_payload
                             local_event = SystemEvent(name=event_name, payload=payload)
                             try:
                                 self.queue.put_nowait(local_event)

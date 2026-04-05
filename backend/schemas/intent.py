@@ -41,3 +41,7 @@ class IntentResponse(BaseModel):
     cost_tokens: float = Field(default=0.0)
 
     model_config = ConfigDict(strict=True)
+
+class IntentMapUpdate(BaseModel):
+    model_config = ConfigDict(strict=True)
+    mapping: Dict[str, str]

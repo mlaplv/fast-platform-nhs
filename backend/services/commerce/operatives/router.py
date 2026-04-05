@@ -15,11 +15,11 @@ class SupportRouter:
     """
     
     def __init__(self):
-        # The Strategic Pipeline Sequence
+        # The Strategic Pipeline Sequence (Elite V2.2: Action-First Optimization)
         self.handlers: List[BaseHandler] = [
             GuardrailHandler(),  # Priority 1: Safety/Rejection (Can terminate)
-            GreetingHandler(),   # Priority 2: Persona Greeting (Pass-through)
-            OrderHandler(),      # Priority 3: Order Closing (Action-First, Can terminate)
+            OrderHandler(),      # Priority 2: Order Closing (Action-First, Can terminate)
+            GreetingHandler(),   # Priority 3: Persona Greeting (Pass-through/Early Exit)
             ConsultantHandler()  # Priority 4: Knowledge Advice (Final recourse)
         ]
         

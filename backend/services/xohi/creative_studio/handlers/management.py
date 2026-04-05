@@ -4,7 +4,7 @@ from sqlalchemy import select, func, delete as sa_delete
 from sqlalchemy.orm import undefer
 from backend.database.models import ContentCampaign as CampaignModel, MediaRegistry, ChatMessage
 from backend.database.repositories import ContentCampaignRepository, MediaRegistryRepository
-from backend.models.schemas import CampaignListResponse, CampaignListItem, GenericResponse
+from backend.models.schemas import CampaignListResponse, CampaignListItem, GenericResponse, CampaignStatus
 
 logger = logging.getLogger("api-gateway")
 
@@ -15,9 +15,27 @@ class ManagementHandler:
     async def list_campaigns(self, repo: ContentCampaignRepository, limit: int = 20, offset: int = 0) -> CampaignListResponse:
         count_stmt = select(func.count()).select_from(CampaignModel)
         total = (await repo.session.execute(count_stmt)).scalar_one()
-        stmt = select(CampaignModel.id, CampaignModel.topic_data, CampaignModel.status, CampaignModel.current_step, CampaignModel.created_at, CampaignModel.user_id).order_by(CampaignModel.created_at.desc()).limit(limit).offset(offset)
+        stmt = select(
+            CampaignModel.id, 
+            CampaignModel.topic_data, 
+            CampaignModel.status, 
+            CampaignModel.current_step, 
+            CampaignModel.created_at, 
+            CampaignModel.user_id,
+            CampaignModel.category
+        ).order_by(CampaignModel.created_at.desc()).limit(limit).offset(offset)
         rows = (await repo.session.execute(stmt)).all()
-        items = [CampaignListItem(id=str(r.id), topic_data=r.topic_data, status=r.status, current_step=r.current_step, created_at=r.created_at, user_id=str(r.user_id) if r.user_id else None) for r in rows]
+        items = [
+            CampaignListItem(
+                id=str(r.id), 
+                topic_data=r.topic_data, 
+                status=CampaignStatus(r.status), 
+                current_step=r.current_step, 
+                created_at=r.created_at, 
+                user_id=str(r.user_id) if r.user_id else None,
+                category=r.category
+            ) for r in rows
+        ]
         return CampaignListResponse(items=items, total=total, has_more=(offset + limit) < total, limit=limit, offset=offset)
 
     async def delete_campaign(self, campaign_id: str, repo: ContentCampaignRepository, media_repo: MediaRegistryRepository) -> GenericResponse:
@@ -40,4 +58,36 @@ class ManagementHandler:
             await event_bus.emit("CAMPAIGN_PURGED", {"campaign_id": campaign_id, "type": "TERMINATE", "action": "PURGE"})
             await repo.session.commit()
             return GenericResponse(status="success", message=f"Campaign wiped. {files_purged} assets purged.")
-        except Exception as e: return GenericResponse(status="error", message=str(e))
+        except Exception as e:
+            return GenericResponse(status="error", message=str(e))
+
+    async def cancel_campaign(self, campaign_id: str, repo: ContentCampaignRepository) -> GenericResponse:
+        """[R100] Logic to terminate a campaign and notify the event bus."""
+        campaign = await repo.get(campaign_id)
+        if not campaign:
+            return GenericResponse(status="error", message="Campaign not found")
+        
+        campaign.status = "REJECTED"
+        await repo.update(campaign)
+        
+        from backend.services.event_bus import event_bus
+        await event_bus.emit(
+            "CAMPAIGN_PURGED", 
+            {"campaign_id": campaign_id, "type": "TERMINATE", "action": "CANCEL"}
+        )
+        await repo.session.commit()
+        return GenericResponse(status="success", message="Hệ thống đã ngắt và hủy tiến trình theo lệnh sếp.")
+
+    async def publish_campaign(self, campaign_id: str, repo: ContentCampaignRepository, media_repo: MediaRegistryRepository) -> GenericResponse:
+        """[R100] Finalize and publish campaign assets."""
+        campaign = await repo.get(campaign_id)
+        if not campaign:
+            return GenericResponse(status="error", message="Campaign not found")
+        
+        # Standardized Media Compression & Registration
+        await self.orchestrator.media.execute(campaign_id, repo, media_repo=media_repo)
+        
+        campaign.status = "COMPLETED"
+        await repo.update(campaign)
+        await repo.session.commit()
+        return GenericResponse(status="success", message="Campaign published and registered.")

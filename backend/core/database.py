@@ -11,12 +11,13 @@ from advanced_alchemy.config.asyncio import SQLAlchemyAsyncConfig
 from advanced_alchemy.extensions.litestar import SQLAlchemyPlugin
 
 # Fallback cho local (ưu tiên lấy từ biến môi trường của uv/Docker)
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@localhost:5432/fast_platform")
+# Elite V2.2: Removed hardcoded credentials. Only use basic placeholder for dev.
+DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres@localhost:5432/fast_platform")
 
-db_config = SQLAlchemyAsyncConfig(
+db_config: SQLAlchemyAsyncConfig = SQLAlchemyAsyncConfig(
     connection_string=DATABASE_URL,
     session_config={"expire_on_commit": False},
     engine_config={"pool_pre_ping": True, "pool_size": 5, "max_overflow": 10}
 )
 
-alchemy_plugin = SQLAlchemyPlugin(config=db_config)
+alchemy_plugin: SQLAlchemyPlugin = SQLAlchemyPlugin(config=db_config)

@@ -3,6 +3,7 @@ import type { JwtPayload } from "$lib/types";
 import { redirect } from "@sveltejs/kit";
 import { ServerEnv } from "$lib/server/env";
 import { isMobileDevice } from "$lib/utils/device";
+import { ADMIN_PROTECTED_PATHS } from "$lib/constants/routes";
 
 export const handleError: HandleServerError = ({ error }) => {
   const isDev = ServerEnv.isDev;
@@ -69,9 +70,8 @@ export const handle: Handle = async ({ event, resolve }) => {
     throw redirect(301, newPath);
   }
 
-  // R31 & R33: Route Isolation & Protection
-  const adminOnlyPaths = ["/chat", "/settings", "/analytics"];
-  const isTargetingAdminRoute = adminOnlyPaths.some(p => event.url.pathname.startsWith(p));
+  // R31 & R33: Route Isolation & Protection (Single Source of Truth)
+  const isTargetingAdminRoute = (ADMIN_PROTECTED_PATHS as readonly string[]).some((p: string) => event.url.pathname.startsWith(p));
 
   if (isTargetingAdminRoute && event.locals.tenant !== "admin") {
     throw redirect(303, `https://${adminDomain}${event.url.pathname}`);

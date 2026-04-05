@@ -279,8 +279,12 @@ class IntentStreamCore:
                         for t in [classify_task, exec_task]:
                             if t and not t.done():
                                 t.cancel()
-                                try: await t
-                                except (asyncio.CancelledError, Exception): pass
+                                try:
+                                    await t
+                                except asyncio.CancelledError:
+                                    pass
+                                except Exception as cleanup_error:
+                                    logger.error(f"[Cleanup Error] Task failed to cancel gracefully: {cleanup_error}")
                         classify_task = None
                         exec_task = None
 

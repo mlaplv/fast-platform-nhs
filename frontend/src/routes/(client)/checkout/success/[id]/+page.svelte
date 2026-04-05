@@ -96,10 +96,10 @@
         };
       }
     } catch (err: unknown) {
-      const e = err as any; // Temporary cast for status check, but better than pure any
+      const e = err as { status?: number; message?: string };
       console.error("Failed to load order", e);
       // R2026: If it's a 400 validation error regarding phone, it's a "Lock"!
-      if (e.status === 400 && e.message.toLowerCase().includes('số điện thoại')) {
+      if (e.status === 400 && e.message?.toLowerCase().includes('số điện thoại')) {
         isLocked = true;
       } else {
         showToast(e.message || "Lỗi tải dữ liệu", "error");
@@ -122,7 +122,7 @@
         showToast("Đã hủy đơn hàng thành công");
         await fetchOrder();
     } catch (err: unknown) {
-      const e = err as any; // Temporary cast for status check, but better than pure any
+      const e = err as { message?: string };
         showToast(e.message || "Không thể hủy đơn hàng", "error");
     } finally {
         isSubmittingAction = false;
@@ -141,7 +141,7 @@
         isEditing = false;
         await fetchOrder();
     } catch (err: unknown) {
-      const e = err as any; // Temporary cast for status check, but better than pure any
+      const e = err as { message?: string };
         showToast(e.message || "Lỗi cập nhật dữ liệu", "error");
     } finally {
         isSubmittingAction = false;

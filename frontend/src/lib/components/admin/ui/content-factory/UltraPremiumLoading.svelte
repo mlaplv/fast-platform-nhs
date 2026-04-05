@@ -16,6 +16,18 @@
 
   // CNS V85.2: Live Telemetry (Neural Metrics) - Optimized to prevent UI thread blockage
   let telemetry = $derived.by(() => {
+    // Phase 86.5: Scout Intelligence - Simulate metrics for Step 1 (Thinking Data)
+    if (viewingStep === 1) {
+      if (!progress_msg) return { words: 0, sentences: 0, images: 0, sections: 0 };
+      // Neural Scout Metrics: Nodes, Keywords, Sources, Analysis %
+      return { 
+        words: 12, 
+        sentences: 8, 
+        images: 10, 
+        sections: progress_msg.includes("giải mã") ? 88 : (progress_msg.includes("thực địa") ? 42 : 15) 
+      };
+    }
+
     if (!liveContent || liveContent.length < 10) return { words: 0, sentences: 0, images: 0, sections: 0 };
     
     // Use faster, simpler counting logic for telemetry
@@ -144,20 +156,42 @@
              <span class="text-[8px] font-black uppercase text-white/20 tracking-widest block mb-2">Neural Telemetry</span>
              <div class="grid grid-cols-2 gap-2">
                 <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center justify-center gap-1 group/tel">
-                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-blue-400">Words</span>
-                   <span class="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">{telemetry.words}</span>
+                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-blue-400">
+                     {viewingStep === 1 ? 'Nodes' : 'Words'}
+                   </span>
+                   <span class="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+                     {#if viewingStep === 1 && telemetry.words > 0}
+                        <span class="animate-pulse">{telemetry.words}</span>
+                     {:else}
+                        {telemetry.words}
+                     {/if}
+                   </span>
                 </div>
                 <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center justify-center gap-1 group/tel">
-                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-cyan-400">Sentences</span>
-                   <span class="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">{telemetry.sentences}</span>
+                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-cyan-400">
+                     {viewingStep === 1 ? 'Keywords' : 'Sentences'}
+                   </span>
+                   <span class="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+                     {#if viewingStep === 1 && telemetry.sentences > 0}
+                        <span class="animate-pulse">{telemetry.sentences}</span>
+                     {:else}
+                        {telemetry.sentences}
+                     {/if}
+                   </span>
                 </div>
                 <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center justify-center gap-1 group/tel">
-                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-emerald-400">Images</span>
+                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-emerald-400">
+                     {viewingStep === 1 ? 'Sources' : 'Images'}
+                   </span>
                    <span class="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">{telemetry.images}</span>
                 </div>
                 <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center justify-center gap-1 group/tel">
-                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-purple-400">Sections</span>
-                   <span class="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">{telemetry.sections}</span>
+                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-purple-400">
+                     {viewingStep === 1 ? 'Analysis %' : 'Sections'}
+                   </span>
+                   <span class="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+                     {telemetry.sections}{viewingStep === 1 ? '%' : ''}
+                   </span>
                 </div>
              </div>
           </div>

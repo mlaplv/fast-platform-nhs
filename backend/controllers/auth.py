@@ -6,7 +6,10 @@ from litestar import Controller, post, Request
 from litestar.middleware.rate_limit import RateLimitConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.schemas.auth import LoginRequest, TokenResponse, RegisterRequest, SocialLoginResponse, OTPRequestResponse, OTPVerifyResponse
+from backend.schemas.auth import (
+    LoginRequest, TokenResponse, RegisterRequest, SocialLoginResponse, 
+    OTPRequestResponse, OTPVerifyResponse, SocialLoginRequest, OTPRequest, OTPVerifyRequest
+)
 from backend.schemas.common import SuccessResponse
 from backend.services.auth_service import auth_service
 
@@ -39,19 +42,19 @@ class AuthController(Controller):
     # ═══════════════════════════════════════════════════════
 
     @post("/social/{provider:str}", middleware=[auth_rate_limit.middleware])
-    async def social_login(self, provider: str, data: Dict[str, object]) -> SocialLoginResponse:
-        """Stub cho social login (Google, Facebook, Zalo)"""
-        return await auth_service.social_login(provider, data)
+    async def social_login(self, provider: str, data: SocialLoginRequest) -> SocialLoginResponse:
+        """PUBLIC: Handle social login (Google, Facebook, Zalo) via AuthService."""
+        return await auth_service.social_login(provider, data.model_dump())
 
     @post("/otp/request", middleware=[auth_rate_limit.middleware])
-    async def request_otp(self, data: Dict[str, object]) -> OTPRequestResponse:
-        """Stub cho OTP login via Phone"""
-        return await auth_service.request_otp(data)
+    async def request_otp(self, data: OTPRequest) -> OTPRequestResponse:
+        """PUBLIC: Request OTP login via Phone."""
+        return await auth_service.request_otp(data.model_dump())
 
     @post("/otp/verify", middleware=[auth_rate_limit.middleware])
-    async def verify_otp(self, data: Dict[str, object]) -> OTPVerifyResponse:
-        """Stub cho xác thực OTP"""
-        return await auth_service.verify_otp(data)
+    async def verify_otp(self, data: OTPVerifyRequest) -> OTPVerifyResponse:
+        """PUBLIC: Verify OTP code."""
+        return await auth_service.verify_otp(data.model_dump())
 
     @staticmethod
     def get_current_user_role(request: Request) -> str:

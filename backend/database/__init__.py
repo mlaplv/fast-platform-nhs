@@ -12,9 +12,9 @@ current_tenant_id: ContextVar[str | None] = ContextVar("current_tenant_id", defa
 engine = alchemy_config.get_engine()
 async_session_maker = alchemy_config.create_session_maker()
 
-async def connect_db():
+async def connect_db() -> None:
     logger.info("[Database] Connection pool initialized via AlchemyConfig.")
 
-async def disconnect_db():
+async def disconnect_db() -> None:
     logger.info("[Database] Disposing Engine...")
     await alchemy_config.get_engine().dispose()

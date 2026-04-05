@@ -101,8 +101,13 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
             else:
                 result = await agent.chat(request=request, db=db)
 
-            # 5. Save results to DB
-            result_data = result.model_dump() if hasattr(result, "model_dump") else (result.dict() if hasattr(result, "dict") else dict(result))
+            # 5. Save results to DB (Elite V2.2: Pydantic V2 model_dump)
+            if hasattr(result, "model_dump"):
+                result_data = result.model_dump()
+            elif hasattr(result, "dict"):
+                result_data = result.dict()
+            else:
+                result_data = dict(result) if isinstance(result, (dict, list, tuple)) else result
             
             await db.execute(
                 update(UnifiedAgentTask)

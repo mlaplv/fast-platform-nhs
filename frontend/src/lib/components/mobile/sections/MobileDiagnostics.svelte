@@ -11,12 +11,12 @@
   const questions = $derived(metadata?.quiz_questions || []);
   
   const labels = $derived({
-    headline: metadata.diagnostics_headline || 'CHẨN ĐOÁN CÁ NHÂN HÓA',
-    subheadline: metadata.diagnostics_subheadline || `Để hệ thống chẩn đoán của ${SHOP_CONFIG.pharmacy.name} thiết lập liệu trình liều lượng chính xác nhất.`,
-    result_headline: (metadata.quiz_result_headline as string) || 'LIỆU TRÌNH OPTIMAL.',
-    result_subheadline: (metadata.quiz_result_subheadline as string) || 'Hệ thống AI đề xuất: Bạn cần liệu trình {quantity} lọ để đạt hiệu quả tối ưu.',
-    result_cta: (metadata.quiz_result_cta as string) || 'KÍCH HOẠT LIỆU TRÌNH',
-    restart_label: (metadata.quiz_restart_label as string) || 'Thiết lập lại'
+    headline: metadata?.diagnostics_headline || 'CHẨN ĐOÁN CÁ NHÂN HÓA',
+    subheadline: metadata?.diagnostics_subheadline || `Để hệ thống chẩn đoán của ${SHOP_CONFIG.pharmacy.name} thiết lập liệu trình liều lượng chính xác nhất.`,
+    result_headline: metadata?.quiz_result_headline || 'LIỆU TRÌNH OPTIMAL.',
+    result_subheadline: metadata?.quiz_result_subheadline || 'Hệ thống AI đề xuất: Bạn cần liệu trình {quantity} lọ để đạt hiệu quả tối ưu.',
+    result_cta: metadata?.quiz_result_cta || 'KÍCH HOẠT LIỆU TRÌNH',
+    restart_label: metadata?.quiz_restart_label || 'Thiết lập lại'
   });
 
   let currentStep = $state(0);
@@ -55,7 +55,7 @@
 
         // Auto-apply promo if exists for the recommended quantity
         const deals = shopStore.product?.metadata?.active_deals;
-        const matchingDeal = deals?.find((d: any) => d.buy_qty === recommendedQty);
+        const matchingDeal = deals?.find((d: import('$lib/types').PromotionDeal) => d.buy_qty === recommendedQty);
         
         if (matchingDeal) {
           shopStore.setQuantity(matchingDeal.buy_qty + (matchingDeal.get_qty || 0));

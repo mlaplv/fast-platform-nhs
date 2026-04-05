@@ -131,6 +131,6 @@ async def stt_websocket(socket: WebSocket) -> None:
                 user_id = user_info.get("id") if isinstance(user_info, dict) else getattr(user_info, "id", None) if user_info else None
                 transcript = await transcribe(bytes(audio_buffer), user_id)
                 await socket.send_json({"event": "final", "text": transcript})
-            except Exception:
-                pass
+            except Exception as final_error:
+                logger.error(f"[STT] Final transcription cleanup failed: {final_error}")
         logger.info("[STT] Client disconnected")

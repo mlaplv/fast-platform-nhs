@@ -15,8 +15,18 @@ class OrderHandler(BaseHandler):
     """
     
     async def handle(self, ctx: SupportContext) -> bool:
+        """ZONE 3: Order Closing. Heuristic guard before LLM extraction."""
+        msg = ctx.request.message.lower().strip()
+        
+        # 🚀 Elite V2.2: Heuristic Pre-filter
+        # Skip heavy LLM extraction if the message is clearly not an order intent.
+        potential_order = any(kw in msg for kw in ["mua", "đặt", "lấy", "ship", "giao", "đơn", "check", "kiểm tra"])
+        has_digits = any(char.isdigit() for char in msg)
+        
+        if not potential_order and not has_digits and len(msg) < 15:
+            return False
+
         # 1. RUN LEAD EXTRACTOR (Core Engine)
-        # This performs LLM-based extraction and atomic DB order creation if confirmed.
         lead_data = await lead_extractor.extract_and_convert(
             ctx.db, ctx.request.message, ctx.session_id, current_product_slug=ctx.request.product_slug
         )
@@ -43,20 +53,22 @@ class OrderHandler(BaseHandler):
                 formatted_price = "{:,.0f}".format(float(order_obj.total_amount or 0)).replace(",", ".")
                 delivery_info = self._calculate_delivery_time(order_obj.customer_address or "", getattr(lead_data, "shipping_days", None))
                 
+                from backend.services.commerce.constants.support_config import support_cfg
                 reply = (
                     f"Dạ Helen xin cảm ơn quý khách! 🌸\nĐơn hàng thành công:\n- Mã đơn: **{order_id[-8:].upper()}**\n"
                     f"- Số sản phẩm: {total_qty} lọ/combo\n- Tổng tiền: **{formatted_price}đ** (đã free ship)\n"
                     f"- Nhận hàng: **{delivery_info}**\n\n"
-                    f"[🔍 KIỂM TRA ĐƠN HÀNG](https://smartshop.test/account/orders/{order_id})"
+                    f"[🔍 KIỂM TRA ĐƠN HÀNG]({support_cfg.app_url}/account/orders/{order_id})"
                 )
                 ctx.replies.append(reply)
                 return True # ACTION-FIRST: Stop the pipeline on purchase success.
         
         # 3. SEMI-SUCCESS: Lead identified but Order not created (Missing info)
-        # We don't stop here, we let the Consultant or Greeting handler synthesize a follow-up.
-        # But we record the intent if it's clearly a purchase attempt.
-        if lead_data and (lead_data.customer_phone or lead_data.customer_address):
+        # If we have BOTH phone and address, we consider this an Action-Locked state.
+        # We terminate to provide a focused confirmation/request.
+        if lead_data and lead_data.customer_phone and lead_data.customer_address:
             ctx.intent = SupportIntent.PURCHASE
+            return True
             
         return False
 

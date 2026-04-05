@@ -45,3 +45,18 @@ class RegisterRequest(BaseModel):
     email: str
     name: str
     password: str
+
+class SocialLoginRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    token: str
+    platform: Optional[str] = None
+    metadata: Optional[dict] = None
+
+class OTPRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    phone: str = Field(..., pattern=r"^\+?[0-9]{10,15}$")
+
+class OTPVerifyRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    phone: str
+    code: str = Field(..., min_length=6, max_length=6)

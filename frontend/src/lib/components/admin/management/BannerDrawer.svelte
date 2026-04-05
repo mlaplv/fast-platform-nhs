@@ -13,6 +13,7 @@
   import FileManager from "../../media/FileManager.svelte";
 
   let {
+    isOpen = $bindable(),
     banner = $bindable(),
     onClose,
     onSave

@@ -78,10 +78,10 @@ class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     status: Mapped[str] = mapped_column(String, default="WAITING_FOR_REVIEW")
     category: Mapped[str] = mapped_column(String, default="CREATIVE_CONTENT", index=True)
     
-    gold_metadata: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
-    topic_data: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
-    assets_data: Mapped[Optional[Union[List[object], dict]]] = mapped_column(JSON, default=list)
-    outline_data: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
+    gold_metadata: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, default=dict)
+    topic_data: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, default=dict)
+    assets_data: Mapped[Optional[Union[list[object], dict[str, object]]]] = mapped_column(JSON, default=list)
+    outline_data: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, default=dict)
     draft_content: Mapped[Optional[str]] = mapped_column(Text)
     search_count: Mapped[int] = mapped_column(Integer, default=0)
     unique_score: Mapped[float] = mapped_column(sa.Float, default=1.0)
@@ -89,14 +89,15 @@ class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     final_html: Mapped[Optional[str]] = deferred(mapped_column(Text))
     events: Mapped[List["CampaignEvent"]] = relationship("CampaignEvent", back_populates="campaign", cascade="all, delete-orphan")
 
-    def get_gold_config(self) -> dict:
+    def get_gold_config(self) -> dict[str, object]:
         gold = self.gold_metadata or {}
         config = gold.get("creation_config")
-        if config: return config
+        if isinstance(config, dict): return config
         topic = self.topic_data or {}
-        return topic.get("creation_config") or {}
+        config = topic.get("creation_config")
+        return config if isinstance(config, dict) else {}
 
-    def get_gold_val(self, key: str, fallback: object = None) -> object:
+    def get_gold_val(self, key: str, fallback: Optional[object] = None) -> Optional[object]:
         gold = self.gold_metadata or {}
         if key in gold: return gold[key]
         topic = self.topic_data or {}
@@ -113,7 +114,7 @@ class CampaignEvent(Base, AuditMixin, TenantMixin):
     id: Mapped[str] = mapped_column(String, primary_key=True)
     campaign_id: Mapped[str] = mapped_column(String, sa.ForeignKey('content_campaigns.id', ondelete="CASCADE"), index=True)
     event_type: Mapped[str] = mapped_column(String, index=True)
-    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    payload: Mapped[dict[str, object]] = mapped_column(JSON, default=dict)
     campaign: Mapped["ContentCampaign"] = relationship("ContentCampaign", back_populates="events")
 
     __table_args__ = (
@@ -131,11 +132,11 @@ class Appointment(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     type: Mapped[str] = mapped_column(String, default="STRATEGY")
     status: Mapped[str] = mapped_column(String, default="UPCOMING")
     recurring_type: Mapped[str] = mapped_column(String, default="none") # none, daily, weekly, monthly
-    recurring_metadata: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
+    recurring_metadata: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, default=dict)
     
     campaign_id: Mapped[Optional[str]] = mapped_column(String, sa.ForeignKey('content_campaigns.id', ondelete="SET NULL"), index=True)
     campaign: Mapped[Optional["ContentCampaign"]] = relationship("ContentCampaign")
-    metadata_json: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
+    metadata_json: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, default=dict)
 
     __table_args__ = (
         Index("ix_appointments_tenant_deleted", "tenant_id", "deleted_at"),
@@ -147,7 +148,7 @@ class ContentScout(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     topic: Mapped[str] = mapped_column(String, index=True)
-    report_data: Mapped[dict] = mapped_column(JSON, default=dict)
+    report_data: Mapped[dict[str, object]] = mapped_column(JSON, default=dict)
     
     # CNS V62.2: TTL for cache (24h default)
     expires_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), index=True)

@@ -49,3 +49,10 @@ class UserListResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     data: List[UserResponse]
     total: int
+
+
+class UserUpdatePayload(BaseModel):
+    model_config = ConfigDict(strict=True)
+    name: Optional[str] = None
+    status: Optional[str] = None
+    roles: Optional[List[str]] = None

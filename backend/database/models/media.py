@@ -32,7 +32,7 @@ class MediaRegistry(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     is_linked: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.text('false'), index=True)
 
     # AI & Professional Metadata (Extensible)
-    media_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
+    media_metadata: Mapped[dict[str, object]] = mapped_column(JSON, default=dict)
 
     provider: Mapped[str] = mapped_column(String(20), default="local") # local, s3, r2
     is_public: Mapped[bool] = mapped_column(sa.Boolean, default=True, server_default=sa.text('true')) # V10.0 RBAC

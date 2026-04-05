@@ -34,26 +34,11 @@ class SchedulerController(Controller):
         offset: int = 0
     ) -> AppointmentListResponse:
         """Thưa Sếp, đây là danh sách các phiên làm việc Neural đã được lên lịch."""
-        from sqlalchemy import select, func
-        
-        try:
-            # R102 Professional Upgrade: Direct safe query to bypass repository windowing bug
-            stmt = select(Appointment).order_by(Appointment.start_time).limit(limit).offset(offset)
-            result = await appointment_repo.session.execute(stmt)
-            appointments = result.scalars().all()
-            
-            # Count separately for total
-            count_stmt = select(func.count()).select_from(Appointment)
-            count_result = await appointment_repo.session.execute(count_stmt)
-            total = count_result.scalar() or 0
-            
-            return AppointmentListResponse(
-                items=[AppointmentResponse.model_validate(r) for r in appointments],
-                total=total
-            )
-        except Exception as e:
-            logger.error(f"Error listing appointments: {e}", exc_info=True)
-            raise e
+        items, total = await appointment_repo.list_with_count(limit, offset)
+        return AppointmentListResponse(
+            items=[AppointmentResponse.model_validate(r) for r in items],
+            total=total
+        )
 
     @post("/", guards=[PermissionGuard(PermissionEnum.SCHEDULE_MANAGE)])
     async def create_appointment(

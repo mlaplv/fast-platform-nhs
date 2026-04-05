@@ -12,34 +12,7 @@ from backend.constants.permissions import PermissionEnum
 
 logger = logging.getLogger("api-gateway")
 
-def mask_pii(event_name: str, payload: dict) -> dict:
-    """R82.33: Security Shield — Mask PII in broadcast events."""
-    if event_name == "ORDER_CREATED":
-        p = dict(payload)
-        # Mask phone: 094***1122
-        phone = p.get("phone", "")
-        if len(phone) > 6:
-            p["phone"] = f"{phone[:3]}***{phone[-4:]}"
-        
-        # Mask customer name: N*** A** Tuan
-        name = p.get("customer", "")
-        if name:
-            parts = name.split()
-            if len(parts) > 1:
-                p["customer"] = f"{parts[0][0]}*** {parts[-1]}"
-            else:
-                p["customer"] = f"{name[0]}***"
-        
-        # Mask address: 123 Street... -> 123...
-        addr = p.get("address", "")
-        if addr:
-            p["address"] = f"{addr[:6]}..."
-            
-        # Remove IP and User Agent from broadcast
-        p.pop("ip", None)
-        p.pop("user_agent", None)
-        return p
-    return payload
+from backend.utils.security import mask_pii
 
 class PulseStreamController(Controller):
     guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]

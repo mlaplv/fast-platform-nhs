@@ -13,6 +13,7 @@ from .trinity_models import TrinityModels
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
+    from pydantic_ai.result import RunResult, StreamedRunResult
 
 logger = logging.getLogger("api-gateway")
 
@@ -30,13 +31,17 @@ _G_SAFETY_NONE = [
 
 class TrinityBridge:
     """V65.0: Centralized AI Bridge. Modularized for Martial Law (<300 lines)."""
-    def __init__(self):
-        self.rotator = key_rotator
-        self.primary_model = os.getenv("AI_PRIMARY_MODEL", "gemini-2.0-flash")
-        self.fallback_model = os.getenv("AI_FALLBACK_MODEL", "gemini-1.5-pro")
-        self.models_helper = TrinityModels(self.rotator, self.primary_model, self.fallback_model)
-        self.db_primary_model, self.db_waterfall, self.discovered, self._initialized = None, [], [], False
-        self.ROLE_FAST, self.ROLE_BRAIN = "fast", "brain"
+    def __init__(self) -> None:
+        self.rotator: 'KeyRotator' = key_rotator
+        self.primary_model: str = os.getenv("AI_PRIMARY_MODEL", "gemini-2.0-flash")
+        self.fallback_model: str = os.getenv("AI_FALLBACK_MODEL", "gemini-1.5-pro")
+        self.models_helper: TrinityModels = TrinityModels(self.rotator, self.primary_model, self.fallback_model)
+        self.db_primary_model: Optional[str] = None
+        self.db_waterfall: list[str] = []
+        self.discovered: list[str] = []
+        self._initialized: bool = False
+        self.ROLE_FAST: str = "fast"
+        self.ROLE_BRAIN: str = "brain"
         
         # Elite V2.2: CPU Contention Guard (R4-Core Xeon Standard)
         # Prevents more than N concurrent heavy AI tasks from saturating the 4-core VPS.
@@ -46,7 +51,7 @@ class TrinityBridge:
     def default_model_name(self) -> str:
         return self.db_primary_model or self.primary_model
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         if not self._initialized:
             logger.info("📡 [TrinityBridge] Periodic Neural Bridge Initialization...")
             # Elite V2.2: Ensure keys are loaded if not already done (for non-lifespan entry points)
@@ -61,7 +66,7 @@ class TrinityBridge:
             self._initialized = True
             logger.info(f"✅ [TrinityBridge] Neural Bridge ready. Models discovered: {len(self.discovered)}")
 
-    async def reload_models(self):
+    async def reload_models(self) -> None:
         from backend.database.alchemy_config import alchemy_config
         from backend.database.models import VoiceProfile
         from sqlalchemy import select
@@ -77,21 +82,21 @@ class TrinityBridge:
         
         self.discovered = await self.models_helper.discover_available()
 
-    async def run(self, agent: Agent, prompt: str, **kwargs: object):
-        val_t = kwargs.pop("timeout", 90.0)
-        t = float(val_t) if isinstance(val_t, (int, float)) else 90.0
+    async def run(self, agent: Agent, prompt: str, **kwargs: object) -> RunResult:
+        val_t: object = kwargs.pop("timeout", 90.0)
+        t: float = float(val_t) if isinstance(val_t, (int, float)) else 90.0
         
-        val_m = kwargs.pop("model", None)
-        r_m = str(val_m) if val_m is not None else None
+        val_m: object = kwargs.pop("model", None)
+        r_m: Optional[str] = str(val_m) if val_m is not None else None
         
-        val_sid = kwargs.pop("session_id", None)
-        s_id = str(val_sid) if val_sid is not None else None
+        val_sid: object = kwargs.pop("session_id", None)
+        s_id: Optional[str] = str(val_sid) if val_sid is not None else None
         
-        val_role = kwargs.pop("role", None)
-        role = str(val_role) if val_role is not None else None
+        val_role: object = kwargs.pop("role", None)
+        role: Optional[str] = str(val_role) if val_role is not None else None
         
-        val_force = kwargs.pop("force", False)
-        force = bool(val_force)
+        val_force: object = kwargs.pop("force", False)
+        force: bool = bool(val_force)
         
         # Elite V2.2: Mandatory Late-Initialization Guard (R45 - Cold Start Protection)
         if not self._initialized:
@@ -156,24 +161,24 @@ class TrinityBridge:
                             continue
                         if cat == "auth_soft":
                             await self.rotator.mark_unhealthy(key, reason="auth_soft", session_id=s_id)
-                            logger.info(f"🔄 [Neural Bridge] Soft Auth failure on key {att+1}. Rotating...")
+                            # Elite V2.2: Do NOT log warning on first soft failure to keep terminal clean
                             continue
                         if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break
         raise AIConfigurationError(f"AI Overloaded: {last_err}", str(models[-1]) if models else "N/A", max_k-1)
 
     @asynccontextmanager
-    async def run_stream(self, agent: Agent, prompt: str, **kwargs: object):
-        val_m = kwargs.pop("model", None)
-        r_m = str(val_m) if val_m is not None else None
+    async def run_stream(self, agent: Agent, prompt: str, **kwargs: object) -> StreamedRunResult:
+        val_m: object = kwargs.pop("model", None)
+        r_m: Optional[str] = str(val_m) if val_m is not None else None
         
-        val_sid = kwargs.pop("session_id", None)
-        s_id = str(val_sid) if val_sid is not None else None
+        val_sid: object = kwargs.pop("session_id", None)
+        s_id: Optional[str] = str(val_sid) if val_sid is not None else None
         
-        val_role = kwargs.pop("role", None)
-        role = str(val_role) if val_role is not None else None
+        val_role: object = kwargs.pop("role", None)
+        role: Optional[str] = str(val_role) if val_role is not None else None
         
-        val_force = kwargs.pop("force", False)
-        force = bool(val_force)
+        val_force: object = kwargs.pop("force", False)
+        force: bool = bool(val_force)
         
         # Elite V2.2: Mandatory Late-Initialization Guard (R45 - Cold Start Protection)
         if not self._initialized:
@@ -247,4 +252,4 @@ class TrinityBridge:
             
         return model, ms
 
-trinity_bridge = TrinityBridge()
+trinity_bridge: TrinityBridge = TrinityBridge()

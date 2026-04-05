@@ -1,11 +1,15 @@
 from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import DateTime, String, Index
-from sqlalchemy.orm import declarative_base, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-Base = declarative_base()
+class Base(DeclarativeBase):
+    """
+    Standardized SQLAlchemy 2.0 Declarative Base.
+    """
+    pass
 
-def utcnow():
+def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 class AuditMixin:

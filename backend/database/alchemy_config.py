@@ -2,7 +2,7 @@ import os
 import logging
 from typing import cast, Optional, Callable
 from advanced_alchemy.extensions.litestar import SQLAlchemyAsyncConfig as BaseSQLAlchemyAsyncConfig, AsyncSessionConfig
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession, AsyncEngine
 from sqlalchemy import event
 from advanced_alchemy.extensions.litestar._utils import get_aa_scope_state, set_aa_scope_state
 from advanced_alchemy.routing.context import reset_routing_context
@@ -17,10 +17,10 @@ class EliteSQLAlchemyAsyncConfig(BaseSQLAlchemyAsyncConfig):
     """
     def provide_session(self, state: State, scope: Scope) -> AsyncSession:
         # Override to remove deprecated 'advanced_alchemy._listeners.set_async_context' call
-        session = cast("Optional[AsyncSession]", get_aa_scope_state(scope, self.session_scope_key))
+        session: Optional[AsyncSession] = cast(Optional[AsyncSession], get_aa_scope_state(scope, self.session_scope_key))
         if session is None:
             reset_routing_context()
-            session_maker = cast("Callable[[], AsyncSession]", state[self.session_maker_app_state_key])
+            session_maker: Callable[[], AsyncSession] = cast(Callable[[], AsyncSession], state[self.session_maker_app_state_key])
             session = session_maker()
             set_aa_scope_state(scope, self.session_scope_key, session)
         return session
@@ -29,9 +29,13 @@ class AlchemyConfig:
     """
     R1.5 Unified Database Engine Management.
     """
-    def __init__(self):
-        self._engine = None
-        self._session_maker = None
+    _engine: Optional[AsyncEngine] = None
+    _session_maker: Optional[async_sessionmaker[AsyncSession]] = None
+    db_url: Optional[str] = None
+    _url: str = ""
+    litestar_config: EliteSQLAlchemyAsyncConfig
+
+    def __init__(self) -> None:
         self.db_url = os.getenv("DATABASE_URL")
         if self.db_url and self.db_url.startswith("postgresql://"):
             self.db_url = self.db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
@@ -45,7 +49,7 @@ class AlchemyConfig:
             session_config=AsyncSessionConfig(expire_on_commit=False)
         )
 
-    def get_engine(self):
+    def get_engine(self) -> AsyncEngine:
         if self._engine is None:
             engine_kwargs: dict[str, object] = {
                 "echo": False,
@@ -74,7 +78,7 @@ class AlchemyConfig:
             self._engine = create_async_engine(self._url, **engine_kwargs)
         return self._engine
 
-    def create_session_maker(self):
+    def create_session_maker(self) -> async_sessionmaker[AsyncSession]:
         if self._session_maker is None:
             self._session_maker = async_sessionmaker(
                 self.get_engine(), 

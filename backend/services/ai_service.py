@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 import uuid
@@ -7,15 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import HTTPException
 
-from backend.services.ai_engine.core.key_rotator import key_rotator
-from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-from backend.utils.security import GeminiSecurity
-from backend.database.models import VoiceProfile
-from backend.schemas.ai import (
-    KeyStats, BulkKeyInput, ModelConfig, AIModelStatusResponse,
-    ModelDiscoveryResponse
-)
-from backend.schemas.common import SuccessResponse
+from backend.schemas.common import SuccessResponse, UserID
 
 logger = logging.getLogger("api-gateway")
 
@@ -72,7 +65,7 @@ class AIService:
             return SuccessResponse(ok=False, message=str(e))
 
     @staticmethod
-    async def sync_bulk_keys(db_session: AsyncSession, user_id: str, data: BulkKeyInput) -> SuccessResponse:
+    async def sync_bulk_keys(db_session: AsyncSession, user_id: UserID, data: BulkKeyInput) -> SuccessResponse:
         """Bulk upload and save Gemini keys."""
         raw_input: str = data.keys.strip()
         new_keys: list[str] = []
@@ -84,7 +77,7 @@ class AIService:
                 new_keys = [str(k).strip() for k in decoded if k]
             else:
                 new_keys = [str(decoded).strip()]
-        except:
+        except json.JSONDecodeError:
             # 2. Fallback to Legacy CSV/Newline
             new_keys = [k.strip() for k in raw_input.replace(",", "\n").split("\n") if k.strip()]
 
@@ -118,7 +111,7 @@ class AIService:
             return SuccessResponse(ok=False, message=str(e))
 
     @staticmethod
-    async def discover_models(db_session: AsyncSession, user_id: str) -> ModelDiscoveryResponse:
+    async def discover_models(db_session: AsyncSession, user_id: UserID) -> ModelDiscoveryResponse:
         """Fetch available Gemini models and persist."""
         try:
             key = await key_rotator.get_key(model_name=trinity_bridge.models_helper.default_model)
@@ -154,7 +147,7 @@ class AIService:
             return ModelDiscoveryResponse(status="error", models=[])
 
     @staticmethod
-    async def get_ai_models(db_session: AsyncSession, user_id: str) -> AIModelStatusResponse:
+    async def get_ai_models(db_session: AsyncSession, user_id: UserID) -> AIModelStatusResponse:
         """Returns the current model waterfall (Scalar Projection Rule 1.5)."""
         stmt = select(
             VoiceProfile.primary_model,
@@ -163,6 +156,7 @@ class AIService:
         ).where(VoiceProfile.user_id == user_id)
 
         result = await db_session.execute(stmt)
+        # Elite V2.2: Explicitly typing the scalar result
         data = result.first()
 
         return AIModelStatusResponse(
@@ -172,7 +166,7 @@ class AIService:
         )
 
     @staticmethod
-    async def update_ai_models(db_session: AsyncSession, user_id: str, data: ModelConfig) -> SuccessResponse:
+    async def update_ai_models(db_session: AsyncSession, user_id: UserID, data: ModelConfig) -> SuccessResponse:
         """Update the AI model waterfall configuration."""
         stmt = select(VoiceProfile).where(VoiceProfile.user_id == user_id)
         result = await db_session.execute(stmt)

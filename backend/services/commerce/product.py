@@ -17,6 +17,9 @@ from backend.services.event_bus import event_bus
 from backend.utils.media import extract_media_urls
 from sqlalchemy.dialects.postgresql import JSONB
 import re
+import json
+from pydantic_ai import Agent
+from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
 logger = logging.getLogger("api-gateway")
 RE_ORDER_COUNT = re.compile(r"([\d,.]+)")
@@ -359,6 +362,33 @@ class ProductService:
         stmt = update(ProductBase).where(ProductBase.id.in_(ids)).values(status="ACTIVE")
         await db_session.execute(stmt)
         return BulkActionResponse(ok=True, count=len(ids))
+
+    async def suggest_seo(self, name: str, description: str) -> Dict[str, str]:
+        """Elite V2.2: AI SEO Suggestion (C.O.R.E Engine)."""
+        agent = Agent(
+            system_prompt="You are an SEO Expert. Optimize SEO metadata for a product. Return ONLY concise valid JSON without markdown wrapping: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\"}"
+        )
+        prompt = f"Product Name: {name}\nProduct Desc: {description}"
+        
+        try:
+            result = await trinity_bridge.run(
+                agent=agent,
+                prompt=prompt,
+                role="fast",
+                timeout=30.0
+            )
+            
+            if result:
+                suggested_json_str = str(getattr(result, "data", getattr(result, "output", result))).strip()
+                match = re.search(r'\{.*\}', suggested_json_str, re.DOTALL)
+                parsed = json.loads(match.group(0)) if match else {"title": "", "description": "", "keywords": ""}
+                return parsed
+            
+            return {"title": f"{name} Chính Hãng", "description": "Sản phẩm chính hãng", "keywords": ""}
+            
+        except Exception as e:
+            logger.exception(f"[ProductService] AI SEO Suggestion Failed: {e}")
+            return {"title": f"{name} Chính Hãng", "description": "Mua sản phẩm chính hãng với nhiều ưu đãi", "keywords": ""}
 
 # ==========================================
 # SERVICE PROVIDERS (V76.2 DI PATTERN)
