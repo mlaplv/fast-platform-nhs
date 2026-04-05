@@ -32,6 +32,7 @@ class SupportContext(BaseModel):
     dna: NeuralDNA = Field(default_factory=NeuralDNA)
     product_ctx: str = ""
     history_text: str = ""
+    knowledge_index: str = "" # Elite V2.2: Layer 1 Memory (Knowledge Map)
     p_info: Optional[SupportProductInfo] = None
     
     # Lead / Order results

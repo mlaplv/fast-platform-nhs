@@ -206,6 +206,17 @@ class SupportAgentOperative(BaseAgentOperative):
         hist_text = await self._fetch_chat_context(db, session_id)
         dna = await self._fetch_neural_dna(db, session_id)
         
+        # 🚀 1.0.1: Layer 1 Memory (Knowledge Map) - Elite V2.2 Protocol
+        try:
+            from backend.database.repositories import SupportKnowledgeRepository
+            from backend.services.commerce.support_knowledge import SupportKnowledgeService
+            repo = SupportKnowledgeRepository(session=db)
+            kb_service = SupportKnowledgeService(repo=repo)
+            kb_index = await kb_service.get_knowledge_index(db)
+        except Exception as kbe:
+            logger.warning("[SupportAgent] Knowledge Index fetch failed: %s", kbe)
+            kb_index = ""
+
         # 🚀 1.1: Fetch Integration Config (Elite V2.2)
         zalo_on = await xohi_memory.client.get("system:zalo_enabled") != "0"
         messenger_on = await xohi_memory.client.get("system:messenger_enabled") != "0"
@@ -217,6 +228,7 @@ class SupportAgentOperative(BaseAgentOperative):
             dna=dna,
             product_ctx=ctx_text,
             history_text=hist_text,
+            knowledge_index=kb_index,
             p_info=p_info,
             zalo_enabled=zalo_on,
             messenger_enabled=messenger_on

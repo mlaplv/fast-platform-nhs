@@ -19,11 +19,26 @@ class GuardrailHandler(BaseHandler):
         # Policy & Ethics
         "phản động", "biểu tình", "chính trị", "đảng cộng sản", "tôn giáo"
     ]
+
+    # Elite V2.2: Advanced Protection (Regex-based)
+    INSULT_PATTERNS = [
+        r"(đm|đcm|vcl|đéo|ngu|cút|điên|khùng|mất dạy|láo|lừa đảo|bịp)",
+        r"(đầu buồi|cặc|lồn|vú|đít|đụ|chịch)"
+    ]
+    
+    INJECTION_PATTERNS = [
+        r"ignore (all )?previous instructions",
+        r"system prompt",
+        r"you are now (a|an)",
+        r"quên (hết )?chỉ dẫn",
+        r"bỏ qua (mọi )?quy tắc",
+        r"lệnh mới của tôi là"
+    ]
     
     async def handle(self, ctx: SupportContext) -> bool:
         msg = ctx.request.message.lower().strip()
         
-        # 1. Micro-Heuristics (<2ms)
+        # 1. Micro-Heuristics (<2ms) - Keyword Match
         if any(kw in msg for kw in self.BLOCKED_KEYWORDS):
             reply = (
                 "Dạ Helen rất tiếc ạ! Hiện tại SmartShop chỉ tập trung chuyên sâu vào dòng sản phẩm **Đặc trị Mùi cơ thể (Nách, Chân)** "
@@ -33,8 +48,18 @@ class GuardrailHandler(BaseHandler):
             ctx.replies.append(reply)
             ctx.intent = SupportIntent.UNKNOWN
             return True # Terminate pipeline early
+
+        # 2. Advanced Defense - Insults & Injection
+        all_defense = self.INSULT_PATTERNS + self.INJECTION_PATTERNS
+        for pattern in all_defense:
+            if re.search(pattern, msg, re.IGNORECASE):
+                logger.warning(f"[Guardrail] Security Breach Detected: {pattern}")
+                reply = "Dạ Helen xin lỗi, em chỉ có thể hỗ trợ các thông tin liên quan đến sản phẩm và đơn hàng của SmartShop. Rất mong Anh/Chị giữ thái độ lịch sự ạ! 🙏"
+                ctx.replies.append(reply)
+                ctx.intent = SupportIntent.UNKNOWN
+                return True
             
-        # 2. Potential Semantic Rejection (Placeholder for LLM Guardrail if needed)
+        # 3. Potential Semantic Rejection (Placeholder for LLM Guardrail if needed)
         # For now, we allow the pipeline to proceed to Consultant/Order if no keywords hit.
         
         return False

@@ -52,7 +52,14 @@ class ConsultantHandler(BaseHandler):
         if not ctx.messenger_enabled:
             integration_ctx += "LƯU Ý: Không nhắc tới Messenger trong hội thoại.\n"
 
-        full_prompt = f"{self.SYSTEM_PROMPT}\n{integration_ctx}\n{lead_alert}\n{ctx.history_text}\n--- PRODUCT ---\n{ctx.product_ctx}\n"
+        full_prompt = (
+            f"{self.SYSTEM_PROMPT}\n"
+            f"{integration_ctx}\n"
+            f"{lead_alert}\n"
+            f"\n[MỤC LỤC TRI THỨC HỆ THỐNG - LAYER 1]\n{ctx.knowledge_index}\n"
+            f"\n[LỊCH SỬ GẦN ĐÂY]\n{ctx.history_text}\n"
+            f"--- PRODUCT ---\n{ctx.product_ctx}\n"
+        )
         
         try:
             # Elite V2.2: Late-binding Agent with Tool Injection
@@ -62,10 +69,20 @@ class ConsultantHandler(BaseHandler):
                 deps_type=ConsultantDeps
             )
 
-            # 🛠️ Gắn Tool tìm kiếm tri thức (Hàng nóng của Sếp)
+            # 🛠️ TOOL LAYER 2: Lấy chi tiết chủ đề tri thức (Fetch on-demand)
+            @agent.tool
+            async def fetch_topic_details(ctx: RunContext[ConsultantDeps], topic_id: str) -> str:
+                """Dùng tool này khi bạn thấy ID trong Layer 1 và cần biết chi tiết câu trả lời chuyên sâu."""
+                from backend.database.repositories import SupportKnowledgeRepository
+                from backend.services.commerce.support_knowledge import SupportKnowledgeService
+                repo = SupportKnowledgeRepository(session=ctx.deps.db)
+                service = SupportKnowledgeService(repo=repo)
+                return await service.fetch_topic_details(ctx.deps.db, topic_id)
+
+            # 🛠️ TOOL LAYER 3: Tìm kiếm mờ (Semantic Search)
             @agent.tool
             async def search_knowledge_base(ctx: RunContext[ConsultantDeps], query: str) -> str:
-                """Tra cứu kho tri thức của SmartShop về địa chỉ, thành phần, chính sách..."""
+                """Tra cứu kho tri thức của SmartShop khi không thấy ID phù hợp trong Layer 1."""
                 from backend.database.repositories import SupportKnowledgeRepository
                 from backend.services.commerce.support_knowledge import SupportKnowledgeService
                 repo = SupportKnowledgeRepository(session=ctx.deps.db)
