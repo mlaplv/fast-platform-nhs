@@ -22,11 +22,16 @@ interface ResumeDeps {
   };
   log: {
     activityLogs: SystemLog[];
+    setActivityLogs: (logs: SystemLog[]) => void;
     addLog: (msg: string, source?: string, type?: string, tier?: number, data?: Record<string, unknown>) => void;
     closeFullLog: () => void;
   };
   ui: {
     showToast: (msg: string, type: ToastType) => void;
+  };
+  chat: {
+    clearLocalSession: (sessionId: string, userId?: string) => void;
+    sweepCampaignFromCache: (campaignId: string) => void;
   };
 }
 
@@ -35,8 +40,11 @@ export function createResumeManager(
   voice: ResumeDeps["voice"],
   log: ResumeDeps["log"],
   ui: ResumeDeps["ui"],
+  chat: ResumeDeps["chat"],
   startSmartPolling: () => void
 ) {
+  const processingCids = new Set<string>();
+  const staleCids = new Set<string>();
   let greetingActive = false;
   let pendingGreetingUnlock: (() => void) | null = null;
 
@@ -59,6 +67,15 @@ export function createResumeManager(
       console.warn("[Resume] Missing campaign_id in payload:", logOrCampaign);
       return;
     }
+
+    // CNS V82.12: Neural Lock & Stale Cache Check
+    if (processingCids.has(campaignId)) return;
+    if (staleCids.has(campaignId)) {
+       ui.showToast("Chiến dịch này đã được xác nhận là không còn tồn tại.", "error");
+       return;
+    }
+
+    processingCids.add(campaignId);
 
     let campaignData: Record<string, unknown> = ((logOrCampaign as SystemLog)?.data || logOrCampaign) as Record<string, unknown>;
     try {
@@ -88,7 +105,25 @@ export function createResumeManager(
         };
       }
     } catch (e) {
+      const err = e as { status?: number; message?: string };
+      if (err?.status === 404) {
+        ui.showToast("Dạ thưa Sếp, chiến dịch này đã được xóa khỏi hệ thống rồi ạ.", "error");
+        
+        // CNS V82.12: Permanently mark as stale to block ghost re-fetches
+        staleCids.add(campaignId);
+
+        // CNS V82.11: Proactive cleanup of stale log entry
+        const logs = [...log.activityLogs];
+        const filtered = logs.filter(l => l.data?.campaign_id !== campaignId);
+        if (filtered.length !== logs.length) log.setActivityLogs(filtered);
+        
+        // Signal chat to perform deep-state sweep for this ghost CID
+        chat.sweepCampaignFromCache(campaignId);
+        return;
+      }
       console.warn("[Resume] Could not fetch campaign from API, using log data as fallback:", e);
+    } finally {
+      processingCids.delete(campaignId);
     }
 
     voice.setVoiceResult(

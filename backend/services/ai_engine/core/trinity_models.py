@@ -14,6 +14,9 @@ class TrinityModels:
         self.fallback_model: str = fallback_model
         self.ROLE_FAST: str = "fast"
         self.ROLE_BRAIN: str = "brain"
+        # Elite V2.2: Blacklist non-text-generation model segments.
+        # These appear in Google's model list with generateContent but fail for chat tasks.
+        self._MODEL_BLACKLIST: tuple[str, ...] = ("-tts", "-embedding", "-aqa", "-image", "-vision")
 
     async def discover_available(self) -> list[str]:
         cached = await self.rotator.get_discovered_models()
@@ -41,8 +44,11 @@ class TrinityModels:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.get(url)
                 if resp.status_code == 200:
-                    models = [m["name"].replace("models/", "") for m in resp.json().get("models", []) 
-                             if "generateContent" in (m.get("supportedGenerationMethods") or [])]
+                    models = [
+                        m["name"].replace("models/", "") for m in resp.json().get("models", [])
+                        if "generateContent" in (m.get("supportedGenerationMethods") or [])
+                        and not any(bl in m["name"] for bl in self._MODEL_BLACKLIST)
+                    ]
                     await self.rotator.save_discovered_models(models)
                     return models
         except Exception as e:
@@ -69,6 +75,10 @@ class TrinityModels:
 
         healthy = []
         for m in raw:
+            # Elite V2.2: Double-safety — strip blacklisted model types even if they snuck into discovered.
+            if any(bl in m for bl in self._MODEL_BLACKLIST):
+                logger.debug(f"[TrinityModels] Skipping blacklisted model: {m}")
+                continue
             if not await self.rotator.is_model_poisoned(m):
                 healthy.append(m)
         

@@ -299,7 +299,15 @@ class SupportAgentOperative(BaseAgentOperative):
             logger.info("[SupportAgent] Lockdown: Bypassing Fast-Path for Deep Specialist.")
         else:
             try:
-                fast_res = await trinity_bridge.run(_fast_intent_agent, request.message, role=trinity_bridge.ROLE_FAST, timeout=2.0)
+                # Elite V2.2: Shield sensitive terms before fast-path classification
+                masked_msg = await self._mask_sensitive_medical_terms(request.message)
+                fast_res = await trinity_bridge.run(
+                    _fast_intent_agent, 
+                    masked_msg, 
+                    role=trinity_bridge.ROLE_FAST, 
+                    timeout=2.0,
+                    safety_none=True
+                )
                 f_data = cast(FastIntentResponse, fast_res.data) # Proper Elite V2.2 Typing
                 
                 if f_data.intent == "GREETING" and f_data.quick_reply:

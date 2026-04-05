@@ -26,6 +26,8 @@ from backend.services.xohi.creative_studio.handlers.management import Management
 from backend.services.xohi.creative_studio.operatives.discovery_hunter import DiscoveryHunter
 from backend.utils.config import get_env_json
 
+from backend.services.xohi_memory import xohi_memory
+
 logger = logging.getLogger("api-gateway")
 
 class ContentOrchestrator:
@@ -88,6 +90,8 @@ class ContentOrchestrator:
         registry.register(5, self.cop) # Fixed: Step 5 now automated via PlagiarismCop
         registry.register(6, self.media)
         
+        self.memory = xohi_memory
+        
         # Initialize Handlers
         self.voice_handler = VoiceHandler(self)
         self.action_handler = ActionHandler(self)
@@ -102,7 +106,8 @@ class ContentOrchestrator:
         session_maker = alchemy_config.create_session_maker()
         async with session_maker() as session:
             stmt = select(ContentCampaign.id, ContentCampaign.current_step).where(
-                ContentCampaign.status == "PROCESSING"
+                ContentCampaign.status == "PROCESSING",
+                ContentCampaign.deleted_at == None
             )
             result = await session.execute(stmt)
             rows = result.all()

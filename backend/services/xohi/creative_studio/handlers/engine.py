@@ -45,7 +45,11 @@ class ExecutionEngine:
             session_maker = alchemy_config.create_session_maker()
             async with session_maker() as session:
                 repo = ContentCampaignRepository(session=session)
-                c = await repo.get(campaign_id)
+                stmt = select(ContentCampaign).where(
+                    ContentCampaign.id == campaign_id,
+                    ContentCampaign.deleted_at == None
+                )
+                c = (await session.execute(stmt)).scalar_one_or_none()
                 if c:
                     # CNS V82.50: Define step if missing
                     step = force_step if force_step is not None else c.current_step
@@ -97,8 +101,26 @@ class ExecutionEngine:
             if self._active_tasks.get(campaign_id) == current_task:
                 del self._active_tasks[campaign_id]
 
+    async def terminate_campaign_tasks(self, campaign_id: str):
+        """
+        Elite V2.2: Hard Kill Signal.
+        Cancels any active asyncio task for a campaign to prevent ghost logs.
+        """
+        task = self._active_tasks.get(campaign_id)
+        if task and not task.done():
+            logger.warning(f"🛑 [ExecutionEngine] Terminating active task for purged campaign: {campaign_id}")
+            task.cancel()
+            # We don't await here to avoid blocking management handlers, 
+            # let it finish cancellation in its own thread.
+            if self._active_tasks.get(campaign_id) == task:
+                del self._active_tasks[campaign_id]
+
     async def _execute_step(self, campaign_id: str, campaign_repo: ContentCampaignRepository, force_step: Optional[int] = None):
-        campaign = await campaign_repo.get(campaign_id)
+        stmt = select(ContentCampaign).where(
+            ContentCampaign.id == campaign_id,
+            ContentCampaign.deleted_at == None
+        )
+        campaign = (await campaign_repo.session.execute(stmt)).scalar_one_or_none()
         if not campaign: return
         
         step = force_step if force_step is not None else campaign.current_step
@@ -196,7 +218,11 @@ class ExecutionEngine:
                     from backend.database.alchemy_config import alchemy_config
                     async with alchemy_config.create_session_maker()() as check_session:
                         check_repo = ContentCampaignRepository(session=check_session)
-                        check_campaign = await check_repo.get(campaign_id)
+                        check_stmt = select(ContentCampaign).where(
+                            ContentCampaign.id == campaign_id,
+                            ContentCampaign.deleted_at == None
+                        )
+                        check_campaign = (await check_session.execute(check_stmt)).scalar_one_or_none()
                         if check_campaign and check_campaign.status == "REJECTED":
                             logger.warning(f"[Content Factory] Task {campaign_id} CANCELLED via Hard Kill. Aborting.")
                             response_task.cancel()
@@ -227,24 +253,39 @@ class ExecutionEngine:
                 elif step == 2:
                     # Phase 15.3: Chuẩn hóa dữ liệu assets (hỗ trợ kéo thả)
                     raw_assets = response.data.get("assets", response.data) if isinstance(response.data, dict) else response.data
-                    logger.info(f"[ExecutionEngine] Syncing Step 2 assets. Raw count from response: {len(raw_assets) if isinstance(raw_assets, list) else 'N/A'}")
                     if isinstance(raw_assets, list):
                         campaign.assets_data = raw_assets
                     else:
                         campaign.assets_data = raw_assets
-                    logger.info(f"[ExecutionEngine] campaign.assets_data now has {len(campaign.assets_data) if isinstance(campaign.assets_data, list) else 'N/A'} items.")
-                elif step == 3: campaign.outline_data = response.data.get("outline", response.data) if isinstance(response.data, dict) else response.data
-                elif step == 4: campaign.draft_content = response.data.get("content", campaign.draft_content)
+                elif step == 3:
+                    # CNS V86.5: Robust Outline Extraction
+                    outline = response.data.get("outline", response.data) if isinstance(response.data, dict) else response.data
+                    # If it's a dict and has sections, it's good. If it's legacy raw string, it's good.
+                    campaign.outline_data = outline
+                elif step == 4:
+                    # CNS V86.5: Robust Draft Extraction
+                    draft = campaign.draft_content # Default to current
+                    if isinstance(response.data, dict):
+                        draft = response.data.get("content", response.data.get("raw", campaign.draft_content))
+                    elif isinstance(response.data, str):
+                        draft = response.data
+                    
+                    # Ensure draft is eventually a string (handle nested dicts if agent misunderstood)
+                    if isinstance(draft, dict) and "content" in draft:
+                        draft = draft["content"]
+                    
+                    campaign.draft_content = draft
                 elif step == 5:
-                    if "score" in response.data:
+                    if isinstance(response.data, dict) and "score" in response.data:
                         campaign.unique_score = response.data["score"]
                 elif step == 6:
                     # Step 6 might update final_html and assets
-                    if "final_html" in response.data:
-                        campaign.final_html = response.data["final_html"]
-                    if "assets" in response.data:
-                        campaign.assets_data = response.data["assets"]
-                        flag_modified(campaign, "assets_data")
+                    if isinstance(response.data, dict):
+                        if "final_html" in response.data:
+                            campaign.final_html = response.data["final_html"]
+                        if "assets" in response.data:
+                            campaign.assets_data = response.data["assets"]
+                            flag_modified(campaign, "assets_data")
 
             # Phase 73: Always set to WAITING_FOR_REVIEW after an automated step completes
             # This allows the user to review Step 5 (Plagiarism) and Step 6 (Final Package)

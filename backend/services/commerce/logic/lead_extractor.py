@@ -158,15 +158,18 @@ class LeadExtractor:
                     logger.warning(f"[LeadExtractor] Address Resolution Low Confidence for: {lead.customer_address}")
 
             # 3. IDENTITY RESOLUTION (Elite V2.2)
+            # Only resolve identity when we have a REAL phone — never use dummy fallback.
             from backend.database import current_tenant_id
             target_tenant = current_tenant_id.get() or "default"
-            user, is_new, prev_addr, addr_changed = await user_service.get_or_resolve_customer(
-                db=db, phone=lead.customer_phone or "0000000000",
-                name=lead.customer_name, current_address=lead.customer_address, tenant_id=target_tenant
-            )
-            lead.is_new_customer = is_new
-            lead.previous_address = prev_addr
-            lead.address_status = "NEW" if is_new else ("CHANGED" if addr_changed else "SAME")
+            resolved_user = None
+            if lead.customer_phone:
+                resolved_user, is_new, prev_addr, addr_changed = await user_service.get_or_resolve_customer(
+                    db=db, phone=lead.customer_phone,
+                    name=lead.customer_name, current_address=lead.customer_address, tenant_id=target_tenant
+                )
+                lead.is_new_customer = is_new
+                lead.previous_address = prev_addr
+                lead.address_status = "NEW" if is_new else ("CHANGED" if addr_changed else "SAME")
 
             if not lead.is_definite_purchase or not lead.customer_phone:
                 return lead
@@ -233,16 +236,21 @@ class LeadExtractor:
             # Final precision rounding (Elite Financial Standard)
             total_amount = round(total_amount, 2)
 
+            # Guard: resolved_user must exist to create order
+            if not resolved_user:
+                logger.warning("[LeadExtractor] No resolved user for order creation. Aborting.")
+                return lead
+
             order_data = OrderCreateRequest(
                 customer_name=lead.customer_name or "Khách chốt từ Chat",
-                customer_email=getattr(user, "email", None) or "helen.ai.auto@smartshop.test",
+                customer_email=resolved_user.email,
                 customer_phone=lead.customer_phone,
                 customer_address=lead.customer_address or "Chưa cung cấp địa chỉ",
                 total_amount=total_amount,
                 items=order_items,
             )
             
-            created_order = await order_service.create_order(db_session=db, data=order_data, ip="0.0.0.0", ua="Helen-AI-Sales-Engine", user_id=str(user.id))
+            created_order = await order_service.create_order(db_session=db, data=order_data, ip="0.0.0.0", ua="Helen-AI-Sales-Engine", user_id=str(resolved_user.id))
             await db.commit()
             lead.processed_order_id = str(getattr(created_order, "id", ""))
             logger.info(f"[LeadExtractor] ✅ Architectural Sweep OK: Order Created ({lead.processed_order_id})")

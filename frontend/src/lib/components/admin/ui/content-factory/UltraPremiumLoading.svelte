@@ -2,7 +2,13 @@
   import { onMount } from "svelte";
   import { fade, scale, fly } from "svelte/transition";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
-  import { Sparkles, Cpu, Zap, Activity } from "lucide-svelte";
+  import Sparkles from "lucide-svelte/icons/sparkles";
+  import Cpu from "lucide-svelte/icons/cpu";
+  import Zap from "lucide-svelte/icons/zap";
+  import Activity from "lucide-svelte/icons/activity";
+  import Brain from "lucide-svelte/icons/brain";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
 
   interface Props {
     progress_msg: string;
@@ -41,6 +47,11 @@
     
     return { words: Math.max(0, words), sentences, images, sections };
   });
+
+  // CNS V86.5: Neural Streaming Content
+  // CNS V86.5: Neural Streaming Content (Ultra-Safe Fallback)
+  let streamingText = $derived((nanobot && typeof nanobot.liveStreamBuffer === 'string') ? (nanobot.liveStreamBuffer || liveContent || "") : (liveContent || ""));
+  let showStream = $derived((viewingStep === 3 || viewingStep === 4) && !isAnalysisMessage && streamingText.length > 0);
 
   // History of messages for the "Live Feed" effect
   let messageHistory = $state<string[]>([]);
@@ -90,13 +101,30 @@
         
         <!-- Animated Elements inside Core -->
         <div class="flex flex-col items-center gap-2">
-           <Zap size={40} class="text-white animate-bounce-gentle drop-shadow-[0_0_20px_rgba(255,255,255,1)]" />
+           {#if viewingStep === 3}
+             <Brain size={40} class="text-cyan-400 animate-pulse drop-shadow-[0_0_20px_rgba(34,211,238,0.8)]" />
+           {:else}
+             <Zap size={40} class="text-white animate-bounce-gentle drop-shadow-[0_0_20px_rgba(255,255,255,1)]" />
+           {/if}
            <div class="text-[11px] font-black tracking-[0.4em] uppercase text-white/50">NEURAL XOHI</div>
         </div>
         
         <!-- Scanning Effect -->
         <div class="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-transparent h-1/2 w-full animate-scan-v"></div>
       </div>
+
+      <!-- CNS V86.5: Neural Stream Panel (The 'Root Cause' Visual Fix) -->
+      {#if showStream}
+        <div 
+          class="absolute -inset-x-20 -bottom-40 h-32 overflow-hidden pointer-events-none opacity-30 mask-linear-fade"
+          transition:fade
+        >
+          <div class="text-[10px] font-mono text-blue-300 leading-relaxed break-all text-center animate-neural-scroll">
+            {streamingText.replace(/<[^>]*>?/gm, ' ')}
+            {streamingText.replace(/<[^>]*>?/gm, ' ')}
+          </div>
+        </div>
+      {/if}
     </div>
 
     <!-- 3. Progress Log (Claude/IDE Style) -->
@@ -143,7 +171,12 @@
                 <span class="ml-auto text-[7px] font-black text-green-500/30 uppercase tracking-tighter">Done</span>
               </div>
             {/each}
-            {#if viewingStep === 4 && !isAnalysisMessage}
+            {#if viewingStep === 3 && !isAnalysisMessage}
+               <div class="flex items-center gap-3 py-1 px-2 animate-pulse">
+                  <div class="w-2 h-2 rounded-full bg-cyan-500"></div>
+                  <span class="text-[10px] text-cyan-400 font-mono tracking-tighter italic">Architecting neural nodes...</span>
+               </div>
+            {:else if viewingStep === 4 && !isAnalysisMessage}
                <div class="flex items-center gap-3 py-1 px-2 animate-pulse">
                   <div class="w-2 h-2 rounded-full bg-blue-500"></div>
                   <span class="text-[10px] text-blue-400 font-mono tracking-tighter italic">Neural surgeon injecting patterns...</span>
@@ -285,6 +318,16 @@
   .animate-mesh-3 { animation: mesh-3 25s infinite ease-in-out; }
   .animate-scan-v { animation: scan-v 3s linear infinite; }
   .animate-progress-shimmer { animation: progress-shimmer 2.5s infinite linear; }
+  
+  @keyframes neural-scroll {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-50%); }
+  }
+  .animate-neural-scroll { animation: neural-scroll 60s linear infinite; }
+  
+  .mask-linear-fade {
+    mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+  }
   
   :global(.text-glow) {
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);

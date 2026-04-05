@@ -42,10 +42,12 @@ class ContentController(Controller):
         from sqlalchemy.orm import undefer
         from sqlalchemy import select
         from backend.database.models import ContentCampaign as CampaignModel
-        stmt = select(CampaignModel).where(CampaignModel.id == str(campaign_id)).options(undefer(CampaignModel.final_html))
+        stmt = select(CampaignModel).where(
+            CampaignModel.id == str(campaign_id),
+            CampaignModel.deleted_at == None
+        ).options(undefer(CampaignModel.final_html))
         campaign = (await campaign_repo.session.execute(stmt)).scalar_one_or_none()
         if not campaign:
-            from litestar.exceptions import NotFoundException
             raise NotFoundException(f"Campaign {campaign_id} not found")
         return CampaignSchema.model_validate(campaign)
 

@@ -12,6 +12,7 @@
   import { processContentImages } from "$lib/state/utils";
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
   import { createAnalysisController } from "$lib/state/xohiAnalysis.svelte";
+  import { createOutlineController } from "$lib/state/xohiOutline.svelte";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import type { MediaAsset, CampaignOutline, CampaignSection, CampaignMetrics, AnalysisCache } from "$lib/state/types";
 
@@ -32,26 +33,29 @@
   }: Props = $props();
 
   const analysis = createAnalysisController({
-    campaign_id, isEditing,
+    campaign_id: () => campaign_id, 
+    isEditing: () => isEditing,
     getEditedDraft: () => editedDraft, getDraftContent: () => draft_content,
     setEditedDraft: (v) => { editedDraft = v; }, setDraftContent: (v) => { draft_content = v; },
-    get analysis_cache() { return analysis_cache; },
-    get analysis_metrics() { return analysis_metrics; },
+    analysis_cache: () => analysis_cache,
+    analysis_metrics: () => analysis_metrics,
     getIsProcessing: () => isProcessing
   });
 
+  // CNS V86.5: Robust Logic Consolidation (Trị tận gốc)
+  // Use the standardized Outline Controller for fallback rendering
+  const outlineCtrl = createOutlineController({
+    getOutline: () => outline,
+    getEditedOutline: () => editedDraft,
+    getAssets: () => assets,
+    setEditedOutline: (v) => { editedDraft = v; }
+  });
 
   let displayContent = $derived.by(() => {
+    // Phase 86.5: Root Cause Solution - If we have a draft, use it. If not, use the robust outline parser.
     let base = isEditing ? (editedDraft || draft_content) : draft_content;
     if (!base) {
-      const sections = outline?.sections || [];
-      if (sections.length > 0) {
-        base = sections.map((s: CampaignSection) => {
-          const hText = (s.heading || "").replace(/^(H2|H3):/i, "").trim();
-          const tag = (s.heading || "").toUpperCase().startsWith("H3") ? "h3" : "h2";
-          return `<${tag}>${hText}</${tag}><p>${s.content || ""}</p>`;
-        }).join("\n");
-      } else if (typeof outline === 'string') base = outline;
+      base = outlineCtrl.getStructuredOutline();
     }
     return processContentImages(base, xohiImageStore.assets.length > 0 ? xohiImageStore.assets : assets);
   });
@@ -86,6 +90,11 @@
     if (isEditing && !editedDraft) {
       editedDraft = draft_content || (typeof outline === 'string' ? outline : outline?.html) || "";
     }
+
+    // Elite V2.2: Dispose resources on unmount
+    return () => {
+      analysis.dispose();
+    };
   });
 
   let resultPanelEl = $state<HTMLElement | null>(null);

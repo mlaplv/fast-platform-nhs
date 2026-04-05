@@ -17,6 +17,13 @@ logger = logging.getLogger("api-gateway")
 # Pre-compiled Regex for Performance (V85.1)
 RE_CLEAN_PREFIX = re.compile(r'^(adm\s+)?(viết bài|tạo bài|làm bài|thiết kế|viết một bài về|viết bài về|tạo bài về|viết|tạo sản phẩm|san pham:?)\s+', re.IGNORECASE)
 
+# Elite V2.2 Constraints Centralization
+CONSTRAINTS = {
+    "DEEP_DIVE": {"word_count": 1000, "max_sections": 6, "style": "Hàn lâm/Chuyên gia"},
+    "NORMAL": {"word_count": 500, "max_sections": 3, "style": "Chuyên nghiệp/Tin tức"},
+    "VIRAL": {"word_count": 500, "max_sections": 3, "style": "Sắc sảo/Viral"}
+}
+
 VISION_PROMPT = """[ROLE] CHUYÊN GIA PHÂN TÍCH NỘI DUNG ĐA THỰC THỂ (ELITE V63.5)
 
 [CHẾ ĐỘ HOẠT ĐỘNG (INTENT MODES)]
@@ -51,7 +58,7 @@ class VisionInsight:
             retries=3
         )
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
+    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: Dict[str, object]) -> AgentResponse:
         """Standard entry point for DI Registry (V61.0)."""
         campaign = await repo.get(campaign_id)
         if not campaign:
@@ -116,17 +123,13 @@ class VisionInsight:
                 await _emit_progress(f"🔍 Trinh sát thực tế: {snippet}")
                 logger.info(f"[VisionInsight] Ground Truth Context acquired for: {clean_topic}")
 
-            # Phase 77: Dynamic mode-based constraints
+            # Phase 77: Dynamic mode-based constraints (Elite V2.2 Constants)
             mode_instruction = ""
             if target_entity == "product":
-                # Elite Force: Products MUST BE professional/sales-focused, NEVER viral/news
                 mode_instruction = "\n[CHẾ ĐỘ: SẢN PHẨM] Bắt buộc style='Chuyên nghiệp/Bán hàng', tập trung vào Specs và Lợi ích. CẤM tiêu đề giật gân/báo chí."
-            elif content_mode == "deep_dive":
-                mode_instruction = "\n[CHẾ ĐỘ: PHÂN TÍCH SÂU] Bắt buộc word_count >= 1000, max_sections >= 6, style='Hàn lâm/Chuyên gia'."
-            elif content_mode == "normal":
-                mode_instruction = "\n[CHẾ ĐỘ: THÔNG THƯỜNG] Bắt buộc word_count ~ 500, max_sections ~ 3, style='Chuyên nghiệp/Tin tức'."
             else:
-                mode_instruction = "\n[CHẾ ĐỘ: VIRAL] Bắt buộc word_count ~ 500, max_sections ~ 3, style='Sắc sảo/Viral'."
+                cfg = CONSTRAINTS.get(content_mode.upper(), CONSTRAINTS["VIRAL"])
+                mode_instruction = f"\n[CHẾ ĐỘ: {content_mode.upper()}] Bắt buộc word_count ~ {cfg['word_count']}, max_sections ~ {cfg['max_sections']}, style='{cfg['style']}'."
 
             # Inject entity hint for AI
             entity_hint = f"\n[ENTITY TYPE]: {target_entity.upper()}"

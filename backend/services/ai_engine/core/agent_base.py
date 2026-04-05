@@ -35,8 +35,8 @@ class MedicalShieldMixin:
         # 1. Fallback Static Map (R109 taxonomy)
         # Refined for Elite V2.2: Avoid over-technical terms that trigger safety blocks
         mask_map: dict[str, str] = {
-            "hôi nách": "vấn đề tăng tiết mồ hôi vùng dưới cánh tay",
-            "hôi chân": "vấn đề mùi hôi chân",
+            "hôi nách": "xịt nách",
+            "hôi chân": "xịt chân",
             "mồ hôi tay": "tăng tiết mồ hôi lòng bàn tay",
             "trị dứt điểm": "kiểm soát triệu chứng hiệu quả",
             "thuốc": "sản phẩm chuyên dụng",
@@ -95,11 +95,14 @@ class SearchKeyMixin:
 
 class XoHiProgressMixin:
     """Elite V2.2: Standardized progress reporting for XoHi campaigns."""
-    async def _emit_progress(self, campaign: object, msg: str, status: str = "PROCESSING") -> None:
+    async def _emit_progress(self, campaign: Union[ContentCampaign, str], msg: str, status: str = "PROCESSING") -> None:
         from backend.services.event_bus import event_bus
         from datetime import datetime, timezone
-        c_id = getattr(campaign, "id", campaign)
-        u_id = getattr(campaign, "user_id", None)
+        from backend.database.models import ContentCampaign
+        
+        c_id = getattr(campaign, "id", campaign) if isinstance(campaign, ContentCampaign) else campaign
+        u_id = getattr(campaign, "user_id", None) if isinstance(campaign, ContentCampaign) else None
+        
         await event_bus.emit("CONTENT_PROGRESS", {
             "campaign_id": str(c_id),
             "user_id": str(u_id) if u_id else None,
@@ -129,7 +132,7 @@ class BaseAgentOperative(ABC, MedicalShieldMixin):
         self.bridge = trinity_bridge
 
     @abstractmethod
-    async def chat(self, request: object, **kwargs: object) -> object:
+    async def chat(self, request: BaseModel | dict, **kwargs: Dict[str, object]) -> AgentResponse | dict | str:
         """Standardized entry point for all AI agents."""
         pass
 

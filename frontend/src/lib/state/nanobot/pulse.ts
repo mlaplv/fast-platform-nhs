@@ -39,7 +39,10 @@ const hasContent = (v: unknown): boolean => {
 };
 
 interface PulseDeps {
-  state: Record<string, unknown>;
+  state: {
+    currentData: CampaignData | Record<string, unknown> | null;
+    liveStreamBuffer: string;
+  };
   voice: {
     vuiResponse: IntentResponse | null;
     setVoiceResult: (
@@ -69,6 +72,11 @@ interface PulseDeps {
   notification: {
     addPendingSignal?: (signal: { id: string; message: string; severity: string; isRead: boolean }) => void;
   };
+  chat: {
+    clearHistory: (sessionId: string) => Promise<boolean>;
+    clearLocalSession: (sessionId: string, userId?: string) => void;
+    sweepCampaignFromCache: (campaignId: string) => void;
+  };
 }
 
 export function createPulseManager(
@@ -78,6 +86,7 @@ export function createPulseManager(
   ui: PulseDeps["ui"],
   vuiState: PulseDeps["vuiState"],
   notification: PulseDeps["notification"],
+  chat: PulseDeps["chat"],
   startSmartPolling: () => void
 ) {
   let eventSource: EventSource | null = null;
@@ -161,6 +170,11 @@ export function createPulseManager(
             vuiState.setActive(true);
             vuiState.setPhase("executing");
             vuiState.setSystemMessage(contentPayload.message);
+          }
+
+          // CNS V86.5: Clear stream buffer when starting a new step or a major progress pulse
+          if (contentPayload.status === "PROCESSING" && (state as any).liveStreamBuffer) {
+             (state as any).liveStreamBuffer = "";
           }
 
           const syncTarget = (target: CampaignData) => {
@@ -313,6 +327,8 @@ export function createPulseManager(
           if (activeData && (activeData.campaign_id === chunkPayload.campaign_id || (activeData as unknown as {id: string}).id === chunkPayload.campaign_id)) {
              syncChunk(activeData);
              liveCampaigns.set(chunkPayload.campaign_id, Date.now());
+             // CNS V86.5: Pipe to neural glass
+             (state as any).liveStreamBuffer = ((state as any).liveStreamBuffer || "") + chunkPayload.text;
           }
         } else if (eventName === "SYSTEM_SIGNAL") {
           const signalPayload = payload as PulseSignal;
@@ -355,7 +371,10 @@ export function createPulseManager(
           if (activeData && (activeData.campaign_id === cid || (activeData as unknown as {id: string}).id === cid)) {
              state.currentData = null;
           }
-          ui.showToast("Chiến dịch đã được quét sạch khỏi hệ thống.", "success");
+          
+          // CNS V82.11: Perform deep-state sweep to prevent ghost resurrections in log streams
+          chat.sweepCampaignFromCache(cid);
+          // [Elite V2.2] Silenced background toast to avoid double-notification (API already notified)
         } else if (eventName === "SUPPORT_INBOX_UPDATE") {
           // CNS V86.1: Neural Refresh Pulse (Elite V2.2)
           // Increment toggle to trigger re-fetch in SupportInbox.svelte

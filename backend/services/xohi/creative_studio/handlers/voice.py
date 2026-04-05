@@ -3,7 +3,9 @@ import logging
 import re
 from datetime import datetime, timezone
 from typing import Optional, Dict, Union, List
-from backend.database.models import ContentCampaign
+from backend.database.models import ContentCampaign, ChatMessage
+import sqlalchemy as sa
+from sqlalchemy import delete as sa_delete
 from backend.database.repositories import ContentCampaignRepository
 from backend.services.xohi.creative_studio.models.schemas import TopicSeed, CampaignCategory
 from backend.utils.text import sanitize_id, normalize_vn
@@ -19,6 +21,8 @@ logger = logging.getLogger("api-gateway")
 class VoiceHandler:
     def __init__(self, orchestrator: "ContentOrchestrator"):
         self.orchestrator = orchestrator
+        # [Elite V2.2] Decentralized Cleanup Registration
+        event_bus.subscribe("XOHI_CAMPAIGN_PURGED", self._handle_campaign_purge)
 
     async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None, campaign_id: Optional[str] = None) -> Optional[ContentCampaign]:
         # R105: Standardize user_id logic
@@ -29,7 +33,8 @@ class VoiceHandler:
         if campaign_id:
             try:
                 c = await campaign_repo.get(campaign_id)
-                if c and c.status not in ["COMPLETED", "REJECTED"]:
+                # [Elite V2.2] Terminal statuses: COMPLETED, REJECTED, FAILED
+                if c and c.status not in ["COMPLETED", "REJECTED", "FAILED"]:
                     return c
             except Exception: pass
 
@@ -45,7 +50,7 @@ class VoiceHandler:
         )
         
         # Filter for truly active (not dead) campaigns
-        active_campaigns = [c for c in results if c.status not in ["COMPLETED", "REJECTED"]]
+        active_campaigns = [c for c in results if c.status not in ["COMPLETED", "REJECTED", "FAILED"]]
         if not active_campaigns:
             return None
 
@@ -103,26 +108,20 @@ class VoiceHandler:
             target_id = sanitize_id(intent_data.get("campaign_id")) if intent_data else None
             stale = await self.get_active_campaign(campaign_repo, user_id, tenant_id, query=transcript if not is_resume_request else None, campaign_id=target_id)
 
-            if stale and not is_force_new:
-                # Type sanity: check category if present
+            if stale:
                 stale_cat = getattr(stale, "category", CampaignCategory.CREATIVE_CONTENT)
+                title = stale.topic_data.get("title", "bài viết cũ")
                 
                 # Rule R82: Explicit Resume (or "ok" confirmation)
                 if is_resume_request or target_id == stale.id:
                     if stale.status == "WAITING_FOR_REVIEW":
                         gr = await self.orchestrator.approve_step(stale.id, {"approved": True}, campaign_repo)
                         return IntentResponse(
-                            status=gr.status,
-                            action=IntentAction.CONTENT_APPROVE,
-                            message=gr.message,
+                            status=gr.status, action=IntentAction.CONTENT_APPROVE, message=gr.message,
                             router_tier=RouterTier.TIER_2_SEMANTIC,
                             data={
-                                "category": "CONTENT_CREATE",
-                                "intent_type": "CONTENT_CREATE",
-                                "ui_action": "show_content_factory",
-                                "campaign_id": stale.id,
-                                "step": stale.current_step,
-                                "campaign_category": stale_cat,
+                                "category": "CONTENT_CREATE", "intent_type": "CONTENT_CREATE", "ui_action": "show_content_factory",
+                                "campaign_id": stale.id, "step": stale.current_step, "campaign_category": stale_cat,
                                 **(gr.data or {})
                             },
                             cost_tokens=0.0
@@ -133,46 +132,29 @@ class VoiceHandler:
                             message=self.format_resume_greeting(stale),
                             router_tier=RouterTier.TIER_2_SEMANTIC,
                             data={
-                                "category": "CONTENT_CREATE",
-                                "intent_type": "CONTENT_CREATE",
-                                "ui_action": "show_content_factory",
-                                "campaign_id": stale.id,
-                                "step": stale.current_step,
-                                "campaign_category": stale_cat
+                                "category": "CONTENT_CREATE", "intent_type": "CONTENT_CREATE", "ui_action": "show_content_factory",
+                                "campaign_id": stale.id, "step": stale.current_step, "campaign_category": stale_cat
                             },
                             cost_tokens=0.0
                         )
 
-                # Conflict Detection: User asks for something NEW while a campaign is ACTIVE
-                # If they didn't explicitly say "tiếp", and the new request doesn't match the current one
-                if not is_resume_request:
-                    title = stale.topic_data.get("title", "bài viết cũ")
-                    return IntentResponse(
-                        status="success", action=IntentAction.CONTENT_CREATE,
-                        message=f"Dạ sếp, em thấy bài '{title}' ({stale_cat}) đang làm dở. Sếp muốn làm tiếp hay hủy bài đó để tạo bài mới này ạ?",
-                        router_tier=RouterTier.TIER_2_SEMANTIC,
-                        data={
-                            "category": "CONTENT_CREATE",
-                            "intent_type": "CONTENT_CREATE",
-                            "ui_action": "show_content_factory",
-                            "campaign_id": stale.id,
-                            "step": stale.current_step,
-                            "pending_review": True,
-                            "conflict_detected": True,
-                            "new_request": transcript,
-                            "campaign_category": stale_cat
-                        },
-                        cost_tokens=0.0
-                    )
+                # [Elite V2.2] SINGLE-TASK ARMOR: Hard block ANY new creation if active campaignexists.
+                # No more "force new" bypass. User MUST finish or delete.
+                return IntentResponse(
+                    status="success", action=IntentAction.CONTENT_CREATE,
+                    message=f"Hệ thống đang ưu tiên tài nguyên cho bài '{title}' ({stale.status}). Vui lòng hoàn thành bài hiện tại hoặc xóa nó đi trước khi yêu cầu viết bài mới.",
+                    router_tier=RouterTier.TIER_2_SEMANTIC,
+                    data={
+                        "category": "CONTENT_CREATE", "intent_type": "CONTENT_CREATE", 
+                        "campaign_id": stale.id, "step": stale.current_step, "conflict_detected": True,
+                        "campaign_category": stale_cat, "armor_blocked": True
+                    },
+                    cost_tokens=0.0
+                )
 
             # 2. Execution Phase: Create New Campaign
-            # If user said "hủy" or "mới", or there was no stale campaign
-            if is_force_new and stale:
-                logger.info(f"[SafetyGate] Overwriting stale campaign {stale.id} as per user request")
-                # Optional: mark as rejected instead of deleting?
-                stale.status = "REJECTED"
-                await campaign_repo.update(stale)
-
+            # (Execution only reached if NO stale campaign exists)
+            
             # CNS V85.1: Neural Intent Decoding (Vừng ơi mở cửa ra)
             gold_meta = {}
             clean_transcript = transcript
@@ -308,3 +290,31 @@ class VoiceHandler:
                 "status": "ERROR",
                 "timestamp": datetime.now(timezone.utc).isoformat()
             })
+
+    async def _handle_campaign_purge(self, payload: dict) -> None:
+        """
+        [ELITE V2.2] Decentralized Purge Listener.
+        Performs Vantablack Sweep (Deep JSON logic) for ChatMessages.
+        """
+        campaign_id = payload.get("campaign_id")
+        if not campaign_id: return
+
+        logger.info(f"[PurgeProtocol] VoiceHandler sweeping logs for {campaign_id}")
+        
+        try:
+            session_maker = alchemy_config.create_session_maker()
+            async with session_maker() as session:
+                # [Vantablack Purge] Search all sessions for campaign references in JSON
+                await session.execute(
+                    sa_delete(ChatMessage).where(
+                        sa.or_(
+                            ChatMessage.session_id == campaign_id,
+                            ChatMessage.content["campaign_id"].as_string() == campaign_id,
+                            ChatMessage.content["data"]["campaign_id"].as_string() == campaign_id
+                        )
+                    )
+                )
+                await session.commit()
+                logger.info(f"[PurgeProtocol] Chat log sweep complete for {campaign_id}")
+        except Exception as e:
+            logger.error(f"[PurgeProtocol] Chat log sweep failed for {campaign_id}: {e}")

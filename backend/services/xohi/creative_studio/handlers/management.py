@@ -1,16 +1,22 @@
 import os
 import logging
+import sqlalchemy as sa
 from sqlalchemy import select, func, delete as sa_delete
 from sqlalchemy.orm import undefer
-from backend.database.models import ContentCampaign as CampaignModel, MediaRegistry, ChatMessage
+from backend.database.models import ContentCampaign as CampaignModel, MediaRegistry, ChatMessage, CampaignEvent, Appointment
+from backend.database.models.system import UnifiedAgentTask
 from backend.database.repositories import ContentCampaignRepository, MediaRegistryRepository
 from backend.models.schemas import CampaignListResponse, CampaignListItem, GenericResponse, CampaignStatus
+from backend.services.event_bus import event_bus
+from backend.database.alchemy_config import alchemy_config
 
 logger = logging.getLogger("api-gateway")
 
 class ManagementHandler:
     def __init__(self, orchestrator: "ContentOrchestrator"):
         self.orchestrator = orchestrator
+        # [Elite V2.2] Decentralized Cleanup Registration
+        event_bus.subscribe("XOHI_CAMPAIGN_PURGED", self._handle_campaign_purge)
 
     async def list_campaigns(self, repo: ContentCampaignRepository, limit: int = 20, offset: int = 0) -> CampaignListResponse:
         count_stmt = select(func.count()).select_from(CampaignModel)
@@ -23,7 +29,7 @@ class ManagementHandler:
             CampaignModel.created_at, 
             CampaignModel.user_id,
             CampaignModel.category
-        ).order_by(CampaignModel.created_at.desc()).limit(limit).offset(offset)
+        ).where(CampaignModel.deleted_at == None).order_by(CampaignModel.created_at.desc()).limit(limit).offset(offset)
         rows = (await repo.session.execute(stmt)).all()
         items = [
             CampaignListItem(
@@ -39,27 +45,91 @@ class ManagementHandler:
         return CampaignListResponse(items=items, total=total, has_more=(offset + limit) < total, limit=limit, offset=offset)
 
     async def delete_campaign(self, campaign_id: str, repo: ContentCampaignRepository, media_repo: MediaRegistryRepository) -> GenericResponse:
+        """
+        [PHASE 18.2] Atomic Delete: Emits XOHI_CAMPAIGN_PURGED for background cleanup 
+        and removes the core record to seal the "ghost" hole immediately.
+        """
         try:
-            campaign = await repo.get(campaign_id); 
+            campaign = await repo.get(campaign_id)
             if not campaign: return GenericResponse(status="error", message="Campaign not found")
+            
             user_id = str(campaign.user_id) if campaign.user_id else None
-            assets = (await media_repo.session.execute(select(MediaRegistry).where(MediaRegistry.campaign_id == campaign_id))).scalars().all()
-            files_purged = 0
-            for a in assets:
-                p = os.path.join("frontend/static", a.file_path.lstrip("/")); 
-                if os.path.exists(p): os.remove(p); files_purged += 1
-                await media_repo.delete(a.id)
-            await repo.session.execute(sa_delete(ChatMessage).where(ChatMessage.content["campaign_id"].as_string() == campaign_id))
-            if user_id:
-                from backend.services.xohi_memory import xohi_memory
-                if xohi_memory._use_redis: await xohi_memory.client.delete(f"xohi:chat:{user_id}")
+
+            # 1. Emit Purge Event (Decoupled Cleanup Trigger)
+            # This triggers Chat, Media, and Appointment cleanup across all modules.
+            await event_bus.emit("XOHI_CAMPAIGN_PURGED", {
+                "campaign_id": campaign_id,
+                "user_id": user_id
+            })
+
+            # 2. Delete Core Record (Atomic)
             await repo.delete(campaign_id)
-            from backend.services.event_bus import event_bus
-            await event_bus.emit("CAMPAIGN_PURGED", {"campaign_id": campaign_id, "type": "TERMINATE", "action": "PURGE"})
-            await repo.session.commit()
-            return GenericResponse(status="success", message=f"Campaign wiped. {files_purged} assets purged.")
+            if hasattr(repo, "session"):
+                await repo.session.commit()
+
+            return GenericResponse(status="success", message=f"Vantablack Purge: Chiến dịch {campaign_id[:8]}... đã bị xóa sổ hoàn toàn.")
         except Exception as e:
+            logger.exception(f"Failed to delete campaign {campaign_id}: {e}")
+            if repo and hasattr(repo, "session"):
+                await repo.session.rollback()
             return GenericResponse(status="error", message=str(e))
+
+    async def _handle_campaign_purge(self, payload: dict) -> None:
+        """
+        [ELITE V2.2] Decentralized Purge Listener.
+        Handles domain cleanup: Media files, Appointments, Memory, and Active Tasks.
+        """
+        campaign_id = payload.get("campaign_id")
+        user_id = payload.get("user_id")
+        if not campaign_id: return
+
+        logger.info(f"[PurgeProtocol] Received cleanup signal for {campaign_id}")
+        
+        try:
+            # 1. Stop Active Processing & Cleanup Tasks
+            await self.orchestrator.engine.terminate_campaign_tasks(campaign_id)
+            
+            # 2. Clear Stateful Memory
+            if user_id:
+                await self.orchestrator.memory.delete_campaign_memory(campaign_id, user_id=user_id)
+            else:
+                await self.orchestrator.memory.delete_campaign_memory(campaign_id)
+
+            # 3. Purge Physical Assets and Related DB Records
+            session_maker = alchemy_config.create_session_maker()
+            async with session_maker() as session:
+                # Media Registry & Files
+                assets_stmt = sa.select(MediaRegistry).where(MediaRegistry.campaign_id == campaign_id)
+                assets = (await session.execute(assets_stmt)).scalars().all()
+                for a in assets:
+                    p = os.path.join("frontend/static", a.file_path.lstrip("/")); 
+                    if os.path.exists(p): 
+                        try: os.remove(p)
+                        except Exception: pass
+                    await session.delete(a)
+
+                # Appointments & Domain Events
+                await session.execute(sa_delete(Appointment).where(Appointment.campaign_id == campaign_id))
+                await session.execute(sa_delete(CampaignEvent).where(CampaignEvent.campaign_id == campaign_id))
+                
+                # Unified Agent Tasks (Background jobs)
+                await session.execute(sa_delete(UnifiedAgentTask).where(sa.or_(
+                    UnifiedAgentTask.session_id == campaign_id,
+                    UnifiedAgentTask.task_id == campaign_id
+                )))
+
+                await session.commit()
+            
+            # 4. Final Pulse Broadcast (Notify UI to refresh/clear state)
+            await event_bus.emit("CAMPAIGN_PURGED", {
+                "campaign_id": campaign_id, 
+                "type": "TERMINATE", 
+                "action": "PURGE"
+            })
+            
+            logger.info(f"[PurgeProtocol] XoHi domain cleanup complete for {campaign_id}")
+        except Exception as e:
+            logger.error(f"[PurgeProtocol] Cleanup failed for {campaign_id}: {e}")
 
     async def cancel_campaign(self, campaign_id: str, repo: ContentCampaignRepository) -> GenericResponse:
         """[R100] Logic to terminate a campaign and notify the event bus."""
@@ -70,13 +140,15 @@ class ManagementHandler:
         campaign.status = "REJECTED"
         await repo.update(campaign)
         
-        from backend.services.event_bus import event_bus
+        # [Elite V2.2] Kill active processing immediately
+        await self.orchestrator.engine.terminate_campaign_tasks(campaign_id)
+        
         await event_bus.emit(
             "CAMPAIGN_PURGED", 
             {"campaign_id": campaign_id, "type": "TERMINATE", "action": "CANCEL"}
         )
         await repo.session.commit()
-        return GenericResponse(status="success", message="Hệ thống đã ngắt và hủy tiến trình theo lệnh sếp.")
+        return GenericResponse(status="success", message="Hệ thống đã ngắt điện và hủy tiến trình theo lệnh sếp.")
 
     async def publish_campaign(self, campaign_id: str, repo: ContentCampaignRepository, media_repo: MediaRegistryRepository) -> GenericResponse:
         """[R100] Finalize and publish campaign assets."""

@@ -11,14 +11,26 @@ from pydantic_ai import Agent
 from backend.utils.http_client import get_http_client
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.noise_cleaner import noise_cleaner
+from backend.services.ai_engine.core.agent_base import BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin
 from backend.services.xohi.creative_studio.models.schemas import SeoReport, SeoSignal, SeoAnnotation
 from backend.database.repositories import ContentCampaignRepository
 from backend.database.models.content import ContentCampaign
 from backend.utils.config import get_env_json
 from backend.services.event_bus import event_bus
-from backend.services.xohi.creative_studio.operatives.content_enricher import ContentEnricher
+from .content_enricher import ContentEnricher
 
 logger = logging.getLogger("api-gateway")
+
+# ══════════════════════════════════════════════════════════════
+# ELITE V2.2 CONSTANTS — SEO Logic
+# ══════════════════════════════════════════════════════════════
+MAX_COMPETITOR_FETCH = 5
+MAX_CONTENT_TOKENS = 8000
+AUTO_DETECT_TOPIC_WORDS = 8
+KEYWORD_DENSITY_MAX = 3.0
+KEYWORD_DENSITY_MIN = 0.5
+MIN_WORDS_FOR_DENSITY = 50
+STUFFING_STRICTNESS = 3
 
 # ══════════════════════════════════════════════════════════════
 # SYSTEM PROMPT — AI SEO Judge 2026
@@ -74,60 +86,23 @@ CALIBRATION:
 """
 
 
-class SeoAnalyzer:
+class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
     """
     On-Demand SEO Analyzer for Step 4 Content Studio — 2026 Edition.
     Uses Gemini AI to evaluate content against 7 modern ranking signals.
     Returns per-passage seo_annotations for inline editor highlighting.
     """
 
-    # CNS Phase 82.35: Class-Level Resource Shielding (Global Semaphore)
-    _seo_semaphore = asyncio.Semaphore(1)
-    _key_lock = asyncio.Lock()
-    _key_idx = 0
-
     def __init__(self):
-        # Elite V2.2: Standardized JSON Array (Keys + CXs rotation)
-        env_keys = get_env_json("GOOGLE_SEARCH_KEYS")
-        env_cxs = get_env_json("GOOGLE_SEARCH_CXS")
-        
-        # Priority 1: Paired JSON Arrays (V82.36 Standard)
-        if env_keys and env_cxs:
-            for i, k in enumerate(env_keys):
-                cx = env_cxs[i] if i < len(env_cxs) else env_cxs[0]
-                self.search_keys.append({"key": k, "cx": cx})
-                
-        # Priority 2: Backwards Compatibility (Individual numbered keys)
-        if not self.search_keys:
-            for i in ["", "_1", "_2"]:
-                k = os.getenv(f"GOOGLE_SEARCH_API_KEY{i}")
-                cx = os.getenv(f"GOOGLE_SEARCH_ENGINE_ID{i}")
-                if k and cx:
-                    self.search_keys.append({"key": k, "cx": cx})
-        self._key_lock = asyncio.Lock()
-        
+        super().__init__(agent_id="seo_analyzer")
         # BUG-07 fix: Cache Agent at class scope — R1.6 prohibits per-request Agent creation
         self._agent = Agent(output_type=SeoReport, system_prompt=SEO_ANALYSIS_PROMPT, retries=3)
 
-    async def _emit_log(self, campaign: ContentCampaign, msg: str):
-        """Emit progress event to the system bus."""
-        await event_bus.emit("CONTENT_PROGRESS", {
-            "campaign_id": str(campaign.id),
-            "user_id": str(campaign.user_id),
-            "message": msg,
-            "status": "PROCESSING",
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
-
-    async def _get_search_pair(self) -> Optional[Dict[str, str]]:
-        if not self.search_keys: return None
-        async with self._key_lock:
-            pair = self.search_keys[self.__class__._key_idx % len(self.search_keys)]
-            self.__class__._key_idx += 1
-        return pair
+    # Heritage Mixin handles _emit_progress
 
     async def _fetch_competitors(self, keyword: str) -> List[str]:
         """Fetch top competitor content for semantic comparison."""
+        self._ensure_search_keys()
         pair = await self._get_search_pair()
         if not pair: return ["(Không thể tải nội dung cạnh tranh)"]
         try:
@@ -148,14 +123,14 @@ class SeoAnalyzer:
             logger.error(f"[SEO] Search API error: {e}")
             return ["(Lỗi khi kết nối Google Search API)"]
 
-    async def analyze(self, campaign, force: bool = False) -> SeoReport:
+    async def analyze(self, campaign: ContentCampaign, force: bool = False) -> SeoReport:
         """
         Performs full SEO analysis against top 5 competitor snippets.
         CNS Phase 82.35: Enforce GLOBAL serial processing for SEO.
         """
         async with self._seo_semaphore:
             logs = ["🔍 Khởi động SEO Analysis Engine..."]
-            await self._emit_log(campaign, logs[-1])
+            await self._emit_progress(campaign, logs[-1])
             draft = campaign.draft_content or ""
             # Phase 76.3: Unified Logic-First Sanitization
             # clean_draft keeps HTML for AI structure analysis, pure_text for exact word counts/density
@@ -173,24 +148,24 @@ class SeoAnalyzer:
                 if h1_match:
                     topic = re.sub(r'<[^>]+>', '', h1_match.group(1)).strip()
                 else:
-                    # Fall back to first 8 words of pure text
+                    # Fall back to first X words of pure text
                     words = pure_text.split()
-                    topic = " ".join(words[:8]) if words else "SEO content"
+                    topic = " ".join(words[:AUTO_DETECT_TOPIC_WORDS]) if words else "SEO content"
                 logger.info(f"[SEO] No campaign topic set — auto-detected: '{topic}'")
             
             logs.append(f"📡 Đang tải nội dung đối thủ cho: '{topic}'...")
-            await self._emit_log(campaign, logs[-1])
+            await self._emit_progress(campaign, logs[-1])
             competitors = await self._fetch_competitors(topic)
             competitor_str = "\n".join(competitors)
             
             logs.append("🧠 Đang phân tích SEO bằng Neural Engine...")
-            await self._emit_log(campaign, logs[-1])
+            await self._emit_progress(campaign, logs[-1])
             # Logic Layer: Pass data to AI judge
             user_input = f"""
 [BÀI VIẾT ĐANG CHẤM]
 CHỦ ĐỀ: {topic}
 DRAFT:
-{clean_draft[:8000]}  # CNS V76: Clip for token safety
+{clean_draft[:MAX_CONTENT_TOKENS]}  # CNS V76: Clip for token safety
 
 [ĐỐI THỦ CẠNH TRANH TOP GOOGLE]
 {competitor_str}
@@ -227,23 +202,23 @@ DRAFT:
         annotations = []
         words = plain_text.split()
         total_words = len(words)
-        if total_words < 50: return []
+        if total_words < MIN_WORDS_FOR_DENSITY: return []
         
         count = plain_text.lower().count(primary.lower())
         kw_density = (count / total_words) * 100
         
-        if kw_density > 3.0:
+        if kw_density > KEYWORD_DENSITY_MAX:
             # Find a sentence with keyword stuffing
             sentences = re.split(r'[.!?]', plain_text)
             kw_pattern = re.compile(re.escape(primary.lower()), re.IGNORECASE)
-            stuffed = next((s.strip() for s in sentences if len(kw_pattern.findall(s)) >= 3), "")
+            stuffed = next((s.strip() for s in sentences if len(kw_pattern.findall(s)) >= STUFFING_STRICTNESS), "")
             annotations.append(SeoAnnotation(
                 type="keyword_stuffing",
                 text=stuffed[:120] if stuffed else "",
                 message=f"🚫 Mật độ từ khóa quá cao ({kw_density:.1f}%) — Google 2026 penalize keyword stuffing. Nên giảm xuống 1-2%.",
                 severity="error"
             ))
-        elif kw_density < 0.5 and primary:
+        elif kw_density < KEYWORD_DENSITY_MIN and primary:
             annotations.append(SeoAnnotation(
                 type="keyword_missing", text="",
                 message=f"⚠️ Từ khóa chính '{primary}' xuất hiện quá ít ({kw_density:.1f}%). Nên đặt trong H1, intro paragraph và các H2 chính.",

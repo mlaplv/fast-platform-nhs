@@ -4,7 +4,7 @@ import os
 import re
 import hashlib
 from datetime import datetime, timezone
-from typing import List, Dict, Optional, Union, cast, Type
+from typing import List, Dict, Optional, Union, cast, Type, Any
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_ai import Agent
 from sqlalchemy.orm.attributes import flag_modified
@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models import ContentCampaign
 from backend.database.repositories import ContentCampaignRepository
 from backend.services.ai_engine.core.agent_base import BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin
+from backend.utils.http_client import get_http_client
 from backend.services.xohi.creative_studio.models.schemas import (
     AgentResponse, AgentSignal, BulkFixRequest, BulkFixResponse,
     GoldMetadata, AnalysisMetrics, AnalysisCacheEntry,
@@ -22,6 +23,19 @@ from backend.utils.noise_cleaner import noise_cleaner
 from backend.utils.text import normalize_vn
 from .plagiarism_prompts import PLAGIARISM_PROMPT
 from .plagiarism_surgeon import PlagiarismSurgeon
+
+# ══════════════════════════════════════════════════════════════
+# ELITE V2.2 CONSTANTS — Copyright Logic
+# ══════════════════════════════════════════════════════════════
+UNIQUENESS_THRESHOLD_HIGH = 0.65
+UNIQUENESS_THRESHOLD_LOW = 0.90
+INTERNAL_DEDUP_PENALTY = 0.02
+MAX_COMPETITOR_FETCH = 5
+MAX_PARAGRAPHS_ANALYZE = 200
+DEFAULT_SIMILARITY_THRESHOLD = 0.75
+RECON_TIMEOUT_SECONDS = 10.0
+COMPETITOR_TIMEOUT_SECONDS = 5.0
+MAX_SNIPPET_CHARS = 3000
 
 class PlagiarismTaskRequest(BaseModel):
     campaign_id: str
@@ -37,13 +51,13 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
     agent_id_class = "plagiarism_cop"
     _plagiarism_semaphore = asyncio.Semaphore(1)
 
-    def __init__(self, agent_id: str = "plagiarism_cop", threshold: float = 0.75, **kwargs: object):
+    def __init__(self, agent_id: str = "plagiarism_cop", threshold: float = DEFAULT_SIMILARITY_THRESHOLD, **kwargs: object):
         super().__init__(agent_id=agent_id)
         self.threshold = threshold
         self._agent = Agent(output_type=PlagiarismResult, system_prompt=PLAGIARISM_PROMPT, retries=3)
         self._surgeon = PlagiarismSurgeon()
 
-    async def chat(self, request: object, **kwargs: object) -> object:
+    async def chat(self, request: object, **kwargs: object) -> Union[PlagiarismResult, AgentResponse]:
         """Standardized Heritage Entry (V2.2). Maps to self.analyze."""
         from backend.database.models import ContentCampaign
         if isinstance(request, ContentCampaign):
@@ -112,11 +126,13 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
 
         if result.risk_level == "HIGH":
             return AgentResponse(signal=AgentSignal.REDO_PREVIOUS, message="🚨 Nguy cơ đạo văn cao.", data={"score": result.uniqueness_score, "risk_level": result.risk_level, "gold_metadata": gold})
+        
+        gc.collect()
         return AgentResponse(signal=AgentSignal.PROCEED_NEXT, message=f"✅ Hoàn tất — {result.verdict}", data={"score": result.uniqueness_score, "risk_level": result.risk_level, "annotations": [a.model_dump() for a in result.annotations], "verdict": result.verdict, "gold_metadata": gold})
 
     # Heritage Mixin handles _emit_progress
 
-    async def analyze(self, campaign: "ContentCampaign", force: bool = False) -> PlagiarismResult:
+    async def analyze(self, campaign: ContentCampaign, force: bool = False) -> PlagiarismResult:
         logger.info(f"💓 [PlagiarismCop] Diving into copyright analysis for campaign {campaign.id}")
         """
         Phase 1: Search (Google Custom Search with Key Rotation)
@@ -140,7 +156,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
             logs.append("🧠 Đang rà soát trùng lặp nội bộ (Cross-Paragraph Synthesis)...")
             await self._emit_progress(campaign, logs[-1])
             seen, deduped, i_annots = set(), [], []
-            for para in self._surgeon._split_into_paragraphs(plain)[:200]:
+            for para in self._surgeon._split_into_paragraphs(plain)[:MAX_PARAGRAPHS_ANALYZE]:
                 norm = normalize_vn(para)
                 if len(norm) < 10: deduped.append(para); continue
                 if norm not in seen: seen.add(norm); deduped.append(para)
@@ -168,10 +184,10 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
                     annots = list(raw.annotations or [])
                     for ian in i_annots:
                         # Deeply link internal dedup annotations
-                        raw.uniqueness_score = max(0.0, raw.uniqueness_score - 0.02)
+                        raw.uniqueness_score = max(0.0, raw.uniqueness_score - INTERNAL_DEDUP_PENALTY)
                         annots.append(ian)
                     raw.annotations = annots
-                    raw.risk_level = "HIGH" if raw.uniqueness_score < 0.65 else ("MEDIUM" if raw.uniqueness_score < 0.9 else "LOW")
+                    raw.risk_level = "HIGH" if raw.uniqueness_score < UNIQUENESS_THRESHOLD_HIGH else ("MEDIUM" if raw.uniqueness_score < UNIQUENESS_THRESHOLD_LOW else "LOW")
 
                 if hasattr(raw, 'logs'): raw.logs = logs
                 return raw
@@ -221,7 +237,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         score = max(0.0, 1.0 - (matched_chars / (total_chars or 1)))
         return PlagiarismResult(
             uniqueness_score=score,
-            risk_level="HIGH" if score < 0.7 else ("MEDIUM" if score < 0.9 else "LOW"),
+            risk_level="HIGH" if score < UNIQUENESS_THRESHOLD_HIGH else ("MEDIUM" if score < UNIQUENESS_THRESHOLD_LOW else "LOW"),
             flagged_sentences=[],
             annotations=h_annots,
             similar_sources=[],
@@ -229,6 +245,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         )
 
     async def _fetch_competitor_snippets(self, campaign: ContentCampaign, keyword: str, logs: Optional[list[str]] = None) -> list[str]:
+        self._ensure_search_keys()
         if not self.search_keys:
             if logs is not None: logs.append("❌ Thiếu API Key Search.")
             return ["(No API key)"]
@@ -238,7 +255,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         for attempt in range(len(self.search_keys)):
             p = await self._get_search_pair()
             try:
-                resp = await client.get("https://www.googleapis.com/customsearch/v1", params={"key": p["key"], "cx": p["cx"], "q": keyword, "num": 5}, timeout=10.0)
+                resp = await client.get("https://www.googleapis.com/customsearch/v1", params={"key": p["key"], "cx": p["cx"], "q": keyword, "num": MAX_COMPETITOR_FETCH}, timeout=RECON_TIMEOUT_SECONDS)
                 
                 if resp.status_code == 200:
                     data = resp.json()
@@ -255,11 +272,11 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
                         try:
                             await self._emit_progress(campaign, f"🌐 Trinh sát [{idx+1}/5]: {url[:45]}...")
                             # Use shorter timeout for competitor sites
-                            r = await client.get(url, timeout=5.0)
+                            r = await client.get(url, timeout=COMPETITOR_TIMEOUT_SECONDS)
                             if r.status_code == 200:
                                 b = re.sub(r'<(script|style)[^>]*>.*?</\1>', ' ', r.text, flags=re.IGNORECASE|re.DOTALL)
                                 b = re.sub(r'<[^>]+>', ' ', b)
-                                return f"URL: {url}\nContent: {re.sub(r'\s+', ' ', b).strip()[:3000]}"
+                                return f"URL: {url}\nContent: {re.sub(r'\s+', ' ', b).strip()[:MAX_SNIPPET_CHARS]}"
                         except Exception:
                             pass
                         return f"URL: {url}\nSnippet: {it.get('snippet','')}"

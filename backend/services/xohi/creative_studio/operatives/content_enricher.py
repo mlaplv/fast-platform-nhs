@@ -17,6 +17,16 @@ from backend.database.repositories import ContentCampaignRepository
 logger = logging.getLogger("api-gateway")
 
 # ══════════════════════════════════════════════════════════════
+# ELITE V2.2 CONSTANTS — AI Booster Logic
+# ══════════════════════════════════════════════════════════════
+MAX_ENRICH_INPUT_CHARS = 12000
+ENRICH_SEARCH_COUNT = 4
+MAX_LOG_ERROR_LEN = 100
+MAX_PROGRESS_FAIL_LEN = 50
+MAX_HISTORY_TRACE_CHARS = 500
+EXPECTED_SEO_BOOST = 10
+
+# ══════════════════════════════════════════════════════════════
 # SYSTEM PROMPT — Viral Edge™ Content Enricher 
 # ══════════════════════════════════════════════════════════════
 
@@ -62,6 +72,7 @@ class ContentEnricher(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
 
     async def _search_data(self, query: str) -> list[str]:
         """Fetch search snippets for a query related to the topic."""
+        self._ensure_search_keys()
         pair = await self._get_search_pair()
         if not pair: return []
         try:
@@ -72,7 +83,7 @@ class ContentEnricher(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
                     "key": pair["key"],
                     "cx": pair["cx"],
                     "q": query,
-                    "num": 4
+                    "num": ENRICH_SEARCH_COUNT
                 }
             )
             data = response.json()
@@ -82,7 +93,7 @@ class ContentEnricher(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
             self.logger.error(f"[Enricher] Search API error: {e}")
             return []
 
-    async def enrich(self, campaign) -> EnrichResponse:
+    async def enrich(self, campaign: ContentCampaign) -> EnrichResponse:
         logs = ["🔍 Khởi động hệ thống AI Booster (Phase 82.8)..."]
         await self._emit_progress(campaign, logs[-1])
         draft = campaign.draft_content or ""
@@ -122,7 +133,7 @@ class ContentEnricher(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         # Phase 2: Synthesis & Injection via Agent
         user_input = f"""
 [BÀI VIẾT GỐC]
-{draft[:12000]}
+{draft[:MAX_ENRICH_INPUT_CHARS]}
 
 [DỮ LIỆU THỰC TẾ ĐỂ CHÈN VÀO BÀI]
 {data_str}
@@ -137,7 +148,7 @@ Hãy chọn số liệu/quote hay nhất từ DỮ LIỆU THỰC TẾ và TỰ T
     - stats_added: Số lượng số liệu đã chèn.
     - quotes_added: Số lượng quote đã chèn.
     - tables_added: Số lượng bảng đã chèn.
-    - seo_boost_estimate: Ước tính điểm SEO tăng thêm (ví dụ 10).
+    - seo_boost_estimate: Ước tính điểm SEO tăng thêm (ví dụ {EXPECTED_SEO_BOOST}).
 """
         logger.info(f"[Enricher] Enrichment complete. Stats search found {len(stats_results)} results, Quotes search found {len(quotes_results)} results.")
         logger.info(f"[Enricher] Sending to Gemini for synthesis (Payload length: {len(user_input)})...")
@@ -148,8 +159,8 @@ Hãy chọn số liệu/quote hay nhất từ DỮ LIỆU THỰC TẾ và TỰ T
             result = await self.bridge.run(self._agent, user_input, role="brain")
         except Exception as ai_err:
             self.logger.error(f"[Enricher] AI Synthesis Fail: {ai_err}")
-            logs.append(f"❌ Lỗi xử lý AI: {str(ai_err)[:100]}...")
-            await self._emit_progress(campaign, f"❌ Lỗi AI: {str(ai_err)[:50]}", status="FAILED")
+            logs.append(f"❌ Lỗi xử lý AI: {str(ai_err)[:MAX_LOG_ERROR_LEN]}...")
+            await self._emit_progress(campaign, f"❌ Lỗi AI: {str(ai_err)[:MAX_PROGRESS_FAIL_LEN]}", status="FAILED")
             raise
         
         if not result or not hasattr(result, "data") or result.data is None:
@@ -171,7 +182,7 @@ Hãy chọn số liệu/quote hay nhất từ DỮ LIỆU THỰC TẾ và TỰ T
                     
                 logger.error(f"[Enricher] AI returned invalid data. Result: {result is not None} | Data: N/A")
                 logger.error(f"[Enricher] Message History Trace:\n{history}")
-                logger.error(f"[Enricher] Last Message Raw (first 500 chars): {raw_text[:500]}")
+                logger.error(f"[Enricher] Last Message Raw (first {MAX_HISTORY_TRACE_CHARS} chars): {raw_text[:MAX_HISTORY_TRACE_CHARS]}")
                 await self._emit_log(campaign, "❌ Hệ thống AI không phản hồi đúng định dạng.")
                 raise ValueError("AI fail to generate enriched content structure. Check backend logs for trace.")
         else:

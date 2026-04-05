@@ -101,6 +101,7 @@ export function createNanobotState() {
     brainStabilityScore: 100,
     brainCoverage: 0,
     brainManualOpen: false,
+    liveStreamBuffer: "" as string, // CNS V86.5: Real-time neural stream buffer
   });
 
   const audioThrottle = createAudioThrottle(state);
@@ -126,8 +127,8 @@ export function createNanobotState() {
   const setDynamicIntentMap = (val: Record<string, string>) => { state.dynamicIntentMap = val; };
   
   const intent = createIntentManager(state, voice, log, ui, chat, resetVui, softReset, setThinking);
-  const resumeManager = createResumeManager(state, intent, log, ui, () => sync.startSmartPolling());
-  const pulseManager = createPulseManager(state, voice, log, ui, vuiState, notification, () => sync.startSmartPolling());
+  const resumeManager = createResumeManager(state, intent, { ...log, setActivityLogs: log.setActivityLogs }, ui, chat, () => sync.startSmartPolling());
+  const pulseManager = createPulseManager(state, voice, log, ui, vuiState, notification, chat, () => sync.startSmartPolling());
   const sync = createSyncManager(state, log, chat, notification, ui, setDynamicIntentMap, resumeManager, pulseManager);
 
   // Lifecycle
@@ -321,6 +322,7 @@ export function createNanobotState() {
         state.activeWidget = "NONE";
         ui.setUniversalModalOpen(false);
         voice.clearVuiResponse();
+        state.liveStreamBuffer = "";
         resetVui();
 
         // CNS V82.11: Hard Purge Global Image Store
@@ -331,6 +333,11 @@ export function createNanobotState() {
         });
       }
     },
+
+    // 6. Neural Stream Management (Elite V2.2)
+    get liveStreamBuffer() { return state.liveStreamBuffer; },
+    appendStreamChunk: (text: string) => { state.liveStreamBuffer += text; },
+    clearStreamBuffer: () => { state.liveStreamBuffer = ""; },
 
     get universalModalOpen() { return ui.universalModalOpen; },
     get confirmDialog() { return ui.confirmDialog; },

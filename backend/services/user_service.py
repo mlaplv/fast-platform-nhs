@@ -5,6 +5,7 @@ from collections import defaultdict
 import uuid
 
 from sqlalchemy import select, func, and_, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
@@ -254,9 +255,25 @@ class UserService:
         if customer_role:
             new_user.roles.append(customer_role)
             
-        db.add(new_user)
-        # Flush to persist for immediate Order linking in LeadExtractor
-        await db.flush() 
+        # Elite V2.2: Savepoint guard against concurrent INSERT race condition.
+        # If two requests arrive simultaneously for the same new phone, only one
+        # INSERT wins; the other catches IntegrityError and re-fetches.
+        try:
+            async with db.begin_nested():
+                db.add(new_user)
+                await db.flush()
+        except IntegrityError:
+            logger.warning("[UserService] Concurrent user creation race detected for phone=%s. Re-fetching.", phone)
+            re_stmt = select(User).where(
+                or_(
+                    and_(User.phone == phone, User.tenant_id == tenant_id, User.deleted_at == None),
+                    and_(User.email == email, User.deleted_at == None)
+                )
+            )
+            existing = (await db.execute(re_stmt)).scalar_one_or_none()
+            if existing:
+                return existing, False, None, False
+            raise  # Unknown IntegrityError — re-raise for visibility
         
         return new_user, True, None, False
 

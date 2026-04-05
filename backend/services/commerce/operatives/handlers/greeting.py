@@ -19,8 +19,14 @@ class GreetingHandler(BaseHandler):
             "giá", "bao nhiêu", "nhiêu", "mua", "đặt", "ship", "lấy", "tư vấn",
             "thành phần", "công dụng", "tác dụng", "liệu trình", "cách dùng", "hiệu quả", "an toàn", "sử dụng"
         ])
+        # Elite V2.2 Fix: Detect pure knowledge questions — these should bypass greeting prefix
+        # to avoid polluting the Consultant's response with an irrelevant welcome message.
+        is_question = any(kw in msg for kw in [
+            "?", " gì", " ở đâu", " bất", " bao nhiêu", " như thế nào",
+            "địa chỉ", "thành phần", "công dụng", "giá", "cách", "liệu trình", "chính sách"
+        ])
         
-        if is_first_msg or has_greeting:
+        if (is_first_msg or has_greeting) and not is_question:
             prefix = "[z1] Dạ Helen chào Anh/Chị! 🌸 "
             if ctx.dna.segment == "VIP":
                 prefix = f"Dạ Helen thân chào khách quý! 🌟 Rất vui được gặp lại mình ạ. "
@@ -41,7 +47,7 @@ class GreetingHandler(BaseHandler):
             # 🚀 EARLY EXIT: If it's JUST a greeting (short message without buying clues or knowledge curiosity), terminate here.
             # This saves LLM costs for pure rapport building.
             # We enforce strict False if there's any sign of deeper intent.
-            if has_greeting and not buying_intent and len(msg) < 15:
+            if has_greeting and not buying_intent and not is_question and len(msg) < 15:
                 # Add a soft closing if it's an early exit to not sound abrupt
                 ctx.replies.append("Anh/Chị cần em tư vấn về liệu trình hay hỗ trợ thông tin gì không ạ?")
                 return True # Terminate pipeline correctly

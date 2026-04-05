@@ -1,12 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --color-neon-cyan: #00f3ff;
+  --color-alert-red: #ff003c;
+}
+
 /* 
   ELITE V2.2: GLOBAL SANITIZATION 
   Only truly shared variables and base resets belong here.
-  NO Tailwind Engine loaded here to protect LCP/Latency.
 */
 
 :root {
-  --bg-canvas: #020617;
+  --bg-canvas: #010101; /* Vantablack */
   --text-base: #ffffff;
+}
+
+body {
+  background-color: var(--bg-canvas);
+  color: var(--text-base);
+  margin: 0;
+  padding: 0;
 }
 
 .root-loading-container {

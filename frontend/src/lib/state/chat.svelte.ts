@@ -228,8 +228,8 @@ export function createChatState(
     }
   }
 
-  async function clearHistory(sessionId: string, userId?: string) {
-    if (!sessionId) return;
+  async function clearHistory(sessionId: string, userId?: string): Promise<boolean> {
+    if (!sessionId) return false;
     state.pagination.isLoading = true;
     const cleanUserId = sanitizeId(userId);
     try {
@@ -261,6 +261,62 @@ export function createChatState(
     }
   }
 
+  /**
+   * CNS V82.15: Unified Campaign ID Extraction Logic
+   * Centralizes metadata probing to avoid logic duplication for sweep/resume events.
+   */
+  function _getCampaignId(content: Record<string, unknown>): string | undefined {
+    const data = (content.data || {}) as Record<string, unknown>;
+    return (content.campaign_id as string) || 
+           (content.id as string) || 
+           (data.campaign_id as string) || 
+           (data.id as string);
+  }
+
+  function sweepCampaignFromCache(campaignId: string) {
+    if (!campaignId) return;
+
+    // 1. Sweep active history
+    const initialCount = state.history.length;
+    state.history = state.history.filter((m) => {
+      const content = m.content as Record<string, unknown>;
+      return _getCampaignId(content) !== campaignId;
+    });
+
+    // 2. Sweep SWR Cache (Exhaustive Search)
+    let cachePurged = 0;
+    for (const [key, entry] of cache.entries()) {
+      const originalCount = entry.data.messages.length;
+      entry.data.messages = entry.data.messages.filter((m) => {
+        const content = m.content as Record<string, unknown>;
+        return _getCampaignId(content) !== campaignId;
+      });
+      if (entry.data.messages.length !== originalCount) {
+        cachePurged++;
+        // Update timestamp to force fresh revalidation if mostly empty
+        if (entry.data.messages.length === 0) cache.delete(key);
+      }
+    }
+
+    console.log(`[ChatState] 🧹 Deep Sweep: Purged ${campaignId} from ${initialCount - state.history.length} history items and ${cachePurged} cache entries.`);
+  }
+
+  function clearLocalSession(sessionId: string, userId?: string) {
+    const targetSessionId = sessionId || "account";
+    const cleanUserId = sanitizeId(userId);
+    const cacheKey = cleanUserId ? `${targetSessionId}:${cleanUserId}` : targetSessionId;
+    
+    // Wipe local history if it matches the current session
+    // (Note: This simple store usually holds one active session history at a time)
+    state.history = [];
+    state.pagination.cursor = null;
+    state.pagination.hasMore = false;
+    
+    // Wipe SWR cache
+    cache.delete(cacheKey);
+    console.log(`[ChatState] 🧹 Local session purged: ${cacheKey}`);
+  }
+
   return {
     get history() {
       return state.history;
@@ -271,5 +327,7 @@ export function createChatState(
     hydrateHistory,
     loadMoreMessages,
     clearHistory,
+    clearLocalSession,
+    sweepCampaignFromCache,
   };
 }

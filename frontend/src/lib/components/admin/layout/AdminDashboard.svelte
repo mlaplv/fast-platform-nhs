@@ -1,50 +1,45 @@
 <script lang="ts">
-  import { type Component } from "svelte";
   import ToastNotification from "$lib/components/admin/ui/ToastNotification.svelte";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { vuiController } from "$lib/vui";
   import XohiLogo from "$lib/components/admin/XohiLogo.svelte";
   import "../../../../routes/(admin)/admin.css";
+  import type { Component } from 'svelte';
 
-  let { children, userEmail, isMobile } = $props<{
+  interface AdminDashboardProps {
     children?: import("svelte").Snippet;
     userEmail?: string;
     isMobile?: boolean;
-  }>();
+  }
+
+  interface ShellModule { default: Component<any> };
+
+  let { children, userEmail, isMobile }: AdminDashboardProps = $props();
+
   let innerWidth = $state(0);
-  let mounted = $state(false);
 
-  // Dynamic Components
-  let LayoutComponent = $state<Component>();
+  // Elite V2.2: Zero-Hydration aware state sync
+  if (userEmail) {
+    nanobot.setUserEmail(userEmail);
+  }
 
-  $effect(() => {
-    (async () => {
-      innerWidth = window.innerWidth;
-      if (userEmail) {
-        nanobot.setUserEmail(userEmail);
-      }
-
-      const isMobileDevice = isMobile || window.innerWidth < 768;
-
-      if (isMobileDevice) {
-        LayoutComponent = (
-          await import("$lib/components/admin/layout/mobile/MobileShell.svelte")
-        ).default;
-      } else {
-        LayoutComponent = (
-          await import("$lib/components/admin/layout/DesktopLayout.svelte")
-        ).default;
-      }
-
-      mounted = true;
-    })();
+  /**
+   * ELITE V2.2: DYNAMIC SHELL RESOLUTION
+   * Logic: Derived promise reacts to viewport changes while preserving code-splitting.
+   */
+  const isMobileDevice = $derived(isMobile || innerWidth < 768);
+  
+  const shellPromise = $derived.by((): Promise<ShellModule> => {
+    if (isMobileDevice) {
+       return import("$lib/components/admin/layout/mobile/MobileShell.svelte");
+    }
+    return import("$lib/components/admin/layout/DesktopLayout.svelte");
   });
 
   let lastTrig = -1;
   $effect(() => {
     if (lastTrig === -1) {
-      // First mount: just capture the current value, do NOT start mic
       lastTrig = nanobot.voiceTrigger;
     } else if (nanobot.voiceTrigger > lastTrig) {
       lastTrig = nanobot.voiceTrigger;
@@ -55,16 +50,10 @@
 
 <svelte:window bind:innerWidth />
 
-{#if mounted && LayoutComponent}
-  <LayoutComponent>
-    {#if children}
-      {@render children()}
-    {/if}
-  </LayoutComponent>
-{:else}
+{#await shellPromise}
   <!-- Essential Base Loading (Vantablack Minimal) -->
   <div
-    class="fixed inset-0 bg-[#050505] flex items-center justify-center z-[100]"
+    class="fixed inset-0 bg-[#050505] flex items-center justify-center z-[var(--z-layout-header)]"
   >
     <div class="flex flex-col items-center gap-4">
       <XohiLogo size="lg" status="THINKING" />
@@ -74,7 +63,22 @@
       >
     </div>
   </div>
-{/if}
+{:then mod}
+  {@const LayoutComponent = mod.default}
+  <LayoutComponent>
+    {#if children}
+      {@render children()}
+    {/if}
+  </LayoutComponent>
+{:catch err}
+  <div class="fixed inset-0 bg-[#050505] flex items-center justify-center z-[var(--z-vui-exit)]">
+    <div class="text-red-500 font-mono text-center p-6 border border-red-500/20 bg-red-500/5 backdrop-blur-md">
+      <div class="text-xs opacity-50 mb-2">[FATAL_SHELL_ERROR]</div>
+      <div class="text-sm tracking-tight">{err.message}</div>
+    </div>
+  </div>
+{/await}
+
 
 <!-- Vault Modal Overlay (Highest z-index, shared) -->
 <ToastNotification />

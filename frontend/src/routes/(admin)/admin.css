@@ -1,9 +1,4 @@
-@import "tailwindcss";
 
-@theme {
-  --color-neon-cyan: #00f3ff;
-  --color-alert-red: #ff003c;
-}
 
 /* --- ADMIN Z-INDEX NEXUS --- */
 :root {

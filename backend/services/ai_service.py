@@ -9,6 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import HTTPException
 
 from backend.schemas.common import SuccessResponse, UserID
+from backend.schemas.ai import KeyStats, BulkKeyInput, ModelConfig, ModelDiscoveryResponse, AIModelStatusResponse
+from backend.database.models import VoiceProfile
+from backend.services.ai_engine.core.key_rotator import key_rotator
+from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+from backend.utils.security import GeminiSecurity
 
 logger = logging.getLogger("api-gateway")
 

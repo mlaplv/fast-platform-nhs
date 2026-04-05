@@ -20,23 +20,27 @@ interface BulkFixReplacement {
 }
 
 export function createAnalysisController(config: {
-    campaign_id?: string | null;
+    campaign_id?: string | null | (() => string | null | undefined);
     /** Required in adhoc mode: returns the full current HTML for analysis */
     getContent?: () => string;
     /** Optional topic/keyword for SEO analysis in adhoc mode */
     topic?: string;
-    isEditing: boolean;
+    isEditing: boolean | (() => boolean);
     getEditedDraft: () => string;
     getDraftContent: () => string;
     setEditedDraft: (v: string) => void;
     setDraftContent: (v: string) => void;
-    analysis_cache: AnalysisCache;
-    analysis_metrics: CampaignMetrics;
+    analysis_cache: AnalysisCache | (() => AnalysisCache);
+    analysis_metrics: CampaignMetrics | (() => CampaignMetrics);
     getIsProcessing?: () => boolean;
 }) {
     const nanobot = useNanobot();
+
+    // Helper to resolve config values (handles both raw and closure)
+    const resolve = <T>(val: T | (() => T)): T => (typeof val === 'function' ? (val as () => T)() : val);
+
     /** Resolve whether we are operating in Campaign or Adhoc (stateless) mode */
-    const isAdhoc = !config.campaign_id;
+    const isAdhoc = $derived(!resolve(config.campaign_id));
     let copyrightResult = $state<CopyrightResult | null>(null);
     let isCopyrightLoading = $state(false);
     let seoResult = $state<SEOResult | null>(null);
@@ -54,7 +58,7 @@ export function createAnalysisController(config: {
     // to avoid cascading log appends causing infinite re-renders.
     $effect(() => {
         const data = nanobot.currentData as CampaignData;
-        const campaignId = config.campaign_id;
+        const campaignId = resolve(config.campaign_id);
         const msg = (data as CampaignData & { progress_msg?: string })?.progress_msg ?? '';
         if (!data || !campaignId || (data.campaign_id !== campaignId && data.id !== campaignId) || !msg) return;
 
@@ -114,10 +118,12 @@ export function createAnalysisController(config: {
     });
 
     async function saveBeforeAnalysis() {
-        const currentText = config.isEditing ? config.getEditedDraft() : config.getDraftContent();
-        if (currentText && config.campaign_id) {
+        const currentText = resolve(config.isEditing) ? config.getEditedDraft() : config.getDraftContent();
+        if (!isAdhoc) {
+            const cid = resolve(config.campaign_id);
+            if (!cid) return;
             try {
-                await apiClient.patch(`/api/v1/content/campaigns/${config.campaign_id}`, { draft_content: currentText });
+                await apiClient.patch(`/api/v1/content/campaigns/${cid}`, { draft_content: currentText });
             } catch (e: unknown) {
                 console.warn("[AnalysisController] Auto-save failed:", e);
             }
@@ -126,7 +132,8 @@ export function createAnalysisController(config: {
 
     async function runCopyrightCheck(force: boolean = false, skipSave: boolean = false) {
         if (isCopyrightLoading) return;
-        if (!isAdhoc && !config.campaign_id) return;
+        const campaignId = resolve(config.campaign_id);
+        if (!isAdhoc && !campaignId) return;
         isCopyrightLoading = true;
         isBulkFixing = true;
         bulkFixStatus = "Đang quét...";
@@ -136,7 +143,7 @@ export function createAnalysisController(config: {
             if (!skipSave) await saveBeforeAnalysis();
             const url = isAdhoc
                 ? `/api/v1/content/analyze/copyright?force=${force}`
-                : `/api/v1/content/campaigns/${config.campaign_id}/analyze/copyright?force=${force}`;
+                : `/api/v1/content/campaigns/${campaignId}/analyze/copyright?force=${force}`;
             const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)() } : undefined;
             const res = await apiClient.post<GenericResponse<CopyrightResult>>(url, body);
 
@@ -166,18 +173,19 @@ export function createAnalysisController(config: {
 
     async function runSeoAnalysis(force: boolean = false, skipSave: boolean = false) {
         if (isSeoLoading) return;
-        if (!isAdhoc && !config.campaign_id) return;
+        const campaignId = resolve(config.campaign_id);
+        if (!isAdhoc && !campaignId) return;
         isSeoLoading = true;
         isBulkFixing = true;
         bulkFixStatus = "Đang quét SEO...";
         bulkFixLogs = ["🔍 Đang khởi động máy quét SEO (Phase 82.8)...", "🧠 Đang phân tích mật độ từ khóa & cấu trúc HTML..."];
-        const topicName = config.topic ?? '';
+        const topicName = resolve(config.topic) ?? '';
         activeTab = 'seo';
         try {
             if (!skipSave) await saveBeforeAnalysis();
             const url = isAdhoc
                 ? `/api/v1/content/analyze/seo?force=${force}`
-                : `/api/v1/content/campaigns/${config.campaign_id}/analyze/seo?force=${force}`;
+                : `/api/v1/content/campaigns/${campaignId}/analyze/seo?force=${force}`;
             const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)(), topic: topicName } : undefined;
 
             const res = await apiClient.post<GenericResponse<SEOResult>>(url, body);
@@ -206,7 +214,8 @@ export function createAnalysisController(config: {
 
     async function runAiAnalysis(force: boolean = false, skipSave: boolean = false) {
         if (isAiLoading || aiLocked) return;
-        if (!isAdhoc && !config.campaign_id) return;
+        const campaignId = resolve(config.campaign_id);
+        if (!isAdhoc && !campaignId) return;
         isAiLoading = true;
         isBulkFixing = true;
         bulkFixStatus = "Đang quét AI MOD...";
@@ -216,7 +225,7 @@ export function createAnalysisController(config: {
             if (!skipSave) await saveBeforeAnalysis();
             const url = isAdhoc
                 ? `/api/v1/content/analyze/ai-inspect?force=${force}`
-                : `/api/v1/content/campaigns/${config.campaign_id}/analyze/ai-inspect?force=${force}`;
+                : `/api/v1/content/campaigns/${campaignId}/analyze/ai-inspect?force=${force}`;
             const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)() } : undefined;
             const res = await apiClient.post<GenericResponse<AIInspectResult>>(url, body);
             if (res?.data) {
@@ -331,9 +340,10 @@ export function createAnalysisController(config: {
     }
 
     async function runAutoFix(targetSnippet: string, annotationType: string, errorMessage: string): Promise<string | null> {
-        if (!config.campaign_id) return null;
+        const campaignId = resolve(config.campaign_id);
+        if (!campaignId) return null;
         try {
-            const res = await apiClient.post<GenericResponse<{ new_text: string }>>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/auto-fix`, {
+            const res = await apiClient.post<GenericResponse<{ new_text: string }>>(`/api/v1/content/campaigns/${campaignId}/analyze/auto-fix`, {
                 target_snippet: targetSnippet,
                 annotation_type: annotationType,
                 error_message: errorMessage,
@@ -368,7 +378,8 @@ export function createAnalysisController(config: {
 
     async function runBulkFix() {
         if (isBulkFixing || !activeTab) return;
-        if (!isAdhoc && !config.campaign_id) return;
+        const campaignId = resolve(config.campaign_id);
+        if (!isAdhoc && !campaignId) return;
         isBulkFixing = true;
         bulkFixLogs = ["Đang khởi tạo Neural Engine...", "Đang nạp ngữ chuẩn Viral Edge 2026...", "Đang phân tích cấu trúc bài viết..."];
         try {
@@ -404,9 +415,9 @@ export function createAnalysisController(config: {
             bulkFixLogs = [...bulkFixLogs, ...initialLogs];
             const bulkUrl = isAdhoc
                 ? `/api/v1/content/analyze/bulk-fix`
-                : `/api/v1/content/campaigns/${config.campaign_id}/analyze/bulk-fix`;
+                : `/api/v1/content/campaigns/${campaignId}/analyze/bulk-fix`;
             const bulkBody = isAdhoc
-                ? { content: (config.getContent ?? config.getEditedDraft)(), topic: config.topic ?? '', category, annotations: annotationsToSend }
+                ? { content: (config.getContent ?? config.getEditedDraft)(), topic: resolve(config.topic) ?? '', category, annotations: annotationsToSend }
                 : { category, annotations: annotationsToSend };
             const res = await apiClient.post<GenericResponse<{ new_content: string, logs?: string[], replacements?: BulkFixReplacement[] }>>(bulkUrl, bulkBody);
 
@@ -424,10 +435,10 @@ export function createAnalysisController(config: {
                 const replacements = res.data.replacements || []; // Array of { old_text, new_text }
 
                 // In campaign mode, also persist fixed content to DB
-                if (!isAdhoc && config.campaign_id) {
-                    await apiClient.patch(`/api/v1/content/campaigns/${config.campaign_id}`, { draft_content: newHtml });
+                if (!isAdhoc && campaignId) {
+                    await apiClient.patch(`/api/v1/content/campaigns/${campaignId}`, { draft_content: newHtml });
                 }
-                if (config.isEditing) config.setEditedDraft(newHtml);
+                if (resolve(config.isEditing)) config.setEditedDraft(newHtml);
                 else config.setDraftContent(newHtml);
 
                 await tick();
@@ -489,20 +500,21 @@ export function createAnalysisController(config: {
     }
 
     async function runAiBooster() {
+        const campaignId = resolve(config.campaign_id);
         // AI Booster requires a persistent campaign context (enrich endpoint needs campaign record in DB)
-        if (isAdhoc || !config.campaign_id || isBoosting || !seoResult) return;
+        if (isAdhoc || !campaignId || isBoosting || !seoResult) return;
         isBoosting = true;
         isBulkFixing = true; // CNS V85.21: Also lock bulkFixing to prevent concurrent actions
         bulkFixStatus = "Đang Booster...";
         bulkFixLogs = ["🚀 Đang khởi động Neural Booster™ (Phase 82.85)...", "🧠 Đang phân tích chiến lược trinh sát dữ liệu..."];
-        const htmlContent = config.isEditing ? config.getEditedDraft() : config.getDraftContent();
+        const htmlContent = resolve(config.isEditing) ? config.getEditedDraft() : config.getDraftContent();
         const textContent = htmlContent.replace(/<[^>]*>/g, ''); // Strip tags for real length
         
         console.log("🚀 [AI Booster] Trình khởi động kích hoạt. Phân tích bài viết:", { 
             html_length: htmlContent.length,
             text_length: textContent.length,
             word_count: textContent.split(/\s+/).filter(w => w.length > 0).length,
-            isEditing: config.isEditing 
+            isEditing: resolve(config.isEditing) 
         });
         activeTab = 'enrich';
         try {
@@ -512,7 +524,7 @@ export function createAnalysisController(config: {
                 logs?: string[], 
                 items?: EnrichmentItem[],
                 annotations?: AnalysisAnnotation[]
-            }>>(`/api/v1/content/campaigns/${config.campaign_id}/analyze/enrich`);
+            }>>(`/api/v1/content/campaigns/${campaignId}/analyze/enrich`);
             if (res?.status === 'success' && res.data?.new_content) {
                 if (res.logs && res.logs.length > 0) {
                     for (const log of res.logs) {
@@ -523,7 +535,7 @@ export function createAnalysisController(config: {
                 bulkFixStatus = "Đang lưu...";
                 bulkFixLogs = [...bulkFixLogs, "✅ Đã tổng hợp dữ liệu thành công!", "Đang đồng bộ bản thảo tối ưu..."];
                 const newHtml = res.data.new_content;
-                if (config.isEditing) config.setEditedDraft(newHtml);
+                if (resolve(config.isEditing)) config.setEditedDraft(newHtml);
                 console.log("✅ [AI Booster] Hoàn tất nhận diện vùng tối ưu!", {
                     items_found: res.data.items?.length || 0,
                     annotations_received: res.data.annotations?.length || 0,
@@ -564,7 +576,8 @@ export function createAnalysisController(config: {
 
     // Hydrate from cache (CNS V82.52: Reactive Sync)
     $effect(() => {
-        const cache = config.analysis_cache;
+        const metrics = resolve(config.analysis_metrics);
+        const cache = resolve(config.analysis_cache);
         if (cache && Object.keys(cache).length > 0) {
             untrack(() => {
                 if (cache.copyright?.data && (copyrightResult === null || copyrightResult === undefined)) {
@@ -586,6 +599,15 @@ export function createAnalysisController(config: {
             });
         }
     });
+
+    function dispose() {
+        copyrightResult = null;
+        seoResult = null;
+        aiReadyResult = null;
+        bulkFixLogs = [];
+        bulkFixStatus = "";
+        activeTab = null;
+    }
 
     return {
         get copyrightResult() { return copyrightResult; },
@@ -612,6 +634,7 @@ export function createAnalysisController(config: {
         runAutoFix,
         runCleanContent,
         runBulkFix,
-        runAiBooster
+        runAiBooster,
+        dispose
     };
 }

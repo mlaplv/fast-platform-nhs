@@ -201,5 +201,24 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
         """Elite V2.2: Purge all KB related cache."""
         await self.delete_pattern("support:kb:*")
 
+    async def delete_campaign_memory(self, campaign_id: str, user_id: Optional[str] = None):
+        """
+        Elite V2.2: Full Resource Disposal.
+        Purges pulse cache, analysis results, and optionally user chat logs from Redis.
+        """
+        try:
+            if self._use_redis:
+                # 1. Pulse & Progress Caches
+                await self.delete_pattern(f"pulse:{campaign_id}*")
+                # 2. Analysis & Operative Caches (Structured)
+                await self.delete_pattern(f"xohi:analysis:{campaign_id}*")
+                # 3. User Chat Cache (Purge recent logs to avoid stale references)
+                if user_id:
+                    await self.client.delete(f"xohi:chat:{user_id}")
+                    
+                logger.info(f"[XoHiMemory] Redis Purge complete for campaign: {campaign_id}")
+        except Exception as e:
+            logger.warning(f"[XoHiMemory] Failed to purge campaign memory: {e}")
+
 # Singleton
 xohi_memory = XoHiMemory()

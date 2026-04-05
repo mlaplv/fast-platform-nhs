@@ -20,17 +20,27 @@ class OrderHandler(BaseHandler):
         
         # 🚀 Elite V2.2: Heuristic Pre-filter
         # Skip heavy LLM extraction if the message is clearly not an order intent.
-        potential_order = any(kw in msg for kw in ["mua", "đặt", "lấy", "ship", "giao", "đơn", "check", "kiểm tra"])
+        potential_order = any(kw in msg for kw in [
+            "mua", "đặt", "lấy", "ship", "giao", "đơn", "check", "kiểm tra",
+            "cho tôi", "cho mình", "1 lọ", "2 lọ", "3 lọ", "combo", "cần", "muốn",
+            "địa chỉ", "số điện thoại", "sdt", "sđt", "tên", "nhận hàng"
+        ])
         has_digits = any(char.isdigit() for char in msg)
+        # Detect clear order signals: message has both digits (phone) AND address-like patterns
+        has_address_signal = any(kw in msg for kw in ["đường", "phố", "quận", "huyện", "phường", "xã", "tỉnh", "tp", "thành phố", "ngõ", "ngách", "/"])
         
-        if not potential_order and not has_digits and len(msg) < 15:
+        if not potential_order and not has_digits and not has_address_signal and len(msg) < 15:
             return False
 
         # 1. RUN LEAD EXTRACTOR (Core Engine)
-        lead_data = await lead_extractor.extract_and_convert(
-            ctx.db, ctx.request.message, ctx.session_id, current_product_slug=ctx.request.product_slug
-        )
-        ctx.lead_data = lead_data
+        try:
+            lead_data = await lead_extractor.extract_and_convert(
+                ctx.db, ctx.request.message, ctx.session_id, current_product_slug=ctx.request.product_slug
+            )
+            ctx.lead_data = lead_data
+        except Exception as le:
+            logger.error(f"[OrderHandler] Lead extraction failed: {le}")
+            return False
         
         # 2. SUCCESS PATH: Order was created successfully
         if lead_data and lead_data.processed_order_id:
