@@ -125,7 +125,15 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                 system_prompt=masked_prompt,
                 safety_none=True
             )
-            data = cast(ConsultantResponse, res.data)
+            # [ELITE V2.2] Robust Result Extraction: Handles Data, Output, or Raw Object
+            raw = res.data if hasattr(res, "data") else (res.output if hasattr(res, "output") else res)
+            
+            # Final Safety: If trinity_bridge returned the raw AgentRunResult or similar wrapper, 
+            # we MUST extract its data if it doesn't match our schema yet.
+            if hasattr(raw, 'data') and not hasattr(raw, 'reply'):
+                raw = raw.data
+                
+            data = cast(ConsultantResponse, raw)
             
             if data and data.reply:
                 ctx.replies.append(data.reply)

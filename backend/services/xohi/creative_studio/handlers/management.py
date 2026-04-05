@@ -1,6 +1,18 @@
-from typing import TypedDict, Optional, List, Dict, Union
+import logging
+import os
+import sqlalchemy as sa
+from sqlalchemy import select, func, delete as sa_delete
+from typing import TypedDict, Optional, List, Dict, Union, TYPE_CHECKING
+
 from backend.database.models import ContentCampaign as CampaignModel, MediaRegistry, ChatMessage, CampaignEvent, Appointment, AgentTelemetryLog, Notification
 from backend.database.models.system import UnifiedAgentTask
+from backend.database.repositories import ContentCampaignRepository, MediaRegistryRepository
+from backend.database.alchemy_config import alchemy_config
+from backend.services.event_bus import event_bus
+from backend.models.schemas import CampaignListResponse, CampaignListItem, CampaignStatus, GenericResponse
+
+if TYPE_CHECKING:
+    from backend.services.xohi.creative_studio.orchestrator import ContentOrchestrator
 
 logger = logging.getLogger("api-gateway")
 
