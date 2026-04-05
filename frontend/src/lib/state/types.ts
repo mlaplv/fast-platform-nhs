@@ -1,11 +1,19 @@
+export interface CampaignLogMetadata {
+  campaign_id?: string;
+  id?: string;
+  router_tier?: string;
+  role?: string;
+  [key: string]: unknown;
+}
+
 export interface SystemLog {
   id: string;
   timestamp: Date;
   message: string;
   source: string;
   type?: string;
-  routerTier?: number;
-  data?: Record<string, unknown>;
+  routerTier?: string;
+  data?: CampaignLogMetadata;
 }
 
 export interface Notification {

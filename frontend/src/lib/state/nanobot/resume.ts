@@ -17,13 +17,13 @@ interface ResumeDeps {
       uiAction: string,
       data?: Record<string, unknown>,
       source?: "text" | "voice",
-      routerTier?: number
+      routerTier?: string | number
     ) => void;
   };
   log: {
     activityLogs: SystemLog[];
     setActivityLogs: (logs: SystemLog[]) => void;
-    addLog: (msg: string, source?: string, type?: string, tier?: number, data?: Record<string, unknown>) => void;
+    addLog: (msg: string, source?: string, type?: string, tier?: string | number, data?: Record<string, unknown>) => void;
     closeFullLog: () => void;
   };
   ui: {
@@ -132,7 +132,7 @@ export function createResumeManager(
       "CONTENT_CREATE",
       { ...campaignData, isSilent },
       "text", // Force "text" so the backend does not mistakenly open VUI thinking it was a voice command
-      (logOrCampaign as SystemLog).routerTier || 2
+      (logOrCampaign as SystemLog).routerTier || "2"
     );
 
     if (isSilent && !state.isResumingManually) {

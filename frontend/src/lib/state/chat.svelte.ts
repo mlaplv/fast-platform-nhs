@@ -1,5 +1,5 @@
 import { apiClient } from "$lib/utils/apiClient";
-import type { SystemLog } from "./types";
+import type { SystemLog, CampaignLogMetadata } from "./types";
 import { safeRandomUUID, sanitizeId } from "./utils";
 
 export interface ChatMessage {
@@ -77,7 +77,7 @@ export function createChatState(
         const textContent = m.content.text || (m.content.message as string) || "";
         if (textContent && textContent !== "NONE" && textContent.trim().length > 0) {
           // Flatten nested data if present (Rule R86: Persistence Hardening)
-          const metadata = (m.content.data ? { ...m.content, ...(m.content.data as Record<string, unknown>) } : m.content) as Record<string, unknown>;
+          const metadata = (m.content.data ? { ...m.content, ...(m.content.data as Record<string, unknown>) } : m.content) as CampaignLogMetadata;
 
           logsToAppend.push({
             id: m.id + "_text",
@@ -265,8 +265,8 @@ export function createChatState(
    * CNS V82.15: Unified Campaign ID Extraction Logic
    * Centralizes metadata probing to avoid logic duplication for sweep/resume events.
    */
-  function _getCampaignId(content: Record<string, unknown>): string | undefined {
-    const data = (content.data || {}) as Record<string, unknown>;
+  function _getCampaignId(content: CampaignLogMetadata): string | undefined {
+    const data = (content.data || {}) as CampaignLogMetadata;
     return (content.campaign_id as string) || 
            (content.id as string) || 
            (data.campaign_id as string) || 

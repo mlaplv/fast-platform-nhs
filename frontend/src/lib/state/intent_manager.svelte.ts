@@ -2,7 +2,7 @@ import { ACTION_WIDGET_MAP } from "./constants";
 import { handleFastAction, type HandlerDeps } from "./intent/FastActionHandler";
 import { handleChatIntent } from "./intent/ChatIntentHandler";
 import { handleVoiceIntent } from "./intent/VoiceIntentHandler";
-import type { WidgetType, ToastType, CommandAction, Suggestion, ChatSettings } from "./types";
+import type { WidgetType, ToastType, CommandAction, Suggestion, ChatSettings, CampaignLogMetadata } from "./types";
 
 interface IntentDeps {
   state: {
@@ -25,7 +25,7 @@ interface IntentDeps {
       uiAction: string,
       data?: Record<string, unknown>,
       source?: "text" | "voice",
-      routerTier?: number
+      routerTier?: string | number
     ) => void;
     status: string;
     setVuiActive: (val: boolean) => void;
@@ -33,7 +33,7 @@ interface IntentDeps {
     softReset: () => void;
   };
   log: {
-    addLog: (msg: string, source?: string, type?: string, tier?: number, data?: Record<string, unknown>) => void;
+    addLog: (msg: string, source?: string, type?: string, tier?: string | number, data?: CampaignLogMetadata) => void;
   };
   ui: {
     setUniversalModalOpen: (val: boolean) => void;
@@ -70,7 +70,7 @@ export function createIntentManager(
     uiAction: string,
     data?: Record<string, unknown>,
     source: "text" | "voice" = "text",
-    routerTier?: number
+    routerTier?: string | number
   ) {
     state.lastSpokenText = responseText.toLowerCase();
     state.lastSpokenTime = Date.now();

@@ -1,16 +1,12 @@
-import os
-import logging
-import sqlalchemy as sa
-from sqlalchemy import select, func, delete as sa_delete
-from sqlalchemy.orm import undefer
-from backend.database.models import ContentCampaign as CampaignModel, MediaRegistry, ChatMessage, CampaignEvent, Appointment
+from typing import TypedDict, Optional, List, Dict, Union
+from backend.database.models import ContentCampaign as CampaignModel, MediaRegistry, ChatMessage, CampaignEvent, Appointment, AgentTelemetryLog, Notification
 from backend.database.models.system import UnifiedAgentTask
-from backend.database.repositories import ContentCampaignRepository, MediaRegistryRepository
-from backend.models.schemas import CampaignListResponse, CampaignListItem, GenericResponse, CampaignStatus
-from backend.services.event_bus import event_bus
-from backend.database.alchemy_config import alchemy_config
 
 logger = logging.getLogger("api-gateway")
+
+class PurgePayload(TypedDict):
+    campaign_id: str
+    user_id: Optional[str]
 
 class ManagementHandler:
     def __init__(self, orchestrator: "ContentOrchestrator"):
@@ -74,22 +70,22 @@ class ManagementHandler:
                 await repo.session.rollback()
             return GenericResponse(status="error", message=str(e))
 
-    async def _handle_campaign_purge(self, payload: dict) -> None:
+    async def _handle_campaign_purge(self, payload: PurgePayload) -> None:
         """
         [ELITE V2.2] Decentralized Purge Listener.
-        Handles domain cleanup: Media files, Appointments, Memory, and Active Tasks.
+        Handles domain cleanup: Media files, Appointments, Memory, Telemetry, and Active Tasks.
         """
         campaign_id = payload.get("campaign_id")
         user_id = payload.get("user_id")
         if not campaign_id: return
 
-        logger.info(f"[PurgeProtocol] Received cleanup signal for {campaign_id}")
+        logger.info(f"[PurgeProtocol] Phase 1: Signal received for {campaign_id}")
         
         try:
             # 1. Stop Active Processing & Cleanup Tasks
             await self.orchestrator.engine.terminate_campaign_tasks(campaign_id)
             
-            # 2. Clear Stateful Memory
+            # 2. Clear Stateful Memory (AI Context)
             if user_id:
                 await self.orchestrator.memory.delete_campaign_memory(campaign_id, user_id=user_id)
             else:
@@ -98,6 +94,8 @@ class ManagementHandler:
             # 3. Purge Physical Assets and Related DB Records
             session_maker = alchemy_config.create_session_maker()
             async with session_maker() as session:
+                logger.info(f"[PurgeProtocol] Phase 2: Purging assets and tracking for {campaign_id}")
+                
                 # Media Registry & Files
                 assets_stmt = sa.select(MediaRegistry).where(MediaRegistry.campaign_id == campaign_id)
                 assets = (await session.execute(assets_stmt)).scalars().all()
@@ -117,6 +115,9 @@ class ManagementHandler:
                     UnifiedAgentTask.session_id == campaign_id,
                     UnifiedAgentTask.task_id == campaign_id
                 )))
+                
+                # [Elite V2.2] Telemetry & Usage Tracking
+                await session.execute(sa_delete(AgentTelemetryLog).where(AgentTelemetryLog.session_id == campaign_id))
 
                 await session.commit()
             
@@ -127,9 +128,9 @@ class ManagementHandler:
                 "action": "PURGE"
             })
             
-            logger.info(f"[PurgeProtocol] XoHi domain cleanup complete for {campaign_id}")
+            logger.info(f"[PurgeProtocol] Phase 3: Final Sweep complete for {campaign_id}")
         except Exception as e:
-            logger.error(f"[PurgeProtocol] Cleanup failed for {campaign_id}: {e}")
+            logger.error(f"[PurgeProtocol] CRITICAL Cleanup failure for {campaign_id}: {e}")
 
     async def cancel_campaign(self, campaign_id: str, repo: ContentCampaignRepository) -> GenericResponse:
         """[R100] Logic to terminate a campaign and notify the event bus."""

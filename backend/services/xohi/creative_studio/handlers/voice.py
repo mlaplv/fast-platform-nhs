@@ -2,7 +2,7 @@ import uuid
 import logging
 import re
 from datetime import datetime, timezone
-from typing import Optional, Dict, Union, List
+from typing import Optional, Dict, Union, List, TypedDict
 from backend.database.models import ContentCampaign, ChatMessage
 import sqlalchemy as sa
 from sqlalchemy import delete as sa_delete
@@ -17,6 +17,10 @@ import asyncio
 from backend.database.alchemy_config import alchemy_config
 
 logger = logging.getLogger("api-gateway")
+
+class PurgePayload(TypedDict):
+    campaign_id: str
+    user_id: Optional[str]
 
 class VoiceHandler:
     def __init__(self, orchestrator: "ContentOrchestrator"):
@@ -291,7 +295,7 @@ class VoiceHandler:
                 "timestamp": datetime.now(timezone.utc).isoformat()
             })
 
-    async def _handle_campaign_purge(self, payload: dict) -> None:
+    async def _handle_campaign_purge(self, payload: PurgePayload) -> None:
         """
         [ELITE V2.2] Decentralized Purge Listener.
         Performs Vantablack Sweep (Deep JSON logic) for ChatMessages.
@@ -299,12 +303,13 @@ class VoiceHandler:
         campaign_id = payload.get("campaign_id")
         if not campaign_id: return
 
-        logger.info(f"[PurgeProtocol] VoiceHandler sweeping logs for {campaign_id}")
+        logger.info(f"[PurgeProtocol] Phase 1: VoiceHandler sweeping logs for {campaign_id}")
         
         try:
             session_maker = alchemy_config.create_session_maker()
             async with session_maker() as session:
                 # [Vantablack Purge] Search all sessions for campaign references in JSON
+                # Targeting campaign_id and data.campaign_id for 100% surgical strike.
                 await session.execute(
                     sa_delete(ChatMessage).where(
                         sa.or_(
@@ -315,6 +320,6 @@ class VoiceHandler:
                     )
                 )
                 await session.commit()
-                logger.info(f"[PurgeProtocol] Chat log sweep complete for {campaign_id}")
+                logger.info(f"[PurgeProtocol] Phase 2: Chat log sweep complete for {campaign_id}")
         except Exception as e:
-            logger.error(f"[PurgeProtocol] Chat log sweep failed for {campaign_id}: {e}")
+            logger.error(f"[PurgeProtocol] CRITICAL Chat log sweep failed for {campaign_id}: {e}")

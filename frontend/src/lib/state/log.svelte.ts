@@ -1,5 +1,5 @@
 import { safeRandomUUID } from "./utils";
-import { type SystemLog } from "./types";
+import { type SystemLog, type CampaignLogMetadata } from "./types";
 
 export function createLogState() {
   const state = $state({
@@ -71,8 +71,8 @@ export function createLogState() {
     message: string,
     source: string = "Nanobot-Core",
     type: string = "info",
-    routerTier?: number,
-    data?: Record<string, unknown>
+    routerTier?: string | number,
+    data?: CampaignLogMetadata
   ) {
     const newLog: SystemLog = {
       id: safeRandomUUID(),
@@ -80,7 +80,7 @@ export function createLogState() {
       message,
       source,
       type,
-      routerTier,
+      routerTier: String(routerTier ?? ""),
       data
     };
     upsertLogs([newLog]);

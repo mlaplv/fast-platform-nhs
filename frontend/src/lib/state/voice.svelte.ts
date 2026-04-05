@@ -5,7 +5,7 @@ import { permissionState } from "./permissions.svelte";
 export type VoiceStatus = "IDLE" | "VOICE" | "THINKING" | "ERROR" | "SUCCESS";
 
 export function createVoiceState(
-  addLog: (msg: string, source?: string, type?: string, routerTier?: number, data?: CampaignData | Record<string, unknown>) => void,
+  addLog: (msg: string, source?: string, type?: string, routerTier?: string | number, data?: CampaignData | Record<string, unknown>) => void,
 ) {
   const state = $state({
     isVuiActive: false,
@@ -18,7 +18,7 @@ export function createVoiceState(
     voiceTrigger: 0,
     status: "IDLE" as VoiceStatus,
     isProcessingSpeech: false,
-    routerTier: undefined as number | undefined,
+    routerTier: undefined as string | number | undefined,
     greetingTemplate: `Tôi đây thưa ${permissionState.userName || "bạn"} ✨`, // V57.5 Dynamic
     farewellTemplate: `Tạm biệt ${permissionState.userName || "bạn"}`,
   });
@@ -57,7 +57,7 @@ export function createVoiceState(
     uiAction: string,
     data?: Record<string, unknown>,
     source: "text" | "voice" = "text",
-    routerTier?: number,
+    routerTier?: string | number,
   ) {
     state.vuiUserQuery = transcript;
 

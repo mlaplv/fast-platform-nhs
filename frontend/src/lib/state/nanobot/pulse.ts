@@ -11,7 +11,8 @@ import type {
   CampaignMetrics,
   MediaAsset,
   CampaignStatus,
-  PulsePayload
+  PulsePayload,
+  CampaignLogMetadata
 } from "../types";
 
 interface PulseMessage {
@@ -359,20 +360,29 @@ export function createPulseManager(
              }).catch(() => {});
           }
         } else if (eventName === "CAMPAIGN_PURGED") {
-          const purgePayload = payload as { campaign_id: string; type?: string; action?: string };
-          const cid = purgePayload.campaign_id;
+          interface PurgeEventPayload { campaign_id: string; type?: string; action?: string; user_id?: string }
+          const { campaign_id: cid } = payload as PurgeEventPayload;
+          
+          // CNS V82.11: Perform deep-state sweep to prevent ghost resurrections in log streams
           const logs = [...log.activityLogs];
-          const filtered = logs.filter(l => l.data?.campaign_id !== cid);
+          const filtered = logs.filter(l => {
+            const m = l.data as CampaignLogMetadata;
+            return (m?.campaign_id !== cid && m?.id !== cid);
+          });
           if (filtered.length !== logs.length) log.setActivityLogs(filtered);
           
-          if (voice.vuiResponse?.data && (voice.vuiResponse.data as unknown as {campaign_id: string}).campaign_id === cid) {
-            voice.clearVuiResponse(); vuiState.setActive(false); vuiState.setPhase("idle");
+          // Cleanup VUI and Active Data States
+          if (voice.vuiResponse?.data && (voice.vuiResponse.data as CampaignLogMetadata).campaign_id === cid) {
+            voice.clearVuiResponse(); 
+            import("$lib/vui").then(({ vuiState }) => {
+              vuiState.setActive(false); vuiState.setPhase("idle");
+            }).catch(() => {});
           }
+          
           if (activeData && (activeData.campaign_id === cid || (activeData as unknown as {id: string}).id === cid)) {
              state.currentData = null;
           }
           
-          // CNS V82.11: Perform deep-state sweep to prevent ghost resurrections in log streams
           chat.sweepCampaignFromCache(cid);
           // [Elite V2.2] Silenced background toast to avoid double-notification (API already notified)
         } else if (eventName === "SUPPORT_INBOX_UPDATE") {
