@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from typing import Dict, cast, Any
+from typing import Dict, cast
+from pydantic import JsonValue
 from pydantic_ai import Agent
 from pydantic_ai.models.google import GoogleModel
 
@@ -27,15 +28,15 @@ async def test_medical_masking():
     logger.info(f"   Masked:   {masked}")
     
     assert "tăng tiết mồ hôi vùng dưới cánh tay" in masked
-    assert "kiểm soát triệt để triệu chứng" in masked
-    assert "tinh chất thảo dược cao cấp" in masked
+    assert "kiểm soát triệu chứng hiệu quả" in masked
+    assert "sản phẩm chuyên dụng" in masked
     logger.info("   ✅ Passed: Semantic rewrite successful.")
 
 async def test_trinity_bridge_structural_fix():
     """Verify that TrinityBridge cleans its kwargs by-reference before AI call."""
     logger.info("🧪 [Test 2] TrinityBridge Structural Integrity (Kwarg Leakage Check)...")
     
-    kwargs: Dict[str, Any] = {
+    kwargs: Dict[str, JsonValue] = {
         "safety_none": True,
         "model_settings": {"temperature": 0.5},
         "session_id": "test-v22",

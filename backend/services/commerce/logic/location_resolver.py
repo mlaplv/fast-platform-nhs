@@ -9,7 +9,8 @@ import json
 import logging
 import os
 import re
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Dict, Tuple
+from pydantic import JsonValue
 from dataclasses import dataclass
 
 from backend.utils.text import normalize_vn
@@ -28,9 +29,9 @@ class ResolvedLocation:
     shipping_days: Optional[str] = None
 
 class LocationResolver:
-    _data: List[Dict[str, Any]] = []
-    _province_map: Dict[str, Dict[str, Any]] = {} # Normalized Name -> Province Data
-    _ward_map: Dict[str, List[Tuple[str, Dict[str, Any]]]] = {} # Province ID -> List[(Norm Ward, Province Data)]
+    _data: List[Dict[str, JsonValue]] = []
+    _province_map: Dict[str, Dict[str, JsonValue]] = {} # Normalized Name -> Province Data
+    _ward_map: Dict[str, List[Tuple[str, Dict[str, JsonValue]]]] = {} # Province ID -> List[(Norm Ward, Province Data)]
     _initialized: bool = False
 
     def __init__(self, data_path: str = "backend/resources/vn_divisions.json"):

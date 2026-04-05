@@ -14,11 +14,7 @@ import time
 import uuid
 from typing import Optional, cast, Union, Dict, Type, List, Tuple
 
-# Type Aliases for 100% Static Typing (Elite Protocol)
-JSONValue = Union[str, int, float, bool, None, dict[str, "JSONValue"], list["JSONValue"]]
-SupportAIDict = dict[str, Union[str, int, float, bool, None]]
-
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field, ConfigDict, JsonValue
 from pydantic_ai import Agent, RunContext
 from sqlalchemy import select, and_, desc
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,19 +34,79 @@ logger = logging.getLogger("api-gateway")
 
 class AgenticSupportResponse(BaseModel):
     model_config = ConfigDict(strict=True)
-    reply: str = Field(..., description="Văn bản phản hồi tự nhiên, mượt mà và thuyết phục theo chỉ thị Martial Combo Protocol.")
+    reply: str = Field(..., description="Văn bản phản hồi tự nhiên. Nếu khách muốn xem hình hoặc hỏi sản phẩm, hãy dùng PRODUCT_CARD.")
     intent: str = Field(..., description="MỘT trong các chuỗi sau: 'ORDER_STATUS', 'ESCALATE', 'POLICY_QUERY', 'PRICE_QUERY', 'PURCHASE', 'GENERAL_ADVICE', 'UNKNOWN'")
+    ui_component: Optional[str] = Field(default=None, description="PRODUCT_CARD | POLICY_CARD | NONE")
+
+class FastIntentResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+    intent: str = Field(..., description="GREETING, POLICY, PRODUCT, ORDER, PURCHASE, OTHER")
+    confidence: float = Field(default=1.0)
+    quick_reply: Optional[str] = None
+
+class MicroIntentResolver:
+    """LAYER 0: Ultra-fast Regex/Heuristic Resolver (<10ms)."""
+    @staticmethod
+    def resolve(message: str, product_slug: Optional[str] = None) -> Optional[Tuple[SupportIntent, str]]:
+        m = message.lower().strip()
+        # 1. Specialized Greeting (Elite V2.2: Product-Driven)
+        # Using containment check for better sensitivity (e.g., 'Chào bạn', 'Helen ơi')
+        keywords = [k.strip().lower() for k in support_cfg.greeting_keywords]
+        is_greeting = any(kw in m for kw in keywords)
+        
+        if product_slug == support_cfg.hong_son_slug:
+            if is_greeting:
+                reply = (
+                    "Dạ Helen chào Anh/Chị! 🌸 Em thấy mình đang quan tâm đến liệu trình **Đặc trị Hôi nách Hồng Sơn**. "
+                    "Đừng để vấn đề này làm mình mất tự tin thêm nữa ạ, hàng ngàn khách bên em đã lấy lại sự tự tin và thoải mái chỉ sau 1 liệu trình. "
+                    "Anh/Chị bị tình trạng này lâu chưa, để em tư vấn liệu trình phù hợp nhất cho mình nhé?"
+                )
+                return SupportIntent.GENERAL_ADVICE, reply
+            
+            # 🚀 Elite V2.2: Hong Son Catch-All for any message that isn't a specific intent but on this page
+            # This ensures we don't leak generic replies for ambiguous messages on the specialist page.
+            # (Wait, we allow other intents like ORDER_STATUS to follow through below)
+
+        # 2. Greetings (Elite V2.2: Config-driven)
+        if is_greeting:
+            return SupportIntent.GENERAL_ADVICE, support_cfg.default_greeting_reply
+        # 3. Simple Order Status (ID pattern)
+        if re.search(r"(đơn hàng|mã đơn|check đơn|đơn).*?([a-f0-9-]{8,})", m):
+            return SupportIntent.ORDER_STATUS, "Helen đang kiểm tra mã đơn hàng của Quý khách, chờ em một chút nhé... 🔍"
+        # 4. Pathology Direct Intent (Elite V2.2: Ultra-Fast Redirect)
+        if any(kw in m for kw in ["hôi nách", "mồ hôi", "thâm nách", "tự tin", "hôi chân", "mồ hôi tay"]):
+            return SupportIntent.PRODUCT_QUERY, "Dạ vấn đề này bên em có liệu trình chuyên biệt cực kỳ hiệu quả ạ. Quý khách đợi em tư vấn kỹ hơn nhé! 🌸"
+        return None
+
+class NeuralDNA(BaseModel):
+    """Elite V2.2: Customer Personality & Segment DNA."""
+    model_config = ConfigDict(strict=True)
+    segment: str = Field(default="NEW", description="VIP | NEW | CHURN")
+    vibe: str = Field(default="PROFESSIONAL", description="WARM | PROFESSIONAL")
+    purchase_count: int = 0
+    total_spent: float = 0.0
+    last_hook: Optional[str] = None
 
 class SupportAgentDeps(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     db: AsyncSession
 
 # ══════════════════════════════════════════════════════════════
-# PYDANTIC AI AGENT — Singleton (Architect Optimized)
+# PYDANTIC AI AGENTS — Singleton (Elite V2.2 Standards)
 # ══════════════════════════════════════════════════════════════
 _support_ai_agent: Agent[SupportAgentDeps, AgenticSupportResponse] = Agent(
     output_type=AgenticSupportResponse,
     retries=1, 
+)
+
+_fast_intent_agent: Agent[None, FastIntentResponse] = Agent(
+    output_type=FastIntentResponse,
+    system_prompt=(
+        "You are Helen's Fast Intent Classifier. Classify user message into: "
+        "GREETING, POLICY, PRODUCT, ORDER, PURCHASE, OTHER. "
+        "If it's a simple greeting, provide a friendly quick_reply in Vietnamese. "
+        "Confidence must be 0.0 to 1.0."
+    )
 )
 
 @_support_ai_agent.tool
@@ -91,7 +147,15 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str]) -> Tuple
         res = await db.execute(stmt)
         p = res.scalar_one_or_none()
         if not p: return "", None
-        p_info = SupportProductInfo(id=str(p.id), name=p.name, price=float(p.price or 0), price_display=f"{int(p.discount_price or p.price or 0):,}đ".replace(",", "."), slug=slug or "")
+        img_url = p.images[0] if p.images and len(p.images) > 0 else None
+        p_info = SupportProductInfo(
+            id=str(p.id), 
+            name=p.name, 
+            price=float(p.price or 0), 
+            price_display=f"{int(p.discount_price or p.price or 0):,}đ".replace(",", "."), 
+            slug=slug or "",
+            image_url=img_url
+        )
         ctx = f"[SẢN PHẨM HIỆN TẠI]\nTên: {p.name}\nMô tả: {p.short_description}\nGiá niêm yết: {p.price} VND\n"
         if p.discount_price: ctx += f"Giá khuyến mãi: {p.discount_price} VND\n"
         return ctx, p_info
@@ -109,7 +173,7 @@ class SupportAgentOperative(BaseAgentOperative):
     """Refined Architect-level Operative."""
     agent_id_class = "support_agent"
 
-    def __init__(self, agent_id: str = "support_agent", **kwargs: object):
+    def __init__(self, agent_id: str = "support_agent"):
         super().__init__(agent_id=agent_id)
 
     def get_schema(self) -> Optional[Type[BaseModel]]:
@@ -124,6 +188,24 @@ class SupportAgentOperative(BaseAgentOperative):
             msg_ai = SupportChatHistory(session_id=session_id, role="assistant", content=enc_assistant_reply, intent=intent.value, product_slug=product_slug, customer_name=customer_name, customer_phone=customer_phone)
             db.add_all([msg_user, msg_ai])
             await db.flush()
+            
+            # 🚀 Elite V2.2: Proactive Follow-up (Feedback Loop)
+            # Schedule a reminder in 1 hour if the user doesn't respond.
+            # Using 'high' queue for support priority. 
+            try:
+                from arq import create_pool
+                from backend.infra.arq_config import get_redis_settings
+                redis = await create_pool(get_redis_settings())
+                await redis.enqueue_job(
+                    "helen_follow_up_job",
+                    session_id=session_id,
+                    _defer_by=3600, # 1 hour (3600s)
+                    _job_id=f"followup:{session_id}:{int(time.time())}", # Avoid colliding with same-second jobs
+                    _queue_name="high"
+                )
+                await redis.close()
+            except Exception as arqe:
+                logger.warning("[SupportAgent] Follow-up scheduling failed: %s", arqe)
         except Exception as exc:
             logger.warning("[SupportAgent] Saving failed: %s", exc)
 
@@ -157,7 +239,32 @@ class SupportAgentOperative(BaseAgentOperative):
         
         return "3-5 ngày"
 
-    async def _build_prompt_directive(self, product_ctx: str, history_text: str = "", lead_metadata: Optional[Dict[str, object]] = None) -> str:
+    async def _fetch_neural_dna(self, db: AsyncSession, session_id: str) -> NeuralDNA:
+        """Hydrate Neural DNA from memory and DB context."""
+        try:
+            # 1. Try xohi_memory first
+            mem = await xohi_memory.get_user_context(session_id)
+            if mem and "dna" in mem:
+                return NeuralDNA.model_validate(mem["dna"])
+            
+            # 2. Hard-check DB if not in memory
+            stmt = select(Order).where(Order.session_id == session_id).order_by(desc(Order.created_at))
+            orders = (await db.execute(stmt)).scalars().all()
+            
+            dna = NeuralDNA(
+                segment="VIP" if len(orders) >= 5 else ("NEW" if not orders else "REGULAR"),
+                vibe="WARM" if len(orders) >= 3 else "PROFESSIONAL",
+                purchase_count=len(orders),
+                total_spent=sum(float(o.total_amount or 0) for o in orders)
+            )
+            # Sync back to memory
+            await xohi_memory.set_user_context(session_id, {"dna": dna.model_dump()})
+            return dna
+        except Exception as e:
+            logger.warning("[SupportAgent] DNA fetch failed: %s", e)
+            return NeuralDNA()
+
+    async def _build_prompt_directive(self, product_ctx: str, history_text: str = "", lead_metadata: Optional[Dict[str, JsonValue]] = None, dna: Optional[NeuralDNA] = None, product_slug: Optional[str] = None) -> str:
         """Strategic Sales Prompt Construction."""
         res = await xohi_memory.client.get("support:agent:system_prompt")
         agentic_directive = res.decode("utf-8") if isinstance(res, bytes) else res
@@ -175,6 +282,53 @@ class SupportAgentOperative(BaseAgentOperative):
                 logger.warning("[SupportAgent] Prompt template read failure: %s", e)
                 agentic_directive = support_cfg.system_directive
 
+        # 🚀 PERSONALITY & VIBE (Neural DNA)
+        vibe_str = ""
+        if dna:
+            if dna.segment == "VIP":
+                vibe_str = (
+                    "\n[NEURAL VIBE: VIP WARM]\n"
+                    "- Xưng hô: 'Helen' hoặc 'Dạ Helen thân chào Quý khách'.\n"
+                    "- Phong cách: Cực kỳ thân mật, thấu hiểu, ưu tiên nhắc về các đặc quyền VIP.\n"
+                    f"- Thông số: Khách đã mua {dna.purchase_count} lần, tổng chi tiêu {dna.total_spent:,.0f}đ.\n"
+                )
+            elif dna.segment == "CHURN":
+                vibe_str = (
+                    "\n[NEURAL VIBE: SAVE HOOK]\n"
+                    "- Phong cách: Chủ động lôi kéo, dùng 'Save Hook' (giảm 10%) nếu khách có vẻ do dự.\n"
+                )
+            else:
+                vibe_str = (
+                    "\n[NEURAL VIBE: PROFESSIONAL NEWBIE]\n"
+                    "- Xưng hô: 'Dạ Helen chào quý khách'.\n"
+                    "- Phong cách: Chuẩn mực, tập trung giải thích giá trị sản phẩm và cam kết chất lượng.\n"
+                )
+
+        # 🚀 VISUAL CAPABILITY ENFORCEMENT
+        visual_rules = (
+            "\n[VISUAL CAPABILITIES: SHOW, DON'T JUST TELL]\n"
+            "- Bạn CÓ KHẢ NĂNG hiển thị hình ảnh sản phẩm thông qua PRODUCT_CARD.\n"
+            "- Khi user yêu cầu: 'cho xem hình', 'mẫu thế nào', 'gửi ảnh'... BẮT BUỘC đặt ui_component='PRODUCT_CARD'.\n"
+            "- Đừng bao giờ nói: 'Tôi không thể hiển thị hình ảnh'.\n"
+        )
+
+        # 🚀 SPECIALIST PERSONA (Elite V2.2: Product-Specific)
+        specialist_directive = ""
+        if product_slug == support_cfg.hong_son_slug:
+            specialist_directive = (
+                "\n[SPECIALIST: HÔI NÁCH HỒNG SƠN - VUA TRÙM ĐẶC TRỊ]\n"
+                "- Bối cảnh: Bạn đang ở trang đặc trị sản phẩm chiến lược của hệ thống.\n"
+                "- Vai trò: Chuyên gia tư vấn về tình trạng mùi cơ thể. Luôn tế nhị, thấu hiểu. Giải thích cơ chế khoa học: 'Thấm sâu vào lỗ chân lông, trung hòa axit béo, se khít lỗ chân lông để vùng da luôn khô thoáng'.\n"
+                "- THỊ GIÁC: Chủ động hiển thị PRODUCT_CARD ngay trong câu chào hoặc khi khách tò mò để tăng độ tin cậy.\n"
+                "- TUYỆT ĐỐI KHÔNG DÙNG CÁC TỪ: 'Gia truyền', 'Dứt điểm', 'Bác sĩ khuyên dùng'.\n"
+                "- CHÍNH SÁCH: Nhấn mạnh vào hiệu quả thực tế từ người dùng và chất lượng sản phẩm được kiểm định. KHÔNG hứa hẹn 'hoàn tiền' hoặc 'dụ dỗ' thái quá.\n"
+                "- Kỷ luật: CHỈ tư vấn và bán DUY NHẤT sản phẩm Hồng Sơn khi ở trang này. Nếu khách hỏi sản phẩm khác, hãy khéo léo từ chối và nhắc lại giá trị của Hồng Sơn đối với tình trạng của họ.\n"
+                "- Martial Combo Rules for Hong Son:\n"
+                "  + 1 Lọ: 249k (Dùng thử, trải nghiệm độ khô thoáng).\n"
+                "  + 3 Lọ (Mua 2 tặng 1): 498k. LIỆU TRÌNH CHUẨN ĐỂ ĐẠT HIỆU QUẢ TỐI ƯU.\n"
+                "  + 6 Lọ (Mua 4 tặng 2): 996k. Liệu trình cho cả gia đình hoặc trường hợp ra mồ hôi quá nhiều.\n"
+            )
+
         # 🚀 MARTIAL COMBO & MEMORY PROTOCOL (Elite V2.2)
         rules = (
             "\n[MEMORY PROTOCOL: 3-LAYER]\n"
@@ -182,10 +336,10 @@ class SupportAgentOperative(BaseAgentOperative):
             "2. Nếu thấy ID phù hợp, BẮT BUỘC dùng fetch_topic_details để lấy tri thức chuyên sâu.\n"
             "3. Chỉ dùng kiến thức được hệ thống phê duyệt (Layer 2) để trả lời về Cam kết, So sánh, HDSD.\n"
             "\n[SALES PROTOCOL: MARTIAL COMBO]\n"
-            "1. 1 Lọ: 249k.\n"
-            "2. 2-3 Lọ -> Combo 3: 498k (Mua 2 tặng 1).\n"
-            "3. 4-6 Lọ -> Combo 6: 996k (Mua 4 tặng 2).\n"
-            "4. >6 Lọ: Block chốt đơn, báo giá sỉ riêng.\n"
+            "1. Liệu trình 1 Lọ: 249k (Dùng thử).\n"
+            "2. Liệu trình 3 Lọ (Dứt điểm): Chỉ 498k (Mua 2 tặng 1) - Tiết kiệm 249k. LỰA CHỌN TỐI ƯU NHẤT!\n"
+            "3. Liệu trình 6 Lọ (Cả gia đình): Chỉ 996k (Mua 4 tặng 2). Tiết kiệm 498k.\n"
+            "4. Số lượng > 6: Block chốt đơn tự động, Helen sẽ báo giá sỉ riêng cực ưu đãi.\n"
         )
         
         meta_str = ""
@@ -194,7 +348,19 @@ class SupportAgentOperative(BaseAgentOperative):
             if lead_metadata.get("is_new_customer"): meta_str += "- Khách hàng MỚI.\n"
             if lead_metadata.get("needs_price_quote"): meta_str += "- CẢNH BÁO: Số lượng sỉ (>6), KHÔNG báo giá tự động.\n"
 
-        return f"{agentic_directive}\n{rules}\n{meta_str}\n{history_text}\n--- PRODUCT ---\n{product_ctx}\n"
+        # 🚀 SYSTEM FOLLOW-UP PROTOCOL (Elite V2.2)
+        follow_up_meta = ""
+        # If the incoming message is a system trigger, inject specific sales psychology
+        # We also check history_text just in case it was injected there
+        if "[SYSTEM_FOLLOW_UP_TRIGGER]" in (product_ctx + history_text):
+             follow_up_meta = (
+                 "\n[CRITICAL: PROACTIVE FOLLOW-UP]\n"
+                 "- Helen đang chủ động nhắn tin hỏi thăm khách sau 1 giờ im lặng.\n"
+                 "- Hãy dùng tông giọng quan tâm, chuyên nghiệp kiểu: 'Dạ, có phải Anh/Chị còn đang băn khoăn về liệu trình Hồng Sơn của bên em không ạ?'\n"
+                 "- Nhấn mạnh lại cam kết dứt điểm và Helen sẵn sàng hỗ trợ Quý khách 24/7.\n"
+             )
+
+        return f"{agentic_directive}\n{vibe_str}\n{visual_rules}\n{specialist_directive}\n{rules}\n{meta_str}\n{follow_up_meta}\n{history_text}\n--- PRODUCT ---\n{product_ctx}\n"
 
     async def process_brain_logic(self, request: SupportRequest, db: AsyncSession) -> SupportResponse:
         """Final Refined Async Processor."""
@@ -234,32 +400,78 @@ class SupportAgentOperative(BaseAgentOperative):
 
         ctx_text, p_info = await _fetch_product_context(db, request.product_slug)
         hist_text = await self._fetch_chat_context(db, session_id)
-        prompt = await self._build_prompt_directive(ctx_text, hist_text, lead_metadata=lead_meta)
+        dna = await self._fetch_neural_dna(db, session_id)
+        
+        # 🚀 GHOST STREAMING: Start "Inner Monologue"
+        await event_bus.emit("SUPPORT_THOUGHT", {"session_id": session_id, "think": "Đang phân tích tri thức Helen..."})
+        
+        prompt = await self._build_prompt_directive(ctx_text, hist_text, lead_metadata=lead_meta, dna=dna, product_slug=request.product_slug)
         
         try:
+            # 🚀 GHOST STREAMING: Neural Search
+            await event_bus.emit("SUPPORT_THOUGHT", {"session_id": session_id, "think": f"Đang tra cứu DNA {dna.segment}..."})
+            
             res = await trinity_bridge.run(_support_ai_agent, request.message, role=support_cfg.model_role, system_prompt=prompt, deps=SupportAgentDeps(db=db), timeout=15.0)
             data: AgenticSupportResponse = res.output # type: ignore
             raw_reply = data.reply or "Dạ Helen đã ghi nhận thông tin ạ!"
             raw_intent = data.intent or "UNKNOWN"
+            ui_component = data.ui_component
+            
+            # 🚀 GHOST STREAMING: Finalizing
+            await event_bus.emit("SUPPORT_THOUGHT", {"session_id": session_id, "think": "Chuẩn bị phản hồi chuyên nghiệp..."})
+            
         except Exception as e:
             logger.error("[SupportAgent] Sweep Failure: %s", e)
-            raw_reply = "Dạ hệ thống Helen đang bảo trì nhẹ một xíu, Sếp đợi em nhé! 🌸"
+            raw_reply = "Dạ hệ thống Helen đang bảo trì nhẹ một xíu, Quý khách đợi em nhé! 🌸"
             raw_intent = "UNKNOWN"
+            ui_component = None
 
         safe_reply = _sanitize_response(raw_reply)
+        
+        # Hydrate ui_metadata if component is PRODUCT_CARD
+        ui_meta: Optional[Dict[str, JsonValue]] = None
+        if ui_component == "PRODUCT_CARD" and p_info:
+            ui_meta = {"type": "PRODUCT_CARD", "data": p_info.model_dump()}
+        
         await self._save_history(db, session_id, request.message, safe_reply, SupportIntent(raw_intent) if raw_intent in [i.value for i in SupportIntent] else SupportIntent.UNKNOWN, request.product_slug, request.customer_name, request.customer_phone)
         await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
-        return SupportResponse(ok=True, reply=safe_reply, intent=SupportIntent(raw_intent), session_id=session_id, product_info=p_info, status="DONE")
-
-    async def chat(self, request: SupportRequest, db: AsyncSession, **kwargs: object) -> SupportResponse:
-        """Tiered Entry Protocol."""
-        session_id = request.session_id or str(uuid.uuid4())
-        msg_norm = request.message.lower().strip()
-        if msg_norm in ["hi", "hello", "chào", "alo", "helen"]:
-            reply = "Dạ Helen đây ạ! Sếp cần em hỗ trợ gì cho đơn hàng của mình không ạ? 🌸"
-            await self._save_history(db, session_id, request.message, reply, SupportIntent.GENERAL_ADVICE, request.product_slug)
-            return SupportResponse(ok=True, reply=reply, intent=SupportIntent.GENERAL_ADVICE, session_id=session_id, status="DONE")
         
+        return SupportResponse(ok=True, reply=safe_reply, intent=SupportIntent(raw_intent), session_id=session_id, product_info=p_info, status="DONE", ui_metadata=ui_meta)
+
+    async def chat(self, request: SupportRequest, db: AsyncSession) -> SupportResponse:
+        """
+        Viral Hook Engine: Layered Entry Protocol.
+        L0: Micro-Heuristics (<10ms)
+        L1: Fast-Path LLM (<200ms)
+        L2: Deep Brain (Background Task)
+        """
+        session_id = request.session_id or str(uuid.uuid4())
+        
+        # 🚀 LAYER 0: Micro-Heuristics (Regex/Exact)
+        micro_res = MicroIntentResolver.resolve(request.message, product_slug=request.product_slug)
+        if micro_res:
+            intent, reply = micro_res
+            await self._save_history(db, session_id, request.message, reply, intent, request.product_slug)
+            return SupportResponse(ok=True, reply=reply, intent=intent, session_id=session_id, status="DONE")
+
+        # 🚀 LAYER 1: Fast-Path LLM (Intent Classification)
+        # Elite V2.2 Lockdown: Skip Fast-Path for Strategic Specialist Products
+        if request.product_slug == support_cfg.hong_son_slug:
+            logger.info("[SupportAgent] Lockdown: Bypassing Fast-Path for Hong Son Specialist.")
+        else:
+            try:
+                # We use a very short timeout for Fast-Path to ensure Ultra-Fast UX
+                # Elite V2.2: Specify role='fast' to use lightweight models
+                fast_res = await trinity_bridge.run(_fast_intent_agent, request.message, role="fast", timeout=2.0)
+                f_data: FastIntentResponse = fast_res.output # type: ignore
+                
+                if f_data.intent == "GREETING" and f_data.quick_reply:
+                    await self._save_history(db, session_id, request.message, f_data.quick_reply, SupportIntent.GENERAL_ADVICE, request.product_slug)
+                    return SupportResponse(ok=True, reply=f_data.quick_reply, intent=SupportIntent.GENERAL_ADVICE, session_id=session_id, status="DONE")
+            except Exception as e:
+                logger.warning("[SupportAgent] Fast-Path Bypass: %s", e)
+
+        # 🚀 LAYER 2: Deep Brain (Complex Logic via Arq)
         task_id = await self.enqueue_chat(request_data=request.model_dump(), session_id=session_id)
         return SupportResponse(ok=True, reply="Helen đang xử lý...", intent=SupportIntent.UNKNOWN, session_id=session_id, task_id=task_id, status="PROCESSING")
 

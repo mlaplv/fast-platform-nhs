@@ -128,6 +128,13 @@ class SupportKnowledge(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
         Index("ix_support_knowledge_tenant_active", "tenant_id", "is_active"),
     )
 
+class SupportKnowledgeEmbedding(Base, AuditMixin, TenantMixin):
+    """Elite V2.2: pgvector persistence for Knowledge Base."""
+    __tablename__ = 'support_knowledge_embeddings'
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    knowledge_id: Mapped[str] = mapped_column(String, sa.ForeignKey('support_knowledge.id'), unique=True, index=True)
+    embedding: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # Will be cast to vector in SQL operations
+
 class UnifiedAgentTask(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     """
     Elite V2.2: Universal Task Persistence for AI Operatives.

@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 # Ensure all operatives are imported so they register themselves (R0.2)
 import backend.services.commerce.operatives.support_agent
 import backend.services.xohi.creative_studio.operatives.plagiarism_cop
-from backend.infra.jobs import cleanup_old_tasks
+from backend.infra.jobs import cleanup_old_tasks, helen_follow_up_job
 # Add other XoHi agents to ensure registration if needed
 
 logger = logging.getLogger("neural-worker")
@@ -186,7 +186,7 @@ from arq import cron
 
 class WorkerSettings:
     """Arq Base Configuration (Elite V2.2)."""
-    functions = [run_agent_task]
+    functions = [run_agent_task, helen_follow_up_job]
     redis_settings = get_redis_settings()
     on_startup = startup
     on_shutdown = shutdown
@@ -198,14 +198,14 @@ class WorkerSettings:
 class WorkerHighSettings(WorkerSettings):
     """Priority Worker for Helen (Client Support)."""
     queue_name = "high"
-    functions = [run_agent_task]
+    functions = [run_agent_task, helen_follow_up_job]
     redis_settings = get_redis_settings() # Explicitly call again to be safe
     max_jobs = 10
 
 class WorkerDefaultSettings(WorkerSettings):
     """Standard Worker for XoHi (Creative Studio)."""
     queue_name = "default"
-    functions = [run_agent_task]
+    functions = [run_agent_task, helen_follow_up_job]
     redis_settings = get_redis_settings() # Explicitly call again to be safe
     max_jobs = 5
     cron_jobs = [

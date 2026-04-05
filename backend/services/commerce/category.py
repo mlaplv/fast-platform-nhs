@@ -1,7 +1,8 @@
 import uuid
 import logging
 from datetime import datetime, timezone
-from typing import List, Dict, Optional, TypedDict, Any
+from typing import List, Dict, Optional, TypedDict
+from pydantic import JsonValue
 from collections import defaultdict
 
 from sqlalchemy import text, select, func, update
@@ -119,7 +120,7 @@ class CategoryService:
         await db_session.commit()
         
         # Elite V2.2: Sync Media
-        await self._sync_media_links(new_id, data.image)
+        await CategoryService._sync_media_links(new_id, data.image)
         
         return SuccessResponse(ok=True, id=new_id)
 
@@ -145,7 +146,7 @@ class CategoryService:
         await db_session.commit()
         
         # Elite V2.2: Sync Media
-        await self._sync_media_links(category_id, category.image)
+        await CategoryService._sync_media_links(category_id, category.image)
 
         return SuccessResponse(ok=True, id=category_id)
 

@@ -7,7 +7,7 @@ from typing import List, Optional
 logger = logging.getLogger("key-loader")
 
 class KeyLoaderMixin:
-    def _parse_keys(self, raw: str | None) -> list[str]:
+    def _parse_keys(self, raw: Optional[str]) -> list[str]:
         if not raw:
             return []
         
@@ -45,9 +45,10 @@ class KeyLoaderMixin:
         self.keys, self.index = all_keys, 0
         
         if not self.keys:
-            logger.warning("[KeyRotator] NO Gemini keys found in ENV or DB!")
+            logger.warning("🚨 [KeyRotator] NO Gemini keys found in ENV or DB! (SUPPORT_GEMINI_KEYS: %s)", 
+                           "present" if os.getenv("SUPPORT_GEMINI_KEYS") else "MISSING")
         else:
-            logger.info(f"[KeyRotator] Successfully loaded {len(self.keys)} Gemini keys.")
+            logger.info(f"✅ [KeyRotator] Successfully loaded {len(self.keys)} Gemini keys.")
 
     async def _recover_from_db(self) -> list[str]:
         from backend.database.alchemy_config import alchemy_config

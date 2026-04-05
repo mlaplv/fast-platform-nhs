@@ -1,7 +1,8 @@
 import logging
 import asyncio
 import numpy as np
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Optional, cast, TypedDict
+from pydantic import JsonValue
 from sqlalchemy import select, delete, func, text as sa_text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,8 +18,15 @@ class BrainManager:
     Ensures zero-duplication and optimized vector health.
     """
 
+    class DuplicateResult(TypedDict):
+        type: str
+        original_id: str
+        duplicate_id: str
+        name: str
+        reason: str
+
     @staticmethod
-    async def get_semantic_duplicates(db: AsyncSession, threshold: float = 0.92) -> List[Dict[str, Any]]:
+    async def get_semantic_duplicates(db: AsyncSession, threshold: float = 0.92) -> List[DuplicateResult]:
         """
         Elite V2.2: Semantic Collision Detection (>92%).
         """
@@ -92,7 +100,7 @@ class BrainManager:
         return duplicates
 
     @staticmethod
-    async def get_node_analytics(db: AsyncSession) -> Dict[str, Any]:
+    async def get_node_analytics(db: AsyncSession) -> Dict[str, JsonValue]:
         """
         Elite V2.2: Composite knowledge metrics.
         """
@@ -128,7 +136,8 @@ class BrainManager:
         for p in missing_p:
             try:
                 text_input = f"{p.name} {p.short_description or ''}"
-                vec = list(encoder.embed([text_input]))[0]
+                loop = asyncio.get_running_loop()
+                vec = (await loop.run_in_executor(None, lambda: list(encoder.embed([text_input]))))[0]
                 # [Elite V2.2] Surgical Fix: Use CAST() to avoid double-colon bind param conflict
                 await db.execute(sa_text(
                     "INSERT INTO product_embeddings (id, product_base_id, embedding, created_at, updated_at) "
@@ -145,7 +154,8 @@ class BrainManager:
         for a in missing_a:
             try:
                 text_input = f"{a.title} {a.content[:500] if a.content else ''}"
-                vec = list(encoder.embed([text_input]))[0]
+                loop = asyncio.get_running_loop()
+                vec = (await loop.run_in_executor(None, lambda: list(encoder.embed([text_input]))))[0]
                 # [Elite V2.2] Surgical Fix: Use CAST() to avoid double-colon bind param conflict
                 await db.execute(sa_text(
                     "INSERT INTO article_embeddings (id, article_id, embedding, created_at, updated_at) "

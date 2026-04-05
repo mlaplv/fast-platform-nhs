@@ -1,6 +1,7 @@
 import logging
 import os
-from typing import Optional, Union, Dict, List, Any
+from typing import Optional, Union, Dict, List
+from pydantic import JsonValue
 from datetime import datetime, timezone
 
 from backend.database.models import MediaRegistry, MediaUsage
@@ -40,7 +41,7 @@ class MediaService(
         except Exception as e:
             logger.error(f"[MediaService] Delete failed: {e}"); return False
 
-    async def restore_asset(self, repo: MediaRegistryRepository, asset_id: str, owner_id: Union[str, Dict, None] = None) -> bool:
+    async def restore_asset(self, repo: MediaRegistryRepository, asset_id: str, owner_id: Union[str, Dict[str, JsonValue], None] = None) -> bool:
         """Khôi phục tài nguyên từ Thùng rác."""
         try:
             asset = await repo.get_one_or_none(id=asset_id)

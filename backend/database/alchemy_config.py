@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import Any, cast, Optional, Callable
+from typing import cast, Optional, Callable
 from advanced_alchemy.extensions.litestar import SQLAlchemyAsyncConfig as BaseSQLAlchemyAsyncConfig, AsyncSessionConfig
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy import event
@@ -47,7 +47,7 @@ class AlchemyConfig:
 
     def get_engine(self):
         if self._engine is None:
-            engine_kwargs: dict[str, Any] = {
+            engine_kwargs: dict[str, object] = {
                 "echo": False,
                 "pool_recycle": 3600,
             }

@@ -1,5 +1,6 @@
 import logging
-from typing import Dict, List, Any
+from typing import Dict, List
+from pydantic import JsonValue
 from backend.services.event_bus import event_bus
 from backend.database import alchemy_config
 from backend.database.repositories import MediaRegistryRepository
@@ -15,7 +16,7 @@ class MediaResponder:
     def __init__(self):
         self.session_maker = alchemy_config.create_session_maker()
 
-    async def handle_media_sync(self, payload: Dict[str, Any]):
+    async def handle_media_sync(self, payload: Dict[str, JsonValue]):
         """
         Xử lý sự kiện MEDIA_SYNC_REQUIRED.
         Đảm bảo việc đồng bộ ảnh diễn ra trong background, không chặn main request.

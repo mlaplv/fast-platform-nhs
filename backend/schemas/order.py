@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validator, AliasChoices
-from typing import Optional, List, Union, Dict, Any
+from typing import Optional, List, Union, Dict
 from datetime import datetime
 
 # Elite 2026: Strict JSON Type (Rule R00)

@@ -212,6 +212,9 @@ class TrinityBridge:
 
     def _provision_model(self, m_name: str, key: str, params: dict[str, object]) -> tuple[GoogleModel, dict[str, object]]:
         """Elite V2.2: Centralized Model Provisioning Factory (Structural Repair)."""
+        if not key:
+            raise AIConfigurationError(f"Model {m_name} requested but key is EMPTY. Check rotators.")
+
         # Pass-by-reference: Modifying 'params' removes custom keys from caller's kwargs
         val_sn = params.pop("safety_none", False)
         s_settings = _G_SAFETY_NONE if bool(val_sn) else None

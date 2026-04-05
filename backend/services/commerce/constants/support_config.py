@@ -10,6 +10,7 @@ Usage:
 """
 import os
 from dataclasses import dataclass
+from typing import List
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,9 @@ class SupportConfig:
     rate_limit_per_sid: int
     system_directive_template: str
     prompt_template_path: str
+    greeting_keywords: List[str]
+    default_greeting_reply: str
+    hong_son_slug: str = "thuoc-dac-tri-hoi-nach-hong-son"
 
     @property
     def system_directive(self) -> str:
@@ -49,6 +53,9 @@ def _load_config() -> SupportConfig:
             "SUPPORT_PROMPT_TEMPLATE",
             os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates", "support_agent_prompt.txt")
         ),
+        greeting_keywords=os.getenv("SUPPORT_GREETING_KEYWORDS", "hi,hello,chào,alo,helen,ơi,ad ơi,shop ơi").split(","),
+        default_greeting_reply=os.getenv("SUPPORT_DEFAULT_GREETING", "Dạ có Helen đây ạ! Quý khách cần em hỗ trợ gì cho đơn hàng của mình không ạ? 🌸"),
+        hong_son_slug=os.getenv("SUPPORT_HONG_SON_SLUG", "thuoc-dac-tri-hoi-nach-hong-son"),
     )
 
 

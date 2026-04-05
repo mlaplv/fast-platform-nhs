@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validator, model_validator
-from typing import Optional, List, Dict, Union, Any
+from typing import Optional, List, Dict, Union
 # Elite 2026: Strict JSON Type (Rule R00)
 JSONPrimitive = Union[str, int, float, bool, None]
 JSONType = Union[JSONPrimitive, List[object], Dict[str, object]]
@@ -196,12 +196,12 @@ class ProductResponse(BaseModel):
 
     @field_validator("id", "categoryId", mode="before")
     @classmethod
-    def stringify_ids(cls, v):
+    def stringify_ids(cls, v: object) -> Optional[str]:
         return str(v) if v is not None else None
 
     @field_validator("images", "mobileImages", mode="before")
     @classmethod
-    def validate_images(cls, v):
+    def validate_images(cls, v: object) -> List[str]:
         if v is None: return []
         if isinstance(v, list):
             return [str(x) for x in v if x is not None]
@@ -209,17 +209,17 @@ class ProductResponse(BaseModel):
 
     @field_validator("attributes", mode="before")
     @classmethod
-    def validate_attributes(cls, v):
-        return v if v is not None else {}
+    def validate_attributes(cls, v: object) -> Dict[str, Union[str, int, float, bool, None]]:
+        return v if isinstance(v, dict) else {}
 
     @field_validator("metadata", mode="before")
     @classmethod
-    def validate_metadata(cls, v):
-        return v if v is not None else {}
+    def validate_metadata(cls, v: object) -> Dict[str, object]:
+        return v if isinstance(v, dict) else {}
 
     @field_validator("tierVariations", "variants", mode="before")
     @classmethod
-    def validate_matrix_fields(cls, v):
+    def validate_matrix_fields(cls, v: object) -> List[object]:
         if v is None: return []
         if isinstance(v, list):
             return [x for x in v if x is not None]
@@ -227,7 +227,7 @@ class ProductResponse(BaseModel):
 
     @field_validator("sku", mode="before")
     @classmethod
-    def validate_sku(cls, v):
+    def validate_sku(cls, v: object) -> str:
         return str(v) if v is not None else ""
 
     @computed_field

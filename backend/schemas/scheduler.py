@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Union
 # Elite 2026: Strict JSON Type (Rule R00)
 JSONPrimitive = Union[str, int, float, bool, None]
 JSONType = Union[JSONPrimitive, List[object], Dict[str, object]]

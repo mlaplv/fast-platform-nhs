@@ -1,6 +1,7 @@
 import logging, time, unicodedata, re, json
 from rapidfuzz import fuzz
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional
+from pydantic import JsonValue
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.schemas.intent import IntentResponse, IntentAction, RouterTier
 from backend.utils.text import normalize_vn, sanitize_id
@@ -37,9 +38,9 @@ class RouterResolver:
         db: AsyncSession, 
         transcript: str, 
         user_id: str, 
-        app_state: Dict[str, Any], 
-        context: Optional[Dict[str, Any]] = None, 
-        screen_context: Optional[Dict[str, Any]] = None, 
+        app_state: Dict[str, JsonValue], 
+        context: Optional[Dict[str, JsonValue]] = None, 
+        screen_context: Optional[Dict[str, JsonValue]] = None, 
         modality: str = "text"
     ) -> IntentResponse:
         t0 = time.monotonic()

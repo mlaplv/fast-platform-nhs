@@ -6,7 +6,8 @@ Modularized for Martial Law (<300 LOC).
 import os
 import json
 import logging
-from typing import Optional, Dict, List, Union, Any
+from typing import Optional, Dict, List, Union
+from pydantic import JsonValue
 
 try:
     import redis.asyncio as redis
@@ -44,7 +45,7 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
     # CONTEXT & PROFILE
     # ═══════════════════════════════════════════════════════
 
-    async def get_user_context(self, user_id: str) -> Dict[str, Any]:
+    async def get_user_context(self, user_id: str) -> Dict[str, JsonValue]:
         key = f"xohi:ctx:{user_id}"
         try:
             data = await self.client.get(key)
@@ -52,13 +53,13 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
         except Exception as e: logger.debug(f"[XoHiMemory] Redis get failed: {e}")
         return self._fallback_cache.get(f"ctx:{user_id}", {})
 
-    async def set_user_context(self, user_id: str, context: Dict[str, Any]):
+    async def set_user_context(self, user_id: str, context: Dict[str, JsonValue]):
         key = f"xohi:ctx:{user_id}"
         try: await self.client.set(key, json.dumps(context, ensure_ascii=False), ex=CTX_TTL)
         except Exception as e: logger.debug(f"[XoHiMemory] Redis set failed: {e}")
         self._fallback_cache[f"ctx:{user_id}"] = context
 
-    async def get_voice_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
+    async def get_voice_profile(self, user_id: str) -> Optional[Dict[str, JsonValue]]:
         key = f"xohi:profile:{user_id}"
         try:
             data = await self.client.get(key)
@@ -66,7 +67,7 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
         except Exception as e: logger.debug(f"[XoHiMemory] Redis profile get failed: {e}")
         return self._fallback_cache.get(f"profile:{user_id}")
 
-    async def cache_voice_profile(self, user_id: str, profile: Dict[str, Any]):
+    async def cache_voice_profile(self, user_id: str, profile: Dict[str, JsonValue]):
         key = f"xohi:profile:{user_id}"
         try: await self.client.set(key, json.dumps(profile, ensure_ascii=False), ex=PROFILE_TTL)
         except Exception as e: logger.debug(f"[XoHiMemory] Redis profile set failed: {e}")
@@ -76,7 +77,7 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
     # ATOMIC AGGREGATION & CHAT CACHE
     # ═══════════════════════════════════════════════════════
 
-    async def get_full_orchestrator_context(self, user_id: str) -> Dict[str, Any]:
+    async def get_full_orchestrator_context(self, user_id: str) -> Dict[str, JsonValue]:
         if not self._use_redis:
             return {
                 "profile": self._fallback_cache.get(f"profile:{user_id}", {}),
@@ -103,7 +104,7 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
             logger.error(f"[XoHiMemory] Atomic Fetch Failed: {e}")
             return {"profile": {}, "ctx": {}, "stt": {}, "intent_map": {}}
 
-    async def get_recent_chat(self, user_id: str) -> List[Dict[str, Any]]:
+    async def get_recent_chat(self, user_id: str) -> List[Dict[str, JsonValue]]:
         key = f"xohi:chat:{user_id}"
         try:
             if self._use_redis:
@@ -112,7 +113,7 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
         except Exception as e: logger.debug(f"[XoHiMemory] Redis chat get failed: {e}")
         return []
 
-    async def add_chat_to_cache(self, user_id: str, message: Dict[str, Any], limit: int = 10):
+    async def add_chat_to_cache(self, user_id: str, message: Dict[str, JsonValue], limit: int = 10):
         key = f"xohi:chat:{user_id}"
         try:
             if self._use_redis:

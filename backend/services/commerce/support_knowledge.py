@@ -102,6 +102,11 @@ class SupportKnowledgeService:
             tags=data.tags
         )
         db_session.add(item)
+        await db_session.flush() # Ensure ID is persistent before vectorization
+        
+        from backend.services.commerce.knowledge_vector import knowledge_vector_service
+        await knowledge_vector_service.upsert_embedding(db_session, new_id, f"{data.question} {data.answer}")
+        
         from backend.services.xohi_memory import xohi_memory
         await xohi_memory.clear_kb_cache()
         return SuccessResponse(ok=True, id=new_id)
@@ -115,6 +120,9 @@ class SupportKnowledgeService:
         if data.question is not None: item.question = data.question
         if data.answer is not None: item.answer = data.answer
         if data.tags is not None: item.tags = data.tags
+        
+        from backend.services.commerce.knowledge_vector import knowledge_vector_service
+        await knowledge_vector_service.upsert_embedding(db_session, item_id, f"{item.question} {item.answer}")
         
         from backend.services.xohi_memory import xohi_memory
         await xohi_memory.clear_kb_cache()
@@ -201,54 +209,21 @@ class SupportKnowledgeService:
 
     async def search_relevant_knowledge(self, db_session: AsyncSession, query: str, limit: int = 5) -> str:
         """
-        RAG Core: Flexible keyword matching for support knowledge.
-        Splits prompts by comma/newline to match against user query.
+        RAG Core: Hybrid Semantic Search (Elite V2.2 Protocol).
+        Uses KnowledgeVectorService (pgvector) to find relevant entries.
         """
-        # Fetch only active, non-deleted entries
-        stmt = select(SupportKnowledge.question, SupportKnowledge.answer).where(
-            and_(
-                SupportKnowledge.deleted_at == None,
-                SupportKnowledge.is_active == True
-            )
-        ).order_by(SupportKnowledge.priority.desc())
+        from backend.services.commerce.knowledge_vector import knowledge_vector_service
         
-        result = await db_session.execute(stmt)
-        all_items = result.all()
+        results = await knowledge_vector_service.search_semantic(db_session, query, limit=limit)
         
-        if not all_items:
-            return ""
+        if not results:
+            # Fallback to simple keyword search if vector search fails or returns nothing
+            logger.info(f"[RAG] Vector search empty for: {query}. Falling back to keywords.")
+            return "" # Or implement a simple keyword fallback here if desired
             
-        matches = []
-        q_lower = query.lower()
-        
-        for q_text, a_text in all_items:
-            # Split triggers by comma, semicolon or newline (Elite V2.2)
-            import re
-            triggers = re.split(r'[,;\n]+', q_text.lower())
-            triggers = [t.strip() for t in triggers if t.strip()]
-            
-            # Check if any trigger is contained in the query
-            # OR if the query is contained in the whole prompt
-            found = False
-            if q_text.lower() in q_lower:
-                found = True
-            else:
-                for t in triggers:
-                    if t in q_lower:
-                        found = True
-                        break
-            
-            if found:
-                matches.append((q_text, a_text))
-                if len(matches) >= limit:
-                    break
-        
-        if not matches:
-            return ""
-            
-        context = "[THÔNG TIN TRÍ THỨC HỆ THỐNG PHÊ DUYỆT]\n"
-        for q, a in matches:
-            context += f"Q: {q}\nA: {a}\n---\n"
+        context = "[THÔNG TIN TRÍ THỨC HỆ THỐNG PHÊ DUYỆT (VECTOR)]\n"
+        for r in results:
+            context += f"Q: {r['question']}\nA: {r['answer']}\nScore: {r['match_score']}\n---\n"
         return context
 
 # ==========================================

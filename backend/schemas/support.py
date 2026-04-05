@@ -8,7 +8,12 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import Optional, Dict
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, JsonValue
+from typing import Optional, Dict, List, Union
+
+# Type Aliases for 100% Static Typing (Elite V2.2 Standard)
+# Using Pydantic built-in JsonValue for strict compliance (CẤM 'Any')
+JSONValue = JsonValue
 
 
 class SupportProductInfo(BaseModel):
@@ -18,6 +23,7 @@ class SupportProductInfo(BaseModel):
     price: float = Field(..., description="Current price")
     price_display: str = Field(..., description="Formatted price string")
     slug: str = Field(..., description="Product URL slug")
+    image_url: Optional[str] = Field(default=None, description="Product main image URL")
 
     model_config = ConfigDict(frozen=True)
 
@@ -89,6 +95,10 @@ class SupportResponse(BaseModel):
     # 🚀 Elite V2.2: Async Task Tracking
     status: str = Field(default="DONE", description="State: DONE | PROCESSING | FAILED")
     task_id: Optional[str] = Field(default=None, description="Arq Task UUID for frontend tracking")
+    
+    # 🎭 Elite V2.2: Rich UI & Active Reasoning
+    ui_metadata: Optional[Dict[str, JsonValue]] = Field(default=None, description="Metadata for UI components (cards, buttons, etc.)")
+    metadata: Optional[Dict[str, JsonValue]] = Field(default=None, description="Extra metadata like 'think' reasoning snapshots")
 
 
 class SupportStatusResponse(BaseModel):
