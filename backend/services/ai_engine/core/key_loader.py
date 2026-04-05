@@ -2,7 +2,7 @@ import logging
 import hashlib
 import json
 import os
-from typing import List, Optional
+from typing import List, Optional, cast
 
 logger = logging.getLogger("key-loader")
 
@@ -61,22 +61,36 @@ class KeyLoaderMixin:
             return list(set(recovered))
 
     def _get_key_id(self, key: Optional[str]) -> str:
+        """Hash ID for key identification (Short-SHA256)."""
         if not key: return "no_key"
-        return hashlib.sha256(key.encode()).hexdigest()[:16]
+        return hashlib.sha256(key.encode("utf-8")).hexdigest()[:16]
 
-    async def save_discovered_models(self, models: list[str]):
+    async def save_discovered_models(self, models: List[str]) -> None:
+        """Cache discovered models in Redis for faster lookup."""
         if not self._use_redis or not self.client: return
-        try: await self.client.set(self.DISCOVERED_MODELS_KEY, json.dumps(models), ex=self.MAX_COOLDOWN)
-        except: pass
+        try: 
+            await self.client.set(self.DISCOVERED_MODELS_KEY, json.dumps(models), ex=self.MAX_COOLDOWN)
+        except Exception as e: 
+            logger.warning(f"[KeyLoader] Failed to save discovered models: {e}")
 
-    async def get_discovered_models(self) -> list[str]:
+    async def get_discovered_models(self) -> List[str]:
+        """Fetch cached model names from Redis."""
         if not self._use_redis or not self.client: return []
         try:
-            val = await self.client.get(self.DISCOVERED_MODELS_KEY)
-            return json.loads(val) if val else []
-        except: return []
+            val: Optional[str] = await self.client.get(self.DISCOVERED_MODELS_KEY)
+            if not val: return []
+            return cast(List[str], json.loads(val))
+        except Exception as e: 
+            logger.warning(f"[KeyLoader] Failed to get discovered models: {e}")
+            return []
 
-    def get_count(self) -> int: return len(self.keys)
+    def get_count(self) -> int: 
+        """Return total keys loaded."""
+        return len(self.keys)
+        
     def get_next_key(self) -> str:
+        """Round-robin fallback if Redis is unavailable."""
         if not self.keys: return ""
-        k = self.keys[self.index]; self.index = (self.index + 1) % len(self.keys); return k
+        k = self.keys[self.index]
+        self.index = (self.index + 1) % len(self.keys)
+        return k

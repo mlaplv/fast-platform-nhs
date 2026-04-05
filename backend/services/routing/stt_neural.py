@@ -26,7 +26,7 @@ class NeuralLocalCorrector:
 
     async def _ensure_encoder(self) -> None:
         if self.encoder is None:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             self.encoder = await loop.run_in_executor(None, get_shared_encoder)
 
     def _cosine_similarity(self, a: np.ndarray, b: np.ndarray) -> float:
@@ -37,7 +37,7 @@ class NeuralLocalCorrector:
         await self._ensure_encoder()
         if self.encoder is None: return transcript, 0.0
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         self._cache_access_count += 1
         dict_hash = hash(frozenset(user_dict.items()))
 

@@ -101,7 +101,7 @@ class STTCorrector:
             await self.neural_corrector._ensure_encoder()
             if self.neural_corrector.encoder:
                 def _e(): return list(self.neural_corrector.encoder.embed([norm_w]))
-                w_vec = (await asyncio.get_event_loop().run_in_executor(None, _e))[0]
+                w_vec = (await asyncio.get_running_loop().run_in_executor(None, _e))[0]
                 for ex_w, ex_r in overrides.items():
                     if ex_r == right:
                         e_vec = self.neural_corrector._embedding_cache.get(ex_w)

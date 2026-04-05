@@ -48,7 +48,7 @@ class SemanticRouter:
                 for p in SEMANTIC_ANCHORS[it]: all_p.append(normalize_vn(p)); p_to_it.append(it)
             
             try:
-                embs = await asyncio.get_event_loop().run_in_executor(None, lambda: list(encoder.embed(all_p)))
+                embs = await asyncio.get_running_loop().run_in_executor(None, lambda: list(encoder.embed(all_p)))
                 groups = {}
                 for it, emb in zip(p_to_it, embs): groups.setdefault(it, []).append(emb)
                 for it, embs_list in groups.items():
@@ -63,7 +63,7 @@ class SemanticRouter:
         encoder = get_shared_encoder()
         if not encoder: return
         try:
-            vec = (await asyncio.get_event_loop().run_in_executor(None, lambda: list(encoder.embed([normalize_vn(text)]))))[0]
+            vec = (await asyncio.get_running_loop().run_in_executor(None, lambda: list(encoder.embed([normalize_vn(text)]))))[0]
             if intent in self._anchor_embeddings:
                 upd = (self._anchor_embeddings[intent] * 0.9 + vec * 0.1).astype(np.float32)
                 self._anchor_embeddings[intent] = upd
@@ -77,7 +77,7 @@ class SemanticRouter:
         encoder = get_shared_encoder()
         if encoder is None or not self._anchor_embeddings: return "UNKNOWN", 0.0
         try:
-            vec = (await asyncio.get_event_loop().run_in_executor(None, lambda: list(encoder.embed([normalize_vn(text)]))))[0].astype(np.float32)
+            vec = (await asyncio.get_running_loop().run_in_executor(None, lambda: list(encoder.embed([normalize_vn(text)]))))[0].astype(np.float32)
             norm = np.linalg.norm(vec); vec = vec / norm if norm > 0 else vec
             best_it, best_s = "UNKNOWN", 0.0
             if self._anchor_matrix is not None:
@@ -88,7 +88,7 @@ class SemanticRouter:
                     key = f"{it}:{hash(tuple(phrases))}"
                     if key in self._extra_cache: centroid = self._extra_cache[key]
                     else:
-                        p_embs = await asyncio.get_event_loop().run_in_executor(None, lambda: list(encoder.embed([normalize_vn(p) for p in phrases])))
+                        p_embs = await asyncio.get_running_loop().run_in_executor(None, lambda: list(encoder.embed([normalize_vn(p) for p in phrases])))
                         centroid = np.mean(p_embs, axis=0).astype(np.float32) if p_embs else None
                         if centroid is not None: self._extra_cache[key] = centroid
                         else: continue

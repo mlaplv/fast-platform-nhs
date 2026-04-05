@@ -81,7 +81,8 @@ class TrinityModels:
 
     def classify_error(self, err: str) -> str:
         err = err.lower()
-        if any(p in err for p in ["401", "403", "api key not valid", "invalid_key", "key_expired", "project disabled", "deleted"]): return "auth"
+        if any(p in err for p in ["api key not valid", "invalid_key", "key_expired", "project disabled", "deleted"]): return "auth_hard"
+        if any(p in err for p in ["401", "403", "unauthorized", "forbidden"]): return "auth_soft"
         
         # Elite V2.2: Deep Research models in preview might not support standard generateContent
         if "interactions api" in err: return "rate_limit" # Force fallback to next model

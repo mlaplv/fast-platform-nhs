@@ -33,7 +33,7 @@ class ContentStreamController(Controller):
                         pass
 
             # R82.1: Lifecycle Management
-            start_time = asyncio.get_event_loop().time()
+            start_time = asyncio.get_running_loop().time()
             max_age = 1800  # 30-minute hard cut-off for content streams (Ultra Lean)
 
             event_bus.subscribe("CONTENT_PROGRESS", filter_callback)
@@ -48,7 +48,7 @@ class ContentStreamController(Controller):
                 yield b": initial-sync\n\n"
                 
                 while True:
-                    elapsed = asyncio.get_event_loop().time() - start_time
+                    elapsed = asyncio.get_running_loop().time() - start_time
                     if elapsed > max_age:
                         logger.info(f"[ContentStream] Cut-off for {cid_str} (30m).")
                         yield b"event: terminate\ndata: {\"message\": \"Stream duration limit reached.\"}\n\n"

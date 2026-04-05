@@ -221,19 +221,19 @@ function init_deploy() {
     mkdir -p certs/caddy/pki
     if [ "$IS_INTEL_MAC" = true ]; then
         echo -e "${YELLOW}[INTEL MAC] Skip uv sync local...${NC}"
-        uv venv --python 3.13 && source .venv/bin/activate
+        uv venv --python 3.14 && source .venv/bin/activate
         uv pip install -e . || true
     else
         echo -e "${CYAN}-> Đang tạo môi trường ảo (Python 3.13)...${NC}"
-        # [CTO ELITE] Vượt rào mạng tuyệt đối bằng Mirror Aliyun
-        export UV_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
-        export PIP_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
+        # [CTO ELITE] Official PyPI source for security and reliability
+        # export UV_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
+        # export PIP_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
         
-        uv venv --seed --python 3.13
+        uv venv --seed --python 3.14
         source .venv/bin/activate
         echo -e "${CYAN}-> Đang cài đặt Core Dependencies (Mirror Mode)...${NC}"
         ./.venv/bin/pip install --upgrade pip
-        ./.venv/bin/pip install litellm==1.40.0 --index-url "$PIP_INDEX_URL"
+        ./.venv/bin/pip install "litellm>=1.83.0"
         uv pip install litestar[standard] advanced-alchemy asyncpg pydantic-ai
         # Sau đó cài nốt các thằng còn lại
         uv pip install -e .
@@ -632,7 +632,7 @@ function setup_vps() {
     sudo apt-get install -y docker-compose-plugin
 
     # Phase 4: Binary Injection (UV + PNPM)
-    echo -e "${CYAN}-> [4/5] Cài đặt Đồ nghề Build (UV 3.13 + Node 22 PNPM)...${NC}"
+    echo -e "${CYAN}-> [4/5] Cài đặt Đồ nghề Build (UV 3.14 + Node 22 PNPM)...${NC}"
     if ! command -v uv &> /dev/null; then
         curl -LsSf https://astral.sh/uv/install.sh | sh
     fi

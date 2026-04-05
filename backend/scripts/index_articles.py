@@ -49,7 +49,7 @@ async def index_articles():
 
         print(f"📄 Found {total} articles to index.")
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         for i in tqdm(range(0, total, BATCH_SIZE)):
             batch_ids = all_ids[i:i+BATCH_SIZE]

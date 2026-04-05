@@ -40,7 +40,7 @@ class TrinityBridge:
         
         # Elite V2.2: CPU Contention Guard (R4-Core Xeon Standard)
         # Prevents more than N concurrent heavy AI tasks from saturating the 4-core VPS.
-        self.concurrency_guard = asyncio.Semaphore(4)
+        self.concurrency_guard: Optional[asyncio.Semaphore] = None
 
     @property
     def default_model_name(self) -> str:
@@ -53,6 +53,9 @@ class TrinityBridge:
             if self.rotator.get_count() == 0:
                 logger.info("🔑 [TrinityBridge] No keys detected in rotator. Initializing key loader...")
                 await self.rotator.load_keys()
+            
+            if self.concurrency_guard is None:
+                self.concurrency_guard = asyncio.Semaphore(4)
             
             await self.reload_models()
             self._initialized = True
@@ -105,6 +108,7 @@ class TrinityBridge:
         max_k, last_err = max(1, self.rotator.get_count()), None
 
         # Elite V2.2: Xeon Per-Core Thread Locking
+        if self.concurrency_guard is None: self.concurrency_guard = asyncio.Semaphore(4)
         async with self.concurrency_guard:
             for m_name in models:
                 for att in range(max_k):
@@ -147,7 +151,13 @@ class TrinityBridge:
                             if self.models_helper.is_daily_quota(str(e)) and key:
                                 await self.rotator.mark_model_daily(key, m_name)
                             continue
-                        if cat == "auth": await self.rotator.mark_unhealthy(key, reason="auth", session_id=s_id); continue
+                        if cat == "auth_hard": 
+                            await self.rotator.mark_unhealthy(key, reason="auth_hard", session_id=s_id)
+                            continue
+                        if cat == "auth_soft":
+                            await self.rotator.mark_unhealthy(key, reason="auth_soft", session_id=s_id)
+                            logger.info(f"🔄 [Neural Bridge] Soft Auth failure on key {att+1}. Rotating...")
+                            continue
                         if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break
         raise AIConfigurationError(f"AI Overloaded: {last_err}", str(models[-1]) if models else "N/A", max_k-1)
 
@@ -180,6 +190,7 @@ class TrinityBridge:
         max_k, last_err = max(1, self.rotator.get_count()), None
 
         # Elite V2.2: Xeon Per-Core Thread Locking
+        if self.concurrency_guard is None: self.concurrency_guard = asyncio.Semaphore(4)
         async with self.concurrency_guard:
             for m_name in models:
                 for att in range(max_k):
@@ -206,7 +217,12 @@ class TrinityBridge:
                         last_err, cat = e, self.models_helper.classify_error(str(e))
                         if not key: continue
                         if cat == "rate_limit" and self.models_helper.is_daily_quota(str(e)): await self.rotator.mark_model_daily(key, m_name); continue
-                        if cat in ["rate_limit", "auth"]: await self.rotator.mark_unhealthy(key, reason=cat, session_id=s_id); continue
+                        if cat == "auth_hard": 
+                            await self.rotator.mark_unhealthy(key, reason="auth_hard", session_id=s_id)
+                            continue
+                        if cat in ["rate_limit", "auth_soft"]: 
+                            await self.rotator.mark_unhealthy(key, reason=cat, session_id=s_id)
+                            continue
                         if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break
         raise AIConfigurationError(f"Stream Overloaded: {last_err}")
 

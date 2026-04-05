@@ -11,9 +11,13 @@ class KeyMetricsMixin:
         if not self._use_redis: return
         kid = self._get_key_id(key); reason_lower = reason.lower(); now = time.time()
         
-        if any(p in reason_lower for p in ["auth", "invalid", "disabled", "expired", "401", "403"]):
+        if "auth_hard" in reason_lower or any(p in reason_lower for p in ["invalid", "disabled", "expired"]):
             await self.client.set(f"{self.BLACKLIST_PREFIX}{kid}", reason, ex=self.MAX_COOLDOWN * 30)
-            logger.error(f"[KeyRotator] Key {kid[:8]} BLACKLISTED: {reason}"); return
+            logger.error(f"[KeyRotator] Key {kid[:8]} PERMANENTLY BLACKLISTED: {reason}"); return
+            
+        if "auth_soft" in reason_lower or any(p in reason_lower for p in ["401", "403"]):
+            await self.client.set(f"{self.BLACKLIST_PREFIX}{kid}", f"SOFT_AUTH: {reason}", ex=600) # 10m cooldown
+            logger.warning(f"[KeyRotator] Key {kid[:8]} in 10m cooldown (Soft Auth Failure)."); return
 
         if "daily" in reason_lower or "quota" in reason_lower:
              await self.client.set(f"{self.BLACKLIST_PREFIX}{kid}", f"DAILY: {reason}", ex=self.MAX_COOLDOWN)

@@ -31,7 +31,7 @@ class InternalBus:
             cls._instance = super(InternalBus, cls).__new__(cls)
             cls._instance.subscribers: Dict[str, List[Callable]] = {}
             cls._instance.broadcast_subscribers: List[asyncio.Queue] = []
-            cls._instance.queue: asyncio.Queue = asyncio.Queue()
+            cls._instance.queue: Optional[asyncio.Queue] = None
             cls._instance._worker_task: Union[asyncio.Task, None] = None
             cls._instance._redis_task: Union[asyncio.Task, None] = None
         return cls._instance
@@ -80,6 +80,9 @@ class InternalBus:
 
     async def emit(self, event_name: str, payload: Dict[str, object]):
         """Emit event to queue for background processing (Non-blocking for Request)"""
+        if self.queue is None:
+            self.queue = asyncio.Queue(maxsize=1000)
+            
         event = SystemEvent(name=event_name, payload=payload)
         
         # Elite V2.2: Cross-Container Redis PubSub Bridge & Stateful Pulse Caching
@@ -113,7 +116,8 @@ class InternalBus:
         """Start the background worker to process events."""
         if self._worker_task is None:
             # Set global queue limit for VPS safety
-            self.queue = asyncio.Queue(maxsize=1000)
+            if self.queue is None:
+                self.queue = asyncio.Queue(maxsize=1000)
             self._worker_task = asyncio.create_task(self._worker())
             self._redis_task = asyncio.create_task(self._redis_listener())
             logger.info("[EventBus] Background worker and Redis listener started.")

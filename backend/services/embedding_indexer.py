@@ -69,7 +69,7 @@ class EmbeddingIndexer:
         texts = [f"{r.name} {r.description or ''}" for r in rows]
 
         # Embed in thread pool (CPU-bound, R1.8)
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         embeddings = await loop.run_in_executor(
             None, lambda: list(encoder.embed(texts))
         )
@@ -110,7 +110,7 @@ class EmbeddingIndexer:
         encoder = self._get_encoder()
         texts = [f"{r.title} {(r.content or '')[:500]}" for r in rows]
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         embeddings = await loop.run_in_executor(
             None, lambda: list(encoder.embed(texts))
         )

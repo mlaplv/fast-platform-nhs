@@ -46,7 +46,7 @@ async def index_products():
 
         print(f"📦 Found {total} products to index.")
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         for i in tqdm(range(0, total, BATCH_SIZE)):
             batch_ids = all_ids[i:i+BATCH_SIZE]

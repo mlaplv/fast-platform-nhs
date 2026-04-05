@@ -4,7 +4,7 @@ import time
 import random
 import asyncio
 import redis.asyncio as redis
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, cast
 
 # Mixins (CNS V5.5 Modularization)
 from backend.services.ai_engine.core.key_metrics import KeyMetricsMixin
@@ -32,43 +32,71 @@ class SmartKeyRotator(KeyMetricsMixin, KeyLoaderMixin):
         if cls._instance is None: cls._instance = super().__new__(cls); cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         if self._initialized: return
-        self._initialized, self.keys, self.index, self._use_redis, self.client = True, [], 0, False, None
+        self.keys: List[str] = []
+        self.index: int = 0
+        self._use_redis: bool = False
+        self.client: Optional[redis.Redis] = None
+        self._initialized: bool = True
         try:
             self.client = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"), decode_responses=True)
             self._use_redis = True
         except Exception as e: logger.warning(f"[KeyRotator] Redis unavailable: {e}")
 
     async def get_key(self, model_name: str = "gemini-1.5-flash", session_id: Optional[str] = None) -> str:
-        """Model-Aware Key Selection with Weighted Random Choice."""
+        """Model-Aware Key Selection with Weighted Random Choice (Pipeline Optimized)."""
         if not self.keys: return ""
         if not self._use_redis or not self.client: return self.get_next_key()
         
-        candidates, weights, now = [], [], time.time()
-        for idx, key in enumerate(self.keys):
-            kid = self._get_key_id(key)
-            if await self.client.exists(f"{self.BLACKLIST_PREFIX}{kid}") or await self.is_model_daily_exhausted(key, model_name): continue
+        now = time.time()
+        candidates: List[int] = []
+        weights: List[int] = []
+        
+        # Elite V2.2: Pipeline Optimization - Reduce Round-Trip-Time (RTT)
+        async with self.client.pipeline() as pipe:
+            for key in self.keys:
+                kid = self._get_key_id(key)
+                pipe.exists(f"{self.BLACKLIST_PREFIX}{kid}")
+                pipe.exists(f"{self.MODEL_DAILY_PREFIX}{kid}:{model_name.replace('/', '_').replace('-', '_')[:40]}")
+                pipe.hgetall(f"{self.METADATA_PREFIX}{kid}")
+                # Preliminary TPM cleanup & fetch
+                pipe.zremrangebyscore(f"{self.TPM_PREFIX}{kid}", 0, now - 60)
+                pipe.zrangebyscore(f"{self.TPM_PREFIX}{kid}", now - 60, now)
             
-            meta = await self.client.hgetall(f"{self.METADATA_PREFIX}{kid}")
-            fail, last, health = int(meta.get("fail_count", 0)), float(meta.get("last_used", 0)), int(meta.get("health_score", 100))
+            responses = await pipe.execute()
+
+        # Step size per key in the responses list: 5 (exists, model_daily, hgetall, zremrange, zrange)
+        CHUNK_SIZE = 5
+        for idx in range(len(self.keys)):
+            r_idx = idx * CHUNK_SIZE
+            is_blacklisted = bool(responses[r_idx])
+            is_daily_exhausted = bool(responses[r_idx+1])
+            meta: Dict[str, str] = cast(Dict[str, str], responses[r_idx+2])
+            tpm_ms: List[str] = cast(List[str], responses[r_idx+4])
+            
+            if is_blacklisted or is_daily_exhausted: continue
+            
+            fail = int(meta.get("fail_count", 0))
+            last = float(meta.get("last_used", 0))
+            health = int(meta.get("health_score", 100))
+            
+            # Circuit Breaker: Exponential backoff check
             if fail > 0 and now - last < min(self.BASE_COOLDOWN * (2**(fail-1)), self.MAX_COOLDOWN): continue
             
-            try:
-                await self.client.zremrangebyscore(f"{self.TPM_PREFIX}{kid}", 0, now - 60)
-                tpm_ms = await self.client.zrangebyscore(f"{self.TPM_PREFIX}{kid}", now - 60, now)
-                if len(tpm_ms) >= self.MAX_RPM or sum(int(m.split(":")[1]) for m in tpm_ms if ":" in m) >= self.MAX_TPM: continue
-            except: pass
+            # RPM/TPM Check (Rate-Limit Guard)
+            current_tpm = sum(int(m.split(":")[1]) for m in tpm_ms if ":" in m)
+            if len(tpm_ms) >= self.MAX_RPM or current_tpm >= self.MAX_TPM: continue
             
-            candidates.append(idx); weights.append(health)
+            candidates.append(idx)
+            weights.append(health)
 
         if not candidates:
-            # Fallback check logic for precise error reporting
-            bl_count = 0
+            # Re-check for precise error reporting (Fail-safe)
+            total_bl = 0
             for k in self.keys:
-                if await self.client.exists(f"{self.BLACKLIST_PREFIX}{self._get_key_id(k)}"):
-                    bl_count += 1
-            if bl_count == len(self.keys): raise Exception("AUTH_ERROR: All keys blacklisted.")
+                if await self.client.exists(f"{self.BLACKLIST_PREFIX}{self._get_key_id(k)}"): total_bl += 1
+            if total_bl == len(self.keys): raise Exception("AUTH_ERROR: All keys blacklisted.")
             raise Exception(f"QUOTA/COOLDOWN: No keys for '{model_name}'.")
 
         chosen_idx = random.choices(candidates, weights=weights, k=1)[0]

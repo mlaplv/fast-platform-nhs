@@ -22,7 +22,7 @@ class VectorMemory:
         if not encoder:
             return "Hệ thống tri thức đang khởi động, sếp đợi em chút ạ."
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         try:
             query_vec = (await loop.run_in_executor(None, lambda: list(encoder.embed([transcript]))))[0]
             query_vec = np.array(query_vec, dtype=np.float32)

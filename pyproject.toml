@@ -10,20 +10,20 @@ description = "Hệ thống Agentic AI hiện đại theo chuẩn kiến trúc V
 authors = [
     { name = "Admin", email = "lapiweb@gmail.com" }
 ]
-requires-python = "==3.13.*"
+requires-python = ">=3.14"
 
 dependencies = [
     "litestar[standard]>=2.14.0",
     "advanced-alchemy>=0.20.0",
     "asyncpg>=0.29.0",
     "pydantic-ai>=0.0.12",
-    "litellm==1.40.0",
+    "litellm>=1.83.0",
     "rapidfuzz>=3.14.3",
     "redis>=7.3.0",
     "aiosqlite>=0.22.1",
     "numpy>=2.4.3",
     "bcrypt>=5.0.0",
-    "pillow>=10.3.0,<12.0.0",
+    "pillow>=12.0.0",
     "edge-tts>=7.2.7",
     "psutil>=7.2.2",
     "cryptography>=46.0.5",
@@ -44,7 +44,6 @@ packages = ["backend"]
 [tool.uv]
 managed = true
 required-environments = [
-    "sys_platform == 'darwin' and platform_machine == 'x86_64'",
     "sys_platform == 'darwin' and platform_machine == 'arm64'",
     "sys_platform == 'linux' and platform_machine == 'x86_64'",
     "sys_platform == 'linux' and platform_machine == 'aarch64'",

@@ -25,14 +25,17 @@ else:
     os.environ.pop("HF_HUB_OFFLINE", None)
 
 _shared_encoder: Optional[TextEmbedding] = None
-_lock = asyncio.Lock()
+_lock: Optional[asyncio.Lock] = None
 
 async def warmup_encoder():
     """
     [TRINITY BOOT] Pre-loads the embedding model into memory.
     Must be called during application lifespan.
     """
-    global _shared_encoder
+    global _shared_encoder, _lock
+    if _lock is None:
+        _lock = asyncio.Lock()
+        
     async with _lock:
         if _shared_encoder is None:
             logger.info(f"[Encoder] Initializing fastembed in {CACHE_DIR}...")
@@ -54,7 +57,7 @@ async def warmup_encoder():
                         local_files_only=os.getenv("HF_HUB_OFFLINE") == "1"
                     )
 
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 _shared_encoder = await loop.run_in_executor(None, _init)
                 logger.info("[Encoder] fastembed initialized successfully.")
             except Exception as e:

@@ -59,7 +59,7 @@ class PulseStreamController(Controller):
             event_bus.subscribe_broadcast(queue)
             logger.info("[PulseStream] Client linked to Agent Pulse.")
             
-            start_time = asyncio.get_event_loop().time()
+            start_time = asyncio.get_running_loop().time()
             max_age = 4 * 3600  # 4-hour hard cut-off
             
             try:
@@ -67,7 +67,7 @@ class PulseStreamController(Controller):
                 yield b": connectivity-handshake\n\n"
                 
                 while True:
-                    elapsed = asyncio.get_event_loop().time() - start_time
+                    elapsed = asyncio.get_running_loop().time() - start_time
                     if elapsed > max_age:
                         yield b"event: recycle\ndata: {\"message\": \"Recycling connection.\"}\n\n"
                         break

@@ -43,7 +43,7 @@ async def publish_campaign_to_news(campaign, campaign_repo, category_id: str = N
         try:
             encoder = get_shared_encoder()
             if encoder:
-                vec = (await asyncio.get_event_loop().run_in_executor(None, lambda: list(encoder.embed([title]))))[0]
+                vec = (await asyncio.get_running_loop().run_in_executor(None, lambda: list(encoder.embed([title]))))[0]
                 await ArticleEmbeddingRepository(session=campaign_repo.session).add(ArticleEmbedding(
                     id=str(uuid.uuid4()), article_id=new_art.id,
                     embedding=np.array(vec, dtype=np.float32).tobytes().hex()
@@ -106,7 +106,7 @@ async def publish_campaign_to_products(campaign, campaign_repo, category_id: str
         try:
             encoder = get_shared_encoder()
             if encoder:
-                vec = (await asyncio.get_event_loop().run_in_executor(None, lambda: list(encoder.embed([name]))))[0]
+                vec = (await asyncio.get_running_loop().run_in_executor(None, lambda: list(encoder.embed([name]))))[0]
                 session = campaign_repo.session
                 session.add(ProductEmbedding(
                     id=str(uuid.uuid4()), product_base_id=new_prod.id,

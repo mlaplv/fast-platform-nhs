@@ -26,7 +26,7 @@ async def stt_websocket(socket: WebSocket) -> None:
     is_active = True
     transcription_lock = asyncio.Lock()
     background_tasks = set()
-    last_partial_time = float(asyncio.get_event_loop().time())
+    last_partial_time = float(asyncio.get_running_loop().time())
     last_transcribed_size = 0
 
     start_time_mono = time.monotonic()
@@ -49,7 +49,7 @@ async def stt_websocket(socket: WebSocket) -> None:
                         data = msg["bytes"]
                         audio_buffer.extend(data)
 
-                        now = float(asyncio.get_event_loop().time())
+                        now = float(asyncio.get_running_loop().time())
                         if now - last_partial_time > 1.0 and len(audio_buffer) > (last_transcribed_size + 2000):
                             last_partial_time = now
                             last_transcribed_size = len(audio_buffer)
