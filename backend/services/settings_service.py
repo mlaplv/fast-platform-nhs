@@ -259,6 +259,8 @@ class SettingsService:
         await xohi_memory.client.set("system:maintenance_mode", "1" if data.maintenance.is_enabled else "0")
         await xohi_memory.client.set("system:helen_enabled", "1" if data.support_bot.helen_enabled else "0")
         await xohi_memory.client.set("system:helen_offline_msg", data.support_bot.offline_message)
+        await xohi_memory.client.set("system:zalo_enabled", "1" if data.support_bot.zalo_integration_enabled else "0")
+        await xohi_memory.client.set("system:messenger_enabled", "1" if data.support_bot.messenger_integration_enabled else "0")
         
         # Elite V2.2: Sync Media
         await SettingsService._sync_media_links(data_dict)

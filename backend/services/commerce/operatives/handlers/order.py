@@ -1,0 +1,72 @@
+from __future__ import annotations
+import logging
+from sqlalchemy import select
+from backend.database.models.commerce import Order
+from backend.services.commerce.operatives.handlers.base import BaseHandler, SupportContext
+from backend.services.commerce.logic.lead_extractor import lead_extractor
+from backend.schemas.support import SupportIntent
+
+logger = logging.getLogger("api-gateway")
+
+class OrderHandler(BaseHandler):
+    """
+    ZONE 3: The Order Closer and Status Specialist.
+    Priority: Identify purchase intent and extract leads.
+    """
+    
+    async def handle(self, ctx: SupportContext) -> bool:
+        # 1. RUN LEAD EXTRACTOR (Core Engine)
+        # This performs LLM-based extraction and atomic DB order creation if confirmed.
+        lead_data = await lead_extractor.extract_and_convert(
+            ctx.db, ctx.request.message, ctx.session_id, current_product_slug=ctx.request.product_slug
+        )
+        ctx.lead_data = lead_data
+        
+        # 2. SUCCESS PATH: Order was created successfully
+        if lead_data and lead_data.processed_order_id:
+            ctx.processed_order_id = lead_data.processed_order_id
+            ctx.intent = SupportIntent.PURCHASE
+            
+            order_id = str(lead_data.processed_order_id)
+            stmt = select(Order).where(Order.id == order_id)
+            order_obj = (await ctx.db.execute(stmt)).scalar_one_or_none()
+            
+            if order_obj:
+                total_qty: int = 0
+                if isinstance(order_obj.items, list):
+                    for it in order_obj.items:
+                        if isinstance(it, dict):
+                            # Elite V2.2: Safe extraction from JSONB items
+                            qty_val = it.get("quantity", 1)
+                            total_qty += int(qty_val) if isinstance(qty_val, (int, str)) else 1
+                
+                formatted_price = "{:,.0f}".format(float(order_obj.total_amount or 0)).replace(",", ".")
+                delivery_info = self._calculate_delivery_time(order_obj.customer_address or "", getattr(lead_data, "shipping_days", None))
+                
+                reply = (
+                    f"Dạ Helen xin cảm ơn quý khách! 🌸\nĐơn hàng thành công:\n- Mã đơn: **{order_id[-8:].upper()}**\n"
+                    f"- Số sản phẩm: {total_qty} lọ/combo\n- Tổng tiền: **{formatted_price}đ** (đã free ship)\n"
+                    f"- Nhận hàng: **{delivery_info}**\n\n"
+                    f"[🔍 KIỂM TRA ĐƠN HÀNG](https://smartshop.test/account/orders/{order_id})"
+                )
+                ctx.replies.append(reply)
+                return True # ACTION-FIRST: Stop the pipeline on purchase success.
+        
+        # 3. SEMI-SUCCESS: Lead identified but Order not created (Missing info)
+        # We don't stop here, we let the Consultant or Greeting handler synthesize a follow-up.
+        # But we record the intent if it's clearly a purchase attempt.
+        if lead_data and (lead_data.customer_phone or lead_data.customer_address):
+            ctx.intent = SupportIntent.PURCHASE
+            
+        return False
+
+    def _calculate_delivery_time(self, address: str, shipping_days: str | None = None) -> str:
+        """Heuristic Shipping Estimator (Standardized Logic)."""
+        if shipping_days: return shipping_days
+        if not address: return "2-3 ngày"
+        addr = address.lower()
+        hcm_keys = ["hồ chí minh", "tp.hcm", "hcm", "sài gòn", "quận 1", "quận 3", "quận 5", "quận 10", "tân bình", "bình thạnh"]
+        if any(key in addr for key in hcm_keys): return "1 ngày"
+        south_keys = ["bình dương", "đồng nai", "long an", "vũng tàu", "cần thơ"]
+        if any(key in addr for key in south_keys): return "1-2 ngày"
+        return "3-5 ngày"

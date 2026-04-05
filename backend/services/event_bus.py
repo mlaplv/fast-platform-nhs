@@ -1,4 +1,5 @@
 import asyncio
+import os
 import logging
 import time
 from typing import Callable, Union, Dict, List, AsyncGenerator
@@ -86,7 +87,7 @@ class InternalBus:
         event = SystemEvent(name=event_name, payload=payload)
         
         # Elite V2.2: Cross-Container Redis PubSub Bridge & Stateful Pulse Caching
-        if event_name == "SUPPORT_RESPONSE_READY" and "session_id" in payload:
+        if event_name in ["SUPPORT_RESPONSE_READY", "SUPPORT_INBOX_UPDATE"] and "session_id" in payload:
             from backend.services.xohi_memory import xohi_memory
             import json
             try:
@@ -97,12 +98,10 @@ class InternalBus:
                     # 1. Real-time Broadcast (Pub/Sub)
                     await xohi_memory.client.publish(f"pulse:{payload['session_id']}", str_payload)
                     
-                    # 2. Stateful Cache (Stateful Pulse - CTO Strategy)
-                    # Cache the result for 5 minutes (300s) to bridge the delivery gap (V6.5)
-                    # If the worker is faster than the client's SSE handshake, 
-                    # the client will pull this on sub-connection.
-                    cache_key: str = f"pulse:{payload['session_id']}:cache"
-                    await xohi_memory.client.set(cache_key, str_payload, ex=300)
+                    # 2. Stateful Cache for AI Responses (CTO Strategy)
+                    if event_name == "SUPPORT_RESPONSE_READY":
+                        cache_key: str = f"pulse:{payload['session_id']}:cache"
+                        await xohi_memory.client.set(cache_key, str_payload, ex=300)
                     
             except Exception as e:
                 logger.warning(f"[EventBus] Redis bridge/cache failed for {event_name}: {e}")
@@ -119,8 +118,13 @@ class InternalBus:
             if self.queue is None:
                 self.queue = asyncio.Queue(maxsize=1000)
             self._worker_task = asyncio.create_task(self._worker())
-            self._redis_task = asyncio.create_task(self._redis_listener())
-            logger.info("[EventBus] Background worker and Redis listener started.")
+            
+            # [Elite V2.2] Skip Redis listener in test environment to avoid hangs
+            if os.getenv("FAST_PLATFORM_TEST") != "true":
+                self._redis_task = asyncio.create_task(self._redis_listener())
+                logger.info("[EventBus] Background worker and Redis listener started.")
+            else:
+                logger.info("[EventBus] Background worker started (Redis listener skipped for test).")
 
     async def stop(self):
         if self._worker_task:

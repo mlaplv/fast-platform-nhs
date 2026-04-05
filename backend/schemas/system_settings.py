@@ -38,6 +38,8 @@ class MaintenanceMode(BaseModel):
 class SupportBotSettings(BaseModel):
     helen_enabled: bool = True
     offline_message: str = "Dược sĩ tư vấn sẽ sớm phản hồi sếp. Vui lòng để lại lời nhắn ạ."
+    zalo_integration_enabled: bool = True
+    messenger_integration_enabled: bool = True
 
 class SystemSettingsPayload(BaseModel):
     basic_info: BasicInfo = Field(default_factory=BasicInfo)

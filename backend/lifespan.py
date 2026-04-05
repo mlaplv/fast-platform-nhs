@@ -28,6 +28,15 @@ logger = logging.getLogger("api-gateway")
 async def lifespan(app: Litestar):
     # 1. Start Infrastructure & AI Core (V76.2)
     setup_subscriptions()
+    
+    # [Elite V2.2] Test Environment Optimization: Skip heavy AI & DB pre-load
+    if os.getenv("FAST_PLATFORM_TEST") == "true":
+        logger.info("🧪 [Trinity Core] Test environment detected. Skipping heavy AI/DB warmup.")
+        await event_bus.start()
+        yield
+        await event_bus.stop()
+        return
+
     await _aio.gather(
         event_bus.start(),
         trinity_bridge.initialize(),

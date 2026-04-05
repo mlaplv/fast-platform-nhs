@@ -65,6 +65,8 @@
   interface SupportBotSettings {
     helen_enabled: boolean;
     offline_message: string;
+    zalo_integration_enabled: boolean;
+    messenger_integration_enabled: boolean;
   }
 
   interface SystemSettings {
@@ -84,7 +86,12 @@
     seo_analytics: { meta_title: "", meta_description: "", meta_keywords: "", google_analytics_id: "", facebook_pixel_id: "" },
     google_maps: { map_iframe: "", api_key: "" },
     maintenance: { is_enabled: false, message: "" },
-    support_bot: { helen_enabled: true, offline_message: "" }
+    support_bot: { 
+      helen_enabled: true, 
+      offline_message: "",
+      zalo_integration_enabled: true,
+      messenger_integration_enabled: true
+    }
   });
 
   let activeTab = $state("basic");
@@ -517,7 +524,7 @@
                 {#if settings.support_bot.helen_enabled}
                   <div class="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-xl flex items-center gap-4">
                     <div class="w-2 h-2 rounded-full bg-cyan-500 animate-ping"></div>
-                    <span class="text-[10px] font-black text-cyan-500 uppercase tracking-[0.2em]">Helen AI is Online & Active</span>
+                    <span class="text-[10px] font-black text-cyan-400 uppercase tracking-[0.2em]">Helen AI is Online & Active</span>
                   </div>
                 {:else}
                   <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-4">
@@ -525,6 +532,54 @@
                     <span class="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">Manual Support Mode Active</span>
                   </div>
                 {/if}
+
+                <div class="w-full h-px bg-white/5 my-4"></div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <!-- Zalo Integration -->
+                  <div class="bg-black/40 border border-white/5 rounded-xl p-5 flex flex-col gap-4">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                          <span class="text-blue-400 font-black text-xs">Z</span>
+                        </div>
+                        <div>
+                          <h4 class="text-xs font-bold text-white uppercase tracking-wider">Zalo OA</h4>
+                          <p class="text-[9px] text-zinc-500 font-mono">PUSH NOTIFICATIONS</p>
+                        </div>
+                      </div>
+                      <button 
+                        onclick={() => settings.support_bot.zalo_integration_enabled = !settings.support_bot.zalo_integration_enabled}
+                        class="relative w-10 h-5 rounded-full transition-colors duration-300 {settings.support_bot.zalo_integration_enabled ? 'bg-blue-500' : 'bg-zinc-800'}"
+                      >
+                        <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 {settings.support_bot.zalo_integration_enabled ? 'translate-x-5' : 'translate-x-0'}"></div>
+                      </button>
+                    </div>
+                    <p class="text-[10px] text-zinc-400 leading-relaxed italic">Gửi link Zalo và đẩy thông báo cho Admin khi có khách cần hỗ trợ gấp thưa Sếp.</p>
+                  </div>
+
+                  <!-- Messenger Integration -->
+                  <div class="bg-black/40 border border-white/5 rounded-xl p-5 flex flex-col gap-4">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                          <span class="text-purple-400 font-black text-xs">M</span>
+                        </div>
+                        <div>
+                          <h4 class="text-xs font-bold text-white uppercase tracking-wider">Messenger</h4>
+                          <p class="text-[9px] text-zinc-500 font-mono">FB INTEGRATION</p>
+                        </div>
+                      </div>
+                      <button 
+                        onclick={() => settings.support_bot.messenger_integration_enabled = !settings.support_bot.messenger_integration_enabled}
+                        class="relative w-10 h-5 rounded-full transition-colors duration-300 {settings.support_bot.messenger_integration_enabled ? 'bg-purple-500' : 'bg-zinc-800'}"
+                      >
+                        <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 {settings.support_bot.messenger_integration_enabled ? 'translate-x-5' : 'translate-x-0'}"></div>
+                      </button>
+                    </div>
+                    <p class="text-[10px] text-zinc-400 leading-relaxed italic">Điều hướng khách hàng sang kênh Facebook Messenger khi cần tư vấn chuyên sâu.</p>
+                  </div>
+                </div>
               </div>
             </div>
           {/if}

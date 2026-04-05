@@ -24,7 +24,8 @@ export interface SupportMessage {
     content: string;
     timestamp: Date;
     intent?: string;
-    productInfo?: SupportProductInfo; // Elite V2.2: Explicit typing
+    productInfo?: SupportProductInfo;
+    is_revoked?: boolean;
 }
 
 export interface SupportConfig {
@@ -44,6 +45,7 @@ export interface SupportHistoryItem {
     content: string;
     intent?: string;
     timestamp: string;
+    is_revoked?: boolean;
 }
 
 export interface SupportChatResponse {
@@ -244,7 +246,8 @@ class SupportAgentState {
                     role: m.role,
                     content: m.content,
                     intent: m.intent,
-                    timestamp: new Date(m.timestamp)
+                    timestamp: new Date(m.timestamp),
+                    is_revoked: m.is_revoked
                 }));
 
                 if (history.length < limit) {
@@ -289,29 +292,24 @@ class SupportAgentState {
 
     close() {
         this.isOpen = false;
-        if (this._pulseSource) {
-            this._pulseSource.close();
-            this._pulseSource = null;
-        }
+        this._disconnectPulse();
     }
 
     /**
-     * Elite V2.2: Unified Pulse Listener (The Neuro-Link)
-     * Listens for background task completion via SSE and updates UI in real-time.
+     * Elite V2.2: Neural Sync - Unified Pulse Listener
+     * Listens for AI responses and administrative updates (Revoke/Delete).
      */
     private _connectPulse(sessionId: string) {
         if (!browser || this._pulseSource) return;
 
-        console.log(`[Pulse] Connecting to Helen Neural Link: ${sessionId}`);
+        console.log(`[Pulse] Connecting Helen Neural Link: ${sessionId}`);
         this._pulseSource = new EventSource(`/api/v1/client/support/pulse/${sessionId}`);
 
+        // 🟢 1. AI Response Ready - Replaces 'typing' state with content
         this._pulseSource.addEventListener("SUPPORT_RESPONSE_READY", (event: MessageEvent) => {
             try {
                 const data = JSON.parse(event.data);
-                console.log("[Pulse] Received support response:", data);
-
                 if (data.status === "DONE" && data.reply) {
-                    // Update the 'Processing' placeholder message with real AI content
                     const messages = [...this.messages];
                     const lastAssistantIdx = messages.findLastIndex(m => m.role === "assistant");
                     
@@ -320,28 +318,55 @@ class SupportAgentState {
                             ...messages[lastAssistantIdx],
                             content: data.reply,
                             intent: data.intent || messages[lastAssistantIdx].intent,
-                            timestamp: new Date() // Final timestamp
+                            timestamp: new Date()
                         };
                         this.messages = messages;
                     }
                     
-                    this.vibrate([10, 50, 10]); // Subtle neural pulse feedback
+                    this.vibrate([10, 50, 10]);
                     this.isTyping = false;
                     this._disconnectPulse();
                 }
             } catch (e) {
-                console.error("[Pulse] Error parsing pulse data:", e);
+                console.error("[Pulse] Error parsing response data:", e);
+            }
+        });
+
+        // 🔴 2. Message Updated (Revoked/Deleted) - Elite V2.2 Professional Bridge
+        this._pulseSource.addEventListener("SUPPORT_INBOX_UPDATE", (event: MessageEvent) => {
+            try {
+                const data = JSON.parse(event.data);
+                console.log("[Pulse] Support Inbox Update received:", data);
+
+                if (data.message_id) {
+                    const messages = [...this.messages];
+                    const msgIdx = messages.findIndex(m => m.id === data.message_id);
+                    
+                    if (msgIdx !== -1) {
+                        // V2.2: Apply revocation state immediately
+                        messages[msgIdx] = {
+                            ...messages[msgIdx],
+                            is_revoked: data.is_revoked ?? messages[msgIdx].is_revoked
+                        };
+                        this.messages = messages;
+                        this.vibrate(20);
+                    }
+                }
+            } catch (e) {
+                console.error("[Pulse] Error parsing update data:", e);
             }
         });
 
         this._pulseSource.onerror = (err) => {
-            console.error("[Pulse] SSE connection error:", err);
-            this._disconnectPulse();
-            this.isTyping = false;
+            console.warn("[Pulse] SSE connection state changed, auto-recovering...");
+            // Standard cleanup on protocol error
+            if (this.isTyping) {
+                 // If we were waiting for AI and it error'd, we might need a timeout
+            }
         };
 
-        // Auto-kill pulse if it hangs for more than 60s
-        setTimeout(() => this._disconnectPulse(), 60000);
+        // Guard: Kill pulse if it hangs
+        setTimeout(() => this._disconnectPulse(), 120000);
     }
 
     private _disconnectPulse() {

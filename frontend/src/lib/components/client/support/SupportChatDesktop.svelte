@@ -256,7 +256,11 @@
                     ? 'text-white font-bold drop-shadow-[0_2px_8px_rgba(255,255,255,0.1)]' 
                     : 'text-gray-200 font-medium'}">
                 
-                {#if msg.role === 'assistant' && msg.intent === 'ORDER_STATUS'}
+                {#if msg.is_revoked}
+                  <div class="text-[17px] italic text-white/40 line-through select-none">
+                    [Tin nhắn đã bị thu hồi]
+                  </div>
+                {:else if msg.role === 'assistant' && msg.intent === 'ORDER_STATUS'}
                   <div class="inline-flex items-center gap-3 px-4 py-2 mb-4 bg-[#00A3FF]/10 text-[#00A3FF] rounded-2xl border border-[#00A3FF]/20 font-black text-[15px] uppercase tracking-wider">
                     <PackageSearch size={18} /> Tra cứu vận đơn
                   </div>

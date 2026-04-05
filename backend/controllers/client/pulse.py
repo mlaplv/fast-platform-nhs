@@ -83,7 +83,11 @@ class ClientPulseController(Controller):
                             payload = json.loads(message['data'])
                             
                             # Elite V2.6: Standard Named SSE Format (Mandatory for Frontend Listeners)
-                            yield b"event: SUPPORT_RESPONSE_READY\n"
+                            if "is_revoked" in payload:
+                                yield b"event: SUPPORT_INBOX_UPDATE\n"
+                            else:
+                                yield b"event: SUPPORT_RESPONSE_READY\n"
+                                
                             yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
                             
                             # Elite V2.2: Dispose Resource immediately on DONE status (RAM 2GB target)

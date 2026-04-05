@@ -99,6 +99,7 @@ class AdminSupportInboxController(Controller):
         for row in rows:
             sid = row.session_id
             is_takeover = await xohi_memory.client.get(f"support:takeover:{sid}") == "1"
+            is_online = await xohi_memory.client.get(f"support:presence:{sid}") == "1"
             intent_str = (row.intent or "").upper()
             has_phone = bool(phone_map.get(sid))
             
@@ -115,7 +116,8 @@ class AdminSupportInboxController(Controller):
                     last_intent=row.intent,
                     last_message_at=time_map.get(sid),
                     is_takeover=is_takeover,
-                    is_high_intent=is_high
+                    is_high_intent=is_high,
+                    is_online=is_online
                 )
             )
 
@@ -157,10 +159,12 @@ class AdminSupportInboxController(Controller):
                     content=decrypted,
                     intent=r.intent,
                     created_at=str(r.created_at) if r.created_at else None,
+                    is_revoked=r.is_revoked
                 )
             )
 
         is_takeover = await xohi_memory.client.get(f"support:takeover:{session_id}") == "1"
+        is_online = await xohi_memory.client.get(f"support:presence:{session_id}") == "1"
 
         return SupportSessionDetailResponse(
             session_id=session_id,
@@ -168,7 +172,8 @@ class AdminSupportInboxController(Controller):
             customer_phone=first.customer_phone,
             product_slug=first.product_slug,
             messages=messages,
-            is_takeover=is_takeover
+            is_takeover=is_takeover,
+            is_online=is_online
         )
 
     @post("/sessions/{session_id:str}/takeover", summary="Toggle AI Takeover for a session")
@@ -202,7 +207,6 @@ class AdminSupportInboxController(Controller):
             raise NotFoundException(detail="Session not found.")
 
         # Encrypt and save
-        msg_id = f"manual_{datetime.now().timestamp()}"
         enc_content = GeminiSecurity.encrypt(data.message)
         
         new_msg = SupportChatHistory(
@@ -232,3 +236,32 @@ class AdminSupportInboxController(Controller):
             intent="MANUAL",
             created_at=str(new_msg.created_at)
         )
+    
+    @post("/sessions/{session_id:str}/messages/{message_id:str}/revoke", summary="Revoke (or un-revoke) a message")
+    async def revoke_message(
+        self,
+        db_session: AsyncSession,
+        session_id: str,
+        message_id: str
+    ) -> dict[str, bool]:
+        """ Toggles the is_revoked flag for a message and notifies browsers via Pulse. """
+        stmt = select(SupportChatHistory).where(
+            SupportChatHistory.session_id == session_id,
+            SupportChatHistory.id == message_id
+        )
+        msg = (await db_session.execute(stmt)).scalar_one_or_none()
+        
+        if not msg:
+            raise NotFoundException(detail="Tin nhắn không tồn tại.")
+        
+        msg.is_revoked = not msg.is_revoked
+        await db_session.commit()
+
+        # Emit sync signal for real-time hiding in Active UI (Admin & Client)
+        await event_bus.emit("SUPPORT_INBOX_UPDATE", {
+            "session_id": session_id,
+            "message_id": message_id,
+            "is_revoked": msg.is_revoked
+        })
+        
+        return {"is_revoked": msg.is_revoked}

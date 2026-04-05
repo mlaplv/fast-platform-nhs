@@ -20,6 +20,7 @@ class SupportSessionSummary(BaseModel):
     last_message_at: Optional[str]  # ISO string
     is_takeover: bool = False
     is_high_intent: bool = False
+    is_online: bool = False
 
 
 class SupportSessionListResponse(BaseModel):
@@ -34,6 +35,7 @@ class SupportChatMessageView(BaseModel):
     content: str        # Decrypted plaintext
     intent: Optional[str]
     created_at: Optional[str]
+    is_revoked: bool = False
 
 
 class SupportSessionDetailResponse(BaseModel):
@@ -43,6 +45,7 @@ class SupportSessionDetailResponse(BaseModel):
     product_slug: Optional[str]
     messages: list[SupportChatMessageView]
     is_takeover: bool = False
+    is_online: bool = False
 
 class SupportManualMessageRequest(BaseModel):
     message: str

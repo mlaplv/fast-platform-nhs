@@ -16,6 +16,12 @@
   import Unlock from "lucide-svelte/icons/unlock";
   import Send from "lucide-svelte/icons/send";
   import ShieldAlert from "lucide-svelte/icons/shield-alert";
+  import Trash2 from "lucide-svelte/icons/trash-2";
+  import RotateCcw from "lucide-svelte/icons/rotate-ccw";
+  import Copy from "lucide-svelte/icons/copy";
+  import Quote from "lucide-svelte/icons/quote";
+  import X from "lucide-svelte/icons/x";
+  import MoreHorizontal from "lucide-svelte/icons/more-horizontal";
 
   interface SessionSummary {
     session_id: string;
@@ -27,6 +33,7 @@
     last_message_at: string | null;
     is_takeover?: boolean;
     is_high_intent?: boolean;
+    is_online?: boolean;
   }
 
   interface MessageView {
@@ -35,6 +42,7 @@
     content: string;
     intent: string | null;
     created_at: string | null;
+    is_revoked?: boolean;
   }
 
   interface SessionDetail {
@@ -43,6 +51,8 @@
     customer_phone: string | null;
     product_slug: string | null;
     messages: MessageView[];
+    is_takeover: boolean;
+    is_online: boolean;
   }
 
   let { isWidget = false } = $props();
@@ -61,6 +71,7 @@
   let sidebarWidth = $state(320);
   let isResizing = $state(false);
   let chatScrollRef = $state<HTMLDivElement | null>(null);
+  let quotedMessage = $state<MessageView | null>(null);
 
   // Auto-scroll logic
   $effect(() => {
@@ -110,14 +121,8 @@
     isResizing = false;
   }
 
-  function isHighIntent(session: SessionSummary) {
-    if (session.is_high_intent) return true;
-    
-    // Fallback client-side logic (Elite V2.2)
-    const highIntents = ['PURCHASE', 'CLOSING', 'PAYMENT', 'ORDER_CONFIRM', 'CHECKOUT', 'DEPOSIT'];
-    const hasPhone = !!session.customer_phone;
-    const hasHighIntent = session.last_intent && highIntents.includes(session.last_intent.toUpperCase());
-    return hasPhone || hasHighIntent;
+  function isHighIntent(session: SessionSummary): boolean {
+    return !!session.is_high_intent;
   }
 
   async function loadSessions() {
@@ -146,6 +151,9 @@
       const res = await apiClient.get<SessionDetail & { is_takeover: boolean }>(`/api/v1/admin/support/inbox/sessions/${id}`);
       selectedSessionDetail = res;
       isTakeover = res.is_takeover;
+      // V2.2: Sync is_online for UI
+      const sessionIdx = sessions.findIndex(s => s.session_id === id);
+      if (sessionIdx !== -1) sessions[sessionIdx].is_online = res.is_online;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       nanobot.addLog(`[ADMIN] Load session detail failed: ${msg}`, "SYS", "error");
@@ -166,7 +174,7 @@
     });
   }
 
-  let searchTimer: any;
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
   async function toggleTakeover() {
     if (!selectedSessionId) return;
     try {
@@ -184,9 +192,12 @@
     isSending = true;
     try {
       await apiClient.post(`/api/v1/admin/support/inbox/sessions/${selectedSessionId}/message`, {
-        message: manualMessage
+        message: quotedMessage 
+          ? `> ${quotedMessage.role === 'assistant' ? 'Helen AI' : 'Khách'}: ${quotedMessage.content}\n\n${manualMessage}`
+          : manualMessage
       });
       manualMessage = "";
+      quotedMessage = null;
       // Refresh will be triggered by Pulse, but we fetch immediately for speed
       await selectSession(selectedSessionId);
     } catch (err: unknown) {
@@ -194,6 +205,36 @@
     } finally {
       isSending = false;
     }
+  }
+
+  async function revokeMessage(msgId: string) {
+    if (!selectedSessionId || !msgId) return;
+    try {
+      const res = await apiClient.post<{ is_revoked: boolean }>(
+        `/api/v1/admin/support/inbox/sessions/${selectedSessionId}/messages/${msgId}/revoke`
+      );
+      nanobot.showToast(res.is_revoked ? "Đã thu hồi tin nhắn" : "Đã hoàn tác thu hồi", "success");
+      // Refresh to sync state
+      await selectSession(selectedSessionId);
+    } catch (err: unknown) {
+      nanobot.showToast("Không thể thực hiện thu hồi", "error");
+    }
+  }
+  
+  function copyMessage(content: string) {
+    navigator.clipboard.writeText(content);
+    nanobot.showToast("Đã copy vào bộ nhớ tạm", "success");
+  }
+
+  function quoteMessage(msg: MessageView) {
+    quotedMessage = msg;
+    // Focus the textarea
+    const textarea = document.querySelector('textarea');
+    textarea?.focus();
+  }
+
+  function clearQuote() {
+    quotedMessage = null;
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -295,6 +336,7 @@
             {/if}
             <div class="flex justify-between items-start mb-1">
               <span class="font-bold truncate mr-2 transition-all duration-300 {isHighIntent(session) ? 'text-cyan-400 drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]' : 'text-white/90'}">
+                <span class="inline-block w-2 h-2 rounded-full mr-1.5 {session.is_online ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 'bg-white/20'}" title={session.is_online ? 'Online' : 'Offline'}></span>
                 {session.customer_name || "Khách ẩn danh"}
               </span>
               <span class="text-[10px] text-white/30 whitespace-nowrap">
@@ -343,7 +385,14 @@
               {(selectedSessionDetail.customer_name || "K")[0]}
             </div>
             <div>
-              <h3 class="font-bold text-white/90">{selectedSessionDetail.customer_name || "Khách ẩn danh"}</h3>
+              <div class="flex items-center gap-2">
+                <h3 class="font-bold text-white/90">{selectedSessionDetail.customer_name || "Khách ẩn danh"}</h3>
+                {#if selectedSessionDetail.is_online}
+                  <span class="text-[9px] px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded-full border border-green-500/30 font-bold animate-pulse">ONLINE</span>
+                {:else}
+                  <span class="text-[9px] px-1.5 py-0.5 bg-white/5 text-white/40 rounded-full border border-white/10 font-bold">OFFLINE</span>
+                {/if}
+              </div>
               <div class="text-xs text-white/40 flex gap-3">
                 {#if selectedSessionDetail.customer_phone}
                   <span class="flex items-center gap-1"><Phone class="w-3 h-3" /> {selectedSessionDetail.customer_phone}</span>
@@ -376,23 +425,89 @@
           bind:this={chatScrollRef}
         >
           {#each selectedSessionDetail.messages as msg}
-            <div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'}">
-              <div class="max-w-[80%] {msg.role === 'user' ? 'bg-cyan-600/20 border border-cyan-500/30 text-white/90 rounded-2xl rounded-tr-none' : 'bg-white/10 border border-white/10 text-white/80 rounded-2xl rounded-tl-none'} p-4 shadow-xl">
-                <div class="text-[9px] uppercase tracking-widest text-white/30 mb-1 flex justify-between gap-10">
-                  <span>{msg.role === 'user' ? 'KHÁCH HÀNG' : 'HELEN AI'}</span>
-                  <span>{formatDate(msg.created_at)}</span>
+            <div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'} group/msg">
+              <div class="max-w-[80%] relative group">
+                <div class="transition-all {msg.role === 'user' ? 'bg-cyan-600/20 border border-cyan-500/30 text-white/90 rounded-2xl rounded-tr-none' : 'bg-white/10 border border-white/10 text-white/80 rounded-2xl rounded-tl-none'} p-4 shadow-xl {msg.is_revoked ? 'opacity-40 grayscale' : ''}">
+                  <div class="text-[9px] uppercase tracking-widest text-white/30 mb-1 flex justify-between gap-10">
+                    <span>{msg.role === 'user' ? 'KHÁCH HÀNG' : 'HELEN AI'}</span>
+                    <div class="flex items-center gap-2">
+                      {#if msg.is_revoked}
+                        <span class="text-red-400 font-bold">[ĐÃ THU HỒI]</span>
+                      {/if}
+                      <span>{formatDate(msg.created_at)}</span>
+                    </div>
+                  </div>
+                  
+                  {#if msg.is_revoked}
+                    <p class="text-sm italic text-white/40 line-through select-none">{msg.content}</p>
+                  {:else}
+                    <p class="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  {/if}
+
+                  {#if msg.intent}
+                    <div class="mt-2 text-[8px] text-cyan-400/50 uppercase font-mono">INTENT: {msg.intent}</div>
+                  {/if}
                 </div>
-                <p class="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                {#if msg.intent}
-                   <div class="mt-2 text-[8px] text-cyan-400/50 uppercase font-mono">INTENT: {msg.intent}</div>
-                {/if}
+
+                <!-- Professional Zalo-style Message Actions (Positioned @ Bottom Corner) -->
+                <div class="absolute {msg.role === 'user' ? 'right-full mr-2' : 'left-full ml-2'} bottom-0 opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 hover:scale-105 active:scale-95">
+                  <div class="flex items-center gap-0.5 bg-obsidian-800/95 backdrop-blur-xl border border-white/10 rounded-full p-0.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden">
+                    <button 
+                      onclick={() => quoteMessage(msg)}
+                      class="p-2 hover:bg-white/10 text-white/40 hover:text-cyan-400 transition-colors rounded-full"
+                      title="Trích dẫn"
+                    >
+                      <Quote class="w-3 h-3" />
+                    </button>
+                    <button 
+                      onclick={() => copyMessage(msg.content)}
+                      class="p-2 hover:bg-white/10 text-white/40 hover:text-white transition-colors rounded-full"
+                      title="Copy tin nhắn"
+                    >
+                      <Copy class="w-3 h-3" />
+                    </button>
+                    <div class="w-px h-3 bg-white/10 mx-0.5"></div>
+                    <button 
+                      onclick={() => revokeMessage(msg.id)}
+                      class="p-2 hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-colors rounded-full"
+                      title={msg.is_revoked ? "Hoàn tác thu hồi" : "Thu hồi tin nhắn"}
+                    >
+                      {#if msg.is_revoked}
+                        <RotateCcw class="w-3 h-3" />
+                      {:else}
+                        <Trash2 class="w-3 h-3" />
+                      {/if}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           {/each}
         </div>
 
-        <!-- Chat Input (Elite V2.2 Takeover) -->
-        <div class="p-4 bg-black/40 border-t border-white/10 backdrop-blur-xl shrink-0">
+        <!-- Chat Input with Quote Preview (Elite V2.2) -->
+        <div class="p-4 bg-black/40 border-t border-white/10 backdrop-blur-xl shrink-0 relative">
+          {#if quotedMessage}
+            <div 
+              transition:slide={{ axis: 'y' }}
+              class="absolute bottom-full left-0 right-0 bg-white/5 backdrop-blur-2xl border-t border-white/10 p-3 flex items-center justify-between z-10"
+            >
+              <div class="flex items-center gap-3 overflow-hidden">
+                <div class="w-1 h-8 bg-cyan-500 rounded-full shrink-0"></div>
+                <div class="flex flex-col min-w-0">
+                  <span class="text-[10px] font-bold text-cyan-400 uppercase tracking-tighter">Đang trả lời {quotedMessage.role === 'assistant' ? 'Helen AI' : 'Khách hàng'}</span>
+                  <p class="text-xs text-white/50 truncate max-w-md">{quotedMessage.content}</p>
+                </div>
+              </div>
+              <button 
+                onclick={clearQuote}
+                class="p-2 hover:bg-white/10 rounded-full text-white/40 hover:text-white transition-colors"
+              >
+                <X class="w-4 h-4" />
+              </button>
+            </div>
+          {/if}
+
           {#if isTakeover}
             <div class="mb-2 flex items-center gap-2 text-[10px] text-yellow-500 font-bold uppercase tracking-widest animate-pulse">
               <ShieldAlert class="w-3 h-3" /> Chế độ chỉ huy: Toàn quyền điều khiển thủ công

@@ -116,6 +116,7 @@ class SupportHistoryItem(BaseModel):
     content: str # Decrypted text
     intent: Optional[str] = None
     timestamp: Optional[str] = None
+    is_revoked: bool = False
 
 
 # ══════════════════════════════════════════════════════════════

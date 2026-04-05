@@ -115,11 +115,12 @@ class SupportController(Controller):
             # Return in chronological order for the client (reversed from our DESC fetch)
             return [
                 SupportHistoryItem(
-                    id=r.id,
+                    id=str(r.id),
                     role=r.role,
-                    content=GeminiSecurity.decrypt(r.content) if r.content else "",
+                    content="[Tin nhắn đã bị thu hồi]" if r.is_revoked else (GeminiSecurity.decrypt(r.content) if r.content else ""),
                     intent=r.intent,
-                    timestamp=r.created_at.isoformat() if r.created_at else None
+                    timestamp=r.created_at.isoformat() if r.created_at else None,
+                    is_revoked=r.is_revoked
                 )
                 for r in reversed(rows)
             ]

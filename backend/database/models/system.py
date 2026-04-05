@@ -94,6 +94,9 @@ class SupportChatHistory(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     # Elite V2.2: Identify customer in history for Zalo/Staff Bridge
     customer_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     customer_phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    
+    # Elite V2.2.1: Revoke message support (Admin control)
+    is_revoked: Mapped[bool] = mapped_column(Boolean, default=False)
 
     __table_args__ = (
         Index("ix_support_chat_session_created", "session_id", "created_at"),
