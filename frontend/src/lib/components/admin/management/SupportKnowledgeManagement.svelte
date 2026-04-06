@@ -15,6 +15,7 @@
     import HelpCircle from "lucide-svelte/icons/help-circle";
     import LayoutGrid from "lucide-svelte/icons/layout-grid";
     import List from "lucide-svelte/icons/list";
+    import RefreshCw from "lucide-svelte/icons/refresh-cw";
     import SupportKnowledgeBulkActions from './SupportKnowledgeBulkActions.svelte';
     import SupportKnowledgeDrawer from './SupportKnowledgeDrawer.svelte';
 
@@ -54,6 +55,14 @@
         </div>
 
         <div class="flex items-center gap-3">
+            <button 
+                onclick={() => kb.reindexBrain(nanobot)}
+                disabled={kb.loading}
+                class="bg-white/5 text-cyan-400 border border-cyan-500/20 px-6 py-3 rounded-xl font-black text-xs tracking-tight hover:bg-cyan-500/10 hover:border-cyan-500/50 active:scale-95 transition-all flex items-center gap-2 group {kb.loading ? 'opacity-50 cursor-wait' : ''}"
+            >
+                <RefreshCw size={16} class="group-hover:rotate-180 transition-transform duration-700 {kb.loading ? 'animate-spin' : ''}" /> BRAIN_REBUILD
+            </button>
+
             <button 
                 onclick={() => kb.openEdit()}
                 class="bg-cyan-500 text-black px-6 py-3 rounded-xl font-black text-xs tracking-tight hover:bg-cyan-400 hover:scale-105 active:scale-95 transition-all shadow-[0_5px_20px_rgba(6,182,212,0.3)] flex items-center gap-2"

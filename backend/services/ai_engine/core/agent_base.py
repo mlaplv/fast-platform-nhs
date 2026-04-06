@@ -39,9 +39,9 @@ class MedicalShieldMixin:
             "hôi chân": "xịt chân",
             "mồ hôi tay": "tăng tiết mồ hôi lòng bàn tay",
             "trị dứt điểm": "kiểm soát triệu chứng hiệu quả",
-            "thuốc": "sản phẩm chuyên dụng",
-            "chữa": "hỗ trợ cải thiện",
-            "bệnh": "tình trạng da liễu"
+            "thuốc điều trị": "sản phẩm chuyên dụng",
+            "chữa dứt": "hỗ trợ cải thiện mạnh",
+            "bệnh lý": "tình trạng da liễu"
         }
 
         # 2. Try Redis enrichment

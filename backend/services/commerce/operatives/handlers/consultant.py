@@ -125,13 +125,14 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                 system_prompt=masked_prompt,
                 safety_none=True
             )
-            # [ELITE V2.2] Robust Result Extraction: Handles Data, Output, or Raw Object
+            # [ELITE V2.2] Robust Result Extraction: Standardized with XoHi V89.1
+            # Handles AgentRunResult, Data wrappers, or Direct Schema Output
             raw = res.data if hasattr(res, "data") else (res.output if hasattr(res, "output") else res)
             
             # Final Safety: If trinity_bridge returned the raw AgentRunResult or similar wrapper, 
             # we MUST extract its data if it doesn't match our schema yet.
             if hasattr(raw, 'data') and not hasattr(raw, 'reply'):
-                raw = raw.data
+                raw = getattr(raw, 'data')
                 
             data = cast(ConsultantResponse, raw)
             

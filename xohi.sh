@@ -455,9 +455,16 @@ function restore_data() {
     rm -rf "$TEMP_RESTORE"
     
     echo -e "${YELLOW}-> 3. Đang khởi động lại hệ thống để làm mới cache...${NC}"
-    docker compose restart api ui redis worker_high worker_default
-    
-    echo -e "${GREEN}[SUCCESS] Đã khôi phục dữ liệu hoàn tất!${NC}"
+    # [ELITE 2.2] Auto-Reindex AI Knowledge (RAG Memory Restoration)
+    echo -e "${YELLOW}-> 4. Đang tái nạp tri thức Helen (AI Knowledge Re-indexing)...${NC}"
+    if docker ps --format '{{.Names}}' | grep -q "fast_platform_api"; then
+        docker exec -t fast_platform_api /opt/venv/bin/python3 backend/services/commerce/reindex_knowledge.py || echo -e "${RED}[WARNING] Re-indexing failed via exec.${NC}"
+    else
+        echo -e "${CYAN}[INFO] Container API chưa chạy. Sử dụng 'run --rm' để thực thi chuyên biệt...${NC}"
+        docker compose run --rm api /opt/venv/bin/python3 backend/services/commerce/reindex_knowledge.py || echo -e "${RED}[WARNING] Re-indexing failed via run.${NC}"
+    fi
+
+    echo -e "${GREEN}[SUCCESS] Đã khôi phục dữ liệu và tri thức AI hoàn tất!${NC}"
     read -p "Nhấn Enter để quay lại menu..."
 }
 

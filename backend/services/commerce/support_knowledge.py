@@ -226,6 +226,41 @@ class SupportKnowledgeService:
             context += f"Q: {r['question']}\nA: {r['answer']}\nScore: {r['match_score']}\n---\n"
         return context
 
+    async def reindex_all_knowledge(self, db_session: AsyncSession) -> SuccessResponse:
+        """
+        Elite V2.2: Full Brain Sync (Re-indexing).
+        Wipes and rebuilds the entire vector knowledge base.
+        """
+        logger.info("[KB-SERVICE] Starting Full Knowledge Re-indexing...")
+        from backend.services.ai_engine.core.encoder_singleton import warmup_encoder
+        from backend.services.commerce.knowledge_vector import knowledge_vector_service
+        
+        # 1. Warmup Encoder
+        await warmup_encoder(max_retries=3)
+        
+        # 2. Fetch all active knowledge
+        stmt = select(SupportKnowledge).where(
+            and_(
+                SupportKnowledge.deleted_at == None,
+                SupportKnowledge.is_active == True
+            )
+        )
+        result = await db_session.execute(stmt)
+        items = result.scalars().all()
+        
+        logger.info(f"[KB-SERVICE] Processing {len(items)} items...")
+        
+        # 3. Upsert Embeddings
+        for item in items:
+            content = f"{item.question} {item.answer}"
+            await knowledge_vector_service.upsert_embedding(db_session, str(item.id), content)
+            
+        # 4. Clear Cache
+        from backend.services.xohi_memory import xohi_memory
+        await xohi_memory.clear_kb_cache()
+        
+        return SuccessResponse(ok=True)
+
 # ==========================================
 # SERVICE PROVIDERS
 # ==========================================

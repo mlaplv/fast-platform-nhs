@@ -150,8 +150,8 @@ class TrinityBridge:
                         if cat == "tool_unsupported": break
                         if not key: continue # Cannot mark unhealthy if we don't have a key
                         if cat == "rate_limit":
-                            if "QUOTA/COOLDOWN" in str(e):
-                                logger.info(f"[TrinityBridge] Model '{m_name}' has NO keys available. Skipping model.")
+                            if "RESOURCE_EXHAUSTED" in str(e) or "QUOTA/COOLDOWN" in str(e):
+                                logger.warning(f"[TrinityBridge] Model '{m_name}' QUOTA EXHAUSTED. Skipping to next model in chain.")
                                 break # Move to next model immediately!
                             if self.models_helper.is_daily_quota(str(e)) and key:
                                 await self.rotator.mark_model_daily(key, m_name)

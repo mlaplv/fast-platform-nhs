@@ -113,3 +113,14 @@ class AdminSupportController(Controller):
         res = await kb_service.bulk_toggle_active(db_session, data)
         await db_session.commit()
         return res
+
+    @post("/reindex")
+    async def reindex_knowledge(
+        self,
+        db_session: AsyncSession,
+        kb_service: SupportKnowledgeService
+    ) -> SuccessResponse:
+        """🚀 Elite V2.2: Force Re-indexing of entire brain."""
+        res = await kb_service.reindex_all_knowledge(db_session)
+        await db_session.commit()
+        return res

@@ -164,6 +164,28 @@ class SupportKnowledgeState {
         };
         this.showModal = true;
     };
+
+    reindexBrain = async (nanobot: any) => {
+        const confirmed = await nanobot.showConfirm({
+            title: "NEURAL_REBUILD",
+            message: "Sếp muốn Helen 'ôn lại' toàn bộ tri thức hiện có chứ? (Re-indexing sẽ làm mới bộ nhớ Vector)",
+            confirmLabel: "XÁC NHẬN",
+            cancelLabel: "HỦY"
+        });
+
+        if (!confirmed) return;
+        
+        this.loading = true;
+        try {
+            await apiClient.post("/api/v1/admin/support/knowledge/reindex");
+            nanobot.showToast("Helen đã tái nạp tri thức thành công! ✨", "success");
+        } catch (error) {
+            console.error("[SupportKB] Reindex error:", error);
+            nanobot.showToast("Có lỗi khi Helen tái nạp tri thức. ⚠️", "error");
+        } finally {
+            this.loading = false;
+        }
+    };
 }
 
 export const supportKbAdmin = new SupportKnowledgeState();
