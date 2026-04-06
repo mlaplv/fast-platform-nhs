@@ -11,10 +11,12 @@ from backend.services.ai_engine.core.key_rotator import key_rotator
 from backend.services.xohi_memory import xohi_memory
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
+from rapidfuzz import fuzz
 from .stt_schemas import STTCorrectorDeps, STTCorrectionOutput
 from .stt_prompts import STT_CORRECTOR_PROMPT
 from .stt_utils import NAV_PATTERNS, NORM_NAV_PATTERNS, SOUND_ALIKES, get_norm
 from .stt_neural import NeuralLocalCorrector
+from backend.utils.text import normalize_vn
 
 logger = logging.getLogger("api-gateway")
 
@@ -48,11 +50,14 @@ class STTCorrector:
         words = transcript.split()
         if len(words) <= 2: return transcript, None
         
-        # Fast Bypass for High-Intent Context (Elite V62.5 Upgrade: 12-word limit)
-        if len(words) <= 12 and any(kw in transcript.lower() for kw in ["bài viết", "sản phẩm", "đơn hàng", "doanh thu", "doanh số", "biểu đồ"]):
+        # Fast Bypass for High-Intent Context (Elite V2.2: NFC Hardened)
+        import unicodedata
+        t_norm = unicodedata.normalize('NFC', transcript.lower())
+        if len(words) <= 12 and any(kw in t_norm for kw in ["bài viết", "sản phẩm", "đơn hàng", "doanh thu", "doanh số", "biểu đồ", "tạo", "viết bào", "viết bài"]):
+            logger.info(f"🛡️ [STT] Elite Bypass triggered for: {t_norm}")
             return transcript, None
 
-        if any(kw in transcript.lower() for kw in ["học lệnh", "dạy lệnh", "hoc lenh", "day lenh"]):
+        if any(kw in t_norm for kw in ["học lệnh", "dạy lệnh", "hoc lenh", "day lenh"]):
             return transcript, None
 
         # 1. Stopwords
@@ -83,11 +88,24 @@ class STTCorrector:
                 suspected[wrong.lower()] = right; applied = True
         if applied: return transcript, suspected
 
-        # 4. Trinity Cloud
+        # 4. Trinity Cloud (Cold Intelligence: Temp 0.0)
         try:
-            res = await trinity_bridge.run(self.agent, transcript, deps=STTCorrectorDeps(user_dictionary=user_dict or {}))
-            out_susp = {i.wrong_word.lower(): i.right_word for i in res.output.suspected_correction} if res.output.suspected_correction else None
-            return res.output.cleaned_text, out_susp
+            res = await trinity_bridge.run(
+                self.agent, transcript, 
+                deps=STTCorrectorDeps(user_dictionary=user_dict or {}),
+                model_settings={"temperature": 0.0} # Zero-Hallucination Protocol
+            )
+            
+            # Elite V2.2: Sanity Check distance (Reject phonetic mangling)
+            c_t = res.cleaned_text
+            score = fuzz.ratio(transcript.lower(), c_t.lower())
+            
+            if score < 65 and len(transcript.split()) > 3:
+                logger.warning(f"🚨 [STT] Rejecting Hallucination (Score: {score:.1f}): '{transcript}' -> '{c_t}'")
+                return transcript, None
+
+            out_susp = {i.wrong_word.lower(): i.right_word for i in res.suspected_correction} if res.suspected_correction else None
+            return c_t, out_susp
         except Exception as e:
             logger.error(f"[STT] Trinity failed: {e}"); return transcript, None
 

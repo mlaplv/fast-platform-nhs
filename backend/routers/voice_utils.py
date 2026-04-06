@@ -35,12 +35,13 @@ MIN_AUDIO_BYTES = 1500
 MAX_AUDIO_BYTES = 20_000_000
 
 # Zero-Hallucination 2026: Blacklist for common Whisper phantoms in silence/noise
-HALLUCINATION_BLACKLIST = [
+HALLUCINATION_BLACKLIST: List[str] = [
     "cám ơn các bạn", "subscribe", "đăng ký kênh", "ghiền mì gõ",
     "chào các bạn", "phimmoichill", "website chính thức",
     "liên hệ với chúng tôi", "video", "youtube", "mọi người",
     "ủng hộ", "bình luận", "zalo", "facebook", "website", "chào mừng",
-    "tập trung vào ngữ cảnh"
+    "tập trung vào ngữ cảnh", "mời bạn đón xem", "đăng ký và nhấn chuông",
+    "phimmoi.net", "nguồn gốc của video"
 ]
 
 SENTENCE_SPLIT_RE = re.compile(r'(?<=[.!?])\s+')
@@ -161,7 +162,7 @@ async def transcribe(audio_data: bytes, user_id: Optional[str] = None) -> str:
                 if not any(bad in p_lower for bad in HALLUCINATION_BLACKLIST):
                     clean_parts.append(p)
                 else:
-                    logger.warning(f"[STT] Hallucination stripped: '{p}'")
+                    logger.debug(f"[STT] Hallucination stripped: {repr(p)}")
 
             if not clean_parts:
                 return ""

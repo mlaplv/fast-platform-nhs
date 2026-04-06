@@ -56,7 +56,7 @@ from backend.routers.content_router import ContentController
 from backend.routers.media_router import MediaController
 from backend.controllers.banner import BannerController
 from backend.routers.content_stream import ContentStreamController
-from backend.routers.voice_stream import stt_websocket
+from backend.routers.voice_core import stt_websocket
 from backend.controllers.tts_handler import TTSController
 from backend.routers.intent_map import IntentMapController
 from backend.routers.scheduler_router import SchedulerController

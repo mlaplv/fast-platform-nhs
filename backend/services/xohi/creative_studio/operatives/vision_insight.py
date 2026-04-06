@@ -183,7 +183,8 @@ class VisionInsight:
                         await _emit_progress(msg)
 
                 result = await ai_task
-                seed: TopicSeed = result.data if hasattr(result, "data") else result.output
+                # CNS V82.56: Safe result extraction for Elite V2.2 compat
+                seed: TopicSeed = getattr(result, "data", getattr(result, "output", result))
 
                 # CNS V85.7: Infinity Unified System (Articles=Enum, Products=DB-ID)
                 if target_entity == "product":

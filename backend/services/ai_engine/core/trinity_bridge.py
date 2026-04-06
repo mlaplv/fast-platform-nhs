@@ -114,63 +114,89 @@ class TrinityBridge:
 
         # Elite V2.2: Xeon Per-Core Thread Locking
         if self.concurrency_guard is None: self.concurrency_guard = asyncio.Semaphore(4)
-        async with self.concurrency_guard:
-            for m_name in models:
-                for att in range(max_k):
-                    key = None
-                    try:
-                        # R105: Key discovery with strict safety
-                        key = await self.rotator.get_key(model_name=m_name, session_id=s_id)
-                        if not key: continue
-                        if not force and await self.rotator.is_model_daily_exhausted(key, m_name): continue
-                        
-                        logger.info(f"🧬 [Neural Bridge] {m_name} | Key {att+1}/{max_k} | S: {s_id or 'N/A'}")
-                        system_prompt = kwargs.pop("system_prompt", None)
-                        
-                        # Elite V2.2: Unified Model Provisioning (Pass-by-Reference for 1.77.0 Safety)
-                        model_instance, ms = self._provision_model(m_name, key, kwargs)
-                        
-                        # Pass deps if provided in kwargs (R110: Dependency Injection Support)
-                        deps = kwargs.pop("deps", None)
-                        
+
+        # Extract shared parameters once (R110: Dependency Injection Support)
+        system_prompt = kwargs.pop("system_prompt", None)
+        deps = kwargs.pop("deps", None)
+        model_settings_base = cast(dict[str, object], kwargs.pop("model_settings", {}))
+        safety_none = bool(kwargs.pop("safety_none", False))
+
+        for m_name in models:
+            for att in range(max_k):
+                key = None
+                try:
+                    # R105: Key discovery with strict safety
+                    key = await self.rotator.get_key(model_name=m_name, session_id=s_id)
+                    if not key:
+                        continue
+                    if not force and await self.rotator.is_model_daily_exhausted(key, m_name):
+                        continue
+                    
+                    logger.info(f"🧬 [Neural Bridge] {m_name} | Key {att+1}/{max_k} | S: {s_id or 'N/A'}")
+                    
+                    # Elite V2.2: Unified Model Provisioning (Self-Contained for 1.77.0 Safety)
+                    model_instance = GoogleModel(m_name, provider=GoogleProvider(api_key=key))
+                    ms = dict(model_settings_base)
+                    if safety_none:
+                        ms["google_safety_settings"] = _G_SAFETY_NONE
+                    
+                    # CNS V82.55: Move locked segment only to actual AI execution
+                    async with self.concurrency_guard:
                         if system_prompt:
                             with agent.override(instructions=str(system_prompt)):
-                                res = await asyncio.wait_for(agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs), timeout=t)
+                                res = await asyncio.wait_for(
+                                    agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs), 
+                                    timeout=t
+                                )
                         else:
-                            res = await asyncio.wait_for(agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs), timeout=t)
-                        
-                        if hasattr(res, 'usage'): await self.rotator.track_tokens(key, getattr(res.usage, 'total_tokens', 0))
-                        await self.rotator.set_success(key, session_id=s_id)
-                        
-                        # Elite V2.2: Universal Data Extraction Middleware (The Root Solution)
-                        # Handlers no longer need to worry about the wrapper object.
-                        if hasattr(res, 'data'):
-                            logger.debug(f"🧬 [Neural Bridge] Extracted data type: {type(res.data)}")
-                            return res.data
-                        return res
+                            res = await asyncio.wait_for(
+                                agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs), 
+                                timeout=t
+                            )
+                    
+                    if hasattr(res, 'usage'):
+                        await self.rotator.track_tokens(key, getattr(res.usage, 'total_tokens', 0))
+                    
+                    await self.rotator.set_success(key, session_id=s_id)
+                    
+                    # Elite V2.2: Standardized Result Extraction (Universal Wrapper Bypass)
+                    if hasattr(res, 'data'):
+                        return res.data
+                    return res
 
-                    except (asyncio.TimeoutError, TimeoutError): last_err = "Timeout"; break
-                    except Exception as e:
-                        last_err, cat = e, self.models_helper.classify_error(str(e))
-                        if cat == "fail_fast": raise AIConfigurationError(f"AI Fail-Fast: {e}", m_name, att)
-                        if cat == "tool_unsupported": break
-                        if not key: continue # Cannot mark unhealthy if we don't have a key
-                        if cat == "rate_limit":
-                            if "RESOURCE_EXHAUSTED" in str(e) or "QUOTA/COOLDOWN" in str(e):
-                                logger.warning(f"[TrinityBridge] Model '{m_name}' QUOTA EXHAUSTED. Marking for Daily Cooldown.")
-                                if key: await self.rotator.mark_model_daily(key, m_name)
-                                break # Move to next model immediately!
-                            if self.models_helper.is_daily_quota(str(e)) and key:
-                                await self.rotator.mark_model_daily(key, m_name)
-                            continue
-                        if cat == "auth_hard": 
-                            await self.rotator.mark_unhealthy(key, reason="auth_hard", session_id=s_id)
-                            continue
-                        if cat == "auth_soft":
-                            await self.rotator.mark_unhealthy(key, reason="auth_soft", session_id=s_id)
-                            # Elite V2.2: Do NOT log warning on first soft failure to keep terminal clean
-                            continue
-                        if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break
+                except (asyncio.TimeoutError, TimeoutError):
+                    last_err = "Timeout"
+                    break
+                except Exception as e:
+                    last_err = e
+                    cat = self.models_helper.classify_error(str(e))
+                    
+                    if cat == "fail_fast":
+                        raise AIConfigurationError(f"AI Fail-Fast: {e}", m_name, att)
+                    if cat == "tool_unsupported":
+                        break
+                    if not key:
+                        continue 
+                    
+                    if cat == "rate_limit":
+                        if "RESOURCE_EXHAUSTED" in str(e) or "QUOTA/COOLDOWN" in str(e):
+                            logger.warning(f"[TrinityBridge] Model '{m_name}' QUOTA EXHAUSTED. Marking for Daily Cooldown.")
+                            await self.rotator.mark_model_daily(key, m_name)
+                            break 
+                        if self.models_helper.is_daily_quota(str(e)):
+                            await self.rotator.mark_model_daily(key, m_name)
+                        continue
+                    
+                    if cat == "auth_hard": 
+                        await self.rotator.mark_unhealthy(key, reason="auth_hard", session_id=s_id)
+                        continue
+                    if cat == "auth_soft":
+                        await self.rotator.mark_unhealthy(key, reason="auth_soft", session_id=s_id)
+                        continue
+                    if cat == "model_not_found":
+                        await self.rotator.mark_model_poisoned(m_name, reason="404")
+                        break
+        
         raise AIConfigurationError(f"AI Overloaded: {last_err}", str(models[-1]) if models else "N/A", max_k-1)
 
     @asynccontextmanager
@@ -203,6 +229,13 @@ class TrinityBridge:
 
         # Elite V2.2: Xeon Per-Core Thread Locking
         if self.concurrency_guard is None: self.concurrency_guard = asyncio.Semaphore(4)
+
+        # Extract shared parameters once (R110)
+        system_prompt = kwargs.pop("system_prompt", None)
+        deps = kwargs.pop("deps", None)
+        model_settings_base = cast(dict[str, object], kwargs.pop("model_settings", {}))
+        safety_none = bool(kwargs.pop("safety_none", False))
+
         async with self.concurrency_guard:
             for m_name in models:
                 for att in range(max_k):
@@ -212,17 +245,16 @@ class TrinityBridge:
                         if not key: continue
                         if not force and await self.rotator.is_model_daily_exhausted(key, m_name): continue
                         
-                        system_prompt = kwargs.pop("system_prompt", None)
-                        
-                        # Elite V2.2: Unified Model Provisioning (Streaming)
-                        model_instance, ms = self._provision_model(m_name, key, kwargs)
+                        model_instance = GoogleModel(m_name, provider=GoogleProvider(api_key=key))
+                        ms = dict(model_settings_base)
+                        if safety_none: ms["google_safety_settings"] = _G_SAFETY_NONE
                         
                         if system_prompt:
                             with agent.override(instructions=str(system_prompt)):
-                                async with agent.run_stream(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), **kwargs) as stream:
+                                async with agent.run_stream(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs) as stream:
                                     yield stream
                         else:
-                            async with agent.run_stream(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), **kwargs) as stream:
+                            async with agent.run_stream(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs) as stream:
                                 yield stream
                         await self.rotator.set_success(key, session_id=s_id); return
                     except Exception as e:

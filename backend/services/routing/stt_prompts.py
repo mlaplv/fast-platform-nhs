@@ -12,18 +12,20 @@ Các khái niệm có trong hệ thống:
 - Khách hàng, người dùng, user, nhân viên, tài khoản
 - Bài viết, tin tức, danh mục
 
-[QUY TẮC CỐT LÕI]
-1. NHẬN DIỆN LỖI PHÁT ÂM: STT Tiếng Việt hay sai những từ nghe giống nhau trong ngữ cảnh bán hàng.
-   Ví dụ về các cặp từ dễ nhầm lẫn (Hãy nghi ngờ và đề xuất sửa):
+[QUY TẮC CỐT LÕI - ELITE V2.2]
+1. BẢO TỒN TUYỆT ĐỐI (GOLDEN RULE): Nếu câu gốc đã rõ nghĩa hoặc chứa các động từ hành động (Tạo, Viết, Xem, Mở, Xóa), CẤM thay đổi chúng.
+   - SAI: "tạo bài viết" -> "tào mai viết" (LỖI NẶNG)
+   - ĐÚNG: "tạo bài viết" -> "tạo bài viết" (Giữ nguyên)
+
+2. CHỈ SỬA LỖI PHÁT ÂM RÕ RÀNG: Chỉ sửa khi từ đó vô nghĩa hoặc sai lệch hoàn toàn ngữ cảnh bán hàng.
+   Ví dụ:
    - "dân số", "nhân số" -> "doanh số"
    - "doanh tu" -> "doanh thu"
    - "đau hàng" -> "đơn hàng"
-   - "sang phẩm" -> "sản phẩm"
 
-2. CHỈ SỬA LỖI, KHÔNG TRẢ LỜI: Nếu input là "doanh số tháng này bao nhiêu", output CHỈ LÀ "doanh số tháng này bao nhiêu". Không được thêm câu trả lời.
-3. GIỮ NGUYÊN NẾU KHÔNG CÓ LỖI: Nếu câu nghe có vẻ đã đúng chuyên ngành, xuất lại y nguyên.
-5. SỬ DỤNG TỪ ĐIỂN CỦA SẾP: Ưu tiên tuyệt đối các từ trong [USER_DICTIONARY_CONTEXT] nếu có.
-6. FLAG NGHI VẤN (QUAN TRỌNG): Nếu bạn sửa một từ/cụm từ mà bạn không chắc chắn 100%, hoặc nó KHÔNG CÓ TRONG [USER_DICTIONARY_CONTEXT], hãy điền cặp đó vào trường `suspected_correction`.
-   LƯU Ý: Phải dùng CHÍNH XAC từ xuất hiện trong INPUT cho phần từ sai (Ví dụ: Trả về {"dân số": "doanh số"} nếu input có chữ "dân số"). KHÔNG tự ý chế từ mới. Phải trả về ĐẦY ĐỦ CỤM TỪ CÓ NGHĨA.
-7. TRẢ VỀ JSON: Kết quả bắt buộc dưới định dạng JSON theo schema đã chỉ định.
+3. CẤM TỰ Ý PHÁT TRIỂN Ý TƯỞNG: Nếu input là "doanh số tháng này", không được sửa thành "báo cáo doanh số tháng này".
+4. CẤM THÊM LỜI CHÀO: Không thêm "Chào Sếp", "Vâng", "Xin chào".
+5. SỬ DỤNG TỪ ĐIỂN CỦA SẾP: Ưu tiên tuyệt đối [USER_DICTIONARY_CONTEXT].
+6. FLAG NGHI VẤN (QUAN TRỌNG): Nếu bạn sửa mà không chắc chắn 100%, hãy điền vào `suspected_correction`.
+7. TRẢ VỀ JSON: Luôn trả về đúng schema.
 """

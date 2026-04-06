@@ -29,11 +29,11 @@ class VoiceHandler:
         event_bus.subscribe("XOHI_CAMPAIGN_PURGED", self._handle_campaign_purge)
 
     async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None, campaign_id: Optional[str] = None) -> Optional[ContentCampaign]:
-        # R105: Standardize user_id logic
+        # R105 CNS V62.2: Standardize user_id logic
         user_id = sanitize_id(user_id)
         campaign_id = sanitize_id(campaign_id)
 
-        # 1. Explicit ID lookup (Highest Priority)
+        # 1. Explicit ID lookup (Highest Priority - Targeted Operations)
         if campaign_id:
             try:
                 c = await campaign_repo.get(campaign_id)
@@ -42,13 +42,18 @@ class VoiceHandler:
                     return c
             except Exception: pass
 
-        # 2. Strict scan for unfinished campaigns (Scoped to User)
-        filters = {"deleted_at": None}
+        # 2. Strict scan for unfinished campaigns (Global User Lockdown - R00)
+        filters: Dict[str, object] = {"deleted_at": None}
         if user_id:
             filters["user_id"] = user_id
+            
+        # Standardize Tenant Isolation (Force Sync)
+        if tenant_id and tenant_id != "default":
+            filters["tenant_id"] = tenant_id
 
+        # [ELITE UPGRADE] Increase scan limit to 20 to avoid "buried" active tasks
         results = await campaign_repo.list(
-            LimitOffset(limit=5, offset=0),
+            LimitOffset(limit=20, offset=0),
             order_by=[("created_at", "desc")],
             **filters
         )
@@ -58,24 +63,12 @@ class VoiceHandler:
         if not active_campaigns:
             return None
 
-        # 3. Query-based matching
-        if query:
-            q_norm = normalize_vn(query)
-            for c in active_campaigns:
-                title = normalize_vn(c.topic_data.get("title", "")) if c.topic_data else ""
-                source = normalize_vn(c.source_input) if c.source_input else ""
-                # R104: Tighter matching to avoid "Neural Link" hallucinations
-                if (title and title in q_norm) or (source and source in q_norm):
-                    return c
-        
-        # 4. Fallback: Return the most recent active one if it's very fresh (< 10 mins)
+        # [ELITE SHIELD V2.2] ZERO-TOLERANCE SINGLE-TASK ARMOR:
+        # If ANY campaign is active for this user, we return the latest one immediately.
+        # This prevents concurrency leaks even if the query/topic is different.
         latest = active_campaigns[0]
-        now = datetime.now(timezone.utc)
-        created_at = latest.created_at.replace(tzinfo=timezone.utc) if latest.created_at.tzinfo is None else latest.created_at
-        if (now - created_at).total_seconds() < 600.0:
-             return latest
-
-        return None
+        logger.info(f"🛡️ [Shield-Armor] Active campaign found: {latest.id} ({latest.status}). Blocking any new creation.")
+        return latest
 
     def format_resume_greeting(self, campaign: ContentCampaign) -> str:
         step = campaign.current_step

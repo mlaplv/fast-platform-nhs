@@ -55,25 +55,64 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
 
     async def _handle_internal(self, ctx: SupportContext) -> bool:
         # [ELITE V2.2] Layer 0.5: Direct Heuristic (Emergency Bypass)
-        # 100% Reliability for critical address/location queries.
+        # Phase 7: Brute-Force Strictness. No loops. No mapping ambiguity.
         msg_norm = ctx.request.message.lower().strip()
-        if any(kw in msg_norm for kw in ["địa chỉ", "ở đâu", "chi nhánh", "cửa hàng"]):
-            # Perform a targeted keyword search for address
+        detected_category = None
+        matched_kw = None
+        
+        # 1. INGREDIENTS DETECTION (PRIORITY #1)
+        kws_ing = ["thành phần", "công thức", "thành phần thuốc", "chất gì", "có gì trong thuốc"]
+        for kw in kws_ing:
+            if kw in msg_norm:
+                detected_category = "INFO_INGREDIENTS"
+                matched_kw = kw
+                break
+        
+        # 2. ADDRESS DETECTION (PRIORITY #2)
+        if not detected_category:
+            kws_addr = ["địa chỉ", "ở đâu", "chi nhánh", "cửa hàng", "văn phòng", "trụ sở", "phòng khám"]
+            for kw in kws_addr:
+                if kw in msg_norm:
+                    detected_category = "INFO_ADDRESS"
+                    matched_kw = kw
+                    break
+        
+        # 3. HOTLINE DETECTION (PRIORITY #3)
+        if not detected_category:
+            kws_hot = ["điện thoại", "hotline", "số điện thoại", "liên hệ", "sốđt", "sdt", "website"]
+            for kw in kws_hot:
+                if kw in msg_norm:
+                    detected_category = "INFO_HOTLINE"
+                    matched_kw = kw
+                    break
+                
+        if detected_category:
             from backend.database.models.system import SupportKnowledge
+            from sqlalchemy import func, select, and_, or_
+            from backend.database import current_tenant_id
+            
+            tid = current_tenant_id.get() or "default"
+            logger.info(f"📍 [Consultant Heuristic] TRIGGERED: Intent='{detected_category}' | Match='{matched_kw}' | Msg='{msg_norm}' | Tenant='{tid}'")
+            
+            # Elite Protocol: Direct Category Fetch
             stmt = select(SupportKnowledge).where(
                 and_(
                     SupportKnowledge.deleted_at == None,
                     SupportKnowledge.is_active == True,
-                    SupportKnowledge.question.ilike("%địa chỉ%")
+                    or_(SupportKnowledge.tenant_id == tid, SupportKnowledge.tenant_id == "default", SupportKnowledge.tenant_id == "smartshop"),
+                    SupportKnowledge.category == detected_category
                 )
-            ).limit(1)
+            ).order_by(SupportKnowledge.priority.desc()).limit(1)
+            
             res = await ctx.db.execute(stmt)
             item = res.scalar_one_or_none()
             if item:
-                logger.info(f"📍 [Consultant Heuristic] Direct Address Match: {msg_norm}")
+                logger.info(f"✅ [Consultant Heuristic] SUCCESS: Found ID {item.id} (Category: {item.category})")
                 ctx.replies.append(item.answer)
                 ctx.intent = SupportIntent.POLICY_QUERY
                 return True
+            else:
+                logger.warning(f"❌ [Consultant Heuristic] CRITICAL FAIL: Intent '{detected_category}' found no matching Row in DB for any tenant.")
 
         # [ELITE V2.2] Layer 0: Static Fast-Path (The Root Solution)
         # Bypassing AI entirely for high-confidence knowledge matches to eliminate latency and quota issues.

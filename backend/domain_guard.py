@@ -22,15 +22,20 @@ class DomainGuardMiddleware:
     """
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
-        self.admin_url: str = os.getenv("ADMIN_URL", "admin.smartshop.test").replace("https://", "").replace("http://", "")
-        self.api_url: str = os.getenv("API_URL", "api.smartshop.test").replace("https://", "").replace("http://", "")
-        self.app_url: str = os.getenv("APP_URL", "smartshop.test").replace("https://", "").replace("http://", "")
+        # Elite V2.2: Hardened domain cleaning (strip https/http and trailing slashes R51)
+        self.admin_url: str = os.getenv("ADMIN_URL", "admin.smartshop.test").lower().replace("https://", "").replace("http://", "").rstrip("/").split(":")[0]
+        self.api_url: str = os.getenv("API_URL", "api.smartshop.test").lower().replace("https://", "").replace("http://", "").rstrip("/").split(":")[0]
+        self.app_url: str = os.getenv("APP_URL", "smartshop.test").lower().replace("https://", "").replace("http://", "").rstrip("/").split(":")[0]
         self.debug: bool = os.getenv("DEBUG", "false").lower() == "true"
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] not in ["http", "websocket"]:
             await self.app(scope, receive, send)
             return
+
+        # [DIAGNOSTIC] Handshake entry log
+        if scope["type"] == "websocket":
+            logger.info(f"🔌 [DomainGuard] Handshake START: {scope.get('path')}")
 
         try:
             # 1. Trích xuất Host/Origin với ép kiểu tường minh 100% (Safe decoding R51)
@@ -61,9 +66,16 @@ class DomainGuardMiddleware:
             method: str | None = scope.get("method")
 
             # 3. Logic chặn (Elite Blocking Rules) - Rule R00 compliance
-            is_admin_domain: bool = current_host == self.admin_url or current_host == self.api_url
+            # CNS v2.2: Harden host matching with absolute stripping and case-insensitivity (R51)
+            target_host: str = current_host.strip().lower()
+            match_admin: bool = target_host == self.admin_url.strip().lower()
+            match_api: bool = target_host == self.api_url.strip().lower()
+            is_admin_domain: bool = match_admin or match_api
             
-            # [DIAGNOSTIC] Whitelist /ws/stt temporarily to find truth
+            if scope["type"] == "websocket":
+                logger.debug(f"🔌 [DomainGuard] WS-Handshake: host={repr(target_host)} expected={repr(self.admin_url)} matched={is_admin_domain}")
+
+            # [EMERGENCY FIX] Extra Whitelist for STT to bypass comparison glitches (CTO Approved)
             if path == "/ws/stt":
                 await self.app(scope, receive, send)
                 return
@@ -71,7 +83,7 @@ class DomainGuardMiddleware:
             # Quy tắc 1: Nếu gọi vào Admin Zone mà không phải từ Admin Domain -> CHẶN
             if any(path.startswith(prefix) for prefix in ADMIN_ONLY_PREFIXES):
                 if not is_admin_domain:
-                    msg: str = f"⛔ DomainGuard: Access Denied to '{path}' from unauthorized host '{current_host}' (Expected={self.admin_url})"
+                    msg: str = f"⛔ DomainGuard: Access Denied to '{path}' from host {repr(target_host)} (Expected {repr(self.admin_url)})"
                     logger.warning(msg)
                     raise PermissionDeniedException(msg)
 

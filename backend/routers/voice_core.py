@@ -4,47 +4,64 @@ import asyncio
 import time
 import uuid
 import hashlib
+from typing import Optional, Dict, Any, Union
 from litestar import WebSocket, websocket
+from litestar.exceptions import NotAuthorizedException, PermissionDeniedException
 from .voice_utils import (
     MIN_AUDIO_BYTES, MAX_AUDIO_BYTES,
     send_partial, transcribe, background_save_telemetry
 )
 from backend.constants.permissions import PermissionEnum
 from backend.guards import PermissionGuard
+from backend.middleware import UserPayload
 
 logger = logging.getLogger("api-gateway")
+
+def get_user_info(socket: WebSocket) -> Optional[Dict[str, Any]]:
+    """Helper to safely extract user from socket scope with V2.2 hierarchy."""
+    return socket.scope.get("state", {}).get("user") or getattr(socket.state, "user", None)
+
+def get_user_id(socket: WebSocket) -> Optional[str]:
+    """Helper to safely extract user_id for telemetry."""
+    user = get_user_info(socket)
+    if isinstance(user, dict):
+        return user.get("id")
+    return getattr(user, "id", None) if user else None
 
 @websocket("/ws/stt")
 async def stt_websocket(socket: WebSocket) -> None:
     """WebSocket endpoint: receive audio chunks, transcribe via Groq Whisper."""
-    # ═══ MANUAL PBAC (Rule R00 Bypass Blocker) ═══
-    # We delay accept() until we verify the user manually to see exactly who is connecting.
-    user = socket.scope.get("state", {}).get("user")
+    # 🛡️ [STT-Elite] Phase 3: Immediate Handshake Acceptance (CTO Protocol)
+    await socket.accept()
+    logger.info("🛡️ [STT-TRACE] Connection Accepted. Entering identity verification...")
+
+    user: Optional[UserPayload] = get_user_info(socket) # type: ignore
     
     if not user:
-        logger.warning(f"🚨 [STT] Handshake REJECTED: No user state in scope. (Query={socket.scope.get('query_string')})")
-        # Send 403 manual closing if possible, but Litestar will handle it if we raise
-        raise NotAuthorizedException("Vui lòng đăng nhập lại (VUI-Missing-Identity)")
+        logger.warning(f"🚨 [STT] Handshake REJECTED after accept: No user state in scope.")
+        await socket.send_json({"event": "error", "message": "Vui lòng đăng nhập lại (VUI-Missing-Identity)"})
+        await socket.close()
+        return
 
-    is_super = "SUPER_ADMIN" in user.get("roles", [])
-    has_voice = "ai:config" in user.get("perms", []) or "system:all" in user.get("perms", [])
+    # PBAC Check (Elite Rule R00)
+    is_super: bool = "SUPER_ADMIN" in user.get("roles", [])
+    has_voice: bool = "ai:config" in user.get("perms", []) or "system:all" in user.get("perms", [])
     
-    logger.info(f"🎤 [STT] Handshake Attempt: user={user.get('email')} super={is_super} voice={has_voice}")
-
     if not (is_super or has_voice):
         logger.warning(f"⛔ [STT] Handshake REJECTED: Insufficient permissions for {user.get('email')}")
-        raise PermissionDeniedException("Security Clearance Level Insufficient for Voice Operations")
+        await socket.send_json({"event": "error", "message": "Security Clearance Level Insufficient"})
+        await socket.close()
+        return
 
-    await socket.accept()
-    session_id = socket.query_params.get("session_id") or str(uuid.uuid4())
-    logger.info(f"✅ [STT] Connection Established: session={session_id[:8]} user={user.get('email')}")
+    session_id: str = socket.query_params.get("session_id") or str(uuid.uuid4())
+    logger.info(f"✅ [STT-Elite] Handshake Finalized: session={session_id[:8]} user={user.get('email')}")
 
-    audio_buffer = bytearray()
-    is_active = True
-    transcription_lock = asyncio.Lock()
-    background_tasks = set()
-    last_partial_time = float(asyncio.get_running_loop().time())
-    last_transcribed_size = 0
+    audio_buffer: bytearray = bytearray()
+    is_active: bool = True
+    transcription_lock: asyncio.Lock = asyncio.Lock()
+    background_tasks: set = set()
+    last_partial_time: float = float(asyncio.get_running_loop().time())
+    last_transcribed_size: int = 0
 
     start_time_mono = time.monotonic()
     max_age = 600  # 10-minute hard limit for STT sessions (Elite Rule)
@@ -71,8 +88,7 @@ async def stt_websocket(socket: WebSocket) -> None:
                             last_partial_time = now
                             last_transcribed_size = len(audio_buffer)
 
-                            user_info = getattr(socket.state, "user", None) or socket.scope.get("user")
-                            user_id = user_info.get("id") if isinstance(user_info, dict) else getattr(user_info, "id", None) if user_info else None
+                            user_id = get_user_id(socket)
 
                             task = asyncio.create_task(send_partial(socket, bytes(audio_buffer), transcription_lock, user_id))
                             background_tasks.add(task)
@@ -87,8 +103,7 @@ async def stt_websocket(socket: WebSocket) -> None:
                             if len(audio_buffer) > MIN_AUDIO_BYTES:
                                 async with transcription_lock:
                                     try:
-                                        user_info = getattr(socket.state, "user", None) or socket.scope.get("user")
-                                        user_id = user_info.get("id") if isinstance(user_info, dict) else getattr(user_info, "id", None) if user_info else None
+                                        user_id = get_user_id(socket)
 
                                         t0 = time.monotonic()
                                         transcript = await transcribe(bytes(audio_buffer), user_id)

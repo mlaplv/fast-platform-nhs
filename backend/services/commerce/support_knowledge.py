@@ -167,10 +167,15 @@ class SupportKnowledgeService:
         if cached:
             return cached
 
+        from backend.database import current_tenant_id
+        tid = current_tenant_id.get() or "default"
+        
+        # [PHASE 2] Cross-tenant index (Current + Default)
         stmt = select(SupportKnowledge.id, SupportKnowledge.category, SupportKnowledge.question).where(
             and_(
                 SupportKnowledge.deleted_at == None,
-                SupportKnowledge.is_active == True
+                SupportKnowledge.is_active == True,
+                or_(SupportKnowledge.tenant_id == tid, SupportKnowledge.tenant_id == "default")
             )
         ).order_by(SupportKnowledge.priority.desc())
         
@@ -234,20 +239,46 @@ class SupportKnowledgeService:
         """Elite V2.2: Keyword-based resilience layer."""
         from backend.database.models.system import SupportKnowledge
         
-        # Standard keyword search for high-confidence fallback
+        from backend.database import current_tenant_id
+        tid = current_tenant_id.get() or "default"
+        query_low = query.lower()
+
+        # 1. Full phrase match (Highest confidence) - [PHASE 2] func.lower() for 100% case-insensitivity
         stmt = select(SupportKnowledge).where(
             and_(
                 SupportKnowledge.deleted_at == None,
                 SupportKnowledge.is_active == True,
+                or_(SupportKnowledge.tenant_id == tid, SupportKnowledge.tenant_id == "default"),
                 or_(
-                    SupportKnowledge.question.ilike(f"%{query}%"),
-                    SupportKnowledge.answer.ilike(f"%{query}%")
+                    func.lower(SupportKnowledge.question).ilike(f"%{query_low}%"),
+                    func.lower(SupportKnowledge.answer).ilike(f"%{query_low}%")
                 )
             )
-        ).limit(limit)
+        ).order_by(SupportKnowledge.priority.desc()).limit(limit)
         
         res = await db_session.execute(stmt)
         items = res.scalars().all()
+        
+        # 2. Key-word fallback (Better than empty result)
+        if not items and len(query.split()) > 1:
+            # Extract meaningful keywords (length > 3)
+            kws = [w.strip().lower() for w in query.split() if len(w.strip()) > 3]
+            if kws:
+                # Search for entries matching ANY of the keywords in either question or answer
+                stmt_fallback = select(SupportKnowledge).where(
+                    and_(
+                        SupportKnowledge.deleted_at == None,
+                        SupportKnowledge.is_active == True,
+                        or_(SupportKnowledge.tenant_id == tid, SupportKnowledge.tenant_id == "default"),
+                        or_(
+                            *[func.lower(SupportKnowledge.question).ilike(f"%{kw}%") for kw in kws],
+                            *[func.lower(SupportKnowledge.answer).ilike(f"%{kw}%") for kw in kws]
+                        )
+                    )
+                ).order_by(SupportKnowledge.priority.desc()).limit(limit)
+                res_fallback = await db_session.execute(stmt_fallback)
+                items = res_fallback.scalars().all()
+
         return [
             {"id": str(i.id), "question": i.question, "answer": i.answer, "match_score": 0.5} 
             for i in items

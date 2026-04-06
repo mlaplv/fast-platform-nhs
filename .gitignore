@@ -34,6 +34,7 @@ uv.lock
 poetry.lock
 yarn.lock
 text.key
+check_gemini.sh
 
 # 3. Dữ liệu sinh ra khi dev
 backups/
