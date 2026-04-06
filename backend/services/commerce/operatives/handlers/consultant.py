@@ -54,9 +54,58 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             return False
 
     async def _handle_internal(self, ctx: SupportContext) -> bool:
+        # [ELITE V2.2] Layer 0.5: Direct Heuristic (Emergency Bypass)
+        # 100% Reliability for critical address/location queries.
+        msg_norm = ctx.request.message.lower().strip()
+        if any(kw in msg_norm for kw in ["địa chỉ", "ở đâu", "chi nhánh", "cửa hàng"]):
+            # Perform a targeted keyword search for address
+            from backend.database.models.system import SupportKnowledge
+            stmt = select(SupportKnowledge).where(
+                and_(
+                    SupportKnowledge.deleted_at == None,
+                    SupportKnowledge.is_active == True,
+                    SupportKnowledge.question.ilike("%địa chỉ%")
+                )
+            ).limit(1)
+            res = await ctx.db.execute(stmt)
+            item = res.scalar_one_or_none()
+            if item:
+                logger.info(f"📍 [Consultant Heuristic] Direct Address Match: {msg_norm}")
+                ctx.replies.append(item.answer)
+                ctx.intent = SupportIntent.POLICY_QUERY
+                return True
+
+        # [ELITE V2.2] Layer 0: Static Fast-Path (The Root Solution)
+        # Bypassing AI entirely for high-confidence knowledge matches to eliminate latency and quota issues.
+        from backend.database.repositories import SupportKnowledgeRepository
+        from backend.services.commerce.support_knowledge import SupportKnowledgeService
+        
+        # R112: Isolated Resource Lifecycle (2GB RAM Guard)
+        repo: SupportKnowledgeRepository = SupportKnowledgeRepository(session=ctx.db)
+        kb_service: SupportKnowledgeService = SupportKnowledgeService(repo=repo)
+        
+        # 1. Semantic Match check (Adaptive threshold: 0.85 for short queries)
+        is_short_query = len(ctx.request.message.strip()) < 25
+        threshold = 0.85 if is_short_query else 0.92
+        
+        # Returns list of matched knowledge dicts with explicit structure
+        raw_matches: list[dict[str, object]] = await kb_service.search_relevant_knowledge_raw(ctx.db, ctx.request.message, limit=1)
+        
+        if raw_matches:
+            match: dict[str, object] = raw_matches[0]
+            score: float = float(match.get("match_score", 0))
+            if score > threshold:
+                logger.info(f"✨ [L0 Fast-Path] Short-circuiting (Score: {score} / Req: {threshold})")
+                ctx.replies.append(str(match.get("answer", "")))
+                ctx.intent = SupportIntent.PRODUCT_QUERY
+                return True
+            else:
+                logger.debug(f"⚠️ [Check Fail] Semantic match score ({score}) below threshold ({threshold})")
+        else:
+            logger.debug(f"🔍 [L0 Fast-Path] No semantic match found for: '{ctx.request.message}'")
+
         # Assemble the specialist directive with current context
-        # We inject lead status to ensure Helen doesn't 'restart' the conversation if data exists
-        lead_alert = ""
+        lead_alert: str = ""
         if ctx.lead_data:
             if ctx.lead_data.customer_phone and ctx.lead_data.customer_address:
                 lead_alert = "\n[SYSTEM ALERT: Khách đã để lại SĐT và Địa chỉ. Hãy xác nhận và chốt đơn ngay!]\n"
@@ -93,23 +142,23 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
 
             # 🛠️ TOOL LAYER 2: Lấy chi tiết chủ đề tri thức (Fetch on-demand)
             @agent.tool
-            async def fetch_topic_details(ctx: RunContext[ConsultantDeps], topic_id: str) -> str:
+            async def fetch_topic_details(ctx_tool: RunContext[ConsultantDeps], topic_id: str) -> str:
                 """Dùng tool này khi bạn thấy ID trong Layer 1 và cần biết chi tiết câu trả lời chuyên sâu."""
                 from backend.database.repositories import SupportKnowledgeRepository
                 from backend.services.commerce.support_knowledge import SupportKnowledgeService
-                repo = SupportKnowledgeRepository(session=ctx.deps.db)
-                service = SupportKnowledgeService(repo=repo)
-                return await service.fetch_topic_details(ctx.deps.db, topic_id)
+                repo_tool = SupportKnowledgeRepository(session=ctx_tool.deps.db)
+                service_tool = SupportKnowledgeService(repo=repo_tool)
+                return await service_tool.fetch_topic_details(ctx_tool.deps.db, topic_id)
 
             # 🛠️ TOOL LAYER 3: Tìm kiếm mờ (Semantic Search)
             @agent.tool
-            async def search_knowledge_base(ctx: RunContext[ConsultantDeps], query: str) -> str:
+            async def search_knowledge_base(ctx_tool: RunContext[ConsultantDeps], query: str) -> str:
                 """Tra cứu kho tri thức của SmartShop khi không thấy ID phù hợp trong Layer 1."""
                 from backend.database.repositories import SupportKnowledgeRepository
                 from backend.services.commerce.support_knowledge import SupportKnowledgeService
-                repo = SupportKnowledgeRepository(session=ctx.deps.db)
-                service = SupportKnowledgeService(repo=repo)
-                return await service.search_relevant_knowledge(ctx.deps.db, query)
+                repo_tool = SupportKnowledgeRepository(session=ctx_tool.deps.db)
+                service_tool = SupportKnowledgeService(repo=repo_tool)
+                return await service_tool.search_relevant_knowledge(ctx_tool.deps.db, query)
 
             deps = ConsultantDeps(db=ctx.db)
             
@@ -125,26 +174,19 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                 system_prompt=masked_prompt,
                 safety_none=True
             )
-            # [ELITE V2.2] Robust Result Extraction: Standardized with XoHi V89.1
-            # Handles AgentRunResult, Data wrappers, or Direct Schema Output
-            raw = res.data if hasattr(res, "data") else (res.output if hasattr(res, "output") else res)
+            # [ELITE V2.2] Standardized Result Extraction (Trust the Bridge)
+            res_data = cast(Optional[ConsultantResponse], res)
             
-            # Final Safety: If trinity_bridge returned the raw AgentRunResult or similar wrapper, 
-            # we MUST extract its data if it doesn't match our schema yet.
-            if hasattr(raw, 'data') and not hasattr(raw, 'reply'):
-                raw = getattr(raw, 'data')
-                
-            data = cast(ConsultantResponse, raw)
-            
-            if data and data.reply:
-                ctx.replies.append(data.reply)
+            if res_data and hasattr(res_data, 'reply') and res_data.reply:
+                ctx.replies.append(res_data.reply)
                 # Ensure intent matches SupportIntent enum values safely
                 valid_intents = {i.value for i in SupportIntent}
-                ctx.intent = SupportIntent(data.intent) if data.intent in valid_intents else SupportIntent.PRODUCT_QUERY
-                ctx.ui_component = data.ui_component
+                ctx.intent = SupportIntent(res_data.intent) if res_data.intent in valid_intents else SupportIntent.PRODUCT_QUERY
+                ctx.ui_component = res_data.ui_component
                 return True 
             
-            return False # Fallback if AI output is invalid
+            logger.warning(f"⚠️ [ConsultantHandler] AI returned invalid data: {type(res)}")
+            return False 
             
         except Exception as e:
             logger.error(f"[ConsultantHandler] Sweep Failure: {e}")

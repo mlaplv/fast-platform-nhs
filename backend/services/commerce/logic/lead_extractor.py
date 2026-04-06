@@ -125,17 +125,13 @@ class LeadExtractor:
             # 1. AI EXTRACTION (TrinityBridge Fast Tier)
             result = await trinity_bridge.run(_lead_extraction_agent, message, role="fast", session_id=session_id)
             
-            # Elite V2.2: Dual-Mode Compatibility (Object vs Dict Safety)
-            raw_data = getattr(result, "data", result)
-            if not isinstance(raw_data, ExtractedLead) and hasattr(result, "output"):
-                raw_data = result.output
-            
-            if isinstance(raw_data, dict):
-                lead = ExtractedLead.model_validate(raw_data)
-            elif isinstance(raw_data, ExtractedLead):
-                lead = raw_data
+            # Elite V2.2: Standardized Result Extraction (Trust the Bridge)
+            if isinstance(result, dict):
+                lead = ExtractedLead.model_validate(result)
+            elif isinstance(result, ExtractedLead):
+                lead = result
             else:
-                logger.warning(f"[LeadExtractor] Unknown result type: {type(raw_data)}")
+                logger.warning(f"[LeadExtractor] Unknown result type: {type(result)}")
                 return None
 
             # 2. DATA HYGIENE

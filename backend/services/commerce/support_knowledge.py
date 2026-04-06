@@ -211,20 +211,53 @@ class SupportKnowledgeService:
         """
         RAG Core: Hybrid Semantic Search (Elite V2.2 Protocol).
         Uses KnowledgeVectorService (pgvector) to find relevant entries.
+        Fallback to Keyword Search if vector fails.
         """
-        from backend.services.commerce.knowledge_vector import knowledge_vector_service
-        
-        results = await knowledge_vector_service.search_semantic(db_session, query, limit=limit)
+        results = await self.search_relevant_knowledge_raw(db_session, query, limit=limit)
+        source = "VECTOR"
         
         if not results:
-            # Fallback to simple keyword search if vector search fails or returns nothing
-            logger.info(f"[RAG] Vector search empty for: {query}. Falling back to keywords.")
-            return "" # Or implement a simple keyword fallback here if desired
+            # [ELITE V2.2] Layer 4: Keyword Search Fallback (Reliability Layer)
+            logger.info(f"🔍 [KB-Search] Vector Search returned empty. Falling back to Keyword Search for: {query}")
+            results = await self.search_relevant_knowledge_keyword(db_session, query, limit=limit)
+            source = "KEYWORD"
             
-        context = "[THÔNG TIN TRÍ THỨC HỆ THỐNG PHÊ DUYỆT (VECTOR)]\n"
+        if not results:
+            return ""
+            
+        context = f"[THÔNG TIN TRÍ THỨC HỆ THỐNG PHÊ DUYỆT ({source})]\n"
         for r in results:
-            context += f"Q: {r['question']}\nA: {r['answer']}\nScore: {r['match_score']}\n---\n"
+            context += f"Q: {r['question']}\nA: {r['answer']}\n---\n"
         return context
+
+    async def search_relevant_knowledge_keyword(self, db_session: AsyncSession, query: str, limit: int = 5) -> list[dict]:
+        """Elite V2.2: Keyword-based resilience layer."""
+        from backend.database.models.system import SupportKnowledge
+        
+        # Standard keyword search for high-confidence fallback
+        stmt = select(SupportKnowledge).where(
+            and_(
+                SupportKnowledge.deleted_at == None,
+                SupportKnowledge.is_active == True,
+                or_(
+                    SupportKnowledge.question.ilike(f"%{query}%"),
+                    SupportKnowledge.answer.ilike(f"%{query}%")
+                )
+            )
+        ).limit(limit)
+        
+        res = await db_session.execute(stmt)
+        items = res.scalars().all()
+        return [
+            {"id": str(i.id), "question": i.question, "answer": i.answer, "match_score": 0.5} 
+            for i in items
+        ]
+
+    async def search_relevant_knowledge_raw(self, db_session: AsyncSession, query: str, limit: int = 5) -> list[dict]:
+        """Elite V2.2: Semantic Search returning raw dicts for L0 Short-circuiting."""
+        from backend.services.commerce.knowledge_vector import knowledge_vector_service
+        results = await knowledge_vector_service.search_semantic(db_session, query, limit=limit)
+        return results or []
 
     async def reindex_all_knowledge(self, db_session: AsyncSession) -> SuccessResponse:
         """

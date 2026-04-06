@@ -1,79 +1,75 @@
-> [!IMPORTANT]
-> **TÀI LIỆU TỐI QUAN TRỌNG (CRITICAL PROTOCOL)**
-> Đây là giao thức tương tác (Interaction Protocol) cốt lõi của Helen Support Agent (Elite V2.2).
-> **CẤM XÓA** hoặc thay đổi cấu trúc các Zone khi chưa được sự đồng ý của Sếp/Kiến trúc sư trưởng.
+# HELEN INTERACTION PROTOCOL (ELITE V2.2)
 
-# Helen Support Agent: Interaction Protocol (Interaction Protocol - IP)
-Elite V2.2 Standards - C.O.R.E Engine Specialist Hierarchy
-
-Dưới đây là kiến trúc vận hành thông minh và các tầng tương tác (Zones) được điều phối bởi `SupportRouter`.
-
-## 🏗️ Kiến trúc Kỹ thuật (Technical Architecture)
-
-Sơ đồ luồng xử lý của C.O.R.E Engine (Specialist Pipeline):
-
-```mermaid
-graph TD
-    A[User Message] --> B{Zone 0: Guardrail}
-    B -- Blocked/Spam --> C[Rejection Reply]
-    B -- Safe --> D{Zone 3: Order}
-    D -- Buy/Status Hit --> E[Lead Extraction & Closure]
-    D -- No Intent --> F{Zone 1: Greeting}
-    F -- Pure Greeting --> G[Early Exit & Rapport]
-    F -- Knowledge Needed --> H{Zone 2: Consultant}
-    H -- RAG Memory --> I[Helen Brain Knowledge]
-    I --> K[FOMO & Social Proof Injection]
-    K --> J[Final Composed Reply]
-    E --> J
-    G --> J
-    C --> J
-```
+> **CHỈ THỊ GỐC RỄ:** Helen là Hệ thống Đại lý Agentic AI cho SmartShop 2026. Mọi tương tác phải tuân thủ cấu trúc 4 tầng trí nhớ để tối ưu Latency và Quota Gemini.
 
 ---
 
-## 🧠 Kiến trúc bộ nhớ 3 lớp (Three-layer Memory Architecture)
-Elite V2.2: Zero-leak, On-demand retrieval protocol.
+## 🏗️ 4-LAYER MEMORY ARCHITECTURE
 
-| Tầng Bộ Nhớ | Loại Dữ Liệu | Cơ Chế Truy Xuất | Mục Tiêu |
-| :--- | :--- | :--- | :--- |
-| **Lớp 1: Index** | Mục lục & Pointers | Luôn nạp (Always-on Context) | Định hướng nhanh tri thức hệ thống |
-| **Lớp 2: Topic Files** | Dữ liệu chuyên đề | Fetch on-demand (Tool-call) | Chuyên sâu vào một chủ đề cụ thể |
-| **Lớp 3: Raw Data** | Dữ liệu thô/RAG | Vector Search (Hybrid) | Tìm kiếm mờ trong kho dữ liệu khổng lồ |
-| **Lớp 4: Presence** | Social Proof (Đang xem) | Real-time Redis SCAN | Tạo sức ép mua hàng & Tin cậy |
+Hệ thống điều phối dữ liệu dựa trên độ phức tạp của câu hỏi để quyết định lúc nào dùng AI, lúc nào không.
 
----
+### 🔹 Layer 0: Neural Reflex (Ngắt mạch sớm)
+- **Cơ chế:** Database Semantic/Exact Match (Hỗ trợ bởi `pgvector`).
+- **Lúc nào dùng:** Các câu hỏi FAQ tĩnh (Địa chỉ, Hotline, Giá, Giờ làm việc, Chính sách).
+- **Hành động:** Trả lời NGAY từ Database. Quota AI = 0. Latency < 100ms.
+- **Tiêu chuẩn:** `match_score > 0.92`.
 
-## 🧭 Các tầng tương tác (Interaction Zones)
+### 🔹 Layer 1: Topic Indexing (Định hướng)
+- **Cơ chế:** Nạp danh sách ID/Câu hỏi (`knowledge_index`) vào Context AI.
+- **Lúc nào dùng:** Khách hỏi chung chung hoặc hỏi nhiều vấn đề cùng lúc.
+- **Hành động:** AI đóng vai trò "Lễ tân", chỉ dẫn khách hàng vào các chủ đề chi tiết.
 
-### 🛡️ Zone 0: Guardrail (Specialist: GuardrailHandler)
-- **Nhiệm vụ**: Đảm bảo an toàn hệ thống và văn hóa giao tiếp.
-- **Ghi chú vận hành**: 
-    - Sử dụng Heuristics và Regex để chặn ngay lập tức (<2ms).
-    - Bảo vệ Helen khỏi Prompt Injection (DAN, Ignore instructions).
+### 🔹 Layer 2: Deep Brain (Tổng hợp & Tư vấn)
+- **Cơ chế:** Trinity Bridge (Gemini 1.5 Stable).
+- **Lúc nào dùng:** Tư vấn bệnh lý (ôi nách/chân), so sánh sản phẩm, giải quyết khiếu nại phức tạp.
+- **Hành động:** AI thực hiện RAG (Retrieval-Augmented Generation) để tổng hợp câu trả lời chuyên nghiệp.
 
-### 🤝 Zone 1: Greeting (Specialist: GreetingHandler)
-- **Nhiệm vụ**: Chào hỏi, xây dựng Rapport và định hướng cảm xúc.
-- **Ghi chú vận hành**: 
-    - Ưu tiên cá nhân hóa theo **Neural DNA** (Khách VIP, Khách cũ).
-    - Sử dụng **Early Exit** để trả lời câu chào trong <200ms mà không cần gọi Deep Brain.
-
-### 🧬 Zone 2: Consultant (Specialist: ConsultantHandler)
-- **Nhiệm vụ**: **TRẠM TRI THỨC (HELEN BRAIN)**. Tư vấn bệnh lý và sản phẩm.
-- **Ghi chú vận hành**: 
-    - Luôn đối chiếu với **Layer 1 Knowledge Map** trước khi trả lời.
-    - **Elite FOMO**: Sử dụng dữ liệu tồn kho thực tế và số người đang xem để chốt Combo 3.
-
-### 🎯 Zone 3: Order (Specialist: OrderHandler)
-- **Nhiệm vụ**: Chốt đơn và Truy xuất thông tin đơn hàng.
-- **Ghi chú vận hành**: 
-    - **Action-First Strategy**: Nếu phát hiện đủ SĐT/Địa chỉ, dừng mọi tư vấn để xác nhận đơn ngay. Nếu chưa tạo được đơn hàng ngay lập tức, phải gửi phản hồi xác nhận thông tin đã nhận (`[z3-lead]`) để chốt đơn.
-    - Truy xuất Real-time tình trạng vận chuyển trong 1-5 ngày.
+### 🔹 Layer 3: Conversion Specialist (Chốt đơn)
+- **Cơ chế:** Order Handler (Lead Extraction).
+- **Lúc nào dùng:** Khi phát hiện SĐT, Địa chỉ hoặc ý định mua hàng rõ rệt.
+- **Hành động:** Trích xuất Lead, đẩy vào CRM và xác nhận đơn hàng với phong thái Elite.
 
 ---
 
-## 📝 Ghi chú về Ép kiểu & Bảo mật (Elite V2.2)
+## 🎖️ SPECIALIST ZONES (Tactical Roles)
 
-1. **Static Typing**: CẤM dùng `any`. Mọi dữ liệu luân chuyển giữa các Zone phải qua `SupportContext`.
-2. **Privacy**: CẤM nạp SĐT/Địa chỉ khách hàng vào Context của LLM vùng mở. Chỉ Specialist Zone 3 được phép xử lý dữ liệu nhạy cảm.
-3. **Zero-Hydration**: Không lưu giữ trạng thái thừa thãi. Mọi phiên làm việc phải được Hydrate từ DB trên mỗi Request.
-4. **Debug Protocol**: Mọi phản hồi chính thức trong phiên làm việc phải được gắn mã Zone (`[z0], [z1], [z2], [z3]`) để theo dõi luồng logic của Helen. [fallback]: Nếu toàn bộ 4 Zone trên đều rớt, Helen sẽ báo câu fallback có nhãn để Sếp biết ngay là do lỗi hệ thống.
+Hệ thống Specialist Pipeline được chia thành các vùng nhiệm vụ đặc thù để tối ưu hóa logic xử lý:
+
+### 🛡️ Zone 0: Guardrail (Vòng bảo vệ)
+- **Nhiệm vụ:** Chặn Prompt Injection, lọc ngôn từ thô tục, từ chối các vấn đề ngoài phạm vi (Politics, Competitors).
+- **Handler:** `GuardrailHandler`.
+- **Đặc điểm:** Tốc độ phản ứng cực nhanh (Heuristics).
+
+### 🌸 Zone 1: Greeting (Lễ tân)
+- **Nhiệm vụ:** Chào hỏi, xây dựng Persona "Helen" thân thiện, sử dụng Social Proof (Active visitors) để tạo thiện cảm ban đầu.
+- **Handler:** `GreetingHandler`.
+
+### 🧬 Zone 2: Consultant (Chuyên gia)
+- **Nhiệm vụ:** Tư vấn chuyên sâu về bệnh lý (hôi nách/chân), giải thích cơ chế sản phẩm dựa trên Knowledge Base.
+- **Handler:** `ConsultantHandler`.
+- **Công cụ:** Layer 0-2 Memory.
+
+### 💰 Zone 3: Order (Sát thủ chốt đơn)
+- **Nhiệm vụ:** Phát hiện ý định mua hàng, trích xuất SĐT/Địa chỉ (Lead), tự động tạo đơn hàng nháp hoặc chốt đơn chính thức.
+- **Handler:** `OrderHandler`.
+- **Công cụ:** `LeadExtractor`.
+
+### ⚙️ Zone 4: Management (Quản lý)
+- **Nhiệm vụ:** Xử lý các yêu cầu hệ thống, dọn dẹp dữ liệu hoặc các tác vụ background khác.
+- **Handler:** `ManagementHandler`.
+
+---
+
+## 🚫 NGUYÊN TẮC THIẾT QUÂN LUẬT (Coding Standards)
+
+1. **CẤM Hardcode Model:** Luôn lấy từ `voice_profiles` trong DB.
+2. **Key Rotation:** Bắt buộc dùng `TrinityBridge` để xoay vòng 8 key, không được dùng Key đơn lẻ.
+3. **Data Extraction:** Tuyệt đối không dùng `hasattr` vá víu. Dùng middleware `TrinityBridge.run` để nhận Schema sạch 100%.
+4. **RAM Guard:** Duy trì giới hạn 2GB RAM cho VPS bằng cách dùng Lazy Import cho các thư viện AI nặng.
+
+---
+
+## 🏆 KẾT QUẢ MONG ĐỢI
+- **Tốc độ:** Câu hỏi đơn giản phản hồi tức thì.
+- **Bền bỉ:** Không bao giờ gục ngã vì lỗi 429 Quota.
+- **Chuyên nghiệp:** Phong thái Admin-style, lì lợm và chuẩn xác.

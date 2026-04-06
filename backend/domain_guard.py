@@ -32,49 +32,64 @@ class DomainGuardMiddleware:
             await self.app(scope, receive, send)
             return
 
-        # 1. Trích xuất Host/Origin với ép kiểu tường minh 100%
-        headers: Dict[str, str] = {k.decode("utf-8").lower(): v.decode("utf-8") for k, v in scope.get("headers", [])}
-        host: str = headers.get("host", "").split(":")[0]  # Bỏ port nếu có
-        x_forwarded_host: str = headers.get("x-forwarded-host", "").split(":")[0]
-
-        current_host: str = x_forwarded_host or host
-
-        # 2. Bỏ qua kiểm tra nếu là môi trường Local hoặc Mạng nội bộ (Private Network)
-        is_internal: bool = False
         try:
-            ip_obj = ipaddress.ip_address(current_host)
-            is_internal = ip_obj.is_private or ip_obj.is_loopback
-        except ValueError:
-            # Nếu current_host là tên (như 'api' hoặc 'localhost')
-            is_internal = current_host in ["localhost", "127.0.0.1", "api"]
+            # 1. Trích xuất Host/Origin với ép kiểu tường minh 100% (Safe decoding R51)
+            headers: Dict[str, str] = {
+                k.decode("utf-8", errors="replace").lower(): v.decode("utf-8", errors="replace") 
+                for k, v in scope.get("headers", [])
+            }
+            host: str = headers.get("host", "").split(":")[0]  # Bỏ port nếu có
+            x_forwarded_host: str = headers.get("x-forwarded-host", "").split(":")[0]
 
-        if is_internal or self.debug:
-            await self.app(scope, receive, send)
-            return
+            current_host: str = x_forwarded_host or host
 
-        path: str = scope["path"]
-        # CNS V2.2: WebSocket scopes do not have a 'method' attribute. Get safely.
-        method: str | None = scope.get("method")
+            # 2. Bỏ qua kiểm tra nếu là môi trường Local hoặc Mạng nội bộ (Private Network)
+            is_internal: bool = False
+            try:
+                ip_obj = ipaddress.ip_address(current_host)
+                is_internal = ip_obj.is_private or ip_obj.is_loopback
+            except ValueError:
+                # Nếu current_host là tên (như 'api' hoặc 'localhost')
+                is_internal = current_host in ["localhost", "127.0.0.1", "api"]
 
-        # 3. Logic chặn (Elite Blocking Rules) - Rule R00 compliance
-        is_admin_domain: bool = current_host == self.admin_url or current_host == self.api_url
+            if is_internal or self.debug:
+                await self.app(scope, receive, send)
+                return
 
-        # Quy tắc 1: Nếu gọi vào Admin Zone mà không phải từ Admin Domain -> CHẶN
-        if any(path.startswith(prefix) for prefix in ADMIN_ONLY_PREFIXES):
-            if not is_admin_domain:
-                msg: str = f"⛔ DomainGuard: Access Denied to '{path}' from unauthorized host '{current_host}'"
-                logger.warning(msg)
-                raise PermissionDeniedException(msg)
+            path: str = scope["path"]
+            # CNS V2.2: WebSocket scopes do not have a 'method' attribute. Get safely.
+            method: str | None = scope.get("method")
 
-        # Quy tắc 2: Đối với các tài nguyên chung (Sản phẩm, Bài viết, Danh mục):
-        # Chỉ Admin Domain mới được phép Mutation (POST, PATCH, PUT, DELETE)
-        if (
-            method in MUTATION_RESTRICTED_METHODS 
-            and any(path.startswith(prefix) for prefix in SHARED_RESOURCE_PREFIXES)
-        ):
-            if not is_admin_domain:
-                msg: str = f"⛔ DomainGuard: Mutation restricted on '{path}' for host '{current_host}'"
-                logger.warning(msg)
-                raise PermissionDeniedException(msg)
+            # 3. Logic chặn (Elite Blocking Rules) - Rule R00 compliance
+            is_admin_domain: bool = current_host == self.admin_url or current_host == self.api_url
+            
+            # [DIAGNOSTIC] Whitelist /ws/stt temporarily to find truth
+            if path == "/ws/stt":
+                await self.app(scope, receive, send)
+                return
+
+            # Quy tắc 1: Nếu gọi vào Admin Zone mà không phải từ Admin Domain -> CHẶN
+            if any(path.startswith(prefix) for prefix in ADMIN_ONLY_PREFIXES):
+                if not is_admin_domain:
+                    msg: str = f"⛔ DomainGuard: Access Denied to '{path}' from unauthorized host '{current_host}' (Expected={self.admin_url})"
+                    logger.warning(msg)
+                    raise PermissionDeniedException(msg)
+
+            # Quy tắc 2: Đối với các tài nguyên chung (Sản phẩm, Bài viết, Danh mục):
+            # Chỉ Admin Domain mới được phép Mutation (POST, PATCH, PUT, DELETE)
+            if (
+                method in MUTATION_RESTRICTED_METHODS 
+                and any(path.startswith(prefix) for prefix in SHARED_RESOURCE_PREFIXES)
+            ):
+                if not is_admin_domain:
+                    msg: str = f"⛔ DomainGuard: Mutation restricted on '{path}' for host '{current_host}'"
+                    logger.warning(msg)
+                    raise PermissionDeniedException(msg)
+        except PermissionDeniedException:
+            raise
+        except Exception as e:
+            logger.error(f"🚨 [DomainGuard-Critical] Middleware failure: {e}")
+            # Continue to app if unexpected internal error occurs to avoid 502
+            pass
 
         await self.app(scope, receive, send)

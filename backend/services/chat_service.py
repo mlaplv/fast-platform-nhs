@@ -28,8 +28,15 @@ class CachedChatMsg(TypedDict):
     created_at: str
 
 class ChatService:
-    @staticmethod
+    # CNS V86.11: Persistence Noise-Gate Patterns
+    NOISE_PATTERNS = {
+        "mở index", "mở trang quản trị", "mở brain", "mở inbox", "manage skills", 
+        "mở chiến dịch", "mở tò mò", "mở tri thức", "mở thống kê"
+    }
+
+    @classmethod
     async def persist_message(
+        cls,
         db_session: AsyncSession,
         session_id: str,
         user_id: Optional[str],
@@ -78,6 +85,26 @@ class ChatService:
             should_persist = True
             if is_assistant and not save_ai:
                 should_persist = False
+
+        # ═══ CNS V86.11: ROOT NOISE FILTERING (DB Bloat Prevention) ═══
+        # Rule: Do not persist navigation triggers or procedural bot confirmations to DB.
+        # If content is a dict (JSONB), extract the text part.
+        text_content = content.get("text", "") if isinstance(content, dict) else content
+        clean_content = str(text_content).lower().strip()
+        
+        is_noise = False
+        if is_user and clean_content in cls.NOISE_PATTERNS:
+            is_noise = True
+        elif is_assistant and ("em mở" in clean_content or "dạ sếp" in clean_content):
+            # Targeted bot confirmations for navigation
+            noise_targets = ["trang quản trị", "brain", "index", "inbox", "tri thức", "chiến dịch"]
+            if any(x in clean_content for x in noise_targets):
+                is_noise = True
+            
+        if is_noise:
+            should_persist = False
+            preview = f"'{content[:30]}...'" if isinstance(content, str) else "structured data"
+            logger.debug(f"[ChatService] Noise-Gate: Blocked persistence for {preview}")
 
         if should_persist:
             try:

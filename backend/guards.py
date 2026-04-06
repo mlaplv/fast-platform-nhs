@@ -26,7 +26,14 @@ def PermissionGuard(permissions: Union[PermissionEnum, str, List[Union[Permissio
         user = connection.scope.get("state", {}).get("user")
         
         if not user:
+            logger.warning(f"❌ [Guard] No user state in scope for {connection.url.path}")
             raise NotAuthorizedException("Session Expired or Identity Not Found")
+
+        # ═══ [Elite V3] SUPER_ADMIN BYPASS ═══
+        if "SUPER_ADMIN" in user.get("roles", []):
+            if connection.scope["type"] == "websocket":
+                logger.info(f"👑 [Guard-WS] SUPER_ADMIN detected. Bypassing all checks for {connection.url.path}")
+            return
 
         # [Elite V3] Stateless Revocation Check (Chỉ áp dụng cho Write/Mutation)
         if connection.method in ("POST", "PUT", "PATCH", "DELETE"):
@@ -58,6 +65,8 @@ def PermissionGuard(permissions: Union[PermissionEnum, str, List[Union[Permissio
         # PBAC Evaluation Siêu tốc
         result = PolicyEvaluator.evaluate(context)
         if not result.allowed:
-            raise PermissionDeniedException(f"Security Clearance Level Insufficient: {result.reason}")
+            msg = f"❌ Security Clearance Level Insufficient: {result.reason} (User Roles={context.user_roles}, User Perms={context.user_perms}, Required={context.required_perms})"
+            logger.warning(f"[Guard] {msg}")
+            raise PermissionDeniedException(msg)
 
     return guard

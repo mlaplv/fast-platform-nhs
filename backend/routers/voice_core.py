@@ -14,13 +14,30 @@ from backend.guards import PermissionGuard
 
 logger = logging.getLogger("api-gateway")
 
-@websocket("/ws/stt", guards=[PermissionGuard(PermissionEnum.SYS_ADMIN)])
+@websocket("/ws/stt")
 async def stt_websocket(socket: WebSocket) -> None:
     """WebSocket endpoint: receive audio chunks, transcribe via Groq Whisper."""
-    await socket.accept()
+    # ═══ MANUAL PBAC (Rule R00 Bypass Blocker) ═══
+    # We delay accept() until we verify the user manually to see exactly who is connecting.
+    user = socket.scope.get("state", {}).get("user")
+    
+    if not user:
+        logger.warning(f"🚨 [STT] Handshake REJECTED: No user state in scope. (Query={socket.scope.get('query_string')})")
+        # Send 403 manual closing if possible, but Litestar will handle it if we raise
+        raise NotAuthorizedException("Vui lòng đăng nhập lại (VUI-Missing-Identity)")
 
-    session_id = socket.query_params.get("session_id", str(uuid.uuid4()))
-    logger.info(f"[STT] Client connected (session={session_id[:8]})")
+    is_super = "SUPER_ADMIN" in user.get("roles", [])
+    has_voice = "ai:config" in user.get("perms", []) or "system:all" in user.get("perms", [])
+    
+    logger.info(f"🎤 [STT] Handshake Attempt: user={user.get('email')} super={is_super} voice={has_voice}")
+
+    if not (is_super or has_voice):
+        logger.warning(f"⛔ [STT] Handshake REJECTED: Insufficient permissions for {user.get('email')}")
+        raise PermissionDeniedException("Security Clearance Level Insufficient for Voice Operations")
+
+    await socket.accept()
+    session_id = socket.query_params.get("session_id") or str(uuid.uuid4())
+    logger.info(f"✅ [STT] Connection Established: session={session_id[:8]} user={user.get('email')}")
 
     audio_buffer = bytearray()
     is_active = True

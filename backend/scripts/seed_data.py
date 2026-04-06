@@ -189,7 +189,7 @@ ARTICLE_TITLES = [
 SUPPORT_KNOWLEDGE_DEFS = [
     {
         "category": "GENERAL",
-        "question": "Địa chỉ, số điện thoại, sđt, sdt",
+        "question": "Địa chỉ nhà thuốc, nhà thuốc ở đâu, địa điểm, sđt, sdt, liên hệ",
         "answer": "Địa chỉ thăm khám: 33 Ngô Thị Nhậm, Trung Sơn, Tam Điệp, Ninh Bình\nĐiện thoại: 097 8785 079\nWebsite: nhathuochongson.com",
         "priority": 10
     },

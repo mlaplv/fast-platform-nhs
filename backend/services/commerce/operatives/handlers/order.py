@@ -18,13 +18,13 @@ class OrderHandler(BaseHandler):
         """ZONE 3: Order Closing. Heuristic guard before LLM extraction."""
         msg = ctx.request.message.lower().strip()
         
-        # 🚀 Elite V2.2: Heuristic Pre-filter
-        # Skip heavy LLM extraction if the message is clearly not an order intent.
-        potential_order = any(kw in msg for kw in [
-            "mua", "đặt", "lấy", "ship", "giao", "đơn", "check", "kiểm tra",
-            "cho tôi", "cho mình", "1 lọ", "2 lọ", "3 lọ", "combo", "cần", "muốn",
-            "địa chỉ", "số điện thoại", "sdt", "sđt", "tên", "nhận hàng"
-        ])
+        # 🚀 Elite V2.2: Tighten Heuristics (Elite Discipline)
+        # We REMOVE noisy keywords like 'address' or 'name' which should trigger Consultant/L0.
+        order_keywords = [
+            "mua", "đặt", "lấy", "ship", "giao", "lên đơn", "check đơn",
+            "1 lọ", "2 lọ", "3 lọ", "combo", "đặt hàng", "mua ngay"
+        ]
+        potential_order = any(kw in msg for kw in order_keywords)
         has_digits = any(char.isdigit() for char in msg)
         # Detect clear order signals: message has both digits (phone) AND address-like patterns
         has_address_signal = any(kw in msg for kw in ["đường", "phố", "quận", "huyện", "phường", "xã", "tỉnh", "tp", "thành phố", "ngõ", "ngách", "/"])

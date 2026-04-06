@@ -1,6 +1,9 @@
 import re
+import logging
 from backend.services.commerce.operatives.handlers.base import BaseHandler, SupportContext
 from backend.schemas.support import SupportIntent
+
+logger = logging.getLogger("api-gateway")
 
 class GuardrailHandler(BaseHandler):
     """
@@ -22,8 +25,8 @@ class GuardrailHandler(BaseHandler):
 
     # Elite V2.2: Advanced Protection (Regex-based)
     INSULT_PATTERNS = [
-        r"(đm|đcm|vcl|đéo|ngu|cút|điên|khùng|mất dạy|láo|lừa đảo|bịp)",
-        r"(đầu buồi|cặc|lồn|vú|đít|đụ|chịch)"
+        r"\b(đm|đcm|vcl|đéo|ngu|cút|điên|khùng|mất dạy|láo|lừa đảo|bịp)\b",
+        r"\b(đầu buồi|cặc|lồn|vú|đít|đụ|chịch)\b"
     ]
     
     INJECTION_PATTERNS = [

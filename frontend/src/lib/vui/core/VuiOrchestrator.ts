@@ -48,6 +48,14 @@ class VuiOrchestrator {
     this.activeTimers.clear();
   }
 
+  private getCookie(name: string): string {
+    if (typeof document === 'undefined') return "";
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(';').shift() || "";
+    return "";
+  }
+
   constructor() {
     if (typeof window === 'undefined' || !isAdminDomain()) return;
 
@@ -84,7 +92,9 @@ class VuiOrchestrator {
     vuiState.setActive(true);
     getBot().setVuiActive(true);
     
-    if (autoBypassAudio) this.audio?.abort();
+    if (autoBypassAudio) {
+      try { this.audio?.abort(); } catch(e) { console.debug("[VUI] Audio abort suppressed:", e); }
+    }
     this.audio?.reset();
     
     this.hasSpoken = false;
@@ -97,14 +107,27 @@ class VuiOrchestrator {
     vuiState.setPhase("listening");
 
     try {
-      await this.audio!.unlock();
-      this.audio!.playSystemSound('start');
+      try {
+        await this.audio!.unlock();
+        this.audio!.playSystemSound('start');
+      } catch(e) {
+        console.warn("[VUI] Audio unlock/ping failed, but continuing:", e);
+      }
       
-      const sessionId = getBot().currentData?.session_id || "";
+      const sessionId = getBot().currentData?.session_id || vuiState.history[0]?.id || `vui_${Date.now()}`;
+      
+      let token = "";
+      if (typeof localStorage !== 'undefined') {
+        token = localStorage.getItem("admin_token") || localStorage.getItem("access_token") || "";
+      }
+      if (!token && typeof document !== 'undefined') {
+        token = this.getCookie("admin_token") || this.getCookie("access_token");
+      }
+
       await this.ws!.connect(
         (data) => this.streamManager!.handleWsMessage(data),
         undefined, undefined, undefined,
-        { session_id: sessionId }
+        { session_id: sessionId, token: token || "" }
       );
       
       if (this.mic!.isActive()) this.mic!.stop();

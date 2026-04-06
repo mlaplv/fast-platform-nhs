@@ -15,12 +15,12 @@ class SupportRouter:
     """
     
     def __init__(self):
-        # The Strategic Pipeline Sequence (Elite V2.2: Action-First Optimization)
+        # The Strategic Pipeline Sequence (Elite V2.2: The Ultimate Protocol)
         self.handlers: List[BaseHandler] = [
-            GuardrailHandler(),  # Priority 1: Safety/Rejection (Can terminate)
-            OrderHandler(),      # Priority 2: Order Closing (Action-First, Can terminate)
-            GreetingHandler(),   # Priority 3: Persona Greeting (Pass-through/Early Exit)
-            ConsultantHandler()  # Priority 4: Knowledge Advice (Final recourse)
+            GuardrailHandler(),   # Priority 1: Safety/Rejection (Can terminate)
+            GreetingHandler(),    # Priority 2: Persona Greeting (Fast Heuristic - Can terminate)
+            ConsultantHandler(),  # Priority 3: Knowledge Advice (L0/L1 Fast-Path - Can terminate)
+            OrderHandler()        # Priority 4: Order Closing (Final specialist)
         ]
         
     async def process(self, ctx: SupportContext) -> SupportContext:

@@ -23,6 +23,7 @@
     id: string;
     name: string;
     email: string;
+    roles?: { id: string; code: string }[];
   }
 
   // GOD-MODE: User Selection State
@@ -38,10 +39,62 @@
     step?: number;
   }
 
+  // CNS V86.7: Chat Preservation Protocol
+  const UNIMPORTANT_COMMANDS = [
+    "mở inbox",
+    "mở brain",
+    "manage skills",
+    "mở index",
+    "mở trang quản trị"
+  ];
+
+  const filteredLogs = $derived(nanobot.activityLogs.filter(log => {
+     if (!log.message) return true;
+     const msg = log.message.toLowerCase().trim();
+     const src = log.source || "";
+     
+     // CNS V86.4: Remove redundant system/action logs entirely
+     if (["ACTION", "[ACTION]", "ADMIN", "[ADMIN]", "System", "system"].includes(src)) return false;
+
+     // Filter out ONLY specific tool-trigger commands from user source
+     const isToolTrigger = UNIMPORTANT_COMMANDS.includes(msg);
+     const isUserSource = (log.data?.role === "user" || src === "SẾP" || src === "Sếp");
+     
+     if (isUserSource && isToolTrigger) return false;
+
+     // CNS V86.9: Filter out Bot navigation confirmations
+     if (!isUserSource && msg.includes("em mở") && (msg.includes("trang quản trị") || msg.includes("brain") || msg.includes("index"))) {
+        return false;
+     }
+     
+     return true;
+  }));
+
+  function getDisplayName(log: any) {
+    let src = log.source || "System";
+    // CNS V86.6: Identity Resolution Protocol
+    // Prioritize Data Role 'user' over Source string
+    if (log.data?.role === "user" || src === "SẾP" || src === "Sếp") {
+      let name = (permissionState.userName || "OPERATOR").toUpperCase();
+      // CNS V86.8: Disambiguate if name collision occurs
+      if (name === "XOHI") return "MASTER ⚡";
+      return name;
+    }
+
+    src = src.replace(/[\[\]]/g, "");
+    if (src.toUpperCase() === "XOHI" || src === "XÔ-HỈ") return "XOHI";
+    return src.toUpperCase();
+  }
+
+  function isHumanSource(log: any) {
+    const src = log.source || "";
+    return log.data?.role === "user" || src === "SẾP" || src === "Sếp";
+  }
+
   // Track the latest log ID for each campaign to only render one Modal per campaign
   const latestLogMap = $derived.by(() => {
     const map = new Map<string, string>();
-    for (const log of nanobot.activityLogs) {
+    for (const log of filteredLogs) {
       if (log.data?.role === "assistant" || log.source === "XOHI" || log.source === "[XOHI]" || log.source === "XÔ-HỈ") {
         const metadata = log.data as CampaignLogMetadata;
         const cid = metadata?.campaign_id || metadata?.id;
@@ -63,12 +116,16 @@
     isLoadingUsers = true;
     try {
       const res = await apiClient.get<UserData[] | { data: UserData[] }>("/api/v1/users?limit=50");
-      const list = Array.isArray(res) ? res : res?.data || [];
-      availableUsers = list.map((u: UserData) => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-      }));
+      const list = (Array.isArray(res) ? res : res?.data || []) as UserData[];
+      
+      // CNS V86.8: Clean tactical list — exclude mere customers
+      availableUsers = list
+        .filter(u => !u.roles || u.roles.some(r => ["ADMIN", "SUPER_ADMIN", "OPERATIVE", "STAFF"].includes(r.code)))
+        .map((u: UserData) => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+        }));
     } catch (e) {
       console.error("Failed to fetch users for God-Mode", e);
     } finally {
@@ -216,7 +273,7 @@
 
   $effect(() => {
     if (
-      nanobot.activityLogs.length > 0 &&
+      filteredLogs.length > 0 &&
       !userHasScrolledUp &&
       !isScrollAnchoring &&
       !isProgrammaticScrolling
@@ -308,7 +365,9 @@
                 class="bg-transparent border-none text-[9px] font-mono text-white/40 group-hover/usr:text-white/80 focus:ring-0 outline-none cursor-pointer uppercase tracking-tighter max-w-[90px]"
                 value={nanobot.godModeUser || "self"}
               >
-                <option value="self" class="bg-black/95 text-neon-cyan font-bold">MASTER</option>
+                <option value="self" class="bg-black/95 text-neon-cyan font-bold uppercase">
+                  {permissionState.userName || "MASTER"}
+                </option>
                 {#each availableUsers as user}
                   <option value={user.id} class="bg-black/95 text-white/80">
                     {user.name?.split(" ")[0] || user.email.split("@")[0].toUpperCase()}
@@ -352,12 +411,12 @@
     onscroll={handleScroll}
     class="flex-1 overflow-y-auto scrollbar-hide flex flex-col items-center py-4 px-3"
   >
-    {#if nanobot.chatPagination.isLoading && nanobot.activityLogs.length === 0}
+    {#if nanobot.chatPagination.isLoading && filteredLogs.length === 0}
       <div class="flex flex-col items-center justify-center h-full gap-3 opacity-20">
          <RefreshCw size={24} class="animate-spin text-neon-cyan" />
          <span class="text-[10px] tracking-widest text-neon-cyan">SYNCING_NEURAL_LINK</span>
       </div>
-    {:else if nanobot.activityLogs.length === 0}
+    {:else if filteredLogs.length === 0}
       <div class="flex flex-col items-center justify-center h-full gap-4 text-center opacity-10">
         <Sparkles size={32} class="text-white" />
         <div class="space-y-1">
@@ -366,35 +425,24 @@
         </div>
       </div>
     {:else}
-      <div class="w-full flex flex-col gap-3">
-        {#each nanobot.activityLogs as log (log.id)}
+      <div class="w-full flex flex-col gap-1">
+        {#each filteredLogs as log (log.id)}
           <div
             in:fade={{ duration: 150 }}
-            class="group/log relative flex gap-3 p-3 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all"
+            class="group/log relative flex flex-col px-1 py-1.5 transition-all hover:bg-white/[0.03]"
           >
-            <div class="shrink-0 mt-0.5">
-              {#if log.source === "XOHI" || log.source === "[XOHI]" || log.source === "XÔ-HỈ"}
-                <XohiLogo size={12} class="text-neon-cyan animate-pulse" />
-              {:else if log.data?.role === "user"}
-                <User size={12} class="text-white/40" />
-              {:else}
-                <div class="w-1 h-1 rounded-full bg-gray-600 mt-1.5"></div>
-              {/if}
-            </div>
-
-            <div class="flex-1 min-w-0 space-y-1">
-              <div class="flex items-center justify-between gap-2">
-                 <span class="text-[9px] font-black uppercase tracking-widest text-white/30 truncate">
-                   {log.source || "System"}
+            <div class="flex-1 min-w-0">
+              <div class="flex items-baseline gap-2">
+                 <span class="text-[9px] font-black uppercase tracking-widest shrink-0 {isHumanSource(log) ? 'text-white/50' : 'text-neon-cyan/80'}">
+                    [{getDisplayName(log)}]
                  </span>
-                 <span class="text-[8px] font-mono text-white/20">
-                   {formatRelativeTime(log.timestamp)}
+                 <p class="text-[11px] leading-relaxed text-gray-400 group-hover/log:text-white/80 transition-colors break-words inline">
+                    {processMessage(log.message)}
+                 </p>
+                 <span class="text-[7px] font-mono text-white/10 ml-auto tabular-nums">
+                    {formatRelativeTime(log.timestamp)}
                  </span>
               </div>
-              
-              <p class="text-[11px] leading-relaxed text-gray-400 group-hover/log:text-white/80 transition-colors break-words">
-                {processMessage(log.message)}
-              </p>
 
               {#if (log.data?.role === "assistant" || log.source === "XOHI" || log.source === "[XOHI]" || log.source === "XÔ-HỈ")}
                 {@const cid = log.data?.campaign_id || (log.data as any)?.id}

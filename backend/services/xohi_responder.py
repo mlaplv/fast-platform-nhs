@@ -18,15 +18,15 @@ class XoHiResponder:
 
     async def handle_order_created(self, payload: Dict[str, object]):
         """Callback for ORDER_CREATED event. Marks spam and notifies admins."""
-        order_id = payload.get("id")
-        ip = payload.get("ip", "unknown")
-        ua = payload.get("user_agent", "unknown")
-        tenant_id = payload.get("tenant_id")
-        total_amount = payload.get("total_amount", 0.0)
-        phone = payload.get("phone", "unspecified")
-        address = payload.get("address", "")
+        order_id = str(payload.get("id", ""))
+        ip = str(payload.get("ip", "unknown"))
+        ua = str(payload.get("user_agent", "unknown"))
+        tenant_id = str(payload.get("tenant_id", "default"))
+        total_amount = float(payload.get("total_amount", 0.0))
+        phone = str(payload.get("phone", "unspecified"))
+        address = str(payload.get("address", ""))
 
-        campaign_flag = await xohi_memory.client.get("system:campaign_mode")
+        campaign_flag = await xohi_memory.client.get("system:campaign_mode") if xohi_memory._use_redis else None
         is_campaign_mode = (campaign_flag == b"1")
 
         is_spam, reason, score, device_hash = await anti_spam.check_order_spam(
@@ -44,43 +44,34 @@ class XoHiResponder:
                         {"score": score, "id": order_id, "fp": device_hash, "reason": reason}
                     )
 
-                customer = payload.get("customer", "Khách lạ")
-                severity = "info"
+                customer = str(payload.get("customer", "Khách lạ"))
                 msg = f"Liệu trình mới từ {customer} (ID: {order_id[:8]})"
-
+                
+                from backend.schemas.signal import SignalSchema, SignalSeverity
+                from backend.services.signal_center import signal_center
+                
+                severity = SignalSeverity.INFO
                 if is_spam:
                     if score >= 90:
-                        severity = "critical"
+                        severity = SignalSeverity.CRITICAL
                         msg = f"🚨 RED ALERT: Phát hiện tấn công Click-Fraud cực mạnh! Đơn {order_id[:8]} đã bị cô lập hoàn toàn. Lý do: {reason}"
                     else:
-                        severity = "warning"
+                        severity = SignalSeverity.ACTION
                         msg = f"🚩 CẢNH BÁO SPAM: {msg} - {reason}"
 
-                # Push Notification
-                await session.execute(
-                    text("""
-                        INSERT INTO notifications (id, type, message, is_read, tenant_id, created_at, updated_at)
-                        VALUES (:id, :type, :msg, false, :tid, NOW(), NOW())
-                    """),
-                    {"id": str(uuid.uuid4()), "type": severity, "msg": msg, "tid": tenant_id}
+                # Elite V2.2: Universal Signal Dispatch (Persistence managed by SignalCenter)
+                await signal_center.dispatch(
+                    user_id="admin", # Notify admin pool
+                    signal=SignalSchema(
+                        message=msg,
+                        severity=severity,
+                        signal_type="SECURITY" if is_spam else "ORDER",
+                        payload={"order_id": order_id, "is_spam": is_spam, "score": score},
+                        persist=True if not is_spam else None # Force persist for new orders, rely on default for spam (Action/Critical).
+                    ),
+                    db_session=session,
+                    tenant_id=tenant_id
                 )
-
-                # Persist Security Log if spam
-                if is_spam:
-                    await session.execute(
-                        text("""
-                            INSERT INTO chat_messages (id, session_id, role, content, modality, tenant_id, created_at, updated_at)
-                            VALUES (:id, 'account', 'assistant', :content, 'text', :tid, NOW(), NOW())
-                        """),
-                        {
-                            "id": str(uuid.uuid4()),
-                            "content": json.dumps({
-                                "text": msg, "info_type": "security_alert",
-                                "order_id": order_id, "spam_score": score
-                            }),
-                            "tid": tenant_id
-                        }
-                    )
 
                 await session.commit()
                 logger.info(f"[XoHiResponder] Handled ORDER_CREATED: {order_id} (is_spam={is_spam})")
@@ -90,21 +81,32 @@ class XoHiResponder:
 
     async def handle_order_cancelled(self, payload: Dict[str, object]):
         """Callback for ORDER_CANCELLED event."""
-        order_id = payload.get("id")
-        reason = payload.get("reason", "Không rõ lý do")
-        tenant_id = payload.get("tenant_id")
+        order_id = str(payload.get("id", ""))
+        reason = str(payload.get("reason", "Không rõ lý do"))
+        tenant_id = str(payload.get("tenant_id", "default"))
         msg = f"Khách đã HỦY liệu trình {order_id[:8]}. Lý do: {reason}"
 
+        from backend.schemas.signal import SignalSchema, SignalSeverity
+        from backend.services.signal_center import signal_center
+
         async with self.session_maker() as session:
-            await session.execute(
-                text("""
-                    INSERT INTO notifications (id, type, message, is_read, tenant_id, created_at, updated_at)
-                    VALUES (:id, 'warning', :msg, false, :tid, NOW(), NOW())
-                """),
-                {"id": str(uuid.uuid4()), "msg": msg, "tid": tenant_id}
-            )
-            await session.commit()
-        logger.info(f"[XoHiResponder] Handled ORDER_CANCELLED: {order_id}")
+            try:
+                await signal_center.dispatch(
+                    user_id="admin",
+                    signal=SignalSchema(
+                        message=msg,
+                        severity=SignalSeverity.ACTION,
+                        signal_type="ORDER_CANCEL",
+                        payload={"order_id": order_id, "reason": reason}
+                    ),
+                    db_session=session,
+                    tenant_id=tenant_id
+                )
+                await session.commit()
+                logger.info(f"[XoHiResponder] Handled ORDER_CANCELLED: {order_id}")
+            except Exception as e:
+                await session.rollback()
+                logger.error(f"[XoHiResponder] Order Cancellation log failed: {e}")
 
     async def handle_content_step_completed(self, payload: Dict[str, object]):
         """Callback for CONTENT_STEP_COMPLETED event."""

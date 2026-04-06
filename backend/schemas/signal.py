@@ -30,3 +30,4 @@ class SignalSchema(BaseModel):
     severity: SignalSeverity
     signal_type: str = "SYSTEM"      # e.g. SYSTEM, SECURITY, CONTENT_PROGRESS
     payload: Optional[Dict[str, object]] = None
+    persist: Optional[bool] = None  # Elite V2.2: If None, CRITICAL/ACTION persist:True, INFO/PROGRESS persist:False.

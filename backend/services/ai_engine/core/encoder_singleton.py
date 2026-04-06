@@ -88,8 +88,9 @@ async def warmup_encoder(max_retries: int = 5):
                             if not os.path.exists(dest) or (file == "model_optimized.onnx" and os.path.getsize(dest) < 100 * 1024 * 1024):
                                 logger.info(f"[Encoder] Fetching {file} via curl...")
                                 subprocess.run([
-                                    "curl", "-L", "--retry", "5", "--retry-delay", "2", 
-                                    "-o", dest, f"{BASE_URL}/{file}"
+                                    "curl", "-L", "--retry", "3", "--retry-delay", "5", 
+                                    "--connect-timeout", "10", "--max-time", "300",
+                                    "-s", "-o", dest, f"{BASE_URL}/{file}"
                                 ], check=True, capture_output=True)
 
                     def _init():

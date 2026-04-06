@@ -33,8 +33,8 @@ class TrinityBridge:
     """V65.0: Centralized AI Bridge. Modularized for Martial Law (<300 lines)."""
     def __init__(self) -> None:
         self.rotator: 'KeyRotator' = key_rotator
-        self.primary_model: str = os.getenv("AI_PRIMARY_MODEL", "gemini-2.0-flash")
-        self.fallback_model: str = os.getenv("AI_FALLBACK_MODEL", "gemini-1.5-pro")
+        self.primary_model: str = os.getenv("AI_PRIMARY_MODEL", "gemini-1.5-pro")
+        self.fallback_model: str = os.getenv("AI_FALLBACK_MODEL", "gemini-1.5-flash")
         self.models_helper: TrinityModels = TrinityModels(self.rotator, self.primary_model, self.fallback_model)
         self.db_primary_model: Optional[str] = None
         self.db_waterfall: list[str] = []
@@ -141,6 +141,12 @@ class TrinityBridge:
                         
                         if hasattr(res, 'usage'): await self.rotator.track_tokens(key, getattr(res.usage, 'total_tokens', 0))
                         await self.rotator.set_success(key, session_id=s_id)
+                        
+                        # Elite V2.2: Universal Data Extraction Middleware (The Root Solution)
+                        # Handlers no longer need to worry about the wrapper object.
+                        if hasattr(res, 'data'):
+                            logger.debug(f"🧬 [Neural Bridge] Extracted data type: {type(res.data)}")
+                            return res.data
                         return res
 
                     except (asyncio.TimeoutError, TimeoutError): last_err = "Timeout"; break
@@ -151,7 +157,8 @@ class TrinityBridge:
                         if not key: continue # Cannot mark unhealthy if we don't have a key
                         if cat == "rate_limit":
                             if "RESOURCE_EXHAUSTED" in str(e) or "QUOTA/COOLDOWN" in str(e):
-                                logger.warning(f"[TrinityBridge] Model '{m_name}' QUOTA EXHAUSTED. Skipping to next model in chain.")
+                                logger.warning(f"[TrinityBridge] Model '{m_name}' QUOTA EXHAUSTED. Marking for Daily Cooldown.")
+                                if key: await self.rotator.mark_model_daily(key, m_name)
                                 break # Move to next model immediately!
                             if self.models_helper.is_daily_quota(str(e)) and key:
                                 await self.rotator.mark_model_daily(key, m_name)
@@ -221,11 +228,18 @@ class TrinityBridge:
                     except Exception as e:
                         last_err, cat = e, self.models_helper.classify_error(str(e))
                         if not key: continue
-                        if cat == "rate_limit" and self.models_helper.is_daily_quota(str(e)): await self.rotator.mark_model_daily(key, m_name); continue
+                        if cat == "rate_limit":
+                             if "RESOURCE_EXHAUSTED" in str(e) or "QUOTA/COOLDOWN" in str(e):
+                                 logger.warning(f"[TrinityBridge] Model '{m_name}' QUOTA EXHAUSTED (Stream). Marking for Cooldown.")
+                                 if key: await self.rotator.mark_model_daily(key, m_name)
+                                 continue
+                             if self.models_helper.is_daily_quota(str(e)) and key:
+                                 await self.rotator.mark_model_daily(key, m_name)
+                             continue
                         if cat == "auth_hard": 
                             await self.rotator.mark_unhealthy(key, reason="auth_hard", session_id=s_id)
                             continue
-                        if cat in ["rate_limit", "auth_soft"]: 
+                        if cat == "auth_soft": 
                             await self.rotator.mark_unhealthy(key, reason=cat, session_id=s_id)
                             continue
                         if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break

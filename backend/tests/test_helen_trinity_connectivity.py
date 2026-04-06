@@ -63,18 +63,18 @@ async def test_helen_connectivity():
             model=primary 
         )
         
-        # Trích xuất data - Standardized with XoHi V89.1 Robust Extraction
-        raw = res.data if hasattr(res, "data") else (res.output if hasattr(res, "output") else res)
-        if hasattr(raw, 'data') and not hasattr(raw, 'reply'):
-            raw = getattr(raw, 'data')
-            
-        data = cast(TestResponse, raw)
+        # Elite V2.2: Universal Data Extraction (Direct Access)
+        # res is now the TestResponse object directly (thanks to TrinityBridge middleware)
+        data = cast(TestResponse, res)
         
         print("\n✅ KẾT QUẢ PHẢN HỒI:")
         print("-" * 30)
         print(f"Helen says: {data.reply}")
         print(f"Status: {data.status}")
         print("-" * 30)
+        
+        # In logic verify: Nếu response về cực nhanh (vài ms) và nội dung đúng 
+        # thì chứng tỏ đã trúng L0 Fast-Path.
         
         # Kiểm tra usage
         if hasattr(res, 'usage'):

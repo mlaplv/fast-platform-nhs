@@ -1,4 +1,8 @@
+import logging
+import unicodedata
 from backend.services.commerce.operatives.handlers.base import BaseHandler, SupportContext
+
+logger = logging.getLogger("api-gateway")
 
 class GreetingHandler(BaseHandler):
     """
@@ -7,26 +11,31 @@ class GreetingHandler(BaseHandler):
     """
 
     async def handle(self, ctx: SupportContext) -> bool:
-        """ZONE 1: Standard Greeting with Early Exit Strategy."""
-        msg = ctx.request.message.lower().strip()
+        """ZONE 1: Standard Greeting with Heuristic Reflex (AI-Zero Quota)."""
+        # Elite V2.2: NFKC Normalization for accurate Vietnamese string matching
+        raw_msg = ctx.request.message.lower().strip()
+        msg = unicodedata.normalize("NFKC", raw_msg)
         is_first_msg = not ctx.history_text
-        keywords = ["chào", "hi", "hello", "dạ", "alo", "helen"]
+        keywords = ["chào", "hi", "hello", "dạ", "alo", "helen", "ơi"]
         has_greeting = any(kw in msg for kw in keywords)
         
-        # Elite V2.2: Intent Analytics - Determine if further specialists are needed
-        # We search for clues of price/buying interest or KNOWLEDGE queries to avoid Early Exit.
-        buying_intent = any(kw in msg for kw in [
-            "giá", "bao nhiêu", "nhiêu", "mua", "đặt", "ship", "lấy", "tư vấn",
-            "thành phần", "công dụng", "tác dụng", "liệu trình", "cách dùng", "hiệu quả", "an toàn", "sử dụng"
-        ])
-        # Elite V2.2 Fix: Detect pure knowledge questions — these should bypass greeting prefix
-        # to avoid polluting the Consultant's response with an irrelevant welcome message.
-        is_question = any(kw in msg for kw in [
-            "?", " gì", " ở đâu", " bất", " bao nhiêu", " như thế nào",
-            "địa chỉ", "thành phần", "công dụng", "giá", "cách", "liệu trình", "chính sách"
-        ])
+        # Elite V2.2: Intent Analytics (Knowledge-Aware Protection)
+        # Any mention of price, ingredients, or address should SILENCE the greeting
+        # to ensure the Consultant/L0 response is clean and specialized.
+        knowledge_keywords = [
+            "giá", "bao nhiêu", "nhiêu", "thành phần", "công dụng", "địa chỉ", "ở đâu", 
+            "nhà thuốc", "địa điểm", "chi nhánh", "như thế nào", "sử dụng", 
+            "liệu trình", "hiệu quả", "an toàn", "?"
+        ]
+        has_knowledge_intent = any(kw in msg for kw in knowledge_keywords)
+        buying_intent = any(kw in msg for kw in ["mua", "đặt", "lấy", "ship", "giao"])
         
-        if (is_first_msg or has_greeting) and not is_question:
+        # ELITE DISCIPLINE: Silence Zone 1 if Zone 2 (Knowledge) or Zone 3 (Order) is detected.
+        if has_knowledge_intent or buying_intent:
+            logger.debug(f"🔇 [Greeting Silenced] Knowledge/Order intent detected: {msg}")
+            return False 
+
+        if (is_first_msg or has_greeting):
             prefix = "[z1] Dạ Helen chào Anh/Chị! 🌸 "
             if ctx.dna.segment == "VIP":
                 prefix = f"Dạ Helen thân chào khách quý! 🌟 Rất vui được gặp lại mình ạ. "
@@ -36,20 +45,10 @@ class GreetingHandler(BaseHandler):
             if ctx.p_info:
                 prefix += f"Em rất hân hạnh được hỗ trợ mình về liệu trình **{ctx.p_info.name}** bên em ạ. "
             
-            # 🚀 Elite V2.2: Social Proof Indicator
-            if ctx.active_visitors > 2:
-                prefix += f"Hiện đang có hơn {ctx.active_visitors} khách khác cũng đang quan tâm tới sản phẩm này, em sẽ hỗ trợ mình thật nhanh nhé! 🔥 "
-            elif ctx.active_visitors > 1:
-                prefix += "Sản phẩm này hiện được rất nhiều khách quan tâm hỏi thăm ạ. 🌸 "
-
-            ctx.replies.insert(0, prefix)
+            ctx.replies.append(prefix)
+            if len(msg) < 15: # Simple greeting like "Chào bạn", "Hi Helen"
+                ctx.replies.append("Anh/Chị cần em hỗ trợ hay tư vấn thông tin gì không ạ?")
+                logger.info(f"✨ [Greeting Heuristic] Responding to greeting: {msg}")
+                return True # TERMINATE: Do not let AI or others handle pure greetings.
             
-            # 🚀 EARLY EXIT: If it's JUST a greeting (short message without buying clues or knowledge curiosity), terminate here.
-            # This saves LLM costs for pure rapport building.
-            # We enforce strict False if there's any sign of deeper intent.
-            if has_greeting and not buying_intent and not is_question and len(msg) < 15:
-                # Add a soft closing if it's an early exit to not sound abrupt
-                ctx.replies.append("Anh/Chị cần em tư vấn về liệu trình hay hỗ trợ thông tin gì không ạ?")
-                return True # Terminate pipeline correctly
-            
-        return False # Continue to Order/Consultant for deep logic
+        return False # Fall-through to Consultant/Order for complex queries

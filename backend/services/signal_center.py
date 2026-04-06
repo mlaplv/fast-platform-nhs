@@ -39,27 +39,33 @@ class SignalCenter:
     ) -> None:
         """
         Unified signal dispatch.
-        1. Persist to Notification table (audit trail).
-        2. Emit SYSTEM_SIGNAL via event_bus (SSE -> Frontend Distributor).
         """
         notif_id = str(uuid.uuid4())
 
-        # Phase 1: DB Persistence (Always - all severities are audited)
-        try:
-            from backend.database.models import Notification
-            notif = Notification(
-                id=notif_id,
-                user_id=user_id,
-                type=signal.signal_type,
-                message=signal.message,
-                is_read=False,
-            )
-            db_session.add(notif)
-            # V70.3 Explicit Commit to bypass Autocommit uncertainties
-            await db_session.commit()
-        except Exception as e:
-            logger.error(f"[SignalCenter] DB persist failed for user {user_id}: {e}")
-            # Non-fatal: continue with SSE emit
+        # Phase 1: DB Persistence (Elite V2.2: Conditional Persistence Guard)
+        should_persist = signal.persist
+        if should_persist is None:
+            # Default behavior: CRITICAL/ACTION = True, INFO/PROGRESS = False
+            should_persist = signal.severity in [SignalSeverity.CRITICAL, SignalSeverity.ACTION]
+
+        if should_persist:
+            try:
+                from backend.database.models import Notification
+                notif = Notification(
+                    id=notif_id,
+                    user_id=user_id,
+                    type=signal.signal_type,
+                    message=signal.message,
+                    is_read=False,
+                )
+                db_session.add(notif)
+                # V70.3 Explicit Commit to bypass Autocommit uncertainties
+                await db_session.commit()
+            except Exception as e:
+                logger.error(f"[SignalCenter] DB persist failed for user {user_id}: {e}")
+                # Non-fatal: continue with SSE emit
+        else:
+            logger.debug(f"[SignalCenter] Noise-Gate: Bypassed DB persistence for {signal.severity} signal.")
 
         # Phase 2: SSE Emit with full modality context
         # Frontend SignalDistributor will decode severity -> modalities
