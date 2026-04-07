@@ -62,9 +62,10 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         
         # 1. INGREDIENTS DETECTION (PRIORITY #1)
         kws_ing = ["thành phần", "công thức", "thành phần thuốc", "chất gì", "có gì trong thuốc"]
+        from backend.database.models.system import SupportKnowledgeCategory
         for kw in kws_ing:
             if kw in msg_norm:
-                detected_category = "INFO_INGREDIENTS"
+                detected_category = SupportKnowledgeCategory.INFO_INGREDIENTS
                 matched_kw = kw
                 break
         
@@ -73,7 +74,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             kws_addr = ["địa chỉ", "ở đâu", "chi nhánh", "cửa hàng", "văn phòng", "trụ sở", "phòng khám"]
             for kw in kws_addr:
                 if kw in msg_norm:
-                    detected_category = "INFO_ADDRESS"
+                    detected_category = SupportKnowledgeCategory.INFO_ADDRESS
                     matched_kw = kw
                     break
         
@@ -82,12 +83,12 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             kws_hot = ["điện thoại", "hotline", "số điện thoại", "liên hệ", "sốđt", "sdt", "website"]
             for kw in kws_hot:
                 if kw in msg_norm:
-                    detected_category = "INFO_HOTLINE"
+                    detected_category = SupportKnowledgeCategory.INFO_HOTLINE
                     matched_kw = kw
                     break
                 
         if detected_category:
-            from backend.database.models.system import SupportKnowledge
+            from backend.database.models.system import SupportKnowledge, SupportKnowledgeCategory
             from sqlalchemy import func, select, and_, or_
             from backend.database import current_tenant_id
             

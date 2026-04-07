@@ -70,7 +70,7 @@ class KnowledgeVectorService:
             logger.error(f"[KNOWLEDGE-VECTOR] Search Failed: {e}")
             return []
 
-    async def upsert_embedding(self, db_session: AsyncSession, knowledge_id: str, content: str) -> None:
+    async def upsert_embedding(self, db_session: AsyncSession, knowledge_id: str, content: str, tenant_id: str = "default") -> None:
         """Atomic Vector Injection (Elite V2.2)."""
         try:
             model = self.encoder
@@ -84,11 +84,11 @@ class KnowledgeVectorService:
 
             sql = text("""
                 INSERT INTO support_knowledge_embeddings (id, knowledge_id, embedding, created_at, updated_at, tenant_id)
-                VALUES (:id, :kid, CAST(:v AS vector), NOW(), NOW(), 'default')
+                VALUES (:id, :kid, CAST(:v AS vector), NOW(), NOW(), :tid)
                 ON CONFLICT (knowledge_id)
-                DO UPDATE SET embedding = CAST(:v AS vector), updated_at = NOW();
+                DO UPDATE SET embedding = CAST(:v AS vector), updated_at = NOW(), tenant_id = :tid;
             """)
-            await db_session.execute(sql, {"id": str(uuid.uuid4()), "kid": knowledge_id, "v": vector_str})
+            await db_session.execute(sql, {"id": str(uuid.uuid4()), "kid": knowledge_id, "v": vector_str, "tid": tenant_id})
         except Exception as e:
             logger.warning(f"[KNOWLEDGE-VECTOR] Upsert Failed: {e}")
 

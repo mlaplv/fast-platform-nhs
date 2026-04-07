@@ -188,10 +188,16 @@ ARTICLE_TITLES = [
 # Support Knowledge Base (Elite V2.2)
 SUPPORT_KNOWLEDGE_DEFS = [
     {
-        "category": "GENERAL",
-        "question": "Địa chỉ nhà thuốc, nhà thuốc ở đâu, địa điểm, sđt, sdt, liên hệ",
-        "answer": "Địa chỉ thăm khám: 33 Ngô Thị Nhậm, Trung Sơn, Tam Điệp, Ninh Bình\nĐiện thoại: 097 8785 079\nWebsite: nhathuochongson.com",
-        "priority": 10
+        "category": "INFO_ADDRESS",
+        "question": "Địa chỉ nhà thuốc, nhà thuốc ở đâu, địa điểm, trụ sở, chi nhánh, văn phòng, phòng khám",
+        "answer": "📍 Địa chỉ thăm khám: 33 Ngô Thị Nhậm, Trung Sơn, Tam Điệp, Ninh Bình\nGiờ làm việc: 08:00 - 17:30 (Tất cả các ngày trong tuần).",
+        "priority": 100
+    },
+    {
+        "category": "INFO_HOTLINE",
+        "question": "Điện thoại, hotline, số điện thoại, liên hệ, sốđt, sdt, website",
+        "answer": "📞 Hotline hỗ trợ: 097 8785 079\nWebsite chính thức: nhathuochongson.com\nZalo hỗ trợ trực tuyến: 097 8785 079",
+        "priority": 100
     },
     {
         "category": "PRODUCT",
@@ -200,9 +206,9 @@ SUPPORT_KNOWLEDGE_DEFS = [
         "priority": 10
     },
     {
-        "category": "PRODUCT",
-        "question": "Thành phần, công thức, thành phần thuốc",
-        "answer": "Xuyên khung, hoài sơn, huyết giác, lá lốt, phèn chua, võ hàu, thạch cao, tá dược vừa đủ",
-        "priority": 10
+        "category": "INFO_INGREDIENTS",
+        "question": "Thành phần, công thức, thành phần thuốc, chất gì, có gì trong thuốc",
+        "answer": "🌿 Thành phần 100% thảo dược: Xuyên khung, hoài sơn, huyết giác, lá lốt, phèn chua, vỏ hàu (võ hàu), thạch cao, tá dược vừa đủ.",
+        "priority": 100
     }
 ]

@@ -109,6 +109,9 @@ class SupportKnowledgeCategory(str, enum.Enum):
     SHIPPING = "SHIPPING"
     PRODUCT  = "PRODUCT"
     PROMO    = "PROMO"
+    INFO_INGREDIENTS = "INFO_INGREDIENTS"
+    INFO_ADDRESS     = "INFO_ADDRESS"
+    INFO_HOTLINE     = "INFO_HOTLINE"
 
 class SupportKnowledge(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     """

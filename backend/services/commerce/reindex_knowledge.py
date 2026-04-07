@@ -51,7 +51,7 @@ async def reindex_all():
             content = f"{item.question} {item.answer}"
             logger.info(f"  - Re-indexing [{item.id}]: {item.question[:50]}...")
             try:
-                await knowledge_vector_service.upsert_embedding(db, item.id, content)
+                await knowledge_vector_service.upsert_embedding(db, item.id, content, tenant_id=item.tenant_id)
                 count += 1
             except Exception as e:
                 logger.error(f"  ❌ Failed for {item.id}: {e}")

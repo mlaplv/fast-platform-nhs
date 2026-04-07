@@ -48,6 +48,9 @@ class SupportKnowledgeCategory(str, Enum):
     SHIPPING = "SHIPPING"
     PRODUCT  = "PRODUCT"
     PROMO    = "PROMO"
+    INFO_INGREDIENTS = "INFO_INGREDIENTS"
+    INFO_ADDRESS     = "INFO_ADDRESS"
+    INFO_HOTLINE     = "INFO_HOTLINE"
 
 
 class SupportRequest(BaseModel):

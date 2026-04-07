@@ -9,14 +9,17 @@ sys.path.insert(0, os.getcwd())
 
 async def seed():
     from backend.database import async_session_maker
-    from backend.database.models.system import SupportKnowledge, SupportKnowledgeCategory
+    from backend.database.models.system import SupportKnowledge, SupportKnowledgeCategory, SupportKnowledgeEmbedding
     from backend.scripts.seed_data import SUPPORT_KNOWLEDGE_DEFS
     
     TENANT_ID = "smartshop"
     
     async with async_session_maker() as session:
         try:
-            print("Cleaning SupportKnowledge...")
+            print("Cleaning SupportKnowledge & Embeddings...")
+            # Delete embeddings first to avoid FK violation (Elite V2.2: Delete via subquery to ensure all links are purged)
+            subq = select(SupportKnowledge.id).where(SupportKnowledge.tenant_id == TENANT_ID)
+            await session.execute(delete(SupportKnowledgeEmbedding).where(SupportKnowledgeEmbedding.knowledge_id.in_(subq)))
             await session.execute(delete(SupportKnowledge).where(SupportKnowledge.tenant_id == TENANT_ID))
             
             print(f"Seeding {len(SUPPORT_KNOWLEDGE_DEFS)} items...")
