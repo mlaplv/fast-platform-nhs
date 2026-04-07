@@ -260,7 +260,7 @@ Trả về một `ScoutReport` (Pydantic Model) bao gồm:
                 agent = Agent(output_type=ScoutReport, system_prompt=scout_prompt)
                 response = await trinity_bridge.run(agent=agent, prompt=f"Tiến hành trình báo chiến lược cho chủ đề: {topic}", role="brain")
                 
-                report = response.data if hasattr(response, 'data') else response.output
+                report = response
                 
                 # 4. PERSIST TO CACHE
                 msg = "💾 Đang lưu trữ kết quả trinh sát vào Neural Vault..."

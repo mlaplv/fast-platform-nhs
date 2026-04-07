@@ -78,7 +78,7 @@ class IntentController(Controller):
         session_id = data.session_id or str(uuid.uuid4())
 
         try:
-            # ── Jailbreak scan (STT corrections removed — Groq Whisper handles accuracy) ──
+            # ── Jailbreak scan (STT corrections removed — Gemini handles accuracy) ──
             if not self.shield.scan(data.query):
                 return _error("Lõi nhận thức gián đoạn...")
 

@@ -126,7 +126,7 @@ class Tier3CloudRouter:
                 message_history=history
             )
             
-            output: Tier3Output = result.output
+            output: Tier3Output = result
 
             return IntentResponse(
                 status="success",

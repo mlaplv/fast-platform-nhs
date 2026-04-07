@@ -9,7 +9,7 @@ from litestar import WebSocket, websocket
 from litestar.exceptions import NotAuthorizedException, PermissionDeniedException
 from .voice_utils import (
     MIN_AUDIO_BYTES, MAX_AUDIO_BYTES,
-    send_partial, transcribe, background_save_telemetry
+    transcribe, background_save_telemetry
 )
 from backend.constants.permissions import PermissionEnum
 from backend.guards import PermissionGuard
@@ -30,7 +30,7 @@ def get_user_id(socket: WebSocket) -> Optional[str]:
 
 @websocket("/ws/stt")
 async def stt_websocket(socket: WebSocket) -> None:
-    """WebSocket endpoint: receive audio chunks, transcribe via Groq Whisper."""
+    """WebSocket endpoint: receive audio chunks, transcribe via Gemini 1.5 Flash."""
     # 🛡️ [STT-Elite] Phase 3: Immediate Handshake Acceptance (CTO Protocol)
     await socket.accept()
     logger.info("🛡️ [STT-TRACE] Connection Accepted. Entering identity verification...")
@@ -60,8 +60,6 @@ async def stt_websocket(socket: WebSocket) -> None:
     is_active: bool = True
     transcription_lock: asyncio.Lock = asyncio.Lock()
     background_tasks: set = set()
-    last_partial_time: float = float(asyncio.get_running_loop().time())
-    last_transcribed_size: int = 0
 
     start_time_mono = time.monotonic()
     max_age = 600  # 10-minute hard limit for STT sessions (Elite Rule)
@@ -83,16 +81,8 @@ async def stt_websocket(socket: WebSocket) -> None:
                         data = msg["bytes"]
                         audio_buffer.extend(data)
 
-                        now = float(asyncio.get_running_loop().time())
-                        if now - last_partial_time > 1.0 and len(audio_buffer) > (last_transcribed_size + 2000):
-                            last_partial_time = now
-                            last_transcribed_size = len(audio_buffer)
-
-                            user_id = get_user_id(socket)
-
-                            task = asyncio.create_task(send_partial(socket, bytes(audio_buffer), transcription_lock, user_id))
-                            background_tasks.add(task)
-                            task.add_done_callback(background_tasks.discard)
+                        # Interim display is handled by browser Web Speech API (VuiSpeechEngine).
+                        # Gemini is only called once on STOP for the final, accurate transcript.
 
                         if len(audio_buffer) % 20000 < len(data):
                             logger.debug(f"[STT] Buffer Memory: {len(audio_buffer)/1024:.1f} KB")
@@ -111,7 +101,7 @@ async def stt_websocket(socket: WebSocket) -> None:
 
                                         task = asyncio.create_task(background_save_telemetry(
                                             session_id=session_id,
-                                            agent_name="Groq-Whisper-STT",
+                                            agent_name="Gemini-Flash-STT",
                                             duration_ms=duration_ms,
                                             intent_hash=hashlib.sha256(transcript.encode()).hexdigest()[:16] if transcript else "empty"
                                         ))
@@ -164,5 +154,6 @@ async def stt_websocket(socket: WebSocket) -> None:
                 transcript = await transcribe(bytes(audio_buffer), user_id)
                 await socket.send_json({"event": "final", "text": transcript})
             except Exception as final_error:
-                logger.error(f"[STT] Final transcription cleanup failed: {final_error}")
+                if "disconnect" not in str(final_error).lower():
+                    logger.error(f"[STT] Final transcription cleanup failed: {final_error}")
         logger.info("[STT] Client disconnected")

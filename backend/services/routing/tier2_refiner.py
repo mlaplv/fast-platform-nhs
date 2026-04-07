@@ -61,13 +61,7 @@ class Tier2Refiner:
                 deps=deps
             )
 
-            cost = 0
-            try:
-                usage = result.usage()
-                cost = (usage.request_tokens or 0) + (usage.response_tokens or 0)
-            except Exception:
-                pass
-            return result.output.strip(), cost
+            return result.strip() if isinstance(result, str) else str(result).strip(), 0
 
         except Exception as e:
             logger.error(f"[NLG Refiner] Trinity failure: {e}")

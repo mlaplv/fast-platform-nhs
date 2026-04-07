@@ -1,7 +1,7 @@
 /**
  * VuiSpeechEngine 2026: Native Browser STT Preview Layer
  * Provides sub-100ms word-by-word feedback using Web Speech API.
- * This acts as a "Fast Preview" before Groq Whisper delivers the "Final Truth".
+ * This acts as a "Fast Preview" before Gemini delivers the "Final Truth".
  */
 export class VuiSpeechEngine {
   private recognition: SpeechRecognition | null = null;

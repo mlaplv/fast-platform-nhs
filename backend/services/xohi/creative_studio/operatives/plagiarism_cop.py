@@ -172,8 +172,8 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
                 prompt = f"[BÀI VIẾT]\n{('\n'.join(deduped))[:12000]}\n\n[ĐỐI THỦ]\n{'\n'.join(comps)}"
                 res = await self.bridge.run(self._agent, prompt, force=force, role="brain")
 
-                # Phase 3.1: Strict Typing & Result Extraction (V89.1 Fix: Use .data or .output)
-                raw = res.data if hasattr(res, "data") else (res.output if hasattr(res, "output") else res)
+                # Phase 3.1: Strict Typing & Result Extraction
+                raw = res
 
                 # Final Safety: If for some Reason trinity_bridge returned the raw AgentRunResult
                 # outside the casted object, we MUST extract its data to avoid 'model_dump' errors.

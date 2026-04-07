@@ -249,7 +249,7 @@
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
                   <label class="block text-xs text-zinc-400 mb-1 font-bold">Context Anchors (Max 30)</label>
-                  <p class="text-[10px] text-zinc-500 mb-2">Inject exact domain keywords to help Whisper detect accents perfectly. Press Enter to add.</p>
+                  <p class="text-[10px] text-zinc-500 mb-2">Inject exact domain keywords to help Gemini detect accents perfectly. Press Enter to add.</p>
                   <div class="flex flex-wrap gap-2 p-2 bg-black/50 border border-white/5 rounded-lg min-h-[2.5rem]">
                     {#each sttAnchors as anchor, i}
                       <span class="px-2 py-1 bg-cyan-950/30 text-cyan-300 text-xs rounded border border-cyan-500/20 flex items-center gap-1 group">

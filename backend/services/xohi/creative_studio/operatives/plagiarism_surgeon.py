@@ -102,7 +102,7 @@ class PlagiarismSurgeon:
         
         try:
             res = await trinity_bridge.run(self._atomic_surgeon_agent, bulk_prompt, role="fast", timeout=120.0)
-            raw_data = res.data if hasattr(res, 'data') else res.output
+            raw_data = res
             final_content = cleaned_draft
             replacements_made = 0
             replacements_log = []

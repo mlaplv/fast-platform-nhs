@@ -176,7 +176,7 @@ DRAFT:
                 prompt=user_input, 
                 role="brain"
             )
-            report = response.data if hasattr(response, 'data') else response.output
+            report = response
             report.logs = logs
             
             # Phase 73.20: Deterministic Override for Keyword Density (Must use pure_text!)

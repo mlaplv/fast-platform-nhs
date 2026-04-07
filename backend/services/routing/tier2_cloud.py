@@ -150,7 +150,7 @@ class Tier2CloudRouter:
                 message_history=history
             )
             
-            output: Tier2Output = result.output
+            output: Tier2Output = result
             action = INTENT_TO_ACTION_MAP.get(output.intent_type, IntentAction.READ)
 
             return IntentResponse(

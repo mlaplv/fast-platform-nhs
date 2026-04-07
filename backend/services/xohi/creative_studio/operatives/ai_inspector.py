@@ -49,7 +49,7 @@ class AiInspector:
         await self._emit_log(campaign, logs[-1])
         try:
             res = await trinity_bridge.run(self._agent, draft[:12000], role="pro") # Use Pro for high-IQ analysis
-            raw = res.data if hasattr(res, "data") else res.output
+            raw = res
             raw.logs = logs
             return raw
         except Exception as e:
@@ -62,7 +62,7 @@ class AiInspector:
         prompt = f"[BÀI VIẾT]\n{content[:5000]}\n\n[ĐOẠN LỖI]\n{snippet}\n\n[LÝ DO]\n{issue}"
         try:
             res = await trinity_bridge.run(self._surgeon_agent, prompt, role="fast")
-            return res.data if hasattr(res, "data") else res.output
+            return res
         except Exception as e:
             logger.error(f"[AiInspector] Auto-fix failed: {e}")
             return AutoFixResponse(old_text=snippet, new_text=snippet)
@@ -91,7 +91,7 @@ class AiInspector:
         
         try:
             res = await trinity_bridge.run(self._atomic_surgeon_agent, prompt, role="fast", timeout=120.0)
-            raw = res.data if hasattr(res, "data") else res.output
+            raw = res
             final_content = draft
             replacements_made = 0
             replacements_log = []

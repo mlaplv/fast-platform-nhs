@@ -14,11 +14,11 @@ logger = logging.getLogger("api-gateway")
 
 DEFAULT_AI_CONFIG = {
     "role_patterns": {
-        "fast": ["1.5-flash", "flash-lite", "8b"],
-        "brain": ["1.5-pro", "brain"]
+        "fast": ["3.1-flash", "2.0-flash", "1.5-flash", "flash-lite", "8b"],
+        "brain": ["3.1-pro", "2.0-pro", "1.5-pro", "brain"]
     },
     "blacklist": ["-tts", "-embedding", "-aqa", "-image", "-vision"],
-    "lockdown": ["2.0", "2.5"],
+    "lockdown": ["early-access", "alpha"],
     "error_mapping": {
         "auth_hard": ["api key not valid", "invalid_key", "key_expired", "project disabled", "deleted"],
         "auth_soft": ["401", "403", "unauthorized", "forbidden", "permission_denied", "user_location_not_supported"],

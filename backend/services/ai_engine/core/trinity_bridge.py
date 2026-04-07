@@ -162,6 +162,8 @@ class TrinityBridge:
                     # Elite V2.2: Standardized Result Extraction (Universal Wrapper Bypass)
                     if hasattr(res, 'data'):
                         return res.data
+                    if hasattr(res, 'output'):
+                        return res.output
                     return res
 
                 except (asyncio.TimeoutError, TimeoutError):
