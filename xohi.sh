@@ -262,8 +262,14 @@ function init_deploy() {
     echo "1) Cháy Seed DB Test (Dữ liệu mẫu)"
     echo "2) Khôi phục từ bản sao lưu (Restore Backup)"
     echo "3) Bỏ qua (Giữ DB trắng)"
-    read -p "Lựa chọn của Sếp: " db_choice
-    
+    read -t 10 -p "Lựa chọn của Sếp (mặc định 1 sau 10s): " db_choice
+
+    # [ELITE V2.2] Tự động chọn 1 nếu Sếp không phản hồi sau 10s
+    if [[ -z "$db_choice" ]]; then
+        db_choice=1
+        echo -e "\n${YELLOW}-> Tự động chọn mục 1 (Seed DB)...${NC}"
+    fi
+
     case $db_choice in
         1)
             echo -e "${YELLOW}-> Đang chạy Seeding (Dữ liệu mẫu Test)...${NC}"
