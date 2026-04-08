@@ -398,14 +398,21 @@ class SupportAgentOperative(BaseAgentOperative):
 
             if item:
                 logger.info(f"✅ [SupportAgent] Sync Heuristic HIT: ID={item.id} | category='{detected_category}'")
+                # 🐛 DEBUG MODE: Prefix hiển thị Zone + keyword kích hoạt (bật bằng HELEN_DEBUG=1)
+                import os
+                if os.getenv("HELEN_DEBUG", "0") == "1":
+                    debug_prefix = f"[L0.5|{detected_category.value}|kw:{matched_kw}] "
+                else:
+                    debug_prefix = ""
+                final_reply = f"{debug_prefix}{item.answer}"
                 await self._save_history(
-                    db, session_id, request.message, item.answer,
+                    db, session_id, request.message, final_reply,
                     SupportIntent.POLICY_QUERY, request.product_slug
                 )
                 await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
                 return SupportResponse(
                     ok=True,
-                    reply=item.answer,
+                    reply=final_reply,
                     intent=SupportIntent.POLICY_QUERY,
                     session_id=session_id,
                     status="DONE"
