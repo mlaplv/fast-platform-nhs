@@ -56,7 +56,7 @@ class Tier2Deps:
     rotator: Optional[object] = None
     kb_index: str = ""
 
-T2_SYSTEM_PROMPT = f"""[ROLE] TRỢ LÝ ĐIỀU PHỐI CẤP CAO (CORE DISPATCHER) — {os.getenv('PUBLIC_SSOT_ADMIN_URL', 'admin.smartshop.test')}
+T2_SYSTEM_PROMPT = f"""[ROLE] TRỢ LÝ ĐIỀU PHỐI CẤP CAO (CORE DISPATCHER) — {os.getenv('PUBLIC_SSOT_ADMIN_URL', 'admin.micsmo.com')}
 
 Ngươi là bộ não phân luồng đầu tiên của XoHi - Trợ lý quản trị viên.
 

@@ -20,7 +20,7 @@ from backend.schemas.product import ProductResponse, SeoMetaSchema
 logger = logging.getLogger("api-gateway")
 
 # ── Config từ Env để tránh hardcode ────────────────────────────────────────────
-_BASE_DOMAIN: str = os.getenv("APP_DOMAIN", "smartshop.test")
+_BASE_DOMAIN: str = os.getenv("APP_DOMAIN", "micsmo.com")
 _SITE_NAME: str = os.getenv("SEO_SITE_NAME", "Nhà Thuốc Hồng Sơn")
 _BRAND_NAME: str = os.getenv("SEO_BRAND_NAME", "Hồng Sơn")
 

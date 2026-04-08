@@ -1,6 +1,6 @@
 # HIẾN PHÁP FAST-PLATFORM (ELITE V2.2)
 
-> **CHỈ THỊ TỐI CAO:** Dự án Agentic AI 2026. Stack: **SvelteKit 5 (Runes: $state, $derived, $effect, $props) + Litestar (Python 3.14) + SQLAlchemy 2.0 + PydanticAI +V2(only) + LiteLLM**. Ép kiểu tĩnh 100% (CẤM 'any'). Hoạt động trên domain `*.smartshop.test`.
+> **CHỈ THỊ TỐI CAO:** Dự án Agentic AI 2026. Stack: **SvelteKit 5 (Runes: $state, $derived, $effect, $props) + Litestar (Python 3.14) + SQLAlchemy 2.0 + PydanticAI +V2(only) + LiteLLM**. Ép kiểu tĩnh 100% (CẤM 'any'). Hoạt động trên domain `*.micsmo.com`.
 > > ** CẤM GIẢI THÍCH, LÀM XONG BÁO KẾT QUẢ.**
 
 ## 🛑 R00 – KỶ LUẬT TÁC CHIẾN (WAR ROOM PROTOCOL)

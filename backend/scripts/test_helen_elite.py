@@ -5,8 +5,8 @@ import time
 async def test_helen_greeting():
     print("🚀 [Elite Domain Protocol] Helen AI Active Test")
     
-    # ⚠️ MANDATORY: Domain api.smartshop.test (CẤM localhost)
-    domain = "api.smartshop.test"
+    # ⚠️ MANDATORY: Domain api.micsmo.com (CẤM localhost)
+    domain = "api.micsmo.com"
     # Internal routing for Docker execution (Elite Pattern)
     target_url = "http://127.0.0.1:8000/api/v1/client/support/chat"
     

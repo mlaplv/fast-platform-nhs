@@ -53,8 +53,8 @@
 </script>
 
 <svelte:head>
-  <title>Tra cứu đơn hàng | SmartShop Elite</title>
-  <meta name="description" content="Theo dõi trạng thái đơn hàng của bạn tại SmartShop Elite Protocol V2.2" />
+  <title>Tra cứu đơn hàng</title>
+  <meta name="description" content="Theo dõi trạng thái đơn hàng" />
   <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 

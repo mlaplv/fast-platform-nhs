@@ -19,7 +19,7 @@ export const isDev = (): boolean => {
 export const isAdminDomain = (): boolean => {
     if (typeof window === "undefined") return false;
     const hostname = window.location.hostname;
-    // Elite V2.2: Chặn triệt để Nanobot trên Storefront (*.smartshop.test)
-    // Chỉ cho phép chạy trên admin.smartshop.test hoặc localhost (dev)
+    // Elite V2.2: Chặn triệt để Nanobot trên Storefront (*.micsmo.com)
+    // Chỉ cho phép chạy trên admin.micsmo.com hoặc localhost (dev)
     return hostname.startsWith("admin.") || hostname === "localhost" || hostname === "127.0.0.1";
 };

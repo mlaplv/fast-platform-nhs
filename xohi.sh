@@ -306,7 +306,7 @@ function init_deploy() {
     chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
     
     echo -e "${GREEN}=== HỆ THỐNG ĐÃ SẴN SÀNG! (Đã tối ưu RAM) ===${NC}"
-    echo -e "${CYAN}Truy cập: https://admin.smartshop.test${NC}"
+    echo -e "${CYAN}Truy cập: https://admin.micsmo.com${NC}"
     
     # [CTO ELITE] Tự động chuyển sang xem log để Sếp theo dõi WARNING/ERROR
     view_logs

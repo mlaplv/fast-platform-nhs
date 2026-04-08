@@ -77,7 +77,7 @@ async def seed_users(session, admin_role):
     print("👤 Creating users...")
     pwd = os.getenv("ADMIN_PASSWORD", "admin@123A3%StrongPassword")
     hpwd = bcrypt.hashpw(hashlib.sha256(pwd.encode()).hexdigest().encode(), bcrypt.gensalt()).decode()
-    admin = User(id="user_admin", email=os.getenv("ADMIN_EMAIL", "admin@smartshop.test"), username=os.getenv("ADMIN_USERNAME", "admin"), name="Xohi", password=hpwd, status="ACTIVE", tenant_id=TENANT_ID)
+    admin = User(id="user_admin", email=os.getenv("ADMIN_EMAIL", "admin@micsmo.com"), username=os.getenv("ADMIN_USERNAME", "admin"), name="Xohi", password=hpwd, status="ACTIVE", tenant_id=TENANT_ID)
     admin.roles.append(admin_role); session.add(admin)
     vp = VoiceProfile(id=str(uuid.uuid4()), user_id=admin.id, wake_words=["hey so hi"], sleep_words=["cút"], greeting_template="Bố đây.", capabilities={"READ":True,"COUNT":True,"MUTATE":True,"ANALYZE":True}, gemini_keys_enc=GeminiSecurity.encrypt(GEMINI_KEYS), primary_model="gemini-2.5-flash", ai_models=["gemini-2.5-flash","gemini-1.5-pro","gemini-1.5-flash"])
     session.add(vp); await session.flush(); return admin
@@ -160,7 +160,7 @@ async def seed_system_settings(session):
         "contact_info": {
             "phone": "0901234567",
             "hotline": "1800-XOHI",
-            "email": "contact@smartshop.test",
+            "email": "contact@micsmo.com",
             "address": "Bitexco Financial Tower, Quận 1, TP.HCM",
             "working_hours": "8:00 - 22:00"
         },

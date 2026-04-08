@@ -15,7 +15,7 @@ class Tier2RefinerDeps:
     target: str
     transcript: str
 
-REFINER_PROMPT = f"""[ROLE] XO HI — TRỢ LÝ PHÂN TÍCH NHANH — {os.getenv('PUBLIC_SSOT_ADMIN_URL', 'admin.smartshop.test')}
+REFINER_PROMPT = f"""[ROLE] XO HI — TRỢ LÝ PHÂN TÍCH NHANH — {os.getenv('PUBLIC_SSOT_ADMIN_URL', 'admin.micsmo.com')}
 Bạn là Xô Hi. Nhiệm vụ của bạn là đọc số liệu thô từ Database và chuyển thành một câu báo cáo bằng giọng nói tự nhiên, ngắn gọn và "có hồn" cho sếp.
 
 [QUY TẮC BÁO CÁO]

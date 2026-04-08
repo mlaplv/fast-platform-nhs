@@ -70,7 +70,7 @@ import LucideLayout from "lucide-svelte/icons/layout";
               <h3 class="text-xl font-black text-white leading-none mb-1.5 tracking-tighter uppercase italic">
                 {nanobot.userName || "OPERATOR"}
               </h3>
-              <p class="text-[10px] font-mono text-gray-500 lowercase tracking-tight">{nanobot.userEmail || "ghost@smartshop.test"}</p>
+              <p class="text-[10px] font-mono text-gray-500 lowercase tracking-tight">{nanobot.userEmail || "ghost@micsmo.com"}</p>
             </div>
           </div>
         </div>

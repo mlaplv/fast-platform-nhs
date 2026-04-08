@@ -53,7 +53,7 @@
   const seoDescLen = $derived(formSeoDescription?.length ?? 0);
   const ogTitle = $derived(formSeoTitle || formName || 'Tên sản phẩm');
   const ogDesc = $derived(formSeoDescription || 'Mô tả ngắn gọn về sản phẩm...');
-  const ogUrl = $derived(`smartshop.test/product/${formSlug || 'slug-san-pham'}`);
+  const ogUrl = $derived(`micsmo.com/product/${formSlug || 'slug-san-pham'}`);
   const ogImg = $derived(formImages && formImages.length > 0 ? resolveMediaUrl(formImages[0]) : null);
 </script>
 
@@ -193,7 +193,7 @@
               {/if}
             </div>
             <div class="p-3 flex flex-col gap-1 bg-[#242526]">
-              <span class="text-[9px] text-[#b0b3b8] uppercase tracking-widest truncate">smartshop.test</span>
+              <span class="text-[9px] text-[#b0b3b8] uppercase tracking-widest truncate">micsmo.com</span>
               <div class="text-sm font-bold text-[#e4e6eb] line-clamp-2 leading-snug">{ogTitle}</div>
               <div class="text-[11px] text-[#b0b3b8] line-clamp-2 mt-0.5">{ogDesc}</div>
             </div>

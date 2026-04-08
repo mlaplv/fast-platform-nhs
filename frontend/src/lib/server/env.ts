@@ -1,7 +1,7 @@
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 
-const APP_DOMAIN = env.APP_DOMAIN || 'smartshop.test';
+const APP_DOMAIN = env.APP_DOMAIN || 'micsmo.com';
 
 /**
  * ServerEnv (Elite V2.2)
@@ -12,8 +12,8 @@ export const ServerEnv = {
     /** environment: development | production */
     isDev: dev,
 
-    /** Domain for Admin Portal detection (e.g. admin.smartshop.test) */
-    ADMIN_DOMAIN: env.ADMIN_DOMAIN || 'admin.smartshop.test',
+    /** Domain for Admin Portal detection (e.g. admin.micsmo.com) */
+    ADMIN_DOMAIN: env.ADMIN_DOMAIN || 'admin.micsmo.com',
 
     /** Internal URL for Backend API communication (Container-to-Container) */
     INTERNAL_API_URL: env.INTERNAL_API_URL || 'http://api:8000',

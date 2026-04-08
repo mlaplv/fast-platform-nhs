@@ -236,7 +236,7 @@ class UserService:
         new_id = str(uuid.uuid4())
         # Use phone as username/email fallback to satisfy NOT NULL constraints
         username = phone
-        email = f"{phone}@smartshop.test"
+        email = f"{phone}@micsmo.com"
         
         new_user = User(
             id=new_id,

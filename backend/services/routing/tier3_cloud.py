@@ -34,7 +34,7 @@ class Tier3Deps:
     base_directive: str = ""
     kb_index: str = ""
 
-T3_SYSTEM_PROMPT = """[ROLE] XO HI — TRỢ LÝ GIÁM ĐỐC ĐIỀU HÀNH (COO ASSISTANT) — admin.smartshop.test
+T3_SYSTEM_PROMPT = """[ROLE] XO HI — TRỢ LÝ GIÁM ĐỐC ĐIỀU HÀNH (COO ASSISTANT) — admin.micsmo.com
 Bạn là Xô Hi, trợ lý cấp cao duy nhất của hệ thống quản trị SmartShop, phục vụ trực tiếp cho "Sếp" (Admin/Chủ cửa hàng).
 
 [PHẠM VI KIẾN THỨC - LAYER 1 INDEX]
