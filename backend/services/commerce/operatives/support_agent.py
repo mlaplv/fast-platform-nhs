@@ -155,9 +155,9 @@ class SupportAgentOperative(BaseAgentOperative):
             logger.warning("[SupportAgent] Saving failed: %s", exc)
 
     async def _fetch_chat_context(self, db: AsyncSession, session_id: str) -> str:
-        """Context-window hydration (Elite V2.2)."""
+        """Context-window hydration (Elite V2.2). Enhanced to 10 turns for Deep Consultation."""
         try:
-            stmt = select(SupportChatHistory).where(SupportChatHistory.session_id == session_id).order_by(desc(SupportChatHistory.created_at), desc(SupportChatHistory.id)).limit(4)
+            stmt = select(SupportChatHistory).where(SupportChatHistory.session_id == session_id).order_by(desc(SupportChatHistory.created_at), desc(SupportChatHistory.id)).limit(10)
             history_rows = (await db.execute(stmt)).scalars().all()
             if not history_rows: return ""
             h_parts = []
@@ -324,7 +324,8 @@ class SupportAgentOperative(BaseAgentOperative):
         # Handles INFO_ADDRESS / INFO_INGREDIENTS / INFO_HOTLINE INSTANTLY, no background task.
         # ROOT CAUSE FIX: Eliminates off-by-one SSE race condition when users send messages
         # faster than background tasks complete.
-        heuristic_res = await self._try_heuristic_sync(request, db, session_id)
+        _, p_info = await _fetch_product_context(db, request.product_slug)
+        heuristic_res = await self._try_heuristic_sync(request, db, session_id, p_info)
         if heuristic_res:
             return heuristic_res
 
@@ -332,7 +333,7 @@ class SupportAgentOperative(BaseAgentOperative):
         task_id = await self.enqueue_chat(request_data=request.model_dump(), session_id=session_id)
         return SupportResponse(ok=True, reply="Helen đang xử lý...", intent=SupportIntent.UNKNOWN, session_id=session_id, task_id=task_id, status="PROCESSING")
 
-    async def _try_heuristic_sync(self, request: SupportRequest, db: AsyncSession, session_id: str) -> Optional[SupportResponse]:
+    async def _try_heuristic_sync(self, request: SupportRequest, db: AsyncSession, session_id: str, p_info: Optional[SupportProductInfo] = None) -> Optional[SupportResponse]:
         """
         Elite V2.5: Synchronous Heuristic Fast-Path.
         Detects high-confidence INFO categories (ADDRESS, INGREDIENTS, HOTLINE) and returns
@@ -373,6 +374,24 @@ class SupportAgentOperative(BaseAgentOperative):
                     matched_kw = kw
                     break
 
+        # Priority 4: PRICE QUERY (Ultra-Fast)
+        if not detected_category:
+            kws_price = ["giá", "bao nhiêu", "nhiêu tiền", "nhiêu", "rổ giá", "giá cả"]
+            for kw in kws_price:
+                if kw in msg_norm:
+                    detected_category = SupportKnowledgeCategory.PRICE_QUERY
+                    matched_kw = kw
+                    break
+
+        # Priority 5: SHIPPING QUERY (Ultra-Fast)
+        if not detected_category:
+            kws_ship = ["ship", "phí", "giao hàng", "vận chuyển", "nhận hàng"]
+            for kw in kws_ship:
+                if kw in msg_norm:
+                    detected_category = SupportKnowledgeCategory.INFO_SHIPPING
+                    matched_kw = kw
+                    break
+
         if not detected_category:
             return None
 
@@ -396,24 +415,28 @@ class SupportAgentOperative(BaseAgentOperative):
             res = await db.execute(stmt)
             item = res.scalar_one_or_none()
 
-            if item:
-                logger.info(f"✅ [SupportAgent] Sync Heuristic HIT: ID={item.id} | category='{detected_category}'")
-                # 🐛 DEBUG MODE: Prefix hiển thị Zone + keyword kích hoạt (bật bằng HELEN_DEBUG=1)
+            if item or (detected_category == SupportKnowledgeCategory.PRICE_QUERY and p_info):
+                logger.info(f"✅ [SupportAgent] Sync Heuristic HIT: category='{detected_category}'")
+
                 import os
-                if os.getenv("HELEN_DEBUG", "0") == "1":
-                    debug_prefix = f"[L0.5|{detected_category.value}|kw:{matched_kw}] "
+                debug_prefix = f"[L0.5|{detected_category.value}] " if os.getenv("HELEN_DEBUG", "0") == "1" else ""
+
+                # Logic đặc biệt cho PRICE_QUERY (Sử dụng dữ liệu thực tế)
+                if detected_category == SupportKnowledgeCategory.PRICE_QUERY and p_info:
+                    final_reply = f"{debug_prefix}Dạ liệu trình **{p_info.name}** hiện tại có giá ưu đãi chỉ từ **{p_info.price_display}** ạ. 🌸 Anh/Chị muốn chốt mấy lọ để Helen lên đơn ngay cho mình nhé?"
                 else:
-                    debug_prefix = ""
-                final_reply = f"{debug_prefix}{item.answer}"
+                    final_reply = f"{debug_prefix}{item.answer}"
+
                 await self._save_history(
                     db, session_id, request.message, final_reply,
-                    SupportIntent.POLICY_QUERY, request.product_slug
+                    SupportIntent.POLICY_QUERY if detected_category != SupportKnowledgeCategory.PRICE_QUERY else SupportIntent.PRICE_QUERY,
+                    request.product_slug
                 )
                 await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
                 return SupportResponse(
                     ok=True,
                     reply=final_reply,
-                    intent=SupportIntent.POLICY_QUERY,
+                    intent=SupportIntent.POLICY_QUERY if detected_category != SupportKnowledgeCategory.PRICE_QUERY else SupportIntent.PRICE_QUERY,
                     session_id=session_id,
                     status="DONE"
                 )

@@ -17,16 +17,17 @@ class GuardrailHandler(BaseHandler):
         "hôi miệng", "sâu răng", "trắng răng", "viêm lợi", "nhiệt miệng",
         "bao quy đầu", "sinh lý", "phụ khoa", "nam khoa", "yếu sinh lý",
         "hôi dái", "nấm ngứa vùng kín", "trĩ", "nội tiết", "phẫu thuật",
-        # Competitors (Strategic blocking)
-        "perspirex", "etiaxil", "Certain Dri", "scion", "aquaselin",
+        # Competitors (Strategic blocking - Lái về SmartShop)
+        "perspirex", "etiaxil", "certain dri", "scion", "aquaselin",
+        "driclor", "vichy", "old spice", "secret", "dove", "nivea",
         # Policy & Ethics
         "phản động", "biểu tình", "chính trị", "đảng cộng sản", "tôn giáo"
     ]
 
     # Elite V2.2: Advanced Protection (Regex-based)
     INSULT_PATTERNS = [
-        r"\b(đm|đcm|vcl|đéo|ngu|cút|điên|khùng|mất dạy|láo|lừa đảo|bịp)\b",
-        r"\b(đầu buồi|cặc|lồn|vú|đít|đụ|chịch)\b"
+        r"\b(đm|đcm|vcl|đéo|ngu|cút|điên|khùng|mất dạy|láo|lừa đảo|bịp|đmm|đmm|vcc)\b",
+        r"\b(đầu buồi|cặc|lồn|vú|đít|đụ|chịch|đù|mẹ mày|cha mày)\b"
     ]
     
     INJECTION_PATTERNS = [

@@ -4,6 +4,7 @@ from sqlalchemy import select
 from backend.database.models.commerce import Order
 from backend.services.commerce.operatives.handlers.base import BaseHandler, SupportContext
 from backend.services.commerce.logic.lead_extractor import lead_extractor
+from backend.services.commerce.logic.location_resolver import location_resolver
 from backend.schemas.support import SupportIntent
 
 logger = logging.getLogger("api-gateway")
@@ -18,11 +19,16 @@ class OrderHandler(BaseHandler):
         """ZONE 3: Order Closing. Refined Elite V2.5 Architecture."""
         msg = ctx.request.message.lower().strip()
         
-        # 1. INTENT RECOGNITION (Heuristic)
+        # 1. INTENT RECOGNITION (Elite V2.5: Unit-Aware Detection)
         staff_patterns = ["cho 1 đơn", "cho đơn", "về :", "lên đơn", "gửi đơn"]
+        confirmed_units = ["lọ", "hộp", "chai", "hũ", "tuýp", "combo", "bộ", "gói"]
+
         has_digits = any(char.isdigit() for char in msg)
+        has_confirmed_unit = any(unit in msg for unit in confirmed_units)
+        is_ambiguous_order = "đơn" in msg and not has_confirmed_unit
+
         potential_keywords = ["mua", "đặt", "lấy", "ship", "giao", "ok", "chốt", "đơn", "lên đơn", "chốt đơn"]
-        
+
         is_staff_order = any(sp in msg for sp in staff_patterns) and has_digits
         has_buying_intent = any(kw in msg for kw in potential_keywords)
         is_strong_intent = has_digits and (has_buying_intent or is_staff_order)
@@ -46,11 +52,11 @@ class OrderHandler(BaseHandler):
         if lead_data and lead_data.processed_order_id:
             ctx.processed_order_id = lead_data.processed_order_id
             ctx.intent = SupportIntent.PURCHASE
-            
+
             order_id = str(lead_data.processed_order_id)
             stmt = select(Order).where(Order.id == order_id)
             order_obj = (await ctx.db.execute(stmt)).scalar_one_or_none()
-            
+
             if order_obj:
                 total_qty = 0
                 if isinstance(order_obj.items, list):
@@ -58,56 +64,56 @@ class OrderHandler(BaseHandler):
                         if isinstance(it, dict):
                             qty_val = it.get("quantity", 1)
                             total_qty += int(qty_val) if isinstance(qty_val, (int, str)) else 1
-                
+
                 formatted_price = "{:,.0f}".format(float(order_obj.total_amount or 0)).replace(",", ".")
                 delivery_info = self._calculate_delivery_time(order_obj.customer_address or "", getattr(lead_data, "shipping_days", None))
-                
+
                 from backend.services.commerce.constants.support_config import support_cfg
                 reply = (
-                    f"{debug_prefix}Dạ Helen xin cảm ơn quý khách! 🌸\nĐơn hàng thành công:\n- Mã đơn: **{order_id[-8:].upper()}**\n"
-                    f"- Số sản phẩm: {total_qty} lọ/combo\n- Tổng tiền: **{formatted_price}đ** (đã free ship)\n"
+                    f"{debug_prefix}Dạ Helen chúc mừng Anh/Chị đã đặt hàng thành công! 🌸\nHelen sẽ gửi đơn đi ngay ạ:\n"
+                    f"- Mã đơn: **{order_id[-8:].upper()}**\n"
+                    f"- Sản phẩm: {total_qty} {ctx.p_info.name if ctx.p_info else 'lọ/combo'}\n"
+                    f"- Tổng tiền: **{formatted_price}đ** (Free ship)\n"
                     f"- Nhận hàng: **{delivery_info}**\n\n"
-                    f"[🔍 KIỂM TRA ĐƠN HÀNG]({support_cfg.app_url}/account/orders/{order_id})"
+                    f"Anh/Chị nhớ để ý điện thoại để shipper gọi giao hàng nhé! 📞\n"
+                    f"[🔍 THEO DÕI ĐƠN HÀNG]({support_cfg.app_url}/account/orders/{order_id})"
                 )
                 ctx.replies.append(reply)
                 return True # ACTION SUCCESS -> STOP PIPELINE
 
-        # Case B: Partial Data or Nuclear Intent (Bypass AI uncertainty)
-        if is_staff_order or (lead_data and (lead_data.customer_phone or lead_data.customer_address)):
+        # Case B: Ambiguous "Đơn" or Partial Data
+        if is_strong_intent:
             ctx.intent = SupportIntent.PURCHASE
-            # 2. DECISION ENGINE (Elite V2.5 / V4.0 Upsell Edition)
-            if is_staff_order and lead_data and not lead_data.items:
-                # Case: Staff says "Cho 1 đơn" or "Cho về" but no "lọ/combo" defined.
-                # Trigger Consultative Menu instead of failing or creating empty order.
-                logger.info(f"💡 [OrderHandler] Ambiguous order detected. Triggering Upsell Menu for: {msg}")
-                
-                # Retrieve price from recent Turn or Config (Fallback to 249k)
+
+            # Case B1: "Cho 1 đơn" -> No specific unit confirmed
+            if is_ambiguous_order or (lead_data and not lead_data.items):
+                logger.info(f"💡 [OrderHandler] Ambiguous 'đơn' detected. Triggering Upsell Menu.")
+
+                base_price = int(ctx.p_info.price) if ctx.p_info and ctx.p_info.price else 249000
+                formatted_base = "{:,.0f}".format(base_price).replace(",", ".")
+                formatted_combo2 = "{:,.0f}".format(base_price * 2).replace(",", ".")
+
                 offer_reply = (
-                    f"{debug_prefix}Dạ Helen đã nhận diện yêu cầu lên đơn của Sếp! 🌸\n\n"
-                    "Để tối ưu hiệu quả và tiết kiệm nhất, Sếp muốn chốt theo liệu trình nào ạ?\n"
-                    "- **1 Lọ:** 249.000đ (Dùng thử)\n"
-                    "- **Combo 2 Tặng 1 (3 Lọ):** 498.000đ (Tiết kiệm 249k - **🔥 Bán chạy nhất**)\n"
+                    f"{debug_prefix}Dạ Helen đã nhận thông tin chốt đơn của mình tại địa chỉ trên ạ! 🌸\n\n"
+                    "Để Helen lên đơn chính xác nhất, mình muốn lấy liệu trình nào cho tiết kiệm ạ?\n"
+                    f"- **1 Lọ:** {formatted_base}đ (Dùng thử)\n"
+                    f"- **Combo 2 Tặng 1 (3 Lọ):** {formatted_combo2}đ (Tiết kiệm {formatted_base}đ - **🔥 Bán chạy nhất**)\n"
                     "- **Combo 4 Tặng 1 (5 Lọ):** Ưu đãi lớn nhất cho liệu trình chuyên sâu.\n\n"
-                    "Sếp cho em xin **số lượng** để em hoàn tất lên đơn ngay nhé!"
+                    "Anh/Chị cho em xin **số lượng** để em gửi hàng đi ngay nhé!"
                 )
-                
                 ctx.replies.append(offer_reply)
                 return True
 
-            if lead_data and lead_data.customer_phone and lead_data.customer_address:
-                p_name = ctx.p_info.name if ctx.p_info else "sản phẩm"
-                reply = (
-                    f"{debug_prefix}Dạ Helen đã ghi nhận SĐT **{lead_data.customer_phone}** và địa chỉ của mình tại **{lead_data.customer_address}** ạ.\n\n"
-                    f"Anh/Chị muốn đặt ngay liệu trình **{p_name}** này để em lên đơn và gửi đi cho mình luôn nhé? 🌸"
-                )
-            else:
-                # Force feedback if it's a staff command or clear intent but extraction was incomplete
-                reply = f"{debug_prefix}Helen đã nhận diện yêu cầu lên đơn của Sếp. Tuy nhiên em cần thêm SĐT và Địa chỉ chi tiết để hoàn tất. Sếp kiểm tra lại giúp em nhé! 🌸"
-            
-            ctx.replies.append(reply)
-            return True # BLOCK CONSULTANT!
+            # Case B2: Missing Phone or Address but intent is clear
+            if lead_data and (not lead_data.customer_phone or not lead_data.customer_address):
+                if not lead_data.customer_phone:
+                    reply = f"{debug_prefix}Dạ Helen đã thấy địa chỉ rồi ạ. Anh/Chị cho em xin thêm **Số Điện Thoại** để shipper liên hệ giao hàng nhé! 🌸"
+                else:
+                    reply = f"{debug_prefix}Dạ Helen đã có SĐT rồi ạ. Anh/Chị cho em xin **Địa chỉ cụ thể** để em gửi hàng về ngay nhé! 🌸"
+                ctx.replies.append(reply)
+                return True
 
-        return False # Fallthrough to next specialists (Greeting/Consultant)
+        return False # Fallthrough # Fallthrough to next specialists (Greeting/Consultant)
 
     def _calculate_delivery_time(self, address: str, shipping_days: str | None = None) -> str:
         """Heuristic Shipping Estimator (Standardized Logic)."""
