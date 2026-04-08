@@ -47,22 +47,19 @@ class ExtractedLead(BaseModel):
     address_status: str = Field("SAME", description="SAME, CHANGED, or NEW")
     previous_address: Optional[str] = Field(None, description="Địa chỉ cũ của khách nếu có")
     processed_order_id: Optional[str] = Field(None, description="ID đơn hàng đã tạo (nếu có)")
-    needs_price_quote: bool = Field(False, description="True nếu số lượng quá lớn (>6) cần báo giá riêng")
+    needs_price_quote: bool = Field(False, description="True nếu số lượng quá lớn (>5) cần báo giá riêng")
     shipping_days: Optional[str] = Field(None, description="Thời gian giao hàng dự kiến")
 
 _lead_extraction_agent = Agent(
     output_type=ExtractedLead,
     system_prompt=(
         "Bạn là một chuyên gia trích xuất đơn hàng tại Việt Nam (Elite Specialist).\n"
-        " NHIỆM VỤ CHIẾN THUẬT SIÊU CẤP:\n"
-        " 1. TRÍCH XUẤT CHÍNH XÁC: SĐT (10 số), Địa chỉ (số nhà, ngõ, đường...), Sản phẩm, Tên khách.\n"
-        " 2. ĐỊNH DẠNG CRM/STAFF (TRỌNG TÂM): Khi gặp dòng lệnh có dấu : và , như 'Cho 1 đơn về : ĐỊA_CHỈ, KHU_VỰC, SĐT, TÊN':\n"
-        "    - Phần từ Sau dấu : đến trước dấu , đầu tiên luôn là ĐỊA CHỈ (có thể chứa /).\n"
-        "    - Chuỗi 10 số liền nhau luôn là SĐT.\n"
-        "    - Chữ cuối cùng sau dấu , sau SĐT luôn là TÊN KHÁCH.\n"
-        "    - Đặt is_definite_purchase = true.\n"
-        " 3. NHẬN DIỆN XÁC NHẬN: Nếu tin nhắn là 'Ok', 'Chốt', 'Đồng ý', 'Gửi đi', hãy đặt is_definite_purchase = true và giữ nguyên các trường khác là null để hệ thống tự truy hồi từ lịch sử.\n"
-        " 4. Tuyệt đối không bịa thông tin."
+        " QUY TẮC CHIẾN THUẬT:\n"
+        " 1. TRÍCH XUẤT CHÍNH XÁC: SĐT (10 số), Địa chỉ, Sản phẩm, Tên khách.\n"
+        " 2. ĐỊNH DẠNG STAFF: 'Cho 1 đơn về : [Địa chỉ], [SĐT], [Tên]' -> Parse địa chỉ, SĐT, tên. Nếu không có 'lọ/combo' đi kèm, đặt items rỗng để hệ thống hỏi lại.\n"
+        " 3. ĐỊNH DẠNG ĐỊNH LƯỢNG: 'Lấy 2 lọ', 'Cho 3 combo', 'Gửi 5 hộp' -> Phải trích xuất chính xác số lượng vào items.\n"
+        " 4. NHẬN DIỆN XÁC NHẬN: 'Ok', 'Chốt', 'Đồng ý', 'Gửi đi' -> is_definite_purchase = true.\n"
+        " 5. Tuyệt đối không bịa thông tin."
     )
 )
 
@@ -130,15 +127,15 @@ class LeadExtractor:
     @staticmethod
     def _apply_martial_combo_rules(qty: int) -> Tuple[int, Optional[str], bool]:
         """
-        Elite V3.7: The Martial Combo Protocol (Hardcoded Sales Intelligence).
+        Elite V4.0: The Martial Combo Protocol (Sales & Upsell Intelligence).
         1 lọ -> 1 lọ
-        2-3 lọ -> 3 lọ (Combo 3)
-        4-6 lọ -> 6 lọ (Combo 6)
-        > 6 lọ -> Contact support
+        2-3 lọ -> 3 lọ (Combo 2+1)
+        4-5 lọ -> 5 lọ (Combo 4+1)
+        > 5 lọ -> Contact support for bulk price
         """
         if qty <= 1: return 1, None, False
         if 2 <= qty <= 3: return 3, "combo-3", False
-        if 4 <= qty <= 6: return 6, "combo-6", False
+        if 4 <= qty <= 5: return 5, "combo-5", False
         return qty, None, True
 
     @staticmethod

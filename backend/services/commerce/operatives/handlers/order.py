@@ -75,7 +75,25 @@ class OrderHandler(BaseHandler):
         # Case B: Partial Data or Nuclear Intent (Bypass AI uncertainty)
         if is_staff_order or (lead_data and (lead_data.customer_phone or lead_data.customer_address)):
             ctx.intent = SupportIntent.PURCHASE
-            
+            # 2. DECISION ENGINE (Elite V2.5 / V4.0 Upsell Edition)
+            if is_staff_order and lead_data and not lead_data.items:
+                # Case: Staff says "Cho 1 đơn" or "Cho về" but no "lọ/combo" defined.
+                # Trigger Consultative Menu instead of failing or creating empty order.
+                logger.info(f"💡 [OrderHandler] Ambiguous order detected. Triggering Upsell Menu for: {msg}")
+                
+                # Retrieve price from recent Turn or Config (Fallback to 249k)
+                offer_reply = (
+                    f"{debug_prefix}Dạ Helen đã nhận diện yêu cầu lên đơn của Sếp! 🌸\n\n"
+                    "Để tối ưu hiệu quả và tiết kiệm nhất, Sếp muốn chốt theo liệu trình nào ạ?\n"
+                    "- **1 Lọ:** 249.000đ (Dùng thử)\n"
+                    "- **Combo 2 Tặng 1 (3 Lọ):** 498.000đ (Tiết kiệm 249k - **🔥 Bán chạy nhất**)\n"
+                    "- **Combo 4 Tặng 1 (5 Lọ):** Ưu đãi lớn nhất cho liệu trình chuyên sâu.\n\n"
+                    "Sếp cho em xin **số lượng** để em hoàn tất lên đơn ngay nhé!"
+                )
+                
+                ctx.replies.append(offer_reply)
+                return True
+
             if lead_data and lead_data.customer_phone and lead_data.customer_address:
                 p_name = ctx.p_info.name if ctx.p_info else "sản phẩm"
                 reply = (
