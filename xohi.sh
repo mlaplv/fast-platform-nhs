@@ -262,12 +262,21 @@ function init_deploy() {
     echo "1) Cháy Seed DB Test (Dữ liệu mẫu)"
     echo "2) Khôi phục từ bản sao lưu (Restore Backup)"
     echo "3) Bỏ qua (Giữ DB trắng)"
-    read -t 10 -p "Lựa chọn của Sếp (mặc định 1 sau 10s): " db_choice
+    db_choice=""
+    for i in {10..1}; do
+        echo -ne "\rLựa chọn của Sếp (mặc định 1 sau ${i}s): "
+        if read -t 1 input; then
+            db_choice=$input
+            break
+        fi
+    done
 
     # [ELITE V2.2] Tự động chọn 1 nếu Sếp không phản hồi sau 10s
     if [[ -z "$db_choice" ]]; then
         db_choice=1
         echo -e "\n${YELLOW}-> Tự động chọn mục 1 (Seed DB)...${NC}"
+    else
+        echo -e "" # Xuống dòng sau khi nhận input
     fi
 
     case $db_choice in

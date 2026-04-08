@@ -1,5 +1,6 @@
 from __future__ import annotations
 import logging
+import unicodedata
 from sqlalchemy import select
 from backend.database.models.commerce import Order
 from backend.services.commerce.operatives.handlers.base import BaseHandler, SupportContext
@@ -17,21 +18,24 @@ class OrderHandler(BaseHandler):
     
     async def handle(self, ctx: SupportContext) -> bool:
         """ZONE 3: Order Closing. Refined Elite V2.5 Architecture."""
-        msg = ctx.request.message.lower().strip()
-        
-        # 1. INTENT RECOGNITION (Elite V2.5: Unit-Aware Detection)
-        staff_patterns = ["cho 1 đơn", "cho đơn", "về :", "lên đơn", "gửi đơn"]
+        msg = unicodedata.normalize("NFKC", ctx.request.message.lower().strip())
+
+        staff_patterns = ["cho 1 đơn", "cho đơn", "về :", "về:", "lên đơn", "gửi đơn"]
         confirmed_units = ["lọ", "hộp", "chai", "hũ", "tuýp", "combo", "bộ", "gói"]
 
         has_digits = any(char.isdigit() for char in msg)
         has_confirmed_unit = any(unit in msg for unit in confirmed_units)
         is_ambiguous_order = "đơn" in msg and not has_confirmed_unit
 
-        potential_keywords = ["mua", "đặt", "lấy", "ship", "giao", "ok", "chốt", "đơn", "lên đơn", "chốt đơn"]
+        potential_keywords = ["mua", "đặt", "lấy", "ship", "giao", "ok", "chốt", "đơn", "lên đơn", "chốt đơn", "cho"]
 
         is_staff_order = any(sp in msg for sp in staff_patterns) and has_digits
         has_buying_intent = any(kw in msg for kw in potential_keywords)
-        is_strong_intent = has_digits and (has_buying_intent or is_staff_order)
+        is_strong_intent = has_digits and (has_buying_intent or is_staff_order or has_confirmed_unit)
+
+        # 1. INTENT RECOGNITION (Elite V2.5: Unit-Aware Detection)
+        msg_debug = f"DEBUG: msg='{msg}', digits={has_digits}, unit={has_confirmed_unit}, strong_intent={has_digits and (has_buying_intent or is_staff_order or has_confirmed_unit)}"
+        logger.info(f"[OrderHandler] {msg_debug}")
 
         # 🚀 2. ATOMIC EXTRACTION (Execute ONLY ONCE)
         lead_data = None
@@ -41,10 +45,14 @@ class OrderHandler(BaseHandler):
                     ctx.db, ctx.request.message, ctx.session_id, current_product_slug=ctx.request.product_slug
                 )
                 ctx.lead_data = lead_data
+                logger.info(f"[OrderHandler] Atomic extraction result: items={len(lead_data.items) if lead_data else 0}, definite={lead_data.is_definite_purchase if lead_data else 'N/A'}, order_id={lead_data.processed_order_id if lead_data else 'N/A'}")
             except Exception as e:
                 logger.error(f"[OrderHandler] Atomic extraction failed: {e}")
 
         # 🚀 3. DECISION ENGINE (The Lockdown)
+        if lead_data:
+            logger.info(f"[OrderHandler] Debug: definite={lead_data.is_definite_purchase}, phone={lead_data.customer_phone}, address={lead_data.customer_address}")
+
         import os
         debug_prefix = "[z3] " if os.getenv("HELEN_DEBUG", "0") == "1" else ""
 
@@ -83,10 +91,17 @@ class OrderHandler(BaseHandler):
 
         # Case B: Ambiguous "Đơn" or Partial Data
         if is_strong_intent:
+            logger.info(f"[OrderHandler] Debug Case B: lead_data={lead_data}, definite={lead_data.is_definite_purchase if lead_data else 'N/A'}, items={len(lead_data.items) if lead_data else 0}")
             ctx.intent = SupportIntent.PURCHASE
 
             # Case B1: "Cho 1 đơn" -> No specific unit confirmed
-            if is_ambiguous_order or (lead_data and (not lead_data.items or not lead_data.is_definite_purchase)):
+            # FIX: Only trigger upsell if not a definite purchase AND (ambiguous "đơn" OR no items)
+            is_definite = lead_data.is_definite_purchase if lead_data else False
+            has_items = bool(lead_data.items) if lead_data else False
+
+            logger.info(f"[OrderHandler] Debug B1: is_ambiguous={is_ambiguous_order}, definite={is_definite}, items={has_items}")
+
+            if (is_ambiguous_order and not is_definite) or (lead_data and not has_items and not is_definite):
                 # New: Handle Ambiguous Location
                 if lead_data and lead_data.possible_provinces:
                     provinces = ", ".join(lead_data.possible_provinces)
@@ -110,6 +125,12 @@ class OrderHandler(BaseHandler):
                 )
                 ctx.replies.append(offer_reply)
                 return True
+
+            # Case B3: Explicit Quantity without Phone/Address (Force Purchase, ask for info)
+            if lead_data and lead_data.is_definite_purchase and (not lead_data.customer_phone or not lead_data.customer_address):
+                 # This will fall through to Case B2 automatically if we don't return here.
+                 # Actually, Case B2 handles this.
+                 pass
 
             # Case B2: Missing Phone or Address but intent is clear
             if lead_data and (not lead_data.customer_phone or not lead_data.customer_address):

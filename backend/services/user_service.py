@@ -247,14 +247,14 @@ class UserService:
             status="ACTIVE",
             tenant_id=tenant_id
         )
-        
+
         # Assign CUSTOMER role if it exists in seed
         role_stmt = select(Role).where(Role.code == "CUSTOMER")
         role_res = await db.execute(role_stmt)
         customer_role = role_res.scalar_one_or_none()
         if customer_role:
             new_user.roles.append(customer_role)
-            
+
         # Elite V2.2: Savepoint guard against concurrent INSERT race condition.
         # If two requests arrive simultaneously for the same new phone, only one
         # INSERT wins; the other catches IntegrityError and re-fetches.

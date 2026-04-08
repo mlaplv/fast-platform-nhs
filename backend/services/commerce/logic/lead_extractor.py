@@ -61,7 +61,8 @@ _lead_extraction_agent = Agent(
         " 2. ĐỊNH DẠNG STAFF: 'Cho 1 đơn về : [Địa chỉ], [SĐT], [Tên]' -> Parse địa chỉ, SĐT, tên. Nếu không có 'lọ/combo' đi kèm, đặt items rỗng để hệ thống hỏi lại.\n"
         " 3. ĐỊNH DẠNG ĐỊNH LƯỢNG: 'Lấy 2 lọ', 'Cho 3 combo', 'Gửi 5 hộp' -> Phải trích xuất chính xác số lượng vào items.\n"
         " 4. NHẬN DIỆN XÁC NHẬN: 'Ok', 'Chốt', 'Đồng ý', 'Gửi đi' -> is_definite_purchase = true.\n"
-        " 5. Tuyệt đối không bịa thông tin."
+        " 5. ĐẶC BIỆT: Nếu khách chỉ nói 'Cho 1 đơn' hoặc 'Cho đơn' mà KHÔNG CÓ đơn vị (lọ, hộp, chai, hũ, tuýp, combo, bộ, gói) -> is_definite_purchase = false.\n"
+        " 6. Tuyệt đối không bịa thông tin."
     )
 )
 
@@ -91,15 +92,32 @@ class LeadExtractor:
         res = await db.execute(stmt)
         history = res.scalars().all()
         
+        # Phone regex
+        phone_re = re.compile(r"0\d{9}")
+
         for h in history:
+            # 1. Direct field check
             if not lead.customer_phone and h.customer_phone:
                 lead.customer_phone = h.customer_phone
             if not lead.customer_name and h.customer_name:
                 lead.customer_name = h.customer_name
+
+            # 2. Content regex extraction (if fields are missing)
+            content = GeminiSecurity.decrypt(h.content or "")
+            if not lead.customer_phone:
+                match = phone_re.search(content)
+                if match:
+                    lead.customer_phone = match.group(0)
+
+            # 3. Address extraction (simple heuristic)
             if not lead.customer_address and h.role == "user":
-                prev_msg = GeminiSecurity.decrypt(h.content or "").lower()
-                if any(kw in prev_msg for kw in ["đường", "phố", "quận", "huyện", "/"]):
-                    pass 
+                if any(kw in content.lower() for kw in ["đường", "phố", "quận", "huyện", "/"]):
+                     # Heuristic: just pick the first user message that looks like an address
+                     lead.customer_address = content
+
+        # Log results
+        if lead.customer_phone or lead.customer_address:
+            logger.info(f"[LeadExtractor] Hydration successful: phone={lead.customer_phone}, address_exists={bool(lead.customer_address)}")
 
         return lead
 
@@ -163,6 +181,17 @@ class LeadExtractor:
                 logger.warning(f"[LeadExtractor] Unknown result type: {type(result)}")
                 return None
 
+            # 🚀 1.1 AMBIGUITY OVERRIDE (Elite V2.6)
+            # If AI Agent mistakenly thinks it's a definite purchase but it's ambiguous, FORCE False.
+            msg_lower = message.lower().strip()
+            confirmed_units = ["lọ", "hộp", "chai", "hũ", "tuýp", "combo", "bộ", "gói"]
+            has_confirmed_unit = any(unit in msg_lower for unit in confirmed_units)
+            is_ambiguous = ("cho 1 đơn" in msg_lower or "cho đơn" in msg_lower) and not has_confirmed_unit
+
+            if is_ambiguous:
+                logger.info(f"💡 [LeadExtractor] Ambiguous Staff Order Detected (Override AI). Setting is_definite_purchase=False.")
+                lead.is_definite_purchase = False
+
             # 2. DATA HYGIENE
             lead.customer_phone = validate_vietnam_phone(lead.customer_phone or "")
             
@@ -176,11 +205,18 @@ class LeadExtractor:
 
             # 2.1 Elite V2.5: Heuristic Purchase Force
 
-            # If the staff explicitly says "Cho 1 đơn" or "Lên đơn", we FORCE definite purchase
+            # If the staff explicitly says "Lên đơn", we FORCE definite purchase
             # to bypass any AI uncertainty.
-            force_keywords = ["cho 1 đơn", "cho đơn", "lên đơn", "lấy 1 đơn", "gửi đơn"]
+            # Removed: "cho 1 đơn", "cho đơn", "lấy 1 đơn", "gửi đơn" (now handled by AI or unit detection)
+            force_keywords = ["lên đơn"]
             if any(fw in message.lower() for fw in force_keywords):
                 logger.info(f"🚀 [LeadExtractor] Heuristic Force: is_definite_purchase=True matched for '{message[:20]}...'")
+                lead.is_definite_purchase = True
+
+            # Elite V2.5: Force definite purchase if message contains quantity (e.g., "2 lọ")
+            quantity_pattern = r"(\d+)\s*(lọ|hộp|chai|hũ|tuýp|combo|bộ|gói)"
+            if re.search(quantity_pattern, message.lower()):
+                logger.info(f"🚀 [LeadExtractor] Heuristic Force: is_definite_purchase=True matched for quantity in '{message[:20]}...'")
                 lead.is_definite_purchase = True
 
             # 2.1 ADDRESS RESOLUTION (Elite V2.2)
@@ -216,6 +252,8 @@ class LeadExtractor:
                 lead.is_new_customer = is_new
                 lead.previous_address = prev_addr
                 lead.address_status = "NEW" if is_new else ("CHANGED" if addr_changed else "SAME")
+            else:
+                logger.warning(f"[LeadExtractor] Cannot resolve user: No phone number extracted. lead_data={lead.dict()}")
 
             if not lead.is_definite_purchase or not lead.customer_phone:
                 return lead
@@ -287,6 +325,9 @@ class LeadExtractor:
                 logger.warning("[LeadExtractor] No resolved user for order creation. Aborting.")
                 return lead
 
+            logger.info(f"[LeadExtractor] Preparing order data for {resolved_user.id}...")
+            logger.info(f"[LeadExtractor] Order items: {order_items}, Total amount: {total_amount}")
+
             order_data = OrderCreateRequest(
                 customer_name=lead.customer_name or "Khách chốt từ Chat",
                 customer_email=resolved_user.email,
@@ -295,7 +336,9 @@ class LeadExtractor:
                 total_amount=total_amount,
                 items=order_items,
             )
-            
+
+            logger.info(f"[LeadExtractor] Calling order_service.create_order with: {order_data.model_dump()}")
+
             created_order = await order_service.create_order(db_session=db, data=order_data, ip="0.0.0.0", ua="Helen-AI-Sales-Engine", user_id=str(resolved_user.id))
             await db.commit()
             lead.processed_order_id = str(getattr(created_order, "id", ""))
