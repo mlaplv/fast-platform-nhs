@@ -226,16 +226,16 @@
           {:else}
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
               {#each internalAssets as asset, index (index)}
-                <div 
+                <div
                   class="group relative aspect-square bg-[#0f111a] rounded-xl overflow-hidden border border-white/[0.06] transition-all duration-500 hover:border-cyan-500/40 hover:shadow-[0_0_30px_rgba(0,243,255,0.1)]"
                   style="animation: fadeIn 0.4s ease-out {index * 0.05}s both;"
                 >
-                  <div class="absolute top-2 left-2 z-20 w-6 h-6 rounded bg-black/80 backdrop-blur-md border border-white/10 flex items-center justify-center">
+                  <div class="absolute top-2 left-2 w-6 h-6 rounded bg-black/80 backdrop-blur-md border border-white/10 flex items-center justify-center" style="z-index: {Z_INDEX_ADMIN.SIDEBAR_SUB};">
                     <span class="text-[10px] font-mono font-bold text-cyan-400">{index + 1}</span>
                   </div>
 
                   {#if selectedAvatarUrl === getImageUrl(asset)}
-                    <div class="absolute top-2 right-2 z-20 px-2 py-0.5 rounded bg-cyan-500 text-black text-[9px] font-black uppercase tracking-tighter">
+                    <div class="absolute top-2 right-2 px-2 py-0.5 rounded bg-cyan-500 text-black text-[9px] font-black uppercase tracking-tighter" style="z-index: {Z_INDEX_ADMIN.SIDEBAR_SUB};">
                       PRIMARY
                     </div>
                   {/if}

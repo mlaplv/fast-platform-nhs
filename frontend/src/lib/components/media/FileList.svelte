@@ -1,8 +1,10 @@
 <script lang="ts">
     import { mediaStore } from '$lib/state/media.svelte';
     import type { MediaAsset } from '$lib/state/types';
+    import { resolveThumbnailUrl, formatBytes, formatDate } from '$lib/state/utils';
     import { fade, scale } from 'svelte/transition';
     import { Check, Trash2, RotateCcw, FileText, Image as ImageIcon, FileCode, Film, Music, MoreHorizontal, Calendar, Database, HardDrive, Tag, Eye } from 'lucide-svelte';
+    import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
 
     interface Props {
         assets: MediaAsset[];
@@ -31,35 +33,12 @@
         }
     }
 
-    function formatBytes(bytes: number = 0) {
-        if (bytes === 0) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-    }
-
-    function formatDate(dateStr?: string) {
-        if (!dateStr) return 'N/A';
-        return new Date(dateStr).toLocaleDateString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-    }
-
     function getIcon(mimeType?: string) {
         if (mimeType?.startsWith('image/')) return ImageIcon;
         if (mimeType?.startsWith('video/')) return Film;
         if (mimeType?.startsWith('audio/')) return Music;
         if (mimeType?.includes('code') || mimeType?.includes('html') || mimeType?.includes('json')) return FileCode;
         return FileText;
-    }
-
-    function getImageUrl(asset: MediaAsset) {
-        if (asset.id?.startsWith('tmp_')) return asset.file_path;
-        const base = `/api/v1/media/${asset.id}/thumb?w=100`;
-        return asset._updatedAt ? `${base}&t=${asset._updatedAt}` : base;
     }
 </script>
 
@@ -90,13 +69,13 @@
                         <div class="w-12 h-12 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border-2 border-transparent group-hover:border-blue-500/20 transition-all shadow-inner relative">
                             {#if asset.mime_type?.startsWith('image/')}
                                 <img
-                                    src={getImageUrl(asset)}
+                                    src={resolveThumbnailUrl(asset, 100)}
                                     alt=""
                                     class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                                     loading="lazy"
                                 />
                                 {#if mediaStore.selectedIds.has(asset.id)}
-                                    <div class="absolute inset-0 bg-blue-500/40 flex items-center justify-center" transition:fade>
+                                    <div class="absolute inset-0 bg-blue-500/40 flex items-center justify-center" style="z-index: {Z_INDEX_ADMIN.GRID_HOVER};" transition:fade>
                                         <Check size={16} class="text-white" strokeWidth={3} />
                                     </div>
                                 {/if}
@@ -172,7 +151,7 @@
                         <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             {#if !mediaStore.isTrashMode && (asset.mime_type?.startsWith('image/'))}
                                 <button
-                                    onclick={(e) => { e.stopPropagation(); onPreview(getImageUrl(asset)); }}
+                                    onclick={(e) => { e.stopPropagation(); onPreview(resolveThumbnailUrl(asset, 100)); }}
                                     class="w-8 h-8 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl transition-all shadow-sm active:scale-90"
                                     title="Xem ảnh"
                                 >

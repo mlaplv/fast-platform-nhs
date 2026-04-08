@@ -78,6 +78,61 @@ export function resolveMediaUrl(url: string | null | undefined): string {
 }
 
 /**
+ * CNS V110: Standardized Unit Formatting.
+ */
+export function formatBytes(bytes: number = 0): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+/**
+ * CNS V110: Standardized Date Formatting.
+ */
+export function formatDate(dateStr?: string | Date, includeTime: boolean = false): string {
+    if (!dateStr) return 'N/A';
+    const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+
+    if (includeTime) {
+        return date.toLocaleString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    }
+
+    return date.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+}
+
+/**
+ * CNS V105: Unified Thumbnail/Preview URL Resolver.
+ * Handles both API-based thumbnails and full resolution previews with cache busting.
+ */
+export function resolveThumbnailUrl(asset: MediaAsset, width?: number): string {
+    if (!asset) return '';
+    if (asset.id?.startsWith('tmp_')) return asset.file_path || '';
+
+    // If width is provided, use the thumbnail API
+    if (width) {
+        const base = `/api/v1/media/${asset.id}/thumb?w=${width}`;
+        return asset._updatedAt ? `${base}&t=${asset._updatedAt}` : base;
+    }
+
+    // Otherwise use the full media resolution helper
+    const url = asset.file_path || asset.url || '';
+    const base = resolveMediaUrl(url);
+    return asset._updatedAt ? `${base}?t=${asset._updatedAt}` : base;
+}
+
+/**
  * Elite V2.2: Unified HTML Media Processor.
  * Standardizes [IMAGE_n] replacement and external-to-local link mapping.
  */

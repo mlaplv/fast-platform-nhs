@@ -1,5 +1,10 @@
 <script lang="ts">
   import type { MediaAsset } from '$lib/state/types';
+  import {
+    Search, Upload, Link, LayoutGrid, List, BarChart3, Filter, FileEdit, RefreshCw,
+    Brain, Check, X
+  } from 'lucide-svelte';
+  import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
 
   interface Props {
     searchQuery: string;
@@ -57,7 +62,7 @@
 
 </script>
 
-<header class="p-4 border-b border-zinc-200 dark:border-zinc-700/50 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md sticky top-0 z-30 flex flex-wrap items-center justify-between gap-4">
+<header class="p-4 border-b border-zinc-200 dark:border-zinc-700/50 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md sticky top-0 flex flex-wrap items-center justify-between gap-4" style="z-index: {Z_INDEX_ADMIN.LAYOUT_HEADER};">
     <div class="flex items-center gap-4 flex-1 min-w-[300px]">
         <div class="relative flex-1 max-w-md group">
             <div class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-blue-500 transition-colors">
@@ -77,7 +82,7 @@
                 disabled={isUploading}
                 class="flex items-center gap-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-blue-500/20"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                <Upload size={14} />
                 {isUploading ? 'ĐANG TẢI...' : 'TẢI LÊN'}
             </button>
             <button
@@ -85,7 +90,7 @@
                 class="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 rounded-lg transition-all"
                 title="Nhập URL ảnh"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                <Link size={18} />
             </button>
         </div>
     </div>
@@ -96,13 +101,13 @@
                 onclick={onViewModeToggle}
                 class="p-1.5 rounded-lg transition-all {viewMode === 'grid' ? 'bg-white dark:bg-zinc-700 shadow-sm text-blue-500' : 'text-zinc-500 hover:text-zinc-700'}"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                <LayoutGrid size={18} />
             </button>
             <button
                 onclick={onViewModeToggle}
                 class="p-1.5 rounded-lg transition-all {viewMode === 'list' ? 'bg-white dark:bg-zinc-700 shadow-sm text-blue-500' : 'text-zinc-500 hover:text-zinc-700'}"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                <List size={18} />
             </button>
         </div>
 
@@ -112,28 +117,28 @@
                 class="p-1.5 rounded-lg transition-all {showStats ? 'bg-white dark:bg-zinc-700 shadow-sm text-blue-500' : 'text-zinc-500 hover:text-zinc-700'}"
                 title="Thống kê"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                <BarChart3 size={18} />
             </button>
             <button
                 onclick={onPostFilterToggle}
                 class="p-1.5 rounded-lg transition-all {showPostFilter ? 'bg-white dark:bg-zinc-700 shadow-sm text-blue-500' : 'text-zinc-500 hover:text-zinc-700'}"
                 title="Lọc theo bài viết"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <Filter size={18} />
             </button>
             <button
                 onclick={onBulkSeoClick}
                 class="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 rounded-lg transition-all relative"
                 title="Sửa Bulk SEO"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 12h10"/><path d="M12 7v10"/></svg>
+                <FileEdit size={18} />
             </button>
             <button
                 onclick={onRefresh}
                 class="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 rounded-lg transition-all"
                 title="Làm mới"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                <RefreshCw size={18} />
             </button>
         </div>
 
@@ -145,7 +150,7 @@
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:text-zinc-600'}"
         >
             <div class={aiVisionEnabled ? 'animate-pulse' : ''}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                <Brain size={16} />
             </div>
             <span class="text-[10px] font-black uppercase tracking-widest">{aiVisionEnabled ? 'AI VISION: ON' : 'AI VISION: OFF'}</span>
         </button>
@@ -156,7 +161,7 @@
                 class="ml-2 flex items-center gap-2 px-6 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-blue-500/20"
                 title="Xác nhận"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                <Check size={16} />
                 Xác nhận
             </button>
         {/if}
@@ -167,7 +172,7 @@
                class="ml-1 w-9 h-9 flex items-center justify-center bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all"
                title="Đóng thư viện"
             >
-               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+               <X size={18} />
             </button>
         {/if}
     </div>

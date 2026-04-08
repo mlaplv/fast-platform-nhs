@@ -1,9 +1,10 @@
 <script lang="ts">
+    import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
     import { fade, slide, scale } from 'svelte/transition';
     import { X, Trash2, RotateCcw, Edit3, Link, Wand2, Maximize2, ShieldCheck, Tag, Hash, Activity, Clock, HardDrive, Image as ImageIcon, Eye } from 'lucide-svelte';
     import type { MediaAsset } from '$lib/state/types';
     import { mediaStore } from '$lib/state/media.svelte';
-    import { resolveMediaUrl } from '$lib/state/utils';
+    import { resolveMediaUrl, resolveThumbnailUrl, formatBytes, formatDate } from '$lib/state/utils';
     import ImagePreviewModal from '../admin/ui/ImagePreviewModal.svelte';
 
     interface Props {
@@ -39,73 +40,27 @@
         }
     });
 
-    async function saveAlt() {
+    function saveAlt() {
         if (!asset) return;
-        await mediaStore.bulkUpdateMetadata([{ 
-            id: asset.id, 
-            metadata: { alt_text: editedAlt } 
+        mediaStore.bulkUpdateMetadata([{
+            id: asset.id,
+            metadata: { alt_text: editedAlt }
         }]);
         isEditingAlt = false;
-    }
-
-    function formatBytes(bytes: number = 0) {
-        if (bytes === 0) return '0 B';
-        const k = 1024;
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + ['B', 'KB', 'MB', 'GB'][i];
-    }
-
-    function formatDate(dateStr?: string) {
-        if (!dateStr) return 'N/A';
-        return new Date(dateStr).toLocaleString('vi-VN', {
-            hour: '2-digit',
-            minute: '2-digit',
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-    }
-
-    import { useNanobot } from '$lib/state/nanobot.svelte';
-    const nanobot = useNanobot();
-
-    // ... (các phần khác giữ nguyên)
-
-    // Sửa hàm mở preview
-    function openPreview(asset: MediaAsset) {
-        if (asset.mime_type?.startsWith('video/')) {
-            onPlayVideo?.(asset.file_path);
-        } else {
-            previewImageUrl = getImageUrl(asset);
-        }
-    }
-
-    function getImageUrl(asset: MediaAsset) {
-        if (asset.id?.startsWith('tmp_')) return asset.file_path;
-
-        // Use resolveMediaUrl for full image preview, or thumbnail if preferred
-        const url = asset.file_path || asset.url || '';
-        const base = resolveMediaUrl(url);
-
-        return asset._updatedAt ? `${base}?t=${asset._updatedAt}` : base;
-    }
-
-    function getMediaPreviewUrl(asset: MediaAsset) {
-        return getImageUrl(asset);
     }
 </script>
 
 {#if asset}
     <ImagePreviewModal imageUrl={previewImageUrl} onClose={() => previewImageUrl = null} />
     <div
-        class="w-80 border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0e14] flex flex-col h-full overflow-hidden shadow-[-20px_0_50px_rgba(0,0,0,0.1)] z-20 relative"
+        class="w-80 border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0e14] flex flex-col h-full overflow-hidden shadow-[-20px_0_50px_rgba(0,0,0,0.1)] relative" style="z-index: {Z_INDEX_ADMIN.SIDEBAR_SUB};"
         transition:slide={{ axis: 'x', duration: 400 }}
     >
         <!-- Liquid Glow Accent -->
         <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[80px] pointer-events-none"></div>
 
         <!-- Header -->
-        <div class="p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-white/[0.02] backdrop-blur-md sticky top-0 z-10">
+        <div class="p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-white/[0.02] backdrop-blur-md sticky top-0" style="z-index: {Z_INDEX_ADMIN.SURFACE};">
             <div class="flex flex-col">
                 <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 dark:text-zinc-500">Resource Analyst</h3>
                 <span class="text-[8px] font-bold text-blue-500 tracking-widest">{asset.id.slice(0, 16)}</span>
@@ -141,7 +96,7 @@
                     ></video>
                 {:else}
                     <img
-                        src={getImageUrl(asset)}
+                        src={resolveThumbnailUrl(asset)}
                         alt={asset.alt_text}
                         class="w-full h-full object-contain p-2 transition-transform duration-1000 group-hover:scale-110"
                     />
@@ -153,7 +108,7 @@
                             if (asset.mime_type?.startsWith('video/')) {
                                 onPlayVideo?.(asset.file_path);
                             } else {
-                                previewImageUrl = getImageUrl(asset);
+                                previewImageUrl = resolveThumbnailUrl(asset);
                             }
                         }}
                         class="p-2.5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl text-white hover:bg-white/20 transition-all shadow-2xl"
@@ -195,7 +150,7 @@
             <div class="p-5 rounded-[2rem] bg-gradient-to-br from-blue-600/[0.03] to-indigo-600/[0.03] border border-blue-500/10 dark:border-blue-500/5 space-y-5 relative overflow-hidden">
                 <div class="absolute top-[-10%] left-[-10%] w-20 h-20 bg-blue-500/5 blur-2xl rounded-full"></div>
                 
-                <div class="flex items-center justify-between relative z-10">
+                <div class="flex items-center justify-between relative" style="z-index: {Z_INDEX_ADMIN.SURFACE};">
                     <div class="flex items-center gap-2.5">
                         <div class="p-1.5 bg-blue-500 text-white rounded-lg shadow-lg shadow-blue-500/20">
                             <Wand2 size={12} strokeWidth={3} />
@@ -210,7 +165,7 @@
                 </div>
 
                 <!-- Alt text (SEO) -->
-                <div class="space-y-3 relative z-10">
+                <div class="space-y-3 relative" style="z-index: {Z_INDEX_ADMIN.SURFACE};">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2 opacity-60">
                             <Tag size={12} class="text-blue-500" />
@@ -220,11 +175,11 @@
                             <Edit3 size={14} />
                         </button>
                     </div>
-                    
+
                     {#if isEditingAlt}
                         <div class="flex flex-col gap-3" in:slide>
-                            <textarea 
-                                bind:value={editedAlt} 
+                            <textarea
+                                bind:value={editedAlt}
                                 class="w-full p-4 text-[11px] bg-white dark:bg-[#0c0e14] border-2 border-blue-500/20 rounded-2xl outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 min-h-[100px] transition-all no-scrollbar"
                                 placeholder="Mô tả nội dung ảnh để tối ưu SEO..."
                             ></textarea>
@@ -244,7 +199,7 @@
 
                 <!-- AI Semantic Tags -->
                 {#if asset.media_metadata?.ai_tags && asset.media_metadata.ai_tags.length > 0}
-                    <div class="space-y-3 relative z-10">
+                    <div class="space-y-3 relative" style="z-index: {Z_INDEX_ADMIN.SURFACE};">
                         <div class="flex items-center gap-2 opacity-60">
                             <Activity size={12} class="text-indigo-500" />
                             <span class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Detected Tags</span>
@@ -261,7 +216,7 @@
             </div>
 
             <!-- Logic Actions Control -->
-            <div class="space-y-4 pt-6 mt-4 border-t border-zinc-100 dark:border-zinc-800 relative z-10">
+            <div class="space-y-4 pt-6 mt-4 border-t border-zinc-100 dark:border-zinc-800 relative" style="z-index: {Z_INDEX_ADMIN.SURFACE};">
                 {#if mode === 'pick' || onSelect}
                     <button 
                         onclick={() => onSelect?.([asset])} 
