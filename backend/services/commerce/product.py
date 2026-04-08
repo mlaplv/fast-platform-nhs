@@ -57,6 +57,35 @@ class ProductService:
 
     def __init__(self, vector_service: ProductVectorService):
         self.vector_service = vector_service
+        # Đăng ký listener để tự động cập nhật order_count khi có đơn hàng mới
+        event_bus.subscribe("ORDER_CREATED", self._handle_order_created)
+
+    async def _handle_order_created(self, payload: Dict[str, object]) -> None:
+        """
+        Elite V2.2: Async Listener - Denormalization Sync.
+        Tự động tăng order_count cho các sản phẩm trong đơn hàng.
+        """
+        items = payload.get("items", [])
+        if not isinstance(items, list):
+            return
+
+        from backend.database.read_session import read_session_maker
+        # Sử dụng read_session_maker hoặc tạo session mới để update
+        # Vì listener chạy background, ta cần tự quản lý session
+        async with read_session_maker() as db_session:
+            try:
+                for item in items:
+                    if isinstance(item, dict) and "id" in item:
+                        pid = str(item["id"])
+                        stmt = update(ProductBase).where(ProductBase.id == pid).values(
+                            order_count=ProductBase.order_count + 1
+                        )
+                        await db_session.execute(stmt)
+                await db_session.commit()
+                logger.info(f"[ProductService] Denormalized order_count updated for {len(items)} items")
+            except Exception as e:
+                logger.error(f"[ProductService] Denormalization failed: {e}")
+                await db_session.rollback()
 
     async def _get_real_order_count(self, db_session: AsyncSession, product_id: str) -> int:
         """Count actual orders containing this product (Elite V2.2 JSONB Query)."""
@@ -117,7 +146,7 @@ class ProductService:
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
             ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
-            ProductBase.created_at,
+            ProductBase.created_at, ProductBase.order_count,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
             and_(*conditions)
@@ -128,8 +157,12 @@ class ProductService:
         for row in result:
             row_dict: ProductRowDict = dict(row._mapping)  # type: ignore
             row_dict["variants"] = [] # Optimize: don't load variants in list view
+
+            # Inject dynamic text O(1)
+            row_dict["order_count_text"] = self._get_display_order_count_text(row_dict.get("metadata", {}), row_dict["order_count"])
+
             data.append(ProductResponse.model_validate(row_dict))
-            
+
         return ProductListResponse(data=data, total=total)
 
     async def get_product(self, db_session: AsyncSession, product_id: str) -> ProductResponse:
@@ -140,7 +173,7 @@ class ProductService:
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
             ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
-            ProductBase.created_at,
+            ProductBase.created_at, ProductBase.order_count,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
             ProductBase.id == product_id,
@@ -156,12 +189,12 @@ class ProductService:
         # Fetch variants
         v_stmt = select(ProductVariant).where(ProductVariant.product_base_id == product_id, ProductVariant.deleted_at == None)
         variants = (await db_session.execute(v_stmt)).scalars().all()
-        
+
         row_dict: ProductRowDict = dict(row._mapping) # type: ignore
         row_dict["variants"] = list(variants)
-        
-        # Elite Dynamic Counting
-        await self._inject_dynamic_counting(db_session, product_id, row_dict)
+
+        # Elite Dynamic Counting (O(1) from Denormalized Field)
+        row_dict["order_count_text"] = self._get_display_order_count_text(row_dict.get("metadata", {}), row_dict["order_count"])
 
         return ProductResponse.model_validate(row_dict)
 
@@ -173,7 +206,7 @@ class ProductService:
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
             ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
-            ProductBase.created_at,
+            ProductBase.created_at, ProductBase.order_count,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
             ProductBase.slug == slug,
@@ -190,12 +223,12 @@ class ProductService:
         # Fetch variants
         v_stmt = select(ProductVariant).where(ProductVariant.product_base_id == product_id, ProductVariant.deleted_at == None)
         variants = (await db_session.execute(v_stmt)).scalars().all()
-        
+
         row_dict: ProductRowDict = dict(row._mapping) # type: ignore
         row_dict["variants"] = list(variants)
-        
-        # Elite Dynamic Counting
-        await self._inject_dynamic_counting(db_session, product_id, row_dict)
+
+        # Elite Dynamic Counting (O(1) from Denormalized Field)
+        row_dict["order_count_text"] = self._get_display_order_count_text(row_dict.get("metadata", {}), row_dict["order_count"])
 
         return ProductResponse.model_validate(row_dict)
 

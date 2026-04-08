@@ -138,9 +138,9 @@
   async function save() {
     if (!formName.trim()) return;
     const s = formSlug || genSlug(formName);
-    const p = { 
-      name: formName.trim(), 
-      slug: s, 
+    const p = {
+      name: formName.trim(),
+      slug: s,
       parentId: formParentId,
       description: formDescription,
       seoTitle: formSeoTitle,
@@ -149,32 +149,51 @@
     };
     try {
       if (editingId) {
-        await apiClient.patch(`/api/v1/categories/${editingId}`, p);
+        const res = await apiClient.patch<{ data: Category }>(`/api/v1/categories/${editingId}`, p);
+        const updated = res.data;
+        if (!updated) throw new Error("No data returned from update");
+
         if (formParentId) {
           const par = categories.find((c) => c.id === formParentId);
           if (par) {
             const i = par.children.findIndex((c) => c.id === editingId);
             if (i >= 0) {
-              par.children[i].name = formName.trim();
-              par.children[i].slug = s;
+              // Preserve children if backend returned empty list but we have them locally
+              const existingChildren = par.children[i].children;
+              const existingCount = par.children[i].productCount;
+              par.children[i] = { ...updated, children: existingChildren, productCount: existingCount };
             }
           }
         } else {
           const i = categories.findIndex((c) => c.id === editingId);
           if (i >= 0) {
-            categories[i].name = formName.trim();
-            categories[i].slug = s;
+            const existingChildren = categories[i].children;
+            const existingCount = categories[i].productCount;
+            categories[i] = { ...updated, children: existingChildren, productCount: existingCount };
           }
         }
       } else {
-        const res = await apiClient.post<Category>("/api/v1/categories", p);
+        const res = await apiClient.post<{ data: Category }>("/api/v1/categories", p);
+        const created = res.data;
+        if (!created) throw new Error("No data returned from creation");
+
         if (formParentId) {
           const par = categories.find((c) => c.id === formParentId);
-          if (par) par.children = [...par.children, res];
-        } else categories = [...categories, res];
+          if (par) {
+            par.children = [...(par.children || []), created];
+            // Auto expand parent to show new node
+            const n = new Set(expandedIds);
+            n.add(formParentId);
+            expandedIds = n;
+          }
+        } else {
+          categories = [...categories, created];
+        }
       }
       showForm = false;
-    } catch {
+      nanobot.showToast(editingId ? "Cập nhật thành công" : "Khởi tạo thành công", "success");
+    } catch (e) {
+      console.error("[CategoryManagement] Save failed:", e);
       nanobot.showToast("Lưu danh mục thất bại", "error");
     }
   }
@@ -182,17 +201,37 @@
   async function del(id: string, p: string | null = null) {
     try {
       await apiClient.delete(`/api/v1/categories/${id}`);
+      if (p) {
+        const par = categories.find((c) => c.id === p);
+        if (par) par.children = par.children.filter((c) => c.id !== id);
+      } else {
+        categories = categories.filter((c) => c.id !== id);
+      }
+      selectedIds.delete(id);
+      selectedIds = new Set(selectedIds);
+      nanobot.showToast("Xóa danh mục thành công", "success");
     } catch (e) {
       console.error("[CategoryManagement] Delete failed:", e);
       nanobot.showToast("Xóa danh mục thất bại", "error");
-      return;
     }
-    if (p) {
-      const par = categories.find((c) => c.id === p);
-      if (par) par.children = par.children.filter((c) => c.id !== id);
-    } else categories = categories.filter((c) => c.id !== id);
-    selectedIds.delete(id);
-    selectedIds = new Set(selectedIds);
+  }
+
+  async function bulkDelete() {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    try {
+      await apiClient.post("/api/v1/categories/bulk-delete", { ids });
+      // Remove from top level and children
+      categories = categories.filter((c) => !selectedIds.has(c.id));
+      categories.forEach(c => {
+        if (c.children) c.children = c.children.filter(ch => !selectedIds.has(ch.id));
+      });
+      selectedIds = new Set();
+      nanobot.showToast(`Đã xóa ${ids.length} danh mục`, "success");
+    } catch (e) {
+      console.error("[CategoryManagement] Bulk delete failed:", e);
+      nanobot.showToast("Xóa hàng loạt thất bại", "error");
+    }
   }
 </script>
 
@@ -232,13 +271,7 @@
         <div class="flex items-center gap-2">
           {#if selectedIds.size > 0}
             <button
-              onclick={() => {
-                apiClient.post("/api/v1/categories/bulk-delete", {
-                  ids: Array.from(selectedIds),
-                });
-                categories = categories.filter((c) => !selectedIds.has(c.id));
-                selectedIds = new Set();
-              }}
+              onclick={bulkDelete}
               class="flex items-center gap-2 px-3 py-2 text-[10px] font-mono uppercase bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all shadow-[0_0_15px_rgba(239,68,68,0.1)]"
               ><Trash2 size={12} class="hidden sm:block"/><Trash2 size={14} class="sm:hidden"/><span class="hidden sm:inline">Purge ({selectedIds.size})</span><span class="sm:hidden">({selectedIds.size})</span></button
             >

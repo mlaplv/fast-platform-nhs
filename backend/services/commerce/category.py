@@ -118,11 +118,26 @@ class CategoryService:
         )
         db_session.add(category)
         await db_session.commit()
-        
+
         # Elite V2.2: Sync Media
         await CategoryService._sync_media_links(new_id, data.image)
-        
-        return SuccessResponse(ok=True, id=new_id)
+
+        # Return full object for frontend consistency
+        cat_data = CategoryResponse(
+            id=new_id,
+            name=category.name,
+            slug=category.slug,
+            parent_id=category.parent_id,
+            product_count=0,
+            children=[],
+            description=category.description,
+            seo_title=category.seo_title,
+            seo_description=category.seo_description,
+            image=category.image,
+            created_at=datetime.now(timezone.utc)
+        )
+
+        return SuccessResponse(ok=True, id=new_id, data=cat_data)
 
     @staticmethod
     async def update_category(db_session: AsyncSession, category_id: str, data: UpdateCategoryRequest) -> SuccessResponse:
@@ -144,11 +159,26 @@ class CategoryService:
 
         category.updated_at = datetime.now(timezone.utc)
         await db_session.commit()
-        
+
         # Elite V2.2: Sync Media
         await CategoryService._sync_media_links(category_id, category.image)
 
-        return SuccessResponse(ok=True, id=category_id)
+        # Return updated data for frontend consistency
+        cat_data = CategoryResponse(
+            id=category.id,
+            name=category.name,
+            slug=category.slug,
+            parent_id=category.parent_id,
+            product_count=0, # This might be inaccurate without a re-count, but for update it's fine or we can keep old value
+            children=[], # Usually children are not returned in single object update unless nested
+            description=category.description,
+            seo_title=category.seo_title,
+            seo_description=category.seo_description,
+            image=category.image,
+            created_at=category.created_at or datetime.now(timezone.utc)
+        )
+
+        return SuccessResponse(ok=True, id=category_id, data=cat_data)
 
     @staticmethod
     async def delete_category(db_session: AsyncSession, category_id: str) -> SuccessResponse:

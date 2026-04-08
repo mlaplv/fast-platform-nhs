@@ -53,6 +53,7 @@ class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     
     # R102 Professional Upgrade: SEO & Fashion
     slug: Mapped[str] = mapped_column(String, index=True)
+    order_count: Mapped[int] = mapped_column(Integer, default=0)
     seo_title: Mapped[Optional[str]] = mapped_column(String)
     seo_description: Mapped[Optional[str]] = mapped_column(String)
     seo_keywords: Mapped[Optional[str]] = mapped_column(String)

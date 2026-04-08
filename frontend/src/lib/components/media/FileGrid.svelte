@@ -46,13 +46,40 @@
             onclick={() => handleSelect(asset)}
             onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && handleSelect(asset)}
         >
-            <!-- Image Core -->
-            <img
-                src={getImageUrl(asset)}
-                alt={asset.alt_text || asset.filename || 'Media asset'}
-                class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                loading="lazy"
-            />
+            <!-- Asset Preview Core (Elite V2.2) -->
+            {#if asset.mime_type?.startsWith('video/')}
+                    <video
+                        src={asset.file_path}
+                        class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                        muted
+                        playsinline
+                        preload="none"
+                        poster={asset.id?.startsWith('tmp_') ? '' : `/api/v1/media/${asset.id}/thumb?w=400`}
+                        onmouseenter={(e) => (e.target as HTMLVideoElement).play().catch(() => {})}
+                        onmouseleave={(e) => {
+                            const v = e.target as HTMLVideoElement;
+                            v.pause();
+                            v.currentTime = 0;
+                        }}
+                        onerror={(e) => {
+                            const video = e.target as HTMLVideoElement;
+                            console.error('[FileManager] Grid Video error:', {
+                                error: video.error,
+                                src: video.src,
+                                networkState: video.networkState,
+                                readyState: video.readyState
+                            });
+                        }}
+                    >
+                    </video>
+            {:else}
+                <img
+                    src={getImageUrl(asset)}
+                    alt={asset.alt_text || asset.filename || 'Media asset'}
+                    class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                    loading="lazy"
+                />
+            {/if}
 
             <!-- Glassmorphism Gradient Overlay -->
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-40 group-hover:opacity-100 transition-opacity duration-500"></div>

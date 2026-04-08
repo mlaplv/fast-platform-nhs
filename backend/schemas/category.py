@@ -4,11 +4,11 @@ from datetime import datetime
 
 
 class CreateCategoryRequest(BaseModel):
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(strict=True, populate_by_name=True)
     name: str = Field(..., min_length=1, max_length=200)
     slug: Optional[str] = Field(None, max_length=200, pattern=r"^[a-z0-9-]+$")
     parentId: Optional[str] = None
-    
+
     # Professional Fashion Upgrade
     description: Optional[str] = Field(None, max_length=5000)
     seoTitle: Optional[str] = Field(None, max_length=200, alias="seo_title")
@@ -17,11 +17,11 @@ class CreateCategoryRequest(BaseModel):
 
 
 class UpdateCategoryRequest(BaseModel):
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(strict=True, populate_by_name=True)
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     slug: Optional[str] = Field(None, max_length=200, pattern=r"^[a-z0-9-]+$")
     parentId: Optional[str] = None
-    
+
     # Professional Fashion Upgrade
     description: Optional[str] = Field(None, max_length=5000)
     seoTitle: Optional[str] = Field(None, max_length=200, alias="seo_title")

@@ -45,7 +45,7 @@
   const labels = $derived({
     product_name: product?.name || metadata.hero_product_name_fallback || 'Elite Formulation',
     headline: metadata.hero_headline || '<span>CHẤM DỨT</span> <br/> <span class="headline-shift">MÙI CƠ THỂ.</span>',
-    video_url: metadata.hero_video_url || 'video/video-hn.mp4',
+    video_url: metadata.video_url || metadata.hero_video_url || metadata.hero_video || '/uploads/video/HN_TikTok.mp4',
     cta_text: metadata.hero_cta_text || 'Chẩn đoán cá nhân hoá',
     aria_hero: metadata.hero_aria_label || 'Hero Spotlight Area',
     aria_scroll: metadata.hero_aria_scroll || 'Scroll to diagnostics section',
@@ -57,9 +57,58 @@
   const mainImage = $derived(images.length > 0 ? resolveMediaUrl(images[currentImageIndex]) : '');
 
   const rawHeadline = $derived(labels.headline);
-  const videoUrl = $derived(resolveMediaUrl(labels.video_url));
+  const rawVideoUrl = $derived.by((): string => {
+    const url = labels.video_url?.trim() ?? '';
+    // Auto-strip erroneous paths like /frontend/static/ or ./static/
+    // SvelteKit serves static/ at root (no /static prefix).
+    const sanitized = url.replace(/^(\.\/)?(\/)?(frontend\/)?static\//, '/');
+    return resolveMediaUrl(sanitized);
+  });
+  const videoUrl = $derived(rawVideoUrl);
+
   const ctaText = $derived(labels.cta_text);
   const metrics = $derived(labels.metrics);
+
+  type VideoMode = 'youtube' | 'tiktok' | 'local' | null;
+
+  // Utility: extract YouTube video ID
+  function getYoutubeId(url: string): string | null {
+    const match = url.match(
+      /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
+    );
+    return match ? match[1] : null;
+  }
+
+  // Utility: extract TikTok video ID
+  function getTiktokId(url: string): string | null {
+    const match = url.match(/tiktok\.com\/@[\w.-]+\/video\/(\d+)/);
+    return match ? match[1] : null;
+  }
+
+  // Detect video mode: youtube | tiktok | local | null
+  const videoMode = $derived.by((): VideoMode => {
+    if (!videoUrl) return null;
+    if (getYoutubeId(videoUrl)) return 'youtube';
+    if (videoUrl.includes('tiktok.com')) return 'tiktok';
+    if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(videoUrl)) return 'local';
+    return 'local'; // Default to local for anything else if we want to try rendering it
+  });
+
+  // Iframe embed URL for YouTube / TikTok
+  const iframeEmbedUrl = $derived.by((): string | null => {
+    if (!videoUrl) return null;
+    const ytId = getYoutubeId(videoUrl);
+    if (ytId) {
+      return `https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&loop=1&playlist=${ytId}&controls=0&playsinline=1&rel=0&modestbranding=1`;
+    }
+
+    if (videoUrl.includes('tiktok.com')) {
+      const ttId = getTiktokId(videoUrl);
+      if (ttId) return `https://www.tiktok.com/embed/v2/${ttId}`;
+      return `https://www.tiktok.com/embed/${encodeURIComponent(videoUrl)}`;
+    }
+    return null;
+  });
 
   let displayText = $state("");
   let isTypingComplete = $state(false);
@@ -130,9 +179,20 @@
   <!-- NUCLEAR VIDEO BACKGROUND (Standard Full Coverage: 100% Native) -->
   <div class="absolute inset-x-0 top-0 bottom-0 z-0 overflow-hidden pointer-events-none w-full h-full">
     <div class="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#020617] to-transparent w-full z-surface"></div>
-    <video autoplay muted loop playsinline class="elite-video-bg">
-      <source src={videoUrl} type="video/mp4" />
-    </video>
+    {#if videoMode === 'local'}
+      <video autoplay muted loop playsinline class="elite-video-bg">
+        <source src={videoUrl} type="video/mp4" />
+      </video>
+    {:else if videoMode === 'youtube' || videoMode === 'tiktok'}
+      <iframe
+        class="elite-video-bg pointer-events-none"
+        src={iframeEmbedUrl}
+        title="Hero Video"
+        allow="autoplay; fullscreen; picture-in-picture"
+        allowfullscreen
+        frameborder="0"
+      ></iframe>
+    {/if}
   </div>
 
   <div class="container mx-auto px-6 max-w-6xl relative flex flex-col items-center pt-[var(--standard-pt)] z-surface">

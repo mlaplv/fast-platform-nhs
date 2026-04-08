@@ -51,6 +51,7 @@
     // -- Bulk SEO Modal --
     let showBulkSeo = $state(false);
     let isAutoFilling = $state(false);
+    let activeVideoUrl = $state<string | null>(null); // State mới cho video overlay
 
     // AI Semantic Search Debounce
     $effect(() => {
@@ -263,6 +264,11 @@
             if (failCount > 0) nanobot.showToast(`Lỗi kỹ thuật: ${failCount} ảnh không thể tải lên`, "error");
         }
     }
+
+    // Hàm gọi từ FileDetailsPanel
+    function playVideo(url: string) {
+        activeVideoUrl = url;
+    }
 </script>
 
 <div class="file-manager flex flex-col h-full bg-white dark:bg-[#0c0e14] overflow-hidden" class:rounded-xl={!standalone} class:border={!standalone}>
@@ -333,6 +339,7 @@
             {onSelect}
             {mode}
             onQuickEdit={handleQuickEdit}
+            onPlayVideo={playVideo}
         />
     </div>
 
@@ -477,7 +484,22 @@
         </div>
     {/if}
 
-    <input type="file" accept="image/*" multiple class="hidden" bind:this={fileInput} onchange={handleFileUpload} />
+    <!-- Video Full View Overlay -->
+    {#if activeVideoUrl}
+        <div class="fixed inset-0 bg-black z-[220] flex flex-col" transition:fade>
+            <button
+                onclick={() => activeVideoUrl = null}
+                class="absolute top-4 left-4 z-50 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-bold backdrop-blur-md transition-all"
+            >
+                ← Quay lại Thư viện
+            </button>
+            <div class="flex-1 flex items-center justify-center p-4">
+                <video src={activeVideoUrl} controls autoplay class="max-w-full max-h-full" />
+            </div>
+        </div>
+    {/if}
+
+    <input type="file" accept="image/*,video/*" multiple class="hidden" bind:this={fileInput} onchange={handleFileUpload} />
 </div>
 
 <style>

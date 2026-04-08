@@ -13,6 +13,12 @@ logger = logging.getLogger("media-formatters")
 class MediaFormattersMixin:
     async def get_thumbnail(self, asset_path: str, width: int = 300, quality: int = 75) -> Optional[str]:
         """Tạo và trả về đường dẫn Thumbnail (Dynamic Resizing)."""
+        logger.info(f"[MediaFormatters] Getting thumbnail for: {asset_path}")
+
+        # Nếu là video, trả về placeholder hoặc xử lý riêng
+        if asset_path.lower().endswith(('.mp4', '.mov', '.webm')):
+            return "/placeholder_video.webp"
+
         is_remote = asset_path.startswith("http")
         fname = os.path.basename(asset_path.split("?")[0])
         cache_dir = "frontend/static/v65_assets/cache"; os.makedirs(cache_dir, exist_ok=True)
@@ -34,10 +40,13 @@ class MediaFormattersMixin:
                 from backend.utils.http_client import SharedHttpClient
                 return await process((await (await SharedHttpClient.get_client()).get(asset_path, timeout=10.0)).content)
             else:
-                p = os.path.join("frontend/static", asset_path.lstrip("/")); 
-                if not os.path.exists(p): return asset_path
+                p = os.path.join("frontend/static", asset_path.lstrip("/"));
+                logger.info(f"[MediaFormatters] Checking file at: {p}"); print(f"DEBUG: Checking file at: {p}", file=sys.stderr)
+                if not os.path.exists(p):
+                    logger.warning(f"[MediaFormatters] File not found: {p}")
+                    return asset_path
                 with open(p, "rb") as f: return await process(f.read())
-        except Exception as e: logger.error(f"[MediaFormatters] Thumb failed: {e}"); return asset_path
+        except Exception as e: logger.error(f"[MediaFormatters] Thumb failed for {asset_path}: {e}"); return asset_path
 
     async def create_bulk_zip(self, repo: MediaRegistryRepository, ids: List[str], owner_id: Optional[str] = None) -> Optional[str]:
         """Tạo file ZIP hàng loạt tài nguyên."""

@@ -87,10 +87,10 @@
                     <td class="py-4 pl-6 rounded-l-2xl">
                         <div class="w-12 h-12 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border-2 border-transparent group-hover:border-blue-500/20 transition-all shadow-inner relative">
                             {#if asset.mime_type?.startsWith('image/')}
-                                <img 
-                                    src={getImageUrl(asset)} 
-                                    alt="" 
-                                    class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                                <img
+                                    src={getImageUrl(asset)}
+                                    alt=""
+                                    class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                                     loading="lazy"
                                 />
                                 {#if mediaStore.selectedIds.has(asset.id)}
@@ -98,6 +98,28 @@
                                         <Check size={16} class="text-white" strokeWidth={3} />
                                     </div>
                                 {/if}
+                            {:else if asset.mime_type?.startsWith('video/')}
+                                <video
+                                    src={asset.file_path}
+                                    class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                    muted
+                                    playsinline
+                                    onmouseenter={(e) => (e.target as HTMLVideoElement).play().catch(() => {})}
+                                    onmouseleave={(e) => {
+                                        const v = e.target as HTMLVideoElement;
+                                        v.pause();
+                                        v.currentTime = 0;
+                                    }}
+                                    onerror={(e) => {
+                                        const video = e.target as HTMLVideoElement;
+                                        console.error('[FileManager] List Video error:', {
+                                            error: video.error,
+                                            src: video.src,
+                                            networkState: video.networkState,
+                                            readyState: video.readyState
+                                        });
+                                    }}
+                                ></video>
                             {:else}
                                 <div class="w-full h-full flex items-center justify-center text-zinc-400 group-hover:text-blue-500 transition-colors">
                                     <Icon size={20} />

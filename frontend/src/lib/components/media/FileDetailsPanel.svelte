@@ -12,16 +12,18 @@
         onRestore: (id: string) => void;
         onSelect?: (assets: MediaAsset[]) => void;
         onQuickEdit: (action: string, params: Record<string, unknown> | null) => void;
+        onPlayVideo?: (url: string) => void;
         mode?: 'manage' | 'pick';
     }
 
-    let { 
-        asset, 
-        selectedAssetId = $bindable(), 
-        onDelete, 
-        onRestore, 
-        onSelect, 
+    let {
+        asset,
+        selectedAssetId = $bindable(),
+        onDelete,
+        onRestore,
+        onSelect,
         onQuickEdit,
+        onPlayVideo,
         mode = 'manage'
     } = $props<Props>();
 
@@ -62,19 +64,37 @@
         });
     }
 
+    import { useNanobot } from '$lib/state/nanobot.svelte';
+    const nanobot = useNanobot();
+
+    // ... (các phần khác giữ nguyên)
+
+    // Sửa hàm mở preview
+    function openVideoPreview(asset: MediaAsset) {
+        if (asset.mime_type?.startsWith('video/')) {
+            onPlayVideo?.(asset.file_path);
+        } else {
+            window.open(getImageUrl(asset), '_blank');
+        }
+    }
+
     function getImageUrl(asset: MediaAsset) {
         if (asset.id?.startsWith('tmp_')) return asset.file_path;
-        
+
         // Use resolveMediaUrl for full image preview, or thumbnail if preferred
         const url = asset.file_path || asset.url || '';
         const base = resolveMediaUrl(url);
-        
+
         return asset._updatedAt ? `${base}?t=${asset._updatedAt}` : base;
+    }
+
+    function getMediaPreviewUrl(asset: MediaAsset) {
+        return getImageUrl(asset);
     }
 </script>
 
 {#if asset}
-    <div 
+    <div
         class="w-80 border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0e14] flex flex-col h-full overflow-hidden shadow-[-20px_0_50px_rgba(0,0,0,0.1)] z-20 relative"
         transition:slide={{ axis: 'x', duration: 400 }}
     >
@@ -87,8 +107,8 @@
                 <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 dark:text-zinc-500">Resource Analyst</h3>
                 <span class="text-[8px] font-bold text-blue-500 tracking-widest">{asset.id.slice(0, 16)}</span>
             </div>
-            <button 
-                onclick={() => selectedAssetId = null} 
+            <button
+                onclick={() => selectedAssetId = null}
                 class="w-8 h-8 flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-xl transition-all text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
             >
                 <X size={18} />
@@ -98,15 +118,35 @@
         <div class="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-8 no-scrollbar">
             <!-- Large Preview Stage -->
             <div class="relative aspect-square rounded-[2rem] overflow-hidden bg-zinc-100 dark:bg-[#080a0f] border border-zinc-200 dark:border-zinc-800 shadow-inner group cursor-zoom-in">
-                <img 
-                    src={getImageUrl(asset)} 
-                    alt={asset.alt_text} 
-                    class="w-full h-full object-contain p-2 transition-transform duration-1000 group-hover:scale-110"
-                />
+                {#if asset.mime_type?.startsWith('video/')}
+                    <video
+                        src={asset.file_path}
+                        class="w-full h-full object-contain p-2 transition-transform duration-1000 group-hover:scale-110"
+                        controls
+                        playsinline
+                        onerror={(e) => {
+                            const video = e.target as HTMLVideoElement;
+                            console.error('[FileManager] Video error:', {
+                                error: video.error,
+                                src: video.src,
+                                networkState: video.networkState,
+                                readyState: video.readyState
+                            });
+                            const parent = video.parentElement;
+                            if (parent) parent.innerHTML = '<div class="w-full h-full flex items-center justify-center text-[10px] text-red-500">Video format not supported.</div>';
+                        }}
+                    ></video>
+                {:else}
+                    <img
+                        src={getImageUrl(asset)}
+                        alt={asset.alt_text}
+                        class="w-full h-full object-contain p-2 transition-transform duration-1000 group-hover:scale-110"
+                    />
+                {/if}
                 <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <div class="absolute top-4 right-4 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
-                    <button 
-                        onclick={() => window.open(getImageUrl(asset), '_blank')}
+                    <button
+                        onclick={() => openVideoPreview(asset)}
                         class="p-2.5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl text-white hover:bg-white/20 transition-all shadow-2xl"
                     >
                         <Maximize2 size={18} />
