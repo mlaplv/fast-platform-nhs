@@ -3,13 +3,14 @@ import logging
 import asyncio
 import re
 import json
-from typing import Optional, Union, cast, TYPE_CHECKING, Dict, Type
+from typing import Optional, Union, cast, TYPE_CHECKING, Dict, Type, Any
 from abc import ABC, abstractmethod
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
     from sqlalchemy.ext.asyncio import AsyncSession
+    from backend.database.models import ContentCampaign
 
 from backend.database.models.system import UnifiedAgentTask
 from backend.database.alchemy_config import alchemy_config
@@ -95,7 +96,7 @@ class SearchKeyMixin:
 
 class XoHiProgressMixin:
     """Elite V2.2: Standardized progress reporting for XoHi campaigns."""
-    async def _emit_progress(self, campaign: Union[ContentCampaign, str], msg: str, status: str = "PROCESSING") -> None:
+    async def _emit_progress(self, campaign: "ContentCampaign | str", msg: str, status: str = "PROCESSING") -> None:
         from backend.services.event_bus import event_bus
         from datetime import datetime, timezone
         from backend.database.models import ContentCampaign
@@ -132,7 +133,7 @@ class BaseAgentOperative(ABC, MedicalShieldMixin):
         self.bridge = trinity_bridge
 
     @abstractmethod
-    async def chat(self, request: BaseModel | dict, **kwargs: Dict[str, object]) -> AgentResponse | dict | str:
+    async def chat(self, request: "BaseModel | dict", **kwargs: Dict[str, object]) -> Any:
         """Standardized entry point for all AI agents."""
         pass
 
@@ -157,11 +158,8 @@ class BaseAgentOperative(ABC, MedicalShieldMixin):
         
         # 1. DB Persistence (Elite V2.2 Rule: No orphaned tasks)
         from backend.database import current_tenant_id
-        target_tenant = current_tenant_id.get()
-        
-        # Fallback to payload hint (e.g. from a previous session state)
-        if not target_tenant:
-            target_tenant = request_data.get("tenant_id") or "default"
+        # Elite V2.2: Ensure we capture context if available, fallback to request payload
+        target_tenant = current_tenant_id.get() or request_data.get("tenant_id") or "default"
 
         new_task = UnifiedAgentTask(
             agent_id=self.agent_id,

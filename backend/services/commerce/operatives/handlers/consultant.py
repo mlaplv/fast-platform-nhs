@@ -33,14 +33,15 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
     SYSTEM_PROMPT = (
         "Bạn là Helen - Chuyên gia tư vấn cấp cao của SmartShop.\n"
         "NHIỆM VỤ CHIẾN THUẬT SIÊU CẤP (ELITE FOMO):\n"
-        "1. TRA CỨU TRI THỨC (BẮT BUỘC): Nếu khách hỏi về ĐỊA CHỈ, THÀNH PHẦN, GIÁ CẢ hoặc CHÍNH SÁCH, bạn BẮT BUỘC phải dùng tool 'search_knowledge_base' hoặc 'fetch_topic_details' để lấy dữ liệu. Tuyệt đối không được đoán.\n"
+        "1. TRA CỨU TRI THỨC (BẮT BUỘC): Nếu khách hỏi về ĐỊA CHỈ, THÀNH PHẦN, GIÁ CẢ hoặc CHÍNH SÁCH, bạn BẮP BUỘC phải dùng tool 'search_knowledge_base' hoặc 'fetch_topic_details' để lấy dữ liệu. Tuyệt đối không được đoán.\n"
         "2. GIẢI THÍCH CHUYÊN SÂU: Dùng kiến thức về lỗ chân lông, axit béo để tư vấn trị hôi nách/chân/tay.\n"
         "3. TRÁNH SAI LỆCH: Không hứa hẹn 'dứt điểm vĩnh viễn', không dùng từ 'bác sĩ'.\n"
         "4. CHỐT ĐƠN CHIẾN THUẬT: Luôn tế nhị, văn minh và định hướng khách tới Combo 3 Lọ (Mua 2 tặng 1).\n"
         "5. TẠO SỨC ÉP (FOMO): Sử dụng dữ liệu [TỒN KHO] và [ĐANG XEM] để tạo sự khan hiếm thực tế. \n"
-        "   - Nếu [TỒN KHO] < 10: Nhắc nhẹ khách rằng hàng sắp hết.\n"
-        "   - Nếu [ĐANG XEM] > 3: Nhắc khách rằng sản phẩm đang cực hot, nên chốt sớm để giữ ưu đãi.\n"
-        "6. DEBUG PROTOCOL: Bạn PHẢI bắt đầu câu trả lời bằng tiền tố '[z2] '.\n"
+        "6. QUY TẮC PHẢN HỒI (FRESHNESS GUARD): \n"
+        "   - LUÔN ưu tiên trả lời câu hỏi MỚI NHẤT của khách.\n"
+        "   - Tuyệt đối KHÔNG lặp lại các đoạn văn bản dài đã trả lời ở phía trên lịch sử (ví dụ: Địa chỉ) nếu khách đang hỏi sang chủ đề khác (ví dụ: Thành phần).\n"
+        "7. DEBUG PROTOCOL: Bạn PHẢI bắt đầu câu trả lời bằng tiền tố '[z2] '.\n"
     )
 
     async def handle(self, ctx: SupportContext) -> bool:
@@ -61,7 +62,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         matched_kw = None
         
         # 1. INGREDIENTS DETECTION (PRIORITY #1)
-        kws_ing = ["thành phần", "công thức", "thành phần thuốc", "chất gì", "có gì trong thuốc"]
+        kws_ing = ["thành phần", "chiết xuất", "gồm những gì", "làm từ gì", "thảo dược gì", "công thức", "thành phần thuốc", "chất gì", "có gì trong thuốc"]
         from backend.database.models.system import SupportKnowledgeCategory
         for kw in kws_ing:
             if kw in msg_norm:
@@ -71,7 +72,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         
         # 2. ADDRESS DETECTION (PRIORITY #2)
         if not detected_category:
-            kws_addr = ["địa chỉ", "ở đâu", "chi nhánh", "cửa hàng", "văn phòng", "trụ sở", "phòng khám"]
+            kws_addr = ["địa chỉ", "ở đâu", "chi nhánh", "cửa hàng", "văn phòng", "trụ sở", "phòng khám", "showroom", "địa điểm", "chỗ nào"]
             for kw in kws_addr:
                 if kw in msg_norm:
                     detected_category = SupportKnowledgeCategory.INFO_ADDRESS
@@ -80,7 +81,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         
         # 3. HOTLINE DETECTION (PRIORITY #3)
         if not detected_category:
-            kws_hot = ["điện thoại", "hotline", "số điện thoại", "liên hệ", "sốđt", "sdt", "website"]
+            kws_hot = ["điện thoại", "hotline", "số điện thoại", "liên hệ", "sốđt", "sdt", "website", "tư vấn qua đâu"]
             for kw in kws_hot:
                 if kw in msg_norm:
                     detected_category = SupportKnowledgeCategory.INFO_HOTLINE

@@ -208,6 +208,9 @@ class SupportAgentOperative(BaseAgentOperative):
         hist_text = await self._fetch_chat_context(db, session_id)
         dna = await self._fetch_neural_dna(db, session_id)
         
+        logger.info(f"🧠 [SupportAgent] Processing Brain Logic for Session: {session_id}")
+        logger.debug(f"📜 [SupportAgent] History Window: {hist_text[:100]}...")
+        
         # 🚀 1.0.1: Layer 1 Memory (Knowledge Map) - Elite V2.2 Protocol
         try:
             from backend.database.repositories import SupportKnowledgeRepository
@@ -289,6 +292,7 @@ class SupportAgentOperative(BaseAgentOperative):
         """
         Elite V2.5: Entry Protocol.
         L0: Fast-Path LLM (<200ms) - Intent Classification
+        L0.5: Sync Heuristic Fast-Path (Race Condition Fix - No Background Task)
         L1: Deep Brain (Background Task) - Orchestrated Specialists
         """
         session_id = request.session_id or str(uuid.uuid4())
@@ -308,7 +312,7 @@ class SupportAgentOperative(BaseAgentOperative):
                     timeout=2.0,
                     safety_none=True
                 )
-                f_data = cast(FastIntentResponse, fast_res.data) # Proper Elite V2.2 Typing
+                f_data = cast(FastIntentResponse, fast_res) # Proper Elite V2.2 Typing
                 
                 if f_data.intent == "GREETING" and f_data.quick_reply:
                     await self._save_history(db, session_id, request.message, f_data.quick_reply, SupportIntent.GENERAL_ADVICE, request.product_slug)
@@ -316,8 +320,101 @@ class SupportAgentOperative(BaseAgentOperative):
             except Exception as e:
                 logger.warning("[SupportAgent] Fast-Path Bypass: %s", e)
 
-        # 🚀 DEEP BRAIN (Background Task)
+        # 🚀 L0.5: SYNCHRONOUS HEURISTIC FAST-PATH (Elite V2.5 — Race Condition Fix)
+        # Handles INFO_ADDRESS / INFO_INGREDIENTS / INFO_HOTLINE INSTANTLY, no background task.
+        # ROOT CAUSE FIX: Eliminates off-by-one SSE race condition when users send messages
+        # faster than background tasks complete.
+        heuristic_res = await self._try_heuristic_sync(request, db, session_id)
+        if heuristic_res:
+            return heuristic_res
+
+        # 🚀 DEEP BRAIN (Background Task) — for complex queries only
         task_id = await self.enqueue_chat(request_data=request.model_dump(), session_id=session_id)
         return SupportResponse(ok=True, reply="Helen đang xử lý...", intent=SupportIntent.UNKNOWN, session_id=session_id, task_id=task_id, status="PROCESSING")
+
+    async def _try_heuristic_sync(self, request: SupportRequest, db: AsyncSession, session_id: str) -> Optional[SupportResponse]:
+        """
+        Elite V2.5: Synchronous Heuristic Fast-Path.
+        Detects high-confidence INFO categories (ADDRESS, INGREDIENTS, HOTLINE) and returns
+        immediately WITHOUT enqueuing a background task.
+        This is the architectural fix for the SSE off-by-one race condition.
+        """
+        from backend.database.models.system import SupportKnowledge, SupportKnowledgeCategory
+        from backend.database import current_tenant_id
+        from sqlalchemy import select, and_, or_
+
+        msg_norm = request.message.lower().strip()
+        detected_category: Optional[SupportKnowledgeCategory] = None
+        matched_kw: Optional[str] = None
+
+        # Priority 1: INGREDIENTS
+        kws_ing = ["thành phần", "chiết xuất", "gồm những gì", "làm từ gì", "thảo dược gì", "công thức", "thành phần thuốc", "chất gì", "có gì trong thuốc"]
+        for kw in kws_ing:
+            if kw in msg_norm:
+                detected_category = SupportKnowledgeCategory.INFO_INGREDIENTS
+                matched_kw = kw
+                break
+
+        # Priority 2: ADDRESS
+        if not detected_category:
+            kws_addr = ["địa chỉ", "ở đâu", "chi nhánh", "cửa hàng", "văn phòng", "trụ sở", "phòng khám", "showroom", "địa điểm", "chỗ nào"]
+            for kw in kws_addr:
+                if kw in msg_norm:
+                    detected_category = SupportKnowledgeCategory.INFO_ADDRESS
+                    matched_kw = kw
+                    break
+
+        # Priority 3: HOTLINE
+        if not detected_category:
+            kws_hot = ["điện thoại", "hotline", "số điện thoại", "liên hệ", "sốđt", "sdt", "website", "tư vấn qua đâu"]
+            for kw in kws_hot:
+                if kw in msg_norm:
+                    detected_category = SupportKnowledgeCategory.INFO_HOTLINE
+                    matched_kw = kw
+                    break
+
+        if not detected_category:
+            return None
+
+        tid = current_tenant_id.get() or "default"
+        logger.info(f"⚡ [SupportAgent] Sync Heuristic TRIGGERED: category='{detected_category}' | kw='{matched_kw}' | tenant='{tid}'")
+
+        try:
+            stmt = select(SupportKnowledge).where(
+                and_(
+                    SupportKnowledge.deleted_at == None,
+                    SupportKnowledge.is_active == True,
+                    or_(
+                        SupportKnowledge.tenant_id == tid,
+                        SupportKnowledge.tenant_id == "default",
+                        SupportKnowledge.tenant_id == "smartshop"
+                    ),
+                    SupportKnowledge.category == detected_category
+                )
+            ).order_by(SupportKnowledge.priority.desc()).limit(1)
+
+            res = await db.execute(stmt)
+            item = res.scalar_one_or_none()
+
+            if item:
+                logger.info(f"✅ [SupportAgent] Sync Heuristic HIT: ID={item.id} | category='{detected_category}'")
+                await self._save_history(
+                    db, session_id, request.message, item.answer,
+                    SupportIntent.POLICY_QUERY, request.product_slug
+                )
+                await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+                return SupportResponse(
+                    ok=True,
+                    reply=item.answer,
+                    intent=SupportIntent.POLICY_QUERY,
+                    session_id=session_id,
+                    status="DONE"
+                )
+            else:
+                logger.warning(f"❌ [SupportAgent] Sync Heuristic MISS: No row for category='{detected_category}' | tenant='{tid}'")
+                return None
+        except Exception as e:
+            logger.error(f"[SupportAgent] Sync Heuristic Error: {e}")
+            return None
 
 support_agent = SupportAgentOperative()
