@@ -2,6 +2,7 @@
   import ImagePlus from "lucide-svelte/icons/image-plus";
   import Trash2 from "lucide-svelte/icons/trash-2";
   import { resolveMediaUrl } from "$lib/state/utils";
+  import ImagePreviewModal from "../ui/ImagePreviewModal.svelte";
 
   let {
     formImages = $bindable(),
@@ -12,6 +13,8 @@
     formMobileImages: string[];
     onOpenVault: (isMobile?: boolean) => void;
   }>();
+
+  let previewUrl = $state<string | null>(null);
 
   function removeImage(index: number, isMobile = false) {
     if (isMobile) {
@@ -91,6 +94,8 @@
 
 <div class="max-h-[600px] overflow-y-auto scrollbar-mission pr-1 -mr-1 flex flex-col gap-8">
   
+  <ImagePreviewModal imageUrl={previewUrl} onClose={() => previewUrl = null} />
+
   <!-- DESKTOP IMAGES SECTION -->
   <div class="flex flex-col gap-3">
     <div class="flex items-center justify-between">
@@ -99,9 +104,9 @@
     </div>
     <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-3">
       {#each formImages.filter(img => img && (img.includes('/') || img.startsWith('blob:'))) as img, i}
-        <div 
-          class="aspect-square rounded-xl bg-white/5 border relative group overflow-hidden shadow-inner flex shrink-0 cursor-grab active:cursor-grabbing transition-all duration-300
-            {draggedIndex === i && !dragSourceIsMobile ? 'opacity-40 scale-95 border-amber-500/50' : 'opacity-100 scale-100'} 
+        <div
+          class="aspect-square rounded-xl bg-white/5 border relative group overflow-hidden shadow-inner flex shrink-0 cursor-pointer active:cursor-grabbing transition-all duration-300
+            {draggedIndex === i && !dragSourceIsMobile ? 'opacity-40 scale-95 border-amber-500/50' : 'opacity-100 scale-100'}
             {dropTargetIndex === i && !dragSourceIsMobile ? (draggedIndex !== null && draggedIndex < i ? 'border-r-4 border-r-amber-500 border-white/10' : 'border-l-4 border-l-amber-500 border-white/10') : 'border-white/10'}"
           draggable="true"
           ondragstart={(e) => handleDragStart(e, i, false)}
@@ -110,12 +115,14 @@
           ondrop={(e) => handleDrop(e, i, false)}
           ondragend={handleDragEnd}
         >
-          <img src={resolveMediaUrl(img)} alt="Product Desktop" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none" />
-          <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-2 transition-opacity">
-            {#if i !== 0}
-              <button onclick={() => setAsPrimary(i, false)} class="px-2 py-1 bg-amber-500/90 text-black text-[9px] font-black uppercase tracking-wider rounded border border-amber-400/50 hover:bg-amber-400 transition-colors shadow-lg">Đại diện</button>
-            {/if}
-            <button onclick={() => removeImage(i, false)} class="p-2 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-red-500/30"><Trash2 size={14} /></button>
+          <img src={resolveMediaUrl(img)} alt="Product Desktop" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-auto" onclick={(e) => { e.preventDefault(); e.stopPropagation(); previewUrl = resolveMediaUrl(img); }} />
+          <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-2 transition-opacity pointer-events-none">
+            <div class="pointer-events-auto flex gap-2">
+              {#if i !== 0}
+                <button onclick={() => setAsPrimary(i, false)} class="px-2 py-1 bg-amber-500/90 text-black text-[9px] font-black uppercase tracking-wider rounded border border-amber-400/50 hover:bg-amber-400 transition-colors shadow-lg">Đại diện</button>
+              {/if}
+              <button onclick={() => removeImage(i, false)} class="p-2 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-red-500/30"><Trash2 size={14} /></button>
+            </div>
           </div>
           {#if i === 0}
             <div class="absolute top-1 left-1 px-1.5 py-0.5 bg-amber-500 text-black rounded text-[7px] font-black uppercase tracking-wider shadow-lg">Ảnh Đại Diện</div>
@@ -152,9 +159,9 @@
           ondrop={(e) => handleDrop(e, i, true)}
           ondragend={handleDragEnd}
         >
-          <img src={resolveMediaUrl(img)} alt="Product Mobile" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none" />
-          <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-2 transition-opacity">
-            <button onclick={() => removeImage(i, true)} class="p-2 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-red-500/30"><Trash2 size={14} /></button>
+          <img src={resolveMediaUrl(img)} alt="Product Mobile" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-auto" onclick={() => previewUrl = resolveMediaUrl(img)} />
+          <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-2 transition-opacity pointer-events-none">
+            <button onclick={() => removeImage(i, true)} class="p-2 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-red-500/30 pointer-events-auto"><Trash2 size={14} /></button>
           </div>
         </div>
       {/each}

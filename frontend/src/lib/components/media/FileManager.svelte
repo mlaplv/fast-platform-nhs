@@ -11,6 +11,7 @@
     import FileGrid from './FileGrid.svelte';
     import FileList from './FileList.svelte';
     import FileDetailsPanel from './FileDetailsPanel.svelte';
+    import ImagePreviewModal from '../admin/ui/ImagePreviewModal.svelte';
 
     interface Props {
         campaignId?: string;
@@ -52,6 +53,7 @@
     let showBulkSeo = $state(false);
     let isAutoFilling = $state(false);
     let activeVideoUrl = $state<string | null>(null); // State mới cho video overlay
+    let previewImageUrl = $state<string | null>(null);
 
     // AI Semantic Search Debounce
     $effect(() => {
@@ -269,9 +271,14 @@
     function playVideo(url: string) {
         activeVideoUrl = url;
     }
+
+    function previewImage(url: string) {
+        previewImageUrl = url;
+    }
 </script>
 
 <div class="file-manager flex flex-col h-full bg-white dark:bg-[#0c0e14] overflow-hidden" class:rounded-xl={!standalone} class:border={!standalone}>
+    <ImagePreviewModal imageUrl={previewImageUrl} onClose={() => previewImageUrl = null} />
     <FileToolbar
         {mode}
         {pickTabActive}
@@ -318,6 +325,7 @@
                     {onSelect}
                     onDelete={handleDelete}
                     onRestore={handleRestore}
+                    onPreview={previewImage}
                 />
             {:else}
                 <FileList
@@ -327,6 +335,7 @@
                     {onSelect}
                     onDelete={handleDelete}
                     onRestore={handleRestore}
+                    onPreview={previewImage}
                 />
             {/if}
         </div>
@@ -340,6 +349,7 @@
             {mode}
             onQuickEdit={handleQuickEdit}
             onPlayVideo={playVideo}
+            onPreview={previewImage}
         />
     </div>
 

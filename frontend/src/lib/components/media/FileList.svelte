@@ -2,7 +2,7 @@
     import { mediaStore } from '$lib/state/media.svelte';
     import type { MediaAsset } from '$lib/state/types';
     import { fade, scale } from 'svelte/transition';
-    import { Check, Trash2, RotateCcw, FileText, Image as ImageIcon, FileCode, Film, Music, MoreHorizontal, Calendar, Database, HardDrive, Tag } from 'lucide-svelte';
+    import { Check, Trash2, RotateCcw, FileText, Image as ImageIcon, FileCode, Film, Music, MoreHorizontal, Calendar, Database, HardDrive, Tag, Eye } from 'lucide-svelte';
 
     interface Props {
         assets: MediaAsset[];
@@ -11,15 +11,17 @@
         onSelect?: (assets: MediaAsset[]) => void;
         onDelete: (id: string) => void;
         onRestore: (id: string) => void;
+        onPreview: (url: string) => void;
     }
 
-    let { 
-        assets, 
-        selectedAssetId = $bindable(), 
-        mode = 'manage', 
-        onSelect, 
-        onDelete, 
-        onRestore 
+    let {
+        assets,
+        selectedAssetId = $bindable(),
+        mode = 'manage',
+        onSelect,
+        onDelete,
+        onRestore,
+        onPreview
     } = $props<Props>();
 
     function handleSelect(asset: MediaAsset) {
@@ -168,15 +170,24 @@
                     <!-- Column: Actions -->
                     <td class="py-4 pr-6 text-right rounded-r-2xl">
                         <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {#if !mediaStore.isTrashMode && (asset.mime_type?.startsWith('image/'))}
+                                <button
+                                    onclick={(e) => { e.stopPropagation(); onPreview(getImageUrl(asset)); }}
+                                    class="w-8 h-8 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl transition-all shadow-sm active:scale-90"
+                                    title="Xem ảnh"
+                                >
+                                    <Eye size={14} />
+                                </button>
+                            {/if}
                             {#if mediaStore.isTrashMode}
-                                <button 
+                                <button
                                     onclick={(e) => { e.stopPropagation(); onRestore(asset.id); }}
                                     class="w-8 h-8 flex items-center justify-center bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-xl transition-all shadow-sm active:scale-90"
                                     title="Khôi phục"
                                 >
                                     <RotateCcw size={14} />
                                 </button>
-                                <button 
+                                <button
                                     onclick={(e) => { e.stopPropagation(); onDelete(asset.id); }}
                                     class="w-8 h-8 flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm active:scale-90"
                                     title="Xoá vĩnh viễn"

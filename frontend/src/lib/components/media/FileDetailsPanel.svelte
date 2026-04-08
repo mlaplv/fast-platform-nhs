@@ -1,9 +1,10 @@
 <script lang="ts">
     import { fade, slide, scale } from 'svelte/transition';
-    import { X, Trash2, RotateCcw, Edit3, Link, Wand2, Maximize2, ShieldCheck, Tag, Hash, Activity, Clock, HardDrive, Image as ImageIcon } from 'lucide-svelte';
+    import { X, Trash2, RotateCcw, Edit3, Link, Wand2, Maximize2, ShieldCheck, Tag, Hash, Activity, Clock, HardDrive, Image as ImageIcon, Eye } from 'lucide-svelte';
     import type { MediaAsset } from '$lib/state/types';
     import { mediaStore } from '$lib/state/media.svelte';
     import { resolveMediaUrl } from '$lib/state/utils';
+    import ImagePreviewModal from '../admin/ui/ImagePreviewModal.svelte';
 
     interface Props {
         asset: MediaAsset | null;
@@ -29,6 +30,7 @@
 
     let isEditingAlt = $state(false);
     let editedAlt = $state('');
+    let previewImageUrl = $state<string | null>(null);
 
     $effect(() => {
         if (asset) {
@@ -70,11 +72,11 @@
     // ... (các phần khác giữ nguyên)
 
     // Sửa hàm mở preview
-    function openVideoPreview(asset: MediaAsset) {
+    function openPreview(asset: MediaAsset) {
         if (asset.mime_type?.startsWith('video/')) {
             onPlayVideo?.(asset.file_path);
         } else {
-            window.open(getImageUrl(asset), '_blank');
+            previewImageUrl = getImageUrl(asset);
         }
     }
 
@@ -94,6 +96,7 @@
 </script>
 
 {#if asset}
+    <ImagePreviewModal imageUrl={previewImageUrl} onClose={() => previewImageUrl = null} />
     <div
         class="w-80 border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0e14] flex flex-col h-full overflow-hidden shadow-[-20px_0_50px_rgba(0,0,0,0.1)] z-20 relative"
         transition:slide={{ axis: 'x', duration: 400 }}
@@ -146,7 +149,13 @@
                 <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <div class="absolute top-4 right-4 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all">
                     <button
-                        onclick={() => openVideoPreview(asset)}
+                        onclick={() => {
+                            if (asset.mime_type?.startsWith('video/')) {
+                                onPlayVideo?.(asset.file_path);
+                            } else {
+                                previewImageUrl = getImageUrl(asset);
+                            }
+                        }}
                         class="p-2.5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl text-white hover:bg-white/20 transition-all shadow-2xl"
                     >
                         <Maximize2 size={18} />

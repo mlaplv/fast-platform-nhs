@@ -2,7 +2,7 @@
     import { mediaStore } from '$lib/state/media.svelte';
     import type { MediaAsset } from '$lib/state/types';
     import { fade, scale } from 'svelte/transition';
-    import { Check, Trash2, RotateCcw, Info, Star } from 'lucide-svelte';
+    import { Check, Trash2, RotateCcw, Info, Star, Eye } from 'lucide-svelte';
 
     interface Props {
         assets: MediaAsset[];
@@ -11,15 +11,17 @@
         onSelect?: (assets: MediaAsset[]) => void;
         onDelete: (id: string) => void;
         onRestore: (id: string) => void;
+        onPreview: (url: string) => void;
     }
 
-    let { 
-        assets, 
-        selectedAssetId = $bindable(), 
-        mode = 'manage', 
-        onSelect, 
-        onDelete, 
-        onRestore 
+    let {
+        assets,
+        selectedAssetId = $bindable(),
+        mode = 'manage',
+        onSelect,
+        onDelete,
+        onRestore,
+        onPreview
     } = $props<Props>();
 
     function handleSelect(asset: MediaAsset) {
@@ -82,7 +84,18 @@
             {/if}
 
             <!-- Glassmorphism Gradient Overlay -->
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-40 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-40 group-hover:opacity-100 transition-opacity duration-500">
+                <!-- Preview Action (Top-Right) -->
+                {#if !asset.mime_type?.startsWith('video/') && !mediaStore.isTrashMode}
+                    <button
+                        onclick={(e) => { e.stopPropagation(); onPreview(getImageUrl(asset)); }}
+                        class="absolute top-3 right-3 p-1.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg text-white hover:bg-white hover:text-black transition-all"
+                        title="Xem ảnh"
+                    >
+                        <Eye size={14} />
+                    </button>
+                {/if}
+            </div>
 
             <!-- Selection Badge (Top-Left) -->
             {#if mediaStore.selectedIds.has(asset.id)}
