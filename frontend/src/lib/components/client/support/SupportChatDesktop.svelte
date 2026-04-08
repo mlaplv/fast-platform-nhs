@@ -171,7 +171,7 @@
             </h3>
           <div class="flex items-center gap-2 mt-1.5">
              <p class="text-[11px] {supportAgent.helenEnabled ? 'text-[#00A3FF]' : 'text-[#34C759]'} font-black uppercase tracking-[0.2em] opacity-90">
-               {supportAgent.helenEnabled ? 'Chuyên gia trực tuyến' : 'Nhân viên trực'}
+               {supportAgent.helenEnabled ? 'Tư vấn(online)' : 'Nhân viên trực'}
              </p>
           </div>
           </div>

@@ -86,7 +86,14 @@ class OrderHandler(BaseHandler):
             ctx.intent = SupportIntent.PURCHASE
 
             # Case B1: "Cho 1 đơn" -> No specific unit confirmed
-            if is_ambiguous_order or (lead_data and not lead_data.items):
+            if is_ambiguous_order or (lead_data and (not lead_data.items or not lead_data.is_definite_purchase)):
+                # New: Handle Ambiguous Location
+                if lead_data and lead_data.possible_provinces:
+                    provinces = ", ".join(lead_data.possible_provinces)
+                    reply = f"{debug_prefix}Dạ địa chỉ của mình có tên phường trùng ở nhiều nơi ({provinces}), Anh/Chị cho Helen xin thêm tên Tỉnh/Thành phố để em gửi hàng chính xác nhé ạ! 🌸"
+                    ctx.replies.append(reply)
+                    return True
+
                 logger.info(f"💡 [OrderHandler] Ambiguous 'đơn' detected. Triggering Upsell Menu.")
 
                 base_price = int(ctx.p_info.price) if ctx.p_info and ctx.p_info.price else 249000

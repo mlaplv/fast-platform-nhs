@@ -49,6 +49,8 @@ class ExtractedLead(BaseModel):
     processed_order_id: Optional[str] = Field(None, description="ID đơn hàng đã tạo (nếu có)")
     needs_price_quote: bool = Field(False, description="True nếu số lượng quá lớn (>5) cần báo giá riêng")
     shipping_days: Optional[str] = Field(None, description="Thời gian giao hàng dự kiến")
+    possible_provinces: List[str] = Field(default_factory=list, description="Danh sách tỉnh thành khả nghi nếu địa chỉ mơ hồ")
+
 
 _lead_extraction_agent = Agent(
     output_type=ExtractedLead,
@@ -195,6 +197,10 @@ class LeadExtractor:
                     lead.shipping_days = resolved.shipping_days
                     logger.info(f"[LeadExtractor] Address Resolved: {lead.customer_address} (Score: {resolved.score}, Days: {lead.shipping_days})")
                 else:
+                    if resolved.possible_provinces:
+                        lead.possible_provinces = resolved.possible_provinces
+                        lead.is_definite_purchase = False # Pause to ask user
+                        logger.info(f"[LeadExtractor] Address Ambiguous, found provinces: {lead.possible_provinces}")
                     logger.warning(f"[LeadExtractor] Address Resolution Low Confidence for: {lead.customer_address}")
 
             # 3. IDENTITY RESOLUTION (Elite V2.2)

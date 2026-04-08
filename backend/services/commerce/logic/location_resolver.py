@@ -27,6 +27,8 @@ class ResolvedLocation:
     score: float = 0.0
     is_valid: bool = False
     shipping_days: Optional[str] = None
+    possible_provinces: List[str] = None # Added for ambiguity check
+
 
 class LocationResolver:
     _data: List[Dict[str, JsonValue]] = []
@@ -132,11 +134,18 @@ class LocationResolver:
             
             # O(1) Fast Search First (Ward Index)
             wards_to_check = LocationResolver._ward_map.get(p_id, [])
-            for w_norm, _ in wards_to_check:
+            # Search for ward matches, but prioritize if the District is also mentioned
+            best_ward_match = None
+            for w_norm, p_data in wards_to_check:
                 if w_norm in addr_norm:
-                    best_ward = next(w for w in best_province["wards"] if normalize_vn(w) == w_norm)
-                    best_w_score = 1.0
+                    # Heuristic: If we have multiple Phú Lâm, maybe check district from addr_norm?
+                    # For now, just ensure we find a valid match
+                    best_ward_match = next(w for w in best_province["wards"] if normalize_vn(w) == w_norm)
                     break
+
+            if best_ward_match:
+                best_ward = best_ward_match
+                best_w_score = 1.0
             
             # Fallback to Fuzzy Search
             if not best_ward:
