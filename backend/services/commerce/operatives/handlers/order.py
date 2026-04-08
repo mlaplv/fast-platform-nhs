@@ -66,7 +66,7 @@ class OrderHandler(BaseHandler):
                             total_qty += int(qty_val) if isinstance(qty_val, (int, str)) else 1
 
                 formatted_price = "{:,.0f}".format(float(order_obj.total_amount or 0)).replace(",", ".")
-                delivery_info = self._calculate_delivery_time(order_obj.customer_address or "", getattr(lead_data, "shipping_days", None))
+                delivery_info = location_resolver.resolve(order_obj.customer_address or "").shipping_days or "2-3 ngày"
 
                 from backend.services.commerce.constants.support_config import support_cfg
                 reply = (
@@ -118,10 +118,4 @@ class OrderHandler(BaseHandler):
     def _calculate_delivery_time(self, address: str, shipping_days: str | None = None) -> str:
         """Heuristic Shipping Estimator (Standardized Logic)."""
         if shipping_days: return shipping_days
-        if not address: return "2-3 ngày"
-        addr = address.lower()
-        hcm_keys = ["hồ chí minh", "tp.hcm", "hcm", "sài gòn", "quận 1", "quận 3", "quận 5", "quận 10", "tân bình", "bình thạnh"]
-        if any(key in addr for key in hcm_keys): return "1 ngày"
-        south_keys = ["bình dương", "đồng nai", "long an", "vũng tàu", "cần thơ"]
-        if any(key in addr for key in south_keys): return "1-2 ngày"
-        return "3-5 ngày"
+        return location_resolver.resolve(address).shipping_days or "2-3 ngày"
