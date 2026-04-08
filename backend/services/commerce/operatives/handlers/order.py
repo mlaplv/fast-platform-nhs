@@ -22,7 +22,10 @@ class OrderHandler(BaseHandler):
         # We REMOVE noisy keywords like 'address' or 'name' which should trigger Consultant/L0.
         order_keywords = [
             "mua", "đặt", "lấy", "ship", "giao", "lên đơn", "check đơn",
-            "1 lọ", "2 lọ", "3 lọ", "combo", "đặt hàng", "mua ngay"
+            "1 lọ", "2 lọ", "3 lọ", "combo", "đặt hàng", "mua ngay",
+            # Elite V2.5: Direct order-intake phrases (nhân viên/khách đọc địa chỉ trực tiếp)
+            "cho 1 đơn", "cho đơn", "chốt đơn", "đơn về", "về :", "về:",
+            "cho em đặt", "cho anh đặt", "cho chị đặt",
         ]
         potential_order = any(kw in msg for kw in order_keywords)
         has_digits = any(char.isdigit() for char in msg)

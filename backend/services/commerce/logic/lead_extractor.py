@@ -57,9 +57,15 @@ _lead_extraction_agent = Agent(
         "Nhiệm vụ chính: Trích xuất SĐT, Địa chỉ, Sản phẩm và kiểm tra ý định chốt đơn.\n"
         "QUY TẮC:\n"
         "1. SĐT: 10 số, đầu 0.\n"
-        "2. ĐỊA CHỈ: Chi tiết: xóm, số nhà, ngõ, phường/xã, quận/huyện, tỉnh.\n"
+        "2. ĐỊA CHỈ: Chi tiết: số nhà, ngõ, đường, phường/xã, quận/huyện, tỉnh.\n"
         "3. SẢN PHẨM: EVERY product mentioned MUST be in the items list.\n"
-        "Mọi dữ liệu trích xuất phải trung thực, tuyệt đối không bịa thông tin."
+        "4. FORMAT NHÂN VIÊN (QUAN TRỌNG): Khi gặp format kiểu 'Cho 1 đơn về: ĐỊA_CHỈ, KHU_VỰC, SĐT, TÊN' "
+        "hoặc chuỗi CSV dạng 'SỐ_NHÀ/ĐƯỜNG, KHU_VỰC, SĐT, TÊN' — hãy parse ngay:\n"
+        "   - Phần đầu là địa chỉ (bao gồm cả số nhà có dấu /)\n"
+        "   - Dãy 10 chữ số là SĐT\n"
+        "   - Từ cuối cùng (sau SĐT) là tên khách\n"
+        "   - Đây luôn là đơn VIP, đặt is_definite_purchase=true.\n"
+        "5. Mọi dữ liệu trích xuất phải trung thực, tuyệt đối không bịa thông tin."
     )
 )
 
