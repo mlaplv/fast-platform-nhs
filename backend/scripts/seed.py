@@ -264,9 +264,10 @@ async def main():
     async with async_session_maker() as session:
         try:
             await clear_data(session); r = await seed_rbac(session); u = await seed_users(session, r)
-            await seed_categories(session); p = await seed_products(session); await seed_articles(session, u.id)
-            await seed_reviews(session)
-            await seed_support_knowledge(session)
+            await seed_categories(session); p = await seed_products(session)
+            # await seed_articles(session, u.id)
+            # await seed_reviews(session)
+            # await seed_support_knowledge(session)
             await seed_appointments(session)
             await seed_system_settings(session)
             await session.commit(); print("✨ Successful!")
