@@ -445,7 +445,8 @@
     box-shadow: 0 10px 25px rgba(0, 163, 255, 0.3);
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     text-decoration: none !important;
-    width: 100%;
+    width: fit-content;
+    min-width: 240px;
     text-align: center;
     border: 1px solid rgba(255, 255, 255, 0.2);
   }

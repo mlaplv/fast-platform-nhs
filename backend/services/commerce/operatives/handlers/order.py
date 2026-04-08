@@ -15,37 +15,34 @@ class OrderHandler(BaseHandler):
     """
     
     async def handle(self, ctx: SupportContext) -> bool:
-        """ZONE 3: Order Closing. Heuristic guard before LLM extraction."""
+        """ZONE 3: Order Closing. Refined Elite V2.5 Architecture."""
         msg = ctx.request.message.lower().strip()
         
-        # 🚀 Elite V2.2: Tighten Heuristics (Elite Discipline)
-        # We REMOVE noisy keywords like 'address' or 'name' which should trigger Consultant/L0.
-        order_keywords = [
-            "mua", "đặt", "lấy", "ship", "giao", "lên đơn", "check đơn",
-            "1 lọ", "2 lọ", "3 lọ", "combo", "đặt hàng", "mua ngay",
-            # Elite V2.5: Direct order-intake phrases (nhân viên/khách đọc địa chỉ trực tiếp)
-            "cho 1 đơn", "cho đơn", "chốt đơn", "đơn về", "về :", "về:",
-            "cho em đặt", "cho anh đặt", "cho chị đặt",
-        ]
-        potential_order = any(kw in msg for kw in order_keywords)
+        # 1. INTENT RECOGNITION (Heuristic)
+        staff_patterns = ["cho 1 đơn", "cho đơn", "về :", "lên đơn", "gửi đơn"]
         has_digits = any(char.isdigit() for char in msg)
-        # Detect clear order signals: message has both digits (phone) AND address-like patterns
-        has_address_signal = any(kw in msg for kw in ["đường", "phố", "quận", "huyện", "phường", "xã", "tỉnh", "tp", "thành phố", "ngõ", "ngách", "/"])
+        potential_keywords = ["mua", "đặt", "lấy", "ship", "giao", "ok", "chốt", "đơn", "lên đơn", "chốt đơn"]
         
-        if not potential_order and not has_digits and not has_address_signal and len(msg) < 15:
-            return False
+        is_staff_order = any(sp in msg for sp in staff_patterns) and has_digits
+        has_buying_intent = any(kw in msg for kw in potential_keywords)
+        is_strong_intent = has_digits and (has_buying_intent or is_staff_order)
 
-        # 1. RUN LEAD EXTRACTOR (Core Engine)
-        try:
-            lead_data = await lead_extractor.extract_and_convert(
-                ctx.db, ctx.request.message, ctx.session_id, current_product_slug=ctx.request.product_slug
-            )
-            ctx.lead_data = lead_data
-        except Exception as le:
-            logger.error(f"[OrderHandler] Lead extraction failed: {le}")
-            return False
-        
-        # 2. SUCCESS PATH: Order was created successfully
+        # 🚀 2. ATOMIC EXTRACTION (Execute ONLY ONCE)
+        lead_data = None
+        if is_strong_intent or is_staff_order:
+            try:
+                lead_data = await lead_extractor.extract_and_convert(
+                    ctx.db, ctx.request.message, ctx.session_id, current_product_slug=ctx.request.product_slug
+                )
+                ctx.lead_data = lead_data
+            except Exception as e:
+                logger.error(f"[OrderHandler] Atomic extraction failed: {e}")
+
+        # 🚀 3. DECISION ENGINE (The Lockdown)
+        import os
+        debug_prefix = "[z3] " if os.getenv("HELEN_DEBUG", "0") == "1" else ""
+
+        # Case A: Success (Order Created)
         if lead_data and lead_data.processed_order_id:
             ctx.processed_order_id = lead_data.processed_order_id
             ctx.intent = SupportIntent.PURCHASE
@@ -55,11 +52,10 @@ class OrderHandler(BaseHandler):
             order_obj = (await ctx.db.execute(stmt)).scalar_one_or_none()
             
             if order_obj:
-                total_qty: int = 0
+                total_qty = 0
                 if isinstance(order_obj.items, list):
                     for it in order_obj.items:
                         if isinstance(it, dict):
-                            # Elite V2.2: Safe extraction from JSONB items
                             qty_val = it.get("quantity", 1)
                             total_qty += int(qty_val) if isinstance(qty_val, (int, str)) else 1
                 
@@ -68,29 +64,32 @@ class OrderHandler(BaseHandler):
                 
                 from backend.services.commerce.constants.support_config import support_cfg
                 reply = (
-                    f"Dạ Helen xin cảm ơn quý khách! 🌸 [z3]\nĐơn hàng thành công:\n- Mã đơn: **{order_id[-8:].upper()}**\n"
+                    f"{debug_prefix}Dạ Helen xin cảm ơn quý khách! 🌸\nĐơn hàng thành công:\n- Mã đơn: **{order_id[-8:].upper()}**\n"
                     f"- Số sản phẩm: {total_qty} lọ/combo\n- Tổng tiền: **{formatted_price}đ** (đã free ship)\n"
                     f"- Nhận hàng: **{delivery_info}**\n\n"
                     f"[🔍 KIỂM TRA ĐƠN HÀNG]({support_cfg.app_url}/account/orders/{order_id})"
                 )
                 ctx.replies.append(reply)
-                return True # ACTION-FIRST: Stop the pipeline on purchase success.
-        
-        # 3. SEMI-SUCCESS: Lead identified but Order not created (Missing info)
-        # If we have BOTH phone and address, we consider this an Action-Locked state.
-        # We terminate to provide a focused confirmation/request.
-        if lead_data and lead_data.customer_phone and lead_data.customer_address:
+                return True # ACTION SUCCESS -> STOP PIPELINE
+
+        # Case B: Partial Data or Nuclear Intent (Bypass AI uncertainty)
+        if is_staff_order or (lead_data and (lead_data.customer_phone or lead_data.customer_address)):
             ctx.intent = SupportIntent.PURCHASE
-            # Elite V2.2 Fix: Never enter a state with empty replies if consuming the pipeline
-            p_name = ctx.p_info.name if ctx.p_info else "sản phẩm"
-            reply = (
-                f"Dạ Helen đã ghi nhận SĐT **{lead_data.customer_phone}** và địa chỉ của mình tại **{lead_data.customer_address}** ạ. [z3-lead]\n\n"
-                f"Anh/Chị muốn đặt ngay liệu trình **{p_name}** này để em lên đơn và gửi đi cho mình luôn nhé? 🌸"
-            )
-            ctx.replies.append(reply)
-            return True
             
-        return False
+            if lead_data and lead_data.customer_phone and lead_data.customer_address:
+                p_name = ctx.p_info.name if ctx.p_info else "sản phẩm"
+                reply = (
+                    f"{debug_prefix}Dạ Helen đã ghi nhận SĐT **{lead_data.customer_phone}** và địa chỉ của mình tại **{lead_data.customer_address}** ạ.\n\n"
+                    f"Anh/Chị muốn đặt ngay liệu trình **{p_name}** này để em lên đơn và gửi đi cho mình luôn nhé? 🌸"
+                )
+            else:
+                # Force feedback if it's a staff command or clear intent but extraction was incomplete
+                reply = f"{debug_prefix}Helen đã nhận diện yêu cầu lên đơn của Sếp. Tuy nhiên em cần thêm SĐT và Địa chỉ chi tiết để hoàn tất. Sếp kiểm tra lại giúp em nhé! 🌸"
+            
+            ctx.replies.append(reply)
+            return True # BLOCK CONSULTANT!
+
+        return False # Fallthrough to next specialists (Greeting/Consultant)
 
     def _calculate_delivery_time(self, address: str, shipping_days: str | None = None) -> str:
         """Heuristic Shipping Estimator (Standardized Logic)."""

@@ -55,9 +55,22 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             return False
 
     async def _handle_internal(self, ctx: SupportContext) -> bool:
-        # [ELITE V2.2] Layer 0.5: Direct Heuristic (Emergency Bypass)
-        # Phase 7: Brute-Force Strictness. No loops. No mapping ambiguity.
+        """ZONE 2: Consultant Specialist (Depth & Advice)."""
         msg_norm = ctx.request.message.lower().strip()
+        
+        # 🚀 Elite V2.5: Order Safeguard (Triple-Lock)
+        # If the OrderHandler (Priority 2) is active, Consultant must yield when:
+        # 1. Message contains a phone number (9+ digits)
+        # 2. Message contains address-like patterns (including staff separators : and /)
+        # 3. Message contains buying intent keywords.
+        has_phone = sum(1 for c in msg_norm if c.isdigit()) >= 9
+        has_address_signals = any(kw in msg_norm for kw in ["đường", "phố", "quận", "huyện", "phường", "xã", "tỉnh", "tp", "thành phố", "ngõ", "ngách", "/", ":"])
+        buying_intent = any(kw in msg_norm for kw in ["mua", "đặt", "lấy", "ship", "giao", "ok", "chốt", "đơn", "lên đơn", "cho 1 đơn", "cho đơn", "về :"])
+        
+        if (has_phone or has_address_signals) and buying_intent:
+            logger.info(f"🔇 [Consultant Silenced] Yielding to Order Flow: {msg_norm}")
+            return False
+
         detected_category = None
         matched_kw = None
         

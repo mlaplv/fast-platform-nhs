@@ -53,32 +53,56 @@ class ExtractedLead(BaseModel):
 _lead_extraction_agent = Agent(
     output_type=ExtractedLead,
     system_prompt=(
-        "Bạn là một chuyên gia trích xuất đơn hàng tại Việt Nam (Elite Specialist). "
-        "Nhiệm vụ chính: Trích xuất SĐT, Địa chỉ, Sản phẩm và kiểm tra ý định chốt đơn.\n"
-        "QUY TẮC:\n"
-        "1. SĐT: 10 số, đầu 0.\n"
-        "2. ĐỊA CHỈ: Chi tiết: số nhà, ngõ, đường, phường/xã, quận/huyện, tỉnh.\n"
-        "3. SẢN PHẨM: EVERY product mentioned MUST be in the items list.\n"
-        "4. FORMAT NHÂN VIÊN (QUAN TRỌNG): Khi gặp format kiểu 'Cho 1 đơn về: ĐỊA_CHỈ, KHU_VỰC, SĐT, TÊN' "
-        "hoặc chuỗi CSV dạng 'SỐ_NHÀ/ĐƯỜNG, KHU_VỰC, SĐT, TÊN' — hãy parse ngay:\n"
-        "   - Phần đầu là địa chỉ (bao gồm cả số nhà có dấu /)\n"
-        "   - Dãy 10 chữ số là SĐT\n"
-        "   - Từ cuối cùng (sau SĐT) là tên khách\n"
-        "   - Đây luôn là đơn VIP, đặt is_definite_purchase=true.\n"
-        "5. Mọi dữ liệu trích xuất phải trung thực, tuyệt đối không bịa thông tin."
+        "Bạn là một chuyên gia trích xuất đơn hàng tại Việt Nam (Elite Specialist).\n"
+        " NHIỆM VỤ CHIẾN THUẬT SIÊU CẤP:\n"
+        " 1. TRÍCH XUẤT CHÍNH XÁC: SĐT (10 số), Địa chỉ (số nhà, ngõ, đường...), Sản phẩm, Tên khách.\n"
+        " 2. ĐỊNH DẠNG CRM/STAFF (TRỌNG TÂM): Khi gặp dòng lệnh có dấu : và , như 'Cho 1 đơn về : ĐỊA_CHỈ, KHU_VỰC, SĐT, TÊN':\n"
+        "    - Phần từ Sau dấu : đến trước dấu , đầu tiên luôn là ĐỊA CHỈ (có thể chứa /).\n"
+        "    - Chuỗi 10 số liền nhau luôn là SĐT.\n"
+        "    - Chữ cuối cùng sau dấu , sau SĐT luôn là TÊN KHÁCH.\n"
+        "    - Đặt is_definite_purchase = true.\n"
+        " 3. NHẬN DIỆN XÁC NHẬN: Nếu tin nhắn là 'Ok', 'Chốt', 'Đồng ý', 'Gửi đi', hãy đặt is_definite_purchase = true và giữ nguyên các trường khác là null để hệ thống tự truy hồi từ lịch sử.\n"
+        " 4. Tuyệt đối không bịa thông tin."
     )
 )
 
 def validate_vietnam_phone(phone: str) -> Optional[str]:
     """Elite V2.2: Standardized VN Phone Validator (Zero-Any)."""
     if not phone: return None
-    p = re.sub(r"[\s\.\-\+]", "", phone)
+    p = re.sub(r"[\s\.\-\+]", "", str(phone))
     if p.startswith("84"): p = "0" + p[2:]
     if len(p) == 10 and p.startswith("0"): return p
     return None
 
 class LeadExtractor:
     """Refined Logic Engine for Lead-to-Order Conversion."""
+
+    @staticmethod
+    async def _hydrate_from_history(db: AsyncSession, session_id: str, lead: ExtractedLead) -> ExtractedLead:
+        """Retrieve missing lead info from recent successful extractions in history."""
+        from backend.database.models.system import SupportChatHistory
+        from backend.utils.security import GeminiSecurity
+        
+        stmt = (
+            select(SupportChatHistory)
+            .where(SupportChatHistory.session_id == session_id)
+            .order_by(SupportChatHistory.created_at.desc())
+            .limit(10)
+        )
+        res = await db.execute(stmt)
+        history = res.scalars().all()
+        
+        for h in history:
+            if not lead.customer_phone and h.customer_phone:
+                lead.customer_phone = h.customer_phone
+            if not lead.customer_name and h.customer_name:
+                lead.customer_name = h.customer_name
+            if not lead.customer_address and h.role == "user":
+                prev_msg = GeminiSecurity.decrypt(h.content or "").lower()
+                if any(kw in prev_msg for kw in ["đường", "phố", "quận", "huyện", "/"]):
+                    pass 
+
+        return lead
 
     @staticmethod
     async def _resolve_product(db: AsyncSession, name: Optional[str] = None, slug: Optional[str] = None, tenant_id: str = "default") -> Optional[ProductBase]:
@@ -143,6 +167,23 @@ class LeadExtractor:
             # 2. DATA HYGIENE
             lead.customer_phone = validate_vietnam_phone(lead.customer_phone or "")
             
+            # 🚀 2.0 HYDRATION FOR SHORT CONFIRMATIONS (Elite V2.5)
+            # If message is "Ok" or AI didn't catch phone/address, try to get from history
+            is_confirmation = message.lower().strip() in ["ok", "chốt", "đồng ý", "gửi đi", "vâng", "đúng rồi"]
+            if is_confirmation or (lead.is_definite_purchase and (not lead.customer_phone or not lead.customer_address)):
+                lead = await LeadExtractor._hydrate_from_history(db, session_id, lead)
+                # Re-validate phone after hydration
+                lead.customer_phone = validate_vietnam_phone(lead.customer_phone or "")
+
+            # 2.1 Elite V2.5: Heuristic Purchase Force
+
+            # If the staff explicitly says "Cho 1 đơn" or "Lên đơn", we FORCE definite purchase
+            # to bypass any AI uncertainty.
+            force_keywords = ["cho 1 đơn", "cho đơn", "lên đơn", "lấy 1 đơn", "gửi đơn"]
+            if any(fw in message.lower() for fw in force_keywords):
+                logger.info(f"🚀 [LeadExtractor] Heuristic Force: is_definite_purchase=True matched for '{message[:20]}...'")
+                lead.is_definite_purchase = True
+
             # 2.1 ADDRESS RESOLUTION (Elite V2.2)
             if lead.customer_address:
                 resolved: ResolvedLocation = await asyncio.to_thread(location_resolver.resolve, lead.customer_address)
