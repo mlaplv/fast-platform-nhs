@@ -120,6 +120,14 @@ class SupportAgentOperative(BaseAgentOperative):
     def __init__(self, agent_id: str = "support_agent"):
         super().__init__(agent_id=agent_id)
         self.router = SupportRouter()
+        self._arq_pool = None
+
+    async def _get_arq_pool(self):
+        if self._arq_pool is None:
+            from arq import create_pool
+            from backend.infra.arq_config import get_redis_settings
+            self._arq_pool = await create_pool(get_redis_settings())
+        return self._arq_pool
 
     def get_schema(self) -> Optional[Type[BaseModel]]:
         return SupportRequest
@@ -136,11 +144,9 @@ class SupportAgentOperative(BaseAgentOperative):
             
             # 🚀 Elite V2.2: Proactive Follow-up (Feedback Loop)
             # Schedule a reminder in 1 hour if the user doesn't respond.
-            # Using 'high' queue for support priority. 
+            # Using 'high' queue for support priority.
             try:
-                from arq import create_pool
-                from backend.infra.arq_config import get_redis_settings
-                redis = await create_pool(get_redis_settings())
+                redis = await self._get_arq_pool()
                 await redis.enqueue_job(
                     "helen_follow_up_job",
                     session_id=session_id,
@@ -148,7 +154,6 @@ class SupportAgentOperative(BaseAgentOperative):
                     _job_id=f"followup:{session_id}:{int(time.time())}", # Avoid colliding with same-second jobs
                     _queue_name="high"
                 )
-                await redis.close()
             except Exception as arqe:
                 logger.warning("[SupportAgent] Follow-up scheduling failed: %s", arqe)
         except Exception as exc:
