@@ -134,34 +134,25 @@
       {/each}
     </div>
 
-    <!-- Engine Status 2.3 -->
-    <div class="hidden xl:flex items-center gap-3 px-6 py-2 bg-white/50 backdrop-blur-md rounded-full border border-white ring-1 ring-black/[0.03] mr-6 group/engine pointer-events-auto">
-      <div class="relative flex h-2 w-2">
-        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-      </div>
-      <span class="text-[9px] font-black uppercase tracking-[0.5em] text-black">Xu hướng Viral {currentYear}</span>
+    <!-- Micsmo Brand Indicator -->
+    <div class="hidden xl:flex items-center gap-3 px-6 py-2 bg-white/50 backdrop-blur-md rounded-full border border-gray-100 mr-6 group/engine pointer-events-auto">
+      <span class="text-[9px] font-black uppercase tracking-[0.3em] text-[#C18F7E]">Luxury Collection 2026</span>
     </div>
   </div>
 
   <!-- FEATURED SLIDE: Viral 2.3 Immersive Max-out -->
   <div class="mb-6 relative group/slide h-[450px] md:h-[500px] overflow-hidden rounded-none shadow-[0_60px_100px_-20px_rgba(0,0,0,0.08)] bg-white/50 backdrop-blur-3xl ring-1 ring-black/[0.02]">
     
-    <!-- BACKGROUND DECAL: Large Vertical Typography (Viral 2.3) -->
-    <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none select-none opacity-5">
-      <span class="text-[150px] font-black uppercase tracking-tighter leading-none [writing-mode:vertical-lr] rotate-180">Micsmo</span>
-    </div>
-    <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none select-none opacity-[0.03]">
-      <span class="text-[200px] font-black uppercase tracking-tighter leading-none [writing-mode:vertical-lr]">{currentYear}</span>
-    </div>
+    <!-- Subtle Background Glow - Micsmo Luxury -->
+    <div class="absolute inset-0 bg-gradient-to-br from-[#C18F7E]/5 via-white to-white pointer-events-none"></div>
 
     <!-- Slides Stack -->
     {#each featuredSlides() as slide, i}
       {#if currentSlide === i}
         <div 
-            in:fade={{duration: 2000}} 
-            out:fade={{duration: 1500}}
-            class="absolute inset-0 flex items-center justify-between px-8 md:px-12 transition-all"
+            in:fade={{duration: 800}} 
+            out:fade={{duration: 600}}
+            class="absolute inset-0 flex items-center justify-between px-8 md:px-12 transition-all z-10"
         >
           <!-- Content Left -->
           <div class="relative z-10 flex flex-col gap-8 max-w-[55%]">
@@ -170,10 +161,10 @@
                 <span class="text-black/30 text-[9px] font-black uppercase tracking-[0.4em]">Xếp Hạng #1 Xu Hướng</span>
             </div>
             
-            <div in:fly={{y: 30, duration: 1500, delay: 600}} class="flex flex-col gap-2">
-                <h2 class="text-4xl md:text-6xl font-black leading-[0.85] uppercase tracking-tighter line-clamp-2">
-                    <span class="bg-gradient-to-r from-black via-black/80 to-[#ee4d2d] bg-clip-text text-transparent">{slide.name.split(' ').slice(0,-1).join(' ')}</span><br/>
-                    <span class="text-[#ee4d2d] italic">{slide.name.split(' ').slice(-1)}</span>
+            <div in:fly={{y: 30, duration: 1500, delay: 600}} class="flex flex-col">
+                <h2 class="text-4xl md:text-6xl font-black leading-[1.1] uppercase tracking-tight line-clamp-2">
+                    <span class="bg-gradient-to-r from-black via-black/80 to-[#C18F7E] bg-clip-text text-transparent">{slide.name.split(' ').slice(0, 2).join(' ')}</span><br/>
+                    <span class="text-[#C18F7E] italic">{slide.name.split(' ').slice(2).join(' ')}</span>
                 </h2>
             </div>
 
@@ -186,13 +177,13 @@
                                 <span class="text-base font-bold text-gray-300 line-through tabular-nums italic decoration-gray-400/30">
                                     đ{Math.round(slide.originalPrice).toLocaleString('vi-VN')}
                                 </span>
-                                <span class="bg-[#ee4d2d] text-white text-[10px] font-black px-2 py-0.5 rounded-sm animate-pulse">-55%</span>
+                                <span class="bg-[#C18F7E] text-white text-[10px] font-black px-2 py-0.5 rounded-sm animate-pulse">-55%</span>
                             </div>
                         {/if}
                     </div>
                     <span class="text-black text-4xl font-black tabular-nums tracking-tighter drop-shadow-sm flex items-end gap-2">
-                        <span class="text-[#ee4d2d] text-2xl mb-1">đ</span>{slide.price.toLocaleString('vi-VN')}
-                        <span class="text-[10px] text-green-500 font-bold uppercase tracking-widest mb-1.5 animate-bounce">⚡ Tiết kiệm cực lớn</span>
+                        <span class="text-[#C18F7E] text-2xl mb-1">đ</span>{slide.price.toLocaleString('vi-VN')}
+                        <span class="text-[10px] text-green-500/50 font-bold uppercase tracking-widest mb-1.5 animate-bounce">⚡ Ưu đãi độc quyền</span>
                     </span>
                 </div>
                 <div class="w-[1px] h-12 bg-black/5"></div>
@@ -205,10 +196,10 @@
             <div in:fly={{y: 50, duration: 1500, delay: 1000}}>
                 <button 
                     onclick={() => goto(`/${slugify(slide.name)}`)}
-                    class="group/btn relative px-14 py-6 mt-6 bg-black text-white text-[11px] font-black uppercase tracking-[0.6em] overflow-hidden transition-all active:scale-95 shadow-[0_20px_40px_rgba(0,0,0,0.1)] hover:shadow-[0_30px_60px_rgba(238,77,45,0.3)]"
+                    class="group/btn relative px-14 py-6 mt-6 bg-black text-white text-[11px] font-black uppercase tracking-[0.6em] overflow-hidden transition-all active:scale-95 shadow-[0_20px_40px_rgba(0,0,0,0.1)] hover:shadow-[0_30px_60px_rgba(193,143,126,0.3)]"
                 >
-                    <span class="relative z-10 transition-colors group-hover/btn:text-white">Sắm Ngay ✨</span>
-                    <div class="absolute inset-0 bg-gradient-to-r from-[#ee4d2d] to-[#ff7337] -translate-x-full group-hover/btn:translate-x-0 transition-transform duration-1000 ease-in-out"></div>
+                    <span class="relative z-10 transition-colors group-hover/btn:text-white">Khám phá Ngay ✨</span>
+                    <div class="absolute inset-0 bg-gradient-to-r from-[#C18F7E] to-[#E3B5A4] -translate-x-full group-hover/btn:translate-x-0 transition-transform duration-1000 ease-in-out"></div>
                     <div class="absolute top-0 left-0 w-full h-[1px] bg-white/20 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-1500"></div>
                 </button>
             </div>
@@ -252,6 +243,18 @@
         </div>
       {/if}
     {/each}
+
+    <!-- Slide Indicators - Micsmo Elite Dots -->
+    <div class="absolute bottom-4 right-12 flex items-center gap-2 z-40">
+        {#each featuredSlides() as _, i}
+            <button 
+                onclick={() => (currentSlide = i)}
+                class="group relative flex items-center justify-center h-4 w-8 transition-all"
+            >
+                <div class="h-[2px] transition-all duration-700 {currentSlide === i ? 'w-8 bg-[#C18F7E]' : 'w-4 bg-black/10 group-hover:bg-black/30'}"></div>
+            </button>
+        {/each}
+    </div>
 
     <!-- Hidden Edge Controls -->
     <div class="absolute inset-y-0 left-0 w-32 flex items-center justify-center group/nav opacity-0 hover:opacity-100 transition-opacity z-30 cursor-pointer" onclick={prevSlide}>
