@@ -63,10 +63,10 @@
         <div 
             in:fade={{duration: 800}} 
             out:fade={{duration: 600}}
-            class="absolute inset-0 flex items-center justify-between px-8 md:px-24 transition-all z-10"
+            class="absolute inset-0 flex items-center justify-between px-8 md:px-[76px] transition-all z-10"
         >
-          <!-- Content Left -->
-          <div class="relative z-10 flex flex-col gap-4 max-w-[55%]">
+          <!-- Content Left (Moved 20px further left) -->
+          <div class="relative z-10 flex flex-col gap-4 max-w-[55%] ml-[-20px]">
             <div in:fly={{y: 20, duration: 1000, delay: 200}} class="flex items-center gap-3">
                 <span class="bg-[#C18F7E]/10 text-[#C18F7E] text-[8px] font-black px-2 py-1 uppercase tracking-widest border border-[#C18F7E]/20">Micsmo Elite Choice</span>
                 <div class="h-px w-8 bg-black/10"></div>
