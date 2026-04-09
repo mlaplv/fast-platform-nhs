@@ -6,6 +6,7 @@
   import ProductListMobile from '$lib/components/storefront/product/ProductListMobile.svelte';
   import NewsListDesktop from '$lib/components/storefront/news/NewsListDesktop.svelte';
   import NewsListMobile from '$lib/components/storefront/news/NewsListMobile.svelte';
+  import FunnelPage from '../[slug]-funnel/+page.svelte';
   import { onMount } from 'svelte';
 
   let { data }: { data: any } = $props();
@@ -23,8 +24,13 @@
 </script>
 
 <svelte:head>
-  <title>{data.type === 'category' || data.type === 'news' ? data.categoryName : data.product?.name} | Micsmo</title>
+  {#if data.type === 'category' || data.type === 'news'}
+    <title>{data.categoryName} | Micsmo</title>
+  {:else if !(data.product?.metadata?.landing_type && data.product.metadata.landing_type !== 'standard')}
+    <title>{data.product?.name} | Micsmo</title>
+  {/if}
 </svelte:head>
+
 {#if data.type === 'category' || data.type === 'news'}
   {#if data.type === 'news'}
     <div class="news-page-wrapper bg-[#F5F5F7] min-h-screen">
@@ -46,10 +52,23 @@
     {/if}
   {/if}
 {:else}
-  <!-- GIAO DIỆN CHI TIẾT SẢN PHẨM (KHI URL KHÔNG CÓ / Ở CUỐI) -->
-  {#if isMobile}
-    <ProductDetailMobile product={data.product} />
+  <!-- KIỂM TRA METADATA: HIỂN THỊ FUNNEL (LANDING PAGE) HOẶC DETAIL PAGE -->
+  {#if data.product?.metadata?.landing_type && data.product.metadata.landing_type !== 'standard'}
+    <!-- Funnel component already handles its own <svelte:head> -->
+    <FunnelPage {data} />
   {:else}
-    <ProductDetailDesktop product={data.product} />
+    <!-- GIAO DIỆN CHI TIẾT SẢN PHẨM MẶC ĐỊNH -->
+    {#if isMobile}
+      <ProductDetailMobile product={data.product} />
+    {:else}
+      <ProductDetailDesktop product={data.product} />
+    {/if}
+    
+    <!-- DEV DEBUG OVERLAY -->
+    {#if import.meta.env.DEV}
+      <div class="fixed bottom-0 left-0 bg-black/80 text-green-400 p-2 text-xs z-50">
+        [DEBUG] Landing Type: {data.product?.metadata?.landing_type || 'undefined/standard'}
+      </div>
+    {/if}
   {/if}
 {/if}

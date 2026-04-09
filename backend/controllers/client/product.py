@@ -19,7 +19,7 @@ class PublicProductController(Controller):
         "product_service": Provide(provide_product_service),
     }
 
-    @get("/slug/{slug:str}", cache=300)
+    @get("/slug/{slug:str}")
     async def get_product_by_slug(
         self,
         db_session: AsyncSession,
