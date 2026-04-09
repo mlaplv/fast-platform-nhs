@@ -96,9 +96,6 @@
   });
 </script>
 
-<!-- Viral 2.3 Cinematic Texture -->
-<div class="fixed inset-0 pointer-events-none z-[9999] opacity-[0.03] mix-blend-overlay grain-texture"></div>
-
 <section class="home-product-grid-section relative mb-[5px] overflow-visible">
   
   <!-- ENERGY MESH: Vibrant Background Glows (Viral 2.3) -->

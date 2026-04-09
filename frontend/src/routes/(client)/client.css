@@ -28,9 +28,9 @@
      --fs-title: clamp(1.75rem, 5vw, 3rem);
   }
 
-  /* Centralized Layout Gaps */
-  --gap-fluid: clamp(1.5rem, 4vw, 4rem);
-  --container-max: 1400px;
+  /* Centralized Layout Gaps (Shopee Standard) */
+  --gap-fluid: clamp(1rem, 2vw, 2rem);
+  --container-max: 1200px;
 
   /* NO-GPU VPS PERFORMANCE OVERRIDE (Total Cleansing) */
   --liquid-blur: 0px !important;

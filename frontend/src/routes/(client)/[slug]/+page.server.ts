@@ -11,9 +11,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
     if (params.slug === 'tin-tuc') {
         const mockNews = Array.from({ length: 6 }).map((_, i) => ({
             id: `${i}`,
-            slug: `bi-quyet-lam-dep-elite`, // Bỏ phần số đếm -${i} thừa ở đây
-            title: `Bí quyết làm đẹp Elite ${i + 1}`,
-            summary: 'Khám phá công nghệ mỹ phẩm Agentic AI 2026 giúp bạn lưu giữ thanh xuân và tự tin tỏa sáng...',
+            slug: `blog-elite-${i}`,
+            title: i === 0 ? "Bí quyết trẻ hóa làn da Agentic AI 2026" : `Cẩm nang chăm sóc sắc đẹp Elite Vol.${i + 1}`,
+            summary: 'Khám phá công nghệ mỹ phẩm hàng đầu giúp bạn lưu giữ thanh xuân và tự tin tỏa sáng mỗi ngày...',
             image: '/uploads/img/micsmo/20250729_Clo7Mql2nt.jpeg'
         }));
 
@@ -27,7 +27,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
     const categoryName = params.slug.replace(/-/g, ' ').toUpperCase();
     const mockProducts = Array.from({ length: 10 }).map((_, i) => ({
         id: `sp-elite-${params.slug}-${i}`,
-        name: `Siêu phẩm ${categoryName} thế hệ mới ${i + 1}`,
+        name: i === 0 ? `Serum Nhau Thai White Label Premium` : `${categoryName.charAt(0) + categoryName.slice(1).toLowerCase()} Cao Cấp Phiên Bản ${i + 1}`,
         price: 399000 + (i * 50000),
         image: `/uploads/img/micsmo/-MICCOSMO-WHITE-LABEL-PREMIUM-PLACENTA-CREAM-60g-Kem-Duong-Nhau-Thai-Lam-Sang-amp-Cap-Am-Diu-Nhe_33.1.png`
     }));
