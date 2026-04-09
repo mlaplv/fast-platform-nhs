@@ -277,7 +277,38 @@ PRODUCT_NAMES = [
     "Miccosmo Hurry Harry Premium Neck Cream Rich 40gr - Kem dưỡng sáng cổ"
 ]
 
-ARTICLE_TITLES = []
+ARTICLE_DEFS = [
+    {
+        "id": "art_aging_strategies",
+        "title": "Strategies to Combat Premature Skin Aging",
+        "slug": "strategies-to-combat-premature-skin-aging",
+        "content": "Lão hóa bắt đầu âm thầm sau tuổi 20. Để duy trì vẻ ngoài trẻ trung, cần tập trung vào chống nắng, cấp ẩm, ngủ đủ giấc đến bổ sung dưỡng chất chuyên sâu.",
+        "image_url": "https://miccosmo.vn/images/news/aging-strategies.jpg"
+    },
+    {
+        "id": "art_cleansing_fundamentals",
+        "title": "The Fundamentals of Proper Facial Cleansing",
+        "slug": "fundamentals-of-proper-facial-cleansing",
+        "content": "Rửa mặt đúng cách giúp bảo vệ hàng rào da, duy trì độ ẩm và hỗ trợ hấp thụ dưỡng chất tốt hơn, đồng thời ngăn ngừa xỉn màu và mụn.",
+        "image_url": "https://miccosmo.vn/images/news/cleansing.jpg"
+    },
+    {
+        "id": "art_neck_revitalizing",
+        "title": "Revitalizing the Often Forgotten Neck Area",
+        "slug": "revitalizing-the-forgotten-neck-area",
+        "content": "Vùng cổ lão hóa rất nhanh, cần học cách thoa kem cổ chuẩn giúp nâng cơ nhẹ nhàng, giữ da mịn màng, tránh chảy xệ và nếp nhăn sâu.",
+        "image_url": "https://miccosmo.vn/images/news/neck-care.jpg"
+    },
+    {
+        "id": "art_oily_skin_hydration",
+        "title": "Why Oily Skin Still Requires Hydration",
+        "slug": "why-oily-skin-requires-hydration",
+        "content": "Bỏ qua kem dưỡng có thể kích thích dầu thừa. Cấp ẩm đúng cách giúp cân bằng dầu – nước, hạn chế bít tắc lỗ chân lông và giúp làn da khỏe mạnh.",
+        "image_url": "https://miccosmo.vn/images/news/oily-skin.jpg"
+    }
+]
+
+ARTICLE_TITLES = [article["title"] for article in ARTICLE_DEFS]
 
 # Support Knowledge Base (Elite V2.2)
 SUPPORT_KNOWLEDGE_DEFS = []

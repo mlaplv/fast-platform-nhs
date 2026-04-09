@@ -17,8 +17,10 @@
   });
 </script>
 
-{#if isMobile}
-  <NewsDetailMobile article={data.article} />
-{:else}
-  <NewsDetailDesktop article={data.article} />
-{/if}
+<div class="news-detail-wrapper bg-[#F5F5F5] pb-8">
+  {#if isMobile}
+    <NewsDetailMobile article={data.article} />
+  {:else}
+    <NewsDetailDesktop article={data.article} />
+  {/if}
+</div>

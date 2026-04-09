@@ -51,16 +51,11 @@
 
 {#if data.type === 'category' || data.type === 'news'}
   {#if data.type === 'news'}
-    <div class="news-page-wrapper bg-[#F5F5F7] min-h-screen">
-      {#if isMobile}
-        <NewsListMobile newsList={data.items} />
-      {:else}
-        <div class="max-w-7xl mx-auto p-6 md:p-12 pt-8">
-            <h1 class="text-5xl font-black text-black tracking-tighter uppercase mb-8">{data.categoryName}</h1>
-            <NewsListDesktop newsList={data.items} />
-        </div>
-      {/if}
-    </div>
+    {#if isMobile}
+      <NewsListMobile newsList={data.items} />
+    {:else}
+      <NewsListDesktop newsList={data.items} categoryName={data.categoryName} />
+    {/if}
   {:else}
     <!-- GIAO DIỆN DANH MỤC SẢN PHẨM TRẮNG SẠCH (TMĐT 2026) -->
     {#if isMobile}

@@ -24,8 +24,8 @@ from backend.database.models import (
 )
 from backend.utils.security import GeminiSecurity
 from backend.scripts.seed_data import (
-    CATEGORY_DEFS, SUB_CATEGORY_DEFS, PRODUCT_DEFS, 
-    PRODUCT_NAMES, ARTICLE_TITLES, SUPPORT_KNOWLEDGE_DEFS
+    CATEGORY_DEFS, SUB_CATEGORY_DEFS, PRODUCT_DEFS,
+    PRODUCT_NAMES, ARTICLE_TITLES, ARTICLE_DEFS, SUPPORT_KNOWLEDGE_DEFS
 )
 from backend.services.xohi.creative_studio.models.schemas import CategoryEnum
 
@@ -77,7 +77,7 @@ async def seed_users(session, admin_role):
     print("👤 Creating users...")
     pwd = os.getenv("ADMIN_PASSWORD", "admin@123A3%StrongPassword")
     hpwd = bcrypt.hashpw(hashlib.sha256(pwd.encode()).hexdigest().encode(), bcrypt.gensalt()).decode()
-    admin = User(id="user_admin", email=os.getenv("ADMIN_EMAIL", "admin@micsmo.com"), username=os.getenv("ADMIN_USERNAME", "admin"), name="Xohi", password=hpwd, status="ACTIVE", tenant_id=TENANT_ID)
+    admin = User(id="user_admin", email=os.getenv("ADMIN_EMAIL", "admin@micsmo.com"), username=os.getenv("ADMIN_USERNAME", "admin"), name="Micsmo", password=hpwd, status="ACTIVE", tenant_id=TENANT_ID)
     admin.roles.append(admin_role); session.add(admin)
     vp = VoiceProfile(id=str(uuid.uuid4()), user_id=admin.id, wake_words=["hey so hi"], sleep_words=["cút"], greeting_template="Bố đây.", capabilities={"READ":True,"COUNT":True,"MUTATE":True,"ANALYZE":True}, gemini_keys_enc=GeminiSecurity.encrypt(GEMINI_KEYS), primary_model="gemini-2.5-flash", ai_models=["gemini-2.5-flash","gemini-1.5-pro","gemini-1.5-flash"])
     session.add(vp); await session.flush(); return admin
@@ -132,17 +132,19 @@ async def seed_products(session):
     return products
 
 async def seed_articles(session, author_id):
-    print("📰 Seeding 3 articles...")
-    for i in range(3):
+    print(f"📰 Seeding {len(ARTICLE_DEFS)} articles...")
+    for d in ARTICLE_DEFS:
         session.add(Article(
-            id=str(uuid.uuid4()), 
-            title=f"{random.choice(ARTICLE_TITLES)} #{i+1}", 
-            slug=f"art-{i+1}-{uuid.uuid4().hex[:4]}", 
-            content="<p>Dữ liệu mẫu từ hệ thống AI 2026. Công nghệ lõi đang được kích hoạt...</p>", 
-            status="PUBLISHED", 
-            category=random.choice([c.value for c in CategoryEnum]), 
-            author_id=author_id, 
-            tenant_id=TENANT_ID, 
+            id=d["id"],
+            title=d["title"],
+            slug=d["slug"],
+            excerpt=d["content"][:150] + "...",
+            content=f"<p>{d['content']}</p>",
+            status="PUBLISHED",
+            category="Tin tức",
+            featured_image=d.get("image_url"),
+            author_id=author_id,
+            tenant_id=TENANT_ID,
             created_at=utcnow() - timedelta(days=random.randint(0, 30))
         ))
     await session.flush()
@@ -151,7 +153,7 @@ async def seed_system_settings(session):
     print("⚙️ Seeding system settings...")
     default_settings = {
         "basic_info": {
-            "site_name": "SmartShop Xohi",
+            "site_name": "Micsmo Elite",
             "description": "Hệ thống bán hàng AI thế hệ mới 2026",
             "logo_desktop": None,
             "logo_mobile": None,
@@ -159,7 +161,7 @@ async def seed_system_settings(session):
         },
         "contact_info": {
             "phone": "0901234567",
-            "hotline": "1800-XOHI",
+            "hotline": "1800-MICSMO",
             "email": "contact@micsmo.com",
             "address": "Bitexco Financial Tower, Quận 1, TP.HCM",
             "working_hours": "8:00 - 22:00"
@@ -171,8 +173,7 @@ async def seed_system_settings(session):
         ],
         "seo_analytics": {
             "meta_title": "SmartShop - Mua sắm thông minh cùng AI",
-            "meta_description": "Trải nghiệm mua sắm cá nhân hóa với trợ lý ảo Xohi.",
-            "meta_keywords": "AI, shopping, smartshop, xohi",
+            "meta_keywords": "AI, shopping, smartshop, micsmo",
             "google_analytics_id": "G-XXXXXXXXXX",
             "facebook_pixel_id": "XXXXXXXXXXXXXXX"
         },
@@ -265,7 +266,7 @@ async def main():
         try:
             await clear_data(session); r = await seed_rbac(session); u = await seed_users(session, r)
             await seed_categories(session); p = await seed_products(session)
-            # await seed_articles(session, u.id)
+            await seed_articles(session, u.id)
             # await seed_reviews(session)
             # await seed_support_knowledge(session)
             await seed_appointments(session)
