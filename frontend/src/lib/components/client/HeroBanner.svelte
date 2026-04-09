@@ -197,97 +197,43 @@
 
   <div class="container mx-auto px-6 max-w-6xl relative flex flex-col items-center pt-[var(--standard-pt)] z-surface">
 
-    <h1 class="typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0">
-       {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''}">&nbsp;</span>
+    <h1 class="typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0 text-5xl md:text-7xl lg:text-9xl tracking-tighter italic">
+       {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-red-500">_</span>
     </h1>
 
     {#if product?.shortDescription}
-       <p class="hero-description outline-none">
+       <p class="hero-description text-center text-lg md:text-xl text-slate-300 max-w-2xl font-medium mb-12">
           {@html product.shortDescription}
        </p>
     {/if}
 
-    <div class="hero-product-display relative w-full max-w-6xl py-4 md:py-6 flex items-center justify-center bg-transparent">
-    <div class="relative flex flex-col md:grid md:grid-cols-2 items-center justify-center gap-8 md:gap-12 w-full px-4 md:px-8 lg:px-12 z-surface">
-          
-          <div class="relative float-anim parallax-layer flex md:justify-end w-full">
-             <div class="elite-product-card relative hud-frame">
-                <!-- FLASH LIGHT BEAM (Cinematic Highlight) -->
-                <div class="flashlight-beam hidden lg:block">
-                   <!-- Cinematic Dots! -->
-                   <div class="beam-dots absolute inset-0">
-                      {#each Array(12) as _, i}
-                         <div class="beam-dot" style:--d-idx={i}></div>
-                      {/each}
-                   </div>
-                </div>
-                
-                <div class="product-glass-container group relative flex items-center justify-center overflow-hidden rounded-[3.5rem] aspect-square w-64 md:w-72 lg:w-96 bg-[#020617]">
-                   <div 
-                     class="flex h-full w-full transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]"
-                     style:transform="translateX(-{currentImageIndex * 100}%)"
-                   >
-                     {#each images as img, i}
-                        <div class="min-w-full h-full relative bg-[#020617]">
-                           <img 
-                             src="{resolveMediaUrl(img)}" 
-                             alt="{productName} view {i + 1}" 
-                             class="absolute inset-0 w-full h-full object-cover image-rim-light" 
-                           />
-                        </div>
-                     {/each}
-                   </div>
+    <div class="hero-product-display relative w-full max-w-6xl py-8 flex flex-col md:flex-row items-center justify-center gap-12 z-surface">
 
-                   <!-- Slider Controls! -->
-                   {#if images.length > 1}
-                      <div class="absolute inset-x-0 bottom-8 flex justify-center gap-2 z-hud-service">
-                         {#each images as _, i}
-                            <button 
-                               class="w-2 h-2 rounded-full transition-all duration-500 {i === currentImageIndex ? 'bg-blue-400 w-6' : 'bg-white/20 hover:bg-white/40'}"
-                               onclick={(e) => { e.stopPropagation(); currentImageIndex = i; }}
-                               aria-label="Go to slide {i + 1}"
-                            ></button>
-                         {/each}
-                      </div>
-                      
-                      <button 
-                         class="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white/40 hover:text-white transition-all opacity-0 group-hover:opacity-100"
-                         onclick={(e) => { e.stopPropagation(); prevImage(); }}
-                         aria-label="Previous slide"
-                      >
-                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-                      </button>
-                      <button 
-                         class="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white/40 hover:text-white transition-all opacity-0 group-hover:opacity-100"
-                         onclick={(e) => { e.stopPropagation(); nextImage(); }}
-                         aria-label="Next slide"
-                      >
-                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                      </button>
-                   {/if}
-                </div>
-                
-                
+          <div class="relative w-full md:w-1/2 flex justify-center">
+             <div class="product-glass-container group relative flex items-center justify-center overflow-hidden rounded-[3rem] aspect-square w-72 md:w-96 bg-slate-900/50 border border-white/10 shadow-2xl">
+                <img
+                  src="{mainImage}"
+                  alt="{productName}"
+                  class="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                />
+
                 <!-- SCANNING LINE -->
-                <div class="absolute inset-x-0 h-[1px] bg-blue-400/20 shadow-[0_0_15px_rgba(96,165,250,0.5)] scan-anim pointer-events-none"></div>
+                <div class="absolute inset-x-0 h-[2px] bg-red-500/50 shadow-[0_0_20px_#ef4444] scan-anim pointer-events-none"></div>
              </div>
           </div>
 
-          <div id="products" class="metrics-arc-container relative flex md:justify-start w-full">
+          <div class="w-full md:w-1/2 space-y-8">
              {#each metrics as metric, i}
-                <div class="arc-item group flex flex-col max-w-[450px] md:max-w-none mb-6 lg:mb-8" style:--idx={i}>
-                   <div class="flex items-center gap-4 mb-2">
-                      <div class="metric-dot bg-{metric.color}-500 shadow-[0_0_15px_rgba(var(--{metric.color}-rgb),1)]"></div>
-                      <span class="text-[10px] font-black text-{metric.color}-500 uppercase tracking-[0.2em] drop-shadow-sm">{metric.label}</span>
+                <div class="group flex flex-col" style:--idx={i}>
+                   <div class="flex items-center gap-3 mb-2">
+                      <div class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]"></div>
+                      <span class="text-[10px] font-black text-white uppercase tracking-[0.2em]">{metric.label}</span>
                    </div>
-                   <span class="metric-value transform group-hover:scale-105 transition-transform">{metric.value}</span>
-                   <span class="metric-desc mt-2 text-[11px] text-slate-400 font-medium leading-relaxed max-w-[320px] opacity-80 group-hover:opacity-100 transition-opacity">
-                      {metric.desc}
-                   </span>
+                   <span class="text-3xl font-black italic tracking-tighter text-white group-hover:text-red-500 transition-colors">{metric.value}</span>
+                   <p class="mt-2 text-sm text-slate-400 font-medium leading-relaxed max-w-xs">{metric.desc}</p>
                 </div>
              {/each}
           </div>
-       </div>
     </div>
   </div>
 

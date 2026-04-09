@@ -18,5 +18,4 @@
   <main class="flex-grow">
     {@render children()}
   </main>
-  
 </div>

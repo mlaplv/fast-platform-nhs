@@ -22,7 +22,7 @@
     <title>{data.tenant === 'admin' ? 'Xohi Darkboard' : 'SmartShop Storefront'}</title>
 </svelte:head>
 
-<div class="page-container h-screen overflow-hidden bg-[#010101]">
+<div class="page-container h-dvh overflow-y-auto bg-[#010101]">
     {#if data.tenant === 'admin'}
         {#await loadAdmin()}
             <!-- Liquid Loading State (Viral 2026) -->
@@ -34,8 +34,8 @@
             </div>
         {:then mod}
             <div in:fade={{ duration: 300 }}>
-                <mod.default 
-                    userEmail={data.user?.email} 
+                <mod.default
+                    data={data}
                     isMobile={data.isMobile}
                 />
             </div>
@@ -55,8 +55,8 @@
             </div>
         {:then mod}
              <div in:fade={{ duration: 300 }}>
-                <mod.default 
-                    userEmail={data.user?.email} 
+                <mod.default
+                    data={data}
                     isMobile={data.isMobile}
                 />
             </div>

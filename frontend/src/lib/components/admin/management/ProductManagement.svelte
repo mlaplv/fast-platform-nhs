@@ -8,7 +8,7 @@
   import ChevronDown from "lucide-svelte/icons/chevron-down";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import type { Product, BaseWidgetProps, TierVariation, ProductVariant } from "$lib/types";
-  import { formatCurrency } from "$lib/utils/format";
+  import { formatCurrency, slugify } from "$lib/utils/format";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
@@ -59,7 +59,7 @@
   let formMetadata = $state<Product["metadata"]>({ landing_type: 'standard' });
   let formTierVariations = $state<Product["tierVariations"]>([]);
   let formVariants = $state<Product["variants"]>([]);
-  let generateSlug = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  let generateSlug = (n: string) => slugify(n);
 
 
   let pageSize = $state(50); // Default to 50 to prevent DOM/RAM crash on 5000+ items

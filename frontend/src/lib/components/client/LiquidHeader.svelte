@@ -80,14 +80,14 @@
 </script>
 
 <div class={headerClass}>
-  <div class="liquid-island">
+  <div class="liquid-island bg-black/60 backdrop-blur-2xl border border-white/10 rounded-full shadow-2xl">
     <div class="island-content">
       <!-- NAVIGATION SECTOR (Centered & Aligned) -->
       <nav class="island-nav">
         {#each navLinks as link}
           <a
             href={link.href}
-            class="island-link {activeSection === link.id ? 'is-active' : ''} {link.id === 'offers' ? 'fomo-nav-item' : ''} {link.id === 'track' ? 'track-nav-item' : ''}"
+            class="island-link text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:text-red-500 {activeSection === link.id ? 'text-red-500 scale-105' : 'text-white/80'}"
             onclick={(e) => {
               if (link.href.startsWith('#')) {
                 e.preventDefault();
@@ -96,19 +96,16 @@
             }}
           >
             {#if link.id === 'track'}
-              <ShieldCheck class="w-3.5 h-3.5 mr-1.5 inline-block opacity-70 group-hover:opacity-100" />
+              <ShieldCheck class="w-3 h-3 mr-1.5 inline-block opacity-70" />
             {/if}
             {link.label}
-            {#if link.id === 'offers'}
-              <span class="fomo-nav-badge">HOT</span>
-            {/if}
           </a>
         {/each}
       </nav>
     </div>
-    
+
     <!-- LIQUID DECORATION (Dynamic Highlight) -->
-    <div class="liquid-reflection"></div>
+    <div class="liquid-reflection absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none"></div>
   </div>
 </div>
 

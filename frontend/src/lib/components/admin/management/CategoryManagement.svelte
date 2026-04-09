@@ -10,6 +10,7 @@
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
+  import { slugify } from "$lib/utils/format";
   import type { Category, BaseWidgetProps } from "$lib/types";
   import CategoryForm from "./CategoryForm.svelte";
   import CategoryTree from "./CategoryTree.svelte";
@@ -94,13 +95,7 @@
   });
 
   function genSlug(n: string) {
-    return n
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/đ/g, "d")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
+    return slugify(n);
   }
   function openCreate(p: string | null = null) {
     editingId = null;

@@ -13,6 +13,8 @@
 :root {
   --bg-canvas: #010101; /* Vantablack */
   --text-base: #ffffff;
+  --fs-body: 14px;
+  --fs-ui: 12px;
 }
 
 body {
