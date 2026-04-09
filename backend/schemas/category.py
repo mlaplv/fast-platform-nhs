@@ -14,6 +14,7 @@ class CreateCategoryRequest(BaseModel):
     seoTitle: Optional[str] = Field(None, max_length=200, alias="seo_title")
     seoDescription: Optional[str] = Field(None, max_length=500, alias="seo_description")
     image: Optional[str] = None
+    icon: Optional[str] = None
 
 
 class UpdateCategoryRequest(BaseModel):
@@ -27,6 +28,7 @@ class UpdateCategoryRequest(BaseModel):
     seoTitle: Optional[str] = Field(None, max_length=200, alias="seo_title")
     seoDescription: Optional[str] = Field(None, max_length=500, alias="seo_description")
     image: Optional[str] = None
+    icon: Optional[str] = None
 
 
 class CategoryResponse(BaseModel):
@@ -43,6 +45,7 @@ class CategoryResponse(BaseModel):
     seoTitle: Optional[str] = Field(None, alias="seo_title")
     seoDescription: Optional[str] = Field(None, alias="seo_description")
     image: Optional[str] = None
+    icon: Optional[str] = None
     
     children: List["CategoryResponse"] = Field(default_factory=list)
     createdAt: datetime = Field(alias="created_at")

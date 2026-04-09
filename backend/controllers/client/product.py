@@ -3,6 +3,7 @@ import logging
 from litestar import Controller, get
 from litestar.di import Provide
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
 
 from backend.schemas.product import ProductResponse
 from backend.services.commerce.product import ProductService, provide_product_service
@@ -18,6 +19,17 @@ class PublicProductController(Controller):
         "vector_service": Provide(provide_product_vector_service),
         "product_service": Provide(provide_product_service),
     }
+
+    @get("/")
+    async def get_products(
+        self,
+        db_session: AsyncSession,
+        product_service: ProductService,
+        limit: int = 20,
+        offset: int = 0
+    ) -> List[ProductResponse]:
+        """PUBLIC: List products."""
+        return await product_service.list_products(db_session, limit=limit, offset=offset, status="ACTIVE")
 
     @get("/slug/{slug:str}")
     async def get_product_by_slug(

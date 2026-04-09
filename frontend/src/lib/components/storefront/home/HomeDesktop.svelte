@@ -6,7 +6,7 @@
 
   interface Props {
     banners: Array<{ id: string; image: string }>;
-    categories: Array<{ id: string; name: string; icon: string }>;
+    categories: Array<{ id: string; name: string; slug: string; image?: string; icon?: string }>;
     products: Array<{ id: string; name: string; price: number; image: string }>;
   }
   let { banners, categories, products }: Props = $props();

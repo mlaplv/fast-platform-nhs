@@ -25,6 +25,7 @@ class CategoryNode(TypedDict, total=False):
     seo_title: Optional[str]
     seo_description: Optional[str]
     image: Optional[str]
+    icon: Optional[str]
     created_at: datetime
     product_count: int
     children: List["CategoryNode"]
@@ -46,7 +47,7 @@ class CategoryService:
         stmt = select(
             Category.id, Category.name, Category.slug, Category.parent_id,
             Category.description, Category.seo_title, Category.seo_description,
-            Category.image, Category.created_at
+            Category.image, Category.icon, Category.created_at
         ).where(
             Category.parent_id == None,
             Category.deleted_at == None
@@ -64,7 +65,7 @@ class CategoryService:
         child_stmt = select(
             Category.id, Category.name, Category.slug, Category.parent_id,
             Category.description, Category.seo_title, Category.seo_description,
-            Category.image, Category.created_at
+            Category.image, Category.icon, Category.created_at
         ).where(
             Category.parent_id.in_(parent_ids),
             Category.deleted_at == None
@@ -115,6 +116,7 @@ class CategoryService:
             seo_title=data.seoTitle,
             seo_description=data.seoDescription,
             image=data.image,
+            icon=data.icon,
         )
         db_session.add(category)
         await db_session.commit()
@@ -134,6 +136,7 @@ class CategoryService:
             seo_title=category.seo_title,
             seo_description=category.seo_description,
             image=category.image,
+            icon=category.icon,
             created_at=datetime.now(timezone.utc)
         )
 
@@ -156,6 +159,7 @@ class CategoryService:
         if data.seoTitle is not None: category.seo_title = data.seoTitle
         if data.seoDescription is not None: category.seo_description = data.seoDescription
         if data.image is not None: category.image = data.image
+        if data.icon is not None: category.icon = data.icon
 
         category.updated_at = datetime.now(timezone.utc)
         await db_session.commit()
@@ -175,6 +179,7 @@ class CategoryService:
             seo_title=category.seo_title,
             seo_description=category.seo_description,
             image=category.image,
+            icon=category.icon,
             created_at=category.created_at or datetime.now(timezone.utc)
         )
 
@@ -216,3 +221,7 @@ class CategoryService:
             logger.error(f"[CategoryService] Failed to emit media sync: {e}")
 
 category_service = CategoryService()
+
+async def provide_category_service() -> CategoryService:
+    """Standard Litestar Provider for CategoryService."""
+    return category_service

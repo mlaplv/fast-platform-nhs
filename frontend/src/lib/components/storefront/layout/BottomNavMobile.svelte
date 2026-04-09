@@ -9,7 +9,7 @@
   const tabs = [
     { id: 'home', label: 'Trang chủ', icon: '🏠', activeIcon: '🏠', href: '/' },
     { id: 'shop', label: 'Cửa hàng', icon: '🛍️', activeIcon: '🛍️', href: '/' },
-    { id: 'news', label: 'Tin tức', icon: '📰', activeIcon: '📰', href: '/tin-tuc/' },
+    { id: 'news', label: 'Tin tức', icon: '📰', activeIcon: '📰', href: '/tin-tuc' },
     { id: 'profile', label: 'Tôi', icon: '👤', activeIcon: '👤', href: '/' }
   ];
 </script>

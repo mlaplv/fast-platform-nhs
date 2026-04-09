@@ -38,7 +38,7 @@ class KeyLoaderMixin:
         try:
             db_keys = await self._recover_from_db()
         except Exception as e:
-            logger.error(f"[KeyLoader] DB Recovery failed: {e}")
+            logger.error(f"[KeyLoader] DB Recovery failed: {e}", exc_info=True)
 
         # Unique merge
         all_keys: list[str] = list(dict.fromkeys(legacy_keys + support_keys + db_keys))

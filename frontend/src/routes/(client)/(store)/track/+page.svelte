@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fade, fly, scale } from 'svelte/transition';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
   import { apiClient } from '$lib/utils/apiClient';
   import { goto } from '$app/navigation';
   import TrackMobile from '$lib/components/mobile/sections/TrackMobile.svelte';
@@ -64,11 +65,11 @@
   <div class="min-h-screen bg-[#020617] text-white flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
     <!-- Liquid Glass Ambient Background -->
     <div class="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
-    <div class="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-sky-500/10 rounded-full blur-[100px] pointer-events-none animate-pulse" style="animation-delay: 2s"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-sky-500/10 rounded-full blur-[100px] pointer-events-none animate-pulse" style:animation-delay="2s"></div>
 
     <div 
       in:fly={{ y: 30, duration: 1000, easing: (t) => t * (2 - t) }}
-      class="w-full max-w-md bg-white/[0.03] border border-white/10 backdrop-blur-3xl rounded-[3rem] p-12 shadow-[0_30px_100px_rgba(0,0,0,0.6)] relative z-10 glass-card"
+      class="w-full max-w-md bg-white/[0.03] border border-white/10 backdrop-blur-3xl rounded-[3rem] p-12 shadow-[0_30px_100px_rgba(0,0,0,0.6)] relative glass-card" style:z-index={Z_INDEX_CLIENT.SURFACE}
     >
       <!-- Header Section -->
       <div class="text-center mb-12">
@@ -76,7 +77,7 @@
           <div class="absolute inset-0 bg-sky-500/20 rounded-full blur-2xl animate-pulse"></div>
           <div class="relative w-full h-full bg-slate-900 border border-white/10 rounded-full flex items-center justify-center shadow-inner overflow-hidden">
              <div class="absolute inset-0 bg-gradient-to-tr from-sky-500/10 to-transparent"></div>
-             <Search size={32} class="text-sky-400 relative z-10" />
+             <Search size={32} class="text-sky-400 relative" style:z-index={Z_INDEX_CLIENT.SURFACE} />
           </div>
         </div>
         
@@ -94,7 +95,7 @@
       <div class="space-y-8">
         <!-- Input Group: Order ID -->
         <div class="relative group">
-          <div class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 transition-colors group-focus-within:text-sky-400 z-20">
+          <div class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 transition-colors group-focus-within:text-sky-400" style:z-index={Z_INDEX_CLIENT.SURFACE}>
              <Hash size={18} />
           </div>
           <input 
@@ -114,7 +115,7 @@
 
         <!-- Input Group: Phone -->
         <div class="relative group">
-          <div class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 transition-colors group-focus-within:text-sky-400 z-20">
+          <div class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 transition-colors group-focus-within:text-sky-400" style:z-index={Z_INDEX_CLIENT.SURFACE}>
              <Phone size={18} />
           </div>
           <input 
@@ -139,7 +140,7 @@
           class="group relative w-full py-5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-black rounded-2xl transition-all active:scale-[0.98] shadow-2xl shadow-blue-500/20 uppercase tracking-widest italic text-sm mt-4 disabled:opacity-50 overflow-hidden"
         >
           <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <div class="relative z-10 flex items-center justify-center gap-3">
+          <div class="relative flex items-center justify-center gap-3" style:z-index={Z_INDEX_CLIENT.SURFACE}>
             {#if isSubmitting}
               <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               <span>Đang giải mã...</span>
@@ -170,7 +171,7 @@
 {/if}
 
 <!-- Elite Toast System! -->
-<div class="fixed bottom-8 right-8 z-[2000] flex flex-col gap-3 pointer-events-none">
+<div class="fixed bottom-8 right-8 flex flex-col gap-3 pointer-events-none" style:z-index={Z_INDEX_CLIENT.TOAST}>
   {#each toasts as toast (toast.id)}
     <div 
       in:fly={{ x: 50, duration: 400 }}
@@ -204,7 +205,7 @@
     color: #38bdf8; /* sky-400 */
     background: #020617; /* Matches body bg */
     border-radius: 4px;
-    z-index: 30;
+    z-index: var(--z-overlay);
   }
 
   input {

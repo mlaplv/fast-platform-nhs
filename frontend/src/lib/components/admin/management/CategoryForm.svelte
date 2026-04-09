@@ -16,6 +16,7 @@
     formSeoTitle = $bindable(),
     formSeoDescription = $bindable(),
     formImage = $bindable(),
+    formIcon = $bindable(),
     onSave,
     onClose,
     generateSlug,
@@ -28,6 +29,7 @@
     formSeoTitle: string;
     formSeoDescription: string;
     formImage: string;
+    formIcon: string;
     onSave: () => void;
     onClose: () => void;
     generateSlug: (name: string) => string;
@@ -40,6 +42,7 @@
     if (formSeoTitle === undefined) formSeoTitle = "";
     if (formSeoDescription === undefined) formSeoDescription = "";
     if (formImage === undefined) formImage = "";
+    if (formIcon === undefined) formIcon = "";
   });
 
   let activeTab = $state("general");
@@ -115,6 +118,19 @@
                 bind:value={formImage}
                 placeholder="https://assets.xohi.io/banners/..."
                 class="w-full bg-transparent py-3.5 px-5 text-xs text-gray-400 font-mono placeholder:text-gray-700 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-2">
+            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+              <span>🖼️</span> Icon_Emoji_SVG
+            </label>
+            <div class="relative group bg-black/40 border border-white/5 hover:border-white/10 focus-within:border-[#00FFFF]/40 rounded-2xl transition-all shadow-inner">
+              <input
+                bind:value={formIcon}
+                placeholder="💧 or /assets/icons/..."
+                class="w-full bg-transparent py-3.5 px-5 text-sm text-gray-100 placeholder:text-gray-700 focus:outline-none"
               />
             </div>
           </div>

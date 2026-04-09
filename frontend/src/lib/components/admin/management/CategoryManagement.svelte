@@ -28,6 +28,7 @@
     formSeoTitle = $state(""),
     formSeoDescription = $state(""),
     formImage = $state(""),
+    formIcon = $state(""),
     formParentId = $state<string | null>(null);
   let selectedIds = $state<Set<string>>(new Set()),
     expandedIds = $state<Set<string>>(new Set());
@@ -105,6 +106,7 @@
     formSeoTitle = "";
     formSeoDescription = "";
     formImage = "";
+    formIcon = "";
     formParentId = p;
     showForm = true;
   }
@@ -116,6 +118,7 @@
     formSeoTitle = cat.seoTitle || "";
     formSeoDescription = cat.seoDescription || "";
     formImage = cat.image || "";
+    formIcon = cat.icon || "";
     formParentId = p;
     showForm = true;
   }
@@ -140,7 +143,8 @@
       description: formDescription,
       seoTitle: formSeoTitle,
       seoDescription: formSeoDescription,
-      image: formImage
+      image: formImage,
+      icon: formIcon
     };
     try {
       if (editingId) {

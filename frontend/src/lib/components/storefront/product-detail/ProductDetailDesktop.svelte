@@ -152,23 +152,21 @@
     return val.toLocaleString('vi-VN');
   };
 
-  // Mock data for Shipping (Matching Image)
-  const shippingInfo = {
-    minDate: '11 Th04',
-    maxDate: '13 Th04',
-    fee: 0,
-    voucher: 15000
-  };
+  // Extract product details (Dynamic from DB)
+  const productInfo = $derived({
+    barcode: product.sku || 'N/A',
+    brand: (product.metadata as any)?.brand || 'Micsmo Elite',
+    origin: (product.metadata as any)?.origin || 'Nhật Bản',
+    weight: (product.metadata as any)?.weight || 'N/A',
+    originalPrice: product.price * 1.55, // Marketing original price
+    salePrice: product.price
+  });
 
-  // Extract product details (Transino specific)
-  const productInfo = {
-    barcode: '4987107632142',
-    brand: 'Transino',
-    origin: 'Nhật Bản',
-    weight: '100 gr',
-    originalPrice: 500000,
-    salePrice: 350000
-  };
+  function buyNow() {
+    if (!validateSelection()) return;
+    cartStore.addItem(product, currentVariant, quantity);
+    goto('/checkout');
+  }
 </script>
 
 <div class="bg-[#f6f6f6] min-h-screen">
@@ -176,8 +174,6 @@
   <div class="bg-[#f5f5f5] py-4">
   <div class="max-w-[1200px] mx-auto px-4 xl:px-0 flex items-center gap-2 text-[13px] text-gray-600 font-medium">
     <a href="/" class="hover:text-[#ee4d2d]">Micsmo</a>
-    <svg class="w-3 h-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-    <a href="/categories/{product.categoryId}" class="hover:text-[#ee4d2d]">{product.category || 'Chăm Sóc Da'}</a>
     <svg class="w-3 h-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
     <span class="truncate max-w-[400px] text-gray-400">{product.name}</span>
   </div>
@@ -276,7 +272,7 @@
         <div class="flex flex-col">
             <div class="flex items-center gap-3 mb-1">
                <span class="text-[16px] text-gray-400 line-through">₫{formatVnd(productInfo.originalPrice)}</span>
-               <div class="bg-[#ee4d2d] text-white text-[10px] font-black px-1.5 py-0.5 uppercase tracking-tighter">Giảm 30%</div>
+               <div class="bg-[#ee4d2d] text-white text-[10px] font-black px-1.5 py-0.5 uppercase tracking-tighter">Giảm 55%</div>
             </div>
             <div class="flex items-baseline gap-4">
                <span class="text-[36px] font-black text-[#d0011b] tracking-tighter">₫{formatVnd(productInfo.salePrice)}</span>
@@ -338,12 +334,12 @@
             <div class="space-y-2">
                <div class="flex items-center gap-2">
                   <svg class="w-5 h-5 text-[#00bfa5]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                  <span class="text-[14px] font-medium text-gray-800">Nhận từ {shippingInfo.minDate} - {shippingInfo.maxDate}</span>
+                  <span class="text-[14px] font-medium text-gray-800">Nhận hàng nhanh chóng</span>
                   <svg class="w-3.5 h-3.5 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7-7" /></svg>
                </div>
                <div class="text-[14px]">
                   <span class="text-[#00bfa5] font-black">Phí ship ₫0</span>
-                  <p class="text-[12px] text-gray-400 mt-1">Tặng Voucher ₫15.000 nếu đơn giao sau thời gian trên.</p>
+                  <p class="text-[12px] text-gray-400 mt-1">Giao hàng toàn quốc từ 2-4 ngày làm việc.</p>
                </div>
             </div>
          </div>

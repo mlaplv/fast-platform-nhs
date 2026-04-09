@@ -43,9 +43,12 @@ from backend.controllers.order import OrderController
 from backend.controllers.client.checkout import CheckoutController
 from backend.controllers.client.order import PublicOrderController
 from backend.controllers.client.product import PublicProductController
+from backend.controllers.client.category import PublicCategoryController
+from backend.controllers.client.home import ClientHomeController
 from backend.controllers.client.review import PublicReviewController
 from backend.controllers.client.support import SupportController
 from backend.controllers.client.pulse import ClientPulseController
+from backend.controllers.client.news import PublicNewsController
 from backend.controllers.admin_support import AdminSupportController
 from backend.controllers.admin_support_inbox import AdminSupportInboxController
 from backend.controllers.review import AdminReviewController
@@ -102,10 +105,11 @@ app = Litestar(
         IntentController, IntentStreamController, PulseStreamController,
         HealthController, MCPController, AuthController,
         NotificationController, AuditorController, UserController,
-        CategoryController, ProductController, PublicProductController, ArticleController, OrderController,
+        CategoryController, ProductController, PublicProductController, PublicCategoryController, ClientHomeController, ArticleController, OrderController,
         CheckoutController, PublicOrderController, ChatController, SettingsController, AIManagementController, ContentController, MediaController, ContentStreamController,
         BannerController, stt_websocket, TTSController, IntentMapController, SchedulerController, DiagnosticController,
-        AdminReviewController, PublicReviewController, SupportController, ClientPulseController, AdminSupportController, AdminSupportInboxController
+        AdminReviewController, PublicReviewController, SupportController, ClientPulseController, AdminSupportController, AdminSupportInboxController,
+        PublicNewsController
     ],
     middleware=[BodyLimitMiddleware, rate_limit_config.middleware, DomainGuardMiddleware, AuditMiddleware, AuthMiddleware],
     cors_config=cors_config,

@@ -200,6 +200,8 @@ class ProductService:
 
     async def get_product_by_slug(self, db_session: AsyncSession, slug: str) -> ProductResponse:
         """Get a single product by slug (R76: Scalar Projection)."""
+        # Normalize slug: remove trailing slashes to prevent 404 on clean URL variants
+        slug = slug.rstrip('/')
         stmt = select(
             ProductBase.id, ProductBase.name, ProductBase.sku,
             ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
@@ -217,6 +219,7 @@ class ProductService:
         row = result.first()
 
         if not row:
+            logger.error(f"[ProductService] Product with slug '{slug}' not found in DB")
             raise NotFoundException(f"Product with slug '{slug}' not found")
 
         product_id = row.id

@@ -1,13 +1,35 @@
+import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { ServerEnv } from '$lib/server/env';
 
-export const load: PageServerLoad = async () => {
-  // Logic lấy danh sách sản phẩm từ DB/API theo chuẩn R00
-  return {
-    products: Array.from({ length: 20 }).map((_, i) => ({
-      id: `${i}`,
-      name: `Mỹ phẩm cao cấp Micsmo ${i + 1}`,
-      price: 150000 + i * 50000,
-      image: `/uploads/img/micsmo/${i % 2 === 0 ? 'Hurry-Harry-Medicated-Beauty-Wrinkle-Serum-Rich-jpeg.jpg' : '-MICCOSMO-WHITE-LABEL-PREMIUM-PLACENTA-CREAM-60g-Kem-Duong-Nhau-Thai-Lam-Sang-amp-Cap-Am-Diu-Nhe_33.1.png'}`
-    }))
-  };
+export const load: PageServerLoad = async ({ fetch }) => {
+  const apiUrl = ServerEnv.INTERNAL_API_URL;
+  const tenantId = ServerEnv.TENANT_ID;
+  const targetUrl = `${apiUrl}/api/v1/client/products`;
+
+  let res;
+  try {
+    res = await fetch(targetUrl, {
+      headers: { 'x-tenant': tenantId }
+    });
+  } catch (e: unknown) {
+    const err = e as Error;
+    console.error(`[FETCH FAILED], không thể kết nối tới Backend!`);
+    console.error(`URL: ${targetUrl}`);
+    console.error(`Error: ${err.message}`);
+    throw error(503, {
+      message: "Dịch vụ tạm thời không khả dụng (Backend Connection Failed)",
+      details: `Failed to reach API at ${apiUrl}.`
+    });
+  }
+
+  if (!res.ok) {
+    throw error(res.status, {
+      message: `API Error: ${res.statusText} (${res.status})`,
+      details: `Failed to fetch products from ${targetUrl}`
+    });
+  }
+
+  const data = await res.json();
+  return { products: Array.isArray(data) ? data : (data.items || data.products || []) };
 };

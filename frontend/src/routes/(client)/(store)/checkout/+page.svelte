@@ -58,11 +58,8 @@
         errorMsg = res?.message || 'Có lỗi xảy ra khi xử lý đơn hàng. Vui lòng thử lại.';
       }
     } catch (err: any) {
-      console.warn("API Error, using fallback for Elite V2.2 Demo", err);
-      // Fallback: Trong trường hợp API chưa support mảng items, giả lập thành công để test luồng UI
-      const mockOrderId = 'MOCK-' + Math.floor(Math.random() * 1000000);
-      cartStore.clearCart();
-      goto(`/checkout/success/${mockOrderId}?phone=${encodeURIComponent(form.phone)}`);
+      console.error("[CHECKOUT ERROR] Dạ vâng thưa Sếp, lỗi gọi API:", err);
+      errorMsg = err?.message || 'Có lỗi xảy ra khi xử lý đơn hàng. Vui lòng thử lại.';
     } finally {
       isSubmitting = false;
     }

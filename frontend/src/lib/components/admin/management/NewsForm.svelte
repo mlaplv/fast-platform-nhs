@@ -116,7 +116,7 @@
   let socialPreviewTab = $state<'facebook' | 'twitter'>('facebook');
   const ogTitle = $derived(formSeoTitle || formTitle || 'Tiêu đề bài viết');
   const ogDesc = $derived(formSeoDescription || formExcerpt || 'Mô tả ngắn gọn về bài viết...');
-  const ogUrl = $derived(`micsmo.com/tin-tuc/${formSlug || 'slug-bai-viet'}`);
+  const ogUrl = $derived(`micsmo.com/${formSlug || 'slug-bai-viet'}.p${editingId || 'pid'}`);
   const ogImg = $derived(formSeoOgImage ? resolveMediaUrl(formSeoOgImage) : (formFeaturedImage ? resolveMediaUrl(formFeaturedImage) : null));
   const isSlugLocked = $derived(formStatus === 'PUBLISHED' && !!editingId);
 </script>

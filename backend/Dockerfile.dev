@@ -25,7 +25,7 @@ COPY . .
 
 # [CTO ELITE] Pre-download FastEmbed model to ensure zero-stalling during startup
 # This bakes the ~400MB model into the image, avoiding the "Fetching 0%" hang.
-RUN uv run python3 -c "from fastembed import TextEmbedding; TextEmbedding(model_name='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')"
+RUN uv run python3 -c "from fastembed import TextEmbedding; TextEmbedding(model_name='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')" || echo "⚠️ Warning: FastEmbed model download failed during build. It will be downloaded at runtime."
 
 # Infrastructure Limits (R60.1: 2GB RAM Compliance)
 ENV PYTHONUNBUFFERED=1

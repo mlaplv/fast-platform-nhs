@@ -5,74 +5,84 @@ import { isMobileDevice } from '$lib/utils/device';
 
 export const trailingSlash = 'ignore';
 
-export const load: PageServerLoad = async ({ params, url, fetch, request }) => {
-  if (url.pathname.endsWith('/')) {
-    // Keep category logic as-is to obey "Cấm sửa tính năng cũ"
-    if (params.slug === 'tin-tuc') {
-        const mockNews = Array.from({ length: 6 }).map((_, i) => ({
-            id: `${i}`,
-            slug: `blog-elite-${i}`,
-            title: i === 0 ? "Bí quyết trẻ hóa làn da Agentic AI 2026" : `Cẩm nang chăm sóc sắc đẹp Elite Vol.${i + 1}`,
-            summary: '...',
-            image: '/uploads/img/micsmo/20250729_Clo7Mql2nt.jpeg'
-        }));
-        return { type: 'news', categoryName: 'GÓC TIN TỨC ELITE', items: mockNews };
+export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
+  const apiUrl = ServerEnv.INTERNAL_API_URL;
+  const tenantId = ServerEnv.TENANT_ID;
+  const { slug } = params;
+  const hasTrailingSlash = url.pathname.endsWith('/');
+
+  // Rule 2.2: Standardize Structure
+  // 1. If it ends with '/', it MUST be a Category
+  if (hasTrailingSlash) {
+    if (slug === 'tin-tuc') {
+       // News list is explicitly NOT allowed with a trailing slash as per Sếp's simplified rule
+       throw error(404, { message: "Không tìm thấy nội dung (Dấu '/' không được phép cho tin bài)" });
     }
-    const categoryName = params.slug.replace(/-/g, ' ').toUpperCase();
-    const mockProducts = Array.from({ length: 10 }).map((_, i) => ({
-        id: `sp-elite-${params.slug}-${i}`,
-        name: i === 0 ? `Serum Nhau Thai White Label Premium` : `${categoryName.charAt(0) + categoryName.slice(1).toLowerCase()} Cao Cấp Phiên Bản ${i + 1}`,
-        price: 399000 + (i * 50000),
-        image: `/uploads/img/micsmo/-MICCOSMO-WHITE-LABEL-PREMIUM-PLACENTA-CREAM-60g-Kem-Duong-Nhau-Thai-Lam-Sang-amp-Cap-Am-Diu-Nhe_33.1.png`
-    }));
-    return { type: 'category', categoryName, items: mockProducts };
+
+    const categoryUrl = `${apiUrl}/api/v1/client/categories/slug/${slug}`;
+    try {
+      const catRes = await fetch(categoryUrl, { headers: { 'x-tenant': tenantId } });
+      if (catRes.ok) {
+        const data = await catRes.json();
+        return {
+          type: 'category',
+          categoryName: slug.replace(/-/g, ' ').toUpperCase(),
+          items: Array.isArray(data) ? data : (data.items || [])
+        };
+      }
+    } catch (e) {
+      console.error(`[CATEGORY FETCH FAILED] slug: ${slug}`, e);
+    }
+    
+    throw error(404, { message: `Danh mục không tồn tại: ${slug}/` });
   }
 
-  const apiUrl = ServerEnv.INTERNAL_API_URL || 'http://127.0.0.1:8000';
-  const tenantId = ServerEnv.TENANT_ID;
-  const targetUrl = `${apiUrl}/api/v1/client/products/slug/${params.slug}`;
-  
-  try {
-      const res = await fetch(targetUrl, { headers: { 'x-tenant': tenantId } });
-      if (!res.ok) {
-          throw new Error(`API Error: ${res.status}`);
+  // 2. If it does NOT end with '/', it's either News List or Product
+  if (slug === 'tin-tuc') {
+    const newsUrl = `${apiUrl}/api/v1/client/news`;
+    try {
+      const newsRes = await fetch(newsUrl, { headers: { 'x-tenant': tenantId } });
+      if (newsRes.ok) {
+        const data = await newsRes.json();
+        return {
+          type: 'news',
+          categoryName: 'GÓC TIN TỨC ELITE',
+          items: Array.isArray(data) ? data : (data.data || data.items || [])
+        };
       }
-      const product = await res.json();
-      
-      const effectiveIp = request.headers.get('cf-connecting-ip') || '127.0.0.1';
+    } catch (e) {
+      console.error(`[NEWS FETCH FAILED]`, e);
+    }
+    throw error(404, { message: "Hiện tại chưa có tin tức nào." });
+  }
+
+  // 3. Try Product (Standard Slug)
+  const productUrl = `${apiUrl}/api/v1/client/products/slug/${slug}`;
+  try {
+    const prodRes = await fetch(productUrl, { headers: { 'x-tenant': tenantId } });
+    if (prodRes.ok) {
+      const product = await prodRes.json();
       const userAgent = request.headers.get('user-agent') || '';
       const isMobile = isMobileDevice(userAgent);
-      
-      // LOG DEBUGS TO SERVER CONSOLE
-      console.log(`[SLUG PAGE] Fetched product: ${product.name}`);
-      console.log(`[SLUG PAGE] Landing Type: ${product.metadata?.landing_type}`);
+      const effectiveIp = request.headers.get('cf-connecting-ip') || '127.0.0.1';
 
       return {
-          type: 'product',
-          product,
-          isMobile,
-          effectiveIp,
-          metadata: {
-              timestamp: new Date().toISOString(),
-              userAgent,
-              isMobile
-          }
+        type: 'product',
+        product,
+        isMobile,
+        effectiveIp,
+        metadata: {
+          timestamp: new Date().toISOString(),
+          userAgent,
+          isMobile
+        }
       };
-  } catch (err) {
-      console.error(`[SLUG PAGE] Fallback triggered due to API error:`, err);
-      // Fallback for development if API is down
-      return {
-          type: 'product',
-          product: {
-              id: params.slug,
-              name: '[API FALLBACK] Lỗi kết nối Backend: ' + params.slug,
-              price: 350000,
-              description: 'Sản phẩm này đang được hiển thị ở chế độ Offline (Mock Data) do mất kết nối tới Backend.',
-              image: '/uploads/img/micsmo/Hurry-Harry-Medicated-Beauty-Wrinkle-Serum-Rich-jpeg.jpg',
-              images: [],
-              metadata: { landing_type: 'standard' }
-          },
-          isMobile: false
-      };
+    }
+  } catch (e) {
+    console.error(`[PRODUCT FETCH FAILED] slug: ${slug}`, e);
+    throw error(503, { message: "Dịch vụ tạm thời không khả dụng (Backend Connection Failed)" });
   }
+
+  // Final 404
+  throw error(404, { message: `Không tìm thấy nội dung cho: ${slug}` });
 };

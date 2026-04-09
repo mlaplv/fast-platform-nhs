@@ -170,9 +170,10 @@
     </div>
   {:else if isLocked}
     <!-- Elite Security Gate (Soft Wall!) -->
-    <div 
+    <div
       in:fly={{ y: 20, duration: 800 }}
-      class="w-full max-w-md bg-white/5 border border-white/10 backdrop-blur-3xl rounded-[3rem] p-12 shadow-2xl relative z-10 text-center"
+      class="w-full max-w-md bg-white/5 border border-white/10 backdrop-blur-3xl rounded-[3rem] p-12 shadow-2xl relative text-center"
+      style:z-index={Z_INDEX_CLIENT.SURFACE}
     >
       <div class="w-20 h-20 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-8 border border-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.1)]">
         <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
@@ -199,20 +200,21 @@
       <p class="mt-8 text-[9px] text-slate-600 font-bold uppercase tracking-widest italic">An toàn • Bảo mật • Riêng tư</p>
     </div>
   {:else}
-    <div 
+    <div
       in:fly={{ y: 30, duration: 800 }}
-      class="w-full max-w-2xl bg-white/5 border border-white/10 backdrop-blur-2xl rounded-[3rem] p-8 md:p-12 shadow-2xl relative z-10"
+      class="w-full max-w-2xl bg-white/5 border border-white/10 backdrop-blur-2xl rounded-[3rem] p-8 md:p-12 shadow-2xl relative"
+      style:z-index={Z_INDEX_CLIENT.SURFACE}
     >
       <!-- Status Icon! -->
       {#if isTrackingMode}
         <div class="w-24 h-24 bg-sky-500/10 text-sky-400 rounded-full flex items-center justify-center mx-auto mb-10 border border-sky-500/30 relative group">
           <div class="absolute inset-0 bg-sky-400/20 rounded-full blur-2xl animate-pulse group-hover:blur-3xl transition-all duration-700"></div>
-          <svg class="w-12 h-12 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+          <svg class="w-12 h-12 relative" style:z-index={Z_INDEX_CLIENT.SURFACE} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
         </div>
       {:else}
         <div class="w-24 h-24 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-10 border border-emerald-500/30 relative group">
           <div class="absolute inset-0 bg-emerald-400/20 rounded-full blur-2xl animate-pulse group-hover:blur-3xl transition-all duration-700"></div>
-          <svg class="w-12 h-12 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+          <svg class="w-12 h-12 relative" style:z-index={Z_INDEX_CLIENT.SURFACE} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
         </div>
       {/if}
 
@@ -237,8 +239,9 @@
                       {#if stepIdx === i}
                         <div class="node-halo absolute inset-0"></div>
                       {/if}
-                      <div class="node-circle w-full h-full rounded-full flex items-center justify-center text-xl transition-all duration-500 border-2 z-10 relative
-                        {stepIdx > i ? 'done' : stepIdx === i ? 'active' : 'idle'}">
+                      <div class="node-circle w-full h-full rounded-full flex items-center justify-center text-xl transition-all duration-500 border-2 relative
+                        {stepIdx > i ? 'done' : stepIdx === i ? 'active' : 'idle'}"
+                        style:z-index={Z_INDEX_CLIENT.SURFACE}>
                          {step.icon}
                       </div>
                    </div>
@@ -428,7 +431,7 @@
         href="/"
         class="group block w-full py-6 bg-sky-500 text-slate-950 font-black text-center rounded-full hover:bg-sky-400 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-2xl shadow-sky-500/20 uppercase tracking-[0.2em] italic text-xl relative overflow-hidden"
       >
-        <span class="relative z-10">TIẾP TỤC MUA SẮM →</span>
+        <span class="relative" style:z-index={Z_INDEX_CLIENT.SURFACE}>TIẾP TỤC MUA SẮM →</span>
         <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
       </a>
     </div>
@@ -438,7 +441,7 @@
 </div>
 
 <!-- Elite Toast System! -->
-<div class="fixed bottom-8 right-8 z-[2000] flex flex-col gap-3 pointer-events-none">
+<div class="fixed bottom-8 right-8 flex flex-col gap-3 pointer-events-none" style:z-index={Z_INDEX_CLIENT.TOAST}>
   {#each toasts as toast (toast.id)}
     <div 
       in:fly={{ x: 50, duration: 400 }}
@@ -454,8 +457,9 @@
 
 <!-- Confirm Cancel Modal! -->
 {#if isConfirmCancelOpen}
-  <div 
-    class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-[2100] flex items-center justify-center p-6"
+  <div
+    class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-6"
+    style:z-index={Z_INDEX_CLIENT.TOAST + 100}
     transition:fade
   >
     <div 

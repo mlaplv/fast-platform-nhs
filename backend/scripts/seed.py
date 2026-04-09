@@ -84,7 +84,7 @@ async def seed_users(session, admin_role):
 
 async def seed_categories(session):
     print("📂 Seeding categories...")
-    for d in CATEGORY_DEFS: session.add(Category(id=d["id"], name=d["name"], slug=d["slug"], tenant_id=TENANT_ID))
+    for d in CATEGORY_DEFS: session.add(Category(id=d["id"], name=d["name"], slug=d["slug"], icon=d.get("icon"), tenant_id=TENANT_ID))
     await session.flush()
     for d in SUB_CATEGORY_DEFS: session.add(Category(id=d["id"], name=d["name"], slug=d["slug"], parent_id=d["parent"], tenant_id=TENANT_ID))
     await session.flush()

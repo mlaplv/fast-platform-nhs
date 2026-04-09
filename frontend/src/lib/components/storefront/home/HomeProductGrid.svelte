@@ -10,11 +10,13 @@
     name: string;
     price: number;
     image: string;
+    slug?: string;
     sales?: number;
     tags?: string[];
     isAiPick?: boolean;
     createdAt?: Date;
     originalPrice?: number;
+    originalSlug?: string;
   }
 
   interface Props {
@@ -50,10 +52,11 @@
           id: `${tab.id}-${i}`,
           name: `${baseItem.name} ${tab.label} Cao Cấp`,
           price: baseItem.price + (i * 2000),
-          originalPrice: (baseItem.price + (i * 2000)) * 1.55, // 55% higher for massive bargain feel
+          originalPrice: (baseItem.price + (i * 2000)) * 1.55, 
           sales: 1200 + (i * 45),
-          stockPercent: 70 + (i * 5) % 30, // Random stock filler for FOMO
+          stockPercent: 70 + (i * 5) % 30, 
           isAiPick: tab.id === 'ai' || i === 0,
+          originalSlug: baseItem.slug
         });
       }
     });
@@ -191,7 +194,7 @@
             
             <div in:fly={{y: 50, duration: 1500, delay: 1000}} class="flex flex-col gap-4">
                 <button 
-                    onclick={() => goto(`/${slugify(slide.name)}`)}
+                    onclick={() => goto(`/${slide.originalSlug || slide.slug || slugify(slide.name)}`)}
                     class="group/btn relative w-fit px-20 py-6 bg-black text-white text-[11px] font-black uppercase tracking-[0.4em] overflow-hidden transition-all active:scale-95 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] hover:shadow-[0_40px_80px_-15px_rgba(193,143,126,0.4)]"
                 >
                     <span class="relative z-10 transition-colors group-hover/btn:text-white">Sở Hữu Ngay</span>
@@ -268,7 +271,7 @@
   <div class="flex overflow-x-auto no-scrollbar scroll-smooth gap-2 px-1 md:px-0 pb-10">
     {#each currentProducts() as product (product.id)}
       <button
-        onclick={() => goto(`/${slugify(product.name)}`)}
+        onclick={() => goto(`/${product.originalSlug || product.slug || slugify(product.name)}`)}
         class="group/card relative flex-shrink-0 w-[calc((100%-6px)/2)] md:w-[calc((100%-6px)/4)] lg:w-[calc((100%-6px)/4)] bg-white border border-black/5 hover:border-black transition-all duration-700 cursor-pointer text-left flex flex-col active:scale-[0.98] shadow-sm hover:shadow-2xl"
       >
         <div class="aspect-square w-full relative overflow-hidden bg-[#fafafa]">

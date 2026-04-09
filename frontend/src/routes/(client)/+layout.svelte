@@ -1,10 +1,6 @@
 <script lang="ts">
   import { setClientUi } from "$lib/state/commerce/ui.svelte";
   import { onMount, type Snippet } from "svelte";
-  import HeaderDesktop from "$lib/components/storefront/layout/HeaderDesktop.svelte";
-  import HeaderMobile from "$lib/components/storefront/layout/HeaderMobile.svelte";
-  import FooterDesktop from "$lib/components/storefront/layout/FooterDesktop.svelte";
-  import BottomNavMobile from "$lib/components/storefront/layout/BottomNavMobile.svelte";
   import "./client.css";
 
   let { children }: { children: Snippet } = $props();

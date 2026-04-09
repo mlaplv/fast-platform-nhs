@@ -1,15 +1,28 @@
+import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { ServerEnv } from '$lib/server/env';
 
-export const load: PageServerLoad = async ({ params }) => {
-  // Logic lấy dữ liệu chi tiết bài viết từ DB/API theo ID thực tế
-  return {
-    article: {
-      id: params.id,
-      title: `Bí quyết dưỡng da chuẩn Elite: Phần ${params.id}`,
-      author: 'Micsmo Beauty Lab',
-      publishedAt: '2026-04-09',
-      content: 'Chào mừng bạn đến với Micsmo Beauty Lab. Hôm nay chúng ta cùng tìm hiểu về quy trình chăm sóc da 10 bước chuẩn Elite V2.2 để đạt được làn da không tì vết...',
-      image: '/uploads/img/micsmo/20250729_Clo7Mql2nt.jpeg'
+export const load: PageServerLoad = async ({ params, fetch }) => {
+  const apiUrl = ServerEnv.INTERNAL_API_URL;
+  const tenantId = ServerEnv.TENANT_ID;
+  const { id } = params;
+
+  try {
+    const res = await fetch(`${apiUrl}/api/v1/client/news/${id}`, {
+      headers: { 'x-tenant': tenantId }
+    });
+
+    if (!res.ok) {
+      throw error(res.status, { message: `Không tìm thấy bài viết: ${id}` });
     }
-  };
+
+    const article = await res.json();
+    return {
+      article
+    };
+  } catch (e) {
+    if ((e as any).status) throw e;
+    console.error(`[NEWS DETAIL FETCH FAILED] id: ${id}`, e);
+    throw error(503, { message: "Dịch vụ tạm thời không khả dụng" });
+  }
 };

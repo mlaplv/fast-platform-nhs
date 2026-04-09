@@ -1,27 +1,37 @@
+import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { ServerEnv } from '$lib/server/env';
 
-export const load: PageServerLoad = async () => {
-  return {
-    banners: [
-      { id: '1', image: '/uploads/img/micsmo/20250729_Clo7Mql2nt.jpeg' },
-      { id: '2', image: '/uploads/img/micsmo/20250729_CSBzDOM2TH.jpeg' },
-      { id: '3', image: '/uploads/img/micsmo/20250729_zTkx9FSRTL.jpeg' }
-    ],
-    categories: [
-      { id: '1', name: 'Serum', icon: '💧' },
-      { id: '2', name: 'Kem dưỡng', icon: '🧴' },
-      { id: '3', name: 'Mặt nạ', icon: '🎭' },
-      { id: '4', name: 'Chăm sóc mắt', icon: '👁️' }
-    ],
-    products: [
-      { id: '1', name: 'Hurry Harry Wrinkle Serum', price: 350000, image: '/uploads/img/micsmo/Hurry-Harry-Medicated-Beauty-Wrinkle-Serum-Rich-jpeg.jpg' },
-      { id: '2', name: 'White Label Placenta Cream', price: 420000, image: '/uploads/img/micsmo/-MICCOSMO-WHITE-LABEL-PREMIUM-PLACENTA-CREAM-60g-Kem-Duong-Nhau-Thai-Lam-Sang-amp-Cap-Am-Diu-Nhe_33.1.png' },
-      { id: '3', name: 'Placenta Rich Gold Eye Cream', price: 480000, image: '/uploads/img/micsmo/-MICCOSMO-WHITE-LABEL-PREMIUM-PLACENTA-RICH-GOLD-EYE-CREAM-25g-Kem-Mat-Nhau-Thai-Giam-Quang-Tham_. (127).png' },
-      { id: '4', name: 'Placenta Essence 180ml', price: 550000, image: '/uploads/img/micsmo/MICCOSMO-WHITE-LABEL-PREMIUM-PLACENTA-ESSENCE-180ml-TINH-CHAT-CAP-AM-LAM-DIU-DA_. (14.1).png' }
-    ],
-    videos: [
-      { id: '1', url: '/video1.mp4', title: 'Hurry Harry Serum', likes: 1250, image: '/uploads/img/micsmo/Hurry-Harry-Medicated-Beauty-Wrinkle-Serum-Rich-jpeg.jpg' },
-      { id: '2', url: '/video2.mp4', title: 'White Label Placenta Cream', likes: 2100, image: '/uploads/img/micsmo/-MICCOSMO-WHITE-LABEL-PREMIUM-PLACENTA-CREAM-60g-Kem-Duong-Nhau-Thai-Lam-Sang-amp-Cap-Am-Diu-Nhe_33.1.png' }
-    ]
-  };
+export const trailingSlash = 'always';
+
+export const load: PageServerLoad = async ({ fetch }) => {
+  const apiUrl = ServerEnv.INTERNAL_API_URL;
+  const tenantId = ServerEnv.TENANT_ID;
+  const targetUrl = `${apiUrl}/api/v1/client/home`;
+
+  let res;
+  try {
+    res = await fetch(targetUrl, {
+      headers: { 'x-tenant': tenantId }
+    });
+  } catch (e: unknown) {
+    const err = e as Error;
+    console.error(`[ROOT FETCH FAILED], không thể kết nối tới Backend!`);
+    console.error(`URL: ${targetUrl}`);
+    console.error(`Error: ${err.message}`);
+    throw error(503, {
+      message: "Dịch vụ tạm thời không khả dụng (Backend Connection Failed)",
+      details: `Failed to reach API at ${apiUrl}.`
+    });
+  }
+
+  if (!res.ok) {
+    throw error(res.status, {
+      message: `API Error: ${res.statusText} (${res.status})`,
+      details: `Failed to fetch home data from ${targetUrl}`
+    });
+  }
+
+  const data = await res.json();
+  return data;
 };
