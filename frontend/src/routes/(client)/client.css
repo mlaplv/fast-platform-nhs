@@ -35,6 +35,11 @@
   /* NO-GPU VPS PERFORMANCE OVERRIDE (Total Cleansing) */
   --liquid-blur: 0px !important;
   --glass-blur: 0px !important;
+
+  /* Elite V2.2 Color System - Soft Luxury */
+  --bg-canvas: #f6f6f6;
+  --text-base: #1a1a1a;
+  --primary: #ee4d2d;
 }
 
 /* GLOBAL PERFORMANCE HARDENING: VPS Mode */
@@ -72,11 +77,17 @@
   --my: 0px !important;
 }
 
-body { margin: 0; padding: 0; overflow-x: hidden; }
+body { 
+  margin: 0; 
+  padding: 0; 
+  overflow-x: hidden; 
+  background-color: #f6f6f6; /* Tiêu diệt mảng đen - Soft Luxury */
+}
 .client-layout {
   background-color: var(--bg-canvas);
   color: var(--text-base);
   font-family: 'Plus Jakarta Sans', sans-serif;
+  min-height: 100vh;
 }
 
 /* --- HERO COMPONENT --- */
