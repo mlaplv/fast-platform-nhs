@@ -291,7 +291,7 @@
     overflow-x: hidden;
     height: 100vh;
     font-family: 'Plus Jakarta Sans', sans-serif;
-    background-color: var(--bg-canvas);
+    background-color: #050505; /* Viral 2026: Dark theme foundation */
     color: var(--text-base);
   }
 
@@ -309,6 +309,11 @@
     position: relative;
     transform: translateZ(0); /* Hardware Acceleration */
     will-change: transform;
+  }
+
+  /* ELITE V2.2: Final section isolation - no forced min-height to prevent gaps */
+  #offers.snap-session {
+    min-height: auto;
   }
 
   /* Ensure smooth transitions inside snap sessions */

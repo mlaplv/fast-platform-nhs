@@ -24,24 +24,4 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
 </svelte:head>
 
-<div class="client-layout min-h-screen flex flex-col">
-  {#if ui.isHydrated}
-    {#if ui.isMobile}
-      <HeaderMobile />
-    {:else}
-      <HeaderDesktop />
-    {/if}
-  {/if}
-
-  <main class="flex-grow">
-    {@render children()}
-  </main>
-
-  {#if ui.isHydrated}
-    {#if ui.isMobile}
-      <BottomNavMobile />
-    {:else}
-      <FooterDesktop />
-    {/if}
-  {/if}
-</div>
+{@render children()}

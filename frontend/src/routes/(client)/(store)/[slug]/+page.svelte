@@ -6,10 +6,28 @@
   import ProductListMobile from '$lib/components/storefront/product/ProductListMobile.svelte';
   import NewsListDesktop from '$lib/components/storefront/news/NewsListDesktop.svelte';
   import NewsListMobile from '$lib/components/storefront/news/NewsListMobile.svelte';
-  import FunnelPage from '../[slug]-funnel/+page.svelte';
-  import { onMount } from 'svelte';
+  import FunnelPage from '../../[slug]-funnel/+page.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { onMount, untrack } from 'svelte';
 
   let { data }: { data: any } = $props();
+  const ui = getClientUi();
+
+  // Elite V2.2: Dynamic Layout Sync (Viral 2026 Protocol)
+  $effect(() => {
+    const isFunnel = data.product?.metadata?.landing_type && data.product.metadata.landing_type !== 'standard';
+    
+    if (isFunnel) {
+      ui.isHeaderHidden = true;
+      ui.isFooterHidden = true;
+    }
+
+    return () => {
+      // Auto-restore on unmount or transition back to standard
+      ui.isHeaderHidden = false;
+      ui.isFooterHidden = false;
+    };
+  });
 
   let isMobile = $state(false);
 

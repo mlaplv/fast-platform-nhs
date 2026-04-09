@@ -4,6 +4,7 @@ import { BREAKPOINTS } from '$lib/constants/layout';
 
 export function createClientUiState(): ClientUiState {
     const state = $state({
+        isHeaderHidden: false,
         isFooterHidden: false,
         // Elite V2.2: Reactive Screen Runes
         screenWidth: typeof window !== 'undefined' ? window.innerWidth : 1024,
@@ -24,6 +25,9 @@ export function createClientUiState(): ClientUiState {
     }
 
     return {
+        get isHeaderHidden() { return state.isHeaderHidden; },
+        set isHeaderHidden(val: boolean) { state.isHeaderHidden = val; },
+
         get isFooterHidden() { return state.isFooterHidden; },
         set isFooterHidden(val: boolean) { state.isFooterHidden = val; },
         
