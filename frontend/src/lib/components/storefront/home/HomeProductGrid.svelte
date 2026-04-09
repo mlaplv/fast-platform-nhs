@@ -155,53 +155,61 @@
             class="absolute inset-0 flex items-center justify-between px-8 md:px-12 transition-all z-10"
         >
           <!-- Content Left -->
-          <div class="relative z-10 flex flex-col gap-8 max-w-[55%]">
+          <!-- Content Left -->
+          <div class="relative z-10 flex flex-col gap-6 max-w-[60%]">
             <div in:fly={{y: 20, duration: 1500, delay: 400}} class="flex items-center gap-4">
-                <span class="bg-[#ee4d2d] text-white text-[10px] font-black px-3 py-1.5 uppercase tracking-widest shadow-[0_10px_20px_rgba(238,77,45,0.2)]">Lựa Chọn Xu Hướng</span>
-                <span class="text-black/30 text-[9px] font-black uppercase tracking-[0.4em]">Xếp Hạng #1 Xu Hướng</span>
+                <span class="bg-[#C18F7E]/10 text-[#C18F7E] text-[9px] font-black px-3 py-1.5 uppercase tracking-widest border border-[#C18F7E]/20">Micsmo Elite Choice</span>
+                <span class="text-black/20 text-[8px] font-black uppercase tracking-[0.4em]">Số lượng giới hạn</span>
             </div>
             
-            <div in:fly={{y: 30, duration: 1500, delay: 600}} class="flex flex-col">
-                <h2 class="text-4xl md:text-6xl font-black leading-[1.1] uppercase tracking-tight line-clamp-2">
-                    <span class="bg-gradient-to-r from-black via-black/80 to-[#C18F7E] bg-clip-text text-transparent">{slide.name.split(' ').slice(0, 2).join(' ')}</span><br/>
-                    <span class="text-[#C18F7E] italic">{slide.name.split(' ').slice(2).join(' ')}</span>
+            <div in:fade={{duration: 1200, delay: 400}} class="flex flex-col">
+                <h2 class="text-3xl md:text-4xl lg:text-5xl font-extrabold leading-[1.3] uppercase tracking-tight line-clamp-3 bg-gradient-to-br from-[#1A1A1A] via-[#333333] to-[#C18F7E] bg-clip-text text-transparent">
+                    {slide.name}
                 </h2>
             </div>
 
             <div in:fly={{y: 40, duration: 1500, delay: 800}} class="flex items-center gap-10">
                 <div class="flex flex-col">
-                    <div class="flex items-center gap-4 mb-2">
-                        <span class="text-[10px] font-black uppercase tracking-[0.3em] text-black/20">Giá Micsmo</span>
+                    <div class="flex items-center gap-4 mb-1">
+                        <span class="text-[9px] font-black uppercase tracking-[0.3em] text-black/20">Đặc quyền Micsmo</span>
                         {#if slide.originalPrice}
                             <div class="flex items-center gap-2">
-                                <span class="text-base font-bold text-gray-300 line-through tabular-nums italic decoration-gray-400/30">
+                                <span class="text-sm font-bold text-gray-300 line-through tabular-nums decoration-gray-400/30">
                                     đ{Math.round(slide.originalPrice).toLocaleString('vi-VN')}
                                 </span>
-                                <span class="bg-[#C18F7E] text-white text-[10px] font-black px-2 py-0.5 rounded-sm animate-pulse">-55%</span>
                             </div>
                         {/if}
                     </div>
-                    <span class="text-black text-4xl font-black tabular-nums tracking-tighter drop-shadow-sm flex items-end gap-2">
+                    <span class="text-black text-4xl font-black tabular-nums tracking-tighter flex items-end gap-2">
                         <span class="text-[#C18F7E] text-2xl mb-1">đ</span>{slide.price.toLocaleString('vi-VN')}
-                        <span class="text-[10px] text-green-500/50 font-bold uppercase tracking-widest mb-1.5 animate-bounce">⚡ Ưu đãi độc quyền</span>
+                        <span class="text-[10px] text-[#C18F7E] font-bold uppercase tracking-widest mb-1.5 animate-pulse">−55% LIMITED</span>
                     </span>
                 </div>
-                <div class="w-[1px] h-12 bg-black/5"></div>
+                <div class="w-[1px] h-10 bg-black/5"></div>
                 <div class="flex flex-col">
-                    <span class="text-[10px] font-black uppercase tracking-[0.3em] text-black/20 mb-1">Đã bán</span>
-                    <span class="text-black text-xl font-black italic">+{slide.sales.toLocaleString()} <span class="text-[10px] opacity-30 not-italic uppercase ml-1">Sản phẩm</span></span>
+                    <span class="text-[9px] font-black uppercase tracking-[0.3em] text-black/20 mb-1">Cộng đồng</span>
+                    <span class="text-black text-xl font-black italic">+{slide.sales.toLocaleString()} <span class="text-[9px] opacity-30 not-italic uppercase ml-1">Tin dùng</span></span>
                 </div>
             </div>
             
-            <div in:fly={{y: 50, duration: 1500, delay: 1000}}>
+            <div in:fly={{y: 50, duration: 1500, delay: 1000}} class="flex flex-col gap-4">
                 <button 
                     onclick={() => goto(`/${slugify(slide.name)}`)}
-                    class="group/btn relative px-14 py-6 mt-6 bg-black text-white text-[11px] font-black uppercase tracking-[0.6em] overflow-hidden transition-all active:scale-95 shadow-[0_20px_40px_rgba(0,0,0,0.1)] hover:shadow-[0_30px_60px_rgba(193,143,126,0.3)]"
+                    class="group/btn relative w-fit px-20 py-6 bg-black text-white text-[11px] font-black uppercase tracking-[0.4em] overflow-hidden transition-all active:scale-95 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] hover:shadow-[0_40px_80px_-15px_rgba(193,143,126,0.4)]"
                 >
-                    <span class="relative z-10 transition-colors group-hover/btn:text-white">Khám phá Ngay ✨</span>
-                    <div class="absolute inset-0 bg-gradient-to-r from-[#C18F7E] to-[#E3B5A4] -translate-x-full group-hover/btn:translate-x-0 transition-transform duration-1000 ease-in-out"></div>
-                    <div class="absolute top-0 left-0 w-full h-[1px] bg-white/20 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-1500"></div>
+                    <span class="relative z-10 transition-colors group-hover/btn:text-white">Sở Hữu Ngay</span>
+                    
+                    <!-- FOMO Shine Effect -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:animate-shivering pointer-events-none"></div>
+                    
+                    <!-- Elite Background Fill -->
+                    <div class="absolute inset-0 bg-[#C18F7E] translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500 ease-out"></div>
                 </button>
+                
+                <div class="flex items-center gap-2 animate-pulse">
+                    <div class="h-1 w-1 rounded-full bg-[#C18F7E]"></div>
+                    <span class="text-[8px] font-bold uppercase tracking-widest text-black/40">Chỉ còn 12 suất ưu đãi trong hôm nay</span>
+                </div>
             </div>
           </div>
           
@@ -256,15 +264,6 @@
         {/each}
     </div>
 
-    <!-- Hidden Edge Controls -->
-    <div class="absolute inset-y-0 left-0 w-32 flex items-center justify-center group/nav opacity-0 hover:opacity-100 transition-opacity z-30 cursor-pointer" onclick={prevSlide}>
-        <div class="w-[1px] h-24 bg-black/10 transition-all group-hover/nav:h-32 group-hover/nav:bg-black"></div>
-        <span class="absolute left-12 text-xs font-black uppercase tracking-[0.5em] -rotate-90 origin-left opacity-0 group-hover/nav:opacity-100 transition-all">Trước</span>
-    </div>
-    <div class="absolute inset-y-0 right-0 w-32 flex items-center justify-center group/nav opacity-0 hover:opacity-100 transition-opacity z-30 cursor-pointer" onclick={nextSlide}>
-        <div class="w-[1px] h-24 bg-black/10 transition-all group-hover/nav:h-32 group-hover/nav:bg-black"></div>
-        <span class="absolute right-12 text-xs font-black uppercase tracking-[0.5em] rotate-90 origin-right opacity-0 group-hover/nav:opacity-100 transition-all">Tiếp</span>
-    </div>
 
   </div>
 
