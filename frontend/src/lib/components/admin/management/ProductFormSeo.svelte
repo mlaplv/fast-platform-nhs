@@ -53,7 +53,7 @@
   const seoDescLen = $derived(formSeoDescription?.length ?? 0);
   const ogTitle = $derived(formSeoTitle || formName || 'Tên sản phẩm');
   const ogDesc = $derived(formSeoDescription || 'Mô tả ngắn gọn về sản phẩm...');
-  const ogUrl = $derived(`micsmo.com/product/${formSlug || 'slug-san-pham'}`);
+  const ogUrl = $derived(`micsmo.com/${formSlug || 'slug-san-pham'}`);
   const ogImg = $derived(formImages && formImages.length > 0 ? resolveMediaUrl(formImages[0]) : null);
 </script>
 
