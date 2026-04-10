@@ -12,6 +12,8 @@
     originalPrice?: number;
     rating?: number;
     ratingCount?: number;
+    isAiFeatured?: boolean;
+    createdAt?: string;
   }
 
   interface Props {
@@ -19,10 +21,84 @@
   }
 
   let { products = [] }: Props = $props();
+
+  let activeTab = $state('BEST_SELLER');
+
+  // Logic Sắp xếp Phản xạ (Elite V2.2)
+  const sortedProducts = $derived.by(() => {
+    let list = [...products];
+    switch (activeTab) {
+      case 'AI':
+        return list.sort((a, b) => Number(b.isAiFeatured || 0) - Number(a.isAiFeatured || 0));
+      case 'LATEST':
+        return list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '') || b.id.localeCompare(a.id));
+      case 'POPULAR':
+        return list.sort((a, b) => (b.rating || 0) - (a.rating || 0) || (b.ratingCount || 0) - (a.ratingCount || 0));
+      case 'BEST_SELLER':
+      default:
+        return list.sort((a, b) => (b.sales || 0) - (a.sales || 0));
+    }
+  });
+
+  const tabs = [
+    { id: 'AI', label: 'GỢI Ý AI', icon: 'sparkles', color: '#FFD700' },
+    { id: 'LATEST', label: 'MỚI NHẤT', icon: 'clock', color: '#64748b' },
+    { id: 'POPULAR', label: 'PHỔ BIẾN', icon: 'flame', color: '#ff4d4d' },
+    { id: 'BEST_SELLER', label: 'BÁN CHẠY', icon: 'trophy', color: '#FFD700' }
+  ];
 </script>
 
+<!-- GRID HEADER (Viral 2026 Tabs) -->
+<div class="mb-4 bg-[#f8f9fa]/80 backdrop-blur-md rounded-2xl border border-white/50 shadow-sm overflow-hidden sticky top-[env(safe-area-inset-top,0px)] z-40">
+  <div class="flex items-center justify-between px-4 lg:px-6">
+    <div class="flex items-center gap-2 lg:gap-8 overflow-x-auto no-scrollbar py-3">
+      {#each tabs as tab}
+        <button
+          onclick={() => activeTab = tab.id}
+          class="group relative flex items-center gap-2 px-3 py-2 transition-all duration-300 whitespace-nowrap"
+        >
+          <!-- Icon Contextual -->
+          <div class="w-5 h-5 flex items-center justify-center transition-transform group-hover:scale-110" style:color={tab.color}>
+            {#if tab.icon === 'sparkles'}
+              <svg viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M12 2l1.5 5h5l-4 3 1.5 5-4-3-4 3 1.5-5-4-3h5z"/></svg>
+            {:else if tab.icon === 'clock'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            {:else if tab.icon === 'flame'}
+              <svg viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M12 2c0 0-2 4-2 7 0 2.2 1.8 4 4 4s4-1.8 4-4c0-3-2-7-2-7" opacity="0.5"/><path d="M12 6c0 0-2 3-2 5 0 1.1 0.9 2 2 2s2-0.9 2-2c0-2-2-5-2-5"/></svg>
+            {:else if tab.icon === 'trophy'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M6 9H4.5a2.5 2.5 0 010-5H6M18 9h1.5a2.5 2.5 0 000-5H18M4.22 19.78a11 11 0 0015.56 0M12 15V21M8 21h8"/></svg>
+            {/if}
+          </div>
+          
+          <span 
+            class="text-[11px] lg:text-[13px] font-extrabold tracking-widest transition-colors duration-300 uppercase"
+            class:text-[#222]={activeTab === tab.id}
+            class:text-gray-400={activeTab !== tab.id}
+          >
+            {tab.label}
+          </span>
+
+          {#if activeTab === tab.id}
+            <div 
+              class="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full"
+              in:fly={{ y: 2, duration: 300 }}
+            ></div>
+          {/if}
+        </button>
+      {/each}
+    </div>
+
+    <!-- Luxury Badge Badge -->
+    <div class="hidden lg:flex items-center pl-4 border-l border-gray-100">
+      <div class="px-4 py-1.5 rounded-full bg-gradient-to-r from-[#fafafa] to-white border border-[#eee] shadow-sm hover:shadow-md transition-all cursor-pointer group">
+         <span class="text-[10px] font-black tracking-[0.2em] text-[#8b6e4e] uppercase group-hover:text-[#6a5237]">Luxury Collection 2026</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-  {#each products as product (product.id)}
+  {#each sortedProducts as product (product.id)}
     <a
       href={`/${slugify(product.name)}`}
       class="group/card relative bg-white border border-gray-100 hover:border-[#ee4d2d] transition-all duration-300 cursor-pointer flex flex-col active:scale-[0.98] shadow-sm hover:shadow-xl overflow-hidden no-underline"
@@ -89,3 +165,23 @@
     </a>
   {/each}
 </div>
+
+<style>
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Kỹ thuật Sticky Elite V2.2 */
+  :global(.grid-header-sticky) {
+    top: calc(var(--header-height, 60px) + 1px);
+  }
+
+  /* Hiệu ứng hover cho Tab */
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+</style>
