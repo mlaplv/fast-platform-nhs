@@ -19,16 +19,55 @@
     extraLabel?: string;
   }
 
-  interface Props {
-    products: Product[];
+  interface Category {
+    id: string;
+    name: string;
+    slug: string;
   }
 
-  let { products }: Props = $props();
+  interface Props {
+    products: Product[];
+    categories?: Category[];
+  }
+
+  let { products, categories = [] }: Props = $props();
+
+  // Neon palettes for "Elite 2.2" vibrancy with unique backgrounds
+  const palettes = [
+    { bg: 'linear-gradient(135deg, #25f4ee, #00c49a)', text: '#004d40', shadow: '#25f4ee' }, // Teal
+    { bg: 'linear-gradient(135deg, #7d2ae8, #ff00c1)', text: '#ffffff', shadow: '#7d2ae8' }, // Purple-Magenta
+    { bg: 'linear-gradient(135deg, #ffd6a5, #ffadad)', text: '#800000', shadow: '#ffadad' }, // Soft Peach
+    { bg: 'linear-gradient(135deg, #00ff87, #60efff)', text: '#004d40', shadow: '#00ff87' }, // Mint
+    { bg: 'linear-gradient(135deg, #bdb2ff, #7d2ae8)', text: '#ffffff', shadow: '#bdb2ff' }, // Violet
+    { bg: 'linear-gradient(135deg, #60efff, #0061ff)', text: '#ffffff', shadow: '#0061ff' }, // Ocean
+    { bg: 'linear-gradient(135deg, #ff2b54, #ff00c1)', text: '#ffffff', shadow: '#ff2b54' }  // Flashy Red
+  ];
+
+  // Combine static Elite tabs with dynamic DB categories
+  const tabs = $derived([
+    { type: 'text', label: 'Tất cả', style: palettes[0] },
+    ...categories.map((cat, i) => {
+      const isHot = cat.name.toLowerCase().includes('kem dưỡng');
+      // Special "Hot" style for Kem dưỡng
+      const style = isHot 
+        ? { bg: 'linear-gradient(135deg, #ffbe0b, #fb5607)', text: '#ffffff', shadow: '#ffbe0b' }
+        : palettes[(i + 1) % palettes.length];
+      return { 
+        type: 'mall-pill', 
+        label: cat.name, 
+        slug: cat.slug,
+        isHot,
+        style
+      };
+    })
+  ]);
 
   // Mock data enhancement for preview (Elite 2.2)
   const displayProducts = $derived(
     products.map((p, i) => ({
       ...p,
+      // Đảm bảo luôn có giá gốc cao hơn giá KM để hiện % giảm giá và gạch ngang
+      originalPrice: p.originalPrice || Math.round(p.price * 1.35), 
       rating: 4.5 + (i % 5) * 0.1,
       isFlashSale: i % 2 === 0,
       isFreeship: true,
@@ -38,14 +77,6 @@
       sales: p.sales || (100 + i * 50)
     }))
   );
-
-  const tabs = [
-    { type: 'text', label: 'Tất cả' },
-    { type: 'mall-pill', label: 'Mall Day' },
-    { type: 'mall-pill', label: 'Mall' },
-    { type: 'voucher', line1: 'VOUCHER', line2: 'EXTRA %' },
-    { type: 'text', label: 'Quần áo nữ' }
-  ];
   let activeTab = $state(0);
 
   function navigateProduct(product: Product): void {
@@ -65,23 +96,22 @@
 >
   {#each tabs as tab, i}
     <button
-      class="tab-item {activeTab === i ? 'tab-item--active' : ''} {tab.type === 'mall-pill' ? 'tab-item--pill' : ''} {tab.type === 'voucher' ? 'tab-item--voucher' : ''}"
+      class="tab-item {activeTab === i ? 'tab-item--active' : ''} {tab.type === 'mall-pill' ? 'tab-item--pill' : ''}"
+      style="--pill-bg: {tab.style?.bg}; --pill-txt: {tab.style?.text}; --pill-glow: {tab.style?.shadow};"
       onclick={() => activeTab = i}
     >
       {#if tab.type === 'text'}
-        <span class="tab-text">{tab.label}</span>
+        <span class="tab-text" style={activeTab === i ? `color: ${tab.style?.text}` : ''}>{tab.label}</span>
       {:else if tab.type === 'mall-pill'}
-        <span class="tab-pill-wrap">
-          <span class="tab-pill">{tab.label}</span>
-        </span>
-      {:else if tab.type === 'voucher'}
-        <div class="tab-voucher-col">
-          <span class="tab-voucher-l1">{tab.line1}</span>
-          <span class="tab-voucher-l2">{tab.line2}</span>
+        <div class="tab-pill-wrap {tab.isHot ? 'tab-pill-wrap--hot' : ''}">
+          <span class="tab-pill" style="background: var(--pill-bg); color: var(--pill-txt);">{tab.label}</span>
+          {#if tab.isHot}
+            <span class="hot-tag">HOT</span>
+          {/if}
         </div>
       {/if}
 
-      {#if activeTab === i && (tab.type === 'text' || tab.type === 'voucher')}
+      {#if activeTab === i && tab.type === 'text'}
         <div class="tab-indicator"></div>
       {/if}
     </button>
@@ -98,18 +128,13 @@
         onclick={() => navigateProduct(product)}
       >
         <div class="product-img-wrap">
-          <!-- Discount Badge Top-Right -->
+          <!-- High FOMO Discount Badge (Top-Left) -->
           {#if discountPct > 0}
-            <span class="badge-discount-float">-{discountPct}%</span>
+            <div class="badge-fomo-discount pulse-fomo">
+              <span class="fomo-label">GIẢM</span>
+              <span class="fomo-percent">-{discountPct}%</span>
+            </div>
           {/if}
-
-          <!-- Custom Embedrone Badge (Decor only) -->
-          <div class="badge-brand-decor">
-            <svg viewBox="0 0 100 100" class="decor-svg">
-              <path d="M50 0 L100 50 L50 100 L0 50 Z" fill="#4a185b" />
-              <text x="50" y="55" font-size="20" fill="white" text-anchor="middle" font-weight="bold">Elite</text>
-            </svg>
-          </div>
 
           <img
             src={product.image}
@@ -132,7 +157,11 @@
                 <span class="extra-bottom">{product.extraLabel}</span>
               </div>
             {/if}
-            <div class="overlay-qc">QC</div>
+            <!-- FOMO Rating instead of QC -->
+            <div class="overlay-rating">
+              <span class="star-mini">★</span>
+              <span class="rating-num">{product.rating}</span>
+            </div>
           </div>
         </div>
 
@@ -147,11 +176,12 @@
               {#if product.originalPrice}
                 <span class="old-price">{product.originalPrice.toLocaleString('vi-VN')}đ</span>
               {/if}
-              <!-- Voucher Icon -->
-              <div class="voucher-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                   <path d="M15 5l-3 3-3-3m6 14l-3-3-3 3M5 15h14M5 9h14" />
+              <!-- Intuitive Voucher Ticket Icon -->
+              <div class="voucher-ticket">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20 12V6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a3 3 0 010 6v2a2 2 0 002 2h12a2 2 0 002-2v-2a3 3 0 010-6zM9 13a2 2 0 112-2 2 2 0 01-2 2zm6 0a2 2 0 112-2 2 2 0 01-2 2z" />
                 </svg>
+                <span class="ticket-perc">%</span>
               </div>
             </div>
           </div>
@@ -214,7 +244,7 @@
   .tab-item {
     position: relative;
     flex-shrink: 0;
-    padding: 12px 12px;
+    padding: 12px 2px; /* Set to minimum */
     background: none;
     border: none;
     cursor: pointer;
@@ -237,7 +267,7 @@
   }
 
   .tab-item--pill {
-    padding: 10px 6px;
+    padding: 10px 1px; /* Maximum density */
   }
 
   .tab-pill-wrap {
@@ -249,69 +279,48 @@
     z-index: 1;
   }
 
-  .tab-pill-wrap::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: #25f4ee;
-    border-radius: 8px;
-    transform: translateX(-1.5px);
-    z-index: -2;
-  }
-  .tab-pill-wrap::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: #fe2c55;
-    border-radius: 8px;
-    transform: translateX(1.5px);
-    z-index: -1;
-  }
-
   .tab-pill {
-    background: #111;
-    color: #fff;
-    font-size: 11px;
+    position: relative;
+    font-size: 12px;
     font-weight: 800;
-    padding: 3px 6px;
-    border-radius: 8px;
+    padding: 4px 8px; /* Reduced from 6px 14px */
+    border-radius: 12px;
     white-space: nowrap;
-    box-shadow: 0 0 0 0.5px #111;
-  }
-
-  .tab-item--voucher {
-    padding: 8px 12px;
-  }
-  
-  .tab-voucher-col {
+    z-index: 2;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    line-height: 1.1;
+    justify-content: center;
+    border: none;
   }
 
-  .tab-voucher-l1 {
-    font-size: 10px;
-    font-weight: 900;
-    color: #111;
-    letter-spacing: 0.02em;
+  .hot-tag {
+    position: absolute;
+    top: -8px;
+    right: -6px;
+    background: #ff2b54;
+    color: #fff;
+    font-size: 7px;
+    font-weight: 950;
+    padding: 1px 3px;
+    border-radius: 4px;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    animation: bounce-hot 1s infinite alternate;
   }
 
-  .tab-voucher-l2 {
-    font-size: 10px;
-    font-weight: 900;
-    color: #00b060;
-    letter-spacing: 0.02em;
+  @keyframes bounce-hot {
+    from { transform: translateY(0) scale(1); }
+    to { transform: translateY(-2px) scale(1.1); }
   }
 
   .tab-indicator {
     position: absolute;
-    bottom: 0;
+    bottom: 4px;
     left: 12px;
     right: 12px;
     height: 3px;
     background: #222;
-    border-radius: 4px 4px 0 0;
+    border-radius: 4px 4px 4px 4px;
   }
 
   /* Product Grid */
@@ -346,29 +355,42 @@
     background: #f0f0f0;
   }
 
-  .badge-discount-float {
+  .badge-fomo-discount {
     position: absolute;
     top: 0;
-    right: 0;
-    background: #ff2b54;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 900;
-    padding: 4px 6px;
-    border-radius: 0 0 0 10px;
-    z-index: 5;
+    left: 0;
+    background: linear-gradient(135deg, #ffd839, #ffbe0b);
+    color: #ff2b54;
+    padding: 4px 8px;
+    border-radius: 0 0 12px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 10;
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.15);
   }
 
-  .badge-brand-decor {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    width: 40px;
-    height: 40px;
-    z-index: 5;
-    opacity: 0.9;
+  .fomo-label {
+    font-size: 7px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 1px;
+    letter-spacing: 0.05em;
   }
-  .decor-svg { width: 100%; height: 100%; }
+
+  .fomo-percent {
+    font-size: 13px;
+    font-weight: 950;
+    line-height: 1;
+  }
+
+  @keyframes pulse-fomo {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.05); filter: brightness(1.1); }
+  }
+  .pulse-fomo {
+    animation: pulse-fomo 1.2s infinite ease-in-out;
+  }
 
   .product-img {
     width: 100%;
@@ -418,16 +440,22 @@
   .extra-top { font-size: 8px; font-weight: 900; }
   .extra-bottom { font-size: 7px; font-weight: 600; white-space: nowrap; }
 
-  .overlay-qc {
+  .overlay-rating {
     margin-left: auto;
-    background: rgba(0, 0, 0, 0.4);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 500;
-    padding: 1px 4px;
-    border-radius: 2px;
-    opacity: 0.8;
+    background: rgba(0, 0, 0, 0.55);
+    color: #ffd839; /* Yellow star color text */
+    font-size: 11px;
+    font-weight: 900;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    backdrop-filter: blur(2px);
+    border: 0.5px solid rgba(255,255,255,0.2);
   }
+  .star-mini { font-size: 10px; }
+  .rating-num { color: #fff; }
 
   .product-info {
     padding: 8px 6px 10px;
@@ -475,15 +503,22 @@
     opacity: 0.8;
   }
 
-  .voucher-icon {
+  .voucher-ticket {
     margin-left: auto;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 18px;
+    background: #fff;
     color: #ff2b54;
-    border: 1px solid currentColor;
+    border: 1px dashed #ff2b54;
     border-radius: 4px;
-    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 0 2px;
   }
+  .voucher-ticket svg { width: 12px; height: 12px; }
+  .ticket-perc { font-size: 9px; font-weight: 900; margin-left: 1px; }
 
   .utility-badges {
     display: flex;

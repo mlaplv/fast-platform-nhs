@@ -46,7 +46,7 @@
     <MobileFlashSale />
 
     <!-- Tab filter + 2-column product grid -->
-    <MobileProductFeed {products} />
+    <MobileProductFeed {products} {categories} />
   </div>
 
   <!-- Sticky bottom nav -->
