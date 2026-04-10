@@ -403,6 +403,48 @@ class ProductService:
         await db_session.execute(stmt)
         return BulkActionResponse(ok=True, count=len(ids))
 
+    async def bulk_update(self, db_session: AsyncSession, ids: List[str], data: UpdateProductRequest) -> BulkActionResponse:
+        """Elite V2.2: Atomic Bulk Update for Products."""
+        # Convert Pydantic data to dict, excluding unset fields
+        update_data = data.model_dump(exclude_unset=True, by_alias=False)
+
+        # Mapping frontend camelCase/Pydantic fields to SQLAlchemy snake_case
+        # Note: model_dump(by_alias=False) gives us the field names, but we need to ensure
+        # they match the ProductBase columns (mostly snake_case).
+
+        db_data = {}
+        if "name" in update_data: db_data["name"] = update_data["name"]
+        if "sku" in update_data: db_data["sku"] = update_data["sku"]
+        if "price" in update_data: db_data["price"] = update_data["price"]
+        if "discountPrice" in update_data: db_data["discount_price"] = update_data["discountPrice"]
+        if "stock" in update_data: db_data["stock"] = update_data["stock"]
+        if "status" in update_data: db_data["status"] = update_data["status"].upper()
+        if "isAiFeatured" in update_data: db_data["is_ai_featured"] = update_data["isAiFeatured"]
+        if "categoryId" in update_data: db_data["category_id"] = update_data["categoryId"]
+        if "shortDescription" in update_data: db_data["short_description"] = update_data["shortDescription"]
+        if "description" in update_data: db_data["description"] = update_data["description"]
+        if "slug" in update_data: db_data["slug"] = update_data["slug"]
+        if "seoTitle" in update_data: db_data["seo_title"] = update_data["seoTitle"]
+        if "seoDescription" in update_data: db_data["seo_description"] = update_data["seoDescription"]
+        if "seoKeywords" in update_data: db_data["seo_keywords"] = update_data["seoKeywords"]
+        if "images" in update_data: db_data["images"] = update_data["images"]
+        if "mobileImages" in update_data: db_data["mobile_images"] = update_data["mobileImages"]
+        if "attributes" in update_data: db_data["attributes"] = update_data["attributes"]
+        if "metadata" in update_data: db_data["product_metadata"] = update_data["metadata"]
+        if "tierVariations" in update_data: db_data["tier_variations"] = update_data["tierVariations"]
+
+        if not db_data:
+            return BulkActionResponse(ok=True, count=0)
+
+        stmt = update(ProductBase).where(ProductBase.id.in_(ids)).values(**db_data)
+        await db_session.execute(stmt)
+
+        # If name or description changed, embeddings might need update, but for bulk
+        # it's usually AI Featured or Discount, so we skip vector sync here to save O(N) cost
+        # unless explicitly requested.
+
+        return BulkActionResponse(ok=True, count=len(ids))
+
     async def suggest_seo(self, name: str, description: str) -> Dict[str, str]:
         """Elite V2.2: AI SEO Suggestion (C.O.R.E Engine)."""
         agent = Agent(

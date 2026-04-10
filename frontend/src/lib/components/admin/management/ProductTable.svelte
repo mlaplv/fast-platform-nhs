@@ -5,6 +5,7 @@
   import CheckSquare from "lucide-svelte/icons/check-square";
   import Square from "lucide-svelte/icons/square";
   import ExternalLink from "lucide-svelte/icons/external-link";
+  import Sparkles from "lucide-svelte/icons/sparkles";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { formatCurrency } from "$lib/utils/format";
@@ -15,6 +16,7 @@
     selectedIds,
     statusMap,
     onToggleSelect,
+    onToggleSelectAll,
     onEdit,
     onDelete,
   } = $props<{
@@ -22,9 +24,12 @@
     selectedIds: Set<string>;
     statusMap: Record<string, { label: string; color: string }>;
     onToggleSelect: (id: string) => void;
+    onToggleSelectAll: () => void;
     onEdit: (p: Product) => void;
     onDelete: (id: string) => void;
   }>();
+
+  const isAllSelected = $derived(products.length > 0 && products.every(p => selectedIds.has(p.id)));
 
   $effect(() => {
     const action = nanobot.commandAction;
@@ -58,7 +63,15 @@
 <!-- Responsive Table Header (Hidden on Mobile) -->
 <div class="hidden md:grid grid-cols-[40px_minmax(250px,2fr)_1fr_1fr_1fr_1fr_100px] gap-4 px-4 py-4 sticky top-0 bg-[#050505] border-b border-white/10 uppercase tracking-widest text-[9px] font-bold font-mono text-gray-400"
      style="z-index: var(--z-sticky_header);">
-  <div class="text-center"></div>
+  <div class="text-center flex justify-center items-center">
+    <button
+      onclick={(e) => { e.stopPropagation(); onToggleSelectAll(); }}
+      class="text-gray-600 hover:text-[#FFB800] transition-colors"
+      title={isAllSelected ? "Bỏ chọn tất cả" : "Chọn tất cả trang này"}
+    >
+      {#if isAllSelected}<CheckSquare size={16} />{:else}<Square size={16} />{/if}
+    </button>
+  </div>
   <div>Product Details</div>
   <div>Registry ID</div>
   <div>Valuation</div>
@@ -108,8 +121,11 @@
             <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
           </div>
           <div class="min-w-0 flex flex-col justify-center flex-1">
-            <div class="text-[14px] md:text-[13px] font-bold text-gray-100 truncate group-hover:text-[#FFB800] transition-colors tracking-wide">
+            <div class="text-[14px] md:text-[13px] font-bold text-gray-100 truncate group-hover:text-[#FFB800] transition-colors tracking-wide flex items-center gap-2">
               {product.name}
+              {#if product.isAiFeatured || (product as any).is_ai_featured}
+                <Sparkles size={12} class="text-[#00FFFF] animate-pulse shrink-0" />
+              {/if}
             </div>
             <div class="text-[10px] font-mono text-gray-500 mt-1 uppercase tracking-[0.2em] flex items-center gap-2">
               <span class="px-2 py-0.5 rounded-lg bg-white/5 border border-white/5 text-[8px] text-[#FFB800]/70">{product.category || "General_Node"}</span>
@@ -128,9 +144,20 @@
         <!-- Valuation -->
         <div class="pl-[72px] md:pl-0 mt-3 md:mt-0 flex md:flex-none items-center justify-between md:justify-start">
           <span class="md:hidden text-[9px] font-mono text-gray-500 tracking-widest uppercase">Price</span>
-          <span class="text-xs font-bold font-mono text-[#00FFFF] group-hover:text-white transition-colors tracking-wider">
-            {formatCurrency(product.price)}
-          </span>
+          <div class="flex flex-col items-start">
+            {#if product.discount_price || product.discountPrice}
+              <span class="text-[11px] font-bold font-mono text-[#FFB800] group-hover:text-white transition-colors tracking-wider">
+                {formatCurrency(product.discount_price || product.discountPrice || 0)}
+              </span>
+              <span class="text-[9px] font-mono text-gray-500 line-through opacity-60">
+                {formatCurrency(product.price)}
+              </span>
+            {:else}
+              <span class="text-xs font-bold font-mono text-[#00FFFF] group-hover:text-white transition-colors tracking-wider">
+                {formatCurrency(product.price)}
+              </span>
+            {/if}
+          </div>
         </div>
 
         <!-- Quantity -->

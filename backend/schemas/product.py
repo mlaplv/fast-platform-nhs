@@ -248,3 +248,9 @@ class ProductListResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     data: List[ProductResponse]
     total: int
+
+
+class BulkUpdateProductRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, strict=True)
+    ids: List[str]
+    data: UpdateProductRequest

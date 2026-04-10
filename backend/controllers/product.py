@@ -8,7 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.repositories import ProductBaseRepository, provide_product_repo
 from backend.guards import PermissionGuard
 from backend.constants.permissions import PermissionEnum
-from backend.schemas.product import CreateProductRequest, UpdateProductRequest, ProductResponse, ProductListResponse
+from backend.schemas.product import (
+    CreateProductRequest,
+    UpdateProductRequest,
+    ProductResponse,
+    ProductListResponse,
+    BulkUpdateProductRequest
+)
 from backend.schemas.common import SuccessResponse, BulkActionResponse, BulkIdsRequest
 from backend.services.commerce.product import ProductService, provide_product_service
 from backend.services.commerce.product_vector import ProductVectorService, provide_product_vector_service
@@ -100,13 +106,25 @@ class ProductController(Controller):
 
     @post("/bulk-activate", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)])
     async def bulk_activate(
-        self, 
-        db_session: AsyncSession, 
+        self,
+        db_session: AsyncSession,
         product_service: ProductService,
         data: BulkIdsRequest
     ) -> BulkActionResponse:
         """Activate multiple products."""
         res = await product_service.bulk_activate(db_session, data.ids)
+        await db_session.commit()
+        return res
+
+    @post("/bulk-update", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)])
+    async def bulk_update(
+        self,
+        db_session: AsyncSession,
+        product_service: ProductService,
+        data: BulkUpdateProductRequest
+    ) -> BulkActionResponse:
+        """Elite V2.2: Update multiple products fields in one transaction."""
+        res = await product_service.bulk_update(db_session, data.ids, data.data)
         await db_session.commit()
         return res
 

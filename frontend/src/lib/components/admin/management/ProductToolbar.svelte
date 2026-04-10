@@ -6,6 +6,8 @@
   import Plus from "lucide-svelte/icons/plus";
   import ChevronUp from "lucide-svelte/icons/chevron-up";
   import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import Sparkles from "lucide-svelte/icons/sparkles";
+  import Tag from "lucide-svelte/icons/tag";
 
   let {
     searchInput,
@@ -21,6 +23,8 @@
     onPageSizeChange,
     onBulkActivate,
     onBulkDelete,
+    onBulkAiFeatured,
+    onBulkDiscount,
     onOpenCreate,
     onLoadProducts,
   } = $props<{
@@ -37,6 +41,8 @@
     onPageSizeChange: () => void;
     onBulkActivate: () => void;
     onBulkDelete: () => void;
+    onBulkAiFeatured: (enabled: boolean) => void;
+    onBulkDiscount: () => void;
     onOpenCreate: () => void;
     onLoadProducts: () => void;
   }>();
@@ -77,6 +83,30 @@
     <div class="flex items-center gap-2 sm:gap-3 xl:border-l xl:border-white/10 xl:pl-4 pr-1 sm:pr-2 flex-wrap sm:flex-nowrap justify-between sm:justify-start w-full sm:w-auto mt-2 sm:mt-0">
       <div class="flex items-center gap-2">
         {#if selectedIds.size > 0}
+          <div class="flex items-center gap-1.5 border-r border-white/10 pr-2 mr-1">
+            <button onclick={() => onBulkAiFeatured(true)}
+              class="px-3 py-2 text-[10px] font-mono uppercase bg-[#00FFFF]/10 border border-[#00FFFF]/30 text-[#00FFFF] rounded-xl hover:bg-[#00FFFF]/20 transition-all hidden sm:inline-block"
+              title="Bật AI Featured">
+              <Sparkles size={12} class="inline mr-1" /> AI_ON
+            </button>
+            <button onclick={() => onBulkAiFeatured(true)}
+              class="p-2.5 text-[#00FFFF] bg-[#00FFFF]/10 border border-[#00FFFF]/30 rounded-xl sm:hidden" title="Bật AI Featured"><Sparkles size={14}/></button>
+
+            <button onclick={() => onBulkAiFeatured(false)}
+              class="px-3 py-2 text-[10px] font-mono uppercase bg-gray-500/10 border border-white/10 text-gray-400 rounded-xl hover:bg-white/5 transition-all hidden sm:inline-block"
+              title="Tắt AI Featured">
+              AI_OFF
+            </button>
+
+            <button onclick={onBulkDiscount}
+              class="px-3 py-2 text-[10px] font-mono uppercase bg-[#FFB800]/10 border border-[#FFB800]/30 text-[#FFB800] rounded-xl hover:bg-[#FFB800]/20 transition-all hidden sm:inline-block"
+              title="Cập nhật giá khuyến mãi">
+              <Tag size={12} class="inline mr-1" /> DISCOUNT
+            </button>
+            <button onclick={onBulkDiscount}
+              class="p-2.5 text-[#FFB800] bg-[#FFB800]/10 border border-[#FFB800]/30 rounded-xl sm:hidden" title="Cập nhật giá khuyến mãi"><Tag size={14}/></button>
+          </div>
+
           <button onclick={onBulkActivate}
             class="px-3 py-2 text-[10px] font-mono uppercase bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] rounded-xl hover:bg-[#39FF14]/20 transition-all hidden sm:inline-block"
             ><Eye size={12} class="inline mr-1" /> Kích hoạt ({selectedIds.size})</button>

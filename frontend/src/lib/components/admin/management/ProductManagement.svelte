@@ -1,12 +1,5 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
-  import Plus from "lucide-svelte/icons/plus";
-  import Search from "lucide-svelte/icons/search";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import Eye from "lucide-svelte/icons/eye";
-  import ChevronUp from "lucide-svelte/icons/chevron-up";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import type { Product, BaseWidgetProps, TierVariation, ProductVariant } from "$lib/types";
   import { formatCurrency, slugify } from "$lib/utils/format";
   import { useNanobot } from "$lib/state/nanobot.svelte";
@@ -62,8 +55,7 @@
   let formIsAiFeatured = $state(false);
   let generateSlug = (n: string) => slugify(n);
 
-
-  let pageSize = $state(50); // Default to 50 to prevent DOM/RAM crash on 5000+ items
+  let pageSize = $state(50);
   const STATUS_MAP: Record<string, { label: string; color: string }> = {
     active: { label: "Đang bán", color: "#39FF14" },
     draft: { label: "Nháp", color: "#FFB800" },
@@ -78,7 +70,6 @@
     totalValue: products.reduce((sum, p) => sum + (p.price * p.stock), 0)
   }));
 
-  // --- SERVER-SIDE FETCH ---
   async function loadProducts() {
     isLoading = true;
     try {
@@ -115,41 +106,6 @@
   }
 
   $effect(() => { loadProducts(); });
-
-  // V22: Voice Mutation Injection - Product Management
-  $effect(() => {
-    const data = nanobot.currentData as Record<string, unknown>;
-    const action = nanobot.commandAction;
-
-    if (data?.ui_action === "show_product_management" && data?.intent_type === "MUTATE" && !showForm) {
-      editingId = null;
-      formName = (data?.name as string) || (data?.title as string) || "";
-      formSku = (data?.sku as string) || "";
-      formPrice = Number(data?.price) || 0;
-      formStock = Number(data?.stock) || 0;
-      formCategory = (data?.category as string) || "";
-      formStatus = "draft";
-      showForm = true;
-      nanobot.clearCurrentData();
-      return;
-    }
-
-    if (action?.entity === "product") {
-      if (action.verb === "create") {
-        if (nanobot.consumeCommand("create", "product")) {
-          openCreate();
-          if (action.args) formName = action.args;
-        }
-      }
-      else if (action.verb === "search" && action.args) {
-        if (nanobot.consumeCommand("search", "product")) {
-          searchInput = action.args;
-          searchTerm = action.args;
-          currentPage = 1;
-        }
-      }
-    }
-  });
 
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
   function handleSearchInput(e: Event) {
@@ -211,22 +167,11 @@
   async function openEdit(productOrId: Product | string) {
     let p: RawProduct;
     const id = typeof productOrId === "string" ? productOrId : productOrId.id;
-
-    if (!id) {
-      nanobot.showToast("ID sản phẩm không hợp lệ", "error");
-      return;
-    }
-
-    isSaving = true; // Show loading state briefly
+    if (!id) { nanobot.showToast("ID sản phẩm không hợp lệ", "error"); return; }
+    isSaving = true;
     try {
-      console.log(`[Sync] Fetching product details for ${id}...`);
-      // Force cache-busting to ensure we get the latest DB state after an update
       p = await apiClient.get<RawProduct>(`/api/v1/products/${id}`, { params: { _cb: Date.now().toString() } });
-
       if (!p) throw new Error("Không nhận được phản hồi từ máy chủ");
-
-      console.log(`[Sync] Loaded product ${id} with ${p.variants?.length || 0} variants`);
-
       editingId = p.id;
       formName = p.name || "";
       formSku = p.sku || "";
@@ -236,7 +181,6 @@
       formCategory = p.categoryId ?? p.category_id ?? "";
       formStatus = (p.status || "draft").toLowerCase() as "active" | "draft";
       if ((formStatus as string) === "archived") formStatus = "draft";
-
       formShortDescription = p.shortDescription ?? p.short_description ?? "";
       formDescription = p.description || "";
       formSlug = p.slug || "";
@@ -248,8 +192,6 @@
       formAttributes = p.attributes || {};
       formMetadata = p.metadata || { landing_type: 'standard' };
       formIsAiFeatured = p.isAiFeatured ?? (p as any).is_ai_featured ?? false;
-
-      // R102 Defense: map potential snake_case to camelCase
       const rawTierVariations = (p.tierVariations ?? p.tier_variations ?? []) as RawTierVariation[];
       formTierVariations = Array.isArray(rawTierVariations) ? rawTierVariations.map((tv: RawTierVariation) => ({
         name: tv.name || "",
@@ -257,7 +199,6 @@
         images: Array.isArray(tv.images) ? tv.images : [],
         mobile_images: Array.isArray(tv.mobile_images) ? tv.mobile_images : (Array.isArray(tv.mobileImages) ? tv.mobileImages : [])
       })) : [];
-
       const rawVariants = p.variants ?? [];
       formVariants = Array.isArray(rawVariants) ? rawVariants.map((v: ProductVariant) => ({
         ...v,
@@ -268,13 +209,9 @@
         stock: Number(v.stock || 0),
         tierIndex: v.tierIndex ?? v.tier_index ?? []
       })) : [];
-
       showForm = true;
-      console.log(`[Sync] Edit form opened for ${id}`);
     } catch (err) {
-      const error = err as Error;
-      nanobot.showToast(`Lỗi tải chi tiết sản phẩm: ${error.message}`, "error");
-      console.error("[Sync] openEdit Error:", err);
+      nanobot.showToast(`Lỗi tải chi tiết sản phẩm: ${(err as Error).message}`, "error");
     } finally {
       isSaving = false;
     }
@@ -286,31 +223,79 @@
     selectedIds = updated;
   }
 
-  async function save() {
-    if (!formName.trim()) return;
+  function toggleSelectAll() {
+    const allOnPage = products.map(p => p.id);
+    const isAllSelected = allOnPage.length > 0 && allOnPage.every(id => selectedIds.has(id));
+    const updated = new Set(selectedIds);
+    if (isAllSelected) { allOnPage.forEach(id => updated.delete(id)); }
+    else { allOnPage.forEach(id => updated.add(id)); }
+    selectedIds = updated;
+  }
 
-    // Validation: Price > Discount Price
-    if (formDiscountPrice && Number(formDiscountPrice) >= Number(formPrice)) {
-      nanobot.showToast("Giá khuyến mãi phải nhỏ hơn giá bán bản gốc", "error");
-      return;
-    }
+  async function bulkAiFeatured(enabled: boolean) {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    isSaving = true;
+    try {
+      await apiClient.post("/api/v1/products/bulk-update", { ids, data: { is_ai_featured: enabled } });
+      nanobot.showToast(`Đã ${enabled ? 'bật' : 'tắt'} AI Featured`, "success");
+      await loadProducts();
+    } catch (err) { nanobot.showToast("Cập nhật hàng loạt thất bại", "error"); }
+    finally { isSaving = false; }
+  }
 
-    for (const v of (formVariants || [])) {
-      if (v.discountPrice && Number(v.discountPrice) >= Number(v.price)) {
-        nanobot.showToast(`Biến thể có giá KM (${v.discountPrice}) >= giá bán (${v.price})`, "error");
-        return;
+  async function bulkDiscount() {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+
+    let title = "Cập nhật giá khuyến mãi hàng loạt";
+    let message = `Bạn muốn thiết lập giá khuyến mãi cho ${ids.length} sản phẩm? (Để trống để xóa)`;
+
+    if (ids.length === 1) {
+      const p = products.find(x => x.id === ids[0]) as any;
+      if (p) {
+        title = "Cập nhật giá khuyến mãi";
+        const currentDiscount = p.discountPrice ?? p.discount_price ?? 0;
+        message = `Sản phẩm: ${p.name}\nGiá gốc: ${formatCurrency(p.price)}`;
+        if (currentDiscount > 0) {
+          message += `\nGiá KM hiện tại: ${formatCurrency(currentDiscount)}`;
+        }
+        message += `\n\n(Để trống để xóa giá KM hiện tại)`;
       }
     }
 
+    const result = await nanobot.showConfirm({
+      title,
+      message,
+      isPrompt: true,
+      promptPlaceholder: "Nhập giá khuyến mãi...",
+    });
+    if (result === null) return;
+    isSaving = true;
+    try {
+      const discount_price = result.trim() === "" ? null : Number(result);
+      if (discount_price !== null && isNaN(discount_price)) throw new Error("Giá không hợp lệ");
+      await apiClient.post("/api/v1/products/bulk-update", { ids, data: { discount_price } });
+      nanobot.showToast(`Đã cập nhật giá khuyến mãi`, "success");
+      await loadProducts();
+    } catch (err) { nanobot.showToast("Cập nhật thất bại: " + (err as Error).message, "error"); }
+    finally { isSaving = false; }
+  }
+
+  async function save() {
+    if (!formName.trim()) return;
+    if (formDiscountPrice && Number(formDiscountPrice) >= Number(formPrice)) {
+      nanobot.showToast("Giá khuyến mãi phải nhỏ hơn giá bán gốc", "error"); return;
+    }
     isSaving = true;
     const payload = {
-      name: formName.trim(), 
+      name: formName.trim(),
       sku: formSku || `SKU-${Date.now()}`,
-      price: Number(formPrice), 
+      price: Number(formPrice),
       discount_price: formDiscountPrice ? Number(formDiscountPrice) : null,
-      stock: Number(formStock), 
-      categoryId: formCategory || null, 
-      status: (formStatus || "draft").toUpperCase(), // Backend expects ACTIVE/DRAFT
+      stock: Number(formStock),
+      categoryId: formCategory || null,
+      status: (formStatus || "draft").toUpperCase(),
       is_ai_featured: formIsAiFeatured,
       shortDescription: formShortDescription,
       description: formDescription,
@@ -323,41 +308,26 @@
       attributes: formAttributes || {},
       metadata: formMetadata || {},
       tier_variations: (formTierVariations || []).map(tv => ({
-        name: tv.name,
-        options: tv.options,
-        images: tv.images || null,
-        mobile_images: tv.mobile_images || null
+        name: tv.name, options: tv.options, images: tv.images || null, mobile_images: tv.mobile_images || null
       })),
       variants: (formVariants || []).map(v => ({
-        id: v.id || null, // Ensure id is null if missing
-        sku: v.sku || "",
-        price: Number(v.price),
-        discount_price: v.discountPrice ? Number(v.discountPrice) : null,
-        stock: Number(v.stock),
-        tier_index: v.tierIndex || []
+        id: v.id || null, sku: v.sku || "", price: Number(v.price), discount_price: v.discountPrice ? Number(v.discountPrice) : null,
+        stock: Number(v.stock), tier_index: v.tierIndex || []
       }))
     };
-
     try {
       if (editingId) {
         await apiClient.patch(`/api/v1/products/${editingId}`, payload);
-        editingId = null;
-        showForm = false;
-        // Always reload the entire list to ensure everything (counts, stats, statuses) is perfectly synced
-        await loadProducts();
-        nanobot.showToast("Dữ liệu sản phẩm đã được đồng bộ chuẩn xác", "success");
+        editingId = null; showForm = false; await loadProducts();
+        nanobot.showToast("Đã đồng bộ thay đổi", "success");
       } else {
         await apiClient.post<Product>("/api/v1/products", payload);
         nanobot.showToast("Đã xuất bản sản phẩm mới", "success");
-        showForm = false;
-        await loadProducts();
+        showForm = false; await loadProducts();
       }
-    } catch (err: unknown) { 
-      const msg = err?.message || "Lưu sản phẩm thất bại";
-      nanobot.showToast(msg, "error"); 
-    } finally {
-      isSaving = false;
-    }
+    } catch (err: unknown) {
+      nanobot.showToast((err as any)?.message || "Lưu thất bại", "error");
+    } finally { isSaving = false; }
   }
 
   async function bulk(type: "del" | "act") {
@@ -394,12 +364,13 @@
       onPageSizeChange={() => { currentPage = 1; }}
       onBulkActivate={() => bulk("act")}
       onBulkDelete={() => bulk("del")}
+      onBulkAiFeatured={bulkAiFeatured}
+      onBulkDiscount={bulkDiscount}
       onOpenCreate={openCreate}
       onLoadProducts={loadProducts}
     />
   </div>
 
-  <!-- ProductForm Modal Layer -->
   <ProductForm
     {editingId}
     isOpen={showForm}
@@ -426,6 +397,7 @@
           {selectedIds}
           statusMap={STATUS_MAP}
           onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAll}
           onEdit={openEdit}
           onDelete={async (id) => {
             try { await apiClient.post("/api/v1/products/bulk-delete", { ids: [id] }); await loadProducts(); }
