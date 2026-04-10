@@ -19,8 +19,8 @@
   });
 </script>
 
-<section id="diagnostics-section" aria-labelledby="personalized-care" class="diagnostics-container diagnostic-premium-flow relative overflow-x-hidden bg-[#020617]">
-  <div class="container mx-auto px-6 max-w-6xl text-center relative pt-[var(--standard-pt)] pb-20 md:pb-32 z-surface">
+<section id="diagnostics-section" aria-labelledby="personalized-care" class="snap-session-standard diagnostics-container diagnostic-premium-flow relative overflow-x-hidden">
+  <div class="container mx-auto px-6 max-w-6xl text-center relative z-surface">
     <h3 id="personalized-care" class="section-title text-neural font-black tracking-tight leading-none uppercase mb-4 text-4xl md:text-6xl">
       {@html labels.headline}
     </h3>

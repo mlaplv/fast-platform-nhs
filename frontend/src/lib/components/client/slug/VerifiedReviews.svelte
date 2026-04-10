@@ -25,9 +25,20 @@
   let realReviews = $state<Review[]>([]);
   let isLoading = $state(true);
 
-  const headline = $derived(metadata?.reviews_headline || '');
+  const headline = $derived(metadata?.reviews_headline || 'TRẢI NGHIỆM TRẮNG SÁNG // REVIEW CHÂN THỰC TỪ CỘNG ĐỒNG');
+  const subheadline = $derived(metadata?.reviews_subheadline || 'Kiểm chứng công thức số 1 từ Nhật Bản. Thấm nhanh, không bết dính. Hiệu quả rõ rệt sau 2 tuần. Đừng bỏ lỡ siêu phẩm Best-seller!');
   const trustScore = $derived(metadata?.reviews_trust_score || '4.9/5');
   const countText = $derived(product?.orderCountText || metadata?.reviews_count_text || '2,140+ LƯỢT MUA');
+
+  // Elite V2.2: Live FOMO Pulse Logic
+  let liveViewers = $state(Math.floor(Math.random() * (45 - 12 + 1)) + 12);
+  $effect(() => {
+    const interval = setInterval(() => {
+      const delta = Math.random() > 0.5 ? 1 : -1;
+      liveViewers = Math.max(8, Math.min(64, liveViewers + delta));
+    }, 5000);
+    return () => clearInterval(interval);
+  });
 
   const labels = $derived({
     trust_score: (metadata.reviews_trust_score as string) || trustScore || '4.9/5',
@@ -207,32 +218,69 @@
   };
 </script>
 
-<section class="reviews-viewport relative overflow-hidden">
-  <div class="reviews-container container mx-auto px-6 max-w-6xl pt-[var(--standard-pt)] pb-24">
+<section class="snap-session-standard reviews-viewport relative overflow-visible">
+  <div class="reviews-container container mx-auto px-6 max-w-6xl relative z-surface">
     <!-- Header Section -->
-    <div class="text-center" in:fade>
-      <h2 class="section-headline mb-8 text-[28px] xs:text-3xl sm:text-4xl md:text-5xl leading-[1.1] md:leading-tight break-words font-black tracking-tighter uppercase italic">
+    <div class="text-center mb-16" in:fade>
+      <!-- FLOATING HUD: No layout space occupied -->
+      <div class="absolute top-[-4vh] left-1/2 -translate-x-1/2 flex items-center justify-center gap-2 mb-6 opacity-0 animate-fade-in pointer-events-none" style="animation-delay: 0.2s">
+        <div class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,1)]"></div>
+        <span class="text-[10px] font-black text-red-500/80 uppercase tracking-[0.3em] font-mono">LIVE_ACTIVITY: {liveViewers} KHÁCH ĐANG XEM ĐÁNH GIÁ</span>
+      </div>
+      
+      <h2 class="section-headline mb-6">
         {@html headline}
       </h2>
-      <div class="flex flex-col items-center gap-4">
-        <div class="trust-indicator inline-flex items-center gap-6 px-8 py-4 bg-white/5 rounded-full border border-white/10 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
-          <div class="flex items-center gap-2">
-            {#each Array(5) as _, i}
-              <svg class="w-6 h-6 {i < 4.9 ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]' : 'text-white/10'}" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-            {/each}
+
+      <p class="section-description text-white/40 text-base md:text-lg max-w-3xl mx-auto leading-relaxed mb-10">
+        {@html subheadline}
+      </p>
+
+      <div class="flex flex-col items-center gap-8">
+        <div class="trust-indicator-elite inline-flex flex-col sm:flex-row items-center gap-6 px-10 py-6 bg-white/[0.02] backdrop-blur-3xl rounded-[2rem] border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.5),inset_0_0_20px_rgba(255,255,255,0.02)]">
+          <div class="flex items-center gap-6 border-b sm:border-b-0 sm:border-r border-white/10 pb-4 sm:pb-0 sm:pr-8">
+            <div class="flex flex-col items-center sm:items-start gap-1">
+              <span class="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] font-mono">PRECISION_RATING</span>
+              <div class="flex items-center gap-4">
+                <span class="text-3xl font-black text-white tracking-tighter italic">{labels.trust_score}</span>
+                <div class="flex items-center gap-1">
+                  {#each [1, 2, 3, 4, 5] as star}
+                    <svg class="w-4 h-4 {star <= 5 ? 'text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]' : 'text-white/5'}" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  {/each}
+                </div>
+              </div>
+            </div>
           </div>
-          <span class="text-white/80 text-[11px] font-black tracking-[0.25em] uppercase font-mono">
-            {labels.trust_score} <span class="mx-4 text-white/10">|</span> {labels.count_text}
-          </span>
+
+          <div class="flex flex-col items-center sm:items-start gap-1">
+             <span class="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] font-mono">GLOBAL_VOLUME</span>
+             <span class="text-xl font-bold text-white tracking-wider">{labels.count_text}</span>
+          </div>
+
+          <div class="w-px h-10 bg-white/10 hidden sm:block"></div>
+
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-full border border-emerald-500/20 flex items-center justify-center bg-emerald-500/5">
+              <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">ELITE_PROTECTED</span>
+              <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">VERIFIED SERVICE</span>
+            </div>
+          </div>
         </div>
+
         <button 
           onclick={() => showFormModal = true} 
-          class="pulse-btn px-10 py-5 bg-emerald-500/10 border border-emerald-500/40 rounded-full text-emerald-400 text-xs font-black uppercase tracking-[0.3em] hover:bg-emerald-500/20 hover:border-emerald-500/60 transition-all active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.2)] group"
+          class="pulse-btn px-12 py-5 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-emerald-400 text-[11px] font-black uppercase tracking-[0.4em] hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all active:scale-95 shadow-[0_0_50px_rgba(16,185,129,0.1)] group flex items-center gap-4"
         >
+          <svg class="w-4 h-4 transition-transform group-hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
           <span class="relative" style="z-index: var(--z-surface);">{labels.cta_write}</span>
-          <div class="absolute inset-0 bg-emerald-500/10 blur-xl group-hover:blur-2xl transition-all"></div>
+          <div class="absolute inset-0 bg-emerald-500/5 blur-2xl group-hover:blur-3xl transition-all"></div>
         </button>
       </div>
     </div>
@@ -306,8 +354,8 @@
                         <span class="text-[8px] text-white/30 uppercase tracking-[0.2em] font-black font-mono leading-none">{review.location}</span>
                       </div>
                       <div class="flex items-center gap-0.5 mt-1.5">
-                        {#each Array(5) as _, i}
-                          <svg class="w-3 h-3 {i < review.rating ? 'text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.4)]' : 'text-white/5'}" fill="currentColor" viewBox="0 0 20 20">
+                        {#each [0, 1, 2, 3, 4] as starIdx}
+                          <svg class="w-3 h-3 {starIdx < (review.rating || 5) ? 'text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.4)]' : 'text-white/5'}" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                           </svg>
                         {/each}
@@ -325,11 +373,17 @@
                     <div class="w-2 h-2 rounded-full border border-white/20"></div>
                     <span class="text-[8px] font-black text-white/20 uppercase tracking-[0.3em]">{labels.label_compliant}</span>
                   </div>
-                  <div class="buy-check flex items-center gap-2 px-3 py-1.5 bg-emerald-500/5 rounded-lg border border-emerald-500/10">
-                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span class="text-[9px] font-black text-emerald-400 uppercase tracking-widest">{labels.label_store_verified}</span>
+                  <div class="buy-check flex items-center gap-2.5 px-3.5 py-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)] transition-all hover:border-emerald-500/40">
+                    <div class="relative">
+                      <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <div class="absolute inset-0 bg-emerald-400 blur-md opacity-20"></div>
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="text-[7px] font-black text-emerald-400/50 uppercase tracking-[0.2em] leading-none mb-0.5">AUTH_STATUS</span>
+                      <span class="text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-none">{labels.label_store_verified}</span>
+                    </div>
                   </div>
                 </div>
               </div>

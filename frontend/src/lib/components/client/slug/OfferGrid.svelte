@@ -88,13 +88,13 @@
   };
 </script>
 
-<section class="offer-section relative overflow-hidden">
+<section class="snap-session-standard offer-section relative overflow-hidden">
   <!-- Dynamic Atmospheric Layers! -->
   <div class="absolute inset-0 bg-radial-at-t from-blue-900/10 to-transparent pointer-events-none"></div>
   <div class="liquid-orb top-[10%] left-[-10%] w-[800px] h-[800px]" style:background-color="var(--elite-blue)" style:opacity="0.1"></div>
   <div class="liquid-orb bottom-[-10%] right-[-10%] w-[600px] h-[600px]" style:background-color="var(--elite-cyan)" style:opacity="0.05"></div>
 
-  <div class="container mx-auto px-4 md:px-6 max-w-6xl text-center relative pt-[var(--standard-pt)]" style="z-index: var(--z-surface);">
+  <div class="container mx-auto px-4 md:px-6 max-w-6xl text-center relative z-surface">
     
     
 

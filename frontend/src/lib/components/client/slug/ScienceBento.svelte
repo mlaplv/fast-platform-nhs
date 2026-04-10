@@ -3,11 +3,11 @@
   import "./ScienceBento.css";
 </script>
 
-<section id="science-mechanism" class="science-section relative w-full bg-[#0d121f] overflow-hidden">
+<section id="science-mechanism" class="snap-session-standard science-section relative w-full overflow-hidden">
     <!-- 150px Coordinate Grid Overlay -->
     <div class="tech-grid opacity-30"></div>
 
-    <div class="container mx-auto px-6 max-w-6xl text-center relative pt-[var(--standard-pt)] pb-32 md:pb-48" style="z-index: var(--z-surface);">
+    <div class="container mx-auto px-6 max-w-6xl text-center relative z-surface">
         
         <!-- SECTION HEADER (Normalized spacing to fix "thừa trên thiếu dưới") -->
         <header class="mb-8 md:mb-12 animate-reveal">

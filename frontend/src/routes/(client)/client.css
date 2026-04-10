@@ -14,7 +14,9 @@
   --z-toast: 2000;
   --z-review-header: 2000;
 
-  --section-pt: 8vh;
+  --standard-pt: 12vh;
+  --standard-pb: 12vh;
+  --section-pt: 12vh;
   --wave-offset-science: -90px;
   --wave-offset-diag: 60px;
   --wave-offset-reviews: 60px;
@@ -131,11 +133,25 @@ body {
 }
 
 .liquid-oval-bg {
-  background: rgba(255, 255, 255, 0.015);
-  backdrop-filter: blur(60px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 1000px;
   box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.5);
+}
+
+/* --- UNIVERSAL SECTION STANDARDIZATION --- */
+.snap-session-standard {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-top: var(--standard-pt);
+  padding-bottom: var(--standard-pb);
+  position: relative;
+  background-color: #020617; /* Common base depth */
+}
+
+.snap-session-standard > .container {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 /* --- ANIMATIONS --- */
