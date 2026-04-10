@@ -21,7 +21,12 @@ class StallDetectorMiddleware:
         # Default 10 seconds for standard APIs. Can be overridden in .env
         self.timeout = float(os.getenv("REQUEST_STALL_TIMEOUT", "10.0"))
         # Paths to exclude (e.g., long-polling, streaming, AI generation sites)
-        self.excluded_paths = ["/ws/", "/api/v1/stream", "/api/v1/intent/stream"]
+        self.excluded_paths = [
+            "/ws/", 
+            "/api/v1/stream", 
+            "/api/v1/intent/stream",
+            "/api/v1/client/diagnostics/analyze"
+        ]
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":

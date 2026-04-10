@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
-  import { ShieldCheck } from 'lucide-svelte';
+  import { ShieldCheck, Tag } from 'lucide-svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
 
   const shopStore = getShopStore();
@@ -97,6 +97,8 @@
           >
             {#if link.id === 'track'}
               <ShieldCheck class="w-3 h-3 mr-1.5 inline-block opacity-70" />
+            {:else if link.id === 'offers'}
+              <Tag class="w-3 h-3 mr-1.5 inline-block opacity-70" />
             {/if}
             {link.label}
           </a>

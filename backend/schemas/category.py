@@ -32,7 +32,7 @@ class UpdateCategoryRequest(BaseModel):
 
 
 class CategoryResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True, strict=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
     id: str
     name: str
@@ -62,7 +62,7 @@ class CategoryResponse(BaseModel):
 
 
 class CategoryListResponse(BaseModel):
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(populate_by_name=True)
     data: List[CategoryResponse]
     total: int
 

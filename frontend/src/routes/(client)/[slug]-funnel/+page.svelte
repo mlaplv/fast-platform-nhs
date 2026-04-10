@@ -125,7 +125,11 @@
   };
 
   // Elite 2026 Programmatic Scroll Coordinator (O(1) Speed/Memory)
-  const sectionIds = ['hero', 'diagnostics', 'science', 'reviews', 'offers'];
+  const hasQuiz = $derived((metadata?.quiz_questions?.length || 0) > 0);
+  const sectionIds = $derived(hasQuiz 
+    ? ['hero', 'diagnostics', 'science', 'reviews', 'offers']
+    : ['hero', 'science', 'reviews', 'offers']
+  );
   let currentSessionIdx = 0;
   let isWheelLocked = false;
 
@@ -231,15 +235,17 @@
     
     <div id="jit-trigger"></div>
 
-    <section id="diagnostics" class="snap-session">
-      {#if loadJIT}
-        {#await import('$lib/components/client/slug/DiagnosticsSection.svelte') then { default: DiagnosticsSection }}
-          <DiagnosticsSection />
-        {/await}
-      {:else}
-        <div class="w-full h-full bg-[#050505] animate-pulse rounded-t-3xl border-t border-[#111]"></div>
-      {/if}
-    </section>
+    {#if hasQuiz}
+      <section id="diagnostics" class="snap-session">
+        {#if loadJIT}
+          {#await import('$lib/components/client/slug/DiagnosticsSection.svelte') then { default: DiagnosticsSection }}
+            <DiagnosticsSection {product} />
+          {/await}
+        {:else}
+          <div class="w-full h-full bg-[#050505] animate-pulse rounded-t-3xl border-t border-[#111]"></div>
+        {/if}
+      </section>
+    {/if}
 
     <section id="science" class="snap-session">
       {#if loadJIT}

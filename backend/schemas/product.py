@@ -32,9 +32,9 @@ class PromotionDeal(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     buy_qty: int = Field(..., alias="buy_qty")
     get_qty: int = Field(..., alias="get_qty")
-    fixed_price: float = Field(..., alias="fixed_price")
+    fixed_price: Optional[float] = Field(0.0, alias="fixed_price")
     label: str = Field(..., alias="label")
-    scope: str = Field("global", alias="scope") # "global" | "variant_only"
+    scope: str = Field("global", alias="scope")
 
 class ProductMetadata(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
@@ -65,7 +65,7 @@ class ProductMetadata(BaseModel):
     science_subheadline: Optional[str] = Field(None, alias="science_subheadline")
 
 class ProductVariantSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True, strict=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
     id: Optional[str] = None
     tierIndex: List[int] = Field(default_factory=list, alias="tier_index")
     sku: Optional[str] = None
@@ -161,7 +161,7 @@ class UpdateProductRequest(BaseModel):
         return self
 
 class ProductResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True, strict=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
     id: str
     name: str

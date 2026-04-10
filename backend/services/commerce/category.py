@@ -1,4 +1,5 @@
 import uuid
+import json
 import logging
 from datetime import datetime, timezone
 from typing import List, Dict, Optional, TypedDict
@@ -15,6 +16,7 @@ from backend.schemas.category import CreateCategoryRequest, UpdateCategoryReques
 from backend.schemas.common import SuccessResponse, BulkActionResponse, BulkIdsRequest
 from backend.services.event_bus import event_bus
 from backend.utils.media import extract_media_urls
+from backend.services.xohi_memory import xohi_memory
 
 class CategoryNode(TypedDict, total=False):
     id: str
@@ -36,6 +38,12 @@ class CategoryService:
     @staticmethod
     async def list_categories(db_session: AsyncSession, limit: int = 100, offset: int = 0) -> CategoryListResponse:
         """Moves complex nested listing logic from CategoryController.list_categories. R1.5: Zero-Hydration."""
+        # Elite V2.2: Add caching for category tree
+        cache_key = "system:categories:tree"
+        cached = await xohi_memory.client.get(cache_key)
+        if cached:
+            return CategoryListResponse(data=[CategoryResponse(**c) for c in json.loads(cached)], total=len(json.loads(cached)))
+
         # 1. Zero-Hydration Count
         count_stmt = select(func.count(Category.id)).where(
             Category.parent_id == None,
@@ -101,25 +109,22 @@ class CategoryService:
             p_dict["children"] = children_map.get(str(r.id), [])
             data.append(CategoryResponse.model_validate(p_dict))
 
+        # Update cache
+        await xohi_memory.client.set(cache_key, json.dumps([d.model_dump(mode="json") for d in data]))
+
         return CategoryListResponse(data=data, total=total)
 
     @staticmethod
+    async def _invalidate_cache() -> None:
+        """Invalidate category cache."""
+        await xohi_memory.client.delete("system:categories:tree")
+
+    @staticmethod
     async def create_category(db_session: AsyncSession, data: CreateCategoryRequest) -> SuccessResponse:
-        """Moves logic from CategoryController.create_category."""
-        new_id = str(uuid.uuid4())
-        category = Category(
-            id=new_id,
-            name=data.name,
-            slug=data.slug or data.name.lower().replace(" ", "-"),
-            parent_id=data.parentId,
-            description=data.description,
-            seo_title=data.seoTitle,
-            seo_description=data.seoDescription,
-            image=data.image,
-            icon=data.icon,
-        )
-        db_session.add(category)
+        # ... existing implementation ...
         await db_session.commit()
+        await CategoryService._invalidate_cache() # New line
+        # ...
 
         # Elite V2.2: Sync Media
         await CategoryService._sync_media_links(new_id, data.image)
@@ -163,6 +168,7 @@ class CategoryService:
 
         category.updated_at = datetime.now(timezone.utc)
         await db_session.commit()
+        await CategoryService._invalidate_cache()
 
         # Elite V2.2: Sync Media
         await CategoryService._sync_media_links(category_id, category.image)

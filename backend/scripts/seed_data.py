@@ -23,13 +23,52 @@ PRODUCT_DEFS = [
         "sku": "4968123159004",
         "price": 600000,
         "category_id": "cat_kem_duong",
-        "short_description": "Serum chuyên biệt cho vùng da nhạy cảm giúp hỗ trợ dưỡng hồng, giảm thâm sạm và phục hồi.",
+        "short_description": "Bật tông trắng sáng cùng Beppin Body Virgin White Serum - Tinh chất dưỡng sáng hồng vùng nhạy cảm (Nách, Nhũ hoa, Bikini). Giải pháp An toàn - Hiệu quả - Không bết dính.",
         "description": "Serum dưỡng hồng vùng kín, nhũ hoa, nách và đùi trong với chiết xuất từ Nhật Bản.",
         "product_metadata": {
             "ingredients": "Water, Butylene Glycol, Glycerin, Vitamin C dẫn xuất & Vitamin E, Chiết xuất lá hoa anh đào.",
             "instructions": "Làm sạch và lau khô vùng da cần chăm sóc, thoa nhẹ và massage đều, ngày 2 lần.",
             "origin": "Japan",
             "weight": "30g",
+            "diagnostics_headline": "DỰ ĐOÁN PHỤC HỒI <span class='text-blue-500'>SẮC TỐ GỐC</span>",
+            "diagnostics_subheadline": "⚠️ HỆ THỐNG GIẢI MÃ CHỈ SỐ HẮC TỐ CÁ NHÂN. Đừng để nỗi tự ti thầm kín cản trở sự tự tin quyến rũ. AI đang thiết lập phác đồ 'Hồi sinh sắc tố hồng' chuẩn Nhật Bản, bảo mật tuyệt đối 100% dữ liệu chẩn đoán.",
+            "quiz_questions": [
+                {
+                    "id": "q1",
+                    "title": "KHU VỰC CẦN GIẢI CỨU SẮC TỐ?",
+                    "subtitle": "Chọn vùng da bạn muốn tập trung xóa bỏ hắc tố sạm màu và khôi phục sự rạng rỡ.",
+                    "options": [
+                        {"label": "Vùng Nách", "value": "underarm", "icon": "🛁", "desc": "Khử thâm chuyên sâu, khôi phục vẻ mịn màng"},
+                        {"label": "Vùng Bikini", "value": "bikini", "icon": "👙", "desc": "Tái tạo độ hồng hào, mềm mại tự nhiên"},
+                        {"label": "Vùng Nhũ Hoa", "value": "nipple", "icon": "✨", "desc": "Bật tông rạng rỡ, lấy lại sự tự tin"},
+                        {"label": "Khác / Đùi trong", "value": "other", "icon": "💧", "desc": "Xử lý sạm màu thâm niên do ma sát"}
+                    ]
+                },
+                {
+                    "id": "q2",
+                    "title": "TÌNH TRẠNG SẠM ĐEN THỰC TẾ?",
+                    "subtitle": "Hệ thống cần xác định mật độ Melanin để tính toán liều lượng phục hồi tối ưu.",
+                    "options": [
+                        {"label": "Sạm nhẹ", "value": "light", "icon": "🌕", "desc": "Mới xuất hiện dấu hiệu tối màu"},
+                        {"label": "Sạm trung bình", "value": "medium", "icon": "🌗", "desc": "Sạm rõ rệt, cần can thiệp để tránh lan rộng"},
+                        {"label": "Sạm nặng (Báo động)", "value": "heavy", "icon": "🌑", "desc": "Thâm lâu năm, chai sạm, cần phác đồ mạnh"}
+                    ]
+                },
+                {
+                    "id": "q3",
+                    "title": "KINH NGHIỆM TRỊ THÂM CỦA BẠN?",
+                    "subtitle": "Để AI cân đối nồng độ dẫn xuất Vitamin C và Placenta tinh khiết cho bạn.",
+                    "options": [
+                        {"label": "Chưa từng dùng gì", "value": "never", "icon": "🌱", "desc": "Khởi đầu an toàn, chuẩn y khoa Nhật"},
+                        {"label": "Đã dùng nhưng thất bại", "value": "failed", "icon": "🔄", "desc": "Phá vỡ cấu trúc hắc tố cũ đã lờn thuốc"},
+                        {"label": "Cần cải thiện thần tốc", "value": "boost", "icon": "🚀", "desc": "Kích hoạt chế độ phục hồi tế bào tối đa"}
+                    ]
+                }
+            ],
+            "active_deals": [
+                {"label": "ƯU ĐÃI LIỆU TRÌNH PHỤC HỒI", "buy_qty": 2, "get_qty": 1, "fixed_price": 0.0},
+                {"label": "GÓI TRỊ LIỆU DỨT ĐIỂM", "buy_qty": 4, "get_qty": 2, "fixed_price": 0.0}
+            ],
             "reviews": [
                 {
                     "name": "Hồng Hạnh",

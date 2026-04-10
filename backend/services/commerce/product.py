@@ -124,6 +124,7 @@ class ProductService:
         offset: int = 0,
         status: Optional[str] = None,
         search: Optional[str] = None,
+        featured_only: bool = False,
     ) -> ProductListResponse:
         """List products (R76: Scalar Projection). R1.5: Zero-Hydration."""
         conditions = [ProductBase.deleted_at == None]
@@ -135,6 +136,8 @@ class ProductService:
                 func.unaccent(ProductBase.name).ilike(f"%{func.unaccent(safe)}%"),
                 ProductBase.sku.ilike(f"%{safe}%"),
             ))
+        if featured_only:
+            conditions.append(ProductBase.is_ai_featured == True)
 
         # 1. COUNT (Zero-Hydration)
         count_stmt = select(func.count(ProductBase.id)).where(and_(*conditions))

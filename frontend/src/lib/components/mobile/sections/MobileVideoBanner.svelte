@@ -70,7 +70,7 @@
     return null;
   });
 
-  const handle = $derived(metadata.mobile_handle as string || '@nhathuochongson.com');
+  const handle = $derived(metadata.mobile_handle as string || '@MICSMO.COM');
 
   const headline = $derived(metadata.hero_headline as string || '<span>ĐÁNH BAY</span> <br/> <span class="headline-shift">THÂM SẠM</span>');
   const shortDescription = $derived(product?.shortDescription || '');

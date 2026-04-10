@@ -9,7 +9,7 @@ export const SHOP_CONFIG = {
         address: "33 Ngô Thị Nhậm, Trung Sơn, Tam Điệp, Ninh Bình",
         phone: "097 878 5079",
         zalo: "Nhà thuốc Hồng Sơn",
-        license: "GPKD: 09 B8 004018 | Ninh Bình | nhathuochongson.com"
+        license: "GPKD: 09 B8 004018 | Ninh Bình | MICSMO.COM"
     },
     shipping: {
         fixed_cost: 30000,

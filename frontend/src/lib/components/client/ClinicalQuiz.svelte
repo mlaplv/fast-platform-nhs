@@ -2,23 +2,32 @@
   import { fade, fly, scale } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import type { QuizQuestion, ProductMetadata } from '$lib/types';
+  import type { QuizQuestion, ProductMetadata, Product } from '$lib/types';
   import QuizIcon from './QuizIcon.svelte';
   import DiagnosticScanner from './slug/DiagnosticScanner.svelte';
   import "./slug/LiquidEffects.css";
 
+  let { 
+    product, 
+    metadata: propMetadata, 
+    questions: propQuestions 
+  } = $props<{ 
+    product: Product; 
+    metadata: ProductMetadata; 
+    questions: QuizQuestion[] 
+  }>();
+
   const shopStore = getShopStore();
 
-  const product = $derived(shopStore.product);
-  const metadata = $derived(product?.metadata || {});
-  const questions = $derived(metadata.quiz_questions || []);
+  const metadata = $derived(propMetadata || product?.metadata || {});
+  const questions = $derived(propQuestions || metadata.quiz_questions || []);
 
   const QUIZ_FALLBACKS = {
-    result_headline: 'LIỆU TRÌNH <br/><span class="text-blue-500/80">OPTIMAL.</span>',
-    result_subheadline: 'Hệ thống AI đề xuất: Bạn cần liệu trình <span class="text-blue-400 font-black">{quantity} lọ</span> để đạt hiệu quả tối ưu.',
-    result_cta: 'KÍCH HOẠT LIỆU TRÌNH',
-    restart_label: 'Thiết lập lại',
-    loading_label: 'Đang xử lý dữ liệu...'
+    result_headline: 'PHÁC ĐỒ ĐIỀU TRỊ <br/><span class="text-blue-500/80">ĐỘC QUYỜN.</span>',
+    result_subheadline: '⚠️ CẢNH BÁO TỪ AI: Tình trạng sạm sạm của Sếp cần can thiệp ngay với ít nhất <span class="text-blue-400 font-black">{quantity} đơn vị</span> để đạt liệu trình phục hồi tối đa.',
+    result_cta: 'KÍCH HOẠT LIỆU TRÌNH NGAY',
+    restart_label: 'Thiết lập lại dữ liệu',
+    loading_label: 'Đang truy xuất cơ sở dữ liệu lâm sàng...'
   };
 
   const labels = $derived({
@@ -118,14 +127,14 @@
       </div>
     {:else}
       {#if shopStore.isAnalyzing}
-        <DiagnosticScanner status="Hệ thống AI đang phân tích và thiết kế liệu trình..." />
+        <DiagnosticScanner status="Hệ thống AI đang giải mã hắc tố và thiết kế phác đồ..." />
       {:else if shopStore.diagnosticResult}
         <div class="result-container text-center py-0 md:py-0 lg:py-10 relative z-surface" in:fade={{ duration: 1000 }}>
           <div class="mb-0 md:mb-0 lg:mb-12 text-left glass-liquid p-6 md:p-8 lg:p-12 rounded-[2.5rem] border-white/10 backdrop-blur-3xl relative overflow-hidden shadow-[0_0_80px_rgba(30,58,138,0.3)]">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-white/10 pb-6">
               <div>
-                <h3 class="text-3xl md:text-[2.25rem] lg:text-5xl font-black text-white tracking-tighter uppercase mb-2 whitespace-nowrap">KẾT QUẢ PHÂN TÍCH</h3>
-                <p class="text-blue-400/60 font-black text-[10px] tracking-[0.4em] uppercase">Liệu trình cá nhân hóa bởi AI Agent 2026</p>
+                <h3 class="text-3xl md:text-[2.25rem] lg:text-5xl font-black text-white tracking-tighter uppercase mb-2 whitespace-nowrap">PHÁC ĐỒ ĐIỀU TRỊ</h3>
+                <p class="text-blue-400/60 font-black text-[10px] tracking-[0.4em] uppercase">Kiến tạo bởi Trí tuệ Nhân tạo MICSMO 2026</p>
               </div>
               <div class="flex items-center gap-4">
                 <div class="text-right hidden md:block">
@@ -142,7 +151,7 @@
             
             <div class="space-y-6">
               <div>
-                <h4 class="text-xs font-black text-blue-400/60 mb-2 uppercase tracking-[0.3em]">Hệ thống phân tích</h4>
+                <h4 class="text-xs font-black text-blue-400/60 mb-2 uppercase tracking-[0.3em]">Phân tích chuyên sâu</h4>
                 <p class="text-white text-2xl font-bold leading-tight tracking-tight">"{shopStore.diagnosticResult.analysis}"</p>
               </div>
               
@@ -185,9 +194,18 @@
       {/if}
     {/if}
   {:else}
-    <div class="py-20 text-center" in:fade>
-      <div class="inline-block w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-      <p class="text-blue-100/20 font-black uppercase tracking-[0.3em] text-xs">Phân tích dữ liệu lâm sàng...</p>
+    <div class="py-24 text-center relative z-surface" in:fade>
+      <div class="mb-10 relative">
+        <div class="absolute inset-0 bg-blue-500/10 blur-[60px] rounded-full animate-pulse"></div>
+        <div class="w-24 h-24 bg-white/5 rounded-full border border-blue-500/20 flex items-center justify-center backdrop-blur-3xl mx-auto relative group">
+          <div class="absolute inset-0 border border-blue-500/20 rounded-full animate-ping opacity-20"></div>
+          <svg class="w-12 h-12 text-blue-500/40 animate-spin-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4V2m0 20v-2m8-8h2M2 12h2m13.657-6.343l1.414-1.414M4.929 19.071l1.414-1.414m12.728 0l1.414 1.414M4.929 4.929l1.414 1.414" />
+          </svg>
+        </div>
+      </div>
+      <h4 class="text-xl font-black text-white mb-2 tracking-[0.2em] uppercase italic opacity-80">ĐANG QUÉT SINH HỌC</h4>
+      <p class="text-blue-400/30 font-bold uppercase tracking-[0.4em] text-[10px] animate-pulse">KHỞI TẠO TRÍ TUỆ MICSMO 2026...</p>
     </div>
   {/if}
 </div>

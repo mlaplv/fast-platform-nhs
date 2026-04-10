@@ -63,12 +63,22 @@
   @media (max-width: 767px) { display: none !important; }
 }
 
-/* GLOBAL PERFORMANCE HARDENING: VPS Mode */
+/* GLOBAL PERFORMANCE HARDENING: VPS Mode (Surgical Exceptions for Elite 2026) */
 * {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  --liquid-blur: 0px !important;
-  --glass-blur: 0px !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  --liquid-blur: 0px;
+  --glass-blur: 0px;
+}
+
+/* Premium Flow Restoration (Elite V2.2) */
+.diagnostic-premium-flow .wave-line,
+.diagnostic-premium-flow .backdrop-blur-3xl,
+.diagnostic-premium-flow .backdrop-blur-2xl {
+  display: block !important;
+  backdrop-filter: blur(40px) !important;
+  -webkit-backdrop-filter: blur(40px) !important;
+  animation-play-state: running !important;
 }
 
 .animate-v-zoom, 
@@ -82,7 +92,6 @@
 .linewave-path,
 .shield-blob,
 .laser-line,
-.wave-line,
 .animate-liquid-fuzz,
 .flashlight-beam,
 .liquid-reflection {

@@ -1,25 +1,25 @@
 <script lang="ts">
   import ClinicalQuiz from '$lib/components/client/ClinicalQuiz.svelte';
-  import type { QuizQuestion, ProductMetadata } from '$lib/types';
+  import type { QuizQuestion, ProductMetadata, Product } from '$lib/types';
   import { SHOP_CONFIG } from '$lib/constants/shop';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import "./DiagnosticsSection.css";
   import "./LiquidEffects.css";
 
+  let { product = $bindable() } = $props<{ product?: Product }>();
   const shopStore = getShopStore();
   
-  const product = $derived(shopStore.product);
   const metadata = $derived(product?.metadata || {});
   const questions = $derived(metadata?.quiz_questions || []);
 
   const labels = $derived({
-    headline: metadata.diagnostics_headline || 'CHẨN ĐOÁN CÁ NHÂN HÓA',
-    subheadline: metadata.diagnostics_subheadline || `Để hệ thống chẩn đoán của <span class="text-white/60">${SHOP_CONFIG.pharmacy.name}</span> thiết lập liệu trình liều lượng chính xác nhất, vui lòng chọn mức độ biểu hiện hiện tại của bạn.`,
-    disclaimer: metadata.diagnostics_disclaimer || `Gemini - Nhathuochongson.com là AI tư vấn và có thể mắc sai sót.`
+    headline: metadata.diagnostics_headline || 'DỰ ĐOÁN PHỤC HỒI CHUYÊN SÂU',
+    subheadline: metadata.diagnostics_subheadline || `Để hệ thống Trí tuệ Nhân tạo của <span class="text-white/60">${SHOP_CONFIG.pharmacy.name}</span> thiết lập phác đồ liều lượng tối ưu nhất, vui lòng phản hồi chính xác tình trạng hiện tại của Sếp.`,
+    disclaimer: metadata.diagnostics_disclaimer || `Hệ thống AI MICSMO đang sử dụng dữ liệu lâm sàng để tư vấn chuyên biệt.`
   });
 </script>
 
-<section id="diagnostics-section" aria-labelledby="personalized-care" class="diagnostics-container relative overflow-x-hidden bg-[#020617]">
+<section id="diagnostics-section" aria-labelledby="personalized-care" class="diagnostics-container diagnostic-premium-flow relative overflow-x-hidden bg-[#020617]">
   <div class="container mx-auto px-6 max-w-6xl text-center relative pt-[var(--standard-pt)] pb-20 md:pb-32 z-surface">
     <h3 id="personalized-care" class="section-title text-neural font-black tracking-tight leading-none uppercase mb-4 text-4xl md:text-6xl">
       {@html labels.headline}
@@ -30,7 +30,7 @@
     </p>
 
     <div class="quiz-wrapper relative">
-      <ClinicalQuiz {questions} {metadata} />
+      <ClinicalQuiz {product} {questions} {metadata} />
     </div>
 
     <!-- Security & Privacy Disclaimer! -->

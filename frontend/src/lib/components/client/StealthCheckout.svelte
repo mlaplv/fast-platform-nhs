@@ -422,7 +422,7 @@
 
         <!-- Legal / Entity Info -->
         <p class="text-[8px] text-slate-500/50 text-center mt-1 uppercase tracking-widest font-bold">
-          Nhathuochongson.com - Giấy phép kinh doanh: 09 B8 004018 cấp từ 16/10/2015 - Ninh Bình
+          MICSMO.COM - Giấy phép kinh doanh: 09 B8 004018 cấp từ 16/10/2015 - Ninh Bình
         </p>
       </footer>
     </div>

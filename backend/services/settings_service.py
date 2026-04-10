@@ -226,20 +226,33 @@ class SettingsService:
 
     @staticmethod
     async def get_general_settings(db_session: AsyncSession) -> SystemSettingsResponse:
-        """Fetch global system settings."""
+        """Fetch global system settings with Redis cache (Elite V2.2)."""
+        # 1. Try cache first
+        cached = await xohi_memory.client.get("system:settings:primary_config")
+        if cached:
+            return SystemSettingsResponse(settings=SystemSettingsPayload(**json.loads(cached)))
+
+        # 2. Fallback to DB
         stmt = select(SystemSetting).where(SystemSetting.key == "primary_config")
         result = await db_session.execute(stmt)
         setting = result.scalar_one_or_none()
 
         if not setting:
-            # Return default values if not exists
             return SystemSettingsResponse(settings=SystemSettingsPayload())
-        
+
+        # 3. Update cache
+        await xohi_memory.client.set("system:settings:primary_config", json.dumps(setting.value))
+
+        return SystemSettingsResponse(settings=SystemSettingsPayload(**setting.value))
+
+        # 3. Update cache
+        await xohi_memory.client.set("system:settings:primary_config", json.dumps(setting.value))
+
         return SystemSettingsResponse(settings=SystemSettingsPayload(**setting.value))
 
     @staticmethod
     async def update_general_settings(db_session: AsyncSession, data: SystemSettingsPayload) -> SuccessResponse:
-        """Update global system settings."""
+        """Update global system settings and invalidate cache."""
         stmt = select(SystemSetting).where(SystemSetting.key == "primary_config")
         result = await db_session.execute(stmt)
         setting = result.scalar_one_or_none()
@@ -254,6 +267,9 @@ class SettingsService:
             db_session.add(setting)
         else:
             setting.value = data_dict
+
+        # Invalidate cache
+        await xohi_memory.client.delete("system:settings:primary_config")
 
         # Cache important values in Redis (e.g., maintenance mode, helen bot)
         await xohi_memory.client.set("system:maintenance_mode", "1" if data.maintenance.is_enabled else "0")

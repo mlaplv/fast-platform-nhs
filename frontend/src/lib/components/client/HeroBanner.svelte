@@ -23,14 +23,38 @@
   ];
 
   let mouse = $state({ x: 0, y: 0 });
-
+  let springMouse = $state({ x: 0, y: 0 });
   let currentImageIndex = $state(0);
-  
+
   const handleMouseMove = (e: MouseEvent) => {
     if (!browser) return;
-    mouse.x = (e.clientX / window.innerWidth - 0.5) * 30;
-    mouse.y = (e.clientY / window.innerHeight - 0.5) * 30;
+    const { clientX, clientY } = e;
+    const { innerWidth, innerHeight } = window;
+
+    mouse.x = (clientX / innerWidth - 0.5) * 40;
+    mouse.y = (clientY / innerHeight - 0.5) * 40;
   };
+
+  // Organic spring-like follow effect
+  $effect(() => {
+    let frame: number;
+    const update = () => {
+      springMouse.x += (mouse.x - springMouse.x) * 0.1;
+      springMouse.y += (mouse.y - springMouse.y) * 0.1;
+      frame = requestAnimationFrame(update);
+    };
+    frame = requestAnimationFrame(update);
+
+    // Auto-slide 5s
+    const interval = setInterval(() => {
+        nextImage();
+    }, 5000);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      clearInterval(interval);
+    };
+  });
 
   const nextImage = () => {
     if (images.length === 0) return;
@@ -172,12 +196,13 @@
   aria-label={labels.aria_hero}
   class="hero-center-layout content-hero snap-session relative w-full overflow-hidden flex flex-col items-center justify-start bg-[#020617] text-white"
   onmousemove={handleMouseMove}
-  style:--mx="{mouse.x}px" style:--my="{mouse.y}px" style:--hero-accent="#3b82f6" style:--hero-glass-blur="32px"
+  style:--mx="{springMouse.x}px" style:--my="{springMouse.y}px" style:--hero-accent="#3b82f6" style:--hero-glass-blur="64px"
 >
 
+  <!-- LIQUID METABALL BACKGROUND REMOVED FOR RAM OPTIMIZATION -->
 
   <!-- NUCLEAR VIDEO BACKGROUND (Standard Full Coverage: 100% Native) -->
-  <div class="absolute inset-x-0 top-0 bottom-0 overflow-hidden pointer-events-none w-full h-full" style="z-index: var(--z-base);">
+  <div class="absolute inset-x-0 top-0 bottom-0 overflow-hidden pointer-events-none w-full h-full" style="z-index: var(--z-bg); opacity: 0.2;">
     <div class="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#020617] to-transparent w-full z-surface"></div>
     {#if videoMode === 'local'}
       <video autoplay muted loop playsinline class="elite-video-bg">
@@ -207,38 +232,58 @@
        </p>
     {/if}
 
-    <div class="hero-product-display relative w-full max-w-6xl pt-6 pb-0 flex flex-col md:flex-row items-center justify-center gap-12 z-surface">
+    <div class="hero-product-display relative w-full max-w-6xl pt-6 pb-0 flex flex-col md:flex-row items-center justify-center gap-8 z-surface">
 
           <div class="relative w-full md:w-1/2 flex justify-center parallax-layer">
              <!-- ELITE SPOTLIGHT HALO (Viral 2026) -->
              <div class="absolute inset-0 bg-radial-gradient from-sakura-glow/20 via-transparent to-transparent blur-[120px] scale-150 pointer-events-none opacity-60"></div>
-             
+
              <div class="group relative flex items-center justify-center w-72 md:w-96 float-anim">
                 <img
                   src="{mainImage}"
                   alt="{productName}"
-                  class="relative z-10 w-full h-auto object-contain transition-transform duration-1000 group-hover:scale-110 drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                  class="relative z-10 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-lg"
                 />
 
-                <!-- SCANNING LINE (ULTRA-MINIMAL) -->
-                <div class="absolute inset-x-0 h-[2px] bg-red-500 shadow-[0_0_15px_#ef4444] scan-anim pointer-events-none z-20"></div>
+                <!-- VIEW FINDER CORNERS (iOS 26 Liquid Aesthetic) -->
+                <div class="absolute -inset-4 z-20 pointer-events-none">
+                   <div class="absolute -top-1 -left-1 w-6 h-6 border-t-[3px] border-l-[3px] border-white/80 rounded-tl-lg"></div>
+                   <div class="absolute -top-1 -right-1 w-6 h-6 border-t-[3px] border-r-[3px] border-white/80 rounded-tr-lg"></div>
+                   <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-[3px] border-l-[3px] border-white/80 rounded-bl-lg"></div>
+                   <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-[3px] border-r-[3px] border-white/80 rounded-br-lg"></div>
+                </div>
+
+                <!-- SCANNING LINE REMOVED -->
+
+                <!-- SLIDER CONTROLS (INSIDE SLIDE) -->
+                <div class="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-30">
+                   {#each images as _, i}
+                      <button
+                        onclick={() => currentImageIndex = i}
+                        class="w-2 h-2 rounded-full transition-all duration-300 {currentImageIndex === i ? 'bg-white w-6' : 'bg-white/30 hover:bg-white/60'}"
+                        aria-label="Go to image {i + 1}"
+                      ></button>
+                   {/each}
+                </div>
              </div>
           </div>
 
-          <div class="w-full md:w-1/2 flex flex-col relative">
-             {#each metrics as metric, i}
-                <div class="hud-metric-segment group relative pt-5 px-0 pb-0 transition-all duration-500" style:--idx={i}>
-                   <div class="flex items-center gap-3 mb-2">
-                      <div class="w-1 h-1 rounded-full bg-sakura-pink shadow-[0_0_8px_#ffb7c5] animate-pulse"></div>
-                      <span class="text-[10px] font-black text-sakura-pink/70 uppercase tracking-[.25em]">{metric.label}</span>
+          <div class="w-full md:w-1/2 flex flex-col relative justify-center">
+             <div class="metrics-arc-container">
+                {#each metrics as metric, i}
+                   <div class="hud-metric-segment group relative pt-5 px-0 pb-0 transition-all duration-500" style:--idx={i}>
+                      <div class="flex items-center gap-3 mb-2">
+                         <div class="w-1 h-1 rounded-full bg-sakura-pink shadow-[0_0_8px_#ffb7c5] animate-pulse"></div>
+                         <span class="text-[10px] font-black text-sakura-pink/70 uppercase tracking-[.25em]">{metric.label}</span>
+                      </div>
+                      <h3 class="text-xl font-black italic tracking-tighter text-white group-hover:text-sakura-pink transition-colors duration-300">{metric.value}</h3>
+                      <p class="mt-2 text-sm text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity metric-desc">{metric.desc}</p>
+                      
+                      <!-- Subtle Glow Interaction -->
+                      <div class="absolute -inset-4 bg-radial-gradient from-sakura-pink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                    </div>
-                   <h3 class="text-xl font-black italic tracking-tighter text-white group-hover:text-sakura-pink transition-colors duration-300">{metric.value}</h3>
-                   <p class="mt-2 text-xs text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity">{metric.desc}</p>
-                   
-                   <!-- Subtle Glow Interaction -->
-                   <div class="absolute -inset-4 bg-radial-gradient from-sakura-pink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
-                </div>
-             {/each}
+                {/each}
+             </div>
           </div>
     </div>
   </div>

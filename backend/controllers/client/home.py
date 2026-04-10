@@ -42,10 +42,11 @@ class ClientHomeController(Controller):
         all_products = await product_service.list_products(db_session, limit=100, offset=0, status="ACTIVE")
         categories = await category_service.list_categories(db_session)
         banners = await banner_service.list_banners(db_session, position="home_main", active_only=True)
-        
-        # Elite V2.2: Separate AI Featured products for the Special Banner section
-        ai_products = [p for p in all_products.data if p.isAiFeatured]
-        
+
+        # Elite V2.2: Optimized AI Featured fetch (R76)
+        ai_products_resp = await product_service.list_products(db_session, limit=10, offset=0, status="ACTIVE", featured_only=True)
+        ai_products = ai_products_resp.data
+
         # Format response to match SvelteKit expectation
         return {
             "banners": [b.model_dump() if hasattr(b, "model_dump") else b for b in banners.data] if banners else [],

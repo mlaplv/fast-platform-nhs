@@ -1,6 +1,6 @@
 import logging
 import json
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, cast
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent # type: ignore
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge # type: ignore
@@ -49,17 +49,18 @@ class DiagnosticAgent:
             )
             
             system_prompt = (
-                f"Bạn là Chuyên gia Chẩn đoán Lâm sàng cho sản phẩm '{product_name}'.\n"
-                "Nhiệm vụ: Phân tích Quiz Data và đưa ra PHÁC ĐỒ ĐIỀU TRỊ CHUẨN ELITE 2026.\n\n"
-                f"CHƯƠNG TRÌNH KHUYẾN MÃI HIỆN CÓ (Đọc từ Admin):\n{promos_text}\n\n"
-                "QUY TẮC CHẤM ĐIỂM & GỢI Ý LIỆU TRÌNH:\n"
-                "1. MỨC ĐỘ NHẸ: Mùi mới bị < 3 tháng, mồ hôi nhẹ. -> Đề xuất 1 lọ.\n"
-                "2. MỨC ĐỘ TRUNG BÌNH: Mùi hàng ngày, áo ố nhẹ. -> Đề xuất Mua 2 Tặng 1.\n"
-                "3. MỨC ĐỘ NẶNG: Mùi nồng nặc, bị > 1 năm, lờn thuốc. -> Đề xuất Mua 4 Tặng 2.\n\n"
+                f"Bạn là Chuyên gia Chẩn đoán Lâm sàng chuyên biệt cho sản phẩm '{product_name}'.\n"
+                "Nhiệm vụ: Phân tích dữ liệu khảo sát (Quiz Data) và thiết lập PHÁC ĐỒ ĐIỀU TRỊ CHUẨN NHẬT BẢN.\n\n"
+                f"DỮ LIỆU SẢN PHẨM HIỆN TẠI:\n"
+                f"- Mô tả: {product.description if product else 'Sản phẩm dưỡng da cao cấp.'}\n"
+                f"- Chương trình ưu đãi: {promos_text}\n\n"
+                "QUY TẮC PHÂN TÍCH & ĐỀ XUẤT:\n"
+                "1. Dựa trên mức độ nghiêm trọng (Nhẹ, Trung bình, Nặng) của sắc tố hắc tố Melanin để đưa ra số lượng sử dụng phù hợp.\n"
+                "2. ĐỀ XUẤT PHẢI TẬP TRUNG vào hiệu quả làm sáng da, khử thâm và tái tạo vùng nhạy cảm.\n"
+                "3. Luôn ưu tiên áp dụng các gói khuyến mãi có lợi nhất cho khách hàng dựa trên chương trình ưu đãi hiện có.\n\n"
                 "YÊU CẦU TRÌNH BÀY:\n"
-                "- Ngôn ngữ: Tiếng Việt chuyên gia, thâm thúy, tin cậy.\n"
-                "- Ưu tiên đề xuất theo gói khuyến mãi cao nhất phù hợp với mức độ bệnh.\n"
-                "- Phải điền chính xác trường 'promotion_label' (ví dụ: 'MUA 2 TẶNG 1')."
+                "- Ngôn ngữ: Tiếng Việt chuyên gia, súc tích, mang tính thuyết phục cao.\n"
+                "- Phải điền chính xác trường 'promotion_label' nếu có ưu đãi phù hợp (ví dụ: 'MUA 2 TẶNG 1')."
             )
 
             prompt = f"Dữ liệu khảo sát khách hàng (Quiz Data): {json.dumps(quiz_data, ensure_ascii=False)}"
@@ -73,8 +74,9 @@ class DiagnosticAgent:
                 timeout=45.0
             )
             
+            # TrinityBridge already extracts .data/.output, so we return the result directly
             if result:
-                return getattr(result, "data", getattr(result, "output", None))
+                return cast(DiagnosticReport, result)
             return None
             
         except Exception as e:

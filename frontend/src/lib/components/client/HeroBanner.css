@@ -53,20 +53,38 @@
     }
   }
 
-  /* Professional Standard */
   & .hero-product-display {
+    min-height: 500px; /* Ensure stable height for scan animation and alignment */
     @media (min-width: 768px) {
       margin-top: 40px;
-      /* Allow cinematic spill to breathe without clipping! */
       position: relative;
     }
   }
 
-  /* Native Nesting: Layer 1 */
-  & .parallax-layer {
-    transition: transform 0.15s cubic-bezier(0.23, 1, 0.32, 1);
-    transform: translate3d(var(--mx, 0), var(--my, 0), 0);
-    will-change: transform;
+  /* Liquid Glass Navigation & CTA adjustments */
+  & .hero-cta-button {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 9999px;
+    padding: 1rem 3rem;
+    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    z-index: var(--z-cta);
+    will-change: transform, box-shadow;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(59, 130, 246, 0.4);
+      box-shadow: 0 0 60px rgba(59, 130, 246, 0.2);
+      transform: translateX(-50%) translateY(-4px) scale(1.02);
+    }
+
+    /* ... rest of existing button styles ... */
   }
 
   & .elite-video-bg {
@@ -337,10 +355,6 @@
     animation: float 8s ease-in-out infinite;
   }
 
-  & .scan-anim {
-    animation: scan 4s linear infinite;
-  }
-
   & .animate-shimmer {
     animation: shimmer 3s infinite;
   }
@@ -450,12 +464,13 @@
   }
 }
 
-/* LIQUID GLASS NAVIGATION (iPhone 18 Aesthetic) */
+/* LIQUID GLASS NAVIGATION (iOS 26 Liquid Aesthetic) */
 :root {
-  --liquid-blur: 32px;
-  --liquid-bg: rgba(255, 255, 255, 0.03);
-  --liquid-border: rgba(255, 255, 255, 0.1);
-  --liquid-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --liquid-blur: 80px;
+  --liquid-bg: rgba(255, 255, 255, 0.015);
+  --liquid-border: rgba(255, 255, 255, 0.08);
+  --liquid-shadow: 0 12px 64px 0 rgba(0, 0, 0, 0.4);
+  --liquid-accent: #3b82f6;
 }
 
 [data-theme="light"] {
@@ -798,3 +813,4 @@ html {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
 }
+
