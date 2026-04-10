@@ -32,7 +32,17 @@
   let isAtStart = $state(true);
   let isAtEnd = $state(false);
 
-  // State cho countdown Flash Sale (giả lập kết thúc sau 14h như hình)
+  // State điều hướng nâng cao (Elite V2.2)
+  let activeTab = $state('overview');
+  let showTabs = $state(false); // TikTok-style conditional visibility
+  let sectionRefs = $state<Record<string, HTMLElement | null>>({
+    overview: null,
+    reviews: null,
+    description: null,
+    recommendations: null
+  });
+  
+  // State cho countdown Flash Sale
   let timeLeft = $state({ hours: 14, minutes: 9, seconds: 9 });
 
   onMount(() => {
@@ -48,7 +58,39 @@
         timeLeft.seconds = 59;
       }
     }, 1000);
-    return () => clearInterval(timer);
+
+    // Sync Active Tab on Scroll (Elite V2.2)
+    const observerOptions = {
+      root: null,
+      rootMargin: '-110px 0px -80% 0px', // More precise margin for mobile
+      threshold: 0
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          activeTab = entry.target.id;
+        }
+      });
+    }, observerOptions);
+
+    const targetSections = ['overview', 'reviews', 'description', 'recommendations'];
+    targetSections.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    // TikTok-style scroll visibility for tabs
+    const handleWindowScroll = () => {
+      showTabs = window.scrollY > 300; // Trigger after carousel
+    };
+    window.addEventListener('scroll', handleWindowScroll);
+
+    return () => {
+      clearInterval(timer);
+      observer.disconnect();
+      window.removeEventListener('scroll', handleWindowScroll);
+    };
   });
 
   function handleScroll(e: Event) {
@@ -66,6 +108,19 @@
     cartStore.addItem(product as any);
     cartStore.closeCart();
     goto('/checkout');
+  }
+
+  function scrollToSection(id: string) {
+    activeTab = id;
+    const element = sectionRefs[id];
+    if (element) {
+      const headerHeight = 90; // approximate height of header + tabs
+      const offsetPos = element.offsetTop - headerHeight;
+      window.scrollTo({
+        top: offsetPos,
+        behavior: 'smooth'
+      });
+    }
   }
 
   const formatPrice = (p: number) => p.toLocaleString('vi-VN');
@@ -102,170 +157,261 @@
     isAtEnd = scrollLeft + clientWidth >= scrollWidth - 5;
   }
   const displayImages = product.images?.length > 0 ? product.images : [product.images?.[0] || ''];
+
+  // Mock Data for FOMO sections
+  const mockReviews = [
+    { user: 'S***p', rating: 5, comment: 'Sản phẩm quá tuyệt vời, đóng gói kỹ mượt mà.', date: '3 ngày trước', images: ['https://randomuser.me/api/portraits/thumb/men/1.jpg'] },
+    { user: 'v***2', rating: 4, comment: 'Giao hàng nhanh, tai nghe nghe nhạc khá hay trong tầm giá.', date: '1 tuần trước', images: [] }
+  ];
+
+  const relatedProducts = [
+    { name: 'Tai nghe Bluetooth 5.4 Micsmo', price: 120000, sale_price: 99000, image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=150&auto=format&fit=crop' },
+    { name: 'Tai nghe chụp tai JBL Pro', price: 850000, sale_price: 590000, image: 'https://images.unsplash.com/photo-1583394838336-acd993921811?q=80&w=150&auto=format&fit=crop' },
+    { name: 'Tai nghe Gaming Razer v2', price: 1500000, sale_price: 1250000, image: 'https://images.unsplash.com/photo-1599666505327-7758b44a9985?q=80&w=150&auto=format&fit=crop' },
+    { name: 'AirPods Pro Gen 2 Clone', price: 450000, sale_price: 299000, image: 'https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?q=80&w=150&auto=format&fit=crop' }
+  ];
 </script>
 
 <div class="product-mobile-root">
   <!-- 1. STICKY HEADER -->
   <header class="detail-header">
-    <button class="icon-btn" onclick={() => history.back()}>
-      <ChevronLeft size={24} />
-    </button>
-    
-    <div class="search-bar-wrapper">
-      <Search size={16} class="search-icon" />
-      <span class="placeholder">tai nghe bluet...</span>
+    <div class="header-main">
+      <button class="icon-btn" onclick={() => history.back()}>
+        <ChevronLeft size={24} />
+      </button>
+      
+      <div class="search-bar-wrapper">
+        <Search size={16} class="search-icon" />
+        <span class="placeholder">tai nghe bluet...</span>
+      </div>
+
+      <div class="header-actions">
+        <button class="icon-btn">
+          <Share2 size={24} />
+        </button>
+        <button class="icon-btn relative" onclick={() => goto('/checkout')}>
+          <ShoppingCart size={24} />
+          {#if cartStore.totalItems > 0}
+            <span class="badge">{cartStore.totalItems}</span>
+          {/if}
+        </button>
+        <button class="icon-btn">
+          <MoreHorizontal size={24} />
+        </button>
+      </div>
     </div>
 
-    <div class="header-actions">
-      <button class="icon-btn">
-        <Share2 size={24} />
+    <!-- ADVANCED STICKY TABS (TikTok Style: Hidden by default, slides down) -->
+    <nav class="tabs-nav" class:visible={showTabs}>
+      <button class="tab-item" class:active={activeTab === 'overview'} onclick={() => scrollToSection('overview')}>
+        Tổng quan
+        {#if activeTab === 'overview'}<div class="active-indicator"></div>{/if}
       </button>
-      <button class="icon-btn relative" onclick={() => goto('/checkout')}>
-        <ShoppingCart size={24} />
-        {#if cartStore.totalItems > 0}
-          <span class="badge">{cartStore.totalItems}</span>
-        {/if}
+      <button class="tab-item" class:active={activeTab === 'reviews'} onclick={() => scrollToSection('reviews')}>
+        Đánh giá
+        {#if activeTab === 'reviews'}<div class="active-indicator"></div>{/if}
       </button>
-      <button class="icon-btn">
-        <MoreHorizontal size={24} />
+      <button class="tab-item" class:active={activeTab === 'description'} onclick={() => scrollToSection('description')}>
+        Mô tả
+        {#if activeTab === 'description'}<div class="active-indicator"></div>{/if}
       </button>
-    </div>
+      <button class="tab-item" class:active={activeTab === 'recommendations'} onclick={() => scrollToSection('recommendations')}>
+        Đề xuất
+        {#if activeTab === 'recommendations'}<div class="active-indicator"></div>{/if}
+      </button>
+    </nav>
   </header>
 
-  <!-- 2. IMAGE CAROUSEL SECTION -->
-  <section class="media-section">
-    <div 
-      class="carousel-container" 
-      bind:this={carouselRef}
-      onscroll={handleScroll}
-    >
-      {#each displayImages as img}
-        <div class="carousel-slide">
-          <img src={img} alt={product.name} />
-        </div>
-      {/each}
-    </div>
-  </section>
-
-  <!-- 3. FLASH SALE BANNER -->
-  <section class="flash-sale-banner">
-    <div class="fs-left">
-      <div class="flex items-center gap-1.5">
-        <div class="discount-percent">-{Math.round(((product.price * 1.5 - product.price) / (product.price * 1.5)) * 100)}%</div>
-        <div class="freeship-fomo">
-          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-          </svg>
-          FREE SHIP
-        </div>
-      </div>
-      <div class="price-container">
-        <span class="price-label">Từ</span>
-        <span class="price-value">{formatPrice(product.price)}đ</span>
-        <img src="https://img.icons8.com/color/48/ticket.png" alt="coupon" class="w-4 h-4" />
-      </div>
-      <div class="flex items-center gap-2">
-        <div class="original-price">{formatPrice(product.price * 1.5)}đ</div>
-        <div class="today-only">Chỉ áp dụng hôm nay</div>
-      </div>
-    </div>
-    
-    <div class="fs-right">
-      <div class="fs-title">
-        <Zap size={18} fill="white" />
-        <span>Flash Sale</span>
-      </div>
-      <div class="fs-countdown">
-        <span>Kết thúc sau</span>
-        <div class="time-box">
-          <span>{timeLeft.hours.toString().padStart(2, '0')}</span>:
-          <span>{timeLeft.minutes.toString().padStart(2, '0')}</span>:
-          <span>{timeLeft.seconds.toString().padStart(2, '0')}</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 4. PRODUCT INFO & VOUCHERS -->
-  <section class="product-details-content">
-    <!-- Voucher horizontal scroll - Desktop Style -->
-    <div class="vouchers-outer">
-      {#if !isAtStart}
-        <button class="scroll-btn prev" onclick={() => scrollVouchers('prev')}>
-          <ChevronLeft size={14} />
-        </button>
-      {/if}
-
-      <div class="vouchers-container">
+  <!-- 2. MAIN CONTENT SECTIONS -->
+  <main class="content-body">
+    <!-- SECTION 1: OVERVIEW -->
+    <section id="overview" bind:this={sectionRefs.overview}>
+      <!-- Carousel, Flash Sale, Title Section (Already built) -->
+      <section class="media-section">
         <div 
-          class="vouchers-list" 
-          bind:this={vouchersListRef}
-          onscroll={handleVoucherScroll}
+          class="carousel-container" 
+          bind:this={carouselRef}
+          onscroll={handleScroll}
         >
-          {#each vouchers as v}
-            {@const isApplied = selectedVouchers.includes(v.id)}
-            <button 
-              class="ticket-wrapper bg-transparent border-none p-0 outline-none active:scale-95 transition-transform"
-              onclick={() => toggleVoucher(v.id)}
-            >
-              <div class="ticket" class:active={isApplied}>
-                <div class="ticket-content">
-                  <span class="main">{v.label}</span>
-                  <span class="sub">{v.sub}</span>
-                </div>
-                
-                {#if isApplied}
-                  <div class="selected-badge">
-                    <svg class="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                {/if}
-              </div>
+          {#each displayImages as img}
+            <div class="carousel-slide">
+              <img src={img} alt={product.name} />
+            </div>
+          {/each}
+        </div>
+      </section>
+
+      <section class="flash-sale-banner">
+        <div class="fs-left">
+          <div class="flex items-center gap-1.5">
+            <div class="discount-percent">-{Math.round(((product.price * 1.5 - product.price) / (product.price * 1.5)) * 100)}%</div>
+            <div class="freeship-fomo">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              FREE SHIP
+            </div>
+          </div>
+          <div class="price-container">
+            <span class="price-label">Từ</span>
+            <span class="price-value">{formatPrice(product.price)}đ</span>
+            <img src="https://img.icons8.com/color/48/ticket.png" alt="coupon" class="w-4 h-4" />
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="original-price">{formatPrice(product.price * 1.5)}đ</div>
+            <div class="today-only">Chỉ áp dụng hôm nay</div>
+          </div>
+        </div>
+        
+        <div class="fs-right">
+          <div class="fs-title">
+            <Zap size={18} fill="white" />
+            <span>Flash Sale</span>
+          </div>
+          <div class="fs-countdown">
+            <span>Kết thúc sau</span>
+            <div class="time-box">
+              <span>{timeLeft.hours.toString().padStart(2, '0')}</span>:
+              <span>{timeLeft.minutes.toString().padStart(2, '0')}</span>:
+              <span>{timeLeft.seconds.toString().padStart(2, '0')}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="product-details-content">
+        <!-- Voucher horizontal scroll -->
+        <div class="vouchers-outer">
+          {#if !isAtStart}
+            <button class="scroll-btn prev" onclick={() => scrollVouchers('prev')}>
+              <ChevronLeft size={14} />
             </button>
-          {/each}
+          {/if}
+
+          <div class="vouchers-container">
+            <div class="vouchers-list" bind:this={vouchersListRef} onscroll={handleVoucherScroll}>
+              {#each vouchers as v}
+                {@const isApplied = selectedVouchers.includes(v.id)}
+                <button class="ticket-wrapper" onclick={() => toggleVoucher(v.id)}>
+                  <div class="ticket" class:active={isApplied}>
+                    <div class="ticket-content">
+                      <span class="main">{v.label}</span>
+                      <span class="sub">{v.sub}</span>
+                    </div>
+                  </div>
+                </button>
+              {/each}
+            </div>
+          </div>
+          
+          {#if !isAtEnd}
+            <button class="scroll-btn next" onclick={() => scrollVouchers('next')}>
+              <ChevronRight size={14} />
+            </button>
+          {/if}
+        </div>
+
+        <div class="title-row">
+          <h1 class="product-title">{product.name}</h1>
+          <button class="bookmark-btn">
+            <Bookmark size={22} />
+          </button>
+        </div>
+
+        <div class="product-stats-row">
+          <div class="rating-box">
+            <span class="scoreText">4.9</span>
+            <div class="stars">
+              {#each Array(5) as _, i}
+                <svg class="w-2.5 h-2.5 {i < 4 ? 'text-orange-400' : 'text-gray-300'}" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              {/each}
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div class="sold-count">Đã bán 29</div>
+          <div class="trust-badge">Mall</div>
+        </div>
+      </section>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- SECTION 2: REVIEWS -->
+    <section id="reviews" class="content-section" bind:this={sectionRefs.reviews}>
+      <div class="section-header">
+        <h2 class="section-title">Đánh giá khách hàng</h2>
+        <button class="view-all">Xem tất cả <ChevronRight size={14} /></button>
+      </div>
+      <div class="reviews-summary">
+        <div class="score-big">4.9<span>/5</span></div>
+        <div class="review-tags">
+          <span class="tag active">Tất cả (29)</span>
+          <span class="tag">Có ảnh (5)</span>
+          <span class="tag">5 sao (25)</span>
         </div>
       </div>
-      
-      {#if !isAtEnd}
-        <button class="scroll-btn next" onclick={() => scrollVouchers('next')}>
-          <ChevronRight size={14} />
-        </button>
-      {/if}
-    </div>
+      <div class="review-item">
+        <div class="user-info">
+          <div class="avatar">S</div>
+          <div>
+            <div class="username">S***p</div>
+            <div class="stars-tiny">⭐⭐⭐⭐⭐</div>
+          </div>
+        </div>
+        <p class="comment">Sản phẩm quá tuyệt vời, đóng gói kỹ mượt mà.</p>
+        <div class="review-date">3 ngày trước | Phân loại: Bluetooth 5.4</div>
+      </div>
+    </section>
 
-    <!-- Title & Bookmark -->
-    <div class="title-row">
-      <h1 class="product-title">{product.name}</h1>
-      <button class="bookmark-btn">
-        <Bookmark size={22} />
-      </button>
-    </div>
+    <div class="section-divider"></div>
 
-    <!-- Rating, Sold & Trust Badge -->
-    <div class="product-stats-row">
-      <div class="rating-box">
-        <span class="scoreText">4.9</span>
-        <div class="stars">
-          {#each Array(5) as _, i}
-            <svg class="w-2.5 h-2.5 {i < 4 ? 'text-orange-400' : 'text-gray-300'}" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
-          {/each}
+    <!-- SECTION 3: DESCRIPTION -->
+    <section id="description" class="content-section" bind:this={sectionRefs.description}>
+      <h2 class="section-title">Chi tiết sản phẩm</h2>
+      <div class="spec-table">
+        <div class="spec-row">
+          <span class="label">Thương hiệu</span>
+          <span class="val">Micsmo Vietnam</span>
+        </div>
+        <div class="spec-row">
+          <span class="label">Bảo hành</span>
+          <span class="val">12 tháng Chính hãng</span>
+        </div>
+        <div class="spec-row">
+          <span class="label">Giao lưu</span>
+          <span class="val">Bluetooth 5.4 Ultra</span>
         </div>
       </div>
-      <div class="divider"></div>
-      <div class="sold-count">
-        Đã bán 29
+      <h2 class="section-title mt-4">Mô tả sản phẩm</h2>
+      <div class="product-desc line-clamp-4">
+        {product.description || 'Trải nghiệm tai nghe Bluetooth hoàn toàn không dây phiên bản nâng cấp mới, được thiết kế đặc biệt dành cho game thủ, người yêu thể thao và tín đồ âm nhạc...'}
       </div>
-      <div class="trust-badge">
-        Mall
-      </div>
-    </div>
-  </section>
+      <button class="expand-btn">Xem thêm <ChevronRight size={14} class="rotate-90" /></button>
+    </section>
 
-  <!-- 5. STICKY BOTTOM NAV -->
-  <MobileBottomNav />
+    <div class="section-divider"></div>
+
+    <!-- SECTION 4: RECOMMENDATIONS -->
+    <section id="recommendations" class="content-section" bind:this={sectionRefs.recommendations}>
+      <h2 class="section-title">Có thể bạn cũng thích</h2>
+      <div class="recommendations-grid">
+        {#each relatedProducts as p}
+          <div class="related-card">
+            <img src={p.image} alt={p.name} />
+            <div class="p-2">
+              <h3 class="related-name">{p.name}</h3>
+              <div class="related-price">{formatPrice(p.sale_price)}đ</div>
+            </div>
+          </div>
+        {/each}
+      </div>
+    </section>
+  </main>
+
+  <!-- 5. STICKY BOTTOM NAV (Adaptive Product Mode) -->
+  <MobileBottomNav isProductMode={true} {product} />
 
   <!-- Content spacing for Bottom Nav -->
   <div class="h-28"></div>
@@ -283,13 +429,63 @@
   .detail-header {
     position: sticky;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 100;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+
+  .header-main {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    padding: 6px 8px;
+    gap: 12px;
+  }
+
+  .tabs-nav {
+    display: flex;
+    height: 0;
+    opacity: 0;
+    overflow: hidden;
     background: white;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-bottom: 0.5px solid #f5f5f5;
+  }
+
+  .tabs-nav.visible {
+    height: 40px;
+    opacity: 1;
+  }
+
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #666;
+    position: relative;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+
+  .tab-item.active {
+    color: #000;
+    font-weight: 700;
+  }
+
+  .active-indicator {
+    position: absolute;
+    bottom: 0;
+    width: 30px;
+    height: 2px;
+    background: #000;
+    border-radius: 2px;
   }
 
   .icon-btn {
@@ -751,18 +947,238 @@
     text-transform: uppercase;
   }
 
+  /* MAIN CONTENT LAYOUT */
+  .content-body {
+    background: #f5f5f5;
+  }
+
+  #overview {
+    background: white;
+  }
+
+  .section-divider {
+    height: 6px;
+    background: #f5f5f5;
+  }
+
+  .content-section {
+    background: white;
+    padding: 12px 10px;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #000;
+  }
+
+  .view-all {
+    font-size: 12px;
+    color: #ee4d2d;
+    background: none;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  /* REVIEWS */
+  .reviews-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .score-big {
+    font-size: 24px;
+    font-weight: 800;
+    color: #000;
+  }
+
+  .score-big span {
+    font-size: 14px;
+    font-weight: 400;
+    color: #999;
+  }
+
+  .review-tags {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .review-tags::-webkit-scrollbar { display: none; }
+
+  .tag {
+    white-space: nowrap;
+    padding: 4px 10px;
+    background: #f8f8f8;
+    border-radius: 12px;
+    font-size: 11px;
+    color: #333;
+    border: 0.5px solid #eee;
+  }
+
+  .tag.active {
+    background: #fff5f1;
+    color: #ee4d2d;
+    border-color: #ee4d2d;
+  }
+
+  .review-item {
+    border-top: 0.5px solid #f5f5f5;
+    padding-top: 10px;
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .avatar {
+    width: 24px;
+    height: 24px;
+    background: #eee;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .username {
+    font-size: 12px;
+    color: #333;
+  }
+
+  .stars-tiny { font-size: 10px; }
+
+  .comment {
+    font-size: 13px;
+    color: #000;
+    line-height: 1.4;
+    margin-bottom: 4px;
+  }
+
+  .review-date {
+    font-size: 11px;
+    color: #999;
+  }
+
+  /* DESCRIPTION / SPECS */
+  .spec-table {
+    border: 0.5px solid #eee;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .spec-row {
+    display: flex;
+    border-bottom: 0.5px solid #f5f5f5;
+  }
+  .spec-row:last-child { border-bottom: none; }
+  
+  .spec-row span {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .spec-row .label {
+    width: 100px;
+    background: #fafafa;
+    color: #666;
+    border-right: 0.5px solid #f5f5f5;
+  }
+
+  .spec-row .val {
+    flex: 1;
+    color: #000;
+  }
+
+  .product-desc {
+    font-size: 13.5px;
+    color: #444;
+    line-height: 1.5;
+  }
+
+  .expand-btn {
+    width: 100%;
+    padding: 10px;
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 8px;
+    border-top: 0.5px solid #f5f5f5;
+  }
+
+  /* RECOMMENDATIONS */
+  .recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .related-card {
+    background: white;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    border: 0.5px solid #f5f5f5;
+  }
+
+  .related-card img {
+    width: 100%;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+  }
+
+  .related-name {
+    font-size: 12px;
+    color: #333;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.3;
+    height: 31px;
+    margin-bottom: 4px;
+  }
+
+  .related-price {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ee4d2d;
+  }
+
+  /* RESTORED PRODUCT TITLE CSS */
   .title-row {
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    margin-top: 0px; /* Zero top margin */
+    margin-top: 8px; /* Added some breathing room */
   }
 
   .product-title {
-    font-size: 15.5px; /* Slightly smaller for density */
-    font-weight: 400;
+    font-size: 15.5px;
+    font-weight: 500; /* Increased to 500 for better visibility */
     color: #000;
-    line-height: 1.25; /* Tighter line height */
+    line-height: 1.4;
     flex: 1;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -777,11 +1193,5 @@
     padding: 0;
     display: flex;
     align-items: flex-start;
-  }
-
-  .sold-info {
-    margin-top: 2px; /* Reduced from 4px */
-    font-size: 11.5px; /* Slightly smaller */
-    color: #666;
   }
 </style>

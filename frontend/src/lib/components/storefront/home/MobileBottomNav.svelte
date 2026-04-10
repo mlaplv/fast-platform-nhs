@@ -3,17 +3,24 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
+  import type { Product } from '$lib/types';
+
+  interface Props {
+    isProductMode?: boolean;
+    product?: Product | null;
+  }
+  let { isProductMode = false, product = null }: Props = $props();
 
   let isShrunk = $state(false);
   let lastScrollY = 0;
 
   onMount(() => {
-    // Tìm trực tiếp scroller gốc của app (Dựa theo +page/layout config của mình)
-    const scroller = document.querySelector('.page-container');
-    if (!scroller) return;
+    // Tìm trực tiếp scroller gốc của app (Dựa theo +page/layout config của mình) hoặc fallback về window
+    const scroller = document.querySelector('.page-container') || window;
 
     const handleScroll = () => {
-      const currentScrollY = scroller.scrollTop;
+      // Đoán đúng vị trí cuộn trên cả Window hoặc Element
+      const currentScrollY = scroller === window ? window.scrollY : (scroller as Element).scrollTop;
       
       // Chống nhạy (Debounce/Threshold logic) để trải nghiệm mượt mà không bị giật liên tục
       if (currentScrollY > lastScrollY + 10 && currentScrollY > 80) {
@@ -34,13 +41,15 @@
   <div class="tbn-nav-inner">
     
     <!-- 0. Menu nhanh -->
-    <button class="tbn-item" aria-label="Menu nhanh">
-      <svg class="tbn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <!-- Asymmetric Viral 2026 lines (Staggered effect) -->
-        <path d="M4 7h16M9 12h11M4 17h16" />
-      </svg>
-      <span class="tbn-label">Menu</span>
-    </button>
+    {#if !isProductMode}
+      <button class="tbn-item" aria-label="Menu nhanh">
+        <svg class="tbn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Asymmetric Viral 2026 lines (Staggered effect) -->
+          <path d="M4 7h16M9 12h11M4 17h16" />
+        </svg>
+        <span class="tbn-label">Menu</span>
+      </button>
+    {/if}
 
     <!-- 1. Hotline -->
     <button class="tbn-item" aria-label="Hotline">
@@ -70,14 +79,38 @@
       <span class="tbn-label tbn-label--ai">AI Chat</span>
     </button>
 
-    <!-- 3. Tài khoản -->
-    <button class="tbn-item" aria-label="Tài khoản">
-      <svg class="tbn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-        <circle cx="12" cy="7" r="4"/>
-      </svg>
-      <span class="tbn-label">Tài khoản</span>
-    </button>
+    <!-- 3. Hành động mua (Vị trí cuối cùng) -->
+    {#if isProductMode && product}
+      <!-- Cụm Fused Capsule (Viral 2026 - Tối ưu vòng tròn lồng nhau) -->
+      <div class="tbn-action-group">
+        <!-- Nút Thêm vào giỏ (Nắp trái) -->
+        <button class="tbn-action-split tbn-action-split--cart" aria-label="Thêm vào giỏ hàng">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            <path d="M12 9h4M14 7v4" />
+          </svg>
+        </button>
+
+        <!-- Nút Mua ngay (Thân chính) -->
+        <button class="tbn-action-split tbn-action-split--buy" aria-label="Mua ngay">
+          <span class="buy-text">Mua ngay</span>
+          <span class="buy-sub">
+            {product.price.toLocaleString('vi-VN')}₫ | Freeship
+          </span>
+        </button>
+      </div>
+    {/if}
+
+    {#if !isProductMode}
+      <button class="tbn-item" aria-label="Tài khoản">
+        <svg class="tbn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span class="tbn-label">Tài khoản</span>
+      </button>
+    {/if}
 
   </div>
 </nav>
@@ -116,6 +149,7 @@
     transform-origin: center bottom;
     transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
   }
+
 
   .tbn-nav-inner {
     width: 100%;
@@ -209,6 +243,82 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     font-weight: 800; /* Bớt nặng nề */
+  }
+
+  /* ==================================================
+     HÀNH ĐỘNG MUA (FUSED CAPSULE - VIRAL 2026)
+     Khắc phục lỗi thiết kế hình học (vòng tròn lồng nhau)
+     ================================================== */
+  .tbn-action-group {
+    display: flex;
+    flex: 1;
+    height: 100%; /* Bám full mí trên và dưới của thanh Nav */
+    margin-left: 8px; /* Tách khỏi AI Chat */
+    margin-right: -6px; /* Bơm qua lớp đệm padding 6px để bám sát sạt mép phải */
+    border-radius: 0 20px 20px 0; /* Bo cong khít với vỏ 20px bên phải, THẲNG TẮP (0px) bên trái */
+    overflow: hidden; /* Cắt ghép nguyên khối */
+    box-shadow: none; /* Bỏ bóng để chìm mượt vào viền Glass */
+    border: none;
+    background: transparent;
+    transform: translateZ(0); /* Anti-aliasing cut corners */
+  }
+
+  /* Khớp viền hoàn hảo khi bị Shrink (Vỏ ngoài thu lại biến thành 24px) */
+  .tbn-nav--shrunk .tbn-action-group {
+    border-radius: 0 24px 24px 0;
+  }
+
+  .tbn-action-split {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    overflow: hidden;
+  }
+
+  /* Ink ripple effect */
+  .tbn-action-split::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .tbn-action-split:active::after { opacity: 0.15; }
+
+  /* Nắp trái (Add to cart) */
+  .tbn-action-split--cart {
+    width: 60px;
+    background: transparent; /* Xóa bỏ nền theo yêu cầu Sếp */
+    color: #ff1e4d;
+    border-right: 1px dashed rgba(254, 44, 85, 0.15); /* Ranh giới xé vé (Ticket vibe) */
+  }
+
+  /* Thân chính (Buy Now) */
+  .tbn-action-split--buy {
+    flex: 1;
+    background: linear-gradient(110deg, #ff1e4d 0%, #fe2c55 50%, #ff4b72 100%);
+    color: white;
+    padding: 0 16px;
+  }
+
+  .buy-text {
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.1;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    letter-spacing: -0.2px;
+  }
+
+  .buy-sub {
+    font-size: 10px;
+    font-weight: 500;
+    opacity: 0.95;
+    letter-spacing: -0.1px;
   }
 
   /* TOOLTIP DYNAMIC GLASS (iOS 26 bright mode style) */
