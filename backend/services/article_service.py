@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import List, Dict, Union, Optional
 from sqlalchemy import text, update, select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from litestar.exceptions import NotFoundException
+from litestar.exceptions import NotFoundException, HTTPException
 
 from backend.database.models import Article, User as UserModel
 from backend.schemas.article import (
@@ -90,10 +90,15 @@ class ArticleService:
 
     async def get_article(self, db_session: AsyncSession, article_id: str) -> ArticleResponse:
         """Get a single article (R76: Scalar Projection)."""
+        try:
+            uuid.UUID(article_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid article ID format: {article_id}")
+
         stmt = select(
             Article.id, Article.title, Article.slug, Article.excerpt, Article.content,
             Article.status, Article.category, Article.views,
-            Article.seo_title, Article.seo_description, 
+            Article.seo_title, Article.seo_description,
             Article.seo_keywords, Article.seo_og_image,
             Article.featured_image,
             Article.created_at, Article.author_id,
@@ -160,6 +165,11 @@ class ArticleService:
 
     async def update_article(self, db_session: AsyncSession, article_id: str, data: UpdateArticleRequest) -> SuccessResponse:
         """Update an article and its embedding."""
+        try:
+            uuid.UUID(article_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid article ID format: {article_id}")
+
         # Rule 1.5: Detail fetch for update (Surgical)
         stmt = select(Article).where(Article.id == article_id, Article.deleted_at == None)
         res = await db_session.execute(stmt)
@@ -224,6 +234,11 @@ class ArticleService:
             logger.error(f"[ArticleService] Failed to emit media sync: {e}")
 
     async def delete_article(self, db_session: AsyncSession, article_id: str) -> SuccessResponse:
+        try:
+            uuid.UUID(article_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid article ID format: {article_id}")
+
         stmt = update(Article).where(Article.id == article_id).values(deleted_at=datetime.now(timezone.utc))
         await db_session.execute(stmt)
         # Invalidate Count Cache

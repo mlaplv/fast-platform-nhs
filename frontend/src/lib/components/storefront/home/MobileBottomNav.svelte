@@ -154,14 +154,14 @@
     translate: -50% 0;
     width: max-content;
     max-width: calc(100vw - 16px);
-    height: 64px;
+    height: 40px;
     
-    /* Thiết kế Liquid Glass Premium chuẩn iOS Control Center */
-    background: rgba(255, 255, 255, 0.98); /* Gần như đặc để không bị lẫn chữ nền */
+    /* Thiết kế Liquid Glass Premium chuẩn iOS Control Center - Ultra Lean */
+    background: rgba(255, 255, 255, 0.98); 
     backdrop-filter: saturate(180%) blur(20px);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
-    border: 1px solid rgba(0, 0, 0, 0.05); /* Viền mảnh sẫm màu để tách khối */
-    border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.05); 
+    border-radius: 14px;
     box-shadow: 
       0 12px 40px rgba(0, 0, 0, 0.15), /* Bóng đậm hơn để nổi bật trên nền rác */
       0 2px 4px rgba(0,0,0,0.05);
@@ -188,8 +188,8 @@
 
   /* State: Cuộn xuống (Shrunk) */
   .tbn-nav--shrunk {
-    height: 48px;
-    border-radius: 24px;
+    height: 32px;
+    border-radius: 16px;
     /* translate để giữ căn giữa và add thêm offset Y */
     translate: -50% 4px;
     background: rgba(255, 255, 255, 0.6); /* Tăng độ đục để rõ hơn khi nhỏ */
@@ -202,7 +202,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 2px;
     background: none;
     border: none;
     cursor: pointer;
@@ -210,8 +210,8 @@
     transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     height: 100%;
     flex: 0 0 auto;
-    padding: 0 14px;
-    min-width: 64px;
+    padding: 0 10px;
+    min-width: 54px;
   }
 
   .tbn-item:active {
@@ -220,13 +220,13 @@
   }
 
   .tbn-icon {
-    width: 22px;
-    height: 22px;
+    width: 18px;
+    height: 18px;
     transition: transform 0.3s ease;
   }
 
   .tbn-label {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700; /* Dày dặn tạo quyền lực */
     line-height: 1;
     white-space: nowrap;
@@ -245,8 +245,8 @@
   
   .tbn-nav--shrunk .tbn-item {
     gap: 0;
-    padding: 0 8px; /* Ép khoảng cách ngang nhỏ lại */
-    min-width: 44px; /* Thu hẹp chiều ngang để bóp chật lại */
+    padding: 0 6px; 
+    min-width: 38px; 
   }
 
   .tbn-nav--shrunk .tbn-nav-inner {
@@ -255,7 +255,7 @@
   }
 
   .tbn-nav--shrunk .tbn-icon {
-    transform: scale(1.1); /* Phóng lớn icon 1 chút bù lại phần text mất đi */
+    transform: scale(1.05); /* Phóng lớn nhẹ icon */
     color: #111; /* Đổi màu mượt mà */
   }
 
@@ -280,7 +280,7 @@
     height: 100%; /* Bám full mí trên và dưới của thanh Nav */
     margin-left: 8px; /* Tách khỏi AI Chat */
     margin-right: -6px; /* Bơm qua lớp đệm padding 6px để bám sát sạt mép phải */
-    border-radius: 0 20px 20px 0; /* Bo cong khít với vỏ 20px bên phải, THẲNG TẮP (0px) bên trái */
+    border-radius: 0 14px 14px 0; /* Bo cong khít với vỏ 14px bên phải, THẲNG TẮP (0px) bên trái */
     overflow: hidden; /* Cắt ghép nguyên khối */
     box-shadow: none; /* Bỏ bóng để chìm mượt vào viền Glass */
     border: none;
@@ -288,9 +288,9 @@
     transform: translateZ(0); /* Anti-aliasing cut corners */
   }
 
-  /* Khớp viền hoàn hảo khi bị Shrink (Vỏ ngoài thu lại biến thành 24px) */
+  /* Khớp viền hoàn hảo khi bị Shrink (Vỏ ngoài thu lại biến thành 16px) */
   .tbn-nav--shrunk .tbn-action-group {
-    border-radius: 0 24px 24px 0;
+    border-radius: 0 16px 16px 0;
   }
 
   .tbn-action-split {
@@ -317,7 +317,7 @@
 
   /* Nắp trái (Add to cart) */
   .tbn-action-split--cart {
-    width: 60px;
+    width: 44px;
     background: transparent; /* Xóa bỏ nền theo yêu cầu Sếp */
     color: #ff1e4d;
     border-right: 1px dashed rgba(254, 44, 85, 0.15); /* Ranh giới xé vé (Ticket vibe) */
@@ -332,7 +332,7 @@
   }
 
   .buy-text {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 800;
     line-height: 1.1;
     text-shadow: 0 1px 2px rgba(0,0,0,0.1);
@@ -340,7 +340,7 @@
   }
 
   .buy-sub {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 500;
     opacity: 0.95;
     letter-spacing: -0.1px;
@@ -349,8 +349,8 @@
   /* TOOLTIP DYNAMIC GLASS (iOS 26 bright mode style) */
   .tbn-ai-tooltip {
     position: absolute;
-    top: -46px;
-    right: -8px; 
+    top: -38px;
+    right: -18px; /* Đã đẩy sang phải thêm 10px theo ý Sếp */
     /* Kính Sáng (Light Glass) chuẩn iOS */
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: saturate(200%) blur(30px);
@@ -388,7 +388,7 @@
     content: '';
     position: absolute;
     bottom: -6px; /* Tràn xuống đúng bằng chiều cao tam giác, không bị lẹm vào trong */
-    right: 33px; /* Bù trừ một nửa độ rộng mũi tên (7px) để tâm mũi tên nằm đúng trọng tâm nút (40px) */
+    right: 38px; /* Tăng thêm 10px để bù trừ, giữ mũi tên luôn ở tâm nút */
     border-width: 6px 7px 0;
     border-style: solid;
     /* Dùng đúng màu nền của Tooltip để nối liền 100% không chắp vá */

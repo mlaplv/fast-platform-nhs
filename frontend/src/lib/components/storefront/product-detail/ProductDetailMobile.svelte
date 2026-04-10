@@ -464,8 +464,8 @@
     onChatOpen={openChat}
   />
 
-  <!-- Content spacing for Bottom Nav -->
-  <div class="h-28"></div>
+  <!-- Content spacing for Bottom Nav (Ultra Lean sync) -->
+  <div class="h-12"></div>
 </div>
 
 <style>
@@ -492,7 +492,7 @@
   .header-main {
     display: flex;
     align-items: center;
-    padding: 6px 8px;
+    padding: 2px 8px; /* Extra reduced */
     gap: 12px;
   }
 
@@ -507,7 +507,7 @@
   }
 
   .tabs-nav.visible {
-    height: 40px;
+    height: 30px; /* Ultra Lean */
     opacity: 1;
   }
 
@@ -517,7 +517,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 12px; /* Super compact */
     color: #666;
     position: relative;
     background: none;
@@ -704,7 +704,7 @@
     background: #ff2556; /* Vibrant Shopee red */
     color: white;
     display: flex;
-    padding: 2px 8px; /* Heavily reduced from 6px 12px */
+    padding: 0px 8px; /* Extra reduced */
     justify-content: space-between;
     align-items: center;
     position: relative;
@@ -810,14 +810,14 @@
   /* CONTENT AREA */
   .product-details-content {
     background: white;
-    padding: 2px 8px; /* Heavily reduced from 10px 12px */
+    padding: 0px 8px; /* Extra reduced */
   }
 
   .paylater-bar {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 0; /* Reduced from 10px */
+    padding: 4px 0; /* Reduced */
     font-size: 13px; /* Reduced from 13.5px */
     color: #333;
   }
@@ -851,7 +851,7 @@
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
     scrollbar-width: none;
-    padding: 10px 0; /* Increased vertical padding to prevent badge clipping */
+    padding: 4px 0; /* Extra reduced vertical padding */
   }
   .vouchers-list::-webkit-scrollbar { display: none; }
 
@@ -977,7 +977,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 4px;
+    margin-top: 2px;
   }
 
   .rating-box {
@@ -1030,13 +1030,13 @@
   }
 
   .section-divider {
-    height: 6px;
+    height: 2.5px;
     background: #f5f5f5;
   }
 
   .content-section {
     background: white;
-    padding: 12px 10px;
+    padding: 8px 10px; /* Ultra Lean padding */
   }
 
   .section-header {

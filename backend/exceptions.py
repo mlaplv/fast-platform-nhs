@@ -13,7 +13,7 @@ def global_exception_handler(request: Request, exc: Exception) -> Response:
     trace_id = str(uuid.uuid4())[:8]
 
     if isinstance(exc, HTTPException) and exc.status_code < 500:
-        if exc.status_code == 401:
+        if exc.status_code == 401 or (exc.status_code == 400 and "Invalid article ID format" in exc.detail):
             logger.debug(f"[TRACE:{trace_id}] HTTP {exc.status_code}: {exc.detail}")
         else:
             logger.warning(f"[TRACE:{trace_id}] HTTP {exc.status_code}: {exc.detail}")
