@@ -40,11 +40,13 @@
   const useMobileLayout = $derived(clientUi?.isHydrated ? clientUi.isMobile : isMobile);
 
   // 🚀 QUANTUM SYNC (Elite V2.2 Protocol)
-  // Inline init ensures SSR stability; $effect.pre handles client-side hydration & navigation
-  if (product?.id) shopStore.init(product);
-  $effect.pre(() => {
-    if (product?.id) shopStore.init(product);
-  });
+  // Inline init ensures SSR stability; Guarded initialization for client-side
+  let isInitialized = false;
+  
+  if (product?.id && !isInitialized) {
+    shopStore.init(product);
+    isInitialized = true;
+  }
 
   // Removed duplicate getClientUi call
 
@@ -95,11 +97,13 @@
 
       // JIT Intersection Observer
       const jitObserver = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-          loadJIT = true;
-          jitObserver.disconnect();
-        }
-      }, { rootMargin: '400px' });
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            loadJIT = true;
+            jitObserver.disconnect();
+          }
+        });
+      }, { rootMargin: '600px', threshold: 0.01 });
       
       const trigger = document.getElementById('jit-trigger');
       if (trigger) jitObserver.observe(trigger);

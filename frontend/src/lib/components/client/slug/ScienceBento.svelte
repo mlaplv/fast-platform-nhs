@@ -13,14 +13,14 @@
         <header class="mb-8 md:mb-12 animate-reveal">
             <h2 class="text-white font-black tracking-tight leading-none uppercase mb-6 text-3xl md:text-5xl lg:text-6xl mx-auto flex flex-col gap-1 md:gap-2">
 
-                <span>ỨC CHẾ ACETYLCHOLINE &</span>
-                <span>ĐÓNG BĂNG HẠI KHUẨN</span>
+                <span>PHÁ VỠ HẮC SẮC TỐ &</span>
+                <span>TÁI SINH LÀN DA SÁNG HỒNG</span>
             </h2>
 
 
 
             <p class="section-description text-white/40 text-base md:text-lg max-w-none mx-auto leading-relaxed">
-                "Tinh chất siêu vi hạt can thiệp tức thì vào chất dẫn truyền thần kinh, ngắt lệnh tiết mồ hôi. Đồng thời bao vây và vô hiệu hóa 99.9% ổ vi khuẩn sinh mùi chỉ sau 3 giây chạm da."
+                "Tinh chất dạng serum-kem mỏng nhẹ thẩm thấu tàng hình chỉ sau 3 giây. Can thiệp trực tiếp vào quá trình hình thành Melanin, làm sáng rạng rỡ các vùng da mỏng manh nhạy cảm nhất mà tuyệt đối không hề bết dính."
             </p>
         </header>
 
@@ -57,10 +57,10 @@
                     </div>
 
                     <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight uppercase transition-colors group-hover:text-blue-400">
-                        BẺ GÃY CHUỖI AXIT BÉO
+                        ĐÁNH BẬT THÂM SẠM TẬN GỐC
                     </h3>
                     <p class="text-slate-500 text-xs lg:text-base leading-relaxed font-medium">
-                        "Chặn đứng quá trình vi khuẩn phân hủy protein trong mồ hôi. Trung hòa mùi chua nồng và đào thải cặn bã tích tụ do lạm dụng hóa chất."
+                        "Sức mạnh từ chiết xuất Hoa Anh Đào (Sakura) chuẩn Nhật giúp ức chế mạnh mẽ Melanin. Xóa mờ các đốm nâu và vùng da xỉn màu do ma sát với trang phục hoặc tổn thương sau khi cạo, nhổ."
                     </p>
                 </div>
 
@@ -75,10 +75,10 @@
                     </div>
 
                     <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight uppercase transition-colors group-hover:text-blue-400">
-                        TÁI TẠO & SE KHÍT NANG LÔNG
+                        PHỤC HỒI & DƯỠNG DA MỀM MƯỚT
                     </h3>
                     <p class="text-slate-500 text-xs lg:text-base leading-relaxed font-medium">
-                        "Sử dụng phức hợp Dược liệu sinh học để phục hồi tuyến bã nhờn tổn thương. Trả lại vùng da sáng khỏe, phẳng mịn và khô ron suốt 48H."
+                        "Tổ hợp Vitamin C, E cùng chiết xuất Lô hội giúp bơm đầy độ ẩm, làm dịu tức thì tình trạng sần sùi, thô ráp. Nuôi dưỡng bề mặt da mềm mịn như lụa, cảm giác luôn khô ráo và thoải mái suốt ngày dài."
                     </p>
                 </div>
 

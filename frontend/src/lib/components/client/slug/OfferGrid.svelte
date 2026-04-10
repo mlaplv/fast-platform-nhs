@@ -12,8 +12,8 @@
   const metadata = $derived(product?.metadata || {});
 
   const mkt = $derived({
-    headline: metadata.offer_headline || "Chúng tôi không thể thay đổi <br/> cơ địa của bạn.",
-    sub: metadata.offer_subheadline || "Nhưng cam kết: <span class=\"bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent font-bold\">Khóa Mùi 48H.</span>",
+    headline: metadata.offer_headline || "Hãy chấm dứt tình trạng thô ráp, lấy lại tự tin",
+    sub: metadata.offer_subheadline || "Trắng sáng rạng rỡ, Tái sinh vùng da nhạy cảm. <br/> <span class=\"font-black uppercase tracking-widest text-blue-400\">An toàn – Hiệu quả – Không bết dính.</span>",
     timer_prefix: metadata.offer_timer_prefix || "Ưu đãi nội bộ kết thúc sau:",
     shipping_prefix: metadata.offer_shipping_prefix || "+ Phí vận chuyển:",
     savings_prefix: metadata.offer_savings_prefix || "Tiết kiệm:",
@@ -127,7 +127,7 @@
 
     <!-- ELITE V2.2: Liquid Glass Multi-Deal Bar (iPhone 18 Aesthetic) -->
     <div class="mt-2 mb-12 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 px-4">
-      {#each (metadata.active_deals || []) as deal}
+      {#each (metadata.active_deals || []) as deal, dealIdx (dealIdx)}
         {@const isActive = shopStore.quantity === (deal.buy_qty + (deal.get_qty || 0))}
         <button 
            onclick={() => shopStore.setQuantity(deal.buy_qty + (deal.get_qty || 0))}

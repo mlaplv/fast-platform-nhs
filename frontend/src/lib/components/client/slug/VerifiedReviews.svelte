@@ -32,7 +32,7 @@
 
   // Elite V2.2: Live FOMO Pulse Logic
   let liveViewers = $state(Math.floor(Math.random() * (45 - 12 + 1)) + 12);
-  $effect(() => {
+  onMount(() => {
     const interval = setInterval(() => {
       const delta = Math.random() > 0.5 ? 1 : -1;
       liveViewers = Math.max(8, Math.min(64, liveViewers + delta));
@@ -126,7 +126,7 @@
     }
   }
 
-  $effect(() => {
+  onMount(() => {
     if (product?.id) {
        fetchRealReviews();
     }
