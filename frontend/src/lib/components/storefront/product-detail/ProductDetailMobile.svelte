@@ -18,8 +18,9 @@
 
   interface Props {
     product: Product;
+    relatedProducts?: Product[];
   }
-  let { product }: Props = $props();
+  let { product, relatedProducts = [] }: Props = $props();
 
   const cartStore = getCartStore();
   
@@ -115,7 +116,10 @@
     const element = sectionRefs[id];
     if (element) {
       const headerHeight = 90; // approximate height of header + tabs
-      const offsetPos = element.offsetTop - headerHeight;
+      const rect = element.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const offsetPos = rect.top + scrollTop - headerHeight;
+      
       window.scrollTo({
         top: offsetPos,
         behavior: 'smooth'
@@ -123,23 +127,39 @@
     }
   }
 
+  function openChat() {
+    // Placeholder for AI Chat activation
+    console.log("Opening AI Chat for Sếp...");
+  }
+
   const formatPrice = (p: number) => p.toLocaleString('vi-VN');
   
   // Voucher Logic (Elite V2.2: Interaction Sync)
   let selectedVouchers = $state<string[]>([]);
-  const vouchers = [
-    { id: 'freeship', label: 'Miễn Phí Vận Chuyển', sub: 'HẠN 15/04' },
-    { id: '30k', label: 'Giảm ₫30k', sub: 'HẠN 15/04' },
-    { id: '60k', label: 'Giảm ₫60k', sub: 'HẠN 15/04' },
-    { id: '3pct', label: 'Giảm 3%', sub: 'HẠN 15/04' },
-    { id: '5pct', label: 'Giảm 5%', sub: 'HẠN 15/04' }
-  ];
+  
+  // Use DB vouchers if available, otherwise show global system promos
+  const vouchers = $derived(
+    Array.isArray((product.metadata as any)?.vouchers) && (product.metadata as any).vouchers.length > 0
+      ? (product.metadata as any).vouchers 
+      : [
+          { id: 'freeship_30k', label: 'Miễn Phí Vận Chuyển', sub: 'Giảm tối đa 30,000đ', type: 'ship' },
+          { id: 'freeship_60k', label: 'Miễn Phí Vận Chuyển', sub: 'Giảm tối đa 60,000đ', type: 'ship' },
+          { id: 'disc_30k', label: 'Giảm ₫30k', sub: 'Đơn từ 150k', type: 'discount' },
+          { id: 'disc_60k', label: 'Giảm ₫60k', sub: 'Đơn từ 300k', type: 'discount' }
+        ]
+  );
 
   function toggleVoucher(id: string) {
+    const voucher = vouchers.find(v => v.id === id);
+    if (!voucher) return;
+
     if (selectedVouchers.includes(id)) {
       selectedVouchers = selectedVouchers.filter(v => v !== id);
     } else {
-      selectedVouchers = [...selectedVouchers, id];
+      // Find other vouchers of the same group/type
+      const groupIds = vouchers.filter(v => v.type === voucher.type).map(v => v.id);
+      // Remove existing selection from this group, then add new one
+      selectedVouchers = [...selectedVouchers.filter(v => !groupIds.includes(v)), id];
     }
   }
 
@@ -157,19 +177,18 @@
     isAtEnd = scrollLeft + clientWidth >= scrollWidth - 5;
   }
   const displayImages = product.images?.length > 0 ? product.images : [product.images?.[0] || ''];
+  const productReviews = $derived(Array.isArray((product.metadata as any)?.reviews) ? (product.metadata as any).reviews : []);
 
-  // Mock Data for FOMO sections
-  const mockReviews = [
-    { user: 'S***p', rating: 5, comment: 'Sản phẩm quá tuyệt vời, đóng gói kỹ mượt mà.', date: '3 ngày trước', images: ['https://randomuser.me/api/portraits/thumb/men/1.jpg'] },
-    { user: 'v***2', rating: 4, comment: 'Giao hàng nhanh, tai nghe nghe nhạc khá hay trong tầm giá.', date: '1 tuần trước', images: [] }
-  ];
+  // Dynamic Price Engine
+  // Defensive check for both camelCase and snake_case due to JSON parsing serialization
+  const pDiscountPrice = $derived(product.discountPrice || product.discount_price);
+  const displaySalePrice = $derived(pDiscountPrice || product.price);
+  const displayOriginalPrice = $derived(pDiscountPrice ? product.price : product.price * 1.5);
+  const displayDiscountPercent = $derived(
+    Math.round(((displayOriginalPrice - displaySalePrice) / displayOriginalPrice) * 100)
+  );
 
-  const relatedProducts = [
-    { name: 'Tai nghe Bluetooth 5.4 Micsmo', price: 120000, sale_price: 99000, image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=150&auto=format&fit=crop' },
-    { name: 'Tai nghe chụp tai JBL Pro', price: 850000, sale_price: 590000, image: 'https://images.unsplash.com/photo-1583394838336-acd993921811?q=80&w=150&auto=format&fit=crop' },
-    { name: 'Tai nghe Gaming Razer v2', price: 1500000, sale_price: 1250000, image: 'https://images.unsplash.com/photo-1599666505327-7758b44a9985?q=80&w=150&auto=format&fit=crop' },
-    { name: 'AirPods Pro Gen 2 Clone', price: 450000, sale_price: 299000, image: 'https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?q=80&w=150&auto=format&fit=crop' }
-  ];
+  // Real data passed via Server Load for Recommendation Section
 </script>
 
 <div class="product-mobile-root">
@@ -181,8 +200,8 @@
       </button>
       
       <div class="search-bar-wrapper">
-        <Search size={16} class="search-icon" />
-        <span class="placeholder">tai nghe bluet...</span>
+        <Search size={16} class="search-icon shrink-0" />
+        <span class="placeholder">{product.name}</span>
       </div>
 
       <div class="header-actions">
@@ -207,10 +226,12 @@
         Tổng quan
         {#if activeTab === 'overview'}<div class="active-indicator"></div>{/if}
       </button>
+      {#if productReviews.length > 0}
       <button class="tab-item" class:active={activeTab === 'reviews'} onclick={() => scrollToSection('reviews')}>
         Đánh giá
         {#if activeTab === 'reviews'}<div class="active-indicator"></div>{/if}
       </button>
+      {/if}
       <button class="tab-item" class:active={activeTab === 'description'} onclick={() => scrollToSection('description')}>
         Mô tả
         {#if activeTab === 'description'}<div class="active-indicator"></div>{/if}
@@ -244,7 +265,7 @@
       <section class="flash-sale-banner">
         <div class="fs-left">
           <div class="flex items-center gap-1.5">
-            <div class="discount-percent">-{Math.round(((product.price * 1.5 - product.price) / (product.price * 1.5)) * 100)}%</div>
+            <div class="discount-percent">-{displayDiscountPercent}%</div>
             <div class="freeship-fomo">
               <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -254,11 +275,11 @@
           </div>
           <div class="price-container">
             <span class="price-label">Từ</span>
-            <span class="price-value">{formatPrice(product.price)}đ</span>
+            <span class="price-value">{formatPrice(displaySalePrice)}đ</span>
             <img src="https://img.icons8.com/color/48/ticket.png" alt="coupon" class="w-4 h-4" />
           </div>
           <div class="flex items-center gap-2">
-            <div class="original-price">{formatPrice(product.price * 1.5)}đ</div>
+            <div class="original-price">{formatPrice(displayOriginalPrice)}đ</div>
             <div class="today-only">Chỉ áp dụng hôm nay</div>
           </div>
         </div>
@@ -295,10 +316,17 @@
                 <button class="ticket-wrapper" onclick={() => toggleVoucher(v.id)}>
                   <div class="ticket" class:active={isApplied}>
                     <div class="ticket-content">
-                      <span class="main">{v.label}</span>
-                      <span class="sub">{v.sub}</span>
+                       <span class="main">{v.label}</span>
+                       <span class="sub">{v.sub || ''}</span>
                     </div>
                   </div>
+                  {#if isApplied}
+                    <div class="active-badge">
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                  {/if}
                 </button>
               {/each}
             </div>
@@ -320,18 +348,18 @@
 
         <div class="product-stats-row">
           <div class="rating-box">
-            <span class="scoreText">4.9</span>
+            <span class="scoreText">{(product.metadata as any)?.rating || '5.0'}</span>
             <div class="stars">
               {#each Array(5) as _, i}
-                <svg class="w-2.5 h-2.5 {i < 4 ? 'text-orange-400' : 'text-gray-300'}" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-2.5 h-2.5 {i < ((product.metadata as any)?.rating || 5) ? 'text-orange-400' : 'text-gray-300'}" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
               {/each}
             </div>
           </div>
           <div class="divider"></div>
-          <div class="sold-count">Đã bán 29</div>
-          <div class="trust-badge">Mall</div>
+          <div class="sold-count">{(product as any).order_count_text || `Đã bán ${product.order_count || 0}`}</div>
+          <div class="trust-badge">{(product.metadata as any)?.brand_type || 'Micsmo'}</div>
         </div>
       </section>
     </section>
@@ -339,54 +367,63 @@
     <div class="section-divider"></div>
 
     <!-- SECTION 2: REVIEWS -->
+    {#if productReviews.length > 0}
     <section id="reviews" class="content-section" bind:this={sectionRefs.reviews}>
       <div class="section-header">
         <h2 class="section-title">Đánh giá khách hàng</h2>
         <button class="view-all">Xem tất cả <ChevronRight size={14} /></button>
       </div>
       <div class="reviews-summary">
-        <div class="score-big">4.9<span>/5</span></div>
+        <div class="score-big">{(product.metadata as any)?.rating || '5.0'}<span>/5</span></div>
         <div class="review-tags">
-          <span class="tag active">Tất cả (29)</span>
-          <span class="tag">Có ảnh (5)</span>
-          <span class="tag">5 sao (25)</span>
+          <span class="tag active">Tất cả ({productReviews.length})</span>
         </div>
       </div>
+      {#each productReviews as review}
       <div class="review-item">
         <div class="user-info">
-          <div class="avatar">S</div>
+          <div class="avatar">{review.user?.charAt(0) || 'U'}</div>
           <div>
-            <div class="username">S***p</div>
-            <div class="stars-tiny">⭐⭐⭐⭐⭐</div>
+            <div class="username">{review.user || 'Ẩn danh'}</div>
+            <div class="stars-tiny">{'⭐'.repeat(review.rating || 5)}</div>
           </div>
         </div>
-        <p class="comment">Sản phẩm quá tuyệt vời, đóng gói kỹ mượt mà.</p>
-        <div class="review-date">3 ngày trước | Phân loại: Bluetooth 5.4</div>
+        <p class="comment">{review.comment}</p>
+        <div class="review-date">{review.date || 'Gần đây'}</div>
       </div>
+      {/each}
     </section>
-
     <div class="section-divider"></div>
+    {/if}
 
     <!-- SECTION 3: DESCRIPTION -->
     <section id="description" class="content-section" bind:this={sectionRefs.description}>
       <h2 class="section-title">Chi tiết sản phẩm</h2>
       <div class="spec-table">
+        {#if (product.metadata as any)?.brand}
         <div class="spec-row">
           <span class="label">Thương hiệu</span>
-          <span class="val">Micsmo Vietnam</span>
+          <span class="val">{(product.metadata as any).brand}</span>
         </div>
+        {/if}
+        {#if (product.metadata as any)?.warranty}
         <div class="spec-row">
           <span class="label">Bảo hành</span>
-          <span class="val">12 tháng Chính hãng</span>
+          <span class="val">{(product.metadata as any).warranty}</span>
         </div>
-        <div class="spec-row">
-          <span class="label">Giao lưu</span>
-          <span class="val">Bluetooth 5.4 Ultra</span>
-        </div>
+        {/if}
+        {#if product.attributes}
+          {#each Object.entries(product.attributes) as [key, val]}
+          <div class="spec-row">
+            <span class="label capitalize">{key.replace(/_/g, ' ')}</span>
+            <span class="val">{val}</span>
+          </div>
+          {/each}
+        {/if}
       </div>
       <h2 class="section-title mt-4">Mô tả sản phẩm</h2>
       <div class="product-desc line-clamp-4">
-        {product.description || 'Trải nghiệm tai nghe Bluetooth hoàn toàn không dây phiên bản nâng cấp mới, được thiết kế đặc biệt dành cho game thủ, người yêu thể thao và tín đồ âm nhạc...'}
+        {product.short_description || product.description || 'Chưa có mô tả chi tiết cho sản phẩm này.'}
       </div>
       <button class="expand-btn">Xem thêm <ChevronRight size={14} class="rotate-90" /></button>
     </section>
@@ -398,20 +435,26 @@
       <h2 class="section-title">Có thể bạn cũng thích</h2>
       <div class="recommendations-grid">
         {#each relatedProducts as p}
-          <div class="related-card">
-            <img src={p.image} alt={p.name} />
+          <a data-sveltekit-reload href="/{p.slug}" class="related-card block">
+            <img src={p.images?.[0] || 'https://via.placeholder.com/150'} alt={p.name} />
             <div class="p-2">
-              <h3 class="related-name">{p.name}</h3>
-              <div class="related-price">{formatPrice(p.sale_price)}đ</div>
+              <h3 class="related-name line-clamp-2">{p.name}</h3>
+              <div class="related-price">{formatPrice(p.discount_price || p.price)}đ</div>
             </div>
-          </div>
+          </a>
         {/each}
       </div>
     </section>
   </main>
 
   <!-- 5. STICKY BOTTOM NAV (Adaptive Product Mode) -->
-  <MobileBottomNav isProductMode={true} {product} />
+  <MobileBottomNav 
+    isProductMode={true} 
+    {product} 
+    onAddToCart={addToCart} 
+    onBuyNow={buyNow}
+    onChatOpen={openChat}
+  />
 
   <!-- Content spacing for Bottom Nav -->
   <div class="h-28"></div>
@@ -517,6 +560,7 @@
 
   .search-bar-wrapper {
     flex: 1;
+    min-width: 0; /* Add this to allow flex shrinking */
     background: #f0f0f0;
     height: 36px;
     border-radius: 4px;
@@ -525,6 +569,7 @@
     padding: 0 12px;
     gap: 8px;
     color: #888;
+    overflow: hidden; /* Ensure content stays inside */
   }
 
   .placeholder {
@@ -781,8 +826,7 @@
     display: flex;
     align-items: center;
     position: relative;
-    padding: 2px 0; /* Reduced from 4px */
-    margin: 0 -8px; /* Pull to exactly match parent padding 8px */
+    margin: 0 -8px; 
     padding: 2px 8px;
   }
 
@@ -794,12 +838,12 @@
 
   .vouchers-list {
     display: flex;
-    gap: 6px; 
+    gap: 10px; /* Increased gap for better definition */
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
     scrollbar-width: none;
-    padding: 2px 0;
+    padding: 10px 0; /* Increased vertical padding to prevent badge clipping */
   }
   .vouchers-list::-webkit-scrollbar { display: none; }
 
@@ -827,8 +871,9 @@
   .scroll-btn.next { right: 4px; }
 
   .ticket-wrapper {
-    filter: drop-shadow(0 1px 2px rgba(255, 37, 86, 0.03));
+    filter: drop-shadow(0 1px 2px rgba(238, 77, 45, 0.05));
     flex-shrink: 0;
+    position: relative;
   }
 
   .ticket {
@@ -882,7 +927,27 @@
 
   .ticket.active {
     border-color: #ee4d2d;
+    border-width: 1px;
     background: #fff4f1;
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(238, 77, 45, 0.1);
+  }
+
+  .active-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ee4d2d;
+    color: white;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    z-index: 10;
+    border: 1px solid white; /* Clean shopee-style border */
   }
 
   .selected-badge {

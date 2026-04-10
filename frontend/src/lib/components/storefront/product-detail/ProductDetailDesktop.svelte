@@ -103,27 +103,35 @@
 
   // --- SALES ASSASSIN FOMO & VOUCHER LOGIC ---
   let timeLeft = $state({ hours: 0, minutes: 43, seconds: 33 });
-  let showNotification = $state(false);
-  let notificationData = $state({ name: '', time: '' });
   
   // Voucher State
   let selectedVouchers = $state<string[]>([]);
-  const vouchers = [
-    { id: 'freeship', label: 'Miễn Phí Vận Chuyển', code: 'FREESHIP', value: '0đ' },
-    { id: '30k', label: 'Giảm ₫30k', code: 'MBS30', value: '30.000đ' },
-    { id: '60k', label: 'Giảm ₫60k', code: 'MBS60', value: '60.000đ' }
-  ];
+  
+  // Use DB vouchers if available, otherwise show global system promos
+  const productVouchers = $derived(
+    Array.isArray((product.metadata as any)?.vouchers) && (product.metadata as any).vouchers.length > 0
+      ? (product.metadata as any).vouchers 
+        : [
+            { id: 'freeship_30k', label: 'Miễn Phí Vận Chuyển', sub: 'Giảm tối đa 30,000đ', type: 'ship' },
+            { id: 'freeship_60k', label: 'Miễn Phí Vận Chuyển', sub: 'Giảm tối đa 60,000đ', type: 'ship' },
+            { id: 'disc_30k', label: 'Giảm ₫30k', sub: 'Đơn từ 150k', type: 'discount' },
+            { id: 'disc_60k', label: 'Giảm ₫60k', sub: 'Đơn từ 300k', type: 'discount' }
+          ]
+  );
 
   function toggleVoucher(id: string) {
+    const voucher = productVouchers.find(v => v.id === id);
+    if (!voucher) return;
+
     if (selectedVouchers.includes(id)) {
       selectedVouchers = selectedVouchers.filter(v => v !== id);
     } else {
-      selectedVouchers = [...selectedVouchers, id];
+      // Group-based exclusive selection
+      const groupIds = productVouchers.filter(v => v.type === voucher.type).map(v => v.id);
+      selectedVouchers = [...selectedVouchers.filter(v => !groupIds.includes(v)), id];
     }
   }
 
-  const randomNames = ['Anh Tuấn', 'Chị Lan', 'Minh Hoàng', 'Ngọc Diệp', 'Khánh Linh', 'Trần Hùng', 'Thảo Nguyên'];
-  
   $effect(() => {
     const timer = setInterval(() => {
       if (timeLeft.seconds > 0) timeLeft.seconds--;
@@ -131,19 +139,7 @@
       else if (timeLeft.hours > 0) { timeLeft.hours--; timeLeft.minutes = 59; timeLeft.seconds = 59; }
     }, 1000);
 
-    const notify = setInterval(() => {
-      notificationData = {
-        name: randomNames[Math.floor(Math.random() * randomNames.length)],
-        time: Math.floor(Math.random() * 10) + 1
-      };
-      showNotification = true;
-      setTimeout(() => showNotification = false, 5000);
-    }, 15000);
-
-    return () => {
-      clearInterval(timer);
-      clearInterval(notify);
-    };
+    return () => clearInterval(timer);
   });
 
   // Viral 2026: Format currency standard
@@ -153,13 +149,15 @@
   };
 
   // Extract product details (Dynamic from DB)
+  const pDiscountPrice = $derived(product.discountPrice || product.discount_price);
+  
   const productInfo = $derived({
     barcode: product.sku || 'N/A',
-    brand: (product.metadata as any)?.brand || 'Micsmo Elite',
-    origin: (product.metadata as any)?.origin || 'Nhật Bản',
-    weight: (product.metadata as any)?.weight || 'N/A',
-    originalPrice: product.price * 1.55, // Marketing original price
-    salePrice: product.price
+    brand: (product.metadata as any)?.brand || '',
+    origin: (product.metadata as any)?.origin || '',
+    weight: (product.metadata as any)?.weight || '',
+    originalPrice: pDiscountPrice ? product.price : product.price * 1.55,
+    salePrice: pDiscountPrice || product.price
   });
 
   function buyNow() {
@@ -234,7 +232,7 @@
       <div class="flex items-start gap-3 mb-2">
          <div class="flex items-center gap-1.5 bg-[#d0011b] text-white px-1.5 py-0.5 text-[10px] font-black uppercase tracking-widest shadow-sm group relative overflow-hidden mt-1 shrink-0">
             <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-            <span class="relative z-10 whitespace-nowrap">Micsmo Mall</span>
+            <span class="relative z-10 whitespace-nowrap">{(product.metadata as any)?.is_mall ? 'Mall' : 'Shop'}</span>
          </div>
          <h1 class="text-[20px] font-medium text-gray-900 leading-snug tracking-tight">
             {product.name}
@@ -244,22 +242,24 @@
       <!-- Stats Row -->
       <div class="flex items-center gap-6 text-[14px] mb-6 mt-1">
         <div class="flex items-center gap-1 text-[#ee4d2d] border-b border-[#ee4d2d]/20 pb-0.5">
-          <span class="font-bold border-b border-[#ee4d2d] leading-none mb-[-2px]">4.8</span>
+          <span class="font-bold border-b border-[#ee4d2d] leading-none mb-[-2px]">{(product.metadata as any)?.rating || '5.0'}</span>
           <div class="flex pt-0.5 gap-0.5 ml-1">
-             {#each Array(5) as _}
-                <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+             {#each Array(5) as _, i}
+                <svg class="w-3 h-3 {i < ((product.metadata as any)?.rating || 5) ? 'text-orange-400' : 'text-gray-300'} fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
              {/each}
           </div>
         </div>
         <div class="w-px h-4 bg-gray-200"></div>
         <div class="flex items-center gap-1 group cursor-pointer">
-          <span class="text-black font-bold border-b border-black leading-none mb-[-2px]">1,4k</span>
+          <span class="text-black font-bold border-b border-black leading-none mb-[-2px]">{(product.metadata as any)?.reviews?.length || 0}</span>
           <span class="text-gray-500 font-medium">Đánh Giá</span>
         </div>
         <div class="w-px h-4 bg-gray-200"></div>
         <div class="flex items-center gap-1">
-          <span class="text-black font-bold">9k+</span>
-          <span class="text-gray-500 font-medium">Đã Bán</span>
+          <span class="text-black font-bold">{(product as any).order_count_text || product.order_count || 0}</span>
+          {#if !(product as any).order_count_text}
+            <span class="text-gray-500 font-medium">Đã Bán</span>
+          {/if}
           <svg class="w-3.5 h-3.5 opacity-30 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         </div>
         <div class="ml-auto">
@@ -301,7 +301,7 @@
          <div class="flex items-start">
             <span class="w-[110px] shrink-0 text-[14px] text-gray-500 mt-2">Mã Giảm Giá</span>
             <div class="flex flex-wrap gap-3">
-               {#each vouchers as v}
+               {#each productVouchers as v}
                  {@const isApplied = selectedVouchers.includes(v.id)}
                  <button 
                   onclick={() => toggleVoucher(v.id)}
@@ -313,7 +313,7 @@
                     <div class="w-px h-6 bg-[#ee4d2d]/20 border-dashed border-l mx-1"></div>
                     <div class="flex flex-col items-start translate-x-1">
                        <span class="text-[12px] font-black text-[#ee4d2d] leading-none">{v.label}</span>
-                       <span class="text-[9px] text-gray-400 font-bold uppercase mt-1 tracking-tighter">Hạn 15/04</span>
+                       <span class="text-[9px] text-gray-400 font-bold uppercase mt-1 tracking-tighter">{v.sub || ''}</span>
                     </div>
                     
                     {#if isApplied}
@@ -347,24 +347,40 @@
 
 
 
-      <!-- Product Specifications (Transino Elite) -->
+      <!-- Product Specifications (Dynamic) -->
       <div class="px-5 space-y-2.5 mb-4 border-t border-gray-50 pt-4">
+         {#if productInfo.barcode && productInfo.barcode !== 'N/A'}
          <div class="flex items-center">
             <span class="w-[110px] shrink-0 text-[14px] text-gray-400 font-medium">Mã vạch</span>
             <span class="text-[14px] font-black text-gray-900 tracking-widest bg-gray-50 px-2 py-0.5">{productInfo.barcode}</span>
          </div>
+         {/if}
+         {#if productInfo.brand}
          <div class="flex items-center">
             <span class="w-[110px] shrink-0 text-[14px] text-gray-400 font-medium">Thương hiệu</span>
             <span class="text-[14px] font-black text-[#ee4d2d]">{productInfo.brand}</span>
          </div>
+         {/if}
+         {#if productInfo.origin}
          <div class="flex items-center">
             <span class="w-[110px] shrink-0 text-[14px] text-gray-400 font-medium">Xuất xứ</span>
             <span class="text-[14px] font-black text-gray-900">{productInfo.origin}</span>
          </div>
+         {/if}
+         {#if productInfo.weight}
          <div class="flex items-center">
             <span class="w-[110px] shrink-0 text-[14px] text-gray-400 font-medium">Trọng Lượng</span>
             <span class="text-[14px] font-black text-gray-900">{productInfo.weight}</span>
          </div>
+         {/if}
+         {#if product.attributes}
+           {#each Object.entries(product.attributes) as [key, value]}
+             <div class="flex items-center">
+                <span class="w-[110px] shrink-0 text-[14px] text-gray-400 font-medium capitalize">{key.replace(/_/g, ' ')}</span>
+                <span class="text-[14px] font-black text-gray-900">{value}</span>
+             </div>
+           {/each}
+         {/if}
       </div>
 
       <!-- Quantity & Luxury Stock Logic (Vietnamese) -->
@@ -437,18 +453,24 @@
        </div>
        <div class="px-5 text-[14px] space-y-6">
           <div class="grid grid-cols-1 gap-4 max-w-4xl">
+              {#if productInfo.brand}
               <div class="flex items-center">
                  <span class="w-[180px] shrink-0 text-gray-400 font-medium">Thương hiệu</span>
                  <span class="text-[#ee4d2d] font-black">{productInfo.brand}</span>
               </div>
+              {/if}
+              {#if productInfo.origin}
               <div class="flex items-center">
                  <span class="w-[180px] shrink-0 text-gray-400 font-medium">Xuất xứ</span>
                  <span class="text-gray-900 font-bold">{productInfo.origin}</span>
               </div>
-             <div class="flex items-center">
-                <span class="w-[180px] shrink-0 text-gray-400 font-medium">Trọng Lượng</span>
-                <span class="text-gray-900 font-bold">{productInfo.weight}</span>
-             </div>
+              {/if}
+              {#if productInfo.weight}
+              <div class="flex items-center">
+                 <span class="w-[180px] shrink-0 text-gray-400 font-medium">Trọng Lượng</span>
+                 <span class="text-gray-900 font-bold">{productInfo.weight}</span>
+              </div>
+              {/if}
               <div class="flex items-center">
                  <span class="w-[180px] shrink-0 text-gray-400 font-medium tracking-tight">Danh Mục</span>
                  <div class="flex items-center gap-2 text-[#0384ff] font-black uppercase text-[12px] tracking-tighter">

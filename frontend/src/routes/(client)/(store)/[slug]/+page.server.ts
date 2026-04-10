@@ -58,6 +58,8 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
 
   // 3. Try Product (Standard Slug)
   const productUrl = `${apiUrl}/api/v1/client/products/slug/${slug}`;
+  const relatedUrl = `${apiUrl}/api/v1/client/products/?limit=9`; // Fetch 9 to safely exclude current product and keep 8
+
   try {
     const prodRes = await fetch(productUrl, { headers: { 'x-tenant': tenantId } });
     if (prodRes.ok) {
@@ -66,9 +68,25 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
       const isMobile = isMobileDevice(userAgent);
       const effectiveIp = request.headers.get('cf-connecting-ip') || '127.0.0.1';
 
+      // Load newest products for recommendation section
+      let relatedProducts = [];
+      try {
+        const relRes = await fetch(relatedUrl, { headers: { 'x-tenant': tenantId } });
+        if (relRes.ok) {
+          const relData = await relRes.json();
+          // Remove current product and take exact 8 items
+          relatedProducts = (relData.data || [])
+            .filter((p: any) => p.id !== product.id)
+            .slice(0, 8);
+        }
+      } catch (relErr) {
+        console.error(`[RELATED PRODUCTS FETCH FAILED]`, relErr);
+      }
+
       return {
         type: 'product',
         product,
+        relatedProducts,
         isMobile,
         effectiveIp,
         metadata: {

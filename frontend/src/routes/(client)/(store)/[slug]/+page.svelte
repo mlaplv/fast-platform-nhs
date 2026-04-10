@@ -80,11 +80,11 @@
     <div class:is-mobile-detail={true}>
       <!-- Cấp độ Trình duyệt: Ẩn/Hiện tức thì bằng CSS trước khi JS kịp chạy -->
       <div class="hidden-desktop">
-        <ProductDetailMobile product={data.product} />
+        <ProductDetailMobile product={data.product} relatedProducts={data.relatedProducts} />
       </div>
       
       <div class="hidden-mobile">
-        <ProductDetailDesktop product={data.product} />
+        <ProductDetailDesktop product={data.product} relatedProducts={data.relatedProducts} />
       </div>
     </div>
   {/if}

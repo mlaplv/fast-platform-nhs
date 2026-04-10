@@ -8,8 +8,17 @@
   interface Props {
     isProductMode?: boolean;
     product?: Product | null;
+    onAddToCart?: () => void;
+    onBuyNow?: () => void;
+    onChatOpen?: () => void;
   }
-  let { isProductMode = false, product = null }: Props = $props();
+  let { 
+    isProductMode = false, 
+    product = null,
+    onAddToCart,
+    onBuyNow,
+    onChatOpen
+  }: Props = $props();
 
   let isShrunk = $state(false);
   let lastScrollY = 0;
@@ -52,7 +61,11 @@
     {/if}
 
     <!-- 1. Hotline -->
-    <button class="tbn-item" aria-label="Hotline">
+    <button 
+      class="tbn-item" 
+      aria-label="Hotline"
+      onclick={() => window.location.href = 'tel:0968123159'}
+    >
       <svg class="tbn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
       </svg>
@@ -60,7 +73,11 @@
     </button>
 
     <!-- 2. AI Chat (Viral Magic Core) -->
-    <button class="tbn-item tbn-item--ai" aria-label="AI Chat">
+    <button 
+      class="tbn-item tbn-item--ai" 
+      aria-label="AI Chat"
+      onclick={() => onChatOpen?.()}
+    >
       <div class="tbn-ai-tooltip">
         <span class="tbn-ai-tooltip-text">AI agentic hỗ trợ tư vấn chuyên sâu</span>
       </div>
@@ -84,19 +101,27 @@
       <!-- Cụm Fused Capsule (Viral 2026 - Tối ưu vòng tròn lồng nhau) -->
       <div class="tbn-action-group">
         <!-- Nút Thêm vào giỏ (Nắp trái) -->
-        <button class="tbn-action-split tbn-action-split--cart" aria-label="Thêm vào giỏ hàng">
+        <button 
+          class="tbn-action-split tbn-action-split--cart" 
+          aria-label="Thêm vào giỏ hàng"
+          onclick={() => onAddToCart?.()}
+        >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
             <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
             <path d="M12 9h4M14 7v4" />
           </svg>
         </button>
-
+ 
         <!-- Nút Mua ngay (Thân chính) -->
-        <button class="tbn-action-split tbn-action-split--buy" aria-label="Mua ngay">
+        <button 
+          class="tbn-action-split tbn-action-split--buy" 
+          aria-label="Mua ngay"
+          onclick={() => onBuyNow?.()}
+        >
           <span class="buy-text">Mua ngay</span>
           <span class="buy-sub">
-            {product.price.toLocaleString('vi-VN')}₫ | Freeship
+            {(product.discount_price || product.price).toLocaleString('vi-VN')}₫ | Freeship
           </span>
         </button>
       </div>
@@ -132,14 +157,14 @@
     height: 64px;
     
     /* Thiết kế Liquid Glass Premium chuẩn iOS Control Center */
-    background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: saturate(250%) blur(40px);
-    -webkit-backdrop-filter: saturate(250%) blur(40px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.98); /* Gần như đặc để không bị lẫn chữ nền */
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid rgba(0, 0, 0, 0.05); /* Viền mảnh sẫm màu để tách khối */
     border-radius: 20px;
     box-shadow: 
-      inset 0 1px 1px rgba(255, 255, 255, 0.7), /* Viền sáng bên trong (Inner highlight) */
-      0 8px 32px rgba(0, 0, 0, 0.08); /* Bóng nhạt tạo độ nổi */
+      0 12px 40px rgba(0, 0, 0, 0.15), /* Bóng đậm hơn để nổi bật trên nền rác */
+      0 2px 4px rgba(0,0,0,0.05);
     
     display: flex;
     align-items: center;
