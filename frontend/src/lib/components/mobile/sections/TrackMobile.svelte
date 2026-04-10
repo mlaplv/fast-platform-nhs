@@ -2,6 +2,7 @@
   import { fade, fly, scale } from 'svelte/transition';
   import { Search, Phone, Hash, ArrowLeft, Loader2, Sparkles, Navigation } from 'lucide-svelte';
   import { onMount } from 'svelte';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { useNanobot } from '$lib/state/nanobot.svelte';
   const nanobot = useNanobot();
 
@@ -30,11 +31,11 @@
     <div class="absolute inset-0 bg-sky-500/5 blur-[80px] rounded-full"></div>
   </div>
 
-  <div class="relative w-full max-w-sm flex flex-col items-center z-10">
+  <div class="relative w-full max-w-sm flex flex-col items-center z-surface">
     <!-- Header Icon -->
     <div in:scale={{ duration: 600, start: 0.5 }} class="w-24 h-24 bg-sky-500/20 text-sky-400 rounded-full flex items-center justify-center mb-10 border border-sky-500/30 relative">
       <div class="absolute inset-0 bg-sky-400/20 rounded-full blur-2xl {isSubmitting ? 'animate-pulse' : ''}"></div>
-      <Search class="w-10 h-10 relative z-10" strokeWidth={2.5} />
+      <Search class="w-10 h-10 relative z-surface" strokeWidth={2.5} />
       {#if isSubmitting}
         <div class="absolute inset-0 border-2 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
       {/if}
@@ -84,7 +85,7 @@
       disabled={isSubmitting}
       class="w-full py-5 text-white font-black text-base uppercase tracking-widest rounded-full btn-primary-viral active:scale-95 transition-all overflow-hidden relative group disabled:opacity-50"
     >
-        <span class="relative z-10 flex items-center justify-center gap-3">
+        <span class="relative z-surface flex items-center justify-center gap-3">
           {#if isSubmitting}
             <Loader2 class="w-5 h-5 animate-spin" /> ĐANG TÌM KIẾM
           {:else}

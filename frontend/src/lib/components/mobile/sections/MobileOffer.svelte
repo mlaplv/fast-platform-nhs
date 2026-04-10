@@ -3,6 +3,7 @@
   import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
   import { SHOP_CONFIG, OFFER_CONSTANTS } from '$lib/constants/shop';
   import { resolveMediaUrl } from '$lib/state/utils';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import type { ProductVariant } from '$lib/types';
   import { ShoppingCart, Clock, CheckCircle2, Lock, Users, Zap } from 'lucide-svelte';
   
@@ -78,7 +79,7 @@
 
 
   <!-- Scarcity Floating Header -->
-  <div class="mt-2 flex justify-center z-10">
+  <div class="mt-2 flex justify-center z-surface">
     <div class="bg-black/40 border border-white/10 px-6 py-2.5 rounded-2xl backdrop-blur-3xl flex items-center gap-3 shadow-2xl">
       <Clock class="w-4 h-4 text-red-500 animate-pulse" />
       <div class="flex flex-col">
@@ -88,7 +89,7 @@
     </div>
   </div>
 
-  <div class="mt-2 mb-1 text-center z-10 px-6">
+  <div class="mt-2 mb-1 text-center z-surface px-6">
     <div class="flex items-center justify-center gap-2 mb-3">
        <div class="bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-full flex items-center gap-2 backdrop-blur-xl">
           <Users class="w-3 h-3 text-red-500 animate-pulse" />
@@ -104,7 +105,7 @@
     </h2>
     <p class="text-[10px] text-[#A6C0FE] uppercase tracking-[0.2em] font-black italic mt-1 opacity-80">{@html mkt.sub}</p>
   </div>
-  <div class="flex-1 flex flex-col z-10 overflow-y-auto pb-4 space-y-2.5">
+  <div class="flex-1 flex flex-col z-surface overflow-y-auto pb-4 space-y-2.5">
     <div class="px-1 mt-0">
        <div class="text-[9px] text-white/40 uppercase tracking-[0.4em] font-black mb-4 ml-1 flex items-center gap-2">
           <div class="w-1 h-1 bg-blue-500 rounded-full animate-ping"></div> LỰA CHỌN GÓI:
@@ -113,7 +114,7 @@
          {#each variants as variant, i}
             <button 
               onclick={() => handleSelect(i)}
-              class="relative w-full text-left py-3 px-4 border-y border-x-0 transition-all duration-700 flex items-center gap-4 group active:scale-[0.98] {selectedIndex === i ? 'bg-white/[0.06] backdrop-blur-3xl text-white border-white/10 shadow-[0_25px_80px_rgba(0,0,0,0.3)] z-10' : 'bg-transparent text-white/30 border-white/5 hover:bg-white/5'}"
+              class="relative w-full text-left py-3 px-4 border-y border-x-0 transition-all duration-700 flex items-center gap-4 group active:scale-[0.98] {selectedIndex === i ? 'bg-white/[0.06] backdrop-blur-3xl text-white border-white/10 shadow-[0_25px_80px_rgba(0,0,0,0.3)] z-surface' : 'bg-transparent text-white/30 border-white/5 hover:bg-white/5'}"
             >
                <!-- Liquid Border Accent (Only Active) -->
                {#if selectedIndex === i}
@@ -190,7 +191,7 @@
   </div>
   
   <!-- Unified CTA (Liquid Sapphire Masterpiece - FOMO Optimized) -->
-  <div class="mt-auto z-20 pt-1 pb-1 px-4 relative">
+  <div class="mt-auto z-nav pt-1 pb-1 px-4 relative">
       <!-- Upsell/Incentive Header (Only if not optimal) -->
       <div class="flex flex-col gap-1.5 mb-4 px-4">
         {#each (metadata.active_deals || []) as deal}
@@ -235,7 +236,7 @@
          <!-- Orbital Glow Pulse (FOMO) -->
          <div class="absolute inset-0 rounded-full border border-blue-400/20 animate-pulse opacity-50"></div>
          
-         <div class="relative z-10 flex items-center justify-between w-full px-5 gap-2">
+         <div class="relative z-surface flex items-center justify-between w-full px-5 gap-2">
             <span class="text-white drop-shadow-md text-[14px] font-black leading-tight flex-1 pr-2">{selectedIndex === 0 ? mkt.cta_start : mkt.cta_full}</span>
 
             <div class="flex items-center gap-3 shrink-0">

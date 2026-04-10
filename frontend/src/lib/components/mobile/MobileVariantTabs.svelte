@@ -57,7 +57,7 @@
     opacity: 1;
     transition: opacity 0.3s ease, visibility 0.3s ease;
     visibility: visible;
-    z-index: 100; /* Z_INDEX_CLIENT.MOBILE_TAB_BAR */
+    z-index: var(--z-mobile-tabs);
   }
 
   .tabs-hidden {

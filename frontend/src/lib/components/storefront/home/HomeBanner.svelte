@@ -23,7 +23,7 @@
     if (mainBanners.length > 1) {
       timer = setInterval(() => {
         nextSlide();
-      }, 3000);
+      }, 9000);
     }
   }
 
@@ -60,7 +60,7 @@
     aria-label="banner-carousel"
   >
     {#if mainBanners.length > 0}
-      <div class="w-full h-full flex transition-transform duration-500 ease-out" style="transform: translateX(-{currentSlide * 100}%)">
+      <div class="w-full h-full flex transition-transform duration-1000 ease-out" style="transform: translateX(-{currentSlide * 100}%)">
         {#each mainBanners as banner}
           <img src={banner.image} alt="Main Banner" class="w-full h-full object-cover shrink-0" />
         {/each}
@@ -116,7 +116,7 @@
 <div class="md:hidden relative h-[90px] w-full mb-4 rounded-none overflow-hidden bg-white shadow-sm">
   {#if mainBanners.length > 0}
     <!-- Simple Carousel For Mobile -->
-    <div class="w-full h-full flex transition-transform duration-500" style="transform: translateX(-{currentSlide * 100}%)">
+    <div class="w-full h-full flex transition-transform duration-1000" style="transform: translateX(-{currentSlide * 100}%)">
       {#each mainBanners as banner}
         <img src={banner.image} alt="Banner" class="w-full h-full object-cover shrink-0" />
       {/each}

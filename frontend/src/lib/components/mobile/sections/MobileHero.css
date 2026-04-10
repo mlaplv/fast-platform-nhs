@@ -30,7 +30,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  z-index: 20;
+  z-index: var(--z-surface);
   padding-left: 9px;
   padding-right: 24px; 
   pointer-events: none;

@@ -4,7 +4,7 @@
   import { cubicOut, elasticOut, backOut } from 'svelte/easing';
   import type { Review, ProductMetadata } from '$lib/types';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client.ts';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex.ts';
   import "./VerifiedReviews.css";
 
   const shopStore = getShopStore();
@@ -231,7 +231,7 @@
           onclick={() => showFormModal = true} 
           class="pulse-btn px-10 py-5 bg-emerald-500/10 border border-emerald-500/40 rounded-full text-emerald-400 text-xs font-black uppercase tracking-[0.3em] hover:bg-emerald-500/20 hover:border-emerald-500/60 transition-all active:scale-95 shadow-[0_0_30px_rgba(16,185,129,0.2)] group"
         >
-          <span class="relative z-10">{labels.cta_write}</span>
+          <span class="relative" style="z-index: var(--z-surface);">{labels.cta_write}</span>
           <div class="absolute inset-0 bg-emerald-500/10 blur-xl group-hover:blur-2xl transition-all"></div>
         </button>
       </div>
@@ -357,7 +357,7 @@
     >
       <!-- Confetti Effect Layer -->
       {#if showSuccess}
-        <div class="absolute inset-0 pointer-events-none z-[100]">
+        <div class="absolute inset-0 pointer-events-none" style="z-index: var(--z-header);">
           {#each Array(40) as _, i}
             <div 
               class="confetti-particle absolute"
@@ -482,7 +482,7 @@
                           onclick={() => setRating(i + 1)} 
                           onmouseenter={() => hoverRating = i + 1}
                           aria-label="Rate {i + 1} stars" 
-                          class="star-viral-btn relative z-10 transition-all duration-500 {active ? 'scale-110' : 'scale-100 opacity-20'}"
+                          class="star-viral-btn relative transition-all duration-500 {active ? 'scale-110' : 'scale-100 opacity-20'}" style="z-index: var(--z-surface);"
                         >
                           <svg class="w-6 h-6 sm:w-8 sm:h-8 transition-all duration-700 {active ? 'drop-shadow-[0_0_20px_rgba(16,185,129,0.8)]' : ''}" viewBox="0 0 24 24" fill="none">
                             <defs>

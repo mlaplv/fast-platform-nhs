@@ -5,7 +5,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
   import { page } from '$app/state';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { SUPPORT_AGENT_UI } from '$lib/core/constants/support_agent_config';
 
   const { isMobile = false } = $props<{ isMobile?: boolean }>();

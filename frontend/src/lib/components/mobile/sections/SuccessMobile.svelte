@@ -26,12 +26,21 @@
 
 
   let copied = $state(false);
+  let copyTimer: ReturnType<typeof setTimeout> | undefined;
+
+  $effect(() => {
+    return () => {
+      if (copyTimer) clearTimeout(copyTimer);
+    };
+  });
+
   function copyOrderId() {
     if (typeof navigator !== 'undefined') {
         const shortId = orderId.slice(-6).toUpperCase();
         navigator.clipboard.writeText(shortId);
         copied = true;
-        setTimeout(() => copied = false, 2000);
+        if (copyTimer) clearTimeout(copyTimer);
+        copyTimer = setTimeout(() => copied = false, 2000);
     }
   }
 
@@ -44,7 +53,7 @@
   <!-- Top Navigation -->
   <button
     onclick={() => goto('/')}
-    class="fixed top-4 right-6 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-xl active:scale-95 transition-all text-white/40 ring-1 ring-white/5 shadow-2xl z-[2000]"
+    class="fixed top-4 right-6 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-xl active:scale-95 transition-all text-white/40 ring-1 ring-white/5 shadow-2xl z-toast"
     aria-label="Home"
   >
     <Home class="w-4 h-4" />
@@ -59,11 +68,11 @@
          class="px-4 py-1 rounded-full border border-white/5 bg-white/5 backdrop-blur-2xl mb-6 flex items-center gap-2 relative shadow-2xl">
       <div class="absolute inset-0 {isLookup ? 'bg-sky-400/5' : 'bg-emerald-400/5'} rounded-full blur-2xl"></div>
       {#if isLookup}
-        <ShieldCheck class="w-3 h-3 text-sky-400 relative z-10" strokeWidth={2.5} />
-        <span class="text-[9px] font-bold text-white/60 uppercase tracking-[0.2em] relative z-10">Status: Tracking</span>
+        <ShieldCheck class="w-3 h-3 text-sky-400 relative z-surface" strokeWidth={2.5} />
+        <span class="text-[9px] font-bold text-white/60 uppercase tracking-[0.2em] relative z-surface">Status: Tracking</span>
       {:else}
-        <CheckCircle2 class="w-3 h-3 text-emerald-400 relative z-10" strokeWidth={2.5} />
-        <span class="text-[9px] font-bold text-white/60 uppercase tracking-[0.2em] relative z-10">Status: Success</span>
+        <CheckCircle2 class="w-3 h-3 text-emerald-400 relative z-surface" strokeWidth={2.5} />
+        <span class="text-[9px] font-bold text-white/60 uppercase tracking-[0.2em] relative z-surface">Status: Success</span>
       {/if}
     </div>
 
@@ -157,7 +166,7 @@
     <!-- What's Next Card (Elite V2.2 Refined) -->
     <div in:fly={{ y: 30, duration: 800, delay: 800 }} class="w-full bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-8 text-center relative overflow-hidden group shadow-xl">
        <div class="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-purple-500/10 opacity-50"></div>
-       <div class="relative z-10">
+       <div class="relative z-surface">
          <span class="text-[10px] font-black text-blue-400 uppercase tracking-[0.4em] block mb-4 italic flex items-center justify-center gap-2">
            <Sparkles class="w-3 h-3" /> TIẾP THEO LÀ GÌ?
          </span>
@@ -181,7 +190,7 @@
       href="tel:{SHOP_CONFIG.pharmacy.phone.replace(/\s+/g, '')}"
       class="w-full py-4 text-white font-black text-[13px] uppercase tracking-[0.25em] rounded-full btn-primary-viral active:scale-95 transition-all overflow-hidden relative group text-center shadow-[0_10px_30px_rgba(254,44,85,0.4)]"
     >
-        <span class="relative z-10 flex items-center justify-center gap-2">GỌI XÁC NHẬN NGAY <Phone class="w-4 h-4" /></span>
+        <span class="relative z-surface flex items-center justify-center gap-2">GỌI XÁC NHẬN NGAY <Phone class="w-4 h-4" /></span>
         <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
     </a>
   </div>

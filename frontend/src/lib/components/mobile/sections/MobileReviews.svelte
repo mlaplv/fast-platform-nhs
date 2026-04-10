@@ -52,16 +52,26 @@
   // Toast System
   let toastMessage = $state('');
   let showToast = $state(false);
+  let toastTimer: ReturnType<typeof setTimeout> | undefined;
+  let successTimer: ReturnType<typeof setTimeout> | undefined;
+
+  $effect(() => {
+    return () => {
+      if (toastTimer) clearTimeout(toastTimer);
+      if (successTimer) clearTimeout(successTimer);
+    };
+  });
 
   const locations = [
-    "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ", 
+    "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ",
     "Bình Dương", "Đồng Nai", "Khánh Hòa", "Lâm Đồng", "Quảng Ninh"
   ];
 
   function triggerToast(msg: string) {
     toastMessage = msg;
     showToast = true;
-    setTimeout(() => { showToast = false; }, 3000);
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { showToast = false; }, 3000);
   }
 
   async function fetchReviews() {
@@ -121,7 +131,8 @@
 
       if (res.ok) {
         showSuccess = true;
-        setTimeout(() => {
+        if (successTimer) clearTimeout(successTimer);
+        successTimer = setTimeout(() => {
           showFormModal = false;
           showSuccess = false;
           name = ''; phone = ''; content = ''; locationSelected = '';
@@ -309,7 +320,7 @@
 
                 {#if isLocationOpen}
                   <div 
-                    class="absolute top-full left-0 right-0 mt-2 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[1500] overflow-hidden"
+                    class="absolute top-full left-0 right-0 mt-2 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-modal overflow-hidden"
                     in:fly={{ y: -10, duration: 200 }}
                     out:fade={{ duration: 150 }}
                   >
@@ -408,11 +419,11 @@
   }
 
   .reviews-form-modal {
-    z-index: 1200; /* Z_INDEX_CLIENT.MOBILE_REVIEW_OVERLAY */
+    z-index: var(--z-review-overlay);
     background-color: #030303; /* Hardcoded solid fallback for VPS Mode */
   }
 
   .reviews-toast {
-    z-index: 2000; /* Z_INDEX_CLIENT.MOBILE_REVIEW_HEADER */
+    z-index: var(--z-toast);
   }
 </style>

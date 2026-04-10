@@ -4,7 +4,7 @@
   import { setCartStore } from "$lib/state/commerce/cart.svelte";
   import CartDrawer from "$lib/components/storefront/cart/CartDrawer.svelte";
   import { navigating } from "$app/stores";
-  import { Z_INDEX_CLIENT } from "$lib/core/constants/z_index_client";
+  import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
 
   // Elite V2.2: Ensure root initialization of context
   setNanobotContext();

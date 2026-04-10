@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { Product } from '$lib/types';
   import { X, ShieldCheck, Info } from 'lucide-svelte';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { portal } from '$lib/core/actions/portal';
-  
+
   let { active = $bindable(), product }: { active: boolean, product: Product } = $props();
 
   // Drag-to-Close Logic
@@ -68,16 +69,16 @@
     </div>
 
     <!-- Close Button -->
-    <button 
-      onclick={close} 
-      class="absolute right-0 top-0 w-12 h-12 flex items-center justify-center text-white/20 hover:text-white transition-all z-20 active:scale-90 active:bg-white/5 rounded-tr-[inherit]"
+    <button
+      onclick={close}
+      class="absolute right-0 top-0 w-12 h-12 flex items-center justify-center text-white/20 hover:text-white transition-all z-header active:scale-90 active:bg-white/5 rounded-tr-[inherit]"
       aria-label="Đóng"
     >
       <X class="w-5 h-5" strokeWidth={1.5} />
     </button>
 
     <!-- Header: Sticky at the top -->
-    <div class="relative flex items-center justify-center px-6 pb-2 pt-1 border-b border-white/5 bg-[#0a0a0a] shrink-0">
+    <div class="relative flex items-center justify-center px-6 pb-2 pt-1 border-b border-white/5 bg-[#0a0a0a] shrink-0 z-header">
       <h2 class="text-[12px] font-black uppercase tracking-[0.2em] italic text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 py-2 flex items-center gap-2">
         <Info class="w-4 h-4 text-emerald-400" />
         Thông tin sản phẩm

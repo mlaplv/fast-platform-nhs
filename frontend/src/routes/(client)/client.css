@@ -5,9 +5,14 @@
   --z-wave: 1;
   --z-surface: 10;
   --z-header: 100;
+  --z-mobile-tabs: 100;
   --z-overlay: 500;
   --z-modal: 1000;
+  --z-mobile-sheet-bg: 1000;
+  --z-mobile-sheet: 1100;
+  --z-review-overlay: 1200;
   --z-toast: 2000;
+  --z-review-header: 2000;
 
   --section-pt: 8vh;
   --wave-offset-science: -90px;

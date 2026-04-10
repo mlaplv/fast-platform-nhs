@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { fade, fly, scale } from 'svelte/transition';
-  import { Z_INDEX_CLIENT } from "$lib/core/constants/z_index_client";
+  import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import { onMount } from 'svelte';
   import { apiClient } from '$lib/utils/apiClient';
   import { formatCurrency, formatDate } from '$lib/utils/format.ts';

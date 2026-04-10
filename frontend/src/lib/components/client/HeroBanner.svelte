@@ -177,7 +177,7 @@
 
 
   <!-- NUCLEAR VIDEO BACKGROUND (Standard Full Coverage: 100% Native) -->
-  <div class="absolute inset-x-0 top-0 bottom-0 z-0 overflow-hidden pointer-events-none w-full h-full">
+  <div class="absolute inset-x-0 top-0 bottom-0 overflow-hidden pointer-events-none w-full h-full" style="z-index: var(--z-base);">
     <div class="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#020617] to-transparent w-full z-surface"></div>
     {#if videoMode === 'local'}
       <video autoplay muted loop playsinline class="elite-video-bg">

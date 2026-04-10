@@ -49,7 +49,7 @@
       <div class="claim-card group">
         <div class="claim-icon-box">
           <div class="claim-icon-glow"></div>
-          <Icon class="w-6 h-6 text-blue-400 relative z-10" />
+          <Icon class="w-6 h-6 text-blue-400 relative z-surface" />
         </div>
         <div>
           <h4 class="claim-title">{item.title}</h4>

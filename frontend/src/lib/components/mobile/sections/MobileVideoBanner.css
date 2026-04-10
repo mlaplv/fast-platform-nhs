@@ -25,7 +25,7 @@
   height: 120px;
   background: linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 100%);
   pointer-events: none;
-  z-index: 2;
+  z-index: var(--z-wave);
 }
 
 /* Bottom gradient for meta overlay readability */
@@ -37,7 +37,7 @@
   height: 320px; /* Taller gradient for better text backdrop */
   background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 40%, transparent 100%);
   pointer-events: none;
-  z-index: 2;
+  z-index: var(--z-wave);
 }
 
 /* ── Bottom-left metadata ── */
@@ -46,7 +46,7 @@
   bottom: calc(var(--mobile-bottom-space) + env(safe-area-inset-bottom, 0px));
   left: 0.3125rem;
   right: 5rem;
-  z-index: 3;
+  z-index: var(--z-surface);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;

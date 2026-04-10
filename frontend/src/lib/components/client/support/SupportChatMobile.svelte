@@ -5,7 +5,7 @@
   import { Send, X, ShieldCheck, PhoneCall, PackageSearch, Sparkles, UserRound, ScanSearch, Lock } from 'lucide-svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import HelenIcon from './HelenIcon.svelte';
   
   const { productSlug = '' } = $props<{ productSlug?: string }>();

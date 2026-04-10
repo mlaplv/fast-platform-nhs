@@ -26,36 +26,51 @@
   let analysisStatus = $state("Đang phân tích tập dữ liệu lâm sàng...");
   let binaryData = $state("0 1 0 1 1 1 0 0 1");
 
+  // Memory cleanup for async timers
+  const timers = new Set<any>();
+  function clearTimers() {
+    timers.forEach(t => {
+      clearTimeout(t);
+      clearInterval(t);
+    });
+    timers.clear();
+  }
+
+  $effect(() => {
+    return () => clearTimers();
+  });
+
   function nextStep(value: string) {
     answers.push(value);
     if (currentStep < questions.length - 1) {
       currentStep++;
     } else {
       isAnalyzing = true;
-      
+
       // Binary data animation
       const interval = setInterval(() => {
         binaryData = Array.from({ length: 16 }, () => Math.round(Math.random())).join(" ");
       }, 80);
+      timers.add(interval);
 
       // Status messages synchronized with desktop (+ richer mobile steps)
-      setTimeout(() => analysisStatus = "Đang xử lý cấu trúc sinh trắc học...", 1500);
-      setTimeout(() => analysisStatus = "Đang tối ưu hóa liệu trình cá nhân hóa...", 3500);
-      setTimeout(() => analysisStatus = "Hoàn tất cấu trúc Optimal. Đang chuẩn bị phác đồ...", 5000);
+      timers.add(setTimeout(() => analysisStatus = "Đang xử lý cấu trúc sinh trắc học...", 1500));
+      timers.add(setTimeout(() => analysisStatus = "Đang tối ưu hóa liệu trình cá nhân hóa...", 3500));
+      timers.add(setTimeout(() => analysisStatus = "Hoàn tất cấu trúc Optimal. Đang chuẩn bị phác đồ...", 5000));
 
-      setTimeout(() => {
+      const analysisTimer = setTimeout(() => {
         clearInterval(interval);
+        timers.delete(interval);
         isAnalyzing = false;
         showResult = true;
         
         let recommendedQty = 1;
-        if (answers.includes('heavy') || answers.includes('failed')) {
+        if (answers.includes("heavy") || answers.includes("failed")) {
           recommendedQty = 2;
         }
 
-        // Auto-apply promo if exists for the recommended quantity
         const deals = shopStore.product?.metadata?.active_deals;
-        const matchingDeal = deals?.find((d: import('$lib/types').PromotionDeal) => d.buy_qty === recommendedQty);
+        const matchingDeal = deals?.find((d: any) => d.buy_qty === recommendedQty);
         
         if (matchingDeal) {
           shopStore.setQuantity(matchingDeal.buy_qty + (matchingDeal.get_qty || 0));
@@ -63,6 +78,7 @@
           shopStore.setQuantity(recommendedQty);
         }
       }, 6500);
+      timers.add(analysisTimer);
     }
   }
 
@@ -92,18 +108,18 @@
   <div class="relative flex-1 flex flex-col">
     {#if questions.length > 0}
       {#if isAnalyzing}
-        <div class="absolute -inset-x-6 inset-y-0 z-50 flex flex-col items-center justify-center bg-[#030303] overflow-hidden" in:fade={{ duration: 400 }}>
+        <div class="absolute -inset-x-6 inset-y-0 z-modal flex flex-col items-center justify-center bg-[#030303] overflow-hidden" in:fade={{ duration: 400 }}>
           <!-- Sci-fi Technical Grid -->
           <div class="absolute inset-0 opacity-[0.07] tech-grid">
           </div>
-          
+
           <!-- Biometric Pulses -->
           <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div class="w-64 h-64 border border-blue-500/20 rounded-full animate-ping opacity-20"></div>
             <div class="w-96 h-96 border border-blue-500/10 rounded-full animate-ping opacity-10 biometric-pulse-delayed"></div>
           </div>
-          
-          <div class="relative z-10 text-center px-4 -mt-20">
+
+          <div class="relative z-surface text-center px-4 -mt-20">
             <div class="mb-10 relative">
               <div class="absolute inset-0 bg-blue-500/30 blur-[60px] rounded-full animate-pulse"></div>
               <div class="w-20 h-20 bg-blue-500/10 rounded-full border border-blue-500/40 flex items-center justify-center backdrop-blur-3xl shadow-[0_0_50px_rgba(59,130,246,0.3)] mx-auto relative group">

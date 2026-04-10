@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Product } from '$lib/types';
   import { X, ShieldCheck, Info } from 'lucide-svelte';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { portal } from '$lib/core/actions/portal';
   import { fade, scale } from 'svelte/transition';
   
@@ -33,7 +33,7 @@
     <!-- Close Button -->
     <button 
       onclick={close} 
-      class="absolute right-6 top-6 w-10 h-10 flex items-center justify-center text-white/20 hover:text-white hover:bg-white/5 transition-all z-20 rounded-full"
+      class="absolute right-6 top-6 w-10 h-10 flex items-center justify-center text-white/20 hover:text-white hover:bg-white/5 transition-all rounded-full" style="z-index: var(--z-content);"
       aria-label="Đóng"
     >
       <X class="w-6 h-6" strokeWidth={1.5} />

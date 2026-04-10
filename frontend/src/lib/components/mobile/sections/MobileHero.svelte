@@ -173,7 +173,7 @@
                   </div>
 
                   <!-- Left: Icon & Text -->
-                  <div class="flex items-center gap-3 relative z-10">
+                  <div class="flex items-center gap-3 relative z-surface">
                      <div class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.3)] group-active:scale-90 transition-transform">
                         <ArrowRight class="w-4 h-4 ml-[2px]" />
                      </div>
@@ -186,7 +186,7 @@
                   </div>
                   
                   <!-- Right: Countdown -->
-                  <div class="flex flex-col items-end justify-center relative z-10 mt-[1px]">
+                  <div class="flex flex-col items-end justify-center relative z-surface mt-[1px]">
                      <span class="text-[7.5px] font-bold text-white/50 uppercase tracking-widest mb-[1.5px]">KẾT THÚC SAU</span>
                      <span class="text-[11px] font-black text-white font-mono tracking-tighter drop-shadow-md leading-none">{formattedTime}</span>
                   </div>

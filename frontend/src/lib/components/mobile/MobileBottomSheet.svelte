@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Product, ProductVariant } from '$lib/types';
   import { X, ShoppingCart, ShieldCheck, ArrowRight, ArrowLeft, Phone, MapPin, User, Loader2 } from 'lucide-svelte';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { portal } from '$lib/core/actions/portal';
   import { fade, fly } from 'svelte/transition';
@@ -13,7 +14,7 @@
   const appliedDeal = $derived(shopStore.appliedDeal);
   const nextDeal = $derived(shopStore.nextDeal);
   const totalSaved = $derived(shopStore.originalPrice * shopStore.quantity - shopStore.totalAmount);
-  
+
   let step = $state<'selection' | 'shipping'>('selection');
   let name = $state('');
   let phone = $state('');
@@ -27,6 +28,14 @@
     cta_submit: metadata?.mobile_bottom_sheet_cta || "XÁC NHẬN LIỆU TRÌNH",
     free_shipping: metadata?.mobile_free_shipping_label || "Lightning Free Shipping",
     variant_label: metadata?.mobile_variant_selection_label || "Phân loại đang chọn",
+  });
+
+  // Memory cleanup for async timers
+  let lookupTimer: ReturnType<typeof setTimeout> | undefined;
+  $effect(() => {
+    return () => {
+      if (lookupTimer) clearTimeout(lookupTimer);
+    };
   });
 
   // Drag-to-Close Logic
@@ -70,7 +79,6 @@
   }
 
   // Smart Lookup Logic (Elite V2.2)
-  let lookupTimer: ReturnType<typeof setTimeout> | undefined;
   function handlePhoneInput() {
     if (phone.length >= 10) {
       if (lookupTimer) clearTimeout(lookupTimer);
@@ -152,7 +160,7 @@
     <!-- Close Button: Decoupled from Drag Area with 48px Hitbox -->
     <button
       onclick={close}
-      class="absolute right-0 top-0 w-12 h-12 flex items-center justify-center text-white/45 hover:text-white transition-all active:scale-90 active:bg-white/5 rounded-tr-[inherit] z-20"
+      class="absolute right-0 top-0 w-12 h-12 flex items-center justify-center text-white/45 hover:text-white transition-all active:scale-90 active:bg-white/5 rounded-tr-[inherit] z-header"
       aria-label="Đóng"
     >
       <X class="w-5 h-5" strokeWidth={1.5} />
@@ -369,7 +377,7 @@
         {#if shopStore.isSubmitting}
           <Loader2 class="w-4 h-4 animate-spin shrink-0" />
         {:else}
-          <div class="flex flex-col items-center leading-none relative z-10">
+          <div class="flex flex-col items-center leading-none relative z-surface">
             <span class="text-[12px] font-black tracking-widest whitespace-nowrap">{step === 'selection' ? labels.cta_next : labels.cta_submit}</span>
             {#if step === 'shipping' && totalSaved > 0}
               <span class="text-[9px] font-bold text-white/80 tracking-tighter mt-1.5 whitespace-nowrap drop-shadow-sm">
@@ -381,9 +389,9 @@
           </div>
           
           {#if step === 'selection'}
-            <ArrowRight class="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform shrink-0" />
+            <ArrowRight class="w-4 h-4 relative z-surface group-hover:translate-x-1 transition-transform shrink-0" />
           {:else}
-            <ShoppingCart class="w-4 h-4 relative z-10 group-hover:scale-110 transition-transform shrink-0" />
+            <ShoppingCart class="w-4 h-4 relative z-surface group-hover:scale-110 transition-transform shrink-0" />
           {/if}
         {/if}
       </button>

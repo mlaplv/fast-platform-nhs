@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ShoppingCart, Star, Info, MessageSquare, ShieldCheck } from 'lucide-svelte';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import type { Product } from '$lib/types';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
 
@@ -83,7 +84,7 @@
   </button>
 
   <!-- MIỄN PHÍ SHIP Badge (Centered between Star and Cart) -->
-  <div class="bg-emerald-500 text-white text-[7px] font-black px-2 py-0.5 rounded shadow-lg animate-bounce whitespace-nowrap z-30 uppercase tracking-wider relative translate-y-[10px]">
+  <div class="bg-emerald-500 text-white text-[7px] font-black px-2 py-0.5 rounded shadow-lg animate-bounce whitespace-nowrap z-surface uppercase tracking-wider relative translate-y-[10px]">
     FREESHIP
   </div>
 
@@ -99,7 +100,7 @@
         style:background-image="url('{labels.disk_image}')"
       ></div>
       <div class="absolute inset-0 bg-black/20"></div>
-      <ShoppingCart class="w-6 h-6 text-white relative z-10 drop-shadow-lg" />
+      <ShoppingCart class="w-6 h-6 text-white relative z-surface drop-shadow-lg" />
     </div>
   </button>
 </div>

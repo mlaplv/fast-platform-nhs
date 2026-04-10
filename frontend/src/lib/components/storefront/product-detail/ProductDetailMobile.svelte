@@ -226,12 +226,10 @@
         Tổng quan
         {#if activeTab === 'overview'}<div class="active-indicator"></div>{/if}
       </button>
-      {#if productReviews.length > 0}
       <button class="tab-item" class:active={activeTab === 'reviews'} onclick={() => scrollToSection('reviews')}>
         Đánh giá
         {#if activeTab === 'reviews'}<div class="active-indicator"></div>{/if}
       </button>
-      {/if}
       <button class="tab-item" class:active={activeTab === 'description'} onclick={() => scrollToSection('description')}>
         Mô tả
         {#if activeTab === 'description'}<div class="active-indicator"></div>{/if}
@@ -367,34 +365,44 @@
     <div class="section-divider"></div>
 
     <!-- SECTION 2: REVIEWS -->
-    {#if productReviews.length > 0}
     <section id="reviews" class="content-section" bind:this={sectionRefs.reviews}>
       <div class="section-header">
         <h2 class="section-title">Đánh giá khách hàng</h2>
         <button class="view-all">Xem tất cả <ChevronRight size={14} /></button>
       </div>
-      <div class="reviews-summary">
-        <div class="score-big">{(product.metadata as any)?.rating || '5.0'}<span>/5</span></div>
-        <div class="review-tags">
-          <span class="tag active">Tất cả ({productReviews.length})</span>
-        </div>
-      </div>
-      {#each productReviews as review}
-      <div class="review-item">
-        <div class="user-info">
-          <div class="avatar">{review.user?.charAt(0) || 'U'}</div>
-          <div>
-            <div class="username">{review.user || 'Ẩn danh'}</div>
-            <div class="stars-tiny">{'⭐'.repeat(review.rating || 5)}</div>
+
+      {#if productReviews.length === 0}
+        <div class="empty-reviews-state">
+          <div class="score-big">{(product.metadata as any)?.rating || '5.0'}<span>/5</span></div>
+          <div class="flex flex-col items-center justify-center py-6 text-gray-400">
+            <MessageCircleMore size={40} class="mb-2 opacity-20" />
+            <p class="text-sm">Chưa có đánh giá cho sản phẩm này</p>
+            <p class="text-xs opacity-60">Sếp sẽ là người đầu tiên đánh giá?</p>
           </div>
         </div>
-        <p class="comment">{review.comment}</p>
-        <div class="review-date">{review.date || 'Gần đây'}</div>
-      </div>
-      {/each}
+      {:else}
+        <div class="reviews-summary">
+          <div class="score-big">{(product.metadata as any)?.rating || '5.0'}<span>/5</span></div>
+          <div class="review-tags">
+            <span class="tag active">Tất cả ({productReviews.length})</span>
+          </div>
+        </div>
+        {#each productReviews as review}
+        <div class="review-item">
+          <div class="user-info">
+            <div class="avatar">{(review.user || review.name || 'U').charAt(0)}</div>
+            <div>
+              <div class="username">{review.user || review.name || 'Ẩn danh'}</div>
+              <div class="stars-tiny">{'⭐'.repeat(review.rating || 5)}</div>
+            </div>
+          </div>
+          <p class="comment">{review.comment || review.content}</p>
+          <div class="review-date">{review.date || review.location || 'Gần đây'}</div>
+        </div>
+        {/each}
+      {/if}
     </section>
     <div class="section-divider"></div>
-    {/if}
 
     <!-- SECTION 3: DESCRIPTION -->
     <section id="description" class="content-section" bind:this={sectionRefs.description}>

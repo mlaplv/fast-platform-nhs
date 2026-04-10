@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fade, fly, scale } from 'svelte/transition';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { apiClient } from '$lib/utils/apiClient';
   import { goto } from '$app/navigation';
   import TrackMobile from '$lib/components/mobile/sections/TrackMobile.svelte';

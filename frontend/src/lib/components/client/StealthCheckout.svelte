@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client.ts';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex.ts';
   import { onMount } from 'svelte';
   import "./StealthCheckout.css";
 

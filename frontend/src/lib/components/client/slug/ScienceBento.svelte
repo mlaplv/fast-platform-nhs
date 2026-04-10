@@ -7,7 +7,7 @@
     <!-- 150px Coordinate Grid Overlay -->
     <div class="tech-grid opacity-30"></div>
 
-    <div class="container mx-auto px-6 max-w-6xl text-center relative z-10 pt-[var(--standard-pt)] pb-32 md:pb-48">
+    <div class="container mx-auto px-6 max-w-6xl text-center relative pt-[var(--standard-pt)] pb-32 md:pb-48" style="z-index: var(--z-surface);">
         
         <!-- SECTION HEADER (Normalized spacing to fix "thừa trên thiếu dưới") -->
         <header class="mb-8 md:mb-12 animate-reveal">
@@ -31,7 +31,7 @@
             <!-- KHỐI TRÁI (FULL IMAGE - NO BORDERS) -->
             <div class="md:col-span-6 flex items-center mechanism-image-wrapper relative group overflow-hidden">
                 <!-- Modern Scan Effect -->
-                <div class="absolute inset-0 pointer-events-none z-20">
+                <div class="absolute inset-0 pointer-events-none style="z-index: var(--z-content);"">
                     <div class="scanner-line"></div>
                     <div class="scanner-glow"></div>
                 </div>

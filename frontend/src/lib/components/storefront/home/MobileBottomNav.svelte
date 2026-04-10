@@ -2,7 +2,7 @@
 <!-- Safari iOS Liquid Glass Floating Nav (Elite V2.2) -->
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import type { Product } from '$lib/types';
 
   interface Props {

@@ -2,6 +2,8 @@ export const Z_INDEX_CLIENT = {
   BASE: 0,
   WAVE: 1,
   SURFACE: 10,
+  CONTENT: 20,
+  POPUP: 50,
   HEADER: 100,
   MOBILE_TAB_BAR: 100,
   OVERLAY: 500,
