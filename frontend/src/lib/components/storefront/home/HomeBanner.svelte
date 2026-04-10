@@ -1,20 +1,25 @@
 <script lang="ts">
+  interface Banner {
+    id: str;
+    image_url: string;
+    link_url?: string;
+    title?: string;
+  }
   interface Props {
-    banners: Array<{ id: string; image: string }>;
+    banners: Banner[];
   }
   let { banners }: Props = $props();
 
-  // Ép cứng dữ liệu từ thư mục /uploads/img/banner/ đúng như Sếp yêu cầu để đảm bảo không sai lệch
-  const staticBanners = [
-    { id: 'm1', image: '/uploads/img/banner/vn-11134258-81ztc-mm7801vsbw94c6@resize_w797_nl.webp' }, // Bạn mới tặng 80k
-    { id: 'm2', image: '/uploads/img/banner/vn-11134258-81ztc-mmiz6tc047peb7@resize_w797_nl.webp' }, // Micsmo Live
-    { id: 'm3', image: '/uploads/img/banner/sg-11134258-81zu3-mmr6osj4nb41df@resize_w797_nl.webp' }, // Dyson Slide
-    { id: 's1', image: '/uploads/img/banner/sg-11134258-81ztz-mmr7ei1zauiwc3@resize_w398_nl.webp' }, // Micsmo Xử Lý
-    { id: 's2', image: '/uploads/img/banner/sg-11134258-81zw1-mmr7ejh867lucb@resize_w398_nl.webp' }  // Voucher 50%
-  ];
+  // Elite V2.2: Neural Link Intelligence
+  // Tự động chuẩn hóa link: Nếu chỉ là slug -> /product/slug, nếu là full url -> giữ nguyên
+  function getProductLink(url?: string) {
+    if (!url) return '#';
+    if (url.startsWith('http') || url.startsWith('/')) return url;
+    return `/${url}`; // Mặc định là slug sản phẩm vì đã bỏ tiền tố /product ở route
+  }
 
-  let mainBanners = $derived(staticBanners.slice(0, 3));
-  let sideBanners = $derived(staticBanners.slice(3, 5));
+  let mainBanners = $derived(banners.filter(b => b.id.startsWith('m') || banners.indexOf(b) < 3));
+  let sideBanners = $derived(banners.filter(b => b.id.startsWith('s') || (banners.indexOf(b) >= 3 && banners.indexOf(b) < 5)));
 
   let currentSlide = $state(0);
   let timer: ReturnType<typeof setInterval>;
@@ -62,7 +67,9 @@
     {#if mainBanners.length > 0}
       <div class="w-full h-full flex transition-transform duration-1000 ease-out" style="transform: translateX(-{currentSlide * 100}%)">
         {#each mainBanners as banner}
-          <img src={banner.image} alt="Main Banner" class="w-full h-full object-cover shrink-0" />
+          <a href={getProductLink(banner.link_url)} class="w-full h-full shrink-0">
+             <img src={banner.image_url} alt={banner.title || "Main Banner"} class="w-full h-full object-cover" />
+          </a>
         {/each}
       </div>
 
@@ -105,8 +112,8 @@
   <div class="flex flex-col gap-[5px] h-full">
     {#each sideBanners as banner}
       <!-- Micsmo style hover effect -->
-      <a href="#" class="flex-1 relative rounded-[2px] overflow-hidden group block bg-[#eee]">
-        <img src={banner.image} alt="Side Banner" class="w-full h-full object-cover transition-opacity duration-300 hover:opacity-95 active:opacity-90" />
+      <a href={getProductLink(banner.link_url)} class="flex-1 relative rounded-[2px] overflow-hidden group block bg-[#eee]">
+        <img src={banner.image_url} alt={banner.title || "Side Banner"} class="w-full h-full object-cover transition-opacity duration-300 hover:opacity-95 active:opacity-90" />
       </a>
     {/each}
   </div>
@@ -118,7 +125,9 @@
     <!-- Simple Carousel For Mobile -->
     <div class="w-full h-full flex transition-transform duration-1000" style="transform: translateX(-{currentSlide * 100}%)">
       {#each mainBanners as banner}
-        <img src={banner.image} alt="Banner" class="w-full h-full object-cover shrink-0" />
+        <a href={getProductLink(banner.link_url)} class="w-full h-full shrink-0">
+          <img src={banner.image_url} alt={banner.title || "Banner"} class="w-full h-full object-cover" />
+        </a>
       {/each}
     </div>
     

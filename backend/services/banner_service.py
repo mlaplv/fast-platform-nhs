@@ -128,3 +128,7 @@ class BannerService:
             logger.error(f"[BannerService] Failed to emit media sync: {e}")
 
 banner_service = BannerService()
+
+async def provide_banner_service() -> BannerService:
+    """Standard Litestar Provider for BannerService."""
+    return banner_service

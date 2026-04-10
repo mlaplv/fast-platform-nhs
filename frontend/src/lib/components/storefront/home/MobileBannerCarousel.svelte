@@ -5,7 +5,9 @@
 
   interface Banner {
     id: string;
-    image: string;
+    image_url: string;
+    link_url?: string;
+    title?: string;
   }
 
   interface Props {
@@ -14,13 +16,14 @@
 
   let { banners }: Props = $props();
 
-  const staticBanners: Banner[] = [
-    { id: 'm1', image: '/uploads/img/banner/vn-11134258-81ztc-mm7801vsbw94c6@resize_w797_nl.webp' },
-    { id: 'm2', image: '/uploads/img/banner/vn-11134258-81ztc-mmiz6tc047peb7@resize_w797_nl.webp' },
-    { id: 'm3', image: '/uploads/img/banner/sg-11134258-81zu3-mmr6osj4nb41df@resize_w797_nl.webp' },
-  ];
+  // Elite V2.2: Neural Link Intelligence
+  function getProductLink(url?: string) {
+    if (!url) return '#';
+    if (url.startsWith('http') || url.startsWith('/')) return url;
+    return `/${url}`;
+  }
 
-  const displayBanners: Banner[] = $derived(banners?.length ? banners : staticBanners);
+  const displayBanners = $derived(banners && banners.length > 0 ? banners : []);
 
   let current = $state(0);
   let timer: ReturnType<typeof setInterval>;
@@ -40,12 +43,14 @@
     style="transform: translateX(-{current * 100}%)"
   >
     {#each displayBanners as banner, i}
-      <img
-        src={banner.image}
-        alt="Banner {i + 1}"
-        class="banner-slide"
-        loading={i === 0 ? 'eager' : 'lazy'}
-      />
+      <a href={getProductLink(banner.link_url)} class="banner-slide">
+        <img
+          src={banner.image_url}
+          alt={banner.title || `Banner ${i + 1}`}
+          class="w-full h-full object-cover"
+          loading={i === 0 ? 'eager' : 'lazy'}
+        />
+      </a>
     {/each}
   </div>
 

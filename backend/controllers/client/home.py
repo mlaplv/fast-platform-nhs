@@ -9,6 +9,7 @@ from backend.services.commerce.product import ProductService, provide_product_se
 from backend.services.commerce.category import CategoryService, provide_category_service
 
 from backend.services.commerce.product_vector import ProductVectorService, provide_product_vector_service
+from backend.services.banner_service import BannerService, provide_banner_service
 
 logger = logging.getLogger("api-gateway")
 
@@ -19,6 +20,7 @@ class ClientHomeController(Controller):
         "product_service": Provide(provide_product_service),
         "category_service": Provide(provide_category_service),
         "vector_service": Provide(provide_product_vector_service),
+        "banner_service": Provide(provide_banner_service),
     }
 
     @get("/")
@@ -26,16 +28,18 @@ class ClientHomeController(Controller):
         self,
         db_session: AsyncSession,
         product_service: ProductService,
-        category_service: CategoryService
+        category_service: CategoryService,
+        banner_service: BannerService
     ) -> Dict[str, Any]:
         """PUBLIC: Get aggregated data for the home page."""
-        # Fetch actual products and categories
+        # Fetch actual products, categories, and banners
         products = await product_service.list_products(db_session, limit=50, offset=0, status="ACTIVE")
         categories = await category_service.list_categories(db_session)
+        banners = await banner_service.list_banners(db_session, position="home_main", active_only=True)
         
         # Format response to match SvelteKit expectation
         return {
-            "banners": [],  # Banners can be fetched from a banner service later
+            "banners": [b.model_dump() for b in banners.data] if banners else [],
             "categories": [c.model_dump() for c in categories.data] if categories else [],
             "products": [p.model_dump() for p in products.data] if products else [],
             "videos": []    # Videos can be fetched from a media service later
