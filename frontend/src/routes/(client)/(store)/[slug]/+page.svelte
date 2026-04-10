@@ -15,6 +15,12 @@
 
   // Elite V2.2: Dynamic Layout Sync (Viral 2026 Protocol)
   $effect(() => {
+    // Luôn ẩn header/footer trên mobile cho trang chi tiết để dùng header/footer riêng (Shopee/TikTok style)
+    if (isMobile) {
+      ui.isHeaderHidden = true;
+      ui.isFooterHidden = true;
+    }
+
     const isFunnel = data.product?.metadata?.landing_type && data.product.metadata.landing_type !== 'standard';
     
     if (isFunnel) {
@@ -70,18 +76,16 @@
     <!-- Funnel component already handles its own <svelte:head> -->
     <FunnelPage {data} />
   {:else}
-    <!-- GIAO DIỆN CHI TIẾT SẢN PHẨM MẶC ĐỊNH -->
-    {#if isMobile}
-      <ProductDetailMobile product={data.product} />
-    {:else}
-      <ProductDetailDesktop product={data.product} />
-    {/if}
-    
-    <!-- DEV DEBUG OVERLAY -->
-    {#if import.meta.env.DEV}
-      <div class="fixed bottom-0 left-0 bg-black/80 text-green-400 p-2 text-xs z-50">
-        [DEBUG] Landing Type: {data.product?.metadata?.landing_type || 'undefined/standard'}
+    <!-- GIAO DIỆN CHI TIẾT SẢN PHẨM MẶC ĐỊNH (Zero-Shift Elite V2.2) -->
+    <div class:is-mobile-detail={true}>
+      <!-- Cấp độ Trình duyệt: Ẩn/Hiện tức thì bằng CSS trước khi JS kịp chạy -->
+      <div class="hidden-desktop">
+        <ProductDetailMobile product={data.product} />
       </div>
-    {/if}
+      
+      <div class="hidden-mobile">
+        <ProductDetailDesktop product={data.product} />
+      </div>
+    </div>
   {/if}
 {/if}

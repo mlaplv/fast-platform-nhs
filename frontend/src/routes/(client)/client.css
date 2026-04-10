@@ -42,6 +42,22 @@
   --primary: #ee4d2d;
 }
 
+/* ZERO-SHIFT RESPONSIVE UTILITIES (Elite V2.2) */
+.hidden-mobile {
+  @media (max-width: 767px) { display: none !important; }
+}
+.hidden-desktop {
+  @media (min-width: 768px) { display: none !important; }
+}
+
+/* IMMEDIATE HEADER HIDING (NO-FLICKER) */
+.is-mobile-detail header.fixed.top-0 {
+  @media (max-width: 767px) { display: none !important; }
+}
+.is-mobile-detail nav.fixed.bottom-0 {
+  @media (max-width: 767px) { display: none !important; }
+}
+
 /* GLOBAL PERFORMANCE HARDENING: VPS Mode */
 * {
   backdrop-filter: none !important;
