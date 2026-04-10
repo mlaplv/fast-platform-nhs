@@ -52,7 +52,9 @@
 
     <!-- 2. AI Chat (Viral Magic Core) -->
     <button class="tbn-item tbn-item--ai" aria-label="AI Chat">
-      <div class="tbn-ai-tooltip">AI agentic hỗ trợ tư vấn chuyên sâu</div>
+      <div class="tbn-ai-tooltip">
+        <span class="tbn-ai-tooltip-text">AI agentic hỗ trợ tư vấn chuyên sâu</span>
+      </div>
       <svg class="tbn-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <defs>
           <linearGradient id="ai-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -96,13 +98,15 @@
     max-width: calc(100vw - 16px);
     height: 64px;
     
-    /* Thiết kế Liquid Glass Premium */
-    background: rgba(255, 255, 255, 0.75);
-    backdrop-filter: saturate(180%) blur(20px);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.7);
+    /* Thiết kế Liquid Glass Premium chuẩn iOS Control Center */
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: saturate(250%) blur(40px);
+    -webkit-backdrop-filter: saturate(250%) blur(40px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 20px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.06), 0 0 0 1px rgba(255,255,255,1) inset;
+    box-shadow: 
+      inset 0 1px 1px rgba(255, 255, 255, 0.7), /* Viền sáng bên trong (Inner highlight) */
+      0 8px 32px rgba(0, 0, 0, 0.08); /* Bóng nhạt tạo độ nổi */
     
     display: flex;
     align-items: center;
@@ -129,7 +133,7 @@
     border-radius: 24px;
     /* translate để giữ căn giữa và add thêm offset Y */
     translate: -50% 4px;
-    background: rgba(255, 255, 255, 0.85); /* Tăng độ đục để rõ hơn khi nhỏ */
+    background: rgba(255, 255, 255, 0.6); /* Tăng độ đục để rõ hơn khi nhỏ */
   }
 
   /* Cấu hình các Nút con */
@@ -207,43 +211,58 @@
     font-weight: 800; /* Bớt nặng nề */
   }
 
-  /* TOOLTIP "AI agentic hỗ trợ tư vấn chuyên sâu" */
+  /* TOOLTIP DYNAMIC GLASS (iOS 26 bright mode style) */
   .tbn-ai-tooltip {
     position: absolute;
-    top: -44px;
-    right: -8px; /* Neo phải để tooltip tự nở sang trái, không bị tràn màn hình */
-    background: linear-gradient(90deg, #0cebeb, #20e3b2, #fe2c55); /* 3 trạm màu Viral */
-    color: #fff;
-    font-size: 10px;
-    font-weight: 800;
-    padding: 6px 14px;
+    top: -46px;
+    right: -8px; 
+    /* Kính Sáng (Light Glass) chuẩn iOS */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: saturate(200%) blur(30px);
+    -webkit-backdrop-filter: saturate(200%) blur(30px);
+    border: none;
+    
+    height: 28px;
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
     border-radius: 16px;
     white-space: nowrap;
-    /* Dùng filter thay box-shadow để dung hợp Mũi tên và Thân thành 1 khối (liền khối) */
-    filter: drop-shadow(0 6px 12px rgba(254, 44, 85, 0.45));
+    /* Drop-shadow ôm quanh toàn bộ body + mũi tên tạo thành 1 khối hợp nhất */
+    filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.12));
     pointer-events: none;
     transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
     animation: floatTooltip 2.5s infinite ease-in-out;
   }
 
-  /* Mũi tên trỏ xuống liền khối */
+  /* Gradient Text phát sáng bên trong lớp kính */
+  .tbn-ai-tooltip-text {
+    background: linear-gradient(90deg, #25f4ee, #fe2c55);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1; /* Khóa chiều cao chữ để Flex căn chuẩn */
+    margin-top: 1px; /* Optical tuning bù phần râu chữ */
+  }
+
+  /* Mũi tên trỏ xuống liền khối bằng tam giác CSS (không đè lên nền trong) */
   .tbn-ai-tooltip::after {
     content: '';
     position: absolute;
-    bottom: -4px;
-    /* Tâm nút = 64px/2 = 32px. Tooltip dư ra 8px => Vị trí mũi tên là 32+8 = 40px */
-    right: 40px; 
-    width: 10px;
-    height: 10px;
-    background: #fe2c55; /* Đồng nhất tuyệt đối với màu ở rìa phải của linear-gradient */
-    border-radius: 2px;
-    transform: rotate(45deg); /* Bo góc nhẹ để tàng hình vào khối cha */
-    z-index: -1; 
+    bottom: -6px; /* Tràn xuống đúng bằng chiều cao tam giác, không bị lẹm vào trong */
+    right: 33px; /* Bù trừ một nửa độ rộng mũi tên (7px) để tâm mũi tên nằm đúng trọng tâm nút (40px) */
+    border-width: 6px 7px 0;
+    border-style: solid;
+    /* Dùng đúng màu nền của Tooltip để nối liền 100% không chắp vá */
+    border-color: rgba(255, 255, 255, 0.95) transparent transparent transparent;
   }
 
   @keyframes floatTooltip {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
+    50% { transform: translateY(-4px); }
   }
 
   /* Giấu tooltip cực mượt khi thu nhỏ Nav */

@@ -1,5 +1,3 @@
-<!-- MobileProductFeed.svelte -->
-<!-- Product filter tabs + 2-column waterfall product grid -->
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { slugify } from '$lib/utils/format';
@@ -13,6 +11,12 @@
     sales?: number;
     originalPrice?: number;
     slug?: string;
+    rating?: number;
+    isFlashSale?: boolean;
+    isFreeship?: boolean;
+    isCOD?: boolean;
+    isXtraFreeship?: boolean;
+    extraLabel?: string;
   }
 
   interface Props {
@@ -20,6 +24,20 @@
   }
 
   let { products }: Props = $props();
+
+  // Mock data enhancement for preview (Elite 2.2)
+  const displayProducts = $derived(
+    products.map((p, i) => ({
+      ...p,
+      rating: 4.5 + (i % 5) * 0.1,
+      isFlashSale: i % 2 === 0,
+      isFreeship: true,
+      isCOD: i % 3 === 0,
+      isXtraFreeship: true,
+      extraLabel: i % 2 === 0 ? 'lên đến 14%' : 'SIÊU KM',
+      sales: p.sales || (100 + i * 50)
+    }))
+  );
 
   const tabs = [
     { type: 'text', label: 'Tất cả' },
@@ -72,40 +90,93 @@
 
 <!-- 2-column product grid -->
 <div class="product-grid">
-  {#if products && products.length > 0}
-    {#each products as product (product.id)}
+  {#if displayProducts && displayProducts.length > 0}
+    {#each displayProducts as product (product.id)}
       {@const discountPct = getDiscountPct(product)}
       <button
         class="product-card"
         onclick={() => navigateProduct(product)}
       >
         <div class="product-img-wrap">
+          <!-- Discount Badge Top-Right -->
           {#if discountPct > 0}
-            <span class="product-discount-badge">-{discountPct}%</span>
+            <span class="badge-discount-float">-{discountPct}%</span>
           {/if}
+
+          <!-- Custom Embedrone Badge (Decor only) -->
+          <div class="badge-brand-decor">
+            <svg viewBox="0 0 100 100" class="decor-svg">
+              <path d="M50 0 L100 50 L50 100 L0 50 Z" fill="#4a185b" />
+              <text x="50" y="55" font-size="20" fill="white" text-anchor="middle" font-weight="bold">Elite</text>
+            </svg>
+          </div>
+
           <img
             src={product.image}
             alt={product.name}
             class="product-img"
             loading="lazy"
           />
-          <div class="product-watermark">Micsmo</div>
+
+          <!-- Bottom Overlays (XTRA / EXTRA) -->
+          <div class="img-overlay-row">
+            {#if product.isXtraFreeship}
+              <div class="overlay-badge overlay-badge--xtra">
+                <span class="xtra-top">XTRA</span>
+                <span class="xtra-bottom">Freeship*</span>
+              </div>
+            {/if}
+            {#if product.extraLabel}
+              <div class="overlay-badge overlay-badge--extra">
+                <span class="extra-top">EXTRA</span>
+                <span class="extra-bottom">{product.extraLabel}</span>
+              </div>
+            {/if}
+            <div class="overlay-qc">QC</div>
+          </div>
         </div>
+
         <div class="product-info">
           <p class="product-name">{product.name}</p>
-          <div class="product-price-row">
-            <span class="product-price">
-              <span class="product-price-unit">đ</span>{product.price.toLocaleString('vi-VN')}
-            </span>
-            {#if product.sales}
-              <span class="product-sales">Đã bán {product.sales.toLocaleString()}</span>
+          
+          <div class="price-section">
+            <div class="price-row">
+              <span class="current-price">
+                {product.price.toLocaleString('vi-VN')}<span class="symbol">đ</span>
+              </span>
+              {#if product.originalPrice}
+                <span class="old-price">{product.originalPrice.toLocaleString('vi-VN')}đ</span>
+              {/if}
+              <!-- Voucher Icon -->
+              <div class="voucher-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                   <path d="M15 5l-3 3-3-3m6 14l-3-3-3 3M5 15h14M5 9h14" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="utility-badges">
+            {#if product.isFlashSale}
+              <span class="badge-flash">⚡ Flash Sale</span>
+            {/if}
+            {#if product.isFreeship}
+              <span class="badge-freeship">🚛 Freeship</span>
+            {/if}
+            {#if product.isCOD}
+              <span class="badge-cod">COD</span>
             {/if}
           </div>
-          {#if product.originalPrice}
-            <span class="product-original-price">đ{product.originalPrice.toLocaleString('vi-VN')}</span>
-          {/if}
-          <div class="product-tags">
-            <span class="tag-freeship">FREESHIP</span>
+
+          <div class="product-footer">
+            {#if product.rating}
+              <div class="rating">
+                <span class="star">★</span>
+                <span class="rating-val">{product.rating}</span>
+                <span class="sep">|</span>
+              </div>
+            {/if}
+            <span class="sold-count">Đã bán {product.sales?.toLocaleString()}</span>
           </div>
         </div>
       </button>
@@ -129,7 +200,7 @@
   /* Tab Bar */
   .tab-bar {
     position: sticky;
-    top: var(--mobile-header-total, 126px); /* hérite du parent .mobile-home-root */
+    top: var(--mobile-header-total, 126px);
     background: #ffffff;
     display: flex;
     align-items: stretch;
@@ -140,7 +211,6 @@
   }
   .tab-bar::-webkit-scrollbar { display: none; }
 
-  /* Tab items general */
   .tab-item {
     position: relative;
     flex-shrink: 0;
@@ -153,7 +223,6 @@
     justify-content: center;
   }
 
-  /* Specific styles for text tabs */
   .tab-text {
     font-size: 15px;
     font-weight: 500;
@@ -167,9 +236,8 @@
     font-weight: 700;
   }
 
-  /* Mall Pill Style (TikTok aesthetic) */
   .tab-item--pill {
-    padding: 10px 6px; /* slightly tighter padding for pills to fit together */
+    padding: 10px 6px;
   }
 
   .tab-pill-wrap {
@@ -181,7 +249,6 @@
     z-index: 1;
   }
 
-  /* The Cyan/Pink shadow effect */
   .tab-pill-wrap::before {
     content: '';
     position: absolute;
@@ -209,10 +276,9 @@
     padding: 3px 6px;
     border-radius: 8px;
     white-space: nowrap;
-    box-shadow: 0 0 0 0.5px #111; /* subtle cover for inner seam */
+    box-shadow: 0 0 0 0.5px #111;
   }
 
-  /* Voucher style */
   .tab-item--voucher {
     padding: 8px 12px;
   }
@@ -234,11 +300,10 @@
   .tab-voucher-l2 {
     font-size: 10px;
     font-weight: 900;
-    color: #00b060; /* Vibrant green */
+    color: #00b060;
     letter-spacing: 0.02em;
   }
 
-  /* Indicator line for active text/voucher tabs */
   .tab-indicator {
     position: absolute;
     bottom: 0;
@@ -255,7 +320,7 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 3px;
     padding: 3px;
-    background: #f5f5f5;
+    background: #f1f3f4;
   }
 
   /* Product Card */
@@ -269,9 +334,9 @@
     text-align: left;
     border-radius: 4px;
     overflow: hidden;
-    transition: opacity 0.15s;
+    transition: transform 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.15s;
   }
-  .product-card:active { opacity: 0.85; }
+  .product-card:active { opacity: 0.85; transform: scale(0.98); }
 
   .product-img-wrap {
     position: relative;
@@ -281,106 +346,199 @@
     background: #f0f0f0;
   }
 
-  .product-discount-badge {
+  .badge-discount-float {
     position: absolute;
-    top: 7px;
-    left: 7px;
-    background: #ee4d2d;
+    top: 0;
+    right: 0;
+    background: #ff2b54;
     color: #fff;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 900;
-    padding: 2px 5px;
-    border-radius: 3px;
-    z-index: 2;
+    padding: 4px 6px;
+    border-radius: 0 0 0 10px;
+    z-index: 5;
   }
+
+  .badge-brand-decor {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 40px;
+    height: 40px;
+    z-index: 5;
+    opacity: 0.9;
+  }
+  .decor-svg { width: 100%; height: 100%; }
 
   .product-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.4s ease;
   }
-  .product-card:hover .product-img { transform: scale(1.04); }
 
-  .product-watermark {
+  /* Bottom Image Overlays */
+  .img-overlay-row {
     position: absolute;
-    bottom: 7px;
-    left: 7px;
-    background: rgba(0, 0, 0, 0.45);
+    bottom: 0px;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: flex-end;
+    padding: 4px;
+    gap: 0;
+  }
+
+  .overlay-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 6px;
+    line-height: 1;
+    border-radius: 4px;
+    transform: scale(0.85);
+    transform-origin: left bottom;
+  }
+
+  .overlay-badge--xtra {
+    background: #00c49a;
     color: #fff;
-    font-size: 8px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 2px 5px;
-    border-radius: 2px;
+    border-radius: 4px 4px 0 0;
+  }
+  .xtra-top { font-size: 9px; font-weight: 900; }
+  .xtra-bottom { font-size: 7px; font-weight: 600; }
+
+  .overlay-badge--extra {
+    background: #ff2b54;
+    color: #fff;
+    margin-left: -5px; /* Slight overlap */
+    border-radius: 4px 4px 4px 0;
     z-index: 2;
+  }
+  .extra-top { font-size: 8px; font-weight: 900; }
+  .extra-bottom { font-size: 7px; font-weight: 600; white-space: nowrap; }
+
+  .overlay-qc {
+    margin-left: auto;
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 1px 4px;
+    border-radius: 2px;
+    opacity: 0.8;
   }
 
   .product-info {
-    padding: 8px 10px 10px;
+    padding: 8px 6px 10px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
   }
 
   .product-name {
-    font-size: 12px;
-    color: #333;
-    font-weight: 500;
-    line-height: 1.4;
+    font-size: 13px;
+    color: #222;
+    font-weight: 600;
+    line-height: 1.3;
     margin: 0;
+    height: 2.6em; /* fixed height for 2 lines */
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
 
-  .product-price-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  .price-section {
     margin-top: 2px;
   }
 
-  .product-price {
-    font-size: 15px;
-    font-weight: 900;
-    color: #ee4d2d;
-    line-height: 1;
-  }
-
-  .product-price-unit {
-    font-size: 11px;
-  }
-
-  .product-sales {
-    font-size: 10px;
-    color: #aaa;
-  }
-
-  .product-original-price {
-    font-size: 11px;
-    color: #ccc;
-    text-decoration: line-through;
-    line-height: 1;
-  }
-
-  .product-tags {
-    margin-top: 4px;
+  .price-row {
     display: flex;
+    align-items: baseline;
     gap: 4px;
     flex-wrap: wrap;
   }
 
-  .tag-freeship {
+  .current-price {
+    font-size: 16px;
+    font-weight: 900;
+    color: #ff2b54;
+    line-height: 1;
+  }
+  .current-price .symbol { font-size: 12px; margin-left: 1px; text-decoration: underline; }
+
+  .old-price {
+    font-size: 10px;
+    color: #999;
+    text-decoration: line-through;
+    opacity: 0.8;
+  }
+
+  .voucher-icon {
+    margin-left: auto;
+    width: 20px;
+    height: 20px;
+    color: #ff2b54;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    padding: 2px;
+  }
+
+  .utility-badges {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin: 2px 0;
+  }
+
+  .badge-flash {
+    background: #fff0f3;
+    color: #ff2b54;
     font-size: 9px;
-    font-weight: 700;
-    color: #ee4d2d;
-    border: 1px solid #ee4d2d;
-    padding: 1px 5px;
-    border-radius: 2px;
-    line-height: 1.4;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .badge-freeship {
+    background: #e6f7f4;
+    color: #00c49a;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .badge-cod {
+    background: #fff9e6;
+    color: #ffb800;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .product-footer {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+  }
+
+  .rating {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .star { color: #ffb800; font-size: 11px; }
+  .rating-val { font-size: 11px; font-weight: 700; color: #555; }
+  .sep { color: #ddd; font-size: 10px; margin: 0 1px; }
+
+  .sold-count {
+    font-size: 11px;
+    color: #888;
+    font-weight: 500;
   }
 
   /* Skeleton */

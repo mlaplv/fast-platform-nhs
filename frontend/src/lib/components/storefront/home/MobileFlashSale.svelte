@@ -1,7 +1,7 @@
 <!-- MobileFlashSale.svelte -->
 <!-- Flash Sale section: title, FOMO badge, live countdown, horizontal scroll deals -->
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
   import { slugify } from '$lib/utils/format';
 
@@ -16,51 +16,62 @@
     id: number;
     name: string;
     price: number;
-    discount: number;
+    originalPrice: number;
     image: string;
     sold: number;
     isHot: boolean;
+    isFreeShip: boolean;
+    isBestSale: boolean;
   }
 
-  const deals: Deal[] = Array.from({ length: 5 }).map((_, i) => ({
+  const deals: Deal[] = Array.from({ length: 12 }).map((_, i) => ({
     id: i,
     name: `Siêu phẩm ${i + 1}`,
-    price: 87888 + i * 15000,
-    discount: 85 - i * 5,
+    price: 86621 + i * 12345,
+    originalPrice: 577473 - i * 32154,
     image: `/uploads/img/micsmo${dealImages[i % dealImages.length]}`,
-    sold: 40 + i * 10,
-    isHot: i === 0,
+    sold: 40 + i * 5,
+    isHot: i % 3 === 0,
+    isFreeShip: true,
+    isBestSale: i % 4 === 0,
   }));
 
-  // Countdown: init 17h44m43s
-  let seconds = $state(17 * 3600 + 44 * 60 + 43);
+  // Countdown: init 15h57m17s
+  let seconds = $state(15 * 3600 + 57 * 60 + 17);
   let timer: ReturnType<typeof setInterval>;
 
   const hh = $derived(String(Math.floor(seconds / 3600)).padStart(2, '0'));
   const mm = $derived(String(Math.floor((seconds % 3600) / 60)).padStart(2, '0'));
   const ss = $derived(String(seconds % 60).padStart(2, '0'));
 
+  function getDiscountPct(deal: Deal): number {
+    if (!deal.originalPrice || deal.originalPrice <= deal.price) return 0;
+    return Math.round((1 - deal.price / deal.originalPrice) * 100);
+  }
+
   onMount(() => {
     timer = setInterval(() => {
       if (seconds > 0) seconds--;
     }, 1000);
-    return () => clearInterval(timer);
+  });
+
+  onDestroy(() => {
+    if (timer) clearInterval(timer);
   });
 </script>
 
-<div class="flash-sale-section">
+<div class="flash-sale-wrapper">
   <!-- Header row -->
   <div class="flash-sale-header">
     <div class="flash-sale-title-group">
-      <!-- Title text "Flash Sale" kiểu TikTok có lightning bolt -->
       <div class="flash-sale-title">
         <span class="title-f">F</span>
-        <svg class="lightning" viewBox="0 0 24 24" fill="#ee4d2d">
+        <svg class="lightning pulse-fast" viewBox="0 0 24 24" fill="#ff2b54">
           <path d="M13 2L4 14h7l-1 8 9-12h-7z"/>
         </svg>
         <span class="title-rest">ash Sale</span>
       </div>
-      <span class="flash-fomo-badge">Bắm Săn Deal - 70%</span>
+      <span class="flash-fomo-badge">Bấm Săn Deal - 70%</span>
     </div>
 
     <!-- Countdown -->
@@ -76,29 +87,55 @@
   <!-- Horizontal scroll deals -->
   <div class="flash-deals-track">
     {#each deals as deal}
+      {@const discountPct = getDiscountPct(deal)}
       <button
         class="flash-deal-card"
         onclick={() => goto(`/${slugify(deal.name)}`)}
       >
         <div class="deal-img-wrap">
-          {#if deal.isHot}
-            <span class="deal-hot-badge">Hot</span>
+          <!-- Badges -->
+          {#if deal.isBestSale}
+            <span class="badge-bestsale">BESTSALE</span>
           {/if}
-          <div class="deal-discount-bar">{deal.discount}%</div>
+          {#if deal.isFreeShip}
+            <span class="badge-freeship">FREE SHIP</span>
+          {/if}
+          
+          {#if discountPct > 0}
+            <div class="discount-sticker">
+              <span class="discount-num">-{discountPct}%</span>
+            </div>
+          {/if}
+
+          <!-- Image -->
           <img
             src={deal.image}
             alt={deal.name}
             class="deal-img"
             loading="lazy"
           />
+
+          <!-- Progress Pill Overlapping Bottom of Image -->
+          <div class="progress-wrap">
+            <div class="progress-fill" style="width: {deal.isHot ? 88 : Math.min(85, deal.sold)}%"></div>
+            <span class="progress-text {deal.isHot ? 'fomo-pulse' : ''}">
+              {#if deal.isHot}
+                🔥 Sắp hết
+              {:else}
+                Đã bán {deal.sold}
+              {/if}
+            </span>
+          </div>
         </div>
-        <p class="deal-price">
-          <span class="deal-price-unit">đ</span>{deal.price.toLocaleString('vi-VN')}
-        </p>
-        <!-- Sold progress -->
-        <div class="deal-progress-wrap">
-          <div class="deal-progress-bar" style="width: {Math.min(deal.sold, 90)}%"></div>
-          <span class="deal-progress-label">Đã bán {deal.sold}</span>
+
+        <!-- Prices -->
+        <div class="price-info">
+          <div class="current-price">
+            {deal.price.toLocaleString('vi-VN')}<span class="unit">đ</span>
+          </div>
+          <div class="old-price">
+            {deal.originalPrice.toLocaleString('vi-VN')}đ
+          </div>
         </div>
       </button>
     {/each}
@@ -106,8 +143,10 @@
 </div>
 
 <style>
-  .flash-sale-section {
-    background: #ffffff;
+  .flash-sale-wrapper {
+    /* Soft gradient matching image 3 (purpleish top-left fading to cyan-blue) */
+    background: linear-gradient(135deg, #eaddff 0%, #d4ebff 100%);
+    padding-top: 12px;
     margin-top: 6px;
     overflow: hidden;
   }
@@ -116,13 +155,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 12px 10px;
+    padding: 0 14px 10px;
   }
 
   .flash-sale-title-group {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
 
   .flash-sale-title {
@@ -130,64 +169,57 @@
     align-items: center;
   }
 
-  .title-f {
-    font-size: 20px;
+  .title-f, .title-rest {
+    font-size: 22px;
     font-weight: 900;
-    color: #ee4d2d;
-    font-style: italic;
-    line-height: 1;
+    color: #111;
   }
 
   .lightning {
-    width: 14px;
-    height: 14px;
-    margin: 0 -1px;
+    width: 15px;
+    height: 15px;
+    margin: 0 -2px;
     flex-shrink: 0;
-  }
-
-  .title-rest {
-    font-size: 20px;
-    font-weight: 900;
-    color: #ee4d2d;
-    font-style: italic;
-    line-height: 1;
+    filter: drop-shadow(0 2px 4px rgba(255, 43, 84, 0.4));
   }
 
   .flash-fomo-badge {
-    background: #ee4d2d;
+    background: linear-gradient(90deg, #ff2b54, #ff5e83);
     color: #fff;
-    font-size: 9px;
-    font-weight: 900;
-    padding: 3px 6px;
-    border-radius: 3px;
-    line-height: 1.2;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 999px; /* Pill shape */
+    line-height: 1.4;
     white-space: nowrap;
+    box-shadow: 0 3px 8px rgba(255, 43, 84, 0.25);
   }
 
   .flash-countdown {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
   }
 
   .time-block {
-    background: #1a1a1a;
+    background: #46464a; /* Dark gray */
     color: #fff;
-    font-size: 13px;
-    font-weight: 900;
-    font-family: 'Courier New', monospace;
-    padding: 3px 6px;
-    border-radius: 3px;
-    min-width: 26px;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 3px 4px;
+    border-radius: 4px;
+    min-width: 24px;
     text-align: center;
-    line-height: 1;
+    line-height: 1.2;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
   .time-sep {
-    color: #ee4d2d;
+    color: #333;
     font-weight: 900;
-    font-size: 14px;
+    font-size: 12px;
     line-height: 1;
+    margin: 0 -2px;
   }
 
   /* Horizontal scroll track */
@@ -196,108 +228,169 @@
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    gap: 8px;
-    padding: 0 12px 12px;
+    gap: 4px; /* Tối đa hóa khoảng cách ngắn */
+    padding: 0 8px 18px;
   }
   .flash-deals-track::-webkit-scrollbar { display: none; }
 
   .flash-deal-card {
     flex-shrink: 0;
-    width: 110px;
+    width: 88px; /* Tăng số lượng item hiển thị cùng lúc */
     display: flex;
     flex-direction: column;
-    background: none;
-    border: none;
+    background: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+    border-radius: 8px;
     cursor: pointer;
     padding: 0;
-    text-align: center;
+    padding-bottom: 6px;
   }
-  .flash-deal-card:active { opacity: 0.8; }
+  .flash-deal-card:active { opacity: 0.95; }
 
   .deal-img-wrap {
     position: relative;
     width: 100%;
     aspect-ratio: 1 / 1;
-    background: #f5f5f5;
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 6px;
+    border-radius: 8px 8px 0 0;
+    overflow: hidden; /* Changed from just relative */
+    /* Add slight bottom padding inside wrap to make room for pill if desired, or let pill overlay */
   }
 
-  .deal-hot-badge {
+  .badge-bestsale {
     position: absolute;
     top: 6px;
-    left: 6px;
-    background: #ee4d2d;
+    left: -4px; /* Overflow slightly or just flush */
+    background: linear-gradient(135deg, #ff2b54, #ff5778);
     color: #fff;
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 900;
-    padding: 2px 5px;
-    z-index: 2;
-    border-radius: 2px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    z-index: 3;
+    box-shadow: 2px 2px 6px rgba(255, 43, 84, 0.4);
   }
 
-  .deal-discount-bar {
+  .badge-freeship {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(90deg, #ee4d2d, #ff8c00);
+    top: 6px;
+    right: -2px;
+    background: #00c49a;
     color: #fff;
-    font-size: 11px;
+    font-size: 8px;
     font-weight: 900;
-    text-align: center;
-    padding: 2px 0;
-    z-index: 2;
+    padding: 2px 4px;
+    border-radius: 4px 0 0 4px;
+    z-index: 3;
+    letter-spacing: -0.2px;
+  }
+
+  .discount-sticker {
+    position: absolute;
+    top: 26px; /* Below Free Ship / Bestsale if they overlap */
+    right: 0;
+    background: linear-gradient(135deg, #ffd839, #ffbe0b);
+    color: #ff2b54;
+    font-size: 10px;
+    font-weight: 900;
+    padding: 2px 5px;
+    border-radius: 4px 0 0 4px;
+    z-index: 4;
+    box-shadow: -2px 2px 6px rgba(0,0,0,0.1);
+  }
+
+  .discount-num {
+    display: block;
+    line-height: 1;
   }
 
   .deal-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.4s ease;
-  }
-  .flash-deal-card:hover .deal-img { transform: scale(1.05); }
-
-  .deal-price {
-    font-size: 13px;
-    font-weight: 700;
-    color: #ee4d2d;
-    text-align: center;
-    margin: 0;
+    background: #fff;
   }
 
-  .deal-price-unit {
-    font-size: 10px;
-  }
-
-  .deal-progress-wrap {
-    position: relative;
-    width: 100%;
-    height: 14px;
-    background: #ffbda6;
-    border-radius: 9999px;
-    margin-top: 5px;
+  .progress-wrap {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    height: 16px;
+    background: #ffdce3; /* Unfilled light pink */
+    border-radius: 999px;
     overflow: hidden;
+    /* Soft white outer shadow to push away from image */
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+    z-index: 2;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff2b54, #ff5778);
+    border-radius: 999px;
+    transition: width 0.3s ease;
+  }
+
+  .progress-text {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  .deal-progress-bar {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    background: #ee4d2d;
-    border-radius: 9999px;
-  }
-
-  .deal-progress-label {
-    position: relative;
-    z-index: 1;
+    color: #fff;
     font-size: 9px;
     font-weight: 700;
-    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  .price-info {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: center;
+    gap: 3px;
+    margin-top: 6px;
+    padding: 0 4px;
+  }
+
+  .current-price {
+    font-size: 13px;
+    font-weight: 900;
+    color: #ff2b54;
+    line-height: 1;
+    letter-spacing: -0.4px;
+  }
+
+  .unit {
+    font-size: 9px;
+    font-weight: 800;
+    margin-left: 1px;
+    text-decoration: underline;
+  }
+
+  .old-price {
+    font-size: 8.5px;
+    font-weight: 600;
+    color: #bbb;
+    text-decoration: line-through;
+    opacity: 0.9;
+  }
+
+  /* FOMO Animations */
+  @keyframes pulse-fast {
+    0%, 100% { filter: drop-shadow(0 0 2px #ff2b54); transform: scale(1); }
+    50% { filter: drop-shadow(0 0 8px #ff2b54); transform: scale(1.1); }
+  }
+  .pulse-fast {
+    animation: pulse-fast 1s infinite;
+  }
+
+  @keyframes fomo-glow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.02); }
+  }
+  .fomo-pulse {
+    animation: fomo-glow 0.8s infinite;
   }
 </style>
