@@ -1,14 +1,15 @@
 <script lang="ts">
+  import { type Product, type Category, type Banner } from '$lib/types';
   import HomeBanner from './HomeBanner.svelte';
   import HomeCategory from './HomeCategory.svelte';
   import HomeFlashDeal from './HomeFlashDeal.svelte';
   import HomeProductGrid from './HomeProductGrid.svelte';
 
   interface Props {
-    banners: Array<{ id: string; image: string }>;
-    categories: Array<{ id: string; name: string; slug: string; image?: string; icon?: string }>;
-    products: Array<{ id: string; name: string; price: number; image: string }>;
-    aiProducts: Array<any>;
+    banners: Banner[];
+    categories: Category[];
+    products: Product[];
+    aiProducts: Product[];
   }
   let { banners, categories, products, aiProducts }: Props = $props();
 </script>
@@ -24,7 +25,7 @@
 
   <!-- Background Gray Wrapper for Products Section -->
   <div class="max-w-[1200px] mx-auto mt-4 flex flex-col gap-4 px-4 xl:px-0">
-    <HomeFlashDeal />
+    <HomeFlashDeal {products} />
     <HomeProductGrid {products} productsAi={aiProducts} />
   </div>
 </div>
