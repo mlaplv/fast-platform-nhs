@@ -30,7 +30,7 @@ class ClientHomeController(Controller):
     ) -> Dict[str, Any]:
         """PUBLIC: Get aggregated data for the home page."""
         # Fetch actual products and categories
-        products = await product_service.list_products(db_session, limit=10, offset=0, status="ACTIVE")
+        products = await product_service.list_products(db_session, limit=50, offset=0, status="ACTIVE")
         categories = await category_service.list_categories(db_session)
         
         # Format response to match SvelteKit expectation

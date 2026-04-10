@@ -7,11 +7,16 @@
     id: string;
     name: string;
     price: number;
-    image: string;
+    discountPrice?: number;
+    discount_price?: number;
+    images: string[];
     sales?: number;
     originalPrice?: number;
+    original_price?: number;
     slug?: string;
-    rating?: number;
+    rating? : number;
+    category?: string;
+    categoryId?: string | null;
     isFlashSale?: boolean;
     isFreeship?: boolean;
     isCOD?: boolean;
@@ -62,22 +67,48 @@
     })
   ]);
 
-  // Mock data enhancement for preview (Elite 2.2)
-  const displayProducts = $derived(
-    products.map((p, i) => ({
-      ...p,
-      // Đảm bảo luôn có giá gốc cao hơn giá KM để hiện % giảm giá và gạch ngang
-      originalPrice: p.originalPrice || Math.round(p.price * 1.35), 
-      rating: 4.5 + (i % 5) * 0.1,
-      isFlashSale: i % 2 === 0,
-      isFreeship: true,
-      isCOD: i % 3 === 0,
-      isXtraFreeship: true,
-      extraLabel: i % 2 === 0 ? 'lên đến 14%' : 'SIÊU KM',
-      sales: p.sales || (100 + i * 50)
-    }))
-  );
   let activeTab = $state(0);
+
+  // Elite 2.2: Dynamic Filtering & Mock Enhancement (FOMO)
+  const filteredProducts = $derived.by(() => {
+    if (activeTab === 0) return products;
+    
+    // Get the selected category slug/data
+    const selectedTab = tabs[activeTab];
+    if (!selectedTab || !selectedTab.slug) return products;
+
+    return products.filter(p => 
+      p.category === selectedTab.label || 
+      p.categoryId === selectedTab.slug || // Fallback to slug if ID is not available
+      p.slug?.includes(selectedTab.slug)
+    );
+  });
+
+  // Elite 2.2: Dynamic Mapping & FOMO Enhancement
+  const displayProducts = $derived(
+    filteredProducts.map((p, i) => {
+      const dp = p.discountPrice ?? p.discount_price;
+      const op = p.originalPrice ?? p.original_price;
+      const hasDiscount = dp && dp > 0;
+      
+      return {
+        ...p,
+        // Sync visual fields with real DB data
+        finalPrice: hasDiscount ? dp : p.price,
+        displayOriginalPrice: hasDiscount ? p.price : (op || 0),
+        image: p.images?.[0] || '',
+        
+        // Elite 2.2: Social Proof & FOMO
+        rating: p.rating || (4.5 + (i % 5) * 0.1),
+        isFlashSale: hasDiscount || (i % 3 === 0),
+        isFreeship: true,
+        isCOD: true,
+        isXtraFreeship: true,
+        extraLabel: i % 2 === 0 ? 'lên đến 14%' : 'SIÊU KM',
+        sales: p.sales || (100 + i * 15)
+      };
+    })
+  );
 
   function navigateProduct(product: Product): void {
     goto(`/${product.slug || slugify(product.name)}`);
@@ -171,10 +202,10 @@
           <div class="price-section">
             <div class="price-row">
               <span class="current-price">
-                {product.price.toLocaleString('vi-VN')}<span class="symbol">đ</span>
+                {product.finalPrice?.toLocaleString('vi-VN')}<span class="symbol">đ</span>
               </span>
-              {#if product.originalPrice}
-                <span class="old-price">{product.originalPrice.toLocaleString('vi-VN')}đ</span>
+              {#if product.displayOriginalPrice}
+                <span class="old-price">{product.displayOriginalPrice.toLocaleString('vi-VN')}đ</span>
               {/if}
               <!-- Intuitive Voucher Ticket Icon -->
               <div class="voucher-ticket">
@@ -327,8 +358,8 @@
   .product-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 3px;
-    padding: 3px;
+    gap: 4px; /* Standardized 4px gap */
+    padding: 4px 8px; /* Consistent side padding */
     background: #f1f3f4;
   }
 

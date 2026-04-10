@@ -12,9 +12,9 @@
     id: string;
     name: string;
     price: number;
-    image: string;
+    discountPrice?: number;
+    images: string[];
     sales?: number;
-    originalPrice?: number;
     slug?: string;
   }
 
@@ -43,7 +43,7 @@
     <MobileServiceIcons />
 
     <!-- Flash Sale với countdown -->
-    <MobileFlashSale />
+    <MobileFlashSale {products} />
 
     <!-- Tab filter + 2-column product grid -->
     <MobileProductFeed {products} {categories} />

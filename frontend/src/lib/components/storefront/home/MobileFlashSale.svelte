@@ -5,36 +5,57 @@
   import { goto } from '$app/navigation';
   import { slugify } from '$lib/utils/format';
 
-  const dealImages: string[] = [
-    '/-MICCOSMO-WHITE-LABEL-PREMIUM-PLACENTA-CREAM-60g-Kem-Duong-Nhau-Thai-Lam-Sang-amp-Cap-Am-Diu-Nhe_33.1.png',
-    '/Hurry-Harry-Medicated-Beauty-Wrinkle-Serum-Rich-jpeg.jpg',
-    '/MICCOSMO-WHITE-LABEL-PREMIUM-PLACENTA-ESSENCE-180ml-TINH-CHAT-CAP-AM-LAM-DIU-DA_. (14.1).png',
-    '/-MICCOSMO-WHITE-LABEL-PREMIUM-PLACENTA-PACK-130g-Mat-na-u-duong-trang-sang-da-tu-nhau-thai_23.png',
-  ];
-
-  interface Deal {
-    id: number;
+  interface Product {
+    id: string;
     name: string;
     price: number;
-    originalPrice: number;
-    image: string;
-    sold: number;
-    isHot: boolean;
-    isFreeShip: boolean;
-    isBestSale: boolean;
+    discountPrice?: number;
+    discount_price?: number;
+    images: string[];
+    sales?: number;
+    originalPrice?: number;
+    original_price?: number;
+    slug?: string;
   }
 
-  const deals: Deal[] = Array.from({ length: 12 }).map((_, i) => ({
-    id: i,
-    name: `Siêu phẩm ${i + 1}`,
-    price: 86621 + i * 12345,
-    originalPrice: 577473 - i * 32154,
-    image: `/uploads/img/micsmo${dealImages[i % dealImages.length]}`,
-    sold: 40 + i * 5,
-    isHot: i % 3 === 0,
-    isFreeShip: true,
-    isBestSale: i % 4 === 0,
-  }));
+  interface Props {
+    products: Product[];
+  }
+
+  let { products = [] }: Props = $props();
+
+  // Elite 2.2: Sort and compute Max Discount for Header
+  const flashDeals = $derived(
+    products
+      .filter(p => {
+        const dPrice = p.discountPrice ?? p.discount_price;
+        const oPrice = p.originalPrice ?? p.original_price ?? p.price;
+        return dPrice && dPrice > 0 && dPrice < oPrice;
+      })
+      .map((p) => {
+        const dPrice = p.discountPrice ?? p.discount_price;
+        const oPrice = p.originalPrice ?? p.original_price ?? p.price;
+        const discountPct = oPrice > 0 ? (oPrice - (dPrice || 0)) / oPrice : 0;
+        
+        return {
+          ...p,
+          finalPrice: dPrice,
+          oldPrice: oPrice,
+          discountPct,
+          discountLabel: Math.round(discountPct * 100),
+          image: p.images?.[0] || '',
+          sold: p.sales || (10 + (parseInt(p.id.slice(-1), 16) || 0) * 5),
+          isFreeShip: true,
+          isBestSale: (p.sales || 0) > 50
+        };
+      })
+      .sort((a, b) => b.discountPct - a.discountPct)
+      .map((p, i) => ({ ...p, isHot: i < 3 }))
+  );
+
+  const maxDiscount = $derived(
+    flashDeals.length > 0 ? Math.max(...flashDeals.map(d => d.discountLabel)) : 0
+  );
 
   // Countdown: init 15h57m17s
   let seconds = $state(15 * 3600 + 57 * 60 + 17);
@@ -44,9 +65,15 @@
   const mm = $derived(String(Math.floor((seconds % 3600) / 60)).padStart(2, '0'));
   const ss = $derived(String(seconds % 60).padStart(2, '0'));
 
-  function getDiscountPct(deal: Deal): number {
-    if (!deal.originalPrice || deal.originalPrice <= deal.price) return 0;
-    return Math.round((1 - deal.price / deal.originalPrice) * 100);
+  function getDiscountPct(deal: any): number {
+    const original = deal.oldPrice || 0;
+    const current = deal.finalPrice || deal.price;
+    if (!original || original <= current) return 0;
+    return Math.round((1 - current / original) * 100);
+  }
+
+  function navigateProduct(deal: any): void {
+    goto(`/${deal.slug || slugify(deal.name)}`);
   }
 
   onMount(() => {
@@ -71,7 +98,9 @@
         </svg>
         <span class="title-rest">ash Sale</span>
       </div>
-      <span class="flash-fomo-badge">Bấm Săn Deal - 70%</span>
+      {#if maxDiscount > 0}
+        <span class="flash-fomo-badge fomo-pulse">Bấm Săn Deal - {maxDiscount}%</span>
+      {/if}
     </div>
 
     <!-- Countdown -->
@@ -86,11 +115,11 @@
 
   <!-- Horizontal scroll deals -->
   <div class="flash-deals-track">
-    {#each deals as deal}
+    {#each flashDeals as deal}
       {@const discountPct = getDiscountPct(deal)}
       <button
         class="flash-deal-card"
-        onclick={() => goto(`/${slugify(deal.name)}`)}
+        onclick={() => navigateProduct(deal)}
       >
         <div class="deal-img-wrap">
           <!-- Badges -->
@@ -131,11 +160,13 @@
         <!-- Prices -->
         <div class="price-info">
           <div class="current-price">
-            {deal.price.toLocaleString('vi-VN')}<span class="unit">đ</span>
+            {deal.finalPrice?.toLocaleString('vi-VN')}<span class="unit">đ</span>
           </div>
-          <div class="old-price">
-            {deal.originalPrice.toLocaleString('vi-VN')}đ
-          </div>
+          {#if deal.oldPrice}
+            <div class="old-price">
+              {deal.oldPrice.toLocaleString('vi-VN')}đ
+            </div>
+          {/if}
         </div>
       </button>
     {/each}
@@ -228,23 +259,23 @@
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    gap: 4px; /* Tối đa hóa khoảng cách ngắn */
-    padding: 0 8px 18px;
+    gap: 4px; /* Standardized high-density gap */
+    padding: 0 8px 16px;
   }
   .flash-deals-track::-webkit-scrollbar { display: none; }
 
   .flash-deal-card {
     flex-shrink: 0;
-    width: 88px; /* Tăng số lượng item hiển thị cùng lúc */
+    width: 115px; /* Increased width for airy feel */
     display: flex;
     flex-direction: column;
     background: #ffffff;
     border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
-    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Softer shadow */
+    border-radius: 12px; /* Smoother corners */
     cursor: pointer;
     padding: 0;
-    padding-bottom: 6px;
+    padding-bottom: 8px;
   }
   .flash-deal-card:active { opacity: 0.95; }
 
@@ -313,10 +344,10 @@
 
   .progress-wrap {
     position: absolute;
-    bottom: 4px;
-    left: 4px;
-    right: 4px;
-    height: 16px;
+    bottom: 6px;
+    left: 6px;
+    right: 6px;
+    height: 18px;
     background: #ffdce3; /* Unfilled light pink */
     border-radius: 999px;
     overflow: hidden;
@@ -339,7 +370,7 @@
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 700;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
@@ -355,7 +386,7 @@
   }
 
   .current-price {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 900;
     color: #ff2b54;
     line-height: 1;
@@ -370,7 +401,7 @@
   }
 
   .old-price {
-    font-size: 8.5px;
+    font-size: 10.5px;
     font-weight: 600;
     color: #bbb;
     text-decoration: line-through;
