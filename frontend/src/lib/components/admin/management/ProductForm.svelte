@@ -44,6 +44,7 @@
     generateSlug,
     isSaving = false,
     errors = {},
+    formIsAiFeatured = $bindable(false),
   } = $props<{
     isOpen?: boolean;
     editingId: string | null;
@@ -72,6 +73,7 @@
     generateSlug: (name: string) => string;
     isSaving?: boolean;
     errors?: Record<string, string>;
+    formIsAiFeatured: boolean;
   }>();
 
   let showMediaModal = $state(false);
@@ -167,6 +169,7 @@
           <ProductFormBase
             {editingId}
             bind:formName bind:formSku bind:formPrice bind:formDiscountPrice bind:formStock bind:formCategory bind:formStatus bind:formShortDescription
+            bind:formIsAiFeatured
             {categories} {generateSlug} {errors}
             onNameInput={() => { if (!editingId) formSlug = generateSlug(formName); }}
           />

@@ -32,15 +32,19 @@ class ClientHomeController(Controller):
         banner_service: BannerService
     ) -> Dict[str, Any]:
         """PUBLIC: Get aggregated data for the home page."""
-        # Fetch actual products, categories, and banners
-        products = await product_service.list_products(db_session, limit=50, offset=0, status="ACTIVE")
+        # Fetch actual products (Active only)
+        all_products = await product_service.list_products(db_session, limit=100, offset=0, status="ACTIVE")
         categories = await category_service.list_categories(db_session)
         banners = await banner_service.list_banners(db_session, position="home_main", active_only=True)
         
+        # Elite V2.2: Separate AI Featured products for the Special Banner section
+        ai_products = [p for p in all_products.data if p.isAiFeatured]
+        
         # Format response to match SvelteKit expectation
         return {
-            "banners": [b.model_dump() for b in banners.data] if banners else [],
-            "categories": [c.model_dump() for c in categories.data] if categories else [],
-            "products": [p.model_dump() for p in products.data] if products else [],
-            "videos": []    # Videos can be fetched from a media service later
+            "banners": [b.model_dump() if hasattr(b, "model_dump") else b for b in banners.data] if banners else [],
+            "categories": [c.model_dump() if hasattr(c, "model_dump") else c for c in categories.data] if categories else [],
+            "products": [p.model_dump() if hasattr(p, "model_dump") else p for p in all_products.data] if all_products else [],
+            "ai_products": [p.model_dump() if hasattr(p, "model_dump") else p for p in ai_products],
+            "videos": []
         }

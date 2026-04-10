@@ -308,6 +308,7 @@ export interface Product {
   shortDescription: string | null;
   description: string | null;
   type: string;
+  isAiFeatured: boolean;
   slug: string;
   seoTitle: string | null;
   seoDescription: string | null;

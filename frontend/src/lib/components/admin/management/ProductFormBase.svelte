@@ -11,6 +11,7 @@
     formCategory = $bindable(),
     formStatus = $bindable(),
     formShortDescription = $bindable(),
+    formIsAiFeatured = $bindable(),
     categories,
     generateSlug,
     onNameInput,
@@ -25,6 +26,7 @@
     formCategory: string;
     formStatus: "active" | "draft" | "archived";
     formShortDescription: string;
+    formIsAiFeatured: boolean;
     categories: { id: string; name: string }[];
     generateSlug: (name: string) => string;
     onNameInput: () => void;
@@ -181,6 +183,24 @@
            >{lbl}</button>
         {/each}
       </div>
+    </div>
+
+    <!-- AI Featured Toggle (Elite V2.2) -->
+    <div class="field-group lg:col-span-1">
+      <label class="field-label">Elite Integration</label>
+      <button
+        onclick={() => formIsAiFeatured = !formIsAiFeatured}
+        class="flex items-center justify-between gap-3 px-4 py-3 bg-black/40 rounded-xl border transition-all duration-500 group/ai
+          {formIsAiFeatured ? 'border-[#00FFFF]/40 shadow-[0_0_15px_rgba(0,255,255,0.1)]' : 'border-white/5 grayscale opacity-50'}"
+      >
+        <div class="flex flex-col items-start gap-0.5">
+          <span class="text-[8px] font-black uppercase tracking-tighter {formIsAiFeatured ? 'text-[#00FFFF]' : 'text-gray-500'}">AI Featured v2.2</span>
+          <span class="text-[7px] text-white/20 uppercase tracking-widest">{formIsAiFeatured ? 'Enabled' : 'Disabled'}</span>
+        </div>
+        <div class="relative w-8 h-4 bg-white/5 rounded-full p-0.5 transition-colors {formIsAiFeatured ? 'bg-[#00FFFF]/20' : ''}">
+          <div class="w-3 h-3 rounded-full transition-all duration-500 {formIsAiFeatured ? 'translate-x-4 bg-[#00FFFF]' : 'bg-[#666]' }"></div>
+        </div>
+      </button>
     </div>
   </div>
 </div>

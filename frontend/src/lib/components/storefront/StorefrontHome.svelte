@@ -13,6 +13,7 @@
         banners={data.banners}
         categories={data.categories}
         products={data.products}
+        aiProducts={data.ai_products}
         videos={data.videos} 
     />
 {:else}
@@ -22,6 +23,7 @@
             banners={data.banners}
             categories={data.categories}
             products={data.products}
+            aiProducts={data.ai_products}
         />
     </main>
     <FooterDesktop />

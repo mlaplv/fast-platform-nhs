@@ -50,6 +50,7 @@ class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     stock: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String, default="DRAFT")
     type: Mapped[str] = mapped_column(String, default="RETAIL")
+    is_ai_featured: Mapped[bool] = mapped_column(Boolean, default=False, index=True) # Elite V2.2: AI Banner Product
     
     # R102 Professional Upgrade: SEO & Fashion
     slug: Mapped[str] = mapped_column(String, index=True)

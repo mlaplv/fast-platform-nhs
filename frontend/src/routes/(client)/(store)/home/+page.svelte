@@ -28,6 +28,7 @@
       banners={data.banners}
       categories={data.categories}
       products={data.products}
+      aiProducts={data.ai_products}
     />
   {/if}
 </div>

@@ -8,8 +8,9 @@
     banners: Array<{ id: string; image: string }>;
     categories: Array<{ id: string; name: string; slug: string; image?: string; icon?: string }>;
     products: Array<{ id: string; name: string; price: number; image: string }>;
+    aiProducts: Array<any>;
   }
-  let { banners, categories, products }: Props = $props();
+  let { banners, categories, products, aiProducts }: Props = $props();
 </script>
 
 <div class="desktop-home-wrapper bg-[#f5f5f5] min-h-screen w-full pb-10">
@@ -24,6 +25,6 @@
   <!-- Background Gray Wrapper for Products Section -->
   <div class="max-w-[1200px] mx-auto mt-4 flex flex-col gap-4 px-4 xl:px-0">
     <HomeFlashDeal />
-    <HomeProductGrid {products} />
+    <HomeProductGrid {products} productsAi={aiProducts} />
   </div>
 </div>

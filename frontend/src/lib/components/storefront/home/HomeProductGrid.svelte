@@ -21,9 +21,10 @@
 
   interface Props {
     products: Product[];
+    productsAi?: Product[];
   }
 
-  let { products = [] }: Props = $props();
+  let { products = [], productsAi = [] }: Props = $props();
 
   // Year Logic
   const currentYear = new Date().getFullYear();
@@ -39,25 +40,38 @@
     { id: 'bestseller', label: 'Bán chạy', icon: '🏆' }
   ] as const;
 
+  // Elite V2.2: Shared Data Normalizer
+  const normalizeProduct = (p: any, tabId: string, index: number) => {
+    const primaryImage = (p.images && p.images.length > 0) ? p.images[0] : (p.image || '/images/placeholder-product.webp');
+    const hasDiscount = !!p.discountPrice && p.discountPrice < p.price;
+    const sellingPrice = hasDiscount ? p.discountPrice : p.price;
+    const originalPrice = hasDiscount ? p.price : (p.price * 1.4);
+    const realSales = p.orderCount || 0;
+    const displaySales = realSales > 0 ? realSales : (1200 + index * 10);
+    
+    return {
+      ...p,
+      id: `${tabId}-${p.id}`,
+      image: primaryImage,
+      price: sellingPrice,
+      originalPrice: originalPrice,
+      sales: displaySales,
+      stockPercent: 70 + (index * 5) % 25,
+      isAiPick: tabId === 'ai',
+      originalSlug: p.slug
+    } as Product;
+  };
+
   // Synthesis Extended Data
   const extendedCatalog = $derived(() => {
-    if (products.length === 0) return [];
-    const base = [...products];
     const extended: Product[] = [];
     tabs.forEach((tab) => {
-      for (let i = 0; i < 6; i++) {
-        const baseItem = base[i % base.length];
-        extended.push({
-          ...baseItem,
-          id: `${tab.id}-${i}`,
-          name: `${baseItem.name} ${tab.label} Cao Cấp`,
-          price: baseItem.price + (i * 2000),
-          originalPrice: (baseItem.price + (i * 2000)) * 1.55, 
-          sales: 1200 + (i * 45),
-          stockPercent: 70 + (i * 5) % 30, 
-          isAiPick: tab.id === 'ai' || i === 0,
-          originalSlug: baseItem.slug
-        });
+      if (tab.id === 'ai' && productsAi.length > 0) {
+        productsAi.forEach((p, i) => extended.push(normalizeProduct(p, 'ai', i)));
+      } else if (products.length > 0) {
+        for (let i = 0; i < Math.min(products.length, 6); i++) {
+          extended.push(normalizeProduct(products[i], tab.id, i));
+        }
       }
     });
     return extended;
@@ -71,7 +85,12 @@
   // Slide State
   let currentSlide = $state(0);
   let slideTimer: ReturnType<typeof setInterval>;
-  const featuredSlides = $derived(() => currentProducts().slice(0, 4));
+  
+  // Elite V2.2: Featured Slides strictly from productsAi
+  const featuredSlides = $derived(() => {
+     const aiPool = productsAi.length > 0 ? productsAi : products.filter(p => p.isAiFeatured).slice(0, 4);
+     return aiPool.map((p, i) => normalizeProduct(p, 'featured', i));
+  });
 
   // Synthesize floating specs for Viral 2.3
   const specs = [
@@ -181,14 +200,14 @@
                         {/if}
                     </div>
                     <span class="text-black text-4xl font-black tabular-nums tracking-tighter flex items-end gap-2">
-                        <span class="text-[#C18F7E] text-2xl mb-1">đ</span>{slide.price.toLocaleString('vi-VN')}
+                        <span class="text-[#C18F7E] text-2xl mb-1">đ</span>{(slide.price || 0).toLocaleString('vi-VN')}
                         <span class="text-[10px] text-[#C18F7E] font-bold uppercase tracking-widest mb-1.5 animate-pulse">−55% LIMITED</span>
                     </span>
                 </div>
                 <div class="w-[1px] h-10 bg-black/5"></div>
                 <div class="flex flex-col">
                     <span class="text-[9px] font-black uppercase tracking-[0.3em] text-black/20 mb-1">Cộng đồng</span>
-                    <span class="text-black text-xl font-black italic">+{slide.sales.toLocaleString()} <span class="text-[9px] opacity-30 not-italic uppercase ml-1">Tin dùng</span></span>
+                    <span class="text-black text-xl font-black italic">+{(slide.sales || 0).toLocaleString()} <span class="text-[9px] opacity-30 not-italic uppercase ml-1">Tin dùng</span></span>
                 </div>
             </div>
             

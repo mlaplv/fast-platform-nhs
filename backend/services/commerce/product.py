@@ -50,6 +50,7 @@ class ProductRowDict(TypedDict):
     created_at: datetime
     order_count: Optional[int]
     order_count_text: Optional[str]
+    is_ai_featured: bool
     variants: Optional[List[object]]
 
 class ProductService:
@@ -146,7 +147,7 @@ class ProductService:
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
             ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
-            ProductBase.created_at, ProductBase.order_count,
+            ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured, ProductBase.is_ai_featured,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
             and_(*conditions)
@@ -173,7 +174,7 @@ class ProductService:
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
             ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
-            ProductBase.created_at, ProductBase.order_count,
+            ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
             ProductBase.id == product_id,
@@ -208,7 +209,7 @@ class ProductService:
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
             ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
-            ProductBase.created_at, ProductBase.order_count,
+            ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
             ProductBase.slug == slug,
@@ -326,6 +327,7 @@ class ProductService:
         if data.attributes is not None: product.attributes = data.attributes
         if data.tierVariations is not None: product.tier_variations = [tv.model_dump() for tv in data.tierVariations]
         if data.metadata is not None: product.product_metadata = data.metadata.model_dump()
+        if data.isAiFeatured is not None: product.is_ai_featured = data.isAiFeatured
 
         if data.variants is not None:
             # Delete old variants strictly (Hard delete to avoid PK conflicts if reusing IDs)
@@ -351,6 +353,8 @@ class ProductService:
 
         # Elite V2.2: Sync Media Links
         await self._sync_media_links(db_session, product_id, product)
+
+        await db_session.commit()
 
         return SuccessResponse(ok=True, id=product_id)
 

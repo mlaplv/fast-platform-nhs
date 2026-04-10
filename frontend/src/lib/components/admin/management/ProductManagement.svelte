@@ -59,6 +59,7 @@
   let formMetadata = $state<Product["metadata"]>({ landing_type: 'standard' });
   let formTierVariations = $state<Product["tierVariations"]>([]);
   let formVariants = $state<Product["variants"]>([]);
+  let formIsAiFeatured = $state(false);
   let generateSlug = (n: string) => slugify(n);
 
 
@@ -169,6 +170,7 @@
     formImages = []; formMobileImages = []; formAttributes = {};
     formMetadata = { landing_type: 'standard' };
     formTierVariations = []; formVariants = [];
+    formIsAiFeatured = false;
     showForm = true;
   }
 
@@ -245,6 +247,7 @@
       formMobileImages = p.mobileImages ?? (p as any).mobile_images ?? [];
       formAttributes = p.attributes || {};
       formMetadata = p.metadata || { landing_type: 'standard' };
+      formIsAiFeatured = p.isAiFeatured ?? (p as any).is_ai_featured ?? false;
 
       // R102 Defense: map potential snake_case to camelCase
       const rawTierVariations = (p.tierVariations ?? p.tier_variations ?? []) as RawTierVariation[];
@@ -308,6 +311,7 @@
       stock: Number(formStock), 
       categoryId: formCategory || null, 
       status: (formStatus || "draft").toUpperCase(), // Backend expects ACTIVE/DRAFT
+      is_ai_featured: formIsAiFeatured,
       shortDescription: formShortDescription,
       description: formDescription,
       slug: formSlug || generateSlug(formName),
@@ -402,6 +406,7 @@
     bind:formName bind:formSku bind:formPrice bind:formDiscountPrice bind:formStock bind:formCategory bind:formStatus
     bind:formShortDescription bind:formDescription bind:formSlug bind:formSeoTitle bind:formSeoDescription bind:formSeoKeywords
     bind:formImages bind:formMobileImages bind:formAttributes bind:formMetadata bind:formTierVariations bind:formVariants
+    bind:formIsAiFeatured
     {categories}
     onSave={save}
     onClose={() => (showForm = false)}
