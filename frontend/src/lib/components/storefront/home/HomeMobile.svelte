@@ -8,20 +8,12 @@
   import MobileProductFeed      from './MobileProductFeed.svelte';
   import MobileBottomNav        from './MobileBottomNav.svelte';
 
-  interface Product {
-    id: string;
-    name: string;
-    price: number;
-    discountPrice?: number;
-    images: string[];
-    sales?: number;
-    slug?: string;
-  }
+  import type { Product, Category, Banner } from '$lib/types';
 
   interface Props {
-    banners: Array<{ id: string; image: string }>;
-    categories: Array<{ id: string; name: string; slug: string; image?: string; icon?: string }>;
-    products: Array<Product>;
+    banners: Banner[];
+    categories: Category[];
+    products: Product[];
     videos?: Array<{ id: string; url: string; title: string; likes: number; image: string }>;
   }
 

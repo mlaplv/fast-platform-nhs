@@ -5,18 +5,7 @@
   import { goto } from '$app/navigation';
   import { slugify } from '$lib/utils/format';
 
-  interface Product {
-    id: string;
-    name: string;
-    price: number;
-    discountPrice?: number;
-    discount_price?: number;
-    images: string[];
-    sales?: number;
-    originalPrice?: number;
-    original_price?: number;
-    slug?: string;
-  }
+  import type { Product } from '$lib/types';
 
   interface Props {
     products: Product[];
@@ -28,14 +17,14 @@
   const flashDeals = $derived(
     products
       .filter(p => {
-        const dPrice = p.discountPrice ?? p.discount_price;
-        const oPrice = p.originalPrice ?? p.original_price ?? p.price;
-        return dPrice && dPrice > 0 && dPrice < oPrice;
+        const dPrice = p.discountPrice || 0;
+        const oPrice = p.price || 0;
+        return dPrice > 0 && dPrice < oPrice;
       })
       .map((p) => {
-        const dPrice = p.discountPrice ?? p.discount_price;
-        const oPrice = p.originalPrice ?? p.original_price ?? p.price;
-        const discountPct = oPrice > 0 ? (oPrice - (dPrice || 0)) / oPrice : 0;
+        const dPrice = p.discountPrice!;
+        const oPrice = p.price;
+        const discountPct = (oPrice - dPrice) / oPrice;
         
         return {
           ...p,
@@ -44,13 +33,13 @@
           discountPct,
           discountLabel: Math.round(discountPct * 100),
           image: p.images?.[0] || '',
-          sold: p.sales || (10 + (parseInt(p.id.slice(-1), 16) || 0) * 5),
-          isFreeShip: true,
-          isBestSale: (p.sales || 0) > 50
+          // R00 Compliance: Use DB orderCountText if available
+          soldText: p.metadata?.reviews_count_text || 'Sắp cháy hàng', 
+          isHot: (p.metadata?.scarcity_seconds || 0) > 0 || (p.discountPrice && p.discountPrice / p.price < 0.5),
+          isFreeShip: p.metadata?.is_freeship !== false
         };
       })
       .sort((a, b) => b.discountPct - a.discountPct)
-      .map((p, i) => ({ ...p, isHot: i < 3 }))
   );
 
   const maxDiscount = $derived(
@@ -65,15 +54,15 @@
   const mm = $derived(String(Math.floor((seconds % 3600) / 60)).padStart(2, '0'));
   const ss = $derived(String(seconds % 60).padStart(2, '0'));
 
-  function getDiscountPct(deal: any): number {
-    const original = deal.oldPrice || 0;
-    const current = deal.finalPrice || deal.price;
-    if (!original || original <= current) return 0;
-    return Math.round((1 - current / original) * 100);
+  function getDiscountPct(deal: Product): number {
+    const dp = deal.discountPrice || 0;
+    const p = deal.price || 0;
+    if (!dp || !p || dp >= p) return 0;
+    return Math.round((1 - dp / p) * 100);
   }
 
-  function navigateProduct(deal: any): void {
-    goto(`/${deal.slug || slugify(deal.name)}`);
+  function navigateProduct(deal: Product): void {
+    goto(`/${deal.slug || deal.id}`);
   }
 
   onMount(() => {
@@ -146,12 +135,12 @@
 
           <!-- Progress Pill Overlapping Bottom of Image -->
           <div class="progress-wrap">
-            <div class="progress-fill" style="width: {deal.isHot ? 88 : Math.min(85, deal.sold)}%"></div>
+            <div class="progress-fill" style="width: {deal.isHot ? 90 : 65}%"></div>
             <span class="progress-text {deal.isHot ? 'fomo-pulse' : ''}">
               {#if deal.isHot}
-                🔥 Sắp hết
+                🔥 {deal.soldText}
               {:else}
-                Đã bán {deal.sold}
+                Đã bán {deal.soldText}
               {/if}
             </span>
           </div>
