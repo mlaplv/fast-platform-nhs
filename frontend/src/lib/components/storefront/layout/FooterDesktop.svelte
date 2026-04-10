@@ -1,116 +1,258 @@
-<!-- Footer MICSMO Minimalist Sharp 2026 -->
-<footer class="bg-white border-t border-slate-100 pt-16 pb-6 text-slate-600 font-medium overflow-hidden relative">
-  <!-- Sophisticated Double Wave Background -->
-  <div class="absolute top-0 left-0 w-full overflow-hidden leading-[0] pointer-events-none opacity-[0.06] -translate-y-1">
-    <svg viewBox="0 0 1200 120" preserveAspectRatio="none" class="relative block w-[200%] h-[160px] animate-[wave_24s_linear_infinite]">
-      <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" fill="#C18F7E"></path>
-    </svg>
-    <svg viewBox="0 0 1200 120" preserveAspectRatio="none" class="absolute top-0 left-0 block w-[200%] h-[160px] animate-[wave_16s_linear_infinite_reverse] opacity-60">
-      <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" fill="#E3B5A4"></path>
-    </svg>
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { 
+    Facebook, 
+    Linkedin, 
+    Instagram, 
+    Youtube, 
+    Phone, 
+    Mail, 
+    MapPin, 
+    ShieldCheck, 
+    Zap,
+    Clock,
+    ArrowRight,
+    Lock,
+    CreditCard,
+    CheckCircle2,
+    Users
+  } from 'lucide-svelte';
+
+  interface Props {
+    shopInfo: {
+      name: string;
+      companyName: string;
+      taxId: string;
+      businessLicense: string;
+      slogan: string;
+      description: string;
+      hotline: string;
+      email: string;
+      address: string;
+    };
+  }
+
+  let { shopInfo }: Props = $props();
+
+  const currentYear = new Date().getFullYear();
+
+  // FOMO: Simulated Live Activity Pulse
+  let activeViewers = $state(88);
+  onMount(() => {
+    const interval = setInterval(() => {
+       const change = Math.floor(Math.random() * 5) - 2;
+       activeViewers = Math.max(76, Math.min(124, activeViewers + change));
+    }, 5000);
+    return () => clearInterval(interval);
+  });
+</script>
+
+<footer class="relative overflow-hidden bg-[#0c0a09] border-t border-white/5 text-slate-400 font-medium selection:bg-[#C18F7E]/30 selection:text-white">
+  <!-- Dynamic Mesh Background (Viral 2026 Atmosphere) -->
+  <div class="absolute inset-0 pointer-events-none opacity-40">
+    <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[60%] bg-[#C18F7E]/10 blur-[120px] rounded-full animate-pulse"></div>
+    <div class="absolute bottom-[-20%] right-[-5%] w-[50%] h-[70%] bg-[#C18F7E]/5 blur-[150px] rounded-full"></div>
   </div>
-  
-  <style>
-    @keyframes wave {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
-    }
-  </style>
-  <div class="max-w-[1200px] mx-auto px-4 xl:px-0">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
-      <!-- Brand Section -->
-      <div class="lg:col-span-2 pr-8">
-        <div class="mb-5 flex flex-col">
-            <span class="text-2xl font-black tracking-[0.25em] uppercase leading-none bg-gradient-to-r from-[#C18F7E] via-[#E3B5A4] to-[#C18F7E] bg-clip-text text-transparent drop-shadow-sm">
-                MICSMO
-            </span>
-            <span class="text-[9px] font-black tracking-[0.11em] text-gray-400 uppercase mt-2 px-0.5 border-t border-gray-100/50 pt-1.5 w-fit">
-                Bật tông trắng sáng
-            </span>
+
+  <!-- Noise Texture Overlay -->
+  <div class="absolute inset-0 pointer-events-none opacity-[0.02] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150"></div>
+
+  <div class="max-w-[1240px] mx-auto px-6 pt-16 pb-8 relative z-[1]">
+    <!-- Elite Header Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-8 mb-12 items-start">
+      
+      <!-- Brand & AI Trust Section -->
+      <div class="lg:col-span-4 space-y-8">
+        <div class="flex flex-col group cursor-default">
+          <span class="text-4xl font-black tracking-[0.25em] uppercase leading-none bg-gradient-to-r from-[#C18F7E] via-[#E3B5A4] to-[#C18F7E] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(193,143,126,0.2)]">
+            {shopInfo.name}
+          </span>
+          <div class="flex items-center gap-2 mt-4">
+             <div class="h-[1px] w-12 bg-gradient-to-r from-[#C18F7E] to-transparent"></div>
+             <span class="text-[10px] font-black tracking-[0.4em] text-white/40 uppercase">
+               {shopInfo.slogan}
+             </span>
+          </div>
         </div>
-        <p class="text-slate-500 text-[13px] leading-relaxed max-w-sm mb-6 font-normal">
-          Nền tảng mỹ phẩm Elite hàng đầu Việt Nam. Trải nghiệm mua sắm thông minh với công nghệ Agentic AI 2026. Tận tâm phục vụ phái đẹp Việt.
+
+        <p class="text-[14px] leading-relaxed text-slate-400 max-w-[320px] font-normal italic">
+          "{shopInfo.description}"
         </p>
-        <div class="flex gap-3">
-          <a href="#" class="w-8 h-8 bg-slate-100 flex items-center justify-center hover:bg-[#C18F7E] hover:text-white transition-all group">
-            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-          </a>
-          <a href="#" class="w-8 h-8 bg-slate-100 flex items-center justify-center hover:bg-[#C18F7E] hover:text-white transition-all group">
-            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S1.335 3.35.306 4.14C.333 4.905.132 5.775.072 7.053.015 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558 1.28.059 1.687.072 4.947.072s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.059-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.335 20.65.922 19.858.63c-.765-.297-1.636-.499-2.913-.558C15.667.015 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.584-.072 4.85c-.052 1.17-.247 1.805-.413 2.227-.218.562-.477.96-.897 1.382-.42.419-.818.679-1.381.896-.422.164-1.056.36-2.227.413-1.266.057-1.646.07-4.85.07s-3.584-.015-4.85-.072c-1.17-.052-1.805-.247-2.227-.413-.562-.218-.96-.477-1.382-.897-.419-.42-.679-.818-.896-1.381-.164-.422-.36-1.056-.413-2.227-.057-1.266-.07-1.646-.07-4.85s.016-3.584.072-4.85c.055-1.17.249-1.805.415-2.227.217-.562.477-.96.896-1.382.42-.419.819-.679 1.381-.896.422-.164 1.057-.36 2.227-.413 1.266-.057 1.646-.07 4.85-.07zM12 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-          </a>
-          <a href="#" class="w-8 h-8 bg-slate-100 flex items-center justify-center hover:bg-[#C18F7E] hover:text-white transition-all group">
-            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 4-8 4z"/></svg>
-          </a>
+
+        <!-- FOMO: Live Pulse -->
+        <div class="flex items-center gap-3 py-3 px-4 bg-[#C18F7E]/5 border border-[#C18F7E]/20 rounded-2xl w-fit backdrop-blur-md group hover:bg-[#C18F7E]/10 transition-all">
+          <div class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+          </div>
+          <p class="text-[11px] font-black uppercase tracking-widest text-[#C18F7E]">
+            <span class="tabular-nums">{activeViewers}</span> Elite Members Shopping Now
+          </p>
+        </div>
+
+        <!-- AI Trust Badges (Viral 2026 Flair) -->
+        <div class="flex flex-wrap gap-2">
+          <div class="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full backdrop-blur-md hover:bg-white/10 transition-all cursor-default group">
+            <ShieldCheck size={12} class="text-[#C18F7E] group-hover:scale-110 transition-transform" />
+            <span class="text-[8px] font-black uppercase tracking-widest text-white/80">AI Guarded</span>
+          </div>
+          <div class="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full backdrop-blur-md hover:bg-white/10 transition-all cursor-default group">
+            <Zap size={12} class="text-[#C18F7E] group-hover:scale-110 transition-transform" />
+            <span class="text-[8px] font-black uppercase tracking-widest text-white/80">Instant Sync</span>
+          </div>
+          <div class="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full backdrop-blur-md hover:bg-white/10 transition-all cursor-default group">
+            <Clock size={12} class="text-[#C18F7E] group-hover:scale-110 transition-transform" />
+            <span class="text-[8px] font-black uppercase tracking-widest text-white/80">24/7 Agent</span>
+          </div>
         </div>
       </div>
 
-      <!-- Links Sections -->
-      <div class="space-y-4">
-        <h4 class="text-slate-900 font-bold uppercase text-[11px] tracking-[0.2em] mb-4">Về Micsmo</h4>
-        <ul class="text-[13px] space-y-3 font-normal">
-          <li><a href="#" class="hover:text-[#C18F7E] transition-colors">Giới thiệu</a></li>
-          <li><a href="#" class="hover:text-[#C18F7E] transition-colors">Tuyển dụng</a></li>
-          <li><a href="#" class="hover:text-[#C18F7E] transition-colors">Điều khoản Micsmo</a></li>
-          <li><a href="#" class="hover:text-[#C18F7E] transition-colors">Chính sách bảo mật</a></li>
-          <li><a href="#" class="hover:text-[#C18F7E] transition-colors">Kênh Người bán</a></li>
+      <!-- Links Column 1: Ecosystem -->
+      <div class="lg:col-span-2 space-y-6">
+        <h4 class="text-white font-black uppercase text-[10px] tracking-[0.4em] pl-2">Hệ sinh thái</h4>
+        <ul class="space-y-3">
+          {#each ['Giới thiệu Elite', 'Tuyển dụng AI', 'Chính sách Micsmo', 'Blog Công nghệ'] as link}
+            <li>
+              <button class="group flex items-center gap-2 text-[13px] text-slate-500 hover:text-white transition-all duration-300">
+                <span class="w-0 h-[1.5px] bg-[#C18F7E] group-hover:w-3 transition-all"></span>
+                {link}
+              </button>
+            </li>
+          {/each}
         </ul>
       </div>
 
-      <div class="space-y-4">
-        <h4 class="text-slate-900 font-bold uppercase text-[11px] tracking-[0.2em] mb-4">Hỗ trợ</h4>
-        <ul class="text-[13px] space-y-3 font-normal">
-          <li><a href="#" class="hover:text-[#C18F7E] transition-colors">Trung tâm trợ giúp</a></li>
-          <li><a href="#" class="hover:text-[#C18F7E] transition-colors">Micsmo Blog</a></li>
-          <li><a href="#" class="hover:text-[#C18F7E] transition-colors">Hướng dẫn mua hàng</a></li>
-          <li><a href="#" class="hover:text-[#C18F7E] transition-colors">Thanh toán</a></li>
-          <li><a href="#" class="hover:text-[#C18F7E] transition-colors">Vận chuyển</a></li>
+      <!-- Links Column 2: Support -->
+      <div class="lg:col-span-2 space-y-6">
+        <h4 class="text-white font-black uppercase text-[10px] tracking-[0.4em] pl-2">Khách hàng</h4>
+        <ul class="space-y-3">
+          {#each ['Trung tâm trợ giúp', 'Hướng dẫn mua hàng', 'Tra cứu đơn hàng', 'Vận chuyển & Đổi trả'] as link}
+            <li>
+              <button class="group flex items-center gap-2 text-[13px] text-slate-500 hover:text-white transition-all duration-300">
+                <span class="w-0 h-[1.5px] bg-[#C18F7E] group-hover:w-3 transition-all"></span>
+                {link}
+              </button>
+            </li>
+          {/each}
         </ul>
       </div>
 
-      <div class="space-y-4">
-        <h4 class="text-slate-900 font-bold uppercase text-[11px] tracking-[0.2em] mb-4">HKD Văn Lập</h4>
-        <div class="text-[12px] leading-relaxed space-y-2 font-normal text-slate-500">
-          <p>Địa chỉ: 123 Đường ABC, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh, Việt Nam</p>
-          <p>Mã số đăng ký: 0102030405 do UBND Quận 1 cấp ngày 01/01/2026</p>
-          <p>Email: <a href="mailto:legal@micsmo.com" class="text-[#C18F7E] hover:underline">legal@micsmo.com</a></p>
-          <p>Hotline: <span class="text-slate-900 font-bold">0949 901 122</span></p>
+      <!-- Contact & Social Connect -->
+      <div class="lg:col-span-4 space-y-6">
+        <h4 class="text-white font-black uppercase text-[10px] tracking-[0.4em] pl-2">Kết nối Micsmo</h4>
+        
+        <div class="bg-white/[0.02] border border-white/5 p-5 rounded-xl backdrop-blur-3xl space-y-5 hover:border-[#C18F7E]/20 transition-all group">
+          <div class="flex items-center gap-4">
+            <div class="w-7 h-7 rounded-lg bg-[#C18F7E]/10 flex items-center justify-center shrink-0">
+              <MapPin size={14} class="text-[#C18F7E]" />
+            </div>
+            <p class="text-[12px] leading-relaxed text-slate-300 font-normal italic">
+              {shopInfo.address}
+            </p>
+          </div>
+
+          <div class="flex items-center gap-4">
+            <div class="w-7 h-7 rounded-lg bg-[#C18F7E]/10 flex items-center justify-center shrink-0">
+              <Mail size={14} class="text-[#C18F7E]" />
+            </div>
+            <a href="mailto:{shopInfo.email}" class="text-[12px] text-slate-300 hover:text-[#C18F7E] transition-colors">{shopInfo.email}</a>
+          </div>
+
+          <div class="pt-4 border-t border-white/5 flex items-center justify-between">
+            <div class="flex flex-col">
+               <span class="text-[8px] uppercase tracking-[0.2em] text-slate-500 font-bold mb-1">Elite Hotline 24/7</span>
+               <a href="tel:{shopInfo.hotline.replace(/-/g, '')}" class="text-xl font-black tracking-tighter text-white hover:text-[#C18F7E] transition-colors tabular-nums">
+                 {shopInfo.hotline}
+               </a>
+            </div>
+            <button class="w-9 h-9 rounded-full bg-[#C18F7E] text-[#020617] flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(193,143,126,0.3)]">
+               <ArrowRight size={18} />
+            </button>
+          </div>
+        </div>
+
+        <!-- Trust Badges & Payments -->
+        <div class="bg-zinc-950/40 border border-white/5 p-4 rounded-xl flex items-center justify-between gap-4">
+          <div class="flex flex-col gap-2">
+            <span class="text-[8px] font-black uppercase tracking-widest text-slate-500">Security & Payments</span>
+            <div class="flex items-center gap-3 opacity-60">
+              <CreditCard size={14} class="text-slate-300" />
+              <Lock size={14} class="text-slate-300" />
+              <ShieldCheck size={14} class="text-slate-300" />
+            </div>
+          </div>
+          <div class="flex flex-col items-end">
+            <button class="bg-blue-600/10 hover:bg-blue-600/20 border border-blue-600/20 p-2 rounded transition-all group/bct" title="Đã Thông Báo Bộ Công Thương">
+               <div class="flex items-center gap-1.5 grayscale group-hover/bct:grayscale-0 transition-all opacity-70 group-hover/bct:opacity-100">
+                 <div class="w-6 h-4 bg-red-600/80 rounded-[2px] flex items-center justify-center">
+                    <CheckCircle2 size={10} class="text-white" />
+                 </div>
+                 <span class="text-[7px] font-black text-white leading-none">BCT NO.2026</span>
+               </div>
+            </button>
+          </div>
         </div>
       </div>
+
     </div>
 
-    <!-- Payment & Shipping -->
-    <div class="border-t border-slate-100 py-8 flex flex-wrap justify-between items-center gap-6">
-      <div class="flex items-center gap-4">
-        <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Payment</span>
-        <div class="flex gap-2">
-          {#each ['VISA', 'COD', 'MOMO', 'VNPAY'] as pay}
-            <div class="px-3 py-1 bg-white border border-slate-100 text-[10px] font-bold text-slate-500 hover:border-[#C18F7E] hover:text-[#C18F7E] transition-colors cursor-default">{pay}</div>
-          {/each}
+    <!-- Bottom Bar: Ownership & Legal -->
+    <div class="pt-8 border-t border-white/5">
+      <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+        <div class="space-y-3">
+          <div class="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 italic">
+            <p>© {currentYear} <span class="text-white font-bold">{shopInfo.name}</span></p>
+            <span class="w-1 h-1 rounded-full bg-white/10"></span>
+            {#if shopInfo.companyName}
+              <p class="font-bold text-slate-300 uppercase tracking-widest text-[8px]">{shopInfo.companyName}</p>
+            {/if}
+          </div>
+          
+          <div class="flex flex-wrap items-center gap-4 text-[9px] font-mono text-slate-600 uppercase tracking-widest leading-relaxed">
+            {#if shopInfo.taxId}
+              <div class="flex items-center gap-1.5 border-r border-white/5 pr-4 last:border-0 last:pr-0">
+                <span class="text-slate-800 font-black">MST:</span>
+                <span class="text-slate-500 tabular-nums">{shopInfo.taxId}</span>
+              </div>
+            {/if}
+            {#if shopInfo.businessLicense}
+              <div class="flex items-center gap-1.5 border-r border-white/5 pr-4 last:border-0 last:pr-0">
+                <span class="text-slate-800 font-black">GPKD:</span>
+                <span class="text-slate-500">{shopInfo.businessLicense}</span>
+              </div>
+            {/if}
+            <div class="flex items-center gap-1.5 border-r border-white/5 pr-4 last:border-0 last:pr-0">
+               <span class="text-slate-800 font-black">SSL:</span>
+               <span class="text-slate-500 font-bold text-emerald-600/80 tracking-tighter">ENCRYPTED 256B</span>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="flex items-center gap-4">
-        <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Logistics</span>
-        <div class="flex gap-2">
-          {#each ['GHN', 'GHTK', 'SPX', 'NINJAVAN'] as ship}
-            <div class="px-3 py-1 bg-white border border-slate-100 text-[10px] font-bold text-slate-500 hover:border-[#C18F7E] hover:text-[#C18F7E] transition-colors cursor-default">{ship}</div>
-          {/each}
-        </div>
-      </div>
-    </div>
 
-    <!-- Bottom Bar -->
-    <div class="border-t border-slate-100 pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-[11px] text-slate-400 font-normal">
-      <p>© 2026 <span class="text-slate-900 font-bold">MICSMO ELITE</span>. Crafted with AI 2026 Tech.</p>
-      <div class="flex gap-6">
-        <span>Global: Vietnam | Singapore | Thailand | Taiwan</span>
+        <div class="flex items-center gap-6">
+          <div class="flex items-center gap-3">
+             {#each [
+               { icon: Facebook, label: 'Facebook' },
+               { icon: Linkedin, label: 'LinkedIn' },
+               { icon: Youtube, label: 'YouTube' }
+             ] as social}
+               <button aria-label={social.label} class="text-slate-600 hover:text-[#C18F7E] transition-all">
+                  <social.icon size={16} />
+               </button>
+             {/each}
+          </div>
+          <div class="flex items-center gap-2 group cursor-default">
+             <span class="text-[9px] font-black uppercase tracking-widest text-slate-700 group-hover:text-slate-500 transition-colors">Crafted with AI 2026 Tech</span>
+             <div class="w-1 h-1 rounded-full bg-[#C18F7E] animate-ping"></div>
+          </div>
+        </div>
       </div>
-    </div>
-    
-    <!-- Bottom Wave Background (Closing) - Micsmo Elite -->
-    <div class="absolute bottom-0 left-0 w-full overflow-hidden leading-[0] pointer-events-none opacity-[0.04]">
-      <svg viewBox="0 0 1200 120" preserveAspectRatio="none" class="relative block w-[200%] h-[120px] animate-[wave_32s_linear_infinite] rotate-180">
-        <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" fill="#C18F7E"></path>
-      </svg>
     </div>
   </div>
 </footer>
+
+<style>
+  :global(footer) {
+    contain: paint;
+  }
+</style>

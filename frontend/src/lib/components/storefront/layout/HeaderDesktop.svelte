@@ -18,32 +18,32 @@
     <!-- Top Navbar - Micsmo Elite 2026 -->
     <div class="flex items-center justify-between h-[28px] text-[11px] text-gray-500 border-b border-gray-50 bg-gray-50/30 -mx-4 px-4 xl:-mx-0 xl:px-0">
       <div class="flex items-center space-x-3">
-        <a href="#" class="hover:text-[#C18F7E] transition-colors">Kênh Người Bán</a>
+        <button type="button" class="hover:text-[#C18F7E] transition-colors">Kênh Người Bán</button>
         <span class="w-[1px] h-3 bg-gray-200"></span>
-        <a href="#" class="hover:text-[#C18F7E] transition-colors">Trở thành Người bán Micsmo</a>
+        <button type="button" class="hover:text-[#C18F7E] transition-colors">Trở thành Người bán Micsmo</button>
         <span class="w-[1px] h-3 bg-gray-200"></span>
-        <a href="#" class="hover:text-[#C18F7E] transition-colors">Tải ứng dụng</a>
+        <button type="button" class="hover:text-[#C18F7E] transition-colors">Tải ứng dụng</button>
         <span class="w-[1px] h-3 bg-gray-200"></span>
         <div class="flex items-center gap-1">
           <span>Kết nối</span>
-          <a href="#" class="hover:text-[#C18F7E] transition-colors text-lg italic">f</a>
-          <a href="#" class="hover:text-[#C18F7E] transition-colors text-lg italic">in</a>
+          <button type="button" class="hover:text-[#C18F7E] transition-colors text-lg italic">f</button>
+          <button type="button" class="hover:text-[#C18F7E] transition-colors text-lg italic">in</button>
         </div>
       </div>
       <div class="flex items-center space-x-4">
-        <a href="#" class="flex items-center gap-1 hover:text-[#C18F7E] transition-colors">
+        <button type="button" class="flex items-center gap-1 hover:text-[#C18F7E] transition-colors">
           <span>🔔</span> Thông Báo
-        </a>
-        <a href="#" class="flex items-center gap-1 hover:text-[#C18F7E] transition-colors">
+        </button>
+        <button type="button" class="flex items-center gap-1 hover:text-[#C18F7E] transition-colors">
           <span>❔</span> Hỗ Trợ
-        </a>
+        </button>
         <button class="flex items-center gap-1 hover:text-[#C18F7E] transition-colors uppercase font-bold tracking-tighter">
           🌐 Tiếng Việt
         </button>
         <span class="w-[1px] h-3 bg-gray-200"></span>
-        <a href="#" class="hover:text-[#C18F7E] font-bold uppercase transition-colors tracking-tighter">Đăng Ký</a>
+        <button type="button" class="hover:text-[#C18F7E] font-bold uppercase transition-colors tracking-tighter">Đăng Ký</button>
         <span class="w-[1px] h-3 bg-gray-200"></span>
-        <a href="#" class="hover:text-[#C18F7E] font-bold uppercase transition-colors tracking-tighter">Đăng Nhập</a>
+        <button type="button" class="hover:text-[#C18F7E] font-bold uppercase transition-colors tracking-tighter">Đăng Nhập</button>
       </div>
     </div>
 
@@ -70,7 +70,10 @@
               placeholder="Micsmo - Bật tông trắng sáng Đăng ký ngay!"
               class="flex-grow h-[42px] pl-[5px] pr-6 text-[15px] text-gray-800 bg-transparent focus:outline-none placeholder:text-gray-300 font-bold"
             />
-            <button class="bg-gradient-to-br from-[#C18F7E] to-[#E3B5A4] min-w-[80px] h-[42px] flex items-center justify-center rounded-none hover:brightness-110 active:scale-95 transition-all shadow-lg mx-[0.5px]">
+            <button 
+              class="bg-gradient-to-br from-[#C18F7E] to-[#E3B5A4] min-w-[80px] h-[42px] flex items-center justify-center rounded-none hover:brightness-110 active:scale-95 transition-all shadow-lg mx-[0.5px]"
+              aria-label="Tìm kiếm"
+            >
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </button>
           </div>
@@ -97,7 +100,14 @@
             </button>
 
             {#if showAccountMenu}
-              <div in:fly={{ y: 15, duration: 400, opacity: 0 }} out:fade={{ duration: 200 }} class="absolute right-0 top-[100%] mt-2 w-60 z-50 origin-top-right filter drop-shadow-[0_25px_25px_rgba(0,0,0,0.2)]" onclick={(e) => e.stopPropagation()}>
+              <div 
+                in:fly={{ y: 15, duration: 400, opacity: 0 }} 
+                out:fade={{ duration: 200 }} 
+                class="absolute right-0 top-[100%] mt-2 w-60 z-50 origin-top-right filter drop-shadow-[0_25px_25px_rgba(0,0,0,0.2)]" 
+                onclick={(e) => e.stopPropagation()}
+                onkeydown={(e) => e.key === 'Escape' && (showAccountMenu = false)}
+                role="presentation"
+              >
                 <div class="absolute -top-1.5 right-[22px] w-3 h-3 bg-white border-t border-l border-gray-100 rotate-45 z-[51]"></div>
                 <div class="bg-white/98 backdrop-blur-3xl rounded-none border border-gray-100 overflow-hidden shadow-2xl relative z-50">
                   <div class="px-5 py-4 bg-gradient-to-br from-gray-50/80 to-white flex items-center gap-3 border-b border-gray-100">
@@ -142,11 +152,11 @@
       <!-- Bottom Row: Trending Keywords -->
       <div class="flex items-center gap-4 ml-[150px] text-[11px] text-gray-400 font-medium">
         <span class="opacity-50">Xu hướng:</span>
-        <a href="#" class="hover:text-[#C18F7E] transition-colors">Săn iPhone 0 Đồng</a>
-        <a href="#" class="hover:text-[#C18F7E] transition-colors">Ghế Ngồi Làm Việc</a>
-        <a href="#" class="hover:text-[#C18F7E] transition-colors">Máy Quạt Cầm Tay</a>
-        <a href="#" class="hover:text-[#C18F7E] transition-colors">Áo Nữ</a>
-        <a href="#" class="hover:text-[#C18F7E] transition-colors">Son Bóng</a>
+        <button type="button" class="hover:text-[#C18F7E] transition-colors">Săn iPhone 0 Đồng</button>
+        <button type="button" class="hover:text-[#C18F7E] transition-colors">Ghế Ngồi Làm Việc</button>
+        <button type="button" class="hover:text-[#C18F7E] transition-colors">Máy Quạt Cầm Tay</button>
+        <button type="button" class="hover:text-[#C18F7E] transition-colors">Áo Nữ</button>
+        <button type="button" class="hover:text-[#C18F7E] transition-colors">Son Bóng</button>
       </div>
     </div>
   </div>

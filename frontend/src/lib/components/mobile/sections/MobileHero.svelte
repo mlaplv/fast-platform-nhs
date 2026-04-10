@@ -94,18 +94,18 @@
           <!-- Product Info Overlay -->
           <div class="hero-info-overlay">
             <!-- Live & Scarcity Indicator (Viral 2026) -->
-            <div class="inline-flex items-center gap-2.5 px-3 py-1 bg-black/40 backdrop-blur-[25px] rounded-full border border-white/10 shadow-[0_4px_15px_rgba(0,0,0,0.2)] mb-1 w-max">
-               <div class="relative flex h-1.5 w-1.5 align-middle">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ff3b30] opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#ff3b30]"></span>
+            <div class="inline-flex items-center gap-2 px-2.5 py-1 bg-white/15 backdrop-blur-2xl rounded-full border border-white/20 shadow-[0_4px_24px_rgba(255,59,48,0.2)] mb-1.5 w-max">
+               <div class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ff3b30] opacity-80"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-[#ff3b30]"></span>
                </div>
-               <span class="text-[10px] font-medium text-white/80 tracking-wide mt-[1px]">
-                  <strong class="font-black text-white">{viewers}</strong> đang chốt
+               <span class="text-[10px] font-black text-white tracking-wider flex items-center gap-1">
+                  {viewers} <span class="text-white/60 font-medium">BẠN ĐANG XEM</span>
                </span>
-               <div class="w-[1px] h-3 bg-white/20 mx-0.5 mt-[1px]"></div>
-               <Flame class="w-3 h-3 text-[#ff9f0a] mt-[1px]" />
-               <span class="text-[10px] font-medium text-white/80 tracking-wide mt-[1px]">
-                  Còn <strong class="text-[#ff9f0a] font-bold">{stockLeft}</strong> suất
+               <div class="w-[1px] h-3 bg-white/30 mx-1"></div>
+               <Flame class="w-3.5 h-3.5 text-[#ffcc00] fill-[#ffcc00]" />
+               <span class="text-[10px] font-black text-[#ffcc00] tracking-wide">
+                  HÀNG SẮP HẾT
                </span>
             </div>
 
@@ -126,8 +126,8 @@
             </div>
 
             <!-- Title & Variant -->
-            <h1 class="text-2xl font-black leading-none text-white uppercase tracking-tighter italic pr-14">
-              {opt} <span class="text-[#00f2fe]">.</span>
+            <h1 class="text-3xl font-black leading-tight text-white uppercase tracking-tighter italic pr-14 drop-shadow-2xl">
+              {opt} <span class="text-sakura-pink">.</span>
             </h1>
 
             <!-- Trust / Review Badge -->
@@ -145,7 +145,7 @@
 
             <!-- Description -->
             <p class="text-[12px] text-white/90 line-clamp-2 leading-relaxed italic font-medium max-w-[90%] pr-14 drop-shadow-sm">
-               {product?.shortDescription?.replace(/CHẤM DỨT/g, opt.toUpperCase()) || 'Phác đồ điều trị chuyên biệt cho tình trạng của bạn.'}
+               {product?.shortDescription?.replace(/ĐÁNH BAY/g, opt.toUpperCase()) || 'Phác đồ điều trị chuyên biệt cho tình trạng của bạn.'}
             </p>
             
             <!-- Metrics / USP -->

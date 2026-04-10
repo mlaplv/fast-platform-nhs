@@ -31,6 +31,9 @@
   }
 
   interface ContactInfo {
+    company_name: string;
+    tax_id: string;
+    business_license: string;
     phone: string;
     hotline: string;
     email: string;
@@ -81,7 +84,7 @@
 
   let settings = $state<SystemSettings>({
     basic_info: { site_name: "", description: "", logo_desktop: null, logo_mobile: null, favicon: null },
-    contact_info: { phone: "", hotline: "", email: "", address: "", working_hours: "" },
+    contact_info: { company_name: "", tax_id: "", business_license: "", phone: "", hotline: "", email: "", address: "", working_hours: "" },
     social_media: [],
     seo_analytics: { meta_title: "", meta_description: "", meta_keywords: "", google_analytics_id: "", facebook_pixel_id: "" },
     google_maps: { map_iframe: "", api_key: "" },
@@ -300,6 +303,18 @@
                 <Phone size={16} /> Thông tin liên hệ
               </h3>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-950/40 border border-white/5 rounded-2xl p-6">
+                <div class="space-y-1 md:col-span-2">
+                  <label for="company_name" class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Tên Công Ty</label>
+                  <input id="company_name" bind:value={settings.contact_info.company_name} type="text" autocomplete="off" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-cyan-500/50 outline-none transition-colors" placeholder="Công ty TNHH SmartShop" />
+                </div>
+                <div class="space-y-1">
+                  <label for="tax_id" class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Mã số thuế</label>
+                  <input id="tax_id" bind:value={settings.contact_info.tax_id} type="text" autocomplete="off" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-cyan-500/50 outline-none transition-colors" placeholder="e.g. 0101234567" />
+                </div>
+                <div class="space-y-1">
+                  <label for="business_license" class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Giấy phép kinh doanh</label>
+                  <input id="business_license" bind:value={settings.contact_info.business_license} type="text" autocomplete="off" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-cyan-500/50 outline-none transition-colors" placeholder="Số GPKD, ngày cấp..." />
+                </div>
                 <div class="space-y-1">
                   <label for="phone" class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Điện thoại</label>
                   <input id="phone" bind:value={settings.contact_info.phone} type="text" autocomplete="off" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-cyan-500/50 outline-none transition-colors" placeholder="0901 234 567" />

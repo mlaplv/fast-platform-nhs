@@ -290,6 +290,11 @@ function init_deploy() {
             ;;
         *)
             echo -e "${YELLOW}[SKIP] Không gieo mầm dữ liệu.${NC}"
+            echo -e "Sếp có muốn khởi tạo Super User (Admin) để đăng nhập không? (y/n)"
+            read -p "Lựa chọn (mặc định y): " create_admin
+            if [[ -z "$create_admin" || "$create_admin" =~ ^[Yy]$ ]]; then
+                create_superuser
+            fi
             ;;
     esac
     
@@ -330,6 +335,13 @@ function update_ai_model() {
         echo -e "${YELLOW}-> Đã hủy cập nhật.${NC}"
     fi
     read -p "Nhấn Enter để quay lại menu..."
+}
+
+function create_superuser() {
+    echo -e "${CYAN}[AUTH] Đang khởi tạo Super User (Admin Elite 2026)...${NC}"
+    # Đảm bảo dùng 'run --rm' để có môi trường cô lập và kết nối DB ổn định
+    docker compose run --rm api /opt/venv/bin/python3 -m backend.scripts.init_superuser
+    echo -e "${GREEN}[OK] Đã hoàn tất quy trình khởi tạo Admin.${NC}"
 }
 
 
@@ -781,6 +793,7 @@ while true; do
     echo "12) MOUNT Ổ SAS 120GB (Vào backups/)"
     echo "13) QUẢN TRỊ USER & SSH (Lockdown Root)"
     echo "14) HƯỚNG DẪN CHI TIẾT (Tránh Quên)"
+    echo "15) KHỞI TẠO SIÊU ADMIN (Login cho DB Trắng)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -838,6 +851,10 @@ while true; do
             ;;
         14)
             show_elite_guide
+            ;;
+        15)
+            create_superuser
+            read -p "Nhấn Enter để quay lại menu..."
             ;;
         0)
             exit 0

@@ -22,18 +22,21 @@ export const load: PageServerLoad = async ({
     let res;
     try {
         res = await fetch(targetUrl, {
-            headers: { 'x-tenant': tenantId }
+            headers: { 'x-tenant': tenantId },
+            signal: AbortSignal.timeout(5000)
         });
-    } catch (e: unknown) {
-        const err = e as Error;
-        console.error(`[FETCH FAILED], không thể kết nối tới Backend!`);
+    } catch (e: any) {
+        const isTimeout = e.name === 'TimeoutError' || e.message?.includes('timeout');
+        console.error(`[FUNNEL FETCH FAILED] ${isTimeout ? 'TIMEOUT' : 'CONNECTION ERROR'}`);
         console.error(`URL: ${targetUrl}`);
-        console.error(`Error: ${err.message}`);
-        console.error(`Hint: Kiểm tra INTERNAL_API_URL (${apiUrl}) và trạng thái container 'api'`);
         
-        throw error(503, {
-            message: "Dịch vụ tạm thời không khả dụng (Backend Connection Failed)",
-            details: `Failed to reach API at ${apiUrl}. Please check infra config.`
+        throw error(isTimeout ? 504 : 503, {
+            message: isTimeout 
+                ? "Hệ thống đang phản hồi chậm (Backend Timeout)" 
+                : "Dịch vụ tạm thời không khả dụng (Backend Connection Failed)",
+            details: isTimeout 
+                ? "Vui lòng chờ giây lát và thử lại (Request timed out after 5s)."
+                : `Failed to reach API at ${apiUrl}. Please check infra config.`
         });
     }
 

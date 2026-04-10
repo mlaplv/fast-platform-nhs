@@ -16,6 +16,7 @@ SUB_CATEGORY_DEFS = []
 
 PRODUCT_DEFS = [
     {
+        "images": ["img/micsmo/virgin_white_viral_2026.png"],
         "id": "prod_miccosmo_virgin_white",
         "name": "Miccosmo Beppin Body Virgin White Serum 30g",
         "slug": "miccosmo-beppin-body-virgin-white-serum",
@@ -28,7 +29,27 @@ PRODUCT_DEFS = [
             "ingredients": "Water, Butylene Glycol, Glycerin, Vitamin C dẫn xuất & Vitamin E, Chiết xuất lá hoa anh đào.",
             "instructions": "Làm sạch và lau khô vùng da cần chăm sóc, thoa nhẹ và massage đều, ngày 2 lần.",
             "origin": "Japan",
-            "weight": "30g"
+            "weight": "30g",
+            "reviews": [
+                {
+                    "name": "Hồng Hạnh",
+                    "location": "Hà Nội",
+                    "rating": 5,
+                    "content": "Dùng bao nhiêu loại rồi mới thấy chân ái ở đây. Mới dùng hết nửa tuýp mà vùng bikini đã sáng hẳn lên, không còn thâm sạm như trước. Sợ hết hàng nên phải tranh thủ đặt thêm 2 tuýp nữa để dành. Chị em nào còn phân vân thì chốt ngay kẻo hối hận!"
+                },
+                {
+                    "name": "Minh Thư",
+                    "location": "TP.HCM",
+                    "rating": 5,
+                    "content": "Siêu phẩm thực sự! Mình mua đợt sale vừa rồi, dùng được 2 tuần là thấy hiệu quả rõ rệt nhất là ở nách. Da mềm mịn hẳn. Nhóm bạn mình ai cũng đang săn lùng em này, may mà mình chốt sớm không là lại phải đợi đặt hàng lâu. Đáng đồng tiền bát gạo lắm ạ."
+                },
+                {
+                    "name": "Bích Ngọc",
+                    "location": "Đà Nẵng",
+                    "rating": 5,
+                    "content": "Thấm nhanh cực kỳ, không hề bết dính. Sau sinh mình tự ti hẳn nhưng nhờ em Virgin White này mà giờ tự tin diện bikini rồi. Nghe đồn sắp tăng giá nên tranh thủ gom thêm cho mấy bà chị. Best-seller có khác, dùng là nghiện!"
+                }
+            ]
         }
     },
     {
@@ -312,3 +333,43 @@ ARTICLE_TITLES = [article["title"] for article in ARTICLE_DEFS]
 
 # Support Knowledge Base (Elite V2.2)
 SUPPORT_KNOWLEDGE_DEFS = []
+
+# System Settings (Elite V2.2)
+SYSTEM_SETTINGS_DEF = {
+    "basic_info": {
+        "site_name": "Micsmo.com",
+        "description": "Hệ thống bán hàng AI thế hệ mới 2026",
+        "logo_desktop": None,
+        "logo_mobile": None,
+        "favicon": None
+    },
+    "contact_info": {
+        "company_name": "HKD Văn Lập",
+        "tax_id": "",
+        "business_license": "",
+        "phone": "094990112",
+        "hotline": "0978785079",
+        "email": "contact@micsmo.com",
+        "address": "336/28/19 Nguyễn Văn Luông, Phú Lâm, HCM",
+        "working_hours": "8:00 - 22:00"
+    },
+    "social_media": [
+        {"platform": "Facebook", "url": "https://facebook.com/micsmo", "icon_url": None},
+        {"platform": "Zalo", "url": "https://zalo.me/micsmo", "icon_url": None},
+        {"platform": "TikTok", "url": "https://tiktok.com/@micsmo", "icon_url": None}
+    ],
+    "seo_analytics": {
+        "meta_title": "Micsmo.com - Mua sắm thông minh cùng AI",
+        "meta_keywords": "AI, shopping, smartshop, micsmo",
+        "google_analytics_id": "G-XXXXXXXXXX",
+        "facebook_pixel_id": "XXXXXXXXXXXXXXX"
+    },
+    "google_maps": {
+        "map_iframe": "",
+        "api_key": ""
+    },
+    "maintenance": {
+        "is_enabled": False,
+        "message": "Hệ thống đang bảo trì để nâng cấp Core AI. Vui lòng quay lại sau."
+    }
+}

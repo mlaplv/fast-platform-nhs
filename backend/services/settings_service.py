@@ -289,3 +289,6 @@ class SettingsService:
             logger.error(f"[SettingsService] Failed to emit media sync: {e}")
 
 settings_service = SettingsService()
+async def provide_settings_service() -> SettingsService:
+    """Standard Litestar Provider for SettingsService."""
+    return settings_service

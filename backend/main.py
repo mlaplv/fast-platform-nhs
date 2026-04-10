@@ -49,6 +49,7 @@ from backend.controllers.client.review import PublicReviewController
 from backend.controllers.client.support import SupportController
 from backend.controllers.client.pulse import ClientPulseController
 from backend.controllers.client.news import PublicNewsController
+from backend.controllers.client.settings import ClientSettingsController
 from backend.controllers.admin_support import AdminSupportController
 from backend.controllers.admin_support_inbox import AdminSupportInboxController
 from backend.controllers.review import AdminReviewController
@@ -68,6 +69,7 @@ from backend.middleware import AuthMiddleware
 from backend.body_limit import BodyLimitMiddleware
 from backend.domain_guard import DomainGuardMiddleware
 from backend.audit_middleware import AuditMiddleware
+from backend.stall_middleware import StallDetectorMiddleware
 
 load_dotenv(".env")
 
@@ -109,9 +111,9 @@ app = Litestar(
         CheckoutController, PublicOrderController, ChatController, SettingsController, AIManagementController, ContentController, MediaController, ContentStreamController,
         BannerController, stt_websocket, TTSController, IntentMapController, SchedulerController, DiagnosticController,
         AdminReviewController, PublicReviewController, SupportController, ClientPulseController, AdminSupportController, AdminSupportInboxController,
-        PublicNewsController
+        PublicNewsController, ClientSettingsController
     ],
-    middleware=[BodyLimitMiddleware, rate_limit_config.middleware, DomainGuardMiddleware, AuditMiddleware, AuthMiddleware],
+    middleware=[StallDetectorMiddleware, BodyLimitMiddleware, rate_limit_config.middleware, DomainGuardMiddleware, AuditMiddleware, AuthMiddleware],
     cors_config=cors_config,
     stores={"memory_store": memory_store},
     openapi_config=OpenAPIConfig(

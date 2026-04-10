@@ -277,6 +277,7 @@
             <button 
                 onclick={() => (currentSlide = i)}
                 class="group relative flex items-center justify-center h-4 w-8 transition-all"
+                aria-label={`Chuyển đến slide ${i + 1}`}
             >
                 <div class="h-[2px] transition-all duration-700 {currentSlide === i ? 'w-8 bg-[#C18F7E]' : 'w-4 bg-black/10 group-hover:bg-black/30'}"></div>
             </button>

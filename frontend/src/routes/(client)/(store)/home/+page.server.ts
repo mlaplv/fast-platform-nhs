@@ -10,20 +10,25 @@ export const load: PageServerLoad = async ({ fetch }) => {
   const targetUrl = `${apiUrl}/api/v1/client/home`;
 
   let res;
-  try {
-    res = await fetch(targetUrl, {
-      headers: { 'x-tenant': tenantId }
-    });
-  } catch (e: unknown) {
-    const err = e as Error;
-    console.error(`[FETCH FAILED], không thể kết nối tới Backend!`);
-    console.error(`URL: ${targetUrl}`);
-    console.error(`Error: ${err.message}`);
-    throw error(503, {
-      message: "Dịch vụ tạm thời không khả dụng (Backend Connection Failed)",
-      details: `Failed to reach API at ${apiUrl}.`
-    });
-  }
+    try {
+        res = await fetch(targetUrl, {
+            headers: { 'x-tenant': tenantId },
+            signal: AbortSignal.timeout(5000)
+        });
+    } catch (e: any) {
+        const isTimeout = e.name === 'TimeoutError' || e.message?.includes('timeout');
+        console.error(`[HOME FETCH FAILED] ${isTimeout ? 'TIMEOUT' : 'CONNECTION ERROR'}`);
+        console.error(`URL: ${targetUrl}`);
+        
+        throw error(isTimeout ? 504 : 503, {
+            message: isTimeout 
+                ? "Hệ thống đang phản hồi chậm (Backend Timeout)" 
+                : "Dịch vụ tạm thời không khả dụng (Backend Connection Failed)",
+            details: isTimeout 
+                ? "Vui lòng chờ giây lát và thử lại (Request timed out after 5s)."
+                : `Failed to reach API at ${apiUrl}.`
+        });
+    }
 
   if (!res.ok) {
     // If backend doesn't have this endpoint yet, it will throw 404 which is correct per R00

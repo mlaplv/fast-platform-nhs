@@ -21,7 +21,10 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
 
     const categoryUrl = `${apiUrl}/api/v1/client/categories/slug/${slug}`;
     try {
-      const catRes = await fetch(categoryUrl, { headers: { 'x-tenant': tenantId } });
+      const catRes = await fetch(categoryUrl, { 
+        headers: { 'x-tenant': tenantId },
+        signal: AbortSignal.timeout(5000)
+      });
       if (catRes.ok) {
         const data = await catRes.json();
         return {
@@ -41,7 +44,10 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
   if (slug === 'tin-tuc') {
     const newsUrl = `${apiUrl}/api/v1/client/news`;
     try {
-      const newsRes = await fetch(newsUrl, { headers: { 'x-tenant': tenantId } });
+      const newsRes = await fetch(newsUrl, { 
+        headers: { 'x-tenant': tenantId },
+        signal: AbortSignal.timeout(5000)
+      });
       if (newsRes.ok) {
         const data = await newsRes.json();
         return {
@@ -61,7 +67,10 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
   const relatedUrl = `${apiUrl}/api/v1/client/products/?limit=9`; // Fetch 9 to safely exclude current product and keep 8
 
   try {
-    const prodRes = await fetch(productUrl, { headers: { 'x-tenant': tenantId } });
+    const prodRes = await fetch(productUrl, { 
+      headers: { 'x-tenant': tenantId },
+      signal: AbortSignal.timeout(5000)
+    });
     if (prodRes.ok) {
       const product = await prodRes.json();
       const userAgent = request.headers.get('user-agent') || '';
@@ -71,7 +80,10 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
       // Load newest products for recommendation section
       let relatedProducts = [];
       try {
-        const relRes = await fetch(relatedUrl, { headers: { 'x-tenant': tenantId } });
+        const relRes = await fetch(relatedUrl, { 
+          headers: { 'x-tenant': tenantId },
+          signal: AbortSignal.timeout(5000)
+        });
         if (relRes.ok) {
           const relData = await relRes.json();
           // Remove current product and take exact 8 items

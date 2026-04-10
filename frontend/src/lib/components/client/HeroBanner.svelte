@@ -17,9 +17,9 @@
 
   // Elite V2.2: Standard Branding Fallbacks (Non-logic descriptors)
   const FALLBACK_METRICS = [
-    { label: '[Tốc độ]', value: 'THẨM THẤU TÀNG HÌNH 3S', desc: 'Hạt Nano siêu phân tử. Chạm là khô tắp lự, tuyệt đối không bết dính.', color: 'blue' },
-    { label: '[Hiệu quả]', value: 'PHONG TỎA MÙI 48H', desc: 'Khóa chặt tuyến bã nhờn và vi khuẩn sinh mùi. Áo sơ mi không một vệt ố vàng.', color: 'indigo' },
-    { label: '[Thành phần]', value: 'TINH CHẤT DƯỢC LIỆU SẠCH', desc: 'Chiết xuất sinh học thân thiện với da nhạy cảm. Không cồn, không gây thâm sạm.', color: 'emerald' }
+    { label: '[Tốc độ]', value: 'THẨM THẤU TÀNG HÌNH - KHÔNG BẾT', desc: 'Chất kem dạng serum siêu mỏng nhẹ, tan và thấm ngay khi vừa chạm da. Mang lại cảm giác khô thoáng tắp lự, tuyệt đối không bết dính hay rít ngứa.', color: 'blue' },
+    { label: '[Hiệu quả]', value: 'PHÁ VỠ HẮC SẮC TỐ - DƯỠNG SÁNG HỒNG', desc: 'Đánh bật thâm sạm, sần sùi tại các "vùng khuất" (nách, nhũ hoa, bikini line). Ức chế triệt để melanin tối màu, trả lại làn da sáng hồng.', color: 'indigo' },
+    { label: '[Thành phần]', value: 'TINH CHẤT "CHUẨN NHẬT" LÀNH TÍNH', desc: 'Sức mạnh làm sáng từ chiết xuất Hoa Anh Đào (Sakura) kết hợp Vitamin C & E. Bảng thành phần không cồn, không paraben.', color: 'emerald' }
   ];
 
   let mouse = $state({ x: 0, y: 0 });
@@ -44,7 +44,7 @@
 
   const labels = $derived({
     product_name: product?.name || metadata.hero_product_name_fallback || 'Elite Formulation',
-    headline: metadata.hero_headline || '<span>CHẤM DỨT</span> <br/> <span class="headline-shift">MÙI CƠ THỂ.</span>',
+    headline: metadata.hero_headline || '<span>ĐÁNH BAY</span> <br/> <span class="headline-shift">THÂM SẠM</span>',
     video_url: metadata.video_url || metadata.hero_video_url || metadata.hero_video || '/uploads/video/HN_TikTok.mp4',
     cta_text: metadata.hero_cta_text || 'Chẩn đoán cá nhân hoá',
     aria_hero: metadata.hero_aria_label || 'Hero Spotlight Area',
@@ -207,30 +207,36 @@
        </p>
     {/if}
 
-    <div class="hero-product-display relative w-full max-w-6xl py-8 flex flex-col md:flex-row items-center justify-center gap-12 z-surface">
+    <div class="hero-product-display relative w-full max-w-6xl pt-6 pb-0 flex flex-col md:flex-row items-center justify-center gap-12 z-surface">
 
-          <div class="relative w-full md:w-1/2 flex justify-center">
-             <div class="product-glass-container group relative flex items-center justify-center overflow-hidden rounded-[3rem] aspect-square w-72 md:w-96 bg-slate-900/50 border border-white/10 shadow-2xl">
+          <div class="relative w-full md:w-1/2 flex justify-center parallax-layer">
+             <!-- ELITE SPOTLIGHT HALO (Viral 2026) -->
+             <div class="absolute inset-0 bg-radial-gradient from-sakura-glow/20 via-transparent to-transparent blur-[120px] scale-150 pointer-events-none opacity-60"></div>
+             
+             <div class="group relative flex items-center justify-center w-72 md:w-96 float-anim">
                 <img
                   src="{mainImage}"
                   alt="{productName}"
-                  class="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                  class="relative z-10 w-full h-auto object-contain transition-transform duration-1000 group-hover:scale-110 drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
                 />
 
-                <!-- SCANNING LINE -->
-                <div class="absolute inset-x-0 h-[2px] bg-red-500/50 shadow-[0_0_20px_#ef4444] scan-anim pointer-events-none"></div>
+                <!-- SCANNING LINE (ULTRA-MINIMAL) -->
+                <div class="absolute inset-x-0 h-[2px] bg-red-500 shadow-[0_0_15px_#ef4444] scan-anim pointer-events-none z-20"></div>
              </div>
           </div>
 
-          <div class="w-full md:w-1/2 space-y-8">
+          <div class="w-full md:w-1/2 flex flex-col relative">
              {#each metrics as metric, i}
-                <div class="group flex flex-col" style:--idx={i}>
+                <div class="hud-metric-segment group relative pt-5 px-0 pb-0 transition-all duration-500" style:--idx={i}>
                    <div class="flex items-center gap-3 mb-2">
-                      <div class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]"></div>
-                      <span class="text-[10px] font-black text-white uppercase tracking-[0.2em]">{metric.label}</span>
+                      <div class="w-1 h-1 rounded-full bg-sakura-pink shadow-[0_0_8px_#ffb7c5] animate-pulse"></div>
+                      <span class="text-[10px] font-black text-sakura-pink/70 uppercase tracking-[.25em]">{metric.label}</span>
                    </div>
-                   <span class="text-3xl font-black italic tracking-tighter text-white group-hover:text-red-500 transition-colors">{metric.value}</span>
-                   <p class="mt-2 text-sm text-slate-400 font-medium leading-relaxed max-w-xs">{metric.desc}</p>
+                   <h3 class="text-xl font-black italic tracking-tighter text-white group-hover:text-sakura-pink transition-colors duration-300">{metric.value}</h3>
+                   <p class="mt-2 text-xs text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity">{metric.desc}</p>
+                   
+                   <!-- Subtle Glow Interaction -->
+                   <div class="absolute -inset-4 bg-radial-gradient from-sakura-pink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                 </div>
              {/each}
           </div>

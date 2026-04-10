@@ -10,6 +10,7 @@ from backend.services.commerce.category import CategoryService, provide_category
 
 from backend.services.commerce.product_vector import ProductVectorService, provide_product_vector_service
 from backend.services.banner_service import BannerService, provide_banner_service
+from backend.services.settings_service import SettingsService, provide_settings_service
 
 logger = logging.getLogger("api-gateway")
 
@@ -21,6 +22,7 @@ class ClientHomeController(Controller):
         "category_service": Provide(provide_category_service),
         "vector_service": Provide(provide_product_vector_service),
         "banner_service": Provide(provide_banner_service),
+        "settings_service": Provide(provide_settings_service),
     }
 
     @get("/")
@@ -29,10 +31,14 @@ class ClientHomeController(Controller):
         db_session: AsyncSession,
         product_service: ProductService,
         category_service: CategoryService,
-        banner_service: BannerService
+        banner_service: BannerService,
+        settings_service: SettingsService
     ) -> Dict[str, Any]:
         """PUBLIC: Get aggregated data for the home page."""
-        # Fetch actual products (Active only)
+        # 1. Fetch system settings for shop info (Elite V2.2)
+        system_settings = await settings_service.get_general_settings(db_session)
+        
+        # 2. Fetch actual products (Active only)
         all_products = await product_service.list_products(db_session, limit=100, offset=0, status="ACTIVE")
         categories = await category_service.list_categories(db_session)
         banners = await banner_service.list_banners(db_session, position="home_main", active_only=True)
@@ -46,5 +52,6 @@ class ClientHomeController(Controller):
             "categories": [c.model_dump() if hasattr(c, "model_dump") else c for c in categories.data] if categories else [],
             "products": [p.model_dump() if hasattr(p, "model_dump") else p for p in all_products.data] if all_products else [],
             "ai_products": [p.model_dump() if hasattr(p, "model_dump") else p for p in ai_products],
+            "settings": system_settings.settings.model_dump() if system_settings else {},
             "videos": []
         }

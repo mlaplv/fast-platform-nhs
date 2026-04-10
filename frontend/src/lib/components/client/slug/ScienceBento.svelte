@@ -31,7 +31,7 @@
             <!-- KHỐI TRÁI (FULL IMAGE - NO BORDERS) -->
             <div class="md:col-span-6 flex items-center mechanism-image-wrapper relative group overflow-hidden">
                 <!-- Modern Scan Effect -->
-                <div class="absolute inset-0 pointer-events-none style="z-index: var(--z-content);"">
+                <div class="absolute inset-0 pointer-events-none" style="z-index: var(--z-content);">
                     <div class="scanner-line"></div>
                     <div class="scanner-glow"></div>
                 </div>

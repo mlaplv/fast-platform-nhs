@@ -6,6 +6,18 @@
     import "./home/home.css";
 
     let { data, isMobile }: { data: any, isMobile: boolean } = $props();
+
+    const shopInfo = $derived({
+        name: data.settings?.basic_info?.site_name || "Micsmo Elite",
+        companyName: data.settings?.contact_info?.company_name || "",
+        taxId: data.settings?.contact_info?.tax_id || "",
+        businessLicense: data.settings?.contact_info?.business_license || "",
+        slogan: "Agentic AI Commerce 2026", // Specific slogan for Elite V2.2
+        description: data.settings?.basic_info?.description || "Hệ thống bán hàng AI thế hệ mới",
+        hotline: data.settings?.contact_info?.hotline || data.settings?.contact_info?.phone || "1800-MICSMO",
+        email: data.settings?.contact_info?.email || "contact@micsmo.com",
+        address: data.settings?.contact_info?.address || "TP. Hồ Chí Minh"
+    });
 </script>
 
 {#if isMobile}
@@ -26,5 +38,5 @@
             aiProducts={data.ai_products}
         />
     </main>
-    <FooterDesktop />
+    <FooterDesktop {shopInfo} />
 {/if}

@@ -72,7 +72,7 @@
 
   const handle = $derived(metadata.mobile_handle as string || '@nhathuochongson.com');
 
-  const headline = $derived(metadata.hero_headline as string || '<span>CHẤM DỨT</span> <br/> <span class="headline-shift">MÙI CƠ THỂ.</span>');
+  const headline = $derived(metadata.hero_headline as string || '<span>ĐÁNH BAY</span> <br/> <span class="headline-shift">THÂM SẠM</span>');
   const shortDescription = $derived(product?.shortDescription || '');
   const metrics = $derived(metadata.hero_metrics || [
     { label: '[Tốc độ]', value: 'THẨM THẤU TÀNG HÌNH 3S', color: 'blue' },

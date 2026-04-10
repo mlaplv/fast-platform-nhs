@@ -3,6 +3,9 @@
 @theme {
   --color-neon-cyan: #00f3ff;
   --color-alert-red: #ff003c;
+  --color-sakura-pink: #ffb7c5;
+  --color-sakura-glow: #ff69b4;
+  --color-surface-glass: rgba(15, 23, 42, 0.4);
 }
 
 /* 
@@ -15,6 +18,11 @@
   --text-base: #ffffff;
   --fs-body: 14px;
   --fs-ui: 12px;
+  
+  /* Elite V2.2: Standard Glass tokens */
+  --glass-blur: 24px;
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-reflection: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
 }
 
 body {

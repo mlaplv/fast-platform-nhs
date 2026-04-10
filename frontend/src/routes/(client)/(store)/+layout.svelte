@@ -7,11 +7,10 @@
   import BottomNavMobile from "$lib/components/storefront/layout/BottomNavMobile.svelte";
   import type { Snippet } from "svelte";
 
-  let { children }: { children: Snippet } = $props();
+  let { data, children }: { data: any, children: Snippet } = $props();
   const ui = getClientUi();
 
   // Trang home mobile tự quản lý header/bottomnav riêng (TikTok Shop style)
-  // Dùng $page.url.pathname để tránh timing race condition với ui state
   const isHomePage = $derived(
     $page.url.pathname === '/home' || $page.url.pathname === '/'
   );
@@ -25,6 +24,16 @@
   const showGlobalFooter = $derived(
     ui.isHydrated && !ui.isFooterHidden && !(isHomePage && ui.isMobile)
   );
+
+  // Map backend settings to UI structure
+  const footerShopInfo = $derived({
+      name: data.shopInfo?.site_name || "MICSMO ELITE",
+      slogan: data.shopInfo?.slogan || "Bật tông trắng sáng",
+      description: data.shopInfo?.description || "Hệ thống mỹ phẩm Elite 2026.",
+      hotline: data.shopInfo?.contact?.hotline || "1800-MICSMO",
+      email: data.shopInfo?.contact?.email || "legal@micsmo.com",
+      address: data.shopInfo?.contact?.address || "Bitexco Financial Tower, Quận 1, TP. HCM"
+  });
 </script>
 
 <div class="client-layout min-h-screen flex flex-col">
@@ -44,7 +53,7 @@
     {#if ui.isMobile}
       <BottomNavMobile />
     {:else}
-      <FooterDesktop />
+      <FooterDesktop shopInfo={footerShopInfo} />
     {/if}
   {/if}
 </div>

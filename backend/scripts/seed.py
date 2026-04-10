@@ -25,7 +25,8 @@ from backend.database.models import (
 from backend.utils.security import GeminiSecurity
 from backend.scripts.seed_data import (
     CATEGORY_DEFS, SUB_CATEGORY_DEFS, PRODUCT_DEFS,
-    PRODUCT_NAMES, ARTICLE_TITLES, ARTICLE_DEFS, SUPPORT_KNOWLEDGE_DEFS
+    PRODUCT_NAMES, ARTICLE_TITLES, ARTICLE_DEFS, SUPPORT_KNOWLEDGE_DEFS,
+    SYSTEM_SETTINGS_DEF
 )
 from backend.services.xohi.creative_studio.models.schemas import CategoryEnum
 
@@ -151,50 +152,16 @@ async def seed_articles(session, author_id):
 
 async def seed_system_settings(session):
     print("⚙️ Seeding system settings...")
-    default_settings = {
-        "basic_info": {
-            "site_name": "Micsmo Elite",
-            "description": "Hệ thống bán hàng AI thế hệ mới 2026",
-            "logo_desktop": None,
-            "logo_mobile": None,
-            "favicon": None
-        },
-        "contact_info": {
-            "phone": "0901234567",
-            "hotline": "1800-MICSMO",
-            "email": "contact@micsmo.com",
-            "address": "Bitexco Financial Tower, Quận 1, TP.HCM",
-            "working_hours": "8:00 - 22:00"
-        },
-        "social_media": [
-            {"platform": "Facebook", "url": "https://facebook.com/xohi", "icon_url": None},
-            {"platform": "Zalo", "url": "https://zalo.me/xohi", "icon_url": None},
-            {"platform": "TikTok", "url": "https://tiktok.com/@xohi", "icon_url": None}
-        ],
-        "seo_analytics": {
-            "meta_title": "SmartShop - Mua sắm thông minh cùng AI",
-            "meta_keywords": "AI, shopping, smartshop, micsmo",
-            "google_analytics_id": "G-XXXXXXXXXX",
-            "facebook_pixel_id": "XXXXXXXXXXXXXXX"
-        },
-        "google_maps": {
-            "map_iframe": "",
-            "api_key": ""
-        },
-        "maintenance": {
-            "is_enabled": False,
-            "message": "Hệ thống đang bảo trì để nâng cấp Core AI. Vui lòng quay lại sau."
-        }
-    }
+    settings_to_apply = SYSTEM_SETTINGS_DEF
     
     # Check if exists
     stmt = select(SystemSetting).where(SystemSetting.key == "primary_config")
     existing = (await session.execute(stmt)).scalar_one_or_none()
     
     if not existing:
-        session.add(SystemSetting(key="primary_config", value=default_settings))
+        session.add(SystemSetting(key="primary_config", value=settings_to_apply))
     else:
-        existing.value = default_settings
+        existing.value = settings_to_apply
     
     await session.flush()
 
@@ -267,7 +234,7 @@ async def main():
             await clear_data(session); r = await seed_rbac(session); u = await seed_users(session, r)
             await seed_categories(session); p = await seed_products(session)
             await seed_articles(session, u.id)
-            # await seed_reviews(session)
+            await seed_reviews(session)
             # await seed_support_knowledge(session)
             await seed_appointments(session)
             await seed_system_settings(session)

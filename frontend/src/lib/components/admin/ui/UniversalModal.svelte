@@ -13,7 +13,7 @@
   import Activity from "lucide-svelte/icons/activity";
   import BookOpen from "lucide-svelte/icons/book-open";
   import RevenueChart from "../widgets/RevenueChart.svelte";
-  import ConfirmModal from "../widgets/ConfirmModal.svelte";
+  import ConfirmModal from "./ConfirmationModal.svelte";
   import UserTable from "../widgets/UserTable.svelte";
   import UserManagement from "../management/UserManagement.svelte";
   import PermissionManagement from "../management/PermissionManagement.svelte";

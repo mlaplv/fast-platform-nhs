@@ -4,7 +4,7 @@
   import type { Component } from "svelte";
   import type { BaseWidgetProps } from "$lib/types";
   import RevenueChart from "./widgets/RevenueChart.svelte";
-  import ConfirmModal from "./widgets/ConfirmModal.svelte";
+  import ConfirmModal from "./ui/ConfirmationModal.svelte";
   import UserTable from "./widgets/UserTable.svelte";
   import UserManagement from "./management/UserManagement.svelte";
   import PermissionManagement from "./management/PermissionManagement.svelte";

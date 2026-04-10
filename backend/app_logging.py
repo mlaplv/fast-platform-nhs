@@ -26,25 +26,32 @@ def setup_logging():
     logger.setLevel(logging.INFO)
 
     # Silence Noisy Third-Party Libraries (Aggressive V2.2)
+    # Rationale: In development, we want more visibility into DB and Server cycles.
+    is_dev = os.getenv("ENVIRONMENT", "development").lower() == "development"
+    third_party_level = logging.WARNING if not is_dev else logging.INFO
+    db_level = logging.WARNING if not is_dev else logging.INFO
+
     for logger_name in [
-        "sqlalchemy", 
         "sqlalchemy.engine", 
-        "sqlalchemy.pool", 
         "sqlalchemy.dialects",
         "sqlalchemy.orm",
         "httpx", 
         "httpcore", 
-        "uvicorn",
-        "uvicorn.access",
-        "uvicorn.error"
+        "uvicorn"
     ]:
-        logging.getLogger(logger_name).setLevel(logging.WARNING)
-        logging.getLogger(logger_name).propagate = False # Prevent propagation to root
+        logging.getLogger(logger_name).setLevel(third_party_level)
+        logging.getLogger(logger_name).propagate = False
+
+    # DB Pool Logging is critical for hang detection
+    logging.getLogger("sqlalchemy.pool").setLevel(db_level)
+    logging.getLogger("uvicorn.access").setLevel(third_party_level)
+    logging.getLogger("uvicorn.error").setLevel(third_party_level)
     
     # FastEmbed/Model logging can be chatty
     logging.getLogger("fastembed").setLevel(logging.INFO)
     
-    logger.info("🎨 [System] Elite Logging System Initialized.")
+    mode_emoji = "🔥" if is_dev else "🛡️"
+    logger.info(f"{mode_emoji} [System] Elite Logging System Initialized (Mode: {os.getenv('ENVIRONMENT', 'unknown')}).")
 
 def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)

@@ -9,7 +9,8 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 
   try {
     const res = await fetch(`${apiUrl}/api/v1/client/news/${id}`, {
-      headers: { 'x-tenant': tenantId }
+      headers: { 'x-tenant': tenantId },
+      signal: AbortSignal.timeout(5000)
     });
 
     if (!res.ok) {

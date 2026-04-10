@@ -9,6 +9,9 @@ class BasicInfo(BaseModel):
     favicon: Optional[str] = None
 
 class ContactInfo(BaseModel):
+    company_name: str = ""
+    tax_id: str = ""
+    business_license: str = ""
     phone: str = ""
     hotline: str = ""
     email: str = ""
