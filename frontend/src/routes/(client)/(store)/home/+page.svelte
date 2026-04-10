@@ -5,22 +5,24 @@
   import HomeMobile from '$lib/components/storefront/home/HomeMobile.svelte';
 
   let { data } = $props();
-
   let isMobile = $state(false);
 
   onMount(() => {
     isMobile = window.innerWidth < 768;
-    const handleResize = () => {
-      isMobile = window.innerWidth < 768;
-    };
-    window.addEventListener('resize', handleResize);
+    const handleResize = () => { isMobile = window.innerWidth < 768; };
+    window.addEventListener('resize', handleResize, { passive: true });
     return () => window.removeEventListener('resize', handleResize);
   });
 </script>
 
 <div class="home-layout">
   {#if isMobile}
-    <HomeMobile videos={data.videos} />
+    <HomeMobile
+      banners={data.banners}
+      categories={data.categories}
+      products={data.products}
+      videos={data.videos}
+    />
   {:else}
     <HomeDesktop
       banners={data.banners}

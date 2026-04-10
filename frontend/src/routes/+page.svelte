@@ -22,7 +22,7 @@
     <title>{data.tenant === 'admin' ? 'Xohi Darkboard' : 'SmartShop Storefront'}</title>
 </svelte:head>
 
-<div class="page-container h-dvh overflow-y-auto bg-[#010101]">
+<div class="page-container h-dvh overflow-x-hidden overflow-y-auto bg-[#010101]">
     {#if data.tenant === 'admin'}
         {#await loadAdmin()}
             <!-- Liquid Loading State (Viral 2026) -->
@@ -70,7 +70,14 @@
 
 <style>
     .page-container {
-        display: grid;
-        grid-template-rows: 1fr;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Ensure the inner transition container grows to fill the page container */
+    .page-container > div {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
     }
 </style>
