@@ -92,7 +92,6 @@ export function createIntentManager(
 
       // Logic: If it's a NEW campaign ID, we MUST replace the entire data object to avoid leakage (e.g. Hôi nách nam -> Hôi nách nữ)
       if (newCid && oldCid && newCid !== oldCid) {
-        console.log("[DEBUG] New Campaign Context. Replacing stale data.");
         state.currentData = { ...data };
       } else {
         // Same campaign: merge normally for incremental updates (like Step 1 -> 2)
@@ -127,7 +126,6 @@ export function createIntentManager(
         }
         state.currentData = mergedData;
         const intentType = (data?.intent_type as string) || "";
-        console.log("[DEBUG TRACE] processAction -> action:", actualUiAction, "intentType:", intentType, "target:", targetWidget);
 
         const requiresConfirmationForVoice = (d?: Record<string, unknown>) => {
           return (
@@ -153,13 +151,11 @@ export function createIntentManager(
           // we ONLY open the modal if the user is already IN the CONTENT_REVIEW widget.
           // This prevents automated updates from stealing focus while the user is elsewhere.
           if (actualUiAction === "CONTENT_CREATE" && transcript === "Neural Update" && state.activeWidget !== "CONTENT_REVIEW") {
-            console.log("[IntentManager] Deflecting background Content Factory hijack.");
             return;
           }
 
           state.activeWidget = targetWidget;
           ui.setUniversalModalOpen(true);
-          console.log("[DEBUG TRACE] Bật UniversalModal với widget:", targetWidget, "Dữ liệu:", state.currentData);
           log.addLog(actualUiAction.replace("show_", "").replace(/_/g, " "), "[ACTION]");
 
           if (

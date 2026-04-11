@@ -300,7 +300,6 @@ class MediaStore {
     }
 
     if (campaignId && campaignId !== 'undefined' && campaignId !== 'null') {
-        console.log(`[MediaStore] Subscribing to AI updates for campaign: ${campaignId}`);
         this.eventSource = new EventSource(`/api/v1/content/stream/${campaignId}`);
         
         this.eventSource.onmessage = (event) => {
@@ -330,7 +329,6 @@ class MediaStore {
     const assetId = payload.id || payload.asset_id;
     if (!assetId) return;
 
-    console.log(`[MediaStore] Asset analyzed real-time: ${assetId}`);
 
     const index = this.assets.findIndex((a) => a.id === assetId);
     if (index !== -1) {
@@ -346,7 +344,6 @@ class MediaStore {
       };
     } else {
         // Asset not yet in state (race condition with ultra-fast heuristic analysis)
-        console.log(`[MediaStore] Buffering fast SSE update for asset: ${assetId}`);
         this.pendingMetadataUpdates.set(assetId, payload);
     }
   }
@@ -438,7 +435,6 @@ class MediaStore {
                     
                     const pendingUpdate = this.pendingMetadataUpdates.get(serverAsset.id);
                     if (pendingUpdate) {
-                        console.log(`[MediaStore] Applying buffered SSE update for asset: ${serverAsset.id}`);
                         const pMeta = (pendingUpdate.media_metadata || pendingUpdate.metadata || {}) as Record<string, unknown>;
                         finalMetadata = { ...finalMetadata, ...pMeta };
                         finalAltText = pendingUpdate.alt_text || finalAltText;

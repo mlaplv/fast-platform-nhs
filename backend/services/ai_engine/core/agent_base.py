@@ -133,7 +133,7 @@ class BaseAgentOperative(ABC, MedicalShieldMixin):
         self.bridge = trinity_bridge
 
     @abstractmethod
-    async def chat(self, request: "BaseModel | dict", **kwargs: Dict[str, object]) -> Any:
+    async def chat(self, request: "BaseModel | dict", **kwargs: Dict[str, object]) -> dict[str, object]:
         """Standardized entry point for all AI agents."""
         pass
 

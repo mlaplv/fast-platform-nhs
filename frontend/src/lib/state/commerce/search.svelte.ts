@@ -8,10 +8,10 @@ export class SearchState {
   isOverlayOpen = $state(false); // Mobile primarily
 
   // Removed Violating Hardcoded Mock Arrays
-  featuredProducts = $state<any[]>([]);
+  featuredProducts = $state<ProductResponse[]>([]);
 
   // Real DB Results
-  searchResults = $state<any[]>([]);
+  searchResults = $state<ProductResponse[]>([]);
   private _debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Elite V2.2: Dynamic Placeholder (Root Fix for hardcoding)
@@ -24,7 +24,6 @@ export class SearchState {
   });
 
   constructor() {
-    console.log("SearchState: Initialized Elite V2.2 Search Engine (DB Linked)");
     this.loadHistory();
     this.loadFeatured();
   }
@@ -93,7 +92,7 @@ export class SearchState {
       } finally {
         this.isSearching = false;
       }
-    }, 250); // 250ms ultra-fast debounce for Elite UX
+    }, 200); // 200ms ultra-fast viral debounce
   }
 
   removeSearch(term: string) {

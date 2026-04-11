@@ -473,6 +473,75 @@ export interface BannerForm {
   device_type: string;
 }
 
+// Elite V2.2: Shop Config Type
+export interface ShopInfo {
+  name: string;
+  slogan?: string;
+  description?: string;
+  hotline?: string;
+  email?: string;
+  address?: string;
+  tax_id?: string;
+  business_license?: string;
+  basic_info?: {
+    site_name?: string;
+    slogan?: string;
+    description?: string;
+  };
+  contact_info?: {
+    company_name?: string;
+    hotline?: string;
+    email?: string;
+    address?: string;
+    tax_id?: string;
+    business_license?: string;
+  };
+  social_links?: {
+    facebook?: string;
+    tiktok?: string;
+    zalo?: string;
+  };
+  footer_links?: {
+    label: string;
+    url: string;
+  }[];
+}
+
+export interface UpdateProductPayload {
+  name?: string;
+  shortDescription?: string;
+  metadata?: ProductMetadata;
+  price?: number;
+  discountPrice?: number;
+  status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+}
+
+export interface VideoAsset {
+  id: string;
+  title: string;
+  slug: string;
+  url: string;
+  thumbnail?: string;
+}
+
+export interface GenericPageData {
+  type: 'category' | 'news' | 'product';
+  categoryName?: string;
+  items?: any[]; // For category/news
+  product?: Product;
+  relatedProducts?: Product[];
+  isMobile?: boolean;
+}
+
+export interface HomeData {
+  banners: Banner[];
+  categories: Category[];
+  products: Product[];
+  ai_products: Product[];
+  videos: VideoAsset[];
+  settings: ShopInfo;
+}
+
 // Elite V2.2: Layout & Screen Types
 export interface ScreenState {
   screenWidth: number;
@@ -487,7 +556,7 @@ export interface ScreenState {
 export interface ClientUiState extends ScreenState {
   isHeaderHidden: boolean;
   isFooterHidden: boolean;
-  settings: any; // Public shop settings from backend
+  settings: ShopInfo | null; // Elite V2.2: Statically Typed Shop Settings
   initObservers(): (() => void) | undefined;
 }
 

@@ -116,7 +116,6 @@ export function createPulseManager(
     }
 
     eventSource.onopen = () => {
-      console.log("[Pulse] 🟢 Connection established.");
       retryCount = 0;
       lastHeartbeat = Date.now();
       
@@ -142,11 +141,8 @@ export function createPulseManager(
         const { event: eventName, payload } = data;
         const activeData = (state.currentData as unknown as CampaignData);
         const cid = (payload as { campaign_id?: string })?.campaign_id;
-        console.log(`[Pulse] Received event: ${eventName} for CID: ${cid}`);
         if (activeData) {
-          console.log(`[Pulse] Active CID: ${activeData.campaign_id || (activeData as unknown as {id: string}).id}`);
           const match = activeData.campaign_id === cid || (activeData as unknown as {id: string}).id === cid;
-          console.log(`[Pulse] CID Match: ${match}`);
         }
 
         if (eventName === "MEDIA_ANALYZED") {
@@ -262,7 +258,6 @@ export function createPulseManager(
             vuiState.setActive(true); vuiState.setPhase("idle");
             vuiState.setIsWaitingForAction(true);
           }
-          console.log(`[Pulse] STEP_COMPLETED Syncing assets: ${rawData.assets?.length || 0}, Reserves: ${rawData.gold_metadata?.reserve_assets?.length || 0}`);
 
           const syncCompleted = (target: CampaignData) => {
             if (!target) return;
@@ -288,7 +283,6 @@ export function createPulseManager(
             
             // Re-assign to state.currentData to force reactivity
             state.currentData = updated;
-            console.log(`[Pulse] Successfully re-assigned currentData for Step ${updated.step}`);
           };
 
           if (voice.vuiResponse?.data && (voice.vuiResponse.data as unknown as {campaign_id: string}).campaign_id === completedPayload.campaign_id) {
@@ -417,7 +411,6 @@ export function createPulseManager(
         const maxDelay = 30000;
         const delay = Math.min(maxDelay, baseDelay * Math.pow(2, retryCount)) + (Math.random() * 1000);
         
-        console.log(`[Pulse] 🔄 Retrying connection in ${Math.round(delay)}ms (Attempt ${retryCount + 1})`);
         
         retryCount++;
         pulseRetryTimeout = setTimeout(connectPulse, delay);

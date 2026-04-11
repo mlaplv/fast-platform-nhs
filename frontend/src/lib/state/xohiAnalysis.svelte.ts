@@ -263,7 +263,6 @@ export function createAnalysisController(config: {
             let content = (config.getContent ?? config.getEditedDraft)();
             if (!content) return null;
             
-            console.log("[Clean] Starting Cleanup, length:", content.length);
             
             // Phase 82.95: Deterministic Neural Tree Pruning (Elite V2.2 Professional)
             if (typeof document !== 'undefined') {
@@ -310,13 +309,11 @@ export function createAnalysisController(config: {
                 content = div.innerHTML;
             }
             
-            console.log("[Clean] DOM Cleanup done, calling API...");
             
             // Phase 82.9: HUD Real-time Log injection
             if (isBulkFixing) bulkFixLogs = [...bulkFixLogs, "🚀 Đang tối ưu cấu trúc & dọn dẹp..."]; 
 
             const res = await apiClient.post<GenericResponse<{ content: string }>>('/api/v1/content/clean', { content });
-            console.log("[Clean] API Response:", res?.status);
             if (res?.data?.content) {
                 const cleaned = res.data.content;
                 config.setEditedDraft?.(cleaned);
@@ -510,7 +507,6 @@ export function createAnalysisController(config: {
         const htmlContent = resolve(config.isEditing) ? config.getEditedDraft() : config.getDraftContent();
         const textContent = htmlContent.replace(/<[^>]*>/g, ''); // Strip tags for real length
         
-        console.log("🚀 [AI Booster] Trình khởi động kích hoạt. Phân tích bài viết:", { 
             html_length: htmlContent.length,
             text_length: textContent.length,
             word_count: textContent.split(/\s+/).filter(w => w.length > 0).length,
@@ -536,7 +532,6 @@ export function createAnalysisController(config: {
                 bulkFixLogs = [...bulkFixLogs, "✅ Đã tổng hợp dữ liệu thành công!", "Đang đồng bộ bản thảo tối ưu..."];
                 const newHtml = res.data.new_content;
                 if (resolve(config.isEditing)) config.setEditedDraft(newHtml);
-                console.log("✅ [AI Booster] Hoàn tất nhận diện vùng tối ưu!", {
                     items_found: res.data.items?.length || 0,
                     annotations_received: res.data.annotations?.length || 0,
                     boost_estimate: res.data.seo_boost_estimate,

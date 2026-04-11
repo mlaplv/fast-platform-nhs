@@ -302,7 +302,6 @@ class SupportAgentState {
     private _connectPulse(sessionId: string) {
         if (!browser || this._pulseSource) return;
 
-        console.log(`[Pulse] Connecting Helen Neural Link: ${sessionId}`);
         this._pulseSource = new EventSource(`/api/v1/client/support/pulse/${sessionId}`);
 
         // 🟢 1. AI Response Ready - Replaces 'typing' state with content
@@ -336,7 +335,6 @@ class SupportAgentState {
         this._pulseSource.addEventListener("SUPPORT_INBOX_UPDATE", (event: MessageEvent) => {
             try {
                 const data = JSON.parse(event.data);
-                console.log("[Pulse] Support Inbox Update received:", data);
 
                 if (data.message_id) {
                     const messages = [...this.messages];
@@ -373,7 +371,6 @@ class SupportAgentState {
         if (this._pulseSource) {
             this._pulseSource.close();
             this._pulseSource = null;
-            console.log("[Pulse] Helen Neural Link closed.");
         }
     }
 

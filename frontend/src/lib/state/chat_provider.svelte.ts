@@ -108,7 +108,6 @@ export class ChatState {
         this.pulseEventSource = new EventSource(url);
 
         this.pulseEventSource.onopen = () => {
-            console.log('[Pulse] Connection established');
             this.reconnectAttempts = 0; // Reset on success
         };
 
@@ -133,7 +132,6 @@ export class ChatState {
             // 🚀 Auto-Reconnect Logic (R00/V2.2)
             if (this.reconnectAttempts < this.maxReconnects) {
                 this.reconnectAttempts++;
-                console.log(`[Pulse] Retrying connection (${this.reconnectAttempts}/${this.maxReconnects})...`);
                 setTimeout(() => this.connectPulse(sessionId), 3000);
             } else {
                 console.warn('[Pulse] Max reconnect attempts reached.');

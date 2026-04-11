@@ -9,8 +9,9 @@
   import FunnelPage from '../../[slug]-funnel/+page.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { onMount, untrack } from 'svelte';
+  import type { PageData } from './$types';
 
-  let { data }: { data: any } = $props();
+  let { data }: { data: PageData } = $props();
   const ui = getClientUi();
 
   // Elite V2.2: Dynamic Layout Sync (Viral 2026 Protocol)

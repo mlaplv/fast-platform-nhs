@@ -110,14 +110,14 @@
     overflow-y: visible; /* Ensure absolute children aren't clipped */
     scrollbar-width: none;
     -ms-overflow-style: none;
-    gap: 8px;
-    padding: 0 12px;
+    gap: 4px;
+    padding: 0 2px 0 7px;
   }
   .tabs-scroll::-webkit-scrollbar { display: none; }
 
   .tab-item {
     position: relative;
-    padding: 10px 2px 8px; /* Balanced padding */
+    padding: 10px 1px 8px; /* High-density alignment */
     border: none;
     background: none;
     cursor: pointer;

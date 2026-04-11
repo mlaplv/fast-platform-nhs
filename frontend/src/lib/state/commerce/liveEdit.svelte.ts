@@ -47,21 +47,18 @@ class LiveEditStore {
     }
   }
 
-  updateField(path: string, value: any) {
+  updateField(path: string, value: string | number | boolean | object | null) {
     if (!this.dirtyProduct) return;
-    console.log(`🛠️ LiveEdit: Updating [${path}] ->`, value);
 
     try {
       const keys = path.split(".");
-      let current: any = this.dirtyProduct;
+      let current: Record<string, any> = this.dirtyProduct as any;
 
       for (let i = 0; i < keys.length - 1; i++) {
         const key = keys[i];
         const nextKey = keys[i + 1];
 
-        // Elite V2.2: Intelligent Parent Initialization
         if (current[key] === null || current[key] === undefined || typeof current[key] !== 'object') {
-          // If the next key is an integer, initialize as an array
           current[key] = /^\d+$/.test(nextKey) ? [] : {};
         }
 
@@ -69,8 +66,6 @@ class LiveEditStore {
       }
 
       current[keys[keys.length - 1]] = value;
-
-      // Elite V2.2: Safe Reactivity Sync
       this.dirtyProduct = JSON.parse(JSON.stringify(this.dirtyProduct));
     } catch (error) {
       console.error(`💥 LiveEdit: Failed to update field at ${path}:`, error);
@@ -84,32 +79,23 @@ class LiveEditStore {
   }
 
   async save() {
-    if (!this.dirtyProduct?.id) {
-        console.error("LiveEdit: Missing product ID, cannot save.");
-        return;
-    }
+    if (!this.dirtyProduct?.id) return;
     this.isSaving = true;
-    console.log("🚀 LiveEdit: Initializing save for product:", this.dirtyProduct.id);
 
     try {
       const token = localStorage.getItem("admin_token") || localStorage.getItem("access_token");
+      const p = this.dirtyProduct;
       
-      // Elite V2.2: Strict Schema Alignment
-      const payload: any = {
-        name: this.dirtyProduct.name,
-        shortDescription: this.dirtyProduct.shortDescription || (this.dirtyProduct as any).short_description,
-        metadata: this.dirtyProduct.metadata,
-        price: this.dirtyProduct.price,
-        discountPrice: this.dirtyProduct.discountPrice || (this.dirtyProduct as any).discount_price,
-        status: this.dirtyProduct.status
+      const payload: UpdateProductPayload = {
+        name: p.name,
+        shortDescription: p.shortDescription,
+        metadata: p.metadata,
+        price: p.price,
+        discountPrice: p.discountPrice,
+        status: p.status as any
       };
 
-      // Clean up undefined fields to avoid strict validation errors
-      Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
-
-      console.log("📦 LiveEdit: Sending payload:", payload);
-
-      const response = await fetch(`/api/v1/products/${this.dirtyProduct.id}`, {
+      const response = await fetch(`/api/v1/products/${p.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -119,24 +105,17 @@ class LiveEditStore {
       });
 
       if (response.ok) {
-        console.log("✅ LiveEdit: Save successful.");
         this.originalProduct = JSON.parse(JSON.stringify(this.dirtyProduct));
-        
-        // Elite V2.2: Seamless HUD Feedback
         this.notify("Đã lưu thay đổi thành công!", "success");
-        
         this.isEditMode = false;
         if (typeof window !== "undefined") {
-            // Delay reload to allow user to see the success toast
             setTimeout(() => window.location.reload(), 1500);
         }
       } else {
         const err = await response.json();
-        console.error("❌ LiveEdit: API rejection:", err);
-        this.notify(`Lỗi khi lưu (HTTP ${response.status}): ${err.detail || 'Kiểm tra log hệ thống'}`, "alert");
+        this.notify(`Lỗi khi lưu (HTTP ${response.status}): ${err.detail || 'Kiểm tra lỗi'}`, "alert");
       }
     } catch (e: any) {
-      console.error("💥 LiveEdit: Connection error:", e);
       this.notify(`Lỗi kết nối máy chủ: ${e.message}`, "alert");
     } finally {
       this.isSaving = false;

@@ -1,5 +1,5 @@
 import { setContext, getContext } from 'svelte';
-import type { ClientUiState } from '$lib/types';
+import type { ClientUiState, ShopInfo } from '$lib/types';
 import { BREAKPOINTS } from '$lib/constants/layout';
 
 export function createClientUiState(): ClientUiState {
@@ -10,7 +10,7 @@ export function createClientUiState(): ClientUiState {
         screenWidth: typeof window !== 'undefined' ? window.innerWidth : 1024,
         screenHeight: typeof window !== 'undefined' ? window.innerHeight : 768,
         isHydrated: false,
-        settings: null
+        settings: null as ShopInfo | null
     });
 
 
@@ -42,7 +42,7 @@ export function createClientUiState(): ClientUiState {
         get isPortrait() { return isPortrait; },
         get isHydrated() { return state.isHydrated; },
         get settings() { return state.settings; },
-        set settings(val: any) { state.settings = val; },
+        set settings(val: ShopInfo | null) { state.settings = val; },
 
         initObservers() {
             if (typeof window === 'undefined' || state.isHydrated) return;

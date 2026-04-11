@@ -298,7 +298,6 @@ export function createChatState(
       }
     }
 
-    console.log(`[ChatState] 🧹 Deep Sweep: Purged ${campaignId} from ${initialCount - state.history.length} history items and ${cachePurged} cache entries.`);
   }
 
   function clearLocalSession(sessionId: string, userId?: string) {
@@ -314,7 +313,6 @@ export function createChatState(
     
     // Wipe SWR cache
     cache.delete(cacheKey);
-    console.log(`[ChatState] 🧹 Local session purged: ${cacheKey}`);
   }
 
   return {

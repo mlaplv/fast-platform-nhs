@@ -50,7 +50,6 @@
       tick().then(() => {
         if (inputElement) {
           inputElement.focus();
-          console.log("Search input focused (Mobile)");
         }
       });
     }
@@ -61,11 +60,23 @@
       tick().then(() => {
         if (inputElement) {
           inputElement.focus();
-          console.log("Search input focused (Desktop)");
         }
       });
     }
   });
+
+  // Viral 2026: Deterministic Social Proof
+  function getHeatColor(count: number) {
+    if (count > 20) return 'text-red-500';
+    if (count > 10) return 'text-orange-500';
+    return 'text-luxury-copper';
+  }
+
+  function getPseudoViews(id: string) {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) hash = (hash << 5) - hash + id.charCodeAt(i);
+    return (Math.abs(hash) % 25) + 6; // 6-30 range
+  }
 </script>
 
 {#if variant === 'desktop'}
@@ -106,10 +117,15 @@
     <!-- Smart Dropdown Layer -->
     {#if isFocused && (searchStore.searchQuery ? true : (searchStore.recentSearches.length > 0 || searchStore.featuredProducts.length > 0))}
       <div 
-        in:fly={{ y: 10, duration: 300 }}
-        class="absolute top-[calc(100%+8px)] left-0 w-full bg-white shadow-[0_20px_100px_rgba(0,0,0,0.5)] border border-gray-100 overflow-hidden"
+        in:fly={{ y: 5, duration: 300 }}
+        class="absolute top-full left-0 w-full bg-white shadow-[0_20px_100px_rgba(0,0,0,0.5)] border border-gray-100 overflow-hidden"
         style:z-index={Z_INDEX_CLIENT.HEADER + 1}
       >
+        <!-- Viral Scanning Progress (Elite V2.2) -->
+        {#if searchStore.isSearching}
+          <div class="h-0.5 w-full bg-gradient-to-r from-transparent via-luxury-copper to-transparent animate-scanning opacity-70"></div>
+        {/if}
+        
         <div class="flex flex-col p-4 gap-6 max-h-[600px] overflow-y-auto scrollbar-thin">
           
           <!-- Case 1: Empty Search -->
@@ -135,29 +151,38 @@
               </section>
             {/if}
 
-            <!-- Trending Section -->
-            {#if searchStore.featuredProducts.length > 0}
               <section>
-                <div class="flex items-center gap-2 mb-3">
-                  <span class="w-1.5 h-1.5 bg-luxury-copper rounded-full animate-pulse"></span>
+                <div class="flex items-center gap-2 mb-4 px-2">
+                  <span class="w-1.5 h-1.5 bg-[#fe2c55] rounded-full animate-pulse"></span>
                   <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Xu hướng tìm kiếm</span>
                 </div>
-                <div class="grid grid-cols-2 gap-y-3">
+                <div class="grid grid-cols-2 gap-x-6 gap-y-0.5 px-0">
                   {#each searchStore.featuredProducts as p, i}
                     <button 
                       onclick={() => commitSearch(p.name)}
-                      class="flex items-center gap-3 text-left group"
+                      class="flex items-center text-left group px-2 py-1.5 hover:bg-gray-50/50 transition-all rounded-none min-w-0"
                     >
-                      <span class="w-5 text-[12px] font-black text-gray-300 group-hover:text-luxury-copper">{i + 1}</span>
-                      <span class="text-[13px] font-bold text-gray-700 group-hover:text-luxury-copper line-clamp-1 transition-colors">{p.name}</span>
-                      {#if i < 2}
-                        <span class="text-[8px] bg-red-500 text-white px-1 py-0.5 font-black uppercase tracking-tighter rounded-sm">Hot</span>
+                      <span class="shrink-0 text-[14px] font-black tracking-tighter {i < 3 ? 'text-[#fe2c55]' : 'text-gray-200'} group-hover:scale-110 transition-transform">
+                        {i + 1}
+                      </span>
+                      <div class="flex flex-col ml-1.5 flex-grow min-w-0">
+                        <span class="text-[13px] font-bold text-gray-700 group-hover:text-[#fe2c55] line-clamp-1 transition-colors leading-tight">
+                          {p.name}
+                        </span>
+                        <div class="flex items-center gap-2">
+                           <span class="text-[11px] text-[#fe2c55] font-black">{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}đ</span>
+                           {#if p.discountPrice}
+                             <span class="text-[9px] text-gray-300 line-through font-bold">{p.price.toLocaleString('vi-VN')}đ</span>
+                           {/if}
+                        </div>
+                      </div>
+                      {#if i < 2 || p.orderCount > 50}
+                        <span class="shrink-0 text-[8px] bg-[#fe2c55] text-white px-1 py-0.5 font-black uppercase tracking-tighter rounded-xs shadow-sm ml-1">Hot</span>
                       {/if}
                     </button>
                   {/each}
                 </div>
               </section>
-            {/if}
           {:else}
             <!-- Case 2: Suggestions (Real DB Products) -->
             <section>
@@ -171,16 +196,61 @@
                   {#each searchStore.searchResults as p}
                     <a 
                       href="/{p.slug}"
-                      onclick={() => { isFocused = false; searchStore.isOverlayOpen = false; }}
-                      class="p-2 text-left hover:bg-gray-50 flex items-center gap-3 group rounded"
+                      onclick={() => { 
+                        if (variant === 'desktop') searchStore.addSearch(p.name);
+                        isFocused = false; 
+                        searchStore.isOverlayOpen = false; 
+                      }}
+                      class="p-2 text-left hover:bg-gray-50 flex items-center gap-3 group rounded relative transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:translate-x-1"
                     >
-                      <div class="w-10 h-10 bg-gray-100 rounded flex-shrink-0 overflow-hidden border border-gray-100">
+                      <div class="w-14 h-14 bg-gray-100 rounded flex-shrink-0 overflow-hidden border border-gray-100 relative group-hover:scale-105 transition-transform duration-500">
                         {#if p.images?.length > 0 || p.metadata?.image_url}
                            <img src={p.images?.[0] ?? p.metadata?.image_url} class="w-full h-full object-cover" alt={p.name} />
                         {/if}
+                        {#if p.orderCount > 50 || p.isAiFeatured}
+                          <div class="absolute top-0 left-0 bg-[#fe2c55] text-white text-[7px] font-black px-1.5 py-0.5 rounded-br-sm animate-pulse">VIRAL</div>
+                        {/if}
                       </div>
-                      <span class="text-[14px] font-medium text-gray-800 line-clamp-1 flex-grow">{p.name}</span>
-                      <span class="text-[13px] text-luxury-copper font-bold tabular-nums">{p.price?.toLocaleString('vi-VN')}đ</span>
+                      
+                      <div class="flex flex-col flex-grow">
+                        <div class="flex items-center gap-2 mb-0.5">
+                          <span class="text-[14px] font-bold text-gray-800 line-clamp-1 group-hover:text-luxury-copper transition-colors">{p.name}</span>
+                          {#if p.discountPrice}
+                            <span class="text-[8px] bg-red-100 text-red-500 font-black px-1 rounded-sm">-{Math.round((1 - p.discountPrice/p.price) * 100)}%</span>
+                          {/if}
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                           <div class="flex items-center gap-2">
+                             <span class="text-[13px] text-[#fe2c55] font-black tabular-nums">
+                               {(p.discountPrice ?? p.price).toLocaleString('vi-VN')}đ
+                             </span>
+                             {#if p.discountPrice}
+                               <span class="text-[10px] text-gray-300 line-through tabular-nums font-bold">{p.price.toLocaleString('vi-VN')}đ</span>
+                             {/if}
+                           </div>
+                           
+                           <div class="flex items-center gap-3">
+                             {#if p.stock < 10 && p.stock > 0}
+                               <span class="text-[8px] font-black text-red-500 bg-red-50 px-1 py-0.5 rounded-sm animate-bounce">SẮP CHÁY HÀNG</span>
+                             {:else if p.orderCount > 0}
+                               <span class="text-[10px] text-gray-400 font-bold tracking-tighter opacity-70 italic">{p.orderCountText}</span>
+                             {/if}
+                             
+                             <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                               <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                               <span class="text-[9px] font-black {getHeatColor(getPseudoViews(p.id))}">{getPseudoViews(p.id)} ĐANG XEM</span>
+                             </div>
+                           </div>
+                        </div>
+                      </div>
+
+                      <!-- Interactive CTA Tooltip (Elite Touch) -->
+                      <div class="absolute right-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 translate-x-4 transition-all duration-500 pointer-events-none">
+                         <div class="bg-luxury-copper text-white text-[9px] font-black px-3 py-1.5 rounded-none shadow-xl flex items-center gap-1">
+                           SĂN NGAY <span class="text-[14px]">→</span>
+                         </div>
+                      </div>
                     </a>
                   {/each}
                 </div>
@@ -205,7 +275,12 @@
                       {/if}
                     </div>
                     <div class="text-[12px] font-bold line-clamp-2 leading-tight group-hover:text-luxury-copper transition-colors" title={p.name}>{p.name}</div>
-                    <div class="text-[14px] font-black text-luxury-copper tabular-nums tracking-tight">{p.price.toLocaleString('vi-VN')}đ</div>
+                    <div class="flex flex-col">
+                       <div class="text-[14px] font-black text-[#fe2c55] tabular-nums tracking-toggle">{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}đ</div>
+                       {#if p.discountPrice}
+                         <div class="text-[10px] text-gray-300 line-through font-bold tabular-nums tracking-tight">{p.price.toLocaleString('vi-VN')}đ</div>
+                       {/if}
+                    </div>
                   </a>
                 {/each}
               </div>
@@ -222,42 +297,42 @@
     class="fixed inset-0 bg-white flex flex-col font-['Outfit']"
     style:z-index={Z_INDEX_CLIENT.MODAL + 10}
   >
-    <!-- TikTok Exact Header -->
-    <header class="w-full px-2 py-2 flex items-center gap-2 bg-white z-20 relative border-b border-gray-50">
-      <!-- Back Button (Marketplace Standard) -->
+    <!-- TikTok Exact Header - Matched with MobileSearchHeader.svelte -->
+    <header class="w-full px-2 py-2 flex items-center bg-white z-20 relative border-b border-gray-50/50">
       <button onclick={() => searchStore.isOverlayOpen = false} class="p-1 -ml-1 text-gray-900 active:scale-90 transition-transform flex-shrink-0">
         <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
       </button>
 
-      <!-- Gray Search Box (Marketplace Standard) -->
-      <div class="flex-grow flex items-center h-[38px] bg-gray-100 rounded-lg pl-3 pr-2 gap-2 border border-transparent focus-within:border-gray-200">
-        <svg class="w-5 h-5 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
-        <input
-          bind:this={inputElement}
-          bind:value={localQuery}
-          type="text"
-          onkeydown={handleKeyDown}
-          placeholder={searchStore.searchPlaceholder}
-          autocomplete="off"
-          class="flex-grow min-w-0 bg-transparent text-[15px] font-medium text-gray-900 focus:outline-none placeholder:text-gray-400"
-        />
-        {#if localQuery}
+      <div class="search-ring-mobile flex-grow ml-1">
+        <div class="search-inner-mobile">
+          <svg class="w-[18px] h-[18px] flex-shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            bind:this={inputElement}
+            bind:value={localQuery}
+            type="text"
+            onkeydown={handleKeyDown}
+            placeholder={searchStore.searchPlaceholder}
+            autocomplete="off"
+            class="search-input-mobile"
+          />
+          {#if localQuery}
+            <button 
+              onclick={() => { localQuery = ''; inputElement?.focus(); }}
+              class="search-clear-mobile"
+            >
+              <svg class="w-4 h-4 bg-gray-200 text-white rounded-full p-[2px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          {/if}
           <button 
-            onclick={() => { localQuery = ''; inputElement?.focus(); }}
-            class="p-1 px-1.5 text-gray-300 active:text-gray-500 transition-colors"
+            onclick={() => commitSearch(localQuery)}
+            class="search-cta-mobile"
           >
-            <svg class="w-4 h-4 bg-gray-200 text-white rounded-full p-[2px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            Tìm kiếm
           </button>
-        {/if}
-        <button 
-          onclick={() => commitSearch(localQuery)}
-          class="text-[#fe2c55] font-black text-[14px] pl-2 border-l border-gray-200 whitespace-nowrap active:opacity-60 transition-opacity"
-        >
-          Tìm kiếm
-        </button>
+        </div>
       </div>
     </header>
 
@@ -294,7 +369,12 @@
                    </div>
                    <div class="flex flex-col justify-center flex-1">
                       <span class="text-[14px] text-gray-800 font-bold tracking-tight line-clamp-1 leading-tight mb-1">{p.name}</span>
-                      <span class="text-[15px] text-[#fe2c55] font-black tracking-tight">{p.price.toLocaleString('vi-VN')}₫</span>
+                      <div class="flex items-center gap-2">
+                         <span class="text-[15px] text-[#fe2c55] font-black tracking-tight">{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}₫</span>
+                         {#if p.discountPrice}
+                           <span class="text-[11px] text-gray-300 line-through font-bold">{(p.price).toLocaleString('vi-VN')}₫</span>
+                         {/if}
+                      </div>
                    </div>
                  </a>
                {/each}
@@ -306,25 +386,66 @@
         <!-- Real-time DB Suggestions: Minimalist TikTok -->
         <div class="flex flex-col pt-1 bg-white">
             {#if searchStore.isSearching}
-               <div class="py-10 text-center text-gray-400 text-[13px]">Đang trích xuất dữ liệu...</div>
+               <div class="py-20 text-center flex flex-col items-center gap-3">
+                  <div class="w-8 h-8 border-2 border-luxury-copper/20 border-t-luxury-copper rounded-full animate-spin"></div>
+                  <span class="text-gray-400 text-[13px] font-bold uppercase tracking-widest">Đang trích xuất dữ liệu...</span>
+               </div>
             {:else}
               {#each searchStore.searchResults as p}
                 <a 
                   href="/{p.slug}"
                   onclick={() => { 
-                     if (localQuery) searchStore.addSearch(localQuery); 
+                     searchStore.addSearch(p.name); 
                      searchStore.isOverlayOpen = false; 
                   }}
-                  class="flex items-center px-4 py-3 active:bg-gray-50 transition-colors border-b border-gray-50/50"
+                  class="flex items-center px-4 py-[14px] active:bg-gray-50 transition-colors border-b border-gray-50/50 relative overflow-hidden group"
                 >
-                   <div class="w-10 h-10 bg-gray-100 rounded-[6px] flex-shrink-0 overflow-hidden border border-gray-100">
+                   <div class="w-[68px] h-[68px] bg-gray-50 rounded-none flex-shrink-0 overflow-hidden border border-gray-100 relative shadow-sm">
                      {#if p.images?.length > 0 || p.metadata?.image_url}
                         <img src={p.images?.[0] ?? p.metadata?.image_url} class="w-full h-full object-cover" alt={p.name} />
                      {/if}
+                     {#if p.discountPrice}
+                        <div class="absolute top-0 right-0 bg-[#fe2c55] text-white text-[8px] font-black px-1.5 py-0.5 shadow-lg">
+                           SALE
+                        </div>
+                     {/if}
                    </div>
-                   <span class="flex-grow text-left text-[14px] text-[#161823] font-[600] ml-3 line-clamp-2 tracking-tight leading-snug">{p.name}</span>
+                   <div class="flex flex-col ml-4 flex-grow min-w-0">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="text-[14px] text-gray-900 font-bold line-clamp-1 tracking-tight leading-snug">{p.name}</span>
+                      </div>
+                      <div class="flex items-center justify-between">
+                         <div class="flex flex-col">
+                            <div class="flex items-center gap-2">
+                               <span class="text-[16px] text-[#fe2c55] font-black tracking-tighter">{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}₫</span>
+                               {#if p.discountPrice}
+                                 <span class="text-[11px] text-gray-300 line-through font-bold">{(p.price).toLocaleString('vi-VN')}₫</span>
+                               {/if}
+                            </div>
+                            <div class="flex items-center gap-2 mt-1">
+                               <span class="flex items-center gap-1">
+                                 <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                                 <span class="text-[10px] text-luxury-copper font-black uppercase">{getPseudoViews(p.id)} ĐANG XEM</span>
+                               </span>
+                            </div>
+                         </div>
+                         <div class="flex flex-col items-end gap-1">
+                            {#if p.orderCount > 0}
+                              <span class="text-[10px] text-gray-400 font-black uppercase tracking-tighter opacity-70 underline decoration-luxury-copper/20 underline-offset-2">{p.orderCountText}</span>
+                            {/if}
+                            {#if p.stock < 10 && p.stock > 0}
+                              <span class="text-[8px] font-black text-white bg-red-500 px-1.5 py-0.5 animate-pulse">SẮP HẾT</span>
+                            {/if}
+                         </div>
+                      </div>
+                   </div>
                 </a>
               {/each}
+              {#if searchStore.searchResults.length === 0}
+                 <div class="py-20 text-center px-10">
+                    <span class="text-gray-300 font-bold uppercase tracking-widest text-[13px]">Không tìm thấy kỳ quan nào phù hợp với mã khóa của bạn.</span>
+                 </div>
+              {/if}
             {/if}
         </div>
       {/if}
@@ -339,5 +460,77 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  @keyframes scanning {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  .animate-scanning {
+    animation: scanning 1.5s linear infinite;
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  .search-ring-mobile {
+    height: 36px;
+    flex: 1;
+    min-width: 0;
+    border: 1.5px solid transparent;
+    border-radius: 8px;
+    overflow: hidden;
+    background-image:
+      linear-gradient(white, white), 
+      linear-gradient(90deg, #06d6d6, #fe2c55);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    transform: translateZ(0); 
+  }
+
+  .search-inner-mobile {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 8px 0 10px;
+    height: 100%;
+    width: 100%;
+  }
+
+  .search-input-mobile {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #111;
+    background: transparent;
+    border: none;
+    outline: none;
+  }
+  .search-input-mobile::placeholder {
+    color: #9ca3af;
+    font-weight: 500;
+  }
+
+  .search-cta-mobile {
+    background: none;
+    border: none;
+    padding: 0 4px 0 0;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 800;
+    color: #fe2c55;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .search-clear-mobile {
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
 </style>

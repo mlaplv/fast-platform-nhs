@@ -41,6 +41,17 @@
     return () => clearTimers();
   });
 
+  // 🚀 Auto-autoplay diagnostic results (Elite V2.2)
+  $effect(() => {
+    if (shopStore.diagnosticResult && !shopStore.isAnalyzing) {
+      const slideInterval = setInterval(() => {
+        activeSlide = (activeSlide + 1) % 2;
+      }, 5000);
+      return () => clearInterval(slideInterval);
+    }
+  });
+
+
   function nextStep(value: string, label: string) {
     answers.push({ q: questions[currentStep].title, a: label });
     if (currentStep < questions.length - 1) {
@@ -60,12 +71,6 @@
       shopStore.analyzeDiagnostics(answers).then(() => {
         clearInterval(interval);
         timers.delete(interval);
-        
-        // Auto-slide results
-        const slideInterval = setInterval(() => {
-          activeSlide = (activeSlide + 1) % 2;
-        }, 5000);
-        timers.add(slideInterval);
       });
     }
   }
@@ -76,6 +81,7 @@
     shopStore.diagnosticResult = null;
     shopStore.isAnalyzing = false;
     shopStore.setQuantity(1);
+    activeSlide = 0;
   }
 </script>
 

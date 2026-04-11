@@ -38,15 +38,7 @@
     return resolveMediaUrl(sanitized);
   });
 
-  $effect(() => {
-    console.log('MobileVideoBanner Debug:', {
-      rawUrl: rawUrl,
-      videoMode: videoMode,
-      iframeEmbedUrl: iframeEmbedUrl,
-      metadata: metadata,
-      hasProduct: !!product
-    });
-  });
+
 
   type VideoMode = 'youtube' | 'tiktok' | 'local' | null;
 

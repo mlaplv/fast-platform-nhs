@@ -126,19 +126,105 @@ class ProductService:
         search: Optional[str] = None,
         featured_only: bool = False,
     ) -> ProductListResponse:
-        """List products (R76: Scalar Projection). R1.5: Zero-Hydration."""
+        """
+        Elite V3.0: Hybrid Viral Search Engine.
+        Combines Keyword Recall + Semantic Intent + Social Proof (Heat Ranking).
+        """
         conditions = [ProductBase.deleted_at == None]
         if status and status != "all":
             conditions.append(ProductBase.status == status.upper())
-        if search:
-            safe = escape_like(search)
-            conditions.append(or_(
-                func.unaccent(ProductBase.name).ilike(func.unaccent(f"%{safe}%")),
-                ProductBase.sku.ilike(f"%{safe}%"),
-            ))
         if featured_only:
             conditions.append(ProductBase.is_ai_featured == True)
 
+        # 🎯 CASE 1: SEARCH OVERRIDE (Hybrid Strategy)
+        if search:
+            safe = escape_like(search)
+            
+            # --- LAYER 1: KEYWORD RECALL (Primary for SKU/Prefix) ---
+            keyword_stmt = select(
+                ProductBase.id, ProductBase.name, ProductBase.sku,
+                ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
+                ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
+                ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
+                ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
+                ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
+                Category.name.label("category_name")
+            ).outerjoin(Category, ProductBase.category_id == Category.id).where(
+                and_(*conditions),
+                or_(
+                    func.unaccent(ProductBase.name).ilike(func.unaccent(f"%{safe}%")),
+                    ProductBase.sku.ilike(f"%{safe}%"),
+                )
+            ).limit(limit * 2) # Overfetch for ranking
+            
+            keyword_results = (await db_session.execute(keyword_stmt)).mappings().all()
+            
+            # --- LAYER 2: SEMANTIC RECALL (Intent Matching) ---
+            semantic_results = await self.vector_service.search_semantic(db_session, search, limit=limit)
+            semantic_ids = [r["id"] for r in semantic_results]
+            
+            # --- LAYER 3: VIRAL HEAT SCORING ---
+            final_map: Dict[str, Dict[str, object]] = {}
+            
+            # Process Keywords
+            for r in keyword_results:
+                pid = str(r["id"])
+                # Normalized Relevance (Keyword is usually higher intent)
+                relevance = 0.8 if search.lower() in r["name"].lower() else 0.5
+                if r["sku"] and search.lower() == r["sku"].lower(): relevance = 1.0 # Exact SKU Match
+                
+                final_map[pid] = {**r, "score": relevance}
+
+            # Process Semantic (Merge & Boost)
+            for r in semantic_results:
+                pid = str(r["id"])
+                score = r["match_score"]
+                if pid in final_map:
+                    # Combine scores if found in both
+                    final_map[pid]["score"] = max(float(final_map[pid]["score"]), float(score)) + 0.2
+                else:
+                    # Fetch full record if only in semantic
+                    s_stmt = select(
+                        ProductBase.id, ProductBase.name, ProductBase.sku,
+                        ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
+                        ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
+                        ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
+                        ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
+                        ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
+                        Category.name.label("category_name")
+                    ).outerjoin(Category, ProductBase.category_id == Category.id).where(ProductBase.id == pid)
+                    
+                    full_r = (await db_session.execute(s_stmt)).mappings().first()
+                    if full_r:
+                        final_map[pid] = {**full_r, "score": float(score)}
+
+            # --- LAYER 4: VIRAL BOOST SCORING ---
+            import math
+            ranked_list = []
+            for pid, p in final_map.items():
+                order_count = int(p.get("order_count") or 0)
+                is_viral = bool(p.get("is_ai_featured") or False)
+                # Boost based on sales volume and viral status
+                social_boost = math.log10(order_count + 1) * 0.15
+                viral_boost = 0.2 if is_viral else 0.0
+                
+                p["final_rank"] = float(p["score"]) + social_boost + viral_boost
+                ranked_list.append(p)
+
+            # --- LAYER 5: FINALIZE RESULT ---
+            ranked_list.sort(key=lambda x: x["final_rank"], reverse=True)
+            subset = ranked_list[offset : offset + limit]
+            
+            data: List[ProductResponse] = []
+            for row_mapping in subset:
+                row_dict: ProductRowDict = dict(row_mapping) # type: ignore
+                row_dict["variants"] = []
+                row_dict["order_count_text"] = self._get_display_order_count_text(row_dict.get("metadata", {}), row_dict["order_count"])
+                data.append(ProductResponse.model_validate(row_dict))
+                
+            return ProductListResponse(data=data, total=len(ranked_list))
+
+        # 🎯 CASE 2: STANDARD LISTING
         # 1. COUNT (Zero-Hydration)
         count_stmt = select(func.count(ProductBase.id)).where(and_(*conditions))
         total = await db_session.scalar(count_stmt) or 0
@@ -150,21 +236,18 @@ class ProductService:
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
             ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
-            ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured, ProductBase.is_ai_featured,
+            ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
             and_(*conditions)
         ).limit(limit).offset(offset).order_by(ProductBase.created_at.desc())
 
         result = await db_session.execute(stmt)
-        data: List[ProductResponse] = []
+        data = []
         for row in result:
-            row_dict: ProductRowDict = dict(row._mapping)  # type: ignore
-            row_dict["variants"] = [] # Optimize: don't load variants in list view
-
-            # Inject dynamic text O(1)
+            row_dict: ProductRowDict = dict(row._mapping) # type: ignore
+            row_dict["variants"] = []
             row_dict["order_count_text"] = self._get_display_order_count_text(row_dict.get("metadata", {}), row_dict["order_count"])
-
             data.append(ProductResponse.model_validate(row_dict))
 
         return ProductListResponse(data=data, total=total)

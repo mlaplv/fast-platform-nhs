@@ -3,9 +3,10 @@
     import HomeMobile from './home/HomeMobile.svelte';
     import HeaderDesktop from './layout/HeaderDesktop.svelte';
     import FooterDesktop from './layout/FooterDesktop.svelte';
+    import type { HomeData } from '$lib/types';
     import "./home/home.css";
 
-    let { data, isMobile }: { data: any, isMobile: boolean } = $props();
+    let { data, isMobile }: { data: HomeData, isMobile: boolean } = $props();
 
     const shopInfo = $derived({
         name: data.settings?.basic_info?.site_name || "Micsmo Elite",

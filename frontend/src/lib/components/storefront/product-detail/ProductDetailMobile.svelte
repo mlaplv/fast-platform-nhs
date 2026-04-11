@@ -129,7 +129,6 @@
 
   function openChat() {
     // Placeholder for AI Chat activation
-    console.log("Opening AI Chat for Sếp...");
   }
 
   const formatPrice = (p: number) => p.toLocaleString('vi-VN');

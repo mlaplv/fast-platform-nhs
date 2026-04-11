@@ -135,7 +135,6 @@
   }
 
   async function handleClean() {
-    console.log('[Clean] ▶ handleClean fired (Viral NEURAL XOHI Edition)');
     if (!editor || editor.isDestroyed) {
       console.warn('[Clean] Editor not ready');
       return;
@@ -144,7 +143,6 @@
 
     try {
       const html = editor.getHTML();
-      console.log('[Clean] HTML length:', html.length);
 
       const div = document.createElement('div');
       div.innerHTML = html;
@@ -153,7 +151,6 @@
       // Viral articles should not contain raw <code> or <pre> blocks unless explicitly intended.
       const codeBlocks = div.querySelectorAll('pre, code');
       codeBlocks.forEach(cb => {
-        console.log('[Clean] 🗑 Removing code block artifact');
         cb.remove();
       });
 
@@ -164,7 +161,6 @@
         const textLen = p.textContent?.length || 0;
         if (links.length > 3 || (textLen > 0 && links.length / textLen > 0.05)) {
           // If a paragraph is just a bunch of links or has too many, unwrap links but keep text
-          console.log('[Clean] 🔗 High link density detected - sanitizing');
           links.forEach(a => {
             const span = document.createElement('span');
             span.textContent = a.textContent;
@@ -197,12 +193,10 @@
         }
       });
 
-      console.log(`[Clean] Dedup done — removed: ${removedCount} blocks`);
 
       // 3. Viral NEURAL XOHI: Backend Semantic Polish
       const interimHTML = div.innerHTML;
 
-      console.log('[Clean] 🚀 Calling Neural Backend Polish...');
       const response = await apiClient.post<{ data: { content: string } }>('/api/v1/content/clean', {
         content: interimHTML
       });
@@ -214,7 +208,6 @@
         isInternalUpdating = true;
         isSyncLocked = true;
 
-        console.log('[Clean] Applying cleaned content to editor...');
         editor.commands.setContent(finalContent, false);
 
         // Elite V2.2: Ensure Svelte reactivity & Tiptap internal render settle
@@ -230,10 +223,8 @@
         setTimeout(() => {
             isInternalUpdating = false;
             isSyncLocked = false;
-            console.log('[Clean] Sync Locks Released');
         }, 150);
 
-        console.log('[Clean] ✨ Neural Polish Complete');
       } else {
         // Fallback to deduped content if backend fails
         isInternalUpdating = true;
@@ -250,7 +241,6 @@
             isInternalUpdating = false;
             isSyncLocked = false;
         }, 150);
-        console.log('[Clean] Backend failed, applied local dedup only');
       }
 
     } catch (err) {
@@ -393,7 +383,6 @@
         };
 
         if (normalizeHTML(normalizedContent) !== normalizeHTML(currentHTML)) {
-            console.log('[Tiptap] Prop-driven content sync triggered');
             isInternalUpdating = true;
             const { from, to } = editor!.state.selection;
             editor!.commands.setContent(normalizedContent, false);
