@@ -44,9 +44,10 @@
   --glass-blur: 0px !important;
 
   /* Elite V2.2 Color System - Soft Luxury */
-  --bg-canvas: #f6f6f6;
-  --text-base: #1a1a1a;
   --primary: #ee4d2d;
+
+  /* Elite V2.2: Architecture Refinement */
+  color-scheme: light;
 }
 
 /* ZERO-SHIFT RESPONSIVE UTILITIES (Elite V2.2) */

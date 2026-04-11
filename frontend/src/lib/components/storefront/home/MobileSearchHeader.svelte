@@ -1,11 +1,12 @@
-<!-- MobileSearchHeader.svelte -->
-<!-- Pixel-perfect TikTok Shop header: gradient bg, red-border search, camera, CTA, cart badge -->
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { getSearchStore } from '$lib/state/commerce/search.svelte';
+  import SmartSearch from '../product/SmartSearch.svelte';
 
   const cartStore = getCartStore();
+  const searchStore = getSearchStore();
 </script>
 
 <header class="tsh-header" style="z-index:{Z_INDEX_CLIENT.HEADER}">
@@ -13,22 +14,26 @@
   <!-- Vùng search + cart trên cùng -->
   <div class="tsh-top-row">
 
-    <!-- Search bar: border đỏ solid, border-image gradient technique -->
-    <div class="tsh-search-ring">
-      <!-- Inner white zone -->
+        <!-- Search bar: Integrated with SmartSearch -->
+    <div 
+      class="tsh-search-ring cursor-text" 
+      onclick={() => searchStore.isOverlayOpen = true}
+      role="presentation"
+    >
       <div class="tsh-search-inner">
-
-        <!-- 🔍 icon -->
-        <svg class="tsh-icon-search" viewBox="0 0 24 24" fill="none">
-          <circle cx="11.5" cy="11.5" r="6.5" stroke="#222" stroke-width="2.2" />
-          <path d="M16 16l4 4" stroke="#222" stroke-width="2.2" stroke-linecap="round"/>
+        <svg class="tsh-icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
 
-        <!-- Placeholder text -->
-        <span class="tsh-placeholder">tai nghe bluetooth...</span>
+        <input 
+          type="text" 
+          readonly 
+          placeholder={searchStore.searchPlaceholder} 
+          class="tsh-input-ghost"
+        />
 
-        <!-- Tìm kiếm CTA -->
-        <button class="tsh-cta" type="button" onclick={() => goto('/search')}>Tìm kiếm</button>
+        <button class="tsh-cta" type="button">Tìm kiếm</button>
       </div>
     </div>
 
@@ -86,16 +91,20 @@
 
   /* Search bar wrapper – flex: 1 to fill remaining space */
   .tsh-search-ring {
+    height: 36px;
     flex: 1;
     min-width: 0;
     /* Gradient border technique: border transparent + background-clip */
     border: 1.5px solid transparent;
-    border-radius: 10px; /* Reduced from 9999px to match image */
+    border-radius: 8px; /* TikTok screenshot style */
+    overflow: hidden;
     background-image:
       linear-gradient(white, white),         /* padding-box: inner white */
       linear-gradient(90deg, #06d6d6, #fe2c55); /* border-box: gradient ring cyan -> pink */
     background-origin: border-box;
     background-clip: padding-box, border-box;
+    /* Hardware acceleration for smooth jumps */
+    transform: translateZ(0); 
   }
 
   /* Inner row inside search */
@@ -103,36 +112,36 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 0 10px;
-    height: 38px;
+    padding: 0 8px 0 10px;
+    height: 100%;
     width: 100%;
   }
 
   .tsh-icon-search {
-    width: 22px;
-    height: 22px;
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
+    color: #9ca3af;
   }
 
-  .tsh-placeholder {
+  .tsh-input-ghost {
     flex: 1;
     min-width: 0;
-    font-size: 15px;
-    color: #1edddd; /* Match the teal color in screenshot */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    user-select: none;
+    font-size: 14px;
+    font-weight: 500;
+    color: #9ca3af;
+    background: transparent;
+    border: none;
+    outline: none;
+    pointer-events: none;
   }
-
-
 
   .tsh-cta {
     background: none;
     border: none;
     padding: 0 4px 0 0;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 800;
     color: #fe2c55; /* Vibrant pink/red from image */
     white-space: nowrap;
@@ -176,3 +185,7 @@
     font-family: 'Inter', sans-serif;
   }
 </style>
+
+{#if searchStore.isOverlayOpen}
+  <SmartSearch variant="mobile-overlay" />
+{/if}

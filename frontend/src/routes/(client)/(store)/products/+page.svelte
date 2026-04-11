@@ -18,7 +18,7 @@
 </script>
 
 {#if isMobile}
-  <ProductListMobile products={data.products} />
+  <ProductListMobile products={data.products} searchQuery={data.searchQuery} />
 {:else}
-  <ProductListDesktop products={data.products} />
+  <ProductListDesktop products={data.products} searchQuery={data.searchQuery} />
 {/if}

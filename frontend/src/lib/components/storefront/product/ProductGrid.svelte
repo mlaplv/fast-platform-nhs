@@ -48,8 +48,8 @@
   ];
 </script>
 
-<!-- GRID HEADER (Viral 2026 Tabs) -->
-<div class="mb-4 bg-[#f8f9fa]/80 backdrop-blur-md rounded-2xl border border-white/50 shadow-sm overflow-hidden sticky top-[env(safe-area-inset-top,0px)] z-40">
+<!-- GRID HEADER (Viral 2026 Tabs - Standard Marketplace Style) -->
+<div class="mb-4 bg-white/80 backdrop-blur-xl rounded-none border-b border-gray-50 flex sticky top-[52px] z-20">
   <div class="flex items-center justify-between px-4 lg:px-6">
     <div class="flex items-center gap-2 lg:gap-8 overflow-x-auto no-scrollbar py-3">
       {#each tabs as tab}
@@ -140,12 +140,12 @@
           <!-- Price Section -->
           <div class="flex flex-col">
             <div class="flex items-center gap-1.5 h-4">
-              <span class="text-[11px] text-gray-400 line-through tabular-nums decoration-gray-300">
+              <span class="text-[10px] text-gray-400 line-through tabular-nums decoration-gray-300">
                 ₫{Math.round(product.originalPrice || product.price * 1.55).toLocaleString('vi-VN')}
               </span>
             </div>
-            <p class="text-[#ee4d2d] font-bold text-lg tabular-nums flex items-baseline gap-0.5">
-              <span class="text-sm font-medium">₫</span>{product.price.toLocaleString('vi-VN')}
+            <p class="text-[#ee4d2d] font-bold text-base tabular-nums flex items-baseline gap-0.5">
+              <span class="text-xs font-medium">₫</span>{product.price.toLocaleString('vi-VN')}
             </p>
           </div>
 

@@ -2,10 +2,15 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { ServerEnv } from '$lib/server/env';
 
-export const load: PageServerLoad = async ({ fetch }) => {
+export const load: PageServerLoad = async ({ fetch, url }) => {
   const apiUrl = ServerEnv.INTERNAL_API_URL;
   const tenantId = ServerEnv.TENANT_ID;
-  const targetUrl = `${apiUrl}/api/v1/client/products`;
+  const query = url.searchParams.get('q') ?? '';
+
+  const params = new URLSearchParams();
+  if (query) params.set('search', query);
+
+  const targetUrl = `${apiUrl}/api/v1/client/products?${params.toString()}`;
 
   let res;
   try {
@@ -31,5 +36,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
   }
 
   const data = await res.json();
-  return { products: Array.isArray(data) ? data : (data.items || data.products || []) };
+  return { 
+    products: data.data ?? (Array.isArray(data) ? data : (data.items || data.products || [])),
+    searchQuery: query
+  };
 };

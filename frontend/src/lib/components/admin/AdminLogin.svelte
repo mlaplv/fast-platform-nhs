@@ -169,7 +169,7 @@
             <button
               class="flex-1 py-3 rounded-[24px] text-[11px] font-bold tracking-widest transition-all duration-300 {lastTab ===
               tab
-                ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.15)]'
+                ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30 shadow-[0_0_20px_rgba(var(--color-neon-cyan-raw),0.15)]'
                 : 'text-gray-500 hover:text-white'}"
               onclick={() => (lastTab = tab)}
             >
@@ -292,7 +292,8 @@
               <button
                 type="submit"
                 disabled={isLoading}
-                class="w-full h-16 bg-gradient-to-r from-cyan-600 to-blue-700 text-white font-black text-xs uppercase tracking-[0.3em] rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3 relative group overflow-hidden shadow-[0_0_30px_-5px_rgba(6,182,212,0.5)] border border-white/10"
+                class="w-full h-16 bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-700 text-white font-black text-xs uppercase tracking-[0.3em] rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3 relative group overflow-hidden shadow-[0_0_30px_-5px_rgba(var(--color-neon-cyan-raw),0.5)] border border-white/10"
+                style="background-color: rgb(0, 145, 178);"
               >
                 <div
                   class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"

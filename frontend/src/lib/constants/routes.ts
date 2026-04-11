@@ -14,7 +14,6 @@ export const ADMIN_PROTECTED_PATHS = [
     "/analytics",
     "/users",
     "/orders",
-    "/products",
     "/inventory"
 ] as const;
 

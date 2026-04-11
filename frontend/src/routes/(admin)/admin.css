@@ -22,6 +22,8 @@
   --z-system: 100000;
   --z-vui-exit: 110000;
   --z-supreme-power: 999999;
+  
+  color-scheme: dark;
 }
 
 /* --- ADMIN DOMAIN --- */

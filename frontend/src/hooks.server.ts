@@ -72,9 +72,21 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   // R31 & R33: Route Isolation & Protection (Single Source of Truth)
   const isTargetingAdminRoute = (ADMIN_PROTECTED_PATHS as readonly string[]).some((p: string) => event.url.pathname.startsWith(p));
+  const isTargetingAdminBase = isTargetingAdminRoute || event.url.pathname === "/" || event.url.pathname === "/login";
 
-  if (isTargetingAdminRoute && event.locals.tenant !== "admin") {
-    throw redirect(303, `https://${adminDomain}${event.url.pathname}`);
+  // Elite V2.2: Global Domain Guard (Root Fix for Multi-Domain Navigation)
+  if (!ServerEnv.isDev) {
+    if (isAdminHost) {
+      // On Admin domain, but accessing a Storefront route? -> Redirect to Storefront
+      if (!isTargetingAdminBase) {
+        throw redirect(308, `https://${ServerEnv.APP_DOMAIN}${event.url.pathname}${event.url.search}`);
+      }
+    } else {
+      // On Storefront domain, but accessing an Admin route? -> Redirect to Admin
+      if (isTargetingAdminRoute) {
+        throw redirect(308, `https://${adminDomain}${event.url.pathname}${event.url.search}`);
+      }
+    }
   }
 
   // Protection logic: Admin tenant ONLY (Storefront is ALWAYS PUBLIC)

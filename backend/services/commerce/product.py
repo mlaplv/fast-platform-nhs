@@ -133,7 +133,7 @@ class ProductService:
         if search:
             safe = escape_like(search)
             conditions.append(or_(
-                func.unaccent(ProductBase.name).ilike(f"%{func.unaccent(safe)}%"),
+                func.unaccent(ProductBase.name).ilike(func.unaccent(f"%{safe}%")),
                 ProductBase.sku.ilike(f"%{safe}%"),
             ))
         if featured_only:

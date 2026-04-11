@@ -1,41 +1,81 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { slugify } from '$lib/utils/format';
+  import ProductGrid from './ProductGrid.svelte';
+  import { fade, fly } from 'svelte/transition';
+
+  interface Product {
+    id: string;
+    name: string;
+    price: number;
+    image: string;
+    sales?: number;
+    originalPrice?: number;
+    rating?: number;
+    ratingCount?: number;
+  }
 
   interface Props {
-    products: Array<{ id: string; name: string; price: number; image: string }>;
+    products: Product[];
+    searchQuery?: string;
   }
-  let { products }: Props = $props();
+  let { products, searchQuery }: Props = $props();
 </script>
 
-<div class="h-[calc(100vh-env(safe-area-inset-bottom)-60px)] w-screen overflow-y-scroll snap-y snap-mandatory bg-black">
-  {#each products as product (product.id)}
-    <div class="snap-start h-full w-full relative flex items-center justify-center bg-black">
-      <!-- Immersive Image -->
-      <img src={product.image} alt={product.name} class="absolute inset-0 w-full h-full object-cover z-0" />
-      <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent z-0"></div>
-
-      <!-- Product Info Overlay -->
-      <div class="absolute bottom-6 left-4 z-10 text-white p-4 w-[75%]">
-        <span class="bg-red-600 text-white px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest mb-2 inline-block">Product</span>
-        <h3 class="text-xl font-black mb-1 tracking-tighter leading-tight">{product.name}</h3>
-        <p class="text-2xl font-black text-red-400 tracking-tighter italic">{product.price.toLocaleString('vi-VN')} ₫</p>
+<div class="min-h-screen bg-[#F7F8F9] pb-24">
+  <!-- SEARCH SUMMARY LAYER (Elite V2.2) -->
+  <div class="sticky top-0 z-30 bg-white/90 backdrop-blur-xl border-b border-gray-100 shadow-sm">
+    <div class="px-4 py-3 flex items-center justify-between">
+      <div class="flex flex-col">
+        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+          {searchQuery ? `Kết quả cho: "${searchQuery}"` : 'Kết quả tìm kiếm'}
+        </span>
+        <h2 class="text-[15px] font-bold text-gray-900 tracking-tight">Tìm thấy {products.length} siêu phẩm</h2>
       </div>
-
-      <!-- Action Overlay (TikTok Style) -->
-      <div class="absolute right-4 bottom-24 z-10 flex flex-col items-center gap-6">
-        <button class="flex flex-col items-center text-white group">
-          <span class="text-3xl drop-shadow-lg group-hover:scale-110 transition-transform">❤️</span>
-          <p class="text-[10px] font-bold mt-1">Like</p>
-        </button>
-        <button
-          onclick={() => goto(`/${slugify(product.name)}`)}
-          class="flex flex-col items-center text-white group cursor-pointer"
-        >
-          <span class="text-3xl drop-shadow-lg group-hover:scale-110 transition-transform">🛒</span>
-          <p class="text-[10px] font-bold mt-1 text-red-400 uppercase tracking-widest">Xem</p>
-        </button>
-      </div>
+      
+      <!-- Filter Badge Placeholder -->
+      <button class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 border border-gray-100 active:scale-90 transition-transform">
+        <svg class="w-5 h-5 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+      </button>
     </div>
-  {/each}
+  </div>
+
+  <!-- MAIN PRODUCT FEED -->
+  <div class="px-3 pt-3">
+    {#if products.length > 0}
+      <ProductGrid {products} />
+    {:else}
+      <div class="flex flex-col items-center justify-center py-24 px-10 text-center" in:fade>
+        <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+           <svg class="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-900 mb-2">Không tìm thấy kết quả</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">Sếp ơi, em không tìm thấy sản phẩm nào khớp với từ khóa này. Sếp thử tìm từ khóa khác xem sao?</p>
+        <button 
+          onclick={() => goto('/')}
+          class="mt-8 px-8 py-3 bg-black text-white text-[13px] font-black uppercase tracking-widest rounded-full shadow-xl active:scale-95 transition-all"
+        >
+          Về trang chủ
+        </button>
+      </div>
+    {/if}
+  </div>
+
+  <!-- VIRAL RECOMMENDATIONS (Phase 2 readiness) -->
+  {#if products.length > 0}
+    <div class="mt-8 px-4 py-8 border-t border-gray-100">
+      <div class="flex items-center gap-3 mb-6">
+         <div class="w-1 h-6 bg-luxury-copper rounded-full"></div>
+         <h3 class="text-[14px] font-black uppercase tracking-widest text-gray-400">Có thể sếp sẽ thích</h3>
+      </div>
+      <!-- Add a horizontal scroll of recommendations here later -->
+    </div>
+  {/if}
 </div>
+
+<style>
+  /* Elite Scroll Optimization */
+  :global(body) {
+    background-color: #F7F8F9;
+  }
+</style>

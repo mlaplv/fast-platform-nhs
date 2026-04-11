@@ -6,6 +6,11 @@
   --color-sakura-pink: #ffb7c5;
   --color-sakura-glow: #ff69b4;
   --color-surface-glass: rgba(15, 23, 42, 0.4);
+  
+  /* Elite V2.2: Hardened Brand Colors */
+  --color-luxury-copper: #C18F7E;
+  --color-luxury-peach: #E3B5A4;
+  --color-neon-cyan: #00f3ff;
 }
 
 /* 
@@ -23,6 +28,12 @@
   --glass-blur: 24px;
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-reflection: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+
+  /* RGB Raw Tokens for Hardening (Only for Alpha/RGBA needs) */
+  --color-luxury-copper-raw: 193, 143, 126;
+  --color-luxury-peach-raw: 227, 181, 164;
+  --color-neon-cyan-raw: 0, 243, 255;
+  --color-alert-red-raw: 255, 0, 60;
 }
 
 body {

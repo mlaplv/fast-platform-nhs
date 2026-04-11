@@ -1,8 +1,11 @@
 <script lang="ts">
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { fly, fade } from 'svelte/transition';
+  import SmartSearch from '../product/SmartSearch.svelte';
+  import { getSearchStore } from '$lib/state/commerce/search.svelte';
   
   const cartStore = getCartStore();
+  const searchStore = getSearchStore();
   let showAccountMenu = $state(false);
 
   function toggleAccountMenu(e: MouseEvent) {
@@ -18,32 +21,32 @@
     <!-- Top Navbar - Micsmo Elite 2026 -->
     <div class="flex items-center justify-between h-[28px] text-[11px] text-gray-500 border-b border-gray-50 bg-gray-50/30 -mx-4 px-4 xl:-mx-0 xl:px-0">
       <div class="flex items-center space-x-3">
-        <button type="button" class="hover:text-[#C18F7E] transition-colors">Kênh Người Bán</button>
+        <button type="button" class="hover:text-luxury-copper transition-colors">Kênh Người Bán</button>
         <span class="w-[1px] h-3 bg-gray-200"></span>
-        <button type="button" class="hover:text-[#C18F7E] transition-colors">Trở thành Người bán Micsmo</button>
+        <button type="button" class="hover:text-luxury-copper transition-colors">Trở thành Người bán Micsmo</button>
         <span class="w-[1px] h-3 bg-gray-200"></span>
-        <button type="button" class="hover:text-[#C18F7E] transition-colors">Tải ứng dụng</button>
+        <button type="button" class="hover:text-luxury-copper transition-colors">Tải ứng dụng</button>
         <span class="w-[1px] h-3 bg-gray-200"></span>
         <div class="flex items-center gap-1">
           <span>Kết nối</span>
-          <button type="button" class="hover:text-[#C18F7E] transition-colors text-lg italic">f</button>
-          <button type="button" class="hover:text-[#C18F7E] transition-colors text-lg italic">in</button>
+          <button type="button" class="hover:text-luxury-copper transition-colors text-lg italic">f</button>
+          <button type="button" class="hover:text-luxury-copper transition-colors text-lg italic">in</button>
         </div>
       </div>
       <div class="flex items-center space-x-4">
-        <button type="button" class="flex items-center gap-1 hover:text-[#C18F7E] transition-colors">
+        <button type="button" class="flex items-center gap-1 hover:text-luxury-copper transition-colors">
           <span>🔔</span> Thông Báo
         </button>
-        <button type="button" class="flex items-center gap-1 hover:text-[#C18F7E] transition-colors">
+        <button type="button" class="flex items-center gap-1 hover:text-luxury-copper transition-colors">
           <span>❔</span> Hỗ Trợ
         </button>
-        <button class="flex items-center gap-1 hover:text-[#C18F7E] transition-colors uppercase font-bold tracking-tighter">
+        <button class="flex items-center gap-1 hover:text-luxury-copper transition-colors uppercase font-bold tracking-tighter">
           🌐 Tiếng Việt
         </button>
         <span class="w-[1px] h-3 bg-gray-200"></span>
-        <button type="button" class="hover:text-[#C18F7E] font-bold uppercase transition-colors tracking-tighter">Đăng Ký</button>
+        <button type="button" class="hover:text-luxury-copper font-bold uppercase transition-colors tracking-tighter">Đăng Ký</button>
         <span class="w-[1px] h-3 bg-gray-200"></span>
-        <button type="button" class="hover:text-[#C18F7E] font-bold uppercase transition-colors tracking-tighter">Đăng Nhập</button>
+        <button type="button" class="hover:text-luxury-copper font-bold uppercase transition-colors tracking-tighter">Đăng Nhập</button>
       </div>
     </div>
 
@@ -53,7 +56,7 @@
         <!-- Logo Section -->
         <div class="flex shrink-0 items-center">
           <a href="/" class="flex flex-col group transition-all active:scale-95">
-            <span class="text-2xl font-black tracking-[0.22em] uppercase leading-none bg-gradient-to-r from-[#C18F7E] via-[#E3B5A4] to-[#C18F7E] bg-clip-text text-transparent drop-shadow-sm group-hover:tracking-[0.25em] transition-all duration-700">
+            <span class="text-2xl font-black tracking-[0.22em] uppercase leading-none bg-gradient-to-r from-luxury-copper via-luxury-peach to-luxury-copper bg-clip-text text-transparent drop-shadow-sm group-hover:tracking-[0.25em] transition-all duration-700">
                 MICSMO
             </span>
             <span class="text-[9px] font-black tracking-[0.11em] text-gray-400 uppercase mt-1.5 px-0.5 whitespace-nowrap border-t border-gray-100/50 pt-1">
@@ -62,21 +65,8 @@
           </a>
         </div>
 
-        <!-- Search Section -->
-        <div class="flex-grow flex items-center">
-          <div class="w-full flex items-center bg-white rounded-none p-[2px] border-2 border-[#E3B5A4]/15 relative group-focus-within:border-[#C18F7E] group-focus-within:ring-4 group-focus-within:ring-[#C18F7E]/5 transition-all shadow-[0_2px_15px_rgba(193,143,126,0.03)] focus-within:shadow-xl">
-            <input
-              type="text"
-              placeholder="Micsmo - Bật tông trắng sáng Đăng ký ngay!"
-              class="flex-grow h-[42px] pl-[5px] pr-6 text-[15px] text-gray-800 bg-transparent focus:outline-none placeholder:text-gray-300 font-bold"
-            />
-            <button 
-              class="bg-gradient-to-br from-[#C18F7E] to-[#E3B5A4] min-w-[80px] h-[42px] flex items-center justify-center rounded-none hover:brightness-110 active:scale-95 transition-all shadow-lg mx-[0.5px]"
-              aria-label="Tìm kiếm"
-            >
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            </button>
-          </div>
+        <div class="flex-grow">
+          <SmartSearch variant="desktop" />
         </div>
 
         <!-- Actions Section -->
@@ -135,28 +125,18 @@
           <!-- Cart Section -->
           <div class="flex items-center h-full">
             <button onclick={() => cartStore.toggleCart()} class="relative flex flex-col items-center justify-center gap-1 group transition-all active:scale-95 min-w-[60px]">
-              <div class="text-gray-700 group-hover:text-[#C18F7E] transition-colors">
+              <div class="text-gray-700 group-hover:text-luxury-copper transition-colors">
                 <svg class="w-7 h-7 stroke-current" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                 {#if cartStore.totalItems > 0}
-                  <span class="absolute top-0 right-1 bg-gradient-to-br from-[#C18F7E] to-[#E3B5A4] text-white border border-white text-[10px] font-bold px-1.5 min-w-[18px] h-4 rounded-none flex items-center justify-center shadow-lg ring-1 ring-white/20">
+                  <span class="absolute top-0 right-1 bg-gradient-to-br from-luxury-copper to-luxury-peach text-white border border-white text-[10px] font-bold px-1.5 min-w-[18px] h-4 rounded-none flex items-center justify-center shadow-lg ring-1 ring-white/20">
                     {cartStore.totalItems}
                   </span>
                 {/if}
               </div>
-              <span class="text-[9px] text-gray-400 font-black uppercase tracking-tighter group-hover:text-[#C18F7E] transition-colors">Giỏ hàng</span>
+              <span class="text-[9px] text-gray-400 font-black uppercase tracking-tighter group-hover:text-luxury-copper transition-colors">Giỏ hàng</span>
             </button>
           </div>
         </div>
-      </div>
-
-      <!-- Bottom Row: Trending Keywords -->
-      <div class="flex items-center gap-4 ml-[150px] text-[11px] text-gray-400 font-medium">
-        <span class="opacity-50">Xu hướng:</span>
-        <button type="button" class="hover:text-[#C18F7E] transition-colors">Săn iPhone 0 Đồng</button>
-        <button type="button" class="hover:text-[#C18F7E] transition-colors">Ghế Ngồi Làm Việc</button>
-        <button type="button" class="hover:text-[#C18F7E] transition-colors">Máy Quạt Cầm Tay</button>
-        <button type="button" class="hover:text-[#C18F7E] transition-colors">Áo Nữ</button>
-        <button type="button" class="hover:text-[#C18F7E] transition-colors">Son Bóng</button>
       </div>
     </div>
   </div>
