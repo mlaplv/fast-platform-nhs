@@ -17,30 +17,30 @@
   const metadata = $derived(product?.metadata || {});
 
   const mkt = $derived({
-    headline: metadata.offer_headline || "Hãy chấm dứt tình trạng thô ráp, lấy lại tự tin",
-    sub: metadata.offer_subheadline || "Trắng sáng rạng rỡ, Tái sinh vùng da nhạy cảm. <br/> <span class=\"font-black uppercase tracking-widest text-blue-400\">An toàn – Hiệu quả – Không bết dính.</span>",
-    timer_prefix: metadata.offer_timer_prefix || "Ưu đãi nội bộ kết thúc sau:",
-    shipping_prefix: metadata.offer_shipping_prefix || "+ Phí vận chuyển:",
-    savings_prefix: metadata.offer_savings_prefix || "Tiết kiệm:",
-    booking_suffix: metadata.offer_booking_suffix || "người đã đặt trong 24h qua",
-    trust_verified_by: metadata.offer_trust_verified_by || "Được kiểm định bởi",
-    compliance_note: metadata.offer_compliance_note || "* Giao hàng tận nơi nhanh chóng, <br/> bảo mật thông tin khách hàng tuyệt đối.",
-    label_activation: metadata.offer_label_activation || OFFER_CONSTANTS.labels.activation,
-    label_full_treatment: metadata.offer_label_full_treatment || OFFER_CONSTANTS.labels.full_treatment,
-    label_expert_choice: metadata.offer_label_expert_choice || OFFER_CONSTANTS.labels.expert_choice,
-    label_scarcity: metadata.offer_label_scarcity || OFFER_CONSTANTS.labels.scarcity,
-    cta_start: metadata.offer_cta_start || OFFER_CONSTANTS.labels.cta_start,
-    cta_full: metadata.offer_cta_full || OFFER_CONSTANTS.labels.cta_full,
-    label_distributor: (metadata.offer_label_distributor as string) || 'PHÂN PHỐI CHÍNH HÃNG',
+    headline: metadata.offer_headline || "ĐÁNH THỨC VẺ ĐẸP KIÊU SA, LẤY LẠI TỰ TIN TUYỆT ĐỐI",
+    sub: metadata.offer_subheadline || "Trắng sáng rạng rỡ, Tái sinh vùng da nhạy cảm. <br/> <span class=\"font-black uppercase tracking-[0.3em] text-cyan-400\">CÔNG NGHỆ NHẬT BẢN – HIỆU QUẢ VƯỢT TRỘI.</span>",
+    timer_prefix: metadata.offer_timer_prefix || "Cơ hội sở hữu kết thúc sau:",
+    shipping_prefix: metadata.offer_shipping_prefix || "+ VẬN CHUYỂN:",
+    savings_prefix: metadata.offer_savings_prefix || "HỜI TIẾT KIỆM:",
+    booking_suffix: metadata.offer_booking_suffix || "khách hàng đã sở hữu trong 24h qua",
+    trust_verified_by: metadata.offer_trust_verified_by || "TIÊU CHUẨN Y KHOA",
+    compliance_note: metadata.offer_compliance_note || "* Giao hàng hỏa tốc, <br/> bảo mật danh tính khách hàng 100%.",
+    label_activation: metadata.offer_label_activation || "GIAI ĐOẠN KÍCH HOẠT",
+    label_full_treatment: metadata.offer_label_full_treatment || "LIỆU TRÌNH TỐI ĐA",
+    label_expert_choice: metadata.offer_label_expert_choice || "CHUYÊN GIA KHUYÊN DÙNG",
+    label_scarcity: metadata.offer_label_scarcity || "SẮP CHÁY HÀNG",
+    cta_start: metadata.offer_cta_start || "BẮT ĐẦU TÁI SINH",
+    cta_full: metadata.offer_cta_full || "SỞ HỮU LIỆU TRÌNH",
+    label_distributor: (metadata.offer_label_distributor as string) || 'HỆ THỐNG PHÂN PHỐI CHÍNH HÃNG',
     pharmacy_name: (metadata.offer_pharmacy_name as string) || ui.settings?.basic_info?.site_name || ui.settings?.site_name || ui.settings?.contact?.name || SHOP_CONFIG.pharmacy.name,
-    label_support: (metadata.offer_label_support as string) || 'HỖ TRỢ TRỰC TUYẾN',
-    label_commitment: (metadata.offer_label_commitment as string) || 'CAM KẾT DỊCH VỤ',
+    label_support: (metadata.offer_label_support as string) || 'TRUNG TÂM HỖ TRỢ 24/7',
+    label_commitment: (metadata.offer_label_commitment as string) || 'CAM KẾT DỊCH VỤ VÀNG',
     label_license: (metadata.offer_label_license as string) || ui.settings?.contact_info?.business_license || ui.settings?.business_license || ui.settings?.contact?.business_license || SHOP_CONFIG.pharmacy.license,
     pharmacy_address: (metadata.offer_pharmacy_address as string) || ui.settings?.contact_info?.address || ui.settings?.contact?.address || SHOP_CONFIG.pharmacy.address,
     pharmacy_phone: (metadata.offer_pharmacy_phone as string) || ui.settings?.contact_info?.hotline || ui.settings?.contact_info?.phone || ui.settings?.contact?.hotline || ui.settings?.contact?.phone || SHOP_CONFIG.pharmacy.phone,
-    pharmacy_zalo: (metadata.offer_pharmacy_zalo as string) || `Zalo: ${ui.settings?.basic_info?.site_name || ui.settings?.site_name || ui.settings?.contact?.name || SHOP_CONFIG.pharmacy.zalo}`,
-    trust_mark_2: (metadata.offer_trust_mark_2 as string) || SHOP_CONFIG.trust_marks[2],
-    trust_mark_3: (metadata.offer_trust_mark_3 as string) || SHOP_CONFIG.trust_marks[3]
+    pharmacy_zalo: (metadata.offer_pharmacy_zalo as string) || `Kết nối Zalo: ${ui.settings?.basic_info?.site_name || ui.settings?.site_name || ui.settings?.contact?.name || SHOP_CONFIG.pharmacy.zalo}`,
+    trust_mark_2: (metadata.offer_trust_mark_2 as string) || "KIỂM ĐỊNH LÂM SÀNG",
+    trust_mark_3: (metadata.offer_trust_mark_3 as string) || "DƯỢC MỸ PHẨM CAO CẤP"
   });
 
   const product = $derived(shopStore.product);
@@ -183,7 +183,7 @@
 
       {#each variants as variant, idx (variant.sku || idx)}
          <!-- Card! -->
-          <div class="package-card p-8 md:p-10 text-left flex flex-col h-full border-white/5 relative {isSlider ? 'min-w-[300px] md:min-w-[340px] snap-center' : ''} {idx === 1 ? 'popular md:scale-[1.03]' : ''}">
+          <div class="package-card p-6 md:p-8 text-left flex flex-col h-full border-white/5 relative {isSlider ? 'min-w-[280px] snap-center' : ''} {idx === 1 ? 'popular md:scale-[1.03]' : ''}">
            <div class="absolute -top-3 right-8 flex flex-wrap gap-2 justify-end">
               {#if idx === 1}
                  <div class="px-4 py-1.5 bg-blue-600/90 text-white font-black text-[8px] uppercase tracking-[0.3em] rounded-md shadow-xl backdrop-blur-md">
@@ -200,7 +200,7 @@
                   </EditableWrapper>
                </p>
                {#if idx > 0}
-                 <div class="flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 border border-red-500/20 rounded text-[7px] font-black text-red-400 uppercase tracking-wider animate-pulse">
+                 <div class="flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 border border-red-500/20 rounded text-[7px] font-black text-red-400 uppercase tracking-wider animate-pulse whitespace-nowrap">
                    <span class="w-1 h-1 bg-red-400 rounded-full"></span>
                    <EditableWrapper path="metadata.offer_label_scarcity" label="SỬA NHÃN KHAN HIẾM">
                     {mkt.label_scarcity}
@@ -217,15 +217,15 @@
                     />
                 </EditableWrapper>
               </div>
-              <h5 class="text-xl font-bold text-white mb-4">{getVariantTitle(variant)}</h5>
+              <h5 class="text-xl font-bold text-white mb-4 line-clamp-1">{getVariantTitle(variant)}</h5>
 
-             <div class="flex items-baseline gap-3 mb-2">
+             <div class="flex items-baseline flex-nowrap gap-x-3 mb-2">
                {#if (shopStore.originalPrice * shopStore.quantity) > shopStore.totalAmount && shopStore.variant?.sku === variant.sku}
-                  <span class="original-price text-xs text-slate-600 line-through">{(shopStore.originalPrice * shopStore.quantity).toLocaleString()}đ</span>
+                  <span class="original-price text-xs text-slate-600 line-through whitespace-nowrap">{(shopStore.originalPrice * shopStore.quantity).toLocaleString()}đ</span>
                {:else if variant.price > (variant.discountPrice || variant.price)}
-                  <span class="original-price text-xs text-slate-600 line-through">{(variant.price).toLocaleString()}đ</span>
+                  <span class="original-price text-xs text-slate-600 line-through whitespace-nowrap">{(variant.price).toLocaleString()}đ</span>
                {/if}
-               <span class="price-value font-black text-white">
+               <span class="price-value font-black text-white whitespace-nowrap">
                  {shopStore.variant?.sku === variant.sku ? shopStore.totalAmount.toLocaleString() : (variant.discountPrice || variant.price).toLocaleString()}đ
                </span>
              </div>

@@ -24,8 +24,12 @@
 
   import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
 
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   const shopStore = getShopStore();
-  const product = $derived(shopStore.product);
+  const isEditMode = $derived(liveEditStore.isEditMode);
+
+  // Elite V2.2: Reactive switching between live data and edited data
+  const product = $derived(isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
 
   // ── SEO Derived State (Elite V2.2 – Mobile Parity) ──────────────────────────
   const seoMeta = $derived(product?.seoMeta ?? product?.seo_meta ?? null);

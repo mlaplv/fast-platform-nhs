@@ -81,13 +81,20 @@
       {@const mobileImg = (product?.tierVariations?.[0]?.mobile_images?.[i]) || (product?.mobileImages?.[i])}
       <div class="variant-slide relative">
          <!-- Main Content Image (Elite Adaptive Rendering) -->
-         <img
-           src={resolveMediaUrl(mobileImg || product?.tierVariations?.[0]?.images?.[i] || (product?.images?.length ? product.images[0] : ''))}
-           alt="{product?.name} - {opt}"
-           class="w-full h-full object-cover select-none"
-           loading={i === 0 ? "eager" : "lazy"}
-           fetchpriority={i === 0 ? "high" : "low"}
-         />
+         <EditableWrapper 
+           path="tierVariations[0].mobile_images[{i}]" 
+           type="image" 
+           label="SỬA ẢNH BIẾN THỂ {i+1}"
+           class="w-full h-full"
+         >
+           <img
+             src={resolveMediaUrl(mobileImg || product?.tierVariations?.[0]?.images?.[i] || (product?.images?.length ? product.images[0] : ''))}
+             alt="{product?.name} - {opt}"
+             class="w-full h-full object-cover select-none"
+             loading={i === 0 ? "eager" : "lazy"}
+             fetchpriority={i === 0 ? "high" : "low"}
+           />
+         </EditableWrapper>
 
          <!-- Cinematic Smooth Gradient (Elite 2026 Black-Bottom) -->
          <div class="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent pointer-events-none"></div>
@@ -111,25 +118,31 @@
             </div>
 
             <!-- Pricing Row -->
-            <div class="flex items-end gap-3 mt-1 pr-14">
-               {#if v?.discountPrice}
-                  <span class="text-3xl font-black text-white tracking-tighter drop-shadow-md">
-                     {formatCurrency(v.discountPrice)}
-                  </span>
-                  <span class="text-sm text-white/40 line-through mb-1 font-bold">
-                     {formatCurrency(v.price)}
-                  </span>
-               {:else if v}
-                  <span class="text-3xl font-black text-white tracking-tighter drop-shadow-md">
-                     {formatCurrency(v.price)}
-                  </span>
-               {/if}
-            </div>
+            <!-- Pricing Row -->
+            <EditableWrapper path="price" label="SỬA GIÁ GỐC" class="block w-full pointer-events-auto">
+              <div class="flex items-end gap-3 mt-1 pr-14">
+                {#if v?.discountPrice}
+                    <span class="text-3xl font-black text-white tracking-tighter drop-shadow-md">
+                        {formatCurrency(v.discountPrice)}
+                    </span>
+                    <span class="text-sm text-white/40 line-through mb-1 font-bold">
+                        {formatCurrency(v.price)}
+                    </span>
+                {:else if v}
+                    <span class="text-3xl font-black text-white tracking-tighter drop-shadow-md">
+                        {formatCurrency(v.price)}
+                    </span>
+                {/if}
+              </div>
+            </EditableWrapper>
 
             <!-- Title & Variant -->
-            <h1 class="text-3xl font-black leading-tight text-white uppercase tracking-tighter italic pr-14 drop-shadow-2xl">
-              {opt} <span class="text-sakura-pink">.</span>
-            </h1>
+            <!-- Title & Variant -->
+            <EditableWrapper path="name" label="SỬA TÊN SẢN PHẨM" class="block w-full pointer-events-auto">
+              <h1 class="text-3xl font-black leading-tight text-white uppercase tracking-tighter italic pr-14 drop-shadow-2xl">
+                {opt} <span class="text-sakura-pink">.</span>
+              </h1>
+            </EditableWrapper>
 
             <!-- Trust / Review Badge -->
             <div class="flex items-center gap-1.5 mt-0.5 mb-1.5 pr-14">
@@ -144,7 +157,7 @@
                <span class="text-[10px] text-white/70 tracking-wide font-medium ml-1">· {formattedSales} đã bán</span>
             </div>
 
-            <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN" class="max-w-[90%] pr-14">
+            <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN" class="max-w-[90%] pr-14 pointer-events-auto">
                <p class="text-[12px] text-white/90 line-clamp-2 leading-relaxed italic font-medium drop-shadow-sm">
                   {product?.shortDescription || 'Phác đồ Liposome dứt điểm hắc sắc tố, tái sinh vùng da thâm sạm.'}
                </p>
@@ -153,7 +166,7 @@
             <div class="flex flex-wrap gap-2 mt-1 pr-14">
               {#each metrics.slice(0, 3) as metric, i}
                 {@const Icon = iconMap[metric.color] || Zap}
-                <EditableWrapper path="metadata.hero_metrics[{i}].value" label="SỬA CHỈ SỐ {i+1}" class="flex items-center">
+                <EditableWrapper path="metadata.hero_metrics[{i}].value" label="SỬA CHỈ SỐ {i+1}" class="flex items-center pointer-events-auto">
                   <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-xl rounded-md border border-white/20 shadow-lg">
                     <Icon class="w-3 h-3 text-{metric.color || 'blue'}-400" />
                     <span class="text-[9px] font-black text-white/90 uppercase tracking-tight">

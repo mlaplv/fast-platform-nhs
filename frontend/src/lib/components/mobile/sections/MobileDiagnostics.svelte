@@ -1,9 +1,11 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { fade, fly, scale } from 'svelte/transition';
-  import { Sparkles, ArrowRight, ShieldCheck, RefreshCw } from 'lucide-svelte';
+  import { cubicOut } from 'svelte/easing';
+  import { Sparkles, ArrowRight, ShieldCheck, RefreshCw, Cpu, Database, Activity } from 'lucide-svelte';
   import { SHOP_CONFIG } from '$lib/constants/shop';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import EditableWrapper from '../../admin/EditableWrapper.svelte';
 
   let { product } = $props();
   const shopStore = getShopStore();
@@ -87,9 +89,11 @@
         <div class="w-1 h-1 rounded-full bg-blue-500 animate-pulse"></div>
         <span class="text-[7px] uppercase tracking-[0.2em] text-blue-400 font-bold italic">System v2.6+</span>
       </div>
-      <h2 class="text-xl font-bold text-white leading-tight uppercase tracking-tighter italic tiktok-shadow">
-        {@html labels.headline}
-      </h2>
+      <EditableWrapper path="metadata.diagnostics_headline" label="SỬA TIÊU ĐỀ" type="html" class="block w-full">
+        <h2 class="text-xl font-bold text-white leading-tight uppercase tracking-tighter italic tiktok-shadow">
+          {@html labels.headline}
+        </h2>
+      </EditableWrapper>
     </div>
   {/if}
 
@@ -131,29 +135,31 @@
 
           <!-- HUD Data Overlays -->
           <div class="absolute top-10 left-6 opacity-30 text-[7px] font-mono text-blue-500/80 space-y-1 text-left">
-            <div>HỆ THỐNG: ỔN ĐỊNH</div>
-            <div>ĐỘ TRỄ: 12ms</div>
-            <div>MÃ HÓA: QUANTUM_V3</div>
+            <div class="flex items-center gap-1"><Cpu size={8} /> HỆ THỐNG: ỔN ĐỊNH</div>
+            <div class="flex items-center gap-1"><Activity size={8} /> ĐỘ TRỄ: 12ms</div>
+            <div class="flex items-center gap-1"><Database size={8} /> MÃ HÓA: QUANTUM_V3</div>
           </div>
 
           <div class="absolute top-10 right-6 opacity-30 text-[7px] font-mono text-blue-500/80 text-right">
-            <div>TỌA ĐỘ: {Math.floor(Math.random()*100)}°N, {Math.floor(Math.random()*100)}°E</div>
+            <div>SIGNAL_STRENGTH: 98%</div>
             <div class="mt-1 flex gap-1 justify-end">
                {#each Array(4) as _, i}
-                 <div class="w-1 h-1 rounded-full {i < currentStep + 1 ? 'bg-blue-500' : 'bg-white/10'}"></div>
+                 <div class="w-1 h-1 rounded-full {i < Math.floor(Math.random()*4)+1 ? 'bg-blue-500' : 'bg-white/10'}"></div>
                {/each}
             </div>
-            <div class="mt-1">TRÍ TUỆ NHÂN TẠO: HOẠT ĐỘNG</div>
           </div>
 
           <!-- Binary Streams -->
-          <div class="absolute bottom-10 left-6 opacity-40 text-[6px] font-mono text-blue-400/80 text-left">
-            <div class="mb-1 text-white/40">ĐỒNG BỘ_DỮ LIỆU_THUÂN VIỆT</div>
-            <div class="tracking-widest">{binaryData}</div>
-          </div>
-
-          <div class="absolute bottom-40 right-[-20px] opacity-20 text-[6px] font-mono text-blue-400 rotate-90 origin-left">
-            FLOW_CONTROL: {binaryData.split(' ').reverse().join(' ')}
+          <div class="absolute bottom-10 left-6 right-6 opacity-20 text-[6px] font-mono text-blue-400/80 flex justify-between">
+            <div class="flex flex-col gap-1">
+                <div>AI_LOG_STREAM // START_SYNC</div>
+                <div class="tracking-widest">{binaryData}</div>
+                <div class="tracking-widest">{binaryData.split(' ').reverse().join(' ')}</div>
+            </div>
+            <div class="text-right flex flex-col justify-end">
+                <div>BIOMETRIC_ENCRYPTION_ACTIVE</div>
+                <div>PARALLAX_SYNC_COMPLETE</div>
+            </div>
           </div>
         </div>
       {:else if shopStore.diagnosticResult}
@@ -259,49 +265,52 @@
           </div>
         </div>
       {:else}
-        <div class="grid grid-cols-1 grid-rows-1 flex-1 overflow-hidden h-full">
-          {#key currentStep}
-            <div 
-              class="col-start-1 row-start-1 flex flex-col w-full h-full" 
-              in:fly={{ y: 20, duration: 300, delay: 100 }} 
-              out:fade={{ duration: 200 }}
-            >
-              <div class="flex items-center justify-between mb-4 bg-white/5 p-3 rounded-lg border border-white/10 backdrop-blur-3xl shadow-lg">
-                <div class="flex flex-col">
-                  <span class="text-[6px] text-white/30 uppercase tracking-[0.1em] font-bold">Phase</span>
-                  <p class="text-[9px] text-blue-400 uppercase tracking-widest font-bold">Step {currentStep + 1} <span class="text-white/20">/</span> {questions.length}</p>
+        <EditableWrapper path="metadata.quiz_questions" label="QUẢN LÝ BỘ CÂU HỎI" type="quiz" class="flex-1 flex flex-col min-h-0">
+          <div class="grid grid-cols-1 grid-rows-1 flex-1 overflow-hidden h-full">
+            {#key currentStep}
+              <div 
+                class="col-start-1 row-start-1 flex flex-col w-full h-full" 
+                in:fly={{ x: 20, duration: 600, easing: cubicOut }} 
+                out:fade={{ duration: 300 }}
+              >
+                <div class="flex items-center justify-between mb-4 bg-white/[0.03] p-3 rounded-2xl border border-white/10 backdrop-blur-3xl shadow-lg relative overflow-hidden group">
+                  <div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div class="flex flex-col relative z-surface">
+                    <span class="text-[6px] text-white/30 uppercase tracking-[0.2em] font-black">AI_PHASE_SEQUENCE</span>
+                    <p class="text-[10px] text-blue-400 uppercase tracking-[0.2em] font-black italic mt-0.5">Step {currentStep + 1} <span class="text-white/10">//</span> {questions.length}</p>
+                  </div>
+                  <div class="relative w-20 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                    <div class="absolute inset-0 bg-blue-500/10 animate-pulse"></div>
+                    <div class="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-700 cubic-bezier(0.16, 1, 0.3, 1) progress-fill shadow-[0_0_10px_rgba(59,130,246,0.6)]" style:--progress="{((currentStep + 1) / questions.length) * 100}%"></div>
+                  </div>
                 </div>
-                <div class="relative w-16 h-1 bg-white/5 rounded-full overflow-hidden">
-                  <div class="absolute inset-0 bg-blue-500/20 animate-pulse"></div>
-                  <div class="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-700 ease-out progress-fill" style:--progress="{((currentStep + 1) / questions.length) * 100}%"></div>
+                
+                <h3 class="text-xl font-bold text-white mb-6 leading-tight uppercase italic tracking-tight drop-shadow-sm">
+                  {typeof questions[currentStep].title === 'string' ? questions[currentStep].title : 'Đang tải phác đồ...'}
+                </h3>
+                
+                <div class="grid gap-3 content-start overflow-y-auto pb-8 hide-scrollbar">
+                  {#each questions[currentStep].options as opt, idx}
+                    <button 
+                      onclick={() => nextStep(opt.value, opt.label)}
+                      class="w-full py-4 px-5 bg-white/[0.04] border border-white/10 rounded-2xl text-left flex items-center gap-4 group active:scale-[0.97] transition-all duration-300 hover:bg-white/[0.08] hover:border-blue-500/30"
+                    >
+                      <div class="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-xl group-hover:bg-blue-500/20 group-hover:text-blue-400 transition-all border border-white/5 shadow-inner">
+                        {opt.icon || (idx + 1)}
+                      </div>
+                      <div class="flex flex-col overflow-hidden">
+                        <span class="text-white/90 font-black text-xs uppercase tracking-tight truncate">
+                          {typeof opt.label === 'string' ? opt.label : 'Lưu trữ...'}
+                        </span>
+                        <span class="text-[7px] text-white/20 uppercase tracking-[0.3em] font-black mt-0.5 group-hover:text-blue-400/50 transition-colors">SELECT_DATAPOINT</span>
+                      </div>
+                    </button>
+                  {/each}
                 </div>
               </div>
-              
-              <h3 class="text-lg font-bold text-white mb-4 leading-tight uppercase italic tracking-tight">
-                {typeof questions[currentStep].title === 'string' ? questions[currentStep].title : 'Phân tích'}
-              </h3>
-              
-              <div class="grid gap-2 content-start overflow-y-auto pb-4">
-                {#each questions[currentStep].options as opt, idx}
-                  <button 
-                    onclick={() => nextStep(opt.value, opt.label)}
-                    class="w-full py-2.5 px-4 bg-white/[0.05] border border-white/10 rounded-xl text-left flex items-center gap-3 group active:scale-[0.98] transition-all duration-200"
-                  >
-                    <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-lg group-hover:bg-blue-500/20 group-hover:text-blue-400 transition-all border border-white/5">
-                      {opt.icon || (idx + 1)}
-                    </div>
-                    <div class="flex flex-col">
-                      <span class="text-white/90 font-bold text-[11px] uppercase tracking-tight">
-                        {typeof opt.label === 'string' ? opt.label : 'Lựa chọn'}
-                      </span>
-                      <span class="text-[6px] text-white/20 uppercase tracking-widest font-bold">Select</span>
-                    </div>
-                  </button>
-                {/each}
-              </div>
-            </div>
-          {/key}
-        </div>
+            {/key}
+          </div>
+        </EditableWrapper>
       {/if}
     {:else}
       <div class="flex-1 flex flex-col items-center justify-center gap-6" in:fade>

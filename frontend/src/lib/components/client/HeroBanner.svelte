@@ -224,7 +224,7 @@
     </EditableWrapper>
   </div>
 
-  <div class="container mx-auto px-6 max-w-6xl relative flex flex-col items-center pt-[var(--standard-pt)] z-surface">
+  <div class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pt-[var(--standard-pt)] pb-12 z-surface">
 
     <EditableWrapper path="metadata.hero_headline" type="html" label="SỬA TIÊU ĐỀ BANNER">
         <h1 class="typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0 text-5xl md:text-7xl lg:text-9xl tracking-tighter italic">
@@ -234,43 +234,56 @@
 
     {#if product?.shortDescription}
        <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN">
-           <p class="hero-description text-center text-lg md:text-xl text-slate-300 max-w-2xl font-medium mb-12">
+           <p class="hero-description text-center text-xl md:text-2xl text-slate-300 max-w-3xl font-medium mb-4">
               {@html product.shortDescription}
            </p>
        </EditableWrapper>
     {/if}
 
-    <div class="hero-product-display relative w-full max-w-6xl pt-6 pb-0 flex flex-col md:flex-row items-center justify-center gap-8 z-surface">
-
+    <div class="hero-product-display relative w-full mt-6 md:mt-8 lg:mt-12 pb-0 flex flex-col md:flex-row items-center justify-center gap-2 lg:gap-4 z-surface">
           <div class="relative w-full md:w-1/2 flex justify-center parallax-layer">
-             <!-- ELITE SPOTLIGHT HALO (Viral 2026) -->
-             <div class="absolute inset-0 bg-radial-gradient from-sakura-glow/20 via-transparent to-transparent blur-[120px] scale-150 pointer-events-none opacity-60"></div>
-
-              <div class="group relative flex items-center justify-center w-72 md:w-96 float-anim">
-                <EditableWrapper path="images.0" type="image" label="SỬA ẢNH CHIẾN DỊCH">
-                    <img
-                      src="{mainImage}"
-                      alt="{productName}"
-                      class="relative z-10 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-lg"
-                    />
-                </EditableWrapper>
-
-                <!-- VIEW FINDER CORNERS (iOS 26 Liquid Aesthetic) -->
-                <div class="absolute -inset-4 z-20 pointer-events-none">
-                   <div class="absolute -top-1 -left-1 w-6 h-6 border-t-[3px] border-l-[3px] border-white/80 rounded-tl-lg"></div>
-                   <div class="absolute -top-1 -right-1 w-6 h-6 border-t-[3px] border-r-[3px] border-white/80 rounded-tr-lg"></div>
-                   <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-[3px] border-l-[3px] border-white/80 rounded-bl-lg"></div>
-                   <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-[3px] border-r-[3px] border-white/80 rounded-br-lg"></div>
+              <div class="group relative flex items-center justify-center w-full max-w-md float-anim cinematic-frame">
+                
+                <!-- VIEW FINDER CORNERS (EXACT AS IMAGE) -->
+                <div class="absolute -inset-2 z-20 pointer-events-none opacity-60 transition-opacity group-hover:opacity-100">
+                   <!-- Top Left: REC -->
+                   <div class="absolute -top-4 -left-4 w-12 h-12 border-t-[1px] border-l-[1px] border-white/40 rounded-tl-[2px]">
+                      <span class="absolute top-2 left-2 text-[8px] font-mono tracking-widest text-red-500 flex items-center gap-1">
+                         <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span> REC
+                      </span>
+                   </div>
+                   <!-- Top Right: 4K/ISO -->
+                   <div class="absolute -top-4 -right-4 w-12 h-12 border-t-[1px] border-r-[1px] border-white/40 text-right rounded-tr-[2px]">
+                      <span class="absolute top-2 right-2 text-[8px] font-mono tracking-widest text-white/50">4K 60FPS</span>
+                   </div>
+                   <!-- Bottom Left: Timecode -->
+                   <div class="absolute -bottom-4 -left-4 w-12 h-12 border-b-[1px] border-l-[1px] border-white/40 rounded-bl-[2px]">
+                      <span class="absolute bottom-2 left-2 text-[8px] font-mono tracking-widest text-white/50">TC 00:00:26:02</span>
+                   </div>
+                   <!-- Bottom Right: ISO -->
+                   <div class="absolute -bottom-4 -right-4 w-12 h-12 border-b-[1px] border-r-[1px] border-white/40 text-right rounded-br-[2px]">
+                      <span class="absolute bottom-2 right-2 text-[8px] font-mono tracking-widest text-white/50">ISO 100</span>
+                   </div>
                 </div>
 
-                <!-- SCANNING LINE REMOVED -->
+                <EditableWrapper path="images.0" type="image" label="SỬA ẢNH CHIẾN DỊCH">
+                    <div class="relative film-grain-container rounded-[2px] overflow-hidden">
+                        <img
+                          src="{mainImage}"
+                          alt="{productName}"
+                          class="relative z-10 w-full h-auto object-contain transition-transform duration-700 group-hover:scale-[1.03] cinematic-grading rounded-[2px]"
+                        />
+                        <!-- Subtle Film Grain Overlay -->
+                        <div class="absolute inset-0 z-20 pointer-events-none film-grain-mask"></div>
+                    </div>
+                </EditableWrapper>
 
-                <!-- SLIDER CONTROLS (INSIDE SLIDE) -->
-                <div class="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-30">
+                <!-- SLIDER CONTROLS (MINIMALIST) -->
+                <div class="absolute -bottom-16 left-0 right-0 flex justify-center gap-2 z-30">
                    {#each images as _, i}
                       <button
                         onclick={() => currentImageIndex = i}
-                        class="w-2 h-2 rounded-full transition-all duration-300 {currentImageIndex === i ? 'bg-white w-6' : 'bg-white/30 hover:bg-white/60'}"
+                        class="h-1 rounded-full transition-all duration-500 {currentImageIndex === i ? 'bg-white w-8 shadow-sm' : 'bg-white/10 w-1.5'}"
                         aria-label="Go to image {i + 1}"
                       ></button>
                    {/each}
@@ -278,25 +291,25 @@
              </div>
           </div>
 
-          <div class="w-full md:w-1/2 flex flex-col relative justify-center">
-             <div class="metrics-arc-container">
-                {#each metrics as metric, i}
-                   <EditableWrapper path="metadata.hero_metrics.{i}.value" label="SỬA CHỈ SỐ {i+1}">
-                       <div class="hud-metric-segment group relative pt-5 px-0 pb-0 transition-all duration-500" style:--idx={i}>
-                          <div class="flex items-center gap-3 mb-2">
-                             <div class="w-1 h-1 rounded-full bg-sakura-pink shadow-[0_0_8px_#ffb7c5] animate-pulse"></div>
-                             <span class="text-[10px] font-black text-sakura-pink/70 uppercase tracking-[.25em]">{metric.label}</span>
-                          </div>
-                          <h3 class="text-xl font-black italic tracking-tighter text-white group-hover:text-sakura-pink transition-colors duration-300">{metric.value}</h3>
-                          <p class="mt-2 text-sm text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity metric-desc">{metric.desc}</p>
-                          
-                          <!-- Subtle Glow Interaction -->
-                          <div class="absolute -inset-4 bg-radial-gradient from-sakura-pink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
-                       </div>
-                   </EditableWrapper>
-                {/each}
-             </div>
-          </div>
+      <div class="w-full md:w-1/2 flex flex-col relative justify-center">
+         <div class="metrics-arc-container">
+            {#each metrics as metric, i}
+               <EditableWrapper path="metadata.hero_metrics.{i}.value" label="SỬA CHỈ SỐ {i+1}">
+                   <div class="hud-metric-segment group relative pt-0 px-0 pb-0 transition-all duration-500" style:--idx={i}>
+                      <div class="flex items-center gap-3 mb-2">
+                         <div class="w-1 h-1 rounded-full bg-sakura-pink shadow-[0_0_8px_#ffb7c5] animate-pulse"></div>
+                         <span class="text-[10px] font-black text-sakura-pink/70 uppercase tracking-[.25em]">{metric.label}</span>
+                      </div>
+                      <h3 class="text-xl font-black italic tracking-tighter text-white group-hover:text-sakura-pink transition-colors duration-300">{metric.value}</h3>
+                      <p class="mt-2 text-sm text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity metric-desc">{metric.desc}</p>
+                      
+                      <!-- Subtle Glow Interaction -->
+                      <div class="absolute -inset-4 bg-radial-gradient from-sakura-pink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                   </div>
+               </EditableWrapper>
+            {/each}
+         </div>
+      </div>
     </div>
   </div>
 

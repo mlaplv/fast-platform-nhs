@@ -49,7 +49,7 @@
 
   function handleEditClick(e: MouseEvent | TouchEvent) {
     if (!isEditMode) return;
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
     e.stopPropagation();
     
       // For text/html, use inline editing
@@ -59,7 +59,7 @@
       // Elite V2.2: Capture current screen text as fallback if store is empty
       const container = wrapperRef?.querySelector('.content-container');
       const currentHTML = container?.innerHTML || "";
-      let rawValue = getValue(path, currentHTML.trim());
+      let rawValue = String(getValue(path, currentHTML.trim()));
       
       // Elite V2.2: Clean up 'overload' (Svelte internal classes and noise)
       if (type === 'html' || type === 'text') {
@@ -245,7 +245,7 @@
     {/if}
   {/if}
 
-  <div class="content-container {isInlineEditing ? 'opacity-20 blur-sm pointer-events-none' : ''} transition-all duration-300 relative">
+  <div class="content-container w-full h-full {isInlineEditing ? 'opacity-20 blur-sm pointer-events-none' : ''} transition-all duration-300 relative">
     {@render children?.()}
   </div>
 </div>

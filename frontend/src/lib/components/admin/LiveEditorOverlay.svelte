@@ -8,6 +8,7 @@
   // Dynamic Editors
   import TextEditor from "./editors/TextEditor.svelte";
   import MediaPickerEditor from "./editors/MediaPickerEditor.svelte";
+  import QuizEditor from "./editors/QuizEditor.svelte";
 
   let activeEditor = $state<{
     path: string;
@@ -76,14 +77,14 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div 
-    class="fixed inset-0 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-md"
+    class="fixed inset-0 flex items-center justify-center p-0 md:p-4 bg-slate-950/40 backdrop-blur-md"
     style:z-index={Z_INDEX_ADMIN.PICKER}
     transition:fade
     onclick={close}
   >
     <div 
-      class="editor-box bg-[#0a0c10] border border-white/10 shadow-[0_50px_100px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col transition-all duration-500
-      {activeEditor.type === 'image' || activeEditor.type === 'video' ? 'fixed inset-0 w-full h-full rounded-none' : 'w-full max-w-2xl rounded-[2.5rem]'}
+      class="editor-box bg-[#0a0c10] border-white/10 shadow-[0_50px_100px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col transition-all duration-500
+      {activeEditor.type === 'image' || activeEditor.type === 'video' ? 'fixed inset-0 w-full h-full rounded-none' : 'fixed inset-0 w-full h-full md:relative md:w-full md:max-w-2xl md:max-h-[90dvh] md:rounded-[2.5rem] md:border'}
       {isDragging ? 'is-dragging select-none' : ''}"
       style:z-index={Z_INDEX_ADMIN.PICKER_BOX}
       style:transform="translate({dragOffset.x}px, {dragOffset.y}px)"
@@ -129,6 +130,11 @@
             type={activeEditor.type} 
             onSave={handleSave} 
             onClose={close}
+          />
+        {:else if activeEditor.type === 'quiz'}
+          <QuizEditor
+            path={activeEditor.path}
+            onSave={handleSave}
           />
         {/if}
       </div>

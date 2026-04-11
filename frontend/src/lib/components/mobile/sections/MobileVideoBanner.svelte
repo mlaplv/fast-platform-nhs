@@ -2,13 +2,17 @@
   import './MobileVideoBanner.css';
   import { resolveMediaUrl } from '$lib/state/utils';
   import type { Product } from '$lib/types';
+  import EditableWrapper from '../../admin/EditableWrapper.svelte';
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
 
   interface MobileVideoBannerProps {
     product: Product | null;
   }
 
   let { product }: MobileVideoBannerProps = $props();
-  const metadata = $derived(product?.metadata ?? {});
+  const isEditMode = $derived(liveEditStore.isEditMode);
+  // Elite V2.2: Reactive sync with editor state
+  const metadata = $derived(isEditMode ? liveEditStore.dirtyMetadata : (product?.metadata ?? {}));
 
 
   // Admin form saves to `video_url`; desktop hero uses `hero_video_url` as fallback.
@@ -18,11 +22,30 @@
     const v = (metadata.video_url as string | undefined)?.trim() ?? '';
     const hv = (metadata.hero_video_url as string | undefined)?.trim() ?? '';
     const hvr = (metadata.hero_video as string | undefined)?.trim() ?? '';
-    const url = v || hv || hvr;
+    let url = v || hv || hvr;
+    if (!url) return '';
+    
+    // Elite V2.2: Intelligent Path Sanitization
+    // If it's already a full URL or starts with / (already resolved), keep it.
+    if (url.startsWith('http') || url.startsWith('//') || url.startsWith('blob:')) return url;
+    
     // Auto-strip erroneous paths like /frontend/static/ or ./static/
-    // SvelteKit serves static/ at root (no /static prefix).
     const sanitized = url.replace(/^(\.\/)?(\/)?(frontend\/)?static\//, '/');
+    
+    // If it now starts with / (was static), don't pass it to resolveMediaUrl (which aliases to /uploads/)
+    if (sanitized.startsWith('/')) return sanitized;
+    
     return resolveMediaUrl(sanitized);
+  });
+
+  $effect(() => {
+    console.log('MobileVideoBanner Debug:', {
+      rawUrl: rawUrl,
+      videoMode: videoMode,
+      iframeEmbedUrl: iframeEmbedUrl,
+      metadata: metadata,
+      hasProduct: !!product
+    });
   });
 
   type VideoMode = 'youtube' | 'tiktok' | 'local' | null;
@@ -47,9 +70,10 @@
     if (getYoutubeId(rawUrl)) return 'youtube';
     // Support all tiktok domains (tiktok.com, vt.tiktok.com, etc)
     if (rawUrl.includes('tiktok.com')) return 'tiktok';
-    // Local: has a video file extension OR is a relative/absolute path with video extension
-    if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(rawUrl)) return 'local';
-    return null;
+    
+    // Elite V2.2: Local-First Robust Fallback
+    // If it's not a known stream provider and has content, attempt native playback
+    return 'local';
   });
 
   // Iframe embed URL for YouTube / TikTok
@@ -82,31 +106,35 @@
 
 </script>
 
-{#if videoMode}
-  <div class="video-banner-root">
-    {#if videoMode === 'local'}
-      <!-- Native <video> for local/relative MP4 (e.g. /static/video/HN_TikTok.mp4) -->
-      <video
-        class="video-iframe"
-        src={rawUrl}
-        autoplay
-        muted
-        loop
-        playsinline
-        disablepictureinpicture
-      >
-        <track kind="captions" />
-      </video>
-    {:else}
-      <!-- Iframe embed for YouTube / TikTok -->
-      <iframe
-        class="video-iframe"
-        src={iframeEmbedUrl}
-        title="Product Video"
-        allow="autoplay; fullscreen; picture-in-picture"
-        allowfullscreen
-        frameborder="0"
-      ></iframe>
+<div class="video-banner-root">
+    {#if videoMode}
+      <EditableWrapper path="metadata.video_url" type="video" label="SỬA VIDEO BANNER" class="w-full h-full z-0">
+        {#if videoMode === 'local'}
+          <!-- Native <video> for local/relative MP4 (e.g. /static/video/HN_TikTok.mp4) -->
+          <video
+            class="video-element video-local absolute inset-0"
+            src={rawUrl}
+            autoplay
+            muted
+            loop
+            playsinline
+            disablepictureinpicture
+          >
+            <track kind="captions" />
+          </video>
+        {:else}
+          <!-- Iframe embed for YouTube / TikTok -->
+          <div class="video-element video-iframe-wrapper absolute inset-0">
+            <iframe
+              src={iframeEmbedUrl}
+              title="Product Video"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowfullscreen
+              frameborder="0"
+            ></iframe>
+          </div>
+        {/if}
+      </EditableWrapper>
     {/if}
 
     <!-- Cinematic gradient overlays -->
@@ -116,9 +144,14 @@
     <!-- Bottom-left: Content Summary -->
     <div class="meta-overlay">
       <div class="content-summary">
-        <h1 class="headline tiktok-shadow">{@html headline}</h1>
+        <EditableWrapper path="metadata.hero_headline" type="html" label="SỬA TIÊU ĐỀ">
+          <h1 class="headline tiktok-shadow">{@html headline}</h1>
+        </EditableWrapper>
+        
         {#if shortDescription}
-          <p class="description tiktok-shadow">{@html shortDescription}</p>
+          <EditableWrapper path="shortDescription" type="html" label="SỬA MÔ TẢ">
+            <p class="description tiktok-shadow">{@html shortDescription}</p>
+          </EditableWrapper>
         {/if}
         
         <div class="metrics-grid">
@@ -133,9 +166,9 @@
       </div>
 
       <div class="handle-row">
-        <p class="handle tiktok-shadow">{handle}</p>
+        <EditableWrapper path="metadata.mobile_handle" label="SỬA HANDLE">
+          <p class="handle tiktok-shadow">{handle}</p>
+        </EditableWrapper>
       </div>
     </div>
   </div>
-{/if}
-
