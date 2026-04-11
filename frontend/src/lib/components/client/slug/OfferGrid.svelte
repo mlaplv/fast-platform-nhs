@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte.ts';
   import type { Product, ProductVariant } from '$lib/types';
   import { SHOP_CONFIG, OFFER_CONSTANTS } from '$lib/constants/shop';
   import { ShoppingCart, CheckCircle2, Info } from 'lucide-svelte';
@@ -7,6 +8,7 @@
   import "./OfferGrid.css";
   
   const shopStore = getShopStore();
+  const ui = getClientUi();
   
   // ELITE V2.2: Centralized Marketing Strings for easier maintenance!
   const metadata = $derived(product?.metadata || {});
@@ -27,13 +29,13 @@
     cta_start: metadata.offer_cta_start || OFFER_CONSTANTS.labels.cta_start,
     cta_full: metadata.offer_cta_full || OFFER_CONSTANTS.labels.cta_full,
     label_distributor: (metadata.offer_label_distributor as string) || 'PHÂN PHỐI CHÍNH HÃNG',
-    pharmacy_name: (metadata.offer_pharmacy_name as string) || SHOP_CONFIG.pharmacy.name,
+    pharmacy_name: (metadata.offer_pharmacy_name as string) || ui.settings?.basic_info?.site_name || ui.settings?.site_name || ui.settings?.contact?.name || SHOP_CONFIG.pharmacy.name,
     label_support: (metadata.offer_label_support as string) || 'HỖ TRỢ TRỰC TUYẾN',
     label_commitment: (metadata.offer_label_commitment as string) || 'CAM KẾT DỊCH VỤ',
-    label_license: (metadata.offer_label_license as string) || SHOP_CONFIG.pharmacy.license,
-    pharmacy_address: (metadata.offer_pharmacy_address as string) || SHOP_CONFIG.pharmacy.address,
-    pharmacy_phone: (metadata.offer_pharmacy_phone as string) || SHOP_CONFIG.pharmacy.phone,
-    pharmacy_zalo: (metadata.offer_pharmacy_zalo as string) || SHOP_CONFIG.pharmacy.zalo,
+    label_license: (metadata.offer_label_license as string) || ui.settings?.contact_info?.business_license || ui.settings?.business_license || ui.settings?.contact?.business_license || SHOP_CONFIG.pharmacy.license,
+    pharmacy_address: (metadata.offer_pharmacy_address as string) || ui.settings?.contact_info?.address || ui.settings?.contact?.address || SHOP_CONFIG.pharmacy.address,
+    pharmacy_phone: (metadata.offer_pharmacy_phone as string) || ui.settings?.contact_info?.hotline || ui.settings?.contact_info?.phone || ui.settings?.contact?.hotline || ui.settings?.contact?.phone || SHOP_CONFIG.pharmacy.phone,
+    pharmacy_zalo: (metadata.offer_pharmacy_zalo as string) || `Zalo: ${ui.settings?.basic_info?.site_name || ui.settings?.site_name || ui.settings?.contact?.name || SHOP_CONFIG.pharmacy.zalo}`,
     trust_mark_2: (metadata.offer_trust_mark_2 as string) || SHOP_CONFIG.trust_marks[2],
     trust_mark_3: (metadata.offer_trust_mark_3 as string) || SHOP_CONFIG.trust_marks[3]
   });

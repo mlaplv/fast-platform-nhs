@@ -10,6 +10,11 @@
   let { data, children }: { data: any, children: Snippet } = $props();
   const ui = getClientUi();
 
+  // Elite V2.2: Global Settings Sync
+  $effect(() => {
+    if (data.shopInfo) ui.settings = data.shopInfo;
+  });
+
   // Trang home mobile tự quản lý header/bottomnav riêng (TikTok Shop style)
   const isHomePage = $derived(
     $page.url.pathname === '/home' || $page.url.pathname === '/'
@@ -25,14 +30,17 @@
     ui.isHydrated && !ui.isFooterHidden && !(isHomePage && ui.isMobile)
   );
 
-  // Map backend settings to UI structure
+  // Map backend settings to UI structure (Elite V2.2: Deep Mapping)
   const footerShopInfo = $derived({
-      name: data.shopInfo?.site_name || "MICSMO ELITE",
-      slogan: data.shopInfo?.slogan || "Bật tông trắng sáng",
-      description: data.shopInfo?.description || "Hệ thống mỹ phẩm Elite 2026.",
-      hotline: data.shopInfo?.contact?.hotline || "1800-MICSMO",
-      email: data.shopInfo?.contact?.email || "legal@micsmo.com",
-      address: data.shopInfo?.contact?.address || "Bitexco Financial Tower, Quận 1, TP. HCM"
+      name: data.shopInfo?.basic_info?.site_name || data.shopInfo?.site_name || "MICSMO ELITE",
+      companyName: data.shopInfo?.contact_info?.company_name || data.shopInfo?.contact?.name || data.shopInfo?.basic_info?.site_name || "Hệ thống Micsmo",
+      slogan: data.shopInfo?.basic_info?.slogan || data.shopInfo?.slogan || "Bật tông trắng sáng",
+      description: data.shopInfo?.basic_info?.description || data.shopInfo?.description || "Hệ thống mỹ phẩm Elite 2026.",
+      hotline: data.shopInfo?.contact_info?.hotline || data.shopInfo?.contact?.hotline || "1800-MICSMO",
+      email: data.shopInfo?.contact_info?.email || data.shopInfo?.contact?.email || "legal@micsmo.com",
+      address: data.shopInfo?.contact_info?.address || data.shopInfo?.contact?.address || "Bitexco Financial Tower, Quận 1, TP. HCM",
+      taxId: data.shopInfo?.contact_info?.tax_id || data.shopInfo?.tax_id || "",
+      businessLicense: data.shopInfo?.contact_info?.business_license || data.shopInfo?.business_license || ""
   });
 </script>
 

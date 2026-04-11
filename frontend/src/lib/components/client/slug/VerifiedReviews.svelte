@@ -4,10 +4,12 @@
   import { cubicOut, elasticOut, backOut } from 'svelte/easing';
   import type { Review, ProductMetadata } from '$lib/types';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte.ts';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex.ts';
   import "./VerifiedReviews.css";
 
   const shopStore = getShopStore();
+  const ui = getClientUi();
 
   const product = $derived(shopStore.product);
   const metadata = $derived(product?.metadata || {});
@@ -46,7 +48,7 @@
     hud_feedback: (metadata.reviews_hud_feedback as string) || 'HỆ THỐNG // PHẢN HỒI THỰC TẾ',
     label_verified: (metadata.reviews_label_verified as string) || 'ĐÃ XÁC THỰC',
     label_compliant: (metadata.reviews_label_compliant as string) || 'TIÊU CHUẨN ELITE',
-    label_store_verified: (metadata.reviews_label_store_verified as string) || 'Xác thực bởi Cửa hàng',
+    label_store_verified: (metadata.reviews_label_store_verified as string) || `Xác thực bởi ${ui.settings?.contact?.name || 'Cửa hàng'}`,
     label_secure_encryption: (metadata.reviews_label_secure_encryption as string) || 'MÃ HÓA BẢO MẬT [AES-256]',
     label_secure_gate: (metadata.reviews_label_secure_gate as string) || 'CỔNG BẢO MẬT // V2.2',
     cta_write: (metadata.reviews_cta_write as string) || 'Viết đánh giá của bạn',

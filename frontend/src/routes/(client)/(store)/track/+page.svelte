@@ -77,7 +77,7 @@
           <div class="absolute inset-0 bg-sky-500/20 rounded-full blur-2xl animate-pulse"></div>
           <div class="relative w-full h-full bg-slate-900 border border-white/10 rounded-full flex items-center justify-center shadow-inner overflow-hidden">
              <div class="absolute inset-0 bg-gradient-to-tr from-sky-500/10 to-transparent"></div>
-             <Search size={32} class="text-sky-400 relative" style:z-index={Z_INDEX_CLIENT.SURFACE} />
+             <Search size={32} class="text-sky-400 relative" style="z-index: {Z_INDEX_CLIENT.SURFACE}" />
           </div>
         </div>
         
@@ -95,7 +95,7 @@
       <div class="space-y-8">
         <!-- Input Group: Order ID -->
         <div class="relative group">
-          <div class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 transition-colors group-focus-within:text-sky-400" style:z-index={Z_INDEX_CLIENT.SURFACE}>
+          <div class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 transition-colors group-focus-within:text-sky-400" style="z-index: {Z_INDEX_CLIENT.SURFACE}">
              <Hash size={18} />
           </div>
           <input 
@@ -115,7 +115,7 @@
 
         <!-- Input Group: Phone -->
         <div class="relative group">
-          <div class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 transition-colors group-focus-within:text-sky-400" style:z-index={Z_INDEX_CLIENT.SURFACE}>
+          <div class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 transition-colors group-focus-within:text-sky-400" style="z-index: {Z_INDEX_CLIENT.SURFACE}">
              <Phone size={18} />
           </div>
           <input 
@@ -140,7 +140,7 @@
           class="group relative w-full py-5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-black rounded-2xl transition-all active:scale-[0.98] shadow-2xl shadow-blue-500/20 uppercase tracking-widest italic text-sm mt-4 disabled:opacity-50 overflow-hidden"
         >
           <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <div class="relative flex items-center justify-center gap-3" style:z-index={Z_INDEX_CLIENT.SURFACE}>
+          <div class="relative flex items-center justify-center gap-3" style="z-index: {Z_INDEX_CLIENT.SURFACE}">
             {#if isSubmitting}
               <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               <span>Đang giải mã...</span>
@@ -171,7 +171,7 @@
 {/if}
 
 <!-- Elite Toast System! -->
-<div class="fixed bottom-8 right-8 flex flex-col gap-3 pointer-events-none" style:z-index={Z_INDEX_CLIENT.TOAST}>
+<div class="fixed bottom-8 right-8 flex flex-col gap-3 pointer-events-none" style="z-index: {Z_INDEX_CLIENT.TOAST}">
   {#each toasts as toast (toast.id)}
     <div 
       in:fly={{ x: 50, duration: 400 }}

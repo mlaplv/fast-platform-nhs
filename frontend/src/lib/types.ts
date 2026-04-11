@@ -487,5 +487,7 @@ export interface ScreenState {
 export interface ClientUiState extends ScreenState {
   isHeaderHidden: boolean;
   isFooterHidden: boolean;
+  settings: any; // Public shop settings from backend
   initObservers(): (() => void) | undefined;
 }
+

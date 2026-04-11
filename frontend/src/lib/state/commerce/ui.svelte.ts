@@ -9,8 +9,10 @@ export function createClientUiState(): ClientUiState {
         // Elite V2.2: Reactive Screen Runes
         screenWidth: typeof window !== 'undefined' ? window.innerWidth : 1024,
         screenHeight: typeof window !== 'undefined' ? window.innerHeight : 768,
-        isHydrated: false
+        isHydrated: false,
+        settings: null
     });
+
 
     // Derived $mq (Media Query) Runes - No Hardcoding (R00)
     const isMobile = $derived(state.screenWidth < BREAKPOINTS.MOBILE);
@@ -39,6 +41,8 @@ export function createClientUiState(): ClientUiState {
         get isDesktop() { return isDesktop; },
         get isPortrait() { return isPortrait; },
         get isHydrated() { return state.isHydrated; },
+        get settings() { return state.settings; },
+        set settings(val: any) { state.settings = val; },
 
         initObservers() {
             if (typeof window === 'undefined' || state.isHydrated) return;
