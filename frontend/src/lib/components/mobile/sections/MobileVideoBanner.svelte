@@ -75,9 +75,9 @@
   const headline = $derived(metadata.hero_headline as string || '<span>ĐÁNH BAY</span> <br/> <span class="headline-shift">THÂM SẠM</span>');
   const shortDescription = $derived(product?.shortDescription || '');
   const metrics = $derived(metadata.hero_metrics || [
-    { label: '[Tốc độ]', value: 'THẨM THẤU TÀNG HÌNH 3S', color: 'blue' },
-    { label: '[Hiệu quả]', value: 'PHONG TỎA MÙI 48H', color: 'indigo' },
-    { label: '[Thành phần]', value: 'TINH CHẤT DƯỢC LIỆU SẠCH', color: 'emerald' }
+    { label: '[Khoa học]', value: 'LIPOSOME PHÁ GỐC THÂM', color: 'blue' },
+    { label: '[Hiệu quả]', value: 'DỨT ĐIỂM HẮC SẮC TỐ', color: 'indigo' },
+    { label: '[Tiêu chuẩn]', value: 'SỐ 1 DƯỢC LIỆU NHẬT', color: 'emerald' }
   ]);
 
 </script>

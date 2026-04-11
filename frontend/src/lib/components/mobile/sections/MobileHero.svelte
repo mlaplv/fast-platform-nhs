@@ -38,9 +38,9 @@
   });
   
   const metrics = $derived(metadata.hero_metrics || [
-    { label: '[Tốc độ]', value: 'THẨM THẤU TÀNG HÌNH 3S', color: 'blue' },
-    { label: '[Hiệu quả]', value: 'PHONG TỎA MÙI 48H', color: 'indigo' },
-    { label: '[Thành phần]', value: 'TINH CHẤT DƯỢC LIỆU SẠCH', color: 'emerald' }
+    { label: '[Khoa học]', value: 'LIPOSOME PHÁ GỐC THÂM', color: 'blue' },
+    { label: '[Hiệu quả]', value: 'DỨT ĐIỂM HẮC SẮC TỐ', color: 'indigo' },
+    { label: '[Tiêu chuẩn]', value: 'SỐ 1 DƯỢC LIỆU NHẬT', color: 'emerald' }
   ]);
 
   let variantScroller: HTMLDivElement | undefined = $state();
@@ -143,14 +143,12 @@
                <span class="text-[10px] text-white/70 tracking-wide font-medium ml-1">· {formattedSales} đã bán</span>
             </div>
 
-            <!-- Description -->
             <p class="text-[12px] text-white/90 line-clamp-2 leading-relaxed italic font-medium max-w-[90%] pr-14 drop-shadow-sm">
-               {product?.shortDescription?.replace(/ĐÁNH BAY/g, opt.toUpperCase()) || 'Phác đồ điều trị chuyên biệt cho tình trạng của bạn.'}
+               {product?.shortDescription || 'Phác đồ Liposome dứt điểm hắc sắc tố, tái sinh vùng da thâm sạm.'}
             </p>
             
-            <!-- Metrics / USP -->
             <div class="flex flex-wrap gap-2 mt-1 pr-14">
-              {#each metrics.slice(0, 2) as metric}
+              {#each metrics.slice(0, 3) as metric}
                 {@const Icon = iconMap[metric.color] || Zap}
                 <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-xl rounded-md border border-white/20 shadow-lg">
                    <Icon class="w-3 h-3 text-{metric.color || 'blue'}-400" />

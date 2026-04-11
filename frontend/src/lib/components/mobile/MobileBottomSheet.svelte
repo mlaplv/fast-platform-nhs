@@ -282,7 +282,7 @@
 
           <div class="mb-6">
             <p class="text-[10px] text-white/30 uppercase tracking-[0.2em] font-medium leading-relaxed mb-6">
-              Vui lòng cung cấp danh tính và địa chỉ. Hệ thống Elite sẽ bảo mật 100%.
+              Vui lòng điền thông tin.
             </p>
             
             <div class="space-y-4">

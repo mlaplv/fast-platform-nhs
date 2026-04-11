@@ -82,12 +82,16 @@
   <div class="neural-orb -top-20 -right-20 opacity-20" style:background="radial-gradient(circle, #3b82f6 0%, transparent 70%)" style:transform="scale(1.5)"></div>
   <div class="neural-orb -bottom-40 -left-20 opacity-10" style:background="radial-gradient(circle, #818cf8 0%, transparent 70%)"></div>
   
-  <!-- Neural Progress Track -->
-  <div class="absolute top-0 left-0 right-0 h-1 bg-white/5">
+  <!-- Neural Progress Track (Elite V2.2) -->
+  <div class="absolute top-0 left-0 right-0 h-[2px] bg-white/5 overflow-hidden">
     <div 
-      class="h-full bg-blue-500 transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] shadow-[0_0_15px_rgba(59,130,246,0.3)]" 
+      class="h-full bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-400 transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] shadow-[0_0_20px_rgba(34,211,238,0.5)] relative" 
       style:width="{progress}%"
-    ></div>
+    >
+      <!-- Leading Edge Scan Glow -->
+      <div class="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-full bg-white blur-[4px] opacity-80"></div>
+      <div class="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-full bg-white shadow-[0_0_15px_#fff]"></div>
+    </div>
   </div>
 
   {#if questions.length > 0}
@@ -130,8 +134,8 @@
         <DiagnosticScanner status="Hệ thống AI đang giải mã hắc tố và thiết kế phác đồ..." />
       {:else if shopStore.diagnosticResult}
         <div class="result-container text-center py-0 md:py-0 lg:py-10 relative z-surface" in:fade={{ duration: 1000 }}>
-          <div class="mb-0 md:mb-0 lg:mb-12 text-left glass-liquid p-6 md:p-8 lg:p-12 rounded-[2.5rem] border-white/10 backdrop-blur-3xl relative overflow-hidden shadow-[0_0_80px_rgba(30,58,138,0.3)]">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-white/10 pb-6">
+          <div class="mb-0 md:mb-0 lg:mb-12 text-left relative overflow-hidden">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6">
               <div>
                 <h3 class="text-3xl md:text-[2.25rem] lg:text-5xl font-black text-white tracking-tighter uppercase mb-2 whitespace-nowrap">PHÁC ĐỒ ĐIỀU TRỊ</h3>
                 <p class="text-blue-400/60 font-black text-[10px] tracking-[0.4em] uppercase">Kiến tạo bởi Trí tuệ Nhân tạo MICSMO 2026</p>
@@ -155,7 +159,7 @@
                 <p class="text-white text-2xl font-bold leading-tight tracking-tight">"{shopStore.diagnosticResult.analysis}"</p>
               </div>
               
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/5">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
                 <div>
                   <h4 class="text-[10px] font-black text-white/30 mb-3 uppercase tracking-[0.3em]">Tổng quan</h4>
                   <p class="text-white/50 text-sm leading-relaxed">{shopStore.diagnosticResult.reasoning}</p>

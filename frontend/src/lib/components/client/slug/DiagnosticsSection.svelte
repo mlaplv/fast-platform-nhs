@@ -15,7 +15,7 @@
   const labels = $derived({
     headline: metadata.diagnostics_headline || 'DỰ ĐOÁN PHỤC HỒI CHUYÊN SÂU',
     subheadline: metadata.diagnostics_subheadline || `Để hệ thống Trí tuệ Nhân tạo của <span class="text-white/60">${SHOP_CONFIG.pharmacy.name}</span> thiết lập phác đồ liều lượng tối ưu nhất, vui lòng phản hồi chính xác tình trạng hiện tại của Sếp.`,
-    disclaimer: metadata.diagnostics_disclaimer || `Hệ thống AI MICSMO đang sử dụng dữ liệu lâm sàng để tư vấn chuyên biệt.`
+    disclaimer: metadata.diagnostics_disclaimer || `MICSMO - Gemini là AI và có thể mắc sai sót.`
   });
 </script>
 
@@ -34,7 +34,7 @@
     </div>
 
     <!-- Security & Privacy Disclaimer! -->
-    <div class="mt-8 md:mt-12 flex items-center justify-center gap-3 text-[10px] font-black tracking-[0.2em] text-white/20 uppercase bg-white/5 py-4 px-8 rounded-full border border-white/5 w-fit mx-auto backdrop-blur-md">
+    <div class="mt-4 md:mt-6 flex items-center justify-center gap-3 text-[10px] font-black tracking-[0.2em] text-white/20 uppercase bg-white/5 py-4 px-8 rounded-full border border-white/5 w-fit mx-auto backdrop-blur-md">
       <svg class="w-4 h-4 text-emerald-500/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
       </svg>

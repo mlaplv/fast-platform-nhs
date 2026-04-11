@@ -5,7 +5,7 @@
   import { resolveMediaUrl } from '$lib/state/utils';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import type { ProductVariant } from '$lib/types';
-  import { ShoppingCart, Clock, CheckCircle2, Lock, Users, Zap } from 'lucide-svelte';
+  import { ShoppingCart, Clock, CheckCircle2, Lock, Users, Zap, Check } from 'lucide-svelte';
   
   let { product } = $props();
   const shopStore = getShopStore();
@@ -13,14 +13,14 @@
   const timeLeft = $derived(shopStore.timeLeft);
   const metadata = $derived(product?.metadata);
 
-  let selectedIndex = $state(1);
+  const selectedIndex = $derived(variants.findIndex(v => v.id === shopStore.variant?.id) ?? 1);
   const selectedVariant = $derived(variants[selectedIndex] ?? variants[0]);
   const mainDeal = $derived(metadata?.active_deals?.[0]);
 
 
   const mkt = $derived({
-    headline: metadata?.offer_headline || "CHÚNG TÔI KHÔNG THỂ <br/> THAY ĐỔI CƠ ĐỊA CỦA BẠN.",
-    sub: metadata?.offer_subheadline || "NHƯNG CAM KẾT: <span class=\"text-blue-400 font-black\">KHÓA MÙI 48H.</span>",
+    headline: metadata?.offer_headline || "Hắc sắc tố không tự <br/> sinh ra hay mất đi.",
+    sub: metadata?.offer_subheadline || "Nhưng chúng tôi cam kết: <span class=\"text-blue-400 font-bold\">Phá vỡ từ gốc tế bào.</span>",
     timer_prefix: metadata?.offer_timer_prefix || "Ưu đãi nội bộ kết thúc sau:",
     shipping_prefix: metadata?.offer_shipping_prefix || "+ Phí vận chuyển:",
     savings_prefix: metadata?.offer_savings_prefix || "Tiết kiệm:",
@@ -49,8 +49,10 @@
   }
 
   function handleSelect(i: number) {
-     selectedIndex = i;
-     shopStore.setQuantity(1);
+     if (variants[i]) {
+       shopStore.selectVariant(variants[i]);
+       shopStore.setQuantity(1);
+     }
   }
 
   const noiseSvg = `data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E`;
@@ -78,38 +80,51 @@
   </div>
 
 
-  <!-- Scarcity Floating Header -->
-  <div class="mt-2 flex justify-center z-surface">
-    <div class="bg-black/40 border border-white/10 px-6 py-2.5 rounded-2xl backdrop-blur-3xl flex items-center gap-3 shadow-2xl">
-      <Clock class="w-4 h-4 text-red-500 animate-pulse" />
-      <div class="flex flex-col">
-        <span class="text-[7px] text-white/30 font-black uppercase tracking-[0.3em]">{mkt.timer_prefix}</span>
-        <span class="text-[11px] text-white font-black tabular-nums tracking-widest italic">{formatTime(timeLeft)}</span>
-      </div>
-    </div>
-  </div>
+  <!-- Optimized Premium Scarcity HUD (Viral 2026) -->
+  <div class="mt-4 mb-2 flex flex-col items-center gap-3 z-surface px-6">
+    <div class="flex items-center gap-1 p-1 bg-white/[0.03] border border-white/10 rounded-full backdrop-blur-3xl shadow-2xl overflow-hidden relative group">
+       <!-- Active Glow Background -->
+       <div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+       
+       <!-- Inner Timer Pill -->
+       <div class="bg-red-500/10 px-3 py-1.5 rounded-full flex items-center gap-2 border border-red-500/20 relative">
+          <Clock class="w-3 h-3 text-red-500 animate-pulse" />
+          <span class="text-[10px] text-white font-black tabular-nums tracking-widest">{formatTime(timeLeft)}</span>
+       </div>
 
-  <div class="mt-2 mb-1 text-center z-surface px-6">
-    <div class="flex items-center justify-center gap-2 mb-3">
-       <div class="bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-full flex items-center gap-2 backdrop-blur-xl">
-          <Users class="w-3 h-3 text-red-500 animate-pulse" />
-          <span class="text-[9px] font-black text-red-400 uppercase tracking-widest">{fomoStore.viewers} người đang xem</span>
+       <div class="w-[1px] h-3 bg-white/10 mx-1"></div>
+
+       <!-- Viewers Tracking -->
+       <div class="flex items-center gap-2 px-2">
+          <div class="relative flex h-1.5 w-1.5">
+             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
+             <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
+          </div>
+          <span class="text-[9px] font-bold text-white/50">{fomoStore.viewers} đang xem</span>
        </div>
-       <div class="bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full flex items-center gap-2 backdrop-blur-xl">
-          <Zap class="w-3 h-3 text-amber-500 animate-bounce" />
-          <span class="text-[9px] font-black text-amber-400 uppercase tracking-widest">Sắp cháy hàng</span>
+
+       <div class="w-[1px] h-3 bg-white/10 mx-1"></div>
+
+       <!-- Scarcity Tag -->
+       <div class="flex items-center gap-1.5 pr-3 pl-1">
+          <Zap class="w-2.5 h-2.5 text-amber-500/80 animate-bounce" />
+          <span class="text-[9px] font-bold text-amber-500/70">Sắp hết hàng</span>
        </div>
     </div>
-    <h2 class="text-[20px] font-black text-white leading-[1.2] uppercase tracking-tighter italic mb-2 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]">
-      {@html mkt.headline}
-    </h2>
-    <p class="text-[10px] text-[#A6C0FE] uppercase tracking-[0.2em] font-black italic mt-1 opacity-80">{@html mkt.sub}</p>
+
+    <!-- Master Branding Headline -->
+    <div class="text-center mt-1">
+      <h2 class="text-[18px] font-black text-white leading-[1.2] tracking-tight italic mb-1 drop-shadow-sm uppercase">
+        {@html mkt.headline}
+      </h2>
+      <p class="text-[10px] text-[#A6C0FE] tracking-widest font-bold opacity-70">{@html mkt.sub}</p>
+    </div>
   </div>
   <div class="flex-1 flex flex-col z-surface overflow-y-auto pb-4 space-y-2.5">
     <div class="px-1 mt-0">
-       <div class="text-[9px] text-white/40 uppercase tracking-[0.4em] font-black mb-4 ml-1 flex items-center gap-2">
-          <div class="w-1 h-1 bg-blue-500 rounded-full animate-ping"></div> LỰA CHỌN GÓI:
-       </div>
+        <div class="text-[10px] text-white/40 font-bold mb-4 ml-1 flex items-center gap-2">
+          <div class="w-1 h-1 bg-blue-500 rounded-full animate-ping"></div> Lựa chọn gói liệu trình:
+        </div>
        <div class="grid grid-cols-1 gap-0">
          {#each variants as variant, i}
             <button 
@@ -182,7 +197,7 @@
              <CheckCircle2 class="w-3.5 h-3.5 text-white" />
           </div>
           <div class="flex flex-col">
-             <span class="text-[9px] font-black text-white uppercase tracking-[0.1em]">Kiểm duyệt Elite</span>
+             <span class="text-[9px] font-black text-white uppercase tracking-[0.1em]">Hệ thống bảo mật</span>
              <span class="text-[8px] font-bold text-blue-400/80 uppercase">KIỂM HÀNG - THANH TOÁN</span>
           </div>
        </div>
@@ -193,25 +208,77 @@
   <!-- Unified CTA (Liquid Sapphire Masterpiece - FOMO Optimized) -->
   <div class="mt-auto z-nav pt-1 pb-1 px-4 relative">
       <!-- Upsell/Incentive Header (Only if not optimal) -->
-      <div class="flex flex-col gap-1.5 mb-4 px-4">
+      <div class="flex flex-col gap-4 mb-6 pl-2 pr-4">
         {#each (metadata.active_deals || []) as deal}
+          {@const isActive = shopStore.quantity === (deal.buy_qty + (deal.get_qty || 0))}
+          {@const totalQty = deal.buy_qty + (deal.get_qty || 0)}
+          {@const totalOriginal = shopStore.originalPrice * totalQty}
+          {@const savings = totalOriginal - deal.fixed_price}
+          
           <button 
-             onclick={() => shopStore.setQuantity(deal.buy_qty + (deal.get_qty || 0))}
-             class="w-full bg-blue-500/10 backdrop-blur-3xl border border-blue-500/20 rounded-2xl px-4 py-1.5 flex items-center justify-between group active:scale-[0.98] transition-all"
+             onclick={() => shopStore.setQuantity(totalQty)}
+             class="w-full text-left relative transition-all duration-700 active:scale-[0.98] py-2"
           >
-             <div class="flex items-center gap-2">
-                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full {shopStore.quantity === (deal.buy_qty + (deal.get_qty || 0)) ? 'animate-ping' : ''}"></div>
-                <span class="text-[9px] font-black text-blue-400 uppercase tracking-widest leading-none">
-                   Ưu đãi: {deal.label} chỉ còn <span class="text-white">{(deal.fixed_price).toLocaleString()}đ</span>
-                </span>
-             </div>
-             <div class="flex items-center gap-1.5 h-5">
-                {#if shopStore.quantity === (deal.buy_qty + (deal.get_qty || 0))}
-                   <CheckCircle2 class="w-3.5 h-3.5 text-blue-400" />
-                   <span class="text-[8px] font-black text-blue-400">ĐÃ ÁP DỤNG</span>
-                {:else}
-                   <span class="text-[8px] font-black text-white/40 group-hover:text-white transition-colors uppercase tracking-widest">Áp dụng -></span>
+             <!-- 🚀 Selection Backglow (Naked HUD Aesthetic) -->
+             {#if isActive}
+                <div 
+                  class="absolute inset-[-15px] bg-blue-600/[0.07] blur-[30px] rounded-full pointer-events-none transition-all duration-700"
+                  in:fade={{ duration: 800 }}
+                ></div>
+             {/if}
+
+             <div class="relative flex items-center justify-between gap-4">
+                <!-- 🎯 Absolute Top-Right Selection Stick (Badge Style) -->
+                {#if isActive}
+                   <div 
+                      class="absolute -top-3 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(59,130,246,0.6)] z-surface"
+                      in:scale={{ duration: 400, start: 0.5 }}
+                   >
+                      <Check class="w-3.5 h-3.5 text-white stroke-[4]" />
+                   </div>
                 {/if}
+
+                <div class="flex items-center gap-3 flex-1">
+                   <!-- Floating Selection Status (Liquid Stick - Left) -->
+                   <div class="relative w-1 h-8 shrink-0">
+                      {#if isActive}
+                         <div class="absolute inset-0 w-full bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.8)]" in:fly={{ y: -10 }}></div>
+                      {:else}
+                         <div class="absolute inset-0 w-full bg-white/5 rounded-full"></div>
+                      {/if}
+                   </div>
+
+                   <div class="flex flex-col gap-0.5">
+                      <div class="flex items-center gap-2">
+                        <span class="text-[11px] font-bold {isActive ? 'text-white/90' : 'text-white/30'} transition-all duration-500">
+                           {deal.buy_qty > 0 ? `Mua ${deal.buy_qty}` : ''} {deal.get_qty > 0 ? `tặng ${deal.get_qty}` : ''}
+                        </span>
+                        {#if isActive}
+                           <span class="text-[7.5px] font-black text-blue-400 uppercase tracking-widest bg-blue-500/5 px-1.5 py-0.5 rounded border border-blue-500/10">Khuyên dùng</span>
+                        {/if}
+                      </div>
+                      <h3 class="text-[14px] font-semibold {isActive ? 'text-white' : 'text-white/20'} leading-tight tracking-tight pr-8">
+                        {deal.label || 'Liệu trình cao cấp'}
+                      </h3>
+                      <div class="flex items-baseline gap-2 mt-0.5">
+                         <span class="text-[18px] font-black {isActive ? 'text-blue-400' : 'text-blue-400/20'} italic tracking-tighter">{(deal.fixed_price).toLocaleString()}đ</span>
+                         {#if totalOriginal > deal.fixed_price}
+                            <div class="flex items-center gap-1.5 opacity-40">
+                               <span class="text-[10px] text-white/20 line-through font-medium">{(totalOriginal).toLocaleString()}đ</span>
+                               <span class="text-[9px] text-emerald-400 font-bold tracking-tight">| Freeship</span>
+                            </div>
+                         {/if}
+                      </div>
+                   </div>
+                </div>
+
+                <div class="flex flex-col items-end gap-1.5 self-end mb-1">
+                   {#if savings > 0}
+                      <div class="h-4 px-2 flex items-center justify-center bg-emerald-400/10 rounded-full">
+                         <span class="text-[8px] font-black text-emerald-400 leading-none tracking-tighter italic">Tiết kiệm {savings.toLocaleString()}đ</span>
+                      </div>
+                   {/if}
+                </div>
              </div>
           </button>
         {/each}
@@ -220,9 +287,6 @@
       <button 
          onclick={() => { 
            if (!selectedVariant) return;
-           shopStore.selectVariant(selectedVariant); 
-           if (mainDeal) shopStore.setQuantity(mainDeal.buy_qty + (mainDeal.get_qty || 0)); 
-           else shopStore.setQuantity(1);
            shopStore.openCheckout(); 
          }}
          class="w-full h-[72px] rounded-full font-black text-[15px] uppercase tracking-[0.12em] flex items-center justify-center gap-4 transition-all duration-700 italic active:scale-95 active:brightness-90 bg-white/10 backdrop-blur-3xl border border-white/20 shadow-[0_20px_50px_rgba(59,130,246,0.2)] overflow-hidden relative group"
