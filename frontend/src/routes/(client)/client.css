@@ -117,7 +117,7 @@ body {
 .client-layout {
   background-color: var(--bg-canvas);
   color: var(--text-base);
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Outfit', sans-serif;
   min-height: 100vh;
 }
 

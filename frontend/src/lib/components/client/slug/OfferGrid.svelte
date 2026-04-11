@@ -18,7 +18,7 @@
 
   const mkt = $derived({
     headline: metadata.offer_headline || "ĐÁNH THỨC VẺ ĐẸP KIÊU SA, LẤY LẠI TỰ TIN TUYỆT ĐỐI",
-    sub: metadata.offer_subheadline || "Trắng sáng rạng rỡ, Tái sinh vùng da nhạy cảm. <br/> <span class=\"font-black uppercase tracking-[0.3em] text-cyan-400\">CÔNG NGHỆ NHẬT BẢN – HIỆU QUẢ VƯỢT TRỘI.</span>",
+    sub: metadata.offer_subheadline || "",
     timer_prefix: metadata.offer_timer_prefix || "Cơ hội sở hữu kết thúc sau:",
     shipping_prefix: metadata.offer_shipping_prefix || "+ VẬN CHUYỂN:",
     savings_prefix: metadata.offer_savings_prefix || "HỜI TIẾT KIỆM:",
@@ -106,43 +106,37 @@
     <!-- Professional Headline Hierarchy! -->
     <div class="max-w-4xl mx-auto text-center" style:margin-bottom="var(--headline-mb)">
       <EditableWrapper path="metadata.offer_headline" label="SỬA TIÊU ĐỀ ƯU ĐÃI">
-        <h3 class="headline-title">
+        <h3 class="headline-title mb-4">
           {@html mkt.headline}
         </h3>
       </EditableWrapper>
 
-      <EditableWrapper path="metadata.offer_subheadline" label="SỬA MÔ TẢ ƯU ĐÃI">
-        <p class="headline-sub">
-          {@html mkt.sub}
-        </p>
-      </EditableWrapper>
-
       <!-- Integrated Trust Proof! -->
-      <div class="flex items-center justify-center gap-4 mt-12 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
+      <div class="flex items-center justify-center gap-4 mt-6 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
          <EditableWrapper path="metadata.offer_trust_verified_by" label="SỬA NHÃN KIỂM ĐỊNH">
-           <span class="text-[8px] uppercase tracking-[0.4em] font-bold text-slate-400">{mkt.trust_verified_by}</span>
+           <span class="text-[8px] uppercase tracking-[0.5em] font-medium text-slate-400">{mkt.trust_verified_by}</span>
          </EditableWrapper>
          <div class="h-px w-8 bg-slate-800"></div>
          <EditableWrapper path="metadata.offer_trust_mark_2" label="SỬA CHỨNG NHẬN 2">
-           <span class="text-[9px] uppercase tracking-[0.2em] font-black text-slate-300">{mkt.trust_mark_2}</span>
+           <span class="text-[9px] uppercase tracking-[0.2em] font-semibold text-slate-300">{mkt.trust_mark_2}</span>
          </EditableWrapper>
          <div class="h-px w-8 bg-slate-800"></div>
          <EditableWrapper path="metadata.offer_trust_mark_3" label="SỬA CHỨNG NHẬN 3">
-           <span class="text-[8px] uppercase tracking-[0.4em] font-bold text-slate-400">{mkt.trust_mark_3}</span>
+           <span class="text-[8px] uppercase tracking-[0.5em] font-medium text-slate-400">{mkt.trust_mark_3}</span>
          </EditableWrapper>
       </div>
     </div>
 
     <!-- Minimalist Status Bar -->
-    <div class="flex justify-center mb-10">
+    <div class="flex justify-center mb-6">
       <div class="timer-badge px-6 py-1.5 rounded-full text-[9px] uppercase tracking-[0.3em] flex items-center gap-3">
         <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_8px_#22d3ee]"></span>
-        {mkt.timer_prefix} <span class="font-bold tabular-nums">{formatTime(timeLeft)}</span>
+        {mkt.timer_prefix} <span class="font-medium tabular-nums">{formatTime(timeLeft)}</span>
       </div>
     </div>
 
     <!-- ELITE V2.2: Liquid Glass Multi-Deal Bar (iPhone 18 Aesthetic) -->
-    <div class="mt-2 mb-12 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 px-4">
+    <div class="mt-1 mb-8 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 px-4">
       {#each (metadata.active_deals || []) as deal, dealIdx (dealIdx)}
         {@const isActive = shopStore.quantity === (deal.buy_qty + (deal.get_qty || 0))}
         <button 
@@ -154,8 +148,8 @@
            <div class="flex items-center gap-5 relative" style="z-index: var(--z-surface);">
               <div class="liquid-orb {isActive ? 'animate-pulse' : 'inactive'}"></div>
               <div class="flex flex-col text-left">
-                 <span class="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1 opacity-80 group-hover:opacity-100 transition-opacity">Ưu đãi: {deal.label.replace('🎁', '')}</span>
-                 <span class="text-white text-lg font-black italic tracking-tight uppercase leading-none">
+                 <span class="text-[10px] font-semibold text-blue-400 uppercase tracking-[0.2em] mb-1 opacity-80 group-hover:opacity-100 transition-opacity">Ưu đãi: {deal.label.replace('🎁', '')}</span>
+                 <span class="text-white text-lg font-semibold italic tracking-tight uppercase leading-none">
                     CHỈ CÒN <span class="text-2xl not-italic ml-1">{(deal.fixed_price).toLocaleString()}đ</span>
                  </span>
               </div>
@@ -165,10 +159,10 @@
               {#if isActive}
                  <div class="flex flex-col items-end">
                     <CheckCircle2 class="w-6 h-6 text-blue-400 mb-1" strokeWidth={3} />
-                    <span class="text-[8px] font-black text-blue-400 tracking-widest uppercase">ĐÃ ÁP DỤNG</span>
+                    <span class="text-[8px] font-semibold text-blue-400 tracking-widest uppercase">ĐÃ ÁP DỤNG</span>
                  </div>
               {:else}
-                 <span class="text-[9px] font-black text-white/30 group-hover:text-white transition-all uppercase tracking-[0.2em] flex items-center gap-2">
+                 <span class="text-[9px] font-semibold text-white/30 group-hover:text-white transition-all uppercase tracking-[0.2em] flex items-center gap-2">
                     ÁP DỤNG NGAY
                     <span class="text-lg leading-none transition-transform group-hover:translate-x-1">→</span>
                  </span>
@@ -179,14 +173,14 @@
     </div>
 
     <!-- Package Architecture -->
-    <div class="package-grid {gridClass} gap-5 items-stretch" style:--cols={isSlider ? 3 : variants.length}>
+    <div class="package-grid pt-12 {gridClass} gap-5 items-stretch" style:--cols={isSlider ? 3 : variants.length}>
 
       {#each variants as variant, idx (variant.sku || idx)}
          <!-- Card! -->
           <div class="package-card p-6 md:p-8 text-left flex flex-col h-full border-white/5 relative {isSlider ? 'min-w-[280px] snap-center' : ''} {idx === 1 ? 'popular md:scale-[1.03]' : ''}">
            <div class="absolute -top-3 right-8 flex flex-wrap gap-2 justify-end">
               {#if idx === 1}
-                 <div class="px-4 py-1.5 bg-blue-600/90 text-white font-black text-[8px] uppercase tracking-[0.3em] rounded-md shadow-xl backdrop-blur-md">
+                 <div class="px-4 py-1.5 bg-blue-600/90 text-white font-semibold text-[8px] uppercase tracking-[0.3em] rounded-md shadow-xl backdrop-blur-md">
                    {mkt.label_expert_choice}
                  </div>
               {/if}
@@ -194,13 +188,13 @@
 
            <div class="mb-6">
              <div class="flex items-center justify-between mb-4">
-               <p class="text-[8px] font-bold {idx === 1 ? 'text-cyan-400' : 'text-slate-500'} uppercase tracking-[0.4em]">
+               <p class="text-[8px] font-medium {idx === 1 ? 'text-cyan-400' : 'text-slate-500'} uppercase tracking-[0.5em]">
                   <EditableWrapper path={idx === 0 ? "metadata.offer_label_activation" : "metadata.offer_label_full_treatment"} label="SỬA NHÃN GÓI">
                     {idx === 0 ? mkt.label_activation : mkt.label_full_treatment}
                   </EditableWrapper>
                </p>
                {#if idx > 0}
-                 <div class="flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 border border-red-500/20 rounded text-[7px] font-black text-red-400 uppercase tracking-wider animate-pulse whitespace-nowrap">
+                 <div class="flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 border border-red-500/20 rounded text-[7px] font-semibold text-red-400 uppercase tracking-wider animate-pulse whitespace-nowrap">
                    <span class="w-1 h-1 bg-red-400 rounded-full"></span>
                    <EditableWrapper path="metadata.offer_label_scarcity" label="SỬA NHÃN KHAN HIẾM">
                     {mkt.label_scarcity}
@@ -217,7 +211,7 @@
                     />
                 </EditableWrapper>
               </div>
-              <h5 class="text-xl font-bold text-white mb-4 line-clamp-1">{getVariantTitle(variant)}</h5>
+              <h5 class="text-xl font-medium text-white mb-4 line-clamp-1">{getVariantTitle(variant)}</h5>
 
              <div class="flex items-baseline flex-nowrap gap-x-3 mb-2">
                {#if (shopStore.originalPrice * shopStore.quantity) > shopStore.totalAmount && shopStore.variant?.sku === variant.sku}
@@ -225,29 +219,31 @@
                {:else if variant.price > (variant.discountPrice || variant.price)}
                   <span class="original-price text-xs text-slate-600 line-through whitespace-nowrap">{(variant.price).toLocaleString()}đ</span>
                {/if}
-               <span class="price-value font-black text-white whitespace-nowrap">
+               <span class="price-value font-semibold text-white whitespace-nowrap">
                  {shopStore.variant?.sku === variant.sku ? shopStore.totalAmount.toLocaleString() : (variant.discountPrice || variant.price).toLocaleString()}đ
                </span>
              </div>
 
               {#if idx === 0}
-                  <p class="shipping-label text-[9px] text-blue-400 font-bold uppercase tracking-widest">
-                    <EditableWrapper path="metadata.offer_shipping_prefix" label="SỬA NHÃN SHIP">
+                  <p class="shipping-label text-[9px] text-blue-400 font-medium uppercase tracking-widest flex items-center gap-2 whitespace-nowrap">
+                     <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
+                    <EditableWrapper class="inline-block" path="metadata.offer_shipping_prefix" label="SỬA NHÃN SHIP">
                       {mkt.shipping_prefix}
                     </EditableWrapper>
                     {SHOP_CONFIG.shipping.fixed_cost.toLocaleString()}đ
                   </p>
               {:else}
                   <div class="flex flex-col gap-1">
-                    <p class="text-[9px] text-emerald-400 font-bold uppercase tracking-widest">
-                      <EditableWrapper path="metadata.offer_savings_prefix" label="SỬA NHÃN TIẾT KIỆM">
+                    <p class="text-[9px] text-emerald-400 font-medium uppercase tracking-widest flex items-center gap-2 whitespace-nowrap">
+                       <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
+                      <EditableWrapper class="inline-block" path="metadata.offer_savings_prefix" label="SỬA NHÃN TIẾT KIỆM">
                         {mkt.savings_prefix}
                       </EditableWrapper>
                       {(variant.price - (variant.discountPrice || variant.price)).toLocaleString()}đ
                     </p>
-                    <p class="booking-suffix text-[8px] text-slate-500 italic opacity-60">
+                    <p class="booking-suffix flex items-center gap-1.5 text-[7.5px] whitespace-nowrap text-slate-500 italic opacity-60">
                       🔥 {bookingPoints[idx]} 
-                      <EditableWrapper path="metadata.offer_booking_suffix" label="SỬA NHÃN ĐẶT HÀNG">
+                      <EditableWrapper class="inline-block" path="metadata.offer_booking_suffix" label="SỬA NHÃN ĐẶT HÀNG">
                         {mkt.booking_suffix}
                       </EditableWrapper>
                     </p>
@@ -257,7 +253,7 @@
 
            <ul class="bullet-list mb-8 flex-grow space-y-2">
              {#each getFeatures(variant, idx) as feature}
-                <li class="flex items-center gap-2 {feature.startsWith('+') ? 'font-bold text-slate-200' : ''} {feature.startsWith('!') ? 'text-emerald-400' : ''} {feature.startsWith('-') ? 'opacity-20' : ''}">
+                <li class="flex items-center gap-2 {feature.startsWith('+') ? 'font-medium text-slate-200' : ''} {feature.startsWith('!') ? 'text-emerald-400' : ''} {feature.startsWith('-') ? 'opacity-20' : ''}">
                   <span class="icon-check {feature.startsWith('!') ? 'text-emerald-400' : 'text-cyan-400'}">
                     {feature.startsWith('-') ? '−' : '✦'}
                   </span>
@@ -311,7 +307,7 @@
               <span class="label uppercase">{mkt.label_distributor}</span>
             </EditableWrapper>
             <EditableWrapper path="metadata.offer_pharmacy_name" label="SỬA TÊN CÔNG TY">
-              <span class="value text-white font-bold text-lg block mb-2">{mkt.pharmacy_name}</span>
+              <span class="value text-white font-medium text-lg block mb-2">{mkt.pharmacy_name}</span>
             </EditableWrapper>
             <div class="flex items-start gap-2">
               <svg class="w-3.5 h-3.5 text-slate-500 mt-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -332,7 +328,7 @@
                   <svg class="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 005.47 5.47l.772-1.547a1 1 0 011.06-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/></svg>
                 </div>
                 <EditableWrapper path="metadata.offer_pharmacy_phone" label="SỬA HOTLINE">
-                  <span class="value font-bold text-blue-400">{mkt.pharmacy_phone}</span>
+                  <span class="value font-medium text-blue-400">{mkt.pharmacy_phone}</span>
                 </EditableWrapper>
               </a>
               <div class="flex items-center gap-3">
@@ -348,8 +344,8 @@
           <div class="contact-item">
             <span class="label uppercase">{mkt.label_commitment}</span>
             <div class="flex flex-wrap gap-2 mb-4">
-               <span class="px-3 py-1 bg-white/5 text-white text-[9px] font-bold rounded-lg border border-white/10 backdrop-blur-md">{SHOP_CONFIG.trust_marks[0]}</span>
-               <span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[9px] font-bold rounded-lg border border-emerald-500/20 backdrop-blur-md">{SHOP_CONFIG.trust_marks[1]}</span>
+               <span class="px-3 py-1 bg-white/5 text-white text-[9px] font-medium rounded-lg border border-white/10 backdrop-blur-md">{SHOP_CONFIG.trust_marks[0]}</span>
+               <span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[9px] font-medium rounded-lg border border-emerald-500/20 backdrop-blur-md">{SHOP_CONFIG.trust_marks[1]}</span>
             </div>
             <p class="text-[10px] text-slate-500 italic leading-relaxed">
               {@html mkt.compliance_note}

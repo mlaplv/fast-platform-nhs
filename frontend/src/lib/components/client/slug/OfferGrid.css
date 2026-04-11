@@ -1,4 +1,4 @@
-/* OfferGrid.css - Professional Refinement V2.2 */
+/* OfferGrid.css - Professional Refinement V2.2 (Outfit 2026 Edition) */
 
 
 .offer-section {
@@ -12,8 +12,8 @@
   --elite-cyan: #22d3ee;
   --gap-fluid: clamp(0.75rem, 1.5vw, 1rem);
   /* Viral 2026: Ultra-Tactical Aesthetics! */
-  --headline-mb: 5rem;
-  --footer-mt: 6rem;
+  --headline-mb: 2.5rem;
+  --footer-mt: 4rem;
 
   @media (min-width: 768px) and (max-width: 1100px) { /* ELITE V2.2: Synced with ScienceBento */
     --headline-mb: 2.5rem;
@@ -22,6 +22,7 @@
   }
 
   background-color: var(--deep-bg);
+  font-family: 'Outfit', sans-serif;
   position: relative;
   overflow: hidden;
 
@@ -44,18 +45,18 @@
   }
 
   & .headline-title {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
     font-size: var(--fs-title);
     /* Fluid! */
-    font-weight: 800;
+    font-weight: 700;
     color: #ffffff;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-    margin-bottom: 0.75rem;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.5rem;
   }
 
   & .headline-sub {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
     font-size: var(--fs-sub);
     /* Fluid! */
     font-weight: 500;
@@ -72,7 +73,7 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 1.5rem;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
 
     &::before {
@@ -132,7 +133,7 @@
   & .btn-buy {
     border-radius: 0.75rem;
     padding: 1.125rem;
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
     font-weight: 700;
     letter-spacing: 0.05em;
 
