@@ -15,19 +15,21 @@
     if (data.shopInfo) ui.settings = data.shopInfo;
   });
 
-  // Trang home mobile tự quản lý header/bottomnav riêng (TikTok Shop style)
-  const isHomePage = $derived(
-    $page.url.pathname === '/home' || $page.url.pathname === '/'
+  // Trang home/search mobile tự quản lý header riêng (Marketplace style)
+  const isSpecializedPage = $derived(
+    $page.url.pathname === '/home' || 
+    $page.url.pathname === '/' || 
+    $page.url.pathname === '/products'
   );
 
-  // Global header chỉ hiện khi: đã hydrate + không bị ẩn + không phải trang home mobile
+  // Global header chỉ hiện khi: đã hydrate + không bị ẩn + không phải trang chuyên biệt trên mobile
   const showGlobalHeader = $derived(
-    ui.isHydrated && !ui.isHeaderHidden && !(isHomePage && ui.isMobile)
+    ui.isHydrated && !ui.isHeaderHidden && !(isSpecializedPage && ui.isMobile)
   );
 
-  // Global bottom nav: tương tự, ẩn trên home mobile
+  // Global bottom nav: tương tự, ẩn trên home/search mobile
   const showGlobalFooter = $derived(
-    ui.isHydrated && !ui.isFooterHidden && !(isHomePage && ui.isMobile)
+    ui.isHydrated && !ui.isFooterHidden && !(isSpecializedPage && ui.isMobile)
   );
 
   // Map backend settings to UI structure (Elite V2.2: Deep Mapping)

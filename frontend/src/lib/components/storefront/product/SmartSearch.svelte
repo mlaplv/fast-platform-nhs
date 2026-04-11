@@ -223,15 +223,15 @@
     style:z-index={Z_INDEX_CLIENT.MODAL + 10}
   >
     <!-- TikTok Exact Header -->
-    <header class="w-full px-[8px] py-[6px] flex items-center gap-2 bg-white z-20 relative border-b border-gray-100">
-      <!-- Back -->
-      <button onclick={() => searchStore.isOverlayOpen = false} class="p-1 -ml-1 text-black active:bg-gray-100 rounded-full transition-colors flex-shrink-0">
-        <svg class="w-[26px] h-[26px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+    <header class="w-full px-2 py-2 flex items-center gap-2 bg-white z-20 relative border-b border-gray-50">
+      <!-- Back Button (Marketplace Standard) -->
+      <button onclick={() => searchStore.isOverlayOpen = false} class="p-1 -ml-1 text-gray-900 active:scale-90 transition-transform flex-shrink-0">
+        <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
       </button>
 
-    <!-- Gray Search Box (No border, bg-gray, rounded-8px) & CTA Inside -->
-      <div class="flex-grow flex items-center h-[36px] bg-[#f1f1f2] rounded-[8px] pl-2.5 pr-1.5 gap-2">
-        <svg class="w-[18px] h-[18px] text-gray-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Gray Search Box (Marketplace Standard) -->
+      <div class="flex-grow flex items-center h-[38px] bg-gray-100 rounded-lg pl-3 pr-2 gap-2 border border-transparent focus-within:border-gray-200">
+        <svg class="w-5 h-5 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
@@ -242,19 +242,19 @@
           onkeydown={handleKeyDown}
           placeholder={searchStore.searchPlaceholder}
           autocomplete="off"
-          spellcheck="false"
-          autofocus
-          class="flex-grow min-w-0 bg-transparent text-[15px] text-black focus:outline-none placeholder:text-gray-400"
+          class="flex-grow min-w-0 bg-transparent text-[15px] font-medium text-gray-900 focus:outline-none placeholder:text-gray-400"
         />
         {#if localQuery}
-          <button onclick={() => localQuery = ''} class="text-gray-400 p-0.5 flex-shrink-0">
-            <svg class="w-[16px] h-[16px] bg-[#d1d1d6] text-white rounded-full p-[2px]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+          <button 
+            onclick={() => { localQuery = ''; inputElement?.focus(); }}
+            class="p-1 px-1.5 text-gray-300 active:text-gray-500 transition-colors"
+          >
+            <svg class="w-4 h-4 bg-gray-200 text-white rounded-full p-[2px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         {/if}
-
         <button 
           onclick={() => commitSearch(localQuery)}
-          class="text-[#fe2c55] font-[700] text-[15px] pl-1 pr-0.5 whitespace-nowrap active:opacity-60 transition-opacity flex-shrink-0"
+          class="text-[#fe2c55] font-black text-[14px] pl-2 border-l border-gray-200 whitespace-nowrap active:opacity-60 transition-opacity"
         >
           Tìm kiếm
         </button>
@@ -265,40 +265,36 @@
     <div class="flex-grow overflow-y-auto bg-white relative z-10 flex flex-col pb-8">
       
       {#if !localQuery}
-        <!-- Recent Searches List Style -->
+        <!-- RECENT HISTORY (List Style with Clock Icons) -->
         {#if searchStore.recentSearches.length > 0}
-          <div class="flex flex-col pt-1">
-            {#each searchStore.recentSearches.slice(0, 4) as item}
-               <div class="flex items-center px-4 py-[14px]">
-                 <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" /></svg>
-                 <button onclick={() => commitSearch(item)} class="flex-grow text-left text-[15px] text-black font-[600] ml-3 truncate tracking-tight">{item}</button>
-                 <button onclick={(e) => { e.stopPropagation(); searchStore.removeSearch(item); }} class="p-2 -mr-2 active:opacity-50 transition-opacity"><svg class="w-[18px] h-[18px] text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+          <div class="flex flex-col mb-4">
+            {#each searchStore.recentSearches.slice(0, 5) as item}
+               <div class="flex items-center px-4 py-[14px] border-b border-gray-50/50">
+                 <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                 <button onclick={() => commitSearch(item)} class="flex-grow text-left text-[15px] text-gray-700 font-bold ml-3 truncate tracking-tight">{item}</button>
+                 <button onclick={(e) => { e.stopPropagation(); searchStore.removeSearch(item); }} class="p-2 -mr-2 text-gray-300 active:text-red-500 transition-colors">
+                    <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                 </button>
                </div>
             {/each}
-            {#if searchStore.recentSearches.length > 4}
-              <button class="py-3 text-[13px] text-gray-500 flex items-center justify-center gap-1 active:bg-gray-50">
-                Xem thêm <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-              </button>
-            {/if}
           </div>
         {/if}
 
-        <!-- You might also like (Real Featured Products) -->
+        <!-- YOU MIGHT ALSO LIKE (Vertical High-Density List) -->
         {#if searchStore.featuredProducts.length > 0}
-          <div class="px-4 py-3 mt-1">
-            <h3 class="text-[16px] font-[800] text-black mb-4 tracking-tight">Có thể bạn cũng thích</h3>
-            <div class="flex flex-col gap-[18px]">
+          <div class="px-4">
+            <h3 class="text-[16px] font-black text-gray-900 mb-5 tracking-tight">Có thể bạn cũng thích</h3>
+            <div class="flex flex-col gap-6">
                {#each searchStore.featuredProducts as p}
-                 <a href="/{p.slug}" onclick={() => searchStore.isOverlayOpen = false} class="flex items-center gap-3.5 w-full text-left active:opacity-70 transition-opacity">
-                   <!-- Square thumbnail -->
-                   <div class="w-[50px] h-[50px] rounded-[8px] bg-gray-100 flex-shrink-0 border border-gray-100/50 overflow-hidden relative">
+                 <a href="/{p.slug}" onclick={() => searchStore.isOverlayOpen = false} class="flex items-center gap-4 w-full active:opacity-70 transition-opacity">
+                   <div class="w-[54px] h-[54px] rounded-lg bg-gray-50 flex-shrink-0 border border-gray-100 overflow-hidden">
                       {#if p.images?.length > 0 || p.metadata?.image_url}
                          <img src={p.images?.[0] ?? p.metadata?.image_url} alt={p.name} class="w-full h-full object-cover" loading="lazy" />
                       {/if}
                    </div>
-                   <div class="flex flex-col">
-                      <span class="text-[14px] text-black font-[600] tracking-tight line-clamp-1 leading-snug">{p.name}</span>
-                      <span class="text-[13px] text-[#fe2c55] font-[700] mt-0.5 tracking-tight">{p.price.toLocaleString('vi-VN')}đ</span>
+                   <div class="flex flex-col justify-center flex-1">
+                      <span class="text-[14px] text-gray-800 font-bold tracking-tight line-clamp-1 leading-tight mb-1">{p.name}</span>
+                      <span class="text-[15px] text-[#fe2c55] font-black tracking-tight">{p.price.toLocaleString('vi-VN')}₫</span>
                    </div>
                  </a>
                {/each}
@@ -315,7 +311,10 @@
               {#each searchStore.searchResults as p}
                 <a 
                   href="/{p.slug}"
-                  onclick={() => searchStore.isOverlayOpen = false}
+                  onclick={() => { 
+                     if (localQuery) searchStore.addSearch(localQuery); 
+                     searchStore.isOverlayOpen = false; 
+                  }}
                   class="flex items-center px-4 py-3 active:bg-gray-50 transition-colors border-b border-gray-50/50"
                 >
                    <div class="w-10 h-10 bg-gray-100 rounded-[6px] flex-shrink-0 overflow-hidden border border-gray-100">
