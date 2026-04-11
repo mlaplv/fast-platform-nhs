@@ -76,14 +76,14 @@
 
 <div 
   bind:this={quizContainer} 
-  class="clinical-quiz {!shopStore.diagnosticResult ? 'glass-liquid border-white/5' : ''} {shopStore.diagnosticResult ? 'p-0 md:p-0 lg:p-12' : 'p-6 md:p-8 lg:p-12'} rounded-[3.5rem] relative overflow-hidden max-w-4xl mx-auto shadow-2xl min-h-[500px]"
+  class="clinical-quiz {!shopStore.diagnosticResult ? 'glass-liquid border-white/5' : ''} {shopStore.diagnosticResult ? 'p-0 md:p-0 lg:p-12 max-w-7xl' : 'p-6 md:p-8 lg:p-12 max-w-4xl'} rounded-[3.5rem] relative overflow-hidden mx-auto shadow-2xl min-h-[500px]"
 >
   <!-- Subdued Neural Orbs -->
   <div class="neural-orb -top-20 -right-20 opacity-20" style:background="radial-gradient(circle, #3b82f6 0%, transparent 70%)" style:transform="scale(1.5)"></div>
   <div class="neural-orb -bottom-40 -left-20 opacity-10" style:background="radial-gradient(circle, #818cf8 0%, transparent 70%)"></div>
   
   <!-- Neural Progress Track (Elite V2.2) -->
-  <div class="absolute top-0 left-0 right-0 h-[2px] bg-white/5 overflow-hidden">
+  <div class="absolute top-0 left-0 right-0 h-1 bg-white/5 overflow-hidden">
     <div 
       class="h-full bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-400 transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] shadow-[0_0_20px_rgba(34,211,238,0.5)] relative" 
       style:width="{progress}%"
@@ -137,7 +137,7 @@
           <div class="mb-0 md:mb-0 lg:mb-12 text-left relative overflow-hidden">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6">
               <div>
-                <h3 class="text-3xl md:text-[2.25rem] lg:text-5xl font-black text-white tracking-tighter uppercase mb-2 whitespace-nowrap">PHÁC ĐỒ ĐIỀU TRỊ</h3>
+                <h3 class="text-3xl md:text-[2.25rem] lg:text-5xl font-black text-white tracking-tighter uppercase mb-2 whitespace-nowrap pt-2">PHÁC ĐỒ ĐIỀU TRỊ</h3>
                 <p class="text-blue-400/60 font-black text-[10px] tracking-[0.4em] uppercase">Kiến tạo bởi Trí tuệ Nhân tạo MICSMO 2026</p>
               </div>
               <div class="flex items-center gap-4">
@@ -156,7 +156,7 @@
             <div class="space-y-6">
               <div>
                 <h4 class="text-xs font-black text-blue-400/60 mb-2 uppercase tracking-[0.3em]">Phân tích chuyên sâu</h4>
-                <p class="text-white text-2xl font-bold leading-tight tracking-tight">"{shopStore.diagnosticResult.analysis}"</p>
+                <p class="text-white text-2xl md:text-3xl lg:text-4xl font-bold leading-tight tracking-tight">{shopStore.diagnosticResult.analysis}</p>
               </div>
               
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">

@@ -13,14 +13,14 @@
   const questions = $derived(metadata?.quiz_questions || []);
 
   const labels = $derived({
-    headline: metadata.diagnostics_headline || 'DỰ ĐOÁN PHỤC HỒI CHUYÊN SÂU',
+    headline: metadata.diagnostics_headline || 'CHẨN ĐOÁN PHỤC HỒI CHUYÊN SÂU',
     subheadline: metadata.diagnostics_subheadline || `Để hệ thống Trí tuệ Nhân tạo của <span class="text-white/60">${SHOP_CONFIG.pharmacy.name}</span> thiết lập phác đồ liều lượng tối ưu nhất, vui lòng phản hồi chính xác tình trạng hiện tại của Sếp.`,
     disclaimer: metadata.diagnostics_disclaimer || `MICSMO - Gemini là AI và có thể mắc sai sót.`
   });
 </script>
 
 <section id="diagnostics-section" aria-labelledby="personalized-care" class="snap-session-standard diagnostics-container diagnostic-premium-flow relative overflow-x-hidden">
-  <div class="container mx-auto px-6 max-w-6xl text-center relative z-surface">
+  <div class="container mx-auto px-4 md:px-6 max-w-7xl text-center relative z-surface">
     <h3 id="personalized-care" class="section-title text-neural font-black tracking-tight leading-none uppercase mb-4 text-4xl md:text-6xl">
       {@html labels.headline}
     </h3>

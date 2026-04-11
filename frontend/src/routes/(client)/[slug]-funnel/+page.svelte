@@ -110,11 +110,31 @@
 
       // Elite Smart-Adaptive Init
       const cleanupObservers = clientUi.initObservers();
-      
+
+      // Master Scroll Coordinator (Elite V2.2)
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && !isWheelLocked) {
+            const idx = sectionIds.indexOf(entry.target.id);
+            if (idx !== -1) currentSessionIdx = idx;
+          }
+        });
+      }, {
+        root: document.querySelector('.client-page-root'),
+        rootMargin: '-50% 0px -50% 0px',
+        threshold: 0
+      });
+
+      sectionIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) observer.observe(el);
+      });
+
       return () => {
         shopStore.dispose();
         mq.removeEventListener('change', h);
         jitObserver.disconnect();
+        observer.disconnect();
         if (cleanupObservers) cleanupObservers();
       };
     }
@@ -134,7 +154,8 @@
     ? ['hero', 'diagnostics', 'science', 'reviews', 'offers']
     : ['hero', 'science', 'reviews', 'offers']
   );
-  let currentSessionIdx = 0;
+  let currentSessionIdx = $state(0);
+  const activeId = $derived(sectionIds[currentSessionIdx]);
   let isWheelLocked = false;
 
   const onWheelObserver = (e: WheelEvent) => {
@@ -231,7 +252,7 @@
   <div class="client-page-root selection:bg-blue-600 selection:text-white h-screen overflow-y-scroll" use:initScrollObserver>
 
   {#if product?.id}
-    <LiquidHeader {product} {themeMode} {applyTheme} scrollToQuiz={scrollToQuiz} />
+    <LiquidHeader {product} {themeMode} {applyTheme} scrollToQuiz={scrollToQuiz} {activeId} />
     <HeroBanner {scrollToQuiz} />
 
     <!-- SECTIONS WITH INDEPENDENT JIT LOADING (Elite V2.2 Optimization) -->

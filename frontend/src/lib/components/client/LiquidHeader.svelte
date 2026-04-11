@@ -7,10 +7,11 @@
   const shopStore = getShopStore();
 
   // Senior Architect Note: LiquidHeader uses Svelte 5 Runes for ultra-responsive local state
-  let { themeMode, applyTheme, scrollToQuiz } = $props<{
+  let { themeMode, applyTheme, scrollToQuiz, activeId = null } = $props<{
     themeMode: 'system' | 'light' | 'dark';
     applyTheme: (mode: 'system' | 'light' | 'dark') => void;
     scrollToQuiz?: () => void;
+    activeId?: string | null;
   }>();
 
   const product = $derived(shopStore.product);
@@ -34,7 +35,6 @@
 
   let scrolled = $state(false);
   let scrollY = $state(0);
-  let activeSection = $state('hero');
 
   const handleScroll = () => {
     if (!browser) return;
@@ -47,31 +47,8 @@
       window.addEventListener('scroll', handleScroll, { passive: true });
       handleScroll(); // Initial check
 
-      // IntersectionObserver for Active Section
-      const observerOptions = {
-        root: null,
-        rootMargin: '-30% 0px -30% 0px', // Wider 40% band for robust snapping!
-        threshold: 0
-      };
-
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            // Update active section when any part enters the large center band
-            activeSection = entry.target.id;
-          }
-        });
-      }, observerOptions);
-
-      const sectionIds = navLinks.map(link => link.id);
-      sectionIds.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) observer.observe(el);
-      });
-
       return () => {
         window.removeEventListener('scroll', handleScroll);
-        observer.disconnect();
       };
     }
   });
@@ -87,7 +64,7 @@
         {#each navLinks as link}
           <a
             href={link.href}
-            class="island-link text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:text-red-500 {activeSection === link.id ? 'text-red-500 scale-105' : 'text-white/80'}"
+            class="island-link text-[10px] font-black uppercase tracking-[0.2em] transition-all {activeId === link.id ? 'is-active' : 'text-white/80'}"
             onclick={(e) => {
               if (link.href.startsWith('#')) {
                 e.preventDefault();

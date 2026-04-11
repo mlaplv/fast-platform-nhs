@@ -30,8 +30,8 @@ PRODUCT_DEFS = [
             "instructions": "Làm sạch và lau khô vùng da cần chăm sóc, thoa nhẹ và massage đều, ngày 2 lần.",
             "origin": "Japan",
             "weight": "30g",
-            "diagnostics_headline": "DỰ ĐOÁN PHỤC HỒI <span class='text-blue-500'>SẮC TỐ GỐC</span>",
-            "diagnostics_subheadline": "⚠️ HỆ THỐNG GIẢI MÃ CHỈ SỐ HẮC TỐ CÁ NHÂN. Đừng để nỗi tự ti thầm kín cản trở sự tự tin quyến rũ. AI đang thiết lập phác đồ 'Hồi sinh sắc tố hồng' chuẩn Nhật Bản, bảo mật tuyệt đối 100% dữ liệu chẩn đoán.",
+            "diagnostics_headline": "CHẨN ĐOÁN PHỤC HỒI <span class='text-blue-500'>SẮC TỐ GỐC</span>",
+            "diagnostics_subheadline": "Hệ Thống Giải Mã Chỉ Số Hắc Tố Cá Nhân Đừng Để Nỗi Tự Ti Thầm Kín Cản Trở Sự Tự Tin Quyến Rũ Ai Sẽ Thiết Lập Phác Đồ 'hồi Sinh Sắc Tố Hồng' Chuẩn Nhật Bản Bảo Mật Tuyệt Đối 100% Dữ Liệu Chẩn Đoán",
             "quiz_questions": [
                 {
                     "id": "q1",
