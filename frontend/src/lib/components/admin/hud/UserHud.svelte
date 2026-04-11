@@ -33,7 +33,7 @@ import LucideLayout from "lucide-svelte/icons/layout";
     <div class="flex flex-col items-end mr-1">
       <span class="text-[8px] font-mono text-gray-400 uppercase tracking-[0.2em] leading-tight opacity-70">Identity Verified</span>
       <span class="text-[11px] font-black text-white group-hover:text-[#00FFFF] transition-colors tracking-tight uppercase">
-        {nanobot.userName || "OPERATOR"}
+        {nanobot.userName || ""}
       </span>
     </div>
     
@@ -68,9 +68,9 @@ import LucideLayout from "lucide-svelte/icons/layout";
             <div>
               <p class="text-[9px] font-mono text-cyan-500/60 uppercase tracking-[0.4em] mb-1">Authenticated Identity</p>
               <h3 class="text-xl font-black text-white leading-none mb-1.5 tracking-tighter uppercase italic">
-                {nanobot.userName || "OPERATOR"}
+                {nanobot.userName || ""}
               </h3>
-              <p class="text-[10px] font-mono text-gray-500 lowercase tracking-tight">{nanobot.userEmail || "ghost@micsmo.com"}</p>
+              <p class="text-[10px] font-mono text-gray-500 lowercase tracking-tight">{nanobot.userEmail || ""}</p>
             </div>
           </div>
         </div>
@@ -139,7 +139,7 @@ import LucideLayout from "lucide-svelte/icons/layout";
           </div>
           <span class="text-[8px] font-mono text-gray-600 uppercase">SYS_LINK_STABLE</span>
         </div>
-        <span class="text-[8px] font-mono text-gray-700 tracking-tighter">REF: {nanobot.userName?.substring(0,8).toUpperCase() || "X-000"}</span>
+        <span class="text-[8px] font-mono text-gray-700 tracking-tighter">REF: {nanobot.userName?.substring(0,8).toUpperCase() || "X-IDENT"}</span>
       </div>
     </div>
   {/if}

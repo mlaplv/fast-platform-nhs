@@ -28,13 +28,13 @@
         
         <!-- SECTION HEADER (Normalized spacing to fix "thừa trên thiếu dưới") -->
         <header class="mb-8 md:mb-12 animate-reveal">
-            <EditableWrapper path="metadata.science_headline" label="SỬA TIÊU ĐỀ">
+            <EditableWrapper path="metadata.science_headline" value={labels.headline} type="html" label="SỬA TIÊU ĐỀ">
                 <h2 class="text-white font-black tracking-tight leading-none uppercase mb-6 text-3xl md:text-5xl lg:text-6xl mx-auto bento-headline">
                     {@html labels.headline}
                 </h2>
             </EditableWrapper>
 
-            <EditableWrapper path="metadata.science_subheadline" label="SỬA MÔ TẢ">
+            <EditableWrapper path="metadata.science_subheadline" value={labels.subheadline} type="html" label="SỬA MÔ TẢ">
                 <p class="section-description text-white/40 text-base md:text-lg max-w-none mx-auto leading-relaxed">
                     {@html labels.subheadline}
                 </p>
@@ -73,13 +73,13 @@
                         </svg>
                     </div>
 
-                    <EditableWrapper path="metadata.science_card1_title" label="SỬA TIÊU ĐỀ THẺ 1">
+                    <EditableWrapper path="metadata.science_card1_title" value={labels.card1_title} label="SỬA TIÊU ĐỀ THẺ 1">
                         <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight uppercase transition-colors group-hover:text-blue-400">
                             {labels.card1_title}
                         </h3>
                     </EditableWrapper>
                     
-                    <EditableWrapper path="metadata.science_card1_desc" label="SỬA MÔ TẢ THE 1">
+                    <EditableWrapper path="metadata.science_card1_desc" value={labels.card1_desc} type="html" label="SỬA MÔ TẢ THẺ 1">
                         <p class="text-slate-500 text-xs lg:text-base leading-relaxed font-medium">
                             {labels.card1_desc}
                         </p>
@@ -96,13 +96,13 @@
                         </svg>
                     </div>
 
-                    <EditableWrapper path="metadata.science_card2_title" label="SỬA TIÊU ĐỀ THE 2">
+                    <EditableWrapper path="metadata.science_card2_title" value={labels.card2_title} label="SỬA TIÊU ĐỀ THẺ 2">
                         <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight uppercase transition-colors group-hover:text-blue-400">
                             {labels.card2_title}
                         </h3>
                     </EditableWrapper>
 
-                    <EditableWrapper path="metadata.science_card2_desc" label="SỬA MÔ TẢ THE 2">
+                    <EditableWrapper path="metadata.science_card2_desc" value={labels.card2_desc} type="html" label="SỬA MÔ TẢ THẺ 2">
                         <p class="text-slate-500 text-xs lg:text-base leading-relaxed font-medium">
                             {labels.card2_desc}
                         </p>
@@ -113,6 +113,23 @@
 
         </div>
 
+    </div>
+
+    <!-- Dynamic Line Wave Divider - High Impact Edition! -->
+    <div class="wave-container">
+        <svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <defs>
+                <linearGradient id="wave-gradient-science" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#3b82f6" stop-opacity="0" />
+                    <stop offset="50%" stop-color="#22d3ee" stop-opacity="1" />
+                    <stop offset="100%" stop-color="#3b82f6" stop-opacity="0" />
+                </linearGradient>
+            </defs>
+            <path class="wave-line opacity-20" d="M0,160 C320,300 420,20 720,160 C1020,300 1120,20 1440,160" />
+            <path class="wave-line" d="M0,200 C320,340 420,60 720,200 C1020,340 1120,60 1440,200" />
+            <path class="wave-line secondary" d="M0,240 C320,100 420,380 720,240 C1020,100 1120,380 1440,240" />
+            <path class="wave-line opacity-30" d="M0,100 C320,240 420,-40 720,100 C1020,240 1120,-40 1440,100" />
+        </svg>
     </div>
 </section>
 

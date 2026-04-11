@@ -50,6 +50,22 @@ export const load: PageServerLoad = async ({
 
     const product = await res.json() as import('$lib/types').Product;
 
+    // ELITE V2.2: Global Settings Synchronization
+    // Fetch primary shop metadata to replace hardcoded fallback values in child components
+    let shopInfo = null;
+    try {
+        const settingsRes = await fetch(`${apiUrl}/api/v1/client/settings/primary`, {
+            headers: { 'x-tenant': tenantId },
+            signal: AbortSignal.timeout(3000)
+        });
+        if (settingsRes.ok) {
+            shopInfo = await settingsRes.json();
+        }
+    } catch (e) {
+        console.error("[SHOP INFO FETCH FAILED]", e);
+        // We don't throw here to allow the product page to load even if global settings are down
+    }
+
     // Tối ưu lấy IP thực tế (Elite V2.2 Protocol)
     const effectiveIp = request.headers.get('cf-connecting-ip') ||
                       request.headers.get('x-real-ip') ||
@@ -61,6 +77,7 @@ export const load: PageServerLoad = async ({
 
     return {
         product,
+        shopInfo,
         effectiveIp,
         metadata: {
             timestamp: new Date().toISOString(),

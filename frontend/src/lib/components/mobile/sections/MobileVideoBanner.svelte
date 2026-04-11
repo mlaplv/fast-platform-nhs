@@ -98,11 +98,24 @@
 
   const headline = $derived(metadata.hero_headline as string || '<span>ĐÁNH BAY</span> <br/> <span class="headline-shift">THÂM SẠM</span>');
   const shortDescription = $derived(product?.shortDescription || '');
-  const metrics = $derived(metadata.hero_metrics || [
-    { label: '[Khoa học]', value: 'LIPOSOME PHÁ GỐC THÂM', color: 'blue' },
-    { label: '[Hiệu quả]', value: 'DỨT ĐIỂM HẮC SẮC TỐ', color: 'indigo' },
-    { label: '[Tiêu chuẩn]', value: 'SỐ 1 DƯỢC LIỆU NHẬT', color: 'emerald' }
-  ]);
+  const metrics = $derived.by(() => {
+    const raw = metadata.hero_metrics || [];
+    const fallbacks = [
+      { label: '[Khoa học]', value: 'LIPOSOME PHÁ GỐC THÂM', color: 'blue' },
+      { label: '[Hiệu quả]', value: 'DỨT ĐIỂM HẮC SẮC TỐ', color: 'indigo' },
+      { label: '[Tiêu chuẩn]', value: 'SỐ 1 DƯỢC LIỆU NHẬT', color: 'emerald' }
+    ];
+
+    return fallbacks.map((fb, i) => {
+      const custom = raw[i];
+      if (!custom) return fb;
+      return {
+        label: custom.label || fb.label,
+        value: custom.value || fb.value,
+        color: custom.color || fb.color
+      };
+    });
+  });
 
 </script>
 
@@ -155,11 +168,15 @@
         {/if}
         
         <div class="metrics-grid">
-          {#each metrics as metric}
+          {#each metrics as metric, i}
             <div class="metric-item {metric.color}">
               <div class="metric-dot"></div>
-              <span class="metric-label">{metric.label}</span>
-              <span class="metric-value">{metric.value}</span>
+              <EditableWrapper path="metadata.hero_metrics.{i}.label" value={metric.label} label="SỬA NHÃN {i+1}">
+                <span class="metric-label">{metric.label}</span>
+              </EditableWrapper>
+              <EditableWrapper path="metadata.hero_metrics.{i}.value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}">
+                <span class="metric-value">{metric.value}</span>
+              </EditableWrapper>
             </div>
           {/each}
         </div>

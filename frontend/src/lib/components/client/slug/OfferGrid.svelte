@@ -43,7 +43,7 @@
     trust_mark_3: (metadata.offer_trust_mark_3 as string) || "DƯỢC MỸ PHẨM CAO CẤP"
   });
 
-  const product = $derived(shopStore.product);
+  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
   const timeLeft = $derived(shopStore.timeLeft);
   const variants = $derived(product?.variants || []);
   let isDetailsOpen = $state(false);
@@ -105,7 +105,7 @@
 
     <!-- Professional Headline Hierarchy! -->
     <div class="max-w-4xl mx-auto text-center" style:margin-bottom="var(--headline-mb)">
-      <EditableWrapper path="metadata.offer_headline" label="SỬA TIÊU ĐỀ ƯU ĐÃI">
+      <EditableWrapper path="metadata.offer_headline" value={mkt.headline} type="html" label="SỬA TIÊU ĐỀ ƯU ĐÃI">
         <h3 class="headline-title mb-4">
           {@html mkt.headline}
         </h3>
@@ -113,15 +113,15 @@
 
       <!-- Integrated Trust Proof! -->
       <div class="flex items-center justify-center gap-4 mt-6 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
-         <EditableWrapper path="metadata.offer_trust_verified_by" label="SỬA NHÃN KIỂM ĐỊNH">
+         <EditableWrapper path="metadata.offer_trust_verified_by" value={mkt.trust_verified_by} label="SỬA NHÃN KIỂM ĐỊNH">
            <span class="text-[8px] uppercase tracking-[0.5em] font-medium text-slate-400">{mkt.trust_verified_by}</span>
          </EditableWrapper>
          <div class="h-px w-8 bg-slate-800"></div>
-         <EditableWrapper path="metadata.offer_trust_mark_2" label="SỬA CHỨNG NHẬN 2">
+         <EditableWrapper path="metadata.offer_trust_mark_2" value={mkt.trust_mark_2} label="SỬA CHỨNG NHẬN 2">
            <span class="text-[9px] uppercase tracking-[0.2em] font-semibold text-slate-300">{mkt.trust_mark_2}</span>
          </EditableWrapper>
          <div class="h-px w-8 bg-slate-800"></div>
-         <EditableWrapper path="metadata.offer_trust_mark_3" label="SỬA CHỨNG NHẬN 3">
+         <EditableWrapper path="metadata.offer_trust_mark_3" value={mkt.trust_mark_3} label="SỬA CHỨNG NHẬN 3">
            <span class="text-[8px] uppercase tracking-[0.5em] font-medium text-slate-400">{mkt.trust_mark_3}</span>
          </EditableWrapper>
       </div>
@@ -189,14 +189,14 @@
            <div class="mb-6">
              <div class="flex items-center justify-between mb-4">
                <p class="text-[8px] font-medium {idx === 1 ? 'text-cyan-400' : 'text-slate-500'} uppercase tracking-[0.5em]">
-                  <EditableWrapper path={idx === 0 ? "metadata.offer_label_activation" : "metadata.offer_label_full_treatment"} label="SỬA NHÃN GÓI">
+                  <EditableWrapper path={idx === 0 ? "metadata.offer_label_activation" : "metadata.offer_label_full_treatment"} value={idx === 0 ? mkt.label_activation : mkt.label_full_treatment} label="SỬA NHÃN GÓI">
                     {idx === 0 ? mkt.label_activation : mkt.label_full_treatment}
                   </EditableWrapper>
                </p>
                {#if idx > 0}
                  <div class="flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 border border-red-500/20 rounded text-[7px] font-semibold text-red-400 uppercase tracking-wider animate-pulse whitespace-nowrap">
                    <span class="w-1 h-1 bg-red-400 rounded-full"></span>
-                   <EditableWrapper path="metadata.offer_label_scarcity" label="SỬA NHÃN KHAN HIẾM">
+                   <EditableWrapper path="metadata.offer_label_scarcity" value={mkt.label_scarcity} label="SỬA NHÃN KHAN HIẾM">
                     {mkt.label_scarcity}
                    </EditableWrapper>
                  </div>
@@ -227,7 +227,7 @@
               {#if idx === 0}
                   <p class="shipping-label text-[9px] text-blue-400 font-medium uppercase tracking-widest flex items-center gap-2 whitespace-nowrap">
                      <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
-                    <EditableWrapper class="inline-block" path="metadata.offer_shipping_prefix" label="SỬA NHÃN SHIP">
+                    <EditableWrapper class="inline-block" path="metadata.offer_shipping_prefix" value={mkt.shipping_prefix} label="SỬA NHÃN SHIP">
                       {mkt.shipping_prefix}
                     </EditableWrapper>
                     {SHOP_CONFIG.shipping.fixed_cost.toLocaleString()}đ
@@ -236,14 +236,14 @@
                   <div class="flex flex-col gap-1">
                     <p class="text-[9px] text-emerald-400 font-medium uppercase tracking-widest flex items-center gap-2 whitespace-nowrap">
                        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
-                      <EditableWrapper class="inline-block" path="metadata.offer_savings_prefix" label="SỬA NHÃN TIẾT KIỆM">
+                      <EditableWrapper class="inline-block" path="metadata.offer_savings_prefix" value={mkt.savings_prefix} label="SỬA NHÃN TIẾT KIỆM">
                         {mkt.savings_prefix}
                       </EditableWrapper>
                       {(variant.price - (variant.discountPrice || variant.price)).toLocaleString()}đ
                     </p>
                     <p class="booking-suffix flex items-center gap-1.5 text-[7.5px] whitespace-nowrap text-slate-500 italic opacity-60">
                       🔥 {bookingPoints[idx]} 
-                      <EditableWrapper class="inline-block" path="metadata.offer_booking_suffix" label="SỬA NHÃN ĐẶT HÀNG">
+                      <EditableWrapper class="inline-block" path="metadata.offer_booking_suffix" value={mkt.booking_suffix} label="SỬA NHÃN ĐẶT HÀNG">
                         {mkt.booking_suffix}
                       </EditableWrapper>
                     </p>
@@ -270,7 +270,7 @@
                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none"></div>
                 <div class="flex items-center gap-2">
                   <ShoppingCart class="w-3.5 h-3.5 mb-0.5" strokeWidth={3} />
-                  <EditableWrapper path={idx === 0 ? "metadata.offer_cta_start" : "metadata.offer_cta_full"} label="SỬA CHỮ NÚT BẤM">
+                  <EditableWrapper path={idx === 0 ? "metadata.offer_cta_start" : "metadata.offer_cta_full"} value={idx === 0 ? mkt.cta_start : mkt.cta_full} label="SỬA CHỮ NÚT BẤM">
                     <span>{idx === 0 ? mkt.cta_start : mkt.cta_full}</span>
                   </EditableWrapper>
                 </div>
@@ -303,15 +303,15 @@
         <div class="info-grid">
           <!-- Identity -->
           <div class="contact-item">
-            <EditableWrapper path="metadata.offer_label_distributor" label="SỬA NHÃN PHÂN PHỐI">
+            <EditableWrapper path="metadata.offer_label_distributor" value={mkt.label_distributor} label="SỬA NHÃN PHÂN PHỐI">
               <span class="label uppercase">{mkt.label_distributor}</span>
             </EditableWrapper>
-            <EditableWrapper path="metadata.offer_pharmacy_name" label="SỬA TÊN CÔNG TY">
+            <EditableWrapper path="metadata.offer_pharmacy_name" value={mkt.pharmacy_name} label="SỬA TÊN CÔNG TY">
               <span class="value text-white font-medium text-lg block mb-2">{mkt.pharmacy_name}</span>
             </EditableWrapper>
             <div class="flex items-start gap-2">
               <svg class="w-3.5 h-3.5 text-slate-500 mt-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              <EditableWrapper path="metadata.offer_pharmacy_address" label="SỬA ĐỊA CHỈ">
+              <EditableWrapper path="metadata.offer_pharmacy_address" value={mkt.pharmacy_address} label="SỬA ĐỊA CHỈ">
                 <span class="value text-[11px] text-slate-400">{mkt.pharmacy_address}</span>
               </EditableWrapper>
             </div>
@@ -319,7 +319,7 @@
 
           <!-- Connectivity -->
           <div class="contact-item">
-            <EditableWrapper path="metadata.offer_label_support" label="SỬA NHÃN HỖ TRỢ">
+            <EditableWrapper path="metadata.offer_label_support" value={mkt.label_support} label="SỬA NHÃN HỖ TRỢ">
               <span class="label uppercase">{mkt.label_support}</span>
             </EditableWrapper>
             <div class="space-y-3">
@@ -327,7 +327,7 @@
                 <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20 group-hover/link:bg-blue-500/20 transition-colors">
                   <svg class="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 005.47 5.47l.772-1.547a1 1 0 011.06-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/></svg>
                 </div>
-                <EditableWrapper path="metadata.offer_pharmacy_phone" label="SỬA HOTLINE">
+                <EditableWrapper path="metadata.offer_pharmacy_phone" value={mkt.pharmacy_phone} label="SỬA HOTLINE">
                   <span class="value font-medium text-blue-400">{mkt.pharmacy_phone}</span>
                 </EditableWrapper>
               </a>

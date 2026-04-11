@@ -233,13 +233,13 @@
         <span class="text-[10px] font-black text-red-500/80 uppercase tracking-[0.3em] font-mono">LIVE_ACTIVITY: {liveViewers} KHÁCH ĐANG XEM ĐÁNH GIÁ</span>
       </div>
       
-      <EditableWrapper path="metadata.reviews_headline" label="SỬA TIÊU ĐỀ ĐÁNH GIÁ">
+      <EditableWrapper path="metadata.reviews_headline" value={headline} type="html" label="SỬA TIÊU ĐỀ ĐÁNH GIÁ">
         <h2 class="section-headline mb-6">
           {@html headline}
         </h2>
       </EditableWrapper>
 
-      <EditableWrapper path="metadata.reviews_subheadline" label="SỬA MÔ TẢ ĐÁNH GIÁ">
+      <EditableWrapper path="metadata.reviews_subheadline" value={subheadline} type="html" label="SỬA MÔ TẢ ĐÁNH GIÁ">
         <p class="section-description text-white/40 text-base md:text-lg max-w-3xl mx-auto leading-relaxed mb-10">
           {@html subheadline}
         </p>
@@ -251,7 +251,7 @@
             <div class="flex flex-col items-center sm:items-start gap-1">
               <span class="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] font-mono">PRECISION_RATING</span>
               <div class="flex items-center gap-4">
-                <EditableWrapper path="metadata.reviews_trust_score" label="SỬA ĐIỂM TIN CẬY">
+                <EditableWrapper path="metadata.reviews_trust_score" value={labels.trust_score} label="SỬA ĐIỂM TIN CẬY">
                   <span class="text-3xl font-black text-white tracking-tighter italic">{labels.trust_score}</span>
                 </EditableWrapper>
                 <div class="flex items-center gap-1">
@@ -267,7 +267,7 @@
 
           <div class="flex flex-col items-center sm:items-start gap-1">
              <span class="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] font-mono">GLOBAL_VOLUME</span>
-             <EditableWrapper path="metadata.reviews_count_text" label="SỬA LƯỢT ĐÁNH GIÁ">
+             <EditableWrapper path="metadata.reviews_count_text" value={labels.count_text} type="text" label="SỬA LƯỢT ĐÁNH GIÁ">
               <span class="text-xl font-bold text-white tracking-wider">{labels.count_text}</span>
              </EditableWrapper>
           </div>
@@ -410,6 +410,23 @@
   <!-- Decorative Background Elements -->
   <div class="absolute -top-64 -right-64 w-[600px] h-[600px] bg-emerald-500/10 blur-[150px] rounded-full mix-blend-overlay animate-pulse"></div>
   <div class="absolute -bottom-64 -left-64 w-[600px] h-[600px] bg-cyan-500/10 blur-[150px] rounded-full mix-blend-overlay animate-pulse" style:animation-delay="2s"></div>
+
+  <!-- Dynamic Line Wave Divider - High Impact Edition! -->
+  <div class="wave-container">
+    <svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="wave-gradient-reviews" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#10b981" stop-opacity="0" />
+          <stop offset="50%" stop-color="#34d399" stop-opacity="1" />
+          <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <path class="wave-line opacity-20" d="M0,160 C320,300 420,20 720,160 C1020,300 1120,20 1440,160" />
+      <path class="wave-line" d="M0,200 C320,340 420,60 720,200 C1020,340 1120,60 1440,200" />
+      <path class="wave-line secondary" d="M0,240 C320,100 420,380 720,240 C1020,100 1120,380 1440,240" />
+      <path class="wave-line opacity-30" d="M0,100 C320,240 420,-40 720,100 C1020,240 1120,-40 1440,100" />
+    </svg>
+  </div>
 </section>
 
 {#if showFormModal}

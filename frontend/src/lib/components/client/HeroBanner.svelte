@@ -75,7 +75,17 @@
     cta_text: metadata.hero_cta_text || 'Chẩn đoán cá nhân hoá',
     aria_hero: metadata.hero_aria_label || 'Hero Spotlight Area',
     aria_scroll: metadata.hero_aria_scroll || 'Scroll to diagnostics section',
-    metrics: (metadata.hero_metrics && metadata.hero_metrics.length > 0) ? metadata.hero_metrics : FALLBACK_METRICS
+    metrics: FALLBACK_METRICS.map((fb, i) => {
+      const custom = metadata.hero_metrics?.[i];
+      if (!custom) return fb;
+      // Elite V2.2: Zip-Merge strategy (Preserve structure even if partial data exists)
+      return {
+        label: custom.label || fb.label,
+        value: custom.value || fb.value,
+        desc: custom.desc || fb.desc,
+        color: custom.color || fb.color
+      };
+    })
   });
 
   const productName = $derived(labels.product_name);
@@ -294,19 +304,25 @@
       <div class="w-full md:w-1/2 flex flex-col relative justify-center">
          <div class="metrics-arc-container">
             {#each metrics as metric, i}
-               <EditableWrapper path="metadata.hero_metrics.{i}.value" label="SỬA CHỈ SỐ {i+1}">
-                   <div class="hud-metric-segment group relative pt-0 px-0 pb-0 transition-all duration-500" style:--idx={i}>
-                      <div class="flex items-center gap-3 mb-2">
-                         <div class="w-1 h-1 rounded-full bg-sakura-pink shadow-[0_0_8px_#ffb7c5] animate-pulse"></div>
-                         <span class="text-[10px] font-black text-sakura-pink/70 uppercase tracking-[.25em]">{metric.label}</span>
-                      </div>
-                      <h3 class="text-xl font-black italic tracking-tighter text-white group-hover:text-sakura-pink transition-colors duration-300">{metric.value}</h3>
-                      <p class="mt-2 text-sm text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity metric-desc">{metric.desc}</p>
-                      
-                      <!-- Subtle Glow Interaction -->
-                      <div class="absolute -inset-4 bg-radial-gradient from-sakura-pink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                <div class="hud-metric-segment group relative pt-0 px-0 pb-0 transition-all duration-500" style:--idx={i}>
+                   <div class="flex items-center gap-3 mb-2">
+                      <div class="w-1 h-1 rounded-full bg-sakura-pink shadow-[0_0_8px_#ffb7c5] animate-pulse"></div>
+                      <EditableWrapper path="metadata.hero_metrics.{i}.label" value={metric.label} label="SỬA NHÃN {i+1}">
+                        <span class="text-[10px] font-black text-sakura-pink/70 uppercase tracking-[.25em]">{metric.label}</span>
+                      </EditableWrapper>
                    </div>
-               </EditableWrapper>
+                   
+                   <EditableWrapper path="metadata.hero_metrics.{i}.value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}">
+                     <h3 class="text-xl font-black italic tracking-tighter text-white group-hover:text-sakura-pink transition-colors duration-300">{metric.value}</h3>
+                   </EditableWrapper>
+
+                   <EditableWrapper path="metadata.hero_metrics.{i}.desc" value={metric.desc} type="html" label="SỬA MÔ TẢ {i+1}">
+                     <p class="mt-2 text-sm text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity metric-desc">{metric.desc}</p>
+                   </EditableWrapper>
+                   
+                   <!-- Subtle Glow Interaction -->
+                   <div class="absolute -inset-4 bg-radial-gradient from-sakura-pink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                </div>
             {/each}
          </div>
       </div>
@@ -316,15 +332,15 @@
   <!-- PREMIUM CTA BUTTON (Fixed to section bottom!) -->
   <button class="hero-cta-button" onclick={scrollToQuiz}>
      <div class="cta-gradient-overlay"></div>
-     <div class="cta-content">
-        <div class="cta-status-dot"></div>
-        <EditableWrapper path="metadata.hero_cta_text" label="SỬA CHỮ NÚT BẤM">
-          <span class="cta-text">{ctaText}</span>
-        </EditableWrapper>
-        <svg class="cta-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-        </svg>
-     </div>
+     <EditableWrapper path="metadata.hero_cta_text" value={ctaText} label="SỬA CHỮ NÚT BẤM" class="w-full flex justify-center">
+        <div class="cta-content">
+           <div class="cta-status-dot"></div>
+           <span class="cta-text">{ctaText}</span>
+           <svg class="cta-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+           </svg>
+        </div>
+     </EditableWrapper>
      <div class="cta-shimmer"></div>
   </button>
 

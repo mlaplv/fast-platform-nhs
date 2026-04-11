@@ -49,19 +49,33 @@ class LiveEditStore {
 
   updateField(path: string, value: any) {
     if (!this.dirtyProduct) return;
-    
-    const keys = path.split(".");
-    let current: any = this.dirtyProduct;
-    
-    for (let i = 0; i < keys.length - 1; i++) {
+    console.log(`🛠️ LiveEdit: Updating [${path}] ->`, value);
+
+    try {
+      const keys = path.split(".");
+      let current: any = this.dirtyProduct;
+
+      for (let i = 0; i < keys.length - 1; i++) {
         const key = keys[i];
-        if (!(key in current)) current[key] = {};
+        const nextKey = keys[i + 1];
+
+        // Elite V2.2: Intelligent Parent Initialization
+        if (current[key] === null || current[key] === undefined || typeof current[key] !== 'object') {
+          // If the next key is an integer, initialize as an array
+          current[key] = /^\d+$/.test(nextKey) ? [] : {};
+        }
+
         current = current[key];
+      }
+
+      current[keys[keys.length - 1]] = value;
+
+      // Elite V2.2: Safe Reactivity Sync
+      this.dirtyProduct = JSON.parse(JSON.stringify(this.dirtyProduct));
+    } catch (error) {
+      console.error(`💥 LiveEdit: Failed to update field at ${path}:`, error);
+      this.notify(`Lỗi cập nhật dữ liệu: ${(error as any).message}`, "alert");
     }
-    current[keys[keys.length - 1]] = value;
-    
-    // Elite V2.2: Force reactivity bubble-up for Svelte 5 derived runes
-    this.dirtyProduct = JSON.parse(JSON.stringify(this.dirtyProduct));
   }
 
   discardChanges() {

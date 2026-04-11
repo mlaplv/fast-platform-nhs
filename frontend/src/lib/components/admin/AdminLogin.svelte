@@ -75,6 +75,8 @@
       if (rememberMe) {
         document.cookie = `admin_token=${access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
         localStorage.setItem("admin_token", access_token);
+        localStorage.setItem("admin_user_name", name);
+        localStorage.setItem("admin_user_email", userEmail || email);
       } else {
         document.cookie = `admin_token=${access_token}; path=/; SameSite=Strict`;
         sessionStorage.setItem("admin_token", access_token);

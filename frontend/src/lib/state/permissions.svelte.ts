@@ -53,8 +53,12 @@ class PermissionState {
         this.perms = decoded.perms || [];
         this.roles = decoded.roles || [];
         this.user = decoded.sub;
+        
+        // Elite V2.2: Tiered Identity Resolution
+        const storedName = localStorage.getItem("admin_user_name");
         this.userName =
-          decoded.name || decoded.sub?.split("@")[0] || "OPERATOR";
+          decoded.name || storedName || decoded.sub?.split("@")[0] || "IDENTITY_V2.2";
+          
         this.isInitialized = true;
 
         if (decoded.exp) {

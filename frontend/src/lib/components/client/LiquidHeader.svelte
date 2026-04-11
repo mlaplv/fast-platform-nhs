@@ -14,7 +14,8 @@
     activeId?: string | null;
   }>();
 
-  const product = $derived(shopStore.product);
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
 
   const labels = $derived({
     home: product?.metadata?.nav_label_home || 'Trang chủ',

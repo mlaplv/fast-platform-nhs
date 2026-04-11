@@ -75,8 +75,8 @@
     // CNS V86.6: Identity Resolution Protocol
     // Prioritize Data Role 'user' over Source string
     if (log.data?.role === "user" || src === "SẾP" || src === "Sếp") {
-      let name = (permissionState.userName || "OPERATOR").toUpperCase();
-      // CNS V86.8: Disambiguate if name collision occurs
+      let name = (permissionState.userName || "SẾP").toUpperCase();
+      // CNS V86.6: Identity Resolution Protocol
       if (name === "XOHI") return "MASTER ⚡";
       return name;
     }
@@ -366,7 +366,7 @@
                 value={nanobot.godModeUser || "self"}
               >
                 <option value="self" class="bg-black/95 text-neon-cyan font-bold uppercase">
-                  {permissionState.userName || "MASTER"}
+                  {permissionState.userName || "Identity"}
                 </option>
                 {#each availableUsers as user}
                   <option value={user.id} class="bg-black/95 text-white/80">

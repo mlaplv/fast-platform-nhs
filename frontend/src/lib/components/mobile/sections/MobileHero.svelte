@@ -38,11 +38,24 @@
     return `${h}:${m}:${s}`;
   });
   
-  const metrics = $derived(metadata.hero_metrics || [
-    { label: '[Khoa học]', value: 'LIPOSOME PHÁ GỐC THÂM', color: 'blue' },
-    { label: '[Hiệu quả]', value: 'DỨT ĐIỂM HẮC SẮC TỐ', color: 'indigo' },
-    { label: '[Tiêu chuẩn]', value: 'SỐ 1 DƯỢC LIỆU NHẬT', color: 'emerald' }
-  ]);
+  const metrics = $derived.by(() => {
+    const raw = metadata.hero_metrics || [];
+    const fallbacks = [
+      { label: '[Khoa học]', value: 'LIPOSOME PHÁ GỐC THÂM', color: 'blue' },
+      { label: '[Hiệu quả]', value: 'DỨT ĐIỂM HẮC SẮC TỐ', color: 'indigo' },
+      { label: '[Tiêu chuẩn]', value: 'SỐ 1 DƯỢC LIỆU NHẬT', color: 'emerald' }
+    ];
+
+    return fallbacks.map((fb, i) => {
+      const custom = raw[i];
+      if (!custom) return fb;
+      return {
+        label: custom.label || fb.label,
+        value: custom.value || fb.value,
+        color: custom.color || fb.color
+      };
+    });
+  });
 
   let variantScroller: HTMLDivElement | undefined = $state();
 
@@ -166,14 +179,14 @@
             <div class="flex flex-wrap gap-2 mt-1 pr-14">
               {#each metrics.slice(0, 3) as metric, i}
                 {@const Icon = iconMap[metric.color] || Zap}
-                <EditableWrapper path="metadata.hero_metrics[{i}].value" label="SỬA CHỈ SỐ {i+1}" class="flex items-center pointer-events-auto">
-                  <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-xl rounded-md border border-white/20 shadow-lg">
+                <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-xl rounded-md border border-white/20 shadow-lg pointer-events-auto">
                     <Icon class="w-3 h-3 text-{metric.color || 'blue'}-400" />
-                    <span class="text-[9px] font-black text-white/90 uppercase tracking-tight">
-                      {metric.value}
-                    </span>
-                  </div>
-                </EditableWrapper>
+                    <EditableWrapper path="metadata.hero_metrics[{i}].value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}">
+                      <span class="text-[9px] font-black text-white/90 uppercase tracking-tight">
+                        {metric.value}
+                      </span>
+                    </EditableWrapper>
+                </div>
               {/each}
             </div>
 

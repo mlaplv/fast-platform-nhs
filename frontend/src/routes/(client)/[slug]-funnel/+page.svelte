@@ -74,10 +74,14 @@
     }
   };
 
-  // Footer Control!
+  // Footer Control & Shop Settings Sync (Elite V2.2)
   $effect(() => {
     if (clientUi) {
       clientUi.isFooterHidden = useMobileLayout;
+      // Inject global shop settings into the UI state for sub-components (OfferGrid, etc.)
+      if (data.shopInfo) {
+        clientUi.settings = data.shopInfo;
+      }
     }
     return () => { 
       if (clientUi) clientUi.isFooterHidden = false; 

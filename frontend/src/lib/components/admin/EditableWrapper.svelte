@@ -9,11 +9,12 @@
     path: string;
     type?: 'text' | 'html' | 'image' | 'video' | 'quiz' | 'metrics';
     label?: string;
+    value?: string; // Elite V2.2: Explicit initial value to prevent DOM-scraping doubling
     class?: string;
     children?: import('svelte').Snippet;
   }
 
-  let { path, type = 'text', label = 'SỬA NỘI DUNG', children, ...props }: Props = $props();
+  let { path, type = 'text', label = 'SỬA NỘI DUNG', value: explicitValue, children, ...props }: Props = $props();
 
   const isEditMode = $derived(liveEditStore.isEditMode);
   const isAdmin = $derived(liveEditStore.isAdmin);
@@ -32,13 +33,17 @@
 
   const getValue = (p: string, fallback = "") => {
     if (!liveEditStore.dirtyProduct) return fallback;
-    const keys = p.split(".");
-    let current: any = liveEditStore.dirtyProduct;
-    for (const key of keys) {
-        if (!current || typeof current !== 'object') return fallback;
-        current = current[key];
+    try {
+        const keys = p.split(".");
+        let current: any = liveEditStore.dirtyProduct;
+        for (const key of keys) {
+            if (current === null || current === undefined || typeof current !== 'object') return fallback;
+            current = current[key];
+        }
+        return current ?? fallback;
+    } catch {
+        return fallback;
     }
-    return current || fallback;
   };
 
   function triggerHaptic(strength = 10) {
@@ -56,10 +61,26 @@
     if (type === 'text' || type === 'html') {
       triggerHaptic(15);
       liveEditStore.activePath = path;
-      // Elite V2.2: Capture current screen text as fallback if store is empty
-      const container = wrapperRef?.querySelector('.content-container');
-      const currentHTML = container?.innerHTML || "";
-      let rawValue = String(getValue(path, currentHTML.trim()));
+      // Elite V2.2: Intelligent Value Resolution
+      // 1. Priority: Explicit prop (Best for complex structures)
+      // 2. Fallback: Store value (Database source)
+      // 3. Last Resort: DOM Scraper (Guess from screen)
+      const storeValue = getValue(path, null as any);
+      let rawValue = explicitValue ?? storeValue;
+      
+      if (rawValue === null || rawValue === undefined) {
+         const container = wrapperRef?.querySelector('.content-container');
+         rawValue = container?.innerHTML?.trim() || "";
+         
+         // Elite V2.2: Anti-Doubling Guard
+         // If we are scraping but found structural HTML (div, span, h3) and the type is text, 
+         // it means we are accidentally capturing the whole wrapper. Discard it.
+         if (type === 'text' && rawValue.includes('<') && (rawValue.includes('<div') || rawValue.includes('<span') || rawValue.includes('<h3'))) {
+            rawValue = "";
+         }
+      }
+      
+      rawValue = String(rawValue);
       
       // Elite V2.2: Clean up 'overload' (Svelte internal classes and noise)
       if (type === 'html' || type === 'text') {
@@ -98,27 +119,32 @@
   function saveInline() {
     if (isCancelling) return;
     
-    let finalValue = inlineValue;
-    if (type === 'html') {
-        // Convert newlines back to BR tags for correct HTML rendering
-        const lines = inlineValue.split('\n');
-        if (lines.length > 1) {
-            // Apply pink color to the second line automatically if it's the banner headline
-            if (path.includes('hero_headline')) {
-                finalValue = `${lines[0]}<br/><span class="text-sakura-pink">${lines.slice(1).join(' ')}</span>`;
-            } else {
-                finalValue = lines.join('<br/>');
+    try {
+        let finalValue = inlineValue;
+        if (type === 'html') {
+            // Convert newlines back to BR tags for correct HTML rendering
+            const lines = inlineValue.split('\n');
+            if (lines.length > 1) {
+                // Apply pink color to the second line automatically if it's the banner headline
+                if (path.includes('hero_headline')) {
+                    finalValue = `${lines[0]}<br/><span class="text-sakura-pink">${lines.slice(1).join(' ')}</span>`;
+                } else {
+                    finalValue = lines.join('<br/>');
+                }
             }
         }
+        
+        liveEditStore.updateField(path, finalValue);
+        
+        // Show success feedback
+        showSuccessFlash = true;
+        setTimeout(() => { showSuccessFlash = false; }, 1000);
+    } catch (e) {
+        console.error("EditableWrapper: Save failed:", e);
+    } finally {
+        isInlineEditing = false;
+        liveEditStore.activePath = null;
     }
-    
-    liveEditStore.updateField(path, finalValue);
-    isInlineEditing = false;
-    liveEditStore.activePath = null;
-    
-    // Show success feedback
-    showSuccessFlash = true;
-    setTimeout(() => { showSuccessFlash = false; }, 1000);
   }
 
   function cancelInline() {
