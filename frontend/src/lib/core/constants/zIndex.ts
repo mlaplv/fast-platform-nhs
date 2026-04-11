@@ -15,3 +15,12 @@ export const Z_INDEX_CLIENT = {
   TOAST: 2000,
   MOBILE_REVIEW_HEADER: 2000,
 } as const;
+
+export const Z_INDEX_ADMIN = {
+  HUD: 10000,             // Info labels and hover frames
+  BACKDROP: 1000000,      // Global masking layer
+  EDITOR: 1000001,        // Inline text/html editors
+  PICKER: 100000,         // Media picker backdrop
+  PICKER_BOX: 100001,     // Media picker UI
+  TOAST: 2000000,         // System notifications (Topmost)
+} as const;

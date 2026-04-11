@@ -41,7 +41,7 @@ class MediaFormattersMixin:
                 return await process((await (await SharedHttpClient.get_client()).get(asset_path, timeout=10.0)).content)
             else:
                 p = os.path.join("frontend/static", asset_path.lstrip("/"));
-                logger.info(f"[MediaFormatters] Checking file at: {p}"); print(f"DEBUG: Checking file at: {p}", file=sys.stderr)
+                logger.info(f"[MediaFormatters] Checking file at: {p}")
                 if not os.path.exists(p):
                     logger.warning(f"[MediaFormatters] File not found: {p}")
                     return asset_path

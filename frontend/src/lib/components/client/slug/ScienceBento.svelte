@@ -1,6 +1,23 @@
 <script lang="ts">
   import { resolveMediaUrl } from '$lib/state/utils';
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import "./ScienceBento.css";
+
+  const shopStore = getShopStore();
+  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
+  const metadata = $derived(product?.metadata || {});
+
+  const labels = $derived({
+    headline: metadata.science_headline || '<span>PHÁ VỠ HẮC SẮC TỐ &</span><span>TÁI SINH LÀN DA SÁNG HỒNG</span>',
+    subheadline: metadata.science_subheadline || '"Tinh chất dạng serum-kem mỏng nhẹ thẩm thấu tàng hình chỉ sau 3 giây. Can thiệp trực tiếp vào quá trình hình thành Melanin, làm sáng rạng rỡ các vùng da mỏng manh nhạy cảm nhất mà tuyệt đối không hề bết dính."',
+    image: metadata.science_image || '/uploads/img/co--che.png',
+    card1_title: metadata.science_card1_title || 'ĐÁNH BẬT THÂM SẠM TẬN GỐC',
+    card1_desc: metadata.science_card1_desc || '"Sức mạnh từ chiết xuất Hoa Anh Đào (Sakura) chuẩn Nhật giúp ức chế mạnh mẽ Melanin. Xóa mờ các đốm nâu và vùng da xỉn màu do ma sát với trang phục hoặc tổn thương sau khi cạo, nhổ."',
+    card2_title: metadata.science_card2_title || 'PHỤC HỒI & DƯỠNG DA MỀM MƯỚT',
+    card2_desc: metadata.science_card2_desc || '"Tổ hợp Vitamin C, E cùng chiết xuất Lô hội giúp bơm đầy độ ẩm, làm dịu tức thì tình trạng sần sùi, thô ráp. Nuôi dưỡng bề mặt da mềm mịn như lụa, cảm giác luôn khô ráo và thoải mái suốt ngày dài."'
+  });
 </script>
 
 <section id="science-mechanism" class="snap-session-standard science-section relative w-full overflow-hidden">
@@ -11,19 +28,18 @@
         
         <!-- SECTION HEADER (Normalized spacing to fix "thừa trên thiếu dưới") -->
         <header class="mb-8 md:mb-12 animate-reveal">
-            <h2 class="text-white font-black tracking-tight leading-none uppercase mb-6 text-3xl md:text-5xl lg:text-6xl mx-auto flex flex-col gap-1 md:gap-2">
+            <EditableWrapper path="metadata.science_headline" label="SỬA TIÊU ĐỀ">
+                <h2 class="text-white font-black tracking-tight leading-none uppercase mb-6 text-3xl md:text-5xl lg:text-6xl mx-auto bento-headline">
+                    {@html labels.headline}
+                </h2>
+            </EditableWrapper>
 
-                <span>PHÁ VỠ HẮC SẮC TỐ &</span>
-                <span>TÁI SINH LÀN DA SÁNG HỒNG</span>
-            </h2>
-
-
-
-            <p class="section-description text-white/40 text-base md:text-lg max-w-none mx-auto leading-relaxed">
-                "Tinh chất dạng serum-kem mỏng nhẹ thẩm thấu tàng hình chỉ sau 3 giây. Can thiệp trực tiếp vào quá trình hình thành Melanin, làm sáng rạng rỡ các vùng da mỏng manh nhạy cảm nhất mà tuyệt đối không hề bết dính."
-            </p>
+            <EditableWrapper path="metadata.science_subheadline" label="SỬA MÔ TẢ">
+                <p class="section-description text-white/40 text-base md:text-lg max-w-none mx-auto leading-relaxed">
+                    {@html labels.subheadline}
+                </p>
+            </EditableWrapper>
         </header>
-
 
         <!-- BENTO GRID (50/50 Split with perfectly uniform gaps) -->
         <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch text-left">
@@ -36,13 +52,14 @@
                     <div class="scanner-glow"></div>
                 </div>
 
-                <img 
-                    src={resolveMediaUrl('/uploads/img/co--che.png')} 
-                    alt="Cơ chế khoa học" 
-                    class="w-full h-full object-contain rounded-[5px] transition-transform duration-700 group-hover:scale-105"
-                />
+                <EditableWrapper path="metadata.science_image" type="image" label="SỬA ẢNH CƠ CHẾ SINH HỌC">
+                    <img 
+                        src={resolveMediaUrl(labels.image)} 
+                        alt="Cơ chế khoa học" 
+                        class="w-full h-full object-contain rounded-[5px] transition-transform duration-700 group-hover:scale-105"
+                    />
+                </EditableWrapper>
             </div>
-
 
             <!-- KHỐI PHẢI (SUB BLOCKS) -->
             <div class="md:col-span-6 flex flex-col gap-5 h-full">
@@ -56,16 +73,21 @@
                         </svg>
                     </div>
 
-                    <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight uppercase transition-colors group-hover:text-blue-400">
-                        ĐÁNH BẬT THÂM SẠM TẬN GỐC
-                    </h3>
-                    <p class="text-slate-500 text-xs lg:text-base leading-relaxed font-medium">
-                        "Sức mạnh từ chiết xuất Hoa Anh Đào (Sakura) chuẩn Nhật giúp ức chế mạnh mẽ Melanin. Xóa mờ các đốm nâu và vùng da xỉn màu do ma sát với trang phục hoặc tổn thương sau khi cạo, nhổ."
-                    </p>
+                    <EditableWrapper path="metadata.science_card1_title" label="SỬA TIÊU ĐỀ THẺ 1">
+                        <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight uppercase transition-colors group-hover:text-blue-400">
+                            {labels.card1_title}
+                        </h3>
+                    </EditableWrapper>
+                    
+                    <EditableWrapper path="metadata.science_card1_desc" label="SỬA MÔ TẢ THE 1">
+                        <p class="text-slate-500 text-xs lg:text-base leading-relaxed font-medium">
+                            {labels.card1_desc}
+                        </p>
+                    </EditableWrapper>
                 </div>
 
                 <!-- Thẻ 2: TÁI TẠO & SE KHÍT NANG LÔNG -->
-                <div class="flex-1 flex flex-col justify-center relative bg-slate-800/40 border border-slate-700/60 rounded-[5px] p-8 lg:p-10 backdrop-blur-md transition-all duration-500 hover:border-blue-500/40 group overflow-hidden">
+                <div class="flex-1 flex flex-col justify-center relative bg-slate-800/40 border border-slate-700/60 rounded-[5px] p-8 lg:p-10 backdrop-blur-md transition-all duration-500 hover:border-blue-500/40 group overflow-visible">
                     <!-- Technical Wave Decoration: Digital Pulse Variant -->
                     <div class="absolute bottom-[-15px] right-[-15px] w-56 h-56 opacity-20 pointer-events-none group-hover:opacity-40 transition-opacity duration-1000">
                         <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" class="w-full h-full -rotate-12">
@@ -74,12 +96,17 @@
                         </svg>
                     </div>
 
-                    <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight uppercase transition-colors group-hover:text-blue-400">
-                        PHỤC HỒI & DƯỠNG DA MỀM MƯỚT
-                    </h3>
-                    <p class="text-slate-500 text-xs lg:text-base leading-relaxed font-medium">
-                        "Tổ hợp Vitamin C, E cùng chiết xuất Lô hội giúp bơm đầy độ ẩm, làm dịu tức thì tình trạng sần sùi, thô ráp. Nuôi dưỡng bề mặt da mềm mịn như lụa, cảm giác luôn khô ráo và thoải mái suốt ngày dài."
-                    </p>
+                    <EditableWrapper path="metadata.science_card2_title" label="SỬA TIÊU ĐỀ THE 2">
+                        <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight uppercase transition-colors group-hover:text-blue-400">
+                            {labels.card2_title}
+                        </h3>
+                    </EditableWrapper>
+
+                    <EditableWrapper path="metadata.science_card2_desc" label="SỬA MÔ TẢ THE 2">
+                        <p class="text-slate-500 text-xs lg:text-base leading-relaxed font-medium">
+                            {labels.card2_desc}
+                        </p>
+                    </EditableWrapper>
                 </div>
 
             </div>
@@ -96,5 +123,11 @@
   @keyframes reveal {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Resilience Logic: Force spans to behave like block rows if present */
+  .bento-headline :global(span) {
+    display: block;
+    margin-bottom: 0.25rem;
   }
 </style>

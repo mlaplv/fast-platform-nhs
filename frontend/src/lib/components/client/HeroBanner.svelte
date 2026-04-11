@@ -4,6 +4,8 @@
   import { browser } from '$app/environment';
   import "./HeroBanner.css";
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
 
   const shopStore = getShopStore();
 
@@ -12,7 +14,7 @@
   }
 
   let { scrollToQuiz }: HeroBannerProps = $props();
-  const product = $derived(shopStore.product);
+  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
   const metadata = $derived(product?.metadata || {});
 
   // Elite V2.2: Standard Branding Fallbacks (Non-logic descriptors)
@@ -67,13 +69,13 @@
   };
 
   const labels = $derived({
-    product_name: product?.name || metadata.hero_product_name_fallback || 'Elite Formulation',
-    headline: metadata.hero_headline || '<span>ĐÁNH BAY</span> <br/> <span class="headline-shift">THÂM SẠM</span>',
+    product_name: product?.name || metadata.hero_product_name_fallback || '',
+    headline: metadata.hero_headline || 'CHẤM DỨT<br/><span class="text-sakura-pink">SẠM NÁM</span>',
     video_url: metadata.video_url || metadata.hero_video_url || metadata.hero_video || '/uploads/video/HN_TikTok.mp4',
     cta_text: metadata.hero_cta_text || 'Chẩn đoán cá nhân hoá',
     aria_hero: metadata.hero_aria_label || 'Hero Spotlight Area',
     aria_scroll: metadata.hero_aria_scroll || 'Scroll to diagnostics section',
-    metrics: metadata.hero_metrics || FALLBACK_METRICS
+    metrics: (metadata.hero_metrics && metadata.hero_metrics.length > 0) ? metadata.hero_metrics : FALLBACK_METRICS
   });
 
   const productName = $derived(labels.product_name);
@@ -204,32 +206,38 @@
   <!-- NUCLEAR VIDEO BACKGROUND (Standard Full Coverage: 100% Native) -->
   <div class="absolute inset-x-0 top-0 bottom-0 overflow-hidden pointer-events-none w-full h-full" style="z-index: var(--z-bg); opacity: 0.2;">
     <div class="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#020617] to-transparent w-full z-surface"></div>
-    {#if videoMode === 'local'}
-      <video autoplay muted loop playsinline class="elite-video-bg">
-        <source src={videoUrl} type="video/mp4" />
-      </video>
-    {:else if videoMode === 'youtube' || videoMode === 'tiktok'}
-      <iframe
-        class="elite-video-bg pointer-events-none"
-        src={iframeEmbedUrl}
-        title="Hero Video"
-        allow="autoplay; fullscreen; picture-in-picture"
-        allowfullscreen
-        frameborder="0"
-      ></iframe>
-    {/if}
+    <EditableWrapper path="metadata.video_url" type="video" label="SỬA VIDEO NỀN">
+        {#if videoMode === 'local'}
+        <video autoplay muted loop playsinline class="elite-video-bg">
+            <source src={videoUrl} type="video/mp4" />
+        </video>
+        {:else if videoMode === 'youtube' || videoMode === 'tiktok'}
+        <iframe
+            class="elite-video-bg pointer-events-none"
+            src={iframeEmbedUrl}
+            title="Hero Video"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowfullscreen
+            frameborder="0"
+        ></iframe>
+        {/if}
+    </EditableWrapper>
   </div>
 
   <div class="container mx-auto px-6 max-w-6xl relative flex flex-col items-center pt-[var(--standard-pt)] z-surface">
 
-    <h1 class="typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0 text-5xl md:text-7xl lg:text-9xl tracking-tighter italic">
-       {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-red-500">_</span>
-    </h1>
+    <EditableWrapper path="metadata.hero_headline" type="html" label="SỬA TIÊU ĐỀ BANNER">
+        <h1 class="typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0 text-5xl md:text-7xl lg:text-9xl tracking-tighter italic">
+        {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-red-500"></span>
+        </h1>
+    </EditableWrapper>
 
     {#if product?.shortDescription}
-       <p class="hero-description text-center text-lg md:text-xl text-slate-300 max-w-2xl font-medium mb-12">
-          {@html product.shortDescription}
-       </p>
+       <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN">
+           <p class="hero-description text-center text-lg md:text-xl text-slate-300 max-w-2xl font-medium mb-12">
+              {@html product.shortDescription}
+           </p>
+       </EditableWrapper>
     {/if}
 
     <div class="hero-product-display relative w-full max-w-6xl pt-6 pb-0 flex flex-col md:flex-row items-center justify-center gap-8 z-surface">
@@ -238,12 +246,14 @@
              <!-- ELITE SPOTLIGHT HALO (Viral 2026) -->
              <div class="absolute inset-0 bg-radial-gradient from-sakura-glow/20 via-transparent to-transparent blur-[120px] scale-150 pointer-events-none opacity-60"></div>
 
-             <div class="group relative flex items-center justify-center w-72 md:w-96 float-anim">
-                <img
-                  src="{mainImage}"
-                  alt="{productName}"
-                  class="relative z-10 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-lg"
-                />
+              <div class="group relative flex items-center justify-center w-72 md:w-96 float-anim">
+                <EditableWrapper path="images.0" type="image" label="SỬA ẢNH CHIẾN DỊCH">
+                    <img
+                      src="{mainImage}"
+                      alt="{productName}"
+                      class="relative z-10 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-lg"
+                    />
+                </EditableWrapper>
 
                 <!-- VIEW FINDER CORNERS (iOS 26 Liquid Aesthetic) -->
                 <div class="absolute -inset-4 z-20 pointer-events-none">
@@ -271,17 +281,19 @@
           <div class="w-full md:w-1/2 flex flex-col relative justify-center">
              <div class="metrics-arc-container">
                 {#each metrics as metric, i}
-                   <div class="hud-metric-segment group relative pt-5 px-0 pb-0 transition-all duration-500" style:--idx={i}>
-                      <div class="flex items-center gap-3 mb-2">
-                         <div class="w-1 h-1 rounded-full bg-sakura-pink shadow-[0_0_8px_#ffb7c5] animate-pulse"></div>
-                         <span class="text-[10px] font-black text-sakura-pink/70 uppercase tracking-[.25em]">{metric.label}</span>
-                      </div>
-                      <h3 class="text-xl font-black italic tracking-tighter text-white group-hover:text-sakura-pink transition-colors duration-300">{metric.value}</h3>
-                      <p class="mt-2 text-sm text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity metric-desc">{metric.desc}</p>
-                      
-                      <!-- Subtle Glow Interaction -->
-                      <div class="absolute -inset-4 bg-radial-gradient from-sakura-pink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
-                   </div>
+                   <EditableWrapper path="metadata.hero_metrics.{i}.value" label="SỬA CHỈ SỐ {i+1}">
+                       <div class="hud-metric-segment group relative pt-5 px-0 pb-0 transition-all duration-500" style:--idx={i}>
+                          <div class="flex items-center gap-3 mb-2">
+                             <div class="w-1 h-1 rounded-full bg-sakura-pink shadow-[0_0_8px_#ffb7c5] animate-pulse"></div>
+                             <span class="text-[10px] font-black text-sakura-pink/70 uppercase tracking-[.25em]">{metric.label}</span>
+                          </div>
+                          <h3 class="text-xl font-black italic tracking-tighter text-white group-hover:text-sakura-pink transition-colors duration-300">{metric.value}</h3>
+                          <p class="mt-2 text-sm text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity metric-desc">{metric.desc}</p>
+                          
+                          <!-- Subtle Glow Interaction -->
+                          <div class="absolute -inset-4 bg-radial-gradient from-sakura-pink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                       </div>
+                   </EditableWrapper>
                 {/each}
              </div>
           </div>
@@ -293,7 +305,9 @@
      <div class="cta-gradient-overlay"></div>
      <div class="cta-content">
         <div class="cta-status-dot"></div>
-        <span class="cta-text">{ctaText}</span>
+        <EditableWrapper path="metadata.hero_cta_text" label="SỬA CHỮ NÚT BẤM">
+          <span class="cta-text">{ctaText}</span>
+        </EditableWrapper>
         <svg class="cta-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
         </svg>

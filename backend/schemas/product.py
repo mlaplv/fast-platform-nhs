@@ -48,8 +48,15 @@ class ProductMetadata(BaseModel):
     sync_loading_text: Optional[str] = Field(None, alias="sync_loading_text")
     seo_site_name: Optional[str] = Field(None, alias="seo_site_name")
 
+    # Section: Hero Spotlight
+    hero_headline: Optional[str] = Field(None, alias="hero_headline")
+    hero_cta_text: Optional[str] = Field(None, alias="hero_cta_text")
+    hero_product_name_fallback: Optional[str] = Field(None, alias="hero_product_name_fallback")
+    hero_metrics: List[Dict[str, JSONType]] = Field(default_factory=list, alias="hero_metrics")
+
     # Section: Reviews
     reviews_headline: Optional[str] = Field(None, alias="reviews_headline")
+    reviews_subheadline: Optional[str] = Field(None, alias="reviews_subheadline")
     reviews_trust_score: Optional[str] = Field(None, alias="reviews_trust_score")
     reviews_count_text: Optional[str] = Field(None, alias="reviews_count_text")
     reviews: List[Dict[str, JSONType]] = Field(default_factory=list, alias="reviews")
@@ -63,6 +70,27 @@ class ProductMetadata(BaseModel):
     # Section: Science
     science_headline: Optional[str] = Field(None, alias="science_headline")
     science_subheadline: Optional[str] = Field(None, alias="science_subheadline")
+    science_image: Optional[str] = Field(None, alias="science_image")
+    science_card1_title: Optional[str] = Field(None, alias="science_card1_title")
+    science_card1_desc: Optional[str] = Field(None, alias="science_card1_desc")
+    science_card2_title: Optional[str] = Field(None, alias="science_card2_title")
+    science_card2_desc: Optional[str] = Field(None, alias="science_card2_desc")
+
+    # Section: Offer Grid
+    offer_headline: Optional[str] = Field(None, alias="offer_headline")
+    offer_subheadline: Optional[str] = Field(None, alias="offer_subheadline")
+    offer_timer_prefix: Optional[str] = Field(None, alias="offer_timer_prefix")
+    offer_trust_verified_by: Optional[str] = Field(None, alias="offer_trust_verified_by")
+    offer_pharmacy_name: Optional[str] = Field(None, alias="offer_pharmacy_name")
+    offer_pharmacy_address: Optional[str] = Field(None, alias="offer_pharmacy_address")
+    offer_pharmacy_phone: Optional[str] = Field(None, alias="offer_pharmacy_phone")
+    offer_pharmacy_zalo: Optional[str] = Field(None, alias="offer_pharmacy_zalo")
+
+    # Section: Checkout
+    checkout_headline: Optional[str] = Field(None, alias="checkout_headline")
+    checkout_subheadline: Optional[str] = Field(None, alias="checkout_subheadline")
+    checkout_cta_text: Optional[str] = Field(None, alias="checkout_cta_text")
+    checkout_variant_title: Optional[str] = Field(None, alias="checkout_variant_title")
 
 class ProductVariantSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)

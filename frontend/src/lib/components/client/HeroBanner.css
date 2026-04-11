@@ -62,30 +62,6 @@
   }
 
   /* Liquid Glass Navigation & CTA adjustments */
-  & .hero-cta-button {
-    position: absolute;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(40px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 9999px;
-    padding: 1rem 3rem;
-    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-    z-index: var(--z-cta);
-    will-change: transform, box-shadow;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(59, 130, 246, 0.4);
-      box-shadow: 0 0 60px rgba(59, 130, 246, 0.2);
-      transform: translateX(-50%) translateY(-4px) scale(1.02);
-    }
-
-    /* ... rest of existing button styles ... */
-  }
 
   & .elite-video-bg {
     position: absolute;
@@ -380,7 +356,7 @@
   /* PREMIUM CTA BUTTON SYSTEM */
   & .hero-cta-button {
     position: absolute;
-    bottom: 100px;
+    bottom: 80px;
     /* More space from the mouse indicator! */
     left: 50%;
     transform: translateX(-50%);

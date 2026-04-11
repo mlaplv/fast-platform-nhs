@@ -6,12 +6,15 @@
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { getClientUi } from '$lib/state/commerce/ui.svelte.ts';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex.ts';
+  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import "./VerifiedReviews.css";
+
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
 
   const shopStore = getShopStore();
   const ui = getClientUi();
 
-  const product = $derived(shopStore.product);
+  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
   const metadata = $derived(product?.metadata || {});
   
   interface ReviewApiResponse {
@@ -230,13 +233,17 @@
         <span class="text-[10px] font-black text-red-500/80 uppercase tracking-[0.3em] font-mono">LIVE_ACTIVITY: {liveViewers} KHÁCH ĐANG XEM ĐÁNH GIÁ</span>
       </div>
       
-      <h2 class="section-headline mb-6">
-        {@html headline}
-      </h2>
+      <EditableWrapper path="metadata.reviews_headline" label="SỬA TIÊU ĐỀ ĐÁNH GIÁ">
+        <h2 class="section-headline mb-6">
+          {@html headline}
+        </h2>
+      </EditableWrapper>
 
-      <p class="section-description text-white/40 text-base md:text-lg max-w-3xl mx-auto leading-relaxed mb-10">
-        {@html subheadline}
-      </p>
+      <EditableWrapper path="metadata.reviews_subheadline" label="SỬA MÔ TẢ ĐÁNH GIÁ">
+        <p class="section-description text-white/40 text-base md:text-lg max-w-3xl mx-auto leading-relaxed mb-10">
+          {@html subheadline}
+        </p>
+      </EditableWrapper>
 
       <div class="flex flex-col items-center gap-8">
         <div class="trust-indicator-elite inline-flex flex-col sm:flex-row items-center gap-6 px-10 py-6 bg-white/[0.02] backdrop-blur-3xl rounded-[2rem] border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.5),inset_0_0_20px_rgba(255,255,255,0.02)]">
@@ -244,7 +251,9 @@
             <div class="flex flex-col items-center sm:items-start gap-1">
               <span class="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] font-mono">PRECISION_RATING</span>
               <div class="flex items-center gap-4">
-                <span class="text-3xl font-black text-white tracking-tighter italic">{labels.trust_score}</span>
+                <EditableWrapper path="metadata.reviews_trust_score" label="SỬA ĐIỂM TIN CẬY">
+                  <span class="text-3xl font-black text-white tracking-tighter italic">{labels.trust_score}</span>
+                </EditableWrapper>
                 <div class="flex items-center gap-1">
                   {#each [1, 2, 3, 4, 5] as star}
                     <svg class="w-4 h-4 {star <= 5 ? 'text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]' : 'text-white/5'}" fill="currentColor" viewBox="0 0 20 20">
@@ -258,7 +267,9 @@
 
           <div class="flex flex-col items-center sm:items-start gap-1">
              <span class="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] font-mono">GLOBAL_VOLUME</span>
-             <span class="text-xl font-bold text-white tracking-wider">{labels.count_text}</span>
+             <EditableWrapper path="metadata.reviews_count_text" label="SỬA LƯỢT ĐÁNH GIÁ">
+              <span class="text-xl font-bold text-white tracking-wider">{labels.count_text}</span>
+             </EditableWrapper>
           </div>
 
           <div class="w-px h-10 bg-white/10 hidden sm:block"></div>

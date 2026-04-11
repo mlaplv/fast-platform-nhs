@@ -19,6 +19,12 @@
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
   
   import type { PageData } from './$types';
+  
+  // Admin Live Editor (Elite V2.2)
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import AdminActionBar from '$lib/components/admin/AdminActionBar.svelte';
+  import LiveEditorOverlay from '$lib/components/admin/LiveEditorOverlay.svelte';
+  import LiveEditNotification from '$lib/components/admin/LiveEditNotification.svelte';
 
   let { data }: { data: PageData } = $props();
   let themeMode = $state<'system' | 'light' | 'dark'>('system');
@@ -87,6 +93,17 @@
       
       // Helen V2.2: Persistent Memory & Context Injection
       supportAgent.init(metadata.agent_name || 'Helen');
+      
+      // Admin Editor Init
+      if (product) {
+        liveEditStore.init(product);
+        
+        // Auto-enable edit mode if explicitly requested via URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('live_edit') === 'true' && liveEditStore.isAdmin) {
+            liveEditStore.isEditMode = true;
+        }
+      }
       
       const mq = window.matchMedia('(prefers-color-scheme: dark)');
       const h = (e: MediaQueryListEvent): void => {
@@ -315,6 +332,11 @@
   {/if}
   </div>
 {/if}
+
+<!-- Administrative HUD (Elite V2.2 Overlay Layer) -->
+<AdminActionBar />
+<LiveEditorOverlay />
+<LiveEditNotification />
 
 <style lang="postcss">
   .client-page-root {

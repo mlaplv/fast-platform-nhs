@@ -1,6 +1,9 @@
 <script lang="ts">
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { getClientUi } from '$lib/state/commerce/ui.svelte.ts';
+  import { resolveMediaUrl } from '$lib/state/utils';
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import type { Product, ProductVariant } from '$lib/types';
   import { SHOP_CONFIG, OFFER_CONSTANTS } from '$lib/constants/shop';
   import { ShoppingCart, CheckCircle2, Info } from 'lucide-svelte';
@@ -102,20 +105,31 @@
 
     <!-- Professional Headline Hierarchy! -->
     <div class="max-w-4xl mx-auto text-center" style:margin-bottom="var(--headline-mb)">
-      <h3 class="headline-title">
-        {@html mkt.headline}
-      </h3>
-      <p class="headline-sub">
-        {@html mkt.sub}
-      </p>
+      <EditableWrapper path="metadata.offer_headline" label="SỬA TIÊU ĐỀ ƯU ĐÃI">
+        <h3 class="headline-title">
+          {@html mkt.headline}
+        </h3>
+      </EditableWrapper>
+
+      <EditableWrapper path="metadata.offer_subheadline" label="SỬA MÔ TẢ ƯU ĐÃI">
+        <p class="headline-sub">
+          {@html mkt.sub}
+        </p>
+      </EditableWrapper>
 
       <!-- Integrated Trust Proof! -->
       <div class="flex items-center justify-center gap-4 mt-12 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
-         <span class="text-[8px] uppercase tracking-[0.4em] font-bold text-slate-400">{mkt.trust_verified_by}</span>
+         <EditableWrapper path="metadata.offer_trust_verified_by" label="SỬA NHÃN KIỂM ĐỊNH">
+           <span class="text-[8px] uppercase tracking-[0.4em] font-bold text-slate-400">{mkt.trust_verified_by}</span>
+         </EditableWrapper>
          <div class="h-px w-8 bg-slate-800"></div>
-         <span class="text-[9px] uppercase tracking-[0.2em] font-black text-slate-300">{mkt.trust_mark_2}</span>
+         <EditableWrapper path="metadata.offer_trust_mark_2" label="SỬA CHỨNG NHẬN 2">
+           <span class="text-[9px] uppercase tracking-[0.2em] font-black text-slate-300">{mkt.trust_mark_2}</span>
+         </EditableWrapper>
          <div class="h-px w-8 bg-slate-800"></div>
-         <span class="text-[8px] uppercase tracking-[0.4em] font-bold text-slate-400">{mkt.trust_mark_3}</span>
+         <EditableWrapper path="metadata.offer_trust_mark_3" label="SỬA CHỨNG NHẬN 3">
+           <span class="text-[8px] uppercase tracking-[0.4em] font-bold text-slate-400">{mkt.trust_mark_3}</span>
+         </EditableWrapper>
       </div>
     </div>
 
@@ -181,16 +195,29 @@
            <div class="mb-6">
              <div class="flex items-center justify-between mb-4">
                <p class="text-[8px] font-bold {idx === 1 ? 'text-cyan-400' : 'text-slate-500'} uppercase tracking-[0.4em]">
-                  {idx === 0 ? mkt.label_activation : mkt.label_full_treatment}
+                  <EditableWrapper path={idx === 0 ? "metadata.offer_label_activation" : "metadata.offer_label_full_treatment"} label="SỬA NHÃN GÓI">
+                    {idx === 0 ? mkt.label_activation : mkt.label_full_treatment}
+                  </EditableWrapper>
                </p>
                {#if idx > 0}
                  <div class="flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 border border-red-500/20 rounded text-[7px] font-black text-red-400 uppercase tracking-wider animate-pulse">
                    <span class="w-1 h-1 bg-red-400 rounded-full"></span>
-                   {mkt.label_scarcity}
+                   <EditableWrapper path="metadata.offer_label_scarcity" label="SỬA NHÃN KHAN HIẾM">
+                    {mkt.label_scarcity}
+                   </EditableWrapper>
                  </div>
                {/if}
              </div>
-             <h5 class="text-xl font-bold text-white mb-4">{getVariantTitle(variant)}</h5>
+              <div class="variant-image-outer mb-6 flex justify-center group-hover:scale-105 transition-transform duration-500">
+                <EditableWrapper path="images.0" type="image" label="SỬA ẢNH COMBO">
+                    <img 
+                       src="{shopStore.product?.images?.[0] ? resolveMediaUrl(shopStore.product.images[0]) : ''}" 
+                       alt="{getVariantTitle(variant)}" 
+                       class="w-full h-32 object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
+                    />
+                </EditableWrapper>
+              </div>
+              <h5 class="text-xl font-bold text-white mb-4">{getVariantTitle(variant)}</h5>
 
              <div class="flex items-baseline gap-3 mb-2">
                {#if (shopStore.originalPrice * shopStore.quantity) > shopStore.totalAmount && shopStore.variant?.sku === variant.sku}
@@ -204,12 +231,27 @@
              </div>
 
               {#if idx === 0}
-                 <p class="shipping-label text-[9px] text-blue-400 font-bold uppercase tracking-widest">{mkt.shipping_prefix} {SHOP_CONFIG.shipping.fixed_cost.toLocaleString()}đ</p>
+                  <p class="shipping-label text-[9px] text-blue-400 font-bold uppercase tracking-widest">
+                    <EditableWrapper path="metadata.offer_shipping_prefix" label="SỬA NHÃN SHIP">
+                      {mkt.shipping_prefix}
+                    </EditableWrapper>
+                    {SHOP_CONFIG.shipping.fixed_cost.toLocaleString()}đ
+                  </p>
               {:else}
-                 <div class="flex flex-col gap-1">
-                   <p class="text-[9px] text-emerald-400 font-bold uppercase tracking-widest">{mkt.savings_prefix} {(variant.price - (variant.discountPrice || variant.price)).toLocaleString()}đ</p>
-                   <p class="booking-suffix text-[8px] text-slate-500 italic opacity-60">🔥 {bookingPoints[idx]} {mkt.booking_suffix}</p>
-                 </div>
+                  <div class="flex flex-col gap-1">
+                    <p class="text-[9px] text-emerald-400 font-bold uppercase tracking-widest">
+                      <EditableWrapper path="metadata.offer_savings_prefix" label="SỬA NHÃN TIẾT KIỆM">
+                        {mkt.savings_prefix}
+                      </EditableWrapper>
+                      {(variant.price - (variant.discountPrice || variant.price)).toLocaleString()}đ
+                    </p>
+                    <p class="booking-suffix text-[8px] text-slate-500 italic opacity-60">
+                      🔥 {bookingPoints[idx]} 
+                      <EditableWrapper path="metadata.offer_booking_suffix" label="SỬA NHÃN ĐẶT HÀNG">
+                        {mkt.booking_suffix}
+                      </EditableWrapper>
+                    </p>
+                  </div>
               {/if}
            </div>
 
@@ -232,7 +274,9 @@
                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none"></div>
                 <div class="flex items-center gap-2">
                   <ShoppingCart class="w-3.5 h-3.5 mb-0.5" strokeWidth={3} />
-                  <span>{idx === 0 ? mkt.cta_start : mkt.cta_full}</span>
+                  <EditableWrapper path={idx === 0 ? "metadata.offer_cta_start" : "metadata.offer_cta_full"} label="SỬA CHỮ NÚT BẤM">
+                    <span>{idx === 0 ? mkt.cta_start : mkt.cta_full}</span>
+                  </EditableWrapper>
                 </div>
              </button>
 
@@ -263,23 +307,33 @@
         <div class="info-grid">
           <!-- Identity -->
           <div class="contact-item">
-            <span class="label uppercase">{mkt.label_distributor}</span>
-            <span class="value text-white font-bold text-lg block mb-2">{mkt.pharmacy_name}</span>
+            <EditableWrapper path="metadata.offer_label_distributor" label="SỬA NHÃN PHÂN PHỐI">
+              <span class="label uppercase">{mkt.label_distributor}</span>
+            </EditableWrapper>
+            <EditableWrapper path="metadata.offer_pharmacy_name" label="SỬA TÊN CÔNG TY">
+              <span class="value text-white font-bold text-lg block mb-2">{mkt.pharmacy_name}</span>
+            </EditableWrapper>
             <div class="flex items-start gap-2">
               <svg class="w-3.5 h-3.5 text-slate-500 mt-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              <span class="value text-[11px] text-slate-400">{mkt.pharmacy_address}</span>
+              <EditableWrapper path="metadata.offer_pharmacy_address" label="SỬA ĐỊA CHỈ">
+                <span class="value text-[11px] text-slate-400">{mkt.pharmacy_address}</span>
+              </EditableWrapper>
             </div>
           </div>
 
           <!-- Connectivity -->
           <div class="contact-item">
-            <span class="label uppercase">{mkt.label_support}</span>
+            <EditableWrapper path="metadata.offer_label_support" label="SỬA NHÃN HỖ TRỢ">
+              <span class="label uppercase">{mkt.label_support}</span>
+            </EditableWrapper>
             <div class="space-y-3">
               <a href="tel:{mkt.pharmacy_phone.replace(/\s/g, '')}" class="flex items-center gap-3 group/link">
                 <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20 group-hover/link:bg-blue-500/20 transition-colors">
                   <svg class="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 005.47 5.47l.772-1.547a1 1 0 011.06-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/></svg>
                 </div>
-                <span class="value font-bold text-blue-400">{mkt.pharmacy_phone}</span>
+                <EditableWrapper path="metadata.offer_pharmacy_phone" label="SỬA HOTLINE">
+                  <span class="value font-bold text-blue-400">{mkt.pharmacy_phone}</span>
+                </EditableWrapper>
               </a>
               <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">

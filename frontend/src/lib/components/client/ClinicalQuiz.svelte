@@ -7,6 +7,9 @@
   import DiagnosticScanner from './slug/DiagnosticScanner.svelte';
   import "./slug/LiquidEffects.css";
 
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import { Plus, Trash2, PlusCircle, Target, RefreshCcw } from 'lucide-svelte';
+
   let { 
     product, 
     metadata: propMetadata, 
@@ -20,7 +23,8 @@
   const shopStore = getShopStore();
 
   const metadata = $derived(propMetadata || product?.metadata || {});
-  const questions = $derived(propQuestions || metadata.quiz_questions || []);
+  const questions = $derived(propQuestions || (metadata.quiz_questions as QuizQuestion[]) || []);
+  const isEditable = $derived(liveEditStore.isEditMode && liveEditStore.isAdmin);
 
   const QUIZ_FALLBACKS = {
     result_headline: 'PHÁC ĐỒ ĐIỀU TRỊ <br/><span class="text-blue-500/80">ĐỘC QUYỜN.</span>',
@@ -31,11 +35,11 @@
   };
 
   const labels = $derived({
-    result_headline: metadata.quiz_result_headline || QUIZ_FALLBACKS.result_headline,
-    result_subheadline: metadata.quiz_result_subheadline || QUIZ_FALLBACKS.result_subheadline,
-    result_cta: metadata.quiz_result_cta || QUIZ_FALLBACKS.result_cta,
-    restart_label: metadata.quiz_restart_label || QUIZ_FALLBACKS.restart_label,
-    loading_label: metadata.quiz_loading_label || QUIZ_FALLBACKS.loading_label
+    result_headline: (metadata.quiz_result_headline as string) || QUIZ_FALLBACKS.result_headline,
+    result_subheadline: (metadata.quiz_result_subheadline as string) || QUIZ_FALLBACKS.result_subheadline,
+    result_cta: (metadata.quiz_result_cta as string) || QUIZ_FALLBACKS.result_cta,
+    restart_label: (metadata.quiz_restart_label as string) || QUIZ_FALLBACKS.restart_label,
+    loading_label: (metadata.quiz_loading_label as string) || QUIZ_FALLBACKS.loading_label
   });
 
   let currentStep = $state(0);
@@ -43,6 +47,37 @@
   let progress = $derived(questions.length > 0 ? (currentStep / questions.length) * 100 : 0);
 
   let quizContainer = $state<HTMLElement | null>(null);
+
+  // Elite V2.2: Absolute Direct Editing Logic
+  function addQuestion() {
+    const newQuestions = [...questions, {
+      id: `q_${Date.now()}`,
+      title: "Câu hỏi mới?",
+      subtitle: "Mô tả ngắn cho câu hỏi này...",
+      options: [
+        { label: "Lựa chọn 1", value: "opt1", score: 0, icon: "Circle" },
+        { label: "Lựa chọn 2", value: "opt2", score: 0, icon: "Circle" }
+      ]
+    }];
+    liveEditStore.updateField('metadata.quiz_questions', newQuestions);
+  }
+
+  function removeQuestion(idx: number) {
+    const newQuestions = questions.filter((_, i) => i !== idx);
+    liveEditStore.updateField('metadata.quiz_questions', newQuestions);
+  }
+
+  function addOption(qIdx: number) {
+    const newQuestions = JSON.parse(JSON.stringify(questions));
+    newQuestions[qIdx].options.push({ label: "Lựa chọn mới", value: `v_${Date.now()}`, score: 0, icon: "Circle" });
+    liveEditStore.updateField('metadata.quiz_questions', newQuestions);
+  }
+
+  function removeOption(qIdx: number, oIdx: number) {
+    const newQuestions = JSON.parse(JSON.stringify(questions));
+    newQuestions[qIdx].options.splice(oIdx, 1);
+    liveEditStore.updateField('metadata.quiz_questions', newQuestions);
+  }
 
   function nextStep(value: string, label: string) {
     answers.push({ q: questions[currentStep].title, a: label });
@@ -94,7 +129,89 @@
     </div>
   </div>
 
-  {#if questions.length > 0}
+  {#if isEditable}
+    <div class="edit-mode-container relative z-surface animate-reveal py-4">
+        <div class="flex items-center justify-between mb-10 border-b border-white/5 pb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_10px_#3b82f6]"></div>
+                <h3 class="text-sm font-black text-white uppercase tracking-[0.4em]">QUIZ_DIRECT_ENGINE // V2.2</h3>
+            </div>
+            <button 
+                onclick={addQuestion}
+                class="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase rounded-full shadow-xl active:scale-95 transition-all"
+            >
+                <Plus size={14} /> THÊM CÂU HỎI MỚI
+            </button>
+        </div>
+
+        <div class="space-y-12 max-h-[70vh] overflow-y-auto px-4 custom-scrollbar">
+            {#each questions as question, qIdx (question.id)}
+                <div class="edit-question-card bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-8 relative group/q h-fit">
+                    <button 
+                        onclick={() => removeQuestion(qIdx)}
+                        class="absolute -top-3 -right-3 w-8 h-8 bg-red-500/10 hover:bg-red-500 text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover/q:opacity-100 transition-all border border-red-500/20"
+                    >
+                        <Trash2 size={12} />
+                    </button>
+
+                    <div class="flex gap-6">
+                        <div class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white/20 font-black italic shrink-0">{qIdx + 1}</div>
+                        <div class="flex-1 space-y-6 text-left">
+                            <div class="space-y-2">
+                                <label class="text-[8px] font-black text-white/20 uppercase tracking-widest pl-1">Question Title</label>
+                                <input 
+                                    bind:value={question.title}
+                                    class="w-full bg-transparent border-b border-white/10 focus:border-blue-500 py-1 text-2xl font-bold text-white outline-none transition-all"
+                                    oninput={() => liveEditStore.updateField(`metadata.quiz_questions.${qIdx}.title`, question.title)}
+                                />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[8px] font-black text-white/20 uppercase tracking-widest pl-1">Context / Subtitle</label>
+                                <input 
+                                    bind:value={question.subtitle}
+                                    class="w-full bg-transparent border-b border-white/5 focus:border-blue-500/40 py-1 text-sm text-white/50 outline-none transition-all"
+                                    oninput={() => liveEditStore.updateField(`metadata.quiz_questions.${qIdx}.subtitle`, question.subtitle)}
+                                />
+                            </div>
+
+                            <div class="space-y-4 pt-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[8px] font-black text-blue-400/60 uppercase tracking-widest">Options Configuration</span>
+                                    <button onclick={() => addOption(qIdx)} class="text-[8px] font-black text-white/20 hover:text-blue-400 uppercase tracking-widest flex items-center gap-1">
+                                        <PlusCircle size={10} /> ADD_OPTION
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {#each question.options as option, oIdx}
+                                        <div class="flex items-center gap-3 p-3 bg-white/[0.03] border border-white/5 rounded-xl group/opt">
+                                            <input 
+                                                bind:value={option.label}
+                                                class="flex-1 bg-transparent text-xs font-bold text-white outline-none"
+                                                oninput={() => liveEditStore.updateField(`metadata.quiz_questions.${qIdx}.options.${oIdx}.label`, option.label)}
+                                            />
+                                            <div class="flex items-center gap-1 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
+                                                <Target size={10} class="text-white/20" />
+                                                <input 
+                                                    type="number" 
+                                                    bind:value={option.score}
+                                                    class="w-6 bg-transparent text-[10px] font-black text-blue-400 text-center outline-none"
+                                                    oninput={() => liveEditStore.updateField(`metadata.quiz_questions.${qIdx}.options.${oIdx}.score`, option.score)}
+                                                />
+                                            </div>
+                                            <button onclick={() => removeOption(qIdx, oIdx)} class="text-red-500/20 hover:text-red-400 opacity-0 group-hover/opt:opacity-100 transition-opacity">
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </div>
+                                    {/each}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {/each}
+        </div>
+    </div>
+  {:else if questions.length > 0}
     {#if currentStep < questions.length}
       <div id="s{currentStep + 1}" class="step-container relative z-surface" in:fly={{ y: 30, duration: 800, easing: quintOut }}>
         <div class="mb-8 md:mb-10 text-left">

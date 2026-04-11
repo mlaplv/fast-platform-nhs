@@ -3,17 +3,21 @@
   import type { QuizQuestion, ProductMetadata, Product } from '$lib/types';
   import { SHOP_CONFIG } from '$lib/constants/shop';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import "./DiagnosticsSection.css";
   import "./LiquidEffects.css";
 
-  let { product = $bindable() } = $props<{ product?: Product }>();
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+
+  let { product: propProduct = $bindable() } = $props<{ product?: Product }>();
   const shopStore = getShopStore();
   
+  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
   const metadata = $derived(product?.metadata || {});
   const questions = $derived(metadata?.quiz_questions || []);
 
   const labels = $derived({
-    headline: metadata.diagnostics_headline || 'CHẨN ĐOÁN PHỤC HỒI CHUYÊN SÂU',
+    headline: metadata.diagnostics_headline || 'DỰ ĐOÁN PHỤC HỒI CHUYÊN SÂU',
     subheadline: metadata.diagnostics_subheadline || `Để hệ thống Trí tuệ Nhân tạo của <span class="text-white/60">${SHOP_CONFIG.pharmacy.name}</span> thiết lập phác đồ liều lượng tối ưu nhất, vui lòng phản hồi chính xác tình trạng hiện tại của Sếp.`,
     disclaimer: metadata.diagnostics_disclaimer || `MICSMO - Gemini là AI và có thể mắc sai sót.`
   });
@@ -21,13 +25,17 @@
 
 <section id="diagnostics-section" aria-labelledby="personalized-care" class="snap-session-standard diagnostics-container diagnostic-premium-flow relative overflow-x-hidden">
   <div class="container mx-auto px-4 md:px-6 max-w-7xl text-center relative z-surface">
-    <h3 id="personalized-care" class="section-title text-neural font-black tracking-tight leading-none uppercase mb-4 text-4xl md:text-6xl">
-      {@html labels.headline}
-    </h3>
+    <EditableWrapper path="metadata.diagnostics_headline" label="SỬA TIÊU ĐỀ CHẨN ĐOÁN">
+      <h3 id="personalized-care" class="section-title text-neural font-black tracking-tight leading-none uppercase mb-4 text-4xl md:text-6xl">
+        {@html labels.headline}
+      </h3>
+    </EditableWrapper>
 
-    <p class="section-description text-white/40 text-base md:text-lg max-w-2xl mx-auto leading-relaxed mb-8">
-      {@html labels.subheadline}
-    </p>
+    <EditableWrapper path="metadata.diagnostics_subheadline" label="SỬA MÔ TẢ CHẨN ĐOÁN">
+      <p class="section-description text-white/40 text-base md:text-lg max-w-2xl mx-auto leading-relaxed mb-8">
+        {@html labels.subheadline}
+      </p>
+    </EditableWrapper>
 
     <div class="quiz-wrapper relative">
       <ClinicalQuiz {product} {questions} {metadata} />
@@ -38,7 +46,9 @@
       <svg class="w-4 h-4 text-emerald-500/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
       </svg>
-      {labels.disclaimer}
+      <EditableWrapper path="metadata.diagnostics_disclaimer" label="SỬA LỜI NHẮC">
+        {labels.disclaimer}
+      </EditableWrapper>
     </div>
   </div>
   <!-- Dynamic Line Wave Divider - Refined Analytical Diag! -->

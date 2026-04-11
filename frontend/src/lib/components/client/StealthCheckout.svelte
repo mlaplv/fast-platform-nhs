@@ -2,6 +2,8 @@
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex.ts';
   import { onMount } from 'svelte';
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import "./StealthCheckout.css";
 
   const shopStore = getShopStore();
@@ -141,6 +143,14 @@
 
     await shopStore.submitCheckout({ phone, address, name });
   }
+
+  const metadata = $derived(shopStore.product?.metadata || {});
+  const labels = $derived({
+    headline: metadata.checkout_headline || 'Ưu tiên kích hoạt liệu trình',
+    subheadline: metadata.checkout_subheadline || 'Chỉ còn 1 bước cuối để dứt điểm...',
+    cta_text: metadata.checkout_cta_text || 'KÍCH HOẠT & NHẬN ƯU ĐÃI',
+    variant_title: metadata.checkout_variant_title || 'Dành riêng cho bạn'
+  });
 </script>
 
 {#if shopStore.isCheckoutOpen}
@@ -172,8 +182,12 @@
       <header class="mb-6">
         <div class="flex items-end justify-between">
           <div>
-            <p class="section-eyebrow mb-1">Chỉ còn 1 bước cuối để dứt điểm...</p>
-            <h2 class="drawer-title">Ưu tiên kích hoạt liệu trình</h2>
+            <EditableWrapper path="metadata.checkout_subheadline" label="SỬA MÔ TẢ GIỎ HÀNG">
+              <p class="section-eyebrow mb-1">{labels.subheadline}</p>
+            </EditableWrapper>
+            <EditableWrapper path="metadata.checkout_headline" label="SỬA TIÊU ĐỀ GIỎ HÀNG">
+              <h2 class="drawer-title">{labels.headline}</h2>
+            </EditableWrapper>
           </div>
           <div class="ssl-badge">
             {#if shopStore.customerData?.isTrustedDevice}
@@ -195,7 +209,9 @@
         <section class="mb-6">
           <div class="section-header mb-3">
             <div class="flex items-center gap-2">
-              <span class="section-eyebrow">Dành riêng cho bạn</span>
+              <EditableWrapper path="metadata.checkout_variant_title" label="SỬA TIÊU ĐỀ BIẾN THỂ">
+                <span class="section-eyebrow">{labels.variant_title}</span>
+              </EditableWrapper>
               <div class="h-1 w-1 bg-white/20 rounded-full"></div>
               <span class="text-[8px] font-bold text-emerald-400 animate-pulse">● {liveViewCount} người đang xem</span>
             </div>
@@ -214,7 +230,9 @@
                   </div>
                 {/if}
                 <div class="variant-img-wrap">
-                  <img src={getVariantImage(v)} alt={getVariantName(v)} class="variant-img" />
+                  <EditableWrapper path="images.0" type="image" label="SỬA ẢNH GIỎ HÀNG">
+                    <img src={getVariantImage(v)} alt={getVariantName(v)} class="variant-img" />
+                  </EditableWrapper>
                   {#if active}
                     <div class="variant-check-overlay">
                       <div class="variant-check">
@@ -379,19 +397,20 @@
           <div class="api-error">{shopStore.error}</div>
         {/if}
 
-        <!-- CTA Button -->
-        <button
-          onclick={handleSubmit}
-          disabled={isSubmitting}
-          class="btn-cta"
-        >
-          {#if isSubmitting}
-            <div class="spinner"></div>
-            <span>Hệ thống đang ưu tiên xử lý...</span>
-          {:else}
-            <div class="btn-cta-inner">
-              <span class="btn-cta-label">KÍCH HOẠT & NHẬN ƯU ĐÃI</span>
-              {#if savedAmount > 0}
+          <button
+            onclick={handleSubmit}
+            disabled={isSubmitting}
+            class="btn-cta"
+          >
+            {#if isSubmitting}
+              <div class="spinner"></div>
+              <span>Hệ thống đang ưu tiên xử lý...</span>
+            {:else}
+              <div class="btn-cta-inner">
+                <EditableWrapper path="metadata.checkout_cta_text" label="SỬA NÚT ĐẶT HÀNG">
+                  <span class="btn-cta-label">{labels.cta_text}</span>
+                </EditableWrapper>
+                {#if savedAmount > 0}
                 <span class="btn-cta-saving">
                   <span class="saving-fire">🔥</span>
                   Tiết kiệm {savedAmount.toLocaleString()}đ + Miễn phí ship 30-60k hôm nay

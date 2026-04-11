@@ -197,6 +197,15 @@
             >
               <ExternalLink size={14} />
             </a>
+            <a
+              href="/{product.slug}-funnel?live_edit=true"
+              target="_blank"
+              class="p-2 text-[#00FFFF] hover:text-white transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-[#00FFFF]/20 hover:border-[#00FFFF]/40 shadow-sm"
+              title="Edit Live (Supper Admin Only)"
+              onclick={(e: MouseEvent) => e.stopPropagation()}
+            >
+              <Sparkles size={14} />
+            </a>
             <button
               onclick={(e: MouseEvent) => { e.stopPropagation(); onEdit(product); }}
               class="p-2 text-gray-400 md:text-gray-500 hover:text-[#00FFFF] transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-transparent hover:border-[#00FFFF]/20 shadow-sm"
