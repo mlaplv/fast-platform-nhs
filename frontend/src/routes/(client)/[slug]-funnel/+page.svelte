@@ -182,6 +182,9 @@
     // Viral 2026: Chat Interception - Only return if scrolling INSIDE the chat modal
     const target = e.target as HTMLElement;
     if (supportAgent.isOpen && target?.closest?.('.support-chat-container')) return;
+
+    // Elite V2.2 Escape: Don't hijack scroll if we are in Edit Mode and hovering over an editor
+    if (liveEditStore.isEditMode && (target?.closest('.edit-mode-container') || target?.closest('.editor-box'))) return;
     
     // Ignore micro-scrolls (e.g., trackpad resting)
     if (Math.abs(e.deltaY) < 15) return;
