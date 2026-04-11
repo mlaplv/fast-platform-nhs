@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Music, Zap, ShieldCheck, Droplets, Eye, Clock, Flame, ArrowRight, Star, StarHalf } from 'lucide-svelte';
+  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import './MobileHero.css';
   import { resolveMediaUrl } from '$lib/state/utils';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
@@ -143,19 +144,23 @@
                <span class="text-[10px] text-white/70 tracking-wide font-medium ml-1">· {formattedSales} đã bán</span>
             </div>
 
-            <p class="text-[12px] text-white/90 line-clamp-2 leading-relaxed italic font-medium max-w-[90%] pr-14 drop-shadow-sm">
-               {product?.shortDescription || 'Phác đồ Liposome dứt điểm hắc sắc tố, tái sinh vùng da thâm sạm.'}
-            </p>
+            <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN" class="max-w-[90%] pr-14">
+               <p class="text-[12px] text-white/90 line-clamp-2 leading-relaxed italic font-medium drop-shadow-sm">
+                  {product?.shortDescription || 'Phác đồ Liposome dứt điểm hắc sắc tố, tái sinh vùng da thâm sạm.'}
+               </p>
+            </EditableWrapper>
             
             <div class="flex flex-wrap gap-2 mt-1 pr-14">
-              {#each metrics.slice(0, 3) as metric}
+              {#each metrics.slice(0, 3) as metric, i}
                 {@const Icon = iconMap[metric.color] || Zap}
-                <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-xl rounded-md border border-white/20 shadow-lg">
-                   <Icon class="w-3 h-3 text-{metric.color || 'blue'}-400" />
-                   <span class="text-[9px] font-black text-white/90 uppercase tracking-tight">
-                     {metric.value}
-                   </span>
-                </div>
+                <EditableWrapper path="metadata.hero_metrics[{i}].value" label="SỬA CHỈ SỐ {i+1}" class="flex items-center">
+                  <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-xl rounded-md border border-white/20 shadow-lg">
+                    <Icon class="w-3 h-3 text-{metric.color || 'blue'}-400" />
+                    <span class="text-[9px] font-black text-white/90 uppercase tracking-tight">
+                      {metric.value}
+                    </span>
+                  </div>
+                </EditableWrapper>
               {/each}
             </div>
 

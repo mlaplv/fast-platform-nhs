@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
   import { SHOP_CONFIG, OFFER_CONSTANTS } from '$lib/constants/shop';
   import { resolveMediaUrl } from '$lib/state/utils';
@@ -113,11 +114,16 @@
     </div>
 
     <!-- Master Branding Headline -->
-    <div class="text-center mt-1">
-      <h2 class="text-[18px] font-black text-white leading-[1.2] tracking-tight italic mb-1 drop-shadow-sm uppercase">
-        {@html mkt.headline}
-      </h2>
-      <p class="text-[10px] text-[#A6C0FE] tracking-widest font-bold opacity-70">{@html mkt.sub}</p>
+    <div class="text-center mt-1 w-full px-6">
+      <EditableWrapper path="metadata.offer_headline" label="SỬA TIÊU ĐỀ" type="html" class="w-full block">
+        <h2 class="text-[18px] font-black text-white leading-[1.2] tracking-tight italic mb-1 drop-shadow-sm uppercase">
+          {@html mkt.headline}
+        </h2>
+      </EditableWrapper>
+
+      <EditableWrapper path="metadata.offer_subheadline" label="SỬA MÔ TẢ PHỤ" type="html" class="w-full block opacity-70">
+        <p class="text-[10px] text-[#A6C0FE] tracking-widest font-bold">{@html mkt.sub}</p>
+      </EditableWrapper>
     </div>
   </div>
   <div class="flex-1 flex flex-col z-surface overflow-y-auto pb-4 space-y-2.5">

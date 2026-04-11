@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ShieldCheck, Zap, Droplets } from 'lucide-svelte';
+  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import './MobileScience.css';
   
   let { product } = $props();
@@ -35,25 +36,35 @@
   <div class="science-glow-2"></div>
 
   <div class="science-header">
-    <h2 class="science-headline">
-      {metadata.science_headline || 'TẠI SAO LẠI HIỆU QUẢ VƯỢT TRỘI?'}
-    </h2>
-    <p class="science-subheadline">
-      {metadata.science_subheadline || `Đột phá công thức "Bodycare" hàng đầu từ Nhật Bản.`}
-    </p>
+    <EditableWrapper path="metadata.science_headline" label="SỬA TIÊU ĐỀ" class="w-full block">
+      <h2 class="science-headline">
+        {metadata.science_headline || 'TẠI SAO LẠI HIỆU QUẢ VƯỢT TRỘI?'}
+      </h2>
+    </EditableWrapper>
+    
+    <EditableWrapper path="metadata.science_subheadline" label="SỬA MÔ TẢ PHỤ" class="w-full block">
+      <p class="science-subheadline">
+        {metadata.science_subheadline || `Đột phá công thức "Bodycare" hàng đầu từ Nhật Bản.`}
+      </p>
+    </EditableWrapper>
   </div>
 
   <div class="science-claims-stack">
-    {#each tech as item}
+    {#each tech as item, i}
       {@const Icon = item.icon}
       <div class="claim-card group">
         <div class="claim-icon-box">
           <div class="claim-icon-glow"></div>
           <Icon class="w-6 h-6 text-blue-400 relative z-surface" />
         </div>
-        <div>
-          <h4 class="claim-title">{item.title}</h4>
-          <p class="claim-desc">{@html item.desc}</p>
+        <div class="flex-1">
+          <EditableWrapper path="metadata.science_claims[{i}].label" label="SỬA NHÃN {i+1}" class="mb-1">
+            <h4 class="claim-title">{item.title}</h4>
+          </EditableWrapper>
+
+          <EditableWrapper path="metadata.science_claims[{i}].content" label="SỬA MÔ TẢ {i+1}" type="html" class="w-full">
+            <p class="claim-desc">{@html item.desc}</p>
+          </EditableWrapper>
         </div>
       </div>
     {/each}

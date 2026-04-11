@@ -9,10 +9,11 @@
     path: string;
     type?: 'text' | 'html' | 'image' | 'video' | 'quiz' | 'metrics';
     label?: string;
+    class?: string;
     children?: import('svelte').Snippet;
   }
 
-  let { path, type = 'text', label = 'SỬA NỘI DUNG', children }: Props = $props();
+  let { path, type = 'text', label = 'SỬA NỘI DUNG', children, ...props }: Props = $props();
 
   const isEditMode = $derived(liveEditStore.isEditMode);
   const isAdmin = $derived(liveEditStore.isAdmin);
@@ -40,13 +41,20 @@
     return current || fallback;
   };
 
-  function handleEditClick(e: MouseEvent) {
+  function triggerHaptic(strength = 10) {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(strength);
+    }
+  }
+
+  function handleEditClick(e: MouseEvent | TouchEvent) {
     if (!isEditMode) return;
     e.preventDefault();
     e.stopPropagation();
     
       // For text/html, use inline editing
     if (type === 'text' || type === 'html') {
+      triggerHaptic(15);
       liveEditStore.activePath = path;
       // Elite V2.2: Capture current screen text as fallback if store is empty
       const container = wrapperRef?.querySelector('.content-container');
@@ -146,10 +154,11 @@
 
 <div 
   bind:this={wrapperRef}
-  class="editable-wrapper relative group/editable {isEditMode ? 'cursor-pointer' : ''} {showSuccessFlash ? 'success-flash' : ''}"
+  class="editable-wrapper relative group/editable {isEditMode ? 'cursor-pointer' : ''} {showSuccessFlash ? 'success-flash' : ''} {props.class || ''}"
   onmouseenter={() => isHovered = true}
   onmouseleave={() => isHovered = false}
   onclick={handleEditClick}
+  ontouchend={handleEditClick}
   role="presentation"
 >
   {#if isAdmin && isEditMode}
@@ -165,62 +174,78 @@
                 role="presentation"
             ></div>
             
-            <!-- Fixed Editor Overlay (Centered) -->
+            <!-- Fixed Editor Overlay (Responsive HUD) -->
             <div 
-                class="fixed inset-0 flex items-center justify-center p-6 pointer-events-none" 
+                class="fixed inset-0 flex items-end md:items-center justify-center md:pb-6 pointer-events-none" 
                 style:z-index={Z_INDEX_ADMIN.EDITOR}
-                transition:fade={{ duration: 200 }}
+                transition:fade={{ duration: 250 }}
             >
-                <div class="relative w-full max-w-3xl pointer-events-auto animate-editor-reveal">
-                    <textarea
-                        bind:value={inlineValue}
-                        autofocus
-                        onblur={() => setTimeout(saveInline, 100)}
-                        onkeydown={handleKeydown}
-                        oninput={(e) => autoResize(e.currentTarget)}
-                        class="inline-edit-ta w-full bg-[#0d1117] text-white border-2 border-blue-500/50 rounded-3xl p-10 outline-none shadow-[0_40px_120px_rgba(0,0,0,0.9),0_0_60px_rgba(59,130,246,0.2)] font-sans resize-none overflow-hidden transition-all focus:border-blue-500"
-                        style="font-size: 1.25rem; line-height: 1.6; font-weight: 500; text-align: left; min-height: 160px;"
-                    ></textarea>
+                <!-- Mobile BottomSheet (Native App Feel) / Desktop Box (Elite Glass) -->
+                <div class="relative w-full md:max-w-3xl h-[85dvh] md:h-auto bg-black md:bg-[#0d1117] rounded-t-[40px] md:rounded-[40px] shadow-[0_-15px_60px_rgba(0,0,0,0.9)] md:shadow-[0_40px_120px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col pointer-events-auto animate-editor-reveal">
                     
-                    <!-- Elite Toolbar -->
-                    <div class="absolute -bottom-4 right-8 flex gap-3">
-                        <button class="bg-blue-600 text-white text-[11px] font-black px-8 py-4 rounded-2xl shadow-2xl hover:bg-blue-500 transition-all active:scale-95 flex items-center gap-3 uppercase tracking-[0.2em]" onclick={saveInline}>
-                            <Check size={16} strokeWidth={3} />
-                            LƯU THAY ĐỔI
-                        </button>
-                        <button class="bg-slate-800 text-white/40 text-[11px] font-black px-8 py-4 rounded-2xl hover:bg-slate-700 hover:text-white/70 transition-all active:scale-95 uppercase tracking-[0.2em]" onclick={cancelInline}>HỦY (ESC)</button>
+                    <!-- Elite Mobile Drag Handle -->
+                    <div class="md:hidden w-full flex justify-center pt-5 pb-3">
+                        <div class="w-10 h-1 bg-white/20 rounded-full"></div>
                     </div>
+
+                    <!-- Lean Header Toolbar (Top-Right Action) -->
+                    <div class="flex items-center justify-between px-8 py-4 md:border-b border-white/5 bg-transparent md:bg-slate-900/50 backdrop-blur-sm">
+                        <span class="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] italic">{label}</span>
+                        <div class="flex items-center gap-4">
+                            <button class="text-white/40 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors" onclick={() => { triggerHaptic(5); cancelInline(); }}>HỦY</button>
+                            <button class="bg-blue-600 text-white text-[10px] font-black px-8 py-3 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)] active:scale-95 flex items-center gap-2 uppercase tracking-widest" onclick={() => { triggerHaptic(20); saveInline(); }}>
+                                <Check size={14} strokeWidth={4} />
+                                XONG
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 p-8 md:p-14 overflow-y-auto">
+                        <textarea
+                            bind:value={inlineValue}
+                            autofocus
+                            onblur={() => setTimeout(saveInline, 100)}
+                            onkeydown={handleKeydown}
+                            oninput={(e) => autoResize(e.currentTarget)}
+                            class="inline-edit-ta w-full h-full bg-transparent text-white outline-none font-sans resize-none transition-all placeholder:text-white/5"
+                            style="font-size: 1.25rem; line-height: 1.5; font-weight: 500; text-align: left;"
+                            placeholder="Chạm để bắt đầu nhập..."
+                        ></textarea>
+                    </div>
+
+                    <!-- Bottom Safety Pad for Mobile -->
+                    <div class="h-10 md:hidden bg-transparent"></div>
                 </div>
             </div>
         </div>
     {:else if !shouldHideHUD}
         <!-- Elite V2.2: Precision Focus Frame -->
         <div 
-            class="absolute -inset-2 border border-blue-500/0 group-hover/editable:border-blue-500/40 rounded-xl transition-all duration-300 pointer-events-none overflow-visible"
+            class="absolute -inset-2 border md:border-blue-500/0 border-blue-500/40 md:group-hover/editable:border-blue-500/40 rounded-xl transition-all duration-300 pointer-events-none overflow-visible"
             style:z-index={Z_INDEX_ADMIN.HUD}
         >
           <!-- Glow Corner Tags -->
-          <div class="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full opacity-0 group-hover/editable:opacity-100 shadow-[0_0_10px_#3b82f6]"></div>
+          <div class="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full opacity-100 md:opacity-0 md:group-hover/editable:opacity-100 shadow-[0_0_10px_#3b82f6]"></div>
           
-          <!-- Label HUD -->
-          <div class="absolute bottom-full left-0 mb-2 opacity-0 group-hover/editable:opacity-100 transition-opacity flex items-center gap-2 bg-blue-600 px-3 py-1 rounded-full whitespace-nowrap shadow-xl">
+          <!-- Label HUD (Elite Adaptive Design) -->
+          <div class="absolute bottom-full left-0 mb-2 opacity-100 md:opacity-0 md:group-hover/editable:opacity-100 transition-opacity flex items-center gap-2 bg-blue-600 md:px-3 md:py-1 p-1.5 rounded-full whitespace-nowrap shadow-xl">
             {#if type === 'image' || type === 'video'}
-                <ImageIcon size={10} class="text-white" />
+                <ImageIcon size={12} class="text-white" />
             {:else if type === 'quiz'}
-                <Settings2 size={10} class="text-white" />
+                <Settings2 size={12} class="text-white" />
             {:else}
-                <Edit size={10} class="text-white" />
+                <Edit size={12} class="text-white" />
             {/if}
-            <span class="text-[8px] font-black text-white uppercase tracking-widest">{label}</span>
+            <span class="text-[8px] font-black text-white uppercase tracking-widest hidden md:inline">{label}</span>
           </div>
         </div>
         
         <!-- Pulse Overlay -->
-        <div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover/editable:opacity-100 transition-opacity rounded-lg pointer-events-none"></div>
+        <div class="absolute inset-0 bg-blue-500/5 opacity-100 md:opacity-0 md:group-hover/editable:opacity-100 transition-opacity rounded-lg pointer-events-none"></div>
     {/if}
   {/if}
 
-  <div class="content-container {isInlineEditing ? 'opacity-20 blur-sm pointer-events-none' : ''} transition-all duration-300" style="display: contents;">
+  <div class="content-container {isInlineEditing ? 'opacity-20 blur-sm pointer-events-none' : ''} transition-all duration-300 relative">
     {@render children?.()}
   </div>
 </div>
@@ -241,11 +266,11 @@
   }
 
   .animate-editor-reveal {
-    animation: editor-reveal 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    animation: editor-reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   @keyframes editor-reveal {
-    from { opacity: 0; transform: scale(0.95) translateY(10px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
+    from { opacity: 0; transform: translateY(100%); }
+    to { opacity: 1; transform: translateY(0); }
   }
 </style>
