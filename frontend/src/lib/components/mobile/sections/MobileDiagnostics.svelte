@@ -20,11 +20,10 @@
   });
 
   let currentStep = $state(0);
-  let answers = $state<string[]>([]);
-  let showResult = $state(false);
-  let isAnalyzing = $state(false);
+  let answers = $state<Array<{q: string, a: string}>>([]);
   let analysisStatus = $state("Đang phân tích tập dữ liệu lâm sàng...");
   let binaryData = $state("0 1 0 1 1 1 0 0 1");
+  let activeSlide = $state(0);
 
   // Memory cleanup for async timers
   const timers = new Set<any>();
@@ -40,74 +39,63 @@
     return () => clearTimers();
   });
 
-  function nextStep(value: string) {
-    answers.push(value);
+  function nextStep(value: string, label: string) {
+    answers.push({ q: questions[currentStep].title, a: label });
     if (currentStep < questions.length - 1) {
       currentStep++;
     } else {
-      isAnalyzing = true;
-
-      // Binary data animation
+      // Binary data animation (visual only)
       const interval = setInterval(() => {
         binaryData = Array.from({ length: 16 }, () => Math.round(Math.random())).join(" ");
       }, 80);
       timers.add(interval);
 
-      // Status messages synchronized with desktop (+ richer mobile steps)
+      // Status messages synchronized with desktop
       timers.add(setTimeout(() => analysisStatus = "Đang xử lý cấu trúc sinh trắc học...", 1500));
       timers.add(setTimeout(() => analysisStatus = "Đang tối ưu hóa liệu trình cá nhân hóa...", 3500));
       timers.add(setTimeout(() => analysisStatus = "Hoàn tất cấu trúc Optimal. Đang chuẩn bị phác đồ...", 5000));
 
-      const analysisTimer = setTimeout(() => {
+      shopStore.analyzeDiagnostics(answers).then(() => {
         clearInterval(interval);
         timers.delete(interval);
-        isAnalyzing = false;
-        showResult = true;
         
-        let recommendedQty = 1;
-        if (answers.includes("heavy") || answers.includes("failed")) {
-          recommendedQty = 2;
-        }
-
-        const deals = shopStore.product?.metadata?.active_deals;
-        const matchingDeal = deals?.find((d: any) => d.buy_qty === recommendedQty);
-        
-        if (matchingDeal) {
-          shopStore.setQuantity(matchingDeal.buy_qty + (matchingDeal.get_qty || 0));
-        } else {
-          shopStore.setQuantity(recommendedQty);
-        }
-      }, 6500);
-      timers.add(analysisTimer);
+        // Auto-slide results
+        const slideInterval = setInterval(() => {
+          activeSlide = (activeSlide + 1) % 2;
+        }, 5000);
+        timers.add(slideInterval);
+      });
     }
   }
 
   function restart() {
     currentStep = 0;
     answers = [];
-    showResult = false;
-    isAnalyzing = false;
+    shopStore.diagnosticResult = null;
+    shopStore.isAnalyzing = false;
     shopStore.setQuantity(1);
   }
 </script>
 
-<div class="h-full flex flex-col px-6 pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] bg-[#030303] relative overflow-hidden" id="diagnostics">
+<div class="h-[100dvh] transition-all duration-700 flex flex-col px-4 pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] bg-[#030303] relative overflow-hidden" id="diagnostics">
   <!-- HUD Flourish -->
   <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
   
-  <div class="mt-2 mb-2">
-    <div class="inline-flex items-center gap-1.5 px-1.5 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full mb-2 backdrop-blur-md">
-      <div class="w-1 h-1 rounded-full bg-blue-500 animate-pulse"></div>
-      <span class="text-[7px] uppercase tracking-[0.2em] text-blue-400 font-bold italic">System v2.6+</span>
+  {#if !shopStore.diagnosticResult}
+    <div class="mt-2 mb-2" transition:fade>
+      <div class="inline-flex items-center gap-1.5 px-1.5 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full mb-2 backdrop-blur-md">
+        <div class="w-1 h-1 rounded-full bg-blue-500 animate-pulse"></div>
+        <span class="text-[7px] uppercase tracking-[0.2em] text-blue-400 font-bold italic">System v2.6+</span>
+      </div>
+      <h2 class="text-xl font-bold text-white leading-tight uppercase tracking-tighter italic tiktok-shadow">
+        {@html labels.headline}
+      </h2>
     </div>
-    <h2 class="text-xl font-bold text-white leading-tight uppercase tracking-tighter italic tiktok-shadow">
-      {@html labels.headline}
-    </h2>
-  </div>
+  {/if}
 
   <div class="relative flex-1 flex flex-col">
     {#if questions.length > 0}
-      {#if isAnalyzing}
+      {#if shopStore.isAnalyzing}
         <div class="absolute -inset-x-6 inset-y-0 z-modal flex flex-col items-center justify-center bg-[#030303] overflow-hidden" in:fade={{ duration: 400 }}>
           <!-- Sci-fi Technical Grid -->
           <div class="absolute inset-0 opacity-[0.07] tech-grid">
@@ -168,34 +156,105 @@
             FLOW_CONTROL: {binaryData.split(' ').reverse().join(' ')}
           </div>
         </div>
-      {:else if showResult}
-        <div class="flex-1 flex flex-col items-center justify-center py-10" in:scale={{ duration: 500, start: 0.9 }}>
-          <div class="relative mb-10">
-            <div class="absolute inset-0 bg-blue-500/20 blur-[40px] rounded-full animate-pulse"></div>
-            <div class="w-24 h-24 bg-blue-500/10 rounded-3xl flex items-center justify-center relative border border-blue-500/30 shadow-[0_0_40px_rgba(59,130,246,0.2)] backdrop-blur-2xl">
-              <ShieldCheck class="w-12 h-12 text-blue-400" />
+      {:else if shopStore.diagnosticResult}
+        <div class="flex-1 flex flex-col overflow-hidden" in:scale={{ duration: 500, start: 0.9 }}>
+          <!-- Scrollable Content Area -->
+          <div class="flex-1 overflow-y-auto hide-scrollbar pt-2 pb-4">
+            <!-- Result Header HUD -->
+            <div class="flex justify-between items-start mb-4 border-b border-white/10 pb-3 shrink-0">
+              <div class="flex-1">
+                <h3 class="text-xl font-black text-white tracking-tighter uppercase mb-1 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)] italic">
+                  PHÁC ĐỒ ĐIỀU TRỊ
+                </h3>
+                <p class="text-[7px] text-blue-400 font-bold uppercase tracking-[0.3em]">AI MICSMO 2026</p>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+               <div class="text-right">
+                  <span class="block text-[6px] text-white/30 uppercase font-black">Hiệu lực</span>
+                  <span class="block text-[7px] text-emerald-400 uppercase font-bold italic tracking-tighter">An toàn tuyệt đối</span>
+               </div>
+               <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                  <ShieldCheck class="w-5 h-5 text-emerald-400" />
+               </div>
+              </div>
+            </div>
+
+            <div class="space-y-6">
+              <div class="relative overflow-visible group">
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="text-[9px] font-black text-blue-400 group-hover:text-blue-300 transition-colors uppercase tracking-[0.2em] border-l-2 border-blue-500/50 pl-2">
+                    PHÂN TÍCH CHUYÊN SÂU
+                  </h4>
+                  <span class="text-[7px] font-mono text-white/20">LOG_ID: A126-DX</span>
+                </div>
+                <p class="text-white text-[15px] font-bold leading-relaxed italic px-1 drop-shadow-sm">
+                  "{shopStore.diagnosticResult.analysis}"
+                </p>
+              </div>
+
+              <!-- Info Slider: Tổng quan & Liệu trình -->
+              <div class="relative overflow-hidden cursor-grab active:cursor-grabbing" 
+                   role="region" 
+                   aria-label="Diagnostic Carousel"
+              >
+                 <div class="flex items-start transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]" 
+                      style:transform="translateX(-{activeSlide * 100}%)"
+                 >
+                    <!-- Slide 1: Tổng quan -->
+                    <div class="w-full shrink-0 px-1">
+                       <div class="flex flex-col gap-2 h-auto max-h-[32dvh] overflow-y-auto hide-scrollbar"
+                            style="mask-image: linear-gradient(to bottom, black 80%, transparent 100%);">
+                          <h4 class="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] border-l-2 border-white/20 pl-2">01. TỔNG QUAN LÂM SÀNG</h4>
+                          <p class="text-white/80 text-[13px] font-medium leading-normal italic">{shopStore.diagnosticResult.reasoning}</p>
+                          <div class="h-6"></div> <!-- Spacer for mask -->
+                       </div>
+                    </div>
+                    
+                    <!-- Slide 2: Liệu trình -->
+                    <div class="w-full shrink-0 px-1">
+                       <div class="flex flex-col gap-2 h-auto max-h-[32dvh] overflow-y-auto hide-scrollbar"
+                            style="mask-image: linear-gradient(to bottom, black 80%, transparent 100%);">
+                          <div class="flex items-center justify-between border-l-2 border-emerald-500/30 pl-2">
+                             <h4 class="text-[10px] font-black text-emerald-400/60 uppercase tracking-[0.2em]">02. LIỆU TRÌNH TỐI ƯU</h4>
+                             {#if shopStore.diagnosticResult.promotion_label}
+                                <span class="px-2 py-0.5 bg-red-500/20 text-red-500 text-[9px] font-black rounded-full animate-pulse">
+                                   🎁 {shopStore.diagnosticResult.promotion_label}
+                                </span>
+                             {/if}
+                          </div>
+                          <p class="text-emerald-400 text-[14px] font-bold leading-normal italic">{shopStore.diagnosticResult.recommendation}</p>
+                          <div class="h-6"></div> <!-- Spacer for mask -->
+                       </div>
+                    </div>
+                 </div>
+
+                 <!-- Paginated Indicators (Liquid Style) -->
+                 <div class="flex justify-center gap-2 mt-2">
+                    {#each Array(2) as _, i}
+                       <button 
+                         class="h-1 rounded-full transition-all duration-500 {activeSlide === i ? 'w-8 bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)]' : 'w-2 bg-white/10'}"
+                         onclick={() => activeSlide = i}
+                         aria-label="Slide {i + 1}"
+                       ></button>
+                    {/each}
+                 </div>
+              </div>
             </div>
           </div>
           
-          <h3 class="text-3xl font-bold text-white mb-3 uppercase tracking-tighter italic text-center tiktok-shadow">
-            {@html labels.result_headline}
-          </h3>
-          <p class="text-white/50 text-[9px] mb-8 leading-relaxed font-bold uppercase tracking-[0.15em] text-center max-w-[260px]">
-            {@html labels.result_subheadline.replace('{quantity}', shopStore.quantity.toString())}
-          </p>
-          
-          <div class="w-full space-y-3">
+          <!-- Sticky Action Footer (Naked Style) -->
+          <div class="flex-none space-y-4 pb-4 mt-auto relative z-modal">
             <button 
               onclick={() => shopStore.openCheckout()}
-              class="w-full py-5 bg-blue-600 rounded-2xl font-bold text-white text-xs tracking-[0.2em] flex items-center justify-center gap-2 shadow-[0_10px_30px_rgba(37,99,235,0.3)] active:scale-95 transition-all uppercase italic"
+              class="w-full py-4 bg-blue-600 rounded-2xl font-black text-white text-[13px] tracking-[0.2em] flex items-center justify-center gap-2 active:scale-95 transition-all uppercase italic"
             >
-              {labels.result_cta} <ArrowRight class="w-4 h-4" />
+              XEM LIỆU TRÌNH <ArrowRight class="w-4 h-4" />
             </button>
             <button 
               onclick={restart}
-              class="flex items-center gap-2 mx-auto py-3 text-[8px] font-bold text-white/30 uppercase tracking-[0.3em] hover:text-blue-400 transition-colors"
+              class="flex items-center gap-2 mx-auto py-1 text-[8px] font-bold text-white/30 uppercase tracking-[0.3em] hover:text-blue-400 transition-colors"
             >
-              <RefreshCw class="w-2.5 h-2.5" /> {labels.restart_label}
+              <RefreshCw class="w-2.5 h-2.5" /> Thiết lập lại
             </button>
           </div>
         </div>
@@ -225,7 +284,7 @@
               <div class="grid gap-2 content-start overflow-y-auto pb-4">
                 {#each questions[currentStep].options as opt, idx}
                   <button 
-                    onclick={() => nextStep(opt.value)}
+                    onclick={() => nextStep(opt.value, opt.label)}
                     class="w-full py-2.5 px-4 bg-white/[0.05] border border-white/10 rounded-xl text-left flex items-center gap-3 group active:scale-[0.98] transition-all duration-200"
                   >
                     <div class="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-lg group-hover:bg-blue-500/20 group-hover:text-blue-400 transition-all border border-white/5">
@@ -269,6 +328,19 @@
   .tech-grid {
     background-image: linear-gradient(#3b82f6 1px, transparent 1px), linear-gradient(90deg, #3b82f6 1px, transparent 1px);
     background-size: 20px 20px;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .z-surface {
+    z-index: var(--z-surface, 10);
+    position: relative;
   }
 
   .biometric-pulse-delayed {
