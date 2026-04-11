@@ -118,8 +118,16 @@ body {
 .client-layout {
   background-color: var(--bg-canvas);
   color: var(--text-base);
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', 'Outfit', system-ui, sans-serif;
   min-height: 100vh;
+}
+
+.client-layout h1, 
+.client-layout h2, 
+.client-layout h3, 
+.client-layout h4, 
+.client-layout .headline-font {
+  font-family: 'Outfit', 'Be Vietnam Pro', sans-serif;
 }
 
 /* --- HERO COMPONENT --- */
