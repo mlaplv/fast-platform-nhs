@@ -17,6 +17,7 @@
     createdAt?: Date;
     originalPrice?: number;
     originalSlug?: string;
+    discountPercent?: number;
   }
 
   interface Props {
@@ -42,12 +43,23 @@
 
   // Elite V2.2: Shared Data Normalizer
   const normalizeProduct = (p: any, tabId: string, index: number) => {
-    const primaryImage = (p.images && p.images.length > 0) ? p.images[0] : (p.image || '/images/placeholder-product.webp');
     const hasDiscount = !!p.discountPrice && p.discountPrice < p.price;
     const sellingPrice = hasDiscount ? p.discountPrice : p.price;
     const originalPrice = hasDiscount ? p.price : (p.price * 1.4);
-    const realSales = p.orderCount || 0;
+    const realSales = p.order_count || p.orderCount || 0;
     const displaySales = realSales > 0 ? realSales : (1200 + index * 10);
+    
+    // Elite V4.0: Robust Image & Discount logic
+    const imgCandidates = [
+        ...(Array.isArray(p.images) ? p.images : []),
+        p.image,
+        p.image_url,
+        p.thumbnail,
+        '/placeholder_video.webp'
+    ];
+    const primaryImage = imgCandidates.find(img => img && typeof img === 'string' && img.length > 0) || '/placeholder_video.webp';
+    
+    const discountPercent = originalPrice > 0 ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) : 0;
     
     return {
       ...p,
@@ -55,6 +67,7 @@
       image: primaryImage,
       price: sellingPrice,
       originalPrice: originalPrice,
+      discountPercent: discountPercent,
       sales: displaySales,
       stockPercent: 70 + (index * 5) % 25,
       isAiPick: tabId === 'ai',
@@ -62,35 +75,30 @@
     } as Product;
   };
 
-  // Synthesis Extended Data
-  const extendedCatalog = $derived(() => {
-    const extended: Product[] = [];
-    tabs.forEach((tab) => {
+  // Synthesis Extended Data - Refactored for Svelte 5 Reactivity
+  const extendedCatalog = $derived(
+    tabs.flatMap((tab) => {
       if (tab.id === 'ai' && productsAi.length > 0) {
-        productsAi.forEach((p, i) => extended.push(normalizeProduct(p, 'ai', i)));
+        return productsAi.map((p, i) => normalizeProduct(p, 'ai', i));
       } else if (products.length > 0) {
-        for (let i = 0; i < Math.min(products.length, 6); i++) {
-          extended.push(normalizeProduct(products[i], tab.id, i));
-        }
+        return products.slice(0, 6).map((p, i) => normalizeProduct(p, tab.id, i));
       }
-    });
-    return extended;
-  });
+      return [];
+    })
+  );
 
   // Filtered Products
-  let currentProducts = $derived(() => {
-    return extendedCatalog().filter(p => p.id.startsWith(activeTab));
-  });
+  const currentProducts = $derived(extendedCatalog.filter(p => p.id.startsWith(activeTab)));
 
   // Slide State
   let currentSlide = $state(0);
   let slideTimer: ReturnType<typeof setInterval>;
   
   // Elite V2.2: Featured Slides strictly from productsAi
-  const featuredSlides = $derived(() => {
-     const aiPool = productsAi.length > 0 ? productsAi : products.filter(p => p.isAiFeatured).slice(0, 4);
-     return aiPool.map((p, i) => normalizeProduct(p, 'featured', i));
-  });
+  const featuredSlides = $derived(
+    (productsAi.length > 0 ? productsAi : products.filter(p => p.isAiFeatured).slice(0, 4))
+    .map((p, i) => normalizeProduct(p, 'featured', i))
+  );
 
   // Synthesize floating specs for Viral 2.3
   const specs = [
@@ -100,11 +108,11 @@
   ];
 
   function nextSlide() {
-    currentSlide = (currentSlide + 1) % featuredSlides().length;
+    currentSlide = (currentSlide + 1) % featuredSlides.length;
   }
 
   function prevSlide() {
-    currentSlide = (currentSlide - 1 + featuredSlides().length) % featuredSlides().length;
+    currentSlide = (currentSlide - 1 + featuredSlides.length) % featuredSlides.length;
   }
 
   onMount(() => {
@@ -155,18 +163,17 @@
 
     <!-- Micsmo Brand Indicator -->
     <div class="hidden xl:flex items-center gap-3 px-6 py-2 bg-white/50 backdrop-blur-md rounded-full border border-gray-100 mr-6 group/engine pointer-events-auto">
-      <span class="text-[9px] font-black uppercase tracking-[0.3em] text-[#C18F7E]">Luxury Collection 2026</span>
+      <span class="text-[9px] font-black uppercase tracking-[0.3em] text-[#C18F7E]">Bộ sưu tập Thượng lưu 2026</span>
     </div>
   </div>
 
   <!-- FEATURED SLIDE: Viral 2.3 Immersive Max-out -->
   <div class="mb-6 relative group/slide h-[450px] md:h-[500px] overflow-hidden rounded-none shadow-[0_60px_100px_-20px_rgba(0,0,0,0.08)] bg-white/50 backdrop-blur-3xl ring-1 ring-black/[0.02]">
     
-    <!-- Subtle Background Glow - Micsmo Luxury -->
     <div class="absolute inset-0 bg-gradient-to-br from-[#C18F7E]/5 via-white to-white pointer-events-none"></div>
 
     <!-- Slides Stack -->
-    {#each featuredSlides() as slide, i}
+    {#each featuredSlides as slide, i}
       {#if currentSlide === i}
         <div 
             in:fade={{duration: 800}} 
@@ -177,7 +184,7 @@
           <!-- Content Left -->
           <div class="relative z-10 flex flex-col gap-6 max-w-[60%]">
             <div in:fly={{y: 20, duration: 1500, delay: 400}} class="flex items-center gap-4">
-                <span class="bg-[#C18F7E]/10 text-[#C18F7E] text-[9px] font-black px-3 py-1.5 uppercase tracking-widest border border-[#C18F7E]/20">Micsmo Elite Choice</span>
+                <span class="bg-[#C18F7E]/10 text-[#C18F7E] text-[9px] font-black px-3 py-1.5 uppercase tracking-widest border border-[#C18F7E]/20">Lựa chọn Tinh hoa Micsmo</span>
                 <span class="text-black/20 text-[8px] font-black uppercase tracking-[0.4em]">Số lượng giới hạn</span>
             </div>
             
@@ -186,7 +193,7 @@
                     {slide.name}
                 </h2>
             </div>
-
+ 
             <div in:fly={{y: 40, duration: 1500, delay: 800}} class="flex items-center gap-10">
                 <div class="flex flex-col">
                     <div class="flex items-center gap-4 mb-1">
@@ -201,10 +208,9 @@
                     </div>
                     <span class="text-black text-4xl font-black tabular-nums tracking-tighter flex items-end gap-2">
                         <span class="text-[#C18F7E] text-2xl mb-1">đ</span>{(slide.price || 0).toLocaleString('vi-VN')}
-                        <span class="text-[10px] text-[#C18F7E] font-bold uppercase tracking-widest mb-1.5 animate-pulse">−55% LIMITED</span>
+                        <span class="text-[10px] text-[#C18F7E] font-bold uppercase tracking-widest mb-1.5 animate-pulse">−{slide.discountPercent}% GIỚI HẠN</span>
                     </span>
                 </div>
-                <div class="w-[1px] h-10 bg-black/5"></div>
                 <div class="flex flex-col">
                     <span class="text-[9px] font-black uppercase tracking-[0.3em] text-black/20 mb-1">Cộng đồng</span>
                     <span class="text-black text-xl font-black italic">+{(slide.sales || 0).toLocaleString()} <span class="text-[9px] opacity-30 not-italic uppercase ml-1">Tin dùng</span></span>
@@ -273,7 +279,7 @@
 
     <!-- Slide Indicators - Micsmo Elite Dots -->
     <div class="absolute bottom-4 right-12 flex items-center gap-2 z-40">
-        {#each featuredSlides() as _, i}
+        {#each featuredSlides as _, i}
             <button 
                 onclick={() => (currentSlide = i)}
                 class="group relative flex items-center justify-center h-4 w-8 transition-all"
@@ -289,7 +295,7 @@
 
   <!-- VIRAL SLIDER V2.7: Single Row Carousel -->
   <div class="flex overflow-x-auto no-scrollbar scroll-smooth gap-2 px-1 md:px-0 pb-10">
-    {#each currentProducts() as product (product.id)}
+    {#each currentProducts as product (product.id)}
       <button
         onclick={() => goto(`/${product.originalSlug || product.slug || slugify(product.name)}`)}
         class="group/card relative flex-shrink-0 w-[calc((100%-6px)/2)] md:w-[calc((100%-6px)/4)] lg:w-[calc((100%-6px)/4)] bg-white border border-black/5 hover:border-black transition-all duration-700 cursor-pointer text-left flex flex-col active:scale-[0.98] shadow-sm hover:shadow-2xl"
@@ -298,7 +304,7 @@
           {#if product.isAiPick}
             <div class="absolute top-3 left-3 z-20">
                 <span class="bg-gradient-to-r from-[#ff4d4d] via-[#f9cb28] to-[#ff4d4d] text-black text-[9px] font-black px-3 py-1.5 uppercase tracking-widest shadow-[0_8px_16px_rgba(255,77,77,0.4)] flex items-center gap-2 border border-white/20">
-                    <span class="animate-pulse">🔥</span> CỰC HỜI -35%
+                    <span class="animate-pulse">🔥</span> CỰC HỜI -{product.discountPercent}%
                 </span>
             </div>
             <!-- Neural Spectral Glow (Viral 2.8) -->
@@ -328,7 +334,7 @@
                                 đ{Math.round(product.originalPrice).toLocaleString('vi-VN')}
                             </span>
                         {/if}
-                        <span class="text-[10px] font-black text-[#ee4d2d] bg-[#ee4d2d]/10 px-1.5 py-0.5 rounded-sm">-35%</span>
+                        <span class="text-[10px] font-black text-[#ee4d2d] bg-[#ee4d2d]/10 px-1.5 py-0.5 rounded-sm">-{product.discountPercent}%</span>
                     </div>
                     <span class="text-[9px] font-black text-[#ee4d2d] animate-pulse flex items-center gap-1">
                         <div class="w-1 h-1 rounded-full bg-[#ee4d2d]"></div> ĐANG CHÁY HÀNG

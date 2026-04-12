@@ -59,11 +59,10 @@
       <!-- Micsmo Lightning Flash Sale Header -->
       <div class="flex items-center group cursor-default">
         <h2 class="text-2xl font-black text-[#ee4d2d] italic tracking-tighter uppercase flex items-center gap-1">
-          <span>F</span>
           <svg class="w-5 h-5 fill-[#ee4d2d] animate-pulse" viewBox="0 0 24 24">
             <path d="M13 2L4 14h7l-1 8 9-12h-7z"/>
           </svg>
-          <span>LASH SALE</span>
+          <span>GIÁ SỐC HÔM NAY</span>
         </h2>
       </div>
 

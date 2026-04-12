@@ -441,17 +441,17 @@
 </div>
 
 <!-- Bottom Sections (Professional Layout) -->
-<div class="max-w-[1200px] mx-auto flex flex-col gap-4 mb-20">
+<div class="max-w-[1200px] mx-auto flex flex-col gap-4 mb-0">
     <!-- CHI TIẾT SẢN PHẨM -->
-    <div class="bg-white p-6 shadow-sm">
-       <div class="bg-gray-50/50 px-5 py-4 border-b border-gray-100 mb-6 flex items-center justify-between">
+    <div class="bg-white p-5 shadow-sm">
+       <div class="bg-gray-50/50 px-0 py-4 border-b border-gray-100 mb-6 flex items-center justify-between">
           <h2 class="text-[18px] font-black text-gray-800 uppercase tracking-tight">Chi tiết sản phẩm</h2>
           <div class="flex items-center gap-2">
              <span class="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Mã vạch:</span>
              <span class="text-[11px] font-black text-black tracking-widest bg-gray-100 px-2 py-0.5">{productInfo.barcode}</span>
           </div>
        </div>
-       <div class="px-5 text-[14px] space-y-6">
+       <div class="px-0 text-[14px] space-y-6">
           <div class="grid grid-cols-1 gap-4 max-w-4xl">
               {#if productInfo.brand}
               <div class="flex items-center">
@@ -492,13 +492,68 @@
     </div>
 
     <!-- MÔ TẢ SẢN PHẨM -->
-    <div class="bg-white p-6 shadow-sm">
-       <div class="bg-gray-50/50 px-5 py-4 border-b border-gray-100 mb-6">
+    <div class="bg-white p-5 shadow-sm">
+       <div class="bg-gray-50/50 px-0 py-4 border-b border-gray-100 mb-6">
           <h2 class="text-[18px] font-black text-gray-800 uppercase tracking-tight">Mô tả sản phẩm</h2>
        </div>
-       <div class="px-5 text-[14px] text-gray-800 leading-relaxed max-w-5xl whitespace-pre-line font-medium">
-          {product.description || 'Chưa có mô tả chi tiết cho sản phẩm này.'}
+       <div class="px-0 prose-micsmo">
+          {@html product.description || 'Chưa có mô tả chi tiết cho sản phẩm này.'}
        </div>
     </div>
   </div>
 </div>
+<style>
+  /* Elite V2.2: Premium Prose System */
+  :global(.prose-micsmo) {
+    font-family: inherit !important;
+    font-size: 16px !important;
+    line-height: 1.8 !important;
+    color: #374151 !important; /* text-gray-700 */
+  }
+
+  :global(.prose-micsmo p) {
+    margin-bottom: 1rem !important;
+    font-family: inherit !important;
+  }
+
+  /* Khử margin cho p bên trong li để list items khít nhau */
+  :global(.prose-micsmo li p) {
+    margin-bottom: 0 !important;
+  }
+
+  :global(.prose-micsmo span) {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+  }
+
+  :global(.prose-micsmo h2, .prose-micsmo h3) {
+    color: #111827 !important;
+    font-weight: 800 !important;
+    margin-top: 2rem !important;
+    margin-bottom: 1rem !important;
+    font-family: inherit !important;
+    text-transform: uppercase;
+    letter-spacing: -0.025em;
+  }
+
+  :global(.prose-micsmo h2) { font-size: 20px !important; }
+  :global(.prose-micsmo h3) { font-size: 18px !important; }
+
+  :global(.prose-micsmo ul, .prose-micsmo ol) {
+    margin-bottom: 1rem !important;
+    padding-left: 1.5rem !important;
+  }
+
+  :global(.prose-micsmo li) {
+    margin-bottom: 0.25rem !important;
+    list-style-type: disc;
+  }
+
+  :global(.prose-micsmo img) {
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    margin: 2rem auto !important;
+    display: block;
+  }
+</style>

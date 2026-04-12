@@ -61,8 +61,8 @@
 </script>
 
 <!-- Responsive Table Header (Hidden on Mobile) -->
-<div class="hidden md:grid grid-cols-[40px_minmax(250px,2fr)_1fr_1fr_1fr_1fr_100px] gap-4 px-4 py-4 sticky top-0 bg-[#050505] border-b border-white/10 uppercase tracking-widest text-[9px] font-bold font-mono text-gray-400"
-     style="z-index: var(--z-sticky_header);">
+<div class="hidden md:grid grid-cols-[40px_minmax(250px,2fr)_1fr_1fr_1fr_1fr_100px] gap-4 px-4 py-4 sticky top-0 bg-[#050505] border-b border-white/10 uppercase tracking-widest text-[9px] font-bold font-mono text-gray-400 z-[20]"
+     style="backdrop-filter: blur(8px);">
   <div class="text-center flex justify-center items-center">
     <button
       onclick={(e) => { e.stopPropagation(); onToggleSelectAll(); }}

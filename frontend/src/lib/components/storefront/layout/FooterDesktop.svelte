@@ -51,14 +51,14 @@
 <footer class="relative overflow-hidden bg-[#0c0a09] border-t border-white/5 text-slate-400 font-medium selection:bg-[#C18F7E]/30 selection:text-white">
   <!-- Dynamic Mesh Background (Viral 2026 Atmosphere) -->
   <div class="absolute inset-0 pointer-events-none opacity-40">
-    <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[60%] bg-[#C18F7E]/10 blur-[120px] rounded-full animate-pulse"></div>
+    <div class="absolute top-[0%] left-[-10%] w-[40%] h-[60%] bg-[#C18F7E]/10 blur-[120px] rounded-full animate-pulse"></div>
     <div class="absolute bottom-[-20%] right-[-5%] w-[50%] h-[70%] bg-[#C18F7E]/5 blur-[150px] rounded-full"></div>
   </div>
 
   <!-- Noise Texture Overlay -->
-  <div class="absolute inset-0 pointer-events-none opacity-[0.02] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150"></div>
+  <div class="absolute inset-0 pointer-events-none opacity-[0.02] bg-[url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')] brightness-100 contrast-150"></div>
 
-  <div class="max-w-[1240px] mx-auto px-6 pt-16 pb-8 relative z-[1]">
+  <div class="max-w-[1240px] mx-auto px-6 pt-2 pb-8 relative z-[1]">
     <!-- Elite Header Section -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-8 mb-12 items-start">
       

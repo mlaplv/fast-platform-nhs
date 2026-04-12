@@ -330,14 +330,16 @@
     } finally { isSaving = false; }
   }
 
-  async function bulk(type: "del" | "act") {
+  async function bulk(type: "del" | "act" | "deact") {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
     try {
       if (type === "del") await apiClient.post("/api/v1/products/bulk-delete", { ids });
-      else await apiClient.post("/api/v1/products/bulk-activate", { ids });
+      else if (type === "act") await apiClient.post("/api/v1/products/bulk-activate", { ids });
+      else await apiClient.post("/api/v1/products/bulk-update", { ids, data: { status: 'DRAFT' } });
       selectedIds = new Set();
       await loadProducts();
+      nanobot.showToast(`Đã thực hiện thao tác hàng loạt`, "success");
     } catch (err) { nanobot.showToast("Thao tác hàng loạt thất bại", "error"); }
   }
 </script>
@@ -363,6 +365,7 @@
       onFilterChange={handleFilterChange}
       onPageSizeChange={() => { currentPage = 1; }}
       onBulkActivate={() => bulk("act")}
+      onBulkDeactivate={() => bulk("deact")}
       onBulkDelete={() => bulk("del")}
       onBulkAiFeatured={bulkAiFeatured}
       onBulkDiscount={bulkDiscount}

@@ -56,8 +56,8 @@
 
   <!-- Mall Day badge (top-left) -->
   <div class="banner-badge-row">
-    <span class="badge-mall-day">Mall Day ⚡</span>
-    <span class="badge-date">10 Tháng 4</span>
+    <span class="badge-mall-day">Ngày Hội Mall ⚡</span>
+    <span class="badge-date">{new Date().getDate()} Tháng {new Date().getMonth() + 1}</span>
   </div>
 
   <!-- Dot indicators (bottom-center) -->

@@ -179,7 +179,7 @@
                         </div>
                       </div>
                       {#if i < 2 || p.orderCount > 50}
-                        <span class="shrink-0 text-[8px] bg-[#fe2c55] text-white px-1 py-0.5 font-black uppercase tracking-tighter rounded-xs shadow-sm ml-1">Hot</span>
+                        <span class="shrink-0 text-[8px] bg-[#fe2c55] text-white px-1 py-0.5 font-black uppercase tracking-tighter rounded-xs shadow-sm ml-1">Bán chạy</span>
                       {/if}
                     </button>
                   {/each}
@@ -396,7 +396,7 @@
                      {/if}
                      {#if p.discountPrice}
                         <div class="absolute top-0 right-0 bg-[#fe2c55] text-white text-[8px] font-black px-1.5 py-0.5 shadow-lg">
-                           SALE
+                           GIẢM GIÁ
                         </div>
                      {/if}
                    </div>

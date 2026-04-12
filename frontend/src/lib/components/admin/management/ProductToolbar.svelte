@@ -1,6 +1,7 @@
 <script lang="ts">
   import Search from "lucide-svelte/icons/search";
   import Eye from "lucide-svelte/icons/eye";
+  import EyeOff from "lucide-svelte/icons/eye-off";
   import Trash2 from "lucide-svelte/icons/trash-2";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import Plus from "lucide-svelte/icons/plus";
@@ -22,6 +23,7 @@
     onFilterChange,
     onPageSizeChange,
     onBulkActivate,
+    onBulkDeactivate,
     onBulkDelete,
     onBulkAiFeatured,
     onBulkDiscount,
@@ -40,6 +42,7 @@
     onFilterChange: (f: string) => void;
     onPageSizeChange: () => void;
     onBulkActivate: () => void;
+    onBulkDeactivate: () => void;
     onBulkDelete: () => void;
     onBulkAiFeatured: (enabled: boolean) => void;
     onBulkDiscount: () => void;
@@ -109,9 +112,15 @@
 
           <button onclick={onBulkActivate}
             class="px-3 py-2 text-[10px] font-mono uppercase bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] rounded-xl hover:bg-[#39FF14]/20 transition-all hidden sm:inline-block"
-            ><Eye size={12} class="inline mr-1" /> Kích hoạt ({selectedIds.size})</button>
+            ><Eye size={12} class="inline mr-1" /> Kích hoạt</button>
           <button onclick={onBulkActivate}
-            class="p-2.5 text-[#39FF14] bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-xl sm:hidden" title="Kích hoạt ({selectedIds.size})"><Eye size={14}/></button>
+            class="p-2.5 text-[#39FF14] bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-xl sm:hidden" title="Kích hoạt"><Eye size={14}/></button>
+
+          <button onclick={onBulkDeactivate}
+            class="px-3 py-2 text-[10px] font-mono uppercase bg-[#FFB800]/10 border border-[#FFB800]/30 text-[#FFB800] rounded-xl hover:bg-[#FFB800]/20 transition-all hidden sm:inline-block"
+            ><EyeOff size={12} class="inline mr-1" /> Huỷ K.Hoạt</button>
+          <button onclick={onBulkDeactivate}
+            class="p-2.5 text-[#FFB800] bg-[#FFB800]/10 border border-[#FFB800]/30 rounded-xl sm:hidden" title="Huỷ K.Hoạt"><EyeOff size={14}/></button>
 
           <button onclick={onBulkDelete}
             class="px-3 py-2 text-[10px] font-mono uppercase bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all hidden sm:inline-block"
