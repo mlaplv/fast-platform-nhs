@@ -100,7 +100,7 @@
     padding: 2px 0 0; /* Minimized top padding */
     position: sticky;
     top: var(--mobile-header-total);
-    z-index: 10;
+    z-index: var(--z-category-pills);
     border-bottom: 1px solid #f0f0f0;
   }
 

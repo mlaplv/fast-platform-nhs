@@ -1,24 +1,25 @@
 <script lang="ts">
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
   import { Check, RotateCcw } from "lucide-svelte";
+  import type { Product } from '$lib/types';
 
   let { path, type, onSave } = $props<{
     path: string;
     type: 'text' | 'html';
-    onSave: (val: any) => void;
+    onSave: (val: string) => void;
   }>();
 
   // Get current value from dirty metadata
-  const getValue = (p: string) => {
+  function getValue(p: string) {
     if (!liveEditStore.dirtyProduct) return "";
     const keys = p.split(".");
-    let current: any = liveEditStore.dirtyProduct;
+    let current: any = liveEditStore.dirtyProduct as Product;
     for (const key of keys) {
         if (!current) return "";
-        current = current[key];
+        current = (current as any)[key];
     }
     return current || "";
-  };
+  }
 
   let val = $state(getValue(path));
 

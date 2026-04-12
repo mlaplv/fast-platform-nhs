@@ -152,7 +152,7 @@
             <!-- Title & Variant -->
             <!-- Title & Variant -->
             <EditableWrapper path="name" label="SỬA TÊN SẢN PHẨM" class="block w-full pointer-events-auto">
-              <h1 class="text-3xl font-black leading-tight text-white uppercase tracking-tighter italic pr-14 drop-shadow-2xl">
+              <h1 class="text-3xl font-black leading-tight text-white uppercase tracking-tight italic pr-14 drop-shadow-2xl">
                 {opt} <span class="text-sakura-pink">.</span>
               </h1>
             </EditableWrapper>

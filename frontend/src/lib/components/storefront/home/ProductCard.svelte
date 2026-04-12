@@ -123,7 +123,7 @@
     flex-direction: column;
     align-items: center;
     border-radius: 0 0 0 12px;
-    z-index: 5;
+    z-index: var(--z-product-card-content);
   }
   .discount-label { font-size: 8px; font-weight: 900; line-height: 1; }
   .discount-percent { font-size: 13px; font-weight: 950; line-height: 1; }

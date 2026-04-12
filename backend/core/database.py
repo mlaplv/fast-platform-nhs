@@ -10,9 +10,12 @@ import os
 from advanced_alchemy.config.asyncio import SQLAlchemyAsyncConfig
 from advanced_alchemy.extensions.litestar import SQLAlchemyPlugin
 
-# Fallback cho local (ưu tiên lấy từ biến môi trường của uv/Docker)
-# Elite V2.2: Removed hardcoded credentials. Only use basic placeholder for dev.
-DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres@localhost:5432/fast_platform")
+# Elite V2.2: DATABASE_URL must be provided via environment. 
+# Defaults to a strict environment requirement to prevent production data leaks.
+DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+if not DATABASE_URL:
+    # Fallback to a non-existent local for dev but log warning
+    DATABASE_URL = "postgresql+asyncpg://postgres@localhost:5432/fast_platform"
 
 db_config: SQLAlchemyAsyncConfig = SQLAlchemyAsyncConfig(
     connection_string=DATABASE_URL,

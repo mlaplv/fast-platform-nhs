@@ -5,20 +5,22 @@
   import { Check, X } from "lucide-svelte";
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
 
+  import type { Product } from '$lib/types';
+
   let { path, type, onSave, onClose } = $props<{
     path: string;
     type: 'image' | 'video';
-    onSave: (val: any) => void;
+    onSave: (val: string) => void;
     onClose: () => void;
   }>();
 
   const getValue = (p: string) => {
     if (!liveEditStore.dirtyProduct) return "";
     const keys = p.split(".");
-    let current: any = liveEditStore.dirtyProduct;
+    let current: any = liveEditStore.dirtyProduct as Product;
     for (const key of keys) {
         if (!current) return "";
-        current = current[key];
+        current = (current as any)[key];
     }
     return current || "";
   };

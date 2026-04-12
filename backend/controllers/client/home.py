@@ -41,7 +41,7 @@ class ClientHomeController(Controller):
         # 2. Fetch actual products (Active only)
         all_products = await product_service.list_products(db_session, limit=100, offset=0, status="ACTIVE")
         categories = await category_service.list_categories(db_session)
-        banners = await banner_service.list_banners(db_session, position="home_main", active_only=True)
+        banners = await banner_service.list_banners(db_session, active_only=True)
 
         # Elite V2.2: Optimized AI Featured fetch (R76)
         ai_products_resp = await product_service.list_products(db_session, limit=10, offset=0, status="ACTIVE", featured_only=True)

@@ -1,10 +1,6 @@
 <script lang="ts">
-  interface Banner {
-    id: str;
-    image_url: string;
-    link_url?: string;
-    title?: string;
-  }
+  import type { Banner } from '$lib/types';
+
   interface Props {
     banners: Banner[];
   }
@@ -18,8 +14,8 @@
     return `/${url}`; // Mặc định là slug sản phẩm vì đã bỏ tiền tố /product ở route
   }
 
-  let mainBanners = $derived(banners.filter(b => b.id.startsWith('m') || banners.indexOf(b) < 3));
-  let sideBanners = $derived(banners.filter(b => b.id.startsWith('s') || (banners.indexOf(b) >= 3 && banners.indexOf(b) < 5)));
+  let mainBanners = $derived(banners.filter(b => b.position === 'home_main'));
+  let sideBanners = $derived(banners.filter(b => b.position === 'home_side'));
 
   let currentSlide = $state(0);
   let timer: ReturnType<typeof setInterval>;

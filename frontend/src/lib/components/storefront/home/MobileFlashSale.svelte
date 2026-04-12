@@ -287,7 +287,7 @@
     font-weight: 900;
     padding: 2px 6px;
     border-radius: 4px;
-    z-index: 3;
+    z-index: var(--z-flash-sale);
     box-shadow: 2px 2px 6px rgba(255, 43, 84, 0.4);
   }
 
@@ -315,7 +315,7 @@
     font-weight: 900;
     padding: 2px 5px;
     border-radius: 4px 0 0 4px;
-    z-index: 4;
+    z-index: var(--z-flash-sale);
     box-shadow: -2px 2px 6px rgba(0,0,0,0.1);
   }
 
@@ -342,7 +342,7 @@
     overflow: hidden;
     /* Soft white outer shadow to push away from image */
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
-    z-index: 2;
+    z-index: var(--z-base);
   }
 
   .progress-fill {

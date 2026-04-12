@@ -162,9 +162,11 @@
                       onclick={() => commitSearch(p.name)}
                       class="flex items-center text-left group px-2 py-1.5 hover:bg-gray-50/50 transition-all rounded-none min-w-0"
                     >
-                      <span class="shrink-0 text-[14px] font-black tracking-tighter {i < 3 ? 'text-[#fe2c55]' : 'text-gray-200'} group-hover:scale-110 transition-transform">
-                        {i + 1}
-                      </span>
+                      <div class="w-9 h-9 shrink-0 rounded-sm overflow-hidden bg-gray-50 border border-gray-100 group-hover:scale-110 transition-transform">
+                        {#if p.images?.length > 0 || p.metadata?.image_url}
+                          <img src={p.images?.[0] ?? p.metadata?.image_url} alt={p.name} class="w-full h-full object-contain mix-blend-multiply" loading="lazy" />
+                        {/if}
+                      </div>
                       <div class="flex flex-col ml-1.5 flex-grow min-w-0">
                         <span class="text-[13px] font-bold text-gray-700 group-hover:text-[#fe2c55] line-clamp-1 transition-colors leading-tight">
                           {p.name}
@@ -201,55 +203,43 @@
                         isFocused = false; 
                         searchStore.isOverlayOpen = false; 
                       }}
-                      class="p-2 text-left hover:bg-gray-50 flex items-center gap-3 group rounded relative transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:translate-x-1"
+                      class="px-4 py-3 bg-white hover:bg-gray-50 flex items-start gap-4 border-b border-gray-100 transition-colors group"
                     >
-                      <div class="w-14 h-14 bg-gray-100 rounded flex-shrink-0 overflow-hidden border border-gray-100 relative group-hover:scale-105 transition-transform duration-500">
+                      <!-- Image viewport (Elite V2.2: Consistent 64px) -->
+                      <div class="w-16 h-16 flex-shrink-0 relative overflow-hidden bg-white">
                         {#if p.images?.length > 0 || p.metadata?.image_url}
-                           <img src={p.images?.[0] ?? p.metadata?.image_url} class="w-full h-full object-cover" alt={p.name} />
-                        {/if}
-                        {#if p.orderCount > 50 || p.isAiFeatured}
-                          <div class="absolute top-0 left-0 bg-[#fe2c55] text-white text-[7px] font-black px-1.5 py-0.5 rounded-br-sm animate-pulse">VIRAL</div>
+                           <img src={p.images?.[0] ?? p.metadata?.image_url} class="w-full h-full object-contain mix-blend-multiply" alt={p.name} />
                         {/if}
                       </div>
                       
-                      <div class="flex flex-col flex-grow">
-                        <div class="flex items-center gap-2 mb-0.5">
-                          <span class="text-[14px] font-bold text-gray-800 line-clamp-1 group-hover:text-luxury-copper transition-colors">{p.name}</span>
-                          {#if p.discountPrice}
-                            <span class="text-[8px] bg-red-100 text-red-500 font-black px-1 rounded-sm">-{Math.round((1 - p.discountPrice/p.price) * 100)}%</span>
-                          {/if}
+                      <!-- Product Intelligence Info -->
+                      <div class="flex flex-col flex-grow min-w-0">
+                        <!-- Product Name: High contrast blue-grey -->
+                        <h4 class="text-[15px] font-bold text-[#374151] line-clamp-1 mb-0.5 leading-tight group-hover:text-luxury-copper transition-colors">{p.name}</h4>
+                        
+                        <!-- SKU & Dynamic Category Tag -->
+                        <div class="flex items-center justify-between gap-4 mb-2">
+                           <span class="text-[12px] text-gray-500 font-medium">Mã sản phẩm: {p.sku || p.id.split('-')[0].toUpperCase()}</span>
+                           
+                           {#if p.category}
+                             <div class="bg-[#ff9a9a]/20 text-[#ff6b6b] px-2 py-1 flex items-center gap-1.5 rounded-sm shadow-sm border border-[#ff9a9a]/30">
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                                <span class="text-[10px] font-black uppercase tracking-tight">{p.category}</span>
+                             </div>
+                           {/if}
                         </div>
                         
-                        <div class="flex items-center justify-between">
-                           <div class="flex items-center gap-2">
-                             <span class="text-[13px] text-[#fe2c55] font-black tabular-nums">
-                               {(p.discountPrice ?? p.price).toLocaleString('vi-VN')}đ
+                        <!-- Pricing Intelligence (Literal Match) -->
+                        <div class="flex items-center gap-2 mt-auto">
+                           <span class="text-[15px] text-gray-900 font-black tabular-nums">
+                             {(p.discountPrice ?? p.price).toLocaleString('vi-VN')} đ
+                           </span>
+                           {#if p.discountPrice}
+                             <span class="text-[12px] text-gray-300 line-through font-medium tabular-nums px-1">
+                               {p.price.toLocaleString('vi-VN')} đ
                              </span>
-                             {#if p.discountPrice}
-                               <span class="text-[10px] text-gray-300 line-through tabular-nums font-bold">{p.price.toLocaleString('vi-VN')}đ</span>
-                             {/if}
-                           </div>
-                           
-                           <div class="flex items-center gap-3">
-                             {#if p.stock < 10 && p.stock > 0}
-                               <span class="text-[8px] font-black text-red-500 bg-red-50 px-1 py-0.5 rounded-sm animate-bounce">SẮP CHÁY HÀNG</span>
-                             {:else if p.orderCount > 0}
-                               <span class="text-[10px] text-gray-400 font-bold tracking-tighter opacity-70 italic">{p.orderCountText}</span>
-                             {/if}
-                             
-                             <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                               <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                               <span class="text-[9px] font-black {getHeatColor(getPseudoViews(p.id))}">{getPseudoViews(p.id)} ĐANG XEM</span>
-                             </div>
-                           </div>
+                           {/if}
                         </div>
-                      </div>
-
-                      <!-- Interactive CTA Tooltip (Elite Touch) -->
-                      <div class="absolute right-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 translate-x-4 transition-all duration-500 pointer-events-none">
-                         <div class="bg-luxury-copper text-white text-[9px] font-black px-3 py-1.5 rounded-none shadow-xl flex items-center gap-1">
-                           SĂN NGAY <span class="text-[14px]">→</span>
-                         </div>
                       </div>
                     </a>
                   {/each}
@@ -468,6 +458,11 @@
   }
   .animate-scanning {
     animation: scanning 1.5s linear infinite;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
 
   @keyframes pulse-soft {

@@ -237,7 +237,7 @@
   <div class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pt-[var(--standard-pt)] pb-12 z-surface">
 
     <EditableWrapper path="metadata.hero_headline" type="html" label="SỬA TIÊU ĐỀ BANNER">
-        <h1 class="typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0 text-5xl md:text-7xl lg:text-9xl tracking-tighter italic">
+        <h1 class="typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0 text-5xl md:text-7xl lg:text-9xl tracking-tight italic">
         {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-red-500"></span>
         </h1>
     </EditableWrapper>

@@ -31,16 +31,16 @@
   const isTargetOfFocus = $derived(activePath === path);
   const shouldHideHUD = $derived(activePath !== null && !isTargetOfFocus);
 
-  const getValue = (p: string, fallback = "") => {
+  const getValue = (p: string, fallback = ""): string => {
     if (!liveEditStore.dirtyProduct) return fallback;
     try {
         const keys = p.split(".");
-        let current: any = liveEditStore.dirtyProduct;
+        let current: any = liveEditStore.dirtyProduct as Product;
         for (const key of keys) {
             if (current === null || current === undefined || typeof current !== 'object') return fallback;
-            current = current[key];
+            current = (current as any)[key];
         }
-        return current ?? fallback;
+        return (current as string) ?? fallback;
     } catch {
         return fallback;
     }

@@ -348,7 +348,7 @@
   }
 
   & h1 {
-    font-family: 'Montserrat', 'Inter', sans-serif !important;
+    font-family: 'Outfit', 'Be Vietnam Pro', system-ui, sans-serif !important;
     font-weight: 900 !important;
     text-transform: uppercase;
     /* Forces thick sans-serif */
@@ -356,12 +356,14 @@
     color: #ffffff;
     text-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
     font-size: var(--fs-hero) !important;
-    /* Balanced for Vietnamese accents */
-    line-height: 0.98 !important;
+    /* Balanced for Vietnamese accents - Relaxed from 0.98 to 1.05 */
+    line-height: 1.05 !important;
+    text-rendering: optimizeLegibility;
+    font-variant-ligatures: common-ligatures;
     margin-bottom: 0.5rem !important;
 
     @media (min-width: 1024px) {
-      line-height: 1.0 !important;
+      line-height: 1.1 !important;
       margin-bottom: 0.75rem !important;
     }
   }

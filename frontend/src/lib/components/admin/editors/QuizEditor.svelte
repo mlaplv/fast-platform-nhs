@@ -11,22 +11,22 @@
     Smile,
     X
   } from "lucide-svelte";
-  import { slide } from "svelte/transition";
+  import type { Product, QuizQuestion } from '$lib/types';
 
   let { path, onSave } = $props<{
     path: string;
-    onSave: (val: any) => void;
+    onSave: (val: QuizQuestion[]) => void;
   }>();
 
   // Helper to deep get value from product metadata
-  function getMetadataValue(p: string) {
+  function getMetadataValue(p: string): QuizQuestion[] {
     if (!liveEditStore.dirtyProduct) {
         console.warn("QuizEditor: No dirtyProduct in store.");
         return [];
     }
     
     const keys = p.split(".");
-    let current: any = liveEditStore.dirtyProduct;
+    let current: any = liveEditStore.dirtyProduct as Product;
 
     for (const key of keys) {
       if (!current || typeof current !== 'object') {
@@ -60,7 +60,7 @@
   }
 
   // Local state for complex editing
-  let questions = $state<any[]>(getMetadataValue(path));
+  let questions = $state<QuizQuestion[]>(getMetadataValue(path));
 
   // Sync effect if store was delayed
   $effect(() => {
