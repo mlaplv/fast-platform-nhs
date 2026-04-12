@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import type { Product, ProductVariant } from '$lib/types';
   import { ShoppingCart, Minus, Plus, Star } from 'lucide-svelte';
+  import ProductDetailReviews from './ProductDetailReviews.svelte';
 
   const cartStore = getCartStore();
 
@@ -250,10 +251,12 @@
           </div>
         </div>
         <div class="w-px h-4 bg-gray-200"></div>
-        <div class="flex items-center gap-1 group cursor-pointer">
+        <button 
+          onclick={() => document.getElementById('product-reviews')?.scrollIntoView({ behavior: 'smooth' })}
+          class="flex items-center gap-1 group cursor-pointer border-none bg-transparent">
           <span class="text-black font-bold border-b border-black leading-none mb-[-2px]">{(product.metadata as any)?.reviews?.length || 0}</span>
           <span class="text-gray-500 font-medium">Đánh Giá</span>
-        </div>
+        </button>
         <div class="w-px h-4 bg-gray-200"></div>
         <div class="flex items-center gap-1">
           <span class="text-black font-bold">{(product as any).order_count_text || product.order_count || 0}</span>
@@ -491,7 +494,7 @@
        </div>
     </div>
 
-    <!-- MÔ TẢ SẢN PHẨM -->
+     <!-- MÔ TẢ SẢN PHẨM -->
     <div class="bg-white p-5 shadow-sm">
        <div class="bg-gray-50/50 px-0 py-4 border-b border-gray-100 mb-6">
           <h2 class="text-[18px] font-black text-gray-800 uppercase tracking-tight">Mô tả sản phẩm</h2>
@@ -499,6 +502,11 @@
        <div class="px-0 prose-micsmo">
           {@html product.description || 'Chưa có mô tả chi tiết cho sản phẩm này.'}
        </div>
+    </div>
+
+    <!-- ĐÁNH GIÁ SẢN PHẨM -->
+    <div id="product-reviews">
+       <ProductDetailReviews {product} />
     </div>
   </div>
 </div>

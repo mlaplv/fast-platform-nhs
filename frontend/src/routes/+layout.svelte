@@ -1,14 +1,22 @@
 <script lang="ts">
   import "./layout.css";
+  import { setClientUi } from "$lib/state/commerce/ui.svelte";
+  import QuickLoginModal from "$lib/components/storefront/auth/QuickLoginModal.svelte";
   import { setNanobotContext } from "$lib/state/nanobot.svelte";
   import { setCartStore } from "$lib/state/commerce/cart.svelte";
   import CartDrawer from "$lib/components/storefront/cart/CartDrawer.svelte";
   import { navigating } from "$app/stores";
+  import { onMount, type Snippet } from "svelte";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
 
   // Elite V2.2: Ensure root initialization of context
+  const ui = setClientUi();
   setNanobotContext();
   setCartStore();
+
+  onMount(() => {
+    return ui.initObservers();
+  });
 
   let { children } = $props();
 
@@ -46,6 +54,10 @@
   </main>
 
   <CartDrawer />
+  
+  {#if ui.authModal.isOpen}
+    <QuickLoginModal />
+  {/if}
 </div>
 
 <style>

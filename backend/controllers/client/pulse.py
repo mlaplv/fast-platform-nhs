@@ -63,7 +63,11 @@ class ClientPulseController(Controller):
                     logger.info(f"[ClientPulse] Cache hit for session {session_id}. Delivering missed event.")
                     
                     # Elite V2.6: Standard Named SSE Format
-                    yield b"event: SUPPORT_RESPONSE_READY\n"
+                    event_name = payload.get("event", "SUPPORT_RESPONSE_READY")
+                    msg_id = f"{session_id}:{int(asyncio.get_event_loop().time())}"
+                    yield f"id: {msg_id}\n".encode("utf-8")
+                    yield f"event: {event_name}\n".encode("utf-8")
+                    yield f"retry: 3000\n".encode("utf-8")
                     yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
                     
                     if payload.get("status") == "DONE":
@@ -80,14 +84,18 @@ class ClientPulseController(Controller):
                         message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=15.0)
                         
                         if message and message['type'] == 'message':
+                            logger.info(f"[ClientPulse] Received event from Redis for {session_id}: {message['data']}")
                             payload = json.loads(message['data'])
                             
                             # Elite V2.6: Standard Named SSE Format (Mandatory for Frontend Listeners)
-                            if "is_revoked" in payload:
-                                yield b"event: SUPPORT_INBOX_UPDATE\n"
-                            else:
-                                yield b"event: SUPPORT_RESPONSE_READY\n"
-                                
+                            event_name = payload.get("event")
+                            if not event_name:
+                                event_name = "SUPPORT_INBOX_UPDATE" if "is_revoked" in payload else "SUPPORT_RESPONSE_READY"
+                            
+                            msg_id = f"{session_id}:{int(asyncio.get_event_loop().time())}"
+                            yield f"id: {msg_id}\n".encode("utf-8")
+                            yield f"event: {event_name}\n".encode("utf-8")
+                            yield f"retry: 3000\n".encode("utf-8")
                             yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
                             
                             # Elite V2.2: Dispose Resource immediately on DONE status (RAM 2GB target)

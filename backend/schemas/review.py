@@ -14,6 +14,8 @@ class CreateReviewRequest(BaseModel):
     customer_location: Optional[str] = Field(None, max_length=255)
     rating: int = Field(..., ge=1, le=5)
     content: str = Field(..., min_length=5, max_length=5000)
+    attributes: Optional[dict[str, object]] = Field(None, description="Dynamic attributes like 'Thấm thấu'")
+    attachments: Optional[list[dict[str, object]]] = Field(None, description="Media attachments URL and type")
     website_url: Optional[str] = Field(None, description="Honeypot field for bot detection")
 
 class UpdateReviewStatusRequest(BaseModel):
@@ -34,6 +36,17 @@ class ReviewResponse(BaseModel):
     customer_location: Optional[str]
     rating: int
     content: str
+    attributes: Optional[dict[str, object]]
+    attachments: Optional[list[dict[str, object]]]
+    likes_count: int
     status: str
     created_at: datetime
     updated_at: datetime
+
+class ReviewStatsResponse(BaseModel):
+    """Payload thống kê Review."""
+    total_count: int
+    average_rating: float
+    rating_breakdown: dict[int, int] # {5: 425, 4: 19, ...}
+    has_content_count: int
+    has_media_count: int

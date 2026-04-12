@@ -14,7 +14,6 @@ ADMIN_ONLY_PREFIXES: list[str] = [
     "/api/v1/scheduler",
     "/api/v1/banner",
     "/api/v1/chat",
-    "/api/v1/auth",
     "/api/v1/pulse",
     "/api/v1/intent",
     "/api/v1/voice",

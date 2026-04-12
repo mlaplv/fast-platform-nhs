@@ -71,6 +71,23 @@ PRODUCT_DEFS = [
             ],
             "reviews": [
                 {
+                    "name": "suzzyy",
+                    "location": "TP.HCM",
+                    "rating": 5,
+                    "content": "giá thành ổn áp\ncó tặng kèm quà rất oce\nvượt ngoài mong đợi\nmình dùng 1 tuần chưa thấy da sáng hơn\nnhưng có 1 số vết tàn nhang nhỏ thì mờ hẳn nha\nsp ocee nha mấy bà",
+                    "attributes": {
+                        "Thấm thấu": "tham nhah. k nhon rit",
+                        "Da săn chắc": "da sang min và giữ ẩm tốt",
+                        "Mùi thơm": "thơm dịu"
+                    },
+                    "attachments": [
+                        {"url": "https://pub-8a62f1c8491842ec9a5789fcfc01b979.r2.dev/review_1.png", "type": "image", "duration": "0:12"},
+                        {"url": "https://pub-8a62f1c8491842ec9a5789fcfc01b979.r2.dev/review_2.png", "type": "image", "duration": "0:06"},
+                        {"url": "https://pub-8a62f1c8491842ec9a5789fcfc01b979.r2.dev/review_3.png", "type": "image"}
+                    ],
+                    "likes_count": 3
+                },
+                {
                     "name": "Hồng Hạnh",
                     "location": "Hà Nội",
                     "rating": 5,
@@ -81,12 +98,6 @@ PRODUCT_DEFS = [
                     "location": "TP.HCM",
                     "rating": 5,
                     "content": "Siêu phẩm thực sự! Mình mua đợt sale vừa rồi, dùng được 2 tuần là thấy hiệu quả rõ rệt nhất là ở nách. Da mềm mịn hẳn. Nhóm bạn mình ai cũng đang săn lùng em này, may mà mình chốt sớm không là lại phải đợi đặt hàng lâu. Đáng đồng tiền bát gạo lắm ạ."
-                },
-                {
-                    "name": "Bích Ngọc",
-                    "location": "Đà Nẵng",
-                    "rating": 5,
-                    "content": "Thấm nhanh cực kỳ, không hề bết dính. Sau sinh mình tự ti hẳn nhưng nhờ em Virgin White này mà giờ tự tin diện bikini rồi. Nghe đồn sắp tăng giá nên tranh thủ gom thêm cho mấy bà chị. Best-seller có khác, dùng là nghiện!"
                 }
             ]
         }

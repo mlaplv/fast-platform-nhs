@@ -178,6 +178,57 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
         if token_ctx:
             current_tenant_id.reset(token_ctx)
 
+async def send_otp_email(ctx: Dict[str, object], email: str, code: str, request_id: str) -> bool:
+    """
+    Background Task: Sends OTP email via MailService with Live Pulse signals.
+    """
+    from backend.services.mail_service import mail_service
+    from backend.services.event_bus import event_bus
+    
+    async def emit_progress(msg: str, status: str = "PROCESSING"):
+        await event_bus.emit("OTP_UPDATE", {
+            "session_id": request_id, 
+            "event": "OTP_UPDATE",
+            "message": msg,
+            "status": status
+        })
+
+    await emit_progress("Đã tiếp nhận. Đang khởi tạo kết nối SMTP...")
+    
+    subject = f"Mã xác nhận Micsmo: {code}"
+    body_text = f"Xin chào,\n\nMã xác nhận của bạn là: {code}\n\nMã này có hiệu lực trong 5 phút. Vui lòng không chia sẻ mã này với bất kỳ ai.\n\nTrân trọng,\nMicsmo Team"
+    
+    # Premium Branding HTML
+    body_html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f0f0f0;">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #ee4d2d; margin: 0;">MICSMO</h1>
+            <p style="color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Elite Storefront</p>
+        </div>
+        <div style="background: #fdf2f0; padding: 30px; text-align: center;">
+            <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Mã xác nhận truy cập của bạn là:</p>
+            <div style="font-size: 42px; font-weight: 900; color: #ee4d2d; letter-spacing: 10px; margin-bottom: 20px;">{code}</div>
+            <p style="font-size: 12px; color: #999;">Mã này có hiệu lực trong 5 phút.</p>
+        </div>
+        <div style="margin-top: 30px; font-size: 12px; color: #888; text-align: center;">
+            <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email.</p>
+            <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 20px 0;">
+            <p>&copy; 2026 Micsmo. All rights reserved.</p>
+        </div>
+    </div>
+    """
+    
+    await emit_progress("Đã sẵn sàng. Đang gửi dữ liệu đến Gmail...")
+    
+    success = await mail_service.send_email(email, subject, body_text, body_html)
+    
+    if success:
+        await emit_progress("Thành công! Email đã được Google tiếp nhận.", status="DONE")
+    else:
+        await emit_progress("Thất bại. Không thể kết nối máy chủ gửi thư.", status="FAILED")
+        
+    return success
+
 async def startup(ctx: Dict[str, object]) -> None:
     logger.info("🚀 [Neural Worker] Arq Worker starting up... Elite V2.2 Protocol Active.")
     # Initialize shared resources like TrinityBridge if needed
@@ -191,7 +242,7 @@ from arq import cron
 
 class WorkerSettings:
     """Arq Base Configuration (Elite V2.2)."""
-    functions = [run_agent_task, helen_follow_up_job]
+    functions = [run_agent_task, helen_follow_up_job, send_otp_email]
     redis_settings = get_redis_settings()
     on_startup = startup
     on_shutdown = shutdown
@@ -203,14 +254,14 @@ class WorkerSettings:
 class WorkerHighSettings(WorkerSettings):
     """Priority Worker for Helen (Client Support)."""
     queue_name = "high"
-    functions = [run_agent_task, helen_follow_up_job]
+    functions = [run_agent_task, helen_follow_up_job, send_otp_email]
     redis_settings = get_redis_settings() # Explicitly call again to be safe
     max_jobs = 10
 
 class WorkerDefaultSettings(WorkerSettings):
     """Standard Worker for XoHi (Creative Studio)."""
     queue_name = "default"
-    functions = [run_agent_task, helen_follow_up_job]
+    functions = [run_agent_task, helen_follow_up_job, send_otp_email]
     redis_settings = get_redis_settings() # Explicitly call again to be safe
     max_jobs = 5
     cron_jobs = [

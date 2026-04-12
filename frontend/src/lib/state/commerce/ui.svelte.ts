@@ -2,6 +2,14 @@ import { setContext, getContext } from 'svelte';
 import type { ClientUiState, ShopInfo } from '$lib/types';
 import { BREAKPOINTS } from '$lib/constants/layout';
 
+// Elite V2.2: Global Auth Modal State (Nanobot Singleton)
+// This ensures reactivity even if context scoping is fragmented across chunks.
+const globalAuthModal = $state({
+    isOpen: false,
+    mode: 'login' as 'login' | 'register',
+    onSuccess: undefined as (() => void) | undefined
+});
+
 export function createClientUiState(): ClientUiState {
     const state = $state({
         isHeaderHidden: false,
@@ -12,7 +20,6 @@ export function createClientUiState(): ClientUiState {
         isHydrated: false,
         settings: null as ShopInfo | null
     });
-
 
     // Derived $mq (Media Query) Runes - No Hardcoding (R00)
     const isMobile = $derived(state.screenWidth < BREAKPOINTS.MOBILE);
@@ -32,6 +39,25 @@ export function createClientUiState(): ClientUiState {
 
         get isFooterHidden() { return state.isFooterHidden; },
         set isFooterHidden(val: boolean) { state.isFooterHidden = val; },
+        
+        // Elite V2.2: Auth Modal Controls (Global Singleton Hook)
+        get authModal() { return globalAuthModal; },
+        openLogin(onSuccess?: () => void) {
+            console.log("[Global-UI] Opening Login Modal");
+            globalAuthModal.mode = 'login';
+            globalAuthModal.onSuccess = onSuccess;
+            globalAuthModal.isOpen = true;
+        },
+        openRegister(onSuccess?: () => void) {
+            console.log("[Global-UI] Opening Register Modal");
+            globalAuthModal.mode = 'register';
+            globalAuthModal.onSuccess = onSuccess;
+            globalAuthModal.isOpen = true;
+        },
+        closeModal() {
+            console.log("[Global-UI] Closing Modal");
+            globalAuthModal.isOpen = false;
+        },
         
         // Screen Getters (Statically Typed 100%)
         get screenWidth() { return state.screenWidth; },

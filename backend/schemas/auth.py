@@ -33,6 +33,7 @@ class OTPRequestResponse(BaseModel):
     status: str = "success"
     message: str
     otp_token: str
+    request_id: Optional[str] = None
 
 class OTPVerifyResponse(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -54,9 +55,13 @@ class SocialLoginRequest(BaseModel):
 
 class OTPRequest(BaseModel):
     model_config = ConfigDict(strict=True)
-    phone: str = Field(..., pattern=r"^\+?[0-9]{10,15}$")
+    phone: Optional[str] = Field(None, pattern=r"^\+?[0-9]{10,15}$")
+    email: Optional[str] = Field(None, pattern=r"^[a-zA-Z0-9_.@+-]+$")
 
 class OTPVerifyRequest(BaseModel):
     model_config = ConfigDict(strict=True)
-    phone: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    name: Optional[str] = None
+    otp_token: str
     code: str = Field(..., min_length=6, max_length=6)

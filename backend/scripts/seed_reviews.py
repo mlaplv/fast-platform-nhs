@@ -34,13 +34,17 @@ async def seed_reviews():
                 review_db = SystemReview(
                     id=str(uuid.uuid4()),
                     entity_type="PRODUCT",
-                    entity_id="prod_hoi_nach_hong_son",
+                    entity_id="prod_miccosmo_virgin_white",
                     customer_name=r.get("name", "Khách hàng"),
                     customer_phone=r.get("phone", ""),
+                    customer_location=r.get("location", "Việt Nam"),
                     rating=r.get("rating", 5),
                     content=r.get("content", ""),
                     status="APPROVED",
-                    tenant_id=TENANT_ID
+                    tenant_id=TENANT_ID,
+                    attributes=r.get("attributes"),
+                    attachments=r.get("attachments"),
+                    likes_count=r.get("likes_count", 0)
                 )
                 session.add(review_db)
             

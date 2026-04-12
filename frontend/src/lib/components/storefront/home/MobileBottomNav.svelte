@@ -3,7 +3,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { authStore } from '$lib/state/authStore.svelte';
   import type { Product } from '$lib/types';
+
+  const ui = getClientUi();
 
   interface Props {
     isProductMode?: boolean;
@@ -128,7 +132,14 @@
     {/if}
 
     {#if !isProductMode}
-      <button class="tbn-item" aria-label="Tài khoản">
+      <button 
+        onclick={() => {
+          if (!authStore.isAuthenticated) ui.openLogin();
+          else window.location.href = '/user/profile';
+        }}
+        class="tbn-item" 
+        aria-label="Tài khoản"
+      >
         <svg class="tbn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
           <circle cx="12" cy="7" r="4"/>

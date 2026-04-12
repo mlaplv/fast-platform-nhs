@@ -140,6 +140,7 @@ export interface ProductMetadata {
   reviews_trust_score?: string;
   reviews_count_text?: string;
   reviews?: Review[];
+  reviews_stats?: ReviewStats;
   quiz_questions?: QuizQuestion[];
   science_headline?: string;
   science_subheadline?: string;
@@ -260,6 +261,24 @@ export interface Review {
   content: string;
   initial: string;
   avatar?: string;
+  created_at?: string;
+  attributes?: Record<string, string>;
+  attachments?: ReviewAttachment[];
+  likes_count?: number;
+}
+
+export interface ReviewAttachment {
+  url: string;
+  type: 'image' | 'video';
+  duration?: string;
+}
+
+export interface ReviewStats {
+  total_count: int;
+  average_rating: float;
+  rating_breakdown: Record<number, number>;
+  has_content_count: int;
+  has_media_count: int;
 }
 
 export interface QuizOption {

@@ -42,19 +42,23 @@ class AuthController(Controller):
     # ═══════════════════════════════════════════════════════
 
     @post("/social/{provider:str}", middleware=[auth_rate_limit.middleware])
-    async def social_login(self, provider: str, data: SocialLoginRequest) -> SocialLoginResponse:
+    async def social_login(self, db_session: "AsyncSession", provider: str, data: SocialLoginRequest) -> SocialLoginResponse:
         """PUBLIC: Handle social login (Google, Facebook, Zalo) via AuthService."""
-        return await auth_service.social_login(provider, data.model_dump())
+        return await auth_service.social_login(db_session, provider, data.model_dump())
 
     @post("/otp/request", middleware=[auth_rate_limit.middleware])
-    async def request_otp(self, data: OTPRequest) -> OTPRequestResponse:
-        """PUBLIC: Request OTP login via Phone."""
-        return await auth_service.request_otp(data.model_dump())
+    async def request_otp(self, db_session: "AsyncSession", data: OTPRequest) -> OTPRequestResponse:
+        """PUBLIC: Request OTP login via Phone or Email."""
+        res = await auth_service.request_otp(db_session, data.model_dump())
+        await db_session.commit()
+        return res
 
     @post("/otp/verify", middleware=[auth_rate_limit.middleware])
-    async def verify_otp(self, data: OTPVerifyRequest) -> OTPVerifyResponse:
-        """PUBLIC: Verify OTP code."""
-        return await auth_service.verify_otp(data.model_dump())
+    async def verify_otp(self, db_session: "AsyncSession", data: OTPVerifyRequest) -> OTPVerifyResponse:
+        """PUBLIC: Verify OTP code and generate access token."""
+        res = await auth_service.verify_otp(db_session, data.model_dump())
+        await db_session.commit()
+        return res
 
     @staticmethod
     def get_current_user_role(request: Request) -> str:

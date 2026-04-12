@@ -80,6 +80,7 @@ class InternalBus:
             logger.debug(f"[EventBus] Removed broadcast subscriber")
 
     async def emit(self, event_name: str, payload: Dict[str, object]):
+        logger.info(f"📤 [EventBus] Emitting event: {event_name}")
         """Emit event to queue for background processing (Non-blocking for Request)"""
         if self.queue is None:
             self.queue = asyncio.Queue(maxsize=1000)
@@ -87,7 +88,7 @@ class InternalBus:
         event = SystemEvent(name=event_name, payload=payload)
         
         # Elite V2.2: Cross-Container Redis PubSub Bridge & Stateful Pulse Caching
-        if event_name in ["SUPPORT_RESPONSE_READY", "SUPPORT_INBOX_UPDATE"] and "session_id" in payload:
+        if event_name in ["SUPPORT_RESPONSE_READY", "SUPPORT_INBOX_UPDATE", "OTP_UPDATE"] and "session_id" in payload:
             from backend.services.xohi_memory import xohi_memory
             import json
             try:
@@ -97,9 +98,10 @@ class InternalBus:
                     
                     # 1. Real-time Broadcast (Pub/Sub)
                     await xohi_memory.client.publish(f"pulse:{payload['session_id']}", str_payload)
+                    logger.info(f"[EventBus] Bridged {event_name} to Redis channel pulse:{payload['session_id']}")
                     
-                    # 2. Stateful Cache for AI Responses (CTO Strategy)
-                    if event_name == "SUPPORT_RESPONSE_READY":
+                    # 2. Stateful Cache for AI Responses & OTP (CTO Strategy)
+                    if event_name in ["SUPPORT_RESPONSE_READY", "OTP_UPDATE"]:
                         cache_key: str = f"pulse:{payload['session_id']}:cache"
                         await xohi_memory.client.set(cache_key, str_payload, ex=300)
                     

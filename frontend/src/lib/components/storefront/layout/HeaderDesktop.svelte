@@ -3,14 +3,21 @@
   import { fly, fade } from 'svelte/transition';
   import SmartSearch from '../product/SmartSearch.svelte';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
+  import { authStore } from '$lib/state/authStore.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
   
+  const ui = getClientUi();
   const cartStore = getCartStore();
   const searchStore = getSearchStore();
   let showAccountMenu = $state(false);
 
   function toggleAccountMenu(e: MouseEvent) {
     e.stopPropagation();
-    showAccountMenu = !showAccountMenu;
+    if (!authStore.isAuthenticated) {
+      ui.openLogin();
+    } else {
+      showAccountMenu = !showAccountMenu;
+    }
   }
 </script>
 
@@ -44,9 +51,19 @@
           🌐 Tiếng Việt
         </button>
         <span class="w-[1px] h-3 bg-gray-200"></span>
-        <button type="button" class="hover:text-luxury-copper font-bold uppercase transition-colors tracking-tighter">Đăng Ký</button>
-        <span class="w-[1px] h-3 bg-gray-200"></span>
-        <button type="button" class="hover:text-luxury-copper font-bold uppercase transition-colors tracking-tighter">Đăng Nhập</button>
+        
+        {#if !authStore.isAuthenticated}
+          <button onclick={() => ui.openRegister()} type="button" class="hover:text-luxury-copper font-bold uppercase transition-colors tracking-tighter">Đăng Ký</button>
+          <span class="w-1px] h-3 bg-gray-200"></span>
+          <button onclick={() => ui.openLogin()} type="button" class="hover:text-luxury-copper font-bold uppercase transition-colors tracking-tighter">Đăng Nhập</button>
+        {:else}
+          <button class="hover:text-luxury-copper font-black uppercase transition-colors tracking-tighter flex items-center gap-2">
+            <span class="w-4 h-4 rounded-none bg-luxury-grad flex items-center justify-center text-[8px] text-white ring-1 ring-white">
+              {authStore.user?.name?.charAt(0).toUpperCase()}
+            </span>
+            {authStore.user?.name}
+          </button>
+        {/if}
       </div>
     </div>
 
@@ -86,25 +103,27 @@
               <div class="text-gray-700 group-hover:text-[#C18F7E] transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
               </div>
-              <span class="text-[9px] text-gray-400 font-black uppercase tracking-tighter group-hover:text-[#C18F7E] transition-colors">Tài khoản</span>
+              <span class="text-[9px] text-gray-400 font-black uppercase tracking-tighter group-hover:text-[#C18F7E] transition-colors">
+                {authStore.isAuthenticated ? authStore.user?.name : 'Tài khoản'}
+              </span>
             </button>
 
-            {#if showAccountMenu}
+            {#if showAccountMenu && authStore.isAuthenticated}
               <div 
                 in:fly={{ y: 15, duration: 400, opacity: 0 }} 
                 out:fade={{ duration: 200 }} 
                 class="absolute right-0 top-[100%] mt-2 w-60 z-50 origin-top-right filter drop-shadow-[0_25px_25px_rgba(0,0,0,0.2)]" 
                 onclick={(e) => e.stopPropagation()}
-                onkeydown={(e) => e.key === 'Escape' && (showAccountMenu = false)}
-                role="presentation"
               >
                 <div class="absolute -top-1.5 right-[22px] w-3 h-3 bg-white border-t border-l border-gray-100 rotate-45 z-[51]"></div>
                 <div class="bg-white/98 backdrop-blur-3xl rounded-none border border-gray-100 overflow-hidden shadow-2xl relative z-50">
                   <div class="px-5 py-4 bg-gradient-to-br from-gray-50/80 to-white flex items-center gap-3 border-b border-gray-100">
-                    <div class="w-10 h-10 rounded-none bg-gradient-to-tr from-[#C18F7E] to-[#E3B5A4] flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white">S</div>
+                    <div class="w-10 h-10 rounded-none bg-gradient-to-tr from-[#C18F7E] to-[#E3B5A4] flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white">
+                      {authStore.user?.name?.charAt(0).toUpperCase()}
+                    </div>
                     <div class="flex flex-col">
-                      <span class="text-gray-800 font-bold text-[15px]">Xin chào!</span>
-                      <span class="text-[#C18F7E] text-[9.5px] font-black uppercase tracking-[0.15em] bg-[#C18F7E]/10 px-2 py-0.5 rounded-none w-fit mt-1 ring-1 ring-[#C18F7E]/20">Thành viên Cao Cấp</span>
+                      <span class="text-gray-800 font-bold text-[15px]">{authStore.user?.name}</span>
+                      <span class="text-[#C18F7E] text-[9.5px] font-black uppercase tracking-[0.15em] bg-[#C18F7E]/10 px-2 py-0.5 rounded-none w-fit mt-1 ring-1 ring-[#C18F7E]/20">Thành viên Elite</span>
                     </div>
                   </div>
                   <div class="p-0 flex flex-col text-left">
@@ -113,9 +132,14 @@
                     </a>
                     <a href="/user/purchase" class="flex items-center justify-between px-5 py-3 text-[13px] text-gray-700 hover:bg-gradient-to-r hover:from-[#C18F7E] hover:to-[#E3B5A4] hover:text-white transition-all duration-300 group/item border-t border-gray-50/50">
                       <div class="flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 opacity-70 group-hover/item:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg><span class="font-medium">Đơn mua</span></div>
-                      <span class="bg-[#C18F7E] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-none group-hover/item:bg-white group-hover/item:text-[#C18F7E]">3</span>
                     </a>
-                    <button class="flex items-center gap-3 px-5 py-3 text-[13px] text-red-500 hover:bg-red-50 transition-all duration-300 group/item w-full border-t border-gray-50/50 text-left"><svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg><span class="font-semibold">Đăng xuất</span></button>
+                    <button 
+                      onclick={() => authStore.logout()}
+                      class="flex items-center gap-3 px-5 py-3 text-[13px] text-red-500 hover:bg-red-50 transition-all duration-300 group/item w-full border-t border-gray-50/50 text-left"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                      <span class="font-semibold">Đăng xuất</span>
+                    </button>
                   </div>
                 </div>
               </div>

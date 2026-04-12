@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotAuthorizedException, ClientException
 
-from backend.database.models import User, Role
+from backend.database.models import User, Role, SystemOTP
 from backend.schemas.auth import (
     LoginRequest, TokenResponse, RegisterRequest,
     SocialLoginResponse, OTPRequestResponse, OTPVerifyResponse
@@ -148,22 +148,133 @@ class AuthService:
         )
 
     @staticmethod
-    async def request_otp(data: Dict[str, object]) -> OTPRequestResponse:
-        """Stub cho OTP login via Phone"""
-        phone = str(data.get("phone", "Unknown"))
+    async def request_otp(db_session: AsyncSession, data: Dict[str, object]) -> OTPRequestResponse:
+        """PUBLIC: Request OTP login via Phone or Email (Elite V2.2)."""
+        import random
+        from datetime import datetime, timedelta, timezone
+        
+        identifier = str(data.get("email") or data.get("phone"))
+        if not identifier:
+            raise ClientException(status_code=400, detail="Identifier (email/phone) is required")
+
+        # 1. Generate 6-digit code
+        code = "".join([str(random.randint(0, 9)) for _ in range(6)])
+        otp_token = str(uuid.uuid4())
+        
+        # 2. Store in DB
+        new_otp = SystemOTP(
+            id=str(uuid.uuid4()),
+            identifier=identifier,
+            code=code,
+            token=otp_token,
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
+            tenant_id="default"
+        )
+        db_session.add(new_otp)
+        
+        # 3. Real Delivery: Enqueue background job (Elite V2.2)
+        request_id = str(uuid.uuid4())
+        try:
+            from backend.infra.arq_config import get_redis_settings
+            from arq import create_pool
+            
+            redis_pool = await create_pool(get_redis_settings())
+            await redis_pool.enqueue_job("send_otp_email", identifier, code, request_id, _queue_name="default")
+            logger.info(f"📧 [AuthService] OTP task enqueued for {identifier} (ID: {request_id})")
+        except Exception as e:
+            logger.error(f"❌ [AuthService] Failed to enqueue OTP task: {e}")
+            # Fallback for dev: still log the code so Sếp can test if Redis is down
+            logger.warning(f"⚠️ Simulation Fallback: OTP for {identifier} is {code}")
+
         return OTPRequestResponse(
             status="success",
-            message=f"Mã OTP đã được gửi đến {phone} (Simulation).",
-            otp_token="stub_otp_session_xyz123"
+            message=f"Mã OTP đã được gửi đến {identifier}.",
+            otp_token=otp_token,
+            request_id=request_id  # Added for Live Tracking
         )
 
     @staticmethod
-    async def verify_otp(data: Dict[str, object]) -> OTPVerifyResponse:
-        """Stub cho xác thực OTP"""
+    async def verify_otp(db_session: AsyncSession, data: Dict[str, object]) -> OTPVerifyResponse:
+        """PUBLIC: Verify OTP code and generate real token. Auto-register if user doesn't exist."""
+        from datetime import datetime, timezone
+        
+        identifier = str(data.get("email") or data.get("phone"))
+        code = str(data.get("code"))
+        otp_token = str(data.get("otp_token"))
+
+        # 1. Validate OTP
+        stmt = select(SystemOTP).where(
+            SystemOTP.identifier == identifier,
+            SystemOTP.token == otp_token,
+            SystemOTP.code == code,
+            SystemOTP.used_at.is_(None)
+        )
+        res = await db_session.execute(stmt)
+        otp_record = res.scalar_one_or_none()
+
+        if not otp_record or not otp_record.is_valid:
+            raise NotAuthorizedException("Mã OTP không hợp lệ hoặc đã hết hạn")
+
+        # 2. Mark OTP as used
+        otp_record.used_at = datetime.now(timezone.utc)
+
+        # 3. Find or Create User (Quick Register)
+        stmt_user = (
+            select(User)
+            .options(selectinload(User.roles).selectinload(Role.permissions))
+            .where((User.email == identifier) | (User.phone == identifier))
+        )
+        res_user = await db_session.execute(stmt_user)
+        user = res_user.scalar_one_or_none()
+        
+        roles = []
+
+        if not user:
+            # Create a basic user
+            user_id = str(uuid.uuid4())
+            user = User(
+                id=user_id,
+                username=identifier,
+                email=identifier if "@" in identifier else f"{identifier}@smartshop.test",
+                phone=identifier if "@" not in identifier else None,
+                name=str(data.get("name") or identifier.split("@")[0]),
+                status="ACTIVE",
+                tenant_id = "default"
+            )
+            db_session.add(user)
+            await db_session.flush()
+            roles = ["CUSTOMER"]
+            permissions = []
+            logger.info(f"[AuthService] New user auto-registered via OTP: {identifier}")
+        else:
+            # 4. Generate real access token data from existing user
+            roles = [r.code for r in getattr(user, "roles", [])]
+            permissions = []
+            for r in getattr(user, "roles", []):
+                permissions.extend([p.code for p in getattr(r, "permissions", [])])
+        
+        if not roles:
+            roles = ["CUSTOMER"]
+            
+        token_data = {
+            "id": str(user.id),
+            "sub": user.email,
+            "roles": roles,
+            "perms": list(set(permissions if 'permissions' in locals() else [])),
+            "tenant_id": getattr(user, 'tenant_id', 'default'),
+            "stamp": getattr(user, "security_stamp", "MISSING"),
+            "name": user.name
+        }
+
+        access_token = AuthService.create_access_token(
+            data=token_data,
+            expires_delta=timedelta(minutes=120)
+        )
+
         return OTPVerifyResponse(
             status="success",
-            access_token="stub_access_token_via_otp",
-            role="CUSTOMER"
+            access_token=access_token,
+            role=roles[0]
         )
 
     @staticmethod
