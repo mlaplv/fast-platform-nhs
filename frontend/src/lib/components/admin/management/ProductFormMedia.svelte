@@ -12,7 +12,7 @@
   } = $props<{
     formImages: string[];
     formMobileImages: string[];
-    onOpenVault: (isMobile?: boolean) => void;
+    onOpenVault: (isMobile: boolean, index?: number | null) => void;
   }>();
 
   let previewUrl = $state<string | null>(null);
@@ -29,6 +29,13 @@
       formImages = formImages.filter((_, i) => i !== index);
     }
   }
+
+  // Clear broken state when images change (e.g. replaced)
+  $effect(() => {
+    formImages;
+    formMobileImages;
+    brokenImages = new Set();
+  });
 
   function setAsPrimary(index: number, isMobile = false) {
     if (index === 0) return;
@@ -125,11 +132,11 @@
           ondragend={handleDragEnd}
         >
           {#if isBroken}
-            <!-- Broken Image State: force-visible controls -->
             <div class="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <AlertTriangle size={24} class="text-red-400/60" />
               <span class="text-[8px] font-black uppercase tracking-widest text-red-400/60">Ảnh bị lỗi</span>
               <div class="flex gap-2">
+                <button onclick={() => onOpenVault(false, i)} class="p-2 bg-white/20 text-white rounded-full hover:bg-white/40 transition-all shadow-lg border border-white/30" title="Thay thế ảnh"><ImagePlus size={14} /></button>
                 {#if i !== 0}
                   <button onclick={() => setAsPrimary(i, false)} class="px-2 py-1 bg-amber-500/90 text-black text-[9px] font-black uppercase tracking-wider rounded border border-amber-400/50 hover:bg-amber-400 transition-colors shadow-lg">Đại diện</button>
                 {/if}
@@ -140,6 +147,7 @@
             <img src={resolved} alt="Product Desktop" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-auto" onclick={(e) => { e.preventDefault(); e.stopPropagation(); previewUrl = resolved; }} onerror={() => handleImageError(resolved)} />
             <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-2 transition-opacity pointer-events-none">
               <div class="pointer-events-auto flex gap-2">
+                <button onclick={() => onOpenVault(false, i)} class="p-2 bg-white/20 text-white rounded-full hover:bg-white/40 transition-all shadow-lg border border-white/30" title="Thay thế ảnh"><ImagePlus size={14} /></button>
                 {#if i !== 0}
                   <button onclick={() => setAsPrimary(i, false)} class="px-2 py-1 bg-amber-500/90 text-black text-[9px] font-black uppercase tracking-wider rounded border border-amber-400/50 hover:bg-amber-400 transition-colors shadow-lg">Đại diện</button>
                 {/if}
@@ -190,12 +198,18 @@
             <div class="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <AlertTriangle size={24} class="text-red-400/60" />
               <span class="text-[8px] font-black uppercase tracking-widest text-red-400/60">Ảnh bị lỗi</span>
-              <button onclick={() => removeImage(i, true)} class="p-2 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-red-500/30"><Trash2 size={14} /></button>
+              <div class="flex gap-2">
+                <button onclick={() => onOpenVault(true, i)} class="p-2 bg-white/20 text-white rounded-full hover:bg-white/40 transition-all shadow-lg border border-white/30" title="Thay thế ảnh"><ImagePlus size={14} /></button>
+                <button onclick={() => removeImage(i, true)} class="p-2 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-red-500/30"><Trash2 size={14} /></button>
+              </div>
             </div>
           {:else}
             <img src={resolved} alt="Product Mobile" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-auto" onclick={() => previewUrl = resolved} onerror={() => handleImageError(resolved)} />
             <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-2 transition-opacity pointer-events-none">
-              <button onclick={() => removeImage(i, true)} class="p-2 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-red-500/30 pointer-events-auto"><Trash2 size={14} /></button>
+              <div class="pointer-events-auto flex gap-2">
+                <button onclick={() => onOpenVault(true, i)} class="p-2 bg-white/20 text-white rounded-full hover:bg-white/40 transition-all shadow-lg border border-white/30" title="Thay thế ảnh"><ImagePlus size={14} /></button>
+                <button onclick={() => removeImage(i, true)} class="p-2 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-red-500/30 pointer-events-auto"><Trash2 size={14} /></button>
+              </div>
             </div>
           {/if}
         </div>

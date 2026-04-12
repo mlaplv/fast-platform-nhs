@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { MediaAsset } from "$lib/state/types";
   import FileManager from "$lib/components/media/FileManager.svelte";
+  import AlertTriangle from "lucide-svelte/icons/triangle-alert";
 
   import { onMount } from "svelte";
   import { portal } from "$lib/core/actions/portal";
@@ -44,8 +45,10 @@
     }
   }
 
-  function handleImageError(e: Event) {
-    (e.target as HTMLImageElement).src = 'https://placehold.co/400x300?text=Image+Error';
+  let brokenAssets = $state<Set<string>>(new Set());
+
+  function handleImageError(src: string) {
+    brokenAssets = new Set([...brokenAssets, src]);
   }
 </script>
 
@@ -142,7 +145,14 @@
                      class="group/asset relative aspect-square rounded-2xl overflow-hidden border border-white/5 hover:border-blue-500/50 cursor-pointer transition-all duration-300 bg-zinc-900 hover:scale-[1.02] hover:shadow-[0_0_30px_-10px_rgba(59,130,246,0.3)]"
                      onclick={(e) => { e.stopPropagation(); onSelect(fullUrl); show = false; }}
                   >
-                      <img src={fullUrl} alt="asset" class="w-full h-full object-cover grayscale-[0.5] group-hover/asset:grayscale-0 transition-all duration-500" onerror={handleImageError} />
+                      {#if brokenAssets.has(fullUrl)}
+                        <div class="w-full h-full flex flex-col items-center justify-center gap-2 bg-red-500/5">
+                          <AlertTriangle size={20} class="text-red-400/50" />
+                          <span class="text-[7px] font-black uppercase tracking-widest text-red-400/40">Lỗi ảnh</span>
+                        </div>
+                      {:else}
+                        <img src={fullUrl} alt="asset" class="w-full h-full object-cover grayscale-[0.5] group-hover/asset:grayscale-0 transition-all duration-500" onerror={() => handleImageError(fullUrl)} />
+                      {/if}
                       <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover/asset:opacity-100 transition-opacity flex items-end p-3">
                           <span class="text-[9px] text-white font-mono truncate uppercase tracking-tighter">{assetUrl.split('/').pop()}</span>
                       </div>

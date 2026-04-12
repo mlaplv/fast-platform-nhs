@@ -10,6 +10,7 @@
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import Lock from "lucide-svelte/icons/lock";
   import Newspaper from "lucide-svelte/icons/newspaper";
+  import AlertTriangle from "lucide-svelte/icons/triangle-alert";
   import MissionControlShell from "../ui/MissionControlShell.svelte";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
   import NeuralEditor from "../ui/tiptap/NeuralEditor.svelte";
@@ -119,6 +120,19 @@
   const ogUrl = $derived(`micsmo.com/${formSlug || 'slug-bai-viet'}.p${editingId || 'pid'}`);
   const ogImg = $derived(formSeoOgImage ? resolveMediaUrl(formSeoOgImage) : (formFeaturedImage ? resolveMediaUrl(formFeaturedImage) : null));
   const isSlugLocked = $derived(formStatus === 'PUBLISHED' && !!editingId);
+
+  let featuredImageBroken = $state(false);
+  let ogImageBroken = $state(false);
+
+  // Reset broken state when image URL changes
+  $effect(() => {
+    formFeaturedImage;
+    featuredImageBroken = false;
+  });
+  $effect(() => {
+    formSeoOgImage;
+    ogImageBroken = false;
+  });
 </script>
 
 <MissionControlShell
@@ -259,22 +273,42 @@
 
         <div class="relative">
           {#if formFeaturedImage && formFeaturedImage.includes('/')}
-            <div class="relative group aspect-[16/10] rounded-xl overflow-hidden border border-white/10 bg-black/60">
-              <img
-                src={resolveMediaUrl(formFeaturedImage)}
-                alt="Featured"
-                class="w-full h-full object-cover opacity-90"
-              />
-              <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-3">
-                <button
-                  onclick={() => showMediaModal = true}
-                  class="px-4 py-1.5 bg-white text-black text-[9px] font-black uppercase tracking-wider rounded-lg"
-                >Thay đổi</button>
-                <button
-                  onclick={() => formFeaturedImage = null}
-                  class="p-1.5 bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500 hover:text-white"
-                ><Trash2 size={14} /></button>
-              </div>
+            <div class="relative group aspect-[16/10] rounded-xl overflow-hidden border {featuredImageBroken ? 'border-red-500/30 bg-red-500/5' : 'border-white/10 bg-black/60'}">
+              {#if featuredImageBroken}
+                <!-- Broken Featured Image State -->
+                <div class="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                  <AlertTriangle size={28} class="text-red-400/60" />
+                  <span class="text-[9px] font-black uppercase tracking-widest text-red-400/60">Ảnh bị lỗi</span>
+                  <div class="flex items-center gap-3 z-20">
+                    <button
+                      onclick={(e) => { e.stopPropagation(); showMediaModal = true; }}
+                      class="px-4 py-1.5 bg-white text-black text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-cyan-400 transition-colors shadow-xl"
+                    >Thay thế ảnh</button>
+                    <button
+                      onclick={(e) => { e.stopPropagation(); formFeaturedImage = null; }}
+                      class="p-1.5 bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500 hover:text-white transition-all"
+                      title="Xóa ảnh"
+                    ><Trash2 size={14} /></button>
+                  </div>
+                </div>
+              {:else}
+                <img
+                  src={resolveMediaUrl(formFeaturedImage)}
+                  alt="Featured"
+                  class="w-full h-full object-cover opacity-90"
+                  onerror={() => featuredImageBroken = true}
+                />
+                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-3">
+                  <button
+                    onclick={() => showMediaModal = true}
+                    class="px-4 py-1.5 bg-white text-black text-[9px] font-black uppercase tracking-wider rounded-lg"
+                  >Thay đổi</button>
+                  <button
+                    onclick={() => formFeaturedImage = null}
+                    class="p-1.5 bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500 hover:text-white"
+                  ><Trash2 size={14} /></button>
+                </div>
+              {/if}
               <div class="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 border border-white/10 rounded text-[7px] font-black text-cyan-400 uppercase tracking-wider">
                 {formFeaturedImage.startsWith('http') ? 'External' : 'Local'}
               </div>
@@ -370,11 +404,19 @@
           <div class="field-group">
             <label class="field-label">Ảnh đại diện MXH (OG Image)</label>
             <div class="flex items-center gap-4">
-              <div class="w-24 aspect-video rounded-xl bg-white/[0.02] border border-white/5 overflow-hidden flex items-center justify-center relative group">
+              <div class="w-24 aspect-video rounded-xl bg-white/[0.02] border {ogImageBroken ? 'border-red-500/20' : 'border-white/5'} overflow-hidden flex items-center justify-center relative group">
                 {#if formSeoOgImage}
-                  <img src={resolveMediaUrl(formSeoOgImage)} alt="OG" class="w-full h-full object-cover" />
-                  <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <button onclick={() => formSeoOgImage = null} class="p-1.5 bg-red-500 rounded-lg text-white shadow-lg"><Trash2 size={12} /></button>
+                  {#if ogImageBroken}
+                    <div class="flex flex-col items-center justify-center gap-1">
+                      <AlertTriangle size={14} class="text-red-400/60" />
+                      <span class="text-[6px] font-black uppercase text-red-400/50">Lỗi</span>
+                    </div>
+                  {:else}
+                    <img src={resolveMediaUrl(formSeoOgImage)} alt="OG" class="w-full h-full object-cover" onerror={() => ogImageBroken = true} />
+                  {/if}
+                  <div class="absolute inset-0 bg-black/40 {ogImageBroken ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity flex items-center justify-center gap-1.5">
+                    <button onclick={(e) => { e.stopPropagation(); selectingOgImage = true; showMediaModal = true; }} class="p-1.5 bg-white text-black rounded-lg shadow-lg hover:bg-cyan-400 transition-colors" title="Thay thế ảnh"><ImagePlus size={12} /></button>
+                    <button onclick={(e) => { e.stopPropagation(); formSeoOgImage = null; }} class="p-1.5 bg-red-500 rounded-lg text-white shadow-lg hover:bg-red-600 transition-colors" title="Xóa ảnh"><Trash2 size={12} /></button>
                   </div>
                 {:else}
                   <div class="text-white/10"><Image size={24} /></div>

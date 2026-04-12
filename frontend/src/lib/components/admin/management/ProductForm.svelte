@@ -82,6 +82,7 @@
   let variantEditTierIndex = $state<number | null>(null);
   let variantEditOptionIndex = $state<number | null>(null);
   let variantEditIsMobile = $state(false);
+  let albumReplaceIndex = $state<number | null>(null);
 
   let reserve_assets = $state<string[]>([]);
   let selectedAvatarUrl = $state<string | null>(null);
@@ -127,11 +128,29 @@
     showMediaModal = false;
   }
 
+  function handleAlbumImageSelect(url: string) {
+    if (albumReplaceIndex !== null) {
+      if (isVaultForMobile) {
+        formMobileImages[albumReplaceIndex] = url;
+        formMobileImages = [...formMobileImages];
+      } else {
+        formImages[albumReplaceIndex] = url;
+        formImages = [...formImages];
+      }
+    } else {
+      // Standard append handled by bind:assets in MediaVaultModal
+      // But we can ensure it here if needed. 
+    }
+    albumReplaceIndex = null;
+    showMediaModal = false;
+  }
+
   let isVaultForMobile = $state(false);
 
-  function openVaultForGeneral(isMobile = false) {
+  function openVaultForGeneral(isMobile = false, replaceIndex: number | null = null) {
     variantEditTierIndex = null;
     variantEditOptionIndex = null;
+    albumReplaceIndex = replaceIndex;
     isVaultForMobile = isMobile;
     showMediaModal = true;
   }
@@ -286,8 +305,8 @@
 {:else}
   <MediaVaultModal
     isOpen={showMediaModal}
-    onClose={() => { showMediaModal = false; variantEditTierIndex = null; variantEditOptionIndex = null; isVaultForMobile = false; variantEditIsMobile = false; }}
-    onSelect={variantEditOptionIndex !== null ? handleVariantImageSelect : undefined}
+    onClose={() => { showMediaModal = false; variantEditTierIndex = null; variantEditOptionIndex = null; isVaultForMobile = false; variantEditIsMobile = false; albumReplaceIndex = null; }}
+    onSelect={variantEditOptionIndex !== null ? handleVariantImageSelect : (albumReplaceIndex !== null ? handleAlbumImageSelect : undefined)}
     bind:assets={formImages}
     bind:reserve_assets
     bind:selectedAvatarUrl
