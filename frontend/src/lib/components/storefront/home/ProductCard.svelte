@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { trimProductName } from '$lib/utils/format';
   import type { Product } from '$lib/types';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
 
@@ -14,6 +15,9 @@
   const finalPrice = $derived(hasDiscount ? product.discountPrice! : product.price);
   const oldPrice = $derived(hasDiscount ? product.price : 0);
   const discountPercent = $derived(hasDiscount ? Math.round((1 - product.discountPrice! / product.price) * 100) : 0);
+
+  // Elite V2.2: Universal Sanitization
+  const cleanName = $derived(trimProductName(product.name));
 
   function navigateProduct(): void {
     goto(`/${product.slug || product.id}`);
@@ -57,7 +61,7 @@
   </div>
 
   <div class="product-info">
-    <h3 class="product-name">{product.name}</h3>
+    <h3 class="product-name">{cleanName}</h3>
 
     <div class="price-section">
       <div class="price-row">

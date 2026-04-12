@@ -33,3 +33,17 @@ export function slugify(str: string): string {
     .replace(/\s+/g, '-') // Thay khoảng trắng bằng gạch ngang
     .replace(/-+/g, '-'); // Gộp các gạch ngang liên tiếp
 }
+
+/**
+ * Elite V2.2: Universal Product Name Sanitizer
+ * Removes messy internal separators and trailing punctuation/noise.
+ * Essential for clean UI truncation.
+ */
+export function trimProductName(name: string): string {
+  if (!name) return '';
+  return name
+    .replace(/\s+[\-\.\|\/]+\s+/g, ' ') // Replace " - ", " | ", etc with space
+    .replace(/[^a-zA-Z0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]+$/, '') // Multi-language alphanumeric strip
+    .replace(/\s+/g, ' ')
+    .trim();
+}

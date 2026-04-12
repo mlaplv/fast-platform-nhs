@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
-  import { slugify } from '$lib/utils/format';
+  import { slugify, trimProductName } from '$lib/utils/format';
   import type { Product } from '$lib/types';
   import { ChevronLeft, ChevronRight } from 'lucide-svelte';
 
@@ -20,8 +20,12 @@
         const oPrice = p.price;
         const discountPct = (oPrice - dPrice) / oPrice;
         
+        // Elite V2.2: Universal Sanitization - Remove internal " - " separators and strip all trailing metadata-like noise
+        const cleanName = trimProductName(p.name);
+
         return {
           ...p,
+          name: cleanName,
           finalPrice: dPrice,
           oldPrice: oPrice,
           discountPct,
@@ -142,7 +146,9 @@
           </div>
 
           <div class="item-info">
-            <h3 class="product-name">{deal.name}</h3>
+            <div class="product-name-wrapper">
+              <h3 class="product-name">{deal.name}</h3>
+            </div>
             
             <!-- Price Block -->
             <div class="price-container">
@@ -306,20 +312,29 @@
     gap: 0.75rem;
   }
 
+  .product-name-wrapper {
+    height: 2.8em;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 0.5rem;
+    padding: 0 0.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
   .product-name {
     font-size: 0.85rem;
     color: #333;
-    line-height: 1.3;
-    height: 2.6rem;
+    line-height: 1.4;
+    width: 100%;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
-    font-weight: 500;
+    font-weight: 600;
     text-align: center;
-    margin-bottom: 0.25rem;
-    padding: 0 0.5rem;
-    transition: color 0.3s;
+    transition: color 0.3s ease;
   }
 
   .deal-item:hover .product-name {

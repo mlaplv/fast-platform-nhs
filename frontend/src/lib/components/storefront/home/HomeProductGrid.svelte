@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { slugify } from '$lib/utils/format';
+  import { slugify, trimProductName } from '$lib/utils/format';
   import { onMount } from 'svelte';
   import { fly, fade, scale } from 'svelte/transition';
   import { cubicOut, backOut } from 'svelte/easing';
@@ -61,9 +61,13 @@
     
     const discountPercent = originalPrice > 0 ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) : 0;
     
+    // Elite V2.2: Universal Sanitization
+    const cleanName = trimProductName(p.name);
+
     return {
       ...p,
       id: `${tabId}-${p.id}`,
+      name: cleanName,
       image: primaryImage,
       price: sellingPrice,
       originalPrice: originalPrice,

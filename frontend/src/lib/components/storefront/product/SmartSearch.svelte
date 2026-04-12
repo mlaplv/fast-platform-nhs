@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { onMount, tick, untrack } from 'svelte';
-  import { goto } from '$app/navigation';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
+  import { trimProductName } from '$lib/utils/format';
   import { isAdminDomain } from '$lib/state/nanobot/env';
   import { fade, fly, slide } from 'svelte/transition';
   import { Z_INDEX_CLIENT, Z_INDEX_ADMIN } from '$lib/core/constants/zIndex';
@@ -13,6 +12,7 @@
   }>();
 
   let isFocused = $state(false);
+  let containerElement = $state<HTMLElement>();
   let inputElement = $state<HTMLInputElement>();
 
   // Local state for immediate responsiveness
@@ -65,6 +65,26 @@
     }
   });
 
+  // Click outside to close (Desktop)
+  $effect(() => {
+    if (variant !== 'desktop' || !isFocused) return;
+
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (containerElement && !containerElement.contains(e.target as Node)) {
+        isFocused = false;
+      }
+    };
+
+    const timeout = setTimeout(() => {
+      window.addEventListener('click', handleOutsideClick);
+    }, 0);
+
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('click', handleOutsideClick);
+    };
+  });
+
   // Viral 2026: Deterministic Social Proof
   function getHeatColor(count: number) {
     if (count > 20) return 'text-red-500';
@@ -80,7 +100,7 @@
 </script>
 
 {#if variant === 'desktop'}
-  <div class="w-full relative group" style:z-index={Z_INDEX_CLIENT.HEADER + 1}>
+  <div bind:this={containerElement} class="w-full relative group" style:z-index={Z_INDEX_CLIENT.HEADER + 1}>
     <div 
       class="w-full flex items-center bg-white rounded-none border border-gray-200 relative focus-within:border-luxury-copper transition-all shadow-sm focus-within:shadow-md"
       style:z-index={Z_INDEX_CLIENT.HEADER + 2}
@@ -169,7 +189,7 @@
                       </div>
                       <div class="flex flex-col ml-1.5 flex-grow min-w-0">
                         <span class="text-[13px] font-bold text-gray-700 group-hover:text-[#fe2c55] line-clamp-1 transition-colors leading-tight">
-                          {p.name}
+                          {trimProductName(p.name)}
                         </span>
                         <div class="flex items-center gap-2">
                            <span class="text-[11px] text-[#fe2c55] font-black">{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}đ</span>
@@ -215,7 +235,7 @@
                       <!-- Product Intelligence Info -->
                       <div class="flex flex-col flex-grow min-w-0">
                         <!-- Product Name: High contrast blue-grey -->
-                        <h4 class="text-[15px] font-bold text-[#374151] line-clamp-1 mb-0.5 leading-tight group-hover:text-luxury-copper transition-colors">{p.name}</h4>
+                        <h4 class="text-[15px] font-bold text-[#374151] line-clamp-1 mb-0.5 leading-tight group-hover:text-luxury-copper transition-colors">{trimProductName(p.name)}</h4>
                         
                         <!-- SKU & Dynamic Category Tag -->
                         <div class="flex items-center justify-between gap-4 mb-2">
@@ -264,7 +284,7 @@
                         <div class="absolute bottom-1 left-1 text-[8px] font-black bg-white/90 px-1.5 py-0.5 text-luxury-copper rounded-sm shadow-sm hover:scale-105 transition-transform">MẬT MÃ XOHI</div>
                       {/if}
                     </div>
-                    <div class="text-[12px] font-bold line-clamp-2 leading-tight group-hover:text-luxury-copper transition-colors" title={p.name}>{p.name}</div>
+                    <div class="text-[12px] font-bold line-clamp-2 leading-tight group-hover:text-luxury-copper transition-colors" title={p.name}>{trimProductName(p.name)}</div>
                     <div class="flex flex-col">
                        <div class="text-[14px] font-black text-[#fe2c55] tabular-nums tracking-toggle">{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}đ</div>
                        {#if p.discountPrice}
@@ -358,7 +378,7 @@
                       {/if}
                    </div>
                    <div class="flex flex-col justify-center flex-1">
-                      <span class="text-[14px] text-gray-800 font-bold tracking-tight line-clamp-1 leading-tight mb-1">{p.name}</span>
+                      <span class="text-[14px] text-gray-800 font-bold tracking-tight line-clamp-1 leading-tight mb-1">{trimProductName(p.name)}</span>
                       <div class="flex items-center gap-2">
                          <span class="text-[15px] text-[#fe2c55] font-black tracking-tight">{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}₫</span>
                          {#if p.discountPrice}
@@ -402,7 +422,7 @@
                    </div>
                    <div class="flex flex-col ml-4 flex-grow min-w-0">
                       <div class="flex items-center gap-2 mb-1">
-                        <span class="text-[14px] text-gray-900 font-bold line-clamp-1 tracking-tight leading-snug">{p.name}</span>
+                        <span class="text-[14px] text-gray-900 font-bold line-clamp-1 tracking-tight leading-snug">{trimProductName(p.name)}</span>
                       </div>
                       <div class="flex items-center justify-between">
                          <div class="flex flex-col">

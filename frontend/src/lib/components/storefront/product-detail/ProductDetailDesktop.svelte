@@ -645,13 +645,36 @@
   :global(.prose-micsmo h3) { font-size: 18px !important; }
 
   :global(.prose-micsmo ul, .prose-micsmo ol) {
-    margin-bottom: 1rem !important;
-    padding-left: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+    padding-left: 1.75rem !important;
+  }
+
+  /* Aggressive suppression of default bullets */
+  :global(.prose-micsmo ul),
+  :global(.prose-micsmo ul li) {
+    list-style: none !important;
+    list-style-type: none !important;
+  }
+
+  :global(.prose-micsmo ul li::marker) {
+    content: none !important;
   }
 
   :global(.prose-micsmo li) {
-    margin-bottom: 0.25rem !important;
-    list-style-type: disc;
+    position: relative !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  :global(.prose-micsmo ul li::before) {
+    content: "" !important;
+    position: absolute !important;
+    left: -0.8rem !important;
+    top: 0.75em !important;
+    width: 3px !important;
+    height: 3px !important;
+    background-color: #94a3b8 !important;
+    border-radius: 50% !important;
+    opacity: 0.5 !important;
   }
 
   :global(.prose-micsmo img) {
