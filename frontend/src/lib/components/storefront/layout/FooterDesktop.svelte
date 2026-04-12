@@ -58,7 +58,7 @@
   <!-- Noise Texture Overlay -->
   <div class="absolute inset-0 pointer-events-none opacity-[0.02] bg-[url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')] brightness-100 contrast-150"></div>
 
-  <div class="max-w-[1240px] mx-auto px-6 pt-2 pb-8 relative z-[1]">
+  <div class="max-w-[1240px] mx-auto px-6 pt-10 pb-8 relative z-[1]">
     <!-- Elite Header Section -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-8 mb-12 items-start">
       

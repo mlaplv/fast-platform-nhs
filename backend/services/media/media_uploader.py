@@ -15,11 +15,40 @@ from backend.services.storage.manager import storage
 logger = logging.getLogger("media-uploader")
 
 class MediaUploaderMixin:
+    def _verify_magic_bytes(self, file_content: bytes, expected_mime: str) -> bool:
+        """Kiểm duyệt chữ ký nhị phân (Magic Bytes) phòng thủ 0-day."""
+        if len(file_content) < 12: return False
+        header = file_content[:12]
+        
+        # Images
+        if expected_mime in ("image/jpeg", "image/jpg"):
+            return header.startswith(b'\xff\xd8\xff')
+        if expected_mime == "image/png":
+            return header.startswith(b'\x89PNG\r\n\x1a\n')
+        if expected_mime == "image/webp":
+            return header.startswith(b'RIFF') and header[8:12] == b'WEBP'
+        if expected_mime == "image/gif":
+            return header.startswith(b'GIF87a') or header.startswith(b'GIF89a')
+        
+        # Videos
+        if expected_mime == "video/mp4":
+            return b'ftyp' in header
+        if expected_mime == "video/webm":
+            return header.startswith(b'\x1aE\xdf\xa3')
+            
+        # Optional: default to False to block unknown binary structures
+        return False
+
     async def upload_asset(self, repo: MediaRegistryRepository, file_content: bytes, filename: str, content_type: str, campaign_id: Optional[str] = None, owner_id: Optional[str] = None) -> Optional[MediaRegistry]:
         """Xử lý upload file trực tiếp, convert sang WEBP và lưu hệ thống."""
         asset_id = str(uuid.uuid4())
         folder = datetime.now().strftime("%Y/%m")
         try:
+            # [Elite Security] Quarantine Check: Magic Byte Enforcement
+            if not self._verify_magic_bytes(file_content, content_type):
+                logger.error(f"[Security] Kẻ xâm nhập bị chặn: Mismatched Magic Bytes for {filename} ({content_type})")
+                return None
+
             if content_type.startswith("image/"):
                 with Image.open(BytesIO(file_content)) as img:
                     if max(img.size) > 1920: img.thumbnail((1920, 1920), Image.Resampling.LANCZOS)

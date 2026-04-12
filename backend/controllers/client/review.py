@@ -7,7 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.schemas.review import CreateReviewRequest, ReviewResponse, ReviewStatsResponse
 from backend.services.review_service import ReviewService, provide_review_service
-from backend.database.repositories import provide_system_review_repo
+from backend.database.repositories import provide_system_review_repo, MediaRegistryRepository, provide_media_repo
+from backend.services.media.media_service import media_service
+from backend.services.media.schemas import MediaDetailResponse, MediaAssetResponse
+from litestar.datastructures import UploadFile
+from litestar.enums import RequestEncodingType
+from litestar.params import Body
+from litestar.exceptions import HTTPException
 
 class PublicReviewController(Controller):
     path = "/api/v1/client/reviews"
@@ -15,6 +21,7 @@ class PublicReviewController(Controller):
     dependencies = {
         "review_repo": Provide(provide_system_review_repo),
         "review_service": Provide(provide_review_service),
+        "media_repo": Provide(provide_media_repo),
     }
 
     @get()
@@ -84,3 +91,35 @@ class PublicReviewController(Controller):
         review = await review_service.create_review(data)
         await db_session.commit()
         return ReviewResponse.model_validate(review)
+
+    @post("/upload", middleware=[RateLimitConfig(rate_limit=("minute", 10)).middleware], status_code=201)
+    async def upload_review_media(
+        self, 
+        request: Request, 
+        media_repo: MediaRegistryRepository, 
+        data: UploadFile = Body(media_type=RequestEncodingType.MULTI_PART)
+    ) -> MediaDetailResponse:
+        user = getattr(request.state, "user", None)
+        if not user:
+            raise HTTPException(status_code=401, detail="Vui lòng đăng nhập để tải ảnh")
+        
+        # Elite Military-Grade Size Restrictions
+        content_obj = await data.read()
+        is_video = data.content_type.startswith("video/")
+        size_limit = 20 * 1024 * 1024 if is_video else 5 * 1024 * 1024
+        
+        if len(content_obj) > size_limit:
+            msg = "Video không được vượt quá 20MB" if is_video else "Ảnh không được vượt quá 5MB"
+            raise HTTPException(status_code=413, detail=msg)
+
+        asset = await media_service.upload_asset(
+            repo=media_repo, 
+            file_content=content_obj, 
+            filename=data.filename, 
+            content_type=data.content_type, 
+            owner_id=user.get("sub", user.get("id"))
+        )
+        if not asset: 
+            raise HTTPException(status_code=500, detail="Quy trình xử lý file thất bại")
+        return MediaDetailResponse(status="success", data=MediaAssetResponse.model_validate(asset))
+

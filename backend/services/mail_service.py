@@ -51,19 +51,28 @@ class MailService:
         use_implicit_tls = (self.port == 465)
         
         try:
-            await aiosmtplib.send(
-                message,
+            # Elite V2.2: Manual connection lifecycle for deep response logging
+            smtp = aiosmtplib.SMTP(
                 hostname=self.host,
                 port=self.port,
-                username=self.user,
-                password=self.password,
                 use_tls=use_implicit_tls,
                 start_tls=False if use_implicit_tls else True,
+                timeout=10
             )
-            logger.info(f"📧 [MailService] Email sent successfully to {to_email}: {subject}")
-            return True
+            
+            async with smtp:
+                await smtp.login(self.user, self.password)
+                # Elite V2.2: Capture the actual SMTP response message
+                response = await smtp.send_message(message)
+                
+                # Full logging of SMTP interaction for diagnostic transparency
+                status_code = response[0] if isinstance(response, tuple) else "OK"
+                log_msg = f"📧 [MailService] Email successfully handed off to {self.host}. Code: {status_code}, Payload: {response}"
+                logger.info(log_msg)
+                return True
+
         except Exception as e:
-            logger.error(f"❌ [MailService] Failed to send email to {to_email}: {e}")
+            logger.error(f"❌ [MailService] SMTP Transaction Failed to {to_email}: {str(e)}", exc_info=True)
             return False
 
 mail_service = MailService()

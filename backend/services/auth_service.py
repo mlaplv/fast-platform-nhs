@@ -198,22 +198,35 @@ class AuthService:
         """PUBLIC: Verify OTP code and generate real token. Auto-register if user doesn't exist."""
         from datetime import datetime, timezone
         
-        identifier = str(data.get("email") or data.get("phone"))
-        code = str(data.get("code"))
-        otp_token = str(data.get("otp_token"))
+        # Elite V2.2: Hardened normalization
+        identifier = str(data.get("email") or data.get("phone") or "").strip().lower()
+        code = str(data.get("code") or "").strip()
+        otp_token = str(data.get("otp_token") or "").strip()
 
-        # 1. Validate OTP
+        if not identifier or not code or not otp_token:
+            logger.warning(f"⚠️ [AuthService] Missing verification metadata: id={identifier}, code={'***' if code else 'MISSING'}, token={'PRESENT' if otp_token else 'MISSING'}")
+            raise NotAuthorizedException("Thiếu thông tin xác thực")
+
+        # 1. Validate OTP with detailed logging
         stmt = select(SystemOTP).where(
             SystemOTP.identifier == identifier,
             SystemOTP.token == otp_token,
-            SystemOTP.code == code,
             SystemOTP.used_at.is_(None)
         )
         res = await db_session.execute(stmt)
         otp_record = res.scalar_one_or_none()
 
-        if not otp_record or not otp_record.is_valid:
-            raise NotAuthorizedException("Mã OTP không hợp lệ hoặc đã hết hạn")
+        if not otp_record:
+            logger.error(f"❌ [AuthService] Verification Failed: No active OTP record found for identifier {identifier} and token {otp_token[:8]}...")
+            raise NotAuthorizedException("Mã OTP không hợp lệ hoặc đã được sử dụng")
+
+        if otp_record.code != code:
+            logger.error(f"❌ [AuthService] Verification Failed: Code mismatch for {identifier}. Expected {otp_record.code}, received {code}")
+            raise NotAuthorizedException("Mã OTP không chính xác")
+
+        if not otp_record.is_valid:
+            logger.error(f"❌ [AuthService] Verification Failed: OTP expired for {identifier}. Expired at: {otp_record.expires_at}")
+            raise NotAuthorizedException("Mã OTP đã hết hạn")
 
         # 2. Mark OTP as used
         otp_record.used_at = datetime.now(timezone.utc)

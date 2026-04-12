@@ -6,10 +6,17 @@
   import Square from "lucide-svelte/icons/square";
   import ExternalLink from "lucide-svelte/icons/external-link";
   import Sparkles from "lucide-svelte/icons/sparkles";
+  import Play from "lucide-svelte/icons/play";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { formatCurrency } from "$lib/utils/format";
   import type { Product } from "$lib/types";
+
+  function isVideoUrl(url: string): boolean {
+    if (!url) return false;
+    const clean = url.split('?')[0].toLowerCase();
+    return /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(clean);
+  }
 
   let {
     products,
@@ -108,11 +115,27 @@
             class="w-14 h-14 md:w-12 md:h-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center shrink-0 overflow-hidden relative group-hover:border-[#FFB800]/30 transition-all duration-300 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)]"
           >
             {#if product.images && product.images.length > 0 && product.images[0].includes('/')}
-              <img 
-                src={product.images[0]} 
-                alt={product.name}
-                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100"
-              />
+              {#if isVideoUrl(product.images[0])}
+                <!-- Video thumbnail -->
+                <video
+                  src={product.images[0]}
+                  class="w-full h-full object-cover opacity-80 group-hover:opacity-100 pointer-events-none"
+                  muted
+                  playsinline
+                  preload="metadata"
+                />
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div class="w-6 h-6 rounded-full bg-black/70 flex items-center justify-center">
+                    <Play size={10} class="text-white ml-0.5" />
+                  </div>
+                </div>
+              {:else}
+                <img 
+                  src={product.images[0]} 
+                  alt={product.name}
+                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+                />
+              {/if}
             {:else}
               <div class="w-full h-full bg-gradient-to-br from-[#FFB800]/10 to-transparent flex items-center justify-center">
                 <Package size={20} class="text-[#FFB800]/40" />

@@ -1,17 +1,23 @@
 <script lang="ts">
-  import { fade } from "svelte/transition";
+  import { fade, fly } from "svelte/transition";
   import { untrack } from "svelte";
   import Star from "lucide-svelte/icons/star";
   import CheckCircle from "lucide-svelte/icons/check-circle";
   import XCircle from "lucide-svelte/icons/x-circle";
   import Trash2 from "lucide-svelte/icons/trash-2";
   import MessageSquare from "lucide-svelte/icons/message-square";
+  import Edit2 from "lucide-svelte/icons/edit-2";
   import Layers from "lucide-svelte/icons/layers";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import LayoutGrid from "lucide-svelte/icons/layout-grid";
   import List from "lucide-svelte/icons/list";
+  import X from "lucide-svelte/icons/x";
+  import Play from "lucide-svelte/icons/play";
+  import NeuralEditor from "$lib/components/admin/ui/tiptap/NeuralEditor.svelte";
   import type { BaseWidgetProps } from "$lib/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
+  import { portal } from "$lib/core/actions/portal";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
 
@@ -42,6 +48,39 @@
   let pageSize = $state(20);
 
   let selectedIds = $state<string[]>([]);
+
+  let editingReviewId = $state<string | null>(null);
+  let editContent = $state("");
+  let editAttachments = $state<{url: string, type: string}[]>([]);
+
+  function startEdit(review: Review) {
+    editingReviewId = review.id;
+    editContent = review.content;
+    editAttachments = Array.isArray(review.attachments) ? JSON.parse(JSON.stringify(review.attachments)) : [];
+  }
+
+  function cancelEdit() {
+    editingReviewId = null;
+    editContent = "";
+    editAttachments = [];
+  }
+
+  async function saveEdit(id: string) {
+    isLoading = true;
+    try {
+      await apiClient.patch(`/api/v1/reviews/${id}/content`, { 
+        content: editContent,
+        attachments: editAttachments
+      });
+      nanobot.showToast("Đã cập nhật nội dung đánh giá", "success");
+      cancelEdit();
+      await loadReviews();
+    } catch (e: unknown) {
+      nanobot.showToast("Lỗi khi cập nhật đánh giá", "error");
+    } finally {
+      isLoading = false;
+    }
+  }
 
   async function loadReviews() {
     isLoading = true;
@@ -309,7 +348,27 @@
                   </div>
                 </div>
 
-                <p class="text-xs text-gray-400 leading-relaxed mb-5 italic border-l-2 border-white/10 pl-3 min-h-[40px]">"{review.content}"</p>
+                <div class="text-xs text-gray-400 leading-relaxed mb-5 italic border-l-2 border-white/10 pl-3 min-h-[40px] line-clamp-3 content-prose-admin">
+                  {@html review.content}
+                </div>
+                
+                <!-- Media Preview in Grid (Read-only) -->
+                {#if review.attachments && review.attachments.length > 0}
+                  <div class="flex gap-2 mb-4 overflow-hidden h-12">
+                    {#each review.attachments as media}
+                      <div class="w-12 h-12 relative bg-white/5 shrink-0 border border-white/10">
+                        {#if media.type === 'video' || media.url.match(/\.(mp4|webm|mov)$/i) || media.url.includes('video')}
+                          <video src={media.url} class="w-full h-full object-cover" muted playsinline></video>
+                          <div class="absolute inset-0 bg-black/20 flex items-center justify-center">
+                            <Play class="w-3 h-3 text-white fill-current opacity-80" />
+                          </div>
+                        {:else}
+                          <img src={media.url} class="w-full h-full object-cover" alt="" />
+                        {/if}
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
                 
                 <div class="mt-auto flex justify-between items-center border-t border-white/5 pt-4">
                   <span class="text-[9px] font-mono tracking-[0.2em] uppercase px-2 py-0.5 border rounded-sm {getStatusStyle(review.status)}">
@@ -321,6 +380,9 @@
                         <span class="text-[8px] text-gray-500 font-mono uppercase tracking-widest mb-1">{review.customer_location}</span>
                       {/if}
                       <div class="flex gap-2">
+                        <button onclick={() => startEdit(review)} class="w-7 h-7 rounded bg-white/[0.02] border border-white/5 hover:bg-blue-500/20 hover:border-blue-500/30 flex items-center justify-center text-gray-500 hover:text-blue-400 transition-colors" title="Chỉnh sửa">
+                          <Edit2 size={14} />
+                        </button>
                         {#if review.status !== 'APPROVED'}
                           <button onclick={() => handleUpdateStatus(review.id, 'APPROVED')} class="w-7 h-7 rounded bg-white/[0.02] border border-white/5 hover:bg-green-500/20 hover:border-green-500/30 flex items-center justify-center text-gray-500 hover:text-green-400 transition-colors" title="Chấp thuận">
                             <CheckCircle size={14} />
@@ -387,16 +449,37 @@
                       {/each}
                     </div>
                   </td>
-                  <td class="p-4 max-w-[300px]">
-                    <p class="text-[11px] text-gray-400 truncate" title={review.content}>{review.content}</p>
+                  <td class="p-4 max-w-[400px] flex-col gap-2">
+                    <div class="text-[11px] text-gray-400 line-clamp-2 content-prose-admin" title="Nội dung">
+                      {@html review.content}
+                    </div>
+                    {#if review.attachments && review.attachments.length > 0}
+                      <div class="flex gap-1.5 overflow-hidden h-8 mt-2">
+                        {#each review.attachments as media}
+                          <div class="w-8 h-8 relative bg-white/5 shrink-0 border border-white/10">
+                            {#if media.type === 'video' || media.url.match(/\.(mp4|webm|mov)$/i) || media.url.includes('video')}
+                              <video src={media.url} class="w-full h-full object-cover" muted playsinline></video>
+                              <div class="absolute inset-0 bg-black/20 flex items-center justify-center">
+                                <Play class="w-2 h-2 text-white fill-current opacity-80" />
+                              </div>
+                            {:else}
+                              <img src={media.url} class="w-full h-full object-cover" alt="" />
+                            {/if}
+                          </div>
+                        {/each}
+                      </div>
+                    {/if}
                   </td>
                   <td class="p-4">
                     <span class="text-[9px] font-mono tracking-[0.2em] uppercase px-2 py-0.5 border rounded-sm {getStatusStyle(review.status)}">
                       {review.status}
                     </span>
                   </td>
-                  <td class="p-4 text-right">
+                  <td class="p-4 text-right align-top">
                     <div class="flex justify-end gap-1.5">
+                      <button onclick={() => startEdit(review)} class="w-6 h-6 rounded bg-white/[0.02] border border-white/5 hover:bg-blue-500/20 text-gray-500 hover:text-blue-400 flex items-center justify-center transition-colors" title="Chỉnh sửa">
+                        <Edit2 size={12} />
+                      </button>
                       {#if review.status !== 'APPROVED'}
                         <button onclick={() => handleUpdateStatus(review.id, 'APPROVED')} class="w-6 h-6 rounded bg-white/[0.02] border border-white/5 hover:bg-green-500/20 text-gray-500 hover:text-green-400 flex items-center justify-center transition-colors">
                           <CheckCircle size={12} />
@@ -465,6 +548,120 @@
       </button>
     </div>
   {/if}
+  <!-- Edit Review Drawer (Right-aligned, AppointmentDrawer pattern) -->
+  {#if editingReviewId}
+    <div use:portal class="relative" style="z-index: {Z_INDEX_ADMIN.MODAL};">
+      <!-- Backdrop -->
+      <div
+        class="fixed inset-0 bg-black/90 backdrop-blur-sm"
+        style="z-index: {Z_INDEX_ADMIN.OVERLAY};"
+        transition:fade={{ duration: 300 }}
+        onclick={cancelEdit}
+        role="button"
+        tabindex="0"
+        onkeydown={(e) => e.key === 'Escape' && cancelEdit()}
+        aria-label="Đóng panel"
+      ></div>
+
+      <!-- Drawer Panel -->
+      <div
+        class="fixed top-0 right-0 h-full w-[560px] max-w-full bg-[#050505] border-l border-white/10 shadow-[-30px_0_60px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden"
+        transition:fly={{ x: 560, duration: 300, opacity: 1 }}
+        style="z-index: {Z_INDEX_ADMIN.MODAL + 10};"
+      >
+        <!-- Header -->
+        <div class="h-16 flex items-center justify-between px-6 border-b border-white/10 relative bg-black/40 shrink-0">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-neon-cyan/10 border border-neon-cyan/20 flex items-center justify-center">
+              <Edit2 size={14} class="text-neon-cyan" />
+            </div>
+            <div>
+              <h2 class="text-sm font-bold text-white tracking-widest uppercase">Chỉnh Sửa Đánh Giá</h2>
+              <div class="text-[9px] font-mono text-gray-500 uppercase">SYS_ID: {editingReviewId}</div>
+            </div>
+          </div>
+          <button
+            onclick={cancelEdit}
+            class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors border border-transparent hover:border-white/10"
+          >
+            <X size={16} />
+          </button>
+          <!-- Decorative bottom line -->
+          <div class="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-neon-cyan/20 to-transparent"></div>
+        </div>
+
+        <!-- Body -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 flex flex-col gap-8">
+          <!-- NeuralEditor -->
+          <div class="flex flex-col gap-3">
+            <div class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Nội dung đánh giá</div>
+            <div class="border border-white/5 bg-white/[0.02] rounded-xl overflow-hidden">
+              <NeuralEditor bind:content={editContent} />
+            </div>
+          </div>
+
+          <!-- Attachments -->
+          <div class="flex flex-col gap-3">
+            <div class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
+              Tài nguyên đính kèm
+              <span class="px-1.5 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 text-[8px] rounded-sm font-mono normal-case tracking-normal">Xóa vật lý</span>
+            </div>
+
+            {#if editAttachments.length === 0}
+              <div class="text-[10px] font-mono text-gray-600 italic py-4 text-center border border-white/5 rounded-xl bg-white/[0.02]">
+                Không có hình ảnh / video nào.
+              </div>
+            {:else}
+              <div class="flex flex-wrap gap-4">
+                {#each editAttachments as media}
+                  <div class="w-28 h-28 relative border border-white/10 rounded-lg bg-[#050505] group overflow-hidden">
+                    {#if media.type === 'video' || media.url.match(/\.(mp4|webm|mov)$/i) || media.url.includes('video')}
+                      <video src={media.url} class="w-full h-full object-cover" muted playsinline></video>
+                      <div class="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
+                        <Play size={16} class="text-white fill-current opacity-80" />
+                      </div>
+                    {:else}
+                      <img src={media.url} alt="" class="w-full h-full object-cover" />
+                    {/if}
+
+                    <button
+                      onclick={() => editAttachments = editAttachments.filter(a => a.url !== media.url)}
+                      class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500/90 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-10"
+                      title="Xóa tài nguyên này"
+                    >
+                      <X size={12} />
+                    </button>
+
+                    <div class="absolute bottom-1 left-1 bg-black/70 px-1 py-0.5 text-[8px] font-mono text-white uppercase backdrop-blur-sm rounded-sm">
+                      {media.type}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+
+          <!-- Save Button (in-body, following AppointmentDrawer pattern) -->
+          <div class="pt-2">
+            <button
+              onclick={() => saveEdit(editingReviewId!)}
+              disabled={isLoading}
+              class="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-500 text-black text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_10px_30px_-5px_rgba(0,200,200,0.4)] disabled:opacity-50 flex items-center justify-center gap-2 relative overflow-hidden group"
+            >
+              <!-- Sheen effect -->
+              <div class="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+              {#if isLoading}
+                <RefreshCw size={14} class="animate-spin" />
+                Đang xử lý...
+              {:else}
+                Lưu đánh giá
+              {/if}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -481,5 +678,30 @@
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 255, 255, 0.2);
+  }
+  
+  :global(.content-prose-admin p) {
+    margin-bottom: 0.25rem;
+    display: inline;
+  }
+  :global(.content-prose-admin p:last-child) {
+    margin-bottom: 0;
+  }
+  :global(.content-prose-admin strong) {
+    color: #e5e7eb;
+    font-weight: 700;
+  }
+  :global(.content-prose-admin ul) {
+    list-style-type: none;
+    margin-top: 0.25rem;
+    display: inline;
+  }
+  :global(.content-prose-admin li) {
+    display: inline;
+  }
+  :global(.content-prose-admin li::before) {
+    content: "• ";
+    color: #0ff;
+    margin-left: 4px;
   }
 </style>

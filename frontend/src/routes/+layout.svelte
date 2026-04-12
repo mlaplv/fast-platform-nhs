@@ -20,6 +20,9 @@
 
   let { children } = $props();
 
+  const siteName = $derived(ui.settings?.basic_info?.site_name || ui.settings?.site_name || "Micsmo Elite");
+  const metaDescription = $derived(`${siteName} - Hệ thống phân phối sản phẩm chăm sóc sức khỏe Elite V2.2`);
+
   // Elite V2.2: Global Z-Index Injection
   const zIndexStyles = Object.entries(Z_INDEX_CLIENT)
     .map(([key, value]) => `--z-${key.toLowerCase().replace(/_/g, '-')}: ${value};`)
@@ -27,18 +30,20 @@
 </script>
 
 <svelte:head>
-  <!-- SEO & Viral Meta (Elite V2.2) -->
-  <title>SmartShop Elite | AI-Driven Commerce 2026</title>
-  <meta name="description" content="Hệ thống quản trị kinh doanh thông minh tích hợp Agentic AI thế hệ mới (Viral 2026 Design)." />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+  <title>{siteName}</title>
+  <meta name="description" content={metaDescription} />
   <meta name="theme-color" content="#020202" />
 
   <!-- OpenGraph -->
-  <meta property="og:title" content="SmartShop Elite" />
-  <meta property="og:description" content="AI-Driven Commerce Platform" />
+  <meta property="og:title" content={siteName} />
+  <meta property="og:description" content={metaDescription} />
   <meta property="og:type" content="website" />
 
   <link rel="icon" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
 </svelte:head>
 
 <!-- Premium Navigation Progress Bar (Liquid Glass) -->

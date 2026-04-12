@@ -24,6 +24,13 @@ class UpdateReviewStatusRequest(BaseModel):
     
     status: str = Field(..., pattern="^(PENDING|APPROVED|REJECTED)$")
 
+class UpdateReviewRequest(BaseModel):
+    """Payload Admin chỉnh sửa nội dung Review."""
+    model_config = ConfigDict(extra='forbid')
+    
+    content: str = Field(..., min_length=5, max_length=5000)
+    attachments: Optional[list[dict[str, object]]] = Field(None, description="Media attachments URL and type")
+
 class ReviewResponse(BaseModel):
     """Payload trả về thông tin Review."""
     model_config = ConfigDict(from_attributes=True)

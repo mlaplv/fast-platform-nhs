@@ -7,6 +7,7 @@
   import BottomNavMobile from "$lib/components/storefront/layout/BottomNavMobile.svelte";
   import type { Snippet } from "svelte";
   import type { LayoutData } from './$types';
+  import "../client.css";
 
   let { data, children }: { data: LayoutData, children: Snippet } = $props();
   const ui = getClientUi();

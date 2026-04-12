@@ -1,95 +1,107 @@
 import { setContext, getContext } from 'svelte';
-import type { ClientUiState, ShopInfo } from '$lib/types';
 import { BREAKPOINTS } from '$lib/constants/layout';
+import type { ClientUiState, ShopInfo } from '$lib/types';
 
-// Elite V2.2: Global Auth Modal State (Nanobot Singleton)
-// This ensures reactivity even if context scoping is fragmented across chunks.
-const globalAuthModal = $state({
-    isOpen: false,
-    mode: 'login' as 'login' | 'register',
-    onSuccess: undefined as (() => void) | undefined
+const CLIENT_UI_KEY = 'CLIENT_UI_CONTEXT';
+
+// Elite V2.2: Reactive Global UI State (Nanobot Singleton Style)
+// Protected by $state for absolute reactivity across chunks.
+const globalState = $state({
+    isHeaderHidden: false,
+    isFooterHidden: false,
+    screenWidth: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    screenHeight: typeof window !== 'undefined' ? window.innerHeight : 768,
+    isHydrated: false,
+    settings: null as ShopInfo | null,
+    authModal: {
+        isOpen: false,
+        mode: 'login' as 'login' | 'register',
+        onSuccess: undefined as (() => void) | undefined
+    }
 });
 
-export function createClientUiState(): ClientUiState {
-    const state = $state({
-        isHeaderHidden: false,
-        isFooterHidden: false,
-        // Elite V2.2: Reactive Screen Runes
-        screenWidth: typeof window !== 'undefined' ? window.innerWidth : 1024,
-        screenHeight: typeof window !== 'undefined' ? window.innerHeight : 768,
-        isHydrated: false,
-        settings: null as ShopInfo | null
-    });
+let _globalUiInstance: ClientUiState | null = null;
 
-    // Derived $mq (Media Query) Runes - No Hardcoding (R00)
-    const isMobile = $derived(state.screenWidth < BREAKPOINTS.MOBILE);
-    const isTablet = $derived(state.screenWidth >= BREAKPOINTS.MOBILE && state.screenWidth < BREAKPOINTS.TABLET);
-    const isDesktop = $derived(state.screenWidth >= BREAKPOINTS.TABLET);
-    const isPortrait = $derived(state.screenWidth < state.screenHeight);
+export function createClientUiState(): ClientUiState {
+    // Derived $mq (Media Query) Runes - Performance Optimized
+    const isMobile = $derived(globalState.screenWidth < BREAKPOINTS.MOBILE);
+    const isTablet = $derived(globalState.screenWidth >= BREAKPOINTS.MOBILE && globalState.screenWidth < BREAKPOINTS.TABLET);
+    const isDesktop = $derived(globalState.screenWidth >= BREAKPOINTS.TABLET);
+    const isPortrait = $derived(globalState.screenWidth < globalState.screenHeight);
 
     function handleResize() {
         if (typeof window === 'undefined') return;
-        state.screenWidth = window.innerWidth;
-        state.screenHeight = window.innerHeight;
+        globalState.screenWidth = window.innerWidth;
+        globalState.screenHeight = window.innerHeight;
     }
 
-    return {
-        get isHeaderHidden() { return state.isHeaderHidden; },
-        set isHeaderHidden(val: boolean) { state.isHeaderHidden = val; },
+    const instance: ClientUiState = {
+        get isHeaderHidden() { return globalState.isHeaderHidden; },
+        set isHeaderHidden(val: boolean) { globalState.isHeaderHidden = val; },
 
-        get isFooterHidden() { return state.isFooterHidden; },
-        set isFooterHidden(val: boolean) { state.isFooterHidden = val; },
+        get isFooterHidden() { return globalState.isFooterHidden; },
+        set isFooterHidden(val: boolean) { globalState.isFooterHidden = val; },
         
-        // Elite V2.2: Auth Modal Controls (Global Singleton Hook)
-        get authModal() { return globalAuthModal; },
-        openLogin(onSuccess?: () => void) {
-            console.log("[Global-UI] Opening Login Modal");
-            globalAuthModal.mode = 'login';
-            globalAuthModal.onSuccess = onSuccess;
-            globalAuthModal.isOpen = true;
-        },
-        openRegister(onSuccess?: () => void) {
-            console.log("[Global-UI] Opening Register Modal");
-            globalAuthModal.mode = 'register';
-            globalAuthModal.onSuccess = onSuccess;
-            globalAuthModal.isOpen = true;
-        },
-        closeModal() {
-            console.log("[Global-UI] Closing Modal");
-            globalAuthModal.isOpen = false;
-        },
-        
-        // Screen Getters (Statically Typed 100%)
-        get screenWidth() { return state.screenWidth; },
-        get screenHeight() { return state.screenHeight; },
+        get isHydrated() { return globalState.isHydrated; },
+        get settings() { return globalState.settings; },
+        set settings(val: ShopInfo | null) { globalState.settings = val; },
+
+        get authModal() { return globalState.authModal; },
+
         get isMobile() { return isMobile; },
         get isTablet() { return isTablet; },
         get isDesktop() { return isDesktop; },
         get isPortrait() { return isPortrait; },
-        get isHydrated() { return state.isHydrated; },
-        get settings() { return state.settings; },
-        set settings(val: ShopInfo | null) { state.settings = val; },
+
+        openLogin(onSuccess?: () => void) {
+            globalState.authModal.mode = 'login';
+            globalState.authModal.onSuccess = onSuccess;
+            globalState.authModal.isOpen = true;
+        },
+
+        openRegister(onSuccess?: () => void) {
+            globalState.authModal.mode = 'register';
+            globalState.authModal.onSuccess = onSuccess;
+            globalState.authModal.isOpen = true;
+        },
+
+        closeModal() {
+            globalState.authModal.isOpen = false;
+        },
 
         initObservers() {
-            if (typeof window === 'undefined' || state.isHydrated) return;
-            
-            state.isHydrated = true;
-            handleResize();
+            if (typeof window === 'undefined') return () => {};
             window.addEventListener('resize', handleResize, { passive: true });
-            
+            globalState.isHydrated = true;
             return () => {
                 window.removeEventListener('resize', handleResize);
             };
+        },
+
+        showToast(message: string, type: 'success' | 'error' | 'info' = 'info', duration = 4000) {
+            // Bridge to Nanobot or local notification system if needed
+            console.log(`[UI-Toast] ${type}: ${message}`);
         }
     };
-}
 
-const CLIENT_UI_KEY = Symbol('CLIENT_UI');
+    return instance;
+}
 
 export function setClientUi() {
-    return setContext(CLIENT_UI_KEY, createClientUiState());
+    const state = createClientUiState();
+    _globalUiInstance = state;
+    return setContext(CLIENT_UI_KEY, state);
 }
 
-export function getClientUi(): ReturnType<typeof createClientUiState> {
-    return getContext(CLIENT_UI_KEY);
+export function getClientUi(): ClientUiState {
+    try {
+        const state = getContext(CLIENT_UI_KEY) as ClientUiState;
+        if (state) return state;
+    } catch (e) {
+        // Suppress lifecycle error
+    }
+    if (_globalUiInstance) return _globalUiInstance;
+    
+    // Fail-safe: Create a volatile instance if everything else fails (should not happen in Elite V2.2)
+    return createClientUiState();
 }

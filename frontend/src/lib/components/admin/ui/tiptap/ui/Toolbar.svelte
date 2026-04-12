@@ -18,6 +18,7 @@
   import MinusIcon from 'lucide-svelte/icons/minus';
   import SparklesIcon from 'lucide-svelte/icons/sparkles';
   import MoreHorizontalIcon from 'lucide-svelte/icons/more-horizontal';
+  import Strikethrough from 'lucide-svelte/icons/strikethrough';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 
@@ -71,11 +72,44 @@
   }
 
   // --- RESPONSIVE LOGIC ---
-  let containerRef = $state<HTMLElement | null>(null);
   let colorButtonRef = $state<HTMLElement | null>(null);
+  let moreButtonRef = $state<HTMLElement | null>(null);
   let containerWidth = $state(0);
   let showMore = $state(false);
   let showColorPicker = $state(false);
+  
+  let colorPopupPos = $state({ top: 0, left: 0 });
+  let morePopupPos = $state({ top: 0, left: 0 });
+
+  function updatePopupPositions() {
+    if (showColorPicker && colorButtonRef) {
+      const rect = colorButtonRef.getBoundingClientRect();
+      colorPopupPos = { top: rect.bottom + 8, left: rect.right };
+    }
+    if (showMore && moreButtonRef) {
+      const rect = moreButtonRef.getBoundingClientRect();
+      morePopupPos = { top: rect.bottom + 12, left: rect.right };
+    }
+  }
+
+  $effect(() => {
+    if (showColorPicker || showMore) {
+      updatePopupPositions();
+      window.addEventListener('scroll', updatePopupPositions, true);
+      window.addEventListener('resize', updatePopupPositions);
+      return () => {
+        window.removeEventListener('scroll', updatePopupPositions, true);
+        window.removeEventListener('resize', updatePopupPositions);
+      };
+    }
+  });
+
+  function handleToolbarScroll() {
+    if (showColorPicker || showMore) {
+      showColorPicker = false;
+      showMore = false;
+    }
+  }
   
   // Container-based responsive states
   const isThin = $derived(containerWidth < 800); 
@@ -87,7 +121,8 @@
 <div 
   bind:this={containerRef}
   bind:clientWidth={containerWidth}
-  class="sticky top-0 w-full flex flex-nowrap items-center gap-2 md:gap-3 px-4 py-1.5 bg-[#0a0a0a]/90 backdrop-blur-[80px] border-b border-white/5 shadow-2xl transition-all duration-300"
+  onscroll={handleToolbarScroll}
+  class="sticky top-0 w-full flex flex-nowrap items-center gap-2 md:gap-3 px-4 py-1.5 bg-[#0a0a0a]/90 backdrop-blur-[80px] border-b border-white/5 shadow-2xl transition-all duration-300 overflow-x-auto hide-scrollbar"
   style="z-index: {Z_INDEX_ADMIN.STICKY_HEADER}"
 >
   
@@ -155,7 +190,9 @@
 
     {#if showColorPicker}
       <div 
-           class="absolute top-full right-0 mt-2 z-[1001] bg-[#0d0d0d] border border-white/10 rounded-xl p-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col gap-3 min-w-[200px]"
+           use:portal
+           class="fixed z-[1001] bg-[#0d0d0d] border border-white/10 rounded-xl p-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col gap-3 min-w-[200px]"
+           style="top: {colorPopupPos.top}px; left: {colorPopupPos.left}px; transform: translateX(-100%);"
       >
         <div class="flex items-center justify-between px-1">
           <span class="text-[8px] font-black uppercase tracking-widest text-white/30">Color Swatches</span>
@@ -171,13 +208,14 @@
           {/each}
         </div>
       </div>
-      <div class="fixed inset-0 z-[1000]" onclick={() => showColorPicker = false}></div>
+      <div use:portal class="fixed inset-0 z-[1000]" onclick={() => showColorPicker = false}></div>
     {/if}
   </div>
 
   <!-- Overflow Toggle (The Dropdown - Always Visible for Extras) -->
   <div class="shrink-0 relative">
     <button 
+      bind:this={moreButtonRef}
       onclick={() => showMore = !showMore}
       class="tb-btn !bg-white/[0.08] hover:!bg-amber-500/20 border border-white/10 {showMore ? 'text-amber-500 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : ''}"
       title="More Tools"
@@ -187,7 +225,9 @@
 
     {#if showMore}
       <div 
-           class="absolute top-full right-0 mt-3 z-[1001] bg-[#0d0d0d]/95 backdrop-blur-3xl border border-white/10 rounded-xl p-3 shadow-[0_30px_60px_rgba(0,0,0,0.8)] flex flex-col gap-3 min-w-[240px]"
+           use:portal
+           class="fixed z-[1001] bg-[#0d0d0d]/95 backdrop-blur-3xl border border-white/10 rounded-xl p-3 shadow-[0_30px_60px_rgba(0,0,0,0.8)] flex flex-col gap-3 min-w-[240px]"
+           style="top: {morePopupPos.top}px; left: {morePopupPos.left}px; transform: translateX(-100%);"
       >
         <!-- Extra Tools (Always in More) -->
         <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
@@ -207,7 +247,7 @@
                <button onclick={() => { editor?.chain().focus().toggleBold().run(); }} class="tb-btn !h-8 !w-8 {editor?.isActive('bold') ? 'active-neural' : ''}"><BoldIcon size={12}/></button>
                <button onclick={() => { editor?.chain().focus().toggleItalic().run(); }} class="tb-btn !h-8 !w-8 {editor?.isActive('italic') ? 'active-neural' : ''}"><ItalicIcon size={12}/></button>
                <button onclick={() => { editor?.chain().focus().toggleUnderline().run(); }} class="tb-btn !h-8 !w-8 {editor?.isActive('underline') ? 'active-neural' : ''}"><UnderlineIcon size={12}/></button>
-               <button onclick={() => { editor?.chain().focus().toggleStrike().run(); }} class="tb-btn !h-8 !w-8 {editor?.isActive('strike') ? 'active-neural' : ''}"><StrikethroughIcon size={12}/></button>
+               <button onclick={() => { editor?.chain().focus().toggleStrike().run(); }} class="tb-btn !h-8 !w-8 {editor?.isActive('strike') ? 'active-neural' : ''}"><Strikethrough size={12}/></button>
              </div>
            </div>
         {/if}
@@ -246,7 +286,7 @@
           </div>
         {/if}
       </div>
-      <div class="fixed inset-0 z-[1000]" onclick={() => showMore = false}></div>
+      <div use:portal class="fixed inset-0 z-[1000]" onclick={() => showMore = false}></div>
     {/if}
   </div>
 

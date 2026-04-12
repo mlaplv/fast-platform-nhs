@@ -3,7 +3,7 @@ from litestar.di import Provide
 from litestar.params import Parameter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.schemas.review import UpdateReviewStatusRequest, ReviewResponse
+from backend.schemas.review import UpdateReviewStatusRequest, UpdateReviewRequest, ReviewResponse
 from backend.services.review_service import ReviewService, provide_review_service
 from backend.database.repositories import provide_system_review_repo
 from backend.constants.permissions import PermissionEnum
@@ -47,6 +47,18 @@ class AdminReviewController(Controller):
         db_session: AsyncSession
     ) -> ReviewResponse:
         review = await review_service.update_status(review_id, data)
+        await db_session.commit()
+        return ReviewResponse.model_validate(review)
+
+    @patch("/{review_id:str}/content")
+    async def update_content(
+        self,
+        review_id: str,
+        data: UpdateReviewRequest,
+        review_service: ReviewService,
+        db_session: AsyncSession
+    ) -> ReviewResponse:
+        review = await review_service.update_content(review_id, data)
         await db_session.commit()
         return ReviewResponse.model_validate(review)
 

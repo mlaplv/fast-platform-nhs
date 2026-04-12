@@ -25,6 +25,61 @@
     { value: 'tiktok', label: 'TikTok Shop Clone', desc: 'Trải nghiệm như TikTok' }
   ];
 
+  // ─── Auto-detect video duration ─────────────────────────────────
+  let isDetectingDuration = $state(false);
+  let detectError = $state<string | null>(null);
+
+  function isVideoFile(url: string): boolean {
+    if (!url) return false;
+    const clean = url.split('?')[0].toLowerCase();
+    return /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(clean);
+  }
+
+  /** Tạo <video> ẩn, đọ duration từ URL rồi auto-fill video_end_time */
+  function detectVideoDuration(url: string): Promise<number | null> {
+    return new Promise((resolve) => {
+      if (!url || !isVideoFile(url)) { resolve(null); return; }
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.src = url;
+      v.onloadedmetadata = () => {
+        const dur = isFinite(v.duration) ? Math.round(v.duration * 10) / 10 : null;
+        v.src = ''; // giải phóng resource
+        resolve(dur);
+      };
+      v.onerror = () => { v.src = ''; resolve(null); };
+      // Timeout 8s đề phòng URL chậm
+      setTimeout(() => { v.src = ''; resolve(null); }, 8000);
+    });
+  }
+
+  async function autoDetectEndTime(url?: string) {
+    const target = url ?? formMetadata?.video_url;
+    if (!target || !isVideoFile(target)) return;
+    isDetectingDuration = true;
+    detectError = null;
+    try {
+      const dur = await detectVideoDuration(target);
+      if (dur !== null) {
+        (formMetadata as any).video_end_time = dur;
+        (formMetadata as any).video_start_time = (formMetadata as any).video_start_time ?? 0;
+      } else {
+        detectError = 'Không đọc được thời lượng';
+      }
+    } finally {
+      isDetectingDuration = false;
+    }
+  }
+
+  /** Khi video_url thay đổi → tự động detect duration */
+  $effect(() => {
+    const url = formMetadata?.video_url;
+    if (url && isVideoFile(url)) {
+      // Dùng untrack để khỏi check $derived lặp
+      autoDetectEndTime(url);
+    }
+  });
+
 </script>
 
 <div class="flex flex-col gap-6">
@@ -77,6 +132,94 @@
       <p class="text-[8px] text-white/25 leading-relaxed">
         Hỗ trợ: đường dẫn nội bộ (.mp4/.webm), YouTube (youtube.com/watch, youtu.be, /shorts/), TikTok (tiktok.com/@.../video/ID)
       </p>
+    </div>
+
+    <!-- ⏱ VIDEO PLAYBACK CONTROLS: Start & End time -->
+    <div class="md:col-span-2 flex flex-col gap-2 p-3 rounded-xl bg-amber-500/[0.04] border border-amber-500/15">
+      <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-amber-400/70"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span class="text-[9px] font-black text-amber-400/60 uppercase tracking-[0.25em]">Điều khiển phát video (Trim)</span>
+        </div>
+        <!-- Trạng thái detect -->
+        {#if isDetectingDuration}
+          <div class="flex items-center gap-1.5 text-amber-400/60">
+            <div class="w-3 h-3 border-2 border-amber-400/40 border-t-amber-400 rounded-full animate-spin"></div>
+            <span class="text-[8px] font-mono">Đang phân tích video...</span>
+          </div>
+        {:else if detectError}
+          <span class="text-[8px] text-red-400/70 font-mono">{detectError}</span>
+        {:else if formMetadata.video_end_time}
+          <div class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-500/10 border border-green-500/20">
+            <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-green-400"><polyline points="20 6 9 17 4 12"/></svg>
+            <span class="text-[8px] text-green-400 font-mono">Đã detect</span>
+          </div>
+        {/if}
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="flex flex-col gap-1">
+          <label class="text-[8px] font-bold text-white/30 uppercase tracking-wider">Bắt đầu từ (giây)</label>
+          <div class="relative">
+            <input
+              type="number"
+              min="0"
+              step="0.5"
+              bind:value={formMetadata.video_start_time}
+              placeholder="0"
+              class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-amber-300 font-mono focus:outline-none focus:border-amber-500/50 transition-colors pr-10"
+            />
+            <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-white/20 font-mono">s</span>
+          </div>
+          <p class="text-[8px] text-white/20">Bỏ trống = từ đầu</p>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-[8px] font-bold text-white/30 uppercase tracking-wider">Kết thúc ở (giây)</label>
+          <div class="relative flex gap-1">
+            <div class="relative flex-1">
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                bind:value={formMetadata.video_end_time}
+                placeholder={isDetectingDuration ? 'Đang detect...' : 'Toàn bộ'}
+                disabled={isDetectingDuration}
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-amber-300 font-mono focus:outline-none focus:border-amber-500/50 transition-colors pr-10 disabled:opacity-50"
+              />
+              {#if isDetectingDuration}
+                <div class="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 border-2 border-amber-400/40 border-t-amber-400 rounded-full animate-spin"></div>
+              {:else}
+                <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-white/20 font-mono">s</span>
+              {/if}
+            </div>
+            <!-- Nút re-detect thủ công -->
+            <button
+              type="button"
+              onclick={() => autoDetectEndTime()}
+              disabled={isDetectingDuration || !formMetadata?.video_url}
+              title="Tự động đọc thời lượng video"
+              class="px-2 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400/70 hover:bg-amber-500/20 hover:text-amber-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed text-[8px] font-black uppercase tracking-wider whitespace-nowrap shrink-0"
+            >
+              {isDetectingDuration ? '...' : 'Auto'}
+            </button>
+          </div>
+          <p class="text-[8px] text-white/20">Bỏ trống = phát hết &bull; Tự detect khi nhập URL</p>
+        </div>
+      </div>
+      <!-- Preview range -->
+      {#if formMetadata.video_start_time != null || formMetadata.video_end_time != null}
+        <div class="flex items-center gap-2 mt-1 px-2 py-1 rounded-md bg-black/30 border border-white/5">
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-amber-400/50"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="text-[9px] font-mono text-amber-300/70">
+            Phát từ <strong>{formMetadata.video_start_time ?? 0}s</strong>
+            {#if formMetadata.video_end_time}
+              → kết thúc lúc <strong>{formMetadata.video_end_time}s</strong>
+              &nbsp;(dài {((formMetadata.video_end_time ?? 0) - (formMetadata.video_start_time ?? 0)).toFixed(1)}s)
+            {:else}
+              → phát hết
+            {/if}
+          </span>
+        </div>
+      {/if}
     </div>
   </div>
 

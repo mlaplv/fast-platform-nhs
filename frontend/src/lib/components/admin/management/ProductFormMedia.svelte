@@ -2,8 +2,16 @@
   import ImagePlus from "lucide-svelte/icons/image-plus";
   import Trash2 from "lucide-svelte/icons/trash-2";
   import AlertTriangle from "lucide-svelte/icons/triangle-alert";
+  import Play from "lucide-svelte/icons/play";
   import { resolveMediaUrl } from "$lib/state/utils";
   import ImagePreviewModal from "../ui/ImagePreviewModal.svelte";
+
+  /** Detect nếu URL là video (mp4, webm, mov, ogg) */
+  function isVideoUrl(url: string): boolean {
+    if (!url) return false;
+    const clean = url.split('?')[0].toLowerCase();
+    return /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(clean);
+  }
 
   let {
     formImages = $bindable(),
@@ -144,10 +152,28 @@
               </div>
             </div>
           {:else}
-            <img src={resolved} alt="Product Desktop" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-auto" onclick={(e) => { e.preventDefault(); e.stopPropagation(); previewUrl = resolved; }} onerror={() => handleImageError(resolved)} />
+            {#if isVideoUrl(resolved)}
+              <!-- VIDEO PREVIEW -->
+              <video
+                src={resolved}
+                class="w-full h-full object-cover pointer-events-none"
+                muted
+                playsinline
+                preload="metadata"
+                onerror={() => handleImageError(resolved)}
+              />
+              <!-- Play icon overlay -->
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div class="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center border border-white/20 group-hover:scale-110 transition-transform">
+                  <Play size={16} class="text-white ml-0.5" />
+                </div>
+              </div>
+            {:else}
+              <img src={resolved} alt="Product Desktop" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-auto" onclick={(e) => { e.preventDefault(); e.stopPropagation(); previewUrl = resolved; }} onerror={() => handleImageError(resolved)} />
+            {/if}
             <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-2 transition-opacity pointer-events-none">
               <div class="pointer-events-auto flex gap-2">
-                <button onclick={() => onOpenVault(false, i)} class="p-2 bg-white/20 text-white rounded-full hover:bg-white/40 transition-all shadow-lg border border-white/30" title="Thay thế ảnh"><ImagePlus size={14} /></button>
+                <button onclick={() => onOpenVault(false, i)} class="p-2 bg-white/20 text-white rounded-full hover:bg-white/40 transition-all shadow-lg border border-white/30" title="Thay thế"><ImagePlus size={14} /></button>
                 {#if i !== 0}
                   <button onclick={() => setAsPrimary(i, false)} class="px-2 py-1 bg-amber-500/90 text-black text-[9px] font-black uppercase tracking-wider rounded border border-amber-400/50 hover:bg-amber-400 transition-colors shadow-lg">Đại diện</button>
                 {/if}
@@ -204,10 +230,27 @@
               </div>
             </div>
           {:else}
-            <img src={resolved} alt="Product Mobile" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-auto" onclick={() => previewUrl = resolved} onerror={() => handleImageError(resolved)} />
+            {#if isVideoUrl(resolved)}
+              <!-- VIDEO PREVIEW MOBILE -->
+              <video
+                src={resolved}
+                class="w-full h-full object-cover pointer-events-none"
+                muted
+                playsinline
+                preload="metadata"
+                onerror={() => handleImageError(resolved)}
+              />
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div class="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center border border-white/20 group-hover:scale-110 transition-transform">
+                  <Play size={16} class="text-white ml-0.5" />
+                </div>
+              </div>
+            {:else}
+              <img src={resolved} alt="Product Mobile" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-auto" onclick={() => previewUrl = resolved} onerror={() => handleImageError(resolved)} />
+            {/if}
             <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-2 transition-opacity pointer-events-none">
               <div class="pointer-events-auto flex gap-2">
-                <button onclick={() => onOpenVault(true, i)} class="p-2 bg-white/20 text-white rounded-full hover:bg-white/40 transition-all shadow-lg border border-white/30" title="Thay thế ảnh"><ImagePlus size={14} /></button>
+                <button onclick={() => onOpenVault(true, i)} class="p-2 bg-white/20 text-white rounded-full hover:bg-white/40 transition-all shadow-lg border border-white/30" title="Thay thế"><ImagePlus size={14} /></button>
                 <button onclick={() => removeImage(i, true)} class="p-2 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-red-500/30 pointer-events-auto"><Trash2 size={14} /></button>
               </div>
             </div>

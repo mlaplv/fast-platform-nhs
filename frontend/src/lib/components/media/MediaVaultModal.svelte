@@ -6,7 +6,14 @@
   import { resolveMediaUrl } from "$lib/state/utils";
   import MissionControlShell from "$lib/components/admin/ui/MissionControlShell.svelte";
   import ImagePlus from "lucide-svelte/icons/image-plus";
+  import Play from "lucide-svelte/icons/play";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
+
+  function isVideoUrl(url: string): boolean {
+    if (!url) return false;
+    const clean = url.split('?')[0].toLowerCase();
+    return /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(clean);
+  }
 
   let {
     isOpen,
@@ -240,12 +247,29 @@
                     </div>
                   {/if}
 
-                  <img 
-                    src={getImageUrl(asset)}
-                    alt={getImageLabel(asset)}
-                    class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 opacity-80 group-hover:opacity-100"
-                    loading="lazy"
-                  />
+                  {#if isVideoUrl(getImageUrl(asset))}
+                    <!-- VIDEO ASSET -->
+                    <video
+                      src={getImageUrl(asset)}
+                      class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+                      muted
+                      playsinline
+                      preload="metadata"
+                      loading="lazy"
+                    />
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div class="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                        <Play size={18} class="text-white ml-0.5" />
+                      </div>
+                    </div>
+                  {:else}
+                    <img 
+                      src={getImageUrl(asset)}
+                      alt={getImageLabel(asset)}
+                      class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+                      loading="lazy"
+                    />
+                  {/if}
 
                   <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-4">
                     <p class="text-[9px] font-mono text-cyan-400/80 truncate mb-3 uppercase tracking-wider">{getImageLabel(asset)}</p>

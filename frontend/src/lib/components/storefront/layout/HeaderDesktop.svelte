@@ -54,7 +54,7 @@
         
         {#if !authStore.isAuthenticated}
           <button onclick={() => ui.openRegister()} type="button" class="hover:text-luxury-copper font-bold uppercase transition-colors tracking-tighter">Đăng Ký</button>
-          <span class="w-1px] h-3 bg-gray-200"></span>
+          <span class="w-[1px] h-3 bg-gray-200"></span>
           <button onclick={() => ui.openLogin()} type="button" class="hover:text-luxury-copper font-bold uppercase transition-colors tracking-tighter">Đăng Nhập</button>
         {:else}
           <button class="hover:text-luxury-copper font-black uppercase transition-colors tracking-tighter flex items-center gap-2">
@@ -112,7 +112,7 @@
               <div 
                 in:fly={{ y: 15, duration: 400, opacity: 0 }} 
                 out:fade={{ duration: 200 }} 
-                class="absolute right-0 top-[100%] mt-2 w-60 z-50 origin-top-right filter drop-shadow-[0_25px_25px_rgba(0,0,0,0.2)]" 
+                class="absolute right-0 top-[100%] mt-2 w-60 z-[var(--z-popup)] origin-top-right filter drop-shadow-[0_25px_25px_rgba(0,0,0,0.2)]" 
                 onclick={(e) => e.stopPropagation()}
               >
                 <div class="absolute -top-1.5 right-[22px] w-3 h-3 bg-white border-t border-l border-gray-100 rotate-45 z-[51]"></div>

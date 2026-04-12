@@ -3,7 +3,7 @@ from advanced_alchemy.filters import LimitOffset
 
 from backend.database.models.system import SystemReview, ReviewEntityType
 from backend.database.repositories import SystemReviewRepository
-from backend.schemas.review import CreateReviewRequest, UpdateReviewStatusRequest
+from backend.schemas.review import CreateReviewRequest, UpdateReviewStatusRequest, UpdateReviewRequest
 
 class ReviewService:
     def __init__(self, review_repo: SystemReviewRepository):
@@ -84,8 +84,88 @@ class ReviewService:
         except NotFoundError:
             raise ValueError(f"Review {review_id} not found")
 
+    async def update_content(self, review_id: str, data: UpdateReviewRequest) -> SystemReview:
+        try:
+            review = await self.review_repo.get(review_id)
+            review.content = data.content
+            
+            # Smart Diff: Xóa vật lý những attachment bị loại bỏ khỏi danh sách khi edit
+            if data.attachments is not None:
+                old_urls = set(media.get("url", "") for media in (review.attachments or []))
+                new_urls = set(media.get("url", "") for media in data.attachments)
+                
+                removed_urls = old_urls - new_urls
+                if removed_urls:
+                    from backend.services.media.media_service import media_service
+                    from backend.database.repositories import MediaRegistryRepository
+                    from backend.database.models import MediaRegistry
+                    from sqlalchemy import select
+                    
+                    media_repo = MediaRegistryRepository(session=self.review_repo.session)
+                    for url in removed_urls:
+                        if not url: continue
+                        path = url.split("?")[0]
+                        if "://" in path:
+                            parts = path.split("://")[1].split("/", 1)
+                            path = "/" + parts[1] if len(parts) > 1 else "/"
+                        if not path.startswith("/"): path = "/" + path
+                        
+                        stmt = select(MediaRegistry).where(
+                            (MediaRegistry.file_path == path) | 
+                            (MediaRegistry.file_path == path.lstrip("/"))
+                        )
+                        asset = (await self.review_repo.session.execute(stmt)).scalar_one_or_none()
+                        if asset:
+                            await media_service.delete_asset(media_repo, str(asset.id), permanent=True)
+                        else:
+                            try:
+                                from backend.services.storage.manager import storage
+                                await storage.delete(path)
+                            except Exception:
+                                pass
+                
+                review.attachments = data.attachments
+
+            return await self.review_repo.update(review)
+        except NotFoundError:
+            raise ValueError(f"Review {review_id} not found")
+
     async def delete_review(self, review_id: str):
         try:
+            review = await self.review_repo.get(review_id)
+            
+            # Physical Hard Delete Media before deleting the review
+            if review.attachments:
+                from backend.services.media.media_service import media_service
+                from backend.database.repositories import MediaRegistryRepository
+                from backend.database.models import MediaRegistry
+                from sqlalchemy import select
+                
+                media_repo = MediaRegistryRepository(session=self.review_repo.session)
+                
+                for media in review.attachments:
+                    url = media.get("url", "")
+                    if url:
+                        path = url.split("?")[0]
+                        if "://" in path:
+                            parts = path.split("://")[1].split("/", 1)
+                            path = "/" + parts[1] if len(parts) > 1 else "/"
+                        if not path.startswith("/"): path = "/" + path
+                        
+                        stmt = select(MediaRegistry).where(
+                            (MediaRegistry.file_path == path) | 
+                            (MediaRegistry.file_path == path.lstrip("/"))
+                        )
+                        asset = (await self.review_repo.session.execute(stmt)).scalar_one_or_none()
+                        if asset:
+                            await media_service.delete_asset(media_repo, str(asset.id), permanent=True)
+                        else:
+                            try:
+                                from backend.services.storage.manager import storage
+                                await storage.delete(path)
+                            except Exception:
+                                pass
+
             await self.review_repo.delete(review_id)
         except NotFoundError:
             raise ValueError(f"Review {review_id} not found")

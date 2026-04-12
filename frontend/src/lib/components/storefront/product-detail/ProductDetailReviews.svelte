@@ -2,10 +2,11 @@
   import { onMount } from 'svelte';
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { Star, ThumbsUp, MoreHorizontal, Play, Camera, Send, CheckCircle2, Loader2 } from 'lucide-svelte';
+  import { Star, ThumbsUp, MoreHorizontal, Play, Camera, Send, CheckCircle2, Loader2, X } from 'lucide-svelte';
+  import SimpleTiptap from '../ui/SimpleTiptap.svelte';
   
   const ui = getClientUi();
-  import { fade, fly } from 'svelte/transition';
+  import { fade, fly, scale } from 'svelte/transition';
 
   interface Props {
     product: Product;
@@ -20,6 +21,9 @@
   let showWriteForm = $state(false);
   let submitSuccess = $state(false);
   let activeTab = $state<'all' | number | 'content' | 'media'>('all');
+  let isUploadingMedia = $state(false);
+  let fileInput = $state<HTMLInputElement | null>(null);
+  let viewingMedia = $state<{url: string, type: string} | null>(null);
 
   // Form State
   let newRating = $state(5);
@@ -108,15 +112,60 @@
     }
   };
 
-  const handlePhotoUpload = () => {
-    // Simulated upload
-    const mockPhotos = [
-      'https://pub-8a62f1c8491842ec9a5789fcfc01b979.r2.dev/review_1.png',
-      'https://pub-8a62f1c8491842ec9a5789fcfc01b979.r2.dev/review_2.png',
-      'https://pub-8a62f1c8491842ec9a5789fcfc01b979.r2.dev/review_3.png'
-    ];
-    if (attachedPhotos.length < 5) {
-      attachedPhotos = [...attachedPhotos, mockPhotos[attachedPhotos.length % 3]];
+  const handleFileSelect = async (e: Event) => {
+    if (!authStore.isAuthenticated) {
+       ui.showToast('Vui lòng đăng nhập để tải ảnh', 'error');
+       return;
+    }
+    const target = e.target as HTMLInputElement;
+    if (!target.files || target.files.length === 0) return;
+    
+    if (attachedPhotos.length + target.files.length > 5) {
+       ui.showToast('Chỉ được tải lên tối đa 5 file đính kèm.', 'error');
+       return;
+    }
+
+    isUploadingMedia = true;
+    try {
+       for (let i = 0; i < target.files.length; i++) {
+           const file = target.files[i];
+           if (file.type.startsWith('image/') && file.size > 5 * 1024 * 1024) {
+               ui.showToast(`Ảnh ${file.name} vượt quá 5MB.`, 'error');
+               continue;
+           }
+           if (file.type.startsWith('video/') && file.size > 20 * 1024 * 1024) {
+               ui.showToast(`Video ${file.name} vượt quá 20MB.`, 'error');
+               continue;
+           }
+
+           const formData = new FormData();
+           // Litestar UploadFile uses "data" explicitly based on Body(...) binding
+           formData.append('data', file);
+           
+           const res = await fetch('/api/v1/client/reviews/upload', {
+               method: 'POST',
+               headers: {
+                   'Authorization': `Bearer ${authStore.token}`
+               },
+               body: formData
+           });
+           
+           if (res.ok) {
+               const json = await res.json();
+               if (json.data && json.data.file_path) {
+                   attachedPhotos = [...attachedPhotos, json.data.file_path];
+               }
+           } else {
+               const err = await res.json();
+               ui.showToast(err.detail || `Lỗi khi tải lên ${file.name}.`, 'error');
+           }
+       }
+    } catch (err) {
+       console.error("Upload error:", err);
+       ui.showToast('Lỗi gián đoạn khi kết nối máy chủ.', 'error');
+    } finally {
+       isUploadingMedia = false;
+       if (fileInput) fileInput.value = '';
     }
   };
 
@@ -137,7 +186,10 @@
           rating: newRating,
           content: newContent,
           attributes: Object.fromEntries(Object.entries(newAttributes).filter(([k, v]) => v !== '')),
-          attachments: attachedPhotos.map(url => ({ url, type: 'image' }))
+          attachments: attachedPhotos.map(url => ({ 
+             url, 
+             type: (url.match(/\.(mp4|webm|mov)$/i) || url.includes('video')) ? 'video' : 'image' 
+          }))
         })
       });
       if (res.ok) {
@@ -219,32 +271,51 @@
             {/each}
           </div>
 
-          <div class="relative">
-            <textarea 
-              bind:value={newContent}
+          <div class="relative w-full">
+            <SimpleTiptap 
+              bind:content={newContent}
               placeholder="Chia sẻ cảm nhận của bạn về sản phẩm này nhé..."
-              class="w-full h-40 bg-white border-2 border-gray-100 p-6 rounded-none text-sm font-medium focus:border-black outline-none transition-all resize-none"
-            ></textarea>
-            <div class="absolute bottom-4 right-6 text-[10px] text-gray-300 font-black">
-              {newContent.length} / 5000
-            </div>
+              limit={5000}
+            />
           </div>
 
-          <!-- Photo Upload Simulation -->
+          <!-- Photo Upload & Processing -->
           <div class="flex flex-wrap gap-3">
+            <input 
+                type="file" 
+                multiple 
+                accept="image/png, image/jpeg, image/webp, video/mp4, video/webm" 
+                bind:this={fileInput} 
+                onchange={handleFileSelect}
+                class="hidden" 
+            />
+
             {#each attachedPhotos as photo}
-              <div class="w-24 h-24 rounded-none overflow-hidden border-2 border-black relative group">
-                <img src={photo} alt="Preview" class="w-full h-full object-cover" />
+              <div class="w-24 h-24 rounded-none overflow-hidden border-2 border-black relative group bg-gray-50 flex items-center justify-center">
+                {#if photo.endsWith('.mp4') || photo.endsWith('.webm') || photo.includes('video')}
+                   <video src={photo} class="w-full h-full object-cover" muted loop playsinline></video>
+                   <div class="absolute inset-0 bg-black/10 flex items-center justify-center">
+                     <Play class="w-6 h-6 text-white fill-current opacity-80" />
+                   </div>
+                {:else}
+                   <img src={photo} alt="" class="w-full h-full object-cover" />
+                {/if}
               </div>
             {/each}
             
             {#if attachedPhotos.length < 5}
               <button 
-                onclick={handlePhotoUpload}
-                class="w-24 h-24 rounded-none border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-300 hover:border-black hover:text-black transition-all"
+                onclick={() => fileInput?.click()}
+                disabled={isUploadingMedia}
+                class="w-24 h-24 rounded-none border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-300 hover:border-black hover:text-black transition-all disabled:opacity-50 disabled:pointer-events-none"
               >
-                <Camera class="w-6 h-6" />
-                <span class="text-[9px] font-black uppercase tracking-[0.2em]">Add Photo</span>
+                {#if isUploadingMedia}
+                    <Loader2 class="w-6 h-6 animate-spin" />
+                    <span class="text-[9px] font-black uppercase tracking-[0.2em]">UPLOADING</span>
+                {:else}
+                    <Camera class="w-6 h-6" />
+                    <span class="text-[9px] font-black uppercase tracking-[0.2em]">ADD MEDIA</span>
+                {/if}
               </button>
             {/if}
           </div>
@@ -344,27 +415,27 @@
               </div>
             {/if}
 
-            <!-- Content -->
-            <p class="text-[13px] text-gray-800 leading-relaxed mb-4 whitespace-pre-line">
-              {review.content}
-            </p>
+            <div class="text-[13px] text-gray-800 leading-relaxed mb-4 prose-micsmo">
+              {@html review.content}
+            </div>
 
             <!-- Attachments (Images/Videos) -->
             {#if review.attachments && review.attachments.length > 0}
               <div class="flex flex-wrap gap-2.5 mb-4">
                 {#each review.attachments as media}
-                  <div class="w-[72px] h-[72px] bg-gray-100 border border-gray-100 relative group cursor-zoom-in overflow-hidden">
-                    <img src={media.url} alt="Review media" class="w-full h-full object-cover transition-transform group-hover:scale-110" />
-                    {#if media.type === 'video' || media.duration}
-                      <div class="absolute inset-0 bg-black/20 flex items-center justify-center">
-                        <Play class="w-4 h-4 text-white fill-current" />
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div 
+                    class="w-[72px] h-[72px] bg-gray-100 border border-gray-100 relative group cursor-zoom-in overflow-hidden"
+                    onclick={() => viewingMedia = { url: media.url, type: media.type === 'video' || media.url.match(/\.(mp4|webm|mov)$/i) ? 'video' : 'image' }}
+                  >
+                    {#if media.type === 'video' || media.url.match(/\.(mp4|webm|mov)$/i)}
+                      <video src={media.url} class="w-full h-full object-cover transition-transform group-hover:scale-110" muted playsinline></video>
+                      <div class="absolute inset-0 bg-black/20 flex items-center justify-center pointer-events-none">
+                        <Play class="w-4 h-4 text-white fill-current opacity-90" />
                       </div>
-                      {#if media.duration}
-                        <div class="absolute bottom-1 right-1 bg-black/50 text-white text-[9px] px-1 rounded-sm flex items-center gap-0.5">
-                          <Play class="w-2 h-2 fill-current" />
-                          {media.duration}
-                        </div>
-                      {/if}
+                    {:else}
+                      <img src={media.url} alt="Review media" class="w-full h-full object-cover transition-transform group-hover:scale-110" />
                     {/if}
                   </div>
                 {/each}
@@ -387,6 +458,25 @@
     {/if}
   </div>
 </div>
+
+<!-- Elite Theater Mode (Lightbox) -->
+{#if viewingMedia}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center" transition:fade onclick={() => viewingMedia = null}>
+    <button onclick={() => viewingMedia = null} class="absolute top-6 right-6 p-2 text-white/50 hover:text-white transition-colors bg-white/5 rounded-full hover:bg-white/10">
+      <X class="w-6 h-6" />
+    </button>
+    <div class="max-w-5xl max-h-[90vh] p-4 flex outline-none" in:scale={{ duration: 300, start: 0.9 }}>
+      {#if viewingMedia.type === 'video'}
+        <!-- svelte-ignore a11y_media_has_caption -->
+        <video src={viewingMedia.url} class="max-w-full max-h-[85vh] object-contain rounded-none shadow-2xl ring-1 ring-white/10" controls autoplay onclick={(e) => e.stopPropagation()}></video>
+      {:else}
+        <img src={viewingMedia.url} class="max-w-full max-h-[85vh] object-contain rounded-none shadow-2xl ring-1 ring-white/10" alt="Full review media" onclick={(e) => e.stopPropagation()} />
+      {/if}
+    </div>
+  </div>
+{/if}
 
 <style>
   /* Standard Mall Scrollbar (Silent) */

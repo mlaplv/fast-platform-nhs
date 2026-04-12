@@ -33,9 +33,9 @@
         liveLogs = [...liveLogs, data.message];
       }
       if (data.status === 'DONE') {
-        console.log("[Pulse] Task completed. Transitioning to OTP step.");
         setTimeout(() => {
           step = 'otp';
+          isLoading = false; // Elite V2.2: Re-enable UI for entry
           pulseSource?.close();
         }, 1200);
       } else if (data.status === 'FAILED') {
@@ -61,6 +61,7 @@
     isLoading = true;
     error = null;
     liveLogs = [];
+    code = ['', '', '', '', '', '']; // Reset code buffer on retry
     
     try {
       const res = await fetch('/api/v1/auth/otp/request', {
@@ -124,31 +125,63 @@
   }
 
   function handleKeydown(e: KeyboardEvent, index: number) {
-    if (e.key >= '0' && e.key <= '9') {
-      code[index] = e.key;
-      if (index < 5) document.getElementById(`otp-${index + 1}`)?.focus();
+    if (e.key === 'Backspace') {
+      if (code[index] === '' && index > 0) {
+        document.getElementById(`otp-${index - 1}`)?.focus();
+        code[index - 1] = '';
+      } else {
+        code[index] = '';
+      }
       e.preventDefault();
-    } else if (e.key === 'Backspace') {
-      if (code[index] === '' && index > 0) document.getElementById(`otp-${index - 1}`)?.focus();
-      code[index] = '';
-    } else if (e.key === 'Enter' && fullCode.length === 6) handleVerifyOTP();
+    } else if (e.key === 'Enter' && fullCode.length === 6) {
+      handleVerifyOTP();
+    }
+  }
+
+  function handleInput(e: Event, index: number) {
+    const target = e.target as HTMLInputElement;
+    const val = target.value.replace(/\D/g, ''); // Extract only digits
+    
+    if (val.length > 1) {
+      // Auto-fill or Paste multi-digits triggered via input
+      const digits = val.slice(0, 6).split('');
+      for (let i = 0; i < 6; i++) {
+        code[i] = digits[i] || '';
+      }
+      target.value = code[index]; 
+      
+      const nextFocus = Math.min(index + val.length, 5);
+      document.getElementById(`otp-${nextFocus}`)?.focus();
+      
+      if (digits.length === 6) handleVerifyOTP();
+    } else {
+      // Single character input
+      code[index] = val;
+      target.value = val;
+      if (val && index < 5) {
+        document.getElementById(`otp-${index + 1}`)?.focus();
+      }
+    }
   }
 
   function handlePaste(e: ClipboardEvent) {
-    const paste = e.clipboardData?.getData('text');
-    if (paste && paste.length === 6 && /^\d+$/.test(paste)) {
-      code = paste.split('');
-      document.getElementById(`otp-5`)?.focus();
+    const paste = e.clipboardData?.getData('text')?.trim().replace(/\s/g, '');
+    if (paste && /^\d+$/.test(paste)) {
+      const digits = paste.slice(0, 6).split('');
+      for (let i = 0; i < 6; i++) {
+        code[i] = digits[i] || '';
+      }
+      document.getElementById(`otp-${Math.min(digits.length - 1, 5)}`)?.focus();
+      e.preventDefault();
+      if (digits.length === 6) handleVerifyOTP();
     }
   }
   $effect(() => {
-    console.log("QuickLoginModal: Mounted with mode:", mode);
-    liveLogs = []; // Reset on new mount
-    return () => console.log("QuickLoginModal: Unmounted");
+    liveLogs = []; // Reset on mount
   });
 </script>
 
-<div class="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-[2px]" in:fade>
+<div class="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-[2px]" in:fade>
   <div class="bg-white w-full max-w-sm rounded-none shadow-2xl border border-gray-100 overflow-hidden relative" 
        in:fly={{ y: 20, duration: 400 }}>
     
@@ -224,7 +257,7 @@
           </button>
 
           <button 
-            onclick={() => authStore.modalState.mode = authStore.modalState.mode === 'login' ? 'register' : 'login'}
+            onclick={() => ui.authModal.mode = ui.authModal.mode === 'login' ? 'register' : 'login'}
             class="w-full text-center text-[10px] font-black text-gray-400 hover:text-black transition-colors uppercase tracking-widest pt-2"
           >
             {mode === 'login' ? 'BẠN LÀ THÀNH VIÊN MỚI? ĐĂNG KÝ' : 'ĐÃ CÓ TÀI KHOẢN? ĐĂNG NHẬP'}
@@ -243,10 +276,13 @@
             {#each code as char, i}
               <input 
                 type="text" 
+                inputmode="numeric"
+                autocomplete={i === 0 ? "one-time-code" : "off"}
                 id="otp-{i}"
-                maxlength="1"
-                bind:value={code[i]}
+                value={code[i]}
+                oninput={(e) => handleInput(e, i)}
                 onkeydown={(e) => handleKeydown(e, i)}
+                onpaste={handlePaste}
                 class="w-11 h-16 bg-gray-50 border-2 {code[i] ? 'border-black text-black' : 'border-gray-100 text-black'} text-center text-3xl font-black rounded-none focus:border-black transition-all outline-none"
               />
             {/each}
