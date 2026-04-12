@@ -138,6 +138,31 @@
     }
   }
 
+  async function handleSocialLogin(provider: 'google' | 'facebook' | 'zalo') {
+    isLoading = true;
+    error = null;
+    try {
+      // Gọi Proxy Endpoint Fake của Backend (Mock Social API)
+      const res = await fetch(`/api/v1/auth/social/${provider}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: "stub-mock-token-12345", platform: provider })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        // Option A Stub: Show alert or toast that backend mock provides
+        // Elite V2.2: We simulate the redirect callback message instead of a generic alert.
+        ui.closeModal();
+      } else {
+        error = data.detail || `Lỗi kết nối ${provider}`;
+      }
+    } catch (e) {
+      error = 'Không thể kết nối máy chủ';
+    } finally {
+      isLoading = false;
+    }
+  }
+
   function handleInput(e: Event, index: number) {
     const target = e.target as HTMLInputElement;
     const val = target.value.replace(/\D/g, ''); // Extract only digits
@@ -262,6 +287,59 @@
           >
             {mode === 'login' ? 'BẠN LÀ THÀNH VIÊN MỚI? ĐĂNG KÝ' : 'ĐÃ CÓ TÀI KHOẢN? ĐĂNG NHẬP'}
           </button>
+
+          <!-- Social Login Divider -->
+          <div class="relative py-4 mt-2">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-100"></div>
+            </div>
+            <div class="relative flex justify-center text-center">
+              <span class="bg-white px-3 text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                HOẶC TIẾP TỤC VỚI
+              </span>
+            </div>
+          </div>
+
+          <!-- Social Login Buttons -->
+          <div class="grid grid-cols-3 gap-3">
+            <button
+              type="button"
+              onclick={() => handleSocialLogin('google')}
+              disabled={isLoading}
+              class="flex items-center justify-center p-3 border-2 border-gray-100 hover:border-black hover:bg-black hover:text-white transition-all disabled:opacity-30 disabled:pointer-events-none group"
+              aria-label="Login with Google"
+            >
+              <svg class="w-5 h-5 group-hover:grayscale group-hover:brightness-0 group-hover:invert transition-all" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+            </button>
+            <button
+              type="button"
+              onclick={() => handleSocialLogin('facebook')}
+              disabled={isLoading}
+              class="flex items-center justify-center p-3 border-2 border-gray-100 hover:border-[#1877F2] hover:bg-[#1877F2] transition-all disabled:opacity-30 disabled:pointer-events-none group"
+              aria-label="Login with Facebook"
+            >
+              <svg class="w-5 h-5 text-[#1877F2] group-hover:text-white transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+              </svg>
+            </button>
+            <button
+              type="button"
+              onclick={() => handleSocialLogin('zalo')}
+              disabled={isLoading}
+              class="flex items-center justify-center p-3 border-2 border-gray-100 hover:border-[#0068FF] hover:bg-[#0068FF] transition-all disabled:opacity-30 disabled:pointer-events-none group"
+              aria-label="Login with Zalo"
+            >
+              <svg class="w-7 h-5 group-hover:brightness-0 group-hover:invert transition-all" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <path d="M50,11.8C25.4,11.8,5.5,28.6,5.5,49.2c0,11.9,6.5,22.6,16.5,29.3c-1.3,4.6-4.3,13.2-4.5,13.9 c-0.5,1.5,0.7,2.6,2.1,1.8c1.3-0.8,14.6-8.7,20.2-11.8c3.3,0.6,6.7,0.9,10.2,0.9c24.6,0,44.5-16.8,44.5-37.4C94.5,28.6,74.6,11.8,50,11.8z" fill="#0068FF"/>
+                <path d="M43.7,60.6h-9.9v-2.3l8.7-10.7h-8.7v-2.3h9.9v2.3l-8.7,10.7h8.7V60.6z M57.2,60.6H54c-1.1,0-2.1-0.9-2.1-2.1V47.5 c0-1.1,0.9-2.1,2.1-2.1h3.2c1.1,0,2.1,0.9,2.1,2.1v11C59.2,59.7,58.3,60.6,57.2,60.6z M55.6,47.5h-3.2v11h3.2V47.5z M69.7,46.5 c4.6,0,8.3,3.7,8.3,8.3c0,4.6-3.7,8.3-8.3,8.3h-4.3v-16.6H69.7z M69.7,60.6c3.4,0,6.1-2.7,6.1-6.1s-2.7-6.1-6.1-6.1h-2v12.2H69.7z M31.3,46.5c4.6,0,8.3,3.7,8.3,8.3c0,4.6-3.7,8.3-8.3,8.3h-4.3v-16.6H31.3z M31.3,60.6c3.4,0,6.1-2.7,6.1-6.1 s-2.7-6.1-6.1-6.1h-2v12.2H31.3z" fill="#FFF"/>
+              </svg>
+            </button>
+          </div>
         </div>
       {:else}
         <div class="space-y-8 text-center">
