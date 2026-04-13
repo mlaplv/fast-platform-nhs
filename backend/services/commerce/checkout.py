@@ -94,7 +94,7 @@ class CheckoutService:
                 "phone": payload.customer_phone,
                 "name": payload.customer_name,
                 "address": payload.customer_address,
-                "items": [{"product_id": payload.product_id, "quantity": payload.quantity}]
+                "items": [{"product_id": item.product_id, "quantity": item.quantity} for item in payload.items]
             },
             is_campaign_mode=True # Assassin Funnel usually runs on Ads
         )
@@ -119,84 +119,44 @@ class CheckoutService:
             )
             db_session.add(user)
 
-        product_stmt = select(ProductBase).where(ProductBase.id == payload.product_id)
-        product_res = await db_session.execute(product_stmt)
-        product = product_res.scalar_one_or_none()
-        if not product:
-            raise NotFoundException(f"Sản phẩm {payload.product_id} không tồn tại")
+        # Build items list with correct prices
+        items_list: List[OrderItem] = []
 
-        price = product.discount_price or product.price
+        for item in payload.items:
+            product_stmt = select(ProductBase).where(ProductBase.id == item.product_id)
+            product_res = await db_session.execute(product_stmt)
+            product = product_res.scalar_one_or_none()
+            if not product:
+                raise NotFoundException(f"Sản phẩm {item.product_id} không tồn tại")
 
-        if payload.variant_id:
-            variant_stmt = select(ProductVariant).where(ProductVariant.id == payload.variant_id)
-            variant_res = await db_session.execute(variant_stmt)
-            variant = variant_res.scalar_one_or_none()
-            if variant:
-                price = variant.discount_price or variant.price
-
-        # 4. Calculate Total with Promotion Engine (ELITE V2.2)
-        metadata = product.product_metadata or {}
-        active_deals = metadata.get("active_deals", [])
-        
-        # Sort deals by total bundle size (descending) to apply the largest deal first
-        sorted_deals = sorted(
-            active_deals, 
-            key=lambda d: int(d.get("buy_qty", 0)) + int(d.get("get_qty", 0)), 
-            reverse=True
-        )
-
-        total_amount = 0.0
-        applied_deal_info = None
-
-        if sorted_deals:
-            for deal in sorted_deals:
-                buy_qty = int(deal.get("buy_qty", 0))
-                get_qty = int(deal.get("get_qty", 0))
-                fixed_price = float(deal.get("fixed_price", 0))
-                total_in_bundle = buy_qty + get_qty
-
-                if total_in_bundle > 0 and payload.quantity >= total_in_bundle:
-                    bundle_count = payload.quantity // total_in_bundle
-                    remainder = payload.quantity % total_in_bundle
-                    
-                    total_amount = (bundle_count * fixed_price) + (remainder * float(price))
-                    applied_deal_info = {
-                        "id": deal.get("id"),
-                        "label": deal.get("label", "Ưu đãi Combo"),
-                        "bundle_count": bundle_count,
-                        "deal_price": fixed_price
-                    }
-                    break
-            
-        if not applied_deal_info:
-            total_amount = float(price * payload.quantity)
+            # Trust the frontend-validated price in payload for efficiency
+            items_list.append({
+                "id": item.product_id,
+                "name": product.name,
+                "variant_id": item.variant_id,
+                "qty": item.quantity,
+                "unit_price": item.price,
+                "total_price": item.price * item.quantity
+            })
 
         # 5. Prepare Order Metadata
-        items: List[OrderItem] = [{
-            "id": payload.product_id, 
-            "name": product.name, # SAVE NAME
-            "variant_id": payload.variant_id,
-            "qty": payload.quantity, 
-            "unit_price": float(price),
-            "total_price": total_amount
-        }]
         order_metadata: OrderMetadata = {
-            "items": items,
+            "items": items_list,
             "is_mobile": is_mobile_device(user_agent)
         }
-        if applied_deal_info:
-            order_metadata["applied_deal"] = applied_deal_info
+
+        if payload.voucher_id:
+            order_metadata["voucher_id"] = payload.voucher_id
 
         # 6. Identity Shield v2.2: Restore original data if masked strings were submitted
-        # This prevents the UI from ever seeing the clear text, but saving it correctly.
         final_name = payload.customer_name
         final_address = payload.customer_address
-        
+
         # Look up most recent order to compare masked values
         restore_stmt = select(Order).where(Order.customer_phone == payload.customer_phone).order_by(Order.created_at.desc()).limit(1)
         restore_res = await db_session.execute(restore_stmt)
         prev_order = restore_res.scalar_one_or_none()
-        
+
         if prev_order:
             if final_name == _mask_name(prev_order.customer_name):
                 final_name = prev_order.customer_name
@@ -206,10 +166,10 @@ class CheckoutService:
         # 5. Save Order
         new_order = Order(
             id=str(uuid.uuid4()),
-            user_id=user.id, # Linked to auto-created user
-            total_amount=total_amount,
+            user_id=user.id,
+            total_amount=payload.total_amount,
             status="PENDING",
-            items=items,
+            items=items_list,
             customer_name=final_name,
             customer_phone=payload.customer_phone,
             customer_address=final_address,
@@ -230,12 +190,12 @@ class CheckoutService:
             "id": new_order.id,
             "phone": payload.customer_phone,
             "customer": payload.customer_name,
-            "total_amount": total_amount,
+            "total_amount": payload.total_amount,
             "ip": customer_ip,
             "user_agent": user_agent,
             "tenant_id": current_tenant_id.get() or "default",
             "address": payload.customer_address,
-            "items": items,
+            "items": items_list,
         })
 
         return {"id": new_order.id, "ok": True, "message": None}

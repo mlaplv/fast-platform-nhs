@@ -2,15 +2,21 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator
 import re
 from typing import Optional
 
+class CheckoutItemSchema(BaseModel):
+    product_id: str
+    variant_id: Optional[str] = None
+    quantity: int = Field(default=1, ge=1, le=10)
+    price: float = Field(..., ge=0)
+
 class StealthCheckoutSchema(BaseModel):
     model_config = ConfigDict(strict=True, from_attributes=True)
 
-    product_id: str = Field(..., description="ID của sản phẩm")
-    variant_id: Optional[str] = Field(None, description="ID của phiên bản sản phẩm (nếu có)")
+    items: list[CheckoutItemSchema] = Field(..., description="Danh sách sản phẩm trong giỏ")
+    voucher_id: Optional[str] = Field(None, description="Mã giảm giá áp dụng")
     customer_name: str = Field(..., min_length=2, max_length=100, description="Tên khách hàng")
     customer_phone: str = Field(..., description="Số điện thoại khách hàng")
     customer_address: str = Field(..., min_length=5, max_length=500, description="Địa chỉ nhận hàng")
-    quantity: int = Field(default=1, ge=1, le=10, description="Số lượng sản phẩm")
+    total_amount: float = Field(..., ge=0, description="Tổng tiền sau giảm giá")
 
     @field_validator("customer_phone")
     @classmethod

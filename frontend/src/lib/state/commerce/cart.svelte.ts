@@ -7,6 +7,7 @@ export interface CartItem {
     product: Product;
     variant?: ProductVariant;
     quantity: number;
+    selected: boolean;
 }
 
 /**
@@ -16,7 +17,7 @@ export interface CartItem {
 export class CartStore {
     // Core State
     items = $state<CartItem[]>([]);
-    isOpen = $state<boolean>(false);
+    selectedVoucherId = $state<string | null>(null);
 
     // Bắt sự kiện khởi tạo để load data từ LocalStorage
     constructor() {
@@ -24,7 +25,13 @@ export class CartStore {
             const saved = localStorage.getItem('elite_global_cart');
             if (saved) {
                 try {
-                    this.items = JSON.parse(saved);
+                    const parsed = JSON.parse(saved) as Partial<CartItem>[];
+                    this.items = parsed
+                        .filter((i): i is CartItem => !!(i.id && i.product))
+                        .map((item) => ({
+                            ...item,
+                            selected: item.selected ?? true
+                        } as CartItem));
                 } catch (e) {
                     console.error('Failed to parse cart data', e);
                 }
@@ -34,11 +41,17 @@ export class CartStore {
 
     // Computed State
     totalItems = $derived(this.items.reduce((acc, item) => acc + item.quantity, 0));
+    selectedItemsCount = $derived(this.items.filter(item => item.selected).reduce((acc, item) => acc + item.quantity, 0));
 
-    totalAmount = $derived(this.items.reduce((acc, item) => {
-        const price = item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0;
-        return acc + (price * item.quantity);
-    }, 0));
+    // Discount Mapping
+    totalDiscount = $derived(0); // Elite V2.2: Hardcoded coupons removed. Flow via API instead.
+
+    totalAmount = $derived(
+        Math.max(0, this.items.filter(item => item.selected).reduce((acc, item) => {
+            const price = item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0;
+            return acc + (price * item.quantity);
+        }, 0) - this.totalDiscount)
+    );
 
     // Side-effects (Persistence)
     syncToStorage = $effect.root(() => {
@@ -56,15 +69,16 @@ export class CartStore {
 
         if (existingItem) {
             existingItem.quantity += quantity;
+            existingItem.selected = true; // Auto select when adding
         } else {
             this.items.push({
                 id: uniqueId,
                 product,
                 variant,
-                quantity
+                quantity,
+                selected: true
             });
         }
-        this.openCart();
     }
 
     updateQuantity(id: string, quantity: number): void {
@@ -80,20 +94,34 @@ export class CartStore {
         this.items = this.items.filter(item => item.id !== id);
     }
 
+    toggleItemSelection(id: string): void {
+        const item = this.items.find(i => i.id === id);
+        if (item) item.selected = !item.selected;
+    }
+
+    toggleAll(selected: boolean): void {
+        this.items.forEach(item => item.selected = selected);
+    }
+
     clearCart(): void {
         this.items = [];
     }
 
-    openCart(): void {
-        this.isOpen = true;
+    buyNow(product: Product, variant?: ProductVariant, quantity: number = 1): void {
+        // Shopee style: deselect all others first
+        this.items.forEach(item => item.selected = false);
+        
+        // Then add the item
+        this.addItem(product, variant, quantity);
+        // addItem already sets selected = true
     }
 
-    closeCart(): void {
-        this.isOpen = false;
+    toggleAll(selected: boolean): void {
+        this.items.forEach(item => item.selected = selected);
     }
 
-    toggleCart(): void {
-        this.isOpen = !this.isOpen;
+    clearCart(): void {
+        this.items = [];
     }
 }
 

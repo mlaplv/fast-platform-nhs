@@ -4,7 +4,6 @@
   import QuickLoginModal from "$lib/components/storefront/auth/QuickLoginModal.svelte";
   import { setNanobotContext } from "$lib/state/nanobot.svelte";
   import { setCartStore } from "$lib/state/commerce/cart.svelte";
-  import CartDrawer from "$lib/components/storefront/cart/CartDrawer.svelte";
   import { navigating } from "$app/stores";
   import { onMount, type Snippet } from "svelte";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
@@ -73,7 +72,6 @@
   </main>
 
   {#if !isAdmin}
-    <CartDrawer />
     
     {#if ui?.authModal?.isOpen}
       <QuickLoginModal />

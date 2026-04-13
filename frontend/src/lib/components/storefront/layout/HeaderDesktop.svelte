@@ -6,11 +6,13 @@
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import NotificationBell from './NotificationBell.svelte';
+  import CartMiniHover from '../cart/CartMiniHover.svelte';
   
   const ui = getClientUi();
   const cartStore = getCartStore();
   const searchStore = getSearchStore();
   let showAccountMenu = $state(false);
+  let isHoveringCart = $state(false);
   let menuContainer = $state<HTMLElement>();
 
   function toggleAccountMenu(e: MouseEvent) {
@@ -144,8 +146,12 @@
 
 
           <!-- Cart Section -->
-          <div class="flex items-center h-full">
-            <button onclick={() => cartStore.toggleCart()} class="relative flex flex-col items-center justify-center gap-1 group transition-all active:scale-95 min-w-[60px]">
+          <div 
+            class="flex items-center h-full relative"
+            onmouseenter={() => isHoveringCart = true}
+            onmouseleave={() => isHoveringCart = false}
+          >
+            <button onclick={() => goto('/checkout')} class="relative flex flex-col items-center justify-center gap-1 group transition-all active:scale-95 min-w-[60px]">
               <div class="text-gray-700 group-hover:text-luxury-copper transition-colors">
                 <svg class="w-7 h-7 stroke-current" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                 {#if cartStore.totalItems > 0}
@@ -156,6 +162,12 @@
               </div>
               <span class="text-[9px] text-gray-400 font-black uppercase tracking-tighter group-hover:text-luxury-copper transition-colors">Giỏ hàng</span>
             </button>
+
+            {#if isHoveringCart}
+              <div class="absolute right-0 top-full pt-2">
+                <CartMiniHover />
+              </div>
+            {/if}
           </div>
         </div>
       </div>

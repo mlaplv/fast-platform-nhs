@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { goto } from '$app/navigation';
   import type { Product, ProductVariant } from '$lib/types';
   import { ShoppingCart, Minus, Plus, Star } from 'lucide-svelte';
@@ -61,6 +62,7 @@
   }
 
   const cartStore = getCartStore();
+  const clientUi = getClientUi();
 
   interface Props {
     product: Product;
@@ -134,11 +136,11 @@
 
   function validateSelection(): boolean {
     if (product.tierVariations?.length > 0 && selectedIndices.includes(-1)) {
-      alert('Vui lòng chọn phân loại hàng');
+      clientUi.showToast('Vui lòng chọn phân loại hàng', 'error');
       return false;
     }
     if (quantity < 1 || quantity > currentStock) {
-      alert('Số lượng không hợp lệ');
+      clientUi.showToast('Số lượng không hợp lệ', 'error');
       return false;
     }
     return true;
@@ -155,6 +157,7 @@
   function addToCart() {
     if (!validateSelection()) return;
     cartStore.addItem(product, currentVariant, quantity);
+    clientUi.showToast('Đã thêm sản phẩm vào giỏ hàng', 'success');
   }
 
   // --- SALES ASSASSIN FOMO & VOUCHER LOGIC ---
@@ -218,7 +221,7 @@
 
   function buyNow() {
     if (!validateSelection()) return;
-    cartStore.addItem(product, currentVariant, quantity);
+    cartStore.buyNow(product, currentVariant, quantity);
     goto('/checkout');
   }
 </script>
