@@ -31,14 +31,15 @@ class PublicNewsController(Controller):
         search: Optional[str] = None,
     ) -> ArticleListResponse:
         """PUBLIC: List news articles with pagination."""
-        # Use status='PUBLISHED' to only show live news to clients
+        # Elite V2.2: Force filter by 'Tin tức' category for public news endpoint
+        # This prevents policies or other articles from appearing in the news list.
         return await article_service.list_articles(
             db_session=db_session, 
             limit=limit, 
             offset=offset, 
             status="PUBLISHED", 
             search=search, 
-            category=category
+            category="Tin tức"
         )
 
     @get("/{article_id:str}")
@@ -56,3 +57,19 @@ class PublicNewsController(Controller):
             return article
         except NotFoundException:
             raise NotFoundException(f"Article {article_id} not found")
+
+    @get("/slug/{slug:str}")
+    async def get_news_by_slug(
+        self,
+        db_session: AsyncSession,
+        article_service: ArticleService,
+        slug: str
+    ) -> ArticleResponse:
+        """PUBLIC: Get a single news article by slug."""
+        try:
+            article = await article_service.get_article_by_slug(db_session, slug)
+            if article.status != "PUBLISHED":
+                raise NotFoundException(f"Article with slug '{slug}' is not published")
+            return article
+        except NotFoundException:
+            raise NotFoundException(f"Article with slug '{slug}' not found")

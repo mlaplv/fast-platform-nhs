@@ -2,7 +2,8 @@ from __future__ import annotations
 import os
 import logging
 from typing import Dict, List, Optional
-from litestar import Controller, post, Request
+from litestar import Controller, post, get, Request
+from litestar.response import Redirect
 from litestar.middleware.rate_limit import RateLimitConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +13,7 @@ from backend.schemas.auth import (
 )
 from backend.schemas.common import SuccessResponse
 from backend.services.auth_service import auth_service
+from backend.services.oauth_service import oauth2_service
 
 logger = logging.getLogger("api-gateway")
 
@@ -41,10 +43,25 @@ class AuthController(Controller):
     # EXTENDED AUTH (Social & OTP) - Consolidated
     # ═══════════════════════════════════════════════════════
 
-    @post("/social/{provider:str}", middleware=[auth_rate_limit.middleware])
-    async def social_login(self, db_session: "AsyncSession", provider: str, data: SocialLoginRequest) -> SocialLoginResponse:
-        """PUBLIC: Handle social login (Google, Facebook, Zalo) via AuthService."""
-        return await auth_service.social_login(db_session, provider, data.model_dump())
+    @get("/oauth/login/{provider:str}")
+    async def oauth_login(self, provider: str) -> Redirect:
+        """PUBLIC: Chuyển hướng người dùng sang trang Đăng nhập của Service"""
+        login_url = oauth2_service.get_login_url(provider)
+        return Redirect(path=login_url)
+
+    @get("/oauth/callback/{provider:str}")
+    async def oauth_callback(self, db_session: "AsyncSession", provider: str, code: str) -> Redirect:
+        """PUBLIC: Hứng Authorization Code từ Service, sinh JWT trả về Client"""
+        # 1. Giao tiếp lấy profile
+        user_profile = await oauth2_service.exchange_code_for_user(provider, code)
+        
+        # 2. Xử lý User trong CSDL (AuthService)
+        access_token = await auth_service.handle_social_user(db_session, user_profile)
+        await db_session.commit()
+        
+        # 3. Chuyển hướng vòng vây về Client Route ẩn
+        frontend_callback = f"{oauth2_service.frontend_url}/auth/callback?token={access_token}"
+        return Redirect(path=frontend_callback)
 
     @post("/otp/request", middleware=[auth_rate_limit.middleware])
     async def request_otp(self, db_session: "AsyncSession", data: OTPRequest) -> OTPRequestResponse:

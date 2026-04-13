@@ -27,7 +27,7 @@
 
   {#each newsList as news (news.id)}
     <a 
-      href="/{news.slug}.p{news.id}"
+      href="/{news.slug}"
       class="block bg-white group active:scale-[0.98] transition-all duration-300 shadow-sm hover:shadow-md border border-gray-50 overflow-hidden"
     >
       <div class="flex gap-4 p-3">

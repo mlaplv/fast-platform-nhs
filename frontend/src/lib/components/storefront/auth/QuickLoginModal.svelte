@@ -138,29 +138,11 @@
     }
   }
 
-  async function handleSocialLogin(provider: 'google' | 'facebook' | 'zalo') {
+  function handleSocialLogin(provider: 'google' | 'facebook' | 'zalo') {
     isLoading = true;
     error = null;
-    try {
-      // Gọi Proxy Endpoint Fake của Backend (Mock Social API)
-      const res = await fetch(`/api/v1/auth/social/${provider}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: "stub-mock-token-12345", platform: provider })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        // Option A Stub: Show alert or toast that backend mock provides
-        // Elite V2.2: We simulate the redirect callback message instead of a generic alert.
-        ui.closeModal();
-      } else {
-        error = data.detail || `Lỗi kết nối ${provider}`;
-      }
-    } catch (e) {
-      error = 'Không thể kết nối máy chủ';
-    } finally {
-      isLoading = false;
-    }
+    // Chuyển hướng Browser qua API cửa ngõ của Backend Litestar
+    window.location.href = `/api/v1/auth/oauth/login/${provider}`;
   }
 
   function handleInput(e: Event, index: number) {

@@ -6,6 +6,8 @@
   import ProductListMobile from '$lib/components/storefront/product/ProductListMobile.svelte';
   import NewsListDesktop from '$lib/components/storefront/news/NewsListDesktop.svelte';
   import NewsListMobile from '$lib/components/storefront/news/NewsListMobile.svelte';
+  import NewsDetailDesktop from '$lib/components/storefront/news-detail/NewsDetailDesktop.svelte';
+  import NewsDetailMobile from '$lib/components/storefront/news-detail/NewsDetailMobile.svelte';
   import FunnelPage from '../../[slug]-funnel/+page.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { onMount, untrack } from 'svelte';
@@ -51,6 +53,9 @@
 <svelte:head>
   {#if data.type === 'category' || data.type === 'news'}
     <title>{data.categoryName} | Micsmo</title>
+  {:else if data.type === 'article'}
+    <title>{data.article?.title} | Micsmo</title>
+    <meta name="description" content={data.article?.excerpt} />
   {:else if !(data.product?.metadata?.landing_type && data.product.metadata.landing_type !== 'standard')}
     <title>{data.product?.name} | Micsmo</title>
   {/if}
@@ -71,6 +76,15 @@
       <ProductListDesktop products={data.items} categoryName={data.categoryName} />
     {/if}
   {/if}
+{:else if data.type === 'article'}
+  <!-- GIAO DIỆN CHI TIẾT BÀI VIẾT (FRIENDLY URL ELITE) -->
+  <div class="news-detail-wrapper bg-[#F5F5F5] pb-8">
+    {#if isMobile}
+      <NewsDetailMobile article={data.article} />
+    {:else}
+      <NewsDetailDesktop article={data.article} />
+    {/if}
+  </div>
 {:else}
   <!-- KIỂM TRA METADATA: HIỂN THỊ FUNNEL (LANDING PAGE) HOẶC DETAIL PAGE -->
   {#if data.product?.metadata?.landing_type && data.product.metadata.landing_type !== 'standard'}

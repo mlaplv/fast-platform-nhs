@@ -111,6 +111,30 @@ class ArticleService:
 
         return ArticleResponse.model_validate(row._mapping)
 
+
+    async def get_article_by_slug(self, db_session: AsyncSession, slug: str) -> ArticleResponse:
+        """Get a single article by slug (R76: Scalar Projection)."""
+        stmt = select(
+            Article.id, Article.title, Article.slug, Article.excerpt, Article.content,
+            Article.status, Article.category, Article.views,
+            Article.seo_title, Article.seo_description,
+            Article.seo_keywords, Article.seo_og_image,
+            Article.featured_image,
+            Article.created_at, Article.author_id,
+            UserModel.name.label("author_name")
+        ).outerjoin(UserModel, Article.author_id == UserModel.id).where(
+            Article.slug == slug,
+            Article.deleted_at == None
+        )
+
+        result = await db_session.execute(stmt)
+        row = result.first()
+
+        if not row:
+            raise NotFoundException(f"Article with slug '{slug}' not found")
+
+        return ArticleResponse.model_validate(row._mapping)
+
     async def create_article(self, db_session: AsyncSession, data: CreateArticleRequest) -> SuccessResponse:
         """Create a new article and its embedding."""
         slug = data.slug or re.sub(

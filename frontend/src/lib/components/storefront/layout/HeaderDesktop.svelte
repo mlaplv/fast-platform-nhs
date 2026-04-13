@@ -63,6 +63,8 @@
             </span>
             {authStore.user?.name}
           </button>
+          <span class="w-[1px] h-3 bg-gray-200"></span>
+          <button onclick={() => authStore.logout()} type="button" class="hover:text-red-500 text-gray-500 font-bold uppercase transition-colors tracking-tighter">Đăng Xuất</button>
         {/if}
       </div>
     </div>

@@ -65,7 +65,7 @@
       <!-- Featured List -->
       <div class="space-y-6">
         {#each featuredNews() as news, i}
-          <a href="/{news.slug}.p{news.id}" class="group flex gap-4 items-start" in:fly={{y: 20, duration: 800, delay: 100 * i}}>
+          <a href="/{news.slug}" class="group flex gap-4 items-start" in:fly={{y: 20, duration: 800, delay: 100 * i}}>
             <div class="w-20 h-20 shrink-0 bg-gray-200 overflow-hidden border border-gray-100">
                 <img src={news.image} alt={news.title} class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
             </div>
@@ -99,7 +99,7 @@
     <main class="flex-1">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
         {#each enhancedNews() as news, i (news.id)}
-          <a href="/{news.slug}.p{news.id}" 
+          <a href="/{news.slug}" 
              in:fly={{y: 40, duration: 1000, delay: 200 + (i * 100)}}
              class="group bg-white border border-gray-100 hover:border-red-600/20 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] transition-all duration-500 overflow-hidden flex flex-col h-full transform hover:-translate-y-2">
             <!-- Image Frame -->

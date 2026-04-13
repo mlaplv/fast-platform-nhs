@@ -46,6 +46,23 @@
     }, 5000);
     return () => clearInterval(interval);
   });
+
+  // Elite V2.2: Link Ecosystem Data
+  const ecosystemLinks = [
+    { name: 'Giới thiệu', href: '/gioi-thieu' },
+    { name: 'Tuyển dụng', href: '/tuyen-dung' },
+    { name: 'Chính sách Bảo mật', href: '/chinh-sach-bao-mat' },
+    { name: 'Điều khoản Dịch vụ', href: '/dieu-khoan-dich-vu' }
+  ];
+
+  const customerLinks = [
+    { name: 'Tra cứu đơn hàng', href: '/track' },
+    { name: 'Vận chuyển & Giao nhận', href: '/chinh-sach-van-chuyen' },
+    { name: 'Đổi trả & Hoàn tiền', href: '/chinh-sach-doi-tra-hoan-tien' },
+    { name: 'Chính sách Kiểm hàng', href: '/chinh-sach-kiem-hang' },
+    { name: 'Chính sách Bảo hành', href: '/chinh-sach-bao-hanh' },
+    { name: 'Phương thức Thanh toán', href: '/phuong-thuc-thanh-toan' }
+  ];
 </script>
 
 <footer class="relative overflow-hidden bg-[#0c0a09] border-t border-white/5 text-slate-400 font-medium selection:bg-[#C18F7E]/30 selection:text-white">
@@ -112,12 +129,12 @@
       <div class="lg:col-span-2 space-y-6">
         <h4 class="text-white font-black uppercase text-[10px] tracking-[0.4em] pl-2">Hệ sinh thái</h4>
         <ul class="space-y-3">
-          {#each ['Giới thiệu Elite', 'Tuyển dụng AI', 'Chính sách Micsmo', 'Blog Công nghệ'] as link}
+          {#each ecosystemLinks as link}
             <li>
-              <button class="group flex items-center gap-2 text-[13px] text-slate-500 hover:text-white transition-all duration-300">
+              <a href={link.href} class="group flex items-center gap-2 text-[13px] text-slate-500 hover:text-white transition-all duration-300">
                 <span class="w-0 h-[1.5px] bg-[#C18F7E] group-hover:w-3 transition-all"></span>
-                {link}
-              </button>
+                {link.name}
+              </a>
             </li>
           {/each}
         </ul>
@@ -127,12 +144,12 @@
       <div class="lg:col-span-2 space-y-6">
         <h4 class="text-white font-black uppercase text-[10px] tracking-[0.4em] pl-2">Khách hàng</h4>
         <ul class="space-y-3">
-          {#each ['Trung tâm trợ giúp', 'Hướng dẫn mua hàng', 'Tra cứu đơn hàng', 'Vận chuyển & Đổi trả'] as link}
+          {#each customerLinks as link}
             <li>
-              <button class="group flex items-center gap-2 text-[13px] text-slate-500 hover:text-white transition-all duration-300">
+              <a href={link.href} class="group flex items-center gap-2 text-[13px] text-slate-500 hover:text-white transition-all duration-300">
                 <span class="w-0 h-[1.5px] bg-[#C18F7E] group-hover:w-3 transition-all"></span>
-                {link}
-              </button>
+                {link.name}
+              </a>
             </li>
           {/each}
         </ul>

@@ -139,12 +139,67 @@ class AuthService:
         )
 
     @staticmethod
-    async def social_login(provider: str, data: Dict[str, object]) -> SocialLoginResponse:
-        """Stub cho social login (Google, Facebook, Zalo)"""
-        return SocialLoginResponse(
-            status="success",
-            message=f"Social login via {provider} initiated.",
-            instructions="Vui lòng cấu hình OAuth2 Credentials trong .env để kích hoạt logic thật."
+    async def handle_social_user(db_session: AsyncSession, profile: Dict[str, str]) -> str:
+        """Thực thi luồng Login DB chuẩn hóa cho Social Oauth2 (Tạo hoặc Tìm User và trả về JWT)"""
+        email = profile.get("email", "").strip().lower()
+        name = profile.get("name", "Social User")
+        avatar = profile.get("avatar", "")
+        # Nếu provider không cấp email (như Zalo), ta sinh email ảo
+        if not email:
+            email = f"user_{uuid.uuid4().hex[:8]}@social.smartshop.test"
+            
+        stmt = (
+            select(User)
+            .options(selectinload(User.roles).selectinload(Role.permissions))
+            .where(User.email == email)
+        )
+        res = await db_session.execute(stmt)
+        user = res.scalar_one_or_none()
+        
+        if not user:
+            user_id = str(uuid.uuid4())
+            user_kwargs = {
+                "id": user_id,
+                "username": email,
+                "email": email,
+                "name": name,
+                "status": "ACTIVE",
+                "tenant_id": "default"
+            }
+            if hasattr(User, "avatar_url"):
+                user_kwargs["avatar_url"] = avatar
+            elif hasattr(User, "avatar"):
+                user_kwargs["avatar"] = avatar
+                
+            user = User(**user_kwargs)
+            db_session.add(user)
+            await db_session.flush()
+            roles = ["CUSTOMER"]
+            permissions = []
+            logger.info(f"[AuthService] Mới tạo tài khoản Oauth2 cho {email}")
+        else:
+            roles = [r.code for r in getattr(user, "roles", [])]
+            permissions = []
+            for r in getattr(user, "roles", []):
+                permissions.extend([p.code for p in getattr(r, "permissions", [])])
+                
+        if not roles:
+            roles = ["CUSTOMER"]
+            
+        token_data = {
+            "id": str(user.id),
+            "sub": user.email,
+            "roles": roles,
+            "perms": list(set(permissions)),
+            "tenant_id": getattr(user, 'tenant_id', 'default'),
+            "stamp": getattr(user, "security_stamp", "MISSING"),
+            "name": user.name
+        }
+
+        # Lưu ý: Token Social Login giới hạn duy trì 120 phút mặc định (giống OTP)
+        return AuthService.create_access_token(
+            data=token_data,
+            expires_delta=timedelta(minutes=120)
         )
 
     @staticmethod

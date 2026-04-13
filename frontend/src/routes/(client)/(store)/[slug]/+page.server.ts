@@ -109,8 +109,28 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
       };
     }
   } catch (e) {
-    console.error(`[PRODUCT FETCH FAILED] slug: ${slug}`, e);
-    throw error(503, { message: "Dịch vụ tạm thời không khả dụng (Backend Connection Failed)" });
+    console.error(`[PRODUCT FETCH SYSTEM ERROR] slug: ${slug}`, e);
+  }
+
+  // Phase 2026: Friendly URL Fallback - If not a product, try fetching as News/Article
+  const articleUrl = `${apiUrl}/api/v1/client/news/slug/${slug}`;
+  try {
+    const artRes = await fetch(articleUrl, { 
+      headers: { 'x-tenant': tenantId },
+      signal: AbortSignal.timeout(5000)
+    });
+    if (artRes.ok) {
+      const article = await artRes.json();
+      return {
+        type: 'article',
+        article,
+        metadata: {
+          timestamp: new Date().toISOString()
+        }
+      };
+    }
+  } catch (artErr) {
+    console.error(`[FRIENDLY URL FALLBACK FAILED] slug: ${slug}`, artErr);
   }
 
   // Final 404
