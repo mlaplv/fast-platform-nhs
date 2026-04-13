@@ -123,6 +123,7 @@ class AuthService:
             "tenant_id": getattr(user, 'tenant_id', 'default'),
             "stamp": getattr(user, "security_stamp", "MISSING"),
             "name": user.name,
+            "hpw": user.password is not None,
             "rem": data.remember_me  # Mark for potential downstream logic
         }
 
@@ -132,10 +133,12 @@ class AuthService:
         )
 
         return TokenResponse(
+            id=str(user.id),
             access_token=access_token,
             role=roles[0] if roles else "CUSTOMER",
             name=user.name,
-            email=user.email
+            email=user.email,
+            has_password=user.password is not None
         )
 
     @staticmethod
@@ -193,7 +196,8 @@ class AuthService:
             "perms": list(set(permissions)),
             "tenant_id": getattr(user, 'tenant_id', 'default'),
             "stamp": getattr(user, "security_stamp", "MISSING"),
-            "name": user.name
+            "name": user.name,
+            "hpw": user.password is not None
         }
 
         # Lưu ý: Token Social Login giới hạn duy trì 120 phút mặc định (giống OTP)
@@ -331,7 +335,8 @@ class AuthService:
             "perms": list(set(permissions if 'permissions' in locals() else [])),
             "tenant_id": getattr(user, 'tenant_id', 'default'),
             "stamp": getattr(user, "security_stamp", "MISSING"),
-            "name": user.name
+            "name": user.name,
+            "hpw": user.password is not None
         }
 
         access_token = AuthService.create_access_token(
@@ -341,8 +346,10 @@ class AuthService:
 
         return OTPVerifyResponse(
             status="success",
+            id=str(user.id),
             access_token=access_token,
-            role=roles[0]
+            role=roles[0],
+            has_password=user.password is not None
         )
 
     @staticmethod

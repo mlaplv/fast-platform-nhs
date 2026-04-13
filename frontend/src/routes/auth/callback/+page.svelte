@@ -43,7 +43,8 @@
         id: payloadDecoded.id || 'unknown',
         email: payloadDecoded.sub || '',
         name: payloadDecoded.name || payloadDecoded.sub?.split('@')[0] || 'User',
-        role: (payloadDecoded.roles && payloadDecoded.roles[0]) || 'CUSTOMER'
+        role: (payloadDecoded.roles && payloadDecoded.roles[0]) || 'CUSTOMER',
+        has_password: !!payloadDecoded.hpw
       });
 
       status = 'success';

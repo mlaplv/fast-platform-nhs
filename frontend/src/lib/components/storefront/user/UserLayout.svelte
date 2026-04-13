@@ -4,6 +4,7 @@
   import type { Snippet } from 'svelte';
   import { Bell, User, ShoppingBag, MapPin, Lock, LogOut } from 'lucide-svelte';
   import { goto } from '$app/navigation';
+  import { browser } from '$app/environment';
 
   let { children }: { children: Snippet } = $props();
 
@@ -37,6 +38,14 @@
 
   const currentPath = $derived($page.url.pathname);
   let isMobileMenuOpen = $state(false);
+
+  // Elite V3.0: Reactive Auth Guard
+  // Redirect to home if user is not authenticated while on a protected layout
+  $effect(() => {
+    if (browser && !authStore.token) {
+      goto('/');
+    }
+  });
 </script>
 
 <div class="bg-[#F9F8F6] min-h-screen">
@@ -103,7 +112,7 @@
                 {item.label}
               </a>
 
-              {#if item.subItems && currentPath.startsWith(item.href)}
+              {#if item.subItems && (currentPath.startsWith(item.href) || item.subItems.some(s => s.href === currentPath))}
                 <div class="flex flex-col ml-8 space-y-3 border-l border-stone-100 pl-4">
                   {#each item.subItems as sub}
                     <a

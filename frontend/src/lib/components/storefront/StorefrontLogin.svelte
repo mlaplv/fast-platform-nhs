@@ -48,25 +48,40 @@
     try {
       const hashedPassword = await hashPassword(password);
 
-      const { access_token } = await apiClient.post<{ access_token: string }>(
+      const res = await apiClient.post<{ 
+        id: string,
+        access_token: string,
+        role: string,
+        name: string,
+        email: string,
+        has_password: boolean
+      }>(
         "/api/v1/auth/login",
         {
           identifier: email,
           password: hashedPassword,
+          remember_me: rememberMe
         },
       );
 
-      if (!access_token) {
+      if (!res.access_token) {
         throw new Error("Đăng nhập thất bại");
       }
 
-      // THIẾT QUÂN LUẬT: Phân tách thời lượng phiên bản Storefront
+      // Elite V3.0: Unified Session Management
+      authStore.setSession(res.access_token, {
+        id: res.id,
+        email: res.email,
+        name: res.name,
+        role: res.role,
+        has_password: res.has_password
+      });
+
+      // THIẾT QUÂN LUẬT: Persistent Session Security
       if (rememberMe) {
-        document.cookie = `user_token=${access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
-        localStorage.setItem("user_token", access_token);
+        document.cookie = `user_token=${res.access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`;
       } else {
-        document.cookie = `user_token=${access_token}; path=/; SameSite=Strict`;
-        sessionStorage.setItem("user_token", access_token);
+        document.cookie = `user_token=${res.access_token}; path=/; SameSite=Strict`;
       }
 
       sessionStorage.setItem("xohi_just_logged_in", "true");

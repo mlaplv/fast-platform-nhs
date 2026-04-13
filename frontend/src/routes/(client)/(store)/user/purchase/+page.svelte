@@ -61,7 +61,7 @@
   });
 
   function handleReorder(order: any) {
-    ui.showToast('Tính năng mua lại đang được xử lý, Sếp chờ em chút nhé! ✨', 'info');
+    ui.showToast('Tính năng mua lại đang được xử lý, vui lòng chờ trong giây lát! ✨', 'info');
   }
 </script>
 

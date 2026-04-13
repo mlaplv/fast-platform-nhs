@@ -5,6 +5,8 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { fade, fly, slide } from 'svelte/transition';
   import { Plus, MapPin, Phone, User, Trash2, Edit3, CheckCircle2 } from 'lucide-svelte';
+  import divisions from '$lib/data/vn_divisions.json';
+  import SearchableDropdown from '$lib/components/storefront/user/SearchableDropdown.svelte';
 
   const ui = getClientUi();
 
@@ -14,7 +16,7 @@
     phone: string;
     address: string;
     city: string;
-    district: string;
+    district?: string;
     ward: string;
     isDefault: boolean;
   }
@@ -58,7 +60,7 @@
   }
 
   async function handleSave() {
-    if (!name || !phone || !address || !city || !district || !ward) {
+    if (!name || !phone || !address || !city || !ward) {
       ui.showToast('Vui lòng điền đầy đủ thông tin địa chỉ.', 'warning');
       return;
     }
@@ -81,7 +83,6 @@
         phone,
         address,
         city,
-        district,
         ward,
         isDefault
       };
@@ -117,7 +118,7 @@
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Sếp có chắc chắn muốn xóa địa chỉ này không?')) return;
+    if (!confirm('Bạn có chắc chắn muốn xóa địa chỉ này không?')) return;
 
     try {
       const updatedAddresses = addresses.filter(a => a.id !== id);
@@ -181,8 +182,8 @@
   <div class="space-y-8" in:fade>
     <div class="flex items-center justify-between border-b border-stone-100 pb-5">
       <div>
-        <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Địa Chỉ Của Tôi</h1>
-        <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Quản lý địa chỉ nhận hàng của Sếp</p>
+        <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Địa chỉ của tôi</h1>
+        <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Quản lý địa chỉ nhận hàng của bạn</p>
       </div>
 
       {#if !showForm}
@@ -238,32 +239,23 @@
           />
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div class="space-y-2">
             <label class="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Tỉnh / Thành phố</label>
-            <input
-              type="text"
+            <SearchableDropdown
               bind:value={city}
-              placeholder="Nhập tỉnh/thành"
-              class="w-full h-11 border-b border-stone-200 bg-transparent outline-none focus:border-luxury-copper transition-colors text-stone-800 placeholder:text-stone-300"
-            />
-          </div>
-          <div class="space-y-2">
-            <label class="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Quận / Huyện</label>
-            <input
-              type="text"
-              bind:value={district}
-              placeholder="Nhập quận/huyện"
-              class="w-full h-11 border-b border-stone-200 bg-transparent outline-none focus:border-luxury-copper transition-colors text-stone-800 placeholder:text-stone-300"
+              options={divisions.map(d => d.name)}
+              placeholder="Chọn tỉnh/thành"
+              onChange={() => ward = ''}
             />
           </div>
           <div class="space-y-2">
             <label class="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Phường / Xã</label>
-            <input
-              type="text"
+            <SearchableDropdown
               bind:value={ward}
-              placeholder="Nhập phường/xã"
-              class="w-full h-11 border-b border-stone-200 bg-transparent outline-none focus:border-luxury-copper transition-colors text-stone-800 placeholder:text-stone-300"
+              options={divisions.find(d => d.name === city)?.wards || []}
+              placeholder="Chọn phường/xã"
+              disabled={!city}
             />
           </div>
         </div>
@@ -324,7 +316,7 @@
 
                   <div class="space-y-1 text-[13px] text-stone-600 leading-relaxed">
                     <p>{addr.address}</p>
-                    <p>{addr.ward}, {addr.district}, {addr.city}</p>
+                    <p>{addr.ward}, {addr.city}</p>
                   </div>
                 </div>
 

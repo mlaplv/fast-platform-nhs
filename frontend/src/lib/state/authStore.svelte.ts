@@ -10,6 +10,7 @@ export interface User {
   gender?: string;
   dob?: string;
   avatar_url?: string;
+  has_password?: boolean;
   extra_metadata?: {
     tier?: 'MEMBER' | 'SILVER' | 'GOLD' | 'PLATINUM';
     points?: number;

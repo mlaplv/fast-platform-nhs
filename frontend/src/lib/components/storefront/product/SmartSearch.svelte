@@ -128,7 +128,10 @@
     >
       <input
         bind:this={inputElement}
-        type="text"
+        type="search"
+        role="searchbox"
+        name="q"
+        autocomplete="off"
         bind:value={localQuery}
         onfocus={() => isFocused = true}
         onclick={(e) => { e.stopPropagation(); isFocused = true; }}

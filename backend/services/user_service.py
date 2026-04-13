@@ -8,7 +8,8 @@ from sqlalchemy import select, func, and_, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
-from litestar.exceptions import NotFoundException
+from litestar.exceptions import NotFoundException, ClientException, NotAuthorizedException
+import bcrypt
 
 from backend.database.models import User, Role, Permission, Order
 from backend.utils.sql import escape_like
@@ -173,6 +174,45 @@ class UserService:
         user.status = "LOCKED"
 
         return SuccessResponse(ok=True, id=user_id, message="User locked/deleted")
+
+    @staticmethod
+    async def update_password(db_session: AsyncSession, user_id: str, old_password: Optional[str], new_password: str) -> SuccessResponse:
+        """
+        Elite V3.0: Securely update or set user password.
+        Supports Social/OTP users setting their first password.
+        """
+        stmt = select(User).where(User.id == user_id)
+        result = await db_session.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise NotFoundException(f"User {user_id} not found")
+
+        # 1. Verification logic
+        if user.password is not None:
+            # Case: Standard user, must verify existing password
+            if not old_password:
+                raise ClientException(status_code=400, detail="Vui lòng cung cấp mật khẩu hiện tại.")
+            
+            is_valid = bcrypt.checkpw(
+                old_password.encode('utf-8'),
+                user.password.encode('utf-8')
+            )
+            if not is_valid:
+                raise NotAuthorizedException("Mật khẩu hiện tại không chính xác.")
+        else:
+            # Case: Social/OTP user setting password for the first time
+            logger.info(f"[UserService] Social user {user.email} setting first password.")
+
+        # 2. Hashing and storage
+        hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        user.password = hashed
+        
+        # 3. Security Stamp rotation if applicable
+        if hasattr(user, "security_stamp"):
+            user.security_stamp = str(uuid.uuid4())
+
+        return SuccessResponse(ok=True, id=user_id, message="Mật khẩu đã được cập nhật thành công.")
 
     @staticmethod
     async def update_role_permissions(db_session: AsyncSession, role_id: str, permission_codes: List[str]) -> SuccessResponse:

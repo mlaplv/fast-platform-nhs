@@ -10,7 +10,7 @@ import logging
 
 from backend.database.models import User
 from backend.database.repositories import MediaRegistryRepository
-from backend.schemas.user import UserResponse, UserUpdatePayload
+from backend.schemas.user import UserResponse, UserUpdatePayload, UpdatePasswordPayload
 from backend.schemas.order import OrderListResponse, OrderResponse
 from backend.schemas.common import SuccessResponse
 from backend.services.user_service import user_service
@@ -70,13 +70,13 @@ class ClientUserController(Controller):
             return SuccessResponse(ok=True, id=user_id)
         except IntegrityError as e:
             await db_session.rollback()
-            from litestar.exceptions import ConflictException
+            from litestar.exceptions import ClientException
             error_msg = str(e.orig)
             if "users_username_key" in error_msg:
-                raise ConflictException("Tên đăng nhập đã tồn tại, vui lòng chọn tên khác.")
+                raise ClientException(status_code=409, detail="Tên đăng nhập đã tồn tại, vui lòng chọn tên khác.")
             if "users_email_key" in error_msg:
-                raise ConflictException("Địa chỉ Email đã được sử dụng bởi một tài khoản khác.")
-            raise ConflictException("Thông tin cập nhật bị trùng lặp dữ liệu.")
+                raise ClientException(status_code=409, detail="Địa chỉ Email đã được sử dụng bởi một tài khoản khác.")
+            raise ClientException(status_code=409, detail="Thông tin cập nhật bị trùng lặp dữ liệu.")
         except Exception as e:
             await db_session.rollback()
             logger.exception("Error updating profile for user %s: %s", user_id, str(e))
@@ -176,3 +176,24 @@ class ClientUserController(Controller):
             
         await db_session.commit()
         return SuccessResponse(ok=True, id=user_id, data={"avatar_url": asset.file_path})
+
+    @patch("/password")
+    async def update_password(self, request: Request, db_session: AsyncSession, data: UpdatePasswordPayload) -> SuccessResponse:
+        """
+        Elite V3.0: Securely update current user password.
+        """
+        user_state = request.scope.get("state", {}).get("user")
+        if not user_state:
+            from litestar.exceptions import NotAuthorizedException
+            raise NotAuthorizedException("User not authenticated")
+
+        user_id = user_state.get("id")
+        
+        res = await user_service.update_password(
+            db_session=db_session,
+            user_id=user_id,
+            old_password=data.old_password,
+            new_password=data.new_password
+        )
+        await db_session.commit()
+        return res

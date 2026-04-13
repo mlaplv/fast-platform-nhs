@@ -1,8 +1,10 @@
 <script lang="ts">
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { X, Mail, ShieldCheck, ArrowRight, Loader2, KeyRound, UserPlus } from 'lucide-svelte';
-  import { fade, fly, scale } from 'svelte/transition';
+  import { X, Mail, ShieldCheck, ArrowRight, Loader2, KeyRound, UserPlus, Lock, Eye, EyeOff } from 'lucide-svelte';
+  import { fallbackSha256 } from '$lib/utils/cryptoFallback';
+  import { apiClient } from '$lib/utils/apiClient';
+  import { fade, fly, scale, slide } from 'svelte/transition';
 
   const ui = getClientUi();
   let step = $state<'input' | 'otp'>('input');
@@ -12,6 +14,9 @@
   let otpToken = $state('');
   let isLoading = $state(false);
   let error = $state<string | null>(null);
+  let authMethod = $state<'otp' | 'password'>('otp');
+  let password = $state('');
+  let showPassword = $state(false);
 
   let fullCode = $derived(code.join(''));
   let mode = $derived(ui.authModal.mode);
@@ -49,6 +54,47 @@
     pulseSource.onerror = () => {
       pulseSource?.close();
     };
+  }
+
+  async function hashPassword(pw: string): Promise<string> {
+    if (!crypto.subtle) return fallbackSha256(pw);
+    const encoder = new TextEncoder();
+    const data = encoder.encode(pw);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  async function handlePasswordLogin() {
+    if (!identifier || !password) return;
+    isLoading = true;
+    error = null;
+    try {
+      const hashedPassword = await hashPassword(password);
+      
+      // Elite V2.2: Consistent Identifier Normalization
+      const normalizedIdentifier = identifier.trim().toLowerCase();
+
+      const data = await apiClient.post<any>('/api/v1/auth/login', {
+        identifier: normalizedIdentifier,
+        password: hashedPassword,
+        remember_me: false
+      });
+
+      authStore.setSession(data.access_token, {
+        id: data.id,
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        has_password: data.has_password
+      });
+      
+      ui.closeModal();
+    } catch (e: any) {
+      error = e.message || 'Tên đăng nhập hoặc mật khẩu không đúng';
+    } finally {
+      isLoading = false;
+    }
   }
 
   async function handleRequestOTP() {
@@ -227,12 +273,36 @@
                 id="email"
                 bind:value={identifier}
                 placeholder="name@example.com"
-                onkeydown={(e) => e.key === 'Enter' && handleRequestOTP()}
+                onkeydown={(e) => e.key === 'Enter' && (authMethod === 'otp' ? handleRequestOTP() : handlePasswordLogin())}
                 class="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 rounded-none text-sm font-bold text-black focus:border-black transition-all outline-none"
               />
               <Mail class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
             </div>
           </div>
+
+          {#if authMethod === 'password' && mode === 'login'}
+            <div class="group" in:slide>
+              <label for="password" class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">MẬT KHẨU</label>
+              <div class="relative">
+                <input 
+                  type={showPassword ? 'text' : 'password'} 
+                  id="password"
+                  bind:value={password}
+                  placeholder="••••••••"
+                  onkeydown={(e) => e.key === 'Enter' && handlePasswordLogin()}
+                  class="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 pr-12 rounded-none text-sm font-bold text-black focus:border-black transition-all outline-none"
+                />
+                <Lock class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+                <button 
+                  type="button"
+                  onclick={() => showPassword = !showPassword}
+                  class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-black transition-colors"
+                >
+                  {#if showPassword}<EyeOff class="w-4 h-4" />{:else}<Eye class="w-4 h-4" />{/if}
+                </button>
+              </div>
+            </div>
+          {/if}
 
           {#if error}
             <div class="text-[#ee4d2d] text-[11px] font-black text-center uppercase tracking-widest bg-[#ee4d2d]/10 p-3 border border-[#ee4d2d]/20" in:scale>{error}</div>
@@ -249,19 +319,30 @@
             </div>
           {/if}
 
-          <button 
-            onclick={handleRequestOTP}
-            disabled={isLoading || !identifier}
-            class="w-full bg-[#ee4d2d] text-white p-5 rounded-none font-black text-xs tracking-[0.3em] flex items-center justify-center gap-2 hover:bg-black transition-all disabled:opacity-30 disabled:pointer-events-none shadow-lg hover:shadow-none"
-          >
-            {#if isLoading && liveLogs.length === 0}
-              <Loader2 class="w-5 h-5 animate-spin" />
-            {:else if isLoading}
-              ĐANG XỬ LÝ...
-            {:else}
-              {mode === 'login' ? 'GỬI MÃ OTP' : 'ĐĂNG KÝ NGAY'} <ArrowRight class="w-5 h-5" />
+          <div class="flex flex-col">
+            <button 
+              onclick={authMethod === 'otp' ? handleRequestOTP : handlePasswordLogin}
+              disabled={isLoading || !identifier || (authMethod === 'password' && !password)}
+              class="w-full bg-[#ee4d2d] text-white p-5 rounded-none font-black text-xs tracking-[0.3em] flex items-center justify-center gap-2 hover:bg-black transition-all disabled:opacity-30 disabled:pointer-events-none shadow-lg hover:shadow-none"
+            >
+              {#if isLoading && liveLogs.length === 0}
+                <Loader2 class="w-5 h-5 animate-spin" />
+              {:else if isLoading}
+                ĐANG XỬ LÝ...
+              {:else}
+                {authMethod === 'otp' ? (mode === 'login' ? 'GỬI MÃ OTP' : 'ĐĂNG KÝ NGAY') : 'ĐĂNG NHẬP'} <ArrowRight class="w-5 h-5" />
+              {/if}
+            </button>
+
+            {#if mode === 'login'}
+              <button 
+                onclick={() => authMethod = authMethod === 'otp' ? 'password' : 'otp'}
+                class="w-fit text-left text-[10px] italic text-stone-400 hover:text-luxury-copper transition-colors mt-0 ml-1"
+              >
+                {authMethod === 'otp' ? 'hoặc đăng nhập bằng mật khẩu' : 'hoặc sử dụng mã otp'}
+              </button>
             {/if}
-          </button>
+          </div>
 
           <button 
             onclick={() => ui.authModal.mode = ui.authModal.mode === 'login' ? 'register' : 'login'}

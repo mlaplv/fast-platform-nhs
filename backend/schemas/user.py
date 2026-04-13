@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, computed_field
 from typing import Optional, List
 from datetime import datetime
 
@@ -41,7 +41,15 @@ class UserResponse(BaseModel):
     dob: Optional[datetime] = None
     avatar_url: Optional[str] = None
     extra_metadata: Optional[dict] = Field(default_factory=dict)
+    password: Optional[str] = Field(None, exclude=True)
     created_at: datetime
+
+    @computed_field
+    @property
+    def has_password(self) -> bool:
+        """R60: Internal property computed from db model. Note: Pydantic v2 computed_field."""
+        # This will be populated from the model if available (via 'password' field above)
+        return self.password is not None
 
     @field_validator("id", mode="before")
     @classmethod
@@ -66,3 +74,9 @@ class UserUpdatePayload(BaseModel):
     dob: Optional[datetime] = None
     avatar_url: Optional[str] = None
     extra_metadata: Optional[dict] = None
+
+
+class UpdatePasswordPayload(BaseModel):
+    model_config = ConfigDict(strict=True)
+    old_password: Optional[str] = Field(None, min_length=64, max_length=64)
+    new_password: str = Field(..., min_length=64, max_length=64)

@@ -37,7 +37,7 @@
 
       <p class="description">
         {#if isBackendDown}
-          Chúng tôi đang nâng cấp hệ thống để mang lại trải nghiệm tốt hơn. Sếp vui lòng quay lại sau ít phút nữa nhé!
+          Chúng tôi đang nâng cấp hệ thống để mang lại trải nghiệm tốt hơn. Quý khách vui lòng quay lại sau ít phút nữa nhé!
         {:else}
           {message}
         {/if}

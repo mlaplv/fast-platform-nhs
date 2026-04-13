@@ -80,6 +80,21 @@
   const years = Array.from({ length: 80 }, (_, i) => new Date().getFullYear() - 10 - i);
 
   async function handleSave() {
+    // 🛡️ Client-side Validation
+    if (!name.trim()) {
+      ui.showToast('Quý khách vui lòng điền họ và tên ạ.', 'warning');
+      return;
+    }
+    if (!username.trim() || username.length < 3) {
+      ui.showToast('Tên đăng nhập cần có tối thiểu 3 ký tự.', 'warning');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim() || !emailRegex.test(email)) {
+      ui.showToast('Quý khách vui lòng kiểm tra lại định dạng địa chỉ email.', 'warning');
+      return;
+    }
+
     isSaving = true;
     try {
       const updatedDob = new Date(birthYear, birthMonth - 1, birthDay).toISOString();
@@ -117,8 +132,14 @@
       isEditingEmail = false;
       ui.showToast('Thông tin của Quý khách đã được ghi nhận! ✨', 'success');
     } catch (e: any) {
-      console.error(e);
-      ui.showToast(e.message || 'Có lỗi xảy ra, mong Quý khách thứ lỗi.', 'error');
+      // 🛡️ Làm sạch Log Console: Khởi tạo cảnh báo thân thiện nếu lỗi validation
+      if (e.status === 409 || e.status === 400 || (e.message && e.message.includes('tồn tại'))) {
+        console.warn('⚠️ [Beauty Profile] Validation/Conflict:', e.message);
+        ui.showToast(e.message, 'warning');
+      } else {
+        console.error('❌ [Beauty Profile] Lỗi hệ thống khi cập nhật:', e);
+        ui.showToast(e.message || 'Có lỗi xảy ra, mong Quý khách thứ lỗi.', 'error');
+      }
     } finally {
       isSaving = false;
     }

@@ -10,11 +10,13 @@ class LoginRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, strict=True)
+    id: str
     access_token: str
     token_type: str = "Bearer"
     role: str
     name: Optional[str] = None
     email: Optional[str] = None
+    has_password: bool = False
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True, strict=True)
@@ -38,8 +40,10 @@ class OTPRequestResponse(BaseModel):
 class OTPVerifyResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     status: str = "success"
+    id: str
     access_token: str
     role: str
+    has_password: bool = False
 
 class RegisterRequest(BaseModel):
     model_config = ConfigDict(strict=True)
