@@ -7,6 +7,7 @@ from typing import List, Dict, Optional, TypedDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
 
+from backend.database import current_tenant_id
 from backend.database.models import ProductBase, Category, ProductVariant, Order
 from backend.schemas.product import CreateProductRequest, UpdateProductRequest, ProductResponse, ProductListResponse
 from backend.schemas.common import SuccessResponse, BulkActionResponse
@@ -132,6 +133,17 @@ class ProductService:
         Combines Keyword Recall + Semantic Intent + Social Proof (Heat Ranking).
         """
         conditions = [ProductBase.deleted_at == None]
+        # Elite V2.2: Enforce dynamic tenant isolation (Rule R03)
+        from backend.database import current_tenant_id
+        from backend.constants.tenants import DEFAULT_TENANT_ID
+        tid = current_tenant_id.get() or DEFAULT_TENANT_ID
+        conditions.append(ProductBase.tenant_id == tid)
+        
+        # Elite V2.2: Chỉ lọc tồn kho cho Client Storefront (khi status="ACTIVE")
+        # Admin Panel cần thấy mọi sản phẩm để quản lý (kể cả khi hết hàng)
+        if status == "ACTIVE":
+            conditions.append(ProductBase.stock > 0)
+        
         if status and status != "all":
             conditions.append(ProductBase.status == status.upper())
         if featured_only:
@@ -171,36 +183,59 @@ class ProductService:
             final_map: Dict[str, Dict[str, object]] = {}
             
             # Process Keywords
+            search_low = search.lower().strip()
             for r in keyword_results:
                 pid = str(r["id"])
-                # Normalized Relevance (Keyword is usually higher intent)
-                relevance = 0.8 if search.lower() in r["name"].lower() else 0.5
-                if r["sku"] and search.lower() == r["sku"].lower(): relevance = 1.0 # Exact SKU Match
+                name_low = r["name"].lower()
+                
+                # Elite V3.0 Rank Matrix: Exact Match Wins Total
+                if search_low == name_low:
+                    relevance = 5.0  # Absolute Peak Priority
+                elif name_low.startswith(search_low):
+                    relevance = 1.2  # Prefix Match
+                elif search_low in name_low:
+                    relevance = 0.8  # Fuzzy Keyword Match
+                else:
+                    relevance = 0.5
+                
+                # SKU Match Override
+                if r["sku"] and search_low == r["sku"].lower().strip():
+                    relevance = 5.0
                 
                 final_map[pid] = {**r, "score": relevance}
 
             # Process Semantic (Merge & Boost)
+            # STEP 1: Collect IDs that are semantic-only (not in keyword results)
+            semantic_only_ids: List[str] = []
+            semantic_score_map: Dict[str, float] = {}
             for r in semantic_results:
                 pid = str(r["id"])
-                score = r["match_score"]
+                score = float(r["match_score"])
+                semantic_score_map[pid] = score
                 if pid in final_map:
-                    # Combine scores if found in both
-                    final_map[pid]["score"] = max(float(final_map[pid]["score"]), float(score)) + 0.2
+                    # Combined Vector Boost (Avoid overriding Exact Match)
+                    if final_map[pid]["score"] < 2.0:
+                        final_map[pid]["score"] = max(float(final_map[pid]["score"]), score) + 0.2
                 else:
-                    # Fetch full record if only in semantic
-                    s_stmt = select(
-                        ProductBase.id, ProductBase.name, ProductBase.sku,
-                        ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
-                        ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
-                        ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-                        ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
-                        ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
-                        Category.name.label("category_name")
-                    ).outerjoin(Category, ProductBase.category_id == Category.id).where(ProductBase.id == pid)
-                    
-                    full_r = (await db_session.execute(s_stmt)).mappings().first()
-                    if full_r:
-                        final_map[pid] = {**full_r, "score": float(score)}
+                    semantic_only_ids.append(pid)
+
+            # STEP 2: Batch fetch all semantic-only products in ONE query (Anti N+1)
+            if semantic_only_ids:
+                batch_stmt = select(
+                    ProductBase.id, ProductBase.name, ProductBase.sku,
+                    ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
+                    ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
+                    ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
+                    ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
+                    ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
+                    Category.name.label("category_name")
+                ).outerjoin(Category, ProductBase.category_id == Category.id).where(
+                    ProductBase.id.in_(semantic_only_ids)
+                )
+                batch_results = (await db_session.execute(batch_stmt)).mappings().all()
+                for full_r in batch_results:
+                    pid = str(full_r["id"])
+                    final_map[pid] = {**full_r, "score": semantic_score_map.get(pid, 0.5)}
 
             # --- LAYER 4: VIRAL BOOST SCORING ---
             import math
@@ -297,6 +332,9 @@ class ProductService:
         """Get a single product by slug (R76: Scalar Projection)."""
         # Normalize slug: remove trailing slashes to prevent 404 on clean URL variants
         slug = slug.rstrip('/')
+        # Elite V2.2: Tenant Isolation Protocol
+        tid = current_tenant_id.get()
+        
         stmt = select(
             ProductBase.id, ProductBase.name, ProductBase.sku,
             ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
@@ -306,12 +344,33 @@ class ProductService:
             ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
-            ProductBase.slug == slug,
-            ProductBase.deleted_at == None
+            ProductBase.deleted_at == sa.null()
         )
 
-        result = await db_session.execute(stmt)
-        row = result.first()
+        # 1. Try Exact Match (Primary)
+        res = await db_session.execute(stmt.where(
+            ProductBase.slug == slug,
+            ProductBase.tenant_id == tid if tid else sa.true()
+        ))
+        row = res.first()
+
+        # 2. Robust Fallback: Try slugified name match if direct slug fails (Elite Reconstruction)
+        if not row:
+            from backend.utils.text import slugify
+            # Search by name-based slug if the current slug might be legacy/truncated
+            res = await db_session.execute(stmt.where(
+                sa.func.lower(ProductBase.name).like(f"%{slug.split('-')[0]}%"), # Heuristic prefix optimization
+                ProductBase.tenant_id == tid if tid else sa.true()
+            ))
+            candidates = res.all()
+            for cand in candidates:
+                if slugify(cand.name) == slug:
+                    row = cand
+                    break
+
+        if not row and not tid:
+             res = await db_session.execute(stmt.where(ProductBase.slug == slug))
+             row = res.first()
 
         if not row:
             logger.error(f"[ProductService] Product with slug '{slug}' not found in DB")

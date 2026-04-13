@@ -31,8 +31,13 @@ class ProductVectorService:
             self._embedding_model = get_shared_encoder()
         return self._embedding_model
 
-    async def search_semantic(self, db_session: AsyncSession, query: str, tenant_id: str = "default", limit: int = 5) -> List[SemanticSearchResult]:
+    async def search_semantic(self, db_session: AsyncSession, query: str, tenant_id: Optional[str] = None, limit: int = 5) -> List[SemanticSearchResult]:
         try:
+            # Elite V2.2: Dynamic Tenant Resolution (Rule R03)
+            if not tenant_id:
+                from backend.database import current_tenant_id
+                from backend.constants.tenants import DEFAULT_TENANT_ID
+                tenant_id = current_tenant_id.get() or DEFAULT_TENANT_ID
             model = self.embedding_model
             if not model:
                 logger.warning("[VECTOR-SEARCH] Encoder not ready. Skipping semantic search.")
@@ -52,6 +57,7 @@ class ProductVectorService:
                 JOIN "product_embeddings" e ON p.id = e.product_base_id
                 WHERE p.deleted_at IS NULL
                   AND p.tenant_id = :tid
+                  AND p.stock > 0
                 ORDER BY cosine_distance ASC
                 LIMIT :lim;
             """

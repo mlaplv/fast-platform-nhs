@@ -12,7 +12,6 @@ export class SearchState {
 
   // Real DB Results
   searchResults = $state<ProductResponse[]>([]);
-  private _debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Elite V2.2: Dynamic Placeholder (Root Fix for hardcoding)
   searchPlaceholder = $derived.by(() => {
@@ -70,29 +69,28 @@ export class SearchState {
     this.searchQuery = query;
     if (!query.trim()) {
       this.searchResults = [];
+      this.isSearching = false;
       return;
     }
 
-    if (this._debounceTimer) clearTimeout(this._debounceTimer);
+    // Elite V2.2: Direct fetch — debounce is handled by SmartSearch.$effect (300ms)
+    // No double debounce to ensure <300ms perceived latency
+    this.isSearching = true;
 
-    this._debounceTimer = setTimeout(async () => {
-      this.isSearching = true;
-      try {
-        const res = await fetch(`/api/v1/client/products?search=${encodeURIComponent(query)}&limit=5`);
-        if (res.ok) {
-          const json = await res.json();
-          // Assuming ProductListResponse { data: [...], total: ... }
-          this.searchResults = json.data || [];
-        } else {
-          this.searchResults = [];
-        }
-      } catch (e) {
-        console.error("Search API error", e);
+    try {
+      const res = await fetch(`/api/v1/client/products?search=${encodeURIComponent(query)}&limit=5`);
+      if (res.ok) {
+        const json = await res.json();
+        this.searchResults = json.data || [];
+      } else {
         this.searchResults = [];
-      } finally {
-        this.isSearching = false;
       }
-    }, 200); // 200ms ultra-fast viral debounce
+    } catch (e) {
+      console.error("Search API error", e);
+      this.searchResults = [];
+    } finally {
+      this.isSearching = false;
+    }
   }
 
   removeSearch(term: string) {

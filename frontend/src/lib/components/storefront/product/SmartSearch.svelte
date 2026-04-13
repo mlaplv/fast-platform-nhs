@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { goto } from '$app/navigation';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
   import { trimProductName } from '$lib/utils/format';
@@ -7,11 +7,11 @@
   import { fade, fly, slide } from 'svelte/transition';
   import { Z_INDEX_CLIENT, Z_INDEX_ADMIN } from '$lib/core/constants/zIndex';
 
-  const searchStore = getSearchStore();
-  
   let { variant = 'desktop' } = $props<{
     variant?: 'desktop' | 'mobile-overlay';
   }>();
+
+  const searchStore = getSearchStore();
 
   let isFocused = $state(false);
   let containerElement = $state<HTMLElement>();
@@ -21,10 +21,24 @@
   let localQuery = $state(searchStore.searchQuery);
   let searchTimer: ReturnType<typeof setTimeout>;
 
+  // Elite V2.2: Sync local input with store (important when navigating back/forth or direct URL access)
+  // Use untrack so typing in localQuery doesn't trigger this effect to reset itself
   $effect(() => {
+    const storeVal = searchStore.searchQuery;
+    untrack(() => {
+      if (storeVal !== localQuery) {
+        localQuery = storeVal;
+      }
+    });
+  });
+
+  $effect(() => {
+    // Elite V2.2: Read localQuery synchronously to establish Svelte 5 $effect tracking.
+    // Reading inside setTimeout (async) would make $effect blind to changes.
+    const query = localQuery;
     if (searchTimer) clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
-      searchStore.triggerSearch(localQuery);
+      searchStore.triggerSearch(query);
     }, 300);
     return () => clearTimeout(searchTimer);
   });
@@ -125,11 +139,15 @@
       />
       {#if localQuery}
         <button 
-          onclick={() => { localQuery = ''; inputElement?.focus(); }}
-          class="absolute right-[88px] text-gray-300 hover:text-gray-400 transition-colors p-1"
+          onclick={() => { 
+            localQuery = ''; 
+            searchStore.searchQuery = ''; 
+            inputElement?.focus(); 
+          }}
+          class="absolute right-[88px] top-1/2 -translate-y-1/2 text-gray-300 hover:text-[#fe2c55] transition-colors p-1 group/clear"
           style:z-index={Z_INDEX_CLIENT.HEADER + 4}
         >
-          <svg class="w-[18px] h-[18px] bg-gray-200 hover:bg-gray-300 text-white rounded-full p-[3px] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+          <svg class="w-[18px] h-[18px] bg-gray-200 group-hover/clear:bg-[#fe2c55] text-white rounded-full p-[3px] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       {/if}
       <button 
@@ -275,8 +293,9 @@
             </section>
           {/if}
 
-          <!-- Visual Product Preview (Elite Touch) -->
-          {#if searchStore.featuredProducts.length > 0}
+
+          <!-- Visual Product Preview (Elite Touch) — chỉ hiện khi không search -->
+          {#if !searchStore.searchQuery && searchStore.featuredProducts.length > 0}
             <section class="border-t border-gray-50 pt-4">
               <div class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Có thể bạn quan tâm</div>
               <div class="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 no-scrollbar">

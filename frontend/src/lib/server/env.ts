@@ -21,6 +21,6 @@ export const ServerEnv = {
     /** Main App Domain for tenant resolution */
     APP_DOMAIN,
 
-    /** Pre-calculated Tenant ID for performance (extracted from APP_DOMAIN) */
-    TENANT_ID: APP_DOMAIN.split('.')[0] || 'default'
+    /** Pre-calculated Tenant ID for performance (Elite V2.2: Full domain SSOT) */
+    TENANT_ID: APP_DOMAIN || 'default'
 } as const;

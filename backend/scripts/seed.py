@@ -28,6 +28,7 @@ from backend.scripts.seed_data import (
     PRODUCT_NAMES, ARTICLE_TITLES, ARTICLE_DEFS, SUPPORT_KNOWLEDGE_DEFS,
     SYSTEM_SETTINGS_DEF
 )
+from backend.utils.text import slugify, sanitize_id
 from backend.services.xohi.creative_studio.models.schemas import CategoryEnum
 
 # Elite 2026: Dynamic Key Seeding from Environment
@@ -44,7 +45,8 @@ def get_env_gemini_keys() -> list[str]:
 
 GEMINI_KEYS = get_env_gemini_keys()
 
-TENANT_ID = "smartshop"
+# Resolve Tenant ID from environment to match live deployment
+TENANT_ID = os.getenv("APP_DOMAIN", "micsmo.com")
 def utcnow(): return datetime.now(timezone.utc)
 
 async def clear_data(session):
@@ -97,7 +99,7 @@ async def seed_products(session):
         pb = ProductBase(
             id=d["id"],
             name=d["name"],
-            slug=d["slug"],
+            slug=slugify(d["name"]),
             sku=d["sku"],
             price=d["price"],
             discount_price=d.get("discount_price"),
@@ -138,7 +140,7 @@ async def seed_articles(session, author_id):
         session.add(Article(
             id=d["id"],
             title=d["title"],
-            slug=d["slug"],
+            slug=slugify(d["title"]),
             excerpt=d["content"][:150] + "...",
             content=f"<p>{d['content']}</p>",
             status="PUBLISHED",

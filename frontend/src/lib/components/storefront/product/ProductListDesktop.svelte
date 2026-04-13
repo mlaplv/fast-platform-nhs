@@ -40,10 +40,12 @@
   let activeSort = $state<SortType>('popular');
 
   // Price Slider State
+  // Elite V2.2: In search mode (no category), use full price range to avoid filtering out results
   const MIN_VAL = 0;
   const MAX_VAL = 2000000;
-  let minPrice = $state(89000);
-  let maxPrice = $state(1430000);
+  const isSearchMode = !categorySlug;
+  let minPrice = $state(isSearchMode ? MIN_VAL : 89000);
+  let maxPrice = $state(isSearchMode ? MAX_VAL : 1430000);
   let sliderEl = $state<HTMLElement | null>(null);
 
   // Filter State
@@ -69,8 +71,8 @@
   function clearAllFilters() {
     selectedBrands = [];
     selectedOrigins = [];
-    minPrice = 89000;
-    maxPrice = 1430000;
+    minPrice = isSearchMode ? MIN_VAL : 89000;
+    maxPrice = isSearchMode ? MAX_VAL : 1430000;
   }
 
   function removeBrand(brand: string) {
@@ -99,6 +101,8 @@
 
     // Giai đoạn 2: Hết data local → Fetch API proxy
     if (allProducts.length >= serverTotal) return;
+    // Elite V2.2: Search mode has no category_slug for API fetch
+    if (!categorySlug) return;
 
     isLoading = true;
     try {
@@ -134,7 +138,9 @@
   }
 
   let hasActiveFilters = $derived(() => {
-    return selectedBrands.length > 0 || selectedOrigins.length > 0 || minPrice !== 89000 || maxPrice !== 1430000;
+    const defaultMin = isSearchMode ? MIN_VAL : 89000;
+    const defaultMax = isSearchMode ? MAX_VAL : 1430000;
+    return selectedBrands.length > 0 || selectedOrigins.length > 0 || minPrice !== defaultMin || maxPrice !== defaultMax;
   });
 
   const getPercent = (value: number) => ((value - MIN_VAL) / (MAX_VAL - MIN_VAL)) * 100;
@@ -166,44 +172,70 @@
     });
   }
 
-  const brands = ['MartiDerm', 'SK-II', 'Sakura', 'Excel Therapy', 'Genie', 'ZO Skin Health'];
-  const origins = ['Tây Ban Nha', 'Nhật Bản', 'Hàn Quốc', 'Mỹ', 'Đức'];
-  const skinTypes = ['Da Dầu', 'Da Khô', 'Da Lão Hoá', 'Da Nhạy Cảm', 'Da Thường'];
+  // Elite V2.2: Filter options are dynamically derived from actual product data
+  // CẤM hardcode brands/origins — mọi dữ liệu phải flow từ DB
+  const brands = $derived(() => {
+    const set = new Set<string>();
+    allProducts.forEach(p => {
+      const brand = (p as Record<string, unknown>).brand as string | undefined
+        ?? ((p as Record<string, unknown>).attributes ? ((p as Record<string, unknown>).attributes as Record<string, unknown>).brand as string | undefined : undefined);
+      if (brand) set.add(brand);
+    });
+    return Array.from(set).sort();
+  });
+
+  const origins = $derived(() => {
+    const set = new Set<string>();
+    allProducts.forEach(p => {
+      const origin = (p as Record<string, unknown>).origin as string | undefined
+        ?? ((p as Record<string, unknown>).attributes ? ((p as Record<string, unknown>).attributes as Record<string, unknown>).origin as string | undefined : undefined);
+      if (origin) set.add(origin);
+    });
+    return Array.from(set).sort();
+  });
 
   const enhancedProducts = $derived(() => {
-    return allProducts.map((p, i) => ({
+    return allProducts.map(p => ({
       ...p,
       image: p.image || (p.images && p.images.length > 0 ? p.images[0] : ''),
-      originalPrice: p.originalPrice || p.price * 1.55,
-      sales: p.sales || 300 + (i * 15),
-      rating: 5,
-      ratingCount: 1 + (i % 10)
+      // Elite V2.2: Dùng discountPrice từ DB — CẤM tự nhân giá ảo
+      originalPrice: p.originalPrice ?? ((p as Record<string, unknown>).discountPrice ? p.price : undefined),
+      // Elite V2.2: Dùng order_count thực từ DB — CẤM tự bơm số ảo
+      sales: (p as Record<string, unknown>).orderCount as number | undefined ?? (p as Record<string, unknown>).order_count as number | undefined ?? p.sales ?? 0,
+      rating: (p as Record<string, unknown>).rating as number | undefined ?? undefined,
+      ratingCount: (p as Record<string, unknown>).ratingCount as number | undefined ?? undefined,
     }));
   });
 
   let filteredProducts = $derived(() => {
     let result = enhancedProducts().filter(p => {
       const matchPrice = p.price >= minPrice && p.price <= maxPrice;
-      const matchBrand = selectedBrands.length === 0 || selectedBrands.includes('MartiDerm'); // Mock logic for brands
-      const matchOrigin = selectedOrigins.length === 0 || selectedOrigins.includes('Nhật Bản'); // Mock logic for origins
-      return matchPrice; // Temporarily just price for demo, can be expanded
+      return matchPrice;
     });
 
-    if (activeSort === 'popular') result.sort((a, b) => (b.ratingCount || 0) - (a.ratingCount || 0));
-    if (activeSort === 'sales') result.sort((a, b) => (b.sales || 0) - (a.sales || 0));
-    if (activeSort === 'latest') result.sort((a, b) => b.id.localeCompare(a.id));
+    // Elite V2.2: Search mode → giữ nguyên backend ranking (Hybrid Search Engine)
+    // Category mode → sort theo user chọn
+    if (!isSearchMode) {
+      if (activeSort === 'popular') result.sort((a, b) => (b.ratingCount || 0) - (a.ratingCount || 0));
+      if (activeSort === 'sales') result.sort((a, b) => (b.sales || 0) - (a.sales || 0));
+      if (activeSort === 'latest') result.sort((a, b) => b.id.localeCompare(a.id));
+    }
     if (activeSort === 'price-asc') result.sort((a, b) => a.price - b.price);
     if (activeSort === 'price-desc') result.sort((a, b) => b.price - a.price);
     
     return result;
   });
 
-  // SINGLE SOURCE OF TRUTH: chỉ sort 1 lần duy nhất theo tab active
-  // item[0] → banner | item[1..N] → grid (không re-sort nội bộ nữa)
-  const bannerProduct = $derived(() => filteredProducts()[0] ?? null);
+  // Elite V2.2: Search mode → no banner (banner steals the #1 match result)
+  // Category mode → item[0] → banner, item[1..N] → grid
+  const bannerProduct = $derived(() => isSearchMode ? null : (filteredProducts()[0] ?? null));
 
   let displayProducts = $derived(() => {
-    // Bỏ qua index 0 (đã dùng cho banner), chỉ lấy từ index 1
+    if (isSearchMode) {
+      // Search mode: show all products in grid (no banner skip)
+      return filteredProducts().slice(0, pageSize);
+    }
+    // Category mode: skip index 0 (used for banner)
     return filteredProducts().slice(1, 1 + pageSize);
   });
 </script>
@@ -216,12 +248,13 @@
       <nav class="flex items-center gap-2 text-[12px] text-gray-400 mb-4 font-medium uppercase tracking-wider">
         <a href="/" class="hover:text-[#ee4d2d] transition-colors">Trang chủ</a>
         <span>/</span>
-        <span class="text-gray-900">{categoryName}</span>
+        <span class="text-gray-900">{isSearchMode ? "Tìm kiếm" : categoryName}</span>
       </nav>
 
       <!-- Category Title & Rating -->
       <div class="flex items-center gap-6">
         <h1 class="text-3xl font-black text-gray-900 tracking-tight">{categoryName}</h1>
+        {#if !isSearchMode}
         <div class="flex items-center gap-2 pt-1">
           <div class="flex text-[#ffac33] text-sm">
             {#each Array(5) as _}
@@ -230,17 +263,21 @@
           </div>
           <span class="text-[13px] text-blue-500 font-medium whitespace-nowrap">339 đánh giá</span>
         </div>
+        {/if}
       </div>
     </div>
   </div>
 
+  {#if !isSearchMode}
   <!-- VIRAL BANNER ZONE: đọc 1 lần duy nhất / tab → item[0] làm banner -->
   <div class="max-w-[1200px] mx-auto px-4 xl:px-0 mt-6">
     <CategoryBanner product={bannerProduct()} />
   </div>
+  {/if}
 
   <!-- MAIN CONTENT: Sidebar + Grid -->
   <div class="max-w-[1200px] mx-auto px-4 xl:px-0 mt-6 flex gap-6">
+    {#if !isSearchMode}
     <!-- LEFT SIDEBAR (Sharp Elite / Glassmorphism) -->
     <aside class="w-[240px] shrink-0 space-y-6">
       <!-- Sidebar Header -->
@@ -310,10 +347,11 @@
         </div>
 
         <!-- Brands Checkbox (Minimalist Round) -->
+        {#if brands().length > 0}
         <div class="space-y-6 pt-4">
           <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Thương Hiệu</h4>
           <div class="flex flex-col gap-4">
-            {#each brands as brand}
+            {#each brands() as brand}
               <label class="flex items-center justify-between group cursor-pointer">
                 <span class="text-[13px] font-bold {selectedBrands.includes(brand) ? 'text-black' : 'text-gray-400'} group-hover:text-black transition-all">
                    {brand}
@@ -329,12 +367,14 @@
             {/each}
           </div>
         </div>
+        {/if}
 
         <!-- Origin Checkbox -->
+        {#if origins().length > 0}
         <div class="space-y-6 pt-4">
           <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Xuất Xứ</h4>
           <div class="flex flex-col gap-4">
-            {#each origins as country}
+            {#each origins() as country}
               <label class="flex items-center justify-between group cursor-pointer">
                 <span class="text-[13px] font-bold {selectedOrigins.includes(country) ? 'text-black' : 'text-gray-400'} group-hover:text-black transition-all">
                    {country}
@@ -350,12 +390,15 @@
             {/each}
           </div>
         </div>
+        {/if}
       </div>
     </aside>
+    {/if}
 
     <!-- RIGHT GRID AREA -->
-    <main class="flex-1">
+    <main class="flex-1 min-w-0">
       <!-- UNIFIED SORT & FILTER BAR (Viral 2026 / Single Block) -->
+      {#if !isSearchMode}
       <div class="bg-white border border-gray-100 p-2 mb-8 flex flex-col gap-2 shadow-sm">
           <div class="flex items-center justify-between">
             <div class="flex items-center">
@@ -431,9 +474,9 @@
                  </button>
                {/each}
 
-               {#if minPrice !== 89000 || maxPrice !== 1430000}
+               {#if minPrice !== (isSearchMode ? MIN_VAL : 89000) || maxPrice !== (isSearchMode ? MAX_VAL : 1430000)}
                  <button 
-                    onclick={() => { minPrice = 89000; maxPrice = 1430000; }}
+                    onclick={() => { minPrice = isSearchMode ? MIN_VAL : 89000; maxPrice = isSearchMode ? MAX_VAL : 1430000; }}
                     class="bg-gray-100 text-gray-600 px-3 py-1.5 text-[10px] font-black flex items-center gap-2 hover:bg-[#ee4d2d] hover:text-white transition-all transform active:scale-95">
                     {Math.round(minPrice).toLocaleString()}Đ - {Math.round(maxPrice).toLocaleString()}Đ
                     <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -448,6 +491,7 @@
             </div>
           {/if}
       </div>
+      {/if}
 
       <div class="mt-8">
         {#if filteredProducts().length > 0}

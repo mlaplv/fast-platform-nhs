@@ -38,6 +38,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
   const data = await res.json();
   return { 
     products: data.data ?? (Array.isArray(data) ? data : (data.items || data.products || [])),
+    total: data.total ?? 0,
     searchQuery: query
   };
 };

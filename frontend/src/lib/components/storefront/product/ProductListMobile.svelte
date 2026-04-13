@@ -8,11 +8,20 @@
     id: string;
     name: string;
     price: number;
-    image: string;
-    sales?: number;
+    image?: string;
+    images?: string[];
+    discountPrice?: number;
     originalPrice?: number;
+    sales?: number;
+    order_count?: number;
+    orderCount?: number;
     rating?: number;
     ratingCount?: number;
+  }
+
+  interface Props {
+    products: Product[];
+    searchQuery?: string;
   }
 
   let { products = [], searchQuery }: Props = $props();
@@ -20,14 +29,25 @@
   let activeTab = $state('FOR_YOU');
 
   const enhancedProducts = $derived(() => {
-    return products.map((p, i) => ({
+    let result = products.map(p => ({
       ...p,
       image: p.image || (p.images && p.images.length > 0 ? p.images[0] : ''),
-      originalPrice: p.originalPrice || p.price * 1.55,
-      sales: p.sales || 1200 + (i * 20),
-      rating: 5,
-      ratingCount: 1 + (i % 10)
+      // Elite V2.2: Dùng discountPrice từ DB — CẤM tự nhân giá ảo
+      originalPrice: p.originalPrice ?? (p.discountPrice ? p.price : undefined),
+      // Elite V2.2: Dùng order_count thực từ DB — CẤM tự bơm số ảo
+      sales: p.orderCount ?? p.order_count ?? p.sales ?? 0,
+      rating: p.rating ?? undefined,
+      ratingCount: p.ratingCount ?? undefined,
     }));
+
+    // Elite V2.2: Wire tabs to actual sort logic
+    if (activeTab === 'BEST_SELLER') {
+      result = [...result].sort((a, b) => (b.sales ?? 0) - (a.sales ?? 0));
+    } else if (activeTab === 'TOP_RATED') {
+      result = [...result].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    }
+    // FOR_YOU = backend ranking order (no re-sort)
+    return result;
   });
 </script>
 

@@ -45,8 +45,16 @@ class AuthMiddleware:
             if scope["type"] == "websocket":
                 logger.debug(f"🔌 [WS-Auth] Handshake attempt for {scope['path']}")
                 
+            from backend.constants.tenants import DOMAIN_TENANT_MAP, DEFAULT_TENANT_ID
+            
             tenant_id: Optional[str] = headers.get("x-tenant")
-            token_ctx = current_tenant_id.set(tenant_id or "default")
+            
+            # Elite V2.2: Dynamic Domain-to-Tenant Resolution (Rule R03)
+            if not tenant_id:
+                host: str = headers.get("host", "").split(":")[0].lower()
+                tenant_id = DOMAIN_TENANT_MAP.get(host)
+
+            token_ctx = current_tenant_id.set(tenant_id or DEFAULT_TENANT_ID)
 
             query_params: Dict[str, List[str]] = parse_qs(scope.get("query_string", b"").decode("utf-8", errors="replace"))
             if not tenant_id and "tenant" in query_params:
