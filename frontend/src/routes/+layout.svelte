@@ -8,6 +8,7 @@
   import { navigating } from "$app/stores";
   import { onMount, type Snippet } from "svelte";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
+  import ToastProvider from "$lib/components/storefront/ui/ToastProvider.svelte";
 
   // Elite V2.2: Ensure root initialization of context
   const ui = setClientUi();
@@ -63,6 +64,8 @@
   {#if ui.authModal.isOpen}
     <QuickLoginModal />
   {/if}
+
+  <ToastProvider />
 </div>
 
 <style>

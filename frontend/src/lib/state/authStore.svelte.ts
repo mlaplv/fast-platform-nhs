@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+import { getClientUi } from './commerce/ui.svelte';
 
 export interface User {
   id: string;
@@ -35,16 +36,29 @@ class AuthStore {
     if (browser) {
       localStorage.setItem('access_token', token);
       localStorage.setItem('user_info', JSON.stringify(user));
+      
+      // Elite V3.0: Delayed sync message — wait for hydration to ensure Bell is ready
+      setTimeout(() => {
+          getClientUi().showToast(`Chào mừng ${user.name} đã quay trở lại!`, 'success');
+      }, 800);
     }
   }
 
   logout() {
+    const name = this.user?.name || 'Sếp';
     this.token = null;
     this.user = null;
     if (browser) {
       localStorage.removeItem('access_token');
       localStorage.removeItem('user_info');
       localStorage.removeItem('admin_token');
+      
+      // Elite V3.0: Clear local notification state on logout to prevent mixed data
+      import('./notification.svelte').then(({ getNotificationState }) => {
+          getNotificationState().setNotifications([]);
+      });
+
+      getClientUi().showToast(`Hẹn gặp lại ${name}!`, 'info');
     }
   }
 

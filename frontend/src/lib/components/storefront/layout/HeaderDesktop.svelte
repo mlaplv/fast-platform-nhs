@@ -5,11 +5,13 @@
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import NotificationBell from './NotificationBell.svelte';
   
   const ui = getClientUi();
   const cartStore = getCartStore();
   const searchStore = getSearchStore();
   let showAccountMenu = $state(false);
+  let menuContainer = $state<HTMLElement>();
 
   function toggleAccountMenu(e: MouseEvent) {
     e.stopPropagation();
@@ -19,9 +21,18 @@
       showAccountMenu = !showAccountMenu;
     }
   }
-</script>
 
-<svelte:window onclick={() => showAccountMenu = false} />
+  $effect(() => {
+    if (!showAccountMenu) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (menuContainer && !menuContainer.contains(e.target as Node)) {
+        showAccountMenu = false;
+      }
+    };
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  });
+</script>
 
 <header class="sticky top-0 w-full z-[var(--z-header)] bg-white border-b border-gray-100 shadow-[0_4px_30px_rgba(0,0,0,0.02)]">
   <div class="max-w-[1200px] mx-auto px-4 xl:px-0">
@@ -43,9 +54,12 @@
         -->
       </div>
       <div class="flex items-center space-x-4">
-        <button type="button" class="flex items-center gap-1 hover:text-luxury-copper transition-colors">
-          <span>🔔</span> Thông Báo
-        </button>
+        <div class="flex items-center -ml-2">
+          <NotificationBell />
+          <button type="button" class="flex items-center gap-1 hover:text-luxury-copper transition-colors px-2">
+            <span>Thông Báo</span>
+          </button>
+        </div>
         <button type="button" class="flex items-center gap-1 hover:text-luxury-copper transition-colors">
           <span>❔</span> Hỗ Trợ
         </button>
@@ -59,14 +73,45 @@
           <span class="w-[1px] h-3 bg-gray-200"></span>
           <button onclick={() => ui.openLogin()} type="button" class="hover:text-luxury-copper font-bold uppercase transition-colors tracking-tighter">Đăng Nhập</button>
         {:else}
-          <button class="hover:text-luxury-copper font-black uppercase transition-colors tracking-tighter flex items-center gap-2">
-            <span class="w-4 h-4 rounded-none bg-luxury-grad flex items-center justify-center text-[8px] text-white ring-1 ring-white">
-              {authStore.user?.name?.charAt(0).toUpperCase()}
-            </span>
-            {authStore.user?.name}
-          </button>
-          <span class="w-[1px] h-3 bg-gray-200"></span>
-          <button onclick={() => authStore.logout()} type="button" class="hover:text-red-500 text-gray-500 font-bold uppercase transition-colors tracking-tighter">Đăng Xuất</button>
+          <div class="relative flex items-center group/topacc" bind:this={menuContainer}>
+            <button 
+              onclick={toggleAccountMenu}
+              class="hover:opacity-80 transition-opacity flex items-center gap-2 py-1"
+            >
+              <div class="w-5 h-5 rounded-full overflow-hidden border border-white shadow-sm ring-1 ring-gray-100 bg-gray-50 flex items-center justify-center shrink-0">
+                {#if authStore.user?.avatar_url}
+                  <img src={authStore.user.avatar_url} alt="Avatar" class="w-full h-full object-cover" />
+                {:else}
+                  <div class="w-full h-full bg-luxury-grad flex items-center justify-center text-[8px] font-black text-white">
+                    {authStore.user?.name?.charAt(0).toUpperCase()}
+                  </div>
+                {/if}
+              </div>
+              <span class="text-[11px] font-bold text-gray-700 truncate max-w-[120px]">{authStore.user?.name}</span>
+              <svg class="w-3 h-3 text-gray-400 group-hover/topacc:text-luxury-copper transition-colors {showAccountMenu ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+            </button>
+
+            {#if showAccountMenu}
+              <div 
+                in:fly={{ y: 8, duration: 300, opacity: 0 }} 
+                out:fade={{ duration: 200 }} 
+                class="absolute right-0 top-[100%] mt-1 w-44 z-[var(--z-popup)] origin-top-right shadow-[0_1px_20px_0_rgba(0,0,0,0.12)] bg-white ring-1 ring-black/5" 
+                onclick={(e) => e.stopPropagation()}
+              >
+                <div class="absolute -top-1 right-[22px] w-3 h-3 bg-white rotate-45 z-[51] border-t border-l border-black/5"></div>
+                <div class="flex flex-col text-left py-1 relative z-50">
+                  <a href="/user/profile" class="px-4 py-2.5 text-[13px] text-gray-700 hover:text-luxury-copper hover:bg-gray-50 transition-colors font-medium">Hồ sơ của tôi</a>
+                  <a href="/user/purchase" class="px-4 py-2.5 text-[13px] text-gray-700 hover:text-luxury-copper hover:bg-gray-50 transition-colors font-medium">Đơn mua</a>
+                  <button 
+                    onclick={() => authStore.logout()}
+                    class="px-4 py-2.5 text-[13px] text-gray-700 hover:text-luxury-copper hover:bg-gray-50 transition-colors font-medium text-left w-full border-t border-gray-50"
+                  >
+                    Đăng xuất
+                  </button>
+                </div>
+              </div>
+            {/if}
+          </div>
         {/if}
       </div>
     </div>
@@ -98,57 +143,6 @@
             <a href="tel:0949901122" class="text-[13px] font-bold tracking-tight hover:text-[#C18F7E] transition-colors tabular-nums">0949 901 122</a>
           </div>
 
-          <!-- Account -->
-          <div class="relative flex items-center h-full">
-            <button 
-              onclick={toggleAccountMenu}
-              class="flex flex-col items-center justify-center gap-1 group transition-all active:scale-95 px-2"
-            >
-              <div class="text-gray-700 group-hover:text-[#C18F7E] transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-              </div>
-              <span class="text-[9px] text-gray-400 font-black uppercase tracking-tighter group-hover:text-[#C18F7E] transition-colors">
-                {authStore.isAuthenticated ? authStore.user?.name : 'Tài khoản'}
-              </span>
-            </button>
-
-            {#if showAccountMenu && authStore.isAuthenticated}
-              <div 
-                in:fly={{ y: 15, duration: 400, opacity: 0 }} 
-                out:fade={{ duration: 200 }} 
-                class="absolute right-0 top-[100%] mt-2 w-60 z-[var(--z-popup)] origin-top-right filter drop-shadow-[0_25px_25px_rgba(0,0,0,0.2)]" 
-                onclick={(e) => e.stopPropagation()}
-              >
-                <div class="absolute -top-1.5 right-[22px] w-3 h-3 bg-white border-t border-l border-gray-100 rotate-45 z-[51]"></div>
-                <div class="bg-white/98 backdrop-blur-3xl rounded-none border border-gray-100 overflow-hidden shadow-2xl relative z-50">
-                  <div class="px-5 py-4 bg-gradient-to-br from-gray-50/80 to-white flex items-center gap-3 border-b border-gray-100">
-                    <div class="w-10 h-10 rounded-none bg-gradient-to-tr from-[#C18F7E] to-[#E3B5A4] flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white">
-                      {authStore.user?.name?.charAt(0).toUpperCase()}
-                    </div>
-                    <div class="flex flex-col">
-                      <span class="text-gray-800 font-bold text-[15px]">{authStore.user?.name}</span>
-                      <span class="text-[#C18F7E] text-[9.5px] font-black uppercase tracking-[0.15em] bg-[#C18F7E]/10 px-2 py-0.5 rounded-none w-fit mt-1 ring-1 ring-[#C18F7E]/20">Thành viên Elite</span>
-                    </div>
-                  </div>
-                  <div class="p-0 flex flex-col text-left">
-                    <a href="/user/profile" class="flex items-center justify-between px-5 py-3 text-[13px] text-gray-700 hover:bg-gradient-to-r hover:from-[#C18F7E] hover:to-[#E3B5A4] hover:text-white transition-all duration-300 group/item">
-                      <div class="flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 opacity-70 group-hover/item:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg><span class="font-medium">Tài khoản của tôi</span></div>
-                    </a>
-                    <a href="/user/purchase" class="flex items-center justify-between px-5 py-3 text-[13px] text-gray-700 hover:bg-gradient-to-r hover:from-[#C18F7E] hover:to-[#E3B5A4] hover:text-white transition-all duration-300 group/item border-t border-gray-50/50">
-                      <div class="flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 opacity-70 group-hover/item:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg><span class="font-medium">Đơn mua</span></div>
-                    </a>
-                    <button 
-                      onclick={() => authStore.logout()}
-                      class="flex items-center gap-3 px-5 py-3 text-[13px] text-red-500 hover:bg-red-50 transition-all duration-300 group/item w-full border-t border-gray-50/50 text-left"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                      <span class="font-semibold">Đăng xuất</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            {/if}
-          </div>
 
           <!-- Cart Section -->
           <div class="flex items-center h-full">

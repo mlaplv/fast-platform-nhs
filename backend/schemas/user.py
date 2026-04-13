@@ -37,6 +37,9 @@ class UserResponse(BaseModel):
     name: str = "Unknown"
     status: str = "ACTIVE"
     roles: List[RoleResponse] = Field(default_factory=list)
+    gender: Optional[str] = None
+    dob: Optional[datetime] = None
+    avatarUrl: Optional[str] = Field(None, alias="avatar_url")
     createdAt: datetime = Field(alias="created_at")
 
     @field_validator("id", mode="before")
@@ -56,3 +59,6 @@ class UserUpdatePayload(BaseModel):
     name: Optional[str] = None
     status: Optional[str] = None
     roles: Optional[List[str]] = None
+    gender: Optional[str] = None
+    dob: Optional[datetime] = None
+    avatar_url: Optional[str] = None

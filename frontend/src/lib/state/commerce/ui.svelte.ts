@@ -17,7 +17,8 @@ const globalState = $state({
         isOpen: false,
         mode: 'login' as 'login' | 'register',
         onSuccess: undefined as (() => void) | undefined
-    }
+    },
+    toasts: [] as { id: string; message: string; type: 'success' | 'error' | 'info' | 'warning'; duration: number }[]
 });
 
 let _globalUiInstance: ClientUiState | null = null;
@@ -47,6 +48,7 @@ export function createClientUiState(): ClientUiState {
         set settings(val: ShopInfo | null) { globalState.settings = val; },
 
         get authModal() { return globalState.authModal; },
+        get toasts() { return globalState.toasts; },
 
         get isMobile() { return isMobile; },
         get isTablet() { return isTablet; },
@@ -78,9 +80,30 @@ export function createClientUiState(): ClientUiState {
             };
         },
 
-        showToast(message: string, type: 'success' | 'error' | 'info' = 'info', duration = 4000) {
-            // Bridge to Nanobot or local notification system if needed
-            console.log(`[UI-Toast] ${type}: ${message}`);
+        showToast(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info', duration = 4000) {
+            const id = Math.random().toString(36).substring(2, 9);
+            globalState.toasts = [...globalState.toasts, { id, message, type, duration }];
+            
+            // Elite V3.0: Bridge to Pulse Bell
+            import('$lib/state/notification.svelte').then(({ getNotificationState }) => {
+                const notif = getNotificationState();
+                
+                // CNS V88.2: Hard Duplicate Check - Prevent visual stacking
+                const recentNotifs = notif.notifications.slice(0, 5);
+                const isDuplicate = recentNotifs.some(n => n.message === message);
+                if (isDuplicate) return;
+
+                notif.addPendingSignal({
+                    id,
+                    message,
+                    severity: type.toUpperCase() as any, // Map toast type to severity
+                    isRead: false
+                });
+            }).catch(e => console.error("[UI] Pulse sync failed", e));
+
+            setTimeout(() => {
+                globalState.toasts = globalState.toasts.filter(t => t.id !== id);
+            }, duration);
         }
     };
 

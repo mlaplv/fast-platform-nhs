@@ -48,6 +48,8 @@
 
   /* Elite V2.2: Architecture Refinement */
   color-scheme: light;
+  --bg-canvas: #f5f5f5;
+  --text-base: #1d1d1f;
 }
 
 /* ZERO-SHIFT RESPONSIVE UTILITIES (Elite V2.2) */
@@ -113,10 +115,10 @@
 body { 
   margin: 0; 
   padding: 0; 
-  background-color: #f6f6f6; /* Tiêu diệt mảng đen - Soft Luxury */
+  background-color: #f5f5f5; /* Chuẩn Xám Shopee - Premium Minimalism */
 }
 .client-layout {
-  background-color: var(--bg-canvas);
+  background-color: #f5f5f5 !important; /* Force Shopee Grey */
   color: var(--text-base);
   font-family: 'Be Vietnam Pro', 'Outfit', system-ui, sans-serif;
   min-height: 100vh;
@@ -155,7 +157,7 @@ body {
   padding-top: var(--standard-pt);
   padding-bottom: var(--standard-pb);
   position: relative;
-  background-color: #020617; /* Common base depth */
+  /* background-color: #020617; - [CLEANED] Elite V3.0 Shopee Standard */
 }
 
 .snap-session-standard > .container {

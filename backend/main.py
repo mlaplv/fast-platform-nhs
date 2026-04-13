@@ -10,7 +10,7 @@ setup_logging()
 warnings.filterwarnings("ignore", message=".*now uses mean pooling instead of CLS embedding.*")
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic_ai")
 # R61: Silence Pydantic V1/Alchemy legacy warnings on Python 3.14+ (System is fully V2)
-warnings.filterwarnings("ignore", message=".*Core Pydantic V1 functionality isn't compatible with Python 3.14.*")
+warnings.filterwarnings("ignore", message=".*Core Pydantic V1 functionality.*")
 
 from litestar import Litestar
 from litestar.config.cors import CORSConfig
@@ -49,6 +49,7 @@ from backend.controllers.client.review import PublicReviewController
 from backend.controllers.client.support import SupportController
 from backend.controllers.client.pulse import ClientPulseController
 from backend.controllers.client.news import PublicNewsController
+from backend.controllers.client.user import ClientUserController
 from backend.controllers.client.settings import ClientSettingsController
 from backend.controllers.admin_support import AdminSupportController
 from backend.controllers.admin_support_inbox import AdminSupportInboxController
@@ -111,7 +112,7 @@ app = Litestar(
         CheckoutController, PublicOrderController, ChatController, SettingsController, AIManagementController, ContentController, MediaController, ContentStreamController,
         BannerController, stt_websocket, TTSController, IntentMapController, SchedulerController, DiagnosticController,
         AdminReviewController, PublicReviewController, SupportController, ClientPulseController, AdminSupportController, AdminSupportInboxController,
-        PublicNewsController, ClientSettingsController
+        PublicNewsController, ClientSettingsController, ClientUserController
     ],
     middleware=[StallDetectorMiddleware, BodyLimitMiddleware, rate_limit_config.middleware, DomainGuardMiddleware, AuditMiddleware, AuthMiddleware],
     cors_config=cors_config,

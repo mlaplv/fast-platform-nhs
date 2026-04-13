@@ -203,7 +203,7 @@
       </button>
     </div>
 
-    <div class="p-8">
+    <div class="p-8 max-h-[calc(90vh-140px)] overflow-y-auto scrollbar-hide">
       {#if step === 'input'}
         <div class="space-y-6">
           {#if mode === 'register'}

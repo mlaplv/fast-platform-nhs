@@ -57,3 +57,13 @@ export function createNotificationState() {
     markNotificationAsRead,
   };
 }
+// CNS V88.3: Ultimate Global Singleton Instance
+// Using a simple object reference to ensure 100% same instance across all imports
+let _instance: ReturnType<typeof createNotificationState> | null = null;
+
+export function getNotificationState() {
+  if (!_instance) {
+    _instance = createNotificationState();
+  }
+  return _instance;
+}

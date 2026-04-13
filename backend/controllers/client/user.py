@@ -1,0 +1,129 @@
+from litestar import Controller, get, patch, post, Request
+from litestar.enums import RequestEncodingType
+from litestar.params import Body
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from typing import Optional, Annotated
+import logging
+
+from backend.database.models import User
+from backend.database.repositories import MediaRegistryRepository
+from backend.schemas.user import UserResponse, UserUpdatePayload
+from backend.schemas.common import SuccessResponse
+from backend.services.user_service import user_service
+from backend.services.media.media_service import media_service
+
+logger = logging.getLogger("api-gateway")
+
+class ClientUserController(Controller):
+    path = "/api/v1/client/user"
+
+    @get("/profile")
+    async def get_profile(self, request: Request, db_session: AsyncSession) -> UserResponse:
+        """
+        Elite V3.0: Fetch current user profile.
+        """
+        user_state = request.scope.get("state", {}).get("user")
+        if not user_state:
+            from litestar.exceptions import NotAuthorizedException
+            raise NotAuthorizedException("User not authenticated")
+            
+        user_id = user_state.get("id")
+        
+        # User service already has some logic, but for a direct profile fetch let's be strict
+        stmt = select(User).where(User.id == user_id)
+        result = await db_session.execute(stmt)
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            from litestar.exceptions import NotFoundException
+            raise NotFoundException("User profile not found")
+            
+        return UserResponse.model_validate(user)
+
+    @patch("/profile")
+    async def update_profile(self, request: Request, db_session: AsyncSession, data: UserUpdatePayload) -> SuccessResponse:
+        """
+        Elite V3.0: Update current user profile (Name, Gender, DOB).
+        """
+        user_state = request.scope.get("state", {}).get("user")
+        if not user_state:
+            from litestar.exceptions import NotAuthorizedException
+            raise NotAuthorizedException("User not authenticated")
+            
+        user_id = user_state.get("id")
+        
+        # We use a restricted update for clients (can't change roles/status)
+        update_data = data.model_dump(exclude_unset=True)
+        # Security: Remove keys that customers shouldn't touch
+        update_data.pop("roles", None)
+        update_data.pop("status", None)
+        
+        res = await user_service.update_user(db_session, user_id, update_data)
+        
+        # Additional fields from Elite V3.0
+        stmt = select(User).where(User.id == user_id)
+        result = await db_session.execute(stmt)
+        user = result.scalar_one_or_none()
+        if user:
+            if "gender" in update_data:
+                user.gender = update_data["gender"]
+            if "dob" in update_data:
+                user.dob = update_data["dob"]
+            if "avatar_url" in update_data:
+                user.avatar_url = update_data["avatar_url"]
+                
+        await db_session.commit()
+        return res
+
+    @post("/avatar")
+    async def upload_avatar(
+        self, 
+        request: Request, 
+        db_session: AsyncSession,
+        data: Annotated[bytes, Body(media_type=RequestEncodingType.MULTI_PART)]
+    ) -> SuccessResponse:
+        """
+        Elite V3.0: Securely upload and set profile avatar.
+        """
+        user_state = request.scope.get("state", {}).get("user")
+        if not user_state:
+            from litestar.exceptions import NotAuthorizedException
+            raise NotAuthorizedException("User not authenticated")
+            
+        user_id = user_state.get("id")
+        
+        # In a real multipart scenario with Litestar, we'd use Request.form() or similar
+        # For simplicity in this implementation, we assume a single file upload
+        form = await request.form()
+        file = form.get("file")
+        if not file:
+             from litestar.exceptions import ValidationException
+             raise ValidationException("No file provided")
+             
+        content = await file.read()
+        filename = file.filename
+        content_type = file.content_type
+        
+        repo = MediaRegistryRepository(session=db_session)
+        asset = await media_service.upload_asset(
+            repo=repo,
+            file_content=content,
+            filename=filename,
+            content_type=content_type,
+            owner_id=user_id
+        )
+        
+        if not asset:
+            from litestar.exceptions import InternalServerException
+            raise InternalServerException("Failed to process avatar upload")
+            
+        # Update user avatar_url
+        stmt = select(User).where(User.id == user_id)
+        result = await db_session.execute(stmt)
+        user = result.scalar_one_or_none()
+        if user:
+            user.avatar_url = asset.file_path
+            
+        await db_session.commit()
+        return SuccessResponse(ok=True, id=user_id, data={"avatar_url": asset.file_path})
