@@ -25,12 +25,13 @@ class PulseStreamController(Controller):
 
     @get("/stream")
     async def stream_pulse(self, request: Request) -> Stream:
-        """Stream system events via Native SSE (Standardized V2.2 - Hardened)."""
+        """Stream system events via Native SSE (Standardized Metric V2.2 - Hardened)."""
         
         async def event_generator(scope: dict) -> AsyncGenerator[bytes, None]:
             queue = asyncio.Queue(maxsize=100)
             event_bus.subscribe_broadcast(queue)
-            logger.info("[PulseStream] Client linked to Agent Pulse.")
+            
+            logger.info(f"[PulseStream] Client linked to Agent Pulse: {scope.get('state', {}).get('user', {}).get('sub')}")
             
             start_time = asyncio.get_running_loop().time()
             max_age = 4 * 3600  # 4-hour hard cut-off

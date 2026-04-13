@@ -4,19 +4,14 @@
   import HomeDesktop from '$lib/components/storefront/home/HomeDesktop.svelte';
   import HomeMobile from '$lib/components/storefront/home/HomeMobile.svelte';
 
-  let { data } = $props();
-  let isMobile = $state(false);
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
 
-  onMount(() => {
-    isMobile = window.innerWidth < 768;
-    const handleResize = () => { isMobile = window.innerWidth < 768; };
-    window.addEventListener('resize', handleResize, { passive: true });
-    return () => window.removeEventListener('resize', handleResize);
-  });
+  let { data } = $props();
+  const ui = getClientUi();
 </script>
 
 <div class="home-layout">
-  {#if isMobile}
+  {#if ui.isMobile}
     <HomeMobile
       banners={data.banners}
       categories={data.categories}

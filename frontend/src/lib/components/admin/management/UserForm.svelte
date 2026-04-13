@@ -61,7 +61,7 @@
 <!-- Backdrop -->
 <div
   transition:fade={{ duration: 200 }}
-  class="fixed inset-0 bg-black/95 md:bg-black/80 md:backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+  class="fixed inset-0 bg-black/95 md:bg-black/80 md:backdrop-blur-sm z-[var(--z-modal-overlay)] flex items-center justify-center p-4"
 >
   <!-- Modal Panel -->
   <div

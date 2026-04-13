@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { tick } from 'svelte';
+  import { goto } from '$app/navigation';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
   import { trimProductName } from '$lib/utils/format';
   import { isAdminDomain } from '$lib/state/nanobot/env';
@@ -17,9 +19,14 @@
 
   // Local state for immediate responsiveness
   let localQuery = $state(searchStore.searchQuery);
-  
+  let searchTimer: ReturnType<typeof setTimeout>;
+
   $effect(() => {
-    searchStore.triggerSearch(localQuery);
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      searchStore.triggerSearch(localQuery);
+    }, 300);
+    return () => clearTimeout(searchTimer);
   });
 
   function handleSearch(term: string) {

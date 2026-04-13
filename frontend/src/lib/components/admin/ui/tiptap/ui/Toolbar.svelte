@@ -208,13 +208,13 @@
           {/each}
         </div>
       </div>
-      <div use:portal class="fixed inset-0 z-[1000]" onclick={() => showColorPicker = false}></div>
+      <div use:portal class="fixed inset-0 z-[var(--z-admin-tiptap-toolbar-dropdown)]" onclick={() => showColorPicker = false}></div>
     {/if}
   </div>
 
   <!-- Overflow Toggle (The Dropdown - Always Visible for Extras) -->
   <div class="shrink-0 relative">
-    <button 
+    <button
       bind:this={moreButtonRef}
       onclick={() => showMore = !showMore}
       class="tb-btn !bg-white/[0.08] hover:!bg-amber-500/20 border border-white/10 {showMore ? 'text-amber-500 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : ''}"
@@ -224,9 +224,9 @@
     </button>
 
     {#if showMore}
-      <div 
+      <div
            use:portal
-           class="fixed z-[1001] bg-[#0d0d0d]/95 backdrop-blur-3xl border border-white/10 rounded-xl p-3 shadow-[0_30px_60px_rgba(0,0,0,0.8)] flex flex-col gap-3 min-w-[240px]"
+           class="fixed z-[var(--z-admin-tiptap-toolbar-dropdown)] bg-[#0d0d0d]/95 backdrop-blur-3xl border border-white/10 rounded-xl p-3 shadow-[0_30px_60px_rgba(0,0,0,0.8)] flex flex-col gap-3 min-w-[240px]"
            style="top: {morePopupPos.top}px; left: {morePopupPos.left}px; transform: translateX(-100%);"
       >
         <!-- Extra Tools (Always in More) -->
@@ -266,14 +266,14 @@
           </div>
         {/if}
 
-        
+
         <!-- CNS V85.23: AI Booster & Extra Actions Overflow -->
         {#if toolbarActions.length > 0}
           <div class="flex flex-col gap-2 p-2 bg-pink-500/5 rounded-lg border border-pink-500/10">
              <span class="text-[7px] font-black uppercase tracking-widest text-pink-400/40 px-1 italic">Intelligence Actions</span>
              <div class="flex flex-wrap gap-2">
                 {#each toolbarActions as action}
-                  <button 
+                  <button
                     onclick={() => { action.onclick(); showMore = false; }}
                     disabled={action.loading || action.disabled}
                     class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all {action.loading ? 'opacity-50' : action.disabled ? 'opacity-30 cursor-not-allowed' : 'bg-pink-500/10 text-pink-400 hover:bg-pink-500 hover:text-white border border-pink-500/20'}"
@@ -286,7 +286,7 @@
           </div>
         {/if}
       </div>
-      <div use:portal class="fixed inset-0 z-[1000]" onclick={() => showMore = false}></div>
+      <div use:portal class="fixed inset-0 z-[var(--z-admin-tiptap-toolbar-dropdown)]" onclick={() => showMore = false}></div>
     {/if}
   </div>
 

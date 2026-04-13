@@ -87,7 +87,7 @@
 
 {#if ActiveWidget}
   <div 
-    class="fixed inset-0 z-[40] bg-[#050505] flex flex-col pb-[env(safe-area-inset-bottom)] pb-[70px]"
+    class="fixed inset-0 z-[var(--z-admin-mobile-context)] bg-[#050505] flex flex-col pb-[env(safe-area-inset-bottom)] pb-[70px]"
     role="dialog"
     aria-modal="true"
     aria-label="Contextual Management View"

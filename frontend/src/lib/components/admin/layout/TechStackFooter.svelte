@@ -43,7 +43,7 @@
 </script>
 
 <div
-  class="absolute z-[200] pointer-events-none opacity-40 hover:opacity-100 transition-opacity mix-blend-screen text-right bottom-0.5 right-6 flex items-center gap-3"
+  class="absolute z-[var(--z-admin-tech-stack-footer)] pointer-events-none opacity-40 hover:opacity-100 transition-opacity mix-blend-screen text-right bottom-0.5 right-6 flex items-center gap-3"
   class:hidden={nanobot.isVuiActive && !nanobot.isTraining}
 >
   <!-- Desktop Mode -->

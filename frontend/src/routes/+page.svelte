@@ -26,7 +26,7 @@
     {#if data.tenant === 'admin'}
         {#await loadAdmin()}
             <!-- Liquid Loading State (Viral 2026) -->
-            <div class="fixed inset-0 flex items-center justify-center bg-[#010101] z-[100]">
+            <div class="fixed inset-0 flex items-center justify-center bg-[#010101] z-[var(--z-modal-overlay)]">
                 <div class="relative flex flex-col items-center gap-4">
                     <div class="w-12 h-12 border-2 border-[#00FFFF]/20 border-t-[#00FFFF] rounded-full animate-spin shadow-[0_0_15px_rgba(0,255,255,0.1)]"></div>
                     <div class="text-[9px] font-mono text-[#00FFFF]/50 tracking-[0.4em] uppercase animate-pulse">Initializing Neural Link...</div>
@@ -47,7 +47,7 @@
     {:else}
         {#await loadStorefront()}
             <!-- Liquid Loading State (Viral 2026) -->
-            <div class="fixed inset-0 flex items-center justify-center bg-[#010101] z-[100]">
+            <div class="fixed inset-0 flex items-center justify-center bg-[#010101] z-[var(--z-modal-overlay)]">
                 <div class="relative flex flex-col items-center gap-4">
                     <div class="w-12 h-12 border-2 border-[#00FFFF]/20 border-t-[#00FFFF] rounded-full animate-spin shadow-[0_0_15px_rgba(0,255,255,0.1)]"></div>
                     <div class="text-[9px] font-mono text-[#00FFFF]/50 tracking-[0.4em] uppercase animate-pulse">Initializing Neural Link...</div>

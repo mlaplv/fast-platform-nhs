@@ -75,7 +75,7 @@
   });
 </script>
 
-<div class="flex w-full items-center justify-between px-5 py-3 border-b border-cyan-500/20 bg-black md:bg-black/80 md:backdrop-blur-md shrink-0 relative z-[500] transition-all duration-500 {isExpanded ? 'mb-4' : ''}">
+<div class="flex w-full items-center justify-between px-5 py-3 border-b border-cyan-500/20 bg-black md:bg-black/80 md:backdrop-blur-md shrink-0 relative z-[var(--z-admin-factory-header)] transition-all duration-500 {isExpanded ? 'mb-4' : ''}">
   <div class="flex items-center gap-4">
     <div class="relative">
       <button 

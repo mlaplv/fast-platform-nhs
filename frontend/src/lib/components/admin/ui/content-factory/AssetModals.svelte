@@ -26,7 +26,7 @@
 <!-- CNS V78: Media Library Modal (Full Manager Picker) -->
 {#if showLibrary}
   <div
-    class="fixed inset-0 z-[60] flex items-center justify-center p-4 md:p-8 bg-slate-950/80 backdrop-blur-2xl"
+    class="fixed inset-0 z-[var(--z-admin-asset-modal-backdrop)] flex items-center justify-center p-4 md:p-8 bg-slate-950/80 backdrop-blur-2xl"
     transition:fade
   >
     <div

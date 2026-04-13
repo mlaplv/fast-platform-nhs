@@ -38,7 +38,7 @@
 
 <!-- Overlay backdrop -->
 <div
-  class="fixed inset-0 z-[200000] flex items-center justify-center p-4"
+  class="fixed inset-0 z-[var(--z-admin-gate-block-modal)] flex items-center justify-center p-4"
   style="background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);"
   role="dialog"
   aria-modal="true"

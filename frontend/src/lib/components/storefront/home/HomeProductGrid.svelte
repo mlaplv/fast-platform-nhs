@@ -114,11 +114,9 @@
 </script>
 
 <section class="home-product-grid-section relative mb-[5px] overflow-visible">
-  
-  <!-- ENERGY MESH: Vibrant Background Glows (Viral 2.3) -->
-  <div class="absolute -top-48 -left-20 w-[600px] h-[600px] bg-[#ee4d2d]/10 rounded-full blur-[120px] animate-pulse pointer-events-none"></div>
-  <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-400/5 rounded-full blur-[150px] animate-energy-mesh pointer-events-none"></div>
-  <div class="absolute -bottom-24 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-red-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+  <!-- ELITE V2.2: Optimized Background (No heavy blurs for 4GB RAM) -->
+  <div class="absolute inset-0 bg-gradient-to-b from-[#ee4d2d]/5 to-transparent pointer-events-none"></div>
 
   <!-- Minimalist Tab Header (Sticky Glass) -->
   <div class="sticky top-0 z-40 mb-2 py-1 px-1 bg-[#f5f5f5]/80 backdrop-blur-[30px] border-b border-black/[0.03] flex items-center justify-between transition-all duration-700">

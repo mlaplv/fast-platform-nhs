@@ -61,14 +61,14 @@
   <div
     role="presentation"
     onclick={() => nanobot.toggleMobileDrawer()}
-    class="fixed inset-0 bg-black/80 z-[100]"
+    class="fixed inset-0 bg-black/80 z-[var(--z-admin-mobile-backdrop)]"
     transition:fade={{ duration: 200 }}
   ></div>
 
   <!-- Drawer -->
   <div
     role="navigation"
-    class="fixed inset-y-0 left-0 w-[280px] bg-[#0a0a0a] border-r border-white/5 z-[110] flex flex-col shadow-2xl"
+    class="fixed inset-y-0 left-0 w-[280px] bg-[#0a0a0a] border-r border-white/5 z-[var(--z-admin-nav-drawer)] flex flex-col shadow-2xl"
     transition:fly={{ x: -280, duration: 300, opacity: 1 }}
     ontouchstart={handleTouchStart}
     ontouchend={handleTouchEnd}

@@ -26,7 +26,8 @@ class StallDetectorMiddleware:
             "/api/v1/stream", 
             "/api/v1/intent/stream",
             "/api/v1/client/diagnostics/analyze",
-            "/api/v1/client/support/pulse"
+            "/api/v1/client/support/pulse",
+            "/api/v1/pulse"
         ]
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:

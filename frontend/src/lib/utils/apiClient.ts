@@ -45,7 +45,7 @@ export const apiClient = {
     }
 
     // Add robust Bearer token fallback (CNS V2 - Resilient Auth)
-    const token = typeof window !== "undefined" ? (localStorage.getItem("admin_token") || sessionStorage.getItem("admin_token")) : null;
+    const token = typeof window !== "undefined" ? (localStorage.getItem("admin_token") || localStorage.getItem("access_token") || sessionStorage.getItem("admin_token")) : null;
 
     // 2. Set default headers (JSON)
     const config: RequestInit = {
@@ -173,7 +173,7 @@ export const apiClient = {
       Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
     }
 
-    const token = typeof window !== "undefined" ? (localStorage.getItem("admin_token") || sessionStorage.getItem("admin_token")) : null;
+    const token = typeof window !== "undefined" ? (localStorage.getItem("admin_token") || localStorage.getItem("access_token") || sessionStorage.getItem("admin_token")) : null;
 
     // Explicitly exclude Content-Type so browser sets multipart boundary
     const config: RequestInit = {

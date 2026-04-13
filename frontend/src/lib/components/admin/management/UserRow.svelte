@@ -103,7 +103,7 @@
         <MoreVertical size={16} />
       </button>
       <div
-        class="absolute right-0 top-full sm:pt-2 w-56 opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all duration-300 z-[100] origin-top-right group-hover/menu:scale-100 scale-95 mt-1 sm:mt-0 border border-white/10 rounded-xl bg-[#0a0a0a]/95 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)]"
+        class="absolute right-0 top-full sm:pt-2 w-56 opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all duration-300 z-[var(--z-admin-hud)] origin-top-right group-hover/menu:scale-100 scale-95 mt-1 sm:mt-0 border border-white/10 rounded-xl bg-[#0a0a0a]/95 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)]"
       >
         <div class="flex flex-col overflow-hidden">
           <div class="p-1 border-b border-white/5">

@@ -3,6 +3,9 @@ import logging
 import warnings
 from dotenv import load_dotenv
 
+# R00: Load environment before any local imports to ensure SSOT configuration
+load_dotenv(".env")
+
 from backend.app_logging import setup_logging
 setup_logging()
 
@@ -51,6 +54,7 @@ from backend.controllers.client.pulse import ClientPulseController
 from backend.controllers.client.news import PublicNewsController
 from backend.controllers.client.user import ClientUserController
 from backend.controllers.client.settings import ClientSettingsController
+from backend.controllers.client.notifications import ClientNotificationController
 from backend.controllers.admin_support import AdminSupportController
 from backend.controllers.admin_support_inbox import AdminSupportInboxController
 from backend.controllers.review import AdminReviewController
@@ -71,8 +75,6 @@ from backend.body_limit import BodyLimitMiddleware
 from backend.domain_guard import DomainGuardMiddleware
 from backend.audit_middleware import AuditMiddleware
 from backend.stall_middleware import StallDetectorMiddleware
-
-load_dotenv(".env")
 
 # R72: Unified Model Environment Sync
 for key in ["GOOGLE_API_KEY", "GOOGLE_API_KEY_1", "GOOGLE_API_KEY_2"]:
@@ -112,7 +114,8 @@ app = Litestar(
         CheckoutController, PublicOrderController, ChatController, SettingsController, AIManagementController, ContentController, MediaController, ContentStreamController,
         BannerController, stt_websocket, TTSController, IntentMapController, SchedulerController, DiagnosticController,
         AdminReviewController, PublicReviewController, SupportController, ClientPulseController, AdminSupportController, AdminSupportInboxController,
-        PublicNewsController, ClientSettingsController, ClientUserController
+        PublicNewsController, ClientSettingsController, ClientUserController,
+        ClientNotificationController
     ],
     middleware=[StallDetectorMiddleware, BodyLimitMiddleware, rate_limit_config.middleware, DomainGuardMiddleware, AuditMiddleware, AuthMiddleware],
     cors_config=cors_config,

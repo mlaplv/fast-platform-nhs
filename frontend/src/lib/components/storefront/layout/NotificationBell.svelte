@@ -9,6 +9,7 @@
   import { createNotificationState } from '$lib/state/notification.svelte';
   
   import { getNotificationState } from '$lib/state/notification.svelte';
+  import { authStore } from '$lib/state/authStore.svelte';
   
   const ui = getClientUi();
   const notifStore = getNotificationState();
@@ -17,8 +18,11 @@
   let bellContainer = $state<HTMLElement>();
 
   onMount(() => {
-    notifStore.fetchNotifications();
-    
+    // Only fetch if authenticated and empty to prevent redundant requests
+    if (authStore.isAuthenticated && notifStore.notifications.length === 0) {
+      notifStore.fetchNotifications();
+    }
+
     const handleOutsideClick = (e: MouseEvent) => {
       if (bellContainer && !bellContainer.contains(e.target as Node)) {
         isOpen = false;
@@ -57,7 +61,7 @@
     <div 
       in:fly={{ y: 10, duration: 400 }} 
       out:fade={{ duration: 200 }}
-      class="absolute right-[-40px] top-[calc(100%+12px)] w-80 z-[2000] origin-top-right"
+      class="absolute right-[-40px] top-[calc(100%+12px)] w-80 z-[var(--z-toast)] origin-top-right"
     >
       <!-- Premium Glass Menu - Liquid Aesthetic -->
       <div class="bg-white/98 backdrop-blur-2xl border border-gray-100 shadow-[0_30px_80px_-15px_rgba(0,0,0,0.25)] rounded-2xl overflow-hidden ring-1 ring-black/5">

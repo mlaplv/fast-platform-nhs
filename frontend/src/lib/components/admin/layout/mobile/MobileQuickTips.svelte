@@ -18,13 +18,13 @@
   <div
     role="presentation"
     onclick={() => nanobot.toggleQuickTips()}
-    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[var(--z-modal-overlay)]"
     transition:fade={{ duration: 200 }}
   ></div>
 
   <!-- Quick Tips Menu (Slide up from bottom-right area) -->
   <div
-    class="fixed bottom-28 right-5 w-[260px] bg-black/80 backdrop-blur-3xl border border-white/10 rounded-3xl z-[110] shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden"
+    class="fixed bottom-28 right-5 w-[260px] bg-black/80 backdrop-blur-3xl border border-white/10 rounded-3xl z-[var(--z-admin-mobile-quick-tips)] shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden"
     transition:fly={{ y: 20, duration: 300, opacity: 0 }}
   >
     <div

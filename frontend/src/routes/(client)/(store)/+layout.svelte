@@ -5,12 +5,16 @@
   import HeaderMobile from "$lib/components/storefront/layout/HeaderMobile.svelte";
   import FooterDesktop from "$lib/components/storefront/layout/FooterDesktop.svelte";
   import BottomNavMobile from "$lib/components/storefront/layout/BottomNavMobile.svelte";
-  import type { Snippet } from "svelte";
+  import { onMount, type Snippet } from "svelte";
   import type { LayoutData } from './$types';
   import "../client.css";
 
   let { data, children }: { data: LayoutData, children: Snippet } = $props();
   const ui = getClientUi();
+
+  onMount(() => {
+    return ui.initObservers();
+  });
 
   // Elite V2.2: Global Settings Sync
   $effect(() => {

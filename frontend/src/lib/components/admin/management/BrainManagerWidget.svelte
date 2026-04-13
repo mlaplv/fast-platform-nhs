@@ -351,7 +351,7 @@
 
     <!-- Tactical Manual Overlay -->
     {#if nanobot.brainManualOpen}
-        <div class="absolute inset-0 z-[100] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-8" in:fade>
+        <div class="absolute inset-0 z-[var(--z-modal-overlay)] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-8" in:fade>
             <div class="max-w-4xl w-full bg-gray-900/40 border border-white/10 rounded-[3rem] overflow-hidden flex flex-col h-[80vh]" in:scale={{ start: 0.95 }}>
                 <header class="p-8 border-b border-white/5 flex justify-between items-start">
                     <div>

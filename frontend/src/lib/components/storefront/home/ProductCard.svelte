@@ -159,7 +159,7 @@
 
   .overlay-rating {
     margin-left: auto;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.7);
     color: #fff;
     padding: 2px 6px;
     border-radius: 4px;
@@ -168,7 +168,6 @@
     gap: 2px;
     font-size: 10px;
     font-weight: 800;
-    backdrop-filter: blur(4px);
   }
   .star { color: #ffd839; font-size: 11px; }
 

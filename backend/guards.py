@@ -2,6 +2,9 @@ from typing import List, Union, Callable
 from litestar.connection import ASGIConnection
 from litestar.handlers.base import BaseRouteHandler
 from litestar.exceptions import NotAuthorizedException, PermissionDeniedException
+import logging
+
+logger = logging.getLogger("api-gateway.guard")
 from backend.constants.permissions import PermissionEnum
 from backend.database import async_session_maker
 from backend.database.models import User

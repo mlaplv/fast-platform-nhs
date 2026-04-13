@@ -184,7 +184,7 @@
   </div>
 
   <!-- Global Actions -->
-  <div class="fixed bottom-10 right-8 z-[200] pointer-events-none">
+  <div class="fixed bottom-10 right-8 z-[var(--z-admin-hud)] pointer-events-none">
     <div class="flex flex-col gap-4 pointer-events-auto">
       <button 
         onclick={reset}

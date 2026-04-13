@@ -298,12 +298,12 @@
               <!-- Thumbs (Floating) -->
               <div 
                 use:setupDraggable={'min'}
-                class="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-[4px] border-[#ee4d2d] rounded-full shadow-xl cursor-grab active:cursor-grabbing z-20 hover:scale-110 transition-transform"
+                class="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-[4px] border-[#ee4d2d] rounded-full shadow-xl cursor-grab active:cursor-grabbing z-[var(--z-content)] hover:scale-110 transition-transform"
                 style="left: calc({getPercent(minPrice)}% - 12px)"></div>
-              
-              <div 
+
+              <div
                 use:setupDraggable={'max'}
-                class="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-[4px] border-[#ee4d2d] rounded-full shadow-xl cursor-grab active:cursor-grabbing z-20 hover:scale-110 transition-transform"
+                class="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-[4px] border-[#ee4d2d] rounded-full shadow-xl cursor-grab active:cursor-grabbing z-[var(--z-content)] hover:scale-110 transition-transform"
                 style="left: calc({getPercent(maxPrice)}% - 12px)"></div>
             </div>
           </div>
@@ -393,7 +393,7 @@
                   <span>{activeSort === 'price-asc' ? 'GIÁ: THẤP ĐẾN CAO' : activeSort === 'price-desc' ? 'GIÁ: CAO ĐẾN THẤP' : 'SẮP XẾP THEO GIÁ'}</span>
                   <svg class="w-3.5 h-3.5 opacity-40 group-hover/sort:rotate-180 transition-transform duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" /></svg>
                </button>
-               <div class="absolute top-full right-0 w-full bg-white border border-gray-100 shadow-2xl opacity-0 group-hover/sort:opacity-100 invisible group-hover/sort:visible transition-all duration-300 z-[200] py-1">
+               <div class="absolute top-full right-0 w-full bg-white border border-gray-100 shadow-2xl opacity-0 group-hover/sort:opacity-100 invisible group-hover/sort:visible transition-all duration-300 z-[var(--z-dropdown)] py-1">
                   <button 
                       onclick={() => activeSort = 'price-asc'}
                       class="w-full text-left px-5 py-3.5 text-[11px] font-black text-gray-500 hover:text-[#ee4d2d] hover:bg-gray-50 transition-all flex items-center justify-between group/item">

@@ -188,7 +188,7 @@
   });
 </script>
 
-<div class="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-[2px]" in:fade>
+<div class="fixed inset-0 z-[var(--z-modal-overlay)] flex items-center justify-center p-0 md:p-4 bg-black/40 backdrop-blur-[2px]" in:fade>
   <div class="bg-white w-full max-w-sm rounded-none shadow-2xl border border-gray-100 overflow-hidden relative" 
        in:fly={{ y: 20, duration: 400 }}>
     

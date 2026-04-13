@@ -51,7 +51,7 @@
 </script>
 
 <div
-  class="fixed bottom-0 left-0 right-0 z-[1100] pb-[env(safe-area-inset-bottom)] flex flex-col items-center pointer-events-none transition-opacity duration-300"
+  class="fixed bottom-0 left-0 right-0 z-[var(--z-admin-mobile-input)] pb-[env(safe-area-inset-bottom)] flex flex-col items-center pointer-events-none transition-opacity duration-300"
   style:transform="translateY({(1 - $scrollSpring) * 35}px)"
   style:opacity={0.4 + $scrollSpring * 0.6}
 >

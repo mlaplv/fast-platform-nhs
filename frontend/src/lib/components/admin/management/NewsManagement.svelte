@@ -450,7 +450,7 @@
 
   <!-- PURGE CONFIRMATION MODAL -->
   {#if showPurgeConfirm}
-    <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" transition:fade>
+    <div class="fixed inset-0 z-[var(--z-modal-overlay)] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" transition:fade>
       <div class="w-full max-w-md bg-[#0a0a0a] border border-red-500/20 rounded-3xl p-8 shadow-[0_0_50px_rgba(239,68,68,0.1)]" transition:fly={{ y: 20, duration: 400 }}>
         <div class="flex flex-col items-center text-center gap-6">
           <div class="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 animate-pulse">

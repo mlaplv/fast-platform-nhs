@@ -90,15 +90,15 @@
 
 {#if isAdmin && liveEditStore.isEditMode}
   <!-- Quantum Mobile: Top-Edge Active Edit Indicator -->
-  <div 
-    class="md:hidden fixed top-0 left-0 right-0 h-[3px] bg-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.8)] animate-pulse z-[99999]"
+  <div
+    class="md:hidden fixed top-0 left-0 right-0 h-[3px] bg-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.8)] animate-pulse z-[var(--z-admin-action-bar-progress)]"
     transition:fade
   ></div>
 {/if}
 
 {#if isAdmin}
-  <div 
-    class="admin-action-bar fixed bottom-6 md:bottom-10 left-1/2 z-[9999] flex items-center gap-1 md:gap-2 p-1.5 md:p-2 bg-slate-950/80 backdrop-blur-3xl border border-white/10 rounded-full shadow-[0_30px_100px_rgba(0,0,0,0.8)] {isDragging ? 'is-dragging select-none' : ''}"
+  <div
+    class="admin-action-bar fixed bottom-6 md:bottom-10 left-1/2 z-[var(--z-admin-action-bar)] flex items-center gap-1 md:gap-2 p-1.5 md:p-2 bg-slate-950/80 backdrop-blur-3xl border border-white/10 rounded-full shadow-[0_30px_100px_rgba(0,0,0,0.8)] {isDragging ? 'is-dragging select-none' : ''}"
     style:transform="translate(calc(-50% + {dragOffset.x}px), {dragOffset.y}px)"
     in:fly={{ y: 50, duration: 800 }}
   >

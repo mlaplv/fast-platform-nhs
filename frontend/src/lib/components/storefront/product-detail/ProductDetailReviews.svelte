@@ -463,7 +463,7 @@
 {#if viewingMedia}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center" transition:fade onclick={() => viewingMedia = null}>
+  <div class="fixed inset-0 z-[var(--z-modal-overlay)] bg-black/95 flex items-center justify-center" transition:fade onclick={() => viewingMedia = null}>
     <button onclick={() => viewingMedia = null} class="absolute top-6 right-6 p-2 text-white/50 hover:text-white transition-colors bg-white/5 rounded-full hover:bg-white/10">
       <X class="w-6 h-6" />
     </button>

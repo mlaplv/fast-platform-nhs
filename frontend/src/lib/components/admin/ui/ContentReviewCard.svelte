@@ -274,7 +274,7 @@
   <Header bind:viewingStep {step} {status} {progress_msg} {campaign_id} bind:isEditing toggleExpand={() => nanobot.toggleExpand()} isExpanded={nanobot.isExpanded} creation_config={isEditing ? editedConfig : creation_config} />
   <div class="flex-1 {(viewingStep === 3 || viewingStep === 4 || viewingStep === 6) ? 'overflow-hidden pb-0' : 'overflow-y-auto custom-scrollbar pb-24'} relative flex flex-col min-h-0">
     {#if shouldShowOverlay}
-       <div class="absolute inset-0 z-[100]">
+       <div class="absolute inset-0 z-[var(--z-admin-mobile-backdrop)]">
           <UltraPremiumLoading 
             {progress_msg} 
             {viewingStep} 

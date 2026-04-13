@@ -30,10 +30,15 @@ export function createClientUiState(): ClientUiState {
     const isDesktop = $derived(globalState.screenWidth >= BREAKPOINTS.TABLET);
     const isPortrait = $derived(globalState.screenWidth < globalState.screenHeight);
 
+    let resizeTimer: ReturnType<typeof setTimeout>;
+
     function handleResize() {
         if (typeof window === 'undefined') return;
-        globalState.screenWidth = window.innerWidth;
-        globalState.screenHeight = window.innerHeight;
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            globalState.screenWidth = window.innerWidth;
+            globalState.screenHeight = window.innerHeight;
+        }, 250);
     }
 
     const instance: ClientUiState = {

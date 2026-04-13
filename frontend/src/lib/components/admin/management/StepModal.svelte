@@ -43,7 +43,7 @@
     }
 </script>
 
-<div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl" transition:fade>
+<div class="fixed inset-0 z-[var(--z-modal-overlay)] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl" transition:fade>
     <div class="w-full max-w-2xl bg-[#0a0a0b]/90 border border-white/10 rounded-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative" transition:scale>
         <!-- Top HUD Accent -->
         <div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>

@@ -26,7 +26,7 @@
   };
 </script>
 
-<div class="fixed top-24 right-4 z-[3000] flex flex-col gap-4 w-85 pointer-events-none">
+<div class="fixed top-24 right-4 z-[var(--z-toast)] flex flex-col gap-4 w-85 pointer-events-none">
   {#each ui.toasts as toast (toast.id)}
     {@const Icon = icons[toast.type]}
     <div

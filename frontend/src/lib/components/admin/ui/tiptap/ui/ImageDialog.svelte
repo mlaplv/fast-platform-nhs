@@ -55,7 +55,7 @@
 {#if show}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div use:portal class="fixed inset-0 z-[1000] flex items-center justify-center bg-[#09090b]/80 backdrop-blur-xl transition-all duration-500" onclick={() => show = false}>
+  <div use:portal class="fixed inset-0 z-[var(--z-admin-image-dialog)] flex items-center justify-center bg-[#09090b]/80 backdrop-blur-xl transition-all duration-500" onclick={() => show = false}>
     <div 
         class="bg-[#18181b] border border-white/5 p-8 shadow-[0_0_50px_-12px_rgba(59,130,246,0.3)] w-[95%] max-w-[900px] rounded-[2rem] relative overflow-hidden group" 
         onclick={(e) => e.stopPropagation()}

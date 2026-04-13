@@ -49,7 +49,7 @@
 
 <!-- Premium Navigation Progress Bar (Liquid Glass) -->
 {#if $navigating}
-    <div class="fixed top-0 left-0 right-0 h-[2px] z-[9999] pointer-events-none">
+    <div class="fixed top-0 left-0 right-0 h-[2px] z-[var(--z-admin-action-bar-progress)] pointer-events-none">
         <div class="h-full bg-gradient-to-r from-transparent via-[#00FFFF] to-transparent shadow-[0_0_10px_#00FFFF] animate-nav-progress"></div>
     </div>
 {/if}

@@ -736,16 +736,16 @@
   </div>
 
   {#if linkMenuVisible && editor && !blockClicks}
-    <div 
+    <div
       use:portal
-      class="fixed z-[1001] pointer-events-auto link-bubble-menu" 
+      class="fixed z-[var(--z-admin-tiptap-link-bubble)] pointer-events-auto link-bubble-menu"
       style="left: {linkMenuX}px; top: {linkMenuY}px; transform: translate(-50%, -100%);"
       role="tooltip"
     >
-      <LinkBubbleMenu 
-        {editor} 
-        onEdit={() => { showLinkDialog = true; linkMenuVisible = false; }} 
-        onClose={() => linkMenuVisible = false} 
+      <LinkBubbleMenu
+        {editor}
+        onEdit={() => { showLinkDialog = true; linkMenuVisible = false; }}
+        onClose={() => linkMenuVisible = false}
       />
     </div>
   {/if}
@@ -753,7 +753,7 @@
   {#if editor && editable && imageMenuVisible && !blockClicks && !showMediaVault && !showLinkDialog}
   <div
     use:portal
-    class="fixed z-[3000] -translate-x-1/2 -translate-y-full pointer-events-auto transition-all duration-75 ease-out image-bubble-menu"
+    class="fixed z-[var(--z-admin-tiptap-bubble-menu)] -translate-x-1/2 -translate-y-full pointer-events-auto transition-all duration-75 ease-out image-bubble-menu"
     style="left: {imageMenuX}px; top: {imageMenuY}px;"
   >
     <ImageBubbleMenu

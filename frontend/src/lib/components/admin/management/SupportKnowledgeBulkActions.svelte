@@ -11,7 +11,7 @@
 
 {#if selectedCount > 0}
   <div 
-    class="fixed bottom-12 left-1/2 -translate-x-1/2 z-[150] pointer-events-none"
+    class="fixed bottom-12 left-1/2 -translate-x-1/2 z-[var(--z-admin-bulk-actions)] pointer-events-none"
     in:fly={{ y: 20, duration: 400 }}
     out:fade
   >

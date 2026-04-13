@@ -54,12 +54,14 @@
         -->
       </div>
       <div class="flex items-center space-x-4">
-        <div class="flex items-center -ml-2">
-          <NotificationBell />
-          <button type="button" class="flex items-center gap-1 hover:text-luxury-copper transition-colors px-2">
-            <span>Thông Báo</span>
-          </button>
-        </div>
+        {#if authStore.isAuthenticated}
+          <div class="flex items-center -ml-2">
+            <NotificationBell />
+            <button type="button" class="flex items-center gap-1 hover:text-luxury-copper transition-colors px-2">
+              <span>Thông Báo</span>
+            </button>
+          </div>
+        {/if}
         <button type="button" class="flex items-center gap-1 hover:text-luxury-copper transition-colors">
           <span>❔</span> Hỗ Trợ
         </button>
@@ -98,8 +100,8 @@
                 class="absolute right-0 top-[100%] mt-1 w-44 z-[var(--z-popup)] origin-top-right shadow-[0_1px_20px_0_rgba(0,0,0,0.12)] bg-white ring-1 ring-black/5" 
                 onclick={(e) => e.stopPropagation()}
               >
-                <div class="absolute -top-1 right-[22px] w-3 h-3 bg-white rotate-45 z-[51] border-t border-l border-black/5"></div>
-                <div class="flex flex-col text-left py-1 relative z-50">
+                <div class="absolute -top-1 right-[22px] w-3 h-3 bg-white rotate-45 z-[var(--z-popup-indicator)] border-t border-l border-black/5"></div>
+                <div class="flex flex-col text-left py-1 relative z-[var(--z-popup)]">
                   <a href="/user/profile" class="px-4 py-2.5 text-[13px] text-gray-700 hover:text-luxury-copper hover:bg-gray-50 transition-colors font-medium">Hồ sơ của tôi</a>
                   <a href="/user/purchase" class="px-4 py-2.5 text-[13px] text-gray-700 hover:text-luxury-copper hover:bg-gray-50 transition-colors font-medium">Đơn mua</a>
                   <button 

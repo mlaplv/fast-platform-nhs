@@ -1,5 +1,6 @@
 import { apiClient } from "$lib/utils/apiClient";
 import type { Notification } from "./types";
+import { authStore } from "./authStore.svelte";
 
 export function createNotificationState() {
   const state = $state({
@@ -8,11 +9,15 @@ export function createNotificationState() {
   });
 
   async function fetchNotifications() {
+    if (!authStore.isAuthenticated) {
+      state.notifications = [];
+      return;
+    }
     if (state.isLoading) return;
     state.isLoading = true;
     try {
       const res = await apiClient.get<{ data: Notification[] }>(
-        "/api/v1/notifications",
+        "/api/v1/client/notifications",
       );
       state.notifications = res.data || [];
     } catch {
@@ -24,7 +29,7 @@ export function createNotificationState() {
 
   async function markNotificationAsRead(id: string) {
     try {
-      await apiClient.patch(`/api/v1/notifications/${id}/read`, {});
+      await apiClient.patch(`/api/v1/client/notifications/${id}/read`, {});
       const note = state.notifications.find((n) => n.id === id);
       if (note) note.isRead = true;
     } catch (e) {

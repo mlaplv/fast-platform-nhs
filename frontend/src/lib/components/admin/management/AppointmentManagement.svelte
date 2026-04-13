@@ -198,8 +198,8 @@
         </div>
 
         {#if showDatePicker}
-          <div 
-            class="absolute top-full left-0 mt-3 p-4 rounded-3xl bg-black/95 border border-white/10 backdrop-blur-3xl shadow-2xl z-[200] w-full min-w-[260px] animate-in fade-in zoom-in-95 duration-200"
+          <div
+            class="absolute top-full left-0 mt-3 p-4 rounded-3xl bg-black/95 border border-white/10 backdrop-blur-3xl shadow-2xl z-[var(--z-admin-modal)] w-full min-w-[260px] animate-in fade-in zoom-in-95 duration-200"
             onmouseleave={() => showDatePicker = false}
           >
             <div class="grid grid-cols-7 gap-1 text-center mb-2">

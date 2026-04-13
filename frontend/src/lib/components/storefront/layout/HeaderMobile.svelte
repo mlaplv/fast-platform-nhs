@@ -1,21 +1,22 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
   import SmartSearch from '../product/SmartSearch.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { User, Bell, ShoppingCart } from 'lucide-svelte';
-  
+
   const ui = getClientUi();
 
   const cartStore = getCartStore();
   const searchStore = getSearchStore();
-  
+
   function handleUserClick() {
     if (!authStore.isAuthenticated) {
       ui.openLogin();
     } else {
-      window.location.href = '/user/profile';
+      goto('/user/profile');
     }
   }
 </script>
@@ -47,9 +48,11 @@
          {/if}
       </button>
 
-      <button class="relative p-1 hover:scale-110 transition-transform active:scale-95 text-gray-700 hover:text-luxury-copper">
-         <Bell class="w-6 h-6" strokeWidth={2.5} />
-      </button>
+      {#if authStore.isAuthenticated}
+        <button class="relative p-1 hover:scale-110 transition-transform active:scale-95 text-gray-700 hover:text-luxury-copper">
+           <Bell class="w-6 h-6" strokeWidth={2.5} />
+        </button>
+      {/if}
       
       <button onclick={() => cartStore.toggleCart()} class="relative p-1 hover:scale-110 transition-transform active:scale-95 text-gray-700 hover:text-luxury-copper">
         <ShoppingCart class="w-6 h-6" strokeWidth={2.5} />

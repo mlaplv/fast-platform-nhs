@@ -25,7 +25,7 @@
 </script>
 
 <div
-  class="w-full max-w-4xl mx-auto z-[1100] px-4 sm:px-6 relative transition-all duration-700 opacity-100 translate-y-0"
+  class="w-full max-w-4xl mx-auto z-[var(--z-admin-hud)] px-4 sm:px-6 relative transition-all duration-700 opacity-100 translate-y-0"
 >
   <!-- Command Input Bar (SILENCE / CHAT FLOW) -->
   <div class="flex items-center gap-2 md:gap-3">

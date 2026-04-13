@@ -108,7 +108,9 @@ export function createPulseManager(
   const connectPulse = () => {
     if (typeof window === "undefined" || eventSource || !isAdminDomain()) return;
 
-    eventSource = new EventSource("/api/v1/pulse/stream", { withCredentials: true });
+    const token = localStorage.getItem("admin_token") || localStorage.getItem("access_token");
+    const url = token ? `/api/v1/pulse/stream?token=${encodeURIComponent(token)}` : "/api/v1/pulse/stream";
+    eventSource = new EventSource(url, { withCredentials: true });
 
     if (typeof window !== "undefined") {
       window.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -406,11 +408,10 @@ export function createPulseManager(
         eventSource.close();
         eventSource = null;
         
-        // CNS V82.15: Elite V2.2 Jittered Exponential Backoff
-        const baseDelay = 2000;
-        const maxDelay = 30000;
-        const delay = Math.min(maxDelay, baseDelay * Math.pow(2, retryCount)) + (Math.random() * 1000);
-        
+        // CNS V82.15: Elite V2.2 Jittered Exponential Backoff (Hardened)
+        const baseDelay = 5000;
+        const maxDelay = 60000;
+        const delay = Math.min(maxDelay, baseDelay * Math.pow(2, Math.min(retryCount, 5))) + (Math.random() * 2000);
         
         retryCount++;
         pulseRetryTimeout = setTimeout(connectPulse, delay);

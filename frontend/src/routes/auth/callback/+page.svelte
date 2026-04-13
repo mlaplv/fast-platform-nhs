@@ -67,4 +67,4 @@
 
 </script>
 
-<div class="fixed inset-0 bg-[#f5f5f5] z-[99999]"></div>
+<div class="fixed inset-0 bg-[#f5f5f5] z-[var(--z-modal-overlay)]"></div>

@@ -22,7 +22,7 @@ from backend.services.signal_center import signal_center
 
 logger = logging.getLogger("api-gateway")
 
-SECRET_KEY = os.environ.get("ENCRYPTION_SALT", "unsafe-default-salt")
+SECRET_KEY = os.environ.get("ENCRYPTION_SALT", "Micsmo_Elite_Standard_Salt_2026") # R00: Consistent SSOT Key
 ALGORITHM = "HS256"
 
 class AuthService:

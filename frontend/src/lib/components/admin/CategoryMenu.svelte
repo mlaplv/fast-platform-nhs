@@ -192,7 +192,7 @@
 {#if open}
   <!-- Popover Container (Origin: Bottom Left of Omnibar) -->
   <div
-    class="absolute bottom-full left-0 mb-4 z-[100] w-[320px] origin-bottom-left"
+    class="absolute bottom-full left-0 mb-4 z-[var(--z-admin-hud)] w-[320px] origin-bottom-left"
     transition:fly={{ y: 20, duration: 400, opacity: 0 }}
   >
     <!-- Holographic Popover Frame -->

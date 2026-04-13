@@ -67,7 +67,7 @@
   <!-- Editor -->
   <div class="flex flex-col relative flex-1 min-h-0 transition-all duration-500 {isEditing ? 'border border-white/5 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] bg-[#09090b]/40 backdrop-blur-2xl' : 'bg-transparent'}">
      {#if isProcessing}
-       <div class="absolute inset-0 z-[100]">
+       <div class="absolute inset-0 z-[var(--z-admin-mobile-backdrop)]">
          <UltraPremiumLoading 
            progress_msg="AI đang thiết kế dàn ý..." 
            viewingStep={3} 
