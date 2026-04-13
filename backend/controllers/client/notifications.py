@@ -24,9 +24,14 @@ class ClientNotificationController(Controller):
         user_state = request.scope.get("state", {}).get("user")
         if not user_state:
             raise NotAuthorizedException("Vui lòng đăng nhập để xem thông báo")
-            
+
         user_email = user_state.get("sub")
-        return await notification_service.get_notifications(db_session, user_email)
+        logger.info(f"[Notification] Fetching notifications for: {user_email}")
+        try:
+            return await notification_service.get_notifications(db_session, user_email)
+        except Exception as e:
+            logger.exception(f"[Notification] Error fetching for {user_email}: {str(e)}")
+            raise e
 
     @patch("/{notification_id:str}/read")
     async def mark_as_read(self, db_session: AsyncSession, request: Request, notification_id: str) -> SuccessResponse:

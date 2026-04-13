@@ -39,8 +39,9 @@ class UserResponse(BaseModel):
     roles: List[RoleResponse] = Field(default_factory=list)
     gender: Optional[str] = None
     dob: Optional[datetime] = None
-    avatarUrl: Optional[str] = Field(None, alias="avatar_url")
-    createdAt: datetime = Field(alias="created_at")
+    avatar_url: Optional[str] = None
+    extra_metadata: Optional[dict] = Field(default_factory=dict)
+    created_at: datetime
 
     @field_validator("id", mode="before")
     @classmethod
@@ -62,3 +63,4 @@ class UserUpdatePayload(BaseModel):
     gender: Optional[str] = None
     dob: Optional[datetime] = None
     avatar_url: Optional[str] = None
+    extra_metadata: Optional[dict] = None

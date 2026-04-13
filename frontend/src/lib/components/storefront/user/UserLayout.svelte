@@ -2,82 +2,142 @@
   import { authStore } from '$lib/state/authStore.svelte';
   import { page } from '$app/stores';
   import type { Snippet } from 'svelte';
+  import { Bell, User, ShoppingBag, MapPin, Lock, LogOut } from 'lucide-svelte';
+  import { goto } from '$app/navigation';
 
   let { children }: { children: Snippet } = $props();
 
   const menuItems = [
     {
       label: 'Tài khoản của tôi',
-      icon: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>',
+      icon: User,
       href: '/user/profile',
       subItems: [
-        { label: 'Hồ sơ', href: '/user/profile' },
-        { label: 'Địa chỉ', href: '/user/address' },
-        { label: 'Đổi mật khẩu', href: '/user/password' }
+        { label: 'Hồ sơ', href: '/user/profile', icon: User },
+        { label: 'Địa chỉ', href: '/user/address', icon: MapPin },
+        { label: 'Đổi mật khẩu', href: '/user/password', icon: Lock }
       ]
     },
     {
       label: 'Đơn mua',
-      icon: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>',
+      icon: ShoppingBag,
       href: '/user/purchase'
+    },
+    {
+      label: 'Thông báo',
+      icon: Bell,
+      href: '/user/notifications'
     }
   ];
 
+  function handleLogout() {
+    authStore.logout();
+    goto('/');
+  }
+
   const currentPath = $derived($page.url.pathname);
+  let isMobileMenuOpen = $state(false);
 </script>
 
-<div class="max-w-[1200px] mx-auto px-4 xl:px-0 py-10 flex gap-7 min-h-[600px]">
-  <!-- Sidebar -->
-  <aside class="w-[180px] shrink-0">
-    <div class="flex items-center gap-3 mb-8 px-1">
-      <div class="w-12 h-12 rounded-full overflow-hidden border border-gray-100 bg-gray-50 shrink-0 shadow-sm">
-        {#if authStore.user?.avatar_url}
-          <img src={authStore.user.avatar_url} alt="Avatar" class="w-full h-full object-cover" />
-        {:else}
-          <div class="w-full h-full flex items-center justify-center text-sm font-black text-luxury-copper ring-1 ring-inset ring-black/5">
-            {authStore.user?.name?.charAt(0).toUpperCase()}
-          </div>
-        {/if}
-      </div>
-      <div class="flex flex-col min-w-0">
-        <span class="text-[14px] font-bold text-gray-900 truncate">{authStore.user?.username || authStore.user?.name}</span>
-        <a href="/user/profile" class="text-[12px] text-gray-400 flex items-center gap-1 hover:text-gray-600 transition-colors">
-          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-          Sửa hồ sơ
-        </a>
-      </div>
-    </div>
-
-    <nav class="space-y-4">
-      {#each menuItems as item}
-        <div class="space-y-2">
-          <a 
-            href={item.href} 
-            class="flex items-center gap-3 text-[14px] font-medium transition-colors {currentPath.startsWith(item.href) ? 'text-luxury-copper' : 'text-gray-700 hover:text-luxury-copper'}"
-          >
-            <span class="text-gray-400">{@html item.icon}</span>
-            {item.label}
-          </a>
-          
-          {#if item.subItems && currentPath.startsWith(item.href)}
-            <div class="flex flex-col ml-8 space-y-2.5">
-              {#each item.subItems as sub}
-                <a 
-                  href={sub.href} 
-                  class="text-[13.5px] transition-colors {currentPath === sub.href ? 'text-luxury-copper font-semibold' : 'text-gray-600 hover:text-luxury-copper'}"
-                >
-                  {sub.label}
-                </a>
-              {/each}
+<div class="bg-[#F9F8F6] min-h-screen">
+  <div class="max-w-[1200px] mx-auto px-4 xl:px-0 py-8 md:py-12 flex flex-col md:flex-row gap-8 lg:gap-10">
+    <!-- Mobile Header -->
+    <div class="md:hidden flex items-center justify-between bg-white p-4 border border-stone-100 rounded-sm shadow-sm">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full overflow-hidden border border-stone-100 p-0.5">
+          {#if authStore.user?.avatar_url}
+            <img src={authStore.user.avatar_url} alt="Avatar" class="w-full h-full object-cover rounded-full" />
+          {:else}
+            <div class="w-full h-full flex items-center justify-center text-xs font-serif italic text-luxury-copper bg-stone-50 rounded-full">
+              {authStore.user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
           {/if}
         </div>
-      {/each}
-    </nav>
-  </aside>
+        <span class="text-[13px] font-bold text-stone-800 uppercase tracking-wider truncate max-w-[150px]">{authStore.user?.name || 'Quý khách'}</span>
+      </div>
 
-  <!-- Content -->
-  <main class="flex-grow bg-white shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] rounded-[2px] p-8 border border-gray-50">
-    {@render children()}
-  </main>
+      <button
+        onclick={() => isMobileMenuOpen = !isMobileMenuOpen}
+        class="p-2 text-stone-500"
+      >
+        {#if isMobileMenuOpen}
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        {:else}
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16m-7 6h7" /></svg>
+        {/if}
+      </button>
+    </div>
+
+    <!-- Sidebar (Desktop & Mobile Menu) -->
+    <aside class="w-full md:w-[240px] shrink-0 {isMobileMenuOpen ? 'block' : 'hidden md:block'} space-y-10">
+      <div class="hidden md:flex items-center gap-4 px-2">
+        <div class="w-14 h-14 rounded-full overflow-hidden border border-stone-200 bg-white shrink-0 p-0.5 shadow-sm">
+          {#if authStore.user?.avatar_url}
+            <img src={authStore.user.avatar_url} alt="Avatar" class="w-full h-full object-cover rounded-full" />
+          {:else}
+            <div class="w-full h-full flex items-center justify-center text-lg font-serif italic text-luxury-copper bg-stone-50 rounded-full">
+              {authStore.user?.name?.charAt(0).toUpperCase() || 'U'}
+            </div>
+          {/if}
+        </div>
+        <div class="flex flex-col min-w-0">
+          <span class="text-[14px] font-bold text-stone-800 truncate uppercase tracking-wider">{authStore.user?.name || 'Quý khách'}</span>
+          <a href="/user/profile" class="text-[11px] text-stone-400 uppercase tracking-widest flex items-center gap-1.5 hover:text-luxury-copper transition-colors mt-1">
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+            Tùy chỉnh
+          </a>
+        </div>
+      </div>
+
+      <nav class="flex flex-col h-full md:min-h-[500px] bg-white md:bg-transparent p-6 md:p-0 border md:border-none border-stone-100 rounded-sm">
+        <div class="space-y-8 flex-grow">
+          {#each menuItems as item}
+            <div class="space-y-4">
+              <a
+                href={item.href}
+                class="flex items-center gap-3 text-[12px] uppercase tracking-[2px] font-bold transition-all {currentPath.startsWith(item.href) ? 'text-stone-900' : 'text-stone-400 hover:text-stone-600'}"
+              >
+                <span class="{currentPath.startsWith(item.href) ? 'text-luxury-copper' : 'text-stone-300'}">
+                  <item.icon class="w-4 h-4" />
+                </span>
+                {item.label}
+              </a>
+
+              {#if item.subItems && currentPath.startsWith(item.href)}
+                <div class="flex flex-col ml-8 space-y-3 border-l border-stone-100 pl-4">
+                  {#each item.subItems as sub}
+                    <a
+                      href={sub.href}
+                      class="text-[13px] transition-all relative group {currentPath === sub.href ? 'text-luxury-copper font-medium' : 'text-stone-500 hover:text-stone-800'}"
+                    >
+                      {sub.label}
+                      {#if currentPath === sub.href}
+                        <div class="absolute -left-[17px] top-1/2 -translate-y-1/2 w-1 h-1 bg-luxury-copper rounded-full"></div>
+                      {/if}
+                    </a>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/each}
+        </div>
+
+        <!-- Logout Button -->
+        <div class="pt-8 mt-8 border-t border-stone-100">
+          <button
+            onclick={handleLogout}
+            class="flex items-center gap-3 text-[12px] uppercase tracking-[2px] font-bold text-stone-400 hover:text-red-400 transition-all w-full text-left"
+          >
+            <LogOut class="w-4 h-4" />
+            Đăng xuất
+          </button>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Content Area -->
+    <main class="flex-grow bg-white rounded-[4px] p-10 border border-stone-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] min-h-[700px]">
+      {@render children()}
+    </main>
+  </div>
 </div>

@@ -131,7 +131,7 @@ class UserService:
         return SuccessResponse(ok=True, id=user_id, message="User roles updated")
 
     @staticmethod
-    async def update_user(db_session: AsyncSession, user_id: str, data: Dict[str, object]) -> SuccessResponse:
+    async def update_user(db_session: AsyncSession, user_id: str, data: Dict[str, object]) -> User:
         """Moves logic from UserController.update_user."""
         stmt = select(User).where(User.id == user_id)
         result = await db_session.execute(stmt)
@@ -144,8 +144,16 @@ class UserService:
             user.name = str(data["name"])
         if "status" in data:
             user.status = str(data["status"])
+        if "gender" in data:
+            user.gender = str(data["gender"])
+        if "dob" in data:
+            user.dob = datetime.fromisoformat(data["dob"].replace("Z", "+00:00")) if isinstance(data["dob"], str) else data["dob"]
+        if "avatar_url" in data:
+            user.avatar_url = str(data["avatar_url"])
+        if "extra_metadata" in data:
+            user.extra_metadata = data["extra_metadata"] if isinstance(data["extra_metadata"], dict) else {}
 
-        return SuccessResponse(ok=True, id=user_id)
+        return user
 
     @staticmethod
     async def delete_user(db_session: AsyncSession, user_id: str) -> SuccessResponse:

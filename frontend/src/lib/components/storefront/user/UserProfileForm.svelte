@@ -1,55 +1,94 @@
 <script lang="ts">
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { onMount } from 'svelte';
+  import { apiClient } from '$lib/utils/apiClient';
+  import { fade, fly } from 'svelte/transition';
+  import MemberCard from './MemberCard.svelte';
+  import SkinProfile from './SkinProfile.svelte';
 
   const ui = getClientUi();
 
+  // Profile States
   let name = $state(authStore.user?.name || '');
   let email = $state(authStore.user?.email || '');
   let username = $state(authStore.user?.username || '');
   let gender = $state(authStore.user?.gender || 'OTHER');
   let dob = $state(authStore.user?.dob ? new Date(authStore.user.dob) : new Date());
-  
+
   let birthDay = $state(dob.getDate());
   let birthMonth = $state(dob.getMonth() + 1);
   let birthYear = $state(dob.getFullYear());
   let avatarUrl = $state(authStore.user?.avatar_url || '');
 
+  // Skin Profile States (Nested in extra_metadata)
+  let skinData = $state(authStore.user?.extra_metadata?.skinProfile || {
+    skinType: '',
+    concerns: [],
+    sensitivity: 5
+  });
+
   let isSaving = $state(false);
   let isUploading = $state(false);
+  let activeTab = $state('basic'); // basic | beauty
   let fileInput = $state<HTMLInputElement>();
+
+  // Elite V3.0: Reactive Re-hydration Protocol
+  // Required because $state initializers only run once.
+  $effect(() => {
+    if (authStore.user) {
+      name = authStore.user.name || '';
+      email = authStore.user.email || '';
+      username = authStore.user.username || '';
+      gender = authStore.user.gender || 'OTHER';
+      avatarUrl = authStore.user.avatar_url || '';
+      
+      if (authStore.user.dob) {
+        const d = new Date(authStore.user.dob);
+        birthDay = d.getDate();
+        birthMonth = d.getMonth() + 1;
+        birthYear = d.getFullYear();
+      }
+
+      if (authStore.user.extra_metadata?.skinProfile) {
+        skinData = {
+          ...authStore.user.extra_metadata.skinProfile
+        };
+      }
+    }
+  });
 
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
-  const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i);
+  const years = Array.from({ length: 80 }, (_, i) => new Date().getFullYear() - 10 - i);
 
   async function handleSave() {
     isSaving = true;
     try {
       const updatedDob = new Date(birthYear, birthMonth - 1, birthDay).toISOString();
-      const res = await fetch('/api/v1/client/user/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          gender,
-          dob: updatedDob,
-          avatar_url: avatarUrl
-        })
-      });
-      if (res.ok) {
-        if (authStore.user) {
-          authStore.user.name = name;
-          authStore.user.gender = gender;
-          authStore.user.dob = updatedDob;
-          authStore.user.avatar_url = avatarUrl;
+      const res = await apiClient.patch<{ ok: boolean }>('/api/v1/client/user/profile', {
+        name,
+        gender,
+        dob: updatedDob,
+        avatar_url: avatarUrl,
+        extra_metadata: {
+          ...authStore.user?.extra_metadata,
+          skinProfile: skinData
         }
-        ui.showToast('Cập nhật hồ sơ thành công! 🟢', 'success');
-      }
+      });
+
+      authStore.syncUser({
+        name,
+        gender,
+        dob: updatedDob,
+        avatar_url: avatarUrl,
+        extra_metadata: {
+          skinProfile: skinData
+        }
+      });
+      ui.showToast('Thông tin của Quý khách đã được ghi nhận! ✨', 'success');
     } catch (e) {
       console.error(e);
-      ui.showToast('Có lỗi xảy ra khi cập nhật.', 'error');
+      ui.showToast('Có lỗi xảy ra, mong Quý khách thứ lỗi.', 'error');
     } finally {
       isSaving = false;
     }
@@ -59,8 +98,8 @@
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) return;
 
-    if (file.size > 1 * 1024 * 1024) {
-      ui.showToast('Dung lượng file tối đa 1 MB', 'warning');
+    if (file.size > 2 * 1024 * 1024) {
+      ui.showToast('Dung lượng tối đa 2MB Quý khách nhé.', 'warning');
       return;
     }
 
@@ -69,167 +108,187 @@
     formData.append('file', file);
 
     try {
-      const res = await fetch('/api/v1/client/user/avatar', {
-        method: 'POST',
-        body: formData
-      });
-      if (res.ok) {
-        const data = await res.json();
-        avatarUrl = data.data.avatar_url;
-        if (authStore.user) {
-          authStore.user.avatar_url = avatarUrl;
-        }
-        ui.showToast('Thay đổi ảnh đại diện thành công!', 'success');
-      }
+      const data = await apiClient.upload<{ data: { avatar_url: string } }>('/api/v1/client/user/avatar', formData);
+      avatarUrl = data.data.avatar_url;
+      authStore.syncUser({ avatar_url: avatarUrl });
+      ui.showToast('Diện mạo mới rất tuyệt vời! ✨', 'success');
     } catch (e) {
       console.error(e);
-      ui.showToast('Lỗi upload avatar', 'error');
+      ui.showToast('Lỗi tải ảnh đại diện.', 'error');
     } finally {
       isUploading = false;
     }
   }
 
-  function maskEmail(email: string) {
-    if (!email) return '';
-    const [user, domain] = email.split('@');
-    return `${user.substring(0, 2)}${'*'.repeat(user.length - 2)}@${domain}`;
+  function maskEmail(val: string) {
+    if (!val) return 'Chưa cập nhật';
+    const [user, domain] = val.split('@');
+    return `${user.substring(0, 3)}***@${domain}`;
   }
 </script>
 
-<div class="space-y-6">
-  <div class="border-b border-gray-100 pb-5">
-    <h1 class="text-[18px] font-semibold text-gray-900">Hồ Sơ Của Tôi</h1>
-    <p class="text-[14px] text-gray-500 mt-1">Quản lý thông tin hồ sơ để bảo mật tài khoản</p>
-  </div>
+<div class="max-w-4xl mx-auto space-y-10 pb-20">
+  <!-- Elite Header Section -->
+  <div class="flex flex-col md:flex-row gap-10 items-start">
+    <div class="w-full md:w-1/2">
+       <MemberCard />
+    </div>
 
-  <div class="flex pt-6">
-    <div class="flex-grow pr-12 space-y-8">
-      <div class="flex items-center gap-5">
-        <span class="w-[150px] text-right text-[14px] text-gray-400 font-medium">Tên đăng nhập</span>
-        <div class="flex-grow flex flex-col gap-1.5">
-          <span class="text-[14px] text-gray-900 font-semibold">{username || 'N/A'}</span>
+    <div class="w-full md:w-1/2 flex flex-col items-center justify-center space-y-4 pt-4">
+      <div class="relative group">
+        <div class="w-32 h-32 rounded-full border-2 border-stone-100 p-1 bg-white shadow-sm overflow-hidden transition-all duration-500 group-hover:border-luxury-copper">
+           {#if isUploading}
+             <div class="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
+                <div class="w-6 h-6 border-2 border-luxury-copper border-t-transparent animate-spin rounded-full"></div>
+             </div>
+           {/if}
+
+           {#if avatarUrl}
+             <img src={avatarUrl} alt="Avatar" class="w-full h-full object-cover rounded-full" />
+           {:else}
+             <div class="w-full h-full bg-stone-50 flex items-center justify-center text-4xl font-serif italic text-stone-200">
+                {authStore.user?.name?.charAt(0) || 'U'}
+             </div>
+           {/if}
         </div>
-      </div>
 
-      <div class="flex items-center gap-5">
-        <label for="profile_name" class="w-[150px] text-right text-[14px] text-gray-400 font-medium">Tên</label>
-        <div class="flex-grow">
-          <input 
-            id="profile_name"
-            type="text" 
-            bind:value={name}
-            class="w-full h-10 border border-gray-200 px-3 text-[14px] outline-none focus:border-luxury-copper transition-colors" 
-          />
-        </div>
-      </div>
-
-      <div class="flex items-center gap-5">
-        <span class="w-[150px] text-right text-[14px] text-gray-400 font-medium">Email</span>
-        <div class="flex-grow text-[14px] text-gray-900 font-semibold flex items-center gap-3">
-          {maskEmail(email)}
-          <button class="text-blue-500 text-[13px] hover:underline font-normal">Thay Đổi</button>
-        </div>
-      </div>
-
-      <!-- Gender -->
-      <div class="flex items-center gap-5">
-        <span class="w-[150px] text-right text-[14px] text-gray-400 font-medium">Giới tính</span>
-        <div class="flex-grow flex items-center gap-6">
-          {#each [['Nam', 'MALE'], ['Nữ', 'FEMALE'], ['Khác', 'OTHER']] as [label, val]}
-            <label class="flex items-center gap-2.5 cursor-pointer group">
-              <div class="relative w-4.5 h-4.5 rounded-full border border-gray-200 flex items-center justify-center transition-all {gender === val ? 'border-luxury-copper' : ''}">
-                <input type="radio" bind:group={gender} value={val} class="absolute inset-0 opacity-0 cursor-pointer" />
-                {#if gender === val}
-                  <div class="w-2.5 h-2.5 bg-luxury-copper rounded-full"></div>
-                {/if}
-              </div>
-              <span class="text-[14px] text-gray-700">{label}</span>
-            </label>
-          {/each}
-        </div>
-      </div>
-
-      <!-- DOB -->
-      <div class="flex items-center gap-5">
-        <span class="w-[150px] text-right text-[14px] text-gray-400 font-medium">Ngày sinh</span>
-        <div class="flex-grow flex items-center gap-4">
-          <div class="relative flex-1 group">
-            <select bind:value={birthDay} class="w-full h-10 border border-gray-200 px-3 pr-10 appearance-none outline-none focus:border-gray-400 text-[14px] bg-white cursor-pointer">
-              {#each days as d}<option value={d}>{d}</option>{/each}
-            </select>
-            <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-            </div>
-          </div>
-          <div class="relative flex-1 group">
-            <select bind:value={birthMonth} class="w-full h-10 border border-gray-200 px-3 pr-10 appearance-none outline-none focus:border-gray-400 text-[14px] bg-white cursor-pointer">
-              {#each months as m}<option value={m}>Tháng {m}</option>{/each}
-            </select>
-            <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-            </div>
-          </div>
-          <div class="relative flex-1 group">
-             <select bind:value={birthYear} class="w-full h-10 border border-gray-200 px-3 pr-10 appearance-none outline-none focus:border-gray-400 text-[14px] bg-white cursor-pointer">
-              {#each years as y}<option value={y}>{y}</option>{/each}
-            </select>
-            <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Action -->
-      <div class="flex items-center gap-5 pt-4">
-        <label class="w-[150px]"></label>
-        <button 
-          onclick={handleSave}
-          disabled={isSaving}
-          class="px-8 py-2.5 bg-luxury-copper text-white text-[14px] rounded-[2px] hover:brightness-110 transition-all active:scale-95 disabled:bg-gray-300"
+        <button
+          onclick={() => fileInput?.click()}
+          class="absolute bottom-0 right-0 w-10 h-10 bg-white shadow-md rounded-full flex items-center justify-center border border-stone-100 text-stone-600 hover:text-luxury-copper transition-colors"
         >
-          {isSaving ? 'Đang lưu...' : 'Lưu'}
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
         </button>
       </div>
-    </div>
 
-    <!-- Avatar Area -->
-    <div class="w-[280px] shrink-0 border-l border-gray-100 flex flex-col items-center gap-4 py-4">
-       <div class="w-24 h-24 rounded-full overflow-hidden border border-gray-100 shadow-sm relative group bg-gray-50 flex items-center justify-center">
-          {#if isUploading}
-            <div class="absolute inset-0 bg-white/60 flex items-center justify-center z-10">
-               <svg class="animate-spin h-5 w-5 text-[#ee4d2d]" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            </div>
-          {/if}
-          
-          {#if avatarUrl}
-            <img src={avatarUrl} alt="Avatar" class="w-full h-full object-cover" />
-          {:else}
-             <div class="w-full h-full flex items-center justify-center text-2xl font-black text-gray-200 uppercase">
-                {authStore.user?.name?.charAt(0).toUpperCase()}
-             </div>
-          {/if}
-       </div>
-
-       <input 
-         type="file" 
-         accept=".jpeg,.jpg,.png" 
-         class="hidden" 
-         bind:this={fileInput} 
-         onchange={handleAvatarUpload} 
-       />
-
-       <button 
-         onclick={() => fileInput?.click()}
-         disabled={isUploading}
-         class="px-5 py-2 border border-gray-100 text-[14px] text-gray-600 shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
-       >
-          {isUploading ? 'Đang tải...' : 'Chọn Ảnh'}
-       </button>
-       <div class="text-[13px] text-gray-400 flex flex-col items-center gap-1">
-          <span>Dung lượng file tối đa 1 MB</span>
-          <span>Định dạng: .JPEG, .PNG</span>
-       </div>
+      <div class="text-center">
+        <h2 class="text-xl font-serif italic text-stone-800">{authStore.user?.name || 'Quý khách'}</h2>
+        <p class="text-[12px] text-stone-400 uppercase tracking-widest mt-1">ID: {authStore.user?.id.slice(0, 8)}</p>
+      </div>
     </div>
   </div>
+
+  <input type="file" bind:this={fileInput} onchange={handleAvatarUpload} class="hidden" accept="image/*" />
+
+  <!-- Navigation Tabs -->
+  <div class="flex border-b border-stone-100 gap-8">
+    <button
+      onclick={() => activeTab = 'basic'}
+      class="pb-4 text-[13px] uppercase tracking-widest font-medium transition-all relative {activeTab === 'basic' ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
+    >
+      Thông tin cơ bản
+      {#if activeTab === 'basic'}
+        <div class="absolute bottom-0 left-0 w-full h-0.5 bg-luxury-copper" in:fly={{ y: 2 }}></div>
+      {/if}
+    </button>
+    <button
+      onclick={() => activeTab = 'beauty'}
+      class="pb-4 text-[13px] uppercase tracking-widest font-medium transition-all relative {activeTab === 'beauty' ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
+    >
+      Hồ sơ vẻ đẹp
+      {#if activeTab === 'beauty'}
+        <div class="absolute bottom-0 left-0 w-full h-0.5 bg-luxury-copper" in:fly={{ y: 2 }}></div>
+      {/if}
+    </button>
+  </div>
+
+  <!-- Form Content -->
+  <div class="min-h-[400px]">
+    {#if activeTab === 'basic'}
+      <div class="space-y-8 py-6" in:fade>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="space-y-2">
+            <label for="username" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Tên đăng nhập</label>
+            <div class="w-full h-11 border-b border-stone-100 flex items-center text-stone-800 font-medium">
+              {username || 'N/A'}
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label for="email" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Địa chỉ Email</label>
+            <div class="w-full h-11 border-b border-stone-100 flex items-center justify-between">
+              <span class="text-stone-800 font-medium">{maskEmail(email)}</span>
+              <button class="text-[11px] text-luxury-copper hover:underline font-bold uppercase tracking-wider">Thay đổi</button>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label for="fullname" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Họ và tên</label>
+            <input
+              id="fullname"
+              type="text"
+              bind:value={name}
+              placeholder="Nhập họ tên..."
+              class="w-full h-11 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 placeholder:text-stone-300"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Giới tính</label>
+            <div class="flex items-center gap-8 h-11">
+              {#each [['Nam', 'MALE'], ['Nữ', 'FEMALE'], ['Khác', 'OTHER']] as [label, val]}
+                <label class="flex items-center gap-3 cursor-pointer group">
+                  <div class="w-4 h-4 rounded-full border border-stone-300 flex items-center justify-center transition-all group-hover:border-luxury-copper {gender === val ? 'border-luxury-copper' : ''}">
+                    {#if gender === val}
+                      <div class="w-2 h-2 bg-luxury-copper rounded-full" in:fade></div>
+                    {/if}
+                  </div>
+                  <input type="radio" bind:group={gender} value={val} class="hidden" />
+                  <span class="text-[13px] text-stone-600 group-hover:text-stone-900 transition-colors">{label}</span>
+                </label>
+              {/each}
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <label class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Ngày sinh</label>
+          <div class="flex gap-4">
+             <div class="flex-1 border-b border-stone-200">
+               <select bind:value={birthDay} class="w-full h-11 bg-transparent outline-none text-[14px] text-stone-800 cursor-pointer appearance-none">
+                 {#each days as d}<option value={d}>{d}</option>{/each}
+               </select>
+             </div>
+             <div class="flex-1 border-b border-stone-200">
+               <select bind:value={birthMonth} class="w-full h-11 bg-transparent outline-none text-[14px] text-stone-800 cursor-pointer appearance-none">
+                 {#each months as m}<option value={m}>Tháng {m}</option>{/each}
+               </select>
+             </div>
+             <div class="flex-1 border-b border-stone-200">
+               <select bind:value={birthYear} class="w-full h-11 bg-transparent outline-none text-[14px] text-stone-800 cursor-pointer appearance-none">
+                 {#each years as y}<option value={y}>{y}</option>{/each}
+               </select>
+             </div>
+          </div>
+        </div>
+      </div>
+    {:else}
+      <SkinProfile bind:data={skinData} />
+    {/if}
+  </div>
+
+  <!-- Footer Action -->
+  <div class="pt-10 flex justify-center">
+    <button
+      onclick={handleSave}
+      disabled={isSaving}
+      class="group relative px-12 py-3 bg-stone-900 text-white overflow-hidden transition-all duration-500 hover:shadow-[0_10px_30px_rgba(0,0,0,0.15)] disabled:opacity-50"
+    >
+      <div class="absolute inset-0 bg-luxury-copper translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+      <span class="relative z-10 text-[12px] uppercase tracking-[4px] font-bold">
+        {isSaving ? 'Đang lưu hồ sơ...' : 'Cập nhật thay đổi'}
+      </span>
+    </button>
+  </div>
 </div>
+
+<style>
+  :global(.luxury-copper) {
+    color: #c5a059;
+  }
+  :global(.bg-luxury-copper) {
+    background-color: #c5a059;
+  }
+  :global(.border-luxury-copper) {
+    border-color: #c5a059;
+  }
+</style>

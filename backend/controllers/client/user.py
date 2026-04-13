@@ -9,6 +9,7 @@ import logging
 from backend.database.models import User
 from backend.database.repositories import MediaRegistryRepository
 from backend.schemas.user import UserResponse, UserUpdatePayload
+from backend.schemas.order import OrderListResponse, OrderResponse
 from backend.schemas.common import SuccessResponse
 from backend.services.user_service import user_service
 from backend.services.media.media_service import media_service
@@ -50,31 +51,68 @@ class ClientUserController(Controller):
         if not user_state:
             from litestar.exceptions import NotAuthorizedException
             raise NotAuthorizedException("User not authenticated")
-            
+
         user_id = user_state.get("id")
-        
-        # We use a restricted update for clients (can't change roles/status)
-        update_data = data.model_dump(exclude_unset=True)
-        # Security: Remove keys that customers shouldn't touch
-        update_data.pop("roles", None)
-        update_data.pop("status", None)
-        
-        res = await user_service.update_user(db_session, user_id, update_data)
-        
-        # Additional fields from Elite V3.0
-        stmt = select(User).where(User.id == user_id)
+
+        try:
+            # We use a restricted update for clients (can't change roles/status)
+            update_data = data.model_dump(exclude_unset=True)
+            # Security: Remove keys that customers shouldn't touch
+            update_data.pop("roles", None)
+            update_data.pop("status", None)
+
+            # Elite V3.0: Delegate all field mapping to Service
+            await user_service.update_user(db_session, user_id, update_data)
+            await db_session.commit()
+            
+            return SuccessResponse(ok=True, id=user_id)
+        except Exception as e:
+            logger.exception("Error updating profile for user %s: %s", user_id, str(e))
+            raise e
+
+    @get("/orders")
+    async def get_my_orders(
+        self,
+        request: Request,
+        db_session: AsyncSession,
+        limit: int = 20,
+        offset: int = 0,
+        status: Optional[str] = None
+    ) -> OrderListResponse:
+        """
+        Elite V3.0: Fetch order history for the current authenticated user.
+        """
+        from backend.database.models.commerce import Order
+        from sqlalchemy import and_, select, func
+        from backend.database import current_tenant_id
+
+        user_state = request.scope.get("state", {}).get("user")
+        if not user_state:
+            from litestar.exceptions import NotAuthorizedException
+            raise NotAuthorizedException("User not authenticated")
+
+        user_id = user_state.get("id")
+
+        conditions = [
+            Order.user_id == user_id,
+            Order.deleted_at == None,
+            Order.tenant_id == (current_tenant_id.get() or "default")
+        ]
+
+        if status and status != "all":
+            conditions.append(Order.status == status.upper())
+
+        # Count total
+        count_stmt = select(func.count(Order.id)).where(and_(*conditions))
+        total = await db_session.scalar(count_stmt) or 0
+
+        # Fetch data
+        stmt = select(Order).where(and_(*conditions)).limit(limit).offset(offset).order_by(Order.created_at.desc())
         result = await db_session.execute(stmt)
-        user = result.scalar_one_or_none()
-        if user:
-            if "gender" in update_data:
-                user.gender = update_data["gender"]
-            if "dob" in update_data:
-                user.dob = update_data["dob"]
-            if "avatar_url" in update_data:
-                user.avatar_url = update_data["avatar_url"]
-                
-        await db_session.commit()
-        return res
+        orders = result.scalars().all()
+
+        data = [OrderResponse.model_validate(order) for order in orders]
+        return OrderListResponse(data=data, total=total)
 
     @post("/avatar")
     async def upload_avatar(

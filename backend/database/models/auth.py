@@ -39,6 +39,7 @@ class User(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     gender: Mapped[Optional[str]] = mapped_column(String) # MALE, FEMALE, OTHER
     dob: Mapped[Optional[sa.DateTime]] = mapped_column(sa.DateTime(timezone=True))
     avatar_url: Mapped[Optional[str]] = mapped_column(String)
+    extra_metadata: Mapped[Optional[dict]] = mapped_column(JSON, default=dict) # Elite V3.0: Skin profile, tier, etc.
 
     security_stamp: Mapped[str] = mapped_column(String, default=lambda: str(uuid.uuid4()))
     

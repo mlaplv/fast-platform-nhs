@@ -5,9 +5,10 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { getNotificationState } from '$lib/state/notification.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
-  
+  import { browser } from '$app/environment';
+
   import { untrack } from 'svelte';
-  
+
   const ui = getClientUi();
   const notifStore = getNotificationState();
 
@@ -15,12 +16,15 @@
   let bellContainer = $state<HTMLElement>();
 
   // Elite V3.0 Reactivity: Automatically fetch when authenticated
-  // CNS V89: Using untrack to prevent infinite loop from store state changes
+  // CNS V89: Using untrack and small delay to prevent hydration race conditions (Fix 409 Conflict)
   $effect(() => {
-    if (authStore.isAuthenticated) {
-      untrack(() => {
-        notifStore.fetchNotifications();
-      });
+    if (browser && authStore.isAuthenticated) {
+      const timer = setTimeout(() => {
+        untrack(() => {
+          notifStore.fetchNotifications();
+        });
+      }, 300);
+      return () => clearTimeout(timer);
     } else {
       isOpen = false;
     }

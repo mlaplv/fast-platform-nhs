@@ -5,7 +5,21 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  username?: string;
   role: string;
+  gender?: string;
+  dob?: string;
+  avatar_url?: string;
+  extra_metadata?: {
+    tier?: 'MEMBER' | 'SILVER' | 'GOLD' | 'PLATINUM';
+    points?: number;
+    skinProfile?: {
+      skinType: string;
+      concerns: string[];
+      sensitivity: number;
+    };
+    [key: string]: any;
+  };
 }
 
 class AuthStore {
@@ -59,6 +73,40 @@ class AuthStore {
       });
 
       getClientUi().showToast(`Hẹn gặp lại ${name}!`, 'info');
+    }
+  }
+
+  /**
+   * Elite V3.0: Sync partial user data to state and localStorage.
+   * Ensures UI updates immediately and persistence across reloads.
+   */
+  syncUser(partial: Partial<User>) {
+    if (!this.user) return;
+    
+    // Deep merge extra_metadata if present
+    if (partial.extra_metadata && this.user.extra_metadata) {
+      this.user.extra_metadata = {
+        ...this.user.extra_metadata,
+        ...partial.extra_metadata
+      };
+      // Special handling for skinProfile nested merge
+      if (partial.extra_metadata.skinProfile && this.user.extra_metadata.skinProfile) {
+        this.user.extra_metadata.skinProfile = {
+          ...this.user.extra_metadata.skinProfile,
+          ...partial.extra_metadata.skinProfile
+        };
+      }
+    }
+
+    // Update other top-level fields
+    Object.keys(partial).forEach(key => {
+      if (key !== 'extra_metadata' && partial[key as keyof User] !== undefined) {
+        (this.user as any)[key] = partial[key as keyof User];
+      }
+    });
+
+    if (browser) {
+      localStorage.setItem('user_info', JSON.stringify(this.user));
     }
   }
 

@@ -6,21 +6,30 @@ export function createNotificationState() {
   const state = $state({
     notifications: [] as Notification[],
     isLoading: false,
+    hasInit: false,
   });
 
   async function fetchNotifications() {
     if (!authStore.isAuthenticated) {
       state.notifications = [];
+      state.hasInit = false;
       return;
     }
+    // Prevent overlapping requests
     if (state.isLoading) return;
+
     state.isLoading = true;
     try {
       const res = await apiClient.get<{ data: Notification[] }>(
         "/api/v1/client/notifications",
       );
       state.notifications = res.data || [];
-    } catch {
+      state.hasInit = true; // CNS V90.1: Successfully loaded at least once
+    } catch (e: any) {
+      // Ignore 409 Conflict as it might be a temporary state or duplicate fetch
+      if (e.status !== 409) {
+        console.error("Failed to fetch notifications", e);
+      }
       state.notifications = [];
     } finally {
       state.isLoading = false;
