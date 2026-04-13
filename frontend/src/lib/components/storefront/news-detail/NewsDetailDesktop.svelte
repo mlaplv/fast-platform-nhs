@@ -29,7 +29,7 @@
       <nav class="flex items-center gap-2 text-[12px] text-gray-400 mb-4 font-medium uppercase tracking-wider">
         <a href="/" class="hover:text-[#ee4d2d] transition-colors">Trang chủ</a>
         <span>/</span>
-        <a href="/tin-tuc" class="hover:text-[#ee4d2d] transition-colors">Tin tức</a>
+        <a href="/bai-viet" class="hover:text-[#ee4d2d] transition-colors">Bài viết</a>
         <span>/</span>
         <span class="text-gray-900 line-clamp-1">{article.title}</span>
       </nav>
@@ -105,7 +105,7 @@
 
       <!-- Bottom Navigation -->
       <div class="mt-8 flex justify-between items-center">
-          <a href="/tin-tuc" class="text-[11px] font-black uppercase tracking-widest text-[#ee4d2d] flex items-center gap-2 hover:gap-4 transition-all">
+          <a href="/bai-viet" class="text-[11px] font-black uppercase tracking-widest text-[#ee4d2d] flex items-center gap-2 hover:gap-4 transition-all">
              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M7 16l-4-4m0 0l4-4m-4 4h18" /></svg>
              Quay về trang tin
           </a>

@@ -26,7 +26,7 @@
     { label: "Đơn hàng", icon: ShoppingCart, widget: "ORDER_MANAGEMENT", color: "text-vibrant-purple", bg: "bg-vibrant-purple/10", border: "border-vibrant-purple/20" },
     { label: "Campaigns", icon: Megaphone, widget: "CAMPAIGNS", color: "text-hacker-green", bg: "bg-hacker-green/10", border: "border-hacker-green/20" },
     { label: "Sản phẩm", icon: Package, widget: "PRODUCT_MANAGEMENT", color: "text-neon-cyan", bg: "bg-neon-cyan/10", border: "border-neon-cyan/20" },
-    { label: "Tin tức", icon: Newspaper, widget: "NEWS_MANAGEMENT", color: "text-fuchsia-400", bg: "bg-fuchsia-400/10", border: "border-fuchsia-400/20" },
+    { label: "Bài viết", icon: Newspaper, widget: "NEWS_MANAGEMENT", color: "text-fuchsia-400", bg: "bg-fuchsia-400/10", border: "border-fuchsia-400/20" },
     { label: "Nhân viên", icon: Users, widget: "USER_MANAGEMENT", color: "text-[#39FF14]", bg: "bg-[#39FF14]/10", border: "border-[#39FF14]/20" }
   ];
 

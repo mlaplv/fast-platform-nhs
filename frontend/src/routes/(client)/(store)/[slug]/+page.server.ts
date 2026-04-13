@@ -24,15 +24,15 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
   // Rule 2.2: Standardize Structure
   // 1. If it ends with '/', it MUST be a Category
   if (hasTrailingSlash) {
-    if (slug === 'tin-tuc') {
-       // News list is explicitly NOT allowed with a trailing slash as per Sếp's simplified rule
-       throw error(404, { message: "Không tìm thấy nội dung (Dấu '/' không được phép cho tin bài)" });
+    if (slug === 'bai-viet') {
+      // News list is explicitly NOT allowed with a trailing slash as per Sếp's simplified rule
+      throw error(404, { message: "Không tìm thấy nội dung (Dấu '/' không được phép cho tin bài)" });
     }
 
     // TĂNG GIỚI HẠN LÊN 49: 1 sp cho banner + 48 sp cho grid (4 cột x 12 hàng)
     const productsUrl = `${apiUrl}/api/v1/client/products/?category_slug=${slug}&limit=49&status=ACTIVE`;
     try {
-      const catRes = await fetch(productsUrl, { 
+      const catRes = await fetch(productsUrl, {
         headers: { 'x-tenant': tenantId },
         signal: AbortSignal.timeout(5000)
       });
@@ -52,15 +52,15 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
     } catch (e) {
       console.error(`[CATEGORY FETCH FAILED] slug: ${slug}`, e);
     }
-    
+
     throw error(404, { message: `Danh mục không tồn tại: ${slug}/` });
   }
 
   // 2. If it does NOT end with '/', it's either News List or Product
-  if (slug === 'tin-tuc') {
+  if (slug === 'bai-viet') {
     const newsUrl = `${apiUrl}/api/v1/client/news`;
     try {
-      const newsRes = await fetch(newsUrl, { 
+      const newsRes = await fetch(newsUrl, {
         headers: { 'x-tenant': tenantId },
         signal: AbortSignal.timeout(5000)
       });
@@ -68,14 +68,14 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
         const data = await newsRes.json();
         return {
           type: 'news',
-          categoryName: 'GÓC TIN TỨC ELITE',
+          categoryName: 'Hướng dẫn - kiến thức',
           items: (Array.isArray(data) ? data : (data.data || data.items || [])) as Article[]
         };
       }
     } catch (e) {
       console.error(`[NEWS FETCH FAILED]`, e);
     }
-    throw error(404, { message: "Hiện tại chưa có tin tức nào." });
+    throw error(404, { message: "Hiện tại chưa có bài viết nào." });
   }
 
   // 3. Try Product (Standard Slug)
@@ -83,7 +83,7 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
   const relatedUrl = `${apiUrl}/api/v1/client/products/?limit=9`; // Fetch 9 to safely exclude current product and keep 8
 
   try {
-    const prodRes = await fetch(productUrl, { 
+    const prodRes = await fetch(productUrl, {
       headers: { 'x-tenant': tenantId },
       signal: AbortSignal.timeout(5000)
     });
@@ -96,7 +96,7 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
       // Load newest products for recommendation section
       let relatedProducts = [];
       try {
-        const relRes = await fetch(relatedUrl, { 
+        const relRes = await fetch(relatedUrl, {
           headers: { 'x-tenant': tenantId },
           signal: AbortSignal.timeout(5000)
         });
@@ -131,7 +131,7 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
   // Phase 2026: Friendly URL Fallback - If not a product, try fetching as News/Article
   const articleUrl = `${apiUrl}/api/v1/client/news/slug/${slug}`;
   try {
-    const artRes = await fetch(articleUrl, { 
+    const artRes = await fetch(articleUrl, {
       headers: { 'x-tenant': tenantId },
       signal: AbortSignal.timeout(5000)
     });

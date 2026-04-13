@@ -1,11 +1,7 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
-  import Plus from "lucide-svelte/icons/plus";
-  import Search from "lucide-svelte/icons/search";
   import Trash2 from "lucide-svelte/icons/trash-2";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import Newspaper from "lucide-svelte/icons/newspaper";
-  import ChevronLeft from "lucide-svelte/icons/chevron-left";
   import type { Article, BaseWidgetProps } from "$lib/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
@@ -13,7 +9,8 @@
   import { slugify } from "$lib/utils/format";
   import { onMount, tick } from "svelte";
 
-  import NewsList from "./NewsList.svelte";
+  import NewsToolbar from "./NewsToolbar.svelte";
+  import NewsTable from "./NewsTable.svelte";
   import OrderPagination from "./OrderPagination.svelte";
   import NewsForm from "./NewsForm.svelte";
 
@@ -44,6 +41,7 @@
   let formSeoOgImage = $state<string | null>(null);
   let formFeaturedImage = $state<string | null>(null);
   let showDraftForm = $state(false);
+  let isHeaderCollapsed = $state(false);
 
   let pageSize = $state(10);
   let showPurgeConfirm = $state(false);
@@ -84,7 +82,7 @@
     } catch (err) {
       console.error("Failed to load news categories:", err);
       // Fallback
-      categories = ["Tin tức", "Chính sách"];
+      categories = ["Bài viết", "Chính sách"];
       if (!formCategory) formCategory = categories[0];
     }
   }
@@ -231,6 +229,15 @@
 
   function selectAll() { selectedIds = new Set(articles.map(a => a.id)); }
   function deselectAll() { selectedIds = new Set(); }
+
+  function toggleSelectAll() {
+    const allOnPage = articles.map(a => a.id);
+    const isAllSelected = allOnPage.length > 0 && allOnPage.every(id => selectedIds.has(id));
+    const updated = new Set(selectedIds);
+    if (isAllSelected) { allOnPage.forEach(id => updated.delete(id)); }
+    else { allOnPage.forEach(id => updated.add(id)); }
+    selectedIds = updated;
+  }
   function invertSelection() {
     const current = new Set(selectedIds);
     selectedIds = new Set(articles.filter(a => !current.has(a.id)).map(a => a.id));
@@ -312,109 +319,69 @@
   {errors}
 />
 
-<div class="w-full h-full flex flex-col overflow-hidden relative bg-[#050505]">
-  <!-- ======================== LIST VIEW MODE ======================== -->
-  <div class="w-full h-full flex flex-col overflow-hidden" transition:fade={{ duration: 250 }}>
-    <!-- Toolbar -->
-      <div class="flex flex-col gap-4 px-4 sm:px-6 py-5 border-b border-white/5 shrink-0">
-        <div class="flex items-center justify-between gap-3">
-          <div class="flex items-center gap-2.5">
-            <Newspaper size={16} class="text-cyan-500" />
-            <h2 class="text-sm font-black uppercase tracking-[0.2em] text-white/80">Intelligence_Archive</h2>
-            <span class="px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-[9px] font-black text-cyan-400 uppercase tracking-widest">{totalArticles}</span>
-          </div>
-
-          <div class="flex items-center gap-2">
-            <div class="hidden sm:flex items-center gap-1.5 text-[9px] font-mono text-gray-500 uppercase tracking-widest">
-              <span>Show</span>
-              <select
-                value={pageSize}
-                onchange={(e) => { pageSize = Number(e.currentTarget.value); currentPage = 1; loadArticles(); }}
-                class="bg-black/60 border border-white/10 rounded-md px-1.5 py-1 text-cyan-500 text-[9px] font-mono font-bold focus:outline-none focus:border-cyan-500/50 cursor-pointer appearance-none text-center w-12"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
-              <span>of {totalArticles}</span>
-            </div>
-
-            <button onclick={loadArticles} title="Force Resync"
-              class="p-2.5 text-gray-500 hover:text-cyan-400 border border-white/5 hover:border-cyan-500/30 rounded-xl bg-black/40 hover:bg-cyan-500/10 transition-all"
-            >
-              <RefreshCw size={14} class={isLoading ? "animate-spin text-cyan-400" : ""} />
-            </button>
-
-            <button onclick={openCreate}
-              class="flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] bg-cyan-500 text-black rounded-2xl hover:bg-cyan-400 active:scale-95 transition-all duration-300 shadow-[0_8px_30px_rgba(6,182,212,0.3)]"
-            >
-              <Plus size={14} />
-              <span class="hidden sm:inline">New_Intel</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Filters -->
-        <div class="flex flex-col xl:flex-row xl:items-center gap-3 bg-white/[0.01] border border-white/5 p-3 rounded-2xl w-full">
-          <div class="flex-1 relative group">
-            <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-              <Search size={14} class="text-gray-600 group-focus-within:text-cyan-400 transition-colors" />
-            </div>
-            <input
-              value={searchInput}
-              oninput={handleSearchInput}
-              type="text"
-              placeholder="SEARCH_CONTENT_STREAM..."
-              class="w-full bg-black/40 border border-white/5 rounded-xl py-3 pl-11 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-700 focus:outline-none focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/10 transition-all uppercase tracking-widest"
-            />
-          </div>
-
-          <div class="flex flex-col sm:flex-row xl:items-center gap-3 sm:gap-4 xl:gap-0">
-            <div class="flex gap-1 p-1 bg-black/40 border border-white/5 rounded-xl overflow-x-auto custom-scrollbar">
-              <span class="px-3 text-[7px] font-mono text-white/20 uppercase tracking-[0.3em] flex-shrink-0 self-center">Category_</span>
-              {#each ["all", ...categories] as c}
-                <button
-                  onclick={() => handleCategoryChange(c)}
-                  class="px-4 py-2 text-[8px] font-mono uppercase tracking-[0.2em] rounded-lg transition-all flex-shrink-0 {activeCategoryFilter === c ? 'bg-cyan-500/10 text-cyan-400 ring-1 ring-cyan-500/30' : 'text-gray-500 hover:text-white hover:bg-white/5'}"
-                >{c === "all" ? "Tất cả" : c}</button>
-              {/each}
-            </div>
-
-            <div class="hidden xl:block w-[1px] h-6 bg-white/10 mx-2"></div>
-
-            <div class="flex gap-1 p-1 bg-black/40 border border-white/5 rounded-xl overflow-x-auto custom-scrollbar">
-              {#each ["all", "published", "draft"] as t}
-                <button
-                  onclick={() => handleTabChange(t)}
-                  class="px-4 py-2 text-[8px] font-mono uppercase tracking-[0.2em] rounded-lg transition-all flex-shrink-0 {activeTab === t ? 'bg-cyan-500/10 text-cyan-400 ring-1 ring-cyan-500/30' : 'text-gray-500 hover:text-white hover:bg-white/5'}"
-                >{t === "all" ? "KHO_TỔNG" : t === "published" ? "BÀI_LIVE" : "BẢN_NHÁP"}</button>
-              {/each}
-            </div>
-          </div>
+<div class="w-full h-full flex flex-col relative bg-[#050505] isolation-auto">
+  <!-- Fixed Background Layer -->
+  <div class="fixed inset-0 bg-[#050505] pointer-events-none -z-10"></div>
+  
+  <div class="flex flex-col gap-6 p-6 border-b border-white/[0.05] relative z-10 bg-[#050505]">
+    {#if !isHeaderCollapsed}
+      <div transition:fade={{ duration: 200 }} class="flex flex-col gap-4">
+        <div class="flex items-center gap-3">
+          <Newspaper size={20} class="text-cyan-500" />
+          <h2 class="text-lg font-black uppercase tracking-[0.3em] text-white/90">Intelligence_Stream</h2>
+          <span class="px-3 py-1 bg-cyan-400/10 border border-cyan-400/20 rounded-full text-[10px] font-black text-cyan-400 uppercase tracking-widest">{totalArticles} nodes</span>
         </div>
       </div>
+    {/if}
 
-      <!-- Article List -->
-      <div class="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-6">
-        {#if isLoading}
-          <div class="h-full flex items-center justify-center animate-pulse">
-            <span class="text-[9px] font-mono text-cyan-500/40 uppercase tracking-[0.3em]">Loading Content...</span>
-          </div>
-        {:else}
-          <NewsList
-            {articles}
-            {selectedIds}
-            onToggleSelect={toggleSelect}
-            onEdit={openEdit}
-            onDelete={confirmDelete}
-          />
-        {/if}
-      </div>
+    <NewsToolbar
+      {searchInput}
+      {activeTab}
+      {activeCategoryFilter}
+      {categories}
+      bind:pageSize
+      {selectedIds}
+      {totalArticles}
+      {isLoading}
+      bind:isHeaderCollapsed
+      onSearchInput={handleSearchInput}
+      onTabChange={handleTabChange}
+      onCategoryChange={handleCategoryChange}
+      onPageSizeChange={() => { currentPage = 1; loadArticles(); }}
+      onOpenCreate={openCreate}
+      onLoadArticles={loadArticles}
+    />
+  </div>
 
-      <div class="px-4 sm:px-6 shrink-0">
-        <OrderPagination bind:currentPage {totalPages} {pageSize} totalItems={totalArticles} onPageChange={() => loadArticles()} />
+  <div class="flex-1 overflow-y-auto custom-scrollbar relative bg-[#050505]/50">
+    {#if isLoading}
+      <div class="h-full flex items-center justify-center animate-pulse">
+        <span class="text-[9px] font-mono text-cyan-500/40 uppercase tracking-[0.3em]">Synching Neural Data...</span>
       </div>
-    </div>
+    {:else}
+      <div class="pl-6 border-l border-white/5 ml-4 my-2 mb-[80px]">
+        <NewsTable
+          {articles}
+          {selectedIds}
+          onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAll}
+          onEdit={openEdit}
+          onDelete={confirmDelete}
+        />
+      </div>
+    {/if}
+  </div>
+
+  <div class="absolute bottom-0 left-0 right-0 z-20">
+    <OrderPagination
+      bind:currentPage
+      {totalPages}
+      {pageSize}
+      totalItems={totalArticles}
+      onPageChange={() => loadArticles()}
+    />
+  </div>
+
 
   <!-- NEURAL COMMAND BAR (Floating Bulk Actions) -->
   {#if selectedIds.size > 0}

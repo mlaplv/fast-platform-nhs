@@ -65,7 +65,7 @@ class RouterExecutor:
 
     async def _handle_learn(self, d) -> IntentResponse:
         kw = normalize_vn(d.get("learn_keyword", "").lower()); tgt = d.get("learn_target", "").lower()
-        t_map = {"doanh thu": "show_revenue_chart", "đơn hàng": "show_order_management", "sản phẩm": "show_product_management", "nhân viên": "show_user_management", "tin tức": "show_news_management", "cài đặt": "show_voice_settings"}
+        t_map = {"doanh thu": "show_revenue_chart", "đơn hàng": "show_order_management", "sản phẩm": "show_product_management", "nhân viên": "show_user_management", "Bài viết": "show_news_management", "cài đặt": "show_voice_settings"}
         res_w = t_map.get(tgt, tgt)
         cur = await xohi_memory.get_system_intent_mapping()
         is_up = kw in cur; cur[kw] = res_w; await xohi_memory.set_system_intent_mapping(cur)

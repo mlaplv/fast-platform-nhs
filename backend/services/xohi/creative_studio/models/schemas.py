@@ -9,7 +9,7 @@ class AgentSignal(str, Enum):
     FAIL_GRACEFULLY = "FAIL_GRACEFULLY"
 
 class CategoryEnum(str, Enum):
-    TIN_TUC = "Tin tức"
+    TIN_TUC = "Bài viết"
     CHINH_SACH = "Chính sách"
 
 class CampaignCategory(str, Enum):
@@ -29,7 +29,7 @@ class TopicSeed(BaseModel):
     secondary_keywords: List[str] = Field(description="Danh sách từ khóa bổ trợ hoặc Thông số/Đặc tính then chốt")
     persona: str = Field(description="Mô tả phong cách (e.g. Chuyên gia review, Copywriter bán hàng)")
     description: str = Field(description="Mô tả SEO (Meta Description) hoặc Tóm tắt đặc điểm nổi bật SP")
-    category: CategoryEnum = Field(default=CategoryEnum.TIN_TUC, description="Phân loại hệ thực thể (Tin tức hoặc Sản phẩm)")
+    category: CategoryEnum = Field(default=CategoryEnum.TIN_TUC, description="Phân loại hệ thực thể (Bài viết hoặc Sản phẩm)")
     category_id: Optional[str] = Field(default=None, description="ID danh mục cụ thể từ Database (UUID)")
     ground_truth: Optional[str] = Field(default=None, description="Tóm tắt bối cảnh thực tế trinh sát được từ Google (Phase 15.1)")
     creation_config: Dict[str, object] = Field(

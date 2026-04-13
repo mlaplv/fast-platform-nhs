@@ -83,19 +83,30 @@ class AuthStore {
   syncUser(partial: Partial<User>) {
     if (!this.user) return;
     
-    // Deep merge extra_metadata if present
-    if (partial.extra_metadata && this.user.extra_metadata) {
+    // Elite V3.1: Robust deep merge for extra_metadata
+    if (partial.extra_metadata) {
+      if (!this.user.extra_metadata) {
+        this.user.extra_metadata = {};
+      }
+
+      const currentMeta = this.user.extra_metadata;
+      const partialMeta = partial.extra_metadata;
+
+      // Step 1: Merge top-level extra_metadata keys
       this.user.extra_metadata = {
-        ...this.user.extra_metadata,
-        ...partial.extra_metadata
+        ...currentMeta,
+        ...partialMeta
       };
-      // Special handling for skinProfile nested merge
-      if (partial.extra_metadata.skinProfile && this.user.extra_metadata.skinProfile) {
+
+      // Step 2: Special handling for nested skinProfile
+      if (partialMeta.skinProfile) {
         this.user.extra_metadata.skinProfile = {
-          ...this.user.extra_metadata.skinProfile,
-          ...partial.extra_metadata.skinProfile
+          ...(currentMeta.skinProfile || {}),
+          ...partialMeta.skinProfile
         };
       }
+      
+      console.log('🔄 [AuthStore] Đã đồng bộ extra_metadata:', $state.snapshot(this.user.extra_metadata));
     }
 
     // Update other top-level fields

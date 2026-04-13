@@ -43,7 +43,7 @@ class Article(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     seo_keywords: Mapped[Optional[str]] = mapped_column(String)
     seo_og_image: Mapped[Optional[str]] = mapped_column(String)
     status: Mapped[str] = mapped_column(String, default="DRAFT")
-    category: Mapped[str] = mapped_column(String, default="Tin tức")
+    category: Mapped[str] = mapped_column(String, default="Bài viết")
     category_id: Mapped[Optional[str]] = mapped_column(String, sa.ForeignKey('categories.id'))
     views: Mapped[int] = mapped_column(Integer, default=0)
     featured_image: Mapped[Optional[str]] = mapped_column(String)

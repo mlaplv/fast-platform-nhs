@@ -121,7 +121,7 @@
     const manual = [
         {
             title: "SYC — Neural Synchronization",
-            desc: "Đồng bộ hóa toàn bộ cơ sở dữ liệu (Sản phẩm, Tin tức) vào não bộ AI. Hãy chạy SYC sau khi cập nhật dữ liệu mới để AI luôn thông minh nhất.",
+            desc: "Đồng bộ hóa toàn bộ cơ sở dữ liệu (Sản phẩm, Bài viết) vào não bộ AI. Hãy chạy SYC sau khi cập nhật dữ liệu mới để AI luôn thông minh nhất.",
             impact: "Tốn tài nguyên trong lúc chạy, nhưng làm sắc bén tri thức Vector sau đó."
         },
         {

@@ -4,9 +4,20 @@ import { ServerEnv } from '$lib/server/env';
 
 export const trailingSlash = 'always';
 
-export const load: PageServerLoad = async ({ fetch }) => {
+export const load: PageServerLoad = async ({ fetch, locals }) => {
   const apiUrl = ServerEnv.INTERNAL_API_URL;
-  const tenantId = ServerEnv.TENANT_ID;
+  const tenantId = ServerEnv.TENANT_ID; // Elite V2.2: Hard tenant ID for backend queries
+  const currentTenant = locals.tenant; // Dynamic context for logic branching
+
+  // Elite V2.2: Bypass storefront fetch for admin tenant
+  if (currentTenant === 'admin') {
+      return {
+          home: null,
+          timestamp: new Date().toISOString(),
+          tenant: 'admin'
+      };
+  }
+
   const targetUrl = `${apiUrl}/api/v1/client/home`;
 
     let res;

@@ -11,6 +11,7 @@
   const nanobot = useNanobot();
   import { formatCurrency } from "$lib/utils/format";
   import type { Product } from "$lib/types";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 
   function isVideoUrl(url: string): boolean {
     if (!url) return false;
@@ -68,8 +69,8 @@
 </script>
 
 <!-- Responsive Table Header (Hidden on Mobile) -->
-<div class="hidden md:grid grid-cols-[40px_minmax(250px,2fr)_1fr_1fr_1fr_1fr_100px] gap-4 px-4 py-4 sticky top-0 bg-[#050505] border-b border-white/10 uppercase tracking-widest text-[9px] font-bold font-mono text-gray-400 z-[var(--z-admin-table-header)]"
-     style="backdrop-filter: blur(8px);">
+<div class="hidden md:grid grid-cols-[40px_minmax(250px,2fr)_1fr_1fr_1fr_1fr_100px] gap-4 px-4 py-4 sticky top-0 bg-black/80 border-b border-[#FFB800]/20 uppercase tracking-widest text-[9px] font-extrabold font-mono text-[#FFB800] shadow-2xl"
+     style="z-index: {Z_INDEX_ADMIN.STICKY_HEADER}; backdrop-filter: blur(16px);">
   <div class="text-center flex justify-center items-center">
     <button
       onclick={(e) => { e.stopPropagation(); onToggleSelectAll(); }}

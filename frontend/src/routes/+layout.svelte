@@ -10,24 +10,37 @@
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import ToastProvider from "$lib/components/storefront/ui/ToastProvider.svelte";
 
-  // Elite V2.2: Ensure root initialization of context
-  const ui = setClientUi();
+  // Elite V2.2: Context initialization gated by tenant
+  let { children, data } = $props();
+
+  const isAdmin = $derived(data.tenant === 'admin');
+  const ui = isAdmin ? null : setClientUi();
+  
   setNanobotContext();
-  setCartStore();
+  
+  if (!isAdmin) {
+    setCartStore();
+  }
 
   onMount(() => {
-    return ui.initObservers();
+    if (ui) return ui.initObservers();
   });
 
-  let { children } = $props();
+  const siteName = $derived(
+    isAdmin 
+    ? "Xohi Admin Dashboard" 
+    : (ui?.settings?.basic_info?.site_name || ui?.settings?.site_name || "Micsmo Elite")
+  );
+  const metaDescription = $derived(
+    isAdmin
+    ? "Hệ thống quản trị Elite V2.2"
+    : `${siteName} - Hệ thống phân phối sản phẩm chăm sóc sức khỏe Elite V2.2`
+  );
 
-  const siteName = $derived(ui.settings?.basic_info?.site_name || ui.settings?.site_name || "Micsmo Elite");
-  const metaDescription = $derived(`${siteName} - Hệ thống phân phối sản phẩm chăm sóc sức khỏe Elite V2.2`);
-
-  // Elite V2.2: Global Z-Index Injection
-  const zIndexStyles = Object.entries(Z_INDEX_CLIENT)
+  // Elite V2.2: Global Z-Index Injection (Client Only)
+  const zIndexStyles = $derived(!isAdmin ? Object.entries(Z_INDEX_CLIENT)
     .map(([key, value]) => `--z-${key.toLowerCase().replace(/_/g, '-')}: ${value};`)
-    .join(' ');
+    .join(' ') : '');
 </script>
 
 <svelte:head>
@@ -59,13 +72,15 @@
     {@render children()}
   </main>
 
-  <CartDrawer />
-  
-  {#if ui.authModal.isOpen}
-    <QuickLoginModal />
-  {/if}
+  {#if !isAdmin}
+    <CartDrawer />
+    
+    {#if ui?.authModal?.isOpen}
+      <QuickLoginModal />
+    {/if}
 
-  <ToastProvider />
+    <ToastProvider />
+  {/if}
 </div>
 
 <style>

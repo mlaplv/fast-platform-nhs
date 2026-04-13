@@ -170,7 +170,7 @@
     if (cat === "Sản phẩm") {
       editedConfig.target_entity = "product";
       editedConfig.style = "Chuyên nghiệp";
-    } else if (cat === "Tin tức" || cat === "Chính sách") {
+    } else if (cat === "Bài viết" || cat === "Chính sách") {
       editedConfig.target_entity = "article";
     }
   });
@@ -179,11 +179,11 @@
   $effect(() => {
     const title = editedKeywords?.title || "";
     if (title.toLowerCase().startsWith("viết bài:") || title.toLowerCase().startsWith("viết bài ")) {
-      editedKeywords.category = "Tin tức";
+      editedKeywords.category = "Bài viết";
       // Clean up title for neural processing
       const cleanTitle = title.replace(/^(viết bài:?\s*)/i, "");
       if (cleanTitle && cleanTitle !== title) editedKeywords.title = cleanTitle;
-      nanobot.showToast("Dạ Sếp, em đã bẻ lái sang dây chuyền TIN TỨC ạ!", "info");
+      nanobot.showToast("Dạ Sếp, em đã bẻ lái sang dây chuyền Bài viết ạ!", "info");
     } else if (title.toLowerCase().startsWith("tạo sản phẩm:") || title.toLowerCase().startsWith("tạo sản phẩm ")) {
       editedKeywords.category = "Sản phẩm";
       const cleanTitle = title.replace(/^(tạo sản phẩm:?\s*)/i, "");
@@ -295,7 +295,7 @@
             {#if editedConfig.target_entity === 'product'}
               <Globe size={14} class="text-amber-400" /> Danh mục sản phẩm
             {:else}
-              <Zap size={14} class="text-fuchsia-400" /> Danh mục tin tức
+              <Zap size={14} class="text-fuchsia-400" /> Danh mục Bài viết
             {/if}
           </label>
           
@@ -340,7 +340,7 @@
               {/if}
             {:else}
               <!-- MODE: BÀI VIẾT - Chỉ hiện danh mục hệ thống (Enum) -->
-              <option value="Tin tức" class="bg-gray-900 text-white py-3">1. Tin tức / Cập nhật mảng</option>
+              <option value="Bài viết" class="bg-gray-900 text-white py-3">1. Bài viết / Cập nhật mảng</option>
               <option value="Chính sách" class="bg-gray-900 text-white py-3">2. Chính sách / Quy định</option>
             {/if}
           </select>

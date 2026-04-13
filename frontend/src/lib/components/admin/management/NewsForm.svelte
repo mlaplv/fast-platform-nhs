@@ -166,7 +166,7 @@
               type="text"
               bind:value={formTitle}
               oninput={() => { if (!editingId) formSlug = generateSlug(formTitle); }}
-              placeholder="Nhập tiêu đề tin tức..."
+              placeholder="Nhập tiêu đề Bài viết..."
               class="field-input text-xl font-bold"
             />
             <div class="field-line"></div>

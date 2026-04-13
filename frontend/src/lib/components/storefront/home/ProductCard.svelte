@@ -65,22 +65,24 @@
 
     <div class="price-section">
       <div class="price-row">
-        <span class="current-price">
-          {finalPrice.toLocaleString('vi-VN')}<span class="symbol">đ</span>
+        <span class="current-price text-black">
+          <span class="symbol text-[#C18F7E] mr-0.5">đ</span>{finalPrice.toLocaleString('vi-VN')}
         </span>
         {#if oldPrice > 0}
-          <span class="old-price">{oldPrice.toLocaleString('vi-VN')}đ</span>
+          <span class="old-price">đ{oldPrice.toLocaleString('vi-VN')}</span>
         {/if}
       </div>
     </div>
 
     <div class="product-footer">
       <span class="sold-count">
-        {product.metadata?.reviews_count_text || '2.140+ Lượt mua'}
+        {product.metadata?.reviews_count_text || ''}
       </span>
-      <div class="location-badge">
-        Hà Nội
-      </div>
+      {#if product.metadata?.location}
+        <div class="location-badge">
+          {product.metadata.location}
+        </div>
+      {/if}
     </div>
   </div>
 </button>
@@ -121,7 +123,7 @@
     top: 0;
     right: 0;
     background: linear-gradient(135deg, #ffd839, #ffbe0b);
-    color: #ff2b54;
+    color: #C18F7E;
     padding: 4px 6px;
     display: flex;
     flex-direction: column;
@@ -200,9 +202,8 @@
   .current-price {
     font-size: 16px;
     font-weight: 900;
-    color: #ff2b54;
   }
-  .symbol { font-size: 12px; margin-left: 1px; text-decoration: underline; }
+  .symbol { font-size: 12px; text-decoration: underline; font-weight: 900; }
 
   .old-price {
     font-size: 11px;

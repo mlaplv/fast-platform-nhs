@@ -46,8 +46,8 @@ async def sync_all_entities():
                     await media_service.sync_links(repo, str(p.id), "product", list(urls))
             logger.info(f"✅ Đã đồng bộ {len(products)} sản phẩm.")
 
-            # 2. Đồng bộ Bài viết/Tin tức
-            logger.info("📰 Đang quét Bài viết/Tin tức...")
+            # 2. Đồng bộ Bài viết/Bài viết
+            logger.info("📰 Đang quét Bài viết/Bài viết...")
             stmt_articles = select(Article).where(Article.deleted_at == None)
             articles = (await session.execute(stmt_articles)).scalars().all()
             for a in articles:

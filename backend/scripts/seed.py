@@ -144,7 +144,7 @@ async def seed_articles(session, author_id):
             excerpt=d["content"][:150] + "...",
             content=f"<p>{d['content']}</p>",
             status="PUBLISHED",
-            category="Tin tức",
+            category="Bài viết",
             featured_image=d.get("image_url"),
             author_id=author_id,
             tenant_id=TENANT_ID,

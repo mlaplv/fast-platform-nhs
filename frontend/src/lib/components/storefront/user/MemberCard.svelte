@@ -19,6 +19,18 @@
     GOLD: 'Hội viên Vàng',
     PLATINUM: 'Thượng khách Kim cương'
   };
+
+  function formatCardNumber(id: string = '') {
+    if (!id) return '0000 0000 0000 0000';
+    const cleanId = id.replace(/-/g, '').toUpperCase();
+    const segment1 = cleanId.substring(0, 4).padEnd(4, '0');
+    const segment2 = cleanId.substring(4, 8).padEnd(4, '0');
+    const segment3 = cleanId.substring(8, 12).padEnd(4, '0');
+    const segment4 = cleanId.substring(12, 16).padEnd(4, '0');
+    return `${segment1} ${segment2} ${segment3} ${segment4}`;
+  }
+
+  let cardNumber = $derived(user?.extra_metadata?.cardNumber || formatCardNumber(user?.id));
 </script>
 
 <div
@@ -46,6 +58,13 @@
       <div class="w-12 h-8 bg-white/20 backdrop-blur-md rounded-md flex items-center justify-center border border-white/30">
         <span class="text-[10px] font-bold tracking-tighter italic">CHIP</span>
       </div>
+    </div>
+
+    <!-- Card Number -->
+    <div class="flex-1 flex items-center py-2">
+      <p class="text-lg md:text-xl font-mono tracking-[4px] text-white/90 drop-shadow-md select-all">
+        {cardNumber}
+      </p>
     </div>
 
     <div class="space-y-3">

@@ -66,7 +66,7 @@
   <div class="p-10 text-center border-t border-gray-100 bg-gray-50">
       <span class="text-[10px] font-black text-gray-300 uppercase tracking-[0.4em]">Kết thúc bài viết</span>
       <div class="mt-6">
-          <a href="/tin-tuc" class="inline-block px-10 py-4 bg-black text-white text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl">
+          <a href="/bai-viet" class="inline-block px-10 py-4 bg-black text-white text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl">
             Quay về tin bài
           </a>
       </div>

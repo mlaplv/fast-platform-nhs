@@ -16,7 +16,7 @@
     categoryName?: string;
   }
 
-  let { newsList = [], categoryName = "Tin tức" }: Props = $props();
+  let { newsList = [], categoryName = "Bài viết" }: Props = $props();
 
   // Elite V2.2: Enhanced News Metadata (Viral 2026 Protocol)
   const enhancedNews = $derived(() => {
@@ -59,7 +59,7 @@
         <div class="absolute inset-0 bg-gradient-to-tr from-red-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
         <h2 class="text-[12px] font-black uppercase tracking-[0.2em] relative z-10 flex items-center gap-3">
            <div class="w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse"></div>
-           TIN NỔI BẬT
+           BÀI VIẾT NỔI BẬT
         </h2>
       </div>
 

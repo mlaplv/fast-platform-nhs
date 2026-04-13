@@ -22,7 +22,7 @@
         {newsList[0]?.category === 'Chính sách' ? 'Hệ thống pháp lý' : 'Hướng dẫn nâng cao'}
       </span>
       <h2 class="text-xl font-bold text-gray-900 tracking-tighter">
-        {newsList[0]?.category === 'Chính sách' ? 'Chính sách & Quy định' : 'Tin tức mới nhất'}
+        {newsList[0]?.category === 'Chính sách' ? 'Chính sách & Quy định' : 'Bài viết mới nhất'}
       </h2>
     </div>
     <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-gray-100">

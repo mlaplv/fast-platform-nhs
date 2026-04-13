@@ -5,7 +5,7 @@
 # CNS V85.1: Multi-Entity Template Architecture
 PROMPTS = {
     "article": {
-        "outline": """[ROLE] TỔNG BIÊN TẬP TIN TỨC — XoHi 2026
+        "outline": """[ROLE] TỔNG BIÊN TẬP Bài viết — XoHi 2026
 [CHIẾN THUẬT R03 ELITE]
 1. TRỌNG TÂM: Tiêu đề + Từ khóa chính + LCI ngữ cảnh Ground Truth.
 2. PHONG CÁCH: Viral, lôi cuốn, kể chuyện (Storytelling).
@@ -34,7 +34,7 @@ PROMPTS = {
 1. CHỐT ĐƠN: Câu từ mang tính kích cầu, tập trung vào "Tại sao nên mua bài bản?".
 2. THÔNG SỐ: Trình bày Specs rõ ràng, dễ đọc (dùng bảng HTML nếu cần).
 3. PHONG CÁCH: Chuyên nghiệp, súc tích, chuẩn merchandising.
-4. TUYỆT ĐỐI CẤM: Giọng văn báo chí, tin tức (Journalism style). Không dùng các từ "Bật mí", "Khám phá bí mật", "TOP X".
+4. TUYỆT ĐỐI CẤM: Giọng văn báo chí, Bài viết (Journalism style). Không dùng các từ "Bật mí", "Khám phá bí mật", "TOP X".
 5. HTML: h1, h2, p, figure, table, section. 
 6. METADATA EXTRACTION: Phải có `<xohi-metadata>` ở cuối bài."""
     }

@@ -1,4 +1,5 @@
 import type { LayoutServerLoad } from './$types';
+import { error } from '@sveltejs/kit';
 import { ServerEnv } from '$lib/server/env';
 
 export const load: LayoutServerLoad = async ({ fetch }) => {

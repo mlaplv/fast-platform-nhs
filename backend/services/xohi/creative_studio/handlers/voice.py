@@ -161,7 +161,7 @@ class VoiceHandler:
                 gold_meta["target_entity"] = "article"
                 gold_meta["style"] = "Viral"
                 clean_transcript = re.sub(r"^(adm\s+)?(viết bài:?\s*|vân bài:?\s*)", "", transcript, flags=re.IGNORECASE).strip()
-                response_msg = f"Dạ thưa Sếp, em đã bẻ lái sang dây chuyền TIN TỨC để xử lý chủ đề '{clean_transcript}' đây ạ! 🚀"
+                response_msg = f"Dạ thưa Sếp, em đã bẻ lái sang dây chuyền Bài viết để xử lý chủ đề '{clean_transcript}' đây ạ! 🚀"
             
             # Product Intent
             elif re.match(r"^(adm\s+)?(tao san pham|san pham:?)\s*", t_norm, re.IGNORECASE):

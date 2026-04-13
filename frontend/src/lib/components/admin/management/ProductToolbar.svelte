@@ -13,6 +13,8 @@
   let {
     searchInput,
     activeFilter,
+    activeCategory,
+    categories = [],
     pageSize = $bindable(),
     selectedIds,
     totalProducts,
@@ -21,6 +23,7 @@
     STATUS_MAP,
     onSearchInput,
     onFilterChange,
+    onCategoryChange,
     onPageSizeChange,
     onBulkActivate,
     onBulkDeactivate,
@@ -32,6 +35,8 @@
   } = $props<{
     searchInput: string;
     activeFilter: string;
+    activeCategory: string;
+    categories: { id: string; name: string }[];
     pageSize: number;
     selectedIds: Set<string>;
     totalProducts: number;
@@ -40,6 +45,7 @@
     STATUS_MAP: Record<string, { label: string; color: string }>;
     onSearchInput: (e: Event) => void;
     onFilterChange: (f: string) => void;
+    onCategoryChange: (c: string) => void;
     onPageSizeChange: () => void;
     onBulkActivate: () => void;
     onBulkDeactivate: () => void;
@@ -64,6 +70,25 @@
       placeholder="QUERY_CATALOG..."
       class="w-full bg-black/50 border border-white/5 rounded-xl py-3 left-0 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-[#FFB800]/50 focus:ring-2 focus:ring-[#FFB800]/20 transition-all uppercase tracking-widest shadow-inner shadow-black/50"
     />
+  </div>
+
+  <!-- Category Selection -->
+  <div class="xl:border-l xl:border-white/10 xl:pl-4">
+    <div class="relative group">
+      <select
+        value={activeCategory}
+        onchange={(e) => onCategoryChange(e.currentTarget.value)}
+        class="appearance-none bg-black/50 border border-white/5 rounded-xl py-3 pl-4 pr-10 text-[10px] font-mono text-[#FFB800] uppercase tracking-wider focus:outline-none focus:border-[#FFB800]/50 transition-all cursor-pointer min-w-[160px]"
+      >
+        <option value="" class="bg-[#050505]">ALL_CATEGORIES</option>
+        {#each categories as cat}
+          <option value={cat.id} class="bg-[#050505]">{cat.name.toUpperCase()}</option>
+        {/each}
+      </select>
+      <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 group-hover:text-[#FFB800] transition-colors">
+        <ChevronDown size={14} />
+      </div>
+    </div>
   </div>
 
   <div class="flex flex-col sm:flex-row xl:items-center gap-4 xl:gap-0 mt-2 xl:mt-0">

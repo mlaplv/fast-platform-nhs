@@ -4,6 +4,8 @@
   import { onMount } from 'svelte';
   import { fly, fade, scale } from 'svelte/transition';
   import { cubicOut, backOut } from 'svelte/easing';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import type { Product as GlobalProduct } from '$lib/types';
 
   interface Product {
     id: string;
@@ -42,24 +44,22 @@
   ] as const;
 
   // Elite V2.2: Shared Data Normalizer
-  const normalizeProduct = (p: any, tabId: string, index: number) => {
+  const normalizeProduct = (p: Product, tabId: string, index: number) => {
     const hasDiscount = !!p.discountPrice && p.discountPrice < p.price;
     const sellingPrice = hasDiscount ? p.discountPrice : p.price;
     const originalPrice = hasDiscount ? p.price : (p.price * 1.4);
-    const realSales = p.order_count || p.orderCount || 0;
-    const displaySales = realSales > 0 ? realSales : (1200 + index * 10);
+    const realSales = p.sales || p.metadata?.reviews_count_text || 0;
+    const displaySales = realSales;
     
     // Elite V4.0: Robust Image & Discount logic
     const imgCandidates = [
         ...(Array.isArray(p.images) ? p.images : []),
-        p.image,
-        p.image_url,
-        p.thumbnail,
+        p.metadata?.image_url,
         '/placeholder_video.webp'
     ];
     const primaryImage = imgCandidates.find(img => img && typeof img === 'string' && img.length > 0) || '/placeholder_video.webp';
     
-    const discountPercent = originalPrice > 0 ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) : 0;
+    const discountPercent = originalPrice > 0 ? Math.round(((originalPrice - sellingPrice!) / originalPrice) * 100) : 0;
     
     // Elite V2.2: Universal Sanitization
     const cleanName = trimProductName(p.name);
@@ -73,7 +73,7 @@
       originalPrice: originalPrice,
       discountPercent: discountPercent,
       sales: displaySales,
-      stockPercent: 70 + (index * 5) % 25,
+      stockPercent: p.stock > 0 ? 100 : 0,
       isAiPick: tabId === 'ai',
       originalSlug: p.slug
     } as Product;
@@ -119,7 +119,7 @@
   <div class="absolute inset-0 bg-gradient-to-b from-[#ee4d2d]/5 to-transparent pointer-events-none"></div>
 
   <!-- Minimalist Tab Header (Sticky Glass) -->
-  <div class="sticky top-0 z-40 mb-2 py-1 px-1 bg-[#f5f5f5]/80 backdrop-blur-[30px] border-b border-black/[0.03] flex items-center justify-between transition-all duration-700">
+  <div class="sticky top-0 mb-2 py-1 px-1 bg-[#f5f5f5]/80 backdrop-blur-[30px] border-b border-black/[0.03] flex items-center justify-between transition-all duration-700" style:z-index={Z_INDEX_CLIENT.HEADER}>
     <div class="flex flex-1 items-center justify-center md:justify-start md:gap-16 overflow-x-auto no-scrollbar scroll-smooth">
       {#each tabs as tab}
         <button
@@ -163,7 +163,8 @@
         <div 
             in:fade={{duration: 800}} 
             out:fade={{duration: 600}}
-            class="absolute inset-0 flex items-center justify-between px-8 md:px-12 transition-all z-10"
+            class="absolute inset-0 flex items-center justify-between px-8 md:px-12 transition-all"
+            style:z-index={Z_INDEX_CLIENT.CONTENT}
         >
           <!-- Content Left -->
           <!-- Content Left -->
@@ -296,7 +297,7 @@
         </div>
 
         <div class="p-6 flex flex-col flex-1 bg-white relative">
-          <h3 class="text-black text-[14px] font-black uppercase tracking-tight line-clamp-2 h-[42px] leading-[21px] mb-5 group-hover/card:text-[#ee4d2d] transition-colors">{product.name}</h3>
+          <h3 class="text-black text-[14px] font-black uppercase tracking-tight line-clamp-2 h-[42px] leading-[21px] mb-5 group-hover/card:text-[#C18F7E] transition-colors">{product.name}</h3>
 
           <div class="mt-auto pt-4 border-t border-black/[0.03] space-y-3">
             <div class="flex flex-col gap-1">
@@ -307,21 +308,21 @@
                                 đ{Math.round(product.originalPrice).toLocaleString('vi-VN')}
                             </span>
                         {/if}
-                        <span class="text-[10px] font-black text-[#ee4d2d] bg-[#ee4d2d]/10 px-1.5 py-0.5 rounded-sm">-{product.discountPercent}%</span>
+                        <span class="text-[10px] font-black text-[#C18F7E] bg-[#C18F7E]/10 px-1.5 py-0.5 rounded-sm">-{product.discountPercent}%</span>
                     </div>
-                    <span class="text-[9px] font-black text-[#ee4d2d] animate-pulse flex items-center gap-1">
-                        <div class="w-1 h-1 rounded-full bg-[#ee4d2d]"></div> ĐANG CHÁY HÀNG
+                    <span class="text-[9px] font-black text-[#C18F7E] animate-pulse flex items-center gap-1">
+                        <div class="w-1 h-1 rounded-full bg-[#C18F7E]"></div> ĐANG CHÁY HÀNG
                     </span>
                 </div>
-                <p class="text-[#ee4d2d] font-black text-2xl tracking-tighter tabular-nums flex items-end gap-1">
-                    <span class="text-sm mb-1">đ</span>{product.price.toLocaleString('vi-VN')}
+                <p class="text-black font-black text-2xl tracking-tighter tabular-nums flex items-end gap-1 group-hover/card:text-[#C18F7E] transition-colors">
+                    <span class="text-[#C18F7E] text-sm mb-1">đ</span>{product.price.toLocaleString('vi-VN')}
                 </p>
             </div>
 
             <!-- STOCK PROGRESS: FOMO Max -->
-            <div class="relative w-full h-4 bg-[#ee4d2d]/5 rounded-full overflow-hidden flex items-center justify-center border border-[#ee4d2d]/10">
-                <div class="absolute inset-0 bg-gradient-to-r from-[#ee4d2d] to-[#ffaa00] transition-all duration-1000" style="width: {product.stockPercent}%"></div>
-                <span class="relative z-10 text-[8px] font-black text-[#ee4d2d] mix-blend-multiply uppercase tracking-widest flex items-center gap-1">
+            <div class="relative w-full h-4 bg-[#C18F7E]/5 rounded-full overflow-hidden flex items-center justify-center border border-[#C18F7E]/10">
+                <div class="absolute inset-0 bg-gradient-to-r from-[#C18F7E] via-[#E2B1A2] to-[#C18F7E] transition-all duration-1000" style="width: {product.stockPercent}%"></div>
+                <span class="relative z-10 text-[8px] font-black text-[#C18F7E] mix-blend-multiply uppercase tracking-widest flex items-center gap-1">
                     <svg class="w-2 h-2" fill="currentColor" viewBox="0 0 20 20"><path d="M12 2a1 1 0 01.894.553L17.382 11H13v6a1 1 0 01-1.894.447l-5-10A1 1 0 017 6h4V2z"/></svg>
                     Đã bán {product.sales}
                 </span>

@@ -43,9 +43,9 @@ export function createNanobotState() {
     activeWidget: "NONE" as WidgetType,
     commandAction: null as CommandAction | null,
     showMobileSidebar: false,
-    nanoBotStatus: "IDLE" as "IDLE" | "THINKING" | "ERROR" | "SUCCESS" | "VOICE" | "PROCESSING",
+    nanoBotStatus: "IDLE" as NanoBotState,
     modality: "text" as "text" | "voice",
-    currentData: null as CampaignData | Record<string, unknown> | null,
+    currentData: null as CampaignData | null,
     isBusy: false,
     godModeUser: undefined as string | undefined,
     wakeWords: ["xohi"] as string[],
@@ -65,7 +65,7 @@ export function createNanobotState() {
       { label: "Tạo sản phẩm", command: "tạo sản phẩm mới" },
       { label: "Thêm danh mục", command: "thêm danh mục" },
       { label: "Xem đơn hàng", command: "mở đơn hàng" },
-      { label: "Viết tin tức", command: "tạo tin tức" },
+      { label: "Viết Bài viết", command: "tạo Bài viết" },
       { label: "Đào tạo Helen", command: "mở tri thức helen" },
     ] as Suggestion[],
     mobileScrollPosition: 0,
@@ -105,11 +105,11 @@ export function createNanobotState() {
   });
 
   const audioThrottle = createAudioThrottle(state);
-  
+
   let thinkingWatchdog: ReturnType<typeof setTimeout> | undefined;
   const resetVui = () => { state.nanoBotStatus = "IDLE"; state.isBusy = false; voice.resetVui(); };
   const softReset = () => { if (state.nanoBotStatus !== "ERROR") state.nanoBotStatus = "IDLE"; state.isBusy = false; voice.softReset(); };
-  
+
   const setThinking = (val: boolean, source: "text" | "voice" = "text") => {
     if (val) {
       if (source === "voice") state.nanoBotStatus = "THINKING";
@@ -125,7 +125,7 @@ export function createNanobotState() {
   };
 
   const setDynamicIntentMap = (val: Record<string, string>) => { state.dynamicIntentMap = val; };
-  
+
   const intent = createIntentManager(state, voice, log, ui, chat, resetVui, softReset, setThinking);
   const resumeManager = createResumeManager(state, intent, { ...log, setActivityLogs: log.setActivityLogs }, ui, chat, () => sync.startSmartPolling());
   const pulseManager = createPulseManager(state, voice, log, ui, vuiState, notification, chat, () => sync.startSmartPolling());
@@ -190,7 +190,7 @@ export function createNanobotState() {
     triggerSupportRefresh: () => { state.supportRefreshToggle++; },
     get activeSupportSessionCount() { return state.activeSupportSessionCount; },
     setActiveSupportSessionCount: (val: number) => { state.activeSupportSessionCount = val; },
-    
+
     // Brain Hub Getters/Setters
     get brainTotalNodes() { return state.brainTotalNodes; },
     set brainTotalNodes(val: number) { state.brainTotalNodes = val; },
@@ -222,11 +222,11 @@ export function createNanobotState() {
     setModality: (val: "text" | "voice") => { state.modality = val; },
     setGodModeUser: (val: string | undefined) => { state.godModeUser = sanitizeId(val) || undefined; },
     clearCurrentData: () => { state.currentData = null; },
-    updateCurrentData: (newData: Partial<Record<string, unknown>>) => {
+    updateCurrentData: (newData: Partial<CampaignData>) => {
       if (state.currentData) {
-        state.currentData = { ...state.currentData, ...newData };
+        state.currentData = { ...state.currentData, ...newData } as CampaignData;
       } else {
-        state.currentData = newData as Record<string, unknown>;
+        state.currentData = newData as CampaignData;
       }
     },
     clearCommandAction: () => { state.commandAction = null; },
@@ -264,7 +264,7 @@ export function createNanobotState() {
     get voiceTrigger() { return voice.voiceTrigger; },
     setVuiActive: voice.setVuiActive,
     clearVuiResponse: voice.clearVuiResponse,
-    
+
     startRecording: (auto?: boolean) => vuiController.startRecording(auto),
     stopRecording: () => vuiController.stopRecording(),
     interruptAll: () => vuiController.interruptAll(),
@@ -361,10 +361,10 @@ export function createNanobotState() {
     setUniversalModalOpen: ui.setUniversalModalOpen,
     showUniversalModal: () => ui.setUniversalModalOpen(true),
     closeUniversalModal: () => { ui.setUniversalModalOpen(false); state.activeWidget = "NONE"; },
-    openWidget: (widget: WidgetType, data?: Record<string, unknown>) => { 
-      state.activeWidget = widget; 
-      if (data) state.currentData = data; 
-      ui.setUniversalModalOpen(true); 
+    openWidget: (widget: WidgetType, data?: CampaignData) => {
+      state.activeWidget = widget;
+      if (data) state.currentData = data;
+      ui.setUniversalModalOpen(true);
     },
 
     // HUD & Tips
@@ -479,7 +479,7 @@ export function useNanobot(): NanobotState {
     // Suppress lifecycle_outside_component
   }
   if (_globalNanobotState) return _globalNanobotState;
-  
+
   // Create a placeholder state to prevent immediate crashes during module evaluations
   return {} as NanobotState;
 }

@@ -118,7 +118,7 @@ class XoHiResponder:
 
         msg = f"[Content] Hoàn thành Bước {step}. Đang chờ sếp duyệt."
         if status == "COMPLETED" and step == 6:
-            msg = "🎉 Chúc mừng sếp! Bài viết sáng tạo đã được xuất bản thành công vào mục Tin tức. Em đã dọn dẹp bộ nhớ để hệ thống luôn mượt mà ạ!"
+            msg = "🎉 Chúc mừng sếp! Bài viết sáng tạo đã được xuất bản thành công vào mục Bài viết. Em đã dọn dẹp bộ nhớ để hệ thống luôn mượt mà ạ!"
         elif step == 2: msg = f"[Content] Đã tìm xong bộ ảnh (Bước 2). Mời sếp chọn."
         elif step == 3: msg = f"[Content] Đàn ý Bước 3 đã sẵn sàng."
         elif step == 4: msg = f"[Content] Bản thảo Bước 4 đã hoàn tất."

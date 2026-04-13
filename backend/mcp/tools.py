@@ -214,7 +214,7 @@ async def search_products_semantic(db_session: AsyncSession, query: str, limit: 
 
 @mcp_registry.register(
     name="search_articles_semantic",
-    description="Tìm kiếm bài viết, tin tức hoặc chính sách bằng ngữ nghĩa (RAG)."
+    description="Tìm kiếm Bài viết hoặc chính sách bằng ngữ nghĩa (RAG)."
 )
 async def search_articles_semantic(db_session: AsyncSession, query: str, limit: int = 5) -> Dict[str, object]:
     try:

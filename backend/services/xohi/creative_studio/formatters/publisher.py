@@ -33,7 +33,7 @@ async def publish_campaign_to_news(campaign, campaign_repo, category_id: str = N
             slug=f"{slugify(title)}-{str(uuid.uuid4())[:8]}",
             author_id=campaign.user_id, status="PUBLISHED",
             tenant_id=campaign.tenant_id, 
-            category="Tin tức",
+            category="Bài viết",
             category_id=category_id, # CNS V85.2: Synced Category ID
             featured_image=feat_img
         )

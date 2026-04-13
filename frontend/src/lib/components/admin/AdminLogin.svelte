@@ -4,11 +4,12 @@
   import { permissionState } from "$lib/state/permissions.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { fallbackSha256 } from "$lib/utils/cryptoFallback";
-  import { useNanobot } from "$lib/state/nanobot.svelte";
-  const nanobot = useNanobot();
+
   import { goto } from "$app/navigation";
   import XohiLogo from "$lib/components/admin/XohiLogo.svelte";
 
+  type AuthTab = "EMAIL" | "PHONE" | "SOCIAL" | "BIOMETRIC";
+  
   let email = $state("");
   let password = $state("");
   let phone = $state("");
@@ -16,7 +17,7 @@
   let error = $state("");
   let showPage = $state(false);
   let showPassword = $state(false);
-  let lastTab = $state("EMAIL"); // EMAIL | PHONE | SOCIAL | BIOMETRIC
+  let lastTab = $state<AuthTab>("EMAIL");
   let rememberMe = $state(false);
 
   $effect(() => {
@@ -38,10 +39,13 @@
     return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
   }
 
-  async function handleLogin(e: Event) {
+  async function handleLogin(e: SubmitEvent) {
     e.preventDefault();
     isLoading = true;
     error = "";
+    
+    // CNS V82.11: Pure Auth Purge before re-login attempt
+    sessionStorage.removeItem("admin_token");
 
     try {
       const hashedPassword = await hashPassword(password);
@@ -66,10 +70,11 @@
         throw new Error("Đăng nhập thất bại");
       }
 
-      // SSOT: Populate global identity state
-      nanobot.setUserEmail(userEmail || email);
-      nanobot.setUserName(name || "GHOST_OPERATOR");
-      nanobot.setUserRole(role);
+      // SSOT: Populate global identity state via permissionState (module singleton)
+      // Note: nanobot context is not yet initialized on /login page, write directly.
+      permissionState.user = userEmail || email;
+      permissionState.userName = name || "GHOST_OPERATOR";
+      permissionState.roles = [role];
 
       // THIẾT QUÂN LUẬT: Phân tách thời lượng lưu trú
       if (rememberMe) {
@@ -91,10 +96,8 @@
       // V70.2: Use soft navigation to preserve Audio Context and SSE connections
       sessionStorage.setItem("xohi_just_logged_in", "true");
       await goto("/");
-      nanobot.forceHydration();
-    } catch (e: unknown) {
-      const err = e as Error;
-      error = err.message || "Failed to login. Please check your credentials.";
+    } catch (e: Error | unknown) {
+      error = (e as Error).message || "Failed to login. Please check your credentials.";
     } finally {
       isLoading = false;
     }

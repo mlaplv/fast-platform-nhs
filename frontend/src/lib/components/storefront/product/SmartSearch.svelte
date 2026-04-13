@@ -217,13 +217,15 @@
                           {trimProductName(p.name)}
                         </span>
                         <div class="flex items-center gap-2">
-                           <span class="text-[11px] text-[#fe2c55] font-black">{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}đ</span>
+                           <span class="text-[11px] text-black font-black">
+                             <span class="text-[#C18F7E]">đ</span>{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}
+                           </span>
                            {#if p.discountPrice}
-                             <span class="text-[9px] text-gray-300 line-through font-bold">{p.price.toLocaleString('vi-VN')}đ</span>
+                             <span class="text-[9px] text-gray-300 line-through font-bold">đ{p.price.toLocaleString('vi-VN')}</span>
                            {/if}
                         </div>
                       </div>
-                      {#if i < 2 || p.orderCount > 50}
+                      {#if p.metadata?.is_bestseller || p.orderCount > 50}
                         <span class="shrink-0 text-[8px] bg-[#fe2c55] text-white px-1 py-0.5 font-black uppercase tracking-tighter rounded-xs shadow-sm ml-1">Bán chạy</span>
                       {/if}
                     </button>
@@ -277,11 +279,11 @@
                         <!-- Pricing Intelligence (Literal Match) -->
                         <div class="flex items-center gap-2 mt-auto">
                            <span class="text-[15px] text-gray-900 font-black tabular-nums">
-                             {(p.discountPrice ?? p.price).toLocaleString('vi-VN')} đ
+                             <span class="text-[#C18F7E] mr-0.5">đ</span>{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}
                            </span>
                            {#if p.discountPrice}
                              <span class="text-[12px] text-gray-300 line-through font-medium tabular-nums px-1">
-                               {p.price.toLocaleString('vi-VN')} đ
+                               đ{p.price.toLocaleString('vi-VN')}
                              </span>
                            {/if}
                         </div>
@@ -312,9 +314,11 @@
                     </div>
                     <div class="text-[12px] font-bold line-clamp-2 leading-tight group-hover:text-luxury-copper transition-colors" title={p.name}>{trimProductName(p.name)}</div>
                     <div class="flex flex-col">
-                       <div class="text-[14px] font-black text-[#fe2c55] tabular-nums tracking-toggle">{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}đ</div>
+                       <div class="text-[14px] font-black text-black tabular-nums tracking-toggle">
+                         <span class="text-[#C18F7E]">đ</span>{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}
+                       </div>
                        {#if p.discountPrice}
-                         <div class="text-[10px] text-gray-300 line-through font-bold tabular-nums tracking-tight">{p.price.toLocaleString('vi-VN')}đ</div>
+                         <div class="text-[10px] text-gray-300 line-through font-bold tabular-nums tracking-tight">đ{p.price.toLocaleString('vi-VN')}</div>
                        {/if}
                     </div>
                   </a>
@@ -406,9 +410,11 @@
                    <div class="flex flex-col justify-center flex-1">
                       <span class="text-[14px] text-gray-800 font-bold tracking-tight line-clamp-1 leading-tight mb-1">{trimProductName(p.name)}</span>
                       <div class="flex items-center gap-2">
-                         <span class="text-[15px] text-[#fe2c55] font-black tracking-tight">{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}₫</span>
+                         <span class="text-[15px] text-black font-black tracking-tight">
+                           <span class="text-[#C18F7E]">đ</span>{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}
+                         </span>
                          {#if p.discountPrice}
-                           <span class="text-[11px] text-gray-300 line-through font-bold">{(p.price).toLocaleString('vi-VN')}₫</span>
+                           <span class="text-[11px] text-gray-300 line-through font-bold">đ{(p.price).toLocaleString('vi-VN')}</span>
                          {/if}
                       </div>
                    </div>
@@ -453,9 +459,11 @@
                       <div class="flex items-center justify-between">
                          <div class="flex flex-col">
                             <div class="flex items-center gap-2">
-                               <span class="text-[16px] text-[#fe2c55] font-black tracking-tighter">{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}₫</span>
+                               <span class="text-[16px] text-black font-black tracking-tighter">
+                                 <span class="text-[#C18F7E]">đ</span>{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}
+                               </span>
                                {#if p.discountPrice}
-                                 <span class="text-[11px] text-gray-300 line-through font-bold">{(p.price).toLocaleString('vi-VN')}₫</span>
+                                 <span class="text-[11px] text-gray-300 line-through font-bold">đ{(p.price).toLocaleString('vi-VN')}</span>
                                {/if}
                             </div>
                             <div class="flex items-center gap-2 mt-1">

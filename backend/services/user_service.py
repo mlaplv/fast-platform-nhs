@@ -140,6 +140,10 @@ class UserService:
         if not user:
             raise NotFoundException(f"User {user_id} not found")
 
+        if "username" in data:
+            user.username = str(data["username"])
+        if "email" in data:
+            user.email = str(data["email"])
         if "name" in data:
             user.name = str(data["name"])
         if "status" in data:

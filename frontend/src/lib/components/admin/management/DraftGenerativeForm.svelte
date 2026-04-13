@@ -17,7 +17,7 @@
 
   let formData = $state({
     title: "",
-    category: "Tin tức",
+    category: "Bài viết",
     slug: "",
     seo_title: "",
     seo_description: "",
@@ -27,7 +27,7 @@
 
   let isHydrated = $state(false);
   let isSubmitting = $state(false);
-  let dbCategories = $state<string[]>(["Tin tức", "Khóa học", "Dịch vụ"]);
+  let dbCategories = $state<string[]>(["Bài viết", "Khóa học", "Dịch vụ"]);
 
   onMount(async () => {
     // 1. Parallel loading: Fetch newest categories & Hydrate local draft

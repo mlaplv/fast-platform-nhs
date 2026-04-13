@@ -4,6 +4,7 @@
   import { slugify, trimProductName } from '$lib/utils/format';
   import type { Product } from '$lib/types';
   import { ChevronLeft, ChevronRight, Truck } from 'lucide-svelte';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
 
   interface Props {
     products: Product[];
@@ -31,9 +32,9 @@
           discountPct,
           discountLabel: Math.round(discountPct * 100),
           image: p.images?.[0] || '/images/placeholder-product.webp',
-          soldCount: parseInt(p.metadata?.sold_count?.toString() || (20 + (i * 5) % 80).toString()),
+          soldCount: parseInt(p.metadata?.sold_count?.toString() || '0'),
           isHot: (p.metadata?.scarcity_seconds || 0) > 0 || (p.discountPrice && p.discountPrice / p.price < 0.5),
-          progress: 60 + (i * 7) % 35 // High FOMO progress
+          progress: parseInt(p.metadata?.flash_sale_progress?.toString() || '0')
         };
       })
       .sort((a, b) => b.discountPct - a.discountPct)
@@ -107,14 +108,16 @@
     {#if isSlider}
       <button 
         onclick={() => scroll('left')}
-        class="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 border border-gray-200 rounded-full flex items-center justify-center shadow-xl opacity-0 group-hover/container:opacity-100 transition-opacity hover:bg-white text-[#ee4d2d]"
+        class="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 border border-gray-200 rounded-full flex items-center justify-center shadow-xl opacity-0 group-hover/container:opacity-100 transition-opacity hover:bg-white text-[#ee4d2d]"
+        style:z-index={Z_INDEX_CLIENT.FLASH_SALE + 1}
       >
         <ChevronLeft size={24} />
       </button>
 
       <button 
         onclick={() => scroll('right')}
-        class="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 border border-gray-200 rounded-full flex items-center justify-center shadow-xl opacity-0 group-hover/container:opacity-100 transition-opacity hover:bg-white text-[#ee4d2d]"
+        class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 border border-gray-200 rounded-full flex items-center justify-center shadow-xl opacity-0 group-hover/container:opacity-100 transition-opacity hover:bg-white text-[#ee4d2d]"
+        style:z-index={Z_INDEX_CLIENT.FLASH_SALE + 1}
       >
         <ChevronRight size={24} />
       </button>
@@ -162,11 +165,11 @@
             <!-- Price Block -->
             <div class="price-container">
               <p class="final-price">
-                <span class="currency">₫</span>{deal.finalPrice.toLocaleString('vi-VN')}
+                <span class="currency text-[#C18F7E] decoration-[#C18F7E]">đ</span>{deal.finalPrice.toLocaleString('vi-VN')}
               </p>
               {#if deal.oldPrice}
                 <p class="old-price">
-                  ₫{deal.oldPrice.toLocaleString('vi-VN')}
+                  đ{deal.oldPrice.toLocaleString('vi-VN')}
                 </p>
               {/if}
             </div>

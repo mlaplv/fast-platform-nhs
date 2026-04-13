@@ -57,6 +57,8 @@ class UserListResponse(BaseModel):
 
 class UserUpdatePayload(BaseModel):
     model_config = ConfigDict(strict=True)
+    username: Optional[str] = None
+    email: Optional[str] = None
     name: Optional[str] = None
     status: Optional[str] = None
     roles: Optional[List[str]] = None

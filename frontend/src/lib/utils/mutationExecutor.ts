@@ -111,7 +111,7 @@ async function createEntity(
     case "news":
       return apiClient.post<Article>("/api/v1/articles", {
         title: data.title,
-        category: data.category || "Tin tức",
+        category: data.category || "Bài viết",
         excerpt: data.excerpt || "",
         content: data.content || "",
         slug: data.slug || undefined,

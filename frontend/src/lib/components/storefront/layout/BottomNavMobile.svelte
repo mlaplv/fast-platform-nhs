@@ -4,12 +4,12 @@
 
   // Bottom Navigation Viral Immersive 2026 cho Mobile
   // Tuân thủ Elite V2.2: Hiệu ứng Glassmorphism, Safe Area
-  let activeTab = $derived($page.url.pathname.startsWith('/tin-tuc') ? 'news' : ($page.url.pathname === '/' ? 'home' : 'other'));
+  let activeTab = $derived($page.url.pathname.startsWith('/bai-viet') ? 'news' : ($page.url.pathname === '/' ? 'home' : 'other'));
 
   const tabs = [
     { id: 'home', label: 'Trang chủ', icon: '🏠', activeIcon: '🏠', href: '/' },
     { id: 'shop', label: 'Cửa hàng', icon: '🛍️', activeIcon: '🛍️', href: '/' },
-    { id: 'news', label: 'Tin tức', icon: '📰', activeIcon: '📰', href: '/tin-tuc' },
+    { id: 'news', label: 'Bài viết', icon: '📰', activeIcon: '📰', href: '/bai-viet' },
     { id: 'profile', label: 'Tôi', icon: '👤', activeIcon: '👤', href: '/' }
   ];
 </script>

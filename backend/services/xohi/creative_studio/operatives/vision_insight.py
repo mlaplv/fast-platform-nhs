@@ -20,7 +20,7 @@ RE_CLEAN_PREFIX = re.compile(r'^(adm\s+)?(viết bài|tạo bài|làm bài|thi�
 # Elite V2.2 Constraints Centralization
 CONSTRAINTS = {
     "DEEP_DIVE": {"word_count": 1000, "max_sections": 6, "style": "Hàn lâm/Chuyên gia"},
-    "NORMAL": {"word_count": 500, "max_sections": 3, "style": "Chuyên nghiệp/Tin tức"},
+    "NORMAL": {"word_count": 500, "max_sections": 3, "style": "Chuyên nghiệp/Bài viết"},
     "VIRAL": {"word_count": 500, "max_sections": 3, "style": "Sắc sảo/Viral"}
 }
 

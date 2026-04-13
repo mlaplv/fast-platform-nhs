@@ -1,8 +1,10 @@
 from litestar import Controller, get, patch, post, Request
+from litestar.datastructures import UploadFile
 from litestar.enums import RequestEncodingType
 from litestar.params import Body
+from sqlalchemy import select, and_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from typing import Optional, Annotated
 import logging
 
@@ -66,7 +68,17 @@ class ClientUserController(Controller):
             await db_session.commit()
             
             return SuccessResponse(ok=True, id=user_id)
+        except IntegrityError as e:
+            await db_session.rollback()
+            from litestar.exceptions import ConflictException
+            error_msg = str(e.orig)
+            if "users_username_key" in error_msg:
+                raise ConflictException("Tên đăng nhập đã tồn tại, vui lòng chọn tên khác.")
+            if "users_email_key" in error_msg:
+                raise ConflictException("Địa chỉ Email đã được sử dụng bởi một tài khoản khác.")
+            raise ConflictException("Thông tin cập nhật bị trùng lặp dữ liệu.")
         except Exception as e:
+            await db_session.rollback()
             logger.exception("Error updating profile for user %s: %s", user_id, str(e))
             raise e
 
@@ -119,7 +131,6 @@ class ClientUserController(Controller):
         self, 
         request: Request, 
         db_session: AsyncSession,
-        data: Annotated[bytes, Body(media_type=RequestEncodingType.MULTI_PART)]
     ) -> SuccessResponse:
         """
         Elite V3.0: Securely upload and set profile avatar.
@@ -131,13 +142,13 @@ class ClientUserController(Controller):
             
         user_id = user_state.get("id")
         
-        # In a real multipart scenario with Litestar, we'd use Request.form() or similar
-        # For simplicity in this implementation, we assume a single file upload
+        # Elite V3.1: Manual form parsing to bypass Litestar validation issues with UploadFile
         form = await request.form()
         file = form.get("file")
-        if not file:
+        
+        if not file or not hasattr(file, "read"):
              from litestar.exceptions import ValidationException
-             raise ValidationException("No file provided")
+             raise ValidationException("Vui lòng cung cấp tệp tin hình ảnh (field: 'file')")
              
         content = await file.read()
         filename = file.filename

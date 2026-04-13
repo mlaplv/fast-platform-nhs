@@ -127,6 +127,7 @@ class ProductService:
         search: Optional[str] = None,
         featured_only: bool = False,
         category_slug: Optional[str] = None,
+        category_id: Optional[str] = None,
     ) -> ProductListResponse:
         """
         Elite V3.0: Hybrid Viral Search Engine.
@@ -151,6 +152,8 @@ class ProductService:
         if category_slug:
             # Filter sản phẩm theo category slug (join Category)
             conditions.append(Category.slug == category_slug)
+        if category_id:
+            conditions.append(ProductBase.category_id == category_id)
 
         # 🎯 CASE 1: SEARCH OVERRIDE (Hybrid Strategy)
         if search:
@@ -397,7 +400,7 @@ class ProductService:
              row = res.first()
 
         if not row:
-            logger.error(f"[ProductService] Product with slug '{slug}' not found in DB")
+            logger.debug(f"[ProductService] Product with slug '{slug}' not found in DB")
             raise NotFoundException(f"Product with slug '{slug}' not found")
 
         product_id = row.id

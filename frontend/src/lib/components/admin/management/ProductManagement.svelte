@@ -26,6 +26,7 @@
   let searchTerm = $state("");
   let searchInput = $state("");
   let activeFilter = $state("all");
+  let activeCategory = $state("");
   let currentPage = $state(1);
   let showForm = $state(false);
   let isHeaderCollapsed = $state(false);
@@ -76,6 +77,7 @@
       const offset = (currentPage - 1) * pageSize;
       const params = new URLSearchParams({ limit: pageSize.toString(), offset: offset.toString() });
       if (activeFilter !== "all") params.append("status", activeFilter);
+      if (activeCategory) params.append("category_id", activeCategory);
       if (searchTerm) params.append("search", searchTerm);
 
       const [pRes, cData] = await Promise.all([
@@ -117,6 +119,10 @@
 
   function handleFilterChange(filter: string) {
     if (activeFilter !== filter) { activeFilter = filter; currentPage = 1; }
+  }
+  
+  function handleCategoryChange(catId: string) {
+    if (activeCategory !== catId) { activeCategory = catId; currentPage = 1; }
   }
 
   function openCreate() {
@@ -344,8 +350,11 @@
   }
 </script>
 
-<div class="w-full h-full flex flex-col relative bg-[#050505]">
-  <div class="flex flex-col gap-6 p-6 border-b border-white/[0.05]">
+<div class="w-full h-full flex flex-col relative bg-[#050505] isolation-auto">
+  <!-- Fixed Background Layer (Rule R03: Ultra-Fast UX) -->
+  <div class="fixed inset-0 bg-[#050505] pointer-events-none -z-10"></div>
+  
+  <div class="flex flex-col gap-6 p-6 border-b border-white/[0.05] relative z-10 bg-[#050505]">
     {#if !isHeaderCollapsed}
       <div transition:fade={{ duration: 200 }} class="flex flex-col gap-6">
         <ProductStats {stats} />
@@ -355,6 +364,8 @@
     <ProductToolbar
       {searchInput}
       {activeFilter}
+      {activeCategory}
+      {categories}
       bind:pageSize
       {selectedIds}
       {totalProducts}
@@ -363,6 +374,7 @@
       {STATUS_MAP}
       onSearchInput={handleSearchInput}
       onFilterChange={handleFilterChange}
+      onCategoryChange={handleCategoryChange}
       onPageSizeChange={() => { currentPage = 1; }}
       onBulkActivate={() => bulk("act")}
       onBulkDeactivate={() => bulk("deact")}

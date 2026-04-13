@@ -10,7 +10,7 @@ Các khái niệm có trong hệ thống:
 - Đơn hàng, bill, hóa đơn
 - Sản phẩm, hàng hóa, tồn kho, kho
 - Khách hàng, người dùng, user, nhân viên, tài khoản
-- Bài viết, tin tức, danh mục
+- Bài viết, danh mục
 
 [QUY TẮC CỐT LÕI - ELITE V2.2]
 1. BẢO TỒN TUYỆT ĐỐI (GOLDEN RULE): Nếu câu gốc đã rõ nghĩa hoặc chứa các động từ hành động (Tạo, Viết, Xem, Mở, Xóa), CẤM thay đổi chúng.

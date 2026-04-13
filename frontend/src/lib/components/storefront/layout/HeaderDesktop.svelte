@@ -43,7 +43,7 @@
         <span class="w-[1px] h-3 bg-gray-200"></span>
         <button type="button" class="hover:text-luxury-copper transition-colors">Trở thành Người bán Micsmo</button>
         <span class="w-[1px] h-3 bg-gray-200"></span> 
-        <a href="/tin-tuc" class="hover:text-luxury-copper transition-colors">Tin tức</a>
+        <a href="/bai-viet" class="hover:text-luxury-copper transition-colors">Hướng dẫn - kiến thức</a>
         <!--
         <span class="w-[1px] h-3 bg-gray-200"></span>
         <div class="flex items-center gap-1">

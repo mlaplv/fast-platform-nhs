@@ -42,7 +42,7 @@
     <div class="flex items-center justify-between border-b border-stone-100 pb-5">
       <div>
         <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Thông Báo</h1>
-        <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Cập nhật những tin tức mới nhất dành cho bạn</p>
+        <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Cập nhật những Bài viết mới nhất dành cho bạn</p>
       </div>
 
       {#if notifStore.unreadCount > 0}

@@ -2,10 +2,18 @@ import { apiClient } from "$lib/utils/apiClient";
 import type { SystemLog, CampaignLogMetadata } from "./types";
 import { safeRandomUUID, sanitizeId } from "./utils";
 
+export interface MessageContent {
+  text: string;
+  message?: string; // Legacy fallback
+  data?: Record<string, unknown>;
+  router_tier?: string | number;
+  [key: string]: unknown;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
-  content: { text: string; [key: string]: unknown };
+  content: MessageContent;
   modality: string;
   timestamp: Date;
 }
@@ -13,7 +21,7 @@ export interface ChatMessage {
 interface ChatApiMessage {
   id: string;
   role: "user" | "assistant";
-  content: { text: string; [key: string]: unknown };
+  content: MessageContent;
   modality: string;
   created_at: string;
 }
@@ -33,16 +41,16 @@ export function persistMessage(
   role: "user" | "assistant",
   text: string,
   modality: string = "text",
-  extra?: Record<string, unknown>,
+  extra?: Partial<MessageContent>,
 ) {
-  const content: Record<string, unknown> = { text, ...extra };
+  const content: MessageContent = { text, ...extra };
   apiClient
     .post(`/api/v1/chat/sessions/${sessionId}/messages`, {
       role,
       content,
       modality,
     })
-    .catch((e: unknown) => console.warn("[Persist] Save failed:", (e as Error).message));
+    .catch((e: Error | { message?: string }) => console.warn("[Persist] Save failed:", e.message));
 }
 
 export function createChatState(
@@ -77,15 +85,15 @@ export function createChatState(
         const textContent = m.content.text || (m.content.message as string) || "";
         if (textContent && textContent !== "NONE" && textContent.trim().length > 0) {
           // Flatten nested data if present (Rule R86: Persistence Hardening)
-          const metadata = (m.content.data ? { ...m.content, ...(m.content.data as Record<string, unknown>) } : m.content) as CampaignLogMetadata;
+          const metadata = (m.content.data ? { ...m.content, ...m.content.data } : m.content) as CampaignLogMetadata;
 
           logsToAppend.push({
             id: m.id + "_text",
             message: textContent,
-            source: "XÔ-HỈ",
+            source: "SẾP",
             timestamp: m.timestamp,
             type: "info",
-            routerTier: metadata.router_tier as string | undefined,
+            routerTier: metadata.router_tier ? String(metadata.router_tier) : undefined,
             data: { ...metadata, role: "assistant" }, // Flat metadata structure for consistency
           });
         }
@@ -265,12 +273,12 @@ export function createChatState(
    * CNS V82.15: Unified Campaign ID Extraction Logic
    * Centralizes metadata probing to avoid logic duplication for sweep/resume events.
    */
-  function _getCampaignId(content: CampaignLogMetadata): string | undefined {
+  function _getCampaignId(content: MessageContent): string | undefined {
     const data = (content.data || {}) as CampaignLogMetadata;
-    return (content.campaign_id as string) || 
-           (content.id as string) || 
-           (data.campaign_id as string) || 
-           (data.id as string);
+    return (content.campaign_id as string | undefined) || 
+           (content.id as string | undefined) || 
+           (data.campaign_id as string | undefined) || 
+           (data.id as string | undefined);
   }
 
   function sweepCampaignFromCache(campaignId: string) {
@@ -279,8 +287,7 @@ export function createChatState(
     // 1. Sweep active history
     const initialCount = state.history.length;
     state.history = state.history.filter((m) => {
-      const content = m.content as Record<string, unknown>;
-      return _getCampaignId(content) !== campaignId;
+      return _getCampaignId(m.content) !== campaignId;
     });
 
     // 2. Sweep SWR Cache (Exhaustive Search)
@@ -288,8 +295,7 @@ export function createChatState(
     for (const [key, entry] of cache.entries()) {
       const originalCount = entry.data.messages.length;
       entry.data.messages = entry.data.messages.filter((m) => {
-        const content = m.content as Record<string, unknown>;
-        return _getCampaignId(content) !== campaignId;
+        return _getCampaignId(m.content) !== campaignId;
       });
       if (entry.data.messages.length !== originalCount) {
         cachePurged++;

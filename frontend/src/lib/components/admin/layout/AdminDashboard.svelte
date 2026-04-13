@@ -5,24 +5,35 @@
   import { vuiController } from "$lib/vui";
   import XohiLogo from "$lib/components/admin/XohiLogo.svelte";
   import "../../../../routes/(admin)/admin.css";
-  import type { Component } from 'svelte';
+  import type { Component, Snippet } from 'svelte';
 
   interface AdminDashboardProps {
-    children?: import("svelte").Snippet;
+    children?: Snippet;
     userEmail?: string;
     isMobile?: boolean;
+    data?: import("../../../../routes/$types").PageData; // CNS V72.1: Optional data from parent
   }
 
-  interface ShellModule { default: Component<any> };
+  interface ShellProps {
+    children?: Snippet;
+  }
 
+  interface ShellModule { default: Component<ShellProps> };
+
+  import { permissionState } from "$lib/state/permissions.svelte";
+  
   let { children, userEmail, isMobile }: AdminDashboardProps = $props();
 
   let innerWidth = $state(0);
 
-  // Elite V2.2: Zero-Hydration aware state sync
-  if (userEmail) {
-    nanobot.setUserEmail(userEmail);
-  }
+  // Elite V2.2: Zero-Hydration aware state sync (SSOT Priority)
+  const effectiveEmail = $derived(userEmail || permissionState.user);
+  
+  $effect(() => {
+    if (effectiveEmail) {
+      nanobot.setUserEmail(effectiveEmail);
+    }
+  });
 
   /**
    * ELITE V2.2: DYNAMIC SHELL RESOLUTION
@@ -37,7 +48,7 @@
     return import("$lib/components/admin/layout/DesktopLayout.svelte");
   });
 
-  let lastTrig = -1;
+  let lastTrig = $state(-1);
   $effect(() => {
     if (lastTrig === -1) {
       lastTrig = nanobot.voiceTrigger;

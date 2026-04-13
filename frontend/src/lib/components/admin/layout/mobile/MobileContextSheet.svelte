@@ -46,7 +46,7 @@
     CATEGORY_MANAGEMENT: "Danh mục",
     PRODUCT_MANAGEMENT: "Sản phẩm",
     ORDER_MANAGEMENT: "Đơn hàng",
-    NEWS_MANAGEMENT: "Tin tức",
+    NEWS_MANAGEMENT: "Bài viết",
     VOICE_SETTINGS: "Voice Settings",
     CAMPAIGNS: "Chiến dịch",
     CONTENT_REVIEW: "Duyệt bài",

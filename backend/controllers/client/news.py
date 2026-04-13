@@ -30,7 +30,7 @@ class PublicNewsController(Controller):
         search: Optional[str] = None,
     ) -> ArticleListResponse:
         """PUBLIC: List news articles with pagination."""
-        # Elite V2.2: Force filter by 'Tin tức' category for public news endpoint
+        # Elite V2.2: Force filter by 'Bài viết' category for public news endpoint
         # This prevents policies or other articles from appearing in the news list.
         return await article_service.list_articles(
             db_session=db_session, 
@@ -38,7 +38,7 @@ class PublicNewsController(Controller):
             offset=offset, 
             status="PUBLISHED", 
             search=search, 
-            category="Tin tức"
+            category="Bài viết"
         )
 
     @get("/{article_id:str}")

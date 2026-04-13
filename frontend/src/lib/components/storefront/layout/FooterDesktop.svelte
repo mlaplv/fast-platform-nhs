@@ -51,13 +51,13 @@
   const ecosystemLinks = [
     { name: 'Giới thiệu', href: '/gioi-thieu' },
     { name: 'Tuyển dụng', href: '/tuyen-dung' },
-    { name: 'Chính sách Bảo mật', href: '/chinh-sach-bao-mat' },
+    { name: 'Chính sách Bảo mật', href: '/chinh-sach-bao-mat-thong-tin' },
     { name: 'Điều khoản Dịch vụ', href: '/dieu-khoan-dich-vu' }
   ];
 
   const customerLinks = [
     { name: 'Tra cứu đơn hàng', href: '/track' },
-    { name: 'Vận chuyển & Giao nhận', href: '/chinh-sach-van-chuyen' },
+    { name: 'Vận chuyển & Giao nhận', href: '/chinh-sach-van-chuyen-giao-nhan' },
     { name: 'Đổi trả & Hoàn tiền', href: '/chinh-sach-doi-tra-hoan-tien' },
     { name: 'Chính sách Kiểm hàng', href: '/chinh-sach-kiem-hang' },
     { name: 'Chính sách Bảo hành', href: '/chinh-sach-bao-hanh' },

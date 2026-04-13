@@ -72,6 +72,7 @@
   }
 
   // --- RESPONSIVE LOGIC ---
+  let containerRef = $state<HTMLElement | null>(null);
   let colorButtonRef = $state<HTMLElement | null>(null);
   let moreButtonRef = $state<HTMLElement | null>(null);
   let containerWidth = $state(0);

@@ -3,6 +3,7 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { apiClient } from '$lib/utils/apiClient';
   import { fade, fly } from 'svelte/transition';
+  import { untrack } from 'svelte';
   import MemberCard from './MemberCard.svelte';
   import SkinProfile from './SkinProfile.svelte';
 
@@ -12,6 +13,7 @@
   let name = $state(authStore.user?.name || '');
   let email = $state(authStore.user?.email || '');
   let username = $state(authStore.user?.username || '');
+  let isEditingEmail = $state(false);
   let gender = $state(authStore.user?.gender || 'OTHER');
   let dob = $state(authStore.user?.dob ? new Date(authStore.user.dob) : new Date());
 
@@ -27,35 +29,51 @@
     sensitivity: 5
   });
 
+  // Log initial read
+  console.log('📖 [Beauty Profile] Khởi tạo hồ sơ vẻ đẹp từ authStore:', $state.snapshot(skinData));
+
   let isSaving = $state(false);
   let isUploading = $state(false);
   let activeTab = $state('basic'); // basic | beauty
   let fileInput = $state<HTMLInputElement>();
 
-  // Elite V3.0: Reactive Re-hydration Protocol
   // Required because $state initializers only run once.
   $effect(() => {
+    // Elite V3.2: Prevent infinite loops by using untrack for local state updates
     if (authStore.user) {
-      name = authStore.user.name || '';
-      email = authStore.user.email || '';
-      username = authStore.user.username || '';
-      gender = authStore.user.gender || 'OTHER';
-      avatarUrl = authStore.user.avatar_url || '';
-      
-      if (authStore.user.dob) {
-        const d = new Date(authStore.user.dob);
-        birthDay = d.getDate();
-        birthMonth = d.getMonth() + 1;
-        birthYear = d.getFullYear();
-      }
+      const user = authStore.user;
+      untrack(() => {
+        name = user.name || '';
+        email = user.email || '';
+        username = user.username || '';
+        gender = user.gender || 'OTHER';
+        if (user.avatar_url) {
+          avatarUrl = user.avatar_url;
+          console.log('🖼️ [Avatar] Đã cập nhật ảnh đại diện từ authStore:', avatarUrl);
+        }
+        
+        if (user.dob) {
+          const d = new Date(user.dob);
+          birthDay = d.getDate();
+          birthMonth = d.getMonth() + 1;
+          birthYear = d.getFullYear();
+        }
 
-      if (authStore.user.extra_metadata?.skinProfile) {
-        skinData = {
-          ...authStore.user.extra_metadata.skinProfile
-        };
-      }
+        if (user.extra_metadata?.skinProfile) {
+          skinData = {
+            ...user.extra_metadata.skinProfile
+          };
+          console.log('📖 [Beauty Profile] Đã cập nhật (re-hydrate) hồ sơ vẻ đẹp:', $state.snapshot(skinData));
+        }
+      });
     }
   });
+
+  function generateCardNumber(id: string = '') {
+    if (!id) return '';
+    const cleanId = id.replace(/-/g, '').toUpperCase();
+    return `${cleanId.substring(0, 4)} ${cleanId.substring(4, 8)} ${cleanId.substring(8, 12)} ${cleanId.substring(12, 16)}`.toUpperCase();
+  }
 
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -65,30 +83,42 @@
     isSaving = true;
     try {
       const updatedDob = new Date(birthYear, birthMonth - 1, birthDay).toISOString();
+      console.log('💾 [Beauty Profile] Đang gửi yêu cầu lưu hồ sơ vẻ đẹp:', $state.snapshot(skinData));
+      const cardNumber = authStore.user?.extra_metadata?.cardNumber || generateCardNumber(authStore.user?.id);
+      
       const res = await apiClient.patch<{ ok: boolean }>('/api/v1/client/user/profile', {
         name,
         gender,
+        username,
+        email,
         dob: updatedDob,
         avatar_url: avatarUrl,
         extra_metadata: {
           ...authStore.user?.extra_metadata,
-          skinProfile: skinData
+          skinProfile: $state.snapshot(skinData),
+          cardNumber
         }
       });
+      console.log('✅ [Beauty Profile] Kết quả lưu từ server:', res);
 
       authStore.syncUser({
         name,
         gender,
+        username,
+        email,
         dob: updatedDob,
         avatar_url: avatarUrl,
         extra_metadata: {
-          skinProfile: skinData
+          skinProfile: $state.snapshot(skinData),
+          cardNumber
         }
       });
+      console.log('✅ [Beauty Profile] Dữ liệu trong authStore sau khi sync:', $state.snapshot(authStore.user?.extra_metadata));
+      isEditingEmail = false;
       ui.showToast('Thông tin của Quý khách đã được ghi nhận! ✨', 'success');
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      ui.showToast('Có lỗi xảy ra, mong Quý khách thứ lỗi.', 'error');
+      ui.showToast(e.message || 'Có lỗi xảy ra, mong Quý khách thứ lỗi.', 'error');
     } finally {
       isSaving = false;
     }
@@ -108,13 +138,23 @@
     formData.append('file', file);
 
     try {
-      const data = await apiClient.upload<{ data: { avatar_url: string } }>('/api/v1/client/user/avatar', formData);
-      avatarUrl = data.data.avatar_url;
-      authStore.syncUser({ avatar_url: avatarUrl });
-      ui.showToast('Diện mạo mới rất tuyệt vời! ✨', 'success');
-    } catch (e) {
-      console.error(e);
-      ui.showToast('Lỗi tải ảnh đại diện.', 'error');
+      const res = await apiClient.upload<any>('/api/v1/client/user/avatar', formData);
+      console.log('📡 [Avatar] Server response:', res);
+      
+      const newAvatarUrl = res.data?.avatar_url || res.avatar_url;
+      
+      if (newAvatarUrl) {
+        avatarUrl = newAvatarUrl;
+        authStore.syncUser({ avatar_url: avatarUrl });
+        console.log('✅ [Avatar] Cập nhật thành công:', avatarUrl);
+        ui.showToast('Diện mạo mới rất tuyệt vời! ✨', 'success');
+      } else {
+        console.warn('⚠️ [Avatar] Server trả về thành công nhưng không có avatar_url:', res);
+        ui.showToast('Không nhận được đường dẫn ảnh từ máy chủ.', 'warning');
+      }
+    } catch (e: any) {
+      console.error('❌ [Avatar] Lỗi upload:', e);
+      ui.showToast(e.message || 'Lỗi tải ảnh đại diện.', 'error');
     } finally {
       isUploading = false;
     }
@@ -162,7 +202,6 @@
 
       <div class="text-center">
         <h2 class="text-xl font-serif italic text-stone-800">{authStore.user?.name || 'Quý khách'}</h2>
-        <p class="text-[12px] text-stone-400 uppercase tracking-widest mt-1">ID: {authStore.user?.id.slice(0, 8)}</p>
       </div>
     </div>
   </div>
@@ -198,16 +237,37 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div class="space-y-2">
             <label for="username" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Tên đăng nhập</label>
-            <div class="w-full h-11 border-b border-stone-100 flex items-center text-stone-800 font-medium">
-              {username || 'N/A'}
-            </div>
+            <input
+              id="username"
+              type="text"
+              bind:value={username}
+              placeholder="Thiết lập tên đăng nhập..."
+              class="w-full h-11 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 font-medium placeholder:text-stone-300 placeholder:italic placeholder:font-normal"
+            />
           </div>
 
           <div class="space-y-2">
             <label for="email" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Địa chỉ Email</label>
             <div class="w-full h-11 border-b border-stone-100 flex items-center justify-between">
-              <span class="text-stone-800 font-medium">{maskEmail(email)}</span>
-              <button class="text-[11px] text-luxury-copper hover:underline font-bold uppercase tracking-wider">Thay đổi</button>
+              {#if isEditingEmail}
+                <input
+                  id="email"
+                  type="email"
+                  bind:value={email}
+                  class="w-full h-full outline-none focus:text-stone-900 text-stone-800 font-medium bg-transparent"
+                  onblur={() => { if (!email) isEditingEmail = false; }}
+                  autoFocus
+                />
+              {:else}
+                <span class="text-stone-800 font-medium">{maskEmail(email)}</span>
+                <button 
+                  type="button"
+                  onclick={() => isEditingEmail = true}
+                  class="text-[11px] text-luxury-copper hover:underline font-bold uppercase tracking-wider"
+                >
+                  Thay đổi
+                </button>
+              {/if}
             </div>
           </div>
 

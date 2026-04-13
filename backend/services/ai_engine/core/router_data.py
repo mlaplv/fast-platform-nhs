@@ -19,7 +19,7 @@ SEMANTIC_ANCHORS = {
         "mở cài đặt", "vào trang chủ", "xem danh mục", "đi tới quản trị", "vào phần báo cáo", 
         "mở helen", "cấu hình hệ thống", "mở cấu hình", "mở lịch hẹn", "mở banner", 
         "mở đánh giá", "mở thư viện ảnh", "biểu đồ doanh thu", "quản lý đơn hàng",
-        "quản lý sản phẩm", "quản lý người dùng", "quản lý tin tức"
+        "quản lý sản phẩm", "quản lý người dùng", "quản lý Bài viết"
     ],
     "session_sleep": ["cút đi", "ngủ đi", "tạm biệt", "hẹn gặp lại", "tắt máy"],
     "session_wake": ["xohi ơi", "dậy đi", "alo xohi", "nghe này", "làm việc"],

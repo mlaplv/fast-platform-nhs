@@ -97,7 +97,7 @@
     {
       id: "news",
       icon: Newspaper,
-      label: "Tin tức",
+      label: "Bài viết",
       sublabel: "Bài viết & Blog",
       widget: "NEWS_MANAGEMENT",
       color: "#FF33FF",
