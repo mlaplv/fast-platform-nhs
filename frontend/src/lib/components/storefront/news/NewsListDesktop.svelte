@@ -43,7 +43,7 @@
       <div class="flex items-center gap-6" in:fade={{duration: 800}}>
         <h1 class="text-3xl font-black text-gray-900 tracking-tight italic uppercase" in:fly={{x: -20, duration: 1000}}>{categoryName}</h1>
         <div class="h-px w-12 bg-[#ee4d2d]" in:scale={{duration: 1000, delay: 200, start: 0}}></div>
-        <span class="text-[10px] font-black text-[#ee4d2d] uppercase tracking-[0.3em] animate-pulse">Tạp chí Elite 2026</span>
+        <span class="text-[10px] font-black text-[#ee4d2d] uppercase tracking-[0.3em] animate-pulse">Hướng dẫn nâng cao</span>
       </div>
     </div>
   </div>
@@ -52,6 +52,7 @@
   <div class="max-w-[1200px] mx-auto px-4 xl:px-0 mt-8 flex gap-8">
     
     <!-- LEFT SIDEBAR: Featured & Topics -->
+    {#if categoryName !== 'CHÍNH SÁCH'}
     <aside class="w-[280px] shrink-0 space-y-8 hidden lg:block">
       <!-- Sidebar Header -->
       <div class="bg-black text-white p-5 rounded-none shadow-xl transform hover:-translate-y-1 transition-all duration-500 overflow-hidden relative group">
@@ -94,10 +95,11 @@
           </div>
       </div>
     </aside>
+    {/if}
 
     <!-- MAIN GRID AREA -->
     <main class="flex-1">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div class="grid grid-cols-1 {categoryName === 'CHÍNH SÁCH' ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-8">
         {#each enhancedNews() as news, i (news.id)}
           <a href="/{news.slug}" 
              in:fly={{y: 40, duration: 1000, delay: 200 + (i * 100)}}
@@ -143,11 +145,13 @@
       </div>
 
       <!-- Pagination Placeholder (Elite Style) -->
+      {#if categoryName !== 'CHÍNH SÁCH'}
       <div class="mt-16 flex justify-center border-t border-gray-100 pt-10">
           <button class="px-10 py-4 bg-white border border-gray-200 text-[11px] font-black uppercase tracking-[0.3em] hover:bg-black hover:text-white hover:border-black transition-all shadow-sm active:scale-95">
             Xem thêm tin bài
           </button>
       </div>
+      {/if}
     </main>
   </div>
 </div>

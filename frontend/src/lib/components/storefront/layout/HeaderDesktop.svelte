@@ -31,14 +31,16 @@
         <button type="button" class="hover:text-luxury-copper transition-colors">Kênh Người Bán</button>
         <span class="w-[1px] h-3 bg-gray-200"></span>
         <button type="button" class="hover:text-luxury-copper transition-colors">Trở thành Người bán Micsmo</button>
-        <span class="w-[1px] h-3 bg-gray-200"></span>
-        <button type="button" class="hover:text-luxury-copper transition-colors">Tải ứng dụng</button>
+        <span class="w-[1px] h-3 bg-gray-200"></span> 
+        <a href="/tin-tuc" class="hover:text-luxury-copper transition-colors">Tin tức</a>
+        <!--
         <span class="w-[1px] h-3 bg-gray-200"></span>
         <div class="flex items-center gap-1">
           <span>Kết nối</span>
           <button type="button" class="hover:text-luxury-copper transition-colors text-lg italic">f</button>
           <button type="button" class="hover:text-luxury-copper transition-colors text-lg italic">in</button>
-        </div>
+        </div> 
+        -->
       </div>
       <div class="flex items-center space-x-4">
         <button type="button" class="flex items-center gap-1 hover:text-luxury-copper transition-colors">

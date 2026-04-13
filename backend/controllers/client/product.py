@@ -28,10 +28,19 @@ class PublicProductController(Controller):
         limit: int = 20,
         offset: int = 0,
         search: Optional[str] = None,
-        featured_only: bool = False
+        featured_only: bool = False,
+        category_slug: Optional[str] = None,
     ) -> ProductListResponse:
-        """PUBLIC: List products."""
-        return await product_service.list_products(db_session, limit=limit, offset=offset, status="ACTIVE", search=search, featured_only=featured_only)
+        """PUBLIC: List products. Supports filter by category_slug."""
+        return await product_service.list_products(
+            db_session,
+            limit=limit,
+            offset=offset,
+            status="ACTIVE",
+            search=search,
+            featured_only=featured_only,
+            category_slug=category_slug,
+        )
 
     @get("/slug/{slug:str}")
     async def get_product_by_slug(

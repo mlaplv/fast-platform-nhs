@@ -36,7 +36,7 @@
 
       <div class="flex items-center gap-6" in:fade={{duration: 800}}>
         <div class="h-px w-12 bg-red-600" in:scale={{duration: 1000, start: 0}}></div>
-        <span class="text-[10px] font-black text-red-600 uppercase tracking-[0.3em] animate-pulse">Độc quyền Tạp chí Elite</span>
+        <span class="text-[10px] font-black text-red-600 uppercase tracking-[0.3em] animate-pulse">Độc quyền Hướng dẫn nâng cao</span>
       </div>
     </div>
   </div>
@@ -67,11 +67,13 @@
         </div>
 
         <!-- Featured Image -->
+        {#if article.category !== 'Chính sách'}
         <div class="px-8 md:px-12 mb-12">
             <div class="aspect-video w-full overflow-hidden bg-gray-50 border border-gray-100 group">
                 <img src={article.image} alt={article.title} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms]" />
             </div>
         </div>
+        {/if}
 
         <!-- Content Body (Elite Prose) -->
         <div class="p-8 md:p-12 pt-0 elite-prose">

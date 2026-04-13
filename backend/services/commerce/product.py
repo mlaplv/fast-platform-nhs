@@ -125,6 +125,7 @@ class ProductService:
         status: Optional[str] = None,
         search: Optional[str] = None,
         featured_only: bool = False,
+        category_slug: Optional[str] = None,
     ) -> ProductListResponse:
         """
         Elite V3.0: Hybrid Viral Search Engine.
@@ -135,6 +136,9 @@ class ProductService:
             conditions.append(ProductBase.status == status.upper())
         if featured_only:
             conditions.append(ProductBase.is_ai_featured == True)
+        if category_slug:
+            # Filter sản phẩm theo category slug (join Category)
+            conditions.append(Category.slug == category_slug)
 
         # 🎯 CASE 1: SEARCH OVERRIDE (Hybrid Strategy)
         if search:
@@ -226,7 +230,11 @@ class ProductService:
 
         # 🎯 CASE 2: STANDARD LISTING
         # 1. COUNT (Zero-Hydration)
-        count_stmt = select(func.count(ProductBase.id)).where(and_(*conditions))
+        count_stmt = select(func.count(ProductBase.id))
+        if category_slug:
+            count_stmt = count_stmt.outerjoin(Category, ProductBase.category_id == Category.id)
+        
+        count_stmt = count_stmt.where(and_(*conditions))
         total = await db_session.scalar(count_stmt) or 0
 
         # 2. R76: Scalar Projection Fetch

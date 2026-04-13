@@ -196,16 +196,46 @@
   .time-box span { background: #333; color: white; padding: 1px 3px; border-radius: 2px; font-weight: bold; }
 
   .info-content { background: white; padding: 12px; }
-  .vouchers-outer { position: relative; margin-bottom: 12px; }
-  .vouchers-list { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; mask-image: linear-gradient(to right, black 90%, transparent); }
+  .vouchers-outer { position: relative; margin-bottom: 12px; margin-left: -12px; margin-right: -12px; }
+  .vouchers-list { 
+    display: flex; 
+    gap: 8px; 
+    overflow-x: auto; 
+    scrollbar-width: none; 
+    padding: 0 24px;
+    scroll-padding: 0 24px;
+  }
   .vouchers-list::-webkit-scrollbar { display: none; }
   .ticket { background: #fff5f5; border: 1px dashed #ff4d4f; color: #ff4d4f; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; }
   .ticket.active { background: #ff4d4f; color: white; border-style: solid; }
   .ticket-wrapper { position: relative; background: none; border: none; padding: 0; }
   .active-badge { position: absolute; top: -4px; right: -4px; background: #52c41a; color: white; border-radius: 50%; width: 12px; height: 12px; display: flex; align-items: center; justify-content: center; }
-  .scroll-btn { position: absolute; top: 50%; transform: translateY(-50%); background: white; border: 1px solid #eee; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; z-index: 2; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-  .scroll-btn.prev { left: -8px; }
-  .scroll-btn.next { right: -8px; }
+  .scroll-btn { 
+    position: absolute; 
+    top: 50%; 
+    transform: translateY(-50%); 
+    background: rgba(255, 255, 255, 0.6); 
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3); 
+    border-radius: 50%; 
+    width: 22px; 
+    height: 22px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    z-index: 10; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+    color: #ff4d4f;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .scroll-btn:active {
+    scale: 0.85;
+    background: rgba(255, 255, 255, 0.9);
+  }
+  .scroll-btn.prev { left: -4px; }
+  .scroll-btn.next { right: -4px; }
 
   .title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
   .product-title { font-size: 16px; font-weight: 600; line-height: 1.4; color: #222; flex: 1; margin: 0; }
@@ -213,6 +243,7 @@
 
   .product-stats-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #888; }
   .rating-box { display: flex; align-items: center; gap: 4px; color: #222; font-weight: bold; }
+  .stars { display: flex; align-items: center; gap: 1px; }
   .divider { width: 1px; height: 10px; background: #eee; }
   .trust-badge { background: #f0f0f0; padding: 2px 6px; border-radius: 2px; }
 </style>

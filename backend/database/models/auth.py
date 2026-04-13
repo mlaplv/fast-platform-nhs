@@ -34,6 +34,12 @@ class User(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     phone: Mapped[Optional[str]] = mapped_column(String, index=True) # Elite V2.2
     password: Mapped[Optional[str]] = mapped_column(String)
     status: Mapped[str] = mapped_column(String, default="ACTIVE")
+    
+    # Profile Elite V3.0
+    gender: Mapped[Optional[str]] = mapped_column(String) # MALE, FEMALE, OTHER
+    dob: Mapped[Optional[sa.DateTime]] = mapped_column(sa.DateTime(timezone=True))
+    avatar_url: Mapped[Optional[str]] = mapped_column(String)
+
     security_stamp: Mapped[str] = mapped_column(String, default=lambda: str(uuid.uuid4()))
     
     # Relationships

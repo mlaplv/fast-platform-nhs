@@ -5,6 +5,16 @@ import { isMobileDevice } from '$lib/utils/device';
 
 export const trailingSlash = 'ignore';
 
+interface Article {
+  id: string;
+  title: string;
+  slug: string;
+  content?: string;
+  excerpt?: string;
+  featured_image?: string;
+  category?: string;
+}
+
 export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
   const apiUrl = ServerEnv.INTERNAL_API_URL;
   const tenantId = ServerEnv.TENANT_ID;
@@ -19,18 +29,24 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
        throw error(404, { message: "Không tìm thấy nội dung (Dấu '/' không được phép cho tin bài)" });
     }
 
-    const categoryUrl = `${apiUrl}/api/v1/client/categories/slug/${slug}`;
+    // TĂNG GIỚI HẠN LÊN 49: 1 sp cho banner + 48 sp cho grid (4 cột x 12 hàng)
+    const productsUrl = `${apiUrl}/api/v1/client/products/?category_slug=${slug}&limit=49&status=ACTIVE`;
     try {
-      const catRes = await fetch(categoryUrl, { 
+      const catRes = await fetch(productsUrl, { 
         headers: { 'x-tenant': tenantId },
         signal: AbortSignal.timeout(5000)
       });
       if (catRes.ok) {
         const data = await catRes.json();
+        const items = (data.data || []) as unknown[];
+        const total = data.total || items.length;
+
         return {
           type: 'category',
           categoryName: slug.replace(/-/g, ' ').toUpperCase(),
-          items: Array.isArray(data) ? data : (data.items || [])
+          categorySlug: slug,
+          serverTotal: total,
+          items
         };
       }
     } catch (e) {
@@ -53,7 +69,7 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
         return {
           type: 'news',
           categoryName: 'GÓC TIN TỨC ELITE',
-          items: Array.isArray(data) ? data : (data.data || data.items || [])
+          items: (Array.isArray(data) ? data : (data.data || data.items || [])) as Article[]
         };
       }
     } catch (e) {
@@ -88,7 +104,7 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
           const relData = await relRes.json();
           // Remove current product and take exact 8 items
           relatedProducts = (relData.data || [])
-            .filter((p: any) => p.id !== product.id)
+            .filter((p: { id: string }) => p.id !== product.id)
             .slice(0, 8);
         }
       } catch (relErr) {
@@ -120,7 +136,7 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
       signal: AbortSignal.timeout(5000)
     });
     if (artRes.ok) {
-      const article = await artRes.json();
+      const article = (await artRes.json()) as Article;
       return {
         type: 'article',
         article,

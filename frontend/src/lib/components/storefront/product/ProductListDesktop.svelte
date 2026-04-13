@@ -18,11 +18,24 @@
   interface Props {
     products: Product[];
     categoryName: string;
+    categorySlug: string;
+    serverTotal: number;
   }
 
-  let { products = [], categoryName = "Danh mục" }: Props = $props();
+  let { 
+    products = [], 
+    categoryName = "Danh mục",
+    categorySlug,
+    serverTotal
+  }: Props = $props();
 
   // --- STATE & LOGIC ---
+  // allProducts là "Single Source of Truth" có thể mở rộng
+  let allProducts = $state<Product[]>([...products]);
+  let currentOffset = $state(49); // Lần fetch tiếp theo bắt đầu từ 49
+  let pageSize = $state(12); // Số lượng item hiện trong grid (không tính banner)
+  let isLoading = $state(false);
+
   type SortType = 'popular' | 'sales' | 'latest' | 'price-asc' | 'price-desc';
   let activeSort = $state<SortType>('popular');
 
@@ -36,8 +49,6 @@
   // Filter State
   let selectedBrands = $state<string[]>([]);
   let selectedOrigins = $state<string[]>([]);
-  let pageSize = $state(12);
-  let isLoading = $state(false);
 
   function toggleBrand(brand: string) {
     if (selectedBrands.includes(brand)) {
@@ -70,13 +81,40 @@
     selectedOrigins = selectedOrigins.filter(o => o !== origin);
   }
 
-  function loadMore() {
-    if (isLoading || displayProducts().length >= filteredProducts().length) return;
+  async function loadMore() {
+    if (isLoading) return;
+
+    const gridVisible = displayProducts().length;
+    const gridAvailable = allProducts.length - 1; // trừ banner
+
+    // Giai đoạn 1: Mở rộng từ data đã có (SSR load 49 sp)
+    if (gridVisible < gridAvailable) {
+      isLoading = true;
+      setTimeout(() => {
+        pageSize += 12;
+        isLoading = false;
+      }, 300);
+      return;
+    }
+
+    // Giai đoạn 2: Hết data local → Fetch API proxy
+    if (allProducts.length >= serverTotal) return;
+
     isLoading = true;
-    setTimeout(() => {
-      pageSize += 12;
+    try {
+      const res = await fetch(`/api/client/products?category_slug=${categorySlug}&limit=48&offset=${currentOffset}&status=ACTIVE`);
+      if (res.ok) {
+        const data = await res.json();
+        const newItems = (data.data || []) as Product[];
+        allProducts = [...allProducts, ...newItems];
+        currentOffset += newItems.length;
+        pageSize += 12;
+      }
+    } catch (e) {
+      console.error('[LOAD MORE FAILED]', e);
+    } finally {
       isLoading = false;
-    }, 400);
+    }
   }
 
   function setupInfiniteScroll(node: HTMLElement) {
@@ -133,8 +171,9 @@
   const skinTypes = ['Da Dầu', 'Da Khô', 'Da Lão Hoá', 'Da Nhạy Cảm', 'Da Thường'];
 
   const enhancedProducts = $derived(() => {
-    return products.map((p, i) => ({
+    return allProducts.map((p, i) => ({
       ...p,
+      image: p.image || (p.images && p.images.length > 0 ? p.images[0] : ''),
       originalPrice: p.originalPrice || p.price * 1.55,
       sales: p.sales || 300 + (i * 15),
       rating: 5,
@@ -159,8 +198,13 @@
     return result;
   });
 
+  // SINGLE SOURCE OF TRUTH: chỉ sort 1 lần duy nhất theo tab active
+  // item[0] → banner | item[1..N] → grid (không re-sort nội bộ nữa)
+  const bannerProduct = $derived(() => filteredProducts()[0] ?? null);
+
   let displayProducts = $derived(() => {
-    return filteredProducts().slice(0, pageSize);
+    // Bỏ qua index 0 (đã dùng cho banner), chỉ lấy từ index 1
+    return filteredProducts().slice(1, 1 + pageSize);
   });
 </script>
 
@@ -190,9 +234,9 @@
     </div>
   </div>
 
-  <!-- VIRAL BANNER ZONE -->
+  <!-- VIRAL BANNER ZONE: đọc 1 lần duy nhất / tab → item[0] làm banner -->
   <div class="max-w-[1200px] mx-auto px-4 xl:px-0 mt-6">
-    <CategoryBanner products={enhancedProducts()} />
+    <CategoryBanner product={bannerProduct()} />
   </div>
 
   <!-- MAIN CONTENT: Sidebar + Grid -->
@@ -406,17 +450,60 @@
       </div>
 
       <div class="mt-8">
-        <ProductGrid products={displayProducts()} />
+        {#if filteredProducts().length > 0}
+          <ProductGrid products={displayProducts()} />
+        {:else}
+          <!-- ELITE EMPTY STATE (Premium 2026) -->
+          <div class="bg-white/80 backdrop-blur-xl border border-dashed border-gray-200 py-32 flex flex-col items-center justify-center text-center shadow-sm">
+             <div class="relative mb-8">
+                <!-- Outer Ring -->
+                <div class="absolute inset-0 bg-[#ee4d2d]/5 rounded-full scale-150 blur-2xl animate-pulse"></div>
+                <!-- Main Icon Circle -->
+                <div class="relative w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center border border-gray-100 shadow-inner">
+                   <svg class="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                   </svg>
+                   <!-- Floating 0 Badge -->
+                   <div class="absolute -top-1 -right-1 w-8 h-8 bg-black text-white text-[12px] font-black rounded-full flex items-center justify-center border-4 border-white">0</div>
+                </div>
+             </div>
+
+             <h3 class="text-xl font-black text-gray-900 mb-3 tracking-tight uppercase italic">
+                Rất tiếc, không tìm thấy sản phẩm!
+             </h3>
+             <p class="text-[13px] text-gray-500 max-w-[400px] leading-relaxed mb-10 font-medium">
+                Sản phẩm trong nội dung hiện chưa có kết quả nào khớp với bộ lọc. Quý khách vui lòng <span class="text-black font-bold">xóa bớt bộ lọc</span> hoặc quay lại sau nhé.
+             </p>
+
+             <div class="flex items-center gap-4">
+                {#if hasActiveFilters()}
+                  <button 
+                    onclick={clearAllFilters}
+                    class="px-8 py-3.5 bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-2xl"
+                  >
+                    Xóa tất cả bộ lọc
+                  </button>
+                {/if}
+                <button 
+                  onclick={() => goto('/')}
+                  class="px-8 py-3.5 bg-white border border-gray-200 text-gray-900 text-[11px] font-black uppercase tracking-[0.2em] hover:bg-gray-50 transition-all active:scale-95"
+                >
+                  Về trang chủ
+                </button>
+             </div>
+          </div>
+        {/if}
       </div>
 
       <!-- AUTOMATIC PAGINATION (Infinite Scroll) -->
-      {#if displayProducts().length < filteredProducts().length}
+      <!-- AUTOMATIC PAGINATION (Infinite Scroll Elite) -->
+      {#if (allProducts.length < serverTotal || displayProducts().length < filteredProducts().length - 1) && filteredProducts().length > 0}
         <div class="mt-12 flex flex-col items-center gap-4 py-10" use:setupInfiniteScroll>
           <div class="text-[12px] text-gray-400 font-black uppercase tracking-widest">
-            Đã tải <span class="text-black">{displayProducts().length}</span> / {filteredProducts().length} siêu phẩm
+            Đã tải <span class="text-black">{displayProducts().length + 1}</span> / {serverTotal} sản phẩm
           </div>
           <div class="w-[200px] h-[2px] bg-gray-100 overflow-hidden relative">
-             <div class="h-full bg-[#ee4d2d] transition-all duration-700" style="width: {(displayProducts().length / filteredProducts().length) * 100}%"></div>
+             <div class="h-full bg-[#ee4d2d] transition-all duration-700" style="width: {( (displayProducts().length + 1) / serverTotal) * 100}%"></div>
              {#if isLoading}
                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-shimmer"></div>
              {/if}
@@ -429,9 +516,9 @@
             </div>
           {/if}
         </div>
-      {:else}
+      {:else if serverTotal > 0}
         <div class="mt-16 text-center py-10 border-t border-gray-50">
-           <span class="text-[11px] font-black text-gray-300 uppercase tracking-[0.5em]">Đã hiển thị toàn bộ sưu tập</span>
+           <span class="text-[11px] font-black text-gray-300 uppercase tracking-[0.5em]">Đã hiển thị toàn bộ {serverTotal} sản phẩm</span>
         </div>
       {/if}
     </main>

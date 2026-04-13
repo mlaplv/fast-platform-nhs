@@ -16,60 +16,33 @@
 
   let { banners }: Props = $props();
 
-  // Elite V2.2: Neural Link Intelligence
+  // Elite V2.2: Chỉ hiển thị 1 banner đầu tiên (vị trí home_main)
+  const mainBanner = $derived(banners?.find(b => b.position === 'home_main') || null);
+
   function getProductLink(url?: string) {
     if (!url) return '#';
     if (url.startsWith('http') || url.startsWith('/')) return url;
     return `/${url}`;
   }
-
-  const displayBanners = $derived(banners && banners.length > 0 ? banners : []);
-
-  let current = $state(0);
-  let timer: ReturnType<typeof setInterval>;
-
-  onMount(() => {
-    timer = setInterval(() => {
-      current = (current + 1) % displayBanners.length;
-    }, 3200);
-    return () => clearInterval(timer);
-  });
 </script>
 
-<div class="banner-carousel">
-  <!-- Slide track -->
-  <div
-    class="banner-track"
-    style="transform: translateX(-{current * 100}%)"
-  >
-    {#each displayBanners as banner, i}
-      <a href={getProductLink(banner.link_url)} class="banner-slide">
-        <img
-          src={banner.image_url}
-          alt={banner.title || `Banner ${i + 1}`}
-          class="w-full h-full object-cover"
-          loading={i === 0 ? 'eager' : 'lazy'}
-        />
-      </a>
-    {/each}
-  </div>
+<div class="banner-carousel shadow-sm">
+  {#if mainBanner}
+    <a href={getProductLink(mainBanner.link_url)} class="banner-slide">
+      <img
+        src={mainBanner.image_url}
+        alt={mainBanner.title || "Banner"}
+        class="w-full h-full object-cover"
+        loading="eager"
+      />
+    </a>
 
-  <!-- Mall Day badge (top-left) -->
-  <div class="banner-badge-row">
-    <span class="badge-mall-day">Ngày Hội Mall ⚡</span>
-    <span class="badge-date">{new Date().getDate()} Tháng {new Date().getMonth() + 1}</span>
-  </div>
-
-  <!-- Dot indicators (bottom-center) -->
-  <div class="banner-dots">
-    {#each displayBanners as _, i}
-      <button
-        class="banner-dot {i === current ? 'banner-dot--active' : ''}"
-        onclick={() => current = i}
-        aria-label="Slide {i + 1}"
-      ></button>
-    {/each}
-  </div>
+    <!-- Mall Day badge (top-left) -->
+    <div class="banner-badge-row">
+      <span class="badge-mall-day">Ngày Hội Mall ⚡</span>
+      <span class="badge-date">{new Date().getDate()} Tháng {new Date().getMonth() + 1}</span>
+    </div>
+  {/if}
 </div>
 
 <style>

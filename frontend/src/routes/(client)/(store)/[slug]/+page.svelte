@@ -73,7 +73,12 @@
     {#if isMobile}
       <ProductListMobile products={data.items} />
     {:else}
-      <ProductListDesktop products={data.items} categoryName={data.categoryName} />
+      <ProductListDesktop 
+        products={data.items} 
+        categoryName={data.categoryName} 
+        categorySlug={data.categorySlug}
+        serverTotal={data.serverTotal}
+      />
     {/if}
   {/if}
 {:else if data.type === 'article'}

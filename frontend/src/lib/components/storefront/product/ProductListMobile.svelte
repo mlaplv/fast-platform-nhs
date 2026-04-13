@@ -15,9 +15,20 @@
     ratingCount?: number;
   }
 
-  let { products, searchQuery }: Props = $props();
+  let { products = [], searchQuery }: Props = $props();
 
   let activeTab = $state('FOR_YOU');
+
+  const enhancedProducts = $derived(() => {
+    return products.map((p, i) => ({
+      ...p,
+      image: p.image || (p.images && p.images.length > 0 ? p.images[0] : ''),
+      originalPrice: p.originalPrice || p.price * 1.55,
+      sales: p.sales || 1200 + (i * 20),
+      rating: 5,
+      ratingCount: 1 + (i % 10)
+    }));
+  });
 </script>
 
 <div class="min-h-screen bg-[#F7F8F9] pb-24">
@@ -41,7 +52,7 @@
        >
           <svg class="w-[18px] h-[18px] text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           <span class="text-[13px] text-gray-400 font-bold truncate">
-            {searchQuery || "Tìm kiếm siêu phẩm..."}
+            {searchQuery || "Tìm kiếm sản phẩm..."}
           </span>
        </div>
     </div>
@@ -94,8 +105,8 @@
 
   <!-- MAIN PRODUCT FEED -->
   <div class="px-2 pt-3">
-    {#if products.length > 0}
-      <ProductGrid {products} {activeTab} />
+    {#if enhancedProducts().length > 0}
+      <ProductGrid products={enhancedProducts()} {activeTab} />
     {:else}
       <div class="flex flex-col items-center justify-center py-24 px-10 text-center" in:fade>
         <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">

@@ -83,9 +83,11 @@
   const extendedCatalog = $derived(
     tabs.flatMap((tab) => {
       if (tab.id === 'ai' && productsAi.length > 0) {
-        return productsAi.map((p, i) => normalizeProduct(p, 'ai', i));
+        // AI Tab: Skip cái đầu tiên vì đã cho lên FEATURED SLIDE
+        return productsAi.slice(1, 11).map((p, i) => normalizeProduct(p, 'ai', i));
       } else if (products.length > 0) {
-        return products.slice(0, 6).map((p, i) => normalizeProduct(p, tab.id, i));
+        // Các tab khác: Skip cái đầu tiên
+        return products.slice(1, 11).map((p, i) => normalizeProduct(p, tab.id, i));
       }
       return [];
     })
@@ -94,13 +96,9 @@
   // Filtered Products
   const currentProducts = $derived(extendedCatalog.filter(p => p.id.startsWith(activeTab)));
 
-  // Slide State
-  let currentSlide = $state(0);
-  let slideTimer: ReturnType<typeof setInterval>;
-  
-  // Elite V2.2: Featured Slides strictly from productsAi
+  // Elite V2.2: Featured Slides strictly 1 single product (No Carousel)
   const featuredSlides = $derived(
-    (productsAi.length > 0 ? productsAi : products.filter(p => p.isAiFeatured).slice(0, 4))
+    (productsAi.length > 0 ? [productsAi[0]] : products.filter(p => p.isAiFeatured).slice(0, 1))
     .map((p, i) => normalizeProduct(p, 'featured', i))
   );
 
@@ -111,23 +109,8 @@
     { label: 'Tình Trạng', value: 'Loại A+', color: 'text-emerald-500' }
   ];
 
-  function nextSlide() {
-    currentSlide = (currentSlide + 1) % featuredSlides.length;
-  }
-
-  function prevSlide() {
-    currentSlide = (currentSlide - 1 + featuredSlides.length) % featuredSlides.length;
-  }
-
-  onMount(() => {
-    slideTimer = setInterval(nextSlide, 10000); // Slower auto-play
-    return () => clearInterval(slideTimer);
-  });
-
-  $effect(() => {
-    activeTab;
-    currentSlide = 0;
-  });
+  /* Carousel Logic Retired as per Elite V2.2 directive (Only 1 item) */
+  let currentSlide = $state(0);
 </script>
 
 <section class="home-product-grid-section relative mb-[5px] overflow-visible">
@@ -281,21 +264,9 @@
       {/if}
     {/each}
 
-    <!-- Slide Indicators - Micsmo Elite Dots -->
-    <div class="absolute bottom-4 right-12 flex items-center gap-2 z-40">
-        {#each featuredSlides as _, i}
-            <button 
-                onclick={() => (currentSlide = i)}
-                class="group relative flex items-center justify-center h-4 w-8 transition-all"
-                aria-label={`Chuyển đến slide ${i + 1}`}
-            >
-                <div class="h-[2px] transition-all duration-700 {currentSlide === i ? 'w-8 bg-[#C18F7E]' : 'w-4 bg-black/10 group-hover:bg-black/30'}"></div>
-            </button>
-        {/each}
-    </div>
-
-
+    <!-- Slide Indicators - Removed as per Elite V2.2 (Only 1 item) -->
   </div>
+
 
   <!-- VIRAL SLIDER V2.7: Single Row Carousel -->
   <div class="flex overflow-x-auto no-scrollbar scroll-smooth gap-2 px-1 md:px-0 pb-10">

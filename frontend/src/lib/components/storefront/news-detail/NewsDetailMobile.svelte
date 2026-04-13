@@ -1,11 +1,12 @@
 <script lang="ts">
   interface Props {
-    article: { title: string; author: string; publishedAt: string; content: string; image: string };
+    article: { title: string; author: string; publishedAt: string; content: string; image: string; category?: string };
   }
   let { article }: Props = $props();
 </script>
 
 <div class="bg-white min-h-screen text-gray-900">
+  {#if article.category !== 'Chính sách'}
   <!-- Immersive Hero -->
   <div class="h-[60vh] relative w-full overflow-hidden bg-black">
     <img src={article.image} alt={article.title} class="absolute inset-0 w-full h-full object-cover z-0 opacity-80" />
@@ -24,14 +25,28 @@
     <!-- Title Overlay -->
     <div class="absolute bottom-0 left-0 w-full p-6 z-20">
         <span class="bg-red-600 text-white px-2 py-0.5 text-[9px] font-black uppercase tracking-widest mb-3 inline-block">
-          Tạp chí Elite
+          Hướng dẫn nâng cao
         </span>
         <h1 class="text-3xl font-black text-gray-900 leading-tight tracking-tighter uppercase italic drop-shadow-sm">
           {article.title}
         </h1>
     </div>
   </div>
+  {:else}
+  <!-- Clean Header for Policy Pages -->
+  <div class="bg-white border-b border-gray-100 sticky top-0 z-30">
+    <div class="flex items-center gap-4 px-6 py-4">
+        <button onclick={() => history.back()} class="w-8 h-8 flex items-center justify-center text-gray-900">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+        </button>
+        <h1 class="text-lg font-black text-gray-900 uppercase italic tracking-tight truncate flex-1">
+          {article.title}
+        </h1>
+    </div>
+  </div>
+  {/if}
 
+  {#if article.category !== 'Chính sách'}
   <!-- Article Info -->
   <div class="px-6 py-6 border-b border-gray-50 bg-gray-50/30">
       <div class="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest overflow-hidden">
@@ -40,6 +55,7 @@
         <span class="truncate">{article.publishedAt}</span>
       </div>
   </div>
+  {/if}
 
   <!-- Content Reader (Elite Prose) -->
   <div class="px-6 py-10 elite-prose-mobile">

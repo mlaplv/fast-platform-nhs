@@ -138,7 +138,7 @@
             <div class="progress-fill" style="width: {deal.isHot ? 90 : 65}%"></div>
             <span class="progress-text {deal.isHot ? 'fomo-pulse' : ''}">
               {#if deal.isHot}
-                🔥 {deal.soldText}
+                🔥 Sắp cháy hàng
               {:else}
                 Đã bán {deal.soldText}
               {/if}
@@ -336,7 +336,7 @@
     bottom: 6px;
     left: 6px;
     right: 6px;
-    height: 18px;
+    height: 14px;
     background: #ffdce3; /* Unfilled light pink */
     border-radius: 999px;
     overflow: hidden;
@@ -359,9 +359,13 @@
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    font-size: 9px;
+    font-weight: 800;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    padding: 0 4px;
+    letter-spacing: -0.2px;
   }
 
   .price-info {

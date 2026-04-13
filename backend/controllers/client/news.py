@@ -27,7 +27,6 @@ class PublicNewsController(Controller):
         article_service: ArticleService,
         limit: int = 20,
         offset: int = 0,
-        category: Optional[str] = None,
         search: Optional[str] = None,
     ) -> ArticleListResponse:
         """PUBLIC: List news articles with pagination."""

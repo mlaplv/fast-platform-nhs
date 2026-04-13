@@ -18,36 +18,16 @@
 
   interface Props {
     products: Product[];
-    activeTab?: string;
   }
 
-  let { products = [], activeTab = 'BEST_SELLER' }: Props = $props();
-
-  // Logic Sắp xếp Phản xạ (Elite V2.2)
-  const sortedProducts = $derived.by(() => {
-    let list = [...products];
-    switch (activeTab) {
-      case 'FOR_YOU':
-        return list.sort((a, b) => Number(b.isAiFeatured || 0) - Number(a.isAiFeatured || 0));
-      case 'TOP_RATED':
-        return list.sort((a, b) => (b.rating || 0) - (a.rating || 0) || (b.ratingCount || 0) - (a.ratingCount || 0));
-      case 'BEST_SELLER':
-      default:
-        return list.sort((a, b) => (b.sales || 0) - (a.sales || 0));
-    }
-  });
-
-  const tabs = [
-    { id: 'AI', label: 'GỢI Ý AI', icon: 'sparkles', color: '#FFD700' },
-    { id: 'LATEST', label: 'MỚI NHẤT', icon: 'clock', color: '#64748b' },
-    { id: 'POPULAR', label: 'PHỔ BIẾN', icon: 'flame', color: '#ff4d4d' },
-    { id: 'BEST_SELLER', label: 'BÁN CHẠY', icon: 'trophy', color: '#FFD700' }
-  ];
+  // SINGLE SOURCE OF TRUTH: parent (ProductListDesktop) đã sort/filter xong.
+  // ProductGrid chỉ render, KHÔNG re-sort nội bộ.
+  let { products = [] }: Props = $props();
 </script>
 
 <!-- GRID ZONE (High-Density Marketplace) -->
-<div class="grid grid-cols-2 gap-2 px-1">
-  {#each sortedProducts as product (product.id)}
+<div class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4 px-1">
+  {#each products as product (product.id)}
     <a
       href={`/${slugify(product.name)}`}
       class="group/card relative bg-white border border-gray-100 transition-all duration-300 cursor-pointer flex flex-col active:scale-[0.98] shadow-sm overflow-hidden no-underline"

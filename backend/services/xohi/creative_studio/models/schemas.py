@@ -10,7 +10,6 @@ class AgentSignal(str, Enum):
 
 class CategoryEnum(str, Enum):
     TIN_TUC = "Tin tức"
-    SAN_PHAM = "Sản phẩm"
     CHINH_SACH = "Chính sách"
 
 class CampaignCategory(str, Enum):

@@ -7,6 +7,7 @@
      title: string;
      summary: string;
      image: string;
+     category?: string;
   }
   interface Props {
     newsList: NewsItem[];
@@ -17,8 +18,12 @@
 <div class="min-h-screen bg-[#F7F8F9] pb-24 pt-4 px-4 space-y-4">
   <div class="flex items-center justify-between mb-6">
     <div class="flex flex-col">
-      <span class="text-[10px] font-black uppercase tracking-[0.2em] text-luxury-copper">Tạp chí Elite</span>
-      <h2 class="text-xl font-bold text-gray-900 tracking-tighter">Tin tức mới nhất</h2>
+      <span class="text-[10px] font-black uppercase tracking-[0.2em] {newsList[0]?.category === 'Chính sách' ? 'text-gray-400' : 'text-luxury-copper'}">
+        {newsList[0]?.category === 'Chính sách' ? 'Hệ thống pháp lý' : 'Hướng dẫn nâng cao'}
+      </span>
+      <h2 class="text-xl font-bold text-gray-900 tracking-tighter">
+        {newsList[0]?.category === 'Chính sách' ? 'Chính sách & Quy định' : 'Tin tức mới nhất'}
+      </h2>
     </div>
     <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-gray-100">
        <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
