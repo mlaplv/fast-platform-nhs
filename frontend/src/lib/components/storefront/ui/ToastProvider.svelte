@@ -26,34 +26,39 @@
   };
 </script>
 
-<div class="fixed top-24 right-4 z-[var(--z-toast)] flex flex-col gap-4 w-85 pointer-events-none">
+<div class="fixed top-6 right-4 lg:right-[calc((100vw-1200px)/2+1rem)] z-[var(--z-toast)] flex flex-col gap-3 w-[340px] pointer-events-none">
   {#each ui.toasts as toast (toast.id)}
     {@const Icon = icons[toast.type]}
     <div
-      in:fly={{ x: 50, duration: 400 }}
-      out:fade={{ duration: 200 }}
+      in:fly={{ y: -20, duration: 500, opacity: 0 }}
+      out:fade={{ duration: 300 }}
       class="pointer-events-auto relative group"
     >
-      <!-- Premium Glass Background - High Contrast Dark Liquid -->
-      <div class="absolute inset-0 bg-black/90 backdrop-blur-3xl rounded-xl border-t border-l border-white/10 {colors[toast.type]} shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] transition-all duration-300 group-hover:scale-[1.02]"></div>
+      <!-- iOS 26 Styled Glassmorphism - Ultra Thin, High Diffusion -->
+      <div class="absolute inset-0 bg-white/70 dark:bg-black/70 backdrop-blur-3xl rounded-[22px] border border-white/40 dark:border-white/10 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.15)] transition-all duration-300 group-hover:scale-[1.01]"></div>
       
-      <div class="relative px-5 py-4 flex items-start gap-4">
-        <!-- Status Icon -->
-        <div class="mt-0.5 shrink-0">
-          <Icon class="w-5 h-5 drop-shadow-sm" />
+      <div class="relative px-5 py-3.5 flex items-center gap-4 min-h-[64px]">
+        <!-- Status Icon Container -->
+        <div class="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0 border border-gray-50">
+          <Icon class="w-5 h-5 {toast.type === 'success' ? 'text-emerald-500' : toast.type === 'error' ? 'text-red-500' : 'text-blue-500'}" />
         </div>
 
-        <!-- Content -->
-        <div class="flex-1 min-w-0 flex flex-col justify-center min-h-[40px]">
-          <p class="text-[13px] font-bold leading-normal text-white break-words overflow-hidden line-clamp-3">
+        <!-- Content Area -->
+        <div class="flex-1 min-w-0 pr-2">
+          <p class="text-[14px] font-semibold leading-tight text-gray-900 dark:text-white truncate">
             {toast.message}
           </p>
-          <div class="mt-2.5 h-1 bg-white/10 rounded-full overflow-hidden shrink-0">
-             <div 
-               class="h-full {toast.type === 'success' ? 'bg-emerald-500' : toast.type === 'error' ? 'bg-red-500' : 'bg-blue-500'} shadow-[0_0_8px_currentColor]"
-               style="width: 100%; transition: width {toast.duration}ms linear; width: 0%;"
-             ></div>
-          </div>
+          <p class="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+            {toast.type === 'success' ? 'Thành công' : toast.type === 'error' ? 'Lỗi hệ thống' : 'Thông báo'}
+          </p>
+        </div>
+
+        <!-- Progress Indicator (iOS 26 Style - Slim Pill) -->
+        <div class="absolute bottom-1 left-6 right-6 h-[3px] bg-gray-100/50 dark:bg-white/10 rounded-full overflow-hidden shrink-0 opacity-40">
+           <div 
+             class="h-full {toast.type === 'success' ? 'bg-emerald-500' : toast.type === 'error' ? 'bg-red-500' : 'bg-blue-500'}"
+             style="width: 100%; transition: width {toast.duration}ms linear; width: 0%;"
+           ></div>
         </div>
       </div>
     </div>

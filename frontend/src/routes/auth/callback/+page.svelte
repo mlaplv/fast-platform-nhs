@@ -50,10 +50,9 @@
       
       // Cleanup UI
       ui.closeModal();
-      ui.showToast(`Chào mừng ${payloadDecoded.name || 'Sếp'} đã quay trở lại!`, 'success');
-
-      // Redirect home and clean URL immediately
-      window.location.replace('/');
+      
+      // Elite V3.0 SPA Navigation: maintain state (Toasts, Pulse notifications)
+      goto('/', { replaceState: true });
 
     } catch (err) {
       status = 'error';

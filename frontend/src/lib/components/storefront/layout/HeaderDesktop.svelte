@@ -57,9 +57,6 @@
         {#if authStore.isAuthenticated}
           <div class="flex items-center -ml-2">
             <NotificationBell />
-            <button type="button" class="flex items-center gap-1 hover:text-luxury-copper transition-colors px-2">
-              <span>Thông Báo</span>
-            </button>
           </div>
         {/if}
         <button type="button" class="flex items-center gap-1 hover:text-luxury-copper transition-colors">

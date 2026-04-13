@@ -1,15 +1,12 @@
 <script lang="ts">
   import { fly, fade } from 'svelte/transition';
-  import { getContext, onMount } from 'svelte';
-  import { Bell, BellRing, Package, User, LogIn, Settings } from 'lucide-svelte';
+  import { onMount } from 'svelte';
+  import { Bell, BellRing, Package, User, LogIn } from 'lucide-svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  
-  // Assuming notification state is available via context or import
-  // For Elite V3.0, we use a global notification state
-  import { createNotificationState } from '$lib/state/notification.svelte';
-  
   import { getNotificationState } from '$lib/state/notification.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
+  
+  import { untrack } from 'svelte';
   
   const ui = getClientUi();
   const notifStore = getNotificationState();
@@ -17,12 +14,19 @@
   let isOpen = $state(false);
   let bellContainer = $state<HTMLElement>();
 
-  onMount(() => {
-    // Only fetch if authenticated and empty to prevent redundant requests
-    if (authStore.isAuthenticated && notifStore.notifications.length === 0) {
-      notifStore.fetchNotifications();
+  // Elite V3.0 Reactivity: Automatically fetch when authenticated
+  // CNS V89: Using untrack to prevent infinite loop from store state changes
+  $effect(() => {
+    if (authStore.isAuthenticated) {
+      untrack(() => {
+        notifStore.fetchNotifications();
+      });
+    } else {
+      isOpen = false;
     }
+  });
 
+  onMount(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (bellContainer && !bellContainer.contains(e.target as Node)) {
         isOpen = false;
@@ -42,32 +46,38 @@
   };
 </script>
 
-<div class="relative flex items-center" bind:this={bellContainer}>
+<div class="relative flex items-center h-full" bind:this={bellContainer}>
   <button 
     onclick={() => isOpen = !isOpen}
-    class="relative p-2 group transition-all duration-300"
+    class="flex items-center gap-1 group transition-all duration-300 px-2 py-1 hover:text-luxury-copper"
   >
-    {#if notifStore.unreadCount > 0}
-      <BellRing class="w-5 h-5 text-luxury-copper animate-pulse" />
-      <span class="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center border-2 border-white pointer-events-none ring-2 ring-red-500/20">
-        {notifStore.unreadCount}
-      </span>
-    {:else}
-      <Bell class="w-5 h-5 text-gray-500 group-hover:text-luxury-copper transition-colors" />
-    {/if}
+    <div class="relative flex items-center justify-center">
+      {#if notifStore.unreadCount > 0}
+        <BellRing class="w-[18px] h-[18px] text-luxury-copper animate-pulse" />
+        <span class="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] px-0.5 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center border border-white pointer-events-none shadow-sm ring-1 ring-red-500/10">
+          {notifStore.unreadCount > 99 ? '99+' : notifStore.unreadCount}
+        </span>
+      {:else}
+        <Bell class="w-[18px] h-[18px] text-gray-500 group-hover:text-luxury-copper transition-colors" />
+      {/if}
+    </div>
+    <span class="text-[11px] font-medium text-gray-500 group-hover:text-luxury-copper transition-colors">Thông Báo</span>
   </button>
 
   {#if isOpen}
     <div 
-      in:fly={{ y: 10, duration: 400 }} 
+      in:fly={{ y: 8, duration: 400, opacity: 0 }} 
       out:fade={{ duration: 200 }}
-      class="absolute right-[-40px] top-[calc(100%+12px)] w-80 z-[var(--z-toast)] origin-top-right"
+      class="absolute right-0 top-[calc(100%+8px)] w-80 z-[var(--z-toast)] origin-top-right"
     >
+      <!-- Arrow Indicator -->
+      <div class="absolute -top-1 right-[24px] w-3 h-3 bg-white rotate-45 z-[0] border-t border-l border-black/5 shadow-[-2px_-2px_5px_rgba(0,0,0,0.02)]"></div>
+
       <!-- Premium Glass Menu - Liquid Aesthetic -->
-      <div class="bg-white/98 backdrop-blur-2xl border border-gray-100 shadow-[0_30px_80px_-15px_rgba(0,0,0,0.25)] rounded-2xl overflow-hidden ring-1 ring-black/5">
+      <div class="relative z-[1] bg-white/98 backdrop-blur-2xl border border-gray-100 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] rounded-xl overflow-hidden ring-1 ring-black/5">
         
         <div class="px-4 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
-          <h3 class="text-[12px] font-black uppercase tracking-widest text-gray-800">Thông báo Pulse</h3>
+          <h3 class="text-[11px] font-black uppercase tracking-widest text-gray-800">Thông báo mới nhận</h3>
           <button 
             onclick={() => notifStore.fetchNotifications()}
             class="text-[10px] text-luxury-copper font-bold hover:underline"
@@ -106,7 +116,9 @@
             </div>
           {:else}
             <div class="px-8 py-12 text-center">
-              <Bell class="w-8 h-8 text-gray-200 mx-auto mb-3" />
+              <div class="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                <Bell class="w-6 h-6 text-gray-200" />
+              </div>
               <p class="text-[11px] text-gray-400 font-medium uppercase tracking-widest leading-loose">
                 Hiện tại chưa có<br/>thông báo mới nào
               </p>
@@ -115,7 +127,7 @@
         </div>
 
         <div class="px-4 py-3 bg-gray-50/50 border-t border-gray-100 text-center">
-          <a href="/user/notifications" class="text-[11px] font-black text-gray-500 hover:text-luxury-copper transition-colors uppercase tracking-widest">
+          <a href="/user/notifications" class="text-[11px] font-black text-gray-500 hover:text-luxury-copper transition-colors uppercase tracking-widest block w-full">
             Xem tất cả thông báo
           </a>
         </div>
@@ -123,3 +135,4 @@
     </div>
   {/if}
 </div>
+

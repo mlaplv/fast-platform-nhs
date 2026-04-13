@@ -3,7 +3,7 @@
   import { goto } from '$app/navigation';
   import { slugify, trimProductName } from '$lib/utils/format';
   import type { Product } from '$lib/types';
-  import { ChevronLeft, ChevronRight } from 'lucide-svelte';
+  import { ChevronLeft, ChevronRight, Truck } from 'lucide-svelte';
 
   interface Props {
     products: Product[];
@@ -94,10 +94,13 @@
       </div>
     </div>
     
-    <a href="/deals" class="text-[#ee4d2d] font-medium text-sm hover:opacity-80 flex items-center gap-1 group transition-all">
-      Xem tất cả
-      <span class="text-xs group-hover:translate-x-1 transition-transform">›</span>
-    </a>
+    <div class="flex items-center gap-3 px-4 py-1.5 bg-gradient-to-r from-[#ee4d2d]/10 via-[#ff6a00]/10 to-[#ee4d2d]/10 rounded-full border border-[#ee4d2d]/20 shadow-[0_2px_10px_rgba(238,77,45,0.05)] animate-pulse-slow">
+        <Truck class="w-4 h-4 text-[#ee4d2d]" />
+        <div class="flex flex-col">
+            <span class="text-[10px] font-black text-[#ee4d2d] leading-none uppercase tracking-tighter">Miễn Phí Vận Chuyển</span>
+            <span class="text-[8px] font-bold text-[#ff6a00] leading-none uppercase tracking-tighter mt-0.5">Duy nhất phiên này</span>
+        </div>
+    </div>
   </div>
 
   <div class="relative group/container">
@@ -143,6 +146,12 @@
             />
             
             <div class="media-overlay"></div>
+
+            <!-- FreeShip Small Badge: FOMO Trigger -->
+            <div class="freeship-tag">
+              <Truck size={10} strokeWidth={3} />
+              <span>FREESHIP</span>
+            </div>
           </div>
 
           <div class="item-info">
@@ -163,14 +172,14 @@
             </div>
 
             <!-- Enhanced Sold Progress Bar -->
-            <div class="sold-progress">
+            <div class="sold-progress" class:is-hot-red={deal.progress > 85}>
               <div 
                 class="progress-bar" 
                 style="width: {deal.progress}%"
               >
                 <div class="shiver-effect"></div>
               </div>
-              <span class="sold-text">
+              <span class="sold-text" class:is-hot-text={deal.progress > 85}>
                 {#if deal.progress > 85}
                   🔥 SẮP CHÁY HÀNG
                 {:else}
@@ -406,6 +415,31 @@
     text-shadow: 0 1px 2px rgba(0,0,0,0.2);
   }
 
+  /* Intensified FOMO for Hot Deals */
+  .sold-progress.is-hot-red {
+    background: #FFD8D8;
+    animation: hot-pulse 0.5s infinite alternate;
+  }
+
+  @keyframes hot-pulse {
+    from { box-shadow: 0 0 2px #EE4D2D; }
+    to { box-shadow: 0 0 8px #EE4D2D; }
+  }
+
+  .sold-text.is-hot-text {
+    color: #EE4D2D;
+    text-shadow: none;
+    animation: shiver-text 0.2s infinite;
+  }
+
+  @keyframes shiver-text {
+    0% { transform: translate(0,0); }
+    25% { transform: translate(1px, 1px); }
+    50% { transform: translate(-1px, -1px); }
+    75% { transform: translate(1px, -1px); }
+    100% { transform: translate(0,0); }
+  }
+
   .shiver-effect {
     position: absolute;
     inset: 0;
@@ -434,6 +468,14 @@
     animation: gradient-flow 3s ease infinite;
   }
 
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(0.98); }
+  }
+  .animate-pulse-slow {
+    animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
   .empty-state {
     width: 100%;
     padding: 5rem 0;
@@ -443,6 +485,46 @@
     justify-content: center;
     gap: 1.5rem;
     color: #ddd;
+  }
+
+  /* FreeShip Tag on Product Card */
+  .freeship-tag {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    z-index: 10;
+    background: linear-gradient(135deg, #00b894, #00cec9);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    /* Shimmer effect for FOMO */
+    overflow: hidden;
+  }
+
+  .freeship-tag::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -60%;
+    width: 20%;
+    height: 200%;
+    background: rgba(255, 255, 255, 0.4);
+    transform: rotate(30deg);
+    animation: tag-shimmer 3s infinite;
+  }
+
+  @keyframes tag-shimmer {
+    0% { left: -60%; }
+    20% { left: 140%; }
+    100% { left: 140%; }
   }
 
   /* Responsive Adjustments */
