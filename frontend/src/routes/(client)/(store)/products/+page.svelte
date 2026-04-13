@@ -37,5 +37,6 @@
     categoryName={searchLabel}
     categorySlug=""
     serverTotal={data.total ?? data.products?.length ?? 0}
+    facets={data.facets}
   />
 {/if}

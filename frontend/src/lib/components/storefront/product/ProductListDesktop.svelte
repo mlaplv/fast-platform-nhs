@@ -15,18 +15,27 @@
     ratingCount?: number;
   }
 
+  interface SearchFacets {
+    brands: string[];
+    origins: string[];
+    price_min: number;
+    price_max: number;
+  }
+
   interface Props {
     products: Product[];
     categoryName: string;
     categorySlug: string;
     serverTotal: number;
+    facets?: SearchFacets | null;
   }
 
   let { 
     products = [], 
     categoryName = "Danh mục",
     categorySlug,
-    serverTotal
+    serverTotal,
+    facets = null,
   }: Props = $props();
 
   // --- STATE & LOGIC ---
@@ -40,12 +49,12 @@
   let activeSort = $state<SortType>('popular');
 
   // Price Slider State
-  // Elite V2.2: In search mode (no category), use full price range to avoid filtering out results
-  const MIN_VAL = 0;
-  const MAX_VAL = 2000000;
+  // Elite V2.2: Use backend facets for real price range, fallback to full range
+  const MIN_VAL = facets?.price_min ?? 0;
+  const MAX_VAL = facets?.price_max ?? 2000000;
   const isSearchMode = !categorySlug;
-  let minPrice = $state(isSearchMode ? MIN_VAL : 89000);
-  let maxPrice = $state(isSearchMode ? MAX_VAL : 1430000);
+  let minPrice = $state(MIN_VAL);
+  let maxPrice = $state(MAX_VAL);
   let sliderEl = $state<HTMLElement | null>(null);
 
   // Filter State
@@ -71,8 +80,8 @@
   function clearAllFilters() {
     selectedBrands = [];
     selectedOrigins = [];
-    minPrice = isSearchMode ? MIN_VAL : 89000;
-    maxPrice = isSearchMode ? MAX_VAL : 1430000;
+    minPrice = MIN_VAL;
+    maxPrice = MAX_VAL;
   }
 
   function removeBrand(brand: string) {
@@ -138,9 +147,7 @@
   }
 
   let hasActiveFilters = $derived(() => {
-    const defaultMin = isSearchMode ? MIN_VAL : 89000;
-    const defaultMax = isSearchMode ? MAX_VAL : 1430000;
-    return selectedBrands.length > 0 || selectedOrigins.length > 0 || minPrice !== defaultMin || maxPrice !== defaultMax;
+    return selectedBrands.length > 0 || selectedOrigins.length > 0 || minPrice !== MIN_VAL || maxPrice !== MAX_VAL;
   });
 
   const getPercent = (value: number) => ((value - MIN_VAL) / (MAX_VAL - MIN_VAL)) * 100;
@@ -172,24 +179,30 @@
     });
   }
 
-  // Elite V2.2: Filter options are dynamically derived from actual product data
+  // Elite V2.2: Filter options — prefer backend facets, fallback to client-side derivation
   // CẤM hardcode brands/origins — mọi dữ liệu phải flow từ DB
   const brands = $derived(() => {
+    if (facets?.brands && facets.brands.length > 0) return facets.brands;
     const set = new Set<string>();
     allProducts.forEach(p => {
-      const brand = (p as Record<string, unknown>).brand as string | undefined
-        ?? ((p as Record<string, unknown>).attributes ? ((p as Record<string, unknown>).attributes as Record<string, unknown>).brand as string | undefined : undefined);
-      if (brand) set.add(brand);
+      const attrs = (p as Record<string, unknown>).attributes;
+      if (attrs && typeof attrs === 'object') {
+        const b = (attrs as Record<string, unknown>).brand ?? (attrs as Record<string, unknown>)["Thương hiệu"];
+        if (typeof b === 'string' && b.trim()) set.add(b.trim());
+      }
     });
     return Array.from(set).sort();
   });
 
   const origins = $derived(() => {
+    if (facets?.origins && facets.origins.length > 0) return facets.origins;
     const set = new Set<string>();
     allProducts.forEach(p => {
-      const origin = (p as Record<string, unknown>).origin as string | undefined
-        ?? ((p as Record<string, unknown>).attributes ? ((p as Record<string, unknown>).attributes as Record<string, unknown>).origin as string | undefined : undefined);
-      if (origin) set.add(origin);
+      const attrs = (p as Record<string, unknown>).attributes;
+      if (attrs && typeof attrs === 'object') {
+        const o = (attrs as Record<string, unknown>).origin ?? (attrs as Record<string, unknown>)["Xuất xứ"];
+        if (typeof o === 'string' && o.trim()) set.add(o.trim());
+      }
     });
     return Array.from(set).sort();
   });
@@ -474,9 +487,9 @@
                  </button>
                {/each}
 
-               {#if minPrice !== (isSearchMode ? MIN_VAL : 89000) || maxPrice !== (isSearchMode ? MAX_VAL : 1430000)}
+               {#if minPrice !== MIN_VAL || maxPrice !== MAX_VAL}
                  <button 
-                    onclick={() => { minPrice = isSearchMode ? MIN_VAL : 89000; maxPrice = isSearchMode ? MAX_VAL : 1430000; }}
+                    onclick={() => { minPrice = MIN_VAL; maxPrice = MAX_VAL; }}
                     class="bg-gray-100 text-gray-600 px-3 py-1.5 text-[10px] font-black flex items-center gap-2 hover:bg-[#ee4d2d] hover:text-white transition-all transform active:scale-95">
                     {Math.round(minPrice).toLocaleString()}Đ - {Math.round(maxPrice).toLocaleString()}Đ
                     <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>

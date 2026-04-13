@@ -9,7 +9,7 @@ from litestar.exceptions import NotFoundException
 
 from backend.database import current_tenant_id
 from backend.database.models import ProductBase, Category, ProductVariant, Order
-from backend.schemas.product import CreateProductRequest, UpdateProductRequest, ProductResponse, ProductListResponse
+from backend.schemas.product import CreateProductRequest, UpdateProductRequest, ProductResponse, ProductListResponse, SearchFacets
 from backend.schemas.common import SuccessResponse, BulkActionResponse
 from backend.services.commerce.product_vector import ProductVectorService
 from backend.utils.sql import escape_like
@@ -260,8 +260,32 @@ class ProductService:
                 row_dict["variants"] = []
                 row_dict["order_count_text"] = self._get_display_order_count_text(row_dict.get("metadata", {}), row_dict["order_count"])
                 data.append(ProductResponse.model_validate(row_dict))
-                
-            return ProductListResponse(data=data, total=len(ranked_list))
+
+            # --- LAYER 6: COMPUTE FACETS (Elite V2.2 Dynamic Filters) ---
+            facet_brands: set[str] = set()
+            facet_origins: set[str] = set()
+            prices: List[float] = []
+            for p in ranked_list:
+                price_val = float(p.get("price") or 0)
+                if price_val > 0:
+                    prices.append(price_val)
+                attrs = p.get("attributes")
+                if isinstance(attrs, dict):
+                    b = attrs.get("brand") or attrs.get("Thương hiệu")
+                    if isinstance(b, str) and b.strip():
+                        facet_brands.add(b.strip())
+                    o = attrs.get("origin") or attrs.get("Xuất xứ")
+                    if isinstance(o, str) and o.strip():
+                        facet_origins.add(o.strip())
+
+            facets = SearchFacets(
+                brands=sorted(facet_brands),
+                origins=sorted(facet_origins),
+                price_min=min(prices) if prices else 0.0,
+                price_max=max(prices) if prices else 0.0,
+            )
+
+            return ProductListResponse(data=data, total=len(ranked_list), facets=facets)
 
         # 🎯 CASE 2: STANDARD LISTING
         # 1. COUNT (Zero-Hydration)

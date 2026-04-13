@@ -272,10 +272,20 @@ class ProductResponse(BaseModel):
         return self.status.lower()
 
 
+class SearchFacets(BaseModel):
+    """Elite V2.2: Dynamic filter options derived from actual search results."""
+    model_config = ConfigDict(strict=True)
+    brands: List[str] = Field(default_factory=list)
+    origins: List[str] = Field(default_factory=list)
+    price_min: float = Field(0.0)
+    price_max: float = Field(0.0)
+
+
 class ProductListResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     data: List[ProductResponse]
     total: int
+    facets: Optional[SearchFacets] = None
 
 
 class BulkUpdateProductRequest(BaseModel):
