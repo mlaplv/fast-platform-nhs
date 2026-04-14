@@ -21,6 +21,7 @@
   let birthMonth = $state(dob.getMonth() + 1);
   let birthYear = $state(dob.getFullYear());
   let avatarUrl = $state(authStore.user?.avatar_url || '');
+  let phone = $state(authStore.user?.phone || '');
 
   // Skin Profile States (Nested in extra_metadata)
   let skinData = $state(authStore.user?.extra_metadata?.skinProfile || {
@@ -50,6 +51,10 @@
         if (user.avatar_url) {
           avatarUrl = user.avatar_url;
           console.log('🖼️ [Avatar] Đã cập nhật ảnh đại diện từ authStore:', avatarUrl);
+        }
+
+        if (user.phone) {
+          phone = user.phone;
         }
         
         if (user.dob) {
@@ -106,6 +111,7 @@
         gender,
         username,
         email,
+        phone,
         dob: updatedDob,
         avatar_url: avatarUrl,
         extra_metadata: {
@@ -121,6 +127,7 @@
         gender,
         username,
         email,
+        phone,
         dob: updatedDob,
         avatar_url: avatarUrl,
         extra_metadata: {
@@ -299,6 +306,17 @@
               type="text"
               bind:value={name}
               placeholder="Nhập họ tên..."
+              class="w-full h-11 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 placeholder:text-stone-300"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <label for="phone" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Số điện thoại</label>
+            <input
+              id="phone"
+              type="tel"
+              bind:value={phone}
+              placeholder="Nhập số điện thoại..."
               class="w-full h-11 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 placeholder:text-stone-300"
             />
           </div>

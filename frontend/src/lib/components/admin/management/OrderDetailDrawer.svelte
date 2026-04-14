@@ -22,17 +22,20 @@
   import ChevronDown from "lucide-svelte/icons/chevron-down";
   import HistoryIcon from "lucide-svelte/icons/history";
   import MessageSquareIcon from "lucide-svelte/icons/message-square";
+  import Sparkles from "lucide-svelte/icons/sparkles";
+  import Gift from "lucide-svelte/icons/gift";
   import StatusDropdown from "./StatusDropdown.svelte";
   import StatusStepper from "./StatusStepper.svelte";
   import { ORDER_STATUS_MAP, ORDER_TRANSITIONS } from "$lib/constants/order";
   import { useNanobot } from "$lib/state/nanobot.svelte";
-  const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
   import { portal } from "$lib/core/actions/portal";
   import { formatCurrency, formatDate } from "$lib/utils/format";
   import type { OrderDetail, User as UserType } from "$lib/types";
   import { SHOP_CONFIG } from "$lib/constants/shop";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
+
+  const nanobot = useNanobot();
 
   let {
     isOpen = $bindable(),
@@ -270,7 +273,7 @@
                         {orderData.customerPhone || "UNREGISTERED"}
                      </div>
                      {#if orderData.customerPhone}
-                        {@const isZalo = orderData.order_metadata?.zalo_status === 'ACTIVE'}
+                        {@const isZalo = orderData.order_metadata?.zalo_status === 'ACTIVE' || orderData.orderMetadata?.zalo_status === 'ACTIVE'}
                         <button
                           onclick={openZalo}
                           class="flex items-center gap-1 px-1.5 py-0.5 rounded border {isZalo ? 'bg-blue-500/20 border-blue-400 text-blue-400' : 'bg-gray-500/10 border-white/10 text-gray-500'} hover:scale-105 transition-transform"
@@ -355,6 +358,21 @@
               {/if}
             </div>
           </div>
+
+          <!-- Elite V2.2: Customer Directive (Rich Notes) -->
+          {#if (orderData.order_metadata?.customer_note || orderData.orderMetadata?.customer_note || orderData.order_metadata?.note || orderData.orderMetadata?.note)}
+            <div class="mb-8 p-1 border border-cyan-500/10 rounded-2xl bg-cyan-500/[0.01]" in:fly={{ y: 20, duration: 600, delay: 100 }}>
+              <div class="flex items-center gap-2 mb-4 px-3 pt-3">
+                <MessageSquareIcon size={12} class="text-cyan-400" />
+                <h3 class="text-[10px] font-mono text-white/80 uppercase tracking-widest font-bold">Customer Directive</h3>
+              </div>
+              <div class="bg-black/40 border border-white/5 rounded-xl p-4">
+                <div class="text-[11px] text-gray-300 leading-relaxed italic prose-invert prose-sm max-w-none">
+                  {@html orderData.order_metadata?.customer_note || orderData.orderMetadata?.customer_note || orderData.order_metadata?.note || orderData.orderMetadata?.note}
+                </div>
+              </div>
+            </div>
+          {/if}
 
           <!-- Historical Purchase Timeline (Phase 4) -->
           {#if orderData.insight?.previous_orders && orderData.insight.previous_orders.length > 0}
@@ -498,6 +516,51 @@
             </div>
           </div>
 
+          <!-- Elite V2.2: Gift Intelligence -->
+          {#if (orderData.order_metadata?.gift_info || orderData.orderMetadata?.gift_info)}
+            {@const gift = orderData.order_metadata?.gift_info || orderData.orderMetadata?.gift_info}
+            <div class="mb-8 p-1 border border-pink-500/10 rounded-2xl bg-pink-500/[0.01]" in:fly={{ y: 20, duration: 600, delay: 200 }}>
+              <div class="flex items-center gap-2 mb-4 px-3 pt-3">
+                <Gift size={12} class="text-pink-400" />
+                <h3 class="text-[10px] font-mono text-white/80 uppercase tracking-widest font-bold">Gift Intelligence</h3>
+              </div>
+              <div class="bg-black/40 border border-white/5 rounded-xl p-5 space-y-4">
+                <div class="flex items-center justify-between border-b border-white/5 pb-4">
+                  <div>
+                    <span class="block text-[8px] font-mono text-gray-500 uppercase mb-1">Sender Trace</span>
+                    <span class="text-sm font-bold text-pink-400">{gift.sender_name}</span>
+                  </div>
+                  <div class="text-right">
+                     <span class="block text-[8px] font-mono text-gray-500 uppercase mb-1">Contact</span>
+                     <span class="text-[10px] font-mono text-gray-400">{gift.sender_phone}</span>
+                  </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 pt-2">
+                   <div>
+                      <span class="block text-[8px] font-mono text-gray-500 uppercase mb-1">Packaging Manifest</span>
+                      <span class="text-[9px] bg-pink-500/10 text-pink-400 px-1.5 py-0.5 rounded border border-pink-500/20 uppercase font-black tracking-tighter">
+                        {gift.packaging || 'ELITE LUXURY'}
+                      </span>
+                   </div>
+                   {#if gift.scheduled_at}
+                     <div class="text-right">
+                        <span class="block text-[8px] font-mono text-gray-500 uppercase mb-1">Delivery Priority</span>
+                        <span class="text-[9px] text-cyan-400 font-mono italic">{formatDate(gift.scheduled_at)}</span>
+                     </div>
+                   {/if}
+                </div>
+
+                <div class="pt-4 border-t border-white/5 relative">
+                  <div class="absolute -top-2 left-3 bg-black px-2 text-[7px] text-gray-600 uppercase font-black">Encoded Content</div>
+                  <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+                    <p class="text-[11px] text-gray-300 italic leading-relaxed">"{gift.message || 'No custom message provided.'}"</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {/if}
+
           <!-- Order Items -->
           <div class="mb-8">
             <div class="flex items-center gap-2 mb-4">
@@ -526,6 +589,40 @@
               {/if}
             </div>
           </div>
+
+          <!-- Elite V2.2: Augmented Request Manifest (Custom Items Awaiting Quote) -->
+          {#if (orderData.order_metadata?.custom_requests || orderData.orderMetadata?.custom_requests || orderData.order_metadata?.custom_items || orderData.orderMetadata?.custom_items) && (orderData.order_metadata?.custom_requests || orderData.orderMetadata?.custom_requests || orderData.order_metadata?.custom_items || orderData.orderMetadata?.custom_items).length > 0}
+            <div class="mb-8 p-1 border border-amber-500/10 rounded-2xl bg-amber-500/[0.01]" in:fly={{ y: 20, duration: 600, delay: 300 }}>
+              <div class="flex items-center gap-2 mb-4 px-3 pt-3">
+                <Sparkles size={12} class="text-amber-400" />
+                <h3 class="text-[10px] font-mono text-white/80 uppercase tracking-widest font-bold">Augmented Request Manifest</h3>
+              </div>
+              <div class="bg-black/40 border border-white/5 rounded-xl border-l-2 border-l-amber-500/50 p-4 space-y-3">
+                {#each (orderData.order_metadata?.custom_requests || orderData.orderMetadata?.custom_requests || orderData.order_metadata?.custom_items || orderData.orderMetadata?.custom_items) as c_item}
+                  <div class="flex items-center gap-4 group hover:bg-white/[0.02] p-2 rounded-lg transition-all border border-transparent hover:border-white/5">
+                    <div class="w-14 h-14 bg-white/5 border border-white/10 rounded flex items-center justify-center overflow-hidden shrink-0 shadow-lg">
+                      {#if c_item.image || c_item.image_url}
+                        <img src={c_item.image || c_item.image_url} alt={c_item.name} class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      {:else}
+                        <span class="text-2xl animate-pulse">🧪</span>
+                      {/if}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-[11px] font-bold text-white uppercase truncate tracking-tight">{c_item.name}</div>
+                      <div class="flex items-center gap-2 mt-1">
+                        <span class="text-[8px] font-mono text-gray-500 uppercase">QTY: <span class="text-white">{c_item.qty || c_item.quantity || 1}</span></span>
+                        <div class="w-1 h-1 rounded-full bg-white/10"></div>
+                        <span class="text-[8px] font-black text-amber-500 uppercase tracking-widest animate-pulse">Status: Awaiting Quote</span>
+                      </div>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+              <div class="mt-2 text-center">
+                 <p class="text-[7px] text-gray-600 font-mono uppercase tracking-[0.3em]">Requires manual price adjustment in v2.3</p>
+              </div>
+            </div>
+          {/if}
 
           <!-- Timeline / Audit History -->
           {#if orderData.history && orderData.history.length > 0}

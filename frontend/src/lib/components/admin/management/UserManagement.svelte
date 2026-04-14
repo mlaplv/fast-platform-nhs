@@ -37,6 +37,7 @@
   let isAddingUser = $state(false);
   let currentPage = $state(1);
   let pageSize = $state(10);
+  let selectedIds = $state<string[]>([]);
 
   const totalPages = $derived(Math.max(1, Math.ceil(totalUsers / pageSize)));
 
@@ -65,7 +66,15 @@
     }
   }
 
-  $effect(() => { loadUsers(); });
+  let loadTimer: ReturnType<typeof setTimeout> | undefined;
+  $effect(() => {
+    // R14: Reactive Data Flow with micro-debounce to prevent double-calls
+    const _track = { searchTerm, statusFilter, currentPage, pageSize };
+    if (loadTimer) clearTimeout(loadTimer);
+    loadTimer = setTimeout(() => {
+      loadUsers(); 
+    }, 50);
+  });
 
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
   function handleSearchInput(e: Event) {
@@ -176,6 +185,54 @@
     };
     isAddingUser = true;
   }
+
+  // --- SELECTION LOGIC ---
+  function toggleSelectAll() {
+    if (selectedIds.length === users.length && users.length > 0) {
+      selectedIds = [];
+    } else {
+      selectedIds = users.map(u => u.id);
+    }
+  }
+
+  function toggleSelect(id: string) {
+    if (selectedIds.includes(id)) {
+      selectedIds = selectedIds.filter(i => i !== id);
+    } else {
+      selectedIds = [...selectedIds, id];
+    }
+  }
+
+  async function bulkAction(action: 'LOCK' | 'UNLOCK' | 'DELETE') {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+
+    const confirmed = await nanobot.showConfirm({
+      title: `BULK ${action} CONFIRMATION`,
+      message: `Are you sure you want to ${action.toLowerCase()} ${ids.length} identities?`,
+      confirmLabel: "EXECUTE",
+      cancelLabel: "ABORT"
+    });
+    if (!confirmed) return;
+
+    isLoading = true;
+    try {
+      for (const id of ids) {
+        if (action === 'DELETE') {
+          await apiClient.patch(`/api/v1/users/${id}/delete`, {});
+        } else {
+          await apiClient.patch(`/api/v1/users/${id}`, { status: action === 'LOCK' ? 'LOCKED' : 'ACTIVE' });
+        }
+      }
+      nanobot.addLog(`Bulk ${action} completed for ${ids.length} nodes.`, "Nanobot-Sec");
+      selectedIds.clear();
+      await loadUsers();
+    } catch (e: unknown) {
+      nanobot.addLog(`Bulk Action Error: ${(e as Error).message}`, "Nanobot-Sec");
+    } finally {
+      isLoading = false;
+    }
+  }
 </script>
 
 <div class="w-full h-full flex flex-col relative bg-[#050505]">
@@ -261,11 +318,47 @@
   {:else}
     <div class="pl-0 sm:pl-6 sm:border-l sm:border-white/5 sm:ml-4 my-2 mb-[80px]">
       
-      <!-- Responsive Table Header -->
-      <div class="hidden md:grid grid-cols-[minmax(250px,2fr)_1fr_100px] gap-4 px-6 py-4 bg-black/50 border-b border-white/10 shadow-inner text-[9px] font-mono text-gray-500 uppercase tracking-widest font-bold">
-        <div>Identity_Signature</div>
-        <div>Assigned_Tiers</div>
-        <div class="text-right">Access_Control</div>
+      <!-- Bulk Actions Dashboard -->
+      {#if selectedIds.length > 0}
+        <div transition:slide class="mb-4 p-4 bg-[#00FFFF]/5 border border-[#00FFFF]/20 rounded-2xl flex items-center justify-between shadow-[0_0_30px_rgba(0,255,255,0.05)]">
+          <div class="flex items-center gap-4">
+            <div class="px-3 py-1 bg-[#00FFFF]/10 rounded-lg border border-[#00FFFF]/30">
+              <span class="text-[#00FFFF] text-[10px] font-mono font-bold uppercase tracking-widest">{selectedIds.length} NODES_SELECTED</span>
+            </div>
+            <button onclick={() => selectedIds = []} class="text-gray-500 hover:text-white text-[9px] font-mono uppercase tracking-[0.2em] transition-colors">[ DESELECT_ALL ]</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick={() => bulkAction('UNLOCK')} class="px-3 py-1.5 rounded-lg border border-[#00FFFF]/30 bg-[#00FFFF]/10 text-[#00FFFF] text-[9px] font-mono font-bold uppercase tracking-widest hover:bg-[#00FFFF]/20 transition-all flex items-center gap-2">
+              <Unlock size={12} /> ACTIVATE
+            </button>
+            <button onclick={() => bulkAction('LOCK')} class="px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-500 text-[9px] font-mono font-bold uppercase tracking-widest hover:bg-red-500/20 transition-all flex items-center gap-2">
+              <Lock size={12} /> LOCK_DOWN
+            </button>
+            <button onclick={() => bulkAction('DELETE')} class="px-3 py-1.5 rounded-lg border border-red-500/50 bg-red-500/20 text-red-400 text-[9px] font-mono font-bold uppercase tracking-widest hover:bg-red-500/30 transition-all flex items-center gap-2">
+              <Trash2 size={12} /> REVOKE_ACCESS
+            </button>
+          </div>
+        </div>
+      {/if}
+
+      <!-- Professional Table Header -->
+      <div class="hidden md:grid grid-cols-[60px_60px_minmax(250px,2fr)_1fr_120px] gap-0 border-b border-white/10 bg-black/40 text-[9px] font-mono text-gray-500 uppercase tracking-widest font-bold items-center">
+        <div class="flex items-center justify-center p-4">
+          <button 
+            onclick={toggleSelectAll}
+            class="w-4 h-4 rounded border {selectedIds.length === users.length && users.length > 0 ? 'bg-[#00FFFF] border-[#00FFFF]' : 'border-white/20 bg-black/40'} flex items-center justify-center transition-all hover:border-[#00FFFF]/50"
+          >
+            {#if selectedIds.length === users.length && users.length > 0}
+              <Check size={12} class="text-black" />
+            {/if}
+          </button>
+        </div>
+        <div class="flex items-center justify-center p-4 border-l border-white/5">
+          <ChevronDown size={12} class="opacity-30" />
+        </div>
+        <div class="p-4 border-l border-white/5">Identity_Signature</div>
+        <div class="p-4 border-l border-white/5">Assigned_Tiers</div>
+        <div class="p-4 border-l border-white/5 text-right">Access</div>
       </div>
 
       <div class="flex flex-col gap-4 sm:gap-0 sm:divide-y sm:divide-white/[0.02] px-4 sm:px-0">
@@ -273,6 +366,8 @@
           <UserRow 
             {user} 
             {roles} 
+            isSelected={selectedIds.includes(user.id)}
+            onToggleSelect={() => toggleSelect(user.id)}
             isExpanded={expandedUserId === user.id}
             onToggleExpand={(id) => expandedUserId = expandedUserId === id ? null : id}
             onToggleRole={toggleRole}
@@ -295,13 +390,14 @@
   <UserForm
     editingId={isAddingUser ? null : editingUser.id}
     initialData={editingUser}
+    {roles}
     onClose={() => { editingUser = null; isAddingUser = false; }}
-    onSuccess={async (user) => {
+    onSuccess={async (updatedUser) => {
       if (isAddingUser) {
         await loadUsers();
       } else {
-        const idx = users.findIndex((u) => u.id === user.id);
-        if (idx !== -1) users[idx] = { ...users[idx], ...user };
+        const idx = users.findIndex((u) => u.id === updatedUser.id);
+        if (idx !== -1) users[idx] = updatedUser;
       }
       editingUser = null;
       isAddingUser = false;

@@ -49,7 +49,7 @@
         class="variant-card {active ? 'variant-active' : 'variant-idle'} relative"
       >
         {#if idx === 1}
-          <div class="absolute -top-1.5 -right-1 z-10 px-1.5 py-0.5 bg-red-500 text-white text-[6.5px] font-black rounded uppercase tracking-tighter shadow-lg animate-bounce">
+          <div class="absolute -top-1.5 -right-1 z-10 px-1.5 py-0.5 bg-red-500 text-white text-[7px] font-black rounded uppercase tracking-wide shadow-lg animate-bounce">
             Sắp cháy hàng
           </div>
         {/if}

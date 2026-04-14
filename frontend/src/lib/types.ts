@@ -13,9 +13,15 @@ export interface Category {
 export interface User {
   id: string;
   email: string;
+  username?: string;
   name: string | null;
   status: string;
   roles: Role[];
+  gender?: string;
+  dob?: string;
+  avatar_url?: string;
+  phone?: string;
+  extra_metadata?: Record<string, unknown>;
   createdAt: string;
 }
 
@@ -63,6 +69,22 @@ export interface CustomerInsight {
   }[];
 }
 
+export interface GiftInfo {
+  sender_name: string;
+  sender_phone: string;
+  message?: string;
+  packaging?: string;
+  scheduled_at?: string;
+}
+
+export interface CustomRequestItem {
+  name: string;
+  image?: string;
+  image_url?: string;
+  qty?: number;
+  quantity?: number;
+}
+
 export interface Order {
   customerName?: string;
   customerPhone?: string;
@@ -85,6 +107,18 @@ export interface Order {
   planning?: OrderPlanning;
   order_metadata?: {
     zalo_status?: 'ACTIVE' | 'NOT_FOUND' | 'PENDING';
+    gift_info?: GiftInfo;
+    custom_requests?: CustomRequestItem[];
+    customer_note?: string;
+    note?: string;
+    [key: string]: unknown;
+  };
+  orderMetadata?: {
+    zalo_status?: 'ACTIVE' | 'NOT_FOUND' | 'PENDING';
+    gift_info?: GiftInfo;
+    custom_requests?: CustomRequestItem[];
+    customer_note?: string;
+    note?: string;
     [key: string]: unknown;
   };
 }

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { authStore } from '$lib/state/authStore.svelte';
   import { formatCurrency } from '$lib/utils/format';
   import { apiClient } from '$lib/utils/apiClient';
   import { browser } from '$app/environment';
@@ -35,8 +36,8 @@
   let showCoInspectionModal = $state(false);
 
   let form = $state({
-    name: '',
-    phone: '',
+    name: authStore.user?.name || '',
+    phone: authStore.user?.phone || '',
     province: '',
     ward: '',
     street: '',
@@ -70,6 +71,22 @@
         } catch (e) {
           console.error('Failed to load checkout draft', e);
         }
+      } else if (authStore.isAuthenticated) {
+        // Elite V2.2: Phase 1 - Try Profile's Default Address
+        const addresses = authStore.user?.extra_metadata?.addresses || [];
+        const defaultAddr = addresses.find((a: any) => a.isDefault);
+        
+        if (defaultAddr) {
+          console.log('📦 [Elite Checkout] Tìm thấy địa chỉ mặc định trong Profile:', defaultAddr);
+          form.name = defaultAddr.name || form.name;
+          form.phone = defaultAddr.phone || form.phone;
+          form.province = defaultAddr.city || ''; // In address management it's "city"
+          form.ward = defaultAddr.ward || '';
+          form.street = defaultAddr.address || '';
+        } else {
+          // Elite V2.2: Phase 2 - Fallback to Order History Lookup
+          lookupCustomer();
+        }
       }
       
       // Auto-select Free Shipping voucher by default if none selected
@@ -82,8 +99,8 @@
   $effect(() => {
     if (browser) {
       localStorage.setItem('elite_checkout_draft', JSON.stringify({
-        form: { ...form },
-        customItems: [...customItems]
+        form: $state.snapshot(form),
+        customItems: $state.snapshot(customItems)
       }));
     }
   });
@@ -182,10 +199,29 @@
   }
 
   async function lookupCustomer() {
-    if (form.phone.length < 10) return;
+    if (!authStore.isAuthenticated && form.phone.length < 10) return;
     try {
-      const res = await apiClient.post('/api/v1/client/checkout/lookup', { phone: form.phone });
-      if (res.data) Object.assign(form, res.data);
+      const res = await apiClient.post<any>('/api/v1/client/checkout/lookup', { phone: form.phone });
+      if (res.data) {
+        const data = res.data;
+        
+        // Elite V2.2: If authenticated lookup returns full data, map it properly
+        if (data.name && !form.name) form.name = data.name;
+        if (data.phone && !form.phone) form.phone = data.phone;
+        
+        if (data.address) {
+          const parts = data.address.split(',').map((s: string) => s.trim());
+          if (parts.length >= 3) {
+            // Mapping "Street, Ward, Province"
+            form.province = parts[parts.length - 1];
+            form.ward = parts[parts.length - 2];
+            form.street = parts.slice(0, parts.length - 2).join(', ');
+          }
+        } else if (!form.province && !form.street) {
+          // Fallback to masked data mapping ONLY if no address is already filled (from Profile or Draft)
+          Object.assign(form, data);
+        }
+      }
     } catch (e) { /* Silent fail */ }
   }
 

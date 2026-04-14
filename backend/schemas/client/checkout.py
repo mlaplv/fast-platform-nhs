@@ -66,6 +66,8 @@ class CustomerLookupResponseSchema(BaseModel):
     is_trusted_device: bool = Field(False, description="Thiết bị có tin cậy (khớp session) không")
     name_masked: Optional[str] = Field(None, description="Tên đã che (***)")
     address_masked: Optional[str] = Field(None, description="Địa chỉ đã che (***)")
+    name: Optional[str] = Field(None, description="Tên đầy đủ (nếu đã xác thực)")
+    address: Optional[str] = Field(None, description="Địa chỉ đầy đủ (nếu đã xác thực)")
 
 class CustomerVerifySchema(BaseModel):
     phone: str = Field(..., description="Số điện thoại")

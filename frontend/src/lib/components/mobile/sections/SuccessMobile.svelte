@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fade, fly, scale } from 'svelte/transition';
-  import { FileText, ShieldCheck, Copy, ShoppingCart, MessageSquare, CheckCircle2, Package, Truck, Award, Sparkles, Phone, Gift, Home } from 'lucide-svelte';
+  import { FileText, ShieldCheck, Copy, ShoppingCart, MessageSquare, CheckCircle2, Package, Truck, Award, Sparkles, Phone, Gift, Home, XCircle } from 'lucide-svelte';
   import { formatCurrency, formatDate } from '$lib/utils/format.ts';
   import { goto } from '$app/navigation';
   import { SHOP_CONFIG } from '$lib/constants/shop';
@@ -18,8 +18,14 @@
   ];
 
   function getStepIndex(status: string) {
+    if (status === 'CANCELLED') return -1;
     const idx = STATUS_STEPS.findIndex(s => s.key === status);
     return idx === -1 ? 0 : idx;
+  }
+
+  function symbolizeMask(text: string | null | undefined) {
+    if (!text) return '';
+    return text.replace(/\*{2,}/g, '***');
   }
 
   const currentStepIdx = $derived(getStepIndex(order?.status || 'PENDING'));
@@ -45,8 +51,8 @@
   }
 
   const items = $derived(order?.items || []);
-  const customerName = $derived(order?.customerName || order?.name_masked || 'Khách hàng');
-  const customerAddress = $derived(order?.customerAddress || order?.address_masked || 'Địa chỉ bảo mật');
+  const customerName = $derived(symbolizeMask(order?.customerName || order?.name_masked) || 'Khách hàng');
+  const customerAddress = $derived(symbolizeMask(order?.customerAddress || order?.address_masked) || 'Địa chỉ bảo mật');
 </script>
 
 <div class="fixed inset-0 bg-[#fafafa] text-slate-900 overflow-y-auto custom-scrollbar flex flex-col">
@@ -66,7 +72,10 @@
     <!-- Status Badge (White Mode) -->
     <div in:scale={{ duration: 600, delay: 200, start: 0.9 }} 
          class="px-5 py-1.5 rounded-full border border-slate-200 bg-white shadow-sm mb-8 flex items-center gap-2 relative">
-      {#if isLookup}
+      {#if order?.status === 'CANCELLED'}
+        <XCircle class="w-3.5 h-3.5 text-red-500" strokeWidth={2.5} />
+        <span class="text-[10px] font-black text-red-500 uppercase tracking-widest">ĐƠN HÀNG ĐÃ HỦY</span>
+      {:else if isLookup}
         <ShieldCheck class="w-3.5 h-3.5 text-sky-500" strokeWidth={2.5} />
         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">STATUS: TRACKING</span>
       {:else}
@@ -81,7 +90,11 @@
     </h1>
     
     <p in:fade={{ delay: 600 }} class="text-slate-400 text-[10px] uppercase tracking-[0.3em] font-black mb-12 italic">
-      {isLookup ? 'CẬP NHẬT TRẠNG THÁI MỚI NHẤT' : 'CẢM ƠN QUÝ KHÁCH ĐÃ TIN TƯỞNG'}
+      {#if order?.status === 'CANCELLED'}
+        RẤT TIẾC VÌ LIỆU TRÌNH KHÔNG ĐƯỢC TIẾP TỤC
+      {:else}
+        {isLookup ? 'CẬP NHẬT TRẠNG THÁI MỚI NHẤT' : 'CẢM ƠN QUÝ KHÁCH ĐÃ TIN TƯỞNG'}
+      {/if}
     </p>
 
     <!-- Status Timeline (White Mode) -->
@@ -210,34 +223,44 @@
       </div>
     </div>
 
-    <!-- What's Next Card (White Mode) -->
-    <div in:fly={{ y: 30, duration: 800, delay: 800 }} class="w-full bg-white border border-slate-100 rounded-none p-8 text-center relative overflow-hidden group shadow-sm">
-       <div class="relative z-10">
-         <span class="text-[10px] font-black text-sky-600 uppercase tracking-[0.4em] block mb-4 italic flex items-center justify-center gap-2">
-           <Sparkles class="w-3.5 h-3.5" /> TIẾP THEO LÀ GÌ?
-         </span>
-         <p class="text-[12px] font-bold text-slate-500 leading-relaxed max-w-[260px] mx-auto mb-6 uppercase">
-           Hệ thống đang xử lý. Chuyên gia sẽ xác nhận đơn trong vòng **15 phút** tới!
-         </p>
-         <div class="flex items-center justify-center gap-3 py-3 px-6 bg-slate-50 rounded-full border border-slate-100 mx-auto w-fit">
-            <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hệ thống đã sẵn sàng</span>
+    {#if order?.status !== 'CANCELLED'}
+      <!-- What's Next Card (White Mode) -->
+      <div in:fly={{ y: 30, duration: 800, delay: 800 }} class="w-full bg-white border border-slate-100 rounded-none p-8 text-center relative overflow-hidden group shadow-sm">
+         <div class="relative z-10">
+           <span class="text-[10px] font-black text-sky-600 uppercase tracking-[0.4em] block mb-4 italic flex items-center justify-center gap-2">
+             <Sparkles class="w-3.5 h-3.5" /> TIẾP THEO LÀ GÌ?
+           </span>
+           <p class="text-[12px] font-bold text-slate-500 leading-relaxed max-w-[260px] mx-auto mb-6 uppercase">
+             Hệ thống đang xử lý. Chuyên gia sẽ xác nhận đơn trong vòng 15 phút tới!
+           </p>
+           <div class="flex items-center justify-center gap-3 py-3 px-6 bg-slate-50 rounded-full border border-slate-100 mx-auto w-fit">
+              <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+              <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hệ thống đã sẵn sàng</span>
+           </div>
          </div>
-       </div>
-    </div>
+      </div>
+    {/if}
 
     <!-- Spacer -->
     <div class="h-40 shrink-0 pointer-events-none"></div>
   </div>
 
-  <!-- Action Stack (White Mode) -->
   <div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-white via-white/95 to-transparent flex flex-row gap-3 items-center">
-    <a 
-      href="tel:{SHOP_CONFIG.pharmacy.phone.replace(/\s+/g, '')}"
-      class="w-full py-5 bg-slate-900 text-white font-black text-[14px] uppercase tracking-[0.2em] active:scale-95 transition-all relative overflow-hidden text-center shadow-2xl flex items-center justify-center gap-3 italic"
-    >
-        GỌI XÁC NHẬN NGAY <Phone class="w-4 h-4 fill-white" />
-    </a>
+    {#if order?.status === 'CANCELLED'}
+      <button
+        onclick={() => goto('/')}
+        class="w-full py-5 bg-slate-900 text-white font-black text-[14px] uppercase tracking-[0.2em] active:scale-95 transition-all relative overflow-hidden text-center shadow-2xl flex items-center justify-center gap-3 italic"
+      >
+          QUAY LẠI CỬA HÀNG <Home class="w-4 h-4 fill-white" />
+      </button>
+    {:else}
+      <a 
+        href="tel:{SHOP_CONFIG.pharmacy.phone.replace(/\s+/g, '')}"
+        class="w-full py-5 bg-slate-900 text-white font-black text-[14px] uppercase tracking-[0.2em] active:scale-95 transition-all relative overflow-hidden text-center shadow-2xl flex items-center justify-center gap-3 italic"
+      >
+          GỌI XÁC NHẬN NGAY <Phone class="w-4 h-4 fill-white" />
+      </a>
+    {/if}
   </div>
 </div>
 

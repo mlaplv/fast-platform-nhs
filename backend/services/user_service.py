@@ -132,31 +132,79 @@ class UserService:
         return SuccessResponse(ok=True, id=user_id, message="User roles updated")
 
     @staticmethod
+    async def create_user(db_session: AsyncSession, data: Dict[str, object]) -> User:
+        """Elite V2.2: Create a new user identity with hashed password."""
+        email = str(data["email"])
+        name = str(data["name"])
+        password = str(data.get("password", "SmartShop@123"))
+        username = str(data.get("username", email.split("@")[0]))
+        
+        # Check for existing
+        stmt = select(User).where(or_(User.email == email, User.username == username))
+        existing = await db_session.scalar(stmt)
+        if existing:
+            raise ClientException(status_code=400, detail="Identity or Email already exists in this sector.")
+
+        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        
+        new_user = User(
+            id=str(uuid.uuid4()),
+            email=email,
+            username=username,
+            name=name,
+            password=hashed,
+            status="ACTIVE"
+        )
+        
+        # Handle Roles
+        role_codes = data.get("role_codes", ["CUSTOMER"])
+        if role_codes:
+            role_stmt = select(Role).where(Role.code.in_(role_codes))
+            role_res = await db_session.execute(role_stmt)
+            new_user.roles = list(role_res.scalars().all())
+
+        db_session.add(new_user)
+        await db_session.flush() # Ensure ID is generated and constraints checked
+        return new_user
+
+    @staticmethod
     async def update_user(db_session: AsyncSession, user_id: str, data: Dict[str, object]) -> User:
-        """Moves logic from UserController.update_user."""
-        stmt = select(User).where(User.id == user_id)
+        """Moves logic from UserController.update_user. Elite V2.2: Returns hydrated model."""
+        stmt = select(User).where(User.id == user_id).options(selectinload(User.roles))
         result = await db_session.execute(stmt)
         user = result.scalar_one_or_none()
 
         if not user:
             raise NotFoundException(f"User {user_id} not found")
 
-        if "username" in data:
-            user.username = str(data["username"])
-        if "email" in data:
-            user.email = str(data["email"])
-        if "name" in data:
-            user.name = str(data["name"])
-        if "status" in data:
-            user.status = str(data["status"])
-        if "gender" in data:
-            user.gender = str(data["gender"])
+        if "username" in data: user.username = str(data["username"])
+        if "email" in data: user.email = str(data["email"])
+        if "name" in data: user.name = str(data["name"])
+        if "status" in data: user.status = str(data["status"])
+        if "gender" in data: user.gender = str(data["gender"])
         if "dob" in data:
-            user.dob = datetime.fromisoformat(data["dob"].replace("Z", "+00:00")) if isinstance(data["dob"], str) else data["dob"]
-        if "avatar_url" in data:
-            user.avatar_url = str(data["avatar_url"])
+            val = data["dob"]
+            if isinstance(val, str) and val:
+                # Elite V3.0: Ensure timezone awareness for sa.DateTime(timezone=True)
+                dt = datetime.fromisoformat(val.replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                user.dob = dt
+            elif isinstance(val, datetime):
+                user.dob = val if val.tzinfo else val.replace(tzinfo=timezone.utc)
+            else:
+                user.dob = None
+
+        if "avatar_url" in data: user.avatar_url = str(data["avatar_url"])
+        if "phone" in data: user.phone = str(data["phone"])
         if "extra_metadata" in data:
             user.extra_metadata = data["extra_metadata"] if isinstance(data["extra_metadata"], dict) else {}
+
+        if "roles" in data and isinstance(data["roles"], list):
+            # Optimized: Use pre-imported Role model
+            role_stmt = select(Role).where(Role.code.in_(data["roles"]))
+            role_res = await db_session.execute(role_stmt)
+            user.roles = list(role_res.scalars().all())
 
         return user
 

@@ -46,6 +46,8 @@ class LookupResult(TypedDict):
     is_trusted_device: bool
     name_masked: Optional[str]
     address_masked: Optional[str]
+    name: Optional[str]
+    address: Optional[str]
 
 
 class VerifyResult(TypedDict):
@@ -242,45 +244,77 @@ class CheckoutService:
     async def lookup_customer(
         db_session: AsyncSession,
         phone: str,
-        ox_cookie: Optional[str] = None
+        ox_cookie: Optional[str] = None,
+        user_id: Optional[str] = None
     ) -> LookupResult:
         """Recognition with Identity Shield Cookie V3.0."""
-        stmt = (
-            select(Order)
-            .where(Order.customer_phone == phone)
-            .order_by(Order.created_at.desc())
-            .limit(1)
-        )
-        res = await db_session.execute(stmt)
-        last_order = res.scalar_one_or_none()
+        last_order = None
+        
+        # ELITE V2.2: Phase A - Priority Lookup by User ID (Verified Identity)
+        if user_id:
+            stmt = (
+                select(Order)
+                .where(Order.user_id == user_id)
+                .order_by(Order.created_at.desc())
+                .limit(1)
+            )
+            res = await db_session.execute(stmt)
+            last_order = res.scalar_one_or_none()
+            if last_order:
+                logger.info(f"[CheckoutService] Identity match found by user_id={user_id}")
+
+        # Phase B - Fallback/Stealth Lookup by Phone (Identity Shield)
+        if not last_order and phone:
+            stmt = (
+                select(Order)
+                .where(Order.customer_phone == phone)
+                .order_by(Order.created_at.desc())
+                .limit(1)
+            )
+            res = await db_session.execute(stmt)
+            last_order = res.scalar_one_or_none()
+
+        # Identity Shield V3.0: Trust via secure HttpOnly Cookie __ox
+        is_trusted = (last_order.id == ox_cookie) if last_order and ox_cookie else False
+        
+        # ELITE V2.2: Full data return if authenticated user matches search context
+        # 1. Matches by direct user_id OR 2. Phone matches but we found an order with the same user_id
+        is_authenticated_match = (last_order.user_id == user_id) if last_order and user_id else False
 
         if last_order:
-            # Identity Shield V3.0: Trust via secure HttpOnly Cookie __ox
-            is_trusted = (last_order.id == ox_cookie) if ox_cookie else False
             return LookupResult(
                 is_recurring=True,
                 is_trusted_device=is_trusted,
                 name_masked=_mask_name(last_order.customer_name),
-                address_masked=_mask_address(last_order.customer_address)
+                address_masked=_mask_address(last_order.customer_address),
+                name=last_order.customer_name if is_authenticated_match else None,
+                address=last_order.customer_address if is_authenticated_match else None
             )
 
         user_res = await db_session.execute(
-            select(User).where(User.username == phone).limit(1)
+            select(User)
+            .where(User.username == phone)
+            .limit(1)
         )
         user = user_res.scalar_one_or_none()
         if user:
+            is_match = (user.id == user_id) if user_id else False
             return LookupResult(
                 is_recurring=True,
                 is_trusted_device=False,
                 name_masked=_mask_name(user.name),
-                address_masked=None
+                address_masked=None,
+                name=user.name if is_match else None,
+                address=None
             )
 
         return LookupResult(
             is_recurring=False, 
             is_trusted_device=False, 
             name_masked=None, 
-            address_masked=None
+            address_masked=None,
+            name=None,
+            address=None
         )
 
     @staticmethod

@@ -58,6 +58,7 @@ class CheckoutController(Controller):
         data: CustomerLookupSchema
     ) -> CustomerLookupResponseSchema:
         ox_cookie = request.cookies.get("__ox")
-        res = await CheckoutService.lookup_customer(db_session, data.phone, ox_cookie=ox_cookie)
+        user_id = request.scope.get("state", {}).get("user", {}).get("id")
+        res = await CheckoutService.lookup_customer(db_session, data.phone, ox_cookie=ox_cookie, user_id=user_id)
         return CustomerLookupResponseSchema(**res)
 

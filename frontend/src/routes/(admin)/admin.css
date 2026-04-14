@@ -7,15 +7,25 @@
   --z-layout-header: 30;
   --z-sticky-header: 100;
   --z-sidebar: 100;
-  --z-overlay: 500;
-  --z-modal: 1000;
+  --z-overlay: 1000;
+  --z-modal-overlay: 1100;
+  --z-modal: 1200;
   --z-modal-confirm: 1500;
   --z-hud-dropdown: 1050;
+  --z-admin-hud: 1060;
   --z-hud-floating: 1060;
   --z-hud-service: 1100;
   --z-popover: 1100;
   --z-omni-command: 1100;
   --z-toast: 2000;
+
+  /* Elite V2.2: Consistent Mapping Aliases */
+  --z-admin-modal: var(--z-modal);
+  --z-admin-asset-modal-backdrop: var(--z-modal-overlay);
+  --z-admin-nav-drawer: var(--z-sidebar);
+  --z-admin-mobile-backdrop: var(--z-modal-overlay);
+  --z-admin-mobile-quick-tips: var(--z-modal-overlay);
+  
   --z-vui-caption: 50;
   --z-vui-caption-expanded: 5;
   --z-media-overlay: 99999;

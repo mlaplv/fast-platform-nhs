@@ -157,7 +157,7 @@
             </EditableWrapper>
           </div>
           <div class="ssl-badge">
-            {#if shopStore?.customerData?.isTrustedDevice}<span class="text-emerald-400 mr-2 uppercase tracking-tighter text-[9px] font-black">Bảo mật ưu tiên</span>{/if}
+            {#if shopStore?.customerData?.isTrustedDevice}<span class="text-emerald-400 mr-2 uppercase tracking-wide text-[8px] font-black">Bảo mật ưu tiên</span>{/if}
             <span class="ssl-dot"></span><span>Bảo mật tuyệt đối</span>
           </div>
         </div>
@@ -208,7 +208,7 @@
 
         {#if showNote}
           <div class="note-editor-wrap mt-2 animate-in fade-in zoom-in-95">
-            <SimpleTiptap bind:content={orderNote} placeholder="Ghi chú thêm..." limit={1000} />
+            <SimpleTiptap bind:content={orderNote} variant="dark" placeholder="Ghi chú thêm..." limit={1000} />
           </div>
         {:else}
           <button type="button" onclick={() => showNote = true} class="text-[10px] font-bold text-slate-500 hover:text-white px-2 mt-2"> + GHI CHÚ / YÊU CẦU ĐẶC BIỆT </button>

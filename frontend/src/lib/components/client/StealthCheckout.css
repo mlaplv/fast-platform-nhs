@@ -17,6 +17,12 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  
+  /* Elite V2.2: Typography Smoothing & Font Standard */
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 @media (min-width: 768px) {
@@ -174,11 +180,11 @@
   font-size: clamp(1.6rem, 6.5vw, 2.2rem);
   font-weight: 900;
   color: white;
-  letter-spacing: -0.035em;
-  line-height: 1.05;
-  font-style: italic;
+  letter-spacing: -0.01em; /* Further relaxed to prevent distortion */
+  line-height: 1.1;
   text-transform: uppercase;
   word-break: break-word;
+  font-optical-sizing: auto;
 }
 
 /* SSL badge */
@@ -189,9 +195,10 @@
   border-radius: 999px;
   padding: 5px 10px;
   font-size: 8px; font-weight: 900;
-  text-transform: uppercase; letter-spacing: 0.1em;
+  text-transform: uppercase; letter-spacing: 0.12em; /* Uniform spacing */
   color: rgba(52,211,153,0.7);
   margin-bottom: 4px;
+  white-space: nowrap; /* Prevent awkward mid-word wrap */
 }
 .ssl-dot {
   width: 6px; height: 6px;
@@ -272,8 +279,8 @@
   display: block; margin-bottom: 3px; padding: 0 2px;
 }
 .variant-price {
-  font-size: 10px; font-weight: 900; font-style: italic;
-  color: #38bdf8; text-align: center; letter-spacing: -0.02em;
+  font-size: 10px; font-weight: 900;
+  color: #38bdf8; text-align: center; letter-spacing: 0.02em;
   display: block;
 }
 

@@ -10,12 +10,14 @@
     content?: string;
     placeholder?: string;
     limit?: number;
+    variant?: 'light' | 'dark';
   }
 
   let {
     content = $bindable(''),
     placeholder = 'Nhập nội dung...',
-    limit = 5000
+    limit = 5000,
+    variant = 'light'
   }: Props = $props();
 
   let element: HTMLElement;
@@ -45,7 +47,7 @@
       ],
       editorProps: {
         attributes: {
-          class: 'focus:outline-none w-full min-h-[160px] p-0 tiptap-simple-content text-sm text-gray-900 leading-relaxed',
+          class: `focus:outline-none w-full min-h-[160px] p-0 tiptap-simple-content text-sm leading-relaxed ${variant === 'dark' ? 'text-white' : 'text-gray-900'}`,
         },
       },
       onUpdate: () => {
@@ -72,24 +74,27 @@
   });
 </script>
 
-<div class="w-full bg-white border-2 border-gray-100 focus-within:border-black transition-all rounded-none overflow-hidden relative group">
+<div 
+  class="w-full transition-all rounded-none overflow-hidden relative group {variant === 'dark' ? 'bg-black/40 border-2 border-white/10 focus-within:border-sky-500/50' : 'bg-white border-2 border-gray-100 focus-within:border-black'}"
+  data-variant={variant}
+>
   <!-- Elite Simple Toolbar -->
-  <div class="bg-gray-50/50 border-b border-gray-100 px-3 py-2 flex items-center gap-1.5 opacity-60 group-focus-within:opacity-100 transition-opacity">
+  <div class="px-3 py-2 flex items-center gap-1.5 transition-opacity {variant === 'dark' ? 'bg-white/5 border-b border-white/5 opacity-80 group-focus-within:opacity-100' : 'bg-gray-50/50 border-b border-gray-100 opacity-60 group-focus-within:opacity-100'}">
      <button type="button" onclick={() => editor?.chain().focus().toggleBold().run()}
-        class="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-black/5 transition-colors {editor?.isActive('bold') ? 'bg-black/10 text-black' : 'text-gray-500'}"
+        class="w-7 h-7 flex items-center justify-center rounded-sm transition-colors {variant === 'dark' ? (editor?.isActive('bold') ? 'bg-sky-500/20 text-sky-400' : 'text-gray-400 hover:bg-white/5') : (editor?.isActive('bold') ? 'bg-black/10 text-black' : 'text-gray-500 hover:bg-black/5')}"
         title="In đậm"
      >
         <Bold class="w-3.5 h-3.5" strokeWidth={3} />
      </button>
      <button type="button" onclick={() => editor?.chain().focus().toggleItalic().run()}
-        class="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-black/5 transition-colors {editor?.isActive('italic') ? 'bg-black/10 text-black' : 'text-gray-500'}"
+        class="w-7 h-7 flex items-center justify-center rounded-sm transition-colors {variant === 'dark' ? (editor?.isActive('italic') ? 'bg-sky-500/20 text-sky-400' : 'text-gray-400 hover:bg-white/5') : (editor?.isActive('italic') ? 'bg-black/10 text-black' : 'text-gray-500 hover:bg-black/5')}"
         title="In nghiêng"
      >
         <Italic class="w-3.5 h-3.5" strokeWidth={3} />
      </button>
-      <div class="w-px h-4 bg-gray-200 mx-1"></div>
+      <div class="w-px h-4 mx-1 {variant === 'dark' ? 'bg-white/10' : 'bg-gray-200'}"></div>
       <button type="button" onclick={() => editor?.chain().focus().toggleBulletList().run()}
-        class="w-7 h-7 flex items-center justify-center rounded-sm hover:bg-black/5 transition-colors {editor?.isActive('bulletList') ? 'bg-black/10 text-black' : 'text-gray-500'}"
+        class="w-7 h-7 flex items-center justify-center rounded-sm transition-colors {variant === 'dark' ? (editor?.isActive('bulletList') ? 'bg-sky-500/20 text-sky-400' : 'text-gray-400 hover:bg-white/5') : (editor?.isActive('bulletList') ? 'bg-black/10 text-black' : 'text-gray-500 hover:bg-black/5')}"
         title="Danh sách"
      >
         <List class="w-4 h-4" strokeWidth={2.5} />
@@ -109,12 +114,15 @@
 
 <style>
   :global(.tiptap-simple-content.ProseMirror p.is-editor-empty:first-child::before) {
-    color: #9ca3af;
+    color: #64748b;
     content: attr(data-placeholder);
     float: left;
     height: 0;
     pointer-events: none;
     font-weight: 500;
+  }
+  [data-variant="light"] :global(.tiptap-simple-content.ProseMirror p.is-editor-empty:first-child::before) {
+    color: #9ca3af;
   }
   :global(.tiptap-simple-content p) {
     margin-bottom: 0.5rem;

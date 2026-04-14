@@ -26,6 +26,7 @@
   ];
 
   function getStepIndex(status: string) {
+    if (status === 'CANCELLED') return -1;
     const idx = STATUS_STEPS.findIndex(s => s.key === status);
     return idx === -1 ? 0 : idx;
   }
@@ -91,6 +92,11 @@
       };
     }
     return { province: '', ward: '', street: fullAddress };
+  }
+
+  function symbolizeMask(text: string | null | undefined) {
+    if (!text) return '';
+    return text.replace(/\*{2,}/g, '***');
   }
 
   // Confirm Cancel State
@@ -323,7 +329,7 @@
                    <div class="space-y-6">
                      <div class="flex flex-col">
                        <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Họ tên:</span>
-                       <span class="text-sm font-bold text-slate-900 uppercase">{order?.customerName || order?.name_masked || 'Khách hàng'}</span>
+                       <span class="text-sm font-bold text-slate-900 uppercase">{symbolizeMask(order?.customerName || order?.name_masked) || 'Khách hàng'}</span>
                      </div>
                      <div class="flex flex-col">
                        <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Số điện thoại:</span>
@@ -332,7 +338,7 @@
                    </div>
                    <div class="flex flex-col">
                      <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Địa chỉ giao hàng:</span>
-                     <span class="text-xs font-bold text-slate-600 leading-snug uppercase">{order?.customerAddress || order?.address_masked || 'Địa chỉ bảo mật'}</span>
+                     <span class="text-xs font-bold text-slate-600 leading-snug uppercase">{symbolizeMask(order?.customerAddress || order?.address_masked) || 'Địa chỉ bảo mật'}</span>
                    </div>
                  </div>
                {:else}

@@ -40,6 +40,7 @@ class UserResponse(BaseModel):
     gender: Optional[str] = None
     dob: Optional[datetime] = None
     avatar_url: Optional[str] = None
+    phone: Optional[str] = None
     extra_metadata: Optional[dict] = Field(default_factory=dict)
     password: Optional[str] = Field(None, exclude=True)
     created_at: datetime
@@ -73,7 +74,17 @@ class UserUpdatePayload(BaseModel):
     gender: Optional[str] = None
     dob: Optional[datetime] = None
     avatar_url: Optional[str] = None
+    phone: Optional[str] = None
     extra_metadata: Optional[dict] = None
+
+
+class UserCreatePayload(BaseModel):
+    model_config = ConfigDict(strict=True)
+    email: str
+    name: str
+    password: Optional[str] = "SmartShop@123"
+    username: Optional[str] = None
+    role_codes: List[str] = Field(default_factory=lambda: ["CUSTOMER"])
 
 
 class UpdatePasswordPayload(BaseModel):
