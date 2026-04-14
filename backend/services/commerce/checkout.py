@@ -148,6 +148,19 @@ class CheckoutService:
         if payload.voucher_id:
             order_metadata["voucher_id"] = payload.voucher_id
 
+        # 5.5 Handle Custom Item Requests (Elite V2.2)
+        custom_items_list = []
+        if payload.custom_items:
+            for c_item in payload.custom_items:
+                custom_items_list.append({
+                    "name": c_item.name,
+                    "image": c_item.image_url,
+                    "qty": c_item.quantity,
+                    "estimated_price": c_item.price,
+                    "is_custom": True
+                })
+            order_metadata["custom_requests"] = custom_items_list
+
         # 6. Identity Shield v2.2: Restore original data if masked strings were submitted
         final_name = payload.customer_name
         final_address = payload.customer_address

@@ -17,7 +17,7 @@ export interface CartItem {
 export class CartStore {
     // Core State
     items = $state<CartItem[]>([]);
-    selectedVoucherId = $state<string | null>(null);
+    selectedVoucherIds = $state<string[]>([]);
 
     // Bắt sự kiện khởi tạo để load data từ LocalStorage
     constructor() {
@@ -44,13 +44,27 @@ export class CartStore {
     selectedItemsCount = $derived(this.items.filter(item => item.selected).reduce((acc, item) => acc + item.quantity, 0));
 
     // Discount Mapping
-    totalDiscount = $derived(0); // Elite V2.2: Hardcoded coupons removed. Flow via API instead.
+    totalDiscount = $derived.by(() => {
+        if (this.selectedVoucherIds.length === 0) return 0;
+        
+        let total = 0;
+        for (const id of this.selectedVoucherIds) {
+            if (id === 'SALE30K' && this.totalAmountWithoutDiscount >= 150000) total += 30000;
+            if (id === 'SALE60K' && this.totalAmountWithoutDiscount >= 300000) total += 60000;
+            // SHIPPING vouchers currently handle 0 discount here as they act on shipping fee in UI
+        }
+        return total;
+    });
 
-    totalAmount = $derived(
-        Math.max(0, this.items.filter(item => item.selected).reduce((acc, item) => {
+    totalAmountWithoutDiscount = $derived(
+        this.items.filter(item => item.selected).reduce((acc, item) => {
             const price = item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0;
             return acc + (price * item.quantity);
-        }, 0) - this.totalDiscount)
+        }, 0)
+    );
+
+    totalAmount = $derived(
+        Math.max(0, this.totalAmountWithoutDiscount - this.totalDiscount)
     );
 
     // Side-effects (Persistence)
@@ -108,20 +122,9 @@ export class CartStore {
     }
 
     buyNow(product: Product, variant?: ProductVariant, quantity: number = 1): void {
-        // Shopee style: deselect all others first
-        this.items.forEach(item => item.selected = false);
-        
-        // Then add the item
+        // Elite V2.2 Cumulative: Add to selection instead of isolating
         this.addItem(product, variant, quantity);
-        // addItem already sets selected = true
-    }
-
-    toggleAll(selected: boolean): void {
-        this.items.forEach(item => item.selected = selected);
-    }
-
-    clearCart(): void {
-        this.items = [];
+        // addItem handles finding/updating and setting selected = true
     }
 }
 

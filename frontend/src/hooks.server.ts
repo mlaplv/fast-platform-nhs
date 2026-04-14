@@ -35,19 +35,18 @@ function parseJwt(token: string): JwtPayload | null {
 
 export const handle: Handle = async ({ event, resolve }) => {
   const userAgent = event.request.headers.get("user-agent") || "";
-  const host = event.request.headers.get("host") || "";
+  const hostname = event.url.hostname; // Elite V2.2: Use normalized hostname (no port)
   const adminDomain = ServerEnv.ADMIN_DOMAIN;
-  const isAdminHost = host.includes(adminDomain);
-
-  // 1. Identify Tenant (Atomic Early-Exit for Elite V2.2)
+  
+  // 1. Identify Tenant (STRICT Matching for Elite V2.2)
+  // Logic: Exactly equals admin domain OR starts with admin. if on local/internal proxy
+  const isAdminHost = hostname === adminDomain || (ServerEnv.isLocal(hostname) && event.url.searchParams.has('admin'));
   event.locals.tenant = isAdminHost ? "admin" : "storefront";
 
-  // 2. Optimized Device Snapshot (R00: Zero-Patch Policy)
-  // Only detect at start or use cached value if possible (TBD Phase 2)
+  // 2. Optimized Device Snapshot
   event.locals.isMobile = isMobileDevice(userAgent);
 
   // 3. Selective Auth Logic (Resource Protection)
-  // Storefront visitors NEVER need admin_token parsing (CPU/RAM Save)
   if (isAdminHost) {
     const token = event.cookies.get("admin_token");
     if (token) {
@@ -64,18 +63,21 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
   }
 
-  // Handle Redundant /admin prefix (Phase Clean URLs)
+  // Handle Redundant /admin prefix
   if (event.locals.tenant === "admin" && event.url.pathname.startsWith("/admin")) {
     const newPath = event.url.pathname.replace("/admin", "") || "/";
     throw redirect(301, newPath);
   }
 
-  // R31 & R33: Route Isolation & Protection (Single Source of Truth)
+  // R31 & R33: Route Isolation & Protection
   const isTargetingAdminRoute = (ADMIN_PROTECTED_PATHS as readonly string[]).some((p: string) => event.url.pathname.startsWith(p));
   const isTargetingAdminBase = isTargetingAdminRoute || event.url.pathname === "/" || event.url.pathname === "/login";
 
-  // Elite V2.2: Global Domain Guard (Root Fix for Multi-Domain Navigation)
-  if (!ServerEnv.isDev) {
+  /**
+   * Elite V2.2: Global Domain Guard (Root Fix for Multi-Domain Navigation)
+   * Enforced on all non-local domains to prevent "Tenant Leakage"
+   */
+  if (!ServerEnv.isLocal(hostname)) {
     if (isAdminHost) {
       // On Admin domain, but accessing a Storefront route? -> Redirect to Storefront
       if (!isTargetingAdminBase) {
@@ -84,7 +86,8 @@ export const handle: Handle = async ({ event, resolve }) => {
     } else {
       // On Storefront domain, but accessing an Admin route? -> Redirect to Admin
       if (isTargetingAdminRoute) {
-        throw redirect(308, `https://${adminDomain}${event.url.pathname}${event.url.search}`);
+        const targetHost = adminDomain.includes('.') ? adminDomain : `${adminDomain}.${ServerEnv.APP_DOMAIN}`;
+        throw redirect(308, `https://${targetHost}${event.url.pathname}${event.url.search}`);
       }
     }
   }

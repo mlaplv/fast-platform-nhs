@@ -8,6 +8,7 @@
   import { onMount, type Snippet } from "svelte";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import ToastProvider from "$lib/components/storefront/ui/ToastProvider.svelte";
+  import GlobalConfirmModal from "$lib/components/storefront/ui/GlobalConfirmModal.svelte";
 
   // Elite V2.2: Context initialization gated by tenant
   let { children, data } = $props();
@@ -78,6 +79,7 @@
     {/if}
 
     <ToastProvider />
+    <GlobalConfirmModal />
   {/if}
 </div>
 

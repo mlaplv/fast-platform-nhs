@@ -18,6 +18,14 @@ const globalState = $state({
         mode: 'login' as 'login' | 'register',
         onSuccess: undefined as (() => void) | undefined
     },
+    confirmModal: null as {
+        title: string;
+        message: string;
+        confirmLabel: string;
+        cancelLabel: string;
+        onConfirm: () => void;
+        onCancel: () => void;
+    } | null,
     toasts: [] as { id: string; message: string; type: 'success' | 'error' | 'info' | 'warning'; duration: number }[]
 });
 
@@ -53,6 +61,7 @@ export function createClientUiState(): ClientUiState {
         set settings(val: ShopInfo | null) { globalState.settings = val; },
 
         get authModal() { return globalState.authModal; },
+        get confirmModal() { return globalState.confirmModal; },
         get toasts() { return globalState.toasts; },
 
         get isMobile() { return isMobile; },
@@ -70,6 +79,25 @@ export function createClientUiState(): ClientUiState {
             globalState.authModal.mode = 'register';
             globalState.authModal.onSuccess = onSuccess;
             globalState.authModal.isOpen = true;
+        },
+
+        openConfirm(options: { title: string; message: string; confirmLabel?: string; cancelLabel?: string }): Promise<boolean> {
+            return new Promise((resolve) => {
+                globalState.confirmModal = {
+                    title: options.title,
+                    message: options.message,
+                    confirmLabel: options.confirmLabel || 'XÁC NHẬN',
+                    cancelLabel: options.cancelLabel || 'HỦY',
+                    onConfirm: () => {
+                        globalState.confirmModal = null;
+                        resolve(true);
+                    },
+                    onCancel: () => {
+                        globalState.confirmModal = null;
+                        resolve(false);
+                    }
+                };
+            });
         },
 
         closeModal() {

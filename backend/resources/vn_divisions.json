@@ -1,5 +1,14 @@
 [
   {
+    "_GUIDE": "HƯỚNG DẪN CẤU HÌNH HỎA TỐC 2H (ELITE V2.2)",
+    "rules": {
+      "has_express": "Bật/Tắt dịch vụ hỏa tốc cho Tỉnh/Thành (true/false)",
+      "express_fee": "Phí ship hỏa tốc riêng cho Tỉnh/Thành (đơn vị: VNĐ)",
+      "express_supported_wards": "Danh sách các Phường/Xã trung tâm hỗ trợ hỏa tốc 2h"
+    },
+    "note": "Để điều phối vùng, Sếp chỉ cần thêm/sửa các thuộc tính trên vào các object Tỉnh/Thành bên dưới ạ."
+  },
+  {
     "id": "1",
     "name": "Thành phố Hà Nội",
     "code": "HNI",
@@ -8,6 +17,9 @@
       "Thủ đô",
       "Hà Tây"
     ],
+    "has_express": false,
+    "express_fee": 30000,
+    "express_supported_wards": [],
     "wards": [
       "Phường Ba Đình",
       "Phường Bạch Mai",
@@ -148,6 +160,47 @@
       "SG",
       "Gia Định"
     ],
+    "has_express": true,
+    "express_fee": 60000,
+    "express_supported_wards": [
+      "Phường Bến Thành",
+      "Phường Đa Kao",
+      "Phường Tân Định",
+      "Phường Võ Thị Sáu",
+      "Phường Phạm Ngũ Lão",
+      "Phường Nguyễn Thái Bình",
+      "Phường Phú Lâm",
+      "Phường Phú Thọ Hoà",
+      "Phường Phú Thọ",
+      "Phường Tân Phú",
+      "Phường Bình Tiên",
+      "Phường Bình Tây",
+      "Phường Bình Hưng Hòa",
+      "Phường Bình Thạnh",
+      "Phường An Đông",
+      "Phường Gò Vấp",
+      "Phường Phú Nhuận",
+      "Phường Bàn Cờ",
+      "Phường Bình Phú",
+      "Phường Tân Bình",
+      "Phường Xóm Chiếu",
+      "Phường Bảy Hiền",
+      "Phường Chợ Lớn",
+      "Phường Cầu Kiệu",
+      "Phường Cầu Ông Lãnh",
+      "Phường Gia Định",
+      "Phường Sài Gòn",
+      "Phường Bình Trị Đông",
+      "Phường Bình Tân",
+      "Phường Minh Phụng",
+      "Phường Nhiêu Lộc",
+      "Phường Tân Sơn Nhì",
+      "Phường Tân Sơn Nhất",
+      "Phường Vườn Lài",
+      "Phường Đa Kao",
+      "Phường Võ Thị Sáu",
+      "Phường Phạm Ngũ Lão"
+    ],
     "wards": [
       "Phường An Hội Tây",
       "Phường An Hội Đông",
@@ -177,6 +230,10 @@
       "Phường Bảy Hiền",
       "Phường Bến Cát",
       "Phường Bến Thành",
+      "Phường Đa Kao",
+      "Phường Võ Thị Sáu",
+      "Phường Phạm Ngũ Lão",
+      "Phường Nguyễn Thái Bình",
       "Phường Chánh Hiệp",
       "Phường Chánh Hưng",
       "Phường Chánh Phú Hoà",

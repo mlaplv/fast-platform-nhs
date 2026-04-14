@@ -34,6 +34,32 @@
   let district = $state('');
   let ward = $state('');
   let isDefault = $state(false);
+  
+  const selectedProvinceData = $derived(divisions.find(d => d.name === city));
+
+  const normalize = (s: string) => s.normalize('NFC').toLowerCase().trim();
+
+  const getWardBadge = (wardName: string) => {
+    if (!selectedProvinceData?.has_express) return null;
+    const normWard = normalize(wardName);
+    const isSupported = selectedProvinceData.express_supported_wards?.some(w => normalize(w) === normWard);
+    if (!isSupported) return { text: 'Tiêu chuẩn', type: 'default' } as const;
+    return { text: 'Hỏa tốc 2h', type: 'success' } as const;
+  };
+
+  const currentWards = $derived.by(() => {
+    const wards = [...(selectedProvinceData?.wards || [])];
+    if (!selectedProvinceData?.has_express || !selectedProvinceData.express_supported_wards?.length) return wards;
+    
+    const supported = selectedProvinceData.express_supported_wards;
+    return wards.sort((a, b) => {
+      const aSupported = supported.some(w => normalize(w) === normalize(a));
+      const bSupported = supported.some(w => normalize(w) === normalize(b));
+      if (aSupported && !bSupported) return -1;
+      if (!aSupported && bSupported) return 1;
+      return 0;
+    });
+  });
 
   function resetForm() {
     name = '';
@@ -244,7 +270,7 @@
             <label class="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Tỉnh / Thành phố</label>
             <SearchableDropdown
               bind:value={city}
-              options={divisions.map(d => d.name)}
+              options={divisions.filter(d => d.name).map(d => d.name)}
               placeholder="Chọn tỉnh/thành"
               onChange={() => ward = ''}
             />
@@ -253,9 +279,10 @@
             <label class="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Phường / Xã</label>
             <SearchableDropdown
               bind:value={ward}
-              options={divisions.find(d => d.name === city)?.wards || []}
+              options={currentWards}
               placeholder="Chọn phường/xã"
               disabled={!city}
+              getBadge={getWardBadge}
             />
           </div>
         </div>

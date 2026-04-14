@@ -8,13 +8,15 @@
     options = [], 
     placeholder = "Chọn...", 
     disabled = false,
-    onChange = () => {}
+    onChange = () => {},
+    getBadge
   } = $props<{
     value: string;
     options: string[];
     placeholder?: string;
     disabled?: boolean;
     onChange?: () => void;
+    getBadge?: (opt: string) => { text: string, type: 'success' | 'warning' | 'info' | 'error' | 'default' } | null;
   }>();
 
   let open = $state(false);
@@ -22,7 +24,7 @@
   let dropdownRef = $state<HTMLDivElement>();
 
   const filteredOptions = $derived(
-    options.filter(opt => opt.toLowerCase().includes(search.toLowerCase()))
+    options.filter(opt => opt && opt.toLowerCase().includes(search.toLowerCase()))
   );
 
   function handleClickOutside(event: MouseEvent) {
@@ -88,7 +90,15 @@
               class="w-full px-4 py-2.5 text-left text-[13px] hover:bg-stone-50 transition-colors flex items-center justify-between group {value === opt ? 'bg-stone-50/80 text-luxury-copper font-bold' : 'text-stone-700'}"
               onclick={() => selectOption(opt)}
             >
-              <span class="truncate">{opt}</span>
+              <div class="flex items-center gap-2 flex-1 min-w-0">
+                <span class="truncate">{opt}</span>
+                {#if getBadge && getBadge(opt)}
+                  {@const badge = getBadge(opt)}
+                  <span class="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter rounded-sm {badge.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-stone-100 text-stone-400 border border-stone-200'}">
+                    {badge.text}
+                  </span>
+                {/if}
+              </div>
               {#if value === opt}
                 <Check class="w-3.5 h-3.5 text-luxury-copper" />
               {/if}

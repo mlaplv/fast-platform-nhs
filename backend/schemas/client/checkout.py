@@ -8,10 +8,17 @@ class CheckoutItemSchema(BaseModel):
     quantity: int = Field(default=1, ge=1, le=10)
     price: float = Field(..., ge=0)
 
+class CustomItemSchema(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    image_url: Optional[str] = Field(None)
+    price: Optional[float] = Field(None, ge=0)
+    quantity: int = Field(default=1, ge=1)
+
 class StealthCheckoutSchema(BaseModel):
     model_config = ConfigDict(strict=True, from_attributes=True)
 
     items: list[CheckoutItemSchema] = Field(..., description="Danh sách sản phẩm trong giỏ")
+    custom_items: list[CustomItemSchema] = Field(default_factory=list, description="Danh sách sản phẩm yêu cầu thêm")
     voucher_id: Optional[str] = Field(None, description="Mã giảm giá áp dụng")
     customer_name: str = Field(..., min_length=2, max_length=100, description="Tên khách hàng")
     customer_phone: str = Field(..., description="Số điện thoại khách hàng")
