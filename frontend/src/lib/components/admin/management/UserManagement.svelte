@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fade, slide } from "svelte/transition";
+  // Transitions removed for zero-lag performance
   import Users from "lucide-svelte/icons/users";
   import Shield from "lucide-svelte/icons/shield";
   import MoreVertical from "lucide-svelte/icons/more-vertical";
@@ -66,14 +66,10 @@
     }
   }
 
-  let loadTimer: ReturnType<typeof setTimeout> | undefined;
   $effect(() => {
-    // R14: Reactive Data Flow with micro-debounce to prevent double-calls
+    // R14: Direct execution for zero-lag response
     const _track = { searchTerm, statusFilter, currentPage, pageSize };
-    if (loadTimer) clearTimeout(loadTimer);
-    loadTimer = setTimeout(() => {
-      loadUsers(); 
-    }, 50);
+    loadUsers(); 
   });
 
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
@@ -91,7 +87,7 @@
   async function toggleRole(userId: string, roleCode: string) {
     const user = users.find((u) => u.id === userId);
     if (!user) return;
-    const currentRoles = user.roles.map((r: Role) => r.code);
+    const currentRoles = (user.roles || []).map((r: Role) => r.code);
     const newRoles = currentRoles.includes(roleCode)
       ? currentRoles.filter((c: string) => c !== roleCode)
       : [...currentRoles, roleCode];
@@ -320,7 +316,7 @@
       
       <!-- Bulk Actions Dashboard -->
       {#if selectedIds.length > 0}
-        <div transition:slide class="mb-4 p-4 bg-[#00FFFF]/5 border border-[#00FFFF]/20 rounded-2xl flex items-center justify-between shadow-[0_0_30px_rgba(0,255,255,0.05)]">
+        <div class="mb-4 p-4 bg-white/5 border border-[#00FFFF]/20 rounded-2xl flex items-center justify-between">
           <div class="flex items-center gap-4">
             <div class="px-3 py-1 bg-[#00FFFF]/10 rounded-lg border border-[#00FFFF]/30">
               <span class="text-[#00FFFF] text-[10px] font-mono font-bold uppercase tracking-widest">{selectedIds.length} NODES_SELECTED</span>

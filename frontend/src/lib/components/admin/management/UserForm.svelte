@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fade, slide } from "svelte/transition";
+  // Transitions removed for zero-lag
   import X from "lucide-svelte/icons/x";
   import UserCircle from "lucide-svelte/icons/user-circle";
   import Mail from "lucide-svelte/icons/mail";
@@ -97,19 +97,13 @@
   }
 </script>
 
-<!-- Backdrop -->
 <div
-  transition:fade={{ duration: 200 }}
-  class="fixed inset-0 bg-black/95 md:bg-black/80 md:backdrop-blur-sm z-[var(--z-modal-overlay)] flex items-center justify-center p-4"
+  class="fixed inset-0 bg-black/80 z-[var(--z-modal-overlay)] flex items-center justify-center p-4"
 >
   <!-- Modal Panel -->
   <div
-    transition:slide={{ duration: 400, axis: "y" }}
     class="w-full max-w-2xl bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-[0_30px_100px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col relative max-h-[90vh]"
   >
-    <!-- Glow Effect -->
-    <div class="absolute -top-24 -left-24 w-48 h-48 bg-[#00FFFF]/10 blur-[80px] rounded-full pointer-events-none"></div>
-    <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-[#00FFFF]/5 blur-[80px] rounded-full pointer-events-none"></div>
 
     <!-- Header -->
     <div class="p-6 border-b border-white/5 bg-gradient-to-r from-[#00FFFF]/5 to-transparent flex items-center justify-between relative z-10">
