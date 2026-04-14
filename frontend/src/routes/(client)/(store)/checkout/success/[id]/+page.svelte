@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { fade, fly, scale, slide } from 'svelte/transition';
+  import { Gift, MessageSquare, Sparkles } from 'lucide-svelte';
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import { onMount } from 'svelte';
   import { apiClient } from '$lib/utils/apiClient';
@@ -321,16 +322,16 @@
                  <div class="grid md:grid-cols-2 gap-8" in:fade>
                    <div class="space-y-6">
                      <div class="flex flex-col">
-                       <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Họ tên:</span>
+                       <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Họ tên:</span>
                        <span class="text-sm font-bold text-slate-900 uppercase">{order?.customerName || order?.name_masked || 'Khách hàng'}</span>
                      </div>
                      <div class="flex flex-col">
-                       <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Số điện thoại:</span>
+                       <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Số điện thoại:</span>
                        <span class="text-sm font-bold text-slate-900 tracking-wider">{order?.customerPhone || order?.customer_phone || '---'}</span>
                      </div>
                    </div>
                    <div class="flex flex-col">
-                     <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Địa chỉ giao hàng:</span>
+                     <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Địa chỉ giao hàng:</span>
                      <span class="text-xs font-bold text-slate-600 leading-snug uppercase">{order?.customerAddress || order?.address_masked || 'Địa chỉ bảo mật'}</span>
                    </div>
                  </div>
@@ -415,17 +416,39 @@
                     {#each order.items as item}
                       <div class="flex items-center gap-4 group">
                         <div class="w-16 h-16 bg-slate-50 border border-slate-100 rounded-sm flex items-center justify-center text-2xl group-hover:bg-slate-100 transition-colors">📦</div>
-                        <div class="flex-1 flex flex-col justify-center">
-                          <span class="text-xs font-black text-slate-900 uppercase leading-tight mb-2 group-hover:text-[#ee4d2d] transition-colors">{item.name || 'Sản phẩm'}</span>
+                        <div class="flex-1 flex flex-col justify-center min-w-0">
+                          <span class="text-xs font-black text-slate-900 uppercase leading-tight mb-2 group-hover:text-[#ee4d2d] transition-colors truncate">{item.name || 'Sản phẩm'}</span>
                           <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Số lượng: {item.quantity || item.qty || 1}</span>
                         </div>
-                        <div class="text-right">
+                        <div class="text-right shrink-0">
                           <span class="text-sm font-black text-slate-900 italic">{formatCurrency(item.totalPrice || item.total_price || ((item.price || item.unit_price || 0) * (item.quantity || item.qty || 1)))}</span>
                         </div>
                       </div>
                     {/each}
                   {/if}
                 </div>
+
+                <!-- Elite V2.2: Standalone Custom Requests Section (Pinned below main items) -->
+                {#if (order?.order_metadata?.custom_requests || order?.orderMetadata?.custom_requests || order?.order_metadata?.customRequests || order?.orderMetadata?.customRequests) && (order?.order_metadata?.custom_requests || order?.orderMetadata?.custom_requests || order?.order_metadata?.customRequests || order?.orderMetadata?.customRequests).length > 0}
+                  <div class="pt-6 border-t border-dashed border-slate-200 space-y-4" in:slide>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">YÊU CẦU BỔ SUNG ĐANG XỬ LÝ</span>
+                    </div>
+                    <div class="space-y-3">
+                      {#each (order?.order_metadata?.custom_requests || order?.orderMetadata?.custom_requests || order?.order_metadata?.customRequests || order?.orderMetadata?.customRequests) as c_item}
+                        <div class="flex items-center gap-4 group bg-amber-50/20 p-3 border border-amber-100/50 rounded-sm">
+                           <div class="w-14 h-14 bg-white border border-amber-100/50 flex items-center justify-center text-xl overflow-hidden shrink-0">
+                             {#if c_item.image || c_item.image_url}<img src={c_item.image || c_item.image_url} alt={c_item.name} class="w-full h-full object-cover" />{:else}🧪{/if}
+                           </div>
+                           <div class="flex-1 min-w-0">
+                             <div class="text-[10px] font-black text-slate-900 uppercase truncate mb-0.5">{c_item.name}</div>
+                             <div class="text-[9px] text-slate-500 font-bold uppercase tracking-tighter italic">SL: {c_item.qty || c_item.quantity || 1} · Chờ báo giá kho</div>
+                           </div>
+                        </div>
+                      {/each}
+                    </div>
+                  </div>
+                {/if}
 
                 <!-- Financial Summary -->
                 <div class="border-t border-slate-100 pt-6 space-y-4">
@@ -445,16 +468,53 @@
                       <span class="text-3xl font-black text-[#ee4d2d] italic tracking-tighter tabular-nums">{formatCurrency(order?.total || order?.total_amount || 0)}</span>
                    </div>
                    
-                   <div class="flex flex-col gap-1 pt-4 border-t border-slate-50">
+                    <div class="flex flex-col gap-1 pt-4 border-t border-slate-50">
                       <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Trạng thái hiện tại:</span>
                       <div class="flex items-center gap-2">
-                        <div class="w-2 h-2 rounded-full {order?.status === 'CANCELLED' ? 'bg-red-500' : 'bg-amber-500'} animate-pulse"></div>
-                        <span class="text-xs font-black uppercase italic {order?.status === 'CANCELLED' ? 'text-red-500' : 'text-amber-500'}">
+                        <div class="w-2 h-2 rounded-full {order?.status === 'CANCELLED' ? 'bg-red-500' : 'bg-emerald-500'} animate-pulse"></div>
+                        <span class="text-xs font-black uppercase italic {order?.status === 'CANCELLED' ? 'text-red-500' : 'text-emerald-500'}">
                             {order?.status === 'CANCELLED' ? 'Đã hủy đơn hàng' : (STATUS_STEPS.find(s => s.key === order?.status)?.label || 'Đang xử lý')}
                         </span>
                       </div>
-                   </div>
-                </div>
+                    </div>
+
+                    <!-- Elite V2.2: Gift & Note Sections -->
+                    {#if order?.order_metadata?.gift_info || order?.orderMetadata?.gift_info || order?.order_metadata?.customer_note || order?.orderMetadata?.customer_note || order?.order_metadata?.note || order?.orderMetadata?.note}
+                      <div class="pt-6 border-t border-slate-100 space-y-4">
+                        {#if order?.order_metadata?.gift_info || order?.orderMetadata?.gift_info}
+                          {@const gift = order?.order_metadata?.gift_info || order?.orderMetadata?.gift_info}
+                          <div class="bg-pink-50/50 p-4 border border-pink-100/50 space-y-2">
+                             <div class="flex items-center gap-2 text-pink-600">
+                                <Gift class="w-4 h-4" />
+                                <span class="text-[10px] font-black uppercase tracking-widest italic">THÔNG TIN QUÀ TẶNG</span>
+                             </div>
+                             <div class="space-y-1">
+                                <p class="text-[10px] font-bold text-slate-600"><span class="text-pink-500">GỬI TỪ:</span> {gift.sender_name} ({gift.sender_phone || '---'})</p>
+                                <p class="text-[10px] font-medium text-slate-500 italic">" {gift.message || 'Chúc mừng ngày đặc biệt' } "</p>
+                                <div class="pt-1 flex items-center gap-2">
+                                   <span class="px-2 py-0.5 bg-white border border-pink-200 text-pink-500 text-[8px] font-black uppercase tracking-tighter rounded-full">Gói: {gift.packaging || 'ELITE LUXURY'}</span>
+                                   {#if gift.scheduled_at}
+                                      <span class="px-2 py-0.5 bg-white border border-sky-200 text-sky-500 text-[8px] font-black uppercase tracking-tighter rounded-full">Lịch: {formatDate(gift.scheduled_at)}</span>
+                                   {/if}
+                                </div>
+                             </div>
+                          </div>
+                        {/if}
+
+                        {#if order?.order_metadata?.customer_note || order?.orderMetadata?.customer_note || order?.order_metadata?.note || order?.orderMetadata?.note}
+                          <div class="bg-slate-50 p-4 border border-slate-100 space-y-2">
+                             <div class="flex items-center gap-2 text-slate-500">
+                                <MessageSquare class="w-4 h-4" />
+                                <span class="text-[10px] font-black uppercase tracking-widest italic">GHI CHÚ ĐƠN HÀNG</span>
+                             </div>
+                             <div class="text-[11px] font-bold text-slate-600 leading-relaxed italic prose-slate prose-p:my-0">
+                                {@html order?.order_metadata?.customer_note || order?.orderMetadata?.customer_note || order?.order_metadata?.note || order?.orderMetadata?.note}
+                             </div>
+                          </div>
+                        {/if}
+                      </div>
+                    {/if}
+                 </div>
 
                 <!-- Footer Actions -->
                 <div class="space-y-3 pt-6 border-t border-slate-100">

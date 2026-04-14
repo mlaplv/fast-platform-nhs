@@ -122,7 +122,7 @@
     <div in:fly={{ y: 30, duration: 800, delay: 600 }} class="w-full bg-white shadow-sm border-t-4 border-[#ee4d2d] p-7 mb-6 text-left relative overflow-hidden">
       <div class="flex justify-between items-start mb-8 border-b border-slate-50 pb-5">
         <div>
-           <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Mã liệu trình</span>
+           <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Mã liệu trình</span>
            <div class="flex items-center gap-2 active:opacity-60 transition-opacity" onclick={copyOrderId} role="button" tabindex="0">
              <span class="text-sm font-black text-slate-900 tracking-widest uppercase italic bg-slate-50 px-2 py-1 border border-slate-100">{copied ? 'ĐÃ SAO CHÉP!' : `#${orderId.slice(-6).toUpperCase()}`}</span>
            </div>
@@ -139,7 +139,7 @@
              <Package class="w-5 h-5 text-slate-300" />
           </div>
           <div class="flex-1">
-            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Sản phẩm trong đơn</span>
+            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Sản phẩm trong đơn</span>
             <div class="space-y-1">
               {#each items as item}
                 <p class="text-[11px] font-bold text-slate-800 leading-snug uppercase mb-1">
@@ -152,14 +152,61 @@
 
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-sm bg-slate-50 border border-slate-50 flex items-center justify-center shrink-0">
-             <Truck class="w-5 h-5 text-slate-300" />
+             <Truck class="w-5 h-5 text-slate-400" />
           </div>
           <div class="flex-1">
-            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Giao đến</span>
+            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Giao đến</span>
             <p class="text-[11px] font-bold text-slate-900 leading-tight uppercase italic">{customerName}</p>
-            <p class="text-[10px] font-bold text-slate-400 leading-snug uppercase mt-1">{customerAddress}</p>
+            <p class="text-[10px] font-bold text-slate-500 leading-snug uppercase mt-1">{customerAddress}</p>
           </div>
         </div>
+
+        <!-- Elite V2.2: Mobile Metadata Sections -->
+        {#if order?.order_metadata?.gift_info || order?.orderMetadata?.gift_info}
+          {@const gift = order?.order_metadata?.gift_info || order?.orderMetadata?.gift_info}
+          <div class="p-4 bg-pink-50/40 border border-pink-100/50 rounded-sm space-y-3">
+             <div class="flex items-center gap-2 text-pink-600">
+                <Gift class="w-4 h-4" />
+                <span class="text-[9px] font-black uppercase tracking-widest italic">QUÀ TẶNG ELITE</span>
+             </div>
+             <p class="text-[10px] font-bold text-slate-600 leading-snug italic">"{gift.message || 'Chúc mừng ngày đặc biệt'}"</p>
+             <div class="text-[8px] font-black text-pink-400 uppercase tracking-tighter">Từ: {gift.sender_name}</div>
+          </div>
+        {/if}
+
+        {#if order?.order_metadata?.customer_note || order?.orderMetadata?.customer_note}
+          <div class="p-4 bg-slate-50 border border-slate-100 rounded-sm space-y-2">
+             <div class="flex items-center gap-2 text-slate-500">
+                <MessageSquare class="w-4 h-4" />
+                <span class="text-[9px] font-black uppercase tracking-widest italic">GHI CHÚ ĐƠN HÀNG</span>
+             </div>
+             <div class="text-[10px] font-bold text-slate-600 leading-relaxed italic prose-p:my-0">
+                {@html order?.order_metadata?.customer_note || order?.orderMetadata?.customer_note}
+             </div>
+          </div>
+        {/if}
+
+        {#if (order?.order_metadata?.custom_requests || order?.orderMetadata?.custom_requests || order?.order_metadata?.customRequests || order?.orderMetadata?.customRequests || order?.order_metadata?.custom_items) && (order?.order_metadata?.custom_requests || order?.orderMetadata?.custom_requests || order?.order_metadata?.customRequests || order?.orderMetadata?.customRequests || order?.order_metadata?.custom_items).length > 0}
+          <div class="space-y-4 pt-2">
+            <div class="flex items-center gap-2 border-b border-amber-100/50 pb-2">
+              <Sparkles class="w-3.5 h-3.5 text-amber-500" />
+              <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">SẢN PHẨM YÊU CẦU BỔ SUNG</span>
+            </div>
+            <div class="space-y-2">
+              {#each (order?.order_metadata?.custom_requests || order?.orderMetadata?.custom_requests || order?.order_metadata?.customRequests || order?.orderMetadata?.customRequests || order?.order_metadata?.custom_items) as c_item}
+                <div class="flex items-center gap-4 bg-amber-50/20 p-3 border border-amber-100/50 rounded-sm">
+                   <div class="w-12 h-12 bg-white border border-amber-100/30 flex items-center justify-center text-xl overflow-hidden shrink-0">
+                      {#if c_item.image || c_item.image_url}<img src={c_item.image || c_item.image_url} alt={c_item.name} class="w-full h-full object-cover" />{:else}🧪{/if}
+                   </div>
+                   <div class="flex-1 min-w-0">
+                     <div class="text-[10px] font-black text-slate-800 uppercase truncate mb-0.5">{c_item.name}</div>
+                     <div class="text-[8px] text-slate-500 font-bold uppercase tracking-tighter italic">SL: {c_item.qty || c_item.quantity || 1} · Đang chờ báo giá</div>
+                   </div>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
       </div>
     </div>
 

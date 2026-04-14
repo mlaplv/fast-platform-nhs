@@ -165,6 +165,7 @@ class PublicOrderResponse(BaseModel):
     name_masked: Optional[str] = None
     address_masked: Optional[str] = None
     insight: Optional[PublicCustomerInsight] = None
+    orderMetadata: Dict[str, JSONType] = Field(default_factory=dict, alias="order_metadata", validation_alias=AliasChoices("order_metadata", "orderMetadata"))
 
     @field_validator("id", mode="before")
     @classmethod
@@ -198,3 +199,15 @@ class PublicOrderResponse(BaseModel):
         if isinstance(items, int):
             return items
         return 0
+
+    @computed_field
+    @property
+    def planning(self) -> Dict[str, object]:
+        """Extract planning fields from metadata"""
+        meta = self.orderMetadata or {}
+        return {
+            "assigned_to": meta.get("assigned_to"),
+            "scheduled_at": meta.get("scheduled_at"),
+            "priority": meta.get("priority", "NORMAL"),
+            "planning_notes": meta.get("planning_notes")
+        }
