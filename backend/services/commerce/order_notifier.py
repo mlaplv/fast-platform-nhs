@@ -37,6 +37,16 @@ async def handle_order_created(payload: dict) -> None:
                 meta["zalo_status"] = "ACTIVE" if has_zalo else "NOT_FOUND"
                 order.order_metadata = meta
                 await db_session.commit()
+
+                # [ELITE V2.2] Push Notification to Zalo Admin
+                gift_info = meta.get("gift_info")
+                await zalo_service.push_order_notification(
+                    order_id=order.id,
+                    customer_name=order.customer_name,
+                    total_amount=order.total_amount,
+                    gift_info=gift_info if isinstance(gift_info, dict) else None
+                )
+
                 logger.info(f"[OrderNotifier] Updated Zalo status for {order_id}: {meta['zalo_status']}")
         except Exception as e:
             logger.error(f"[OrderNotifier] Failed to update Zalo status for {order_id}: {e}")

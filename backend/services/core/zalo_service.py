@@ -157,4 +157,45 @@ class ZaloService:
         except Exception as e:
             logger.error(f"[ZaloService] Push request error: {e}")
 
+    async def push_order_notification(self, order_id: str, customer_name: str, total_amount: float, gift_info: Optional[Dict] = None):
+        """
+        Đẩy thông báo đơn hàng mới (kèm Gift Info) tới Zalo OA Admin thưa sếp!
+        """
+        admin_id = os.getenv("ZALO_ADMIN_ID")
+        if not admin_id:
+            return
+
+        token = await self._get_access_token()
+        if not token:
+            return
+
+        message_lines = [
+            f"🎁 [ĐƠN HÀNG MỚI - QUÀ TẶNG]",
+            f"👤 Người nhận: {customer_name}",
+            f"💰 Tổng: {total_amount:,.0f} VNĐ",
+        ]
+
+        if gift_info:
+            message_lines.append(f"━━━━━━━━━━━━━━━━━━")
+            message_lines.append(f"👨‍💼 Người tặng: {gift_info.get('sender_name', 'N/A')}")
+            message_lines.append(f"📞 SĐT Tặng: {gift_info.get('sender_phone', 'N/A')}")
+            message_lines.append(f"💌 Lời nhắn: {gift_info.get('message', 'Không có')}")
+            message_lines.append(f"🎁 Gói quà: {gift_info.get('packaging', 'Tiêu chuẩn')}")
+
+        message_lines.append(f"🔗 ID Đơn: {order_id}")
+        text = "\n".join(message_lines)
+
+        payload = {
+            "recipient": {"user_id": admin_id},
+            "message": {"text": text}
+        }
+        headers = {"Content-Type": "application/json", "access_token": token}
+
+        try:
+            url = f"{self.api_base}/message"
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                await client.post(url, json=payload, headers=headers)
+        except Exception as e:
+            logger.error(f"[ZaloService] Order Push Failed: {e}")
+
 zalo_service = ZaloService()

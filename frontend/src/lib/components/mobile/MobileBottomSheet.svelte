@@ -5,6 +5,7 @@
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { portal } from '$lib/core/actions/portal';
   import { fade, fly } from 'svelte/transition';
+  import GiftModal from '$lib/components/storefront/ui/GiftModal.svelte';
 
   const shopStore = getShopStore();
   let { active = $bindable(), product }: { active: boolean, product: Product } = $props();
@@ -340,6 +341,41 @@
                   class="w-full pl-12 pr-6 py-5 bg-white/[0.03] border-2 {validationError?.includes('Địa chỉ') ? 'border-red-500/30' : 'border-white/5 focus:border-blue-500/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all resize-none"
                 ></textarea>
               </div>
+
+              <!-- Viral Gift Modal Trigger (Elite V2.2 Mobile) -->
+              <div class="gift-trigger-wrap mt-2">
+                <button 
+                    type="button"
+                    onclick={() => shopStore?.toggleGiftModal(true)}
+                    class="gift-trigger-btn flex items-center justify-between w-full group"
+                >
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl group-hover:scale-125 transition-transform">🎁</span>
+                        <div class="flex flex-col text-left">
+                            <span class="text-[9px] font-black tracking-widest text-pink-400 uppercase">Ưu đãi Elite đặc biệt</span>
+                            <span class="text-xs font-bold text-white">Thêm Gói quà & Lời nhắn tặng người thân</span>
+                        </div>
+                    </div>
+                    
+                    {#if shopStore?.giftInfo}
+                        <div class="flex items-center gap-1.5 text-emerald-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                            <span class="text-[9px] font-black uppercase tracking-tighter">ĐÃ LƯU</span>
+                        </div>
+                    {:else}
+                        <ArrowRight class="w-3.5 h-3.5 text-white/30" />
+                    {/if}
+                </button>
+                
+                {#if shopStore?.giftInfo}
+                    <div class="gift-summary-mini animate-in fade-in slide-in-from-top-2 ml-12 mt-1">
+                        <p class="text-[9px] text-white/60 italic truncate">
+                            Quà từ: <span class="text-white font-bold uppercase">{shopStore?.giftInfo.sender_name}</span> 
+                            {shopStore?.giftInfo.message ? ` - "${shopStore?.giftInfo.message}"` : ''}
+                        </p>
+                    </div>
+                {/if}
+              </div>
             </div>
           </div>
         </div>
@@ -415,6 +451,8 @@
       🔒 Bảo mật AES-256 mã hóa quân sự
     </p>
   </div>
+
+  <GiftModal />
 </div>
 
 <style lang="postcss">
@@ -437,5 +475,19 @@
     -webkit-box-shadow: 0 0 0px 1000px #0a0a0a inset !important;
     transition: background-color 5000s ease-in-out 0s;
     caret-color: white;
+  }
+
+  /* ── Viral Gift Trigger ── */
+  .gift-trigger-btn {
+    background: linear-gradient(135deg, rgba(219, 39, 119, 0.08) 0%, rgba(131, 24, 67, 0.05) 100%);
+    border: 1px solid rgba(219, 39, 119, 0.2);
+    border-radius: 1rem;
+    padding: 14px 18px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .gift-trigger-btn:active {
+    background: rgba(219, 39, 119, 0.15);
+    scale: 0.98;
   }
 </style>

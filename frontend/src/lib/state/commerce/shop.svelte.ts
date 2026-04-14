@@ -1,4 +1,5 @@
 import { setContext, getContext } from 'svelte';
+import { browser } from '$app/environment';
 import { apiClient, ApiError } from '$lib/utils/apiClient';
 import { goto } from '$app/navigation';
 import type { Product, ProductVariant, PromotionDeal } from '$lib/types';
@@ -17,6 +18,23 @@ interface CustomerData {
     addressMasked?: string;
     isRecurring: boolean;
     isTrustedDevice: boolean;
+    city?: string;
+    ward?: string;
+}
+
+export interface GiftInfo {
+    sender_name: string;
+    sender_phone: string;
+    message?: string;
+    packaging?: string;
+    scheduled_at?: string;
+}
+
+export interface CustomItem {
+    name: string;
+    image_url?: string;
+    price?: number;
+    quantity: number;
 }
 
 /** Checkout success response from stealth endpoint */
@@ -51,8 +69,12 @@ export class ShopStore {
     isCheckoutOpen = $state<boolean>(false);
     isSubmitting = $state<boolean>(false);
     orderSuccess = $state<boolean>(false);
+    checkoutResult = $state<{id: string} | null>(null); // Elite V2.2: Store result for cinematic redirect
     error = $state<string | null>(null);
     customerData = $state<CustomerData | null>(null);
+    giftInfo = $state<GiftInfo | null>(null);
+    customItems = $state<CustomItem[]>([]);
+    isGiftModalOpen = $state<boolean>(false);
     
     // Diagnostic State
     diagnosticResult = $state<DiagnosticReport | null>(null);
@@ -129,6 +151,18 @@ export class ShopStore {
         if (!this.variant && productData?.variants && productData.variants.length > 0) {
             this.variant = productData.variants[0];
         }
+        
+        // 🚀 ELITE V2.2: Load Gift Info from Storage (F5 Persistence)
+        if (browser) {
+            const saved = localStorage.getItem('elite_shop_gift');
+            if (saved) {
+                try {
+                    this.giftInfo = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Failed to parse shop gift info', e);
+                }
+            }
+        }
     }
 
     startTimer(): void {
@@ -188,7 +222,28 @@ export class ShopStore {
         this.orderSuccess = false;
         this.error = null;
         this.customerData = null;
+        this.giftInfo = null;
+        this.customItems = [];
+        if (browser) localStorage.removeItem('elite_shop_gift');
+        this.isGiftModalOpen = false;
     }
+
+    setGiftInfo(info: GiftInfo | null): void {
+        this.giftInfo = info;
+    }
+
+    toggleGiftModal(open?: boolean): void {
+        this.isGiftModalOpen = open ?? !this.isGiftModalOpen;
+    }
+
+    // Side-effects (Persistence)
+    syncToStorage = $effect.root(() => {
+        $effect(() => {
+            if (browser && this.giftInfo) {
+                localStorage.setItem('elite_shop_gift', JSON.stringify(this.giftInfo));
+            }
+        });
+    });
 
     async lookupCustomer(phone: string): Promise<void> {
         if (phone.length < 10) return;
@@ -211,33 +266,53 @@ export class ShopStore {
     }
 
 
-    async submitCheckout(customer: { name: string; phone: string; address: string }): Promise<void> {
+    async submitCheckout(customer: { 
+        name: string; 
+        phone: string; 
+        address: string;
+        gift_info?: GiftInfo;
+        note?: string;
+        custom_items?: CustomItem[];
+    }): Promise<void> {
         if (!this.product) return;
         this.isSubmitting = true;
         this.error = null;
 
         try {
             const res = await apiClient.post<CheckoutSuccessResponse>('/api/v1/client/checkout/stealth', {
-                product_id: this.product.id,
-                variant_id: this.variant?.id,
+                items: [{
+                    product_id: this.product.id,
+                    variant_id: this.variant?.id,
+                    quantity: this.quantity,
+                    price: this.currentPrice
+                }],
                 customer_name: customer.name,
                 customer_phone: customer.phone,
                 customer_address: customer.address,
-                quantity: this.quantity
+                gift_info: customer.gift_info,
+                custom_items: customer.custom_items,
+                note: customer.note,
+                total_amount: this.totalAmount
             });
 
-            if (res.ok || res.status === 'success') {
+            if (res.ok || res.success) {
                 const orderId = res.id;
-                this.closeCheckout();
+                this.checkoutResult = orderId ? { id: orderId } : null;
+                this.orderSuccess = true;
+                
                 if (orderId) {
-                    goto(`/checkout/success/${orderId}?phone=${encodeURIComponent(customer.phone)}`);
+                    // Fallback redirect if component doesn't handle it
+                    setTimeout(() => {
+                        if (window.location.pathname.includes('/checkout')) return; // Avoid double redirect
+                        goto(`/checkout/success/${orderId}?phone=${encodeURIComponent(customer.phone)}`);
+                    }, 2000);
                 }
             } else {
                 this.error = res.message ?? 'Có lỗi xảy ra, vui lòng thử lại';
+                this.isSubmitting = false;
             }
         } catch (err: unknown) {
             this.error = err instanceof Error ? err.message : 'Không thể kết nối máy chủ';
-        } finally {
             this.isSubmitting = false;
         }
     }

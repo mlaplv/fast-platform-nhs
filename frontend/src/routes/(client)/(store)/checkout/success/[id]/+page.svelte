@@ -6,10 +6,12 @@
   import { apiClient } from '$lib/utils/apiClient';
   import { formatCurrency, formatDate } from '$lib/utils/format.ts';
   import SuccessMobile from '$lib/components/mobile/sections/SuccessMobile.svelte';
+  import { getCartStore } from '$lib/state/commerce/cart.svelte';
 
   let { data } = $props<{ data: { isMobile: boolean } }>();
 
   const orderId = page.params.id;
+  const cartStore = getCartStore();
 
   // Elite V2.2: Order Status Roadmap
   import type { OrderDetail } from '$lib/types';
@@ -70,6 +72,7 @@
   let isConfirmCancelOpen = $state(false);
 
   onMount(async () => {
+    cartStore.clearCart();
     await fetchOrder();
   });
 
@@ -437,7 +440,7 @@
     </div>
   {/if}
 
-  <p class="mt-12 text-[10px] text-slate-700 font-black uppercase tracking-[0.3em]">Nhà Thuốc Hồng Sơn - Chân Ái Khóa Mùi 48H.</p>
+  <p class="mt-12 text-[10px] text-slate-700 font-black uppercase tracking-[0.3em]">Micsmo.com - Bật tông trắng sáng</p>
 </div>
 
 <!-- Elite Toast System! -->

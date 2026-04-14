@@ -75,6 +75,12 @@ class OrderMetadata(TypedDict, total=False):
     items: List[OrderItem]
     applied_deal: Dict[str, object]
     is_mobile: bool
+    payment_method: str
+    shipping_fee: float
+    customer_note: str
+    custom_requests: List[Dict[str, object]]
+    gift_info: Dict[str, object]
+    voucher_id: str
 
 class CheckoutService:
     @staticmethod
@@ -142,7 +148,9 @@ class CheckoutService:
         # 5. Prepare Order Metadata
         order_metadata: OrderMetadata = {
             "items": items_list,
-            "is_mobile": is_mobile_device(user_agent)
+            "is_mobile": is_mobile_device(user_agent),
+            "payment_method": payload.payment_method,
+            "shipping_fee": payload.shipping_fee
         }
 
         if payload.voucher_id:
@@ -164,6 +172,19 @@ class CheckoutService:
                 })
             order_metadata["custom_requests"] = custom_items_list
             logger.info(f"[ELITE-V2.2] Custom product requests received: {len(custom_items_list)} items for phone {payload.customer_phone}")
+
+        # 5.6 Handle Gift Info (Elite V2.2)
+        if payload.gift_info:
+            order_metadata["gift_info"] = {
+                "sender_name": payload.gift_info.sender_name,
+                "sender_phone": payload.gift_info.sender_phone,
+                "message": payload.gift_info.message,
+                "packaging": payload.gift_info.packaging,
+                "scheduled_at": payload.gift_info.scheduled_at.isoformat() if payload.gift_info.scheduled_at else None,
+                "recurring_type": payload.gift_info.recurring_type,
+                "recurring_metadata": payload.gift_info.recurring_metadata
+            }
+            logger.info(f"[ELITE-V2.2] Gift info received for order phone {payload.customer_phone}")
 
         # 6. Identity Shield v2.2: Restore original data if masked strings were submitted
         final_name = payload.customer_name

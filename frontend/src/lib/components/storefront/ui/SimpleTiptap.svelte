@@ -45,7 +45,7 @@
       ],
       editorProps: {
         attributes: {
-          class: 'focus:outline-none w-full min-h-[160px] p-0 tiptap-simple-content text-sm text-gray-800 leading-relaxed',
+          class: 'focus:outline-none w-full min-h-[160px] p-0 tiptap-simple-content text-sm text-gray-900 leading-relaxed',
         },
       },
       onUpdate: () => {

@@ -10,6 +10,16 @@ export interface CartItem {
     selected: boolean;
 }
 
+export interface GiftInfo {
+    sender_name: string;
+    sender_phone: string;
+    message?: string;
+    packaging?: string;
+    scheduled_at?: string;
+    recurring_type?: string;
+    recurring_metadata?: Record<string, any>;
+}
+
 /**
  * ELITE V2.2: Global Multi-Product Cart Store
  * Powered by Svelte 5 Runes with LocalStorage Persistence
@@ -18,6 +28,8 @@ export class CartStore {
     // Core State
     items = $state<CartItem[]>([]);
     selectedVoucherIds = $state<string[]>([]);
+    giftInfo = $state<GiftInfo | null>(null);
+    isGiftModalOpen = $state<boolean>(false);
 
     // Bắt sự kiện khởi tạo để load data từ LocalStorage
     constructor() {
@@ -25,13 +37,18 @@ export class CartStore {
             const saved = localStorage.getItem('elite_global_cart');
             if (saved) {
                 try {
-                    const parsed = JSON.parse(saved) as Partial<CartItem>[];
-                    this.items = parsed
-                        .filter((i): i is CartItem => !!(i.id && i.product))
-                        .map((item) => ({
-                            ...item,
-                            selected: item.selected ?? true
-                        } as CartItem));
+                    const parsed = JSON.parse(saved) as any;
+                    if (parsed.items) {
+                        this.items = (parsed.items as Partial<CartItem>[])
+                            .filter((i): i is CartItem => !!(i.id && i.product))
+                            .map((item) => ({
+                                ...item,
+                                selected: item.selected ?? true
+                            } as CartItem));
+                    }
+                    if (parsed.giftInfo) {
+                        this.giftInfo = parsed.giftInfo;
+                    }
                 } catch (e) {
                     console.error('Failed to parse cart data', e);
                 }
@@ -71,12 +88,19 @@ export class CartStore {
     syncToStorage = $effect.root(() => {
         $effect(() => {
             if (browser) {
-                localStorage.setItem('elite_global_cart', JSON.stringify(this.items));
+                localStorage.setItem('elite_global_cart', JSON.stringify({
+                    items: this.items,
+                    giftInfo: this.giftInfo
+                }));
             }
         });
     });
 
     // Actions
+    setGiftInfo(info: GiftInfo | null): void {
+        this.giftInfo = info;
+    }
+
     addItem(product: Product, variant?: ProductVariant, quantity: number = 1): void {
         const uniqueId = variant ? `${product.id}_${variant.id}` : product.id;
         const existingItem = this.items.find(item => item.id === uniqueId);
@@ -119,6 +143,12 @@ export class CartStore {
 
     clearCart(): void {
         this.items = [];
+        this.giftInfo = null;
+        this.isGiftModalOpen = false;
+    }
+
+    toggleGiftModal(open?: boolean): void {
+        this.isGiftModalOpen = open ?? !this.isGiftModalOpen;
     }
 
     buyNow(product: Product, variant?: ProductVariant, quantity: number = 1): void {

@@ -28,7 +28,7 @@ function getTenantIdFromHost(): string {
   const parts = window.location.hostname.split(".");
   const systemSubdomains = new Set(["admin", "api", "www", "portal"]);
   const relevantParts = parts.filter((p) => !systemSubdomains.has(p));
-  return relevantParts.length > 0 ? relevantParts[0] : "default";
+  return relevantParts.length > 0 ? relevantParts.join(".") : "default";
 }
 
 export const apiClient = {
@@ -100,12 +100,33 @@ export const apiClient = {
           }
         }
 
-        const errorData = data as { detail?: string; message?: string } | null;
+        const errorData = data as { detail?: any; message?: string } | null;
+        let errorMessage = errorData?.message || `Lỗi máy chủ (${response.status} ${response.statusText})`;
+
+        // Handle Pydantic V2 Validation Errors (loc)
+        if (Array.isArray(errorData?.detail)) {
+          const detail = errorData.detail as { loc: (string | number)[]; msg: string; type: string }[];
+          errorMessage = detail.map(err => {
+            const field = err.loc[err.loc.length - 1];
+            // Simple mapping for common fields
+            const fieldNames: Record<string, string> = {
+              'phone': 'Số điện thoại',
+              'name': 'Họ tên',
+              'address': 'Địa chỉ',
+              'province': 'Tỉnh/Thành',
+              'ward': 'Phường/Xã',
+              'street': 'Địa chỉ chi tiết'
+            };
+            const friendlyField = fieldNames[field as string] || field;
+            return `${friendlyField}: ${err.msg}`;
+          }).join('; ');
+        } else if (typeof errorData?.detail === 'string') {
+          errorMessage = errorData.detail;
+        }
+
         throw new ApiError(
           response.status,
-          errorData?.detail ||
-            errorData?.message ||
-            `Lỗi máy chủ (${response.status} ${response.statusText})`,
+          errorMessage,
           data,
         );
       }

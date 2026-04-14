@@ -2,6 +2,9 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator
 import re
 from typing import Optional
 
+from datetime import datetime
+from typing import Optional
+
 class CheckoutItemSchema(BaseModel):
     product_id: str
     variant_id: Optional[str] = None
@@ -14,16 +17,28 @@ class CustomItemSchema(BaseModel):
     price: Optional[float] = Field(None, ge=0)
     quantity: int = Field(default=1, ge=1)
 
+class GiftInfoSchema(BaseModel):
+    sender_name: str = Field(..., min_length=1, max_length=100)
+    sender_phone: str = Field(..., description="Số điện thoại người tặng/người đặt")
+    message: Optional[str] = Field(None, max_length=500)
+    packaging: Optional[str] = Field(None, description="Loại đóng gói/thiệp")
+    scheduled_at: Optional[datetime] = Field(None, description="Thời gian giao quà")
+    recurring_type: Optional[str] = Field("none", description="Kiểu lặp lại: none, daily, weekly, monthly, yearly")
+    recurring_metadata: Optional[dict] = Field(None, description="Metadata lặp lại: days_of_week, day_of_month...")
+
 class StealthCheckoutSchema(BaseModel):
     model_config = ConfigDict(strict=True, from_attributes=True)
 
     items: list[CheckoutItemSchema] = Field(..., description="Danh sách sản phẩm trong giỏ")
     custom_items: list[CustomItemSchema] = Field(default_factory=list, description="Danh sách sản phẩm yêu cầu thêm")
+    gift_info: Optional[GiftInfoSchema] = Field(None, description="Thông tin quà tặng")
     voucher_id: Optional[str] = Field(None, description="Mã giảm giá áp dụng")
     customer_name: str = Field(..., min_length=2, max_length=100, description="Tên khách hàng")
     customer_phone: str = Field(..., description="Số điện thoại khách hàng")
     customer_address: str = Field(..., min_length=5, max_length=500, description="Địa chỉ nhận hàng")
     total_amount: float = Field(..., ge=0, description="Tổng tiền sau giảm giá")
+    shipping_fee: float = Field(default=0, ge=0, description="Phí vận chuyển")
+    payment_method: str = Field(default="cod", description="Phương thức thanh toán: cod, bank")
     note: Optional[str] = Field(None, description="Ghi chú đơn hàng từ khách hàng")
 
     @field_validator("customer_phone")

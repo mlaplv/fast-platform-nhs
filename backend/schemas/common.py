@@ -13,6 +13,7 @@ T = TypeVar("T")
 class SuccessResponse(BaseModel, Generic[T]):
     model_config = ConfigDict(strict=True)
     ok: bool = True
+    success: bool = True # Elite V2.2: Compatibility with storefront ".success" checks
     message: Optional[str] = None
     id: Optional[str] = None
     data: Optional[T] = None

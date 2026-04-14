@@ -61,19 +61,18 @@ class XoHiResponder:
 
                 # Elite V2.2: Universal Signal Dispatch (Persistence managed by SignalCenter)
                 await signal_center.dispatch(
-                    user_id="admin", # Notify admin pool
+                    user_id="user_admin", # Notify admin pool (mlap)
                     signal=SignalSchema(
                         message=msg,
                         severity=severity,
                         signal_type="SECURITY" if is_spam else "ORDER",
                         payload={"order_id": order_id, "is_spam": is_spam, "score": score},
-                        persist=True if not is_spam else None # Force persist for new orders, rely on default for spam (Action/Critical).
+                        persist=True if not is_spam else None 
                     ),
                     db_session=session,
                     tenant_id=tenant_id
                 )
 
-                await session.commit()
                 logger.info(f"[XoHiResponder] Handled ORDER_CREATED: {order_id} (is_spam={is_spam})")
             except Exception as e:
                 await session.rollback()
@@ -92,7 +91,7 @@ class XoHiResponder:
         async with self.session_maker() as session:
             try:
                 await signal_center.dispatch(
-                    user_id="admin",
+                    user_id="user_admin",
                     signal=SignalSchema(
                         message=msg,
                         severity=SignalSeverity.ACTION,
@@ -102,7 +101,6 @@ class XoHiResponder:
                     db_session=session,
                     tenant_id=tenant_id
                 )
-                await session.commit()
                 logger.info(f"[XoHiResponder] Handled ORDER_CANCELLED: {order_id}")
             except Exception as e:
                 await session.rollback()
