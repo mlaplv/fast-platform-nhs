@@ -3,8 +3,11 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { formatCurrency } from '$lib/utils/format';
   import { apiClient } from '$lib/utils/apiClient';
+  import { browser } from '$app/environment';
+  import { onMount } from 'svelte';
   import Countdown from '$lib/components/storefront/ui/Countdown.svelte';
   import SearchableCheckoutSelect from '$lib/components/storefront/ui/SearchableCheckoutSelect.svelte';
+  import SimpleTiptap from '$lib/components/storefront/ui/SimpleTiptap.svelte';
   import { fade, fly, slide } from 'svelte/transition';
   import { portal } from '$lib/core/actions/portal';
   import vnDivisions from '$lib/data/vn_divisions.json';
@@ -25,8 +28,76 @@
     street: '',
     paymentMethod: 'cod' as 'cod' | 'bank',
     shippingMethod: 'standard' as 'standard' | 'express',
-    securePackaging: true
+    securePackaging: true,
+    note: ''
   });
+
+  let showNote = $state(false);
+
+  let customItems = $state<any[]>([]);
+  let showCustomItemForm = $state(false);
+  let newCustomItem = $state({
+    name: '',
+    image_url: '',
+    price: null as number | null,
+    quantity: 1
+  });
+
+  // [ELITE V2.2] Persistence Layer
+  onMount(() => {
+    if (browser) {
+      const saved = localStorage.getItem('elite_checkout_draft');
+      if (saved) {
+        try {
+          const draft = JSON.parse(saved);
+          form.name = draft.form.name || '';
+          form.phone = draft.form.phone || '';
+          form.province = draft.form.province || '';
+          form.ward = draft.form.ward || '';
+          form.street = draft.form.street || '';
+          form.note = draft.form.note || '';
+          form.paymentMethod = draft.form.paymentMethod || 'cod';
+          form.shippingMethod = draft.form.shippingMethod || 'standard';
+          form.securePackaging = draft.form.securePackaging ?? true;
+          customItems = draft.customItems || [];
+          if (form.note) showNote = true;
+        } catch (e) {
+          console.error('Failed to load checkout draft', e);
+        }
+      }
+    }
+  });
+
+  $effect(() => {
+    if (browser) {
+      localStorage.setItem('elite_checkout_draft', JSON.stringify({
+        form: { ...form },
+        customItems: [...customItems]
+      }));
+    }
+  });
+
+  // [ELITE V2.2] Auto-cleanup when cart is empty
+  $effect(() => {
+    if (browser && cartStore.items.length === 0) {
+      localStorage.removeItem('elite_checkout_draft');
+    }
+  });
+
+  function addCustomItem() {
+    if (!newCustomItem.name) {
+      clientUi.showToast('Vui lòng nhập tên sản phẩm!', 'error');
+      return;
+    }
+    customItems.push({ ...newCustomItem });
+    newCustomItem = { name: '', image_url: '', price: null, quantity: 1 };
+    showCustomItemForm = false;
+    clientUi.showToast('Đã thêm yêu cầu sản phẩm!', 'success');
+  }
+
+  function removeCustomItem(idx: number) {
+    customItems.splice(idx, 1);
+  }
 
   // Derived Address Data
   const validProvinces = $derived(vnDivisions.filter(p => 'id' in p));
@@ -197,14 +268,27 @@
         items: cartStore.items.filter(i => i.selected).map(i => ({
           product_id: i.product.id,
           variant_id: i.variant?.id,
+          quantity: i.quantity,
+          price: (i.variant?.discountPrice ?? i.variant?.price ?? i.product.discountPrice ?? i.product.price ?? 0)
+        })),
+        custom_items: customItems.map(i => ({
+          name: i.name,
+          image_url: i.image_url || null,
+          price: i.price || null,
           quantity: i.quantity
         })),
-        voucher_id: cartStore.selectedVoucherId,
-        shipping_fee: shippingFee
+        customer_name: form.name,
+        customer_phone: form.phone,
+        customer_address: `${form.street}, ${form.ward}, ${form.province}`,
+        total_amount: cartStore.totalAmount + shippingFee,
+        voucher_id: cartStore.selectedVoucherIds[0] || null,
+        shipping_fee: shippingFee,
+        note: form.note || null
       };
 
       const res = await apiClient.post('/api/v1/client/checkout/stealth', payload);
       if (res.success) {
+        if (browser) localStorage.removeItem('elite_checkout_draft'); 
         cartStore.clearCart();
         window.location.href = `/checkout/success/${res.data.id}`;
       } else {
@@ -325,6 +409,27 @@
                 <div class="md:col-span-2 space-y-1">
                   <label class="text-[9px] font-black uppercase text-gray-400 ml-1">Địa chỉ chi tiết</label>
                   <input type="text" bind:value={form.street} placeholder="Số nhà, tên đường..." class="w-full bg-gray-50 border border-gray-100 px-4 py-3 text-sm focus:border-[#ee4d2d] outline-none font-bold" />
+                  
+                  <div class="pt-1">
+                    <button 
+                      type="button" 
+                      onclick={() => showNote = !showNote}
+                      class="text-[9px] font-black uppercase text-[#ee4d2d] hover:underline flex items-center gap-1.5 transition-all"
+                    >
+                      <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      {showNote ? 'THU GỌN GHI CHÚ' : 'THÊM GHI CHÚ ĐƠN HÀNG / GIAO HÀNG'}
+                    </button>
+                    
+                    {#if showNote}
+                      <div class="mt-3" in:slide>
+                        <SimpleTiptap 
+                          bind:content={form.note} 
+                          placeholder="Lời nhắn cho shipper hoặc shop (VD: Giao giờ hành chính, gọi trước khi đến...)" 
+                          limit={1000}
+                        />
+                      </div>
+                    {/if}
+                  </div>
                 </div>
               </div>
 
@@ -543,9 +648,9 @@
                     </div>
                     <div class="flex items-center justify-between mt-1">
                       <div class="flex items-center gap-1">
-                         <button onclick={() => cartStore.updateQuantity(item.id, item.quantity - 1)} class="w-5 h-5 flex items-center justify-center bg-white border border-gray-100 text-gray-400 hover:text-[#ee4d2d] text-[10px] font-black">-</button>
+                         <button type="button" onclick={() => cartStore.updateQuantity(item.id, item.quantity - 1)} class="w-5 h-5 flex items-center justify-center bg-white border border-gray-100 text-gray-400 hover:text-[#ee4d2d] text-[10px] font-black">-</button>
                          <span class="text-[10px] font-black w-4 text-center">{item.quantity}</span>
-                         <button onclick={() => cartStore.updateQuantity(item.id, item.quantity + 1)} class="w-5 h-5 flex items-center justify-center bg-white border border-gray-100 text-gray-400 hover:text-[#ee4d2d] text-[10px] font-black">+</button>
+                         <button type="button" onclick={() => cartStore.updateQuantity(item.id, item.quantity + 1)} class="w-5 h-5 flex items-center justify-center bg-white border border-gray-100 text-gray-400 hover:text-[#ee4d2d] text-[10px] font-black">+</button>
                       </div>
                       <div class="flex flex-col items-end gap-0">
                         {#if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}
@@ -561,6 +666,91 @@
                   </div>
                 </div>
               {/each}
+
+              {#if customItems.length > 0}
+                <div class="mt-4 pt-4 border-t border-dashed border-gray-200 space-y-3" in:slide>
+                  <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest italic flex items-center gap-2">
+                    <svg class="w-3.5 h-3.5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    YÊU CẦU THÊM (CHỜ BÁO GIÁ)
+                  </h3>
+                  {#each customItems as item, idx}
+                    <div class="flex gap-4 bg-orange-50/40 p-2 border border-orange-100 relative group animate-pulse-subtle">
+                      <div class="w-12 h-12 bg-white border border-orange-100 shrink-0 flex items-center justify-center overflow-hidden">
+                        {#if item.image_url && item.image_url.startsWith('http')}
+                          <img src={item.image_url} alt={item.name} class="w-full h-full object-cover" />
+                        {:else}
+                          <svg class="w-6 h-6 text-orange-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 00-2 2z" /></svg>
+                        {/if}
+                      </div>
+                      <div class="flex-1 min-w-0 flex flex-col justify-center">
+                        <h4 class="text-[9px] font-black text-gray-800 uppercase italic line-clamp-1">{item.name}</h4>
+                        <div class="text-[8px] text-gray-400 font-bold">Số lượng: {item.quantity} · <span class="text-orange-500 italic">Đang chờ xử lý</span></div>
+                      </div>
+                      <button 
+                        type="button"
+                        onclick={() => removeCustomItem(idx)}
+                        class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white border border-gray-200 text-gray-400 hover:text-red-500 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+
+              <!-- ADD CUSTOM ITEM CONTROL -->
+              <div class="mt-6">
+                {#if !showCustomItemForm}
+                  <button 
+                    type="button"
+                    onclick={() => showCustomItemForm = true}
+                    class="w-full py-4 border-2 border-dashed border-gray-100 text-gray-400 hover:border-[#ee4d2d] hover:text-[#ee4d2d] hover:bg-[#fff4f1]/30 transition-all flex items-center justify-center gap-3 group"
+                  >
+                    <div class="w-6 h-6 rounded-full border border-current flex items-center justify-center group-hover:bg-[#ee4d2d] group-hover:text-white transition-colors">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                    </div>
+                    <span class="text-[10px] font-black uppercase tracking-widest italic text-center">Yêu cầu thêm sản phẩm khác</span>
+                  </button>
+                {:else}
+                  <div class="p-5 bg-gray-50 border border-gray-100 space-y-4 shadow-inner" in:slide>
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-[10px] font-black text-gray-900 uppercase italic tracking-widest flex items-center gap-2">
+                        <div class="w-1.5 h-1.5 bg-[#ee4d2d] rounded-full"></div>
+                        Mục sản phẩm bổ sung
+                      </span>
+                      <button type="button" onclick={() => showCustomItemForm = false} class="text-gray-300 hover:text-gray-900 transition-colors"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                    </div>
+                    <div class="space-y-3">
+                      <div class="space-y-1">
+                        <label class="text-[8px] font-black text-gray-400 uppercase ml-1">Tên sản phẩm</label>
+                        <input type="text" bind:value={newCustomItem.name} placeholder="VD: Sữa rửa mặt Cerave SA 473ml..." class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d] transition-colors" />
+                      </div>
+                      <div class="grid grid-cols-2 gap-3">
+                         <div class="space-y-1">
+                           <label class="text-[8px] font-black text-gray-400 uppercase ml-1">Số lượng</label>
+                           <input type="number" bind:value={newCustomItem.quantity} class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d]" />
+                         </div>
+                         <div class="space-y-1">
+                           <label class="text-[8px] font-black text-gray-400 uppercase ml-1">Giá dự kiến (VNĐ)</label>
+                           <input type="number" bind:value={newCustomItem.price} placeholder="0" class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d]" />
+                         </div>
+                      </div>
+                      <div class="space-y-1">
+                        <label class="text-[8px] font-black text-gray-400 uppercase ml-1">Hình ảnh / Mô tả</label>
+                        <input type="text" bind:value={newCustomItem.image_url} placeholder="Nhập Link ảnh hoặc yêu cầu màu sắc, kích thước..." class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d]" />
+                      </div>
+                    </div>
+                    <button 
+                      type="button" 
+                      onclick={addCustomItem}
+                      class="w-full py-3 bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#ee4d2d] transition-all flex items-center justify-center gap-2 shadow-lg shadow-gray-200"
+                    >
+                      XÁC NHẬN YÊU CẦU
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                    </button>
+                  </div>
+                {/if}
+              </div>
             </div>
 
             <!-- Summary -->

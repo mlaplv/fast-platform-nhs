@@ -147,6 +147,9 @@ class CheckoutService:
 
         if payload.voucher_id:
             order_metadata["voucher_id"] = payload.voucher_id
+        
+        if payload.note:
+            order_metadata["customer_note"] = payload.note
 
         # 5.5 Handle Custom Item Requests (Elite V2.2)
         custom_items_list = []
@@ -160,6 +163,7 @@ class CheckoutService:
                     "is_custom": True
                 })
             order_metadata["custom_requests"] = custom_items_list
+            logger.info(f"[ELITE-V2.2] Custom product requests received: {len(custom_items_list)} items for phone {payload.customer_phone}")
 
         # 6. Identity Shield v2.2: Restore original data if masked strings were submitted
         final_name = payload.customer_name

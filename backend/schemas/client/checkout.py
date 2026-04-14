@@ -24,6 +24,7 @@ class StealthCheckoutSchema(BaseModel):
     customer_phone: str = Field(..., description="Số điện thoại khách hàng")
     customer_address: str = Field(..., min_length=5, max_length=500, description="Địa chỉ nhận hàng")
     total_amount: float = Field(..., ge=0, description="Tổng tiền sau giảm giá")
+    note: Optional[str] = Field(None, description="Ghi chú đơn hàng từ khách hàng")
 
     @field_validator("customer_phone")
     @classmethod
