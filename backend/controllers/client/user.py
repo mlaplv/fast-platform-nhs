@@ -4,11 +4,12 @@ from litestar.enums import RequestEncodingType
 from litestar.params import Body
 from sqlalchemy import select, and_
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, Annotated
 import logging
 
-from backend.database.models import User
+from backend.database.models import User, Role
 from backend.database.repositories import MediaRegistryRepository
 from backend.schemas.user import UserResponse, UserUpdatePayload, UpdatePasswordPayload
 from backend.schemas.order import OrderListResponse, OrderResponse
@@ -33,8 +34,10 @@ class ClientUserController(Controller):
             
         user_id = user_state.get("id")
         
-        # User service already has some logic, but for a direct profile fetch let's be strict
-        stmt = select(User).where(User.id == user_id)
+        # Elite V3.1 Fix: Bắt buộc load roles và permissions để Pydantic validate UserResponse (tránh MissingGreenlet 500)
+        stmt = select(User).where(User.id == user_id).options(
+            selectinload(User.roles).selectinload(Role.permissions)
+        )
         result = await db_session.execute(stmt)
         user = result.scalar_one_or_none()
         

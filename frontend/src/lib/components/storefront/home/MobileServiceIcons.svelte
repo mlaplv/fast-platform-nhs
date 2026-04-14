@@ -104,6 +104,8 @@
 
   .service-icon-container {
     position: relative;
+    padding-top: 4px;
+    padding-right: 4px;
   }
 
   .service-icon-bg {
@@ -128,17 +130,18 @@
 
   .service-badge {
     position: absolute;
-    top: -6px;
-    right: -10px;
+    top: 0;
+    right: 0;
     background: #ee4d2d;
     color: #fff;
     font-size: 8px;
     font-weight: 950;
-    padding: 2px 4.5px;
-    border-radius: 4px;
+    padding: 2.5px 5px;
+    border-radius: 5px;
     line-height: 1;
     border: 1.5px solid #fff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(238, 77, 45, 0.2);
+    z-index: 2;
   }
 
   .service-label {

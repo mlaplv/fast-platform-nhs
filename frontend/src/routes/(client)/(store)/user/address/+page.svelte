@@ -4,6 +4,7 @@
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { fade, fly, slide } from 'svelte/transition';
+  import { onMount } from 'svelte';
   import { Plus, MapPin, Phone, User, Trash2, Edit3, CheckCircle2 } from 'lucide-svelte';
   import divisions from '$lib/data/vn_divisions.json';
   import SearchableDropdown from '$lib/components/storefront/user/SearchableDropdown.svelte';
@@ -21,7 +22,10 @@
     isDefault: boolean;
   }
 
-  let addresses = $state<Address[]>(authStore.user?.extra_metadata?.addresses || []);
+  // Elite V3.1: Khởi đầu rỗng, load từ API trong onMount — đảm bảo fresh data sau mọi lần F5.
+  // Không dùng authStore trực tiếp vì localStorage có thể stale.
+  let addresses = $state<Address[]>([]);
+  let isLoading = $state(true);
   let showForm = $state(false);
   let isSaving = $state(false);
   let editingId = $state<string | null>(null);
@@ -59,6 +63,25 @@
       if (!aSupported && bSupported) return 1;
       return 0;
     });
+  });
+
+  // Elite V3.1: Fetch fresh profile from API on mount — bảo đảm data đúng sau mọi lần F5
+  onMount(async () => {
+    try {
+      const profile = await apiClient.get<{ extra_metadata?: { addresses?: Address[] } }>('/api/v1/client/user/profile');
+      const fresh = profile?.extra_metadata?.addresses;
+      if (Array.isArray(fresh)) {
+        addresses = fresh;
+        // Sync vào authStore để đồng bộ localStorage
+        authStore.syncUser({ extra_metadata: { ...(authStore.user?.extra_metadata || {}), addresses: fresh } });
+      }
+    } catch (e) {
+      // Fallback an toàn: dùng data trong authStore nếu API thất bại
+      addresses = authStore.user?.extra_metadata?.addresses || [];
+      console.warn('[Address] API fetch failed, falling back to local cache:', e);
+    } finally {
+      isLoading = false;
+    }
   });
 
   function resetForm() {
@@ -126,12 +149,13 @@
         }
       });
 
-      if (authStore.user) {
-        authStore.user.extra_metadata = {
-          ...authStore.user.extra_metadata,
+      // Elite V3.1: Sync authStore → cập nhật localStorage để lần F5 tiếp theo không stale
+      authStore.syncUser({
+        extra_metadata: {
+          ...(authStore.user?.extra_metadata || {}),
           addresses: updatedAddresses
-        };
-      }
+        }
+      });
 
       addresses = updatedAddresses;
       ui.showToast('Địa chỉ đã được cập nhật thành công! ✨', 'success');
@@ -161,12 +185,13 @@
         }
       });
 
-      if (authStore.user) {
-        authStore.user.extra_metadata = {
-          ...authStore.user.extra_metadata,
+      // Elite V3.1: Sync authStore sau delete
+      authStore.syncUser({
+        extra_metadata: {
+          ...(authStore.user?.extra_metadata || {}),
           addresses: updatedAddresses
-        };
-      }
+        }
+      });
 
       addresses = updatedAddresses;
       ui.showToast('Đã xóa địa chỉ.', 'info');
@@ -189,12 +214,13 @@
         }
       });
 
-      if (authStore.user) {
-        authStore.user.extra_metadata = {
-          ...authStore.user.extra_metadata,
+      // Elite V3.1: Sync authStore sau set default
+      authStore.syncUser({
+        extra_metadata: {
+          ...(authStore.user?.extra_metadata || {}),
           addresses: updatedAddresses
-        };
-      }
+        }
+      });
 
       addresses = updatedAddresses;
       ui.showToast('Đã thiết lập địa chỉ mặc định.', 'success');
@@ -317,7 +343,18 @@
       </div>
     {:else}
       <div class="space-y-4">
-        {#if addresses.length === 0}
+        {#if isLoading}
+          <!-- Elite V3.1: Skeleton loading — tránh flash "rỗng" trong khi API fetch -->
+          <div class="space-y-4" in:fade>
+            {#each [1, 2] as _}
+              <div class="bg-white p-6 border border-stone-100 animate-pulse">
+                <div class="h-4 bg-stone-100 rounded w-1/3 mb-3"></div>
+                <div class="h-3 bg-stone-100 rounded w-2/3 mb-2"></div>
+                <div class="h-3 bg-stone-100 rounded w-1/2"></div>
+              </div>
+            {/each}
+          </div>
+        {:else if addresses.length === 0}
           <div class="py-20 text-center border-2 border-dashed border-stone-100 rounded-lg">
             <div class="w-16 h-16 bg-stone-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <MapPin class="w-8 h-8 text-stone-200" />

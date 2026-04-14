@@ -8,6 +8,7 @@ from sqlalchemy import select, func, and_, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 from litestar.exceptions import NotFoundException, ClientException, NotAuthorizedException
 import bcrypt
 
@@ -198,7 +199,12 @@ class UserService:
         if "avatar_url" in data: user.avatar_url = str(data["avatar_url"])
         if "phone" in data: user.phone = str(data["phone"])
         if "extra_metadata" in data:
-            user.extra_metadata = data["extra_metadata"] if isinstance(data["extra_metadata"], dict) else {}
+            incoming = data["extra_metadata"] if isinstance(data["extra_metadata"], dict) else {}
+            # Elite V3.1: Deep merge — không overwrite — bảo vệ các key khác (tier, points, skinProfile...)
+            # SQLAlchemy không detect mutation trên JSON column → bắt buộc dùng flag_modified()
+            merged = {**(user.extra_metadata or {}), **incoming}
+            user.extra_metadata = merged
+            flag_modified(user, "extra_metadata")  # ← Kìu SQLAlchemy flush JSON vào DB
 
         if "roles" in data and isinstance(data["roles"], list):
             # Optimized: Use pre-imported Role model

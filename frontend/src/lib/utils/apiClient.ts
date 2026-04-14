@@ -84,11 +84,14 @@ export const apiClient = {
       // 4. Handle HTTP Status Errors
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          // Rule 2.1: Only purge and redirect if we're not on the login page already
-          if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+          // Elite V2.2 Domain Guard: Chỉ purge session và redirect /login khi đang ở Admin domain.
+          // Tuyệt đối không redirect storefront user sang /login của admin.
+          const isAdminDomain = typeof window !== "undefined" &&
+            window.location.hostname.startsWith("admin.");
+          if (isAdminDomain && !window.location.pathname.includes("/login")) {
             const hasToken = localStorage.getItem("admin_token") || document.cookie.includes("admin_token");
             if (hasToken) {
-              console.warn("[SafeFetch] Auth failed, purging session...");
+              console.warn("[SafeFetch] Admin auth failed, purging session...");
               localStorage.removeItem("admin_token");
               localStorage.removeItem("user_token");
               localStorage.removeItem("access_token");
@@ -230,7 +233,12 @@ export const apiClient = {
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          if (typeof window !== "undefined") {
+          // Elite V2.2 Domain Guard: Đồng bộ với request() — chỉ redirect trên Admin domain.
+          const isAdminDomain = typeof window !== "undefined" &&
+            window.location.hostname.startsWith("admin.");
+          const hasToken = typeof window !== "undefined" &&
+            (!!localStorage.getItem("admin_token") || document.cookie.includes("admin_token"));
+          if (isAdminDomain && hasToken && !window.location.pathname.includes("/login")) {
             localStorage.removeItem("admin_token");
             localStorage.removeItem("user_token");
             localStorage.removeItem("access_token");

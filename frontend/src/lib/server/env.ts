@@ -25,6 +25,11 @@ export const ServerEnv = {
     /** Pre-calculated Tenant ID for performance (Elite V2.2: Full domain SSOT) */
     TENANT_ID: APP_DOMAIN || 'default',
 
-    /** Base domain logic for strict matching */
-    isLocal: (hostname: string) => hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.'),
+    /** Base domain logic for strict matching + Docker container name whitelist */
+    isLocal: (hostname: string) =>
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname.startsWith('192.168.') ||
+        // Docker-internal container names: nếu SvelteKit nhận hostname = container name thì coi là local
+        ['ui', 'api', 'caddy', 'db', 'redis'].includes(hostname),
 } as const;

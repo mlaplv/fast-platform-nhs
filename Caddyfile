@@ -38,9 +38,15 @@
     }
 
     # Frontend Routing (Only for main and admin domains)
+    # Elite V2.2: Bắt buộc forward Host header để SvelteKit nhận đúng hostname cho tenant detection.
+    # Nếu thiếu header_up Host, event.url.hostname = "ui" (container name) → tenant = "storefront" → BUG!
     @frontend_host host {$APP_DOMAIN} {$ADMIN_DOMAIN}
     handle @frontend_host {
-        reverse_proxy ui:5173
+        reverse_proxy ui:5173 {
+            header_up Host {host}
+            header_up X-Forwarded-Host {host}
+            header_up X-Real-IP {remote_host}
+        }
     }
 
     # Fallback for API_DOMAIN (proxy everything to backend if not caught by /api/*)

@@ -35,7 +35,16 @@ function parseJwt(token: string): JwtPayload | null {
 
 export const handle: Handle = async ({ event, resolve }) => {
   const userAgent = event.request.headers.get("user-agent") || "";
-  const hostname = event.url.hostname; // Elite V2.2: Use normalized hostname (no port)
+  
+  // Elite V2.2: Defense-in-depth hostname resolution.
+  // Ưu tiên X-Forwarded-Host (do Caddy set) > Host header > event.url.hostname (raw).
+  // Mục đích: Đảm bảo tenant detection đúng ngay cả khi SvelteKit nhận hostname container nội bộ.
+  const rawHostname =
+    (event.request.headers.get("x-forwarded-host") || event.request.headers.get("host") || event.url.hostname)
+      .split(":")[0] // Strip port nếu có (e.g. "admin.micsmo.com:3000" → "admin.micsmo.com")
+      .toLowerCase()
+      .trim();
+  const hostname = rawHostname;
   const adminDomain = ServerEnv.ADMIN_DOMAIN;
   
   // 1. Identify Tenant (STRICT Matching for Elite V2.2)
@@ -88,6 +97,11 @@ export const handle: Handle = async ({ event, resolve }) => {
       if (isTargetingAdminRoute) {
         const targetHost = adminDomain.includes('.') ? adminDomain : `${adminDomain}.${ServerEnv.APP_DOMAIN}`;
         throw redirect(308, `https://${targetHost}${event.url.pathname}${event.url.search}`);
+      }
+      // Security Fix: /login KHÔNG thuộc storefront. Redirect sang admin domain.
+      // micsmo.com/login phải → admin.micsmo.com/login (không được render admin UI trên storefront domain)
+      if (event.url.pathname === "/login") {
+        throw redirect(308, `https://${adminDomain}/login`);
       }
     }
   }

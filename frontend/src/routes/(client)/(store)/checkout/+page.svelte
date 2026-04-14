@@ -58,9 +58,10 @@
     quantity: 1
   });
 
-  // [ELITE V2.2] Persistence Layer
-  onMount(() => {
+  // [ELITE V3.1] Persistent Data & Auto-fill Logic
+  onMount(async () => {
     if (browser) {
+      // Step 1: Load Draft from localStorage
       const saved = localStorage.getItem('elite_checkout_draft');
       if (saved) {
         try {
@@ -71,21 +72,41 @@
         } catch (e) {
           console.error('Failed to load checkout draft', e);
         }
-      } else if (authStore.isAuthenticated) {
-        // Elite V2.2: Phase 1 - Try Profile's Default Address
-        const addresses = authStore.user?.extra_metadata?.addresses || [];
-        const defaultAddr = addresses.find((a: any) => a.isDefault);
-        
-        if (defaultAddr) {
-          console.log('📦 [Elite Checkout] Tìm thấy địa chỉ mặc định trong Profile:', defaultAddr);
-          form.name = defaultAddr.name || form.name;
-          form.phone = defaultAddr.phone || form.phone;
-          form.province = defaultAddr.city || ''; // In address management it's "city"
-          form.ward = defaultAddr.ward || '';
-          form.street = defaultAddr.address || '';
-        } else {
-          // Elite V2.2: Phase 2 - Fallback to Order History Lookup
-          lookupCustomer();
+      }
+
+      // Step 2: Fetch Fresh Profile & Apply Default Address
+      // Even if there's a draft, if it's empty, we should prioritize the formal default address
+      if (authStore.isAuthenticated) {
+        try {
+           const profileRes = await apiClient.get<any>('/api/v1/client/user/profile');
+           const user = profileRes; // Response directly returns user object in Elite V3.0
+           
+           if (user) {
+              authStore.syncUser(user); // Keep authStore/localStorage fresh
+              
+              const addresses = user.extra_metadata?.addresses || [];
+              const defaultAddr = addresses.find((a: any) => a.isDefault);
+
+              // Auto-fill IF form fields are currently empty (fresh visit or empty draft)
+              const isFormEmpty = !form.province || !form.street;
+              
+              if (defaultAddr && isFormEmpty) {
+                console.log('📦 [Elite Checkout] Auto-filling from Default Address:', defaultAddr.name);
+                form.name = defaultAddr.name || form.name || user.name;
+                form.phone = defaultAddr.phone || form.phone || user.phone;
+                form.province = defaultAddr.city || ''; 
+                form.ward = defaultAddr.ward || '';
+                form.street = defaultAddr.address || '';
+              } else if (!form.name || !form.phone) {
+                // Fallback: just fill basic identity if address not available
+                form.name = form.name || user.name || '';
+                form.phone = form.phone || user.phone || '';
+              }
+           }
+        } catch (e) {
+           console.error('Failed to fetch fresh profile for checkout', e);
+           // Fallback to order history lookup if profile fetch fails
+           if (!form.province) lookupCustomer();
         }
       }
       
