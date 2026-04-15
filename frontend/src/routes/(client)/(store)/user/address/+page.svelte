@@ -7,7 +7,7 @@
   import { onMount } from 'svelte';
   import { Plus, MapPin, Phone, User, Trash2, Edit3, CheckCircle2 } from 'lucide-svelte';
   import divisions from '$lib/data/vn_divisions.json';
-  import SearchableDropdown from '$lib/components/storefront/user/SearchableDropdown.svelte';
+  import AddressForm from '$lib/components/storefront/user/AddressForm.svelte';
 
   const ui = getClientUi();
 

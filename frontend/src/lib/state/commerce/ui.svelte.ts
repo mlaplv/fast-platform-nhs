@@ -15,7 +15,7 @@ const globalState = $state({
     settings: null as ShopInfo | null,
     authModal: {
         isOpen: false,
-        mode: 'login' as 'login' | 'register',
+        mode: 'login' as 'login' | 'register' | 'profile',
         onSuccess: undefined as (() => void) | undefined
     },
     confirmModal: null as {
@@ -78,6 +78,31 @@ export function createClientUiState(): ClientUiState {
         openRegister(onSuccess?: () => void) {
             globalState.authModal.mode = 'register';
             globalState.authModal.onSuccess = onSuccess;
+            globalState.authModal.isOpen = true;
+        },
+
+        openProfile() {
+            globalState.authModal.mode = 'profile';
+            globalState.authModal.isOpen = true;
+        },
+
+        openAddress() {
+            globalState.authModal.mode = 'address';
+            globalState.authModal.isOpen = true;
+        },
+
+        openPassword() {
+            globalState.authModal.mode = 'password';
+            globalState.authModal.isOpen = true;
+        },
+
+        openPurchase() {
+            globalState.authModal.mode = 'purchase';
+            globalState.authModal.isOpen = true;
+        },
+
+        openDashboard() {
+            globalState.authModal.mode = 'dashboard';
             globalState.authModal.isOpen = true;
         },
 

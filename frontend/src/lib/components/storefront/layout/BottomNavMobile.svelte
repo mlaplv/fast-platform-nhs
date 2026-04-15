@@ -2,36 +2,28 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
 
-  // Bottom Navigation Viral Immersive 2026 cho Mobile
-  // Tuân thủ Elite V2.2: Hiệu ứng Glassmorphism, Safe Area
   let activeTab = $derived($page.url.pathname.startsWith('/bai-viet') ? 'news' : ($page.url.pathname === '/' ? 'home' : 'other'));
 
   const tabs = [
-    { id: 'home', label: 'Trang chủ', icon: '🏠', activeIcon: '🏠', href: '/' },
-    { id: 'shop', label: 'Cửa hàng', icon: '🛍️', activeIcon: '🛍️', href: '/' },
-    { id: 'news', label: 'Bài viết', icon: '📰', activeIcon: '📰', href: '/bai-viet' },
-    { id: 'profile', label: 'Tôi', icon: '👤', activeIcon: '👤', href: '/' }
+    { id: 'home', label: 'TRANG CHỦ', icon: '🏠', activeIcon: '🏠', href: '/' },
+    { id: 'shop', label: 'CỬA HÀNG', icon: '🛍️', activeIcon: '🛍️', href: '/' },
+    { id: 'news', label: 'BÀI VIẾT', icon: '📰', activeIcon: '📰', href: '/bai-viet' },
+    { id: 'profile', label: 'TÔI', icon: '👤', activeIcon: '👤', href: '/user/profile' }
   ];
 </script>
 
-<nav class="fixed bottom-0 w-full z-[var(--z-mobile-tab-bar)] bg-black/80 backdrop-blur-xl border-t border-white/5 text-white flex justify-around items-center pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] px-2 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+<nav class="fixed bottom-0 w-full z-[var(--z-mobile-tab-bar)] bg-[#363636] flex justify-around items-center pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom))] px-1 shadow-[0_-20px_30px_rgba(255,255,255,0.7)]">
   {#each tabs as tab}
     <button
       onclick={() => goto(tab.href)}
-      class="flex flex-col items-center gap-1.5 transition-all duration-300 relative group {activeTab === tab.id ? 'scale-110' : 'opacity-60 grayscale-[0.5]'}"
+      class="flex flex-col items-center gap-1 transition-all duration-200 relative w-1/4 {activeTab === tab.id ? 'opacity-100' : 'opacity-60'}"
     >
-      <div class="relative">
-        <span class="text-2xl drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
-          {activeTab === tab.id ? tab.activeIcon : tab.icon}
-        </span>
-      </div>
-      <span class="text-[10px] font-black tracking-widest uppercase transition-colors {activeTab === tab.id ? 'text-red-500' : 'text-slate-400'}">
+      <span class="text-[22px] leading-none {activeTab !== tab.id ? 'grayscale brightness-150' : ''}">
+        {activeTab === tab.id ? tab.activeIcon : tab.icon}
+      </span>
+      <span class="text-[10px] font-bold tracking-widest text-[#B0B0B0] {activeTab === tab.id ? '!text-white' : ''}">
         {tab.label}
       </span>
-
-      {#if activeTab === tab.id}
-        <div class="absolute -bottom-2 w-1 h-1 bg-red-600 rounded-full shadow-[0_0_10px_#ef4444]"></div>
-      {/if}
     </button>
   {/each}
 </nav>

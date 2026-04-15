@@ -40,7 +40,6 @@
   let isMobileMenuOpen = $state(false);
 
   // Elite V3.0: Reactive Auth Guard
-  // Redirect to home if user is not authenticated while on a protected layout
   $effect(() => {
     if (browser && !authStore.token) {
       goto('/');
@@ -50,32 +49,6 @@
 
 <div class="bg-[#F9F8F6] min-h-screen">
   <div class="max-w-[1200px] mx-auto px-4 xl:px-0 py-8 md:py-12 flex flex-col md:flex-row gap-8 lg:gap-10">
-    <!-- Mobile Header -->
-    <div class="md:hidden flex items-center justify-between bg-white p-4 border border-stone-100 rounded-sm shadow-sm">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full overflow-hidden border border-stone-100 p-0.5">
-          {#if authStore.user?.avatar_url}
-            <img src={authStore.user.avatar_url} alt="Avatar" class="w-full h-full object-cover rounded-full" />
-          {:else}
-            <div class="w-full h-full flex items-center justify-center text-xs font-serif italic text-luxury-copper bg-stone-50 rounded-full">
-              {authStore.user?.name?.charAt(0).toUpperCase() || 'U'}
-            </div>
-          {/if}
-        </div>
-        <span class="text-[13px] font-bold text-stone-800 uppercase tracking-wider truncate max-w-[150px]">{authStore.user?.name || 'Quý khách'}</span>
-      </div>
-
-      <button
-        onclick={() => isMobileMenuOpen = !isMobileMenuOpen}
-        class="p-2 text-stone-500"
-      >
-        {#if isMobileMenuOpen}
-          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-        {:else}
-          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16m-7 6h7" /></svg>
-        {/if}
-      </button>
-    </div>
 
     <!-- Sidebar (Desktop & Mobile Menu) -->
     <aside class="w-full md:w-[240px] shrink-0 {isMobileMenuOpen ? 'block' : 'hidden md:block'} space-y-10">

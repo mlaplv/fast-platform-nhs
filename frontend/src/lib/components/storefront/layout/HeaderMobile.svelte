@@ -15,6 +15,8 @@
   function handleUserClick() {
     if (!authStore.isAuthenticated) {
       ui.openLogin();
+    } else if (ui.isMobile) {
+      ui.openDashboard();
     } else {
       goto('/user/profile');
     }

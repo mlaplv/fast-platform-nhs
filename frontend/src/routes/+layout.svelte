@@ -2,6 +2,7 @@
   import "./layout.css";
   import { setClientUi } from "$lib/state/commerce/ui.svelte";
   import QuickLoginModal from "$lib/components/storefront/auth/QuickLoginModal.svelte";
+  import MobileAccountModal from "$lib/components/mobile/MobileAccountModal.svelte";
   import { setNanobotContext } from "$lib/state/nanobot.svelte";
   import { setCartStore } from "$lib/state/commerce/cart.svelte";
   import { navigating } from "$app/stores";
@@ -76,7 +77,11 @@
   {#if !isAdmin}
     
     {#if ui?.authModal?.isOpen}
-      <QuickLoginModal />
+      {#if ui.isMobile}
+        <MobileAccountModal />
+      {:else}
+        <QuickLoginModal />
+      {/if}
     {/if}
 
     <ToastProvider />

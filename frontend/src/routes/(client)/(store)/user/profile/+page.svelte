@@ -10,14 +10,15 @@
 
   $effect(() => {
     if (browser && !authStore.isAuthenticated) {
-      ui.openLogin(() => {
-        // Success callback if needed
-      });
+      ui.openLogin();
       goto('/');
     }
+    // Loại bỏ việc tự động gọi ui.openProfile() ở đây để tránh xung đột
   });
 </script>
 
-<UserLayout>
-  <UserProfileForm />
-</UserLayout>
+{#if browser && !ui.isMobile}
+  <UserLayout>
+    <UserProfileForm />
+  </UserLayout>
+{/if}
