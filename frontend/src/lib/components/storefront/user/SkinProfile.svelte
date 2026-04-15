@@ -96,7 +96,7 @@
       {#each concernsList as concern}
         <button
           onclick={() => toggleConcern(concern)}
-          class="px-5 py-2.5 rounded-full border text-[11px] font-bold uppercase tracking-widest transition-all duration-500
+          class="px-5 py-3 rounded-full border text-[11px] font-bold uppercase tracking-widest transition-all duration-500
           {data.concerns.includes(concern)
             ? 'bg-stone-900 text-white border-stone-900 shadow-[0_5px_15px_rgba(0,0,0,0.1)] scale-105'
             : 'bg-white text-stone-400 border-stone-100 hover:border-stone-200 hover:text-stone-600'}"

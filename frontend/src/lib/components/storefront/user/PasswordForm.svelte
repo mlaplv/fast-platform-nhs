@@ -141,10 +141,10 @@
       <button
         type="submit"
         disabled={isSaving}
-        class="group relative px-12 py-3 bg-stone-900 text-white overflow-hidden transition-all duration-500 hover:shadow-[0_10px_30px_rgba(0,0,0,0.15)] disabled:opacity-50"
+        class="group relative px-16 py-4 bg-stone-900 text-white overflow-hidden transition-all duration-500 hover:shadow-[0_10px_30px_rgba(0,0,0,0.15)] disabled:opacity-50"
       >
         <div class="absolute inset-0 bg-luxury-copper translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-        <span class="relative z-10 text-[12px] uppercase tracking-[4px] font-bold">
+        <span class="relative z-10 text-[11px] uppercase tracking-[4px] font-black">
           {isSaving ? 'Đang cập nhật...' : 'Xác nhận đổi'}
         </span>
       </button>

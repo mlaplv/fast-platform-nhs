@@ -80,7 +80,7 @@
     {#each tabs as tab}
       <button
         onclick={() => activeTab = tab.id}
-        class="pb-4 text-[11px] md:text-[12px] uppercase tracking-widest font-bold whitespace-nowrap transition-all relative {activeTab === tab.id ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
+        class="pt-2 pb-5 text-[11px] md:text-[12px] uppercase tracking-widest font-bold whitespace-nowrap transition-all relative {activeTab === tab.id ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
       >
         {tab.label}
         {#if activeTab === tab.id}
@@ -183,13 +183,13 @@
             <div class="flex items-center gap-3 md:gap-4">
               <a
                 href="/checkout/success/{order.id}"
-                class="flex-1 md:flex-none text-center px-4 md:px-6 py-2 border border-stone-200 text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-stone-600 hover:border-stone-800 hover:text-stone-800 transition-all"
+                class="flex-1 md:flex-none text-center px-4 md:px-6 py-3.5 border border-stone-200 text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-stone-600 hover:border-stone-800 hover:text-stone-800 transition-all"
               >
                 Chi tiết
               </a>
               <button
                 onclick={() => handleReorder(order)}
-                class="flex-1 md:flex-none px-6 md:px-8 py-2 bg-stone-900 text-white text-[10px] md:text-[11px] font-bold uppercase tracking-widest hover:bg-luxury-copper transition-all duration-500 shadow-md"
+                class="flex-1 md:flex-none px-6 md:px-8 py-3.5 bg-stone-900 text-white text-[10px] md:text-[11px] font-bold uppercase tracking-widest hover:bg-luxury-copper transition-all duration-500 shadow-md"
               >
                 Mua lại
               </button>

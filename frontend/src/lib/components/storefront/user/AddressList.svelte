@@ -50,18 +50,18 @@
           <div class="flex gap-2">
             <button
               onclick={() => onEdit(addr)}
-              class="w-8 h-8 flex items-center justify-center rounded-full bg-stone-50 text-stone-400 hover:bg-luxury-copper/10 hover:text-luxury-copper transition-all"
+              class="w-10 h-10 flex items-center justify-center rounded-full bg-stone-50 text-stone-400 hover:bg-luxury-copper/10 hover:text-luxury-copper transition-all"
               title="Chỉnh sửa"
             >
-              <Edit3 class="w-3.5 h-3.5" />
+              <Edit3 class="w-4 h-4" />
             </button>
             {#if !addr.isDefault}
               <button
                 onclick={() => onDelete(addr.id)}
-                class="w-8 h-8 flex items-center justify-center rounded-full bg-stone-50 text-stone-400 hover:bg-red-50 hover:text-red-500 transition-all"
+                class="w-10 h-10 flex items-center justify-center rounded-full bg-stone-50 text-stone-400 hover:bg-red-50 hover:text-red-500 transition-all"
                 title="Xóa"
               >
-                <Trash2 class="w-3.5 h-3.5" />
+                <Trash2 class="w-4 h-4" />
               </button>
             {/if}
           </div>
@@ -79,10 +79,10 @@
           <div class="mt-6 pt-5 border-t border-stone-50 flex justify-end">
             <button
               onclick={() => onSetDefault(addr.id)}
-              class="text-[10px] font-black uppercase tracking-[2px] text-stone-400 hover:text-luxury-copper flex items-center gap-2 group/btn"
+              class="text-[10px] font-black uppercase tracking-[2px] text-stone-400 hover:text-luxury-copper flex items-center gap-2 group/btn py-2"
             >
-              <div class="w-4 h-4 rounded-full border border-stone-200 flex items-center justify-center group-hover/btn:border-luxury-copper transition-colors">
-                 <Check class="w-2.5 h-2.5 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
+              <div class="w-5 h-5 rounded-full border border-stone-200 flex items-center justify-center group-hover/btn:border-luxury-copper transition-colors">
+                 <Check class="w-3 h-3 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
               </div>
               Thiết lập mặc định
             </button>

@@ -68,13 +68,13 @@
       out:fade={{ duration: 150 }}
     >
       <!-- Search Box -->
-      <div class="p-2 border-b border-stone-100 flex items-center bg-stone-50">
-        <Search class="w-3.5 h-3.5 text-stone-400 mr-2 shrink-0" />
-        <input 
-          type="text" 
-          bind:value={search} 
-          placeholder="Tìm kiếm..." 
-          class="w-full bg-transparent outline-none text-[13px] text-stone-800 placeholder:text-stone-400"
+      <div class="p-3 border-b border-stone-100 flex items-center bg-stone-50">
+        <Search class="w-4 h-4 text-stone-400 mr-3 shrink-0" />
+        <input
+          type="text"
+          bind:value={search}
+          placeholder="Tìm kiếm..."
+          class="w-full h-8 bg-transparent outline-none text-[14px] text-stone-800 placeholder:text-stone-400"
           autofocus
         />
       </div>
@@ -82,12 +82,12 @@
       <!-- Options -->
       <div class="max-h-60 overflow-y-auto overscroll-contain">
         {#if filteredOptions.length === 0}
-          <div class="p-4 text-center text-[12px] text-stone-400 italic">Không tìm thấy kết quả.</div>
+          <div class="p-6 text-center text-[12px] text-stone-400 italic">Không tìm thấy kết quả.</div>
         {:else}
           {#each filteredOptions as opt}
             <button
               type="button"
-              class="w-full px-4 py-2.5 text-left text-[13px] hover:bg-stone-50 transition-colors flex items-center justify-between group {value === opt ? 'bg-stone-50/80 text-luxury-copper font-bold' : 'text-stone-700'}"
+              class="w-full px-5 py-4 text-left text-[14px] hover:bg-stone-50 transition-colors flex items-center justify-between group {value === opt ? 'bg-stone-50/80 text-luxury-copper font-bold' : 'text-stone-700'}"
               onclick={() => selectOption(opt)}
             >
               <div class="flex items-center gap-2 flex-1 min-w-0">
