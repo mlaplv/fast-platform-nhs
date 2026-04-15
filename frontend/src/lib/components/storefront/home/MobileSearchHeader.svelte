@@ -15,8 +15,8 @@
   <div class="tsh-top-row">
 
         <!-- Search bar: Integrated with SmartSearch -->
-    <div 
-      class="tsh-search-ring cursor-text" 
+    <div
+      class="tsh-search-ring cursor-text"
       onclick={() => searchStore.isOverlayOpen = true}
       role="presentation"
     >
@@ -26,10 +26,10 @@
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
 
-        <input 
-          type="text" 
-          readonly 
-          placeholder={searchStore.searchPlaceholder} 
+        <input
+          type="text"
+          readonly
+          placeholder={searchStore.searchPlaceholder}
           class="tsh-input-ghost"
         />
 
@@ -55,19 +55,12 @@
 </header>
 
 <style>
-  /* ============================================================
-     RESET LOCAL: đảm bảo mọi element trong component
-     không vượt ra ngoài viewport
-  ============================================================ */
   *,
   *::before,
   *::after {
     box-sizing: border-box;
   }
 
-  /* ============================================================
-     HEADER ROOT
-  ============================================================ */
   .tsh-header {
     position: sticky;
     top: 0;
@@ -78,9 +71,6 @@
     overflow: hidden;          /* chặn bất kỳ child nào vượt width */
   }
 
-  /* ============================================================
-     ROW 1: SEARCH + CART
-  ============================================================ */
   .tsh-top-row {
     display: flex;
     align-items: center;
@@ -89,12 +79,10 @@
     width: 100%;
   }
 
-  /* Search bar wrapper – flex: 1 to fill remaining space */
   .tsh-search-ring {
     height: 36px;
     flex: 1;
     min-width: 0;
-    /* Gradient border technique: border transparent + background-clip */
     border: 1.5px solid transparent;
     border-radius: 8px; /* TikTok screenshot style */
     overflow: hidden;
@@ -103,11 +91,9 @@
       linear-gradient(90deg, #06d6d6, #fe2c55); /* border-box: gradient ring cyan -> pink */
     background-origin: border-box;
     background-clip: padding-box, border-box;
-    /* Hardware acceleration for smooth jumps */
-    transform: translateZ(0); 
+    transform: translateZ(0);
   }
 
-  /* Inner row inside search */
   .tsh-search-inner {
     display: flex;
     align-items: center;
@@ -148,7 +134,6 @@
     flex-shrink: 0;
   }
 
-  /* Cart button */
   .tsh-cart {
     position: relative;
     background: none;

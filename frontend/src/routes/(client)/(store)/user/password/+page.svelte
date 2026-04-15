@@ -7,15 +7,22 @@
   import { authStore } from '$lib/state/authStore.svelte';
   import { fallbackSha256 } from '$lib/utils/cryptoFallback';
   import { fade, slide } from 'svelte/transition';
-  import { Eye, EyeOff } from 'lucide-svelte';
+  import { Eye, EyeOff, Menu } from 'lucide-svelte';
+  import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
+  import BottomNavMobile from '$lib/components/storefront/layout/BottomNavMobile.svelte';
 
   const ui = getClientUi();
+  let isMenuOpen = $state(false);
 
+  // Immersive layout management: Hide global header, show global footer (BottomNav)
   $effect(() => {
-    if (browser && ui.isMobile) {
-      ui.openPassword();
-      goto('/user/profile');
-    }
+    ui.isHeaderHidden = true;
+    ui.isFooterHidden = false;
+
+    return () => {
+      ui.isHeaderHidden = false;
+      ui.isFooterHidden = false;
+    };
   });
 
   let oldPassword = $state('');
@@ -81,37 +88,64 @@
   }
 </script>
 
-{#if browser && !ui.isMobile}
-  <UserLayout>
-    <div class="space-y-8" in:fade>
-      <div class="border-b border-stone-100 pb-5">
-        <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Đổi Mật Khẩu</h1>
-        <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Để bảo mật tài khoản, vui lòng không chia sẻ mật khẩu cho người khác</p>
-      </div>
+{#if browser}
+  {#if !ui.isMobile}
+    <UserLayout>
+      <div class="space-y-8" in:fade>
+        <div class="border-b border-stone-100 pb-5">
+          <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Đổi Mật Khẩu</h1>
+          <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Để bảo mật tài khoản, vui lòng không chia sẻ mật khẩu cho người khác</p>
+        </div>
 
-      <form onsubmit={(e) => { e.preventDefault(); handleUpdatePassword(); }} class="max-w-md space-y-8 py-6">
-        {#if authStore.user?.email}
-          <input type="text" name="username" value={authStore.user.email} class="hidden" autocomplete="username" readonly />
-        {/if}
+        <form onsubmit={(e) => { e.preventDefault(); handleUpdatePassword(); }} class="max-w-md space-y-8 py-6">
+          {#if authStore.user?.email}
+            <input type="text" name="username" value={authStore.user.email} class="hidden" autocomplete="username" readonly />
+          {/if}
 
-        {#if hasPassword}
-          <div class="space-y-2" transition:slide>
-            <label for="old_pass" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Mật khẩu hiện tại</label>
+          {#if hasPassword}
+            <div class="space-y-2" transition:slide>
+              <label for="old_pass" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Mật khẩu hiện tại</label>
+              <div class="relative group">
+                <input
+                  id="old_pass"
+                  name="password"
+                  type={showOldPassword ? 'text' : 'password'}
+                  autocomplete="current-password"
+                  bind:value={oldPassword}
+                  class="w-full h-11 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 pr-10"
+                />
+                <button
+                  type="button"
+                  onclick={() => showOldPassword = !showOldPassword}
+                  class="absolute right-[10px] top-1/2 -translate-y-1/2 text-stone-300 hover:text-luxury-copper transition-colors"
+                >
+                  {#if showOldPassword}
+                    <EyeOff class="w-4 h-4" />
+                  {:else}
+                    <Eye class="w-4 h-4" />
+                  {/if}
+                </button>
+              </div>
+            </div>
+          {/if}
+
+          <div class="space-y-2">
+            <label for="new_pass" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Mật khẩu mới</label>
             <div class="relative group">
               <input
-                id="old_pass"
-                name="password"
-                type={showOldPassword ? 'text' : 'password'}
-                autocomplete="current-password"
-                bind:value={oldPassword}
+                id="new_pass"
+                name="new-password"
+                type={showNewPassword ? 'text' : 'password'}
+                autocomplete="new-password"
+                bind:value={newPassword}
                 class="w-full h-11 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 pr-10"
               />
               <button
                 type="button"
-                onclick={() => showOldPassword = !showOldPassword}
+                onclick={() => showNewPassword = !showNewPassword}
                 class="absolute right-[10px] top-1/2 -translate-y-1/2 text-stone-300 hover:text-luxury-copper transition-colors"
               >
-                {#if showOldPassword}
+                {#if showNewPassword}
                   <EyeOff class="w-4 h-4" />
                 {:else}
                   <Eye class="w-4 h-4" />
@@ -119,71 +153,65 @@
               </button>
             </div>
           </div>
-        {/if}
 
-        <div class="space-y-2">
-          <label for="new_pass" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Mật khẩu mới</label>
-          <div class="relative group">
-            <input
-              id="new_pass"
-              name="new-password"
-              type={showNewPassword ? 'text' : 'password'}
-              autocomplete="new-password"
-              bind:value={newPassword}
-              class="w-full h-11 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 pr-10"
-            />
+          <div class="space-y-2">
+            <label for="confirm_pass" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Xác nhận mật khẩu mới</label>
+            <div class="relative group">
+              <input
+                id="confirm_pass"
+                name="confirm-password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                autocomplete="new-password"
+                bind:value={confirmPassword}
+                class="w-full h-11 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 pr-10"
+              />
+              <button
+                type="button"
+                onclick={() => showConfirmPassword = !showConfirmPassword}
+                class="absolute right-[10px] top-1/2 -translate-y-1/2 text-stone-300 hover:text-luxury-copper transition-colors"
+              >
+                {#if showConfirmPassword}
+                  <EyeOff class="w-4 h-4" />
+                {:else}
+                  <Eye class="w-4 h-4" />
+                {/if}
+              </button>
+            </div>
+          </div>
+
+          <div class="pt-6">
             <button
-              type="button"
-              onclick={() => showNewPassword = !showNewPassword}
-              class="absolute right-[10px] top-1/2 -translate-y-1/2 text-stone-300 hover:text-luxury-copper transition-colors"
+              type="submit"
+              disabled={isSaving}
+              class="group relative px-12 py-3 bg-stone-900 text-white overflow-hidden transition-all duration-500 hover:shadow-lg disabled:opacity-50"
             >
-              {#if showNewPassword}
-                <EyeOff class="w-4 h-4" />
-              {:else}
-                <Eye class="w-4 h-4" />
-              {/if}
+              <div class="absolute inset-0 bg-luxury-copper translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+              <span class="relative z-10 text-[12px] uppercase tracking-[4px] font-bold">
+                {isSaving ? 'Đang cập nhật...' : 'Xác nhận đổi'}
+              </span>
             </button>
           </div>
-        </div>
+        </form>
+      </div>
+    </UserLayout>
+  {:else}
+    <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
+    <!-- Immersive Header Mobile -->
+    <header class="fixed top-0 left-0 w-full z-[var(--z-header)] flex items-center justify-between p-6 bg-white/90 backdrop-blur-md border-b border-gray-100">
+        <button onclick={() => history.back()} class="w-10 h-10 flex items-center justify-center">
+            <svg class="w-6 h-6 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+        </button>
+        <h1 class="text-sm font-black text-gray-900 uppercase italic tracking-widest">Đổi Mật Khẩu</h1>
+        <!-- Menu Button -->
+        <button onclick={() => isMenuOpen = true} class="w-10 h-10 flex items-center justify-center">
+            <Menu class="w-6 h-6 text-gray-900" />
+        </button>
+    </header>
 
-        <div class="space-y-2">
-          <label for="confirm_pass" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Xác nhận mật khẩu mới</label>
-          <div class="relative group">
-            <input
-              id="confirm_pass"
-              name="confirm-password"
-              type={showConfirmPassword ? 'text' : 'password'}
-              autocomplete="new-password"
-              bind:value={confirmPassword}
-              class="w-full h-11 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 pr-10"
-            />
-            <button
-              type="button"
-              onclick={() => showConfirmPassword = !showConfirmPassword}
-              class="absolute right-[10px] top-1/2 -translate-y-1/2 text-stone-300 hover:text-luxury-copper transition-colors"
-            >
-              {#if showConfirmPassword}
-                <EyeOff class="w-4 h-4" />
-              {:else}
-                <Eye class="w-4 h-4" />
-              {/if}
-            </button>
-          </div>
-        </div>
-
-        <div class="pt-6">
-          <button
-            type="submit"
-            disabled={isSaving}
-            class="group relative px-12 py-3 bg-stone-900 text-white overflow-hidden transition-all duration-500 hover:shadow-lg disabled:opacity-50"
-          >
-            <div class="absolute inset-0 bg-luxury-copper translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-            <span class="relative z-10 text-[12px] uppercase tracking-[4px] font-bold">
-              {isSaving ? 'Đang cập nhật...' : 'Xác nhận đổi'}
-            </span>
-          </button>
-        </div>
-      </form>
+    <div class="pt-24 pb-8 px-4">
+      <p class="text-center text-stone-400 font-serif italic">Nội dung đổi mật khẩu đang được tối ưu...</p>
     </div>
-  </UserLayout>
+
+    <BottomNavMobile />
+  {/if}
 {/if}

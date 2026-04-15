@@ -8,6 +8,8 @@
   import { onMount } from 'svelte';
   import { slide, fade } from 'svelte/transition';
   import vnDivisions from '$lib/data/vn_divisions.json';
+  import { Menu } from 'lucide-svelte';
+  import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
 
   // Satellite Components (Elite V2.2 Composition)
   import AddressSection from './components/AddressSection.svelte';
@@ -15,20 +17,33 @@
   import VoucherSection from './components/VoucherSection.svelte';
   import CheckoutItems from './components/CheckoutItems.svelte';
   import OrderSummarySection from './components/OrderSummarySection.svelte';
-  
+
   import Countdown from '$lib/components/storefront/ui/Countdown.svelte';
   import GiftModal from '$lib/components/storefront/ui/GiftModal.svelte';
 
   // Types
-  import type { 
-    CustomItem, 
-    Voucher, 
-    CheckoutPayload, 
-    CheckoutResponse 
+  import type {
+    CustomItem,
+    Voucher,
+    CheckoutPayload,
+    CheckoutResponse
   } from '$lib/types/commerce/checkout';
 
   const cartStore = getCartStore();
   const clientUi = getClientUi();
+  let isMenuOpen = $state(false);
+
+  // Immersive layout management: Hide global header/footer on mobile
+  $effect(() => {
+    if (clientUi.isMobile) {
+      clientUi.isHeaderHidden = true;
+      clientUi.isFooterHidden = true;
+    }
+    return () => {
+      clientUi.isHeaderHidden = false;
+      clientUi.isFooterHidden = false;
+    };
+  });
 
   let isSubmitting = $state(false);
   let errorMsg = $state('');
@@ -75,42 +90,37 @@
       }
 
       // Step 2: Fetch Fresh Profile & Apply Default Address
-      // Even if there's a draft, if it's empty, we should prioritize the formal default address
       if (authStore.isAuthenticated) {
         try {
            const profileRes = await apiClient.get<any>('/api/v1/client/user/profile');
-           const user = profileRes; // Response directly returns user object in Elite V3.0
-           
+           const user = profileRes;
+
            if (user) {
-              authStore.syncUser(user); // Keep authStore/localStorage fresh
-              
+              authStore.syncUser(user);
+
               const addresses = user.extra_metadata?.addresses || [];
               const defaultAddr = addresses.find((a: any) => a.isDefault);
 
-              // Auto-fill IF form fields are currently empty (fresh visit or empty draft)
               const isFormEmpty = !form.province || !form.street;
-              
+
               if (defaultAddr && isFormEmpty) {
                 console.log('📦 [Elite Checkout] Auto-filling from Default Address:', defaultAddr.name);
                 form.name = defaultAddr.name || form.name || user.name;
                 form.phone = defaultAddr.phone || form.phone || user.phone;
-                form.province = defaultAddr.city || ''; 
+                form.province = defaultAddr.city || '';
                 form.ward = defaultAddr.ward || '';
                 form.street = defaultAddr.address || '';
               } else if (!form.name || !form.phone) {
-                // Fallback: just fill basic identity if address not available
                 form.name = form.name || user.name || '';
                 form.phone = form.phone || user.phone || '';
               }
            }
         } catch (e) {
            console.error('Failed to fetch fresh profile for checkout', e);
-           // Fallback to order history lookup if profile fetch fails
            if (!form.province) lookupCustomer();
         }
       }
-      
-      // Auto-select Free Shipping voucher by default if none selected
+
       if (cartStore.selectedVoucherIds.length === 0 && !cartStore.selectedVoucherIds.includes('SHIP0')) {
         cartStore.selectedVoucherIds.push('SHIP0');
       }
@@ -225,21 +235,18 @@
       const res = await apiClient.post<any>('/api/v1/client/checkout/lookup', { phone: form.phone });
       if (res.data) {
         const data = res.data;
-        
-        // Elite V2.2: If authenticated lookup returns full data, map it properly
+
         if (data.name && !form.name) form.name = data.name;
         if (data.phone && !form.phone) form.phone = data.phone;
-        
+
         if (data.address) {
           const parts = data.address.split(',').map((s: string) => s.trim());
           if (parts.length >= 3) {
-            // Mapping "Street, Ward, Province"
             form.province = parts[parts.length - 1];
             form.ward = parts[parts.length - 2];
             form.street = parts.slice(0, parts.length - 2).join(', ');
           }
         } else if (!form.province && !form.street) {
-          // Fallback to masked data mapping ONLY if no address is already filled (from Profile or Draft)
           Object.assign(form, data);
         }
       }
@@ -263,19 +270,6 @@
     errorMsg = '';
 
     try {
-      const payload: CheckoutPayload = {
-        name: form.name,
-        phone: form.phone,
-        province: form.province,
-        ward: form.ward,
-        street: form.street,
-        shipping_method: form.shippingMethod,
-        note: form.note || undefined,
-        gift_info: cartStore.giftInfo || undefined,
-        custom_items: customItems.length > 0 ? customItems : undefined
-      };
-
-      // Step 2: Build the complete Stealth Payload
       const backendPayload = {
         items: cartStore.items.filter(i => i.selected).map(i => ({
           product_id: i.product.id,
@@ -285,7 +279,7 @@
         })),
         custom_items: customItems.map(i => ({
           name: i.name,
-          image_url: i.image, // Mapping 'image' to 'image_url' for backend compatibility
+          image_url: i.image,
           price: i.price,
           quantity: i.quantity
         })),
@@ -318,67 +312,80 @@
   <title>Thanh toán bảo mật | Micsmo.com</title>
 </svelte:head>
 
-<div class="min-h-screen bg-[#fafafa] pb-20 pt-4 md:pt-10">
-  <div class="max-w-[1240px] mx-auto px-4">
-    {#if cartStore.items.length === 0}
-      <div class="py-20 text-center space-y-6" in:fade>
-        <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto shadow-sm">
-          <svg class="w-12 h-12 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-        </div>
-        <h1 class="text-xl font-black text-gray-900 uppercase italic tracking-widest">GIỎ HÀNG ĐANG TRỐNG</h1>
-        <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Bạn chưa chọn sản phẩm nào để thanh toán.</p>
-        <a href="/" class="inline-block px-10 py-4 bg-gray-900 text-white font-black uppercase text-xs tracking-[0.3em] hover:bg-[#ee4d2d] transition-colors">QUAY LẠI CỬA HÀNG</a>
-      </div>
-    {:else}
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <!-- LEFT: FORM -->
-        <div class="lg:col-span-7 space-y-6">
-          <div class="flex items-center justify-between mb-2">
-            <h1 class="text-2xl font-black italic text-gray-900 tracking-tighter uppercase">XÁC NHẬN ĐƠN HÀNG</h1>
-            <div class="flex items-center gap-2">
-              <span class="text-[9px] font-bold text-gray-400">SALE KẾT THÚC:</span>
-              <Countdown initialSeconds={1234} />
+{#if browser}
+  {#if !clientUi.isMobile}
+    <div class="min-h-screen bg-[#fafafa] pb-20 pt-4 md:pt-10">
+      <div class="max-w-[1240px] mx-auto px-4">
+        {#if cartStore.items.length === 0}
+          <div class="py-20 text-center space-y-6" in:fade>
+            <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto shadow-sm">
+              <svg class="w-12 h-12 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+            </div>
+            <h1 class="text-xl font-black text-gray-900 uppercase italic tracking-widest">GIỎ HÀNG ĐANG TRỐNG</h1>
+            <p class="text-xs text-gray-400 font-bold uppercase tracking-widest">Bạn chưa chọn sản phẩm nào để thanh toán.</p>
+            <a href="/" class="inline-block px-10 py-4 bg-gray-900 text-white font-black uppercase text-xs tracking-[0.3em] hover:bg-[#ee4d2d] transition-colors">QUAY LẠI CỬA HÀNG</a>
+          </div>
+        {:else}
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="lg:col-span-7 space-y-6">
+              <div class="flex items-center justify-between mb-2">
+                <h1 class="text-2xl font-black italic text-gray-900 tracking-tighter uppercase">XÁC NHẬN ĐƠN HÀNG</h1>
+                <div class="flex items-center gap-2">
+                  <span class="text-[9px] font-bold text-gray-400">SALE KẾT THÚC:</span>
+                  <Countdown initialSeconds={1234} />
+                </div>
+              </div>
+
+              {#if errorMsg}
+                <div class="p-4 bg-red-50 border border-red-100 text-red-600 text-xs font-bold flex items-center gap-2" in:slide>
+                  <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  {errorMsg}
+                </div>
+              {/if}
+
+              <div class="space-y-6">
+                <AddressSection bind:form {invalidFields} bind:showNote bind:orderNote={form.note} {lookupCustomer} />
+                <DeliveryPaymentSection bind:form {deliveryEstimate} {canExpress} {selectedProvinceData} bind:showCoInspectionModal />
+                <VoucherSection {vouchers} {toggleVoucher} />
+              </div>
+            </div>
+
+            <div class="lg:col-span-5">
+               <div class="bg-white p-6 shadow-sm md:sticky md:top-20 border-t-4 border-[#ee4d2d] space-y-6">
+                  <CheckoutItems bind:customItems bind:showCustomItemForm bind:newCustomItem {addCustomItem} {removeCustomItem} />
+                  <OrderSummarySection bind:form {originalSubtotal} {productSavings} {shippingFee} {totalSavings} {isSubmitting} {handleSubmit} />
+               </div>
             </div>
           </div>
-
-          {#if errorMsg}
-            <div class="p-4 bg-red-50 border border-red-100 text-red-600 text-xs font-bold flex items-center gap-2" in:slide>
-              <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-              {errorMsg}
-            </div>
-          {/if}
-
-          <div class="space-y-6">
-            <AddressSection bind:form {invalidFields} bind:showNote bind:orderNote={form.note} {lookupCustomer} />
-            <DeliveryPaymentSection bind:form {deliveryEstimate} {canExpress} {selectedProvinceData} bind:showCoInspectionModal />
-            <VoucherSection {vouchers} {toggleVoucher} />
-          </div>
-        </div>
-
-        <!-- RIGHT: SUMMARY -->
-        <div class="lg:col-span-5">
-           <div class="bg-white p-6 shadow-sm md:sticky md:top-20 border-t-4 border-[#ee4d2d] space-y-6">
-              <CheckoutItems bind:customItems bind:showCustomItemForm bind:newCustomItem {addCustomItem} {removeCustomItem} />
-              <OrderSummarySection bind:form {originalSubtotal} {productSavings} {shippingFee} {totalSavings} {isSubmitting} {handleSubmit} />
-           </div>
-        </div>
-      </div>
-    {/if}
-  </div>
-</div>
-
-{#if showCoInspectionModal}
-  <div class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm" transition:fade>
-    <div class="bg-white max-w-sm w-full p-8 shadow-2xl relative" in:slide>
-      <button onclick={() => showCoInspectionModal = false} class="absolute top-4 right-4 text-gray-300 hover:text-gray-900 transition-colors"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg></button>
-      <div class="text-center space-y-4">
-        <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4"><svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg></div>
-        <h3 class="text-lg font-black uppercase italic tracking-widest text-gray-900 text-center">CHÍNH SÁCH ĐỒNG KIỂM</h3>
-        <p class="text-[11px] font-bold text-gray-500 uppercase leading-relaxed text-center">Micsmo hỗ trợ khách hàng kiểm tra ngoại quan gói hàng và sản phẩm trước khi thanh toán cho đơn hàng dưới 3.000.000 VNĐ. Cam kết minh bạch, an tâm tuyệt đối.</p>
-        <button onclick={() => showCoInspectionModal = false} class="w-full py-4 bg-gray-900 text-white font-black text-xs uppercase tracking-[0.3em] hover:bg-[#ee4d2d] transition-colors">ĐÃ HIỂU</button>
+        {/if}
       </div>
     </div>
-  </div>
-{/if}
+  {:else}
+    <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
+    <!-- Immersive Header Mobile -->
+    <header class="fixed top-0 left-0 w-full z-[var(--z-header)] flex items-center justify-between p-6 bg-white/90 backdrop-blur-md border-b border-gray-100">
+        <button onclick={() => history.back()} class="w-10 h-10 flex items-center justify-center">
+            <svg class="w-6 h-6 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+        </button>
+        <h1 class="text-sm font-black text-gray-900 uppercase italic tracking-widest">Thanh Toán</h1>
+        <!-- Menu Button -->
+        <button onclick={() => isMenuOpen = true} class="w-10 h-10 flex items-center justify-center">
+            <Menu class="w-6 h-6 text-gray-900" />
+        </button>
+    </header>
 
+    <div class="pt-24 pb-20 px-4">
+        <!-- Content Thanh Toán Mobile ... -->
+    </div>
+  {/if}
+{/if}
+<style>
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+</style>
 <GiftModal />
