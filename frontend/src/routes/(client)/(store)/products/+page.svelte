@@ -1,6 +1,6 @@
 <script lang="ts">
   import ProductListDesktop from '$lib/components/storefront/product/ProductListDesktop.svelte';
-  import ProductListMobile from '$lib/components/storefront/product/ProductListMobile.svelte';
+  import MobileSearchResultList from '$lib/components/storefront/product/MobileSearchResultList.svelte';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
   import { onMount } from 'svelte';
 
@@ -30,7 +30,7 @@
 </script>
 
 {#if isMobile}
-  <ProductListMobile products={data.products} searchQuery={data.searchQuery} facets={data.facets} />
+  <MobileSearchResultList products={data.products} searchQuery={data.searchQuery} />
 {:else}
   <ProductListDesktop 
     products={data.products} 
