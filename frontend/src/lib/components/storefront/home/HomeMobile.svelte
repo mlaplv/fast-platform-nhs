@@ -57,8 +57,8 @@
     min-height: 100dvh;
     background: #f5f5f5;
     /* CSS vars cho child sticky offset */
-    --mobile-search-h: 50px;    /* tsh-header: top-row 50px */
-    --mobile-header-total: 50px;
+    --mobile-search-h: 48px;    /* tsh-header: top-row 48px */
+    --mobile-header-total: 48px;
   }
 
   .mobile-home-content {

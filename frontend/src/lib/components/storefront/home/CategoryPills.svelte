@@ -97,7 +97,7 @@
 <style>
   .category-tabs-container {
     background: #fff;
-    padding: 2px 0 0; /* Minimized top padding */
+    padding: 0;
     position: sticky;
     top: var(--mobile-header-total);
     z-index: var(--z-category-pills);
