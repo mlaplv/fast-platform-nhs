@@ -96,7 +96,7 @@
   }
 </script>
 
-<div class="min-h-screen bg-white pb-20 font-['Outfit']">
+<div class="min-h-screen bg-white pb-20 font-sans">
   <!-- Viral Mobile Header -->
   <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 flex flex-col">
     <div class="px-2 py-1 flex items-center gap-2 h-12">

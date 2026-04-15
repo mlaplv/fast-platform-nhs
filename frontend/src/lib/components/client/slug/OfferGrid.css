@@ -15,14 +15,17 @@
   --headline-mb: 2.5rem;
   --footer-mt: 4rem;
 
-  @media (min-width: 768px) and (max-width: 1100px) { /* ELITE V2.2: Synced with ScienceBento */
+  @media (min-width: 768px) and (max-width: 1100px) {
+    /* ELITE V2.2: Synced with ScienceBento */
     --headline-mb: 2.5rem;
     --footer-mt: 2.5rem;
     --standard-pt: 6rem;
   }
 
   background-color: var(--deep-bg);
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro',
+  'Inter',
+  sans-serif;
   position: relative;
   overflow: hidden;
 
@@ -45,7 +48,7 @@
   }
 
   & .headline-title {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
     font-size: var(--fs-title);
     /* Fluid! */
     font-weight: 700;
@@ -56,7 +59,7 @@
   }
 
   & .headline-sub {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
     font-size: var(--fs-sub);
     /* Fluid! */
     font-weight: 500;
@@ -80,7 +83,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.05) 0%, transparent 70%);
+      background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
       opacity: 0.5;
     }
 
@@ -107,13 +110,14 @@
 
       & .variant-image-outer {
         transform: translateY(-5px) scale(1.05);
-        filter: drop-shadow(0 30px 50px rgba(0,0,0,0.6));
+        filter: drop-shadow(0 30px 50px rgba(0, 0, 0, 0.6));
       }
     }
   }
 
   & .price-value {
-    font-size: 1.875rem; /* 30px - equivalent to text-3xl */
+    font-size: 1.875rem;
+    /* 30px - equivalent to text-3xl */
     line-height: 1;
   }
 
@@ -133,7 +137,7 @@
   & .btn-buy {
     border-radius: 0.75rem;
     padding: 1.125rem;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
     font-weight: 700;
     letter-spacing: 0.05em;
 
@@ -393,7 +397,7 @@
 
   /* ELITE V2.2: Price Scaling for cramped tablet columns */
   .price-value {
-    font-size: clamp(1.15rem, 2vw, 1.5rem) !important; 
+    font-size: clamp(1.15rem, 2vw, 1.5rem) !important;
     letter-spacing: -0.02em;
   }
 
@@ -401,7 +405,8 @@
     font-size: 0.65rem !important;
   }
 
-  .booking-suffix, .shipping-label {
+  .booking-suffix,
+  .shipping-label {
     font-size: 0.65rem !important;
   }
 }
@@ -424,7 +429,8 @@
   }
 
   .price-value {
-    font-size: 1.75rem !important; /* Restore power on desktop */
+    font-size: 1.75rem !important;
+    /* Restore power on desktop */
   }
 
   .headline-title {

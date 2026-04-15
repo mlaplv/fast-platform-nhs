@@ -337,7 +337,7 @@
 {:else if variant === 'mobile-overlay'}
   <div 
     in:fade={{ duration: 150 }} 
-    class="fixed inset-0 bg-white flex flex-col font-['Outfit']"
+    class="fixed inset-0 bg-white flex flex-col font-sans"
     style:z-index={Z_INDEX_CLIENT.MODAL + 10}
   >
     <!-- TikTok Exact Header - Matched with MobileSearchHeader.svelte -->

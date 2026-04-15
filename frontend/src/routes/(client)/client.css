@@ -120,7 +120,7 @@ body {
 .client-layout {
   background-color: #f5f5f5 !important; /* Force Shopee Grey */
   color: var(--text-base);
-  font-family: 'Be Vietnam Pro', 'Outfit', system-ui, sans-serif;
+  font-family: 'Be Vietnam Pro', 'Inter', system-ui, sans-serif;
   min-height: 100vh;
 }
 
@@ -129,7 +129,7 @@ body {
 .client-layout h3, 
 .client-layout h4, 
 .client-layout .headline-font {
-  font-family: 'Outfit', 'Be Vietnam Pro', sans-serif;
+  font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
 }
 
 /* --- HERO COMPONENT --- */

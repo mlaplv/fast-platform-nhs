@@ -614,7 +614,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    font-family: 'Be Vietnam Pro', 'Outfit', system-ui, sans-serif;
+    font-family: 'Be Vietnam Pro', 'Inter', system-ui, sans-serif;
     z-index: 1200;
   }
 

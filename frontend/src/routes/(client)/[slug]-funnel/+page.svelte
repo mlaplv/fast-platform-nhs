@@ -350,7 +350,7 @@
     antialiased: true;
     overflow-x: hidden;
     height: 100vh;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
     background-color: #050505; /* Viral 2026: Dark theme foundation */
     color: var(--text-base);
   }
