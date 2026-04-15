@@ -75,12 +75,12 @@
         <span class="text-[12px] text-gray-400 font-medium">
           {cartStore.totalItems} Thêm Hàng Vào Giỏ
         </span>
-        <button
-          onclick={() => goto('/checkout')}
-          class="px-5 py-2.5 bg-[#ee4d2d] hover:bg-[#d0011b] text-white text-[14px] font-bold rounded-sm shadow-sm active:scale-[0.98] transition-all uppercase tracking-tight"
+        <a
+          href="/checkout"
+          class="px-5 py-2.5 bg-[#ee4d2d] hover:bg-[#d0011b] text-white text-[14px] font-bold rounded-sm shadow-sm active:scale-[0.98] transition-all uppercase tracking-tight inline-block text-center"
         >
           Xem Giỏ Hàng
-        </button>
+        </a>
       </div>
     {/if}
   </div>

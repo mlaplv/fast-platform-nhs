@@ -1,14 +1,106 @@
 <script lang="ts">
-  import { fade, fly, scale } from 'svelte/transition';
-  import { FileText, ShieldCheck, Copy, ShoppingCart, MessageSquare, CheckCircle2, Package, Truck, Award, Sparkles, Phone, Gift, Home, XCircle } from 'lucide-svelte';
+  import { fade, fly, scale, slide } from 'svelte/transition';
+  import { FileText, ShieldCheck, Copy, ShoppingCart, MessageSquare, CheckCircle2, Package, Truck, Award, Sparkles, Phone, Gift, Home, XCircle, Edit3 } from 'lucide-svelte';
   import { formatCurrency, formatDate } from '$lib/utils/format.ts';
   import { goto } from '$app/navigation';
   import { SHOP_CONFIG } from '$lib/constants/shop';
+  import { apiClient } from '$lib/utils/apiClient';
+  import vnDivisions from '$lib/data/vn_divisions.json';
+  import SearchableCheckoutSelect from '$lib/components/storefront/ui/SearchableCheckoutSelect.svelte';
 
   import { page } from '$app/state';
 
   import type { OrderDetail } from '$lib/types';
   let { order, orderId, isLookup } = $props<{ order: OrderDetail, orderId: string, isLookup: boolean }>();
+
+  // --- Elite V2.2: Edit Logic ---
+  let isEditing = $state(false);
+  let isSubmittingAction = $state(false);
+  let editForm = $state({
+    name: '',
+    phone: '',
+    province: '',
+    ward: '',
+    street: ''
+  });
+
+  interface VnDivision {
+    id: string;
+    name: string;
+    code: string;
+    wards: string[];
+  }
+
+  const validProvinces = (vnDivisions as unknown as VnDivision[]).filter(p => p.id);
+  const currentWards = $derived.by(() => {
+    if (!editForm.province) return [];
+    const province = validProvinces.find(p => p.name === editForm.province);
+    return province?.wards || [];
+  });
+
+  function parseAddress(fullAddress: string) {
+    if (!fullAddress) return { province: '', ward: '', street: '' };
+    const parts = fullAddress.split(',').map(p => p.trim());
+    if (parts.length >= 3) {
+      return {
+        province: parts[parts.length - 1],
+        ward: parts[parts.length - 2],
+        street: parts.slice(0, parts.length - 2).join(', ')
+      };
+    }
+    return { province: '', ward: '', street: fullAddress };
+  }
+
+  function startEditing() {
+    const addrParts = parseAddress(order.customerAddress || order.customer_address || '');
+    editForm = {
+        name: order.customerName || order.customer_name || '',
+        phone: order.customerPhone || order.customer_phone || '',
+        province: addrParts.province,
+        ward: addrParts.ward,
+        street: addrParts.street
+    };
+    isEditing = true;
+  }
+
+  // Local Elite Toast System
+  let toasts = $state<{id: number, type: 'success' | 'error', message: string}[]>([]);
+  let toastId = 0;
+
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    const id = toastId++;
+    toasts.push({ id, type, message });
+    setTimeout(() => {
+        const idx = toasts.findIndex(t => t.id === id);
+        if (idx !== -1) toasts.splice(idx, 1);
+    }, 4000);
+  }
+
+  async function handleSaveEdit() {
+    isSubmittingAction = true;
+    try {
+        const phoneParam = page.url.searchParams.get('phone') || (typeof localStorage !== 'undefined' ? localStorage.getItem(`order_verify_${orderId}`) : null);
+        
+        await apiClient.patch(`/api/v1/client/orders/${orderId}`, {
+            customer_name: editForm.name,
+            customer_phone: editForm.phone,
+            customer_address: `${editForm.street}, ${editForm.ward}, ${editForm.province}`
+        }, { params: { phone: phoneParam } });
+        
+        // Refresh local data
+        order.customerName = editForm.name;
+        order.customerPhone = editForm.phone;
+        order.customerAddress = `${editForm.street}, ${editForm.ward}, ${editForm.province}`;
+        
+        showToast("Đã cập nhật thông tin thành công");
+        isEditing = false;
+    } catch (err: any) {
+        console.error("Failed to save", err);
+        showToast(err.message || "Lỗi cập nhật dữ liệu", "error");
+    } finally {
+        isSubmittingAction = false;
+    }
+  }
 
   const STATUS_STEPS = [
     { key: 'PENDING', label: 'Tiếp nhận', icon: FileText },
@@ -59,7 +151,7 @@
   <!-- Top Navigation (Standard 48px Header) -->
   <header class="fixed top-0 left-0 w-full h-[48px] bg-white border-b border-slate-100 flex items-center justify-between px-4 z-[1000]">
      <button
-       onclick={() => history.back()}
+       onclick={() => goto('/')}
        class="p-2 text-slate-900 active:scale-90 transition-transform"
        aria-label="Back"
      >
@@ -70,40 +162,15 @@
         {isLookup ? 'CHI TIẾT ĐƠN HÀNG' : 'ĐẶT HÀNG THÀNH CÔNG'}
      </h1>
 
-     <button
-       onclick={() => goto('/')}
-       class="p-2 text-slate-900 active:scale-90 transition-transform"
-       aria-label="Home"
-     >
-       <Home class="w-5 h-5" />
-     </button>
+     <div class="w-9"></div>
   </header>
 
   <!-- Celebration Glow (Subtle for Light Mode) -->
   <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[300px] {isLookup ? 'bg-sky-500/5' : 'bg-emerald-500/5'} blur-[80px] pointer-events-none"></div>
 
-  <div class="relative px-6 pt-20 flex flex-col items-center text-center">
-    <!-- Status Badge (White Mode) -->
-    <div in:scale={{ duration: 600, delay: 200, start: 0.9 }} 
-         class="px-5 py-1.5 rounded-full border border-slate-200 bg-white shadow-sm mb-8 flex items-center gap-2 relative">
-      {#if order?.status === 'CANCELLED'}
-        <XCircle class="w-3.5 h-3.5 text-red-500" strokeWidth={2.5} />
-        <span class="text-[10px] font-black text-red-500 uppercase tracking-widest">ĐƠN HÀNG ĐÃ HỦY</span>
-      {:else if isLookup}
-        <ShieldCheck class="w-3.5 h-3.5 text-sky-500" strokeWidth={2.5} />
-        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">STATUS: TRACKING</span>
-      {:else}
-        <CheckCircle2 class="w-3.5 h-3.5 text-emerald-500" strokeWidth={2.5} />
-        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">STATUS: SUCCESS</span>
-      {/if}
-    </div>
-
-    <h1 in:fly={{ y: 20, duration: 600, delay: 400 }} 
-        class="text-2xl font-black italic tracking-tighter uppercase mb-2 text-slate-900">
-      {isLookup ? 'CHI TIẾT ĐƠN HÀNG' : 'ĐẶT HÀNG THÀNH CÔNG'}
-    </h1>
+  <div class="relative px-4 pt-[72px] flex flex-col items-center text-center">
     
-    <p in:fade={{ delay: 600 }} class="text-slate-400 text-[10px] uppercase tracking-[0.3em] font-black mb-12 italic">
+    <p in:fade={{ delay: 200 }} class="text-slate-400 text-[11px] uppercase tracking-[0.25em] font-black mb-10 italic">
       {#if order?.status === 'CANCELLED'}
         RẤT TIẾC VÌ LIỆU TRÌNH KHÔNG ĐƯỢC TIẾP TỤC
       {:else}
@@ -146,31 +213,31 @@
 
 
     <!-- Main Order Card (Checkout Style) -->
-    <div in:fly={{ y: 30, duration: 800, delay: 600 }} class="w-full bg-white shadow-sm border-t-4 border-[#ee4d2d] p-7 mb-6 text-left relative overflow-hidden">
-      <div class="flex justify-between items-start mb-8 border-b border-slate-50 pb-5">
+    <div in:fly={{ y: 30, duration: 800, delay: 600 }} class="w-full bg-white shadow-sm border-t-4 border-[#ee4d2d] p-6 mb-6 text-left relative overflow-hidden">
+      <div class="flex justify-between items-start mb-8 border-b border-slate-50 pb-6">
         <div>
-           <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Mã liệu trình</span>
+           <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Mã liệu trình</span>
            <div class="flex items-center gap-2 active:opacity-60 transition-opacity" onclick={copyOrderId} role="button" tabindex="0">
-             <span class="text-sm font-black text-slate-900 tracking-widest uppercase italic bg-slate-50 px-2 py-1 border border-slate-100">{copied ? 'ĐÃ SAO CHÉP!' : `#${orderId.slice(-6).toUpperCase()}`}</span>
+             <span class="text-base font-black text-slate-900 tracking-widest uppercase italic bg-slate-50/50 px-3 py-1.5 border border-slate-100 shadow-sm">{copied ? 'ĐÃ SAO CHÉP!' : `#${orderId.slice(-6).toUpperCase()}`}</span>
            </div>
         </div>
         <div class="text-right">
-           <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Tổng tiền</span>
-           <span class="text-xl font-black text-[#ee4d2d] italic">{(order?.total || 0).toLocaleString()}đ</span>
+           <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Tổng (Freeship)</span>
+           <span class="text-2xl font-black text-[#ee4d2d] italic tabular-nums">{(order?.total || 0).toLocaleString()}đ</span>
         </div>
       </div>
 
-      <div class="space-y-6">
+      <div class="space-y-8">
         <div class="flex items-start gap-4">
-          <div class="w-10 h-10 rounded-sm bg-slate-50 border border-slate-50 flex items-center justify-center shrink-0">
-             <Package class="w-5 h-5 text-slate-300" />
+          <div class="w-12 h-12 rounded-lg bg-slate-50/50 border border-slate-100 flex items-center justify-center shrink-0 shadow-sm">
+             <Package class="w-6 h-6 text-slate-300" strokeWidth={1.5} />
           </div>
-          <div class="flex-1">
-            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Sản phẩm trong đơn</span>
-            <div class="space-y-1">
+          <div class="flex-1 pt-0.5">
+            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Sản phẩm trong đơn</span>
+            <div class="space-y-2">
               {#each items as item}
-                <p class="text-[11px] font-bold text-slate-800 leading-snug uppercase mb-1">
-                  {item.quantity}x {item.name}
+                <p class="text-[11.5px] font-black text-[#0f172a] leading-relaxed uppercase">
+                  {item.quantity || item.qty || 1}X {item.name}
                 </p>
               {/each}
             </div>
@@ -178,13 +245,26 @@
         </div>
 
         <div class="flex items-start gap-4">
-          <div class="w-10 h-10 rounded-sm bg-slate-50 border border-slate-50 flex items-center justify-center shrink-0">
-             <Truck class="w-5 h-5 text-slate-400" />
+          <div class="w-12 h-12 rounded-lg bg-slate-50/50 border border-slate-100 flex items-center justify-center shrink-0 shadow-sm">
+             <Truck class="w-6 h-6 text-slate-400" strokeWidth={1.5} />
           </div>
-          <div class="flex-1">
-            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Giao đến</span>
-            <p class="text-[11px] font-bold text-slate-900 leading-tight uppercase italic">{customerName}</p>
-            <p class="text-[10px] font-bold text-slate-500 leading-snug uppercase mt-1">{customerAddress}</p>
+          <div class="flex-1 pt-0.5">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Giao đến</span>
+              {#if !isEditing}
+                <button 
+                  onclick={startEditing}
+                  class="flex items-center gap-1.5 text-[10px] font-black text-[#1e88e5] uppercase tracking-widest hover:opacity-70 transition-opacity"
+                >
+                  <Edit3 class="w-3 h-3" /> CHỈNH SỬA
+                </button>
+              {/if}
+            </div>
+
+            <div in:fade>
+              <p class="text-[12.5px] font-black text-[#0f172a] leading-tight uppercase italic mb-1.5">{customerName}</p>
+              <p class="text-[11px] font-bold text-slate-500 leading-relaxed uppercase">{customerAddress}</p>
+            </div>
           </div>
         </div>
 
@@ -239,43 +319,126 @@
 
     {#if order?.status !== 'CANCELLED'}
       <!-- What's Next Card (White Mode) -->
-      <div in:fly={{ y: 30, duration: 800, delay: 800 }} class="w-full bg-white border border-slate-100 rounded-none p-8 text-center relative overflow-hidden group shadow-sm">
-         <div class="relative z-10">
-           <span class="text-[10px] font-black text-sky-600 uppercase tracking-[0.4em] block mb-4 italic flex items-center justify-center gap-2">
-             <Sparkles class="w-3.5 h-3.5" /> TIẾP THEO LÀ GÌ?
+      <div in:fly={{ y: 30, duration: 800, delay: 800 }} class="w-full bg-white shadow-sm mb-6 pb-8 relative">
+         <div class="p-8 text-center border-b-0">
+           <span class="text-[11px] font-black text-[#1e88e5] uppercase tracking-[0.3em] block mb-4 italic flex items-center justify-center gap-2">
+             <Sparkles class="w-4 h-4" strokeWidth={2.5} /> TIẾP THEO LÀ GÌ?
            </span>
-           <p class="text-[12px] font-bold text-slate-500 leading-relaxed max-w-[260px] mx-auto mb-6 uppercase">
+           <p class="text-[13px] font-bold text-slate-600 leading-relaxed max-w-[260px] mx-auto uppercase">
              Hệ thống đang xử lý. Chuyên gia sẽ xác nhận đơn trong vòng 15 phút tới!
            </p>
-           <div class="flex items-center justify-center gap-3 py-3 px-6 bg-slate-50 rounded-full border border-slate-100 mx-auto w-fit">
-              <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-              <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Hệ thống đã sẵn sàng</span>
-           </div>
          </div>
+         
+         <div class="relative px-6">
+            <a 
+              href="tel:{SHOP_CONFIG.pharmacy.phone.replace(/\s+/g, '')}"
+              class="w-full h-[60px] bg-[#111827] text-white font-black text-[14px] uppercase tracking-[0.2em] active:scale-95 transition-all text-center flex items-center justify-center gap-3 italic mb-2 shadow-xl"
+            >
+                GỌI XÁC NHẬN NGAY <Phone class="w-5 h-5 fill-white" />
+            </a>
+            
+            <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 flex items-center justify-center gap-2 py-2 px-6 bg-white rounded-full border border-slate-100 shadow-md whitespace-nowrap z-10 w-auto">
+               <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+               <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest pt-[2px]">Hệ thống đã sẵn sàng</span>
+            </div>
+         </div>
+      </div>
+    {:else}
+      <div class="w-full bg-white shadow-sm p-6 mb-6">
+         <button
+            onclick={() => goto('/')}
+            class="w-full h-[60px] bg-[#111827] text-white font-black text-[14px] uppercase tracking-[0.2em] active:scale-95 transition-all text-center flex items-center justify-center gap-3 italic shadow-xl"
+          >
+              QUAY LẠI CỬA HÀNG <Home class="w-5 h-5 fill-white" />
+          </button>
       </div>
     {/if}
 
     <!-- Spacer -->
-    <div class="h-40 shrink-0 pointer-events-none"></div>
+    <div class="h-10 shrink-0 pointer-events-none"></div>
   </div>
 
-  <div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-white via-white/95 to-transparent flex flex-row gap-3 items-center">
-    {#if order?.status === 'CANCELLED'}
-      <button
-        onclick={() => goto('/')}
-        class="w-full py-5 bg-slate-900 text-white font-black text-[14px] uppercase tracking-[0.2em] active:scale-95 transition-all relative overflow-hidden text-center shadow-2xl flex items-center justify-center gap-3 italic"
-      >
-          QUAY LẠI CỬA HÀNG <Home class="w-4 h-4 fill-white" />
-      </button>
-    {:else}
-      <a 
-        href="tel:{SHOP_CONFIG.pharmacy.phone.replace(/\s+/g, '')}"
-        class="w-full py-5 bg-slate-900 text-white font-black text-[14px] uppercase tracking-[0.2em] active:scale-95 transition-all relative overflow-hidden text-center shadow-2xl flex items-center justify-center gap-3 italic"
-      >
-          GỌI XÁC NHẬN NGAY <Phone class="w-4 h-4 fill-white" />
-      </a>
-    {/if}
+  <!-- Elite Mobile Toasts -->
+  <div class="fixed bottom-24 left-4 right-4 flex flex-col gap-3 pointer-events-none z-[3000]">
+    {#each toasts as toast (toast.id)}
+       <div 
+         in:fly={{ y: 20, duration: 400 }}
+         out:fade
+         class="px-6 py-4 bg-white shadow-2xl border-l-[4px] {toast.type === 'success' ? 'border-emerald-500' : 'border-red-500'} flex items-center gap-4 pointer-events-auto"
+       >
+         <div class="text-xl">{toast.type === 'success' ? '✅' : '❌'}</div>
+         <span class="text-[10px] font-black text-slate-900 uppercase tracking-widest italic">{toast.message}</span>
+       </div>
+    {/each}
   </div>
+
+  <!-- Global Edit Modal (Elite Style) -->
+  {#if isEditing}
+    <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-6 z-[2000]" transition:fade>
+      <div 
+        in:scale={{ duration: 450, start: 0.9, opacity: 0 }} 
+        class="w-full max-w-sm bg-white shadow-[0_20px_50px_rgba(0,0,0,0.3)] border-t-4 border-[#1e88e5] overflow-hidden flex flex-col"
+      >
+         <div class="p-8 pb-4 text-center">
+            <h2 class="text-2xl font-black text-slate-900 uppercase italic tracking-tighter leading-tight mb-1">CHỈNH SỬA THÔNG TIN</h2>
+            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Cập nhật thông tin nhận hàng</p>
+         </div>
+
+         <div class="px-8 pb-8 space-y-5">
+            <div class="space-y-1">
+              <label class="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Họ tên người nhận:</label>
+              <input type="text" bind:value={editForm.name} class="w-full h-12 px-4 bg-slate-50 border border-slate-100 font-bold text-sm uppercase focus:border-[#ee4d2d] outline-none text-slate-900 shadow-sm" />
+            </div>
+            <div class="space-y-1">
+              <label class="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Số điện thoại:</label>
+              <input type="tel" bind:value={editForm.phone} class="w-full h-12 px-4 bg-slate-50 border border-slate-100 font-bold text-sm focus:border-[#ee4d2d] outline-none text-slate-900 shadow-sm" />
+            </div>
+            
+            <div class="space-y-4">
+               <div class="space-y-1">
+                 <label class="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Tỉnh/Thành:</label>
+                 <SearchableCheckoutSelect 
+                   bind:value={editForm.province} 
+                   options={validProvinces.map(p => p.name)} 
+                   placeholder="Chọn Tỉnh" 
+                   onChange={() => editForm.ward = ''}
+                 />
+               </div>
+               <div class="space-y-1">
+                 <label class="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Phường/Xã:</label>
+                 <SearchableCheckoutSelect 
+                   bind:value={editForm.ward} 
+                   options={currentWards} 
+                   placeholder="Chọn Phường" 
+                   disabled={!editForm.province}
+                 />
+               </div>
+            </div>
+
+            <div class="space-y-1">
+               <label class="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Địa chỉ (Số nhà, đường):</label>
+               <input type="text" bind:value={editForm.street} class="w-full h-12 px-4 bg-slate-50 border border-slate-100 font-bold text-sm uppercase focus:border-[#ee4d2d] outline-none text-slate-900 shadow-sm" />
+            </div>
+
+            <div class="flex flex-col gap-3 pt-4">
+               <button 
+                 onclick={handleSaveEdit} 
+                 disabled={isSubmittingAction} 
+                 class="w-full h-[52px] bg-[#111827] text-white text-[13px] font-black uppercase tracking-[0.2em] italic flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all"
+               >
+                 {isSubmittingAction ? 'ĐANG LƯU HỆ THỐNG...' : 'XÁC NHẬN CẬP NHẬT'}
+               </button>
+               <button 
+                 onclick={() => isEditing = false} 
+                 class="w-full h-10 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:text-slate-600 transition-colors"
+               >
+                 QUAY LẠI
+               </button>
+            </div>
+         </div>
+      </div>
+    </div>
+  {/if}
 </div>
 
 

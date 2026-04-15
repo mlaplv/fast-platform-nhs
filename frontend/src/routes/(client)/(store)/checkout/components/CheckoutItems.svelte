@@ -52,46 +52,48 @@
 
     <!-- Items -->
     <div class="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar mb-6">
-      {#each cartStore.items.filter(i => i.selected) as item}
-        <div class="flex gap-4 group bg-gray-50/50 p-2 border border-transparent hover:border-gray-100 transition-all">
-          <div class="w-16 h-16 bg-white border border-gray-100 overflow-hidden shrink-0 relative">
-            <img 
-              src={item.product.image || item.product.images?.[0] || '/uploads/img/micsmo/sp1.png'} 
-              alt={item.product.name} 
-              class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-            />
-            <div class="absolute bottom-0 right-0 bg-gray-900/80 text-white text-[8px] px-1 font-black">x{item.quantity}</div>
-          </div>
-          <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-            <div class="space-y-0.5">
-              <h4 class="text-[10px] font-bold text-gray-800 leading-tight uppercase italic line-clamp-2 antialiased">{item.product.name}</h4>
-              {#if item.variant}
-                <div class="flex items-center gap-1.5 mt-1">
-                  <span class="text-[7px] font-black text-white bg-gray-400 px-1.5 py-0.5 uppercase tracking-tighter">PHÂN LOẠI</span>
-                  <span class="text-[8px] font-bold text-gray-500 uppercase">{item.variant.sku}</span>
-                </div>
-              {/if}
+      {#if !clientUi.isMobile}
+        {#each cartStore.items.filter(i => i.selected) as item}
+          <div class="flex gap-4 group bg-gray-50/50 p-2 border border-transparent hover:border-gray-100 transition-all">
+            <div class="w-16 h-16 bg-white border border-gray-100 overflow-hidden shrink-0 relative">
+              <img 
+                src={item.product.image || item.product.images?.[0] || '/uploads/img/micsmo/sp1.png'} 
+                alt={item.product.name} 
+                class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+              />
+              <div class="absolute bottom-0 right-0 bg-gray-900/80 text-white text-[8px] px-1 font-black">x{item.quantity}</div>
             </div>
-            <div class="flex items-center justify-between mt-1">
-              <div class="flex items-center gap-1">
-                 <button type="button" onclick={() => cartStore.updateQuantity(item.id, item.quantity - 1)} class="w-5 h-5 flex items-center justify-center bg-white border border-gray-100 text-gray-400 hover:text-[#ee4d2d] text-[10px] font-black">-</button>
-                 <span class="text-[10px] font-black w-4 text-center">{item.quantity}</span>
-                 <button type="button" onclick={() => cartStore.updateQuantity(item.id, item.quantity + 1)} class="w-5 h-5 flex items-center justify-center bg-white border border-gray-100 text-gray-400 hover:text-[#ee4d2d] text-[10px] font-black">+</button>
-              </div>
-              <div class="flex flex-col items-end gap-0">
-                {#if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}
-                  <span class="text-[9px] text-gray-400 line-through font-bold">
-                    {formatCurrency((item.variant?.price ?? item.product.price ?? 0) * item.quantity)}
-                  </span>
+            <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+              <div class="space-y-0.5">
+                <h4 class="text-[10px] font-bold text-gray-800 leading-tight uppercase italic line-clamp-2 antialiased">{item.product.name}</h4>
+                {#if item.variant}
+                  <div class="flex items-center gap-1.5 mt-1">
+                    <span class="text-[7px] font-black text-white bg-gray-400 px-1.5 py-0.5 uppercase tracking-tighter">PHÂN LOẠI</span>
+                    <span class="text-[8px] font-bold text-gray-500 uppercase">{item.variant.sku}</span>
+                  </div>
                 {/if}
-                <span class="text-sm font-black text-[#ee4d2d] italic tracking-tightest antialiased">
-                  {formatCurrency((item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0) * item.quantity)}
-                </span>
+              </div>
+              <div class="flex items-center justify-between mt-1">
+                <div class="flex items-center gap-1">
+                   <button type="button" onclick={() => cartStore.updateQuantity(item.id, item.quantity - 1)} class="w-5 h-5 flex items-center justify-center bg-white border border-gray-100 text-gray-400 hover:text-[#ee4d2d] text-[10px] font-black">-</button>
+                   <span class="text-[10px] font-black w-4 text-center">{item.quantity}</span>
+                   <button type="button" onclick={() => cartStore.updateQuantity(item.id, item.quantity + 1)} class="w-5 h-5 flex items-center justify-center bg-white border border-gray-100 text-gray-400 hover:text-[#ee4d2d] text-[10px] font-black">+</button>
+                </div>
+                <div class="flex flex-col items-end gap-0">
+                  {#if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}
+                    <span class="text-[9px] text-gray-400 line-through font-bold">
+                      {formatCurrency((item.variant?.price ?? item.product.price ?? 0) * item.quantity)}
+                    </span>
+                  {/if}
+                  <span class="text-sm font-black text-[#ee4d2d] italic tracking-tightest antialiased">
+                    {formatCurrency((item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0) * item.quantity)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      {/each}
+        {/each}
+      {/if}
 
       {#if customItems.length > 0}
         <div class="mt-4 pt-4 border-t border-dashed border-gray-200 space-y-3" in:slide>

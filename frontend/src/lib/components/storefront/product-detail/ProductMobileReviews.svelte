@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { ChevronRight, MessageCircleMore, Star, Loader2, Play, CheckCircle2 } from 'lucide-svelte';
+  import { ChevronRight, MessageCircleMore, Star, Loader2, Play, CheckCircle2, PenLine } from 'lucide-svelte';
   import type { Product } from '$lib/types';
 
   interface Props {
@@ -60,7 +60,13 @@
         <span class="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded-full text-gray-500 font-bold">{reviewCount}</span>
       {/if}
     </div>
-    <a href="/{product.slug}/reviews" class="view-all text-luxury-copper">Xem tất cả <ChevronRight size={14} /></a>
+    {#if reviewCount > 0}
+      <a href="/{product.slug}/reviews" class="view-all text-luxury-copper">Xem tất cả <ChevronRight size={14} /></a>
+    {:else}
+      <a href="/{product.slug}/reviews?write=true" class="view-all text-luxury-copper">
+        <PenLine size={14} class="mr-1" /> Viết <ChevronRight size={14} />
+      </a>
+    {/if}
   </div>
 
   {#if isLoading}

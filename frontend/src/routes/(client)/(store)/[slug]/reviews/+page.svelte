@@ -95,6 +95,13 @@
     fetchData();
     ui.isHeaderHidden = true;
     ui.isFooterHidden = true;
+
+    // Elite V2.2: Deep-linking for Write Review Flow
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('write') === 'true') {
+      openWriteSheet();
+    }
+
     return () => {
       ui.isHeaderHidden = false;
       ui.isFooterHidden = false;

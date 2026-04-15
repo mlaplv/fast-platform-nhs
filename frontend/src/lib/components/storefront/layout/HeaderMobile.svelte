@@ -46,7 +46,7 @@
     </div>
 
     <!-- Cart -->
-    <button class="tsh-cart" type="button" onclick={() => goto('/checkout')} aria-label="Giỏ hàng">
+    <a href="/checkout" class="tsh-cart" aria-label="Giỏ hàng">
       <svg class="tsh-cart-icon" viewBox="0 0 24 24" fill="none" stroke="#C18F7E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="9" cy="20" r="1.5" fill="#C18F7E" stroke="none" />
         <circle cx="18" cy="20" r="1.5" fill="#C18F7E" stroke="none" />
@@ -55,7 +55,7 @@
       {#if cartStore.totalItems > 0}
         <span class="tsh-badge">{cartStore.totalItems > 99 ? '99+' : cartStore.totalItems}</span>
       {/if}
-    </button>
+    </a>
   </div>
 </header>
 

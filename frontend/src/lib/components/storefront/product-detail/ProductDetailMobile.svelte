@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
-  import { setShopStore } from '$lib/state/commerce/shop.svelte';
   import type { Product } from '$lib/types';
 
   // Sub-components (Elite V2.2 Refactored for < 500 lines)
@@ -12,7 +11,6 @@
   import ProductMobileSpecs from './ProductMobileSpecs.svelte';
   import ProductMobileRecommendations from './ProductMobileRecommendations.svelte';
   import MobileBottomNav from '../home/MobileBottomNav.svelte';
-  import MobileBottomSheet from '$lib/components/mobile/MobileBottomSheet.svelte';
 
   interface Props {
     product: Product;
@@ -21,12 +19,10 @@
   let { product, relatedProducts = [] }: Props = $props();
 
   const cartStore = getCartStore();
-  const shopStore = setShopStore();
 
   // State: Navigation & Visibility
   let activeTab = $state('overview');
   let showTabs = $state(false);
-  let isBottomSheetOpen = $state(false);
   let sectionRefs = $state<Record<string, HTMLElement | null>>({
     overview: null,
     reviews: null,
@@ -80,13 +76,14 @@
   }
 
   function buyNow() {
-    shopStore.init(product);
-    isBottomSheetOpen = true;
+    // Elite V2.2: Direct checkout path (TikTok Shop / Shopee style) bypassed modal
+    const defaultVariant = product.variants && product.variants.length > 0 ? product.variants[0] : undefined;
+    cartStore.addItem(product, defaultVariant);
+    goto('/checkout');
   }
 </script>
 
 <div class="product-mobile-root">
-  <MobileBottomSheet {product} {shopStore} bind:active={isBottomSheetOpen} />
 
   <!-- 1. STICKY HEADER -->
   <ProductMobileHeader {product} {showTabs} {activeTab} onScrollToSection={scrollToSection} />
