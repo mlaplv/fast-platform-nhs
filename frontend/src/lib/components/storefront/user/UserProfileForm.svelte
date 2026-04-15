@@ -3,6 +3,7 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { apiClient } from '$lib/utils/apiClient';
   import { fade, fly } from 'svelte/transition';
+  import { Camera } from 'lucide-svelte';
   import { untrack } from 'svelte';
   import MemberCard from './MemberCard.svelte';
   import SkinProfile from './SkinProfile.svelte';
@@ -34,6 +35,32 @@
 
   let isSaving = $state(false);
   let activeTab = $state('basic'); // basic | beauty
+  let fileInput: HTMLInputElement;
+
+  // Handle avatar selection and upload
+  async function handleAvatarUpload(e: Event) {
+    const target = e.target as HTMLInputElement;
+    if (!target.files || target.files.length === 0) return;
+
+    const file = target.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    isSaving = true;
+    try {
+      const res = await apiClient.upload<{ data: { avatar_url: string } }>('/api/v1/client/user/avatar', formData);
+
+      // Sync authStore with new avatar
+      authStore.syncUser({ avatar_url: res.data.avatar_url });
+      ui.showToast('Cập nhật ảnh đại diện thành công! ✨', 'success');
+    } catch (e) {
+      ui.showToast('Lỗi khi cập nhật ảnh đại diện.', 'error');
+      console.error(e);
+    } finally {
+      isSaving = false;
+      target.value = ''; // Reset input
+    }
+  }
 
   // Required because $state initializers only run once.
   $effect(() => {
@@ -155,7 +182,7 @@
   }
 </script>
 
-<div class="max-w-4xl mx-auto space-y-10 pb-20">
+<div class="max-w-4xl mx-auto space-y-6 pb-20">
   <!-- Elite Header Section -->
   <div class="flex flex-col md:flex-row gap-10 items-start">
     <div class="w-full md:w-1/2">
@@ -163,22 +190,39 @@
     </div>
 
     <div class="w-full md:w-1/2 flex flex-col items-center justify-center space-y-4 pt-4">
-      <!-- Avatar Display (Elite V3.2) -->
-      <div class="relative group">
-        <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-stone-100 bg-white shadow-sm transition-transform duration-700 group-hover:scale-105">
-          {#if authStore.user?.avatar_url}
-            <img src={authStore.user.avatar_url} alt="Avatar" class="w-full h-full object-cover" />
-          {:else}
-            <div class="w-full h-full flex items-center justify-center text-3xl font-serif italic text-luxury-copper bg-stone-50 uppercase">
-              {authStore.user?.name?.charAt(0) || 'U'}
-            </div>
-          {/if}
+      <!-- Avatar Display (Elite V3.2) - Desktop Only -->
+      {#if !ui.isMobile}
+        <div class="relative group w-24 h-24">
+          <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-stone-100 bg-white shadow-sm transition-transform duration-700 group-hover:scale-105">
+            {#if authStore.user?.avatar_url}
+              <img src={authStore.user.avatar_url} alt="Avatar" class="w-full h-full object-cover" />
+            {:else}
+              <div class="w-full h-full flex items-center justify-center text-3xl font-serif italic text-luxury-copper bg-stone-50 uppercase">
+                {authStore.user?.name?.charAt(0) || 'U'}
+              </div>
+            {/if}
+          </div>
+          <!-- Hidden file input -->
+          <input
+            type="file"
+            accept="image/*"
+            class="hidden"
+            bind:this={fileInput}
+            onchange={handleAvatarUpload}
+          />
+          <!-- Overlay Edit Button -->
+          <button
+            type="button"
+            class="absolute bottom-0 right-0 w-8 h-8 bg-stone-900 rounded-full flex items-center justify-center text-white border-2 border-white shadow-md hover:bg-luxury-copper transition-colors z-20"
+            onclick={() => fileInput.click()}
+          >
+            <Camera class="w-4 h-4" />
+          </button>
         </div>
-      </div>
-
-      <div class="text-center">
-        <h2 class="text-xl font-serif italic text-stone-800">{authStore.user?.name || 'Quý khách'}</h2>
-      </div>
+        <div class="text-center">
+          <h2 class="text-xl font-serif italic text-stone-800">{authStore.user?.name || 'Quý khách'}</h2>
+        </div>
+      {/if}
     </div>
   </div>
 

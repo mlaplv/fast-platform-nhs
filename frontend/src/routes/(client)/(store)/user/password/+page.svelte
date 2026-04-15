@@ -1,9 +1,9 @@
 <script lang="ts">
+  import UserLayout from '$lib/components/storefront/user/UserLayout.svelte';
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
   import { fade, slide } from 'svelte/transition';
   import { Eye, EyeOff } from 'lucide-svelte';
-  import UserLayout from '$lib/components/storefront/user/UserLayout.svelte';
   import { apiClient } from '$lib/utils/apiClient';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
@@ -202,7 +202,7 @@
     <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
     <UserHeaderMobile title="Đổi Mật Khẩu" bind:isMenuOpen />
 
-    <div class="pt-12 pb-8 px-4">
+    <div class="pt-16 pb-20 px-4 space-y-6">
       <p class="text-center text-stone-400 font-serif italic">Nội dung đổi mật khẩu đang được tối ưu...</p>
     </div>
   {/if}

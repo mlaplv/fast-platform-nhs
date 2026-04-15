@@ -39,10 +39,17 @@ class MediaUploaderMixin:
         # Optional: default to False to block unknown binary structures
         return False
 
-    async def upload_asset(self, repo: MediaRegistryRepository, file_content: bytes, filename: str, content_type: str, campaign_id: Optional[str] = None, owner_id: Optional[str] = None) -> Optional[MediaRegistry]:
+    async def upload_asset(self, repo: MediaRegistryRepository, file_content: bytes, filename: str, content_type: str, campaign_id: Optional[str] = None, owner_id: Optional[str] = None, is_avatar: bool = False) -> Optional[MediaRegistry]:
         """Xử lý upload file trực tiếp, convert sang WEBP và lưu hệ thống."""
         asset_id = str(uuid.uuid4())
-        folder = datetime.now().strftime("%Y/%m")
+
+        # Elite V3.2: Isolated Avatar Storage
+        if is_avatar:
+            remote_path = f"avatars/{asset_id}.webp"
+        else:
+            folder = datetime.now().strftime("%Y/%m")
+            remote_path = f"uploads/{folder}/{asset_id}.webp"
+
         try:
             # [Elite Security] Quarantine Check: Magic Byte Enforcement
             if not self._verify_magic_bytes(file_content, content_type):
@@ -51,18 +58,28 @@ class MediaUploaderMixin:
 
             if content_type.startswith("image/"):
                 with Image.open(BytesIO(file_content)) as img:
-                    if max(img.size) > 1920: img.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
+                    # Avatar processing: Square crop
+                    if is_avatar:
+                        min_dim = min(img.size)
+                        left = (img.width - min_dim) / 2
+                        top = (img.height - min_dim) / 2
+                        img = img.crop((left, top, left + min_dim, top + min_dim))
+                        if min_dim > 500: img.thumbnail((500, 500), Image.Resampling.LANCZOS)
+                    elif max(img.size) > 1920:
+                        img.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
+
                     dims = f"{img.width}x{img.height}"
                     processed = img.convert('RGBA') if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info) else img.convert('RGB')
                     buffer = BytesIO(); processed.save(buffer, "WEBP", quality=90, optimize=True); file_to_save = buffer.getvalue()
 
                 final_filename = os.path.splitext(filename)[0] + ".webp"
-                remote_path = f"uploads/{folder}/{asset_id}.webp"
                 mime_type = "image/webp"
             else:
                 dims = "0x0"
                 file_to_save = file_content
                 final_filename = filename
+                # If non-image and avatar requested, fail gracefully
+                if is_avatar: return None
                 remote_path = f"uploads/{folder}/{asset_id}{os.path.splitext(filename)[1]}"
                 mime_type = content_type
 
@@ -78,7 +95,6 @@ class MediaUploaderMixin:
             from backend.services.xohi_memory import xohi_memory
             ai_vision = await xohi_memory.client.get("ai:vision:enabled") if xohi_memory._use_redis else "0"
 
-            # Metadata standard (V66): Always include focal_point and sync status
             m_meta = {
                 "status": "ready" if ai_vision != "1" else "processing",
                 "focal_point": {"x": 0.5, "y": 0.5}

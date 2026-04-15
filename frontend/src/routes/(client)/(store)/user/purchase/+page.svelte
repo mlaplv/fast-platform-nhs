@@ -233,7 +233,7 @@
     <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
     <UserHeaderMobile title="Đơn Mua" bind:isMenuOpen />
 
-    <div class="pt-12 pb-8 px-4">
+    <div class="pt-16 pb-20 px-4 space-y-6">
         <div class="space-y-6">
           {#if isLoading}
             <div class="py-20 flex flex-col items-center justify-center space-y-4">

@@ -42,7 +42,7 @@
     <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
     <UserHeaderMobile title="Địa Chỉ" bind:isMenuOpen />
 
-    <div class="pt-12 pb-20 px-4">
+    <div class="pt-16 pb-20 px-4 space-y-6">
         <AddressWrapper />
     </div>
   {/if}

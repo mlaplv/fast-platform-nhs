@@ -217,7 +217,7 @@
   </div>
 
   <!-- MAIN PRODUCT FEED -->
-  <div class="px-2 pt-3">
+  <div class="px-4 pt-4 space-y-6">
     {#if filteredProducts().length > 0}
       <ProductGrid products={filteredProducts()} {activeTab} />
     {:else}

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
+  import { fade } from 'svelte/transition';
   import UserLayout from '$lib/components/storefront/user/UserLayout.svelte';
   import NotificationList from '$lib/components/storefront/user/NotificationList.svelte';
   import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
@@ -41,7 +42,7 @@
     <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
     <UserHeaderMobile title="Thông Báo" bind:isMenuOpen />
 
-    <div class="pt-12 pb-20 px-4">
+    <div class="pt-16 pb-20 px-4 space-y-6">
         <NotificationList />
     </div>
   {/if}
