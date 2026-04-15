@@ -105,7 +105,7 @@
 
     <!-- Professional Headline Hierarchy! -->
     <div class="max-w-4xl mx-auto text-center" style:margin-bottom="var(--headline-mb)">
-      <EditableWrapper path="metadata.offer_headline" value={mkt.headline} type="html" label="SỬA TIÊU ĐỀ ƯU ĐÃI">
+      <EditableWrapper path="metadata.offer_headline" value={mkt.headline} type="html" label="SỬA TIÊU ĐỀ ƯU ĐÃI" class="w-full flex justify-center">
         <h3 class="headline-title mb-4">
           {@html mkt.headline}
         </h3>

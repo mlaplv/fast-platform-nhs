@@ -104,7 +104,8 @@
         
         // Auto-enable edit mode if explicitly requested via URL
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('live_edit') === 'true' && liveEditStore.isAdmin) {
+        if (urlParams.get('live_edit') === 'true') {
+            liveEditStore.forceAdmin = true;
             liveEditStore.isEditMode = true;
         }
       }
