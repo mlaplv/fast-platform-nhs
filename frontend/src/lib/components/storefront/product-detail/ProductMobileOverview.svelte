@@ -160,7 +160,7 @@
         <span class="scoreText">{(product.metadata as any)?.rating || '5.0'}</span>
         <div class="stars">
           {#each Array(5) as _, i}
-            <svg class="w-2.5 h-2.5 {i < ((product.metadata as any)?.rating || 5) ? 'text-orange-400' : 'text-gray-300'}" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="w-2.5 h-2.5 {i < ((product.metadata as any)?.rating || 5) ? 'text-luxury-copper' : 'text-gray-300'}" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
           {/each}
@@ -168,7 +168,7 @@
       </div>
       <div class="divider"></div>
       <div class="sold-count">{(product as any).order_count_text || `Đã bán ${product.order_count || 0}`}</div>
-      <div class="trust-badge">{(product.metadata as any)?.brand_type || 'Micsmo'}</div>
+      <div class="trust-badge text-luxury-copper font-bold bg-luxury-peach/10">{(product.metadata as any)?.brand_type || 'Micsmo Mall'}</div>
     </div>
   </section>
 </section>
@@ -181,69 +181,70 @@
   .carousel-slide img { width: 100%; height: 100%; object-fit: cover; }
   .image-counter { position: absolute; bottom: 12px; right: 12px; background: rgba(0, 0, 0, 0.4); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
 
-  .flash-sale-banner { background: #ff2556; color: white; display: flex; padding: 4px 8px; justify-content: space-between; align-items: center; position: relative; overflow: hidden; }
+  .flash-sale-banner { background: var(--color-luxury-copper, #C18F7E); color: white; display: flex; padding: 4px 8px; justify-content: space-between; align-items: center; position: relative; overflow: hidden; }
   .fs-left { flex: 1; z-index: var(--z-base); }
-  .discount-percent { background: white; color: #ff2556; border: 1px solid #ff2556; width: max-content; padding: 0 4px; font-size: 11px; font-weight: 800; border-radius: 2px; }
-  .freeship-fomo { background: #00bfa5; color: white; font-size: 10px; font-weight: 900; padding: 0 4px; border-radius: 2px; display: flex; align-items: center; gap: 2px; height: 16px; }
+  .discount-percent { background: white; color: var(--color-luxury-copper, #C18F7E); border: 1px solid white; width: max-content; padding: 0 4px; font-size: 11px; font-weight: 900; border-radius: 2px; }
+  .freeship-fomo { background: var(--color-luxury-peach, #E3B5A4); color: white; font-size: 10px; font-weight: 900; padding: 0 4px; border-radius: 2px; display: flex; align-items: center; gap: 2px; height: 16px; }
   .price-container { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
-  .price-label { font-size: 13px; color: white; }
-  .price-value { font-size: 20px; font-weight: 800; }
-  .original-price { font-size: 11px; text-decoration: line-through; color: rgba(255,255,255,0.8); }
+  .price-label { font-size: 13px; color: white; opacity: 0.9; }
+  .price-value { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; }
+  .original-price { font-size: 11px; text-decoration: line-through; color: rgba(255,255,255,0.7); }
   .fs-right { text-align: right; z-index: var(--z-base); display: flex; flex-direction: column; align-items: flex-end; }
-  .fs-title { display: flex; align-items: center; gap: 4px; font-weight: 900; font-size: 16px; }
-  .fs-countdown { font-size: 11px; display: flex; align-items: center; gap: 4px; }
+  .fs-title { display: flex; align-items: center; gap: 4px; font-weight: 900; font-size: 16px; text-transform: uppercase; font-style: italic; }
+  .fs-countdown { font-size: 11px; display: flex; align-items: center; gap: 4px; font-weight: 700; }
   .time-box { display: flex; gap: 2px; }
-  .time-box span { background: #333; color: white; padding: 1px 3px; border-radius: 2px; font-weight: bold; }
+  .time-box span { background: rgba(0,0,0,0.2); color: white; padding: 1px 4px; border-radius: 2px; font-weight: 900; border: 1px solid rgba(255,255,255,0.2); }
 
   .info-content { background: white; padding: 12px; }
   .vouchers-outer { position: relative; margin-bottom: 12px; margin-left: -12px; margin-right: -12px; }
-  .vouchers-list { 
-    display: flex; 
-    gap: 8px; 
-    overflow-x: auto; 
-    scrollbar-width: none; 
+  .vouchers-list {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
     padding: 0 24px;
     scroll-padding: 0 24px;
   }
   .vouchers-list::-webkit-scrollbar { display: none; }
-  .ticket { background: #fff5f5; border: 1px dashed #ff4d4f; color: #ff4d4f; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; }
-  .ticket.active { background: #ff4d4f; color: white; border-style: solid; }
+  .ticket { background: #fffaf9; border: 1px dashed var(--color-luxury-copper, #C18F7E); color: var(--color-luxury-copper, #C18F7E); padding: 4px 10px; border-radius: 4px; font-size: 11px; white-space: nowrap; font-weight: 700; }
+  .ticket.active { background: var(--color-luxury-copper, #C18F7E); color: white; border-style: solid; }
   .ticket-wrapper { position: relative; background: none; border: none; padding: 0; }
-  .active-badge { position: absolute; top: -4px; right: -4px; background: #52c41a; color: white; border-radius: 50%; width: 12px; height: 12px; display: flex; align-items: center; justify-content: center; }
-  .scroll-btn { 
-    position: absolute; 
-    top: 50%; 
-    transform: translateY(-50%); 
-    background: rgba(255, 255, 255, 0.6); 
+  .active-badge { position: absolute; top: -4px; right: -4px; background: var(--color-luxury-peach, #E3B5A4); color: white; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  .scroll-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.3); 
-    border-radius: 50%; 
-    width: 22px; 
-    height: 22px; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    z-index: 10; 
-    box-shadow: 0 4px 10px rgba(0,0,0,0.06);
-    color: #ff4d4f;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    color: var(--color-luxury-copper, #C18F7E);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     -webkit-tap-highlight-color: transparent;
   }
   .scroll-btn:active {
     scale: 0.85;
-    background: rgba(255, 255, 255, 0.9);
+    background: white;
   }
-  .scroll-btn.prev { left: -4px; }
-  .scroll-btn.next { right: -4px; }
+  .scroll-btn.prev { left: 4px; }
+  .scroll-btn.next { right: 4px; }
 
   .title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
-  .product-title { font-size: 16px; font-weight: 600; line-height: 1.4; color: #222; flex: 1; margin: 0; }
-  .bookmark-btn { background: none; border: none; color: #666; padding: 0; }
+  .product-title { font-size: 16px; font-weight: 800; line-height: 1.4; color: #222; flex: 1; margin: 0; text-transform: capitalize; }
+  .bookmark-btn { background: none; border: none; color: #666; padding: 0; transition: color 0.3s; }
+  .bookmark-btn:active { color: var(--color-luxury-copper, #C18F7E); }
 
   .product-stats-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #888; }
-  .rating-box { display: flex; align-items: center; gap: 4px; color: #222; font-weight: bold; }
+  .rating-box { display: flex; align-items: center; gap: 4px; color: #222; font-weight: 900; }
   .stars { display: flex; align-items: center; gap: 1px; }
   .divider { width: 1px; height: 10px; background: #eee; }
-  .trust-badge { background: #f0f0f0; padding: 2px 6px; border-radius: 2px; }
+  .trust-badge { padding: 2px 8px; border-radius: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
 </style>

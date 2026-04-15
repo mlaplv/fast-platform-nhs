@@ -164,8 +164,7 @@
 
 <style>
   .flash-sale-wrapper {
-    /* Soft gradient matching image 3 (purpleish top-left fading to cyan-blue) */
-    background: linear-gradient(135deg, #eaddff 0%, #d4ebff 100%);
+    background: linear-gradient(135deg, #FFF5F0 0%, #FEEAE0 100%);
     padding-top: 12px;
     margin-top: 6px;
     overflow: hidden;
@@ -222,7 +221,7 @@
   }
 
   .time-block {
-    background: #46464a; /* Dark gray */
+    background: #C18F7E;
     color: #fff;
     font-size: 12px;
     font-weight: 800;
@@ -235,7 +234,7 @@
   }
 
   .time-sep {
-    color: #333;
+    color: #C18F7E;
     font-weight: 900;
     font-size: 12px;
     line-height: 1;
@@ -337,7 +336,7 @@
     left: 6px;
     right: 6px;
     height: 14px;
-    background: #ffdce3; /* Unfilled light pink */
+    background: #F5E0D8;
     border-radius: 999px;
     overflow: hidden;
     /* Soft white outer shadow to push away from image */
@@ -347,7 +346,7 @@
 
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #ff2b54, #ff5778);
+    background: linear-gradient(90deg, #C18F7E, #E3B5A4);
     border-radius: 999px;
     transition: width 0.3s ease;
   }

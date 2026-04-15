@@ -88,8 +88,8 @@
       <svg class="tbn-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <defs>
           <linearGradient id="ai-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#25f4ee" />
-            <stop offset="100%" stop-color="#fe2c55" />
+            <stop offset="0%" stop-color="#C18F7E" />
+            <stop offset="100%" stop-color="#E3B5A4" />
           </linearGradient>
         </defs>
         <!-- Sparkle/Star shape with gradient stroke -->
@@ -275,10 +275,10 @@
      ================================================== */
   .tbn-label--ai {
     /* Đổ chữ theo Gradient */
-    background: linear-gradient(90deg, #25f4ee, #fe2c55);
+    background: linear-gradient(90deg, #C18F7E, #E3B5A4);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-weight: 800; /* Bớt nặng nề */
+    font-weight: 900;
   }
 
   /* ==================================================
@@ -330,29 +330,30 @@
   .tbn-action-split--cart {
     width: 44px;
     background: transparent; /* Xóa bỏ nền theo yêu cầu Sếp */
-    color: #ff1e4d;
-    border-right: 1px dashed rgba(254, 44, 85, 0.15); /* Ranh giới xé vé (Ticket vibe) */
+    color: #C18F7E;
+    border-right: 1px dashed rgba(193, 143, 126, 0.15); /* Ranh giới xé vé (Ticket vibe) */
   }
 
   /* Thân chính (Buy Now) */
   .tbn-action-split--buy {
     flex: 1;
-    background: linear-gradient(110deg, #ff1e4d 0%, #fe2c55 50%, #ff4b72 100%);
+    background: linear-gradient(110deg, #C18F7E 0%, #E3B5A4 100%);
     color: white;
     padding: 0 16px;
   }
 
   .buy-text {
     font-size: 13px;
-    font-weight: 800;
+    font-weight: 900;
     line-height: 1.1;
     text-shadow: 0 1px 2px rgba(0,0,0,0.1);
     letter-spacing: -0.2px;
+    text-transform: uppercase;
   }
 
   .buy-sub {
     font-size: 9px;
-    font-weight: 500;
+    font-weight: 700;
     opacity: 0.95;
     letter-spacing: -0.1px;
   }
@@ -367,13 +368,13 @@
     backdrop-filter: saturate(200%) blur(30px);
     -webkit-backdrop-filter: saturate(200%) blur(30px);
     border: none;
-    
+
     height: 28px;
     padding: 0 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    
+
     border-radius: 16px;
     white-space: nowrap;
     /* Drop-shadow ôm quanh toàn bộ body + mũi tên tạo thành 1 khối hợp nhất */
@@ -385,11 +386,11 @@
 
   /* Gradient Text phát sáng bên trong lớp kính */
   .tbn-ai-tooltip-text {
-    background: linear-gradient(90deg, #25f4ee, #fe2c55);
+    background: linear-gradient(90deg, #C18F7E, #E3B5A4);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 900;
     line-height: 1; /* Khóa chiều cao chữ để Flex căn chuẩn */
     margin-top: 1px; /* Optical tuning bù phần râu chữ */
   }

@@ -47,7 +47,7 @@
 
   // Combine static Elite tabs with dynamic DB categories
   const tabs = $derived<TabItem[]>([
-    { label: 'Tất cả', style: { bg: '#222', text: '#fff', shadow: '#222' } }, // Clean Black for "All"
+    { label: 'Tất cả', style: { bg: 'linear-gradient(135deg, #C18F7E, #E3B5A4)', text: '#fff', shadow: '#C18F7E' } },
     ...categories.map((cat, i) => {
       const nameLower = cat.name.toLowerCase();
       const isHot = nameLower.includes('kem dưỡng') || nameLower.includes('serum') || nameLower.includes('hot');
@@ -166,7 +166,7 @@
     left: 15%;
     right: 15%;
     height: 3px;
-    background: #222;
+    background: #C18F7E;
     border-radius: 4px;
   }
 </style>

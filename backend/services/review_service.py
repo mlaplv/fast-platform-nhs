@@ -61,7 +61,10 @@ class ReviewService:
             filters.append(SystemReview.status == status)
         
         if kwargs.get("has_media"):
-            filters.append(SystemReview.attachments != None)
+            # Fix: JSON array IS NOT NULL AND length > 0 (loại bỏ [] rỗng)
+            from sqlalchemy import func
+            filters.append(SystemReview.attachments.isnot(None))
+            filters.append(func.json_array_length(SystemReview.attachments) > 0)
         if kwargs.get("rating"):
             filters.append(SystemReview.rating == int(kwargs.get("rating")))
             
@@ -203,12 +206,13 @@ class ReviewService:
         for r, c in breakdown_res:
             rating_breakdown[r] = c
 
-        # 3. Has Media & Has Content
+        # 3. Has Media (JSON array IS NOT NULL AND length > 0)
         stmt_media = select(func.count(SystemReview.id)).where(and_(
             SystemReview.entity_type == entity_type,
             SystemReview.entity_id == entity_id,
             SystemReview.status == "APPROVED",
-            SystemReview.attachments != None
+            SystemReview.attachments.isnot(None),
+            func.json_array_length(SystemReview.attachments) > 0
         ))
         media_count = await self.review_repo.session.scalar(stmt_media) or 0
 

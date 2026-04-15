@@ -197,7 +197,7 @@
                     <span class="text-[10px] text-white/20 line-through">{(shopStore.originalPrice * shopStore.quantity).toLocaleString()}đ</span>
                   {/if}
                </div>
-               <div class="inline-flex items-center gap-1.5 text-[8px] font-black text-blue-400 uppercase tracking-[0.2em]">
+               <div class="inline-flex items-center gap-1.5 text-[8px] font-black text-luxury-peach uppercase tracking-[0.2em]">
                   <ShieldCheck class="w-2.5 h-2.5" /> {labels.free_shipping}
                </div>
                
@@ -215,9 +215,9 @@
             <span class="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">{labels.variant_label}</span>
             <div class="flex flex-wrap gap-2">
               {#each variants as v}
-                <button 
+                <button
                   onclick={() => shopStore.selectVariant(v)}
-                  class="px-4 py-2.5 rounded-full border transition-all flex items-center gap-3 {shopStore.variant?.id === v.id ? 'border-blue-500 bg-blue-500/10 shadow-lg' : 'border-white/10 bg-white/5 opacity-60'}"
+                  class="px-4 py-2.5 rounded-full border transition-all flex items-center gap-3 {shopStore.variant?.id === v.id ? 'border-luxury-copper bg-luxury-copper/10 shadow-lg' : 'border-white/10 bg-white/5 opacity-60'}"
                 >
                   <span class="text-[11px] font-bold {shopStore.variant?.id === v.id ? 'text-white' : 'text-white/60'} uppercase tracking-tight">
                     {getVariantTitle(v).split('-')[0].trim()}
@@ -242,15 +242,15 @@
 
           <!-- Streamlined Upsell -->
           {#if nextDeal && !appliedDeal}
-            <button 
+            <button
               onclick={() => shopStore.setQuantity(shopStore.quantity + nextDeal.missing)}
-              class="w-full p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl flex items-center justify-between group active:scale-[0.98] transition-all"
+              class="w-full p-3 bg-luxury-copper/5 border border-luxury-copper/20 rounded-xl flex items-center justify-between group active:scale-[0.98] transition-all"
             >
               <div class="flex items-center gap-3">
                 <span class="text-base">🎁</span>
-                <span class="text-[10px] font-bold text-amber-500/80 uppercase tracking-tight">Thêm {nextDeal.missing} hộp để nhận {nextDeal.deal.label}</span>
+                <span class="text-[10px] font-bold text-luxury-copper/80 uppercase tracking-tight">Thêm {nextDeal.missing} hộp để nhận {nextDeal.deal.label}</span>
               </div>
-              <ArrowRight class="w-3.5 h-3.5 text-amber-500/50 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight class="w-3.5 h-3.5 text-luxury-copper/50 group-hover:translate-x-1 transition-transform" />
             </button>
           {/if}
         </div>
@@ -288,36 +288,36 @@
             <div class="space-y-4">
               <!-- 1. Phone FIRST (Mobile) -->
               <div class="relative group">
-                <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-white/20 group-focus-within:text-blue-500 transition-colors">
+                <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-white/20 group-focus-within:text-luxury-copper transition-colors">
                   <Phone class="w-4 h-4" />
                 </div>
-                <input 
+                <input
                   type="tel"
                   bind:value={phone}
                   oninput={() => { handlePhoneInput(); handleInputChange(); }}
                   placeholder="SỐ ĐIỆN THOẠI *"
-                  class="w-full pl-12 pr-6 py-5 bg-white/[0.03] border-2 {validationError?.includes('thoại') ? 'border-red-500/30' : 'border-white/5 focus:border-blue-500/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-lg uppercase transition-all"
+                  class="w-full pl-12 pr-6 py-5 bg-white/[0.03] border-2 {validationError?.includes('thoại') ? 'border-red-500/30' : 'border-white/5 focus:border-luxury-copper/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-lg uppercase transition-all"
                 />
-                
+
                 {#if shopStore.customerData?.isRecurring}
-                   <div class="absolute -bottom-5 left-2 flex items-center gap-1.5 text-[8px] font-black text-blue-400 uppercase tracking-widest animate-in fade-in slide-in-from-top-1">
+                   <div class="absolute -bottom-5 left-2 flex items-center gap-1.5 text-[8px] font-black text-luxury-peach uppercase tracking-widest animate-in fade-in slide-in-from-top-1">
                       <div class="w-1.5 h-1.5 {shopStore.customerData.isTrustedDevice ? 'bg-emerald-500' : 'bg-amber-500'} rounded-full animate-pulse"></div>
                       CHÀO MỪNG {shopStore.customerData.nameMasked || 'QUÝ KHÁCH'} QUAY TRỞ LẠI!
-                      <span class="ml-1 px-1 py-0.5 bg-sky-500/10 text-sky-500 text-[6px] rounded italic">BẢO MẬT (***)</span>
+                      <span class="ml-1 px-1 py-0.5 bg-luxury-peach/10 text-luxury-peach text-[6px] rounded italic">BẢO MẬT (***)</span>
                    </div>
                 {/if}
               </div>
 
               <!-- 2. Name -->
               <div class="relative group {shopStore.customerData?.isRecurring ? 'mt-3' : ''}">
-                <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-white/20 group-focus-within:text-blue-500 transition-colors">
+                <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-white/20 group-focus-within:text-luxury-copper transition-colors">
                   <User class="w-4 h-4" />
                 </div>
-                <input 
+                <input
                   bind:value={name}
                   oninput={handleInputChange}
                   placeholder="HỌ VÀ TÊN *"
-                  class="w-full pl-12 pr-12 py-5 bg-white/[0.03] border-2 border-white/5 focus:border-blue-500/30 rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all"
+                  class="w-full pl-12 pr-12 py-5 bg-white/[0.03] border-2 border-white/5 focus:border-luxury-copper/30 rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all"
                 />
                 
                 {#if shopStore.customerData?.isRecurring && name === shopStore.customerData.nameMasked}
@@ -329,15 +329,15 @@
 
               <!-- 3. Address -->
               <div class="relative group">
-                <div class="absolute top-5 left-5 pointer-events-none text-white/20 group-focus-within:text-blue-500 transition-colors">
+                <div class="absolute top-5 left-5 pointer-events-none text-white/20 group-focus-within:text-luxury-copper transition-colors">
                   <MapPin class="w-4 h-4" />
                 </div>
-                <textarea 
+                <textarea
                   bind:value={address}
                   oninput={handleInputChange}
                   rows="3"
                   placeholder="ĐỊA CHỈ NHẬN HÀNG CHI TIẾT *"
-                  class="w-full pl-12 pr-6 py-5 bg-white/[0.03] border-2 {validationError?.includes('Địa chỉ') ? 'border-red-500/30' : 'border-white/5 focus:border-blue-500/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all resize-none"
+                  class="w-full pl-12 pr-6 py-5 bg-white/[0.03] border-2 {validationError?.includes('Địa chỉ') ? 'border-red-500/30' : 'border-white/5 focus:border-luxury-copper/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all resize-none"
                 ></textarea>
               </div>
 
@@ -351,7 +351,7 @@
                     <div class="flex items-center gap-3">
                         <span class="text-xl group-hover:scale-125 transition-transform">🎁</span>
                         <div class="flex flex-col text-left">
-                            <span class="text-[9px] font-black tracking-widest text-pink-400 uppercase">Ưu đãi Elite đặc biệt</span>
+                            <span class="text-[9px] font-black tracking-widest text-luxury-peach uppercase">Ưu đãi Elite đặc biệt</span>
                             <span class="text-xs font-bold text-white">Thêm Gói quà & Lời nhắn tặng người thân</span>
                         </div>
                     </div>
@@ -442,7 +442,7 @@
         {/each}
       </div>
       <p class="text-[8px] font-bold text-white/20 uppercase tracking-widest">
-         🔥 <span class="text-amber-500/50">32 người</span> đang chọn phân loại này
+         🔥 <span class="text-luxury-peach/50">32 người</span> đang chọn phân loại này
       </p>
     </div>
     

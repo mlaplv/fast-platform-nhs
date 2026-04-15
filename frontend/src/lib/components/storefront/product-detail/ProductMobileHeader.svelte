@@ -116,8 +116,8 @@
   }
 
   .tab-item.active {
-    color: #000;
-    font-weight: 700;
+    color: var(--color-luxury-copper, #C18F7E);
+    font-weight: 900;
   }
 
   .active-indicator {
@@ -125,7 +125,7 @@
     bottom: 0;
     width: 30px;
     height: 2px;
-    background: #000;
+    background: var(--color-luxury-copper, #C18F7E);
     border-radius: 2px;
   }
 
@@ -143,10 +143,10 @@
     position: absolute;
     top: -4px;
     right: -4px;
-    background: #ee4d2d;
+    background: linear-gradient(135deg, #C18F7E 0%, #E3B5A4 100%);
     color: white;
     font-size: 10px;
-    font-weight: bold;
+    font-weight: 900;
     min-width: 16px;
     height: 16px;
     border-radius: 999px;
@@ -154,6 +154,7 @@
     align-items: center;
     justify-content: center;
     border: 1px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
   .search-bar-wrapper {

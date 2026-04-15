@@ -176,7 +176,7 @@ body {
 .client-layout ::-webkit-scrollbar { width: 6px; height: 6px; }
 .client-layout ::-webkit-scrollbar-track { background: transparent; }
 .client-layout ::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.2); /* Blue */
+  background: rgba(193, 143, 126, 0.2);
   border-radius: 20px;
 }
-.client-layout ::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.4); }
+.client-layout ::-webkit-scrollbar-thumb:hover { background: rgba(193, 143, 126, 0.45); }

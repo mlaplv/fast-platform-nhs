@@ -111,7 +111,7 @@
   .service-icon-bg {
     width: 44px;
     height: 44px;
-    background: #fdf2f4; /* Light pink elite tint */
+    background: #FFF5F0;
     border-radius: 16px; /* Squircle style */
     display: flex;
     align-items: center;
@@ -132,7 +132,7 @@
     position: absolute;
     top: 0;
     right: 0;
-    background: #ee4d2d;
+    background: #C18F7E;
     color: #fff;
     font-size: 8px;
     font-weight: 950;
@@ -175,6 +175,6 @@
 
   .service-dot--active {
     width: 14px;
-    background: #ee4d2d;
+    background: #C18F7E;
   }
 </style>

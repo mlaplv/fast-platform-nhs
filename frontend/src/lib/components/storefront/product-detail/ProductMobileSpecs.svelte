@@ -37,18 +37,18 @@
 
 <style>
   .content-section { background: white; padding: 16px; }
-  .section-title { font-size: 14px; font-weight: 700; color: #333; margin-bottom: 12px; }
+  .section-title { font-size: 14px; font-weight: 800; color: #222; margin-bottom: 12px; text-transform: uppercase; letter-spacing: -0.01em; }
   .spec-table { display: flex; flex-direction: column; gap: 8px; }
   .spec-row { display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px solid #f5f5f5; padding-bottom: 8px; }
   .spec-row:last-child { border-bottom: none; }
-  .label { color: #888; }
-  .val { color: #333; font-weight: 500; text-align: right; }
-  
+  .label { color: #888; font-weight: 500; }
+  .val { color: #222; font-weight: 700; text-align: right; }
+
   /* Elite V2.2: Mobile Premium Prose System */
   :global(.prose-micsmo) {
     font-size: 15px !important;
     line-height: 1.8 !important;
-    color: #444 !important;
+    color: #333 !important;
     font-family: inherit !important;
   }
 
@@ -69,12 +69,13 @@
   }
 
   :global(.prose-micsmo h2, .prose-micsmo h3) {
-    color: #111 !important;
-    font-weight: 800 !important;
+    color: var(--color-luxury-copper, #C18F7E) !important;
+    font-weight: 900 !important;
     margin-top: 1.25rem !important;
     margin-bottom: 0.75rem !important;
     font-family: inherit !important;
     text-transform: uppercase;
+    letter-spacing: 0.02em;
   }
 
   :global(.prose-micsmo h2) { font-size: 17px !important; }
@@ -88,14 +89,16 @@
   :global(.prose-micsmo li) {
     margin-bottom: 0.25rem !important;
     list-style-type: disc;
+    color: #444;
   }
 
   :global(.prose-micsmo img) {
-    border-radius: 6px;
+    border-radius: 8px;
     margin: 1.5rem 0 !important;
     width: 100% !important;
     height: auto !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   }
 
-  .expand-btn { background: none; border: none; color: #ff2556; font-size: 12px; display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 12px; gap: 4px; }
+  .expand-btn { background: none; border: none; color: var(--color-luxury-copper, #C18F7E); font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 12px; gap: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
 </style>

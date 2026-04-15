@@ -40,9 +40,9 @@
     <!-- Cart -->
     <button class="tsh-cart" type="button" onclick={() => goto('/checkout')} aria-label="Giỏ hàng">
       <!-- Trolley styled cart icon -->
-      <svg class="tsh-cart-icon" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="9" cy="20" r="1.5" fill="#111" stroke="none" />
-        <circle cx="18" cy="20" r="1.5" fill="#111" stroke="none" />
+      <svg class="tsh-cart-icon" viewBox="0 0 24 24" fill="none" stroke="#C18F7E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="9" cy="20" r="1.5" fill="#C18F7E" stroke="none" />
+        <circle cx="18" cy="20" r="1.5" fill="#C18F7E" stroke="none" />
         <path d="M2.5 4h3l2 11h11.5l2-7H6.5"/>
       </svg>
       {#if cartStore.totalItems > 0}
@@ -67,7 +67,8 @@
     left: 0;
     width: 100%;
     height: 48px;
-    background: linear-gradient(135deg, #d0f5f3 0%, #fde8e8 100%);
+    background: linear-gradient(135deg, #FFF8F5 0%, #FFF0EA 100%);
+    border-bottom: 1.5px solid rgba(193, 143, 126, 0.15);
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -89,8 +90,8 @@
     border-radius: 8px; /* TikTok screenshot style */
     overflow: hidden;
     background-image:
-      linear-gradient(white, white),         /* padding-box: inner white */
-      linear-gradient(90deg, #06d6d6, #fe2c55); /* border-box: gradient ring cyan -> pink */
+      linear-gradient(white, white),
+      linear-gradient(90deg, #C18F7E, #E3B5A4);
     background-origin: border-box;
     background-clip: padding-box, border-box;
     transform: translateZ(0);
@@ -131,7 +132,7 @@
     cursor: pointer;
     font-size: 15px;
     font-weight: 800;
-    color: #fe2c55; /* Vibrant pink/red from image */
+    color: #C18F7E;
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -156,7 +157,7 @@
     position: absolute;
     top: -2px;
     right: -2px;
-    background: #fe2c55; /* TikTok vibrant pink/red */
+    background: #C18F7E;
     color: #fff;
     font-size: 10px;
     font-weight: 800;

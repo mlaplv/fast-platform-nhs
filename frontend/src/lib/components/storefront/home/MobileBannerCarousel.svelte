@@ -139,14 +139,14 @@
   }
 
   .badge-mall-day {
-    background: linear-gradient(135deg, #ee4d2d 0%, #ff7337 100%);
+    background: linear-gradient(135deg, #C18F7E 0%, #E3B5A4 100%);
     color: #fff;
     font-size: 10px;
     font-weight: 900;
     padding: 3px 10px;
     border-radius: 20px;
     font-style: italic;
-    box-shadow: 0 4px 12px rgba(238, 77, 45, 0.3);
+    box-shadow: 0 4px 12px rgba(193, 143, 126, 0.35);
     white-space: nowrap;
   }
 
