@@ -1,16 +1,17 @@
 <script lang="ts">
   import { authStore } from '$lib/state/authStore.svelte';
   import { page } from '$app/stores';
-  import { Bell, User, ShoppingBag, MapPin, Lock, LogOut } from 'lucide-svelte';
+  import { Bell, User as UserIcon, ShoppingBag, MapPin, Lock, LogOut } from 'lucide-svelte';
   import { goto } from '$app/navigation';
+  import Avatar from './Avatar.svelte';
 
   const menuItems = [
     {
       label: 'Tài khoản của tôi',
-      icon: User,
+      icon: UserIcon,
       href: '/user/profile',
       subItems: [
-        { label: 'Hồ sơ', href: '/user/profile', icon: User },
+        { label: 'Hồ sơ', href: '/user/profile', icon: UserIcon },
         { label: 'Địa chỉ', href: '/user/address', icon: MapPin },
         { label: 'Đổi mật khẩu', href: '/user/password', icon: Lock }
       ]
@@ -38,15 +39,12 @@
 <aside class="w-full md:w-[240px] shrink-0 hidden md:block space-y-10">
   <!-- Profile Header -->
   <div class="flex items-center gap-4 px-2">
-    <div class="w-14 h-14 rounded-full overflow-hidden border border-stone-200 bg-white shrink-0 p-0.5 shadow-sm">
-      {#if authStore.user?.avatar_url}
-        <img src={authStore.user.avatar_url} alt="Avatar" class="w-full h-full object-cover rounded-full" />
-      {:else}
-        <div class="w-full h-full flex items-center justify-center text-lg font-serif italic text-luxury-copper bg-stone-50 rounded-full">
-          {authStore.user?.name?.charAt(0).toUpperCase() || 'U'}
-        </div>
-      {/if}
-    </div>
+    <Avatar
+      src={authStore.user?.avatar_url}
+      name={authStore.user?.name}
+      size="sm"
+      class="w-14 h-14 !p-0.5 shadow-sm"
+    />
     <div class="flex flex-col min-w-0">
       <span class="text-[14px] font-bold text-stone-800 truncate uppercase tracking-wider">{authStore.user?.name || 'Quý khách'}</span>
       <a href="/user/profile" class="text-[11px] text-stone-400 uppercase tracking-widest flex items-center gap-1.5 hover:text-luxury-copper transition-colors mt-1">

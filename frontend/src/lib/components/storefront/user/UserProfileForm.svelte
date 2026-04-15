@@ -3,10 +3,12 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { apiClient } from '$lib/utils/apiClient';
   import { fade, fly } from 'svelte/transition';
-  import { Camera } from 'lucide-svelte';
   import { untrack } from 'svelte';
   import MemberCard from './MemberCard.svelte';
   import SkinProfile from './SkinProfile.svelte';
+  import Avatar from './Avatar.svelte';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { User, Mail, Phone, Calendar, Heart, Fingerprint, Sparkles } from 'lucide-svelte';
 
   const ui = getClientUi();
 
@@ -35,32 +37,6 @@
 
   let isSaving = $state(false);
   let activeTab = $state('basic'); // basic | beauty
-  let fileInput: HTMLInputElement;
-
-  // Handle avatar selection and upload
-  async function handleAvatarUpload(e: Event) {
-    const target = e.target as HTMLInputElement;
-    if (!target.files || target.files.length === 0) return;
-
-    const file = target.files[0];
-    const formData = new FormData();
-    formData.append('file', file);
-
-    isSaving = true;
-    try {
-      const res = await apiClient.upload<{ data: { avatar_url: string } }>('/api/v1/client/user/avatar', formData);
-
-      // Sync authStore with new avatar
-      authStore.syncUser({ avatar_url: res.data.avatar_url });
-      ui.showToast('Cập nhật ảnh đại diện thành công! ✨', 'success');
-    } catch (e) {
-      ui.showToast('Lỗi khi cập nhật ảnh đại diện.', 'error');
-      console.error(e);
-    } finally {
-      isSaving = false;
-      target.value = ''; // Reset input
-    }
-  }
 
   // Required because $state initializers only run once.
   $effect(() => {
@@ -182,191 +158,200 @@
   }
 </script>
 
-<div class="max-w-4xl mx-auto space-y-6 pb-20">
-  <!-- Elite Header Section -->
-  <div class="flex flex-col md:flex-row gap-10 items-start">
-    <div class="w-full md:w-1/2">
+<div class="max-w-4xl mx-auto space-y-12 pb-20 px-4 md:px-6">
+  <!-- Elite Header Section: Card & Identity -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+    <div class="lg:col-span-7">
        <MemberCard />
     </div>
 
-    <div class="w-full md:w-1/2 flex flex-col items-center justify-center space-y-4 pt-4">
-      <!-- Avatar Display (Elite V3.2) - Desktop Only -->
-      {#if !ui.isMobile}
-        <div class="relative group w-24 h-24">
-          <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-stone-100 bg-white shadow-sm transition-transform duration-700 group-hover:scale-105">
-            {#if authStore.user?.avatar_url}
-              <img src={authStore.user.avatar_url} alt="Avatar" class="w-full h-full object-cover" />
-            {:else}
-              <div class="w-full h-full flex items-center justify-center text-3xl font-serif italic text-luxury-copper bg-stone-50 uppercase">
-                {authStore.user?.name?.charAt(0) || 'U'}
-              </div>
-            {/if}
-          </div>
-          <!-- Hidden file input -->
-          <input
-            type="file"
-            accept="image/*"
-            class="hidden"
-            bind:this={fileInput}
-            onchange={handleAvatarUpload}
-          />
-          <!-- Overlay Edit Button -->
-          <button
-            type="button"
-            class="absolute bottom-0 right-0 w-8 h-8 bg-stone-900 rounded-full flex items-center justify-center text-white border-2 border-white shadow-md hover:bg-luxury-copper transition-colors z-20"
-            onclick={() => fileInput.click()}
-          >
-            <Camera class="w-4 h-4" />
-          </button>
+    <div class="lg:col-span-5 flex flex-col items-center lg:items-end justify-center space-y-4 px-4">
+      <div class="relative">
+        <Avatar
+          src={authStore.user?.avatar_url}
+          name={authStore.user?.name}
+          size="lg"
+          editable={true}
+        />
+        <div class="absolute -bottom-1 -right-1 bg-white p-1.5 rounded-full shadow-sm border border-stone-100">
+           <Sparkles class="w-3.5 h-3.5 text-luxury-copper" />
         </div>
-        <div class="text-center">
-          <h2 class="text-xl font-serif italic text-stone-800">{authStore.user?.name || 'Quý khách'}</h2>
-        </div>
-      {/if}
+      </div>
+      <div class="text-center lg:text-right">
+        <h2 class="text-2xl font-serif italic text-stone-800 leading-tight">{authStore.user?.name || 'Quý khách'}</h2>
+        <p class="text-[10px] uppercase tracking-[3px] text-stone-400 mt-1 font-bold">Thành viên Elite</p>
+      </div>
     </div>
   </div>
 
-  <!-- Navigation Tabs -->
-  <div class="flex border-b border-stone-100 gap-8">
-    <button
-      onclick={() => activeTab = 'basic'}
-      class="pb-4 text-[13px] uppercase tracking-widest font-medium transition-all relative {activeTab === 'basic' ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
-    >
-      Thông tin cơ bản
-      {#if activeTab === 'basic'}
-        <div class="absolute bottom-0 left-0 w-full h-0.5 bg-luxury-copper" in:fly={{ y: 2 }}></div>
-      {/if}
-    </button>
-    <button
-      onclick={() => activeTab = 'beauty'}
-      class="pb-4 text-[13px] uppercase tracking-widest font-medium transition-all relative {activeTab === 'beauty' ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
-    >
-      Hồ sơ vẻ đẹp
-      {#if activeTab === 'beauty'}
-        <div class="absolute bottom-0 left-0 w-full h-0.5 bg-luxury-copper" in:fly={{ y: 2 }}></div>
-      {/if}
-    </button>
+  <!-- Navigation Tabs: Modern Pill Style -->
+  <div class="flex justify-center md:justify-start">
+    <div class="inline-flex p-1 bg-stone-50 rounded-full border border-stone-100">
+      <button
+        onclick={() => activeTab = 'basic'}
+        class="px-6 md:px-10 py-2.5 rounded-full text-[11px] uppercase tracking-widest font-bold transition-all duration-500 flex items-center gap-2
+        {activeTab === 'basic' ? 'bg-white text-stone-900 shadow-sm ring-1 ring-stone-200/50' : 'text-stone-400 hover:text-stone-600'}"
+      >
+        <User class="w-3.5 h-3.5" />
+        Thông tin
+      </button>
+      <button
+        onclick={() => activeTab = 'beauty'}
+        class="px-6 md:px-10 py-2.5 rounded-full text-[11px] uppercase tracking-widest font-bold transition-all duration-500 flex items-center gap-2
+        {activeTab === 'beauty' ? 'bg-white text-stone-900 shadow-sm ring-1 ring-stone-200/50' : 'text-stone-400 hover:text-stone-600'}"
+      >
+        <Heart class="w-3.5 h-3.5" />
+        Vẻ đẹp
+      </button>
+    </div>
   </div>
 
   <!-- Form Content -->
-  <div class="min-h-[400px]">
+  <div class="relative">
     {#if activeTab === 'basic'}
-      <div class="space-y-8 py-6" in:fade>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div class="space-y-2">
-            <label for="username" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Tên đăng nhập</label>
-            <input
-              id="username"
-              type="text"
-              bind:value={username}
-              placeholder="Thiết lập tên đăng nhập..."
-              class="w-full h-11 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 font-medium placeholder:text-stone-300 placeholder:italic placeholder:font-normal"
-            />
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10" in:fade={{ duration: 400 }}>
+        <!-- Identity Group -->
+        <div class="space-y-10">
+          <div class="flex items-center gap-3 border-b border-stone-100 pb-2">
+            <Fingerprint class="w-4 h-4 text-luxury-copper" />
+            <h3 class="text-[12px] uppercase tracking-[2px] font-bold text-stone-800">Định danh tài khoản</h3>
           </div>
 
-          <div class="space-y-2">
-            <label for="email" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Địa chỉ Email</label>
-            <div class="w-full h-11 border-b border-stone-100 flex items-center justify-between">
-              {#if isEditingEmail}
-                <input
-                  id="email"
-                  type="email"
-                  bind:value={email}
-                  class="w-full h-full outline-none focus:text-stone-900 text-stone-800 font-medium bg-transparent"
-                  onblur={() => { if (!email) isEditingEmail = false; }}
-                  autoFocus
-                />
-              {:else}
-                <span class="text-stone-800 font-medium">{maskEmail(email)}</span>
-                <button 
-                  type="button"
-                  onclick={() => isEditingEmail = true}
-                  class="text-[11px] text-luxury-copper hover:underline font-bold uppercase tracking-wider"
-                >
-                  Thay đổi
-                </button>
-              {/if}
+          <div class="space-y-8">
+            <div class="space-y-1.5 group">
+              <label for="username" class="text-[10px] uppercase tracking-widest text-stone-400 font-bold group-focus-within:text-luxury-copper transition-colors">Tên đăng nhập</label>
+              <input
+                id="username"
+                type="text"
+                bind:value={username}
+                placeholder="Thiết lập tên đăng nhập..."
+                class="w-full h-12 bg-transparent border-b border-stone-200 outline-none focus:border-luxury-copper transition-all text-stone-800 font-medium placeholder:text-stone-200 placeholder:italic"
+              />
             </div>
-          </div>
 
-          <div class="space-y-2">
-            <label for="fullname" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Họ và tên</label>
-            <input
-              id="fullname"
-              type="text"
-              bind:value={name}
-              placeholder="Nhập họ tên..."
-              class="w-full h-11 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 placeholder:text-stone-300"
-            />
-          </div>
+            <div class="space-y-1.5 group">
+              <label for="fullname" class="text-[10px] uppercase tracking-widest text-stone-400 font-bold group-focus-within:text-luxury-copper transition-colors">Họ và tên</label>
+              <input
+                id="fullname"
+                type="text"
+                bind:value={name}
+                placeholder="Nhập họ tên đầy đủ..."
+                class="w-full h-12 bg-transparent border-b border-stone-200 outline-none focus:border-luxury-copper transition-all text-stone-800 font-medium placeholder:text-stone-200"
+              />
+            </div>
 
-          <div class="space-y-2">
-            <label for="phone" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Số điện thoại</label>
-            <input
-              id="phone"
-              type="tel"
-              bind:value={phone}
-              placeholder="Nhập số điện thoại..."
-              class="w-full h-11 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 placeholder:text-stone-300"
-            />
-          </div>
-
-          <div class="space-y-2">
-            <label class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Giới tính</label>
-            <div class="flex items-center gap-8 h-11">
-              {#each [['Nam', 'MALE'], ['Nữ', 'FEMALE'], ['Khác', 'OTHER']] as [label, val]}
-                <label class="flex items-center gap-3 cursor-pointer group">
-                  <div class="w-4 h-4 rounded-full border border-stone-300 flex items-center justify-center transition-all group-hover:border-luxury-copper {gender === val ? 'border-luxury-copper' : ''}">
-                    {#if gender === val}
-                      <div class="w-2 h-2 bg-luxury-copper rounded-full" in:fade></div>
-                    {/if}
-                  </div>
-                  <input type="radio" bind:group={gender} value={val} class="hidden" />
-                  <span class="text-[13px] text-stone-600 group-hover:text-stone-900 transition-colors">{label}</span>
-                </label>
-              {/each}
+            <div class="space-y-1.5 group">
+              <label class="text-[10px] uppercase tracking-widest text-stone-400 font-bold mb-2 block">Giới tính</label>
+              <div class="flex items-center gap-6 h-12">
+                {#each [['Nam', 'MALE'], ['Nữ', 'FEMALE'], ['Khác', 'OTHER']] as [label, val]}
+                  <label class="flex items-center gap-2.5 cursor-pointer group/radio py-2">
+                    <div class="w-5 h-5 rounded-full border border-stone-300 flex items-center justify-center transition-all group-hover/radio:border-luxury-copper {gender === val ? 'border-luxury-copper bg-luxury-copper/5' : ''}">
+                      {#if gender === val}
+                        <div class="w-2 h-2 bg-luxury-copper rounded-full" in:fade></div>
+                      {/if}
+                    </div>
+                    <input type="radio" bind:group={gender} value={val} class="hidden" />
+                    <span class="text-[13px] text-stone-600 group-hover/radio:text-stone-900 transition-colors">{label}</span>
+                  </label>
+                {/each}
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="space-y-4">
-          <label class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Ngày sinh</label>
-          <div class="flex gap-4">
-             <div class="flex-1 border-b border-stone-200">
-               <select bind:value={birthDay} class="w-full h-11 bg-transparent outline-none text-[14px] text-stone-800 cursor-pointer appearance-none">
-                 {#each days as d}<option value={d}>{d}</option>{/each}
-               </select>
-             </div>
-             <div class="flex-1 border-b border-stone-200">
-               <select bind:value={birthMonth} class="w-full h-11 bg-transparent outline-none text-[14px] text-stone-800 cursor-pointer appearance-none">
-                 {#each months as m}<option value={m}>Tháng {m}</option>{/each}
-               </select>
-             </div>
-             <div class="flex-1 border-b border-stone-200">
-               <select bind:value={birthYear} class="w-full h-11 bg-transparent outline-none text-[14px] text-stone-800 cursor-pointer appearance-none">
-                 {#each years as y}<option value={y}>{y}</option>{/each}
-               </select>
-             </div>
+        <!-- Contact & Birthday Group -->
+        <div class="space-y-10">
+          <div class="flex items-center gap-3 border-b border-stone-100 pb-2">
+            <Mail class="w-4 h-4 text-luxury-copper" />
+            <h3 class="text-[12px] uppercase tracking-[2px] font-bold text-stone-800">Liên hệ & Cá nhân</h3>
+          </div>
+
+          <div class="space-y-8">
+            <div class="space-y-1.5 group">
+              <label for="email" class="text-[10px] uppercase tracking-widest text-stone-400 font-bold group-focus-within:text-luxury-copper transition-colors">Địa chỉ Email</label>
+              <div class="w-full h-12 border-b border-stone-200 flex items-center justify-between">
+                {#if isEditingEmail}
+                  <input
+                    id="email"
+                    type="email"
+                    bind:value={email}
+                    class="w-full h-full outline-none bg-transparent text-stone-800 font-medium"
+                    onblur={() => { if (!email) isEditingEmail = false; }}
+                    autoFocus
+                  />
+                {:else}
+                  <span class="text-stone-800 font-medium">{maskEmail(email)}</span>
+                  <button
+                    type="button"
+                    onclick={() => isEditingEmail = true}
+                    class="text-[9px] text-luxury-copper hover:underline font-black uppercase tracking-widest"
+                  >
+                    Thay đổi
+                  </button>
+                {/if}
+              </div>
+            </div>
+
+            <div class="space-y-1.5 group">
+              <label for="phone" class="text-[10px] uppercase tracking-widest text-stone-400 font-bold group-focus-within:text-luxury-copper transition-colors">Số điện thoại</label>
+              <div class="relative">
+                <input
+                  id="phone"
+                  type="tel"
+                  bind:value={phone}
+                  placeholder="0xx xxxx xxx"
+                  class="w-full h-12 bg-transparent border-b border-stone-200 outline-none focus:border-luxury-copper transition-all text-stone-800 font-medium placeholder:text-stone-200"
+                />
+                <Phone class="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-200" />
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div class="flex items-center gap-2">
+                <Calendar class="w-3.5 h-3.5 text-luxury-copper" />
+                <label class="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Ngày sinh của bạn</label>
+              </div>
+              <div class="flex gap-4">
+                 <div class="flex-1 border-b border-stone-200">
+                   <select bind:value={birthDay} class="w-full h-12 bg-transparent outline-none text-[13px] text-stone-800 cursor-pointer appearance-none">
+                     {#each days as d}<option value={d}>{d < 10 ? '0' + d : d}</option>{/each}
+                   </select>
+                 </div>
+                 <div class="flex-1 border-b border-stone-200">
+                   <select bind:value={birthMonth} class="w-full h-12 bg-transparent outline-none text-[13px] text-stone-800 cursor-pointer appearance-none">
+                     {#each months as m}<option value={m}>Tháng {m}</option>{/each}
+                   </select>
+                 </div>
+                 <div class="flex-1 border-b border-stone-200">
+                   <select bind:value={birthYear} class="w-full h-12 bg-transparent outline-none text-[13px] text-stone-800 cursor-pointer appearance-none">
+                     {#each years as y}<option value={y}>{y}</option>{/each}
+                   </select>
+                 </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     {:else}
-      <SkinProfile bind:data={skinData} />
+      <div in:fade={{ duration: 400 }}>
+        <SkinProfile bind:data={skinData} />
+      </div>
     {/if}
   </div>
 
-  <!-- Footer Action -->
-  <div class="pt-10 flex justify-center">
+  <!-- Footer Action: Elegant Floating Effect -->
+  <div class="pt-10 flex flex-col items-center space-y-4">
     <button
       onclick={handleSave}
       disabled={isSaving}
-      class="group relative px-12 py-3 bg-stone-900 text-white overflow-hidden transition-all duration-500 hover:shadow-[0_10px_30px_rgba(0,0,0,0.15)] disabled:opacity-50"
+      class="group relative px-16 py-4 bg-stone-900 text-white overflow-hidden transition-all duration-700 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] disabled:opacity-50"
     >
-      <div class="absolute inset-0 bg-luxury-copper translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-      <span class="relative z-10 text-[12px] uppercase tracking-[4px] font-bold">
-        {isSaving ? 'Đang lưu hồ sơ...' : 'Cập nhật thay đổi'}
+      <div class="absolute inset-0 bg-luxury-copper translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-700 ease-out"></div>
+      <span class="relative z-10 text-[11px] uppercase tracking-[5px] font-black">
+        {isSaving ? 'Đang lưu hồ sơ...' : 'Lưu thay đổi'}
       </span>
     </button>
+    <p class="text-[9px] text-stone-300 uppercase tracking-widest">Mọi thông tin được bảo mật bởi Micsmo Elite</p>
   </div>
 </div>
 

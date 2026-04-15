@@ -13,23 +13,24 @@
 
   interface Props {
     addresses: UserAddress[];
+    initialData?: UserAddress | null;
     onUpdate: (updatedAddresses: UserAddress[]) => void;
+    onCancel: () => void;
   }
 
-  let { addresses = $bindable(), onUpdate }: Props = $props();
+  let { addresses = $bindable(), initialData = null, onUpdate, onCancel }: Props = $props();
 
-  let showForm = $state(false);
   let isSaving = $state(false);
-  let editingId = $state<string | null>(null);
+  let editingId = $state<string | null>(initialData?.id || null);
 
   // Form states
-  let name = $state('');
-  let phone = $state('');
-  let address = $state('');
-  let city = $state('');
-  let district = $state('');
-  let ward = $state('');
-  let isDefault = $state(false);
+  let name = $state(initialData?.name || '');
+  let phone = $state(initialData?.phone || '');
+  let address = $state(initialData?.address || '');
+  let city = $state(initialData?.city || '');
+  let district = $state(initialData?.district || '');
+  let ward = $state(initialData?.ward || '');
+  let isDefault = $state(initialData?.isDefault || false);
 
   const selectedProvinceData = $derived(divisions.find(d => d.name === city));
   const normalize = (s: string) => s.normalize('NFC').toLowerCase().trim();
@@ -55,18 +56,6 @@
       return 0;
     });
   });
-
-  function resetForm() {
-    name = '';
-    phone = '';
-    address = '';
-    city = '';
-    district = '';
-    ward = '';
-    isDefault = false;
-    editingId = null;
-    showForm = false;
-  }
 
   async function handleSave() {
     if (!name || !phone || !address || !city || !ward) {
@@ -116,7 +105,6 @@
 
       onUpdate(updatedAddresses);
       ui.showToast('Địa chỉ đã được cập nhật thành công! ✨', 'success');
-      resetForm();
     } catch (e: unknown) {
       ui.showToast('Lỗi khi lưu địa chỉ.', 'error');
     } finally {
@@ -125,32 +113,109 @@
   }
 </script>
 
-<div class="space-y-4">
-    {#if !showForm}
-        <button
-        onclick={() => showForm = true}
-        class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-stone-900 text-white hover:bg-luxury-copper transition-all duration-500 shadow-sm"
-        >
-        <Plus class="w-4 h-4" />
-        <span class="text-[11px] font-bold uppercase tracking-widest">Thêm địa chỉ mới</span>
-        </button>
-    {:else}
-        <div class="bg-stone-50/50 p-6 border border-stone-100 rounded-sm space-y-6" in:fly={{ y: 20 }}>
-            <h2 class="text-sm font-bold uppercase tracking-[2px] text-stone-600">
-                {editingId ? 'Chỉnh sửa địa chỉ' : 'Địa chỉ mới'}
-            </h2>
+<div class="space-y-10 py-6" in:fade={{ duration: 400 }}>
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-luxury-copper/10 flex items-center justify-center">
+        <MapPin class="w-4 h-4 text-luxury-copper" />
+      </div>
+      <h3 class="text-xl font-serif italic text-stone-800 leading-none">
+        {editingId ? 'Chỉnh sửa địa chỉ' : 'Địa chỉ mới'}
+      </h3>
+    </div>
+    <p class="text-[9px] uppercase tracking-widest text-stone-400 font-bold">Shipping Address</p>
+  </div>
 
-            <div class="space-y-4">
-                <input type="text" bind:value={name} placeholder="Họ và tên" class="w-full h-11 border-b border-stone-200 bg-transparent outline-none focus:border-luxury-copper" />
-                <input type="text" bind:value={phone} placeholder="Số điện thoại" class="w-full h-11 border-b border-stone-200 bg-transparent outline-none focus:border-luxury-copper" />
-                <input type="text" bind:value={address} placeholder="Địa chỉ cụ thể" class="w-full h-11 border-b border-stone-200 bg-transparent outline-none focus:border-luxury-copper" />
-                <SearchableDropdown bind:value={city} options={divisions.map(d => d.name)} placeholder="Chọn tỉnh/thành" />
-                <SearchableDropdown bind:value={ward} options={currentWards} placeholder="Chọn phường/xã" disabled={!city} />
-            </div>
-
-            <button onclick={handleSave} class="w-full py-3 bg-stone-900 text-white text-[11px] font-bold uppercase tracking-widest">
-                {isSaving ? 'Đang lưu...' : 'Hoàn thành'}
-            </button>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
+    <!-- Identity Group -->
+    <div class="space-y-8">
+      <div class="space-y-1.5 group">
+        <label for="name" class="text-[10px] uppercase tracking-widest text-stone-400 font-bold group-focus-within:text-luxury-copper transition-colors">Họ và tên người nhận</label>
+        <div class="relative">
+          <input
+            id="name"
+            type="text"
+            bind:value={name}
+            placeholder="Nhập họ tên đầy đủ..."
+            class="w-full h-12 bg-transparent border-b border-stone-200 outline-none focus:border-luxury-copper transition-all text-stone-800 font-medium placeholder:text-stone-200"
+          />
+          <User class="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-200" />
         </div>
-    {/if}
+      </div>
+
+      <div class="space-y-1.5 group">
+        <label for="phone" class="text-[10px] uppercase tracking-widest text-stone-400 font-bold group-focus-within:text-luxury-copper transition-colors">Số điện thoại liên hệ</label>
+        <div class="relative">
+          <input
+            id="phone"
+            type="tel"
+            bind:value={phone}
+            placeholder="0xx xxxx xxx"
+            class="w-full h-12 bg-transparent border-b border-stone-200 outline-none focus:border-luxury-copper transition-all text-stone-800 font-medium placeholder:text-stone-200"
+          />
+          <Phone class="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-200" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Location Group -->
+    <div class="space-y-8">
+      <div class="space-y-4">
+        <div class="space-y-1.5 group">
+           <label class="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Tỉnh / Thành phố</label>
+           <SearchableDropdown bind:value={city} options={divisions.map(d => d.name)} placeholder="Chọn tỉnh/thành..." />
+        </div>
+
+        <div class="space-y-1.5 group">
+           <label class="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Quận / Huyện / Phường / Xã</label>
+           <SearchableDropdown bind:value={ward} options={currentWards} placeholder="Chọn khu vực..." disabled={!city} />
+        </div>
+      </div>
+
+      <div class="space-y-1.5 group">
+        <label for="address" class="text-[10px] uppercase tracking-widest text-stone-400 font-bold group-focus-within:text-luxury-copper transition-colors">Địa chỉ cụ thể (Số nhà, Tên đường)</label>
+        <input
+          id="address"
+          type="text"
+          bind:value={address}
+          placeholder="Nhập địa chỉ của Quý khách..."
+          class="w-full h-12 bg-transparent border-b border-stone-200 outline-none focus:border-luxury-copper transition-all text-stone-800 font-medium placeholder:text-stone-200"
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="pt-4">
+    <label class="flex items-center gap-3 cursor-pointer group/check w-fit">
+      <div class="w-5 h-5 rounded-md border border-stone-200 flex items-center justify-center transition-all group-hover/check:border-luxury-copper {isDefault ? 'bg-stone-900 border-stone-900 shadow-sm' : ''}">
+        {#if isDefault}
+          <div in:fade>
+            <CheckCircle2 class="w-3.5 h-3.5 text-white" />
+          </div>
+        {/if}
+      </div>
+      <input type="checkbox" bind:checked={isDefault} class="hidden" />
+      <span class="text-[12px] font-bold text-stone-600 uppercase tracking-widest group-hover/check:text-stone-900 transition-colors">Đặt làm địa chỉ mặc định</span>
+    </label>
+  </div>
+
+  <div class="pt-10 flex flex-col md:flex-row items-center gap-4">
+    <button
+      onclick={handleSave}
+      disabled={isSaving}
+      class="w-full md:w-auto md:px-16 py-4 bg-stone-900 text-white relative group overflow-hidden transition-all duration-700 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] disabled:opacity-50"
+    >
+      <div class="absolute inset-0 bg-luxury-copper translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-700 ease-out"></div>
+      <span class="relative z-10 text-[11px] uppercase tracking-[5px] font-black">
+        {isSaving ? 'Đang lưu...' : 'Lưu địa chỉ'}
+      </span>
+    </button>
+
+    <button
+      onclick={onCancel}
+      class="w-full md:w-auto px-10 py-4 text-[11px] uppercase tracking-[3px] font-bold text-stone-400 hover:text-stone-800 transition-colors"
+    >
+      Hủy bỏ
+    </button>
+  </div>
 </div>

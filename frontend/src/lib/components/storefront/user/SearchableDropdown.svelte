@@ -52,7 +52,7 @@
   <!-- Dropdown Trigger -->
   <button
     type="button"
-    class="w-full h-11 border-b border-stone-200 bg-transparent outline-none flex items-center justify-between text-left transition-colors {disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-luxury-copper'} {value ? 'text-stone-800' : 'text-stone-400'}"
+    class="w-full h-12 border-b border-stone-200 bg-transparent outline-none flex items-center justify-between text-left transition-colors {disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-luxury-copper'} {value ? 'text-stone-800' : 'text-stone-400'}"
     {disabled}
     onclick={() => !disabled && (open = !open)}
   >

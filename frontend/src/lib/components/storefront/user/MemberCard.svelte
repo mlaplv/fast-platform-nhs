@@ -35,7 +35,7 @@
 
 <div
   in:fade={{ duration: 800 }}
-  class="relative w-full h-48 rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br {tierColors[tier as keyof typeof tierColors]} p-6 text-white group"
+  class="relative w-full h-48 rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br {tierColors[tier as keyof typeof tierColors]} p-4 md:p-6 text-white group"
 >
   <!-- Background Pattern -->
   <div class="absolute inset-0 opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-1000">

@@ -42,7 +42,10 @@
     <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
     <UserHeaderMobile title="Thông Báo" bind:isMenuOpen />
 
-    <div class="pt-16 pb-20 px-4 space-y-6">
+    <div
+      class="pb-20 px-4 space-y-6"
+      style="padding-top: calc(env(safe-area-inset-top) + 80px);"
+    >
         <NotificationList />
     </div>
   {/if}

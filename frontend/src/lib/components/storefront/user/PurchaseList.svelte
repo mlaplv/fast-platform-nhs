@@ -12,6 +12,7 @@
   let activeTab = $state('all');
   let orders = $state<Order[]>([]);
   let isLoading = $state(true);
+  let searchQuery = $state('');
 
   const tabs = [
     { id: 'all', label: 'Tất cả' },
@@ -63,15 +64,23 @@
   function handleReorder(order: Order) {
     ui.showToast('Tính năng mua lại đang được xử lý, vui lòng chờ trong giây lát! ✨', 'info');
   }
+
+  // Filter orders by search query
+  const filteredOrders = $derived(
+    orders.filter(o =>
+      o.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      o.items?.some(item => item.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+  );
 </script>
 
-<div class="space-y-6" in:fade>
+<div class="space-y-8" in:fade>
   <!-- Navigation Tabs -->
-  <div class="flex border-b border-stone-100 gap-4 overflow-x-auto no-scrollbar">
+  <div class="flex border-b border-stone-100 gap-6 md:gap-10 overflow-x-auto no-scrollbar scroll-smooth">
     {#each tabs as tab}
       <button
         onclick={() => activeTab = tab.id}
-        class="pb-3 text-[11px] uppercase tracking-widest font-bold whitespace-nowrap transition-all relative {activeTab === tab.id ? 'text-stone-800' : 'text-stone-400'}"
+        class="pb-4 text-[11px] md:text-[12px] uppercase tracking-widest font-bold whitespace-nowrap transition-all relative {activeTab === tab.id ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
       >
         {tab.label}
         {#if activeTab === tab.id}
@@ -81,26 +90,133 @@
     {/each}
   </div>
 
+  <!-- Search / Filter -->
+  <div class="relative group">
+    <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-luxury-copper transition-colors" />
+    <input
+      type="text"
+      bind:value={searchQuery}
+      placeholder="Tìm kiếm theo Mã đơn hàng hoặc Tên sản phẩm..."
+      class="w-full h-12 pl-12 pr-4 bg-stone-50 border border-transparent focus:border-stone-200 focus:bg-white outline-none text-[13px] text-stone-800 transition-all rounded-sm placeholder:italic"
+    />
+  </div>
+
   <!-- Order List -->
-  <div class="space-y-4">
+  <div class="space-y-6">
     {#if isLoading}
-      <div class="py-10 text-center text-stone-400 text-[11px] uppercase tracking-widest animate-pulse">Đang truy xuất...</div>
-    {:else if orders.length === 0}
-      <div class="py-10 text-center text-stone-400 italic text-sm">Chưa có đơn hàng.</div>
+      <div class="py-20 flex flex-col items-center justify-center space-y-4">
+        <div class="w-8 h-8 border-2 border-luxury-copper border-t-transparent animate-spin rounded-full"></div>
+        <p class="text-[11px] text-stone-400 uppercase tracking-widest animate-pulse">Đang truy xuất dữ liệu...</p>
+      </div>
+    {:else if filteredOrders.length === 0}
+      <div class="py-24 text-center border-2 border-dashed border-stone-50 rounded-lg" in:fade>
+        <div class="w-20 h-20 bg-stone-50 rounded-full flex items-center justify-center mx-auto mb-6">
+          <ShoppingBag class="w-10 h-10 text-stone-200" />
+        </div>
+        <p class="text-stone-400 font-serif italic">Không tìm thấy đơn hàng nào.</p>
+        {#if !searchQuery && activeTab === 'all'}
+          <a href="/" class="inline-block mt-8 px-10 py-3 bg-stone-900 text-white text-[11px] uppercase tracking-[3px] font-bold hover:bg-luxury-copper transition-all duration-500 shadow-lg">
+            Khám phá bộ sưu tập
+          </a>
+        {/if}
+      </div>
     {:else}
-      {#each orders as order (order.id)}
+      {#each filteredOrders as order (order.id)}
         {@const status = getStatusStyle(order.status)}
-        <div class="bg-white p-4 border border-stone-100 rounded-sm">
-          <div class="flex justify-between items-center mb-3">
-             <span class="text-[10px] font-bold text-stone-500">#{order.id.slice(-8).toUpperCase()}</span>
-             <span class="text-[10px] font-black {status.color}">{status.label}</span>
+        <div
+          class="bg-white border border-stone-100 overflow-hidden hover:shadow-[0_15px_40px_rgba(0,0,0,0.04)] transition-all duration-700 group rounded-sm"
+          in:fly={{ y: 10 }}
+        >
+          <!-- Order Header -->
+          <div class="px-4 md:px-6 py-4 border-b border-stone-50 flex flex-col md:flex-row md:items-center justify-between bg-stone-50/30 gap-3">
+            <div class="flex items-center gap-3 md:gap-4 flex-wrap">
+              <span class="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-stone-400">Đơn hàng</span>
+              <span class="text-[12px] md:text-[13px] font-bold text-stone-800">#{order.id.slice(-8).toUpperCase()}</span>
+              <span class="hidden md:inline text-[11px] text-stone-300">|</span>
+              <span class="text-[11px] md:text-[12px] text-stone-500 font-medium italic font-serif">{formatDate(order.created_at)}</span>
+            </div>
+            <div class="flex items-center gap-2 {status.color}">
+              <status.icon class="w-4 h-4" />
+              <span class="text-[10px] md:text-[11px] font-black uppercase tracking-widest">{status.label}</span>
+            </div>
           </div>
-          <div class="text-sm font-bold text-stone-800 mb-2">{formatCurrency(order.total_amount || 0)}</div>
-          <button onclick={() => ui.closeModal()} class="w-full py-2 border border-stone-200 text-[10px] font-bold uppercase tracking-widest text-stone-600">
-             Xem chi tiết
-          </button>
+
+          <!-- Order Items -->
+          <div class="p-4 md:p-6 space-y-6">
+            {#if order.items && Array.isArray(order.items)}
+              {#each order.items as item}
+                <div class="flex gap-4 md:gap-6 items-center">
+                  <div class="w-16 h-16 md:w-20 md:h-20 bg-stone-50 border border-stone-100 shrink-0 p-1 rounded-sm overflow-hidden group-hover:scale-105 transition-transform duration-700">
+                    {#if item.image}
+                      <img src={item.image} alt={item.name} class="w-full h-full object-cover" />
+                    {:else}
+                      <div class="w-full h-full flex items-center justify-center text-stone-200">
+                         <ShoppingBag class="w-6 h-6" />
+                      </div>
+                    {/if}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-[13px] md:text-[14px] font-medium text-stone-800 truncate mb-1">{item.name || 'Sản phẩm cao cấp'}</h3>
+                    <div class="flex items-center gap-3 md:gap-4 text-[11px] md:text-[12px] text-stone-400 uppercase tracking-widest flex-wrap">
+                      <span>Số lượng: {item.quantity || item.qty || 1}</span>
+                      {#if item.variant}
+                        <span class="w-px h-3 bg-stone-100"></span>
+                        <span>Phân loại: {item.variant}</span>
+                      {/if}
+                    </div>
+                  </div>
+                  <div class="text-right">
+                     <span class="text-[13px] md:text-[14px] font-bold text-stone-800">{formatCurrency(item.price || item.unit_price || 0)}</span>
+                  </div>
+                </div>
+              {/each}
+            {/if}
+          </div>
+
+          <!-- Order Footer -->
+          <div class="px-4 md:px-6 py-5 bg-stone-50/30 border-t border-stone-50 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] md:text-[12px] text-stone-400 uppercase tracking-widest">Thành tiền:</span>
+              <span class="text-lg md:text-xl font-bold text-luxury-copper tabular-nums">{formatCurrency(order.total_amount || order.total || 0)}</span>
+            </div>
+
+            <div class="flex items-center gap-3 md:gap-4">
+              <a
+                href="/checkout/success/{order.id}"
+                class="flex-1 md:flex-none text-center px-4 md:px-6 py-2 border border-stone-200 text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-stone-600 hover:border-stone-800 hover:text-stone-800 transition-all"
+              >
+                Chi tiết
+              </a>
+              <button
+                onclick={() => handleReorder(order)}
+                class="flex-1 md:flex-none px-6 md:px-8 py-2 bg-stone-900 text-white text-[10px] md:text-[11px] font-bold uppercase tracking-widest hover:bg-luxury-copper transition-all duration-500 shadow-md"
+              >
+                Mua lại
+              </button>
+            </div>
+          </div>
         </div>
       {/each}
     {/if}
   </div>
+
+  <!-- Aesthetic Branding -->
+  <div class="pt-16 text-center opacity-30 pb-10">
+     <div class="flex items-center justify-center gap-4 mb-2">
+        <div class="h-[1px] w-12 md:w-20 bg-stone-200"></div>
+        <span class="text-[9px] md:text-[10px] font-serif italic uppercase tracking-[3px] md:tracking-[5px] text-stone-800 whitespace-nowrap">Micsmo Elite Experience</span>
+        <div class="h-[1px] w-12 md:w-20 bg-stone-200"></div>
+     </div>
+     <p class="text-[8px] md:text-[9px] text-stone-400 uppercase tracking-[2px]">Bản quyền thuộc về Micsmo.com • 2026</p>
+  </div>
 </div>
+
+<style>
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+</style>

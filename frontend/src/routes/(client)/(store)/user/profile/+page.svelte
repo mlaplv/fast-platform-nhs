@@ -50,7 +50,10 @@
     <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
     <UserHeaderMobile title="Hồ sơ" bind:isMenuOpen />
 
-    <div class="pt-16 pb-20 px-4 space-y-6">
+    <div
+      class="pb-20 px-4 space-y-6"
+      style="padding-top: calc(env(safe-area-inset-top) + 80px);"
+    >
       <UserProfileForm />
     </div>
   {/if}

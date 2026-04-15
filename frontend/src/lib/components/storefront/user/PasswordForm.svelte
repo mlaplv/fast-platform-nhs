@@ -82,7 +82,7 @@
             type={showOldPassword ? 'text' : 'password'}
             autocomplete="current-password"
             bind:value={oldPassword}
-            class="w-full h-11 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 pr-10"
+            class="w-full h-12 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 pr-10"
           />
           <button
             type="button"
@@ -104,7 +104,7 @@
           type={showNewPassword ? 'text' : 'password'}
           autocomplete="new-password"
           bind:value={newPassword}
-          class="w-full h-11 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 pr-10"
+          class="w-full h-12 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 pr-10"
         />
         <button
           type="button"
@@ -125,7 +125,7 @@
           type={showConfirmPassword ? 'text' : 'password'}
           autocomplete="new-password"
           bind:value={confirmPassword}
-          class="w-full h-11 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 pr-10"
+          class="w-full h-12 border-b border-stone-200 outline-none focus:border-luxury-copper transition-colors text-stone-800 pr-10"
         />
         <button
           type="button"
@@ -137,13 +137,14 @@
       </div>
     </div>
 
-    <div class="pt-6">
+    <div class="pt-6 flex justify-center">
       <button
         type="submit"
         disabled={isSaving}
-        class="w-full py-4 bg-stone-900 text-white transition-all hover:bg-luxury-copper disabled:opacity-50"
+        class="group relative px-12 py-3 bg-stone-900 text-white overflow-hidden transition-all duration-500 hover:shadow-[0_10px_30px_rgba(0,0,0,0.15)] disabled:opacity-50"
       >
-        <span class="text-[12px] uppercase tracking-[4px] font-bold">
+        <div class="absolute inset-0 bg-luxury-copper translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+        <span class="relative z-10 text-[12px] uppercase tracking-[4px] font-bold">
           {isSaving ? 'Đang cập nhật...' : 'Xác nhận đổi'}
         </span>
       </button>
