@@ -117,7 +117,7 @@ app = Litestar(
         PublicNewsController, ClientSettingsController, ClientUserController,
         ClientNotificationController
     ],
-    middleware=[StallDetectorMiddleware, BodyLimitMiddleware, rate_limit_config.middleware, DomainGuardMiddleware, AuditMiddleware, AuthMiddleware],
+    middleware=[StallDetectorMiddleware, BodyLimitMiddleware, rate_limit_config.middleware, AuthMiddleware, AuditMiddleware, DomainGuardMiddleware],
     cors_config=cors_config,
     stores={"memory_store": memory_store},
     openapi_config=OpenAPIConfig(
