@@ -4,34 +4,12 @@
   import ProductGrid from './ProductGrid.svelte';
   import { fade, fly } from 'svelte/transition';
   import { untrack } from 'svelte';
-
-  interface Product {
-    id: string;
-    name: string;
-    price: number;
-    image?: string;
-    images?: string[];
-    discountPrice?: number;
-    originalPrice?: number;
-    sales?: number;
-    order_count?: number;
-    orderCount?: number;
-    rating?: number;
-    ratingCount?: number;
-    attributes?: Record<string, any>;
-  }
-
-  interface SearchFacets {
-    brands: string[];
-    origins: string[];
-    price_min: number;
-    price_max: number;
-  }
+  import type { Product, ProductFacets } from '$lib/types';
 
   interface Props {
     products: Product[];
     searchQuery?: string;
-    facets?: SearchFacets | null;
+    facets?: ProductFacets | null;
   }
 
   let { products = [], searchQuery, facets = null }: Props = $props();
@@ -82,15 +60,8 @@
     return Array.from(set).sort();
   });
 
-  const enhancedProducts = $derived(() => {
-    let result = products.map(p => ({
-      ...p,
-      image: p.image || (p.images && p.images.length > 0 ? p.images[0] : ''),
-      originalPrice: p.originalPrice ?? (p.discountPrice ? p.price : undefined),
-      sales: p.orderCount ?? p.order_count ?? p.sales ?? 0,
-      rating: p.rating ?? undefined,
-      ratingCount: p.ratingCount ?? undefined,
-    }));
+  const filteredProducts = $derived(() => {
+    let result = [...products];
 
     // Apply Filters
     if (selectedBrands.length > 0) {
@@ -107,13 +78,16 @@
       });
     }
 
-    result = result.filter(p => p.price >= minPrice && p.price <= maxPrice);
+    result = result.filter(p => {
+      const price = p.discountPrice ?? p.price;
+      return price >= minPrice && price <= maxPrice;
+    });
 
     // Sort Logic
     if (activeTab === 'BEST_SELLER') {
-      result = [...result].sort((a, b) => (b.sales ?? 0) - (a.sales ?? 0));
+      result.sort((a, b) => (b.orderCount ?? 0) - (a.orderCount ?? 0));
     } else if (activeTab === 'TOP_RATED') {
-      result = [...result].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+      result.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     }
     return result;
   });
@@ -174,7 +148,7 @@
   <!-- SIMPLIFIED VIRAL HEADER (Marketplace Standard) -->
   <div class="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-gray-100 shadow-sm flex flex-col">
     <!-- Row 1: Back & Search -->
-    <div class="px-2 py-2.5 flex items-center gap-2">
+    <div class="px-2 h-[48px] flex items-center gap-2">
        <button 
          onclick={() => goto('/')}
          class="p-1 text-gray-900 active:scale-90 transition-transform flex-shrink-0"
@@ -185,7 +159,7 @@
        <div 
          onclick={() => goto('/')}
          role="presentation"
-         class="flex-1 min-w-0 h-[38px] bg-gray-100/80 rounded-lg flex items-center px-3 gap-2 border border-transparent active:border-gray-200 transition-all cursor-pointer"
+         class="flex-1 min-w-0 h-9 bg-gray-100/80 rounded-lg flex items-center px-3 gap-2 border border-transparent active:border-gray-200 transition-all cursor-pointer"
        >
           <svg class="w-[18px] h-[18px] text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           <span class="text-[13px] text-gray-400 font-bold truncate">
@@ -244,8 +218,8 @@
 
   <!-- MAIN PRODUCT FEED -->
   <div class="px-2 pt-3">
-    {#if enhancedProducts().length > 0}
-      <ProductGrid products={enhancedProducts()} {activeTab} />
+    {#if filteredProducts().length > 0}
+      <ProductGrid products={filteredProducts()} {activeTab} />
     {:else}
       <div class="flex flex-col items-center justify-center py-24 px-10 text-center" in:fade>
         <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">

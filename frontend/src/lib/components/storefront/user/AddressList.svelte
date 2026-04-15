@@ -1,20 +1,11 @@
 <script lang="ts">
   import { Edit3, Trash2, MapPin } from 'lucide-svelte';
   import { fade } from 'svelte/transition';
-
-  interface Address {
-    id: string;
-    name: string;
-    phone: string;
-    address: string;
-    city: string;
-    ward: string;
-    isDefault: boolean;
-  }
+  import type { UserAddress } from '$lib/state/authStore.svelte';
 
   interface Props {
-    addresses: Address[];
-    onEdit: (addr: Address) => void;
+    addresses: UserAddress[];
+    onEdit: (addr: UserAddress) => void;
     onDelete: (id: string) => void;
     onSetDefault: (id: string) => void;
   }

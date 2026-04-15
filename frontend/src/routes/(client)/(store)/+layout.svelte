@@ -4,7 +4,6 @@
   import HeaderDesktop from "$lib/components/storefront/layout/HeaderDesktop.svelte";
   import HeaderMobile from "$lib/components/storefront/layout/HeaderMobile.svelte";
   import FooterDesktop from "$lib/components/storefront/layout/FooterDesktop.svelte";
-  import BottomNavMobile from "$lib/components/storefront/layout/BottomNavMobile.svelte";
   import { onMount, type Snippet } from "svelte";
   import type { LayoutData } from './$types';
   import "../client.css";
@@ -23,9 +22,10 @@
 
   // Trang home/search mobile tự quản lý header riêng (Marketplace style)
   const isSpecializedPage = $derived(
-    $page.url.pathname === '/home' || 
-    $page.url.pathname === '/' || 
-    $page.url.pathname === '/products'
+    $page.url.pathname === '/home' ||
+    $page.url.pathname === '/' ||
+    $page.url.pathname === '/products' ||
+    $page.url.pathname.startsWith('/user/')
   );
 
   // Global header chỉ hiện khi: đã hydrate + không bị ẩn + không phải trang chuyên biệt trên mobile
@@ -66,9 +66,7 @@
   </main>
 
   {#if showGlobalFooter}
-    {#if ui.isMobile}
-      <BottomNavMobile />
-    {:else}
+    {#if !ui.isMobile}
       <FooterDesktop shopInfo={footerShopInfo} />
     {/if}
   {/if}

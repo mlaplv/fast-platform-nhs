@@ -5,11 +5,12 @@
   import { onMount } from 'svelte';
   import { formatCurrency, formatDate } from '$lib/utils/format';
   import { Package, Truck, CheckCircle, XCircle, Clock, ShoppingBag, Search } from 'lucide-svelte';
+  import type { Order, OrderStatus } from '$lib/types/commerce/order';
 
   const ui = getClientUi();
 
   let activeTab = $state('all');
-  let orders = $state<any[]>([]);
+  let orders = $state<Order[]>([]);
   let isLoading = $state(true);
 
   const tabs = [
@@ -24,21 +25,21 @@
   async function fetchOrders() {
     isLoading = true;
     try {
-      const res = await apiClient.get<any>('/api/v1/client/user/orders', {
+      const res = await apiClient.get<{ data: Order[] }>('/api/v1/client/user/orders', {
         params: {
           status: activeTab === 'all' ? undefined : activeTab,
           limit: 50
         }
       });
       orders = res.data;
-    } catch (e) {
+    } catch (e: unknown) {
       ui.showToast('Không thể tải lịch sử đơn hàng.', 'error');
     } finally {
       isLoading = false;
     }
   }
 
-  function getStatusStyle(status: string) {
+  function getStatusStyle(status: OrderStatus | string) {
     switch (status) {
       case 'PENDING': return { color: 'text-amber-500', icon: Clock, label: 'Chờ xác nhận' };
       case 'PACKED': return { color: 'text-blue-500', icon: Package, label: 'Đang đóng gói' };
@@ -59,7 +60,7 @@
     }
   });
 
-  function handleReorder(order: any) {
+  function handleReorder(order: Order) {
     ui.showToast('Tính năng mua lại đang được xử lý, vui lòng chờ trong giây lát! ✨', 'info');
   }
 </script>

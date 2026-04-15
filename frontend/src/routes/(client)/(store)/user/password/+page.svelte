@@ -1,22 +1,26 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
+  import { fade, slide } from 'svelte/transition';
+  import { Eye, EyeOff } from 'lucide-svelte';
   import UserLayout from '$lib/components/storefront/user/UserLayout.svelte';
   import { apiClient } from '$lib/utils/apiClient';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
   import { fallbackSha256 } from '$lib/utils/cryptoFallback';
-  import { fade, slide } from 'svelte/transition';
-  import { Eye, EyeOff, Menu } from 'lucide-svelte';
   import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
-  import BottomNavMobile from '$lib/components/storefront/layout/BottomNavMobile.svelte';
+  import UserHeaderMobile from '$lib/components/storefront/user/UserHeaderMobile.svelte';
 
   const ui = getClientUi();
   let isMenuOpen = $state(false);
 
-  // Immersive layout management: Hide global header, show global footer (BottomNav)
+  // Quản lý layout: Ẩn Header mặc định trên mobile, hiển thị trên desktop
   $effect(() => {
-    ui.isHeaderHidden = true;
+    if (ui.isMobile) {
+      ui.isHeaderHidden = true;
+    } else {
+      ui.isHeaderHidden = false;
+    }
     ui.isFooterHidden = false;
 
     return () => {
@@ -80,8 +84,8 @@
       oldPassword = '';
       newPassword = '';
       confirmPassword = '';
-    } catch (e: any) {
-      ui.showToast(e.message || 'Lỗi khi đổi mật khẩu.', 'error');
+    } catch (e: unknown) {
+      ui.showToast(e instanceof Error ? e.message : 'Lỗi khi đổi mật khẩu.', 'error');
     } finally {
       isSaving = false;
     }
@@ -196,22 +200,10 @@
     </UserLayout>
   {:else}
     <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
-    <!-- Immersive Header Mobile -->
-    <header class="fixed top-0 left-0 w-full z-[var(--z-header)] flex items-center justify-between p-6 bg-white/90 backdrop-blur-md border-b border-gray-100">
-        <button onclick={() => history.back()} class="w-10 h-10 flex items-center justify-center">
-            <svg class="w-6 h-6 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
-        </button>
-        <h1 class="text-sm font-black text-gray-900 uppercase italic tracking-widest">Đổi Mật Khẩu</h1>
-        <!-- Menu Button -->
-        <button onclick={() => isMenuOpen = true} class="w-10 h-10 flex items-center justify-center">
-            <Menu class="w-6 h-6 text-gray-900" />
-        </button>
-    </header>
+    <UserHeaderMobile title="Đổi Mật Khẩu" bind:isMenuOpen />
 
-    <div class="pt-24 pb-8 px-4">
+    <div class="pt-12 pb-8 px-4">
       <p class="text-center text-stone-400 font-serif italic">Nội dung đổi mật khẩu đang được tối ưu...</p>
     </div>
-
-    <BottomNavMobile />
   {/if}
 {/if}

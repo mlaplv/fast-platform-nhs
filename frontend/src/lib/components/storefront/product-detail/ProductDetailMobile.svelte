@@ -86,7 +86,7 @@
 </script>
 
 <div class="product-mobile-root">
-  <MobileBottomSheet {product} bind:active={isBottomSheetOpen} />
+  <MobileBottomSheet {product} {shopStore} bind:active={isBottomSheetOpen} />
 
   <!-- 1. STICKY HEADER -->
   <ProductMobileHeader {product} {showTabs} {activeTab} onScrollToSection={scrollToSection} />
@@ -117,10 +117,10 @@
   </main>
 
   <!-- 5. STICKY BOTTOM NAV -->
-  <MobileBottomNav 
-    isProductMode={true} 
-    {product} 
-    onAddToCart={() => cartStore.addItem(product as any)} 
+  <MobileBottomNav
+    isProductMode={true}
+    {product}
+    onAddToCart={() => cartStore.addItem(product)}
     onBuyNow={buyNow}
     onChatOpen={() => {}}
   />

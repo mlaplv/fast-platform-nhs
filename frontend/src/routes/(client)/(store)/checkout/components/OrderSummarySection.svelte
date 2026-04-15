@@ -132,10 +132,10 @@
     </div>
 
     <!-- SUBMIT BUTTON -->
-    <button 
-      type="button" 
-      onclick={(e) => handleSubmit(e as any)}
-      disabled={isSubmitting} 
+    <button
+      type="button"
+      onclick={handleSubmit}
+      disabled={isSubmitting}
       class="w-full mt-6 py-4.5 bg-[#ee4d2d] text-white font-black text-lg uppercase italic tracking-widest hover:brightness-110 shadow-xl flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {#if isSubmitting}

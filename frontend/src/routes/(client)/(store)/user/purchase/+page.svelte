@@ -7,18 +7,23 @@
   import { fade, fly } from 'svelte/transition';
   import { onMount } from 'svelte';
   import { formatCurrency, formatDate } from '$lib/utils/format';
-  import { Package, Truck, CheckCircle, XCircle, Clock, ShoppingBag, Search, Menu } from 'lucide-svelte';
+  import { Package, Truck, CheckCircle, XCircle, Clock, ShoppingBag, Search } from 'lucide-svelte';
   import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
+  import UserHeaderMobile from '$lib/components/storefront/user/UserHeaderMobile.svelte';
+  import type { Order, OrderStatus } from '$lib/types/commerce/order';
 
   const ui = getClientUi();
   let isMenuOpen = $state(false);
 
-  // Immersive layout management
+  // Quản lý layout: Ẩn Header mặc định trên mobile, hiển thị trên desktop
   $effect(() => {
     if (ui.isMobile) {
       ui.isHeaderHidden = true;
-      ui.isFooterHidden = true;
+    } else {
+      ui.isHeaderHidden = false;
     }
+    ui.isFooterHidden = false;
+
     return () => {
       ui.isHeaderHidden = false;
       ui.isFooterHidden = false;
@@ -26,7 +31,7 @@
   });
 
   let activeTab = $state('all');
-  let orders = $state<any[]>([]);
+  let orders = $state<Order[]>([]);
   let isLoading = $state(true);
 
   const tabs = [
@@ -41,7 +46,7 @@
   async function fetchOrders() {
     isLoading = true;
     try {
-      const res = await apiClient.get<any>('/api/v1/client/user/orders', {
+      const res = await apiClient.get<{ data: Order[] }>('/api/v1/client/user/orders', {
         params: {
           status: activeTab === 'all' ? undefined : activeTab,
           limit: 50
@@ -55,7 +60,7 @@
     }
   }
 
-  function getStatusStyle(status: string) {
+  function getStatusStyle(status: OrderStatus | string) {
     switch (status) {
       case 'PENDING': return { color: 'text-amber-500', icon: Clock, label: 'Chờ xác nhận' };
       case 'PACKED': return { color: 'text-blue-500', icon: Package, label: 'Đang đóng gói' };
@@ -76,7 +81,7 @@
     }
   });
 
-  function handleReorder(order: any) {
+  function handleReorder(order: Order) {
     ui.showToast('Tính năng mua lại đang được xử lý, vui lòng chờ trong giây lát! ✨', 'info');
   }
 </script>
@@ -226,19 +231,9 @@
     </UserLayout>
   {:else}
     <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
-    <!-- Immersive Header Mobile -->
-    <header class="fixed top-0 left-0 w-full z-[var(--z-header)] flex items-center justify-between p-6 bg-white/90 backdrop-blur-md border-b border-gray-100">
-        <button onclick={() => history.back()} class="w-10 h-10 flex items-center justify-center">
-            <svg class="w-6 h-6 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
-        </button>
-        <h1 class="text-sm font-black text-gray-900 uppercase italic tracking-widest">Đơn Mua</h1>
-        <!-- Menu Button -->
-        <button onclick={() => isMenuOpen = true} class="w-10 h-10 flex items-center justify-center">
-            <Menu class="w-6 h-6 text-gray-900" />
-        </button>
-    </header>
+    <UserHeaderMobile title="Đơn Mua" bind:isMenuOpen />
 
-    <div class="pt-24 pb-8 px-4">
+    <div class="pt-12 pb-8 px-4">
         <div class="space-y-6">
           {#if isLoading}
             <div class="py-20 flex flex-col items-center justify-center space-y-4">

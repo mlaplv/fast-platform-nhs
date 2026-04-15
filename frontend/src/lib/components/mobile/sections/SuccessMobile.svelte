@@ -56,19 +56,33 @@
 </script>
 
 <div class="fixed inset-0 bg-[#fafafa] text-slate-900 overflow-y-auto custom-scrollbar flex flex-col">
-  <!-- Top Navigation -->
-  <button
-    onclick={() => goto('/')}
-    class="fixed top-4 right-6 w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-lg active:scale-95 transition-all text-slate-400 z-toast"
-    aria-label="Home"
-  >
-    <Home class="w-4 h-4" />
-  </button>
+  <!-- Top Navigation (Standard 48px Header) -->
+  <header class="fixed top-0 left-0 w-full h-[48px] bg-white border-b border-slate-100 flex items-center justify-between px-4 z-[1000]">
+     <button
+       onclick={() => history.back()}
+       class="p-2 text-slate-900 active:scale-90 transition-transform"
+       aria-label="Back"
+     >
+       <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+     </button>
+
+     <h1 class="text-sm font-black text-slate-900 uppercase italic tracking-tight">
+        {isLookup ? 'CHI TIẾT ĐƠN HÀNG' : 'ĐẶT HÀNG THÀNH CÔNG'}
+     </h1>
+
+     <button
+       onclick={() => goto('/')}
+       class="p-2 text-slate-900 active:scale-90 transition-transform"
+       aria-label="Home"
+     >
+       <Home class="w-5 h-5" />
+     </button>
+  </header>
 
   <!-- Celebration Glow (Subtle for Light Mode) -->
   <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[300px] {isLookup ? 'bg-sky-500/5' : 'bg-emerald-500/5'} blur-[80px] pointer-events-none"></div>
 
-  <div class="relative px-6 pt-12 flex flex-col items-center text-center">
+  <div class="relative px-6 pt-20 flex flex-col items-center text-center">
     <!-- Status Badge (White Mode) -->
     <div in:scale={{ duration: 600, delay: 200, start: 0.9 }} 
          class="px-5 py-1.5 rounded-full border border-slate-200 bg-white shadow-sm mb-8 flex items-center gap-2 relative">

@@ -67,8 +67,11 @@
     top: 0;
     left: 0;
     width: 100%;
+    height: 48px;
     background: linear-gradient(135deg, #d0f5f3 0%, #fde8e8 100%);
     overflow: hidden;
+    display: flex;
+    align-items: center;
   }
 
   .tsh-top-row {

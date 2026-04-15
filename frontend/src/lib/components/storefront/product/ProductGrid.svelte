@@ -24,7 +24,7 @@
   {#each products as product (product.id)}
     {@const discount = getDiscountPercent(product)}
     <a
-      href={`/${slugify(product.name)}`}
+      href={`/${product.slug}`}
       class="group/card relative bg-white border border-gray-100 transition-all duration-300 cursor-pointer flex flex-col active:scale-[0.98] shadow-sm overflow-hidden no-underline"
       in:fly={{ y: 20, duration: 600, delay: 100 }}
     >

@@ -4,17 +4,20 @@
   import UserLayout from '$lib/components/storefront/user/UserLayout.svelte';
   import AddressWrapper from '$lib/components/storefront/user/AddressWrapper.svelte';
   import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
-  import BottomNavMobile from '$lib/components/storefront/layout/BottomNavMobile.svelte';
-  import { Menu } from 'lucide-svelte';
+  import UserHeaderMobile from '$lib/components/storefront/user/UserHeaderMobile.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { fade } from 'svelte/transition';
 
   const ui = getClientUi();
   let isMenuOpen = $state(false);
 
-  // Immersive layout management: Hide global header, show global footer (BottomNav)
+  // Quản lý layout: Ẩn Header mặc định trên mobile, hiển thị trên desktop
   $effect(() => {
-    ui.isHeaderHidden = true;
+    if (ui.isMobile) {
+      ui.isHeaderHidden = true;
+    } else {
+      ui.isHeaderHidden = false;
+    }
     ui.isFooterHidden = false;
 
     return () => {
@@ -37,22 +40,10 @@
     </UserLayout>
   {:else}
     <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
-    <!-- Immersive Header Mobile -->
-    <header class="fixed top-0 left-0 w-full z-[var(--z-header)] flex items-center justify-between p-6 bg-white/90 backdrop-blur-md border-b border-gray-100">
-        <button onclick={() => history.back()} class="w-10 h-10 flex items-center justify-center">
-            <svg class="w-6 h-6 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
-        </button>
-        <h1 class="text-sm font-black text-gray-900 uppercase italic tracking-widest">Địa Chỉ</h1>
-        <!-- Menu Button -->
-        <button onclick={() => isMenuOpen = true} class="w-10 h-10 flex items-center justify-center">
-            <Menu class="w-6 h-6 text-gray-900" />
-        </button>
-    </header>
+    <UserHeaderMobile title="Địa Chỉ" bind:isMenuOpen />
 
-    <div class="pt-24 pb-20 px-4">
+    <div class="pt-12 pb-20 px-4">
         <AddressWrapper />
     </div>
-
-    <BottomNavMobile />
   {/if}
 {/if}

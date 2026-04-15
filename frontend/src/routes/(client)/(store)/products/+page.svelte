@@ -4,7 +4,16 @@
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
   import { onMount } from 'svelte';
 
-  let { data }: { data: any } = $props();
+  import type { Product, ProductFacets } from '$lib/types';
+
+  interface PageData {
+    products: Product[];
+    total: number;
+    searchQuery: string;
+    facets: ProductFacets | null;
+  }
+
+  let { data }: { data: PageData } = $props();
 
   const searchStore = getSearchStore();
   let isMobile = $state(false);

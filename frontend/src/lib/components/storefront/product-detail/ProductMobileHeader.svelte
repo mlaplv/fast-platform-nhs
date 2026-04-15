@@ -81,8 +81,9 @@
   .header-main {
     display: flex;
     align-items: center;
-    padding: 2px 8px;
+    padding: 6px 8px;
     gap: 12px;
+    height: 48px;
   }
 
   .tabs-nav {

@@ -20,7 +20,6 @@
   let birthDay = $state(dob.getDate());
   let birthMonth = $state(dob.getMonth() + 1);
   let birthYear = $state(dob.getFullYear());
-  let avatarUrl = $state(authStore.user?.avatar_url || '');
   let phone = $state(authStore.user?.phone || '');
 
   // Skin Profile States (Nested in extra_metadata)
@@ -34,9 +33,7 @@
   console.log('📖 [Beauty Profile] Khởi tạo hồ sơ vẻ đẹp từ authStore:', $state.snapshot(skinData));
 
   let isSaving = $state(false);
-  let isUploading = $state(false);
   let activeTab = $state('basic'); // basic | beauty
-  let fileInput = $state<HTMLInputElement>();
 
   // Required because $state initializers only run once.
   $effect(() => {
@@ -48,15 +45,11 @@
         email = user.email || '';
         username = user.username || '';
         gender = user.gender || 'OTHER';
-        if (user.avatar_url) {
-          avatarUrl = user.avatar_url;
-          console.log('🖼️ [Avatar] Đã cập nhật ảnh đại diện từ authStore:', avatarUrl);
-        }
 
         if (user.phone) {
           phone = user.phone;
         }
-        
+
         if (user.dob) {
           const d = new Date(user.dob);
           birthDay = d.getDate();
@@ -105,7 +98,7 @@
       const updatedDob = new Date(birthYear, birthMonth - 1, birthDay).toISOString();
       console.log('💾 [Beauty Profile] Đang gửi yêu cầu lưu hồ sơ vẻ đẹp:', $state.snapshot(skinData));
       const cardNumber = authStore.user?.extra_metadata?.cardNumber || generateCardNumber(authStore.user?.id);
-      
+
       const res = await apiClient.patch<{ ok: boolean }>('/api/v1/client/user/profile', {
         name,
         gender,
@@ -113,7 +106,6 @@
         email,
         phone,
         dob: updatedDob,
-        avatar_url: avatarUrl,
         extra_metadata: {
           ...authStore.user?.extra_metadata,
           skinProfile: $state.snapshot(skinData),
@@ -129,7 +121,6 @@
         email,
         phone,
         dob: updatedDob,
-        avatar_url: avatarUrl,
         extra_metadata: {
           skinProfile: $state.snapshot(skinData),
           cardNumber
@@ -138,53 +129,22 @@
       console.log('✅ [Beauty Profile] Dữ liệu trong authStore sau khi sync:', $state.snapshot(authStore.user?.extra_metadata));
       isEditingEmail = false;
       ui.showToast('Thông tin của Quý khách đã được ghi nhận! ✨', 'success');
-    } catch (e: any) {
+    } catch (e: unknown) {
       // 🛡️ Làm sạch Log Console: Khởi tạo cảnh báo thân thiện nếu lỗi validation
-      if (e.status === 409 || e.status === 400 || (e.message && e.message.includes('tồn tại'))) {
-        console.warn('⚠️ [Beauty Profile] Validation/Conflict:', e.message);
-        ui.showToast(e.message, 'warning');
+      const error = e as { status?: number; message?: string };
+      if (error && typeof error === 'object' && 'status' in error) {
+        if (error.status === 409 || error.status === 400 || (error.message && error.message.includes('tồn tại'))) {
+          console.warn('⚠️ [Beauty Profile] Validation/Conflict:', error.message);
+          ui.showToast(error.message || 'Dữ liệu không hợp lệ', 'warning');
+        } else {
+          console.error('❌ [Beauty Profile] Lỗi hệ thống khi cập nhật:', e);
+          ui.showToast(error.message || 'Có lỗi xảy ra, mong Quý khách thứ lỗi.', 'error');
+        }
       } else {
-        console.error('❌ [Beauty Profile] Lỗi hệ thống khi cập nhật:', e);
-        ui.showToast(e.message || 'Có lỗi xảy ra, mong Quý khách thứ lỗi.', 'error');
+        ui.showToast('Có lỗi xảy ra, mong Quý khách thứ lỗi.', 'error');
       }
     } finally {
       isSaving = false;
-    }
-  }
-
-  async function handleAvatarUpload(e: Event) {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      ui.showToast('Dung lượng tối đa 2MB Quý khách nhé.', 'warning');
-      return;
-    }
-
-    isUploading = true;
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const res = await apiClient.upload<any>('/api/v1/client/user/avatar', formData);
-      console.log('📡 [Avatar] Server response:', res);
-      
-      const newAvatarUrl = res.data?.avatar_url || res.avatar_url;
-      
-      if (newAvatarUrl) {
-        avatarUrl = newAvatarUrl;
-        authStore.syncUser({ avatar_url: avatarUrl });
-        console.log('✅ [Avatar] Cập nhật thành công:', avatarUrl);
-        ui.showToast('Diện mạo mới rất tuyệt vời! ✨', 'success');
-      } else {
-        console.warn('⚠️ [Avatar] Server trả về thành công nhưng không có avatar_url:', res);
-        ui.showToast('Không nhận được đường dẫn ảnh từ máy chủ.', 'warning');
-      }
-    } catch (e: any) {
-      console.error('❌ [Avatar] Lỗi upload:', e);
-      ui.showToast(e.message || 'Lỗi tải ảnh đại diện.', 'error');
-    } finally {
-      isUploading = false;
     }
   }
 
@@ -203,29 +163,17 @@
     </div>
 
     <div class="w-full md:w-1/2 flex flex-col items-center justify-center space-y-4 pt-4">
+      <!-- Avatar Display (Elite V3.2) -->
       <div class="relative group">
-        <div class="w-32 h-32 rounded-full border-2 border-stone-100 p-1 bg-white shadow-sm overflow-hidden transition-all duration-500 group-hover:border-luxury-copper">
-           {#if isUploading}
-             <div class="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
-                <div class="w-6 h-6 border-2 border-luxury-copper border-t-transparent animate-spin rounded-full"></div>
-             </div>
-           {/if}
-
-           {#if avatarUrl}
-             <img src={avatarUrl} alt="Avatar" class="w-full h-full object-cover rounded-full" />
-           {:else}
-             <div class="w-full h-full bg-stone-50 flex items-center justify-center text-4xl font-serif italic text-stone-200">
-                {authStore.user?.name?.charAt(0) || 'U'}
-             </div>
-           {/if}
+        <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-stone-100 bg-white shadow-sm transition-transform duration-700 group-hover:scale-105">
+          {#if authStore.user?.avatar_url}
+            <img src={authStore.user.avatar_url} alt="Avatar" class="w-full h-full object-cover" />
+          {:else}
+            <div class="w-full h-full flex items-center justify-center text-3xl font-serif italic text-luxury-copper bg-stone-50 uppercase">
+              {authStore.user?.name?.charAt(0) || 'U'}
+            </div>
+          {/if}
         </div>
-
-        <button
-          onclick={() => fileInput?.click()}
-          class="absolute bottom-0 right-0 w-10 h-10 bg-white shadow-md rounded-full flex items-center justify-center border border-stone-100 text-stone-600 hover:text-luxury-copper transition-colors"
-        >
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-        </button>
       </div>
 
       <div class="text-center">
@@ -233,8 +181,6 @@
       </div>
     </div>
   </div>
-
-  <input type="file" bind:this={fileInput} onchange={handleAvatarUpload} class="hidden" accept="image/*" />
 
   <!-- Navigation Tabs -->
   <div class="flex border-b border-stone-100 gap-8">

@@ -341,7 +341,7 @@
     style:z-index={Z_INDEX_CLIENT.MODAL + 10}
   >
     <!-- TikTok Exact Header - Matched with MobileSearchHeader.svelte -->
-    <header class="w-full px-2 py-2 flex items-center bg-white z-20 relative border-b border-gray-50/50">
+    <header class="w-full px-2 py-2 flex items-center bg-white z-20 relative border-b border-gray-50/50 h-12">
       <button onclick={() => searchStore.isOverlayOpen = false} class="p-1 -ml-1 text-gray-900 active:scale-90 transition-transform flex-shrink-0">
         <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
       </button>
@@ -477,8 +477,8 @@
                             </div>
                          </div>
                          <div class="flex flex-col items-end gap-1">
-                            {#if p.orderCount > 0}
-                              <span class="text-[10px] text-gray-400 font-black uppercase tracking-tighter opacity-70 underline decoration-luxury-copper/20 underline-offset-2">{p.orderCountText}</span>
+                            {#if p.orderCount && p.orderCount > 0}
+                              <span class="text-[10px] text-gray-400 font-black uppercase tracking-tighter opacity-70 underline decoration-luxury-copper/20 underline-offset-2">Đã bán {p.orderCount}</span>
                             {/if}
                             {#if p.stock < 10 && p.stock > 0}
                               <span class="text-[8px] font-black text-white bg-red-500 px-1.5 py-0.5 animate-pulse">SẮP HẾT</span>

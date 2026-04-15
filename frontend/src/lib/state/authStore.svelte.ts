@@ -1,6 +1,16 @@
 import { browser } from '$app/environment';
 import { getClientUi } from './commerce/ui.svelte';
 
+export interface UserAddress {
+  id: string;
+  name: string;
+  phone: string;
+  city: string;
+  ward: string;
+  address: string;
+  isDefault: boolean;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -15,12 +25,13 @@ export interface User {
   extra_metadata?: {
     tier?: 'MEMBER' | 'SILVER' | 'GOLD' | 'PLATINUM';
     points?: number;
+    addresses?: UserAddress[];
     skinProfile?: {
       skinType: string;
       concerns: string[];
       sensitivity: number;
     };
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -112,9 +123,11 @@ class AuthStore {
     }
 
     // Update other top-level fields
-    Object.keys(partial).forEach(key => {
-      if (key !== 'extra_metadata' && partial[key as keyof User] !== undefined) {
-        (this.user as any)[key] = partial[key as keyof User];
+    const keys = Object.keys(partial) as Array<keyof User>;
+    keys.forEach(key => {
+      if (key !== 'extra_metadata' && partial[key] !== undefined) {
+        // @ts-expect-error - Elite V3.1: Runtime sync for Svelte state
+        this.user[key] = partial[key];
       }
     });
 

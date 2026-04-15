@@ -10,6 +10,7 @@
   import vnDivisions from '$lib/data/vn_divisions.json';
   import { Menu } from 'lucide-svelte';
   import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
+  import UserHeaderMobile from '$lib/components/storefront/user/UserHeaderMobile.svelte';
 
   // Satellite Components (Elite V2.2 Composition)
   import AddressSection from './components/AddressSection.svelte';
@@ -26,8 +27,10 @@
     CustomItem,
     Voucher,
     CheckoutPayload,
-    CheckoutResponse
+    CheckoutResponse,
+    CustomerLookupResponse
   } from '$lib/types/commerce/checkout';
+  import type { User } from '$lib/state/authStore.svelte.ts';
 
   const cartStore = getCartStore();
   const clientUi = getClientUi();
@@ -38,6 +41,9 @@
     if (clientUi.isMobile) {
       clientUi.isHeaderHidden = true;
       clientUi.isFooterHidden = true;
+    } else {
+      clientUi.isHeaderHidden = false;
+      clientUi.isFooterHidden = false;
     }
     return () => {
       clientUi.isHeaderHidden = false;
@@ -92,14 +98,13 @@
       // Step 2: Fetch Fresh Profile & Apply Default Address
       if (authStore.isAuthenticated) {
         try {
-           const profileRes = await apiClient.get<any>('/api/v1/client/user/profile');
-           const user = profileRes;
+           const user = await apiClient.get<User>('/api/v1/client/user/profile');
 
            if (user) {
               authStore.syncUser(user);
 
               const addresses = user.extra_metadata?.addresses || [];
-              const defaultAddr = addresses.find((a: any) => a.isDefault);
+              const defaultAddr = addresses.find(a => a.isDefault);
 
               const isFormEmpty = !form.province || !form.street;
 
@@ -232,7 +237,7 @@
   async function lookupCustomer() {
     if (!authStore.isAuthenticated && form.phone.length < 10) return;
     try {
-      const res = await apiClient.post<any>('/api/v1/client/checkout/lookup', { phone: form.phone });
+      const res = await apiClient.post<{ data: CustomerLookupResponse }>('/api/v1/client/checkout/lookup', { phone: form.phone });
       if (res.data) {
         const data = res.data;
 
@@ -299,8 +304,8 @@
         await clientUi.showToast('Đặt hàng thành công!', 'success');
         window.location.href = `/checkout/success/${res.id}?phone=${form.phone}`;
       }
-    } catch (e: any) {
-      errorMsg = e.message || 'Lỗi đặt hàng, vui lòng thử lại!';
+    } catch (e: unknown) {
+      errorMsg = e instanceof Error ? e.message : 'Lỗi đặt hàng, vui lòng thử lại!';
       clientUi.showToast(errorMsg, 'error');
     } finally {
       isSubmitting = false;
@@ -362,20 +367,59 @@
     </div>
   {:else}
     <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
-    <!-- Immersive Header Mobile -->
-    <header class="fixed top-0 left-0 w-full z-[var(--z-header)] flex items-center justify-between p-6 bg-white/90 backdrop-blur-md border-b border-gray-100">
-        <button onclick={() => history.back()} class="w-10 h-10 flex items-center justify-center">
-            <svg class="w-6 h-6 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
-        </button>
-        <h1 class="text-sm font-black text-gray-900 uppercase italic tracking-widest">Thanh Toán</h1>
-        <!-- Menu Button -->
-        <button onclick={() => isMenuOpen = true} class="w-10 h-10 flex items-center justify-center">
-            <Menu class="w-6 h-6 text-gray-900" />
-        </button>
-    </header>
+    <UserHeaderMobile title="Thanh Toán" bind:isMenuOpen />
+    <div class="h-[48px]"></div> <!-- Spacer for fixed header -->
 
-    <div class="pt-24 pb-20 px-4">
-        <!-- Content Thanh Toán Mobile ... -->
+    <div class="pt-6 pb-20 px-4 max-w-md mx-auto">
+      {#if cartStore.items.length === 0}
+        <div class="py-20 text-center space-y-6" in:fade>
+          <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto shadow-sm">
+            <svg class="w-10 h-10 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+          </div>
+          <h1 class="text-lg font-black text-gray-900 uppercase italic tracking-widest">GIỎ HÀNG ĐANG TRỐNG</h1>
+          <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Bạn chưa chọn sản phẩm nào để thanh toán.</p>
+          <a href="/" class="inline-block px-8 py-3.5 bg-gray-900 text-white font-black uppercase text-[10px] tracking-[0.3em] hover:bg-[#ee4d2d] transition-colors shadow-lg">QUAY LẠI CỬA HÀNG</a>
+        </div>
+      {:else}
+        <div class="space-y-6">
+          <div class="flex items-center justify-between px-1">
+            <h1 class="text-xl font-black italic text-gray-900 tracking-tighter uppercase">THANH TOÁN</h1>
+            <div class="flex items-center gap-1.5 bg-gray-900 text-white px-2 py-1 rounded-sm scale-90">
+              <span class="text-[7px] font-black uppercase tracking-tighter">HẾT HẠN:</span>
+              <Countdown initialSeconds={1234} />
+            </div>
+          </div>
+
+          {#if errorMsg}
+            <div class="p-3 bg-red-50 border-l-4 border-red-500 text-red-600 text-[10px] font-black uppercase italic flex items-center gap-2" in:slide>
+              <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              {errorMsg}
+            </div>
+          {/if}
+
+          <div class="space-y-6">
+            <div class="bg-white shadow-sm overflow-hidden rounded-sm border-t-2 border-gray-900">
+              <AddressSection bind:form {invalidFields} bind:showNote bind:orderNote={form.note} {lookupCustomer} />
+            </div>
+
+            <div class="bg-white shadow-sm overflow-hidden rounded-sm border-t-2 border-gray-900 p-6">
+              <DeliveryPaymentSection bind:form {deliveryEstimate} {canExpress} {selectedProvinceData} bind:showCoInspectionModal />
+            </div>
+
+            <div class="bg-white shadow-sm overflow-hidden rounded-sm border-t-2 border-gray-900 p-6">
+              <VoucherSection {vouchers} {toggleVoucher} />
+            </div>
+
+            <div class="bg-white shadow-sm overflow-hidden rounded-sm border-t-2 border-gray-900">
+               <CheckoutItems bind:customItems bind:showCustomItemForm bind:newCustomItem {addCustomItem} {removeCustomItem} />
+            </div>
+
+            <div class="bg-white p-6 shadow-sm overflow-hidden rounded-sm border-t-4 border-[#ee4d2d] mb-10">
+               <OrderSummarySection bind:form {originalSubtotal} {productSavings} {shippingFee} {totalSavings} {isSubmitting} {handleSubmit} />
+            </div>
+          </div>
+        </div>
+      {/if}
     </div>
   {/if}
 {/if}

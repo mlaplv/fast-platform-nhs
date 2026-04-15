@@ -25,9 +25,9 @@ export function createNotificationState() {
       );
       state.notifications = res.data || [];
       state.hasInit = true; // CNS V90.1: Successfully loaded at least once
-    } catch (e: any) {
+    } catch (e: unknown) {
       // Ignore 409 Conflict as it might be a temporary state or duplicate fetch
-      if (e.status !== 409) {
+      if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status !== 409) {
         console.error("Failed to fetch notifications", e);
       }
       state.notifications = [];
@@ -41,7 +41,7 @@ export function createNotificationState() {
       await apiClient.patch(`/api/v1/client/notifications/${id}/read`, {});
       const note = state.notifications.find((n) => n.id === id);
       if (note) note.isRead = true;
-    } catch (e) {
+    } catch (e: unknown) {
       console.error("Failed to mark notification as read", e);
     }
   }

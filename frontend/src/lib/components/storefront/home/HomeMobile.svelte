@@ -6,7 +6,7 @@
   import MobileServiceIcons     from './MobileServiceIcons.svelte';
   import MobileFlashSale        from './MobileFlashSale.svelte';
   import MobileProductFeed      from './MobileProductFeed.svelte';
-  import MobileBottomNav        from './MobileBottomNav.svelte';
+  import MobileBottomNav       from './MobileBottomNav.svelte';
 
   import type { Product, Category, Banner } from '$lib/types';
 
@@ -42,7 +42,7 @@
   </div>
 
   <!-- Sticky bottom nav -->
-  <MobileBottomNav inboxCount={0} />
+  <MobileBottomNav />
 </div>
 
 <style>

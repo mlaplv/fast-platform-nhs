@@ -1,28 +1,19 @@
 <script lang="ts">
   import { apiClient } from '$lib/utils/apiClient';
-  import { authStore } from '$lib/state/authStore.svelte';
+  import { authStore, type UserAddress } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { Plus, MapPin, Phone, User, Trash2, Edit3, CheckCircle2 } from 'lucide-svelte';
-  import divisions from '$lib/data/vn_divisions.json';
+  import divisionsRaw from '$lib/data/vn_divisions.json';
+  import type { ProvinceData } from '$lib/types/commerce/checkout';
   import SearchableDropdown from './SearchableDropdown.svelte';
   import { fade, fly, slide } from 'svelte/transition';
 
   const ui = getClientUi();
-
-  interface Address {
-    id: string;
-    name: string;
-    phone: string;
-    address: string;
-    city: string;
-    district?: string;
-    ward: string;
-    isDefault: boolean;
-  }
+  const divisions = divisionsRaw as unknown as ProvinceData[];
 
   interface Props {
-    addresses: Address[];
-    onUpdate: (updatedAddresses: Address[]) => void;
+    addresses: UserAddress[];
+    onUpdate: (updatedAddresses: UserAddress[]) => void;
   }
 
   let { addresses = $bindable(), onUpdate }: Props = $props();
@@ -93,7 +84,7 @@
         isDefault = true;
       }
 
-      const newAddr: Address = {
+      const newAddr: UserAddress = {
         id: editingId || crypto.randomUUID(),
         name,
         phone,
@@ -126,7 +117,7 @@
       onUpdate(updatedAddresses);
       ui.showToast('Địa chỉ đã được cập nhật thành công! ✨', 'success');
       resetForm();
-    } catch (e) {
+    } catch (e: unknown) {
       ui.showToast('Lỗi khi lưu địa chỉ.', 'error');
     } finally {
       isSaving = false;

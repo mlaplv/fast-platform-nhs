@@ -10,14 +10,42 @@
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import vnDivisions from '$lib/data/vn_divisions.json';
   import SearchableCheckoutSelect from '$lib/components/storefront/ui/SearchableCheckoutSelect.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
 
   let { data } = $props<{ data: { isMobile: boolean } }>();
+  const ui = getClientUi();
+
+  // Standardize Layout: Sync header/footer with Elite V3.2 Protocol
+  $effect(() => {
+    if (ui.isMobile) {
+      ui.isHeaderHidden = true;
+      ui.isFooterHidden = true;
+    } else {
+      ui.isHeaderHidden = false;
+      ui.isFooterHidden = false;
+    }
+    return () => {
+      ui.isHeaderHidden = false;
+      ui.isFooterHidden = false;
+    };
+  });
 
   const orderId = page.params.id;
   const cartStore = getCartStore();
 
   // Elite V2.2: Order Status Roadmap
-  import type { OrderDetail } from '$lib/types';
+  import type { OrderDetail } from '$lib/types/commerce/order';
+
+  interface VnDivision {
+    id: string;
+    name: string;
+    code: string;
+    wards: string[];
+    has_express?: boolean;
+    express_fee?: number;
+    express_supported_wards?: string[];
+  }
+
   const STATUS_STEPS = [
     { key: 'PENDING', label: 'Tiếp nhận', icon: '📝' },
     { key: 'PACKED', label: 'Bảo mật', icon: '🛡️' },
@@ -74,7 +102,7 @@
     street: ''
   });
 
-  const validProvinces = (vnDivisions as any[]).filter(p => p.id);
+  const validProvinces = (vnDivisions as unknown as VnDivision[]).filter(p => p.id);
   const currentWards = $derived.by(() => {
     if (!editForm.province) return [];
     const province = validProvinces.find(p => p.name === editForm.province);
@@ -135,7 +163,6 @@
     } catch (err: unknown) {
       const e = err as { status?: number; message?: string };
       console.error("Failed to load order", e);
-      // R2026: If it's a 400 validation error regarding phone, it's a "Lock"!
       if (e.status === 400 && e.message?.toLowerCase().includes('số điện thoại')) {
         isLocked = true;
       } else {
@@ -159,7 +186,7 @@
         showToast("Đã hủy đơn hàng thành công");
         await fetchOrder();
     } catch (err: unknown) {
-      const e = err as { message?: string };
+        const e = err as { message?: string };
         showToast(e.message || "Không thể hủy đơn hàng", "error");
     } finally {
         isSubmittingAction = false;
@@ -178,7 +205,7 @@
         isEditing = false;
         await fetchOrder();
     } catch (err: unknown) {
-      const e = err as { message?: string };
+        const e = err as { message?: string };
         showToast(e.message || "Lỗi cập nhật dữ liệu", "error");
     } finally {
         isSubmittingAction = false;

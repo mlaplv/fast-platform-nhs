@@ -1,6 +1,6 @@
 <script lang="ts">
   import { apiClient } from '$lib/utils/apiClient';
-  import { authStore } from '$lib/state/authStore.svelte';
+  import { authStore, type UserAddress } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { onMount } from 'svelte';
   import { Plus, MapPin } from 'lucide-svelte';
@@ -10,26 +10,15 @@
 
   const ui = getClientUi();
 
-  interface Address {
-    id: string;
-    name: string;
-    phone: string;
-    address: string;
-    city: string;
-    district?: string;
-    ward: string;
-    isDefault: boolean;
-  }
-
-  let addresses = $state<Address[]>([]);
+  let addresses = $state<UserAddress[]>([]);
   let isLoading = $state(true);
   let showForm = $state(false);
 
   onMount(async () => {
     try {
-      const profile = await apiClient.get<{ extra_metadata?: { addresses?: Address[] } }>('/api/v1/client/user/profile');
+      const profile = await apiClient.get<{ extra_metadata?: { addresses?: UserAddress[] } }>('/api/v1/client/user/profile');
       addresses = profile?.extra_metadata?.addresses || [];
-    } catch (e) {
+    } catch (e: unknown) {
       addresses = authStore.user?.extra_metadata?.addresses || [];
     } finally {
       isLoading = false;
@@ -47,7 +36,7 @@
     await updateApi(updated);
   }
 
-  async function updateApi(updated: Address[]) {
+  async function updateApi(updated: UserAddress[]) {
     try {
       await apiClient.patch('/api/v1/client/user/profile', {
         extra_metadata: { ...authStore.user?.extra_metadata, addresses: updated }
@@ -55,7 +44,7 @@
       authStore.syncUser({ extra_metadata: { ...(authStore.user?.extra_metadata || {}), addresses: updated } });
       addresses = updated;
       ui.showToast('Cập nhật thành công', 'success');
-    } catch (e) {
+    } catch (e: unknown) {
       ui.showToast('Lỗi cập nhật', 'error');
     }
   }

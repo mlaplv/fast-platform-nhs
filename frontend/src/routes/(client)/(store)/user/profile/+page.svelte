@@ -1,19 +1,24 @@
-<script>
+<script lang="ts">
+  import UserLayout from '$lib/components/storefront/user/UserLayout.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
+  import { fade } from 'svelte/transition';
   import UserProfileForm from '$lib/components/storefront/user/UserProfileForm.svelte';
   import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
-  import BottomNavMobile from '$lib/components/storefront/layout/BottomNavMobile.svelte';
-  import { Menu } from 'lucide-svelte';
+  import UserHeaderMobile from '$lib/components/storefront/user/UserHeaderMobile.svelte';
 
   const ui = getClientUi();
   let isMenuOpen = $state(false);
 
-  // Ẩn Header mặc định của Layout, hiển thị Footer (BottomNav)
+  // Quản lý layout: Ẩn Header mặc định trên mobile, hiển thị trên desktop
   $effect(() => {
-    ui.isHeaderHidden = true;
+    if (ui.isMobile) {
+      ui.isHeaderHidden = true;
+    } else {
+      ui.isHeaderHidden = false;
+    }
     ui.isFooterHidden = false;
 
     return () => {
@@ -31,25 +36,22 @@
 </script>
 
 {#if browser}
-  <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
+  {#if !ui.isMobile}
+    <UserLayout>
+      <div class="space-y-8" in:fade>
+        <div class="border-b border-stone-100 pb-5">
+          <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Hồ Sơ Của Tôi</h1>
+          <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Quản lý thông tin tài khoản</p>
+        </div>
+        <UserProfileForm />
+      </div>
+    </UserLayout>
+  {:else}
+    <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
+    <UserHeaderMobile title="Hồ sơ" bind:isMenuOpen />
 
-  <!-- Header Immersive -->
-  <header class="fixed top-0 left-0 w-full z-[var(--z-header)] flex items-center justify-between p-6 bg-white/90 backdrop-blur-md border-b border-gray-100">
-      <button onclick={() => history.back()} class="w-10 h-10 flex items-center justify-center">
-          <svg class="w-6 h-6 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
-      </button>
-      <h1 class="text-sm font-black text-gray-900 uppercase italic tracking-widest">Hồ sơ</h1>
-      <!-- Menu Button -->
-      <button onclick={() => isMenuOpen = true} class="w-10 h-10 flex items-center justify-center">
-        <Menu class="w-6 h-6 text-gray-900" />
-      </button>
-  </header>
-
-  <div class="pt-24 pb-8 px-4">
-    <UserProfileForm />
-  </div>
-
-  {#if ui.isMobile}
-    <BottomNavMobile />
+    <div class="pt-12 pb-8 px-4">
+      <UserProfileForm />
+    </div>
   {/if}
 {/if}

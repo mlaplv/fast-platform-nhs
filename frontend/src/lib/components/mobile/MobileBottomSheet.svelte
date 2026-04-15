@@ -2,13 +2,12 @@
   import type { Product, ProductVariant } from '$lib/types';
   import { X, ShoppingCart, ShieldCheck, ArrowRight, ArrowLeft, Phone, MapPin, User, Loader2 } from 'lucide-svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import type { ShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { portal } from '$lib/core/actions/portal';
   import { fade, fly } from 'svelte/transition';
   import GiftModal from '$lib/components/storefront/ui/GiftModal.svelte';
 
-  const shopStore = getShopStore();
-  let { active = $bindable(), product }: { active: boolean, product: Product } = $props();
+  let { active = $bindable(), product, shopStore }: { active: boolean, product: Product, shopStore: ShopStore } = $props();
 
   const metadata = $derived(product?.metadata);
   const variants = $derived(product?.variants || []);

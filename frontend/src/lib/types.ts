@@ -367,11 +367,22 @@ export interface Product {
   seoDescription: string | null;
   images: string[];
   mobileImages?: string[];
-  attributes: Record<string, unknown>;
+  attributes: Record<string, unknown>; // Elite V2.2: Strict types for product attributes
   metadata: ProductMetadata;
   tierVariations: TierVariation[];
   variants: ProductVariant[];
+  orderCount?: number;
+  rating?: number;
   createdAt: string;
+}
+
+export interface ProductFacets {
+  brands?: string[];
+  origins?: string[];
+  categories?: { id: string; name: string; count: number }[];
+  priceRange?: { min: number; max: number };
+  price_min?: number;
+  price_max?: number;
 }
 
 export interface TierVariation {

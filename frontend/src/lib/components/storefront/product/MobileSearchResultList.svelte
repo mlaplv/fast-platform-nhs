@@ -4,14 +4,14 @@
   import { trimProductName } from '$lib/utils/format';
   import { fade } from 'svelte/transition';
   import { ChevronLeft, Search, Filter } from 'lucide-svelte';
-  import type { Product } from '$lib/types';
+  import type { Product, ProductFacets } from '$lib/types';
 
   import BottomSheet from '$lib/components/mobile/BottomSheet.svelte';
 
   let { products = [], searchQuery = '', facets = null, loading = false } = $props<{
     products: Product[];
     searchQuery?: string;
-    facets?: any | null;
+    facets?: ProductFacets | null;
     loading?: boolean;
   }>();
 
@@ -46,10 +46,16 @@
     }
 
     if (selectedBrands.length > 0) {
-      result = result.filter(p => selectedBrands.includes(p.attributes?.brand));
+      result = result.filter(p => {
+        const brand = p.attributes?.brand;
+        return typeof brand === 'string' && selectedBrands.includes(brand);
+      });
     }
     if (selectedOrigins.length > 0) {
-      result = result.filter(p => selectedOrigins.includes(p.attributes?.origin));
+      result = result.filter(p => {
+        const origin = p.attributes?.origin;
+        return typeof origin === 'string' && selectedOrigins.includes(origin);
+      });
     }
 
     if (activeTab === 'LATEST') {
@@ -93,7 +99,7 @@
 <div class="min-h-screen bg-white pb-20 font-['Outfit']">
   <!-- Viral Mobile Header -->
   <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 flex flex-col">
-    <div class="px-2 py-2 flex items-center gap-2">
+    <div class="px-2 py-1 flex items-center gap-2 h-12">
       <button onclick={() => goto('/')} class="p-2 text-gray-900 active:scale-90 transition-transform">
         <ChevronLeft size={24} />
       </button>

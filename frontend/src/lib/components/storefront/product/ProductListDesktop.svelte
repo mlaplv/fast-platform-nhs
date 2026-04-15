@@ -3,31 +3,14 @@
   import { slugify } from '$lib/utils/format';
   import ProductGrid from './ProductGrid.svelte';
   import CategoryBanner from './CategoryBanner.svelte';
-
-  interface Product {
-    id: string;
-    name: string;
-    price: number;
-    image: string;
-    sales?: number;
-    originalPrice?: number;
-    rating?: number;
-    ratingCount?: number;
-  }
-
-  interface SearchFacets {
-    brands: string[];
-    origins: string[];
-    price_min: number;
-    price_max: number;
-  }
+  import type { Product, ProductFacets } from '$lib/types';
 
   interface Props {
     products: Product[];
     categoryName: string;
     categorySlug: string;
     serverTotal: number;
-    facets?: SearchFacets | null;
+    facets?: ProductFacets | null;
   }
 
   let { 
@@ -185,9 +168,9 @@
     if (facets?.brands && facets.brands.length > 0) return facets.brands;
     const set = new Set<string>();
     allProducts.forEach(p => {
-      const attrs = (p as Record<string, unknown>).attributes;
+      const attrs = p.attributes;
       if (attrs && typeof attrs === 'object') {
-        const b = (attrs as Record<string, unknown>).brand ?? (attrs as Record<string, unknown>)["Thương hiệu"];
+        const b = attrs['brand' as keyof typeof attrs] ?? attrs['Thương hiệu' as keyof typeof attrs];
         if (typeof b === 'string' && b.trim()) set.add(b.trim());
       }
     });
@@ -198,9 +181,9 @@
     if (facets?.origins && facets.origins.length > 0) return facets.origins;
     const set = new Set<string>();
     allProducts.forEach(p => {
-      const attrs = (p as Record<string, unknown>).attributes;
+      const attrs = p.attributes;
       if (attrs && typeof attrs === 'object') {
-        const o = (attrs as Record<string, unknown>).origin ?? (attrs as Record<string, unknown>)["Xuất xứ"];
+        const o = attrs['origin' as keyof typeof attrs] ?? attrs['Xuất xứ' as keyof typeof attrs];
         if (typeof o === 'string' && o.trim()) set.add(o.trim());
       }
     });
@@ -210,13 +193,13 @@
   const enhancedProducts = $derived(() => {
     return allProducts.map(p => ({
       ...p,
-      image: p.image || (p.images && p.images.length > 0 ? p.images[0] : ''),
+      image: p.images && p.images.length > 0 ? p.images[0] : '',
       // Elite V2.2: Dùng discountPrice từ DB — CẤM tự nhân giá ảo
-      originalPrice: p.originalPrice ?? ((p as Record<string, unknown>).discountPrice ? p.price : undefined),
+      originalPrice: p.discountPrice ? p.price : undefined,
       // Elite V2.2: Dùng order_count thực từ DB — CẤM tự bơm số ảo
-      sales: (p as Record<string, unknown>).orderCount as number | undefined ?? (p as Record<string, unknown>).order_count as number | undefined ?? p.sales ?? 0,
-      rating: (p as Record<string, unknown>).rating as number | undefined ?? undefined,
-      ratingCount: (p as Record<string, unknown>).ratingCount as number | undefined ?? undefined,
+      sales: p.orderCount ?? 0,
+      rating: p.rating ?? undefined,
+      ratingCount: p.ratingCount ?? undefined,
     }));
   });
 

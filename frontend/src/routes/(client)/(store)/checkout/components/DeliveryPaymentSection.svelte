@@ -1,5 +1,6 @@
 <script lang="ts">
   import { slide } from 'svelte/transition';
+  import type { ProvinceData } from '$lib/types/commerce/checkout';
 
   interface FormState {
     shippingMethod: 'standard' | 'express';
@@ -7,17 +8,17 @@
     province: string;
   }
 
-  let { 
-    form = $bindable(), 
-    deliveryEstimate, 
-    canExpress, 
+  let {
+    form = $bindable(),
+    deliveryEstimate,
+    canExpress,
     selectedProvinceData,
     showCoInspectionModal = $bindable()
   } = $props<{
     form: FormState;
     deliveryEstimate: string | null;
     canExpress: boolean;
-    selectedProvinceData: any;
+    selectedProvinceData: ProvinceData | undefined;
     showCoInspectionModal: boolean;
   }>();
 </script>
