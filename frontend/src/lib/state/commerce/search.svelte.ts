@@ -13,14 +13,14 @@ export class SearchState {
   // Real DB Results
   searchResults = $state<ProductResponse[]>([]);
 
-  // Elite V2.2: Dynamic Placeholder (Root Fix for hardcoding)
-  searchPlaceholder = $derived.by(() => {
+  // Elite V2.2: Dynamic Placeholder (Root Fix for hardcoding & derived_inert warning)
+  get searchPlaceholder() {
     if (this.featuredProducts && this.featuredProducts.length > 0) {
       const p = this.featuredProducts[0];
       return `Tìm "${p.name}"...`;
     }
     return "Tìm kiếm sản phẩm...";
-  });
+  }
 
   constructor() {
     this.loadHistory();
