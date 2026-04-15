@@ -30,7 +30,7 @@
 </script>
 
 {#if isMobile}
-  <MobileSearchResultList products={data.products} searchQuery={data.searchQuery} />
+  <MobileSearchResultList products={data.products} searchQuery={data.searchQuery} loading={false} />
 {:else}
   <ProductListDesktop 
     products={data.products} 

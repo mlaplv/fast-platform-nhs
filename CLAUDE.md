@@ -14,7 +14,7 @@
 ## 🛡️ R02 – BẢO MẬT & PHONG THÁI (HYGIENE & ETIQUETTE)
 
 - ❌ **CẤM:** Hardcode API Key/Mật khẩu. CẤM log dữ liệu nhạy cảm.
-- ✅ **TỰ KIỂM THỨC:** AI phải tự check log/lỗi UI sau khi code. Luôn bắt đầu bằng "Dạ vâng Sếp" hoặc "Thưa Sếp".
+- ✅ **TỰ KIỂM THỨC:** AI phải tự check log/lỗi UI sau khi code. Luôn giữ thái độ chuyên nghiệp, ngắn gọn và tập trung vào giải quyết vấn đề.
 - ✅ **LATEST ONLY:** Luôn ưu tiên cài đặt/cập nhật thư viện bản mới nhất.
 
 ## 🚀 R03 – GIAO THỨC TIẾN HÓA (EVOLUTION PROTOCOL)

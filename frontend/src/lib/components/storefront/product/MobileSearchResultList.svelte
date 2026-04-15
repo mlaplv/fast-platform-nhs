@@ -4,11 +4,15 @@
   import { trimProductName } from '$lib/utils/format';
   import { fade } from 'svelte/transition';
   import { ChevronLeft, Search, Filter } from 'lucide-svelte';
+  import type { Product } from '$lib/types';
 
-  let { products = [], searchQuery = '', facets = null } = $props<{
-    products: any[];
+  import BottomSheet from '$lib/components/mobile/BottomSheet.svelte';
+
+  let { products = [], searchQuery = '', facets = null, loading = false } = $props<{
+    products: Product[];
     searchQuery?: string;
     facets?: any | null;
+    loading?: boolean;
   }>();
 
   let activeTab = $state('RELEVANT');
@@ -17,16 +21,29 @@
   // Filter State
   let selectedBrands = $state<string[]>([]);
   let selectedOrigins = $state<string[]>([]);
-  let minPrice = $state(facets?.price_min ?? 0);
-  let maxPrice = $state(facets?.price_max ?? 2000000);
+  let selectedServices = $state<string[]>([]);
+  let minPrice = $state<number | null>(null);
+  let maxPrice = $state<number | null>(null);
+
+  // Constants
+  const servicesList = ['Cam kết chính hãng', 'Tặng kèm mẫu thử', 'Gói quà cao cấp', 'Miễn phí vận chuyển', 'Tư vấn chuyên gia', 'Thanh toán linh hoạt'];
 
   // Derived filters
   const availableBrands = $derived(facets?.brands ?? []);
-  const availableOrigins = $derived(facets?.origins ?? []);
+  const availableOrigins = $derived(facets?.origins?.length ? facets.origins : ['Hà Nội', 'Hồ Chí Minh', 'Bắc Ninh']);
 
   // Combined logic: Sort + Filter
   const sortedProducts = $derived(() => {
-    let result = products.filter(p => p.price >= minPrice && p.price <= maxPrice);
+    let result = [...products];
+
+    if (minPrice !== null || maxPrice !== null) {
+        result = result.filter(p => {
+             const price = p.discountPrice ?? p.price;
+             if (minPrice !== null && price < minPrice) return false;
+             if (maxPrice !== null && price > maxPrice) return false;
+             return true;
+        });
+    }
 
     if (selectedBrands.length > 0) {
       result = result.filter(p => selectedBrands.includes(p.attributes?.brand));
@@ -47,6 +64,29 @@
 
   function toggleBrand(brand: string) {
     selectedBrands = selectedBrands.includes(brand) ? selectedBrands.filter(b => b !== brand) : [...selectedBrands, brand];
+  }
+  function toggleService(service: string) {
+    selectedServices = selectedServices.includes(service) ? selectedServices.filter(s => s !== service) : [...selectedServices, service];
+  }
+  function toggleOrigin(origin: string) {
+    selectedOrigins = selectedOrigins.includes(origin) ? selectedOrigins.filter(o => o !== origin) : [...selectedOrigins, origin];
+  }
+  function setPriceRange(min: number | null, max: number | null) {
+      // Toggle off if same range clicked
+      if (minPrice === min && maxPrice === max) {
+          minPrice = null;
+          maxPrice = null;
+      } else {
+          minPrice = min;
+          maxPrice = max;
+      }
+  }
+  function clearFilters() {
+      selectedBrands = [];
+      selectedServices = [];
+      selectedOrigins = [];
+      minPrice = null;
+      maxPrice = null;
   }
 </script>
 
@@ -75,7 +115,7 @@
            <button
              onclick={() => activeTab = tab.id}
              class="px-3 py-2 text-[12px] font-bold rounded-full transition-all whitespace-nowrap
-               {activeTab === tab.id ? 'bg-[#fe2c55] text-white' : 'bg-transparent text-gray-600'}"
+               {activeTab === tab.id ? 'bg-[var(--color-brand-primary)] text-white' : 'bg-transparent text-gray-600'}"
            >
              {tab.label}
            </button>
@@ -92,14 +132,26 @@
 
   <!-- Search Results Grid -->
   <div class="p-3">
-    {#if sortedProducts().length > 0}
+    {#if loading}
+      <div class="grid grid-cols-2 gap-3">
+        {#each Array(4) as _}
+           <div class="bg-white rounded-2xl border border-gray-50 overflow-hidden shadow-sm animate-pulse">
+             <div class="aspect-square bg-gray-100"></div>
+             <div class="p-3">
+               <div class="h-4 bg-gray-100 rounded mb-2"></div>
+               <div class="h-4 bg-gray-100 rounded w-1/2"></div>
+             </div>
+           </div>
+        {/each}
+      </div>
+    {:else if sortedProducts().length > 0}
       <div class="grid grid-cols-2 gap-3">
         {#each sortedProducts() as p}
           <a href="/{p.slug}" class="bg-white rounded-2xl border border-gray-50 overflow-hidden shadow-sm hover:shadow-md transition-shadow active:scale-[0.98] transition-transform">
             <div class="aspect-square bg-gray-50 overflow-hidden relative">
-              <img src={p.images?.[0] ?? p.metadata?.image_url} alt={p.name} class="w-full h-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" />
+              <img src={p.images?.[0] ?? p.metadata?.image_url} alt={p.name} class="w-full h-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" decoding="async" />
               {#if p.discountPrice}
-                <div class="absolute top-2 left-2 bg-[#fe2c55] text-white text-[9px] font-black px-1.5 py-0.5 rounded-sm shadow-md">GIẢM</div>
+                <div class="absolute top-2 left-2 bg-[var(--color-brand-primary)] text-white text-[9px] font-black px-1.5 py-0.5 rounded-sm shadow-md">GIẢM</div>
               {/if}
             </div>
             <div class="p-3">
@@ -116,55 +168,114 @@
         <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
            <Search size={32} class="text-gray-300" />
         </div>
-        <p class="text-[14px] text-gray-500">Sếp ơi, không tìm thấy sản phẩm nào khớp ạ.</p>
+        <p class="text-[14px] text-gray-500">Không tìm thấy sản phẩm nào.</p>
       </div>
     {/if}
   </div>
 
   <!-- Filter Modal (Slide from Bottom) -->
-  {#if isFilterDrawerOpen}
-    <button
-      class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1001]"
-      onclick={() => isFilterDrawerOpen = false}
-      transition:fade={{ duration: 300 }}
-    ></button>
+  <BottomSheet title="Bộ Lọc" bind:active={isFilterDrawerOpen}>
+    <div class="overflow-y-auto pb-4 flex flex-col gap-6">
 
-    <div
-      class="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-white z-[1002] rounded-t-3xl shadow-2xl flex flex-col overflow-hidden"
-      transition:fly={{ y: '100%', duration: 400 }}
-    >
-      <div class="p-6 overflow-y-auto pb-32">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-lg font-black italic tracking-tighter uppercase">Bộ Lọc</h2>
-          <button onclick={() => isFilterDrawerOpen = false} class="text-gray-400">Đóng</button>
+      <!-- Dịch vụ và khuyến mãi -->
+      <div>
+        <h4 class="text-[14px] font-bold text-gray-800 mb-3 px-1">Dịch vụ và khuyến mãi</h4>
+        <div class="flex flex-wrap gap-2 px-1">
+          {#each servicesList as service}
+            <button
+              onclick={() => toggleService(service)}
+              class="px-3 py-2 rounded-md text-[13px] border relative transition-colors {selectedServices.includes(service) ? 'bg-red-50 text-[var(--color-brand-primary)] border-[var(--color-brand-primary)]' : 'bg-gray-50 text-gray-700 border-transparent hover:bg-gray-100'}"
+            >
+              {service}
+            </button>
+          {/each}
         </div>
+      </div>
 
-        <!-- Brands -->
-        {#if availableBrands.length > 0}
-          <div class="mb-6">
-            <h4 class="text-[12px] font-bold text-gray-500 mb-3">Thương hiệu</h4>
-            <div class="flex flex-wrap gap-2">
-              {#each availableBrands as brand}
-                <button onclick={() => toggleBrand(brand)} class="px-3 py-1.5 rounded-full text-[12px] font-bold border {selectedBrands.includes(brand) ? 'bg-[#fe2c55] text-white border-[#fe2c55]' : 'bg-gray-100 text-gray-600 border-gray-100'}">
-                  {brand}
-                </button>
-              {/each}
-            </div>
+      <!-- Khoảng giá -->
+      <div>
+        <h4 class="text-[14px] font-bold text-gray-800 mb-3 px-1">Khoảng giá</h4>
+        <div class="grid grid-cols-2 gap-2 px-1 mb-4">
+           {#each [
+             { label: 'Dưới 100Kđ', min: null, max: 100000 },
+             { label: '100Kđ - 200Kđ', min: 100000, max: 200000 },
+             { label: '200Kđ - 350Kđ', min: 200000, max: 350000 },
+             { label: 'Trên 350Kđ', min: 350000, max: null },
+           ] as range}
+             <button
+                onclick={() => setPriceRange(range.min, range.max)}
+                class="px-2 py-2 rounded-md text-[13px] border relative transition-colors {minPrice === range.min && maxPrice === range.max ? 'bg-red-50 text-[var(--color-brand-primary)] border-[var(--color-brand-primary)]' : 'bg-gray-50 text-gray-700 border-transparent hover:bg-gray-100'}"
+             >
+                {range.label}
+             </button>
+           {/each}
+        </div>
+        <div class="flex items-center gap-3 px-1">
+          <div class="flex-1 bg-gray-50 rounded-md flex items-center px-3 py-2 border border-transparent focus-within:border-[var(--color-brand-primary)]">
+            <input type="number" placeholder="Tối thiểu" bind:value={minPrice} class="w-full text-[13px] bg-transparent outline-none text-gray-800" />
+            <span class="text-gray-400 text-[13px] ml-1">₫</span>
           </div>
-        {/if}
-
-        <!-- Price -->
-        <div class="mb-6">
-            <h4 class="text-[12px] font-bold text-gray-500 mb-3">Giá từ ({minPrice.toLocaleString()} - {maxPrice.toLocaleString()})</h4>
-            <input type="range" min={facets?.price_min ?? 0} max={facets?.price_max ?? 2000000} bind:value={maxPrice} class="w-full" />
+          <div class="w-3 h-[1px] bg-gray-400"></div>
+          <div class="flex-1 bg-gray-50 rounded-md flex items-center px-3 py-2 border border-transparent focus-within:border-[var(--color-brand-primary)]">
+            <input type="number" placeholder="Tối đa" bind:value={maxPrice} class="w-full text-[13px] bg-transparent outline-none text-gray-800" />
+            <span class="text-gray-400 text-[13px] ml-1">₫</span>
+          </div>
         </div>
       </div>
 
-      <div class="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-100">
-        <button onclick={() => isFilterDrawerOpen = false} class="w-full py-4 bg-[#fe2c55] text-white font-bold rounded-2xl shadow-lg">
-          Áp dụng ({sortedProducts().length} sản phẩm)
-        </button>
+      <!-- Vận chuyển từ -->
+      <div>
+        <div class="flex items-center justify-between px-1 mb-3">
+           <h4 class="text-[14px] font-bold text-gray-800">Vận chuyển từ</h4>
+           <div class="flex flex-row items-center cursor-pointer text-gray-500 hover:text-gray-700">
+             <span class="text-[12px] font-medium mr-1">Hiển thị thêm</span>
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-[1px]"><polyline points="6 9 12 15 18 9"></polyline></svg>
+           </div>
+        </div>
+        <div class="flex flex-wrap gap-2 px-1">
+          {#each availableOrigins as origin}
+            <button
+              onclick={() => toggleOrigin(origin)}
+              class="px-4 py-2 rounded-md text-[13px] border relative transition-colors {selectedOrigins.includes(origin) ? 'bg-red-50 text-[var(--color-brand-primary)] border-[var(--color-brand-primary)]' : 'bg-gray-50 text-gray-700 border-transparent hover:bg-gray-100'}"
+            >
+              {origin}
+            </button>
+          {/each}
+        </div>
       </div>
+
+      <!-- Brands/Thương hiệu -->
+      {#if availableBrands.length > 0}
+        <div class="">
+          <div class="flex items-center justify-between px-1 mb-3">
+             <h4 class="text-[14px] font-bold text-gray-800">Thương hiệu</h4>
+          </div>
+          <div class="flex flex-wrap gap-2 px-1">
+            {#each availableBrands as brand}
+              <button
+                onclick={() => toggleBrand(brand)}
+                 class="px-4 py-2 rounded-md text-[13px] border relative transition-colors {selectedBrands.includes(brand) ? 'bg-red-50 text-[var(--color-brand-primary)] border-[var(--color-brand-primary)]' : 'bg-gray-50 text-gray-700 border-transparent hover:bg-gray-100'}"
+              >
+                {brand}
+                {#if brand === 'Miccosmo'}
+                  <span class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                {/if}
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
     </div>
-  {/if}
+
+    <!-- Bottom Actions sticky block -->
+    <div class="mt-auto pt-2 pb-0 flex items-center gap-3 bg-white sticky bottom-0 z-10 before:absolute border-t border-gray-100 top-[-1px] left-0 right-0">
+      <button onclick={clearFilters} class="w-[30%] py-2.5 bg-white border border-gray-200 text-gray-700 text-[14px] font-bold rounded-lg hover:bg-gray-50 transition-colors">
+        Xóa
+      </button>
+      <button onclick={() => isFilterDrawerOpen = false} class="flex-1 py-2.5 bg-[var(--color-brand-primary)] text-white text-[14px] font-bold rounded-lg shadow-[0_4px_12px_rgba(var(--color-brand-primary),0.25)] active:scale-95 transition-all">
+        Hiển thị kết quả
+      </button>
+    </div>
+  </BottomSheet>
 </div>

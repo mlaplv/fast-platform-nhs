@@ -101,6 +101,7 @@
   --color-luxury-copper: #C18F7E;
   --color-luxury-peach: #E3B5A4;
   --color-neon-cyan: #00f3ff;
+  --color-brand-primary: var(--color-luxury-copper);
 }
 
 /* 
