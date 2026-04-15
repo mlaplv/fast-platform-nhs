@@ -101,11 +101,6 @@ export function createClientUiState(): ClientUiState {
             globalState.authModal.isOpen = true;
         },
 
-        openDashboard() {
-            globalState.authModal.mode = 'dashboard';
-            globalState.authModal.isOpen = true;
-        },
-
         openConfirm(options: { title: string; message: string; confirmLabel?: string; cancelLabel?: string }): Promise<boolean> {
             return new Promise((resolve) => {
                 globalState.confirmModal = {
