@@ -1,142 +1,116 @@
-/* 
-  ScienceBento.css - AGENT AI 2026 ELITE V2.2 
-  Structural Alignment with DiagnosticsSection
-*/
-
 .science-section {
-  position: relative;
-  width: 100%;
-  background-color: #020617; /* Matches DiagnosticsSection */
-  overflow: hidden;
+    background-color: #010101;
+    position: relative;
+    padding-bottom: 200px;
 }
 
-/* 
-  TECHNICAL GRID
-  Minimalist coordinate lines matching the premium aesthetic.
-*/
 .tech-grid {
-  position: absolute;
-  inset: 0;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 100px 100px;
-  mask-image: radial-gradient(circle at 50% 50%, black 20%, transparent 80%);
-  pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background-image: 
+        linear-gradient(rgba(193, 143, 126, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(193, 143, 126, 0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+    mask-image: radial-gradient(circle at 50% 50%, black, transparent 80%);
 }
 
-/* Section specific typography refinements */
-.section-description {
-  font-family: inherit;
-  font-weight: 500;
-}
-
-/* 
-  iPad Mini Alignment (768-1024px)
-  Align the image to the left edge of its column for balance.
-*/
 .mechanism-image-wrapper {
-  justify-content: center; /* Desktop default */
+    min-height: 600px;
+    background: radial-gradient(circle at 50% 50%, rgba(193, 143, 126, 0.1), transparent 70%);
 }
 
-@media (min-width: 768px) and (max-width: 1024px) {
-  .mechanism-image-wrapper {
-    justify-content: flex-start !important;
-  }
-}
-
-@media (max-width: 767px) {
-  .mechanism-image-wrapper {
-    justify-content: center;
-  }
-}
-
-/* 
-  TECHNICAL WAVE ANIMATIONS 
-  Subtle movement for a high-tech laboratory feel.
-*/
-.wave-path {
-  stroke-dasharray: 1000;
-  stroke-dashoffset: 1000;
-  animation: wave-draw 8s linear infinite;
-}
-
-.wave-path-delayed {
-  stroke-dasharray: 1000;
-  stroke-dashoffset: 1000;
-  animation: wave-draw 10s linear infinite reverse;
-  opacity: 0.7;
-}
-
-@keyframes wave-draw {
-  from { stroke-dashoffset: 1000; }
-  to { stroke-dashoffset: 0; }
-}
-
-/* 
-  VIRAL SCAN EFFECT
-  High-tech vertical sweep animation.
-*/
 .scanner-line {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.8), transparent);
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3);
-  animation: scan-move 4s linear infinite;
-  z-index: 21;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(to right, transparent, var(--luxury-sakura), transparent);
+    box-shadow: 0 0 20px var(--luxury-sakura);
+    animation: scanner-loop 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes scanner-loop {
+    0% { top: 0%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
 }
 
 .scanner-glow {
-  position: absolute;
-  top: -150px;
-  left: 0;
-  width: 100%;
-  height: 150px;
-  background: linear-gradient(to bottom, transparent, rgba(59, 130, 246, 0.15));
-  animation: scan-move 4s linear infinite;
-  z-index: 20;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 150px;
+    background: linear-gradient(to bottom, rgba(193, 143, 126, 0.1), transparent);
+    animation: scanner-glow-loop 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-@keyframes scan-move {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); } /* Ensures it covers large images */
+@keyframes scanner-glow-loop {
+    0% { top: -150px; }
+    100% { top: 100%; }
 }
 
-/* 
-  DYNAMIC LINE WAVE DIVIDER
-  Viral 2026: Section transition aesthetics.
-*/
-.science-section .wave-container {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 35%;
-  line-height: 0;
-  z-index: 5;
-  pointer-events: none;
-  opacity: 0.5;
+.wave-path {
+    stroke-dasharray: 400;
+    stroke-dashoffset: 400;
+    animation: wave-draw 3s ease-out forwards infinite alternate;
 }
 
-.science-section .wave-line {
-  fill: none;
-  stroke: url(#wave-gradient-science);
-  stroke-width: 2;
-  stroke-linecap: round;
-  animation: wave-motion-science 8s infinite alternate ease-in-out;
-  filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.3));
+.wave-path-delayed {
+    stroke-dasharray: 400;
+    stroke-dashoffset: 400;
+    animation: wave-draw 3s ease-out 0.5s forwards infinite alternate;
 }
 
-.science-section .wave-line.secondary {
-  stroke-opacity: 0.3;
-  animation-duration: 15s;
-  animation-delay: -5s;
+@keyframes wave-draw {
+    to { stroke-dashoffset: 0; }
 }
 
-@keyframes wave-motion-science {
-  0% { transform: translateY(0) scaleX(1); }
-  100% { transform: translateY(20px) scaleX(1.05); }
+/* Viral 2026: Kinetic Bento Gaps */
+.science-section .grid {
+    gap: 2rem;
+}
+
+.science-section .flex-1 {
+    box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+    transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.science-section .flex-1:hover {
+    transform: translateX(10px) translateY(-5px);
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* Wave Divider */
+.wave-container {
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.wave-line {
+    fill: none;
+    stroke: url(#wave-gradient-science);
+    stroke-width: 1;
+    stroke-linecap: round;
+    opacity: 0.5;
+    animation: wave-float 15s linear infinite;
+    transform-origin: center;
+}
+
+.wave-line.secondary {
+    animation-direction: reverse;
+    animation-duration: 20s;
+}
+
+@keyframes wave-float {
+    0% { transform: scaleX(1) translateX(0); }
+    50% { transform: scaleX(1.1) translateX(-50px); }
+    100% { transform: scaleX(1) translateX(0); }
 }

@@ -1,487 +1,187 @@
-/* OfferGrid.css - Professional Refinement V2.2 (Outfit 2026 Edition) */
-
+/* OfferGrid.css - Glowing Sakura Viral 2026 Edition */
 
 .offer-section {
   container-type: inline-size;
   container-name: offer;
 
-  --deep-bg: #020617;
-  --glass-bg: rgba(255, 255, 255, 0.02);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --elite-blue: #3b82f6;
-  --elite-cyan: #22d3ee;
-  --gap-fluid: clamp(0.75rem, 1.5vw, 1rem);
-  /* Viral 2026: Ultra-Tactical Aesthetics! */
-  --headline-mb: 2.5rem;
-  --footer-mt: 4rem;
-
-  @media (min-width: 768px) and (max-width: 1100px) {
-    /* ELITE V2.2: Synced with ScienceBento */
-    --headline-mb: 2.5rem;
-    --footer-mt: 2.5rem;
-    --standard-pt: 6rem;
-  }
-
+  --deep-bg: #010101;
+  --luxury-sakura: #FFB7C5;
+  --luxury-gold: #E8D5B0;
+  
   background-color: var(--deep-bg);
-  font-family: 'Be Vietnam Pro',
-  'Inter',
-  sans-serif;
+  font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
   position: relative;
   overflow: hidden;
+  padding: 100px 0;
+}
 
-  & .liquid-orb {
+.offer-section .liquid-orb {
     position: absolute;
     border-radius: 50%;
     filter: blur(140px);
-    opacity: 0.2;
-    z-index: var(--z-below);
-    transition: all 1s ease;
-  }
-
-  & .timer-badge {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    color: #94a3b8;
-    font-weight: 500;
-    letter-spacing: 0.15em;
-  }
-
-  & .headline-title {
-    /* STYLES MOVED TO GLOBAL .elite-session-headline */
-  }
-
-  & .headline-sub {
-    font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
-    font-size: var(--fs-sub);
-    /* Fluid! */
-    font-weight: 500;
-    color: var(--elite-cyan);
-    letter-spacing: 0.05em;
-    max-width: 600px;
-    margin: 0 auto;
-    opacity: 0.9;
-  }
-
-  & .package-card {
-    background: rgba(255, 255, 255, 0.02);
-    backdrop-filter: blur(50px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 1.5rem;
-    position: relative;
-    overflow: visible;
-    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-
-    &::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
-      opacity: 0.5;
-    }
-
-    &.popular {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(34, 211, 238, 0.2);
-      box-shadow: 0 0 40px rgba(34, 211, 238, 0.05);
-
-      &::before {
-        background: radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.1) 0%, transparent 70%);
-      }
-    }
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.08);
-      transform: translateY(-8px) scale(1.01);
-      border-color: rgba(255, 255, 255, 0.2);
-      box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.5);
-
-      &.popular {
-        border-color: var(--elite-cyan);
-        box-shadow: 0 40px 100px -20px rgba(34, 211, 238, 0.15);
-      }
-
-      & .variant-image-outer {
-        transform: translateY(-5px) scale(1.05);
-        filter: drop-shadow(0 30px 50px rgba(0, 0, 0, 0.6));
-      }
-    }
-  }
-
-  & .price-value {
-    font-size: 1.875rem;
-    /* 30px - equivalent to text-3xl */
-    line-height: 1;
-  }
-
-  & .bullet-list {
-    & li {
-      color: #94a3b8;
-      font-size: 0.875rem;
-      letter-spacing: 0.02em;
-      transition: all 0.3s ease;
-
-      & .icon-check {
-        color: var(--elite-cyan);
-        opacity: 0.8;
-      }
-
-      /* Elite V2.2: Disable states */
-      &.disabled {
-        opacity: 0.15;
-        text-decoration: line-through;
-        filter: grayscale(1);
-        pointer-events: none; /* Default for customers, overridden for Admins */
-      }
-    }
-  }
-
-  /* Global Admin override for disabled items */
-  :global(.live-edit-mode) & .bullet-list li.disabled {
-    display: flex !important;
-    opacity: 0.3;
-    pointer-events: auto;
-    cursor: pointer;
-  }
-
-  /* Client-only hide (when NOT in edit mode) */
-  :global(body:not(.live-edit-mode)) & .bullet-list li.disabled {
-    display: none !important;
-  }
-
-  /* Elite V2.2: Toggle button styling */
-  & .toggle-feature-btn {
-    opacity: 0;
-    transition: all 0.2s ease;
-  }
-
-  & .bullet-list li:hover .toggle-feature-btn {
-    opacity: 1;
-  }
-
-  /* Elite V2.2: Force show toggle buttons on touch devices/mobile in Edit Mode */
-  :global(.live-edit-mode) & .bullet-list li .toggle-feature-btn {
-    @media (max-width: 1024px) {
-      opacity: 0.6 !important;
-      background: rgba(255, 255, 255, 0.1);
-    }
-  }
-
-  & .btn-buy {
-    border-radius: 0.75rem;
-    padding: 1.125rem;
-    font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-
-    &.ghost {
-      background: transparent;
-      color: #94a3b8;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.05);
-        color: white;
-      }
-    }
-
-    &.primary {
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      color: white;
-      box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.3);
-
-      &:hover {
-        transform: scale(1.02);
-        box-shadow: 0 15px 30px -5px rgba(59, 130, 246, 0.5);
-      }
-    }
-  }
-
-  & .wave-container {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 35%;
-    /* 1/3 session! */
-    line-height: 0;
-    z-index: var(--z-surface);
-    pointer-events: none;
-    opacity: 0.5;
-    /* Mạnh mẽ hơn */
-  }
-
-  & .wave-line {
-    fill: none;
-    stroke: url(#wave-gradient);
-    stroke-width: 2;
-    stroke-linecap: round;
-    animation: wave-motion 8s infinite alternate ease-in-out;
-    filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.3));
-
-    &.secondary {
-      stroke-opacity: 0.3;
-      animation-duration: 15s;
-      animation-delay: -5s;
-    }
-  }
-
-  /* Pharmacy Footer - Viral Liquid Glass iPhone 2026! */
-  & .pharmacy-footer {
-    position: relative;
-    width: 100%;
-    margin: var(--footer-mt) 0 0;
-    padding: 4rem 3rem 1.5rem;
-    /* Increased padding */
-
-    /* Organic Blob Shape! */
-    background: rgba(255, 255, 255, 0.02);
-    backdrop-filter: blur(80px) saturate(250%);
-    /* High blur for seamlessness */
-    border-radius: 40px 100px 40px 100px / 40px 80px 40px 80px;
-    border: none;
-    /* Loại bỏ border! */
-    outline: none;
-    /* Loại bỏ outline! */
-    box-shadow:
-      0 60px 120px -30px rgba(0, 0, 0, 0.6),
-      inset 0 10px 40px rgba(255, 255, 255, 0.05);
-    /* Soft inner glow instead of border */
-
-    animation: floating-liquid 15s infinite ease-in-out;
-    transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
-
-    & .info-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 3rem;
-      text-align: left;
-      position: relative;
-      z-index: var(--z-hud-service);
-    }
-
-    & .contact-item {
-      & .label {
-        font-size: 0.65rem;
-        color: #475569;
-        text-transform: uppercase;
-        letter-spacing: 0.3em;
-        font-weight: 800;
-        margin-bottom: 0.75rem;
-        display: block;
-      }
-
-      & .value {
-        font-size: 0.85rem;
-        color: #e2e8f0;
-        font-weight: 500;
-        line-height: 1.6;
-      }
-    }
-
-    & .license-tag {
-      font-size: 0.7rem;
-      color: #64748b;
-      margin-top: 10px;
-      padding-top: 10px;
-      /* Space between line and badge */
-      /* Precise adjustment */
-      border-top: 1px solid rgba(255, 255, 255, 0.03);
-      text-align: center;
-      letter-spacing: 0.02em;
-    }
-  }
-
-  /* ELITE V2.2: Liquid Glass iPhone 18 Promotion Bar */
-  & .liquid-glass-deal {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(40px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-    position: relative;
-    overflow: hidden;
-
-    &::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, transparent 60%);
-      opacity: 0;
-      transition: opacity 0.6s ease;
-    }
-
-    &.active {
-      background: rgba(59, 130, 246, 0.08);
-      border-color: rgba(59, 130, 246, 0.4);
-      box-shadow: 0 20px 40px -15px rgba(59, 130, 246, 0.2);
-
-      &::before {
-        opacity: 1;
-      }
-    }
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 255, 255, 0.2);
-      transform: translateY(-2px);
-    }
-  }
-
-  & .liquid-orb {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #3b82f6;
-    box-shadow: 0 0 15px #3b82f6;
-    transition: all 0.4s ease;
-    flex-shrink: 0;
-
-    &.inactive {
-      background: rgba(255, 255, 255, 0.2);
-      box-shadow: none;
-      filter: grayscale(1);
-    }
-  }
-
-  & .glare-effect {
-    position: absolute;
-    top: 0;
-    left: -150%;
-    width: 60%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-    transform: skewX(-25deg);
-    transition: 0.8s ease-in-out;
-    pointer-events: none;
-  }
-
-  & .liquid-glass-deal:hover .glare-effect {
-    left: 150%;
-  }
+    opacity: 0.1;
+    z-index: 0;
 }
 
-@keyframes floating-liquid {
+/* VIRAL FOMO: Pulsing Scarcity */
+.scarcity-badge-viral {
+    background: rgba(255, 183, 197, 0.1);
+    border: 1px solid rgba(255, 183, 197, 0.3);
+    color: var(--luxury-sakura);
+    animation: neon-pulse 2s infinite ease-in-out;
+}
 
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-    border-radius: 60px 200px 80px 180px / 80px 180px 60px 150px;
-  }
+@keyframes neon-pulse {
+    0% { box-shadow: 0 0 5px rgba(255, 183, 197, 0.2); border-color: rgba(255, 183, 197, 0.3); }
+    50% { box-shadow: 0 0 20px rgba(255, 183, 197, 0.6); border-color: var(--luxury-sakura); }
+    100% { box-shadow: 0 0 5px rgba(255, 183, 197, 0.2); border-color: rgba(255, 183, 197, 0.3); }
+}
 
-  50% {
-    transform: translateY(-15px) rotate(1deg);
-    border-radius: 80px 180px 60px 200px / 60px 200px 80px 180px;
-  }
+/* GOLDEN SHIMMER RIBBON */
+.expert-choice-ribbon {
+    background: linear-gradient(135deg, #E8D5B0 0%, #FFB7C5 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.expert-choice-ribbon::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer-gold 3s infinite;
+}
+
+@keyframes shimmer-gold {
+    0% { left: -100%; }
+    100% { left: 200%; }
+}
+
+/* PACKAGE CARDS */
+.package-card {
+    background: rgba(255, 255, 255, 0.01);
+    backdrop-filter: blur(40px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 3rem;
+    transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.package-card.popular {
+    background: rgba(255, 183, 197, 0.02);
+    border-color: rgba(255, 183, 197, 0.15);
+}
+
+.package-card.active {
+    background: rgba(255, 183, 197, 0.12);
+    border: 3px solid var(--luxury-sakura) !important;
+    box-shadow: 0 0 60px rgba(255, 183, 197, 0.4), inset 0 0 30px rgba(255, 183, 197, 0.2);
+    transform: translateY(-8px) scale(1.03);
+    z-index: 10;
+}
+
+.package-card:hover {
+    background: rgba(255, 255, 255, 0.03);
+    transform: translateY(-15px);
+    border-color: rgba(255, 183, 197, 0.3);
+    box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+}
+
+/* QUANTITY BADGE VIRAL */
+.quantity-glow-badge {
+    position: absolute;
+    top: 2rem;
+    left: 2rem;
+    background: rgba(255, 183, 197, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 183, 197, 0.4);
+    color: var(--luxury-sakura);
+    padding: 0.5rem 1rem;
+    border-radius: 1rem;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    z-index: 10;
+    box-shadow: 0 0 20px rgba(255, 183, 197, 0.1);
+}
+
+.active .quantity-glow-badge {
+    background: var(--luxury-sakura);
+    color: var(--deep-bg);
+    box-shadow: 0 0 30px var(--luxury-sakura);
+}
+
+/* LIQUID CTA BUTTON */
+.liquid-cta-viral {
+    background: linear-gradient(135deg, var(--luxury-sakura) 0%, #D48C9A 100%);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.5s ease;
+}
+
+.liquid-cta-viral::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: 0.5s;
+}
+
+.liquid-cta-viral:hover::before {
+    left: 100%;
+}
+
+.liquid-cta-viral:hover {
+    transform: scale(1.02);
+    box-shadow: 0 20px 40px rgba(255, 183, 197, 0.3);
+}
+
+/* STATUS BAR */
+.timer-badge {
+    background: rgba(255, 183, 197, 0.05);
+    border: 1px solid rgba(255, 183, 197, 0.1);
+    color: var(--luxury-sakura);
+}
+
+/* DEAL CARDS */
+.liquid-glass-deal {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.5s ease;
+}
+
+.liquid-glass-deal.active {
+    background: rgba(255, 183, 197, 0.05);
+    border-color: var(--luxury-sakura);
+}
+
+/* PHARMACY FOOTER */
+.pharmacy-footer {
+    background: rgba(255, 255, 255, 0.01);
+    border-radius: 4rem;
+    padding: 60px 40px;
+    margin-top: 100px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* WAVE DIVIDER */
+.wave-line {
+    stroke: var(--luxury-sakura);
+    opacity: 0.1;
+    animation: wave-motion 10s infinite alternate ease-in-out;
 }
 
 @keyframes wave-motion {
-  0% {
-    transform: translateY(0) scaleX(1);
-  }
-
-  100% {
-    transform: translateY(20px) scaleX(1.05);
-  }
+    to { transform: translateY(20px) scaleX(1.1); }
 }
 
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-@container offer (min-width: 768px) {
-  .package-grid:not(.slider-track) {
-    grid-template-columns: repeat(var(--cols, 2), minmax(240px, 1fr));
-    justify-content: center;
-    gap: var(--gap-fluid);
-  }
-
-  .slider-track {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 0.75rem !important;
-    overflow: visible !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
-  .package-card {
-    padding: 1.5rem !important;
-    /* Compact on tablet */
-
-    &.snap-center {
-      min-width: 0 !important;
-    }
-
-    &.popular {
-      transform: scale(1.02) !important;
-      /* Subtle scale to prevent overflow */
-    }
-  }
-
-  .headline-title {
-    /* Hardcoded nerf REMOVED for Elite V2.2 Parity */
-  }
-
-  /* ELITE V2.2: Price Scaling for cramped tablet columns */
-  .price-value {
-    font-size: clamp(1.15rem, 2vw, 1.5rem) !important;
-    letter-spacing: -0.02em;
-  }
-
-  .original-price {
-    font-size: 0.65rem !important;
-  }
-
-  .booking-suffix,
-  .shipping-label {
-    font-size: 0.65rem !important;
-  }
-}
-
-@container offer (min-width: 1024px) {
-  .package-grid:not(.slider-track) {
-    grid-template-columns: repeat(var(--cols, 2), minmax(280px, 340px));
-  }
-
-  .slider-track {
-    gap: var(--gap-fluid) !important;
-  }
-
-  .package-card {
-    padding: 2rem !important;
-
-    &.popular {
-      transform: scale(1.03) !important;
-    }
-  }
-
-  .price-value {
-    font-size: 1.75rem !important;
-    /* Restore power on desktop */
-  }
-
-  .headline-title {
-    /* Hardcoded nerf REMOVED for Elite V2.2 Parity */
-  }
-}
-
-.slider-track {
-  padding: 2rem 1rem;
-  margin: 0 -1rem;
-  -webkit-overflow-scrolling: touch;
-}
-
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
+@media (max-width: 768px) {
+    .offer-section { padding: 60px 0; }
+    .package-grid { gap: 1rem; }
 }

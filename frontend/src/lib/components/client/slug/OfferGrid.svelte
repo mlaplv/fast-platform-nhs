@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { getClientUi } from '$lib/state/commerce/ui.svelte.ts';
   import { resolveMediaUrl } from '$lib/state/utils';
@@ -6,76 +7,38 @@
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import type { Product, ProductVariant } from '$lib/types';
   import { SHOP_CONFIG, OFFER_CONSTANTS } from '$lib/constants/shop';
-  import { ShoppingCart, CheckCircle2, Info } from 'lucide-svelte';
+  import { ShoppingCart, CheckCircle2, ArrowRight, Zap } from 'lucide-svelte';
   import DesktopProductDetailsModal from './DesktopProductDetailsModal.svelte';
   import "./OfferGrid.css";
   
   const shopStore = getShopStore();
   const ui = getClientUi();
   
-  // ELITE V2.2: Centralized Marketing Strings for easier maintenance!
-  const metadata = $derived(product?.metadata || {});
-
-  const mkt = $derived({
-    headline: metadata.offer_headline || "ĐÁNH THỨC VẺ ĐẸP KIÊU SA, LẤY LẠI TỰ TIN TUYỆT ĐỐI",
-    sub: metadata.offer_subheadline || "",
-    timer_prefix: metadata.offer_timer_prefix || "Cơ hội sở hữu kết thúc sau:",
-    shipping_prefix: metadata.offer_shipping_prefix || "+ VẬN CHUYỂN:",
-    savings_prefix: metadata.offer_savings_prefix || "HỜI TIẾT KIỆM:",
-    booking_suffix: metadata.offer_booking_suffix || "khách hàng đã sở hữu trong 24h qua",
-    trust_verified_by: metadata.offer_trust_verified_by || "TIÊU CHUẨN Y KHOA",
-    compliance_note: metadata.offer_compliance_note || "* Giao hàng hỏa tốc, <br/> bảo mật danh tính khách hàng 100%.",
-    label_activation: metadata.offer_label_activation || "GIAI ĐOẠN KÍCH HOẠT",
-    label_full_treatment: metadata.offer_label_full_treatment || "LIỆU TRÌNH TỐI ĐA",
-    label_expert_choice: metadata.offer_label_expert_choice || "CHUYÊN GIA KHUYÊN DÙNG",
-    label_scarcity: metadata.offer_label_scarcity || "SẮP CHÁY HÀNG",
-    cta_start: metadata.offer_cta_start || "BẮT ĐẦU TÁI SINH",
-    cta_full: metadata.offer_cta_full || "SỞ HỮU LIỆU TRÌNH",
-    label_distributor: (metadata.offer_label_distributor as string) || 'HỆ THỐNG PHÂN PHỐI CHÍNH HÃNG',
-    pharmacy_name: (metadata.offer_pharmacy_name as string) || ui.settings?.basic_info?.site_name || ui.settings?.site_name || ui.settings?.contact?.name || SHOP_CONFIG.pharmacy.name,
-    label_support: (metadata.offer_label_support as string) || 'TRUNG TÂM HỖ TRỢ 24/7',
-    label_commitment: (metadata.offer_label_commitment as string) || 'CAM KẾT DỊCH VỤ VÀNG',
-    label_license: (metadata.offer_label_license as string) || ui.settings?.contact_info?.business_license || ui.settings?.business_license || ui.settings?.contact?.business_license || SHOP_CONFIG.pharmacy.license,
-    pharmacy_address: (metadata.offer_pharmacy_address as string) || ui.settings?.contact_info?.address || ui.settings?.contact?.address || SHOP_CONFIG.pharmacy.address,
-    pharmacy_phone: (metadata.offer_pharmacy_phone as string) || ui.settings?.contact_info?.hotline || ui.settings?.contact_info?.phone || ui.settings?.contact?.hotline || ui.settings?.contact?.phone || SHOP_CONFIG.pharmacy.phone,
-    pharmacy_zalo: (metadata.offer_pharmacy_zalo as string) || `Kết nối Zalo: ${ui.settings?.basic_info?.site_name || ui.settings?.site_name || ui.settings?.contact?.name || SHOP_CONFIG.pharmacy.zalo}`,
-    trust_mark_2: (metadata.offer_trust_mark_2 as string) || "KIỂM ĐỊNH LÂM SÀNG",
-    trust_mark_3: (metadata.offer_trust_mark_3 as string) || "DƯỢC MỸ PHẨM CAO CẤP"
-  });
-
   const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
   const timeLeft = $derived(shopStore.timeLeft);
   const variants = $derived(product?.variants || []);
+  const metadata = $derived(product?.metadata || {});
+
+  const mkt = $derived({
+    headline: metadata.offer_headline || "CHẠM NGƯỠNG ĐỈNH CAO CỦA <span class='text-luxury-gold'>SỰ TỰ TIN TUYỆT ĐỐI</span>",
+    sub: metadata.offer_subheadline || "",
+    timer_prefix: metadata.offer_timer_prefix || "Ưu đãi lột xác kết thúc sau:",
+    shipping_prefix: metadata.offer_shipping_prefix || "+ VẬN CHUYỂN:",
+    savings_prefix: metadata.offer_savings_prefix || "TIẾT KIỆM NGAY:",
+    booking_suffix: metadata.offer_booking_suffix || "phụ nữ đã lột xác thành công tuần này",
+    trust_verified_by: metadata.offer_trust_verified_by || "TIÊU CHUẨN Y KHOA NHẬT BẢN",
+    compliance_note: metadata.offer_compliance_note || "* Giao hàng bảo mật, <br/> Đóng gói tinh tế như một món quà trang sức.",
+    label_activation: metadata.offer_label_activation || "GIAI ĐOẠN ĐÁNH THỨC",
+    label_full_treatment: metadata.offer_label_full_treatment || "LIỆU TRÌNH HOÀN MỸ",
+    label_expert_choice: metadata.offer_label_expert_choice || "SỰ LỰA CHỌN CỦA PHÁI ĐẸP",
+    cta_start: metadata.offer_cta_start || "BẮT ĐẦU TÁI SINH",
+    cta_full: metadata.offer_cta_full || "SỞ HỮU SỰ KIÊU SA"
+  });
+
   let isDetailsOpen = $state(false);
-
-  /**
-   * ELITE V2.2: Deterministic Social Proof!
-   * Generating 'random-looking' but stable numbers based on product ID to avoid hydration mismatch.
-   */
-  function getDeterministicPoints(seed: string, index: number): number {
-    if (!seed) return 40 + index;
-    // Simple fast hash!
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) {
-      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
-      hash |= 0;
-    }
-    return Math.abs(hash + index) % 20 + 40;
-  }
-
-  const bookingPoints = $derived(variants.map((_, i) => getDeterministicPoints(product.id || 'default', i)));
-
-  // Layout logic refined for Elite V2.2 Responsive!
-  // Force slider on mobile for 3+ variants, but keep grid on desktop
-  const isSlider = $derived(variants.length >= 3); 
-  const gridClass = $derived(
-    isSlider 
-      ? 'slider-track overflow-x-auto scrollbar-hide snap-x snap-mandatory flex md:grid md:grid-cols-3' 
-      : `grid grid-cols-1 ${variants.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`
-  );
-
+  
   function getVariantTitle(variant: ProductVariant): string {
-    if (!product.tierVariations?.length || !variant.tierIndex?.length) return variant.sku || 'Combo';
+    if (!product?.tierVariations?.length || !variant.tierIndex?.length) return variant.sku || 'Combo';
     return variant.tierIndex.map((optIdx: number, tierIdx: number) => {
       const option = product.tierVariations![tierIdx]?.options[optIdx];
       return option || '';
@@ -88,306 +51,214 @@
     return `${mins}:${secs}`;
   };
 
-  const getFeatures = (variant: ProductVariant, idx: number): string[] => {
-    return (variant.attributes?.features as string[]) || SHOP_CONFIG.default_features[idx > 0 ? 1 : 0] || [];
+  const getFeatures = (variant: ProductVariant, idx: number, isActive: boolean): string[] => {
+    const fallbackIdx = idx > 1 ? 1 : idx;
+    let base = (variant as any).attributes?.features || SHOP_CONFIG.default_features[fallbackIdx] || [];
+    let features = [...base].filter(f => !['Cam kết hoàn tiền ẩn danh', 'Tặng kèm Voucher'].some(term => f.includes(term)));
+    
+    // ĐỒNG BỘ: Tự động đổi '01' thành số combo áp dụng cho card đang chọn (Elite V2.2)
+    if (isActive && shopStore.quantity > 1) {
+        let displayQty = shopStore.quantity < 10 ? `0${shopStore.quantity}` : `${shopStore.quantity}`;
+        features = features.map(f => {
+            // Thay thế '01 ' hoặc '1 ' bằng số lượng
+            return f.replace(/^(0?1)\s+/i, `${displayQty} `);
+        });
+    }
+    return features;
   };
+
+  const gridClass = $derived(variants.length >= 3 
+    ? 'slider-track overflow-x-auto md:overflow-visible scrollbar-hide snap-x snap-mandatory flex md:grid md:grid-cols-3'
+    : `grid grid-cols-1 ${variants.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`
+  );
+
+  onMount(() => {
+    if (variants.length > 0 && !shopStore.variant) {
+      shopStore.selectVariant(variants[0]);
+      shopStore.setQuantity(1);
+    }
+  });
+
+  function handleSelect(variant: ProductVariant) {
+    const isActive = shopStore.variant === variant || (shopStore.variant && variants.indexOf(shopStore.variant) === variants.indexOf(variant));
+    if (isActive) {
+        window.location.href = '/checkout';
+    } else {
+        shopStore.selectVariant(variant);
+    }
+  }
 </script>
 
-<section class="snap-session snap-session-standard offer-section relative overflow-hidden" style:padding-top="var(--standard-pt)">
-  <!-- Dynamic Atmospheric Layers! -->
-  <div class="absolute inset-0 bg-radial-at-t from-blue-900/10 to-transparent pointer-events-none"></div>
-  <div class="liquid-orb top-[10%] left-[-10%] w-[800px] h-[800px]" style:background-color="var(--elite-blue)" style:opacity="0.1"></div>
-  <div class="liquid-orb bottom-[-10%] right-[-10%] w-[600px] h-[600px]" style:background-color="var(--elite-cyan)" style:opacity="0.05"></div>
+<section class="offer-section relative overflow-hidden" style:padding-top="var(--standard-pt)">
+  <div class="absolute inset-0 bg-radial-at-t from-luxury-sakura/10 to-transparent pointer-events-none"></div>
+  <div class="liquid-orb top-[10%] left-[-10%] w-[800px] h-[800px] pointer-events-none" style:background-color="var(--luxury-sakura)" style:opacity="0.1"></div>
+  <div class="liquid-orb bottom-[-10%] right-[-10%] w-[600px] h-[600px] pointer-events-none" style:background-color="var(--luxury-gold)" style:opacity="0.05"></div>
 
   <div class="container mx-auto px-4 md:px-6 max-w-6xl text-center relative z-surface">
     
-    
-
-    <!-- Professional Headline Hierarchy! -->
-    <div class="max-w-4xl mx-auto text-center relative" style:margin-bottom="var(--headline-mb)">
+    <div class="max-w-4xl mx-auto text-center relative mb-0">
       <EditableWrapper path="metadata.offer_headline" value={mkt.headline} type="html" label="SỬA TIÊU ĐỀ ƯU ĐÃI" class="w-full flex justify-center">
         <h3 class="elite-session-headline mb-4">
           {@html mkt.headline}
         </h3>
       </EditableWrapper>
 
-      <!-- Integrated Trust Proof! -->
-      <div class="flex items-center justify-center gap-4 mt-6 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
-         <EditableWrapper path="metadata.offer_trust_verified_by" value={mkt.trust_verified_by} label="SỬA NHÃN KIỂM ĐỊNH">
-           <span class="text-[8px] uppercase tracking-[0.5em] font-medium text-slate-400">{mkt.trust_verified_by}</span>
-         </EditableWrapper>
-         <div class="h-px w-8 bg-slate-800"></div>
-         <EditableWrapper path="metadata.offer_trust_mark_2" value={mkt.trust_mark_2} label="SỬA CHỨNG NHẬN 2">
-           <span class="text-[9px] uppercase tracking-[0.2em] font-semibold text-slate-300">{mkt.trust_mark_2}</span>
-         </EditableWrapper>
-         <div class="h-px w-8 bg-slate-800"></div>
-         <EditableWrapper path="metadata.offer_trust_mark_3" value={mkt.trust_mark_3} label="SỬA CHỨNG NHẬN 3">
-           <span class="text-[8px] uppercase tracking-[0.5em] font-medium text-slate-400">{mkt.trust_mark_3}</span>
-         </EditableWrapper>
+      <div class="flex items-center justify-center gap-4 mt-8 opacity-60 grayscale hover:grayscale-0 transition-all duration-700">
+         <span class="text-[8px] uppercase tracking-[0.6em] font-medium text-slate-400">{mkt.trust_verified_by}</span>
+         <div class="h-px w-10 bg-white/5"></div>
+         <span class="text-[9px] uppercase tracking-[0.3em] font-black text-luxury-sakura">{metadata.offer_trust_mark_2 || "HIỆU QUẢ KIỂM CHỨNG"}</span>
+         <div class="h-px w-10 bg-white/5"></div>
+         <span class="text-[8px] uppercase tracking-[0.6em] font-medium text-slate-400">{metadata.offer_trust_mark_3 || "DƯỢC MỸ PHẨM CAO CẤP"}</span>
       </div>
     </div>
 
-    <!-- Minimalist Status Bar -->
-    <div class="flex justify-center mb-6">
-      <div class="timer-badge px-6 py-1.5 rounded-full text-[9px] uppercase tracking-[0.3em] flex items-center gap-3">
-        <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_8px_#22d3ee]"></span>
-        {mkt.timer_prefix} <span class="font-medium tabular-nums">{formatTime(timeLeft)}</span>
+    <div class="flex justify-center mb-10 mt-6">
+      <div class="timer-badge px-8 py-2 rounded-full text-[10px] uppercase tracking-[0.4em] flex items-center gap-3 backdrop-blur-3xl shadow-[0_0_20px_rgba(255,183,197,0.1)]">
+        <span class="w-2 h-2 rounded-full bg-luxury-sakura animate-pulse shadow-[0_0_12px_var(--luxury-sakura)]"></span>
+        {mkt.timer_prefix} <span class="font-black tabular-nums text-white">{formatTime(timeLeft)}</span>
       </div>
     </div>
 
-    <!-- ELITE V2.2: Liquid Glass Multi-Deal Bar (iPhone 18 Aesthetic) -->
-    <div class="mt-1 mb-8 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 px-4">
+    <div class="mt-1 mb-8 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 px-4 text-left">
       {#each (metadata.active_deals || []) as deal, dealIdx (dealIdx)}
-        {@const isActive = shopStore.quantity === (deal.buy_qty + (deal.get_qty || 0))}
+        {@const isActive = shopStore.appliedDeal?.label === deal.label}
         <button 
            onclick={() => shopStore.setQuantity(deal.buy_qty + (deal.get_qty || 0))}
            class="liquid-glass-deal rounded-3xl px-8 py-5 flex items-center justify-between group active:scale-[0.98] {isActive ? 'active' : ''}"
         >
-           <div class="glare-effect"></div>
-           
-           <div class="flex items-center gap-5 relative" style="z-index: var(--z-surface);">
+           <div class="flex items-center gap-5">
               <div class="liquid-orb {isActive ? 'animate-pulse' : 'inactive'}"></div>
               <div class="flex flex-col text-left">
-                 <span class="text-[10px] font-semibold text-blue-400 uppercase tracking-[0.2em] mb-1 opacity-80 group-hover:opacity-100 transition-opacity">Ưu đãi: {deal.label.replace('🎁', '')}</span>
-                 <span class="text-white text-lg font-semibold italic tracking-tight uppercase leading-none">
+                 <span class="text-[10px] font-black text-luxury-sakura uppercase tracking-[0.2em] mb-1">
+                    Ưu đãi: {deal.label.replace('🎁', '')}
+                    <span class="ml-1 text-white/50">(MUA {deal.buy_qty} + TẶNG {deal.get_qty || 0})</span>
+                 </span>
+                 <span class="text-white text-lg font-black italic tracking-tight uppercase leading-none">
                     CHỈ CÒN <span class="text-2xl not-italic ml-1">{(deal.fixed_price).toLocaleString()}đ</span>
                  </span>
               </div>
            </div>
-
-           <div class="flex items-center gap-3 relative" style="z-index: var(--z-surface);">
+           <div class="flex items-center gap-3">
               {#if isActive}
-                 <div class="flex flex-col items-end">
-                    <CheckCircle2 class="w-6 h-6 text-blue-400 mb-1" strokeWidth={3} />
-                    <span class="text-[8px] font-semibold text-blue-400 tracking-widest uppercase">ĐÃ ÁP DỤNG</span>
-                 </div>
+                 <CheckCircle2 class="w-6 h-6 text-luxury-sakura" strokeWidth={3} />
               {:else}
-                 <span class="text-[9px] font-semibold text-white/30 group-hover:text-white transition-all uppercase tracking-[0.2em] flex items-center gap-2">
-                    ÁP DỤNG NGAY
-                    <span class="text-lg leading-none transition-transform group-hover:translate-x-1">→</span>
-                 </span>
+                 <span class="text-xl leading-none transition-transform group-hover:translate-x-2 text-white/40">→</span>
               {/if}
            </div>
         </button>
       {/each}
     </div>
 
-    <!-- Package Architecture -->
-    <div class="package-grid pt-12 {gridClass} gap-5 items-stretch" style:--cols={isSlider ? 3 : variants.length}>
-
-      {#each variants as variant, idx (variant.sku || idx)}
-         <!-- Card! -->
-          <div class="package-card p-6 md:p-8 text-left flex flex-col h-full border-white/5 relative {isSlider ? 'min-w-[280px] snap-center' : ''} {idx === 1 ? 'popular md:scale-[1.03]' : ''}">
-           <div class="absolute -top-3 right-8 flex flex-wrap gap-2 justify-end">
-              {#if idx === 1}
-                 <div class="px-4 py-1.5 bg-blue-600/90 text-white font-semibold text-[8px] uppercase tracking-[0.3em] rounded-md shadow-xl backdrop-blur-md">
-                   {mkt.label_expert_choice}
-                 </div>
-              {/if}
-           </div>
-
-           <div class="mb-6">
-             <div class="flex items-center justify-between mb-4">
-               <p class="text-[8px] font-medium {idx === 1 ? 'text-cyan-400' : 'text-slate-500'} uppercase tracking-[0.5em]">
-                  <EditableWrapper path={idx === 0 ? "metadata.offer_label_activation" : "metadata.offer_label_full_treatment"} value={idx === 0 ? mkt.label_activation : mkt.label_full_treatment} label="SỬA NHÃN GÓI">
-                    {idx === 0 ? mkt.label_activation : mkt.label_full_treatment}
-                  </EditableWrapper>
-               </p>
-               {#if idx > 0}
-                 <div class="flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 border border-red-500/20 rounded text-[7px] font-semibold text-red-400 uppercase tracking-wider animate-pulse whitespace-nowrap">
-                   <span class="w-1 h-1 bg-red-400 rounded-full"></span>
-                   <EditableWrapper path="metadata.offer_label_scarcity" value={mkt.label_scarcity} label="SỬA NHÃN KHAN HIẾM">
-                    {mkt.label_scarcity}
-                   </EditableWrapper>
-                 </div>
-               {/if}
-             </div>
-              <div class="variant-image-outer mb-6 flex justify-center group-hover:scale-105 transition-transform duration-500">
-                <EditableWrapper path="images.0" type="image" label="SỬA ẢNH COMBO">
-                    <img 
-                       src="{shopStore.product?.images?.[0] ? resolveMediaUrl(shopStore.product.images[0]) : ''}" 
-                       alt="{getVariantTitle(variant)}" 
-                       class="w-full h-32 object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
-                    />
-                </EditableWrapper>
+    <div class="package-grid pt-20 {gridClass} gap-6 items-stretch">
+      {#each variants as variant, idx (idx)}
+          {@const isCardActive = shopStore.variant === variant || (shopStore.variant && variants.indexOf(shopStore.variant) === idx)}
+          {@const unitPrice = variant.discountPrice || variant.price}
+          <div class="relative h-full z-10 {variants.length >= 3 ? 'min-w-[280px] snap-center' : ''}">
+             <div class="absolute -top-4 left-1/2 -translate-x-1/2 flex flex-wrap gap-2 justify-center w-[120%] z-[60] pointer-events-none mt-1">
+                {#if idx === 1 && !isCardActive}
+                   <div class="px-5 py-2 expert-choice-ribbon text-white font-black text-[9px] uppercase tracking-[0.4em] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
+                      {mkt.label_expert_choice}
+                   </div>
+                {/if}
+                {#if isCardActive && shopStore.quantity > 1}
+                   <div class="px-5 py-2 bg-gradient-to-r from-red-600 to-rose-500 text-white font-black text-[9px] uppercase tracking-widest rounded-xl shadow-[0_4px_30px_rgba(225,29,72,0.8)] animate-pulse flex items-center gap-1 border border-red-400/50">
+                      <Zap class="w-3 h-3"/> ĐÃ ÁP DỤNG MỨC GIÁ SỈ
+                   </div>
+                {/if}
               </div>
-              <h5 class="text-xl font-medium text-white mb-4 line-clamp-1">{getVariantTitle(variant)}</h5>
 
-             <div class="flex items-baseline flex-nowrap gap-x-3 mb-2">
-               {#if (shopStore.originalPrice * shopStore.quantity) > shopStore.totalAmount && shopStore.variant?.sku === variant.sku}
-                  <span class="original-price text-xs text-slate-600 line-through whitespace-nowrap">{(shopStore.originalPrice * shopStore.quantity).toLocaleString()}đ</span>
-               {:else if variant.price > (variant.discountPrice || variant.price)}
-                  <span class="original-price text-xs text-slate-600 line-through whitespace-nowrap">{(variant.price).toLocaleString()}đ</span>
+              <div 
+                onclick={() => handleSelect(variant)}
+                onkeydown={(e) => e.key === 'Enter' && handleSelect(variant)}
+                role="button"
+                tabindex="0"
+                class="package-card p-8 text-left flex flex-col h-full relative cursor-pointer {idx === 1 ? 'popular' : ''} {isCardActive ? 'active border-luxury-sakura shadow-[0_0_80px_rgba(255,183,197,0.3)]' : ''}"
+              >
+
+           <div class="mb-6 text-center md:text-left">
+             <div class="flex items-center justify-center md:justify-between mb-4">
+               <p class="text-[9px] font-black {idx === 1 ? 'text-luxury-sakura' : 'text-slate-500'} uppercase tracking-[0.6em]">
+                  {idx === 0 ? mkt.label_activation : mkt.label_full_treatment}
+               </p>
+             </div>
+              <div class="variant-image-outer mb-6 flex justify-center">
+                <img 
+                   src="{product?.images?.[0] ? resolveMediaUrl(product.images[0]) : ''}" 
+                   alt="{getVariantTitle(variant)}" 
+                   class="w-full h-36 object-contain drop-shadow-[0_40px_60px_rgba(0,0,0,0.6)]"
+                />
+              </div>
+              <h5 class="text-xl font-black text-white mb-4 italic tracking-tight text-center md:text-left">{getVariantTitle(variant)}</h5>
+
+             <div class="flex items-baseline justify-center md:justify-start flex-nowrap gap-x-4 mb-2">
+               {#if isCardActive && shopStore.quantity > 1}
+                  <span class="original-price text-sm text-slate-600 line-through">{(variant.price * shopStore.quantity).toLocaleString()}đ</span>
+                  <span class="text-4xl font-black text-white tabular-nums drop-shadow-[0_0_15px_rgba(255,183,197,0.5)]">
+                    {(shopStore.totalAmount).toLocaleString()}đ
+                  </span>
+               {:else}
+                  {#if variant.price > unitPrice}
+                     <span class="original-price text-sm text-slate-600 line-through">{(variant.price).toLocaleString()}đ</span>
+                  {:else}
+                     <span class="text-sm text-transparent">0đ</span>
+                  {/if}
+                  <span class="text-3xl font-black text-white tabular-nums">
+                    {(unitPrice).toLocaleString()}đ
+                  </span>
                {/if}
-               <span class="price-value font-semibold text-white whitespace-nowrap">
-                 {shopStore.variant?.sku === variant.sku ? shopStore.totalAmount.toLocaleString() : (variant.discountPrice || variant.price).toLocaleString()}đ
-               </span>
              </div>
 
-              {#if idx === 0}
-                  <p class="shipping-label text-[9px] text-blue-400 font-medium uppercase tracking-widest flex items-center gap-2 whitespace-nowrap">
-                     <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
-                    <EditableWrapper class="inline-block" path="metadata.offer_shipping_prefix" value={mkt.shipping_prefix} label="SỬA NHÃN SHIP">
-                      {mkt.shipping_prefix}
-                    </EditableWrapper>
-                    {SHOP_CONFIG.shipping.fixed_cost.toLocaleString()}đ
+              <div class="flex flex-col gap-2 mt-2 items-center md:items-start">
+                {#if isCardActive && shopStore.quantity > 1}
+                  <p class="text-[12px] text-red-400 font-black uppercase tracking-widest flex items-center gap-3 bg-red-950/40 px-3 py-1.5 rounded-lg border border-red-900/50">
+                     <span class="w-2 h-2 bg-red-500 rounded-full animate-bounce"></span>
+                     TIẾT KIỆM KHỦNG: {((variant.price * shopStore.quantity) - shopStore.totalAmount).toLocaleString()}đ
                   </p>
-              {:else}
-                  <div class="flex flex-col gap-1">
-                    <p class="text-[9px] text-emerald-400 font-medium uppercase tracking-widest flex items-center gap-2 whitespace-nowrap">
-                       <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
-                      <EditableWrapper class="inline-block" path="metadata.offer_savings_prefix" value={mkt.savings_prefix} label="SỬA NHÃN TIẾT KIỆM">
-                        {mkt.savings_prefix}
-                      </EditableWrapper>
-                      {(variant.price - (variant.discountPrice || variant.price)).toLocaleString()}đ
-                    </p>
-                    <p class="booking-suffix flex items-center gap-1.5 text-[7.5px] whitespace-nowrap text-slate-500 italic opacity-60">
-                      🔥 {bookingPoints[idx]} 
-                      <EditableWrapper class="inline-block" path="metadata.offer_booking_suffix" value={mkt.booking_suffix} label="SỬA NHÃN ĐẶT HÀNG">
-                        {mkt.booking_suffix}
-                      </EditableWrapper>
-                    </p>
-                  </div>
-              {/if}
+                {:else if (variant.price - unitPrice) > 0}
+                  <p class="text-[10px] text-emerald-400 font-black uppercase tracking-widest flex items-center gap-3">
+                     <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                     {mkt.savings_prefix} {(variant.price - unitPrice).toLocaleString()}đ
+                  </p>
+                {/if}
+                <p class="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 {isCardActive && shopStore.quantity > 1 ? 'mt-1' : ''}">
+                  <span class="text-luxury-sakura animate-pulse">●</span> SPECS: {metadata.weight || "30G"} - {metadata.origin || "JAPAN"} | MÃ VẠCH: {variant.sku || product?.sku || 'N/A'}
+                </p>
+              </div>
            </div>
 
            <ul class="bullet-list mb-8 flex-grow space-y-2">
-             {#each getFeatures(variant, idx) as feature, fIdx}
-                {@const vIdx = (shopStore.product?.variants || []).findIndex(v => v.sku === variant.sku)}
-                <li>
-                  <EditableWrapper 
-                    path="variants.{vIdx}.attributes.features.{fIdx}" 
-                    value={feature} 
-                    label="DÒNG TÍNH NĂNG"
-                    class="flex items-center gap-2 {feature.startsWith('+') ? 'font-medium text-slate-200' : ''} {feature.startsWith('!') ? 'text-emerald-400' : ''}"
-                  >
-                    <span class="icon-check {feature.startsWith('!') ? 'text-emerald-400' : 'text-cyan-400'}">
-                        ✦
-                    </span>
-                    <span>{feature.replace(/^[+!-]/, '')}</span>
-                  </EditableWrapper>
+             {#each getFeatures(variant, idx, isCardActive) as feature}
+                <li class="flex items-center gap-3">
+                  <span class="text-luxury-sakura font-black">✦</span>
+                  <span class="text-[11px] font-black uppercase tracking-wide text-white/80">{feature.replace(/^[+!-]/, '')}</span>
                 </li>
              {/each}
            </ul>
 
-           <div class="flex gap-2 items-stretch mt-auto">
-             <button
-               onclick={() => { shopStore.selectVariant(variant); shopStore.openCheckout(); }}
-               class="flex-[1.8] bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white h-[52px] rounded-xl font-black text-[9px] uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(37,99,235,0.2)] hover:shadow-[0_15px_40px_rgba(37,99,235,0.4)] transition-all active:scale-[0.98] group relative overflow-hidden flex items-center justify-center px-4"
-             >
-                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none"></div>
-                <div class="flex items-center gap-2">
-                  <ShoppingCart class="w-3.5 h-3.5 mb-0.5" strokeWidth={3} />
-                  <EditableWrapper path={idx === 0 ? "metadata.offer_cta_start" : "metadata.offer_cta_full"} value={idx === 0 ? mkt.cta_start : mkt.cta_full} label="SỬA CHỮ NÚT BẤM">
-                    <span>{idx === 0 ? mkt.cta_start : mkt.cta_full}</span>
-                  </EditableWrapper>
-                </div>
-             </button>
-
-             <button 
-               onclick={() => isDetailsOpen = true}
-               class="flex-1 bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-3xl border border-white/10 rounded-xl h-[52px] flex items-center justify-center transition-all active:scale-[0.98] group gap-2 px-2"
-             >
-               <Info class="w-3.5 h-3.5 text-white/40 group-hover:text-blue-400 transition-colors" />
-               <span class="text-[8px] font-black text-white/40 group-hover:text-white uppercase tracking-[0.1em] leading-tight text-left">XEM<br/>CHI TIẾT</span>
-             </button>
+           <div class="liquid-cta-viral text-white min-h-[64px] rounded-2xl font-black shadow-2xl relative overflow-hidden flex items-center justify-center px-4 w-full mt-4 pointer-events-none transition-all duration-500 {isCardActive ? 'border-2 border-luxury-sakura bg-luxury-sakura/10 scale-[1.03]' : ''}">
+              <div class="relative z-10 flex items-center gap-4 w-full justify-center">
+                {#if isCardActive}
+                   <ShoppingCart class="w-6 h-6 shrink-0 text-luxury-sakura animate-pulse drop-shadow-md" strokeWidth={2.5} />
+                   <div class="flex flex-col text-left justify-center flex-1 max-w-[75%]">
+                      <span class="text-[14px] font-black uppercase tracking-[0.2em] text-white leading-none mb-1 mt-0.5 flex items-center justify-between">
+                         MUA NGAY
+                         <ArrowRight class="w-4 h-4 text-luxury-sakura" />
+                      </span>
+                      <span class="text-[10px] text-luxury-sakura uppercase font-black tracking-[0.15em] truncate">
+                         {shopStore.quantity} MÓN • {(shopStore.totalAmount).toLocaleString()}Đ
+                      </span>
+                   </div>
+                {:else}
+                   <ShoppingCart class="w-5 h-5 shrink-0" strokeWidth={3} />
+                   <span class="uppercase tracking-[0.2em] text-[11px] text-center leading-tight">{idx === 0 ? mkt.cta_start : mkt.cta_full}</span>
+                {/if}
+              </div>
            </div>
           </div>
+         </div>
       {/each}
-
     </div>
-
 
     <DesktopProductDetailsModal bind:active={isDetailsOpen} {product} />
-
-    <!-- Pharmacy Trust Footer - Viral Liquid Glass! -->
-    <div class="w-full">
-      <div class="pharmacy-footer group">
-        <!-- Specular Sheen Effect -->
-        <div class="absolute inset-0 overflow-hidden rounded-[inherit] pointer-events-none">
-          <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[2000ms] ease-in-out"></div>
-        </div>
-
-        <div class="info-grid">
-          <!-- Identity -->
-          <div class="contact-item">
-            <EditableWrapper path="metadata.offer_label_distributor" value={mkt.label_distributor} label="SỬA NHÃN PHÂN PHỐI">
-              <span class="label uppercase">{mkt.label_distributor}</span>
-            </EditableWrapper>
-            <EditableWrapper path="metadata.offer_pharmacy_name" value={mkt.pharmacy_name} label="SỬA TÊN CÔNG TY">
-              <span class="value text-white font-medium text-lg block mb-2">{mkt.pharmacy_name}</span>
-            </EditableWrapper>
-            <div class="flex items-start gap-2">
-              <svg class="w-3.5 h-3.5 text-slate-500 mt-1 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              <EditableWrapper path="metadata.offer_pharmacy_address" value={mkt.pharmacy_address} label="SỬA ĐỊA CHỈ">
-                <span class="value text-[11px] text-slate-400">{mkt.pharmacy_address}</span>
-              </EditableWrapper>
-            </div>
-          </div>
-
-          <!-- Connectivity -->
-          <div class="contact-item">
-            <EditableWrapper path="metadata.offer_label_support" value={mkt.label_support} label="SỬA NHÃN HỖ TRỢ">
-              <span class="label uppercase">{mkt.label_support}</span>
-            </EditableWrapper>
-            <div class="space-y-3">
-              <a href="tel:{mkt.pharmacy_phone.replace(/\s/g, '')}" class="flex items-center gap-3 group/link">
-                <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20 group-hover/link:bg-blue-500/20 transition-colors">
-                  <svg class="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 005.47 5.47l.772-1.547a1 1 0 011.06-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/></svg>
-                </div>
-                <EditableWrapper path="metadata.offer_pharmacy_phone" value={mkt.pharmacy_phone} label="SỬA HOTLINE">
-                  <span class="value font-medium text-blue-400">{mkt.pharmacy_phone}</span>
-                </EditableWrapper>
-              </a>
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
-                  <span class="text-[10px] font-black text-cyan-400">Zalo</span>
-                </div>
-                <span class="value text-slate-300">{mkt.pharmacy_zalo}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Trust Markers -->
-          <div class="contact-item">
-            <span class="label uppercase">{mkt.label_commitment}</span>
-            <div class="flex flex-wrap gap-2 mb-4">
-               <span class="px-3 py-1 bg-white/5 text-white text-[9px] font-medium rounded-lg border border-white/10 backdrop-blur-md">{SHOP_CONFIG.trust_marks[0]}</span>
-               <span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[9px] font-medium rounded-lg border border-emerald-500/20 backdrop-blur-md">{SHOP_CONFIG.trust_marks[1]}</span>
-            </div>
-            <p class="text-[10px] text-slate-500 italic leading-relaxed">
-              {@html mkt.compliance_note}
-            </p>
-          </div>
-        </div>
-
-        <!-- Compliance Label (Liquid Glass Edition) -->
-        <div class="license-tag">
-          <div class="inline-block px-6 py-2 bg-white/[0.03] backdrop-blur-2xl rounded-full border border-white/10 shadow-[0_5px_15px_rgba(0,0,0,0.3)]">
-            <span class="text-[10px] font-medium text-slate-400 tracking-wide">
-              {mkt.label_license}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Dynamic Line Wave Divider - High Impact Edition! -->
-  <div class="wave-container">
-    <svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="wave-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#3b82f6" stop-opacity="0" />
-          <stop offset="50%" stop-color="#22d3ee" stop-opacity="1" />
-          <stop offset="100%" stop-color="#3b82f6" stop-opacity="0" />
-        </linearGradient>
-      </defs>
-      <!-- Multi-layered lines for 'strength' -->
-      <path class="wave-line opacity-20" d="M0,160 C320,300 420,20 720,160 C1020,300 1120,20 1440,160" />
-      <path class="wave-line" d="M0,200 C320,340 420,60 720,200 C1020,340 1120,60 1440,200" />
-      <path class="wave-line secondary" d="M0,240 C320,100 420,380 720,240 C1020,100 1120,380 1440,240" />
-      <path class="wave-line opacity-30" d="M0,100 C320,240 420,-40 720,100 C1020,240 1120,-40 1440,100" />
-    </svg>
   </div>
 </section>

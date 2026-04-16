@@ -180,8 +180,8 @@
   // Elite 2026 Programmatic Scroll Coordinator (O(1) Speed/Memory)
   const hasQuiz = $derived((metadata?.quiz_questions?.length || 0) > 0);
   const sectionIds = $derived(hasQuiz 
-    ? ['hero', 'diagnostics', 'science', 'reviews', 'offers']
-    : ['hero', 'science', 'reviews', 'offers']
+    ? ['hero', 'diagnostics', 'science', 'result-timeline', 'reviews', 'offers']
+    : ['hero', 'science', 'result-timeline', 'reviews', 'offers']
   );
   let currentSessionIdx = $state(0);
   const activeId = $derived(sectionIds[currentSessionIdx]);
@@ -299,7 +299,7 @@
             <DiagnosticsSection {product} />
           {/await}
         {:else}
-          <div class="w-full h-full bg-[#050505] animate-pulse rounded-t-3xl border-t border-[#111]"></div>
+          <div class="w-full h-full bg-[#010101] animate-pulse rounded-t-3xl border-t border-[#111]"></div>
         {/if}
       </section>
     {/if}
@@ -310,9 +310,19 @@
           <ScienceBento />
         {/await}
       {:else}
-        <div class="w-full h-full bg-[#050505] animate-pulse"></div>
+        <div class="w-full h-full bg-[#010101] animate-pulse"></div>
       {/if}
     </section>
+
+      <section id="result-timeline" class="snap-session">
+        {#if loadJIT}
+          {#await import('$lib/components/client/slug/ResultTimeline.svelte') then { default: ResultTimeline }}
+            <ResultTimeline />
+          {/await}
+        {:else}
+          <div class="w-full h-full bg-[#010101] animate-pulse"></div>
+        {/if}
+      </section>
 
     <section id="reviews" class="snap-session">
       {#if loadJIT}
@@ -320,7 +330,7 @@
           <VerifiedReviews />
         {/await}
       {:else}
-        <div class="w-full h-full bg-[#050505] animate-pulse"></div>
+        <div class="w-full h-full bg-[#010101] animate-pulse"></div>
       {/if}
     </section>
 
@@ -330,7 +340,7 @@
           <OfferGrid />
         {/await}
       {:else}
-        <div class="w-full h-full bg-[#050505] animate-pulse"></div>
+        <div class="w-full h-full bg-[#010101] animate-pulse"></div>
       {/if}
     </section>
 
@@ -339,6 +349,11 @@
     <!-- AI Medical Assistant (Viral 2026 - Desktop Float Card) -->
     <SupportAgentFAB isMobile={false} />
     <SupportChatDesktop productSlug={product.slug} />
+
+    <!-- FOMO NOTIFICATION (Elite V2.2 Social Proof) -->
+    {#await import('$lib/components/client/slug/FomoNotification.svelte') then { default: FomoNotification }}
+      <FomoNotification />
+    {/await}
   {:else}
     <div class="flex flex-col items-center justify-center min-h-screen bg-[#050505] text-white">
        <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -361,7 +376,7 @@
     overflow-x: hidden;
     height: 100vh;
     font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
-    background-color: #050505; /* Viral 2026: Dark theme foundation */
+    background-color: #010101; /* Viral 2026: Luxury Black foundation */
     color: var(--text-base);
   }
 

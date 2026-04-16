@@ -258,7 +258,7 @@
                 </EditableWrapper>
                 <div class="flex items-center gap-1">
                   {#each [1, 2, 3, 4, 5] as star}
-                    <svg class="w-4 h-4 {star <= 5 ? 'text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]' : 'text-white/5'}" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="w-4 h-4 {star <= 5 ? 'text-luxury-gold drop-shadow-[0_0_10px_rgba(232,213,176,0.6)]' : 'text-white/5'}" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
                   {/each}
@@ -277,25 +277,25 @@
           <div class="w-px h-10 bg-white/10 hidden sm:block"></div>
 
           <div class="flex items-center gap-4">
-            <div class="w-10 h-10 rounded-full border border-emerald-500/20 flex items-center justify-center bg-emerald-500/5">
-              <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <div class="w-10 h-10 rounded-full border border-luxury-sakura/20 flex items-center justify-center bg-luxury-sakura/5">
+              <svg class="w-5 h-5 text-luxury-sakura" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
             </div>
             <div class="flex flex-col">
               <span class="text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">ELITE_PROTECTED</span>
-              <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">VERIFIED SERVICE</span>
+              <span class="text-[10px] font-black text-luxury-sakura uppercase tracking-widest">VERIFIED SERVICE</span>
             </div>
           </div>
         </div>
 
         <button 
           onclick={() => showFormModal = true} 
-          class="pulse-btn px-12 py-5 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-emerald-400 text-[11px] font-black uppercase tracking-[0.4em] hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all active:scale-95 shadow-[0_0_50px_rgba(16,185,129,0.1)] group flex items-center gap-4"
+          class="pulse-btn px-12 py-5 bg-luxury-sakura/10 border border-luxury-sakura/30 rounded-full text-luxury-sakura text-[11px] font-black uppercase tracking-[0.4em] hover:bg-luxury-sakura/20 hover:border-luxury-sakura/50 transition-all active:scale-95 shadow-[0_0_50px_rgba(193,143,126,0.1)] group flex items-center gap-4"
         >
           <svg class="w-4 h-4 transition-transform group-hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
           <span class="relative" style="z-index: var(--z-surface);">{labels.cta_write}</span>
-          <div class="absolute inset-0 bg-emerald-500/5 blur-2xl group-hover:blur-3xl transition-all"></div>
+          <div class="absolute inset-0 bg-luxury-sakura/5 blur-2xl group-hover:blur-3xl transition-all"></div>
         </button>
       </div>
     </div>
@@ -304,8 +304,8 @@
     <div class="bento-hub-frame relative group">
       <div class="reviews-layout relative z-surface">
         <div class="flex items-center justify-between mt-6 mb-10 px-2">
-            <div class="hud-tag primary bg-emerald-500/5 text-emerald-400 border-emerald-500/20 animate-fade-in">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></span>
+            <div class="hud-tag primary bg-luxury-sakura/5 text-luxury-sakura border-luxury-sakura/20 animate-fade-in">
+                <span class="w-2 h-2 rounded-full bg-luxury-sakura shadow-[0_0_10px_rgba(193,143,126,0.8)]"></span>
                 {labels.hud_feedback}
             </div>
 
@@ -316,7 +316,7 @@
                 class="nav-delicate group/nav p-2 transition-all active:scale-90"
                 aria-label="Previous"
               >
-                <svg class="w-6 h-6 text-white/10 group-hover/nav:text-emerald-400/80 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-6 h-6 text-white/10 group-hover/nav:text-luxury-sakura transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
@@ -328,7 +328,7 @@
                 class="nav-delicate group/nav p-2 transition-all active:scale-90"
                 aria-label="Next"
               >
-                <svg class="w-6 h-6 text-white/10 group-hover/nav:text-emerald-400/80 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-6 h-6 text-white/10 group-hover/nav:text-luxury-sakura transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5l7 7-7 7" />
                 </svg>
               </button>
@@ -338,8 +338,8 @@
         <div class="reviews-scroll-wrapper scrollbar-hide flex overflow-x-auto snap-x snap-mandatory gap-4 xl:grid xl:grid-cols-3 xl:gap-8 w-full" bind:this={scrollContainer}>
           {#if isLoading && realReviews.length === 0}
             <div class="flex flex-col items-center justify-center p-24 gap-6">
-              <div class="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
-              <span class="text-emerald-500/40 font-mono text-[10px] tracking-[0.4em] uppercase">Encrypting_Voices...</span>
+              <div class="w-12 h-12 border-2 border-luxury-sakura/20 border-t-luxury-sakura rounded-full animate-spin"></div>
+              <span class="text-luxury-sakura/40 font-mono text-[10px] tracking-[0.4em] uppercase">Syncing_Real_Voices...</span>
             </div>
           {:else if realReviews.length === 0}
             <div class="flex flex-col items-center justify-center p-24 gap-4 opacity-30">
@@ -353,13 +353,13 @@
                   <div class="flex items-center gap-4">
                     <div class="avatar-circle relative group-hover/card:scale-110 transition-transform duration-500">
                        {review.initial}
-                       <div class="absolute inset-0 bg-emerald-400/20 blur-lg rounded-full opacity-0 group-hover/card:opacity-100 transition-opacity"></div>
+                       <div class="absolute inset-0 bg-luxury-sakura/20 blur-lg rounded-full opacity-0 group-hover/card:opacity-100 transition-opacity"></div>
                     </div>
                     <div class="user-meta flex flex-col min-w-0">
                       <div class="flex items-center gap-2 mb-0.5">
                         <span class="user-name font-black text-base text-white/95 tracking-tight truncate">{review.name}</span>
                         <span class="text-[10px] text-white/20 font-mono italic shrink-0 leading-none">{review.phone}</span>
-                        <div class="verified-badge-mini text-emerald-400 shrink-0">
+                        <div class="verified-badge-mini text-luxury-sakura shrink-0">
                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                            </svg>
@@ -370,7 +370,7 @@
                       </div>
                       <div class="flex items-center gap-0.5 mt-1.5">
                         {#each [0, 1, 2, 3, 4] as starIdx}
-                          <svg class="w-3 h-3 {starIdx < (review.rating || 5) ? 'text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.4)]' : 'text-white/5'}" fill="currentColor" viewBox="0 0 20 20">
+                          <svg class="w-3 h-3 {starIdx < (review.rating || 5) ? 'text-luxury-gold drop-shadow-[0_0_5px_rgba(232,213,176,0.4)]' : 'text-white/5'}" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                           </svg>
                         {/each}
@@ -394,16 +394,16 @@
                     <div class="w-2 h-2 rounded-full border border-white/20"></div>
                     <span class="text-[8px] font-black text-white/20 uppercase tracking-[0.3em]">{labels.label_compliant}</span>
                   </div>
-                  <div class="buy-check flex items-center gap-2.5 px-3.5 py-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)] transition-all hover:border-emerald-500/40">
+                  <div class="buy-check flex items-center gap-2.5 px-3.5 py-2 bg-luxury-sakura/10 rounded-xl border border-luxury-sakura/20 shadow-[0_0_15px_rgba(193,143,126,0.1)] transition-all hover:border-luxury-sakura/40">
                     <div class="relative">
-                      <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg class="w-4 h-4 text-luxury-sakura" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                       </svg>
-                      <div class="absolute inset-0 bg-emerald-400 blur-md opacity-20"></div>
+                      <div class="absolute inset-0 bg-luxury-sakura blur-md opacity-20"></div>
                     </div>
                     <div class="flex flex-col">
-                      <span class="text-[7px] font-black text-emerald-400/50 uppercase tracking-[0.2em] leading-none mb-0.5">AUTH_STATUS</span>
-                      <span class="text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-none">{labels.label_store_verified}</span>
+                      <span class="text-[7px] font-black text-luxury-sakura/50 uppercase tracking-[0.2em] leading-none mb-0.5">AUTH_STATUS</span>
+                      <span class="text-[9px] font-black text-luxury-sakura uppercase tracking-widest leading-none">{labels.label_store_verified}</span>
                     </div>
                   </div>
                 </div>
@@ -416,17 +416,17 @@
   </div>
 
   <!-- Decorative Background Elements -->
-  <div class="absolute -top-64 -right-64 w-[600px] h-[600px] bg-emerald-500/10 blur-[150px] rounded-full mix-blend-overlay animate-pulse"></div>
-  <div class="absolute -bottom-64 -left-64 w-[600px] h-[600px] bg-cyan-500/10 blur-[150px] rounded-full mix-blend-overlay animate-pulse" style:animation-delay="2s"></div>
+  <div class="absolute -top-64 -right-64 w-[600px] h-[600px] bg-luxury-sakura/10 blur-[150px] rounded-full mix-blend-overlay animate-pulse"></div>
+  <div class="absolute -bottom-64 -left-64 w-[600px] h-[600px] bg-luxury-gold/5 blur-[150px] rounded-full mix-blend-overlay animate-pulse" style:animation-delay="2s"></div>
 
   <!-- Dynamic Line Wave Divider - High Impact Edition! -->
   <div class="wave-container">
     <svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
       <defs>
         <linearGradient id="wave-gradient-reviews" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#10b981" stop-opacity="0" />
-          <stop offset="50%" stop-color="#34d399" stop-opacity="1" />
-          <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+          <stop offset="0%" stop-color="#C18F7E" stop-opacity="0" />
+          <stop offset="50%" stop-color="#E8D5B0" stop-opacity="1" />
+          <stop offset="100%" stop-color="#C18F7E" stop-opacity="0" />
         </linearGradient>
       </defs>
       <path class="wave-line opacity-20" d="M0,160 C320,300 420,20 720,160 C1020,300 1120,20 1440,160" />
@@ -456,7 +456,7 @@
               style:--left="{Math.random() * 100}%"
               style:--delay="{Math.random() * 2}s"
               style:--duration="{2 + Math.random() * 3}s"
-              style:--color="{['#10b981', '#34d399', '#6ee7b7', '#fff'][Math.floor(Math.random() * 4)]}"
+              style:--color="{['#C18F7E', '#E8D5B0', '#E3B5A4', '#fff'][Math.floor(Math.random() * 4)]}"
               style:--size="{4 + Math.random() * 6}px"
               style:--x="{(Math.random() - 0.5) * 400}px"
             ></div>
@@ -479,23 +479,23 @@
           {#if showSuccess}
             <div class="success-overlay absolute inset-0 bg-slate-950/95 backdrop-blur-3xl flex flex-col items-center justify-center text-center p-12 z-50 rounded-[3.5rem]" transition:fade>
               <div 
-                class="w-32 h-32 bg-emerald-500/20 rounded-full flex items-center justify-center mb-10 border-2 border-emerald-500/40 shadow-[0_0_60px_rgba(16,185,129,0.3)]"
+                class="w-32 h-32 bg-luxury-sakura/20 rounded-full flex items-center justify-center mb-10 border-2 border-luxury-sakura/40 shadow-[0_0_60px_rgba(193,143,126,0.3)]"
                 transition:scale={{ duration: 1000, easing: elasticOut }}
               >
-                <svg class="w-16 h-16 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4" transition:fly={{ y: 20, duration: 600 }}><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                <svg class="w-16 h-16 text-luxury-sakura" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4" transition:fly={{ y: 20, duration: 600 }}><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
               </div>
               <h4 class="text-5xl font-black text-white uppercase tracking-tighter mb-6 italic" in:fly={{ y: 20, duration: 800 }}>{labels.success_title}</h4>
               <p class="text-white/60 text-sm max-w-md font-bold uppercase tracking-[0.2em] leading-relaxed" in:fly={{ y: 20, delay: 200, duration: 800 }}>{labels.success_msg}</p>
               
               <div class="mt-12 w-full max-w-xs h-1 bg-white/5 rounded-full overflow-hidden">
-                <div class="h-full bg-emerald-500 animate-progress"></div>
+                <div class="h-full bg-luxury-sakura animate-progress"></div>
               </div>
             </div>
           {/if}
 
           <div class="flex flex-col sm:flex-row items-center justify-between mb-4 sm:mb-8 pb-3 sm:pb-6 border-b border-white/5 sm:pr-10 gap-2 sm:gap-4">
-            <div class="hud-tag primary px-4 py-1.5 bg-emerald-500/5 text-emerald-400 border-emerald-500/10">
-              <span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_10px_rgba(6,182,212,0.8)]"></span>
+            <div class="hud-tag primary px-4 py-1.5 bg-luxury-sakura/5 text-luxury-sakura border-luxury-sakura/10">
+              <span class="w-1.5 h-1.5 rounded-full bg-luxury-gold animate-pulse shadow-[0_0_10px_rgba(232,213,176,0.8)]"></span>
               <span class="text-[10px] font-black tracking-[0.2em] uppercase whitespace-nowrap">{labels.form_title}</span>
             </div>
             <div class="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] text-white/20 font-mono italic">{labels.label_secure_encryption}</div>
@@ -507,11 +507,11 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div class="space-y-1.5">
                     <label for="review-name" class="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_name}</label>
-                    <input id="review-name" type="text" bind:this={nameRef} placeholder="Họ và Tên *" class="input-liquid px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/10 focus:border-emerald-500/50 transition-all outline-none" />
+                    <input id="review-name" type="text" bind:this={nameRef} placeholder="Họ và Tên *" class="input-liquid px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/10 focus:border-luxury-sakura/50 transition-all outline-none" />
                   </div>
                   <div class="space-y-1.5">
                     <label for="review-phone" class="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_phone}</label>
-                    <input id="review-phone" type="tel" bind:this={phoneRef} placeholder="Số điện thoại *" class="input-liquid px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/10 focus:border-emerald-500/50 transition-all outline-none" />
+                    <input id="review-phone" type="tel" bind:this={phoneRef} placeholder="Số điện thoại *" class="input-liquid px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/10 focus:border-luxury-sakura/50 transition-all outline-none" />
                   </div>
                 </div>
 
@@ -522,7 +522,7 @@
                       id="review-location"
                       type="button"
                       onclick={() => isLocationOpen = !isLocationOpen}
-                      class="input-liquid flex items-center justify-between px-6 py-5 rounded-2xl bg-white/5 border border-white/10 text-white transition-all outline-none {isLocationOpen ? 'border-emerald-500/50' : ''}"
+                      class="input-liquid flex items-center justify-between px-6 py-5 rounded-2xl bg-white/5 border border-white/10 text-white transition-all outline-none {isLocationOpen ? 'border-luxury-sakura/50' : ''}"
                     >
                       <span class={locationSelected ? 'text-white font-bold' : 'text-white/20 uppercase text-[11px] font-bold tracking-[0.1em]'}>
                         {locationSelected || 'Chọn Tỉnh/Thành'}
@@ -546,7 +546,7 @@
                             <button 
                               type="button"
                               onclick={() => { locationSelected = loc; isLocationOpen = false; }}
-                              class="w-full px-8 py-4 text-left text-sm text-white/70 hover:text-white hover:bg-emerald-500/10 transition-all border-b border-white/5 last:border-0 font-bold uppercase tracking-widest"
+                              class="w-full px-8 py-4 text-left text-sm text-white/70 hover:text-white hover:bg-luxury-sakura/10 transition-all border-b border-white/5 last:border-0 font-bold uppercase tracking-widest"
                             >
                               {loc}
                             </button>
@@ -576,11 +576,11 @@
                           aria-label="Rate {i + 1} stars" 
                           class="star-viral-btn relative transition-all duration-500 {active ? 'scale-110' : 'scale-100 opacity-20'}" style="z-index: var(--z-surface);"
                         >
-                          <svg class="w-6 h-6 sm:w-8 sm:h-8 transition-all duration-700 {active ? 'drop-shadow-[0_0_20px_rgba(16,185,129,0.8)]' : ''}" viewBox="0 0 24 24" fill="none">
+                          <svg class="w-6 h-6 sm:w-8 sm:h-8 transition-all duration-700 {active ? 'drop-shadow-[0_0_20px_rgba(232,213,176,0.8)]' : ''}" viewBox="0 0 24 24" fill="none">
                             <defs>
                               <linearGradient id="star-grad-viral-{i}" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" stop-color="#fbbf24" />
-                                <stop offset="100%" stop-color="#10b981" />
+                                <stop offset="100%" stop-color="#C18F7E" />
                               </linearGradient>
                             </defs>
                             <path 
@@ -588,7 +588,7 @@
                               fill={active ? `url(#star-grad-viral-${i})` : 'currentColor'}
                             />
                             {#if selected}
-                              <circle cx="12" cy="12" r="11" stroke="#34d399" stroke-width="0.5" class="animate-ping opacity-30" />
+                              <circle cx="12" cy="12" r="11" stroke="#E8D5B0" stroke-width="0.5" class="animate-ping opacity-30" />
                             {/if}
                           </svg>
                         </button>
@@ -606,7 +606,7 @@
               <div class="space-y-4">
                 <label for="review-content" class="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] ml-4">{labels.form_content}</label>
                 <div class="relative h-full pb-0 sm:pb-4">
-                  <textarea id="review-content" bind:this={contentRef} oninput={() => contentLen = contentRef?.value.length || 0} placeholder="{labels.form_placeholder}" class="input-liquid resize-none h-[120px] sm:h-[180px] lg:h-[calc(100%-40px)] w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/10 focus:border-emerald-500/50 transition-all outline-none scrollbar-hide"></textarea>
+                  <textarea id="review-content" bind:this={contentRef} oninput={() => contentLen = contentRef?.value.length || 0} placeholder="{labels.form_placeholder}" class="input-liquid resize-none h-[120px] sm:h-[180px] lg:h-[calc(100%-40px)] w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/10 focus:border-luxury-sakura/50 transition-all outline-none scrollbar-hide"></textarea>
                   <div class="char-counter absolute bottom-3 right-5 sm:bottom-8 sm:right-6 font-mono text-[8px] text-white/15 tracking-widest">{contentLen}/5000</div>
                 </div>
               </div>
@@ -616,7 +616,7 @@
               <button 
                 type="submit" 
                 disabled={isSubmitting} 
-                class="submit-glow-btn w-full py-4 sm:py-6 flex flex-col items-center justify-center gap-1 group/btn relative overflow-hidden rounded-2xl sm:rounded-[2rem] bg-emerald-500 text-slate-950 transition-all hover:bg-emerald-400 active:scale-[0.98]"
+                class="submit-glow-btn w-full py-4 sm:py-6 flex flex-col items-center justify-center gap-1 group/btn relative overflow-hidden rounded-2xl sm:rounded-[2rem] bg-luxury-sakura text-slate-950 transition-all hover:bg-luxury-gold active:scale-[0.98]"
               >
                 {#if isSubmitting}
                   <div class="flex items-center gap-3">
@@ -642,7 +642,7 @@
     class="fixed top-12 left-1/2 -translate-x-1/2 z-toast"
     transition:fly={{ y: -50, duration: 600, easing: cubicOut }}
   >
-    <div class="px-8 py-4 {toastType === 'error' ? 'bg-red-500/20 text-red-400 border-red-500/40' : 'bg-white/10 text-white border-white/20'} backdrop-blur-3xl border rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-4">
+    <div class="px-8 py-4 {toastType === 'error' ? 'bg-red-500/20 text-red-400 border-red-500/40' : 'bg-luxury-sakura/10 text-white border-luxury-sakura/20'} backdrop-blur-3xl border rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-4">
       {#if toastType === 'error'}
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
       {/if}
@@ -689,12 +689,12 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 0 0 rgba(255, 183, 197, 0.4);
     animation: pulse-ring 2s infinite;
   }
 
   @keyframes pulse-ring {
-    to { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
+    to { box-shadow: 0 0 0 20px rgba(255, 183, 197, 0); }
   }
 
   .z-surface { z-index: var(--z-surface); }

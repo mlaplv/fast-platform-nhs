@@ -32,10 +32,13 @@
 }
 
 /* Bento Hub Frame - REMOVED BORDERS & BG AS REQUESTED */
-.bento-hub-frame {
+.bento-hub-frame.reviews-section {
   position: relative;
   width: 100%;
-  transition: all 0.7s var(--ease-out);
+  background-color: #010101; /* Matches Funnel & Hero */
+  overflow: hidden;
+  --review-accent: #C18F7E;
+  --review-gold: #E8D5B0;
 }
 
 /* Review Grid/Swiper Optimization */

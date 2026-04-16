@@ -1,12 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
-  import { ShieldCheck, Tag } from 'lucide-svelte';
+  import { ShieldCheck, Tag, Sparkles } from 'lucide-svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { fade, fly, scale } from 'svelte/transition';
 
   const shopStore = getShopStore();
 
-  // Senior Architect Note: LiquidHeader uses Svelte 5 Runes for ultra-responsive local state
   let { themeMode, applyTheme, scrollToQuiz, activeId = null } = $props<{
     themeMode: 'system' | 'light' | 'dark';
     applyTheme: (mode: 'system' | 'light' | 'dark') => void;
@@ -21,21 +21,23 @@
     home: product?.metadata?.nav_label_home || 'Trang chủ',
     diagnostics: product?.metadata?.nav_label_diagnostics || 'Chẩn đoán',
     science: product?.metadata?.nav_label_science || 'Cơ chế',
+    transformation: 'Lột xác',
     reviews: product?.metadata?.nav_label_reviews || 'Đánh giá',
     offers: product?.metadata?.nav_label_offers || 'Ưu đãi'
   });
 
   const navLinks = $derived([
-    { id: 'hero', label: labels.home, href: '#hero' },
+    { id: 'hero', label: labels.home, href: '#hero', icon: Sparkles },
     { id: 'diagnostics', label: labels.diagnostics, href: '#diagnostics' },
     { id: 'science', label: labels.science, href: '#science' },
+    { id: 'result-timeline', label: labels.transformation, href: '#result-timeline' },
     { id: 'reviews', label: labels.reviews, href: '#reviews' },
-    { id: 'offers', label: labels.offers, href: '#offers' },
-    { id: 'track', label: 'Tra cứu!', href: '/track' }
+    { id: 'offers', label: labels.offers, href: '#offers', icon: Tag }
   ]);
 
   let scrolled = $state(false);
   let scrollY = $state(0);
+  let hoverId = $state<string | null>(null);
 
   const handleScroll = () => {
     if (!browser) return;
@@ -46,11 +48,8 @@
   onMount(() => {
     if (browser) {
       window.addEventListener('scroll', handleScroll, { passive: true });
-      handleScroll(); // Initial check
-
-      return () => {
-        window.removeEventListener('scroll', handleScroll);
-      };
+      handleScroll();
+      return () => window.removeEventListener('scroll', handleScroll);
     }
   });
 
@@ -58,14 +57,20 @@
 </script>
 
 <div class={headerClass}>
-  <div class="liquid-island bg-black/60 backdrop-blur-2xl border border-white/10 rounded-full shadow-2xl">
-    <div class="island-content">
-      <!-- NAVIGATION SECTOR (Centered & Aligned) -->
-      <nav class="island-nav">
+  <div class="fluid-island-container">
+    <!-- Viral 2026: Bokeh Background for the Island -->
+    <div class="bokeh-layer absolute inset-0 overflow-hidden rounded-full pointer-events-none">
+       <div class="bokeh-dot" style:left="{(navLinks.findIndex(l => l.id === (hoverId || activeId)) * 100) / navLinks.length}%"></div>
+    </div>
+
+    <div class="liquid-island bg-black/40 backdrop-blur-[40px] border border-white/5 rounded-full shadow-[0_30px_100px_rgba(0,0,0,0.8)] relative">
+      <div class="island-content px-6 py-3 flex items-center justify-center gap-10 md:gap-14">
         {#each navLinks as link}
           <a
             href={link.href}
-            class="island-link text-[10px] font-black uppercase tracking-[0.2em] transition-all {activeId === link.id ? 'is-active' : 'text-white/80'}"
+            class="island-link relative group flex items-center gap-2 transition-all duration-500 {activeId === link.id ? 'is-active' : 'text-white/40 hover:text-white'}"
+            onmouseenter={() => hoverId = link.id}
+            onmouseleave={() => hoverId = null}
             onclick={(e) => {
               if (link.href.startsWith('#')) {
                 e.preventDefault();
@@ -73,57 +78,97 @@
               }
             }}
           >
-            {#if link.id === 'track'}
-              <ShieldCheck class="w-3 h-3 mr-1.5 inline-block opacity-70" />
-            {:else if link.id === 'offers'}
-              <Tag class="w-3 h-3 mr-1.5 inline-block opacity-70" />
+            {#if link.icon}
+               <link.icon class="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" />
             {/if}
-            {link.label}
+            <span class="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] font-outfit">
+               {link.label}
+            </span>
+            
+            {#if activeId === link.id}
+               <div class="active-indicator absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-luxury-gold rounded-full shadow-[0_0_10px_var(--luxury-gold)]" in:scale={{ duration: 600 }}></div>
+            {/if}
           </a>
         {/each}
-      </nav>
-    </div>
+      </div>
 
-    <!-- LIQUID DECORATION (Dynamic Highlight) -->
-    <div class="liquid-reflection absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none"></div>
+      <!-- Refraction Lens Effect -->
+      <div class="lens-glare absolute inset-0 rounded-full bg-gradient-to-tr from-white/5 via-transparent to-white/5 pointer-events-none opacity-50"></div>
+    </div>
   </div>
 </div>
 
 <style>
-  /* Component-specific layout; Aesthetic tokens remain in HeroBanner.css */
   .liquid-header-wrapper {
     position: fixed;
-    top: 1.25rem;
+    top: 2rem;
     left: 50%;
     transform: translateX(-50%);
     z-index: var(--z-sticky-header);
-    width: auto; /* Shrink to fit content */
-    display: flex;
-    justify-content: center;
+    transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
     pointer-events: none;
-    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
   }
 
   .liquid-header-wrapper.is-collapsed {
-    top: 0.75rem;
+    top: 1rem;
+    transform: translateX(-50%) scale(0.95);
   }
 
-  .island-content {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: fit-content;
-    min-width: min-content;
-    height: 100%;
-    padding: 0 1.25rem; /* Reduced horizontal padding to minimum */
+  .fluid-island-container {
     position: relative;
-    z-index: 2;
+    pointer-events: auto;
   }
 
-  .island-nav {
-    display: flex;
-    align-items: center;
-    gap: 2rem; /* Increased gap for better spacing when centered */
-    pointer-events: auto;
+  .liquid-island {
+    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .island-link {
+    text-shadow: 0 0 20px rgba(0,0,0,0.5);
+  }
+
+  .island-link.is-active {
+    color: var(--luxury-gold);
+    filter: drop-shadow(0 0 10px rgba(232, 213, 176, 0.3));
+  }
+
+  /* BOKEH EFFECT */
+  .bokeh-layer {
+     z-index: 0;
+  }
+
+  .bokeh-dot {
+     position: absolute;
+     top: 50%;
+     transform: translateY(-50%);
+     width: 100px;
+     height: 40px;
+     background: var(--luxury-copper);
+     filter: blur(25px);
+     opacity: 0.15;
+     transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .liquid-island:hover {
+     transform: translateY(-2px);
+     border-color: rgba(193, 143, 126, 0.2);
+     box-shadow: 0 40px 120px rgba(0,0,0,0.9);
+  }
+
+  @media (max-width: 768px) {
+    .liquid-header-wrapper {
+       width: 90%;
+    }
+    .island-content {
+       gap: 1.25rem;
+       padding: 0.75rem 1rem;
+    }
+    .island-link span {
+       display: none; /* Icon only on small mobile to avoid cramped text */
+    }
+    .island-link.is-active span {
+       display: inline-block; /* Show only active label */
+       font-size: 8px;
+    }
   }
 </style>

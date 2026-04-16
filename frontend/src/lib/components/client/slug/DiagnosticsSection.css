@@ -1,11 +1,20 @@
 /* DiagnosticsSection.css - CTO Native Version */
 
 .diagnostics-container {
+  background-color: #010101; /* Matches Funnel & Hero */
+  position: relative;
+  z-index: var(--z-surface);
+  
+  --glass-bg: rgba(255, 255, 255, 0.02);
+  --glass-border: rgba(193, 143, 126, 0.3);
+  --elite-accent: #C18F7E;
+  --elite-gold: #E8D5B0;
+  
   container-type: inline-size;
   container-name: diagnostics;
   
-  --diag-accent-glow: color-mix(in srgb, #3b82f6, transparent 92%);
-  --diag-accent-text: #3b82f6;
+  --diag-accent-glow: color-mix(in srgb, var(--elite-accent), transparent 92%);
+  --diag-accent-text: var(--elite-accent);
 
   min-height: 100vh;
   overflow: visible;

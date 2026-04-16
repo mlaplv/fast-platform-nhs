@@ -30,8 +30,8 @@
   const isEditable = $derived(liveEditStore.isEditMode && liveEditStore.isAdmin);
 
   const QUIZ_FALLBACKS = {
-    result_headline: 'PHÁC ĐỒ ĐIỀU TRỊ <br/><span class="text-blue-500/80">ĐỘC QUYỜN.</span>',
-    result_subheadline: '⚠️ CẢNH BÁO TỪ AI: Tình trạng sạm sạm của Sếp cần can thiệp ngay với ít nhất <span class="text-blue-400 font-semibold">{quantity} đơn vị</span> để đạt liệu trình phục hồi tối đa.',
+    result_headline: 'PHÁC ĐỒ ĐIỀU TRỊ <br/><span class="text-luxury-copper">ĐỘC QUYỜN.</span>',
+    result_subheadline: '⚠️ CẢNH BÁO TỪ AI: Tình trạng sạm sạm của Sếp cần can thiệp ngay với ít nhất <span class="text-luxury-gold font-semibold">{quantity} đơn vị</span> để đạt liệu trình phục hồi tối đa.',
     result_cta: 'KÍCH HOẠT LIỆU TRÌNH NGAY',
     restart_label: 'Thiết lập lại dữ liệu',
     loading_label: 'Đang truy xuất cơ sở dữ liệu lâm sàng...'
@@ -137,13 +137,13 @@
   class="clinical-quiz {!shopStore.diagnosticResult ? 'glass-liquid border-white/5' : ''} {shopStore.diagnosticResult ? 'p-0 md:p-0 lg:p-12 max-w-7xl' : 'p-6 md:p-8 lg:p-12 max-w-4xl'} rounded-[3.5rem] relative overflow-hidden mx-auto shadow-2xl min-h-[500px]"
 >
   <!-- Subdued Neural Orbs -->
-  <div class="neural-orb -top-20 -right-20 opacity-20" style:background="radial-gradient(circle, #3b82f6 0%, transparent 70%)" style:transform="scale(1.5)"></div>
-  <div class="neural-orb -bottom-40 -left-20 opacity-10" style:background="radial-gradient(circle, #818cf8 0%, transparent 70%)"></div>
+  <div class="neural-orb -top-20 -right-20 opacity-20" style:background="radial-gradient(circle, var(--luxury-copper) 0%, transparent 70%)" style:transform="scale(1.5)"></div>
+  <div class="neural-orb -bottom-40 -left-20 opacity-10" style:background="radial-gradient(circle, var(--luxury-gold) 0%, transparent 70%)"></div>
   
   <!-- Neural Progress Track (Elite V2.2) -->
   <div class="absolute top-0 left-0 right-0 h-1 bg-white/5 overflow-hidden">
     <div 
-      class="h-full bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-400 transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] shadow-[0_0_20px_rgba(34,211,238,0.5)] relative" 
+      class="h-full bg-gradient-to-r from-luxury-copper via-luxury-gold to-luxury-peach transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] shadow-[0_0_20px_rgba(193,143,126,0.5)] relative" 
       style:width="{progress}%"
     >
       <!-- Leading Edge Scan Glow -->
@@ -156,12 +156,12 @@
     <div class="edit-mode-container relative z-surface animate-reveal py-4">
         <div class="flex items-center justify-between mb-10 border-b border-white/5 pb-6">
             <div class="flex items-center gap-3">
-                <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_10px_#3b82f6]"></div>
+                <div class="w-2 h-2 rounded-full bg-luxury-copper animate-pulse shadow-[0_0_10px_var(--luxury-copper)]"></div>
                 <h3 class="text-sm font-semibold text-white uppercase tracking-[0.4em]">QUIZ_DIRECT_ENGINE // V2.2</h3>
             </div>
             <button 
                 onclick={addQuestion}
-                class="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-semibold uppercase rounded-full shadow-xl active:scale-95 transition-all"
+                class="flex items-center gap-2 px-6 py-3 bg-luxury-copper hover:bg-luxury-gold text-white text-[10px] font-semibold uppercase rounded-full shadow-xl active:scale-95 transition-all"
             >
                 <Plus size={14} /> THÊM CÂU HỎI MỚI
             </button>
@@ -199,7 +199,7 @@
                                 <label class="text-[8px] font-semibold text-white/20 uppercase tracking-widest pl-1">Question Title</label>
                                 <input 
                                     bind:value={question.title}
-                                    class="w-full bg-transparent border-b border-white/10 focus:border-blue-500 py-1 text-2xl font-medium text-white outline-none transition-all"
+                                    class="w-full bg-transparent border-b border-white/10 focus:border-luxury-copper py-1 text-2xl font-medium text-white outline-none transition-all"
                                     oninput={() => liveEditStore.updateField(`metadata.quiz_questions.${qIdx}.title`, question.title)}
                                 />
                             </div>
@@ -207,15 +207,15 @@
                                 <label class="text-[8px] font-semibold text-white/20 uppercase tracking-widest pl-1">Context / Subtitle</label>
                                 <input 
                                     bind:value={question.subtitle}
-                                    class="w-full bg-transparent border-b border-white/5 focus:border-blue-500/40 py-1 text-sm text-white/50 outline-none transition-all"
+                                    class="w-full bg-transparent border-b border-white/5 focus:border-luxury-copper/40 py-1 text-sm text-white/50 outline-none transition-all"
                                     oninput={() => liveEditStore.updateField(`metadata.quiz_questions.${qIdx}.subtitle`, question.subtitle)}
                                 />
                             </div>
 
                             <div class="space-y-4 pt-4">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-[8px] font-semibold text-blue-400/60 uppercase tracking-widest">Options Configuration</span>
-                                    <button onclick={() => addOption(qIdx)} class="text-[8px] font-semibold text-white/20 hover:text-blue-400 uppercase tracking-widest flex items-center gap-1">
+                                    <span class="text-[8px] font-semibold text-luxury-copper/60 uppercase tracking-widest">Options Configuration</span>
+                                    <button onclick={() => addOption(qIdx)} class="text-[8px] font-semibold text-white/20 hover:text-luxury-gold uppercase tracking-widest flex items-center gap-1">
                                         <PlusCircle size={10} /> ADD_OPTION
                                     </button>
                                 </div>
@@ -232,7 +232,7 @@
                                                 <input 
                                                     type="number" 
                                                     bind:value={option.score}
-                                                    class="w-6 bg-transparent text-[10px] font-semibold text-blue-400 text-center outline-none"
+                                                    class="w-6 bg-transparent text-[10px] font-semibold text-luxury-copper text-center outline-none"
                                                     oninput={() => liveEditStore.updateField(`metadata.quiz_questions.${qIdx}.options.${oIdx}.score`, option.score)}
                                                 />
                                             </div>
@@ -256,7 +256,7 @@
           <h3 class="text-4xl md:text-5xl font-semibold text-white mb-3 tracking-[-0.04em] leading-tight">
             {questions[currentStep].title}
           </h3>
-          <p class="text-blue-100/40 font-medium text-lg leading-relaxed">{questions[currentStep].subtitle}</p>
+          <p class="text-luxury-peach/40 font-medium text-lg leading-relaxed">{questions[currentStep].subtitle}</p>
         </div>
 
         <div class="grid grid-cols-1 gap-4">
@@ -265,17 +265,17 @@
               onclick={() => nextStep(option.value, option.label)}
               onkeydown={(e) => e.key === 'Enter' && nextStep(option.value, option.label)}
               aria-label="Select {option.label}"
-              class="group p-6 text-left glass-liquid border-white/5 rounded-[2rem] hover:border-blue-500/30 transition-all duration-500 flex items-center gap-6 relative overflow-hidden liquid-bubble"
+              class="group p-6 text-left glass-liquid border-white/5 rounded-[2rem] hover:border-luxury-copper/30 transition-all duration-500 flex items-center gap-6 relative overflow-hidden liquid-bubble"
               in:fly={{ x: 15, duration: 800, delay: idx * 50, easing: quintOut }}
             >
               <div class="w-16 h-16 bg-white/5 rounded-[1.5rem] flex items-center justify-center group-hover:scale-105 transition-all duration-500 border border-white/5 relative z-surface">
                 <QuizIcon icon={option.icon} />
               </div>
               <div class="flex-1 relative z-surface">
-                <span class="block text-xl font-medium text-white/90 group-hover:text-blue-400 transition-colors uppercase tracking-tight">{option.label}</span>
+                <span class="block text-xl font-medium text-white/90 group-hover:text-luxury-gold transition-colors uppercase tracking-tight">{option.label}</span>
               </div>
               
-              <div class="w-10 h-10 rounded-full border border-white/5 group-hover:border-blue-500/50 group-hover:bg-blue-500/20 flex items-center justify-center transition-all duration-500 relative z-surface">
+              <div class="w-10 h-10 rounded-full border border-white/5 group-hover:border-luxury-gold/50 group-hover:bg-luxury-gold/20 flex items-center justify-center transition-all duration-500 relative z-surface">
                 <svg class="w-5 h-5 text-white scale-0 group-hover:scale-100 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" />
                 </svg>
@@ -293,7 +293,7 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6">
               <div>
                 <h3 class="text-3xl md:text-[2.25rem] lg:text-5xl font-semibold text-white tracking-tighter uppercase mb-2 whitespace-nowrap pt-2">PHÁC ĐỒ ĐIỀU TRỊ</h3>
-                <p class="text-blue-400/60 font-semibold text-[10px] tracking-[0.4em] uppercase">Kiến tạo bởi Trí tuệ Nhân tạo MICSMO 2026</p>
+                <p class="text-luxury-copper/60 font-semibold text-[10px] tracking-[0.4em] uppercase">Kiến tạo bởi Trí tuệ Nhân tạo MICSMO 2026</p>
               </div>
               <div class="flex items-center gap-4">
                 <div class="text-right hidden md:block">
@@ -310,7 +310,7 @@
             
             <div class="space-y-6">
               <div>
-                <h4 class="text-xs font-semibold text-blue-400/60 mb-2 uppercase tracking-[0.3em]">Phân tích chuyên sâu</h4>
+                <h4 class="text-xs font-semibold text-luxury-copper/60 mb-2 uppercase tracking-[0.3em]">Phân tích chuyên sâu</h4>
                 <p class="text-white text-2xl md:text-3xl lg:text-4xl font-medium leading-tight tracking-tight">{shopStore.diagnosticResult.analysis}</p>
               </div>
               
@@ -337,14 +337,14 @@
           <div class="flex flex-col gap-4 max-w-sm mx-auto mt-8 md:mt-10 lg:mt-12">
             <button
               onclick={() => shopStore.openCheckout()}
-              class="group relative w-full py-5 md:py-6 bg-blue-600 text-white rounded-[2rem] font-semibold text-2xl md:text-2xl lg:text-3xl shadow-[0_20px_50px_rgba(59,130,246,0.4)] overflow-hidden active:scale-[0.98] transition-all duration-500"
+              class="group relative w-full py-5 md:py-6 bg-luxury-copper text-white rounded-[2rem] font-semibold text-2xl md:text-2xl lg:text-3xl shadow-[0_20px_50px_rgba(193,143,126,0.4)] overflow-hidden active:scale-[0.98] transition-all duration-500"
             >
               <span class="relative z-surface">XEM LIỆU TRÌNH</span>
               <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
             </button>
             <button
               onclick={restart}
-              class="text-[10px] font-semibold text-white/10 hover:text-blue-400/50 transition-colors uppercase tracking-[0.4em] py-2"
+              class="text-[10px] font-semibold text-white/10 hover:text-luxury-copper/50 transition-colors uppercase tracking-[0.4em] py-2"
             >
               Làm lại chẩn đoán
             </button>
@@ -355,16 +355,16 @@
   {:else}
     <div class="py-24 text-center relative z-surface" in:fade>
       <div class="mb-10 relative">
-        <div class="absolute inset-0 bg-blue-500/10 blur-[60px] rounded-full animate-pulse"></div>
-        <div class="w-24 h-24 bg-white/5 rounded-full border border-blue-500/20 flex items-center justify-center backdrop-blur-3xl mx-auto relative group">
-          <div class="absolute inset-0 border border-blue-500/20 rounded-full animate-ping opacity-20"></div>
-          <svg class="w-12 h-12 text-blue-500/40 animate-spin-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <div class="absolute inset-0 bg-luxury-copper/10 blur-[60px] rounded-full animate-pulse"></div>
+        <div class="w-24 h-24 bg-white/5 rounded-full border border-luxury-copper/20 flex items-center justify-center backdrop-blur-3xl mx-auto relative group">
+          <div class="absolute inset-0 border border-luxury-copper/20 rounded-full animate-ping opacity-20"></div>
+          <svg class="w-12 h-12 text-luxury-copper/40 animate-spin-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4V2m0 20v-2m8-8h2M2 12h2m13.657-6.343l1.414-1.414M4.929 19.071l1.414-1.414m12.728 0l1.414 1.414M4.929 4.929l1.414 1.414" />
           </svg>
         </div>
       </div>
       <h4 class="text-xl font-semibold text-white mb-2 tracking-[0.2em] uppercase italic opacity-80">ĐANG QUÉT SINH HỌC</h4>
-      <p class="text-blue-400/30 font-medium uppercase tracking-[0.4em] text-[10px] animate-pulse">KHỞI TẠO TRÍ TUỆ MICSMO 2026...</p>
+      <p class="text-luxury-copper/30 font-medium uppercase tracking-[0.4em] text-[10px] animate-pulse">KHỞI TẠO TRÍ TUỆ MICSMO 2026...</p>
     </div>
   {/if}
 </div>
@@ -390,14 +390,14 @@
     border-radius: 10px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(59, 130, 246, 0.2);
+    background: rgba(193, 143, 126, 0.2);
     border-radius: 10px;
     border: 2px solid transparent;
     background-clip: content-box;
     transition: all 0.3s ease;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(59, 130, 246, 0.5);
+    background: rgba(193, 143, 126, 0.5);
     background-clip: content-box;
   }
 </style>

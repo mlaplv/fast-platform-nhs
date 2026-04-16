@@ -8,7 +8,10 @@
   /* Protection against fixed header */
   scroll-margin-top: 80px;
   /* Professional Standard */
-  --blue-rgb: 59, 130, 246;
+  --blue-rgb: 193, 143, 126; /* REPLACED with Copper */
+  --copper-rgb: 193, 143, 126;
+  --gold-rgb: 232, 213, 176;
+  --peach-rgb: 227, 181, 164;
   --indigo-rgb: 99, 102, 241;
   --emerald-rgb: 16, 185, 129;
   --sakura-rgb: 255, 183, 197;

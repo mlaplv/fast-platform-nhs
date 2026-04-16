@@ -19,9 +19,9 @@
   const metadata = $derived(product?.metadata || {});
 
   const FALLBACK_METRICS = [
-    { label: '[Tốc độ]', value: 'THẨM THẤU TÀNG HÌNH - KHÔNG BẾT', desc: 'Chất kem dạng serum siêu mỏng nhẹ, tan và thấm ngay khi vừa chạm da. Mang lại cảm giác khô thoáng tắp lự, tuyệt đối không bết dính hay rít ngứa.', color: 'blue' },
-    { label: '[Hiệu quả]', value: 'PHÁ VỠ HẮC SẮC TỐ - DƯỠNG SÁNG HỒNG', desc: 'Đánh bật thâm sạm, sần sùi tại các "vùng khuất" (nách, nhũ hoa, bikini line). Ức chế triệt để melanin tối màu, trả lại làn da sáng hồng.', color: 'indigo' },
-    { label: '[Thành phần]', value: 'TINH CHẤT "CHUẨN NHẬT" LÀNH TÍNH', desc: 'Sức mạnh làm sáng từ chiết xuất Hoa Anh Đào (Sakura) kết hợp Vitamin C & E. Bảng thành phần không cồn, không paraben.', color: 'emerald' }
+    { label: '[TỰ TIN]', value: 'DIỆN BIKINI KHÔNG CHÚT TỲ VẾT', desc: 'Xóa tan mặc cảm thâm sạm vùng cánh và bikini line. Trả lại sự tự tin tuyệt đối cho nàng trong mọi trang phục quyến rũ.', color: 'copper' },
+    { label: '[TỐC ĐỘ]', value: 'BẬT TÔNG TRẮNG HỒNG SAU 14 NGÀY', desc: 'Công nghệ Nano-penetration độc quyền giúp tinh chất thẩm thấu sâu, ức chế melanin tối màu nhanh gấp 3 lần thông thường.', color: 'gold' },
+    { label: '[CẢM GIÁC]', value: 'MỊN MÀNG & QUYẾN RŨ TỨC THÌ', desc: 'Chất serum lỏng nhẹ như sương, không bết dính. Nuôi dưỡng làn da vùng nhạy cảm trở nên mướt mịn, thơm nhẹ nhàng.', color: 'peach' }
   ];
 
   let targetMouse = { x: 0, y: 0 };
@@ -84,11 +84,11 @@
 
   const labels = $derived({
     product_name: product?.name || metadata.hero_product_name_fallback || '',
-    headline: metadata.hero_headline || 'CHẤM DỨT<br/><span class="text-sakura-pink">SẠM NÁM</span>',
+    headline: metadata.hero_headline || 'TỰ TIN RẠNG RỠ VỚI<br/><span class="text-luxury-copper">LÀN DA SÁNG HỒNG</span>',
     video_url: (metadata.video_url as string) || (metadata.hero_video_url as string) || (metadata.hero_video as string) || '/uploads/video/HN_TikTok.mp4',
-    cta_text: metadata.hero_cta_text || 'Chẩn đoán cá nhân hoá',
+    cta_text: metadata.hero_cta_text || 'Khám phá bí quyết sau 14 ngày',
     aria_hero: metadata.hero_aria_label || 'Hero Spotlight Area',
-    aria_scroll: metadata.hero_aria_scroll || 'Scroll to diagnostics section',
+    aria_scroll: metadata.hero_aria_scroll || 'Scroll to results section',
     metrics: FALLBACK_METRICS.map((fb, i) => {
       const custom = metadata.hero_metrics?.[i];
       if (!custom) return fb;
@@ -248,13 +248,13 @@
   });
 </script>
 
-<section
+  <section
   id="hero"
   role="region"
   aria-label={labels.aria_hero}
-  class="hero-center-layout content-hero snap-session relative w-full overflow-hidden flex flex-col items-center justify-start bg-[#020617] text-white"
+  class="hero-center-layout content-hero snap-session relative w-full overflow-hidden flex flex-col items-center justify-start bg-[#010101] text-white"
   onmousemove={handleMouseMove}
-  style:--mx="{springMouse.x}px" style:--my="{springMouse.y}px" style:--hero-accent="#3b82f6" style:--hero-glass-blur="64px"
+  style:--mx="{springMouse.x}px" style:--my="{springMouse.y}px" style:--hero-accent="#C18F7E" style:--hero-glass-blur="64px"
 >
   <div class="absolute inset-0 overflow-hidden pointer-events-none" style="z-index: 0;">
     {#if videoMode === 'local'}
@@ -293,7 +293,7 @@
     <header class="text-center w-full mb-8 md:mb-12 relative" in:fade>
       <EditableWrapper path="metadata.hero_headline" type="html" label="SỬA TIÊU ĐỀ BANNER">
           <h1 class="elite-hero-headline typing-headline">
-            {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-red-500"></span>
+            {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-luxury-copper"></span>
           </h1>
       </EditableWrapper>
 
@@ -311,8 +311,8 @@
               <div class="group relative flex items-center justify-center w-full max-w-md float-anim cinematic-frame">
                 <div class="absolute -inset-2 z-20 pointer-events-none opacity-60 transition-opacity group-hover:opacity-100">
                    <div class="absolute -top-4 -left-4 w-12 h-12 border-t-[1px] border-l-[1px] border-white/40 rounded-tl-[2px]">
-                      <span class="absolute top-2 left-2 text-[8px] font-mono tracking-widest text-red-500 flex items-center gap-1">
-                         <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span> REC
+                      <span class="absolute top-2 left-2 text-[8px] font-mono tracking-widest text-[#E8D5B0] flex items-center gap-1">
+                         <span class="w-1.5 h-1.5 bg-[#E8D5B0] rounded-full animate-pulse"></span> REC
                       </span>
                    </div>
                    <div class="absolute -top-4 -right-4 w-12 h-12 border-t-[1px] border-r-[1px] border-white/40 text-right rounded-tr-[2px]">
@@ -355,30 +355,31 @@
                 <div class="hud-metric-segment group relative pt-0 px-0 pb-0 transition-all duration-500" style:--idx={i}>
                     <EditableWrapper path="metadata.hero_metrics.{i}.label" value={metric.label} label="SỬA NHÃN {i+1}">
                       <span class="text-[10px] font-black uppercase tracking-[.2em] whitespace-nowrap transition-colors duration-500"
-                            class:text-blue-400={metric.color === 'blue'}
-                            class:text-indigo-400={metric.color === 'indigo'}
-                            class:text-emerald-400={metric.color === 'emerald'}
+                            class:text-luxury-copper={metric.color === 'copper'}
+                            class:text-luxury-gold={metric.color === 'gold'}
+                            class:text-luxury-peach={metric.color === 'peach'}
                             class:text-sakura-pink={!metric.color || metric.color === 'sakura'}>{metric.label}</span>
                     </EditableWrapper>
                     
                     <EditableWrapper path="metadata.hero_metrics.{i}.value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}">
                       <h3 class="text-lg font-black tracking-normal text-white transition-colors duration-300 whitespace-nowrap"
-                          class:group-hover:text-blue-400={metric.color === 'blue'}
-                          class:group-hover:text-indigo-400={metric.color === 'indigo'}
-                          class:group-hover:text-emerald-400={metric.color === 'emerald'}
+                          class:group-hover:text-luxury-copper={metric.color === 'copper'}
+                          class:group-hover:text-luxury-gold={metric.color === 'gold'}
+                          class:group-hover:text-luxury-peach={metric.color === 'peach'}
                           class:group-hover:text-sakura-pink={!metric.color || metric.color === 'sakura'}>{metric.value}</h3>
                     </EditableWrapper>
 
                    <EditableWrapper path="metadata.hero_metrics.{i}.desc" value={metric.desc} type="html" label="SỬA MÔ TẢ {i+1}">
                      <p class="mt-2 text-sm text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity metric-desc">{metric.desc}</p>
                    </EditableWrapper>
-                   <div class="absolute -inset-4 bg-radial-gradient from-sakura-pink/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                   <div class="absolute -inset-4 bg-radial-gradient from-luxury-copper/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                 </div>
             {/each}
          </div>
       </div>
     </div>
   </div>
+
 
   <button class="hero-cta-button" onclick={scrollToQuiz}>
      <div class="cta-gradient-overlay"></div>
