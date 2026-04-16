@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { getClientUi } from '$lib/state/commerce/ui.svelte.ts';
+  import { getCartStore } from '$lib/state/commerce/cart.svelte.ts';
   import { resolveMediaUrl } from '$lib/state/utils';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
@@ -13,6 +14,7 @@
   
   const shopStore = getShopStore();
   const ui = getClientUi();
+  const cartStore = getCartStore();
   
   const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
   const timeLeft = $derived(shopStore.timeLeft);
@@ -80,8 +82,11 @@
   });
 
   function handleSelect(variant: ProductVariant) {
-    const isActive = shopStore.variant === variant || (shopStore.variant && variants.indexOf(shopStore.variant) === variants.indexOf(variant));
+    const isActive = shopStore.variant?.id === variant.id;
     if (isActive) {
+        if (product) {
+            cartStore.buyNow(product, variant, shopStore.quantity);
+        }
         window.location.href = '/checkout';
     } else {
         shopStore.selectVariant(variant);
@@ -151,7 +156,7 @@
 
     <div class="package-grid pt-20 {gridClass} gap-6 items-stretch">
       {#each variants as variant, idx (idx)}
-          {@const isCardActive = shopStore.variant === variant || (shopStore.variant && variants.indexOf(shopStore.variant) === idx)}
+          {@const isCardActive = shopStore.variant?.id === variant.id}
           {@const unitPrice = variant.discountPrice || variant.price}
           <div class="relative h-full z-10 {variants.length >= 3 ? 'min-w-[280px] snap-center' : ''}">
              <div class="absolute -top-4 left-1/2 -translate-x-1/2 flex flex-wrap gap-2 justify-center w-[120%] z-[60] pointer-events-none mt-1">
@@ -233,6 +238,18 @@
                   <span class="text-[11px] font-black uppercase tracking-wide text-white/80">{feature.replace(/^[+!-]/, '')}</span>
                 </li>
              {/each}
+             <li class="flex items-center gap-3">
+               <span class="text-luxury-sakura font-black">✦</span>
+               <a href="/chinh-sach-kiem-hang" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-wide text-luxury-sakura hover:underline">
+                 Kiểm tra hàng trước nhận
+               </a>
+             </li>
+             <li class="flex items-center gap-3">
+               <span class="text-luxury-sakura font-black">✦</span>
+               <a href="/chinh-sach-doi-tra-hoan-tien" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-wide text-luxury-sakura hover:underline">
+                 Đổi trả 7 ngày
+               </a>
+             </li>
            </ul>
 
            <div class="liquid-cta-viral text-white min-h-[64px] rounded-2xl font-black shadow-2xl relative overflow-hidden flex items-center justify-center px-4 w-full mt-4 pointer-events-none transition-all duration-500 {isCardActive ? 'border-2 border-luxury-sakura bg-luxury-sakura/10 scale-[1.03]' : ''}">

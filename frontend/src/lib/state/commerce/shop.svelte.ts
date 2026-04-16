@@ -153,7 +153,17 @@ export class ShopStore {
         this.timeLeft = productData.metadata?.scarcity_seconds ?? 1800;
         this.startTimer();
         if (!this.variant && productData?.variants && productData.variants.length > 0) {
-            this.variant = productData.variants[0];
+            // Mặc định chọn Loại 2 (Best Seller) nếu có
+            this.variant = productData.variants.length > 1 ? productData.variants[1] : productData.variants[0];
+            
+            // Mặc định set quantity là gói Mua 2 tặng 1
+            const deals = productData.metadata?.active_deals as import('$lib/types').PromotionDeal[] | undefined;
+            const defaultDeal = deals?.find(d => d.buy_qty === 2);
+            if (defaultDeal) {
+                this.quantity = defaultDeal.buy_qty + (defaultDeal.get_qty || 0);
+            } else {
+                this.quantity = 3;
+            }
         }
         
         // 🚀 ELITE V2.2: Load Gift Info from Storage (F5 Persistence)

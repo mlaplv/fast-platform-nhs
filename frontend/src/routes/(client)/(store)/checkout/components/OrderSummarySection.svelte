@@ -60,7 +60,7 @@
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
         VOUCHER TIẾT KIỆM
       </div>
-      <span class="font-black italic text-sm relative z-10">-{formatCurrency(cartStore.totalDiscount)}</span>
+      <span class="font-black italic text-sm relative z-10 text-[#ee4d2d]">-{formatCurrency(cartStore.totalDiscount)}</span>
       <div class="absolute inset-0 bg-red-500/5 -translate-x-full group-hover:translate-x-0 transition-transform duration-700"></div>
     </div>
   {/if}
@@ -109,15 +109,23 @@
           </h3>
           <p class="text-[9px] text-gray-500 mt-1 font-bold leading-tight">Cam kết đóng gói kín đáo & bảo mật quyền riêng tư cá nhân.</p>
           
-          <div class="mt-3 space-y-1">
+          <div class="mt-3 grid grid-cols-2 gap-x-2 gap-y-1">
             <div class="flex items-center gap-1.5 text-[8px] font-black text-[#ee4d2d]/80 uppercase italic">
-              <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+              <svg class="w-2.5 h-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
               Bảo mật tên sản phẩm
             </div>
+            <a href="/chinh-sach-kiem-hang" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-[8px] font-black text-[#ee4d2d]/80 uppercase italic hover:underline">
+              <svg class="w-2.5 h-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+              Kiểm tra hàng trước nhận
+            </a>
             <div class="flex items-center gap-1.5 text-[8px] font-black text-[#ee4d2d]/80 uppercase italic">
-              <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+              <svg class="w-2.5 h-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
               Đóng gói kín đáo 3 lớp
             </div>
+            <a href="/chinh-sach-doi-tra-hoan-tien" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-[8px] font-black text-[#ee4d2d]/80 uppercase italic hover:underline">
+              <svg class="w-2.5 h-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+              Đổi trả 7 ngày
+            </a>
           </div>
         </div>
         

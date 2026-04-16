@@ -82,6 +82,18 @@ export class CartStore {
     totalAmountWithoutDiscount = $derived(
         this.items.filter(item => item.selected).reduce((acc, item) => {
             const price = item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0;
+            const deals = item.product?.metadata?.active_deals as import('$lib/types').PromotionDeal[] | undefined;
+            if (deals && deals.length > 0) {
+                const sortedDeals = [...deals].sort((a, b) => (b.buy_qty + (b.get_qty || 0)) - (a.buy_qty + (a.get_qty || 0)));
+                for (const deal of sortedDeals) {
+                    const totalInBundle = deal.buy_qty + (deal.get_qty || 0);
+                    if (item.quantity >= totalInBundle) {
+                        const bundleCount = Math.floor(item.quantity / totalInBundle);
+                        const remainder = item.quantity % totalInBundle;
+                        return acc + ((bundleCount * deal.fixed_price) + (remainder * price));
+                    }
+                }
+            }
             return acc + (price * item.quantity);
         }, 0)
     );

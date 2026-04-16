@@ -228,6 +228,20 @@
     { id: 'SALE60K', title: 'GIẢM GIÁ ₫60.000', desc: 'Đơn hàng từ ₫300.000', type: 'discount', value: 60000, minSpend: 300000 }
   ];
 
+  $effect(() => {
+    if (browser) {
+      // Đổ danh sách voucher xuống lõi CartStore theo chuẩn kiểu dữ liệu của Svelte state
+      cartStore.setVouchers(vouchers.map(v => ({
+         id: v.id,
+         type: v.type === 'discount' ? 'FIXED' : 'SHIPPING',
+         value: v.value,
+         min_spend: v.minSpend,
+         is_active: true,
+         used_count: 0
+      } as any)));
+    }
+  });
+
   function toggleVoucher(voucher: Voucher) {
     if (cartStore.totalAmountWithoutDiscount < voucher.minSpend) {
       clientUi.showToast(`Cần mua thêm ${formatCurrency(voucher.minSpend - cartStore.totalAmountWithoutDiscount)}!`, 'info');
