@@ -62,12 +62,33 @@
         <span class="val">{(product.metadata as any).brand}</span>
       </div>
     {/if}
+    {#if (product.metadata as any)?.origin}
+      <div class="spec-row">
+        <span class="label">Xuất xứ</span>
+        <span class="val">{(product.metadata as any).origin}</span>
+      </div>
+    {/if}
+    {#if (product.metadata as any)?.weight}
+      <div class="spec-row">
+        <span class="label">Trọng lượng</span>
+        <span class="val">{(product.metadata as any).weight}</span>
+      </div>
+    {/if}
+    {#if product.sku && product.sku !== 'N/A'}
+      <div class="spec-row">
+        <span class="label">Mã vạch</span>
+        <span class="val">{product.sku}</span>
+      </div>
+    {/if}
     {#if product.attributes}
       {#each Object.entries(product.attributes) as [key, val]}
+        {@const k = key.toLowerCase().replace(/_/g, ' ').trim()}
+        {#if !( ((k === 'thương hiệu' || k === 'brand') && (product.metadata as any)?.brand) || ((k === 'xuất xứ' || k === 'origin') && (product.metadata as any)?.origin) || ((k === 'trọng lượng' || k === 'quy cách' || k === 'weight') && (product.metadata as any)?.weight) || ((k === 'mã vạch' || k === 'barcode') && product.sku && product.sku !== 'N/A') )}
         <div class="spec-row">
           <span class="label capitalize">{key.replace(/_/g, ' ')}</span>
           <span class="val">{val}</span>
         </div>
+        {/if}
       {/each}
     {/if}
   </div>

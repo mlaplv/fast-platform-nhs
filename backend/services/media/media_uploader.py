@@ -11,6 +11,7 @@ from sqlalchemy import select
 from backend.database.models import MediaRegistry, ContentCampaign, User
 from backend.database.repositories import MediaRegistryRepository
 from backend.services.storage.manager import storage
+from backend.utils.security import is_safe_url
 
 logger = logging.getLogger("media-uploader")
 
@@ -130,6 +131,11 @@ class MediaUploaderMixin:
                 with open(local_path, "rb") as f: content = f.read()
                 content_type = mimetypes.guess_type(local_path)[0] or "image/jpeg"
             else:
+                # [Elite Security] R55.5: SSRF Protection
+                if not is_safe_url(url):
+                    logger.error(f"[Security] SSRF Attempt Blocked: {url}")
+                    return None
+
                 client = await SharedHttpClient.get_client()
                 resp = await client.get(url, timeout=10.0, follow_redirects=True, headers={"User-Agent": "Mozilla/5.0"})
                 resp.raise_for_status(); content = resp.content; content_type = resp.headers.get("Content-Type", "")

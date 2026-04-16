@@ -16,10 +16,7 @@ import LucideLayout from "lucide-svelte/icons/layout";
   }
 
   function handleLogout() {
-    // Clear cookies & local storage
-    document.cookie = "admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    localStorage.removeItem("admin_token");
-    window.location.href = "/login";
+    permissionState.purgeAuth(true);
   }
 </script>
 

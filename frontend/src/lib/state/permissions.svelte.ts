@@ -145,8 +145,17 @@ class PermissionState {
     localStorage.removeItem("user_token");
     localStorage.removeItem("access_token");
     sessionStorage.clear();
+    
+    // Clear standard cookies
     document.cookie = "admin_token=; path=/; max-age=0; SameSite=Strict";
     document.cookie = "user_token=; path=/; max-age=0; SameSite=Strict";
+    
+    // Clearance for Elite V2.2 Root Domain Cookies (from handshake hook)
+    const rootDomain = window.location.hostname.split('.').slice(-2).join('.');
+    document.cookie = `admin_token=; path=/; domain=.${rootDomain}; max-age=0; SameSite=Lax; Secure`;
+    
+    // Clear legacy cookies if any without SameSite
+    document.cookie = "admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     
     this.perms = [];
     this.roles = [];

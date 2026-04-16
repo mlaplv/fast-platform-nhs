@@ -4,7 +4,10 @@ import logging
 import secrets
 import json
 import hashlib
+import socket
 from typing import Union, TypeAlias
+from urllib.parse import urlparse
+import ipaddress
 
 # Elite 2026: Cryptography (Rule R00 compliance)
 from cryptography.hazmat.primitives import hashes
@@ -141,3 +144,52 @@ def mask_pii(event_name: str, payload: dict[str, object]) -> dict[str, object]:
         return p
         
     return payload
+
+
+def is_safe_url(url: str) -> bool:
+    """
+    R55.5: SSRF Protection — Validates URL and prevents access to private IP ranges.
+    Returns True if the URL is considered safe (public), False otherwise.
+    """
+    if not url:
+        return False
+
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+
+        # 1. Block literal IP addresses in private ranges
+        try:
+            ip = ipaddress.ip_address(hostname)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast:
+                logger.warning(f"[Security] Blocked private IP access attempt: {hostname}")
+                return False
+        except ValueError:
+            # Not an IP literal, continue to DNS resolution check
+            pass
+
+        # 2. DNS Resolution Check (Defense against DNS Rebinding)
+        try:
+            # Note: This is a basic check. In high-security production,
+            # we should use a custom httpx resolver or bind to a specific interface.
+            # For Fast Platform Core 2026, we enforce this check at the service level.
+            ips = socket.getaddrinfo(hostname, None)
+            for item in ips:
+                addr = item[4][0]
+                ip = ipaddress.ip_address(addr)
+                if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast:
+                    logger.warning(f"[Security] Blocked access to hostname resolving to private IP: {hostname} ({addr})")
+                    return False
+        except socket.gaierror:
+            # Hostname doesn't resolve, let the fetch attempt fail normally
+            return True
+
+        return True
+    except Exception as e:
+        logger.error(f"[Security] URL Safety Check Failed: {e}")
+        return False

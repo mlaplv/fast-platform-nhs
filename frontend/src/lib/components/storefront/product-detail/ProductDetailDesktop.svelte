@@ -449,41 +449,7 @@
 
 
 
-      <!-- Product Specifications (Dynamic) -->
-      <div class="px-5 space-y-2.5 mb-4 border-t border-gray-50 pt-4">
-         {#if productInfo.barcode && productInfo.barcode !== 'N/A'}
-         <div class="flex items-center">
-            <span class="w-[110px] shrink-0 text-[14px] text-gray-400 font-medium">Mã vạch</span>
-            <span class="text-[14px] font-black text-gray-900 tracking-widest bg-gray-50 px-2 py-0.5">{productInfo.barcode}</span>
-         </div>
-         {/if}
-         {#if productInfo.brand}
-         <div class="flex items-center">
-            <span class="w-[110px] shrink-0 text-[14px] text-gray-400 font-medium">Thương hiệu</span>
-            <span class="text-[14px] font-black text-[#ee4d2d]">{productInfo.brand}</span>
-         </div>
-         {/if}
-         {#if productInfo.origin}
-         <div class="flex items-center">
-            <span class="w-[110px] shrink-0 text-[14px] text-gray-400 font-medium">Xuất xứ</span>
-            <span class="text-[14px] font-black text-gray-900">{productInfo.origin}</span>
-         </div>
-         {/if}
-         {#if productInfo.weight}
-         <div class="flex items-center">
-            <span class="w-[110px] shrink-0 text-[14px] text-gray-400 font-medium">Trọng Lượng</span>
-            <span class="text-[14px] font-black text-gray-900">{productInfo.weight}</span>
-         </div>
-         {/if}
-         {#if product.attributes}
-           {#each Object.entries(product.attributes) as [key, value]}
-             <div class="flex items-center">
-                <span class="w-[110px] shrink-0 text-[14px] text-gray-400 font-medium capitalize">{key.replace(/_/g, ' ')}</span>
-                <span class="text-[14px] font-black text-gray-900">{value}</span>
-             </div>
-           {/each}
-         {/if}
-      </div>
+
 
       <!-- Quantity & Luxury Stock Logic (Vietnamese) -->
       <div class="px-5 flex items-center mb-4">
@@ -583,10 +549,13 @@
               </div>
              {#if product.attributes}
                {#each Object.entries(product.attributes) as [key, value]}
+                 {@const k = key.toLowerCase().replace(/_/g, ' ').trim()}
+                 {#if !( ((k === 'thương hiệu' || k === 'brand') && productInfo.brand) || ((k === 'xuất xứ' || k === 'origin') && productInfo.origin) || ((k === 'trọng lượng' || k === 'quy cách' || k === 'weight') && productInfo.weight) || ((k === 'mã vạch' || k === 'barcode') && productInfo.barcode && productInfo.barcode !== 'N/A') )}
                  <div class="flex items-center">
                     <span class="w-[180px] shrink-0 text-gray-400 font-medium capitalize">{key.replace(/_/g, ' ')}</span>
                     <span class="text-gray-900 font-medium">{value}</span>
                  </div>
+                 {/if}
                {/each}
              {/if}
           </div>

@@ -74,4 +74,47 @@
 
 </script>
 
-<div class="fixed inset-0 bg-[#f5f5f5] z-[var(--z-modal-overlay)]"></div>
+<div class="fixed inset-0 bg-white z-[var(--z-modal-overlay)] flex items-center justify-center p-6">
+    <div class="max-w-md w-full text-center space-y-6">
+        {#if status === 'processing'}
+            <div class="flex flex-col items-center gap-4">
+                <div class="relative w-16 h-16">
+                    <Loader2 class="w-16 h-16 text-luxury-copper animate-spin" />
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <ShieldCheck class="w-6 h-6 text-luxury-copper/50" />
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <h2 class="text-xl font-bold text-gray-900 tracking-tight">Đang xác thực...</h2>
+                    <p class="text-sm text-gray-500">Hệ thống đang thiết lập phiên làm việc an toàn.</p>
+                </div>
+            </div>
+        {:else if status === 'success'}
+            <div class="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
+                <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center">
+                    <CheckCircle2 class="w-10 h-10 text-green-500" />
+                </div>
+                <div class="space-y-1">
+                    <h2 class="text-xl font-bold text-gray-900 tracking-tight">Đăng nhập thành công!</h2>
+                    <p class="text-sm text-gray-500">Đang chuyển hướng bạn về trang chủ...</p>
+                </div>
+            </div>
+        {:else}
+            <div class="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-500">
+                <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-2xl">
+                    ⚠️
+                </div>
+                <div class="space-y-1">
+                    <h2 class="text-xl font-bold text-gray-900 tracking-tight">Xác thực thất bại</h2>
+                    <p class="text-sm text-red-500">{errorMessage || 'Đã có lỗi xảy ra trong quá trình xác thực.'}</p>
+                </div>
+                <button
+                    onclick={() => goto('/')}
+                    class="mt-4 px-6 py-2 bg-gray-900 text-white rounded-full text-sm font-bold hover:bg-gray-800 transition-colors"
+                >
+                    Quay lại trang chủ
+                </button>
+            </div>
+        {/if}
+    </div>
+</div>
