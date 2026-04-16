@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, type Snippet } from 'svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import TikTokShopLoading from '$lib/components/storefront/product/TikTokShopLoading.svelte';
   import "$lib/components/storefront/home/home.css";
   import HomeDesktop from '$lib/components/storefront/home/HomeDesktop.svelte';
   import HomeMobile from '$lib/components/storefront/home/HomeMobile.svelte';
@@ -11,7 +13,9 @@
 </script>
 
 <div class="home-layout">
-  {#if ui.isMobile}
+  {#if !ui.isDetermined}
+    <TikTokShopLoading variant="home" />
+  {:else if ui.isMobile}
     <HomeMobile
       banners={data.banners}
       categories={data.categories}

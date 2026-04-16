@@ -11,9 +11,25 @@
   import ArrowLeft from 'lucide-svelte/icons/arrow-left';
 
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import TikTokShopLoading from '$lib/components/storefront/product/TikTokShopLoading.svelte';
 
   let { data } = $props<{ data: { isMobile: boolean } }>();
-  const ui = getClientUi();
+  const clientUi = getClientUi();
+
+  // Elite V2.2: Sync layout with track context
+  $effect(() => {
+    if (clientUi.isDetermined && clientUi.isMobile) {
+      clientUi.isHeaderHidden = true;
+      clientUi.isFooterHidden = true;
+    } else if (clientUi.isDetermined) {
+      clientUi.isHeaderHidden = false;
+      clientUi.isFooterHidden = false;
+    }
+    return () => {
+      clientUi.isHeaderHidden = false;
+      clientUi.isFooterHidden = false;
+    };
+  });
 
   let orderId = $state('');
   let phone = $state('');
@@ -21,22 +37,21 @@
 
   async function handleTrack() {
     if (!orderId || !phone) {
-        ui.showToast("Vui lòng điền đủ Mã đơn và Số điện thoại", "error");
+        clientUi.showToast("Vui lòng điền đủ Mã đơn và Số điện thoại", "error");
         return;
     }
 
     isSubmitting = true;
     try {
-        // Try to fetch order with phone verification!
         const res = await apiClient.get<import('$lib/types').OrderDetail>(`/api/v1/client/orders/${orderId.trim()}`, { params: { phone: phone.trim() } });
         if (res) {
-            ui.showToast("Đã tìm thấy đơn hàng! Đang chuyển hướng...", "success");
+            clientUi.showToast("Đã tìm thấy đơn hàng! Đang chuyển hướng...", "success");
             const cleanPhone = phone.trim();
             setTimeout(() => goto(`/checkout/success/${orderId.trim()}?phone=${cleanPhone}&lookup=1`), 1000);
         }
     } catch (e: unknown) {
         const err = e as { message?: string };
-        ui.showToast(err.message || "Không tìm thấy đơn hàng hoặc thông tin không khớp", "error");
+        clientUi.showToast(err.message || "Không tìm thấy đơn hàng hoặc thông tin không khớp", "error");
     } finally {
         isSubmitting = false;
     }
@@ -49,7 +64,9 @@
   <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
-{#if data.isMobile}
+{#if !clientUi.isDetermined}
+  <TikTokShopLoading variant="grid" />
+{:else if clientUi.isMobile}
   <TrackMobile bind:orderId bind:phone {isSubmitting} onTrack={handleTrack} />
 {:else}
   <div class="min-h-[calc(100vh-140px)] bg-[#fafafa] text-slate-900 flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
@@ -72,7 +89,6 @@
 
       <!-- Tracking Form -->
       <div class="space-y-4">
-        <!-- Input Group: Order ID -->
         <input 
             type="text" 
             bind:value={orderId}
@@ -81,7 +97,6 @@
             spellcheck="false"
         />
 
-        <!-- Input Group: Phone -->
         <input 
             type="tel" 
             bind:value={phone}
@@ -91,7 +106,6 @@
             spellcheck="false"
         />
 
-        <!-- Action Button -->
         <button 
           onclick={handleTrack}
           disabled={isSubmitting}
@@ -115,7 +129,6 @@
       </div>
     </div>
 
-    <!-- Footer Action -->
     <a 
       href="/" 
       class="mt-10 group flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-[0.3em] bg-white px-6 py-3 shadow-sm border border-slate-100"

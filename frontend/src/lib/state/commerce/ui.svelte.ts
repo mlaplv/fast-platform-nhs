@@ -12,6 +12,7 @@ const globalState = $state({
     screenWidth: typeof window !== 'undefined' ? window.innerWidth : 1024,
     screenHeight: typeof window !== 'undefined' ? window.innerHeight : 768,
     isHydrated: false,
+    isDetermined: false,
     settings: null as ShopInfo | null,
     authModal: {
         isOpen: false,
@@ -33,9 +34,9 @@ let _globalUiInstance: ClientUiState | null = null;
 
 export function createClientUiState(): ClientUiState {
     // Derived $mq (Media Query) Runes - Performance Optimized
-    const isMobile = $derived(globalState.screenWidth < BREAKPOINTS.MOBILE);
-    const isTablet = $derived(globalState.screenWidth >= BREAKPOINTS.MOBILE && globalState.screenWidth < BREAKPOINTS.TABLET);
-    const isDesktop = $derived(globalState.screenWidth >= BREAKPOINTS.TABLET);
+    const isMobile = $derived(globalState.isDetermined && globalState.screenWidth < BREAKPOINTS.MOBILE);
+    const isTablet = $derived(globalState.isDetermined && globalState.screenWidth >= BREAKPOINTS.MOBILE && globalState.screenWidth < BREAKPOINTS.TABLET);
+    const isDesktop = $derived(globalState.isDetermined && globalState.screenWidth >= BREAKPOINTS.TABLET);
     const isPortrait = $derived(globalState.screenWidth < globalState.screenHeight);
 
     let resizeTimer: ReturnType<typeof setTimeout>;
@@ -57,6 +58,7 @@ export function createClientUiState(): ClientUiState {
         set isFooterHidden(val: boolean) { globalState.isFooterHidden = val; },
         
         get isHydrated() { return globalState.isHydrated; },
+        get isDetermined() { return globalState.isDetermined; },
         get settings() { return globalState.settings; },
         set settings(val: ShopInfo | null) { globalState.settings = val; },
 
@@ -126,8 +128,14 @@ export function createClientUiState(): ClientUiState {
 
         initObservers() {
             if (typeof window === 'undefined') return () => {};
-            window.addEventListener('resize', handleResize, { passive: true });
+            
+            // Elite V2.2: Immediate determination
+            globalState.screenWidth = window.innerWidth;
+            globalState.screenHeight = window.innerHeight;
+            globalState.isDetermined = true;
             globalState.isHydrated = true;
+
+            window.addEventListener('resize', handleResize, { passive: true });
             return () => {
                 window.removeEventListener('resize', handleResize);
             };

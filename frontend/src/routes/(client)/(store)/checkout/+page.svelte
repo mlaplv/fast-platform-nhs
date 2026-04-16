@@ -11,6 +11,7 @@
   import { Menu } from 'lucide-svelte';
   import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
   import UserHeaderMobile from '$lib/components/storefront/user/UserHeaderMobile.svelte';
+  import TikTokShopLoading from '$lib/components/storefront/product/TikTokShopLoading.svelte';
 
   // Satellite Components (Elite V2.2 Composition)
   import AddressSection from './components/AddressSection.svelte';
@@ -38,12 +39,15 @@
 
   // Immersive layout management: Hide global header/footer on mobile
   $effect(() => {
-    if (clientUi.isMobile) {
+    if (clientUi.isDetermined && clientUi.isMobile) {
       clientUi.isHeaderHidden = true;
       clientUi.isFooterHidden = true;
-    } else {
+    } else if (clientUi.isDetermined) {
       clientUi.isHeaderHidden = false;
       clientUi.isFooterHidden = false;
+    } else {
+      clientUi.isHeaderHidden = true;
+      clientUi.isFooterHidden = true;
     }
     return () => {
       clientUi.isHeaderHidden = false;
@@ -322,7 +326,9 @@
 </svelte:head>
 
 {#if browser}
-  {#if !clientUi.isMobile}
+  {#if !clientUi.isDetermined}
+    <TikTokShopLoading variant="grid" />
+  {:else if !clientUi.isMobile}
     <div class="min-h-screen bg-[#fafafa] pb-20 pt-4 md:pt-10">
       <div class="max-w-[1240px] mx-auto px-4">
         {#if cartStore.items.length === 0}

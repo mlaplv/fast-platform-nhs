@@ -102,8 +102,8 @@
 <div class="min-h-screen bg-white pb-20 font-sans">
   <!-- Viral Mobile Header -->
   <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 flex flex-col">
-    <div class="px-2 py-1 flex items-center gap-2 h-12">
-      <button onclick={() => goto('/')} class="p-2 text-gray-900 active:scale-90 transition-transform">
+    <div class="px-2 py-1 flex items-center gap-2 h-12 relative" style:z-index="40">
+      <button onclick={() => window.location.href = '/'} class="p-2 text-gray-900 active:scale-90 transition-transform relative z-50">
         <ChevronLeft size={24} />
       </button>
       <button 

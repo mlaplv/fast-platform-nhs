@@ -3,6 +3,7 @@
   import MobileSearchResultList from '$lib/components/storefront/product/MobileSearchResultList.svelte';
   import TikTokShopLoading from '$lib/components/storefront/product/TikTokShopLoading.svelte';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { onMount } from 'svelte';
 
   import type { Product, ProductFacets } from '$lib/types';
@@ -15,9 +16,8 @@
   }
 
   let { data }: { data: PageData } = $props();
-
+  const ui = getClientUi();
   const searchStore = getSearchStore();
-  let deviceType = $state<'mobile' | 'desktop' | 'undetermined'>('undetermined');
 
   // Elite V2.2: Sync global search store with current page data (URL query)
   $effect(() => {
@@ -27,22 +27,16 @@
   });
 
   onMount(() => {
-    const checkDevice = () => {
-       deviceType = window.innerWidth < 768 ? 'mobile' : 'desktop';
-    };
-    
-    checkDevice();
-    window.addEventListener('resize', checkDevice);
-    return () => window.removeEventListener('resize', checkDevice);
+    return ui.initObservers();
   });
 
   // Elite V2.2: Search context - build proper props for category-oriented components
   const searchLabel = $derived(data.searchQuery ? `Kết quả tìm kiếm: "${data.searchQuery}"` : 'Tất cả sản phẩm');
 </script>
 
-{#if deviceType === 'undetermined'}
-  <TikTokShopLoading />
-{:else if deviceType === 'mobile'}
+{#if !ui.isDetermined}
+  <TikTokShopLoading variant="grid" />
+{:else if ui.isMobile}
   <MobileSearchResultList products={data.products} searchQuery={data.searchQuery} loading={false} />
 {:else}
   <ProductListDesktop 

@@ -334,7 +334,7 @@
     {/if}
   </div>
 
-{:else if variant === 'mobile-overlay'}
+{:else if variant === 'mobile-overlay' && searchStore.isOverlayOpen}
   <div 
     in:fade={{ duration: 150 }} 
     class="fixed inset-0 bg-white flex flex-col font-sans"
