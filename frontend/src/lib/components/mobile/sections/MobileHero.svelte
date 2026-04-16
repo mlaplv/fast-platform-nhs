@@ -7,11 +7,18 @@
   import type { ProductVariant } from '$lib/types';
   import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
 
-  let { product } = $props();
+  let { product: propProduct } = $props();
   const shopStore = getShopStore();
   const currentVariant = $derived(shopStore.variant);
   
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
   const metadata = $derived(product?.metadata || {});
+
+  const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
+  const legacyParts = $derived(metadata.hero_headline?.split('<br/>') || []);
+  const h1 = $derived(metadata.hero_headline_1 || stripTags(legacyParts[0]) || 'LÀN DA TRẮNG SÁNG');
+  const h2 = $derived(metadata.hero_headline_2 || stripTags(legacyParts[1]) || 'CHUẨN NHẬT BẢN');
   const variantOptions = $derived(product?.tierVariations?.[0]?.options || []);
 
   const viewers = $derived(fomoStore.viewers);
@@ -150,12 +157,17 @@
             </EditableWrapper>
 
             <!-- Title & Variant -->
-            <!-- Title & Variant -->
-            <EditableWrapper path="name" label="SỬA TÊN SẢN PHẨM" class="block w-full pointer-events-auto">
-              <h1 class="text-3xl font-black leading-tight text-white uppercase tracking-tight italic pr-14 drop-shadow-2xl">
-                {opt} <span class="text-sakura-pink">.</span>
-              </h1>
-            </EditableWrapper>
+            <h1 class="main-title mb-4">
+              <EditableWrapper path="metadata.hero_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
+                  {h1}
+              </EditableWrapper>
+              <span class="block text-gradient-indigo">
+                  <EditableWrapper path="metadata.hero_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
+                      {h2}
+                  </EditableWrapper>
+              </span>
+              <span class="text-sakura-pink">.</span>
+            </h1>
 
             <!-- Trust / Review Badge -->
             <div class="flex items-center gap-1.5 mt-0.5 mb-1.5 pr-14">
@@ -170,18 +182,18 @@
                <span class="text-[10px] text-white/70 tracking-wide font-medium ml-1">· {formattedSales} đã bán</span>
             </div>
 
-            <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN" class="max-w-[90%] pr-14 pointer-events-auto">
-               <p class="text-[12px] text-white/90 line-clamp-2 leading-relaxed italic font-medium drop-shadow-sm">
+            <p class="text-[12px] text-white/90 line-clamp-2 leading-relaxed italic font-medium drop-shadow-sm">
+              <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN" as="span">
                   {product?.shortDescription || 'Phác đồ Liposome dứt điểm hắc sắc tố, tái sinh vùng da thâm sạm.'}
-               </p>
-            </EditableWrapper>
+              </EditableWrapper>
+            </p>
             
             <div class="flex flex-wrap gap-2 mt-1 pr-14">
               {#each metrics.slice(0, 3) as metric, i}
                 {@const Icon = iconMap[metric.color] || Zap}
                 <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-xl rounded-md border border-white/20 shadow-lg pointer-events-auto">
                     <Icon class="w-3 h-3 text-{metric.color || 'blue'}-400" />
-                    <EditableWrapper path="metadata.hero_metrics[{i}].value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}">
+                    <EditableWrapper path="metadata.hero_metrics[{i}].value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}" as="span">
                       <span class="text-[9px] font-black text-white/90 uppercase tracking-tight">
                         {metric.value}
                       </span>

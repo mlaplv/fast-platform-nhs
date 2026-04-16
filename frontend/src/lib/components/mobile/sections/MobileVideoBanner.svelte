@@ -5,14 +5,21 @@
   import type { Product } from '$lib/types';
   import EditableWrapper from '../../admin/EditableWrapper.svelte';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
 
   interface MobileVideoBannerProps {
     product: Product | null;
   }
 
-  let { product }: MobileVideoBannerProps = $props();
-  const isEditMode = $derived(liveEditStore.isEditMode);
-  const metadata = $derived(isEditMode ? liveEditStore.dirtyMetadata : (product?.metadata ?? {}));
+  let { product: propProduct } = $props<{ product: Product | null }>();
+  const shopStore = getShopStore();
+  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
+  const metadata = $derived(product?.metadata || {});
+
+  const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
+  const legacyParts = $derived(metadata.hero_headline?.split('<br/>') || []);
+  const h1 = $derived(metadata.hero_headline_1 || stripTags(legacyParts[0]) || 'ĐÁNH BAY');
+  const h2 = $derived(metadata.hero_headline_2 || stripTags(legacyParts[1]) || 'THÂM SẠM');
 
   const rawUrl = $derived.by((): string => {
     const v = (metadata.video_url as string | undefined)?.trim() ?? '';
@@ -173,15 +180,25 @@
     <div class="gradient-bottom"></div>
 
     <div class="meta-overlay">
-      <div class="content-summary">
-        <EditableWrapper path="metadata.hero_headline" type="html" label="SỬA TIÊU ĐỀ">
-          <h1 class="headline tiktok-shadow">{@html headline}</h1>
+      <div class="content-overlay">
+      <h1 class="headline tiktok-shadow">
+        <EditableWrapper path="metadata.hero_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
+          {h1}
         </EditableWrapper>
-        
-        {#if shortDescription}
-          <EditableWrapper path="shortDescription" type="html" label="SỬA MÔ TẢ">
-            <p class="description tiktok-shadow">{@html shortDescription}</p>
+        <br/>
+        <span class="headline-shift">
+          <EditableWrapper path="metadata.hero_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
+            {h2}
           </EditableWrapper>
+        </span>
+      </h1>
+        
+        {#if product?.shortDescription}
+          <p class="description tiktok-shadow">
+            <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ" as="span">
+              {product.shortDescription}
+            </EditableWrapper>
+          </p>
         {/if}
         
         <div class="metrics-grid">

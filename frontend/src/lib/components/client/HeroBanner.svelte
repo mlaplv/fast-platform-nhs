@@ -97,9 +97,14 @@
   });
 
   const productName = $derived(labels.product_name);
+  const rawHeadline = $derived(labels.headline);
   const images = $derived(product?.images || []);
   const mainImage = $derived(images.length > 0 ? resolveMediaUrl(images[currentImageIndex]) : '');
-  const rawHeadline = $derived(labels.headline);
+  
+  const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
+  const legacyParts = $derived(metadata.hero_headline?.split('<br/>') || []);
+  const h1 = $derived(metadata.hero_headline_1 || stripTags(legacyParts[0]) || "TỰ TIN RẠNG RỠ VỚI");
+  const h2 = $derived(metadata.hero_headline_2 || stripTags(legacyParts[1]) || "LÀN DA SÁNG HỒNG");
 
   const videoUrl = $derived.by(() => {
     let url = labels.video_url?.trim() ?? '';
@@ -291,11 +296,18 @@
 
   <div class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pb-12 z-surface" style:padding-top="var(--standard-pt)">
     <header class="text-center w-full mb-8 md:mb-12 relative" in:fade>
-      <EditableWrapper path="metadata.hero_headline" type="html" label="SỬA TIÊU ĐỀ BANNER">
-          <h1 class="elite-hero-headline typing-headline">
-            {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-luxury-copper"></span>
-          </h1>
-      </EditableWrapper>
+      <h1 class="elite-hero-headline typing-headline text-center">
+        <EditableWrapper path="metadata.hero_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
+          {h1}
+        </EditableWrapper>
+        <br/>
+        <span class="text-luxury-copper">
+          <EditableWrapper path="metadata.hero_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
+            {h2}
+          </EditableWrapper>
+        </span>
+        <span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-luxury-copper"></span>
+      </h1>
 
       {#if product?.shortDescription}
          <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN">
@@ -369,9 +381,11 @@
                           class:group-hover:text-sakura-pink={!metric.color || metric.color === 'sakura'}>{metric.value}</h3>
                     </EditableWrapper>
 
-                   <EditableWrapper path="metadata.hero_metrics.{i}.desc" value={metric.desc} type="html" label="SỬA MÔ TẢ {i+1}">
-                     <p class="mt-2 text-sm text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity metric-desc">{metric.desc}</p>
-                   </EditableWrapper>
+                    <p class="mt-2 text-sm text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity metric-desc">
+                      <EditableWrapper path="metadata.hero_metrics.{i}.desc" label="SỬA MÔ TẢ {i+1}" as="span">
+                        {metric.desc}
+                      </EditableWrapper>
+                    </p>
                    <div class="absolute -inset-4 bg-radial-gradient from-luxury-copper/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                 </div>
             {/each}

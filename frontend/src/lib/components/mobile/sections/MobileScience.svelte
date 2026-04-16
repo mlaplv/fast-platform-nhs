@@ -2,8 +2,12 @@
   import { ShieldCheck, Zap, Droplets } from 'lucide-svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import './MobileScience.css';
-  
-  let { product } = $props();
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+
+  const shopStore = getShopStore();
+  let { product: propProduct } = $props();
+  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
   const metadata = $derived(product?.metadata || {});
   
   const claims = $derived([
@@ -36,17 +40,17 @@
   <div class="science-glow-2"></div>
 
   <div class="science-header">
-    <EditableWrapper path="metadata.science_headline" label="SỬA TIÊU ĐỀ" class="w-full block">
-      <h2 class="science-headline">
+    <h2 class="science-headline">
+      <EditableWrapper path="metadata.science_headline" type="text" label="SỬA TIÊU ĐỀ" as="span">
         {metadata.science_headline || 'TẠI SAO LẠI HIỆU QUẢ VƯỢT TRỘI?'}
-      </h2>
-    </EditableWrapper>
+      </EditableWrapper>
+    </h2>
     
-    <EditableWrapper path="metadata.science_subheadline" label="SỬA MÔ TẢ PHỤ" class="w-full block">
-      <p class="science-subheadline">
+    <p class="science-subheadline">
+      <EditableWrapper path="metadata.science_subheadline" type="text" label="SỬA MÔ TẢ PHỤ" as="span">
         {metadata.science_subheadline || `Đột phá công thức "Bodycare" hàng đầu từ Nhật Bản.`}
-      </p>
-    </EditableWrapper>
+      </EditableWrapper>
+    </p>
   </div>
 
   <div class="science-claims-stack">
@@ -58,13 +62,17 @@
           <Icon class="w-6 h-6 text-blue-400 relative z-surface" />
         </div>
         <div class="flex-1">
-          <EditableWrapper path="metadata.science_claims[{i}].label" label="SỬA NHÃN {i+1}" class="mb-1">
-            <h4 class="claim-title">{item.title}</h4>
-          </EditableWrapper>
+          <h4 class="claim-title">
+            <EditableWrapper path={`metadata.science_claims[${i}].label`} type="text" label="SỬA NHÃN {i+1}" as="span">
+              {item.title}
+            </EditableWrapper>
+          </h4>
 
-          <EditableWrapper path="metadata.science_claims[{i}].content" label="SỬA MÔ TẢ {i+1}" type="html" class="w-full">
-            <p class="claim-desc">{@html item.desc}</p>
-          </EditableWrapper>
+          <p class="claim-desc">
+            <EditableWrapper path={`metadata.science_claims[${i}].content`} type="text" label="SỬA MÔ TẢ {i+1}" as="span">
+              {item.desc}
+            </EditableWrapper>
+          </p>
         </div>
       </div>
     {/each}

@@ -30,7 +30,11 @@
   let realReviews = $state<Review[]>([]);
   let isLoading = $state(true);
 
-  const headline = $derived(metadata?.reviews_headline || 'TRẢI NGHIỆM TRẮNG SÁNG // REVIEW CHÂN THỰC TỪ CỘNG ĐỒNG');
+  const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
+  const legacyParts = $derived(metadata.reviews_headline?.split('//') || []);
+  const h1 = $derived(metadata.reviews_headline_1 || stripTags(legacyParts[0]) || "KHÁCH HÀNG");
+  const h2 = $derived(metadata.reviews_headline_2 || stripTags(legacyParts[1]) || "NÓI GÌ VỀ CHÚNG TÔI?");
+
   const subheadline = $derived(metadata?.reviews_subheadline || 'Kiểm chứng công thức số 1 từ Nhật Bản. Thấm nhanh, không bết dính. Hiệu quả rõ rệt sau 2 tuần. Đừng bỏ lỡ siêu phẩm Best-seller!');
   const trustScore = $derived(metadata?.reviews_trust_score || '4.9/5');
   const countText = $derived(product?.orderCountText || metadata?.reviews_count_text || '2,140+ LƯỢT MUA');
@@ -234,18 +238,22 @@
       </div>
       
       <div class="max-w-4xl mx-auto text-center" style:margin-bottom="calc(var(--headline-mb) * 0.5)">
-        <EditableWrapper path="metadata.reviews_headline" value={metadata.reviews_headline} type="html" label="SỬA TIÊU ĐỀ ĐÁNH GIÁ" class="w-full flex justify-center">
-          <h2 class="elite-session-headline mb-8">
-            {@html metadata.reviews_headline || 'KHÁCH HÀNG <br class="hidden md:block"/> NÓI GÌ VỀ CHÚNG TÔI?'}
-          </h2>
-        </EditableWrapper>
+        <h2 class="elite-session-headline mb-8 text-center">
+          <EditableWrapper path="metadata.reviews_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
+            {h1}
+          </EditableWrapper>
+          <br class="hidden md:block"/> 
+          <EditableWrapper path="metadata.reviews_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
+            {h2}
+          </EditableWrapper>
+        </h2>
       </div>
 
-      <EditableWrapper path="metadata.reviews_subheadline" value={subheadline} type="html" label="SỬA MÔ TẢ ĐÁNH GIÁ">
-        <p class="section-description text-white/40 text-base md:text-lg max-w-3xl mx-auto leading-relaxed mb-10">
-          {@html subheadline}
-        </p>
-      </EditableWrapper>
+      <p class="section-description text-white/40 text-base md:text-lg max-w-3xl mx-auto leading-relaxed mb-10 text-center">
+        <EditableWrapper path="metadata.reviews_subheadline" type="text" label="SỬA MÔ TẢ ĐÁNH GIÁ" as="span">
+          {product?.metadata?.reviews_subheadline || subheadline}
+        </EditableWrapper>
+      </p>
 
       <div class="flex flex-col items-center gap-8">
         <div class="trust-indicator-elite inline-flex flex-col sm:flex-row items-center gap-6 px-10 py-6 bg-white/[0.02] backdrop-blur-3xl rounded-[2rem] border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.5),inset_0_0_20px_rgba(255,255,255,0.02)]">

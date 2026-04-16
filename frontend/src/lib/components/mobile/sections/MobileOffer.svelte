@@ -8,11 +8,18 @@
   import type { ProductVariant } from '$lib/types';
   import { ShoppingCart, Clock, CheckCircle2, Lock, Users, Zap, Check } from 'lucide-svelte';
   
-  let { product } = $props();
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  let { product: propProduct } = $props();
   const shopStore = getShopStore();
+  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
   const variants = $derived(product?.variants || []);
   const timeLeft = $derived(shopStore.timeLeft);
-  const metadata = $derived(product?.metadata);
+  const metadata = $derived(product?.metadata || {});
+
+  const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
+  const legacyParts = $derived(metadata.offer_headline?.split('<br/>') || []);
+  const h1 = $derived(metadata.offer_headline_1 || stripTags(legacyParts[0]) || "Hắc sắc tố không tự");
+  const h2 = $derived(metadata.offer_headline_2 || stripTags(legacyParts[1]) || "sinh ra hay mất đi.");
 
   const selectedIndex = $derived(variants.findIndex(v => v.id === shopStore.variant?.id) ?? 1);
   const selectedVariant = $derived(variants[selectedIndex] ?? variants[0]);
@@ -115,15 +122,22 @@
 
     <!-- Master Branding Headline -->
     <div class="text-center mt-1 w-full px-6">
-      <EditableWrapper path="metadata.offer_headline" label="SỬA TIÊU ĐỀ" type="html" class="w-full block">
-        <h2 class="text-[18px] font-black text-white leading-[1.2] tracking-tight italic mb-1 drop-shadow-sm uppercase">
-          {@html mkt.headline}
-        </h2>
-      </EditableWrapper>
+      <div class="max-w-4xl mx-auto text-center relative mb-0">
+      <h3 class="elite-session-headline mb-4 text-center">
+        <EditableWrapper path="metadata.offer_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
+          {h1}
+        </EditableWrapper>
+        <br/>
+        <EditableWrapper path="metadata.offer_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
+          {h2}
+        </EditableWrapper>
+      </h3>
 
-      <EditableWrapper path="metadata.offer_subheadline" label="SỬA MÔ TẢ PHỤ" type="html" class="w-full block opacity-70">
-        <p class="text-[10px] text-[#A6C0FE] tracking-widest font-bold">{@html mkt.sub}</p>
-      </EditableWrapper>
+      <p class="text-[10px] text-[#A6C0FE] tracking-widest font-bold opacity-70">
+        <EditableWrapper path="metadata.offer_subheadline" type="text" label="SỬA MÔ TẢ PHỤ" as="span">
+          {product?.metadata?.offer_subheadline || "Nhưng chúng tôi cam kết: Phá vỡ từ gốc tế bào."}
+        </EditableWrapper>
+      </p>
     </div>
   </div>
   <div class="flex-1 flex flex-col z-surface overflow-y-auto pb-4 space-y-2.5">
@@ -289,6 +303,7 @@
           </button>
         {/each}
       </div>
+    </div>
 
       <button 
          onclick={() => { 

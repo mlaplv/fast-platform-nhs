@@ -4,6 +4,8 @@
   import { ShieldCheck, Tag, Sparkles } from 'lucide-svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { fade, fly, scale } from 'svelte/transition';
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
 
   const shopStore = getShopStore();
 
@@ -14,25 +16,24 @@
     activeId?: string | null;
   }>();
 
-  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
 
-  const labels = $derived({
-    home: product?.metadata?.nav_label_home || 'Trang chủ',
+  const navLabels = $derived({
+    hero: product?.metadata?.nav_label_home || 'Trang chủ',
     diagnostics: product?.metadata?.nav_label_diagnostics || 'Chẩn đoán',
     science: product?.metadata?.nav_label_science || 'Cơ chế',
-    transformation: 'Lột xác',
+    'result-timeline': product?.metadata?.nav_label_transformation || 'Lột xác',
     reviews: product?.metadata?.nav_label_reviews || 'Đánh giá',
     offers: product?.metadata?.nav_label_offers || 'Ưu đãi'
   });
 
   const navLinks = $derived([
-    { id: 'hero', label: labels.home, href: '#hero', icon: Sparkles },
-    { id: 'diagnostics', label: labels.diagnostics, href: '#diagnostics' },
-    { id: 'science', label: labels.science, href: '#science' },
-    { id: 'result-timeline', label: labels.transformation, href: '#result-timeline' },
-    { id: 'reviews', label: labels.reviews, href: '#reviews' },
-    { id: 'offers', label: labels.offers, href: '#offers', icon: Tag }
+    { id: 'hero', label: navLabels['hero'], href: '#hero', icon: Sparkles },
+    { id: 'diagnostics', label: navLabels['diagnostics'], href: '#diagnostics' },
+    { id: 'science', label: navLabels['science'], href: '#science' },
+    { id: 'result-timeline', label: navLabels['result-timeline'], href: '#result-timeline' },
+    { id: 'reviews', label: navLabels['reviews'], href: '#reviews' },
+    { id: 'offers', label: navLabels['offers'], href: '#offers', icon: Tag }
   ]);
 
   let scrolled = $state(false);
@@ -82,7 +83,9 @@
                <link.icon class="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" />
             {/if}
             <span class="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] font-outfit">
-               {link.label}
+               <EditableWrapper path={`metadata.nav_label_${link.id === 'hero' ? 'home' : (link.id === 'result-timeline' ? 'transformation' : link.id)}`} type="text" label="SỬA ĐIỀU HƯỚNG" as="span">
+                 {link.label}
+               </EditableWrapper>
             </span>
             
             {#if activeId === link.id}

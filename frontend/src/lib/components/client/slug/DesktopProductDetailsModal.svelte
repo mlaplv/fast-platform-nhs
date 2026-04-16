@@ -4,8 +4,13 @@
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { portal } from '$lib/core/actions/portal';
   import { fade, scale } from 'svelte/transition';
-  
-  let { active = $bindable(), product }: { active: boolean, product: Product } = $props();
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
+
+  const shopStore = getShopStore();
+  let { active = $bindable(), product: propProduct } = $props();
+  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
 
   function close() { 
     active = false;
@@ -50,8 +55,12 @@
     <!-- Scrollable Description Body -->
     <div class="px-10 py-8 overflow-y-auto custom-scrollbar flex-1 elite-prose">
       {#if product?.description}
-        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-        {@html product.description}
+        <EditableWrapper path="description" type="html" label="SỬA MÔ TẢ CHI TIẾT">
+          <div class="elite-prose-container">
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+            {@html product.description}
+          </div>
+        </EditableWrapper>
       {:else}
         <div class="flex flex-col items-center justify-center h-full min-h-[300px] text-white/30 space-y-4">
           <ShieldCheck class="w-16 h-16 opacity-50" />

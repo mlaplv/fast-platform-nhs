@@ -21,8 +21,12 @@
   const variants = $derived(product?.variants || []);
   const metadata = $derived(product?.metadata || {});
 
+  const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
+  const legacyParts = $derived(metadata.offer_headline?.split("<span class='text-luxury-gold'>") || []);
+  const h1 = $derived(metadata.offer_headline_1 || stripTags(legacyParts[0]) || "CHẠM NGƯỠNG ĐỈNH CAO CỦA");
+  const h2 = $derived(metadata.offer_headline_2 || stripTags(legacyParts[1]) || "SỰ TỰ TIN TUYỆT ĐỐI");
+
   const mkt = $derived({
-    headline: metadata.offer_headline || "CHẠM NGƯỠNG ĐỈNH CAO CỦA <span class='text-luxury-gold'>SỰ TỰ TIN TUYỆT ĐỐI</span>",
     sub: metadata.offer_subheadline || "",
     timer_prefix: metadata.offer_timer_prefix || "Ưu đãi lột xác kết thúc sau:",
     shipping_prefix: metadata.offer_shipping_prefix || "+ VẬN CHUYỂN:",
@@ -99,14 +103,19 @@
   <div class="liquid-orb top-[10%] left-[-10%] w-[800px] h-[800px] pointer-events-none" style:background-color="var(--luxury-sakura)" style:opacity="0.1"></div>
   <div class="liquid-orb bottom-[-10%] right-[-10%] w-[600px] h-[600px] pointer-events-none" style:background-color="var(--luxury-gold)" style:opacity="0.05"></div>
 
-  <div class="container mx-auto px-4 md:px-6 max-w-6xl text-center relative z-surface">
-    
-    <div class="max-w-4xl mx-auto text-center relative mb-0">
-      <EditableWrapper path="metadata.offer_headline" value={mkt.headline} type="html" label="SỬA TIÊU ĐỀ ƯU ĐÃI" class="w-full flex justify-center">
-        <h3 class="elite-session-headline mb-4">
-          {@html mkt.headline}
-        </h3>
-      </EditableWrapper>
+  <div class="container mx-auto px-6 max-w-6xl relative z-surface">
+    <div class="text-center mb-16 md:mb-20">
+      <h2 class="elite-session-headline mb-8 text-center offer-grid-headline">
+        <EditableWrapper path="metadata.offer_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
+          {h1}
+        </EditableWrapper>
+        <br class="md:hidden"/>
+        <span class="text-luxury-gold md:ml-3">
+           <EditableWrapper path="metadata.offer_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
+             {h2}
+           </EditableWrapper>
+        </span>
+      </h2>
 
       <div class="flex items-center justify-center gap-4 mt-8 opacity-60 grayscale hover:grayscale-0 transition-all duration-700">
          <span class="text-[8px] uppercase tracking-[0.6em] font-medium text-slate-400">{mkt.trust_verified_by}</span>

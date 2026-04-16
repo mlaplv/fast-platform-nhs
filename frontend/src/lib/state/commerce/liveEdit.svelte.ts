@@ -28,7 +28,9 @@ class LiveEditStore {
   }
 
   // Elite V2.2 Supreme Security: Administrative access strictly derives from RBAC token
-  isAdmin = $derived(permissionState.hasRole("SUPER_ADMIN") || permissionState.hasRole("ADMIN"));
+  get isAdmin() {
+    return permissionState.hasRole("SUPER_ADMIN") || permissionState.hasRole("ADMIN");
+  }
 
   // Computed helper for components
   get dirtyMetadata() {

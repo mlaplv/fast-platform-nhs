@@ -9,8 +9,12 @@
   const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
   const metadata = $derived(product?.metadata || {});
 
+  const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
+  const legacyParts = $derived(metadata.science_headline?.split('</span><span>') || []);
+  const h1 = $derived(metadata.science_headline_1 || stripTags(legacyParts[0]) || "BÍ QUYẾT TÁI SINH");
+  const h2 = $derived(metadata.science_headline_2 || stripTags(legacyParts[1]) || "VÙNG DA SÁNG HỒNG QUYẾN RŨ");
+
   const labels = $derived({
-    headline: metadata.science_headline || '<span>BÍ QUYẾT TÁI SINH</span><span>VÙNG DA SÁNG HỒNG QUYẾN RŨ</span>',
     subheadline: metadata.science_subheadline || '"Không chỉ đơn thuần là dưỡng da, Beppin Body thấu hiểu sự tinh tế của nàng. Tinh chất thẩm thấu sâu, giải quyết triệt để các đốm nâu cứng đầu nhất, trả lại sự mịn màng như lụa để bạn tự tin trong mọi khoảnh khắc."',
     image: metadata.science_image || '/uploads/img/co--che.png',
     card1_title: metadata.science_card1_title || 'TÁC ĐỘNG SÂU - HIỆU QUẢ NHANH',
@@ -26,17 +30,24 @@
 
     <div class="container mx-auto px-6 max-w-6xl text-center relative z-surface">
         
-        <EditableWrapper path="metadata.science_headline" value={labels.headline} type="html" label="SỬA TIÊU ĐỀ" class="w-full flex justify-center">
-            <h2 class="elite-session-headline mb-10">
-                {@html labels.headline}
-            </h2>
-        </EditableWrapper>
+        <h2 class="elite-session-headline mb-10 text-center bento-headline">
+            <span>
+                <EditableWrapper path="metadata.science_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
+                    {h1}
+                </EditableWrapper>
+            </span>
+            <span>
+                <EditableWrapper path="metadata.science_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
+                    {h2}
+                </EditableWrapper>
+            </span>
+        </h2>
 
-        <EditableWrapper path="metadata.science_subheadline" value={labels.subheadline} type="html" label="SỬA MÔ TẢ" class="w-full flex justify-center">
-            <p class="section-description text-white/40 text-base md:text-lg max-w-3xl mx-auto leading-relaxed -mt-4 mb-12">
-                {@html labels.subheadline}
-            </p>
-        </EditableWrapper>
+        <p class="section-description text-white/40 text-base md:text-lg max-w-3xl mx-auto leading-relaxed -mt-4 mb-12 text-center">
+            <EditableWrapper path="metadata.science_subheadline" type="text" label="SỬA MÔ TẢ" as="span">
+                {product?.metadata?.science_subheadline || labels.subheadline}
+            </EditableWrapper>
+        </p>
 
         <!-- BENTO GRID (KINETIC ASYMMETRIC - Viral 2026) -->
         <div class="grid grid-cols-1 md:grid-cols-12 gap-10 items-stretch text-left">
@@ -69,17 +80,17 @@
                         </svg>
                     </div>
 
-                    <EditableWrapper path="metadata.science_card1_title" value={labels.card1_title} label="SỬA TIÊU ĐỀ THẺ 1">
-                        <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight uppercase transition-colors group-hover:text-luxury-sakura">
-                            {labels.card1_title}
-                        </h3>
-                    </EditableWrapper>
+                    <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight uppercase transition-colors group-hover:text-luxury-sakura">
+                        <EditableWrapper path="metadata.science_card1_title" type="text" label="SỬA TIÊU ĐỀ THẺ 1" as="span">
+                            {product?.metadata?.science_card1_title || labels.card1_title}
+                        </EditableWrapper>
+                    </h3>
                     
-                    <EditableWrapper path="metadata.science_card1_desc" value={labels.card1_desc} type="html" label="SỬA MÔ TẢ THẺ 1">
-                        <p class="text-slate-500 text-xs lg:text-base leading-relaxed font-medium">
-                            {labels.card1_desc}
-                        </p>
-                    </EditableWrapper>
+                    <p class="text-slate-500 text-xs lg:text-base leading-relaxed font-medium">
+                        <EditableWrapper path="metadata.science_card1_desc" type="text" label="SỬA MÔ TẢ THẺ 1">
+                            {product?.metadata?.science_card1_desc || labels.card1_desc}
+                        </EditableWrapper>
+                    </p>
                 </div>
 
                 <!-- Thẻ 2 -->
@@ -91,17 +102,17 @@
                         </svg>
                     </div>
 
-                    <EditableWrapper path="metadata.science_card2_title" value={labels.card2_title} label="SỬA TIÊU ĐỀ THẺ 2">
-                        <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight uppercase transition-colors group-hover:text-luxury-gold">
-                            {labels.card2_title}
-                        </h3>
-                    </EditableWrapper>
+                    <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight uppercase transition-colors group-hover:text-luxury-gold">
+                        <EditableWrapper path="metadata.science_card2_title" type="text" label="SỬA TIÊU ĐỀ THẺ 2" as="span">
+                            {product?.metadata?.science_card2_title || labels.card2_title}
+                        </EditableWrapper>
+                    </h3>
 
-                    <EditableWrapper path="metadata.science_card2_desc" value={labels.card2_desc} type="html" label="SỬA MÔ TẢ THẺ 2">
-                        <p class="text-slate-500 text-xs lg:text-base leading-relaxed font-medium">
-                            {labels.card2_desc}
-                        </p>
-                    </EditableWrapper>
+                    <p class="text-slate-500 text-xs lg:text-base leading-relaxed font-medium">
+                        <EditableWrapper path="metadata.science_card2_desc" type="text" label="SỬA MÔ TẢ THẺ 2">
+                            {product?.metadata?.science_card2_desc || labels.card2_desc}
+                        </EditableWrapper>
+                    </p>
                 </div>
             </div>
         </div>

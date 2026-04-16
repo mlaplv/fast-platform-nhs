@@ -11,10 +11,11 @@
     label?: string;
     value?: string; 
     class?: string;
+    as?: 'div' | 'span';
     children?: import('svelte').Snippet;
   }
 
-  let { path, type = 'text', label = 'SỬA NỘI DUNG', value: explicitValue, children, ...props }: Props = $props();
+  let { path, type = 'text', label = 'SỬA NỘI DUNG', value: explicitValue, as = 'div', children, ...props }: Props = $props();
 
   const isEditMode = $derived(liveEditStore.isEditMode);
   const isAdmin = $derived(liveEditStore.isAdmin);
@@ -184,9 +185,10 @@
 </script>
 
 {#if shouldRender}
-<div 
+<svelte:element
+  this={as}
   bind:this={wrapperRef}
-  class="editable-wrapper relative group/editable {isEditMode ? 'cursor-pointer' : ''} {isDisabled ? 'is-disabled' : ''} {showSuccessFlash ? 'success-flash' : ''} {props.class || ''}"
+  class="editable-wrapper relative group/editable {isEditMode ? 'cursor-pointer' : ''} {isDisabled ? 'is-disabled' : ''} {showSuccessFlash ? 'success-flash' : ''} {as === 'span' ? 'inline-block' : 'block'} {props.class || ''}"
   onmouseenter={() => isHovered = true}
   onmouseleave={() => isHovered = false}
   onclick={handleEditClick}
@@ -246,10 +248,10 @@
     {/if}
   {/if}
 
-  <div class="content-container w-full h-full {isInlineEditing ? 'opacity-20 blur-sm pointer-events-none' : ''} transition-all duration-300 relative" style:display={isEditMode ? 'contents' : 'block'}>
+  <svelte:element this={as} class="content-container w-full h-full {isInlineEditing ? 'opacity-20 blur-sm pointer-events-none' : ''} transition-all duration-300 relative" style:display={isEditMode ? (as === 'span' ? 'inline-block' : 'contents') : (as === 'span' ? 'inline-block' : 'block')}>
     {@render children?.()}
-  </div>
-</div>
+  </svelte:element>
+</svelte:element>
 {/if}
 
 <style lang="postcss">

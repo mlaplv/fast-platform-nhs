@@ -2,6 +2,13 @@
   import { onMount } from 'svelte';
   import './EmotionalIncentive.css';
   import { fade, fly } from 'svelte/transition';
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
+
+  const shopStore = getShopStore();
+  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
+  const metadata = $derived(product?.metadata || {});
 
   interface Scenario {
     title: string;
@@ -61,10 +68,19 @@
         <span class="text-[9px] font-black text-luxury-sakura uppercase tracking-[0.4em]">Imagine_The_Result</span>
       </div>
       <h2 class="text-4xl md:text-7xl font-black text-white tracking-tighter leading-none mb-6 italic uppercase">
-        HÃY BẮT ĐẦU <span class="text-luxury-gold">SỐNG KHÁC BIỆT</span>
+        <EditableWrapper path="metadata.emotional_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
+          {product?.metadata?.emotional_headline_1 || 'HÃY BẮT ĐẦU'}
+        </EditableWrapper>
+        <span class="text-luxury-gold">
+          <EditableWrapper path="metadata.emotional_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
+            {product?.metadata?.emotional_headline_2 || 'SỐNG KHÁC BIỆT'}
+          </EditableWrapper>
+        </span>
       </h2>
       <p class="text-slate-400 text-sm md:text-lg max-w-2xl mx-auto font-medium tracking-tight leading-relaxed">
-        Đừng mua một hũ kem, hãy sở hữu sự tự tin để làm chủ mọi khoảnh khắc đắt giá nhất của cuộc đời bạn.
+        <EditableWrapper path="metadata.emotional_subheadline" type="text" label="SỬA MÔ TẢ PHỤ" as="span">
+          {product?.metadata?.emotional_subheadline || 'Đừng mua một hũ kem, hãy sở hữu sự tự tin để làm chủ mọi khoảnh khắc đắt giá nhất của cuộc đời bạn.'}
+        </EditableWrapper>
       </p>
     </header>
 
@@ -86,10 +102,20 @@
               </div>
 
               <div class="content-frame">
-                <span class="text-[8px] font-black text-luxury-sakura/60 uppercase tracking-[0.3em] mb-2 block">{item.title}</span>
-                <h4 class="text-2xl font-bold text-white mb-4 leading-tight italic">{item.result}</h4>
+                <span class="text-[8px] font-black text-luxury-sakura/60 uppercase tracking-[0.3em] mb-2 block">
+                  <EditableWrapper path={`metadata.scenario_${i}_title`} type="text" label="NHÃN KỊCH BẢN">
+                    {product?.metadata?.[`scenario_${i}_title`] || item.title}
+                  </EditableWrapper>
+                </span>
+                <h4 class="text-2xl font-bold text-white mb-4 leading-tight italic">
+                  <EditableWrapper path={`metadata.scenario_${i}_result`} type="text" label="KẾT QUẢ" as="span">
+                    {product?.metadata?.[`scenario_${i}_result`] || item.result}
+                  </EditableWrapper>
+                </h4>
                 <p class="text-sm text-slate-500 font-medium leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity">
-                  {item.caption}
+                  <EditableWrapper path={`metadata.scenario_${i}_caption`} type="text" label="CHI TIẾT" as="span">
+                    {product?.metadata?.[`scenario_${i}_caption`] || item.caption}
+                  </EditableWrapper>
                 </p>
               </div>
 
@@ -105,16 +131,26 @@
       
       <div class="relative z-10">
         <h5 class="text-luxury-gold text-2xl md:text-3xl font-black tracking-tight italic mb-4">
-          CƠ HỘI CHỈ DÀNH CHO NGƯỜI QUYẾT ĐOÁN
+          <EditableWrapper path="metadata.emotional_fomo_h1" type="text" label="TIÊU ĐỀ FOMO" as="span">
+             {product?.metadata?.emotional_fomo_h1 || 'CƠ HỘI CHỈ DÀNH CHO NGƯỜI QUYẾT ĐOÁN'}
+          </EditableWrapper>
         </h5>
         <div class="flex flex-wrap items-center justify-center gap-4 md:gap-8 opacity-60">
           <div class="flex items-center gap-2">
             <span class="w-1.5 h-1.5 bg-luxury-sakura rounded-full animate-ping"></span>
-            <span class="text-[10px] font-black text-white/40 uppercase tracking-widest">Đang cháy hàng tại kho Nhật Bản</span>
+            <span class="text-[10px] font-black text-white/40 uppercase tracking-widest">
+              <EditableWrapper path="metadata.emotional_fomo_msg1" type="text" label="THÔNG BÁO 1">
+                {product?.metadata?.emotional_fomo_msg1 || 'Đang cháy hàng tại kho Nhật Bản'}
+              </EditableWrapper>
+            </span>
           </div>
           <div class="flex items-center gap-2">
             <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-            <span class="text-[10px] font-black text-white/40 uppercase tracking-widest">Duy nhất 07 suất tặng ẩn cuối ngày</span>
+            <span class="text-[10px] font-black text-white/40 uppercase tracking-widest">
+               <EditableWrapper path="metadata.emotional_fomo_msg2" type="text" label="THÔNG BÁO 2">
+                  {product?.metadata?.emotional_fomo_msg2 || 'Duy nhất 07 suất tặng ẩn cuối ngày'}
+               </EditableWrapper>
+            </span>
           </div>
         </div>
       </div>

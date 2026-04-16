@@ -18,18 +18,18 @@
 
   const labels = $derived({
     headline: metadata.diagnostics_headline || 'THIẾT KẾ LỘ TRÌNH TÁI SINH RIÊNG BIỆT',
-    subheadline: metadata.diagnostics_subheadline || `Hệ thống AI của <span class="text-luxury-sakura">Micsmo Luxury</span> sẽ phân tích tình trạng da hiện tại để đề xuất phác đồ phục hồi tối ưu nhất cho riêng Sếp.`,
+    subheadline: metadata.diagnostics_subheadline || 'Hệ thống AI của Micsmo Luxury sẽ phân tích tình trạng da hiện tại để đề xuất phác đồ phục hồi tối ưu nhất cho riêng Sếp.',
     disclaimer: metadata.diagnostics_disclaimer || `Micsmo - Gemini AI: Độ chính xác 98.6% dựa trên dữ liệu lâm sàng.`
   });
 </script>
 
 <section id="diagnostics-section" aria-labelledby="personalized-care" class="snap-session snap-session-standard diagnostics-container diagnostic-premium-flow relative overflow-x-hidden" style:padding-top="var(--standard-pt)">
   <div class="container mx-auto px-4 md:px-6 max-w-7xl text-center relative z-surface">
-    <EditableWrapper path="metadata.diagnostics_headline" label="SỬA TIÊU ĐỀ CHẨN ĐOÁN">
-      <h3 id="personalized-care" class="elite-session-headline mb-8">
-        {@html labels.headline}
-      </h3>
-    </EditableWrapper>
+    <h3 id="personalized-care" class="elite-session-headline mb-8 text-center">
+      <EditableWrapper path="metadata.diagnostics_headline" type="text" label="SỬA TIÊU ĐỀ CHẨN ĐOÁN">
+        {product?.metadata?.diagnostics_headline || 'THIẾT KẾ LỘ TRÌNH TÁI SINH RIÊNG BIỆT'}
+      </EditableWrapper>
+    </h3>
 
     <div class="quiz-wrapper relative">
       <ClinicalQuiz {product} {questions} {metadata} />

@@ -3,14 +3,21 @@
   import { fade, fly, scale, blur } from 'svelte/transition';
   import { cubicOut, elasticOut } from 'svelte/easing';
   import { Star, ShieldCheck, MessageSquarePlus, X, MapPin, Phone, User, Send, CheckCircle2 } from 'lucide-svelte';
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { SHOP_CONFIG } from '$lib/constants/shop';
   import EditableWrapper from '../../admin/EditableWrapper.svelte';
   import type { Review } from '$lib/types';
 
-  let { product } = $props();
+  let { product: propProduct } = $props();
   const shopStore = getShopStore();
-  const metadata = $derived(product?.metadata);
+  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
+  const metadata = $derived(product?.metadata || {});
+
+  const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
+  const legacyParts = $derived(metadata.reviews_headline?.split('//') || []);
+  const h1 = $derived(metadata.reviews_headline_1 || stripTags(legacyParts[0]) || 'KHÁCH HÀNG');
+  const h2 = $derived(metadata.reviews_headline_2 || stripTags(legacyParts[1]) || 'NÓI GÌ VỀ CHÚNG TÔI?');
   
   interface ReviewApiResponse {
     id: string | number;
@@ -152,18 +159,28 @@
 <div class="reviews-mobile-viewport h-full flex flex-col px-6 pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] bg-[#030303] relative overflow-hidden" id="reviews">
   <!-- HUD Header -->
   <div class="mt-8 mb-8">
-    <EditableWrapper path="metadata.reviews_hud_feedback" label="SỬA NHÃN HỆ THỐNG" class="mb-6 block">
-      <div class="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full backdrop-blur-md">
-        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
-        <span class="text-[9px] uppercase tracking-[0.2em] text-emerald-400 font-black italic">{labels.hud_feedback}</span>
-      </div>
-    </EditableWrapper>
+    <div class="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full backdrop-blur-md mb-6">
+      <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+      <span class="text-[9px] uppercase tracking-[0.2em] text-emerald-400 font-black italic">
+        <EditableWrapper path="metadata.reviews_hud_feedback" label="SỬA NHÃN HỆ THỐNG" as="span">
+          {metadata.reviews_hud_feedback || 'HỆ THỐNG // PHẢN HỒI THỰC TẾ'}
+        </EditableWrapper>
+      </span>
+    </div>
     
-    <EditableWrapper path="metadata.reviews_headline" label="SỬA TIÊU ĐỀ CHÍNH" type="html" class="mb-6 block">
-      <h2 class="text-[28px] xs:text-3xl sm:text-4xl font-black text-white leading-[1.1] break-words uppercase tracking-tighter italic">
-        {@html labels.headline}
-      </h2>
-    </EditableWrapper>
+    <div class="header-content text-center mb-8 relative">
+        <h2 class="text-3xl font-black text-white tracking-tighter mb-4 italic uppercase">
+          <EditableWrapper path="metadata.reviews_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
+            {h1}
+          </EditableWrapper>
+          <br/>
+          <span class="text-luxury-sakura">
+            <EditableWrapper path="metadata.reviews_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
+              {h2}
+            </EditableWrapper>
+          </span>
+        </h2>
+    </div>
 
     <div class="flex items-center gap-4 bg-white/[0.03] w-full px-5 py-4 rounded-3xl border border-white/10 backdrop-blur-xl">
       <div class="flex items-center gap-1">
@@ -174,12 +191,16 @@
       <div class="h-4 w-px bg-white/10"></div>
       <div class="flex flex-col flex-1">
         <div class="flex items-center gap-2">
-          <EditableWrapper path="metadata.reviews_trust_score" label="SỬA ĐIỂM" class="inline-block">
-            <span class="text-xs font-black text-white italic">{labels.trust_score}</span>
-          </EditableWrapper>
-          <EditableWrapper path="metadata.reviews_count_text" label="SỬA SỐ LƯỢT MUA" class="inline-block">
-            <span class="text-[9px] text-emerald-400 font-black uppercase tracking-widest">{labels.count_text}</span>
-          </EditableWrapper>
+          <span class="text-xs font-black text-white italic">
+            <EditableWrapper path="metadata.reviews_trust_score" label="SỬA ĐIỂM" as="span">
+              {metadata.reviews_trust_score || '4.9/5'}
+            </EditableWrapper>
+          </span>
+          <span class="text-[9px] text-emerald-400 font-black uppercase tracking-widest">
+            <EditableWrapper path="metadata.reviews_count_text" label="SỬA SỐ LƯỢT MUA" as="span">
+              {product?.orderCountText || metadata.reviews_count_text || '2,140+ LƯỢT MUA'}
+            </EditableWrapper>
+          </span>
         </div>
       </div>
     </div>

@@ -5,10 +5,12 @@
   import { Sparkles, ArrowRight, ShieldCheck, RefreshCw, Cpu, Database, Activity } from 'lucide-svelte';
   import { SHOP_CONFIG } from '$lib/constants/shop';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import EditableWrapper from '../../admin/EditableWrapper.svelte';
 
-  let { product } = $props();
+  let { product: propProduct } = $props();
   const shopStore = getShopStore();
+  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
   const metadata = $derived(product?.metadata || {});
   const questions = $derived(metadata?.quiz_questions || []);
   
@@ -95,11 +97,11 @@
         <div class="w-1 h-1 rounded-full bg-blue-500 animate-pulse"></div>
         <span class="text-[7px] uppercase tracking-[0.2em] text-blue-400 font-bold italic">System v2.6+</span>
       </div>
-      <EditableWrapper path="metadata.diagnostics_headline" label="SỬA TIÊU ĐỀ" type="html" class="block w-full">
-        <h2 class="text-xl font-bold text-white leading-tight uppercase tracking-tighter italic tiktok-shadow">
-          {@html labels.headline}
-        </h2>
-      </EditableWrapper>
+      <h2 class="text-xl font-bold text-white leading-tight uppercase tracking-tighter italic tiktok-shadow">
+        <EditableWrapper path="metadata.diagnostics_headline" type="text" label="SỬA TIÊU ĐỀ">
+          {product?.metadata?.diagnostics_headline || 'CHẨN ĐOÁN CÁ NHÂN HÓA'}
+        </EditableWrapper>
+      </h2>
     </div>
   {/if}
 
@@ -266,7 +268,10 @@
               onclick={restart}
               class="flex items-center gap-2 mx-auto py-1 text-[8px] font-bold text-white/30 uppercase tracking-[0.3em] hover:text-blue-400 transition-colors"
             >
-              <RefreshCw class="w-2.5 h-2.5" /> Thiết lập lại
+              <RefreshCw class="w-2.5 h-2.5" /> 
+              <EditableWrapper path="metadata.quiz_restart_label" label="SỬA CHỮ RESTART">
+                {product?.metadata?.quiz_restart_label || 'Thiết lập lại'}
+              </EditableWrapper>
             </button>
           </div>
         </div>
