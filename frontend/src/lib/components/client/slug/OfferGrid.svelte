@@ -252,12 +252,20 @@
            </div>
 
            <ul class="bullet-list mb-8 flex-grow space-y-2">
-             {#each getFeatures(variant, idx) as feature}
-                <li class="flex items-center gap-2 {feature.startsWith('+') ? 'font-medium text-slate-200' : ''} {feature.startsWith('!') ? 'text-emerald-400' : ''} {feature.startsWith('-') ? 'opacity-20' : ''}">
-                  <span class="icon-check {feature.startsWith('!') ? 'text-emerald-400' : 'text-cyan-400'}">
-                    {feature.startsWith('-') ? '−' : '✦'}
-                  </span>
-                  <span>{feature.replace(/^[+!-]/, '')}</span>
+             {#each getFeatures(variant, idx) as feature, fIdx}
+                {@const vIdx = (shopStore.product?.variants || []).findIndex(v => v.sku === variant.sku)}
+                <li>
+                  <EditableWrapper 
+                    path="variants.{vIdx}.attributes.features.{fIdx}" 
+                    value={feature} 
+                    label="DÒNG TÍNH NĂNG"
+                    class="flex items-center gap-2 {feature.startsWith('+') ? 'font-medium text-slate-200' : ''} {feature.startsWith('!') ? 'text-emerald-400' : ''}"
+                  >
+                    <span class="icon-check {feature.startsWith('!') ? 'text-emerald-400' : 'text-cyan-400'}">
+                        ✦
+                    </span>
+                    <span>{feature.replace(/^[+!-]/, '')}</span>
+                  </EditableWrapper>
                 </li>
              {/each}
            </ul>

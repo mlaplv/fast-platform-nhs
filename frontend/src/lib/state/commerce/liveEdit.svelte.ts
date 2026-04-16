@@ -131,6 +131,20 @@ class LiveEditStore {
       this.isSaving = false;
     }
   }
+
+  // Elite V2.2: Global DOM Synchronization!
+  // This allows CSS to react to Edit Mode across all components.
+  syncToBody = $effect.root(() => {
+    $effect(() => {
+        if (typeof document !== 'undefined') {
+            if (this.isEditMode) {
+                document.body.classList.add('live-edit-mode');
+            } else {
+                document.body.classList.remove('live-edit-mode');
+            }
+        }
+    });
+  });
 }
 
 export const liveEditStore = new LiveEditStore();

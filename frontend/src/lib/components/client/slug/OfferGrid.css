@@ -119,11 +119,51 @@
       color: #94a3b8;
       font-size: 0.875rem;
       letter-spacing: 0.02em;
+      transition: all 0.3s ease;
 
       & .icon-check {
         color: var(--elite-cyan);
         opacity: 0.8;
       }
+
+      /* Elite V2.2: Disable states */
+      &.disabled {
+        opacity: 0.15;
+        text-decoration: line-through;
+        filter: grayscale(1);
+        pointer-events: none; /* Default for customers, overridden for Admins */
+      }
+    }
+  }
+
+  /* Global Admin override for disabled items */
+  :global(.live-edit-mode) & .bullet-list li.disabled {
+    display: flex !important;
+    opacity: 0.3;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  /* Client-only hide (when NOT in edit mode) */
+  :global(body:not(.live-edit-mode)) & .bullet-list li.disabled {
+    display: none !important;
+  }
+
+  /* Elite V2.2: Toggle button styling */
+  & .toggle-feature-btn {
+    opacity: 0;
+    transition: all 0.2s ease;
+  }
+
+  & .bullet-list li:hover .toggle-feature-btn {
+    opacity: 1;
+  }
+
+  /* Elite V2.2: Force show toggle buttons on touch devices/mobile in Edit Mode */
+  :global(.live-edit-mode) & .bullet-list li .toggle-feature-btn {
+    @media (max-width: 1024px) {
+      opacity: 0.6 !important;
+      background: rgba(255, 255, 255, 0.1);
     }
   }
 

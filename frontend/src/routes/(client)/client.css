@@ -141,6 +141,19 @@ body {
   min-height: 100vh;
 }
 
+/* Elite V2.2: Universal Content Disable System - GLOBAL SCOPE */
+.is-disabled .content-container {
+    transition: all 0.3s ease;
+}
+
+/* For Admins: Blur, Strike-through and Opacity */
+body.live-edit-mode .is-disabled .content-container {
+    opacity: 0.25 !important;
+    filter: blur(1.5px) grayscale(1);
+    text-decoration: line-through;
+    pointer-events: auto;
+}
+
 .client-layout h1,
 .client-layout h2,
 .client-layout h3,
