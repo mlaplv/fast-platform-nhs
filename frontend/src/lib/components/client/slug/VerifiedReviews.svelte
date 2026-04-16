@@ -223,7 +223,7 @@
   };
 </script>
 
-<section class="snap-session-standard reviews-viewport relative overflow-visible">
+<section class="snap-session-standard reviews-viewport relative overflow-visible" style:padding-top="var(--standard-pt)">
   <div class="reviews-container container mx-auto px-6 max-w-6xl relative z-surface">
     <!-- Header Section -->
     <div class="text-center mb-16" in:fade>
@@ -233,8 +233,8 @@
         <span class="text-[10px] font-black text-red-500/80 uppercase tracking-[0.3em] font-mono">LIVE_ACTIVITY: {liveViewers} KHÁCH ĐANG XEM ĐÁNH GIÁ</span>
       </div>
       
-      <EditableWrapper path="metadata.reviews_headline" value={headline} type="html" label="SỬA TIÊU ĐỀ ĐÁNH GIÁ">
-        <h2 class="section-headline mb-6">
+      <EditableWrapper path="metadata.reviews_headline" value={headline} type="html" label="SỬA TIÊU ĐỀ ĐÁNH GIÁ" class="w-full flex justify-center">
+        <h2 class="section-headline mb-6 text-center mx-auto mt-0">
           {@html headline}
         </h2>
       </EditableWrapper>
@@ -377,8 +377,14 @@
                   </div>
                 </div>
 
-                <div class="review-content relative">
-                  <p class="text-slate-200 leading-relaxed text-base italic font-medium tracking-tight">"{review.content}"</p>
+                <div class="review-content relative overflow-hidden">
+                  <div class="text-slate-200 leading-relaxed text-base italic font-medium tracking-tight">
+                     {#if review.content.includes('<')}
+                        {@html review.content}
+                     {:else}
+                        "{review.content}"
+                     {/if}
+                  </div>
                 </div>
 
                 <div class="clinical-verify mt-auto pt-4 flex items-center justify-between border-t border-white/5 mt-5">

@@ -49,13 +49,20 @@
 
   & .headline-title {
     font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
-    font-size: var(--fs-title);
-    /* Fluid! */
-    font-weight: 700;
+    font-size: clamp(2.5rem, 8vw, 5.5rem) !important;
+    /* Titanic Elite Sync! */
+    font-weight: 950 !important;
+    letter-spacing: -0.05em !important;
     color: #ffffff;
-    line-height: 1.05;
+    line-height: 1.1;
     letter-spacing: -0.03em;
     margin-bottom: 0.5rem;
+    background: linear-gradient(to bottom, #fff 20%, rgba(255, 255, 255, 0.4) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 20px 50px rgba(0, 0, 0, 0.5));
+    text-transform: uppercase;
   }
 
   & .headline-sub {
@@ -392,7 +399,7 @@
   }
 
   .headline-title {
-    font-size: 2rem !important;
+    /* Hardcoded nerf REMOVED for Elite V2.2 Parity */
   }
 
   /* ELITE V2.2: Price Scaling for cramped tablet columns */
@@ -434,7 +441,7 @@
   }
 
   .headline-title {
-    font-size: var(--fs-title) !important;
+    /* Hardcoded nerf REMOVED for Elite V2.2 Parity */
   }
 }
 

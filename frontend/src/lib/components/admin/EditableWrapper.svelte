@@ -88,8 +88,11 @@
           rawValue = rawValue.replace(/\s+s-[a-zA-Z0-9_-]+/g, "");
           // Remove empty class attributes
           rawValue = rawValue.replace(/class=""/g, "");
-          // Elite V2.2: Strip Sakura Pink spans to ensure clean editing experience
-          rawValue = rawValue.replace(/<span class="text-sakura-pink">/gi, "").replace(/<\/span>/gi, "");
+          // Elite V2.2: Strip Sakura Pink spans and any other stylistic spans to ensure clean editing experience
+          // This prevents the "nested span" nightmare reported by the Boss
+          rawValue = rawValue.replace(/<span[^>]*class=["']text-sakura-pink["'][^>]*>/gi, "")
+                             .replace(/<span[^>]*>/gi, "") // Neutralize all spans
+                             .replace(/<\/span>/gi, "");
           
           // For 'html' type we preserve structure but convert BRs to newlines
           if (type === 'html') {
@@ -277,7 +280,7 @@
     {/if}
   {/if}
 
-  <div class="content-container w-full h-full {isInlineEditing ? 'opacity-20 blur-sm pointer-events-none' : ''} transition-all duration-300 relative">
+  <div class="content-container w-full h-full {isInlineEditing ? 'opacity-20 blur-sm pointer-events-none' : ''} transition-all duration-300 relative" style:display={isEditMode ? 'contents' : 'block'}>
     {@render children?.()}
   </div>
 </div>

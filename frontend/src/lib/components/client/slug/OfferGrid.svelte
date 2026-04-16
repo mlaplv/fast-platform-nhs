@@ -93,7 +93,7 @@
   };
 </script>
 
-<section class="snap-session-standard offer-section relative overflow-hidden">
+<section class="snap-session-standard offer-section relative overflow-hidden" style:padding-top="var(--standard-pt)">
   <!-- Dynamic Atmospheric Layers! -->
   <div class="absolute inset-0 bg-radial-at-t from-blue-900/10 to-transparent pointer-events-none"></div>
   <div class="liquid-orb top-[10%] left-[-10%] w-[800px] h-[800px]" style:background-color="var(--elite-blue)" style:opacity="0.1"></div>
@@ -104,9 +104,9 @@
     
 
     <!-- Professional Headline Hierarchy! -->
-    <div class="max-w-4xl mx-auto text-center" style:margin-bottom="var(--headline-mb)">
+    <div class="max-w-4xl mx-auto text-center relative" style:margin-bottom="var(--headline-mb)">
       <EditableWrapper path="metadata.offer_headline" value={mkt.headline} type="html" label="SỬA TIÊU ĐỀ ƯU ĐÃI" class="w-full flex justify-center">
-        <h3 class="headline-title mb-4">
+        <h3 class="headline-title mb-4 mt-0">
           {@html mkt.headline}
         </h3>
       </EditableWrapper>

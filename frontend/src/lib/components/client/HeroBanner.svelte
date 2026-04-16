@@ -319,11 +319,11 @@
     </div>
   </div>
 
-  <div class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pt-[var(--standard-pt)] pb-12 z-surface">
+  <div class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pb-12 z-surface" style:padding-top="var(--standard-pt)">
     <!-- SECTION HEADER: Normalized spacing & Full-width prominence -->
     <header class="text-center w-full mb-8 md:mb-12 relative" in:fade>
       <EditableWrapper path="metadata.hero_headline" type="html" label="SỬA TIÊU ĐỀ BANNER">
-          <h1 class="hero-titanic-headline typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0 tracking-tight mx-auto text-4xl md:text-7xl lg:text-8xl uppercase leading-[1]">
+          <h1 class="hero-titanic-headline typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0 tracking-tight mx-auto text-4xl md:text-7xl lg:text-8xl uppercase leading-[1.1] md:leading-[1]">
           {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-red-500"></span>
           </h1>
       </EditableWrapper>

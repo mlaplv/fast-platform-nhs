@@ -20,7 +20,7 @@
   });
 </script>
 
-<section id="science-mechanism" class="snap-session-standard science-section relative w-full overflow-hidden">
+<section id="science-mechanism" class="snap-session-standard science-section relative w-full overflow-hidden" style:padding-top="var(--standard-pt)">
     <!-- 150px Coordinate Grid Overlay -->
     <div class="tech-grid opacity-30"></div>
 
