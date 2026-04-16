@@ -233,11 +233,13 @@
         <span class="text-[10px] font-black text-red-500/80 uppercase tracking-[0.3em] font-mono">LIVE_ACTIVITY: {liveViewers} KHÁCH ĐANG XEM ĐÁNH GIÁ</span>
       </div>
       
-      <EditableWrapper path="metadata.reviews_headline" value={headline} type="html" label="SỬA TIÊU ĐỀ ĐÁNH GIÁ" class="w-full flex justify-center">
-        <h2 class="section-headline mb-6 text-center mx-auto mt-0">
-          {@html headline}
-        </h2>
-      </EditableWrapper>
+      <div class="max-w-4xl mx-auto text-center" style:margin-bottom="calc(var(--headline-mb) * 0.5)">
+        <EditableWrapper path="metadata.reviews_headline" value={metadata.reviews_headline} type="html" label="SỬA TIÊU ĐỀ ĐÁNH GIÁ" class="w-full flex justify-center">
+          <h2 class="elite-session-headline mb-8">
+            {@html metadata.reviews_headline || 'KHÁCH HÀNG <br class="hidden md:block"/> NÓI GÌ VỀ CHÚNG TÔI?'}
+          </h2>
+        </EditableWrapper>
+      </div>
 
       <EditableWrapper path="metadata.reviews_subheadline" value={subheadline} type="html" label="SỬA MÔ TẢ ĐÁNH GIÁ">
         <p class="section-description text-white/40 text-base md:text-lg max-w-3xl mx-auto leading-relaxed mb-10">

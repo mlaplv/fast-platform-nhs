@@ -26,20 +26,17 @@
 
     <div class="container mx-auto px-6 max-w-6xl text-center relative z-surface">
         
-        <!-- SECTION HEADER (Normalized spacing to fix "thừa trên thiếu dưới") -->
-        <header class="mb-8 md:mb-12 animate-reveal">
-            <EditableWrapper path="metadata.science_headline" value={labels.headline} type="html" label="SỬA TIÊU ĐỀ" class="w-full flex justify-center">
-                <h2 class="text-white font-black tracking-tight leading-none uppercase mb-6 text-3xl md:text-5xl lg:text-6xl mx-auto bento-headline">
-                    {@html labels.headline}
-                </h2>
-            </EditableWrapper>
+        <EditableWrapper path="metadata.science_headline" value={labels.headline} type="html" label="SỬA TIÊU ĐỀ" class="w-full flex justify-center">
+            <h2 class="elite-session-headline mb-10">
+                {@html labels.headline}
+            </h2>
+        </EditableWrapper>
 
-            <EditableWrapper path="metadata.science_subheadline" value={labels.subheadline} type="html" label="SỬA MÔ TẢ" class="w-full flex justify-center">
-                <p class="section-description text-white/40 text-base md:text-lg max-w-none mx-auto leading-relaxed">
-                    {@html labels.subheadline}
-                </p>
-            </EditableWrapper>
-        </header>
+        <EditableWrapper path="metadata.science_subheadline" value={labels.subheadline} type="html" label="SỬA MÔ TẢ" class="w-full flex justify-center">
+            <p class="section-description text-white/40 text-base md:text-lg max-w-3xl mx-auto leading-relaxed -mt-4 mb-12">
+                {@html labels.subheadline}
+            </p>
+        </EditableWrapper>
 
         <!-- BENTO GRID (50/50 Split with perfectly uniform gaps) -->
         <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch text-left">

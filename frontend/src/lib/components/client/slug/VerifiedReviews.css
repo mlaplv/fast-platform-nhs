@@ -28,20 +28,7 @@
 }
 
 .section-headline {
-  font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
-  font-size: clamp(2rem, 5vw, 4rem);
-  font-weight: 900;
-  line-height: 1.1;
-  color: white;
-  text-transform: uppercase;
-  letter-spacing: -0.04em;
-  background: linear-gradient(to bottom, #fff 30%, rgba(255, 255, 255, 0.4) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  padding: 0.2em 0;
-  margin-bottom: 2.5rem;
-  filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.1));
+  /* STYLES MOVED TO GLOBAL .elite-session-headline */
 }
 
 /* Bento Hub Frame - REMOVED BORDERS & BG AS REQUESTED */

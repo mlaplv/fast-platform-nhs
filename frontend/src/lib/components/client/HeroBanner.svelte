@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { onMount, untrack } from 'svelte';
+  import { onMount } from 'svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
   import { browser } from '$app/environment';
   import "./HeroBanner.css";
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
+  import { fade } from 'svelte/transition';
 
   const shopStore = getShopStore();
 
@@ -23,16 +24,11 @@
     { label: '[Thành phần]', value: 'TINH CHẤT "CHUẨN NHẬT" LÀNH TÍNH', desc: 'Sức mạnh làm sáng từ chiết xuất Hoa Anh Đào (Sakura) kết hợp Vitamin C & E. Bảng thành phần không cồn, không paraben.', color: 'emerald' }
   ];
 
-  // ─── CTO FIX #1: Spring Mouse ─────────────────────────────────────────────
-  // targetMouse: plain JS object — KHÔNG phải $state → mousemove write ZERO Svelte overhead
   let targetMouse = { x: 0, y: 0 };
-  // springMouse: $state — Svelte re-render CHỈ khi spring thực sự update
   let springMouse = $state({ x: 0, y: 0 });
   let currentImageIndex = $state(0);
-  // plain let — không phải $state → không trigger re-render khi gán
   let _springRafId: number | null = null;
 
-  // Elite V2.2: Live FOMO Pulse Logic (Standardized)
   let liveViewers = $state(Math.floor(Math.random() * (45 - 12 + 1)) + 12);
   onMount(() => {
     const interval = setInterval(() => {
@@ -42,15 +38,13 @@
     return () => clearInterval(interval);
   });
 
-  /** CTO FIX #1: Self-terminating spring.
-   *  Tự dừng khi delta < 0.05px — ZERO CPU khi user idle (tránh 60fps rAF vô hạn) */
   function _tickSpring() {
     const dx = targetMouse.x - springMouse.x;
     const dy = targetMouse.y - springMouse.y;
     if (Math.abs(dx) < 0.05 && Math.abs(dy) < 0.05) {
-      springMouse.x = targetMouse.x; // snap final value
+      springMouse.x = targetMouse.x;
       springMouse.y = targetMouse.y;
-      _springRafId = null;           // self-terminate
+      _springRafId = null;
       return;
     }
     springMouse.x += dx * 0.12;
@@ -58,23 +52,18 @@
     _springRafId = requestAnimationFrame(_tickSpring);
   }
 
-  /** CTO FIX #2: mousemove → ZERO Svelte reactive writes.
-   *  Ghi vào plain JS object, spring lazily starts nếu chưa running. */
   const handleMouseMove = (e: MouseEvent) => {
     if (!browser) return;
     targetMouse.x = (e.clientX / window.innerWidth - 0.5) * 40;
     targetMouse.y = (e.clientY / window.innerHeight - 0.5) * 40;
-    if (_springRafId === null) _tickSpring(); // lazy-start
+    if (_springRafId === null) _tickSpring();
   };
 
-  /** CTO FIX #3: Slideshow — $effect RIÊNG, TÁCH khỏi spring.
-   *  CTO FIX #4: Preload ảnh kế chống flash khi swap (dùng Image() object). */
   $effect(() => {
     if (!browser) return;
     const interval = setInterval(() => {
       if (images && images.length > 1) {
         const next = (currentImageIndex + 1) % images.length;
-        // Preload ảnh sau-next ngay bây giờ để browser cache trước
         const preloadIdx = (next + 1) % images.length;
         if (images[preloadIdx]) {
           const img = new Image();
@@ -86,7 +75,6 @@
     return () => clearInterval(interval);
   });
 
-  // CTO FIX #7: Cleanup spring rAF khi component destroy (chống memory/CPU leak)
   onMount(() => () => {
     if (_springRafId !== null) {
       cancelAnimationFrame(_springRafId);
@@ -113,11 +101,9 @@
   const mainImage = $derived(images.length > 0 ? resolveMediaUrl(images[currentImageIndex]) : '');
   const rawHeadline = $derived(labels.headline);
 
-  // Elite V2.2: Intelligent Path Sanitization (Fixing the "Missing Video" bug)
   const videoUrl = $derived.by(() => {
     let url = labels.video_url?.trim() ?? '';
     if (!url) return '';
-    // If it starts with / (already absolute root-relative), keep it.
     if (url.startsWith('/')) return url;
     if (url.startsWith('http') || url.startsWith('//') || url.startsWith('blob:')) return url;
     return resolveMediaUrl(url);
@@ -140,7 +126,6 @@
     return 'local';
   });
 
-  // Mirror ProductDetailDesktop: dùng typeof check để phân biệt 0 vs null
   const videoStartTime = $derived(
     typeof metadata.video_start_time === 'number' ? metadata.video_start_time :
     (metadata.video_start_time != null ? Number(metadata.video_start_time) : 0)
@@ -153,7 +138,6 @@
 
   let videoEl: HTMLVideoElement | null = $state(null);
 
-  /** timeupdate: seek về startTime khi chạm endTime (trim loop) */
   function handleTimeUpdate() {
     if (!videoEl) return;
     if (videoEndTime !== null && videoEl.currentTime >= videoEndTime) {
@@ -162,19 +146,13 @@
     }
   }
 
-  /** onended: safety net — bắt mọi trường hợp video kết thúc, luôn loop về startTime */
   function handleVideoEnded() {
     if (!videoEl) return;
     videoEl.currentTime = videoStartTime;
     videoEl.play().catch(() => {});
   }
 
-  /** Khi videoUrl thay đổi → reset & autoplay từ startTime (Mirroring Working Detail Page) */
   $effect(() => {
-    // R-FIX: Phải copy videoEl vào local const TRƯỚC để Svelte 5 track dependency đúng.
-    // Nếu đọc videoEl trực tiếp trong `if`, Svelte sẽ không biết videoEl là dependency khi
-    // nó còn null (condition false → body skip → dependency không được register → không re-run
-    // khi bind:this bind xong).
     const el = videoEl;
     const currentUrl = videoUrl;
     const start = videoStartTime;
@@ -278,11 +256,7 @@
   onmousemove={handleMouseMove}
   style:--mx="{springMouse.x}px" style:--my="{springMouse.y}px" style:--hero-accent="#3b82f6" style:--hero-glass-blur="64px"
 >
-  <!-- VIDEO BACKGROUND: CINEMATIC 2026 ELITE -->
-  <!-- Video đặt TRỰC TIẾP, không qua EditableWrapper để tránh height collapse -->
   <div class="absolute inset-0 overflow-hidden pointer-events-none" style="z-index: 0;">
-
-    <!-- LOCAL VIDEO: mờ làm nền (Elite blur engine) -->
     {#if videoMode === 'local'}
       <video
         bind:this={videoEl}
@@ -303,15 +277,11 @@
       ></iframe>
     {/if}
 
-    <!-- CTO FIX #5+#6: CSS class overlays thay inline style — browser cached, zero re-parse.
-         video-dim-overlay thay CSS filter trực tiếp trên video (no GPU shader pass). -->
     <div class="video-dim-overlay"></div>
     <div class="video-vignette-top"></div>
     <div class="video-vignette-bottom"></div>
-    <!-- Left + right + radial gộp 1 div = 1 paint pass thay 3 div -->
     <div class="video-vignette-radial"></div>
 
-    <!-- Admin edit controls -->
     <div class="absolute inset-0 pointer-events-auto" style="z-index: 3;">
       <EditableWrapper path="metadata.video_url" type="video" label="SỬA VIDEO NỀN">
         <span></span>
@@ -320,17 +290,16 @@
   </div>
 
   <div class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pb-12 z-surface" style:padding-top="var(--standard-pt)">
-    <!-- SECTION HEADER: Normalized spacing & Full-width prominence -->
     <header class="text-center w-full mb-8 md:mb-12 relative" in:fade>
       <EditableWrapper path="metadata.hero_headline" type="html" label="SỬA TIÊU ĐỀ BANNER">
-          <h1 class="hero-titanic-headline typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0 tracking-tight mx-auto text-4xl md:text-7xl lg:text-8xl uppercase leading-[1.1] md:leading-[1]">
-          {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-red-500"></span>
+          <h1 class="elite-hero-headline typing-headline">
+            {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-red-500"></span>
           </h1>
       </EditableWrapper>
 
       {#if product?.shortDescription}
          <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN">
-             <p class="section-description hero-description text-center text-slate-300 max-w-3xl font-medium mx-auto">
+             <p class="section-description hero-description text-center text-slate-300 max-w-3xl font-medium mx-auto mt-4">
                 {@html product.shortDescription}
              </p>
          </EditableWrapper>

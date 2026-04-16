@@ -357,7 +357,6 @@
   }
 
   :root {
-    --standard-pt: 12vh;
     --z-sticky-header: 100;
   }
 

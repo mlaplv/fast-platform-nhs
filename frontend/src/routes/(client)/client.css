@@ -14,9 +14,12 @@
   --z-toast: 2000;
   --z-review-header: 2000;
 
-  --standard-pt: 12vh;
-  --standard-pb: 12vh;
-  --section-pt: 12vh;
+  --standard-pt: calc(10vh + 10px);
+  --standard-pb: 10vh;
+  --section-pt: 10vh;
+  --fs-headline-titanic: clamp(2.5rem, 8.5vw, 6rem);
+  --fs-headline-standard: clamp(2rem, 5.5vw, 3.8rem);
+  --sacura-pink: #f472b6;
   --wave-offset-science: -90px;
   --wave-offset-diag: 60px;
   --wave-offset-reviews: 60px;
@@ -31,8 +34,8 @@
 
   /* Tablet Refinement (768px - 1024px) */
   @media (min-width: 768px) and (max-width: 1024px) {
-     --fs-hero: clamp(2.5rem, 8vw, 4.5rem);
-     --fs-title: clamp(1.75rem, 5vw, 3rem);
+    --fs-hero: clamp(2.5rem, 8vw, 4.5rem);
+    --fs-title: clamp(1.75rem, 5vw, 3rem);
   }
 
   /* Centralized Layout Gaps (Shopee Standard) */
@@ -54,18 +57,28 @@
 
 /* ZERO-SHIFT RESPONSIVE UTILITIES (Elite V2.2) */
 .hidden-mobile {
-  @media (max-width: 767px) { display: none !important; }
+  @media (max-width: 767px) {
+    display: none !important;
+  }
 }
+
 .hidden-desktop {
-  @media (min-width: 768px) { display: none !important; }
+  @media (min-width: 768px) {
+    display: none !important;
+  }
 }
 
 /* IMMEDIATE HEADER HIDING (NO-FLICKER) */
 .is-mobile-detail header.fixed.top-0 {
-  @media (max-width: 767px) { display: none !important; }
+  @media (max-width: 767px) {
+    display: none !important;
+  }
 }
+
 .is-mobile-detail nav.fixed.bottom-0 {
-  @media (max-width: 767px) { display: none !important; }
+  @media (max-width: 767px) {
+    display: none !important;
+  }
 }
 
 /* GLOBAL PERFORMANCE HARDENING: VPS Mode (Surgical Exceptions for Elite 2026) */
@@ -86,10 +99,10 @@
   animation-play-state: running !important;
 }
 
-.animate-v-zoom, 
-.animate-float, 
-.morph-blob, 
-.liquid-float, 
+.animate-v-zoom,
+.animate-float,
+.morph-blob,
+.liquid-float,
 .mobile-morph,
 .neural-orb,
 .liquid-orb,
@@ -102,7 +115,8 @@
 .liquid-reflection {
   animation: none !important;
   animation-play-state: paused !important;
-  display: none !important; /* Stop painting these on CPU */
+  display: none !important;
+  /* Stop painting these on CPU */
   filter: none !important;
 }
 
@@ -112,22 +126,25 @@
   --my: 0px !important;
 }
 
-body { 
-  margin: 0; 
-  padding: 0; 
-  background-color: #f5f5f5; /* Chuẩn Xám Shopee - Premium Minimalism */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f5f5f5;
+  /* Chuẩn Xám Shopee - Premium Minimalism */
 }
+
 .client-layout {
-  background-color: #f5f5f5 !important; /* Force Shopee Grey */
+  background-color: #f5f5f5 !important;
+  /* Force Shopee Grey */
   color: var(--text-base);
   font-family: 'Be Vietnam Pro', 'Inter', system-ui, sans-serif;
   min-height: 100vh;
 }
 
-.client-layout h1, 
-.client-layout h2, 
-.client-layout h3, 
-.client-layout h4, 
+.client-layout h1,
+.client-layout h2,
+.client-layout h3,
+.client-layout h4,
 .client-layout .headline-font {
   font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
 }
@@ -138,7 +155,7 @@ body {
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 
+  box-shadow:
     0 4px 24px -1px rgba(0, 0, 0, 0.2),
     0 0 1px 0 rgba(255, 255, 255, 0.2) inset;
 }
@@ -150,33 +167,97 @@ body {
 
 /* --- UNIVERSAL SECTION STANDARDIZATION --- */
 .snap-session-standard {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  padding-top: var(--standard-pt);
-  padding-bottom: var(--standard-pb);
   position: relative;
-  /* background-color: #020617; - [CLEANED] Elite V3.0 Shopee Standard */
+  width: 100%;
+  padding-top: var(--standard-pt) !important;
+  padding-bottom: var(--standard-pb) !important;
+  overflow: hidden;
 }
 
-.snap-session-standard > .container {
+/* ELITE V2.2: GLOBAL HEADLINE RESET */
+.elite-hero-headline,
+.elite-session-headline {
+  font-family: 'Be Vietnam Pro', 'Inter', sans-serif !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.05em !important;
+  line-height: 1.25 !important;
+  margin: 0 !important;
+  padding: 0.1em 0.1em 0.25em 0.1em !important;
+  overflow: visible !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  background: linear-gradient(to bottom, #fff 20%, rgba(255, 255, 255, 0.4) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 20px 50px rgba(0, 0, 0, 0.5));
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.elite-hero-headline {
+  font-size: var(--fs-headline-titanic) !important;
+}
+
+.elite-session-headline {
+  font-size: var(--fs-headline-standard) !important;
+}
+
+.snap-session-standard>.container {
   margin-top: 0 !important;
   padding-top: 0 !important;
 }
 
 /* --- ANIMATIONS --- */
-@keyframes v-zoom { 0%, 100% { transform: scale(1.1); } 50% { transform: scale(1.25); } }
-.animate-v-zoom { animation: v-zoom 40s linear infinite; }
+@keyframes v-zoom {
 
-@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-30px); } }
-.animate-float { animation: float 8s ease-in-out infinite; }
+  0%,
+  100% {
+    transform: scale(1.1);
+  }
+
+  50% {
+    transform: scale(1.25);
+  }
+}
+
+.animate-v-zoom {
+  animation: v-zoom 40s linear infinite;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-30px);
+  }
+}
+
+.animate-float {
+  animation: float 8s ease-in-out infinite;
+}
 
 /* --- CLIENT PREMIUM SCROLLBAR --- */
-.client-layout ::-webkit-scrollbar { width: 6px; height: 6px; }
-.client-layout ::-webkit-scrollbar-track { background: transparent; }
+.client-layout ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.client-layout ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .client-layout ::-webkit-scrollbar-thumb {
   background: rgba(193, 143, 126, 0.2);
   border-radius: 20px;
 }
-.client-layout ::-webkit-scrollbar-thumb:hover { background: rgba(193, 143, 126, 0.45); }
+
+.client-layout ::-webkit-scrollbar-thumb:hover {
+  background: rgba(193, 143, 126, 0.45);
+}
