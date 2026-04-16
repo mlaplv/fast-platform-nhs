@@ -172,8 +172,8 @@ export function createPulseManager(
           }
 
           // CNS V86.5: Clear stream buffer when starting a new step or a major progress pulse
-          if (contentPayload.status === "PROCESSING" && (state as any).liveStreamBuffer) {
-             (state as any).liveStreamBuffer = "";
+          if (contentPayload.status === "PROCESSING" && state.liveStreamBuffer) {
+             state.liveStreamBuffer = "";
           }
 
           const syncTarget = (target: CampaignData) => {
@@ -321,12 +321,12 @@ export function createPulseManager(
              syncChunk(voice.vuiResponse.data as unknown as CampaignData);
              liveCampaigns.set(chunkPayload.campaign_id, Date.now());
           }
-          if (activeData && (activeData.campaign_id === chunkPayload.campaign_id || (activeData as unknown as {id: string}).id === chunkPayload.campaign_id)) {
-             syncChunk(activeData);
-             liveCampaigns.set(chunkPayload.campaign_id, Date.now());
-             // CNS V86.5: Pipe to neural glass
-             (state as any).liveStreamBuffer = ((state as any).liveStreamBuffer || "") + chunkPayload.text;
-          }
+           if (activeData && (activeData.campaign_id === chunkPayload.campaign_id || (activeData as unknown as {id: string}).id === chunkPayload.campaign_id)) {
+              syncChunk(activeData);
+              liveCampaigns.set(chunkPayload.campaign_id, Date.now());
+              // CNS V86.5: Pipe to neural glass
+              state.liveStreamBuffer = (state.liveStreamBuffer || "") + chunkPayload.text;
+           }
         } else if (eventName === "SYSTEM_SIGNAL") {
           const signalPayload = payload as PulseSignal;
           const { message, severity, notification_id } = signalPayload;
@@ -384,12 +384,10 @@ export function createPulseManager(
         } else if (eventName === "SUPPORT_INBOX_UPDATE") {
           // CNS V86.1: Neural Refresh Pulse (Elite V2.2)
           // Increment toggle to trigger re-fetch in SupportInbox.svelte
-          // @ts-ignore
-          if (state && typeof state.supportRefreshToggle !== 'undefined') {
-            // @ts-ignore
-            state.supportRefreshToggle++;
-            // Signal a silent, premium successful update
-            ui.showToast("Hộp thư Helen vừa được cập nhật 🟢", "info", 2000);
+           if (state && typeof state.supportRefreshToggle !== 'undefined') {
+             state.supportRefreshToggle++;
+             // Signal a silent, premium successful update
+             ui.showToast("Hộp thư Helen vừa được cập nhật 🟢", "info", 2000);
             
             // 🔈 REAL-TIME TACTICAL AUDIO: "Ting" sound for the Boss (Elite V2.2)
             import("$lib/vui").then(({ vuiController }) => {

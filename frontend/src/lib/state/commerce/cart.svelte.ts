@@ -17,7 +17,7 @@ export interface GiftInfo {
     packaging?: string;
     scheduled_at?: string;
     recurring_type?: string;
-    recurring_metadata?: Record<string, any>;
+    recurring_metadata?: Record<string, unknown>;
 }
 
 /**
@@ -37,9 +37,9 @@ export class CartStore {
             const saved = localStorage.getItem('elite_global_cart');
             if (saved) {
                 try {
-                    const parsed = JSON.parse(saved) as any;
+                    const parsed = JSON.parse(saved) as { items?: Partial<CartItem>[], giftInfo?: GiftInfo };
                     if (parsed.items) {
-                        this.items = (parsed.items as Partial<CartItem>[])
+                        this.items = (parsed.items)
                             .filter((i): i is CartItem => !!(i.id && i.product))
                             .map((item) => ({
                                 ...item,

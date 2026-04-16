@@ -1,5 +1,6 @@
 import os
 import shutil
+import asyncio
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -30,20 +31,20 @@ class LocalStorageProvider(StorageProvider):
 
     async def upload(self, local_path: str, remote_path: str) -> str:
         dest_path = os.path.join(self.base_dir, remote_path.lstrip("/"))
-        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-        shutil.copy2(local_path, dest_path)
+        await asyncio.to_thread(os.makedirs, os.path.dirname(dest_path), exist_ok=True)
+        await asyncio.to_thread(shutil.copy2, local_path, dest_path)
         return f"/{remote_path.lstrip('/')}"
 
     async def delete(self, remote_path: str) -> bool:
         full_path = os.path.join(self.base_dir, remote_path.lstrip("/"))
-        if os.path.exists(full_path):
-            os.remove(full_path)
+        if await asyncio.to_thread(os.path.exists, full_path):
+            await asyncio.to_thread(os.remove, full_path)
             return True
         return False
 
     async def exists(self, remote_path: str) -> bool:
         full_path = os.path.join(self.base_dir, remote_path.lstrip("/"))
-        return os.path.exists(full_path)
+        return await asyncio.to_thread(os.path.exists, full_path)
 
     def get_url(self, remote_path: str) -> str:
         return f"/{remote_path.lstrip('/')}"

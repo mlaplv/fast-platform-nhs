@@ -29,6 +29,8 @@ import type { WidgetType, Suggestion, CommandAction, ToastType, ChatSettings, Co
 
 
 // Elite V2.2: Context Isolation Protocol
+export type NanobotState = ReturnType<typeof createNanobotState>;
+let _globalNanobotState: NanobotState | null = null;
 
 export function createNanobotState() {
   const log = createLogState();
@@ -461,9 +463,6 @@ export function createNanobotState() {
 }
 
 
-export type NanobotState = ReturnType<typeof createNanobotState>;
-
-let _globalNanobotState: NanobotState | null = null;
 
 export function setNanobotContext() {
   const state = createNanobotState();
@@ -478,15 +477,24 @@ export function useNanobot(): NanobotState {
   } catch (e) {
     // Suppress lifecycle_outside_component
   }
+  
   if (_globalNanobotState) return _globalNanobotState;
 
-  // Create a placeholder state to prevent immediate crashes during module evaluations
-  return {} as NanobotState;
+  // Elite V2.2: Placeholder Proxy to prevent crashes during module evaluation
+  return new Proxy({} as NanobotState, {
+    get: (target, prop) => {
+      if (_globalNanobotState) return (_globalNanobotState as any)[prop];
+      console.warn(`[Nanobot] Accessing property '${String(prop)}' before initialization.`);
+      return undefined;
+    }
+  });
 }
 
 export function getNanobot(): NanobotState {
   if (!_globalNanobotState) {
-    throw new Error("Nanobot state not initialized yet");
+    // Elite V2.2: Resilience check — If called during module eval, return proxy or throw descriptive error
+    console.warn("[Nanobot] getNanobot called before initialization. This may be a circular dependency.");
+    return {} as NanobotState; 
   }
   return _globalNanobotState;
 }

@@ -591,7 +591,7 @@ export interface VideoAsset {
 export interface GenericPageData {
   type: 'category' | 'news' | 'product';
   categoryName?: string;
-  items?: any[]; // For category/news
+  items?: unknown[]; // For category/news
   product?: Product;
   relatedProducts?: Product[];
   isMobile?: boolean;

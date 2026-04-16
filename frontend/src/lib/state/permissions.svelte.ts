@@ -170,6 +170,17 @@ class PermissionState {
       
     return token || null;
   }
+
+  /**
+   * Elite V2.2: Resource Discipline
+   * Clears timers and state when the application is disposed.
+   */
+  public dispose() {
+    if (this.watchdogTimer) {
+      clearInterval(this.watchdogTimer);
+      this.watchdogTimer = null;
+    }
+  }
 }
 
 export const permissionState = new PermissionState();

@@ -26,7 +26,7 @@ export interface User {
     tier?: 'MEMBER' | 'SILVER' | 'GOLD' | 'PLATINUM';
     points?: number;
     addresses?: UserAddress[];
-    skinProfile?: {
+    skin_profile?: {
       skinType: string;
       concerns: string[];
       sensitivity: number;
@@ -111,15 +111,16 @@ class AuthStore {
         ...partialMeta
       };
 
-      // Step 2: Special handling for nested skinProfile
-      if (partialMeta.skinProfile) {
-        this.user.extra_metadata.skinProfile = {
-          ...(currentMeta.skinProfile || {}),
-          ...partialMeta.skinProfile
+      // Step 2: Special handling for nested skin_profile
+      if (partialMeta.skin_profile) {
+        this.user.extra_metadata.skin_profile = {
+          ...(currentMeta.skin_profile || {}),
+          ...partialMeta.skin_profile
         };
       }
       
-      console.log('🔄 [AuthStore] Đã đồng bộ extra_metadata:', $state.snapshot(this.user.extra_metadata));
+      // Elite V2.2: Silent sync for better UX
+      this.notifyProgress?.();
     }
 
     // Update other top-level fields

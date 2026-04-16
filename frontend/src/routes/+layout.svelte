@@ -5,7 +5,7 @@
   import { setNanobotContext } from "$lib/state/nanobot.svelte";
   import { setCartStore } from "$lib/state/commerce/cart.svelte";
   import { navigating } from "$app/stores";
-  import { onMount, type Snippet } from "svelte";
+  import { onMount, onDestroy, type Snippet } from "svelte";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import ToastProvider from "$lib/components/storefront/ui/ToastProvider.svelte";
   import GlobalConfirmModal from "$lib/components/storefront/ui/GlobalConfirmModal.svelte";
@@ -28,6 +28,11 @@
     await permissionState.handshake();
     
     if (ui) return ui.initObservers();
+  });
+  
+  onDestroy(() => {
+    // Elite V2.2: Resource Discipline
+    permissionState.dispose();
   });
 
   const siteName = $derived(

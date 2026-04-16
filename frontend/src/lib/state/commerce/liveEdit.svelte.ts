@@ -53,7 +53,7 @@ class LiveEditStore {
 
     try {
       const keys = path.split(".");
-      let current: Record<string, any> = this.dirtyProduct as any;
+      let current = this.dirtyProduct as unknown as Record<string, unknown>;
 
       for (let i = 0; i < keys.length - 1; i++) {
         const key = keys[i];
@@ -63,14 +63,15 @@ class LiveEditStore {
           current[key] = /^\d+$/.test(nextKey) ? [] : {};
         }
 
-        current = current[key];
+        current = current[key] as Record<string, unknown>;
       }
 
       current[keys[keys.length - 1]] = value;
-      this.dirtyProduct = JSON.parse(JSON.stringify(this.dirtyProduct));
+      this.dirtyProduct = JSON.parse(JSON.stringify(this.dirtyProduct)) as Product;
     } catch (error) {
       console.error(`💥 LiveEdit: Failed to update field at ${path}:`, error);
-      this.notify(`Lỗi cập nhật dữ liệu: ${(error as any).message}`, "alert");
+      const msg = error instanceof Error ? error.message : String(error);
+      this.notify(`Lỗi cập nhật dữ liệu: ${msg}`, "alert");
     }
   }
 
@@ -98,7 +99,7 @@ class LiveEditStore {
         metadata: p.metadata,
         price: p.price,
         discountPrice: p.discountPrice,
-        status: p.status as any
+        status: p.status as 'DRAFT' | 'ACTIVE' | 'ARCHIVED'
       };
 
       const response = await fetch(`/api/v1/products/${p.id}`, {
@@ -123,8 +124,9 @@ class LiveEditStore {
         this.notify(`Lỗi khi lưu (HTTP ${response.status}): ${reason}`, "alert");
         console.error("💥 LiveEdit Save Failure:", { status: response.status, error: err });
       }
-    } catch (e: any) {
-      this.notify(`Lỗi kết nối máy chủ: ${e.message}`, "alert");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      this.notify(`Lỗi kết nối máy chủ: ${msg}`, "alert");
     } finally {
       this.isSaving = false;
     }

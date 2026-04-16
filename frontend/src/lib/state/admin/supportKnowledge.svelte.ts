@@ -165,7 +165,10 @@ class SupportKnowledgeState {
         this.showModal = true;
     };
 
-    reindexBrain = async (nanobot: any) => {
+    reindexBrain = async (nanobot: { 
+        showConfirm: (p: { title: string; message: string; confirmLabel: string; cancelLabel: string }) => Promise<boolean>;
+        showToast: (m: string, t: 'success' | 'alert' | 'info' | 'error') => void;
+    }) => {
         const confirmed = await nanobot.showConfirm({
             title: "NEURAL_REBUILD",
             message: "Sếp muốn Helen 'ôn lại' toàn bộ tri thức hiện có chứ? (Re-indexing sẽ làm mới bộ nhớ Vector)",

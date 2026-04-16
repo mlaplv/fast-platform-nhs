@@ -103,7 +103,7 @@ export const apiClient = {
           }
         }
 
-        const errorData = data as { detail?: any; message?: string } | null;
+        const errorData = data as { detail?: unknown; message?: string } | null;
         let errorMessage = errorData?.message || `Lỗi máy chủ (${response.status} ${response.statusText})`;
 
         // Handle Pydantic V2 Validation Errors (loc)

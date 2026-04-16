@@ -26,21 +26,17 @@
   let phone = $state(authStore.user?.phone || '');
 
   // Skin Profile States (Nested in extra_metadata)
-  let skinData = $state(authStore.user?.extra_metadata?.skinProfile || {
+  let skinData = $state(authStore.user?.extra_metadata?.skin_profile || {
     skinType: '',
     concerns: [],
     sensitivity: 5
   });
 
-  // Log initial read
-  console.log('📖 [Beauty Profile] Khởi tạo hồ sơ vẻ đẹp từ authStore:', $state.snapshot(skinData));
-
   let isSaving = $state(false);
   let activeTab = $state('basic'); // basic | beauty
 
-  // Required because $state initializers only run once.
+  // Elite V3.2: Unified Reactivity Engine
   $effect(() => {
-    // Elite V3.2: Prevent infinite loops by using untrack for local state updates
     if (authStore.user) {
       const user = authStore.user;
       untrack(() => {
@@ -48,10 +44,7 @@
         email = user.email || '';
         username = user.username || '';
         gender = user.gender || 'OTHER';
-
-        if (user.phone) {
-          phone = user.phone;
-        }
+        phone = user.phone || '';
 
         if (user.dob) {
           const d = new Date(user.dob);
@@ -60,11 +53,8 @@
           birthYear = d.getFullYear();
         }
 
-        if (user.extra_metadata?.skinProfile) {
-          skinData = {
-            ...user.extra_metadata.skinProfile
-          };
-          console.log('📖 [Beauty Profile] Đã cập nhật (re-hydrate) hồ sơ vẻ đẹp:', $state.snapshot(skinData));
+        if (user.extra_metadata?.skin_profile) {
+          skinData = { ...user.extra_metadata.skin_profile };
         }
       });
     }
@@ -99,10 +89,9 @@
     isSaving = true;
     try {
       const updatedDob = new Date(birthYear, birthMonth - 1, birthDay).toISOString();
-      console.log('💾 [Beauty Profile] Đang gửi yêu cầu lưu hồ sơ vẻ đẹp:', $state.snapshot(skinData));
       const cardNumber = authStore.user?.extra_metadata?.cardNumber || generateCardNumber(authStore.user?.id);
 
-      const res = await apiClient.patch<{ ok: boolean }>('/api/v1/client/user/profile', {
+      await apiClient.patch<{ ok: boolean }>('/api/v1/client/user/profile', {
         name,
         gender,
         username,
@@ -111,29 +100,15 @@
         dob: updatedDob,
         extra_metadata: {
           ...authStore.user?.extra_metadata,
-          skinProfile: $state.snapshot(skinData),
+          skin_profile: skinData,
           cardNumber
         }
       });
-      console.log('✅ [Beauty Profile] Kết quả lưu từ server:', res);
 
-      authStore.syncUser({
-        name,
-        gender,
-        username,
-        email,
-        phone,
-        dob: updatedDob,
-        extra_metadata: {
-          skinProfile: $state.snapshot(skinData),
-          cardNumber
-        }
-      });
-      console.log('✅ [Beauty Profile] Dữ liệu trong authStore sau khi sync:', $state.snapshot(authStore.user?.extra_metadata));
+      await authStore.sync();
       isEditingEmail = false;
       ui.showToast('Thông tin của Quý khách đã được ghi nhận! ✨', 'success');
     } catch (e: unknown) {
-      // 🛡️ Làm sạch Log Console: Khởi tạo cảnh báo thân thiện nếu lỗi validation
       const error = e as { status?: number; message?: string };
       if (error && typeof error === 'object' && 'status' in error) {
         if (error.status === 409 || error.status === 400 || (error.message && error.message.includes('tồn tại'))) {
