@@ -1,4 +1,5 @@
 <script lang="ts">
+  import '../client.css';
   import { onMount } from 'svelte';
   import { setShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
