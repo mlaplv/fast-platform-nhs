@@ -35,10 +35,17 @@
     }
 
     try {
-      // Decode JWT Payload to feed AuthStore
-      const payloadBase64 = token.split('.')[1];
-      const payloadDecoded = JSON.parse(atob(payloadBase64));
-      
+      // Elite V2.2: Robust JWT Decoding (Handles Base64URL + Unicode)
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      const payloadDecoded = JSON.parse(jsonPayload);
+
       authStore.setSession(token, {
         id: payloadDecoded.id || 'unknown',
         email: payloadDecoded.sub || '',

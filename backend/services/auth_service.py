@@ -209,15 +209,15 @@ class AuthService:
     @staticmethod
     async def request_otp(db_session: AsyncSession, data: Dict[str, object]) -> OTPRequestResponse:
         """PUBLIC: Request OTP login via Phone or Email (Elite V2.2)."""
-        import random
+        import secrets
         from datetime import datetime, timedelta, timezone
-        
+
         identifier = str(data.get("email") or data.get("phone"))
         if not identifier:
             raise ClientException(status_code=400, detail="Identifier (email/phone) is required")
 
-        # 1. Generate 6-digit code
-        code = "".join([str(random.randint(0, 9)) for _ in range(6)])
+        # 1. Generate 6-digit code (Elite V2.2: Cryptographically secure via secrets)
+        code = "".join([str(secrets.randbelow(10)) for _ in range(6)])
         otp_token = str(uuid.uuid4())
         
         # 2. Store in DB

@@ -30,14 +30,22 @@ class PermissionState {
 
   public handshake() {
     if (typeof window === "undefined") return;
-    
+
     // 1. Prioritized Capture from URL
     const urlParams = new URLSearchParams(window.location.search);
     const urlToken = urlParams.get("token");
-    
+
+    // Elite V2.2: Skip capture if we are on the Storefront OAuth Callback route
+    // This prevents the global PermissionState from "stealing" the token before the route handler runs.
+    if (urlToken && window.location.pathname.includes("/auth/callback")) {
+      // We still sync to ensure existing state is preserved if possible
+      this.syncFromToken();
+      return;
+    }
+
     if (urlToken) {
       console.log("🛡️ [RBAC] Capturing administrative token from URL. Initiating Lockdown V2.2...");
-      
+
       // Elite V2.2: Broad Domain Persistence (.micsmo.com)
       // We set this BEFORE purging storage to ensure identity continuity
       const rootDomain = window.location.hostname.split('.').slice(-2).join('.');
@@ -47,7 +55,7 @@ class PermissionState {
       localStorage.removeItem("admin_token");
       localStorage.removeItem("access_token");
       localStorage.removeItem("user_token");
-      
+
       // Clean URL WITHOUT triggering a state purge immediately
       const newUrl = window.location.origin + window.location.pathname + window.location.search.replace(/[?&]token=[^&]+/, '').replace(/^&/, '?');
       window.history.replaceState({}, '', newUrl);
@@ -57,7 +65,7 @@ class PermissionState {
     this.syncFromToken();
   }
 
-  private syncFromToken() {
+  public syncFromToken() {
     if (typeof window === "undefined") return;
 
     // Elite V2.2: Lockdown V2.2 - Cookies are the primary secure source
@@ -82,12 +90,12 @@ class PermissionState {
         this.perms = decoded.perms || [];
         this.roles = decoded.roles || [];
         this.user = decoded.sub;
-        
+
         // Elite V2.2: Tiered Identity Resolution
         const storedName = localStorage.getItem("admin_user_name");
         this.userName =
           decoded.name || storedName || decoded.sub?.split("@")[0] || "IDENTITY_V2.2";
-          
+
         this.isInitialized = true;
 
         if (decoded.exp) {
@@ -99,14 +107,22 @@ class PermissionState {
         // Elite V2.2: Only purge and redirect on Admin domain
         const host = window.location.hostname;
         const isAdminDomain = host.startsWith("admin.") || host.includes("admin");
-        this.purgeAuth(isAdminDomain && !isLoginPage);
+
+        // Only purge if it's admin or if we were already initialized
+        if (isAdminDomain || this.isInitialized) {
+            this.purgeAuth(isAdminDomain && !isLoginPage);
+        }
       }
     } else {
       const isLoginPage = window.location.pathname.includes("/login");
       // Elite V2.2: Zero-Barrier Storefront fix
       const host = window.location.hostname;
       const isAdminDomain = host.startsWith("admin.") || host.includes("admin");
-      this.purgeAuth(isAdminDomain && !isLoginPage);
+
+      // Only purge automatically on Admin domain or if explicitly logged in before
+      if (isAdminDomain) {
+        this.purgeAuth(isAdminDomain && !isLoginPage);
+      }
     }
   }
 

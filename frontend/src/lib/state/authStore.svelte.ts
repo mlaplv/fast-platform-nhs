@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import { getClientUi } from './commerce/ui.svelte';
+import { permissionState } from './permissions.svelte';
 
 export interface UserAddress {
   id: string;
@@ -63,7 +64,10 @@ class AuthStore {
     if (browser) {
       localStorage.setItem('access_token', token);
       localStorage.setItem('user_info', JSON.stringify(user));
-      
+
+      // Elite V2.2: Sync with permissionState immediately
+      permissionState.syncFromToken();
+
       // Elite V3.0: Delayed sync message — wait for hydration to ensure Bell is ready
       setTimeout(() => {
           getClientUi().showToast(`Chào mừng ${user.name} đã quay trở lại!`, 'success');
