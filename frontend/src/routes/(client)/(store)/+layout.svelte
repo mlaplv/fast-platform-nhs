@@ -4,20 +4,26 @@
   import HeaderDesktop from "$lib/components/storefront/layout/HeaderDesktop.svelte";
   import HeaderMobile from "$lib/components/storefront/layout/HeaderMobile.svelte";
   import FooterDesktop from "$lib/components/storefront/layout/FooterDesktop.svelte";
+  import { getCartStore } from "$lib/state/commerce/cart.svelte";
+  import { getShopStore } from "$lib/state/commerce/shop.svelte";
   import { onMount, type Snippet } from "svelte";
   import type { LayoutData } from './$types';
   import "../client.css";
 
   let { data, children }: { data: LayoutData, children: Snippet } = $props();
   const ui = getClientUi();
+  const cart = getCartStore();
 
   onMount(() => {
     return ui.initObservers();
   });
 
-  // Elite V2.2: Global Settings Sync
+  // Elite V2.2: Global Data Sync
   $effect(() => {
     if (data.shopInfo) ui.settings = data.shopInfo;
+    if (data.vouchers) {
+      cart.setVouchers(data.vouchers);
+    }
   });
 
   // Trang home/search mobile tự quản lý header riêng (Marketplace style)

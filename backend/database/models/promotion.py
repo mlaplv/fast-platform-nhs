@@ -25,6 +25,8 @@ class Voucher(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 
     id: Mapped[str] = mapped_column(String, primary_key=True) # E.g., SALE30K, SHIP0
     type: Mapped[str] = mapped_column(String, default="FIXED") # FIXED, PERCENT, SHIPPING
+    title: Mapped[Optional[str]] = mapped_column(String)
+    subtitle: Mapped[Optional[str]] = mapped_column(String)
     value: Mapped[float] = mapped_column(Float, default=0) # amount or percentage
     min_spend: Mapped[float] = mapped_column(Float, default=0)
     max_discount: Mapped[Optional[float]] = mapped_column(Float)

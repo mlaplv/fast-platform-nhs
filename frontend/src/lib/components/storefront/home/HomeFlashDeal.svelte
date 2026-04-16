@@ -4,6 +4,7 @@
   import { slugify, trimProductName } from '$lib/utils/format';
   import type { Product } from '$lib/types';
   import { ChevronLeft, ChevronRight, Truck } from 'lucide-svelte';
+  import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
 
   interface Props {
@@ -11,6 +12,9 @@
   }
 
   let { products = [] }: Props = $props();
+  const cartStore = getCartStore();
+
+  const freeshipVoucher = $derived(cartStore.vouchers.find(v => v.type === 'SHIPPING'));
 
   // Elite 2.2: Actual Data Sync matching Mobile Logic
   const flashDeals = $derived(
@@ -98,8 +102,12 @@
     <div class="flex items-center gap-3 px-4 py-1.5 bg-gradient-to-r from-[#ee4d2d]/10 via-[#ff6a00]/10 to-[#ee4d2d]/10 rounded-full border border-[#ee4d2d]/20 shadow-[0_2px_10px_rgba(238,77,45,0.05)] animate-pulse-slow">
         <Truck class="w-4 h-4 text-[#ee4d2d]" />
         <div class="flex flex-col">
-            <span class="text-[10px] font-black text-[#ee4d2d] leading-none uppercase tracking-tighter">Miễn Phí Vận Chuyển</span>
-            <span class="text-[8px] font-bold text-[#ff6a00] leading-none uppercase tracking-tighter mt-0.5">Duy nhất phiên này</span>
+            <span class="text-[10px] font-black text-[#ee4d2d] leading-none uppercase tracking-tighter">
+                {freeshipVoucher?.title || "Miễn Phí Vận Chuyển"}
+            </span>
+            <span class="text-[8px] font-bold text-[#ff6a00] leading-none uppercase tracking-tighter mt-0.5">
+                {freeshipVoucher?.subtitle || "Duy nhất phiên này"}
+            </span>
         </div>
     </div>
   </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ChevronLeft, ChevronRight, Zap, Bookmark } from 'lucide-svelte';
   import type { Product } from '$lib/types';
+  import { getCartStore } from '$lib/state/commerce/cart.svelte';
   
   interface Props {
     product: Product;
@@ -8,6 +9,7 @@
   }
 
   let { product, timeLeft }: Props = $props();
+  const cartStore = getCartStore();
 
   // Carousel State
   let activeImageIndex = $state(0);
@@ -23,16 +25,20 @@
   
   const displayImages = $derived(product.images?.length > 0 ? product.images : [product.images?.[0] || '']);
   
-  const vouchers = $derived(
-    Array.isArray((product.metadata as any)?.vouchers) && (product.metadata as any).vouchers.length > 0
-      ? (product.metadata as any).vouchers 
-      : [
-          { id: 'freeship_30k', label: 'Miễn Phí Vận Chuyển', sub: 'Giảm tối đa 30,000đ', type: 'ship' },
-          { id: 'freeship_60k', label: 'Miễn Phí Vận Chuyển', sub: 'Giảm tối đa 60,000đ', type: 'ship' },
-          { id: 'disc_30k', label: 'Giảm ₫30k', sub: 'Đơn từ 150k', type: 'discount' },
-          { id: 'disc_60k', label: 'Giảm ₫60k', sub: 'Đơn từ 300k', type: 'discount' }
-        ]
-  );
+  const vouchers = $derived.by(() => {
+    // 1. Check if product has specific override vouchers
+    if (Array.isArray(product.metadata?.vouchers) && product.metadata.vouchers.length > 0) {
+      return product.metadata.vouchers;
+    }
+    
+    // 2. Fallback to global active vouchers from CartStore (Elite V2.2)
+    return cartStore.vouchers.map(v => ({
+      id: v.id,
+      label: v.title || v.id,
+      sub: v.subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : `Giảm ${v.value.toLocaleString()}đ`),
+      type: v.type === 'SHIPPING' ? 'ship' : 'discount'
+    }));
+  });
 
   const pDiscountPrice = $derived(product.discountPrice || product.discount_price);
   const displaySalePrice = $derived(pDiscountPrice || product.price);
@@ -157,10 +163,10 @@
 
     <div class="product-stats-row">
       <div class="rating-box">
-        <span class="scoreText">{(product.metadata as any)?.rating || '5.0'}</span>
+        <span class="scoreText">{product.metadata?.rating || '5.0'}</span>
         <div class="stars">
           {#each Array(5) as _, i}
-            <svg class="w-2.5 h-2.5 {i < ((product.metadata as any)?.rating || 5) ? 'text-luxury-copper' : 'text-gray-300'}" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="w-2.5 h-2.5 {i < (Number(product.metadata?.rating) || 5) ? 'text-luxury-copper' : 'text-gray-300'}" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
           {/each}
@@ -168,7 +174,7 @@
       </div>
       <div class="divider"></div>
       <div class="sold-count">{(product as any).order_count_text || `Đã bán ${product.order_count || 0}`}</div>
-      <div class="trust-badge text-luxury-copper font-bold bg-luxury-peach/10">{(product.metadata as any)?.brand_type || 'Micsmo Mall'}</div>
+      <div class="trust-badge text-luxury-copper font-bold bg-luxury-peach/10">{product.metadata?.brand_type || 'Micsmo Mall'}</div>
     </div>
   </section>
 </section>

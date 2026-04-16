@@ -2,7 +2,7 @@ import { setContext, getContext } from 'svelte';
 import { browser } from '$app/environment';
 import { apiClient, ApiError } from '$lib/utils/apiClient';
 import { goto } from '$app/navigation';
-import type { Product, ProductVariant, PromotionDeal } from '$lib/types';
+import type { Product, ProductVariant, PromotionDeal, Voucher } from '$lib/types';
 
 /** Identity Shield API response types (must match backend schema) */
 interface CustomerLookupResponse {
@@ -79,6 +79,9 @@ export class ShopStore {
     // Diagnostic State
     diagnosticResult = $state<DiagnosticReport | null>(null);
     isAnalyzing = $state<boolean>(false);
+    
+    // Vouchers (Elite V2.2)
+    vouchers = $state<Voucher[]>([]);
 
     // Scarcity Timer
     timeLeft = $state<number>(0);
@@ -163,6 +166,10 @@ export class ShopStore {
                 }
             }
         }
+    }
+
+    setVouchers(data: Voucher[]): void {
+        this.vouchers = data || [];
     }
 
     startTimer(): void {

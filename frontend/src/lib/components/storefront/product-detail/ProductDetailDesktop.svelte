@@ -20,13 +20,13 @@
 
   /** Đọc trim config từ metadata của sản phẩm */
   const videoStartTime = $derived(
-    typeof (product.metadata as any)?.video_start_time === 'number'
-      ? (product.metadata as any).video_start_time as number
+    typeof product.metadata?.video_start_time === 'number'
+      ? product.metadata.video_start_time
       : 0
   );
   const videoEndTime = $derived(
-    typeof (product.metadata as any)?.video_end_time === 'number'
-      ? (product.metadata as any).video_end_time as number
+    typeof product.metadata?.video_end_time === 'number'
+      ? product.metadata.video_end_time
       : null
   );
 
@@ -166,17 +166,21 @@
   // Voucher State
   let selectedVouchers = $state<string[]>([]);
   
-  // Use DB vouchers if available, otherwise show global system promos
-  const productVouchers = $derived(
-    Array.isArray((product.metadata as any)?.vouchers) && (product.metadata as any).vouchers.length > 0
-      ? (product.metadata as any).vouchers 
-        : [
-            { id: 'freeship_30k', label: 'Miễn Phí Vận Chuyển', sub: 'Giảm tối đa 30,000đ', type: 'ship' },
-            { id: 'freeship_60k', label: 'Miễn Phí Vận Chuyển', sub: 'Giảm tối đa 60,000đ', type: 'ship' },
-            { id: 'disc_30k', label: 'Giảm ₫30k', sub: 'Đơn từ 150k', type: 'discount' },
-            { id: 'disc_60k', label: 'Giảm ₫60k', sub: 'Đơn từ 300k', type: 'discount' }
-          ]
-  );
+  // Use DB vouchers if available
+  const productVouchers = $derived.by(() => {
+    // 1. Check if product has specific override vouchers in metadata
+    if (Array.isArray(product.metadata?.vouchers) && product.metadata.vouchers.length > 0) {
+      return product.metadata.vouchers;
+    }
+    
+    // 2. Fallback to global active vouchers from CartStore (Elite V2.2)
+    return cartStore.vouchers.map(v => ({
+      id: v.id,
+      label: v.title || v.id,
+      sub: v.subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : `Giảm ${v.value.toLocaleString()}đ`),
+      type: v.type === 'SHIPPING' ? 'ship' : 'discount'
+    }));
+  });
 
   function toggleVoucher(id: string) {
     const voucher = productVouchers.find(v => v.id === id);
@@ -212,9 +216,9 @@
   
   const productInfo = $derived({
     barcode: product.sku || 'N/A',
-    brand: (product.metadata as any)?.brand || '',
-    origin: (product.metadata as any)?.origin || '',
-    weight: (product.metadata as any)?.weight || '',
+    brand: product.metadata?.brand || '',
+    origin: product.metadata?.origin || '',
+    weight: product.metadata?.weight || '',
     originalPrice: pDiscountPrice ? product.price : product.price * 1.55,
     salePrice: pDiscountPrice || product.price
   });
@@ -329,11 +333,11 @@
 
     <!-- RIGHT: PRODUCT INFO (Standard Mall UI) -->
     <div class="flex-1 flex flex-col pt-1">
-      <div class="flex items-start gap-3 mb-2">
-         <div class="flex items-center gap-1.5 bg-[#d0011b] text-white px-1.5 py-0.5 text-[10px] font-black uppercase tracking-widest shadow-sm group relative overflow-hidden mt-1 shrink-0">
+         <div class="flex items-start gap-3 mb-2">
+          <div class="flex items-center gap-1.5 bg-[#d0011b] text-white px-1.5 py-0.5 text-[10px] font-black uppercase tracking-widest shadow-sm group relative overflow-hidden mt-1 shrink-0">
             <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-            <span class="relative z-10 whitespace-nowrap">{(product.metadata as any)?.is_mall ? 'Mall' : 'Shop'}</span>
-         </div>
+            <span class="relative z-10 whitespace-nowrap">{product.metadata?.is_mall ? 'Mall' : 'Shop'}</span>
+          </div>
          <h1 class="text-[20px] font-medium text-gray-900 leading-snug tracking-tight">
             {product.name}
          </h1>
@@ -342,10 +346,10 @@
       <!-- Stats Row -->
       <div class="flex items-center gap-6 text-[14px] mb-6 mt-1">
         <div class="flex items-center gap-1 text-[#ee4d2d] border-b border-[#ee4d2d]/20 pb-0.5">
-          <span class="font-bold border-b border-[#ee4d2d] leading-none mb-[-2px]">{(product.metadata as any)?.rating || '5.0'}</span>
+          <span class="font-bold border-b border-[#ee4d2d] leading-none mb-[-2px]">{product.metadata?.rating || '5.0'}</span>
           <div class="flex pt-0.5 gap-0.5 ml-1">
              {#each Array(5) as _, i}
-                <svg class="w-3 h-3 {i < ((product.metadata as any)?.rating || 5) ? 'text-orange-400' : 'text-gray-300'} fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                <svg class="w-3 h-3 {i < (Number(product.metadata?.rating) || 5) ? 'text-orange-400' : 'text-gray-300'} fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
              {/each}
           </div>
         </div>
@@ -353,7 +357,7 @@
         <button 
           onclick={() => document.getElementById('product-reviews')?.scrollIntoView({ behavior: 'smooth' })}
           class="flex items-center gap-1 group cursor-pointer border-none bg-transparent">
-          <span class="text-black font-bold border-b border-black leading-none mb-[-2px]">{(product.metadata as any)?.reviews?.length || 0}</span>
+          <span class="text-black font-bold border-b border-black leading-none mb-[-2px]">{product.metadata?.reviews?.length || 0}</span>
           <span class="text-gray-500 font-medium">Đánh Giá</span>
         </button>
         <div class="w-px h-4 bg-gray-200"></div>

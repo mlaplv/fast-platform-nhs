@@ -1,6 +1,6 @@
-import { setContext, getContext } from 'svelte';
 import { browser } from '$app/environment';
-import type { Product, ProductVariant } from '$lib/types';
+import type { Product, ProductVariant, Voucher } from '$lib/types';
+import { getContext, setContext } from 'svelte';
 
 export interface CartItem {
     id: string; // Unique ID (product.id + variant.id)
@@ -27,6 +27,7 @@ export interface GiftInfo {
 export class CartStore {
     // Core State
     items = $state<CartItem[]>([]);
+    vouchers = $state<Voucher[]>([]);
     selectedVoucherIds = $state<string[]>([]);
     giftInfo = $state<GiftInfo | null>(null);
     isGiftModalOpen = $state<boolean>(false);
@@ -62,13 +63,18 @@ export class CartStore {
 
     // Discount Mapping
     totalDiscount = $derived.by(() => {
-        if (this.selectedVoucherIds.length === 0) return 0;
+        if (this.selectedVoucherIds.length === 0 || this.vouchers.length === 0) return 0;
         
         let total = 0;
         for (const id of this.selectedVoucherIds) {
-            if (id === 'SALE30K' && this.totalAmountWithoutDiscount >= 150000) total += 30000;
-            if (id === 'SALE60K' && this.totalAmountWithoutDiscount >= 300000) total += 60000;
-            // SHIPPING vouchers currently handle 0 discount here as they act on shipping fee in UI
+            const v = this.vouchers.find(v => v.id === id);
+            if (!v) continue;
+            
+            if (v.type === 'FIXED' && this.totalAmountWithoutDiscount >= (v.min_spend || 0)) {
+                total += v.value;
+            } else if (v.type === 'PERCENT' && this.totalAmountWithoutDiscount >= (v.min_spend || 0)) {
+                total += (this.totalAmountWithoutDiscount * v.value) / 100;
+            }
         }
         return total;
     });
@@ -155,6 +161,10 @@ export class CartStore {
         // Elite V2.2 Cumulative: Add to selection instead of isolating
         this.addItem(product, variant, quantity);
         // addItem handles finding/updating and setting selected = true
+    }
+
+    setVouchers(data: Voucher[]): void {
+        this.vouchers = data || [];
     }
 }
 

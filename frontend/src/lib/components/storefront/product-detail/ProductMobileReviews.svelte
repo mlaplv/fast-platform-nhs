@@ -44,7 +44,7 @@
     fetchReviews();
   });
 
-  const averageRating = $derived(stats?.average_rating || (product.metadata as any)?.rating || '5.0');
+  const averageRating = $derived(stats?.average_rating || product.metadata?.rating || '5.0');
   const reviewCount = $derived(stats?.total_count || 0);
 
   function isVideo(url: string) {

@@ -56,22 +56,22 @@
 <section id="description" class="content-section">
   <h2 class="section-title">Chi tiết sản phẩm</h2>
   <div class="spec-table">
-    {#if (product.metadata as any)?.brand}
+    {#if product.metadata?.brand}
       <div class="spec-row">
         <span class="label">Thương hiệu</span>
-        <span class="val">{(product.metadata as any).brand}</span>
+        <span class="val">{product.metadata.brand}</span>
       </div>
     {/if}
-    {#if (product.metadata as any)?.origin}
+    {#if product.metadata?.origin}
       <div class="spec-row">
         <span class="label">Xuất xứ</span>
-        <span class="val">{(product.metadata as any).origin}</span>
+        <span class="val">{product.metadata.origin}</span>
       </div>
     {/if}
-    {#if (product.metadata as any)?.weight}
+    {#if product.metadata?.weight}
       <div class="spec-row">
         <span class="label">Trọng lượng</span>
-        <span class="val">{(product.metadata as any).weight}</span>
+        <span class="val">{product.metadata.weight}</span>
       </div>
     {/if}
     {#if product.sku && product.sku !== 'N/A'}
@@ -83,7 +83,7 @@
     {#if product.attributes}
       {#each Object.entries(product.attributes) as [key, val]}
         {@const k = key.toLowerCase().replace(/_/g, ' ').trim()}
-        {#if !( ((k === 'thương hiệu' || k === 'brand') && (product.metadata as any)?.brand) || ((k === 'xuất xứ' || k === 'origin') && (product.metadata as any)?.origin) || ((k === 'trọng lượng' || k === 'quy cách' || k === 'weight') && (product.metadata as any)?.weight) || ((k === 'mã vạch' || k === 'barcode') && product.sku && product.sku !== 'N/A') )}
+        {#if !( ((k === 'thương hiệu' || k === 'brand') && product.metadata?.brand) || ((k === 'xuất xứ' || k === 'origin') && product.metadata?.origin) || ((k === 'trọng lượng' || k === 'quy cách' || k === 'weight') && product.metadata?.weight) || ((k === 'mã vạch' || k === 'barcode') && product.sku && product.sku !== 'N/A') )}
         <div class="spec-row">
           <span class="label capitalize">{key.replace(/_/g, ' ')}</span>
           <span class="val">{val}</span>

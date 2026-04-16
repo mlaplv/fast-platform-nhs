@@ -5,19 +5,25 @@ import { ServerEnv } from '$lib/server/env';
 export const load: LayoutServerLoad = async ({ fetch }) => {
     const apiUrl = ServerEnv.INTERNAL_API_URL;
     try {
-        const response = await fetch(`${apiUrl}/api/v1/client/settings/primary`, {
-            signal: AbortSignal.timeout(5000)
-        });
-        if (!response.ok) {
-            throw error(response.status, {
+        // Elite V2.2: Parallel Fetch for Zero-Hydration Performance
+        const [shopResp, voucherResp] = await Promise.all([
+            fetch(`${apiUrl}/api/v1/client/settings/primary`),
+            fetch(`${apiUrl}/api/v1/client/home/vouchers`)
+        ]);
+
+        if (!shopResp.ok) {
+            throw error(shopResp.status, {
                 message: "Không thể tải cấu hình cửa hàng (API Failure)",
                 details: "Hệ thống yêu cầu Shop Settings để khởi tạo layout."
             });
         }
-        const shopInfo = await response.json();
+
+        const shopInfo = await shopResp.json();
+        const vouchersData = voucherResp.ok ? await voucherResp.json() : { data: [] };
 
         return {
-            shopInfo
+            shopInfo,
+            vouchers: vouchersData.data || []
         };
     } catch (e: any) {
         if (e.status) throw e; // Pass through SvelteKit errors

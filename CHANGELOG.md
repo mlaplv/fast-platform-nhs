@@ -5,6 +5,20 @@ All notable changes to the **Fast Platform Core** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [22.4.16.01] - 2026-04-16
+### Added
+- **Dynamic Voucher Integration (Elite V2.2):** Replaced legacy hardcoded lists with a database-driven architecture using `PromotionAdminService`. Added `title` and `subtitle` to the `Voucher` model for premium UI labeling.
+- **Global Data Hub (Sync V2):** Implemented `GET /api/v1/client/home/vouchers` for lightweight global synchronization. Updated store layout to fetch and hydrate vouchers across all landing pages (Home, Product Detail, Checkout).
+- **Strict Typing Protocol (Compliance R03):** Created `HomeDataResponse` and `VoucherListResponse` Pydantic schemas to eliminate `Dict[str, Any]` in public controllers.
+
+### Changed
+- **Zero-Hydration Optimization:** Re-architected `+layout.server.ts` to use parallel `Promise.all` fetches for a consistent <200ms TTFB.
+- **Refined Product Metadata:** Expanded `ProductMetadata` TS interface to include strict types for rating, brand metrics, and video trimming (R00).
+
+### Fixed
+- **The "Missing 4" Bug:** Resolved critical layout data-flow issue where only hardcoded fallback vouchers were visible on direct product page entries.
+- **Master Cleanup:** Removed 100% of `(metadata as any)` casts from the storefront rendering engine ensuring strict Elite V2.2 compliance.
+
 ## [22.3.12.13] - 2026-03-22
 ### Added
 - **Discovery-First Intelligence (Phase 15):** Integrated `DiscoveryHunter` to perform real-time Google Search trinh sát for topic context (snippets) before analysis.

@@ -5,6 +5,8 @@ from datetime import datetime
 class VoucherBase(BaseModel):
     id: str = Field(..., description="Voucher Code (e.g. SALE30K)")
     type: str = Field("FIXED", description="FIXED, PERCENT, SHIPPING")
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
     value: float = Field(0.0)
     min_spend: float = Field(0.0)
     max_discount: Optional[float] = None
@@ -19,6 +21,8 @@ class CreateVoucherRequest(VoucherBase):
 
 class UpdateVoucherRequest(BaseModel):
     type: Optional[str] = None
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
     value: Optional[float] = None
     min_spend: Optional[float] = None
     max_discount: Optional[float] = None

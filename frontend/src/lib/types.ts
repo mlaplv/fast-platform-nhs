@@ -270,6 +270,18 @@ export interface ProductMetadata {
   nav_label_reviews?: string;
   nav_label_offers?: string;
   quiz_loading_label?: string;
+  
+  // Elite V2.2: Common Product Metadata
+  video_start_time?: number;
+  video_end_time?: number;
+  vouchers?: { id: string; label: string; sub: string; type: 'ship' | 'discount' }[];
+  brand?: string;
+  origin?: string;
+  weight?: string;
+  rating?: string | number;
+  is_mall?: boolean;
+  brand_type?: string;
+
   [key: string]: unknown;
 }
 
@@ -602,6 +614,7 @@ export interface HomeData {
   categories: Category[];
   products: Product[];
   ai_products: Product[];
+  vouchers: Voucher[];
   videos: VideoAsset[];
   settings: ShopInfo;
 }
@@ -624,3 +637,15 @@ export interface ClientUiState extends ScreenState {
   initObservers(): (() => void) | undefined;
 }
 
+export interface Voucher {
+  id: string;
+  type: 'FIXED' | 'PERCENT' | 'SHIPPING';
+  title?: string;
+  subtitle?: string;
+  value: number;
+  min_spend: number;
+  max_discount?: number;
+  usage_limit?: number;
+  used_count: number;
+  is_active: boolean;
+}
