@@ -88,6 +88,9 @@
           rawValue = rawValue.replace(/\s+s-[a-zA-Z0-9_-]+/g, "");
           // Remove empty class attributes
           rawValue = rawValue.replace(/class=""/g, "");
+          // Elite V2.2: Strip Sakura Pink spans to ensure clean editing experience
+          rawValue = rawValue.replace(/<span class="text-sakura-pink">/gi, "").replace(/<\/span>/gi, "");
+          
           // For 'html' type we preserve structure but convert BRs to newlines
           if (type === 'html') {
               rawValue = rawValue.replace(/<br\s*\/?>/gi, '\n');
@@ -127,7 +130,10 @@
             if (lines.length > 1) {
                 // Apply pink color to the second line automatically if it's the banner headline
                 if (path.includes('hero_headline')) {
-                    finalValue = `${lines[0]}<br/><span class="text-sakura-pink">${lines.slice(1).join(' ')}</span>`;
+                    // Clean lines to ensure no residual tags before wrapping
+                    const line1 = lines[0].replace(/<\/?[^>]+(>|$)/g, "").trim();
+                    const line2 = lines.slice(1).join(' ').replace(/<\/?[^>]+(>|$)/g, "").trim();
+                    finalValue = `${line1}<br/><span class="text-sakura-pink">${line2}</span>`;
                 } else {
                     finalValue = lines.join('<br/>');
                 }

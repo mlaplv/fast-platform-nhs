@@ -36,16 +36,18 @@ class PermissionState {
     const urlToken = urlParams.get("token");
     
     if (urlToken) {
-      console.log("🛡️ [RBAC] Capturing administrative token from URL...");
-      localStorage.setItem("admin_token", urlToken);
+      console.log("🛡️ [RBAC] Capturing administrative token from URL. Initiating Lockdown V2.2...");
       
-      // Elite V2.2: Aggressive Purge of legacy sessions
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("user_token");
-      
+      // Elite V2.2: Broad Domain Persistence (.micsmo.com)
+      // We set this BEFORE purging storage to ensure identity continuity
       const rootDomain = window.location.hostname.split('.').slice(-2).join('.');
       document.cookie = `admin_token=${urlToken}; path=/; domain=.${rootDomain}; max-age=604800; SameSite=Lax; Secure`;
 
+      // LOCKDOWN: Aggressive Purge of insecure LocalStorage tokens
+      localStorage.removeItem("admin_token");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user_token");
+      
       // Clean URL WITHOUT triggering a state purge immediately
       const newUrl = window.location.origin + window.location.pathname + window.location.search.replace(/[?&]token=[^&]+/, '').replace(/^&/, '?');
       window.history.replaceState({}, '', newUrl);
@@ -58,10 +60,10 @@ class PermissionState {
   private syncFromToken() {
     if (typeof window === "undefined") return;
 
-    // Elite V2.2: Root Cause Fix - Priority Selection
+    // Elite V2.2: Lockdown V2.2 - Cookies are the primary secure source
     const token =
-      localStorage.getItem("admin_token") ||
       this.getCookie("admin_token") ||
+      localStorage.getItem("admin_token") ||
       localStorage.getItem("access_token") ||
       sessionStorage.getItem("admin_token");
 
@@ -159,10 +161,10 @@ class PermissionState {
 
   getAuthToken(): string | null {
     if (typeof window === "undefined") return null;
-    // Elite V2.2: Root Cause Fix - Priority Selection
+    // Elite V2.2: Lockdown V2.2 - Cookie Priority
     const token =
-      localStorage.getItem("admin_token") ||
       this.getCookie("admin_token") ||
+      localStorage.getItem("admin_token") ||
       localStorage.getItem("access_token") ||
       sessionStorage.getItem("admin_token");
       
