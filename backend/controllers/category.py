@@ -47,3 +47,8 @@ class CategoryController(Controller):
         res = await category_service.bulk_delete(db_session, data.ids)
         await db_session.commit()
         return res
+
+    @patch("/reorder", guards=[PermissionGuard(PermissionEnum.CATEGORY_WRITE)])
+    async def reorder_categories(self, db_session: "AsyncSession", data: BulkIdsRequest) -> SuccessResponse:
+        """Cập nhật thứ tự hiển thị danh mục theo danh sách ID."""
+        return await category_service.reorder_categories(db_session, data.ids)

@@ -17,6 +17,8 @@
     formSeoDescription = $bindable(),
     formImage = $bindable(),
     formIcon = $bindable(),
+    formShowOnMobile = $bindable(),
+    formShowOnDesktop = $bindable(),
     onSave,
     onClose,
     generateSlug,
@@ -30,6 +32,8 @@
     formSeoDescription: string;
     formImage: string;
     formIcon: string;
+    formShowOnMobile: bool;
+    formShowOnDesktop: bool;
     onSave: () => void;
     onClose: () => void;
     generateSlug: (name: string) => string;
@@ -43,6 +47,8 @@
     if (formSeoDescription === undefined) formSeoDescription = "";
     if (formImage === undefined) formImage = "";
     if (formIcon === undefined) formIcon = "";
+    if (formShowOnMobile === undefined) formShowOnMobile = true;
+    if (formShowOnDesktop === undefined) formShowOnDesktop = true;
   });
 
   let activeTab = $state("general");
@@ -136,16 +142,40 @@
           </div>
         </div>
 
-        <div class="flex flex-col gap-2 h-full">
-          <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-            <FileText size={10} /> Rich_Description
-          </label>
-          <div class="flex-1 min-h-[180px] rounded-2xl overflow-hidden border border-white/5 focus-within:border-[#00FFFF]/20 transition-all">
-            <TiptapEditor 
-              content={formDescription}
-              onChange={(val) => { formDescription = val; }}
-              placeholder="Describe this category for your customers and search engines..."
-            />
+        <div class="flex flex-col gap-4">
+          <div class="p-4 bg-white/5 border border-white/10 rounded-2xl">
+            <label class="text-[9px] font-bold text-[#00FFFF] uppercase tracking-widest flex items-center gap-2 mb-4">
+               Display_Gate_Control
+            </label>
+            <div class="flex flex-col gap-3">
+              <label class="flex items-center justify-between cursor-pointer group">
+                 <span class="text-xs text-gray-400 group-hover:text-white transition-colors">Show on Mobile</span>
+                 <input type="checkbox" bind:checked={formShowOnMobile} class="hidden" />
+                 <div class="w-10 h-5 rounded-full relative transition-colors {formShowOnMobile ? 'bg-[#00FFFF]/40' : 'bg-gray-800'}">
+                    <div class="absolute top-1 left-1 w-3 h-3 rounded-full bg-white transition-all {formShowOnMobile ? 'translate-x-5' : ''}"></div>
+                 </div>
+              </label>
+              <label class="flex items-center justify-between cursor-pointer group">
+                 <span class="text-xs text-gray-400 group-hover:text-white transition-colors">Show on Desktop</span>
+                 <input type="checkbox" bind:checked={formShowOnDesktop} class="hidden" />
+                 <div class="w-10 h-5 rounded-full relative transition-colors {formShowOnDesktop ? 'bg-[#00FFFF]/40' : 'bg-gray-800'}">
+                    <div class="absolute top-1 left-1 w-3 h-3 rounded-full bg-white transition-all {formShowOnDesktop ? 'translate-x-5' : ''}"></div>
+                 </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-2 flex-1">
+            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+              <FileText size={10} /> Rich_Description
+            </label>
+            <div class="flex-1 min-h-[140px] rounded-2xl overflow-hidden border border-white/5 focus-within:border-[#00FFFF]/20 transition-all">
+              <TiptapEditor 
+                content={formDescription}
+                onChange={(val) => { formDescription = val; }}
+                placeholder="Describe this category..."
+              />
+            </div>
           </div>
         </div>
       </div>

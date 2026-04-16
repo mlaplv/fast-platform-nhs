@@ -213,7 +213,7 @@
                 <!-- 2. Không có con -> Hiển thị Sản phẩm Tinh gọn -->
                 {:else if categoryProducts && categoryProducts.length > 0}
                   {#each categoryProducts as prod}
-                    <a href={`/product/${prod.slug}`} onclick={toggleMenu} class="tbn-cat-card active:scale-[0.96]">
+                    <a href={`/${prod.slug}`} onclick={toggleMenu} class="tbn-cat-card active:scale-[0.96]">
                       <div class="tbn-cat-img-wrapper">
                          <!-- Backend có thể trả `images` list hoặc `thumbnail` hoặc `image` string tùy model Pydantic -->
                          {#if Array.isArray(prod.images) && prod.images.length > 0}

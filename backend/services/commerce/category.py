@@ -55,11 +55,12 @@ class CategoryService:
         stmt = select(
             Category.id, Category.name, Category.slug, Category.parent_id,
             Category.description, Category.seo_title, Category.seo_description,
-            Category.image, Category.icon, Category.created_at
+            Category.image, Category.icon, Category.created_at,
+            Category.position, Category.show_on_mobile, Category.show_on_desktop
         ).where(
             Category.parent_id == None,
             Category.deleted_at == None
-        ).order_by(Category.created_at.asc()).limit(limit).offset(offset)
+        ).order_by(Category.position.asc(), Category.created_at.asc()).limit(limit).offset(offset)
 
         res = await db_session.execute(stmt)
         parent_rows = res.all()
@@ -73,11 +74,12 @@ class CategoryService:
         child_stmt = select(
             Category.id, Category.name, Category.slug, Category.parent_id,
             Category.description, Category.seo_title, Category.seo_description,
-            Category.image, Category.icon, Category.created_at
+            Category.image, Category.icon, Category.created_at,
+            Category.position, Category.show_on_mobile, Category.show_on_desktop
         ).where(
             Category.parent_id.in_(parent_ids),
             Category.deleted_at == None
-        ).order_by(Category.created_at.asc())
+        ).order_by(Category.position.asc(), Category.created_at.asc())
 
         child_res = await db_session.execute(child_stmt)
         child_rows = child_res.all()
@@ -142,6 +144,9 @@ class CategoryService:
             seo_description=category.seo_description,
             image=category.image,
             icon=category.icon,
+            position=category.position,
+            show_on_mobile=category.show_on_mobile,
+            show_on_desktop=category.show_on_desktop,
             created_at=datetime.now(timezone.utc)
         )
 
@@ -165,6 +170,9 @@ class CategoryService:
         if data.seoDescription is not None: category.seo_description = data.seoDescription
         if data.image is not None: category.image = data.image
         if data.icon is not None: category.icon = data.icon
+        if data.position is not None: category.position = data.position
+        if data.showOnMobile is not None: category.show_on_mobile = data.showOnMobile
+        if data.showOnDesktop is not None: category.show_on_desktop = data.showOnDesktop
 
         category.updated_at = datetime.now(timezone.utc)
         await db_session.commit()
@@ -186,6 +194,9 @@ class CategoryService:
             seo_description=category.seo_description,
             image=category.image,
             icon=category.icon,
+            position=category.position,
+            show_on_mobile=category.show_on_mobile,
+            show_on_desktop=category.show_on_desktop,
             created_at=category.created_at or datetime.now(timezone.utc)
         )
 
@@ -210,6 +221,16 @@ class CategoryService:
         stmt = update(Category).where(Category.id.in_(ids)).values(deleted_at=datetime.now(timezone.utc))
         await db_session.execute(stmt)
         return BulkActionResponse(ok=True, count=len(ids))
+    @staticmethod
+    async def reorder_categories(db_session: AsyncSession, ids: List[str]) -> SuccessResponse:
+        """Cập nhật vị trí danh mục hàng loạt."""
+        for index, cat_id in enumerate(ids):
+            stmt = update(Category).where(Category.id == cat_id).values(position=index)
+            await db_session.execute(stmt)
+        
+        await db_session.commit()
+        await CategoryService._invalidate_cache()
+        return SuccessResponse(ok=True)
 
     @staticmethod
     async def _sync_media_links(category_id: str, image_url: Optional[str]) -> None:

@@ -15,6 +15,9 @@ class CreateCategoryRequest(BaseModel):
     seoDescription: Optional[str] = Field(None, max_length=500, alias="seo_description")
     image: Optional[str] = None
     icon: Optional[str] = None
+    position: int = 0
+    showOnMobile: bool = Field(True, alias="show_on_mobile")
+    showOnDesktop: bool = Field(True, alias="show_on_desktop")
 
 
 class UpdateCategoryRequest(BaseModel):
@@ -29,6 +32,9 @@ class UpdateCategoryRequest(BaseModel):
     seoDescription: Optional[str] = Field(None, max_length=500, alias="seo_description")
     image: Optional[str] = None
     icon: Optional[str] = None
+    position: Optional[int] = None
+    showOnMobile: Optional[bool] = Field(None, alias="show_on_mobile")
+    showOnDesktop: Optional[bool] = Field(None, alias="show_on_desktop")
 
 
 class CategoryResponse(BaseModel):
@@ -46,6 +52,9 @@ class CategoryResponse(BaseModel):
     seoDescription: Optional[str] = Field(None, alias="seo_description")
     image: Optional[str] = None
     icon: Optional[str] = None
+    position: int = 0
+    showOnMobile: bool = Field(True, alias="show_on_mobile")
+    showOnDesktop: bool = Field(True, alias="show_on_desktop")
     
     children: List["CategoryResponse"] = Field(default_factory=list)
     createdAt: datetime = Field(alias="created_at")

@@ -23,6 +23,9 @@ class Category(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     seo_description: Mapped[Optional[str]] = mapped_column(String)
     image: Mapped[Optional[str]] = mapped_column(String) # Category banner / icon URL
     icon: Mapped[Optional[str]] = mapped_column(String, nullable=True) # Emoji or SVG icon path
+    position: Mapped[int] = mapped_column(sa.Integer, default=0)
+    show_on_mobile: Mapped[bool] = mapped_column(sa.Boolean, default=True)
+    show_on_desktop: Mapped[bool] = mapped_column(sa.Boolean, default=True)
 
     products: Mapped[List["ProductBase"]] = relationship("ProductBase", back_populates="category")
 

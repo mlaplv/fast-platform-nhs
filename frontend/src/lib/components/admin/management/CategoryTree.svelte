@@ -8,6 +8,10 @@
   import CheckSquare from "lucide-svelte/icons/check-square";
   import Square from "lucide-svelte/icons/square";
   import Layers from "lucide-svelte/icons/layers";
+  import GripVertical from "lucide-svelte/icons/grip-vertical";
+  import Monitor from "lucide-svelte/icons/monitor";
+  import Smartphone from "lucide-svelte/icons/smartphone";
+  import { dndzone } from "svelte-dnd-action";
 
   import type { Category } from "$lib/types";
 
@@ -20,6 +24,7 @@
     onAddSub,
     onEdit,
     onDelete,
+    onReorder,
   } = $props<{
     categories: Category[];
     selectedIds: Set<string>;
@@ -29,11 +34,25 @@
     onAddSub: (id: string) => void;
     onEdit: (cat: Category, parentId?: string | null) => void;
     onDelete: (id: string, parentId?: string | null) => void;
+    onReorder: (newOrder: Category[]) => void;
   }>();
+
+  const flipDurationMs = 300;
+
+  function handleDndConsider(e: any) {
+    onReorder(e.detail.items);
+  }
+
+  function handleDndFinalize(e: any) {
+    onReorder(e.detail.items);
+  }
 </script>
 
 <div
   class="space-y-3 relative before:absolute before:inset-y-2 before:left-[22px] before:w-px before:bg-gradient-to-b before:from-white/10 before:via-white/5 before:to-transparent"
+  use:dndzone={{ items: categories, flipDurationMs, dragDisabled: false }}
+  onconsider={handleDndConsider}
+  onfinalize={handleDndFinalize}
 >
   {#each categories as cat (cat.id)}
     <div class="group/cat relative">
@@ -55,6 +74,12 @@
               class="text-[#00FFFF]"
             />{:else}<Square size={16} />{/if}
         </button>
+
+        <!-- Drag Handle -->
+        <div class="text-gray-700 cursor-grab active:cursor-grabbing hover:text-[#00FFFF]/50 transition-colors">
+          <GripVertical size={16} />
+        </div>
+
         {#if cat.children && cat.children.length > 0}
           <button
             onclick={() => onToggleExpand(cat.id)}
@@ -87,6 +112,11 @@
             <span class="truncate max-w-[100px] sm:max-w-none">{cat.slug}</span>
             <span class="w-1 h-1 rounded-full bg-white/20"></span>
             <span class="text-[#00FFFF]/60">{cat.productCount} items</span>
+            <span class="w-1 h-1 rounded-full bg-white/20"></span>
+            <div class="flex items-center gap-1">
+              <Monitor size={10} class={cat.showOnDesktop !== false ? 'text-[#00FFFF]/80' : 'text-red-500/40'} />
+              <Smartphone size={10} class={cat.showOnMobile !== false ? 'text-[#00FFFF]/80' : 'text-red-500/40'} />
+            </div>
           </div>
         </div>
         {#if cat.children && cat.children.length > 0}

@@ -1,6 +1,6 @@
 from __future__ import annotations
 import logging
-from litestar import Controller, get
+from litestar import Controller, get, Request
 from litestar.di import Provide
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, Any
@@ -51,7 +51,8 @@ class ClientHomeController(Controller):
         category_service: CategoryService,
         banner_service: BannerService,
         settings_service: SettingsService,
-        promotion_service: PromotionAdminService
+        promotion_service: PromotionAdminService,
+        request: Request
     ) -> HomeDataResponse:
         """PUBLIC: Get aggregated data for the home page."""
         # 1. Fetch system settings for shop info (Elite V2.2)
@@ -59,19 +60,32 @@ class ClientHomeController(Controller):
         
         # 2. Fetch actual products (Active only)
         all_products = await product_service.list_products(db_session, limit=100, offset=0, status="ACTIVE")
-        categories = await category_service.list_categories(db_session)
+        categories_resp = await category_service.list_categories(db_session)
+        
+        # Elite V2.2: Device-aware category filtering
+        user_agent = request.headers.get("user-agent", "").lower()
+        is_mobile = any(m in user_agent for m in ["mobile", "android", "iphone", "ipad"])
+        
+        if categories_resp:
+            full_list = categories_resp.data
+            if is_mobile:
+                filtered_cats = [c for c in full_list if c.showOnMobile is not False]
+            else:
+                filtered_cats = [c for c in full_list if c.showOnDesktop is not False]
+        else:
+            filtered_cats = []
+
         banners = await banner_service.list_banners(db_session, active_only=True)
         vouchers_resp = await promotion_service.list_vouchers(db_session, is_active=True, limit=20)
 
         # Elite V2.2: Optimized AI Featured fetch (R76)
         ai_products_resp = await product_service.list_products(db_session, limit=10, offset=0, status="ACTIVE", featured_only=True)
-        ai_products = ai_products_resp.data
+        ai_products = ai_products_resp.data if ai_products_resp else []
 
-        # Format response to match HomeDataResponse schema (Elite V2.2)
-        # Sếp ơi: Pass trực tiếp object để Pydantic lo phần validation/serialization, CẤM model_dump sớm.
+        # Format response
         return HomeDataResponse(
             banners=[b for b in banners.data] if banners else [],
-            categories=categories.data if categories else [],
+            categories=filtered_cats,
             products=[p for p in all_products.data] if all_products else [],
             ai_products=[p for p in ai_products],
             vouchers=[v for v in vouchers_resp.data] if vouchers_resp else [],

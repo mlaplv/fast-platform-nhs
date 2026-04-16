@@ -29,6 +29,8 @@
     formSeoDescription = $state(""),
     formImage = $state(""),
     formIcon = $state(""),
+    formShowOnMobile = $state(true),
+    formShowOnDesktop = $state(true),
     formParentId = $state<string | null>(null);
   let selectedIds = $state<Set<string>>(new Set()),
     expandedIds = $state<Set<string>>(new Set());
@@ -107,6 +109,8 @@
     formSeoDescription = "";
     formImage = "";
     formIcon = "";
+    formShowOnMobile = true;
+    formShowOnDesktop = true;
     formParentId = p;
     showForm = true;
   }
@@ -119,6 +123,8 @@
     formSeoDescription = cat.seoDescription || "";
     formImage = cat.image || "";
     formIcon = cat.icon || "";
+    formShowOnMobile = cat.showOnMobile ?? true;
+    formShowOnDesktop = cat.showOnDesktop ?? true;
     formParentId = p;
     showForm = true;
   }
@@ -144,7 +150,9 @@
       seoTitle: formSeoTitle,
       seoDescription: formSeoDescription,
       image: formImage,
-      icon: formIcon
+      icon: formIcon,
+      show_on_mobile: formShowOnMobile,
+      show_on_desktop: formShowOnDesktop
     };
     try {
       if (editingId) {
@@ -232,6 +240,17 @@
       nanobot.showToast("Xóa hàng loạt thất bại", "error");
     }
   }
+
+  async function handleReorder(newOrder: Category[]) {
+    categories = newOrder;
+    try {
+      await apiClient.patch("/api/v1/categories/reorder", { ids: newOrder.map(c => c.id) });
+      nanobot.showToast("Cập nhật vị trí thành công", "success");
+    } catch (e) {
+      console.error("[CategoryManagement] Reorder failed:", e);
+      nanobot.showToast("Lưu vị trí thất bại", "error");
+    }
+  }
 </script>
 
 <div class="w-full h-full flex flex-col relative bg-[#050505]">
@@ -245,6 +264,9 @@
         bind:formSeoTitle
         bind:formSeoDescription
         bind:formImage
+        bind:formIcon
+        bind:formShowOnMobile
+        bind:formShowOnDesktop
         onSave={save}
         onClose={() => (showForm = false)}
         generateSlug={genSlug}
@@ -320,6 +342,7 @@
         onAddSub={openCreate}
         onEdit={openEdit}
         onDelete={del}
+        onReorder={handleReorder}
       />
     {/if}
   </div>
