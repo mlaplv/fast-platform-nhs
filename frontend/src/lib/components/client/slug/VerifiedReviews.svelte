@@ -223,7 +223,7 @@
   };
 </script>
 
-<section class="snap-session-standard reviews-viewport relative overflow-visible" style:padding-top="var(--standard-pt)">
+<section class="snap-session snap-session-standard reviews-viewport relative overflow-visible" style:padding-top="var(--standard-pt)">
   <div class="reviews-container container mx-auto px-6 max-w-6xl relative z-surface">
     <!-- Header Section -->
     <div class="text-center mb-16" in:fade>

@@ -23,7 +23,7 @@
   });
 </script>
 
-<section id="diagnostics-section" aria-labelledby="personalized-care" class="snap-session-standard diagnostics-container diagnostic-premium-flow relative overflow-x-hidden" style:padding-top="var(--standard-pt)">
+<section id="diagnostics-section" aria-labelledby="personalized-care" class="snap-session snap-session-standard diagnostics-container diagnostic-premium-flow relative overflow-x-hidden" style:padding-top="var(--standard-pt)">
   <div class="container mx-auto px-4 md:px-6 max-w-7xl text-center relative z-surface">
     <EditableWrapper path="metadata.diagnostics_headline" label="SỬA TIÊU ĐỀ CHẨN ĐOÁN">
       <h3 id="personalized-care" class="elite-session-headline mb-8">

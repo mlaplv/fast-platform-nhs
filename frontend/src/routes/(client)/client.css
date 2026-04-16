@@ -169,6 +169,10 @@ body {
 .snap-session-standard {
   position: relative;
   width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
   padding-top: var(--standard-pt) !important;
   padding-bottom: var(--standard-pb) !important;
   overflow: hidden;
