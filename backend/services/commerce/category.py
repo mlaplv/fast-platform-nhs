@@ -117,6 +117,35 @@ class CategoryService:
         return CategoryListResponse(data=data, total=total)
 
     @staticmethod
+    async def get_category_by_slug(db_session: AsyncSession, slug: str) -> Optional[CategoryResponse]:
+        """Elite V2.2: Fetch a single category by slug for URL validation."""
+        stmt = select(
+            Category.id, Category.name, Category.slug, Category.parent_id,
+            Category.description, Category.seo_title, Category.seo_description,
+            Category.image, Category.icon, Category.created_at,
+            Category.position, Category.show_on_mobile, Category.show_on_desktop
+        ).where(
+            Category.slug == slug,
+            Category.deleted_at == None
+        )
+        res = await db_session.execute(stmt)
+        row = res.first()
+        if not row:
+            return None
+            
+        p_dict: CategoryNode = dict(row._mapping) # type: ignore
+        # Count products for this specific category
+        query = text(
+            'SELECT COUNT(*)::int as cnt FROM product_bases '
+            'WHERE category_id = :cid AND deleted_at IS NULL'
+        )
+        count_res = await db_session.execute(query, {"cid": str(row.id)})
+        p_dict["product_count"] = count_res.scalar() or 0
+        p_dict["children"] = [] # Single fetch doesn't need children for validation
+        
+        return CategoryResponse.model_validate(p_dict)
+
+    @staticmethod
     async def _invalidate_cache() -> None:
         """Invalidate category cache."""
         await xohi_memory.client.delete("system:categories:tree")

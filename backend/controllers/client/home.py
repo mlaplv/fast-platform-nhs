@@ -14,6 +14,7 @@ from backend.services.settings_service import SettingsService, provide_settings_
 from backend.services.promotion_admin_service import PromotionAdminService, promotion_admin_service
 from backend.schemas.client_home import HomeDataResponse
 from backend.schemas.promotion import VoucherListResponse
+from backend.schemas.category import CategoryResponse
 from backend.schemas.system_settings import SystemSettingsPayload, SystemSettingsResponse
 
 logger = logging.getLogger("api-gateway")
@@ -92,3 +93,17 @@ class ClientHomeController(Controller):
             settings=system_settings.settings if system_settings else SystemSettingsPayload(),
             videos=[]
         )
+
+    @get("/category/{slug:str}")
+    async def get_category_by_slug(
+        self,
+        db_session: AsyncSession,
+        category_service: CategoryService,
+        slug: str
+    ) -> CategoryResponse:
+        """PUBLIC: Verify category slug for URL validation (Elite V2.2)."""
+        res = await category_service.get_category_by_slug(db_session, slug)
+        if not res:
+            from litestar.exceptions import NotFoundException
+            raise NotFoundException(f"Category slug '{slug}' not found")
+        return res
